@@ -186,6 +186,27 @@ fn record_shape(
     Some(owns_bytes)
 }
 
+// Closed internal Reader inspections retain a scalar result; no view or owner
+// can escape through this signature. The defining body is verified separately.
+fn reader_inspection_signature(function: &Function) -> bool {
+    function.type_parameters.is_empty()
+        && function.effects.is_empty()
+        && function.yields.is_none()
+        && function.follows.is_none()
+        && matches!(function.params.as_slice(), [param] if param.mode == ParamMode::Borrow && crate::stdin_stream_ops::ast_is_reader(&param.ty))
+        && matches!(
+            function.return_type,
+            Type::I64
+                | Type::I32
+                | Type::Char
+                | Type::U8
+                | Type::Usize
+                | Type::F32
+                | Type::F64
+                | Type::Bool
+        )
+}
+
 pub(super) fn validate_imported_function(
     caller: &Program,
     module_use: &ModuleUse,
@@ -202,7 +223,9 @@ pub(super) fn validate_imported_function(
         .iter()
         .find(|program| program.module == target.module)
         .is_some_and(|program| crate::box_ops::source_wrapper(program, function).is_some());
-    if transparent_vec_wrapper
+    if crate::stdin_stream_ops::ast_forward_signature(function)
+        || reader_inspection_signature(function)
+        || transparent_vec_wrapper
         || transparent_box_wrapper
         || admitted(caller, target, authored, programs)
     {

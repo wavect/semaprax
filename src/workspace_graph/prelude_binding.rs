@@ -287,4 +287,50 @@ use function @id("stream.inspect") from stream.input as inspect;
             .shared_prelude_ids
             .contains(crate::stdin_stream_ops::READER_ID));
     }
+    #[test]
+    fn imported_owned_reader_helper_uses_an_identity_stub_without_a_constructor() {
+        let build = build_owned(vec![
+            source(
+                "app.spx",
+                r#"module stream.app;
+use function @id("stream.forward") from stream.input as forward;
+permit { process.stdin.read }
+@id("stream.command") fn command() -> bool uses { process.stdin.read } {
+    let reader = stdin_stream_open(); let successor = forward(reader); stdin_stream_eof(successor)
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#,
+            ),
+            source(
+                "input.spx",
+                r#"module stream.input;
+@id("stream.forward") fn forward(reader: own StdinReader) -> StdinReader { reader }
+@id("input.main") fn main() -> i64 { 0 }
+"#,
+            ),
+        ])
+        .unwrap();
+        assert!(build
+            .hir
+            .shared_prelude_ids
+            .contains(crate::stdin_stream_ops::READER_ID));
+    }
+    #[test]
+    fn imported_reader_helpers_refuse_consuming_scalar_and_view_results() {
+        for signature in [
+            "fn inspect(reader: own StdinReader) -> bool { false }",
+            "fn inspect(reader: borrow StdinReader) -> Slice<u8> { stdin_stream_chunk(reader) }",
+        ] {
+            let error = build_owned(vec![
+                source("app.spx", r#"module stream.app;
+use function @id("stream.inspect") from stream.input as inspect;
+@id("app.main") fn main() -> i64 { 0 }
+"#),
+                source("input.spx", &format!("module stream.input; @id(\"stream.inspect\") {signature} @id(\"input.main\") fn main() -> i64 {{ 0 }}")),
+            ]).unwrap_err();
+            assert_eq!(error[0].code, "SPX-G172");
+            assert_eq!(error[0].path.as_deref(), Some("app.spx"));
+            assert!(error[0].span.is_some());
+        }
+    }
 }

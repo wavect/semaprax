@@ -80,8 +80,15 @@ optional `process.stdin.read`. Their terminal expression returns that exact
 parameter, its Next successor, or another authenticated forwarding helper's
 successor. They may inspect a chunk before its loan ends. Borrowed Reader
 helpers may inspect it without returning the view. Reader helper call graphs
-are acyclic. This version excludes function-value/closure execution and agents
-in streaming programs rather than guessing an indirect Open count.
+are acyclic. Workspace imports admit the exact owned forwarding signature and
+pure inspections with one `borrow StdinReader` parameter and a scalar Copy
+result. The defining module supplies the checked implementation. Import
+prototypes forward their existing owned parameter instead of constructing a
+Reader; their expression and name storage are included in builder preflight.
+Reader needs no authored type import or alias. Consuming scalar-result and
+view-result helper imports remain refused. This version excludes
+function-value/closure execution and agents in streaming programs rather than
+guessing an indirect Open count.
 
 The complete reachable call path may execute Open at most once. Open is refused
 in every loop condition/body and any relevant call cycle. A function that

@@ -1147,12 +1147,11 @@ fn order_status(paid: bool) -> string
 
 ## Projects
 
-Convert a byte directly with `i64_from_u8(byte)` in single files or projects.
+`i64_from_u8(byte)` widens a byte exactly.
 For a `borrow str`, use `let view = str_as_bytes(text);` then
 `match byte_get(view, index) { Option::Some { value: byte } => i64_from_u8(byte), Option::None {} => -1, }`.
 This reads bytes without an owned text copy; choose the `None` result explicitly.
-The existing `std.bytes.get_or` library helper is also available in
-`useful-data.v1`: `semaprax help library std.bytes.get_or`.
+`std.bytes.get_or` is also available in `useful-data.v1`: `semaprax help library std.bytes.get_or`.
 
 A project puts `semaprax.toml` beside `src/`. Use the extensible table layout
 below. The committed examples' frozen, one-line-per-key

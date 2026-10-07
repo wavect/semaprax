@@ -49,7 +49,7 @@ fn read(text: borrow str, index: usize) -> i64
 @id("app.main")
 fn main() -> i64
 {
-    let text = "é\0";
+    let text = "é\u{0}";
     let raw = string_as_str(text);
     let empty = "";
     let raw_empty = string_as_str(empty);
@@ -185,6 +185,10 @@ fn byte_widening_core_wasm_all_bytes_and_borrowed_text() {
         fixture.write("program.wasm", bytes);
         let script = fixture.write("probe.mjs", r#"import {readFileSync} from 'node:fs';
 const fail = () => { throw new Error('unexpected host call'); };
+const checked = value => {
+  if(value < -9223372036854775808n || value > 9223372036854775807n) throw new Error('arithmetic overflow');
+  return value;
+};
 const bytes = readFileSync('program.wasm');
 let memory,next=1,allocations=0,drops=0;
 const owners=new Map();
@@ -199,7 +203,8 @@ const span = carrier => {
   return new Uint8Array(memory.buffer,pointer,length);
 };
 const {instance} = await WebAssembly.instantiate(bytes, {env: {
-spx_add:fail, spx_sub:fail, spx_mul:fail, spx_div:fail, spx_rem:fail, spx_neg:fail, spx_contract_fail:fail,
+spx_add:(a,b)=>checked(a+b), spx_sub:(a,b)=>checked(a-b), spx_mul:(a,b)=>checked(a*b),
+spx_div:(a,b)=>checked(a/b), spx_rem:(a,b)=>checked(a%b), spx_neg:a=>checked(-a), spx_contract_fail:fail,
 spx_bytes_copy:carrier=>{
   const bytes=new Uint8Array(span(carrier)),id=next++;owners.set(id,bytes);allocations++;
   return BigInt.asIntN(64,((0x80000000n|BigInt(id))<<32n)|BigInt(bytes.length));
@@ -211,8 +216,9 @@ spx_bytes_drop:carrier=>{
 spx_bytes_as_slice:carrier=>{span(carrier);return carrier;},
 spx_bytes_get:(carrier,index)=>{
   const bytes=span(carrier);
-  if(typeof index!=='bigint' || index<0n || index>18446744073709551615n) throw new Error('index');
-  return index>=BigInt(bytes.length)?-1:bytes[Number(index)];
+  if(typeof index!=='bigint') throw new Error('index');
+  const offset=BigInt.asUintN(64,index);
+  return offset>=BigInt(bytes.length)?-1:bytes[Number(offset)];
 },
 }});
 memory=instance.exports.__spx_byte_memory||instance.exports.memory;

@@ -383,6 +383,309 @@
           }
         ]
       }
+    },
+    {
+      "round": 4,
+      "status": "completed full-corpus campaign; TypeScript used fewer turns/tokens and lower estimated cost",
+      "compiler_source_commit": "2f2ec1acf8756610bf9fc194a43f0df27aadcbd6",
+      "compiler_binary_sha256": "a8527bee158f6b6d1822e106b7022a354900a81a0bd57f4c888cfb9b823e2b77",
+      "frozen_spec_sha256": "51bf564cb9f7eadd4b3bd12fac53b7857befa09b3ef757d9c34400a8509fdeae",
+      "model_requested": "claude-sonnet-5-5",
+      "observed_model_ids": [
+        "claude-sonnet-5-5"
+      ],
+      "effort": "medium",
+      "trials_per_arm": 5,
+      "evidence_file": "round4-accounted-evidence.json",
+      "report": "ROUND-4-REPORT.md",
+      "calibration": {
+        "calibration_prompt_tokens_legacy_proxy": 21,
+        "first_turn_provider_input_plus_cache_tokens": 6723,
+        "one_turn_context_input_tokens_proxy": 6702,
+        "context_diagnostic_note": "One-turn diagnostic only: provider first-turn input plus cache minus this fixed calibration prompt's legacy tokenizer proxy. It is not task-only or exact net input; trial contexts repeat across turns and grow with task/tool history. No value is subtracted from trial totals.",
+        "list_price_estimate_usd": 0.008791,
+        "provider_reported_api_equivalent_total_cost_usd": 0.0087906,
+        "provider_receipt_actual_usd": null,
+        "observed_model_id": "claude-sonnet-5-5",
+        "status": "ready"
+      },
+      "pricing": {
+        "date": "2026-10-07",
+        "currency": "USD",
+        "source_url": "https://platform.claude.com/docs/en/models/sonnet-5-5/overview",
+        "per_million_tokens": {
+          "input": 2.0,
+          "cache_write_5m": 2.5,
+          "cache_write_1h": 4.0,
+          "cache_read": 0.2,
+          "output": 10.0
+        },
+        "claim": "list-price estimate only; provider-reported API-equivalent total is separate and is not a billing receipt",
+        "cache_write_fallback": "when provider TTL breakdown is unavailable, price all cache_creation_input_tokens at the 5-minute rate"
+      },
+      "semaprax": {
+        "arm": "semaprax",
+        "attempts": 5,
+        "accepted": 4,
+        "acceptance_rate": 0.8,
+        "provider_usage_totals_known_subtotal": {
+          "input_tokens": 262,
+          "cache_creation_input_tokens": 366750,
+          "cache_read_input_tokens": 7481491,
+          "output_tokens": 156767,
+          "cache_creation_ephemeral_5m_input_tokens": 0,
+          "cache_creation_ephemeral_1h_input_tokens": 366750
+        },
+        "provider_usage_missing_trial_counts": {
+          "input_tokens": 0,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "output_tokens": 0,
+          "cache_creation_ephemeral_5m_input_tokens": 0,
+          "cache_creation_ephemeral_1h_input_tokens": 0
+        },
+        "input_and_cache_are_separate_buckets": true,
+        "provider_input_plus_cache_tokens_raw_per_trial": [
+          1496473,
+          770469,
+          1565564,
+          1560749,
+          2455248
+        ],
+        "provider_input_plus_cache_tokens_raw_known_subtotal": 7848503,
+        "provider_input_plus_cache_tokens_raw_incomplete_trials": 0,
+        "legacy_net_input_tokens_per_trial": [
+          1307141,
+          653957,
+          1376232,
+          1371417,
+          2185814
+        ],
+        "legacy_net_input_tokens_known_subtotal": 6894561,
+        "legacy_net_input_tokens_incomplete_trials": 0,
+        "legacy_net_first_turn_input_plus_cache_tokens_per_trial": [
+          7282,
+          7282,
+          7282,
+          7282,
+          7282
+        ],
+        "legacy_net_baseline_tokens_subtracted_per_trial": [
+          189332,
+          116512,
+          189332,
+          189332,
+          269434
+        ],
+        "legacy_net_input_definition": "deduplicated per-turn input + cache-write + cache-read sum minus first-turn input + cache total times turn count; first-turn baseline includes the task prompt and harness context",
+        "one_turn_calibration_context_input_tokens_proxy": 6702,
+        "context_baseline_applied_to_trial_totals": false,
+        "context_accounting_note": "Raw provider counters include repeated fixed context on every turn plus task and tool history. The separate single-turn calibration is diagnostic only and is not a task-only or net-input estimate.",
+        "final_candidate_source_token_proxy_per_trial": [
+          8643,
+          6621,
+          7702,
+          7660,
+          6674
+        ],
+        "final_candidate_source_token_proxy_known_subtotal": 37300,
+        "final_candidate_source_token_proxy_incomplete_trials": 0,
+        "authored_source_token_claim": "legacy-Claude tokenizer proxy over final candidate source inventory only; excludes rewritten/deleted text and is not cumulative authored generation, provider output, current-model tokens, or billing tokens",
+        "turns": 131,
+        "per_trial_model_session_wall_seconds": [
+          274.213,
+          218.005,
+          270.817,
+          289.042,
+          329.766
+        ],
+        "aggregate_model_session_wall_seconds": 1381.843,
+        "mean_model_session_wall_seconds": 276.369,
+        "median_model_session_wall_seconds": 274.213,
+        "list_price_estimate_per_attempt_usd": [
+          0.891058,
+          0.660591,
+          0.904892,
+          0.915345,
+          1.159605
+        ],
+        "list_price_cache_write_pricing_per_attempt": [
+          {
+            "basis": "provider_ttl_breakdown",
+            "five_minute_tokens": 0,
+            "one_hour_tokens": 72479
+          },
+          {
+            "basis": "provider_ttl_breakdown",
+            "five_minute_tokens": 0,
+            "one_hour_tokens": 61392
+          },
+          {
+            "basis": "provider_ttl_breakdown",
+            "five_minute_tokens": 0,
+            "one_hour_tokens": 73270
+          },
+          {
+            "basis": "provider_ttl_breakdown",
+            "five_minute_tokens": 0,
+            "one_hour_tokens": 76440
+          },
+          {
+            "basis": "provider_ttl_breakdown",
+            "five_minute_tokens": 0,
+            "one_hour_tokens": 83169
+          }
+        ],
+        "list_price_estimate_known_subtotal_usd": 4.531491,
+        "list_price_estimate_complete": true,
+        "list_price_estimate_total_usd": 4.531491,
+        "estimated_cost_per_accepted_task_usd": 1.132873,
+        "accepted_task_cost_note": "All attempts, including failed and rejected trials, are included in the numerator.",
+        "provider_receipt_actual_usd": null,
+        "provider_reported_api_equivalent_total_cost_usd_per_attempt": [
+          0.8910584,
+          0.6605910000000002,
+          0.9048924,
+          0.9153453999999999,
+          1.159605
+        ],
+        "provider_reported_api_equivalent_cost_known_subtotal_usd": 4.531492,
+        "failures": [
+          {
+            "trial": 4,
+            "reason": "candidate failed independent build or acceptance checks"
+          }
+        ]
+      },
+      "typescript": {
+        "arm": "typescript",
+        "attempts": 5,
+        "accepted": 5,
+        "acceptance_rate": 1.0,
+        "provider_usage_totals_known_subtotal": {
+          "input_tokens": 60,
+          "cache_creation_input_tokens": 121606,
+          "cache_read_input_tokens": 595732,
+          "output_tokens": 43557,
+          "cache_creation_ephemeral_5m_input_tokens": 0,
+          "cache_creation_ephemeral_1h_input_tokens": 121606
+        },
+        "provider_usage_missing_trial_counts": {
+          "input_tokens": 0,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "output_tokens": 0,
+          "cache_creation_ephemeral_5m_input_tokens": 0,
+          "cache_creation_ephemeral_1h_input_tokens": 0
+        },
+        "input_and_cache_are_separate_buckets": true,
+        "provider_input_plus_cache_tokens_raw_per_trial": [
+          221029,
+          91965,
+          216766,
+          126543,
+          61095
+        ],
+        "provider_input_plus_cache_tokens_raw_known_subtotal": 717398,
+        "provider_input_plus_cache_tokens_raw_incomplete_trials": 0,
+        "legacy_net_input_tokens_per_trial": [
+          162773,
+          62837,
+          158510,
+          90133,
+          24685
+        ],
+        "legacy_net_input_tokens_known_subtotal": 498938,
+        "legacy_net_input_tokens_incomplete_trials": 0,
+        "legacy_net_first_turn_input_plus_cache_tokens_per_trial": [
+          7282,
+          7282,
+          7282,
+          7282,
+          7282
+        ],
+        "legacy_net_baseline_tokens_subtracted_per_trial": [
+          58256,
+          29128,
+          58256,
+          36410,
+          36410
+        ],
+        "legacy_net_input_definition": "deduplicated per-turn input + cache-write + cache-read sum minus first-turn input + cache total times turn count; first-turn baseline includes the task prompt and harness context",
+        "one_turn_calibration_context_input_tokens_proxy": 6702,
+        "context_baseline_applied_to_trial_totals": false,
+        "context_accounting_note": "Raw provider counters include repeated fixed context on every turn plus task and tool history. The separate single-turn calibration is diagnostic only and is not a task-only or net-input estimate.",
+        "final_candidate_source_token_proxy_per_trial": [
+          3850,
+          3990,
+          3354,
+          3666,
+          2662
+        ],
+        "final_candidate_source_token_proxy_known_subtotal": 17522,
+        "final_candidate_source_token_proxy_incomplete_trials": 0,
+        "authored_source_token_claim": "legacy-Claude tokenizer proxy over final candidate source inventory only; excludes rewritten/deleted text and is not cumulative authored generation, provider output, current-model tokens, or billing tokens",
+        "turns": 30,
+        "per_trial_model_session_wall_seconds": [
+          78.906,
+          57.868,
+          68.373,
+          63.077,
+          53.795
+        ],
+        "aggregate_model_session_wall_seconds": 322.019,
+        "mean_model_session_wall_seconds": 64.404,
+        "median_model_session_wall_seconds": 63.077,
+        "list_price_estimate_per_attempt_usd": [
+          0.247384,
+          0.202509,
+          0.240553,
+          0.217673,
+          0.133141
+        ],
+        "list_price_cache_write_pricing_per_attempt": [
+          {
+            "basis": "provider_ttl_breakdown",
+            "five_minute_tokens": 0,
+            "one_hour_tokens": 28321
+          },
+          {
+            "basis": "provider_ttl_breakdown",
+            "five_minute_tokens": 0,
+            "one_hour_tokens": 26011
+          },
+          {
+            "basis": "provider_ttl_breakdown",
+            "five_minute_tokens": 0,
+            "one_hour_tokens": 27795
+          },
+          {
+            "basis": "provider_ttl_breakdown",
+            "five_minute_tokens": 0,
+            "one_hour_tokens": 27549
+          },
+          {
+            "basis": "provider_ttl_breakdown",
+            "five_minute_tokens": 0,
+            "one_hour_tokens": 11930
+          }
+        ],
+        "list_price_estimate_known_subtotal_usd": 1.04126,
+        "list_price_estimate_complete": true,
+        "list_price_estimate_total_usd": 1.04126,
+        "estimated_cost_per_accepted_task_usd": 0.208252,
+        "accepted_task_cost_note": "All attempts, including failed and rejected trials, are included in the numerator.",
+        "provider_receipt_actual_usd": null,
+        "provider_reported_api_equivalent_total_cost_usd_per_attempt": [
+          0.24738439999999998,
+          0.20250920000000003,
+          0.240553,
+          0.2176728,
+          0.133141
+        ],
+        "provider_reported_api_equivalent_cost_known_subtotal_usd": 1.04126,
+        "failures": []
+      }
     }
   ]
 }

@@ -86,3 +86,9 @@ failed checks name the next targets: user functions with string parameters,
 as a statement and casts (`SPX-P106`); string reassignment from a branch
 (`SPX-U105`); string parameters that consume their argument; and no `str`
 to `string` conversion.
+
+Round 4 completed with explicit LF/CRLF/CR requirements, five matched live runs
+per arm: SEMAPRAX accepted 4/5 and TypeScript 5/5. See
+[the round 4 report](ROUND-4-REPORT.md) and
+[accounted evidence](round4-accounted-evidence.json) for usage, fixed-context
+calibration, estimated cost per accepted task and saved-artifact identities.

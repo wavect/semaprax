@@ -1,0 +1,4208 @@
+{
+  "schema": "semaprax.cli-tokens.round4-evidence.v1",
+  "scope": "Five matched live runs per arm, original full acceptance; no rescore",
+  "source_artifacts": {
+    "campaign_sha256": "bf5c518f21a35a1782ae111a786088ac2acb6e5a7b06b33037fffc34f86c2405",
+    "results_sha256": "e6078dd051285ad2b716c64dd58c1024dfa11f6811a0dc61fde8f4a4a69b3f34",
+    "recount_sha256": "a1adf7ff094b5adcc6bb9118e9e7f2d4bd0a12791ee57e26acea0b035f33bb05",
+    "local_artifacts": "/Users/kevin/.codex/benchmark-runs/loglens-round4-20261007-r1",
+    "transcript_bulk_included": false
+  },
+  "campaign": {
+    "round": 4,
+    "repository_commit": "2f2ec1acf8756610bf9fc194a43f0df27aadcbd6",
+    "source_repository_commit": "2f2ec1acf8756610bf9fc194a43f0df27aadcbd6",
+    "model": "claude-sonnet-5-5",
+    "effort": "medium",
+    "trials_per_arm": 5,
+    "timeout_seconds": 1800,
+    "trial_order": [
+      "semaprax",
+      "typescript",
+      "typescript",
+      "semaprax",
+      "semaprax",
+      "typescript",
+      "typescript",
+      "semaprax",
+      "semaprax",
+      "typescript"
+    ],
+    "seed_files_sha256": {
+      "benchmarks/cli-tokens-v1/SPEC.md": "51bf564cb9f7eadd4b3bd12fac53b7857befa09b3ef757d9c34400a8509fdeae",
+      "benchmarks/cli-tokens-v1/sample.log": "b4574c3e627aff7760a934ec5dc10c45abf76ade1f6ae0c20518c56cc6660598"
+    },
+    "semaprax_binary_sha256": "a8527bee158f6b6d1822e106b7022a354900a81a0bd57f4c888cfb9b823e2b77",
+    "observed_model_id": "claude-sonnet-5-5"
+  },
+  "tokenizer": {
+    "package": "@anthropic-ai/tokenizer",
+    "version": "0.0.4",
+    "dependency": "tiktoken",
+    "dependency_version": "1.0.22",
+    "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+    "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+    "runtime": "node",
+    "runtime_version": "v24.3.0",
+    "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+    "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea"
+  },
+  "accounting": {
+    "schema": "semaprax.cli-tokens.accounting.v1",
+    "accounting_revision": "e850dabb37c6c1f0f8eb1f9f182b44a5875c3e8f",
+    "parser_source_sha256": "de96e28bf16515cf352bfcb77d20cff6feb689d122140b3a355b20512fd72b74",
+    "source_results_sha256": "e6078dd051285ad2b716c64dd58c1024dfa11f6811a0dc61fde8f4a4a69b3f34",
+    "recounted_at_utc": "2026-10-07T12:18:06+00:00",
+    "usage_source": "saved Claude Code stream-json transcripts",
+    "provider_receipt_actual_usd": null,
+    "transcripts": [
+      {
+        "path": "transcripts/calibration.jsonl",
+        "sha256": "3ce83f01cbdf99bcf1a866319770901125ae3a0bd0f03eed6ff298bb9ae78e80",
+        "status": "recounted"
+      },
+      {
+        "path": "transcripts/semaprax-01.jsonl",
+        "sha256": "e81d423e5f2d435b8cf142ed8c0616e22ff4b350a9702e8214a101647f6d58a2",
+        "status": "recounted"
+      },
+      {
+        "path": "transcripts/typescript-01.jsonl",
+        "sha256": "ff720a797b98c0b27892a2f073441a3d42cd4f3f1b78215e9dce727a6bc02d36",
+        "status": "recounted"
+      },
+      {
+        "path": "transcripts/typescript-02.jsonl",
+        "sha256": "9c4b47b9307444fc5b589d943a914297ea07cedb97a812b9b95fe9490a3c8405",
+        "status": "recounted"
+      },
+      {
+        "path": "transcripts/semaprax-02.jsonl",
+        "sha256": "529add479baec24b600368b873875390a8497ab53d2e83366a542ea82201f3d2",
+        "status": "recounted"
+      },
+      {
+        "path": "transcripts/semaprax-03.jsonl",
+        "sha256": "e629ad511ecabe8105d39840738e733bb5fa2dbd81796ba346082a898e107a6a",
+        "status": "recounted"
+      },
+      {
+        "path": "transcripts/typescript-03.jsonl",
+        "sha256": "b1730ae229a5bace82073c9f39f0b9fe0caad9fc8b551d32992b6ef024adb0fc",
+        "status": "recounted"
+      },
+      {
+        "path": "transcripts/typescript-04.jsonl",
+        "sha256": "bd286cd01083e43d3317b17e00b1fee1b56d2a0b0e27a64c1e9167aeb85616f6",
+        "status": "recounted"
+      },
+      {
+        "path": "transcripts/semaprax-04.jsonl",
+        "sha256": "975a8f6ca7871ea1d680025c7d3047cd9af3c2741a809108a61c305e850623a7",
+        "status": "recounted"
+      },
+      {
+        "path": "transcripts/semaprax-05.jsonl",
+        "sha256": "7618748c1bc89b3f67b2f80ea7422c2845af0df3e6457e8634ec1b688fee4945",
+        "status": "recounted"
+      },
+      {
+        "path": "transcripts/typescript-05.jsonl",
+        "sha256": "52e0e155ca3a5c6b845c8ee255d84a7c6b7142021c1d6dd437b2a790a07a7834",
+        "status": "recounted"
+      }
+    ],
+    "original_results_path": "/Users/kevin/.codex/benchmark-runs/loglens-round4-20261007-r1/results.json",
+    "recorded_attempts": 10,
+    "planned_attempt_denominator": 10,
+    "campaign_complete": true,
+    "scope_assessment_is_post_run_and_not_original_scoring": true,
+    "recount_does_not_rerun_models_builds_or_acceptance": true
+  },
+  "calibration": {
+    "calibration_prompt_tokens_legacy_proxy": 21,
+    "first_turn_provider_input_plus_cache_tokens": 6723,
+    "one_turn_context_input_tokens_proxy": 6702,
+    "context_diagnostic_note": "One-turn diagnostic only: provider first-turn input plus cache minus this fixed calibration prompt's legacy tokenizer proxy. It is not task-only or exact net input; trial contexts repeat across turns and grow with task/tool history. No value is subtracted from trial totals.",
+    "list_price_estimate_usd": 0.008791,
+    "provider_reported_api_equivalent_total_cost_usd": 0.0087906,
+    "provider_receipt_actual_usd": null,
+    "observed_model_id": "claude-sonnet-5-5",
+    "status": "ready"
+  },
+  "pricing": {
+    "date": "2026-10-07",
+    "currency": "USD",
+    "source_url": "https://platform.claude.com/docs/en/models/sonnet-5-5/overview",
+    "per_million_tokens": {
+      "input": 2.0,
+      "cache_write_5m": 2.5,
+      "cache_write_1h": 4.0,
+      "cache_read": 0.2,
+      "output": 10.0
+    },
+    "claim": "list-price estimate only; provider-reported API-equivalent total is separate and is not a billing receipt",
+    "cache_write_fallback": "when provider TTL breakdown is unavailable, price all cache_creation_input_tokens at the 5-minute rate"
+  },
+  "arms": {
+    "semaprax": {
+      "arm": "semaprax",
+      "attempts": 5,
+      "accepted": 4,
+      "acceptance_rate": 0.8,
+      "provider_usage_totals_known_subtotal": {
+        "input_tokens": 262,
+        "cache_creation_input_tokens": 366750,
+        "cache_read_input_tokens": 7481491,
+        "output_tokens": 156767,
+        "cache_creation_ephemeral_5m_input_tokens": 0,
+        "cache_creation_ephemeral_1h_input_tokens": 366750
+      },
+      "provider_usage_missing_trial_counts": {
+        "input_tokens": 0,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "output_tokens": 0,
+        "cache_creation_ephemeral_5m_input_tokens": 0,
+        "cache_creation_ephemeral_1h_input_tokens": 0
+      },
+      "input_and_cache_are_separate_buckets": true,
+      "provider_input_plus_cache_tokens_raw_per_trial": [
+        1496473,
+        770469,
+        1565564,
+        1560749,
+        2455248
+      ],
+      "provider_input_plus_cache_tokens_raw_known_subtotal": 7848503,
+      "provider_input_plus_cache_tokens_raw_incomplete_trials": 0,
+      "legacy_net_input_tokens_per_trial": [
+        1307141,
+        653957,
+        1376232,
+        1371417,
+        2185814
+      ],
+      "legacy_net_input_tokens_known_subtotal": 6894561,
+      "legacy_net_input_tokens_incomplete_trials": 0,
+      "legacy_net_first_turn_input_plus_cache_tokens_per_trial": [
+        7282,
+        7282,
+        7282,
+        7282,
+        7282
+      ],
+      "legacy_net_baseline_tokens_subtracted_per_trial": [
+        189332,
+        116512,
+        189332,
+        189332,
+        269434
+      ],
+      "legacy_net_input_definition": "deduplicated per-turn input + cache-write + cache-read sum minus first-turn input + cache total times turn count; first-turn baseline includes the task prompt and harness context",
+      "one_turn_calibration_context_input_tokens_proxy": 6702,
+      "context_baseline_applied_to_trial_totals": false,
+      "context_accounting_note": "Raw provider counters include repeated fixed context on every turn plus task and tool history. The separate single-turn calibration is diagnostic only and is not a task-only or net-input estimate.",
+      "final_candidate_source_token_proxy_per_trial": [
+        8643,
+        6621,
+        7702,
+        7660,
+        6674
+      ],
+      "final_candidate_source_token_proxy_known_subtotal": 37300,
+      "final_candidate_source_token_proxy_incomplete_trials": 0,
+      "authored_source_token_claim": "legacy-Claude tokenizer proxy over final candidate source inventory only; excludes rewritten/deleted text and is not cumulative authored generation, provider output, current-model tokens, or billing tokens",
+      "turns": 131,
+      "per_trial_model_session_wall_seconds": [
+        274.213,
+        218.005,
+        270.817,
+        289.042,
+        329.766
+      ],
+      "aggregate_model_session_wall_seconds": 1381.843,
+      "mean_model_session_wall_seconds": 276.369,
+      "median_model_session_wall_seconds": 274.213,
+      "list_price_estimate_per_attempt_usd": [
+        0.891058,
+        0.660591,
+        0.904892,
+        0.915345,
+        1.159605
+      ],
+      "list_price_cache_write_pricing_per_attempt": [
+        {
+          "basis": "provider_ttl_breakdown",
+          "five_minute_tokens": 0,
+          "one_hour_tokens": 72479
+        },
+        {
+          "basis": "provider_ttl_breakdown",
+          "five_minute_tokens": 0,
+          "one_hour_tokens": 61392
+        },
+        {
+          "basis": "provider_ttl_breakdown",
+          "five_minute_tokens": 0,
+          "one_hour_tokens": 73270
+        },
+        {
+          "basis": "provider_ttl_breakdown",
+          "five_minute_tokens": 0,
+          "one_hour_tokens": 76440
+        },
+        {
+          "basis": "provider_ttl_breakdown",
+          "five_minute_tokens": 0,
+          "one_hour_tokens": 83169
+        }
+      ],
+      "list_price_estimate_known_subtotal_usd": 4.531491,
+      "list_price_estimate_complete": true,
+      "list_price_estimate_total_usd": 4.531491,
+      "estimated_cost_per_accepted_task_usd": 1.132873,
+      "accepted_task_cost_note": "All attempts, including failed and rejected trials, are included in the numerator.",
+      "provider_receipt_actual_usd": null,
+      "provider_reported_api_equivalent_total_cost_usd_per_attempt": [
+        0.8910584,
+        0.6605910000000002,
+        0.9048924,
+        0.9153453999999999,
+        1.159605
+      ],
+      "provider_reported_api_equivalent_cost_known_subtotal_usd": 4.531492,
+      "failures": [
+        {
+          "trial": 4,
+          "reason": "candidate failed independent build or acceptance checks"
+        }
+      ]
+    },
+    "typescript": {
+      "arm": "typescript",
+      "attempts": 5,
+      "accepted": 5,
+      "acceptance_rate": 1.0,
+      "provider_usage_totals_known_subtotal": {
+        "input_tokens": 60,
+        "cache_creation_input_tokens": 121606,
+        "cache_read_input_tokens": 595732,
+        "output_tokens": 43557,
+        "cache_creation_ephemeral_5m_input_tokens": 0,
+        "cache_creation_ephemeral_1h_input_tokens": 121606
+      },
+      "provider_usage_missing_trial_counts": {
+        "input_tokens": 0,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "output_tokens": 0,
+        "cache_creation_ephemeral_5m_input_tokens": 0,
+        "cache_creation_ephemeral_1h_input_tokens": 0
+      },
+      "input_and_cache_are_separate_buckets": true,
+      "provider_input_plus_cache_tokens_raw_per_trial": [
+        221029,
+        91965,
+        216766,
+        126543,
+        61095
+      ],
+      "provider_input_plus_cache_tokens_raw_known_subtotal": 717398,
+      "provider_input_plus_cache_tokens_raw_incomplete_trials": 0,
+      "legacy_net_input_tokens_per_trial": [
+        162773,
+        62837,
+        158510,
+        90133,
+        24685
+      ],
+      "legacy_net_input_tokens_known_subtotal": 498938,
+      "legacy_net_input_tokens_incomplete_trials": 0,
+      "legacy_net_first_turn_input_plus_cache_tokens_per_trial": [
+        7282,
+        7282,
+        7282,
+        7282,
+        7282
+      ],
+      "legacy_net_baseline_tokens_subtracted_per_trial": [
+        58256,
+        29128,
+        58256,
+        36410,
+        36410
+      ],
+      "legacy_net_input_definition": "deduplicated per-turn input + cache-write + cache-read sum minus first-turn input + cache total times turn count; first-turn baseline includes the task prompt and harness context",
+      "one_turn_calibration_context_input_tokens_proxy": 6702,
+      "context_baseline_applied_to_trial_totals": false,
+      "context_accounting_note": "Raw provider counters include repeated fixed context on every turn plus task and tool history. The separate single-turn calibration is diagnostic only and is not a task-only or net-input estimate.",
+      "final_candidate_source_token_proxy_per_trial": [
+        3850,
+        3990,
+        3354,
+        3666,
+        2662
+      ],
+      "final_candidate_source_token_proxy_known_subtotal": 17522,
+      "final_candidate_source_token_proxy_incomplete_trials": 0,
+      "authored_source_token_claim": "legacy-Claude tokenizer proxy over final candidate source inventory only; excludes rewritten/deleted text and is not cumulative authored generation, provider output, current-model tokens, or billing tokens",
+      "turns": 30,
+      "per_trial_model_session_wall_seconds": [
+        78.906,
+        57.868,
+        68.373,
+        63.077,
+        53.795
+      ],
+      "aggregate_model_session_wall_seconds": 322.019,
+      "mean_model_session_wall_seconds": 64.404,
+      "median_model_session_wall_seconds": 63.077,
+      "list_price_estimate_per_attempt_usd": [
+        0.247384,
+        0.202509,
+        0.240553,
+        0.217673,
+        0.133141
+      ],
+      "list_price_cache_write_pricing_per_attempt": [
+        {
+          "basis": "provider_ttl_breakdown",
+          "five_minute_tokens": 0,
+          "one_hour_tokens": 28321
+        },
+        {
+          "basis": "provider_ttl_breakdown",
+          "five_minute_tokens": 0,
+          "one_hour_tokens": 26011
+        },
+        {
+          "basis": "provider_ttl_breakdown",
+          "five_minute_tokens": 0,
+          "one_hour_tokens": 27795
+        },
+        {
+          "basis": "provider_ttl_breakdown",
+          "five_minute_tokens": 0,
+          "one_hour_tokens": 27549
+        },
+        {
+          "basis": "provider_ttl_breakdown",
+          "five_minute_tokens": 0,
+          "one_hour_tokens": 11930
+        }
+      ],
+      "list_price_estimate_known_subtotal_usd": 1.04126,
+      "list_price_estimate_complete": true,
+      "list_price_estimate_total_usd": 1.04126,
+      "estimated_cost_per_accepted_task_usd": 0.208252,
+      "accepted_task_cost_note": "All attempts, including failed and rejected trials, are included in the numerator.",
+      "provider_receipt_actual_usd": null,
+      "provider_reported_api_equivalent_total_cost_usd_per_attempt": [
+        0.24738439999999998,
+        0.20250920000000003,
+        0.240553,
+        0.2176728,
+        0.133141
+      ],
+      "provider_reported_api_equivalent_cost_known_subtotal_usd": 1.04126,
+      "failures": []
+    }
+  },
+  "trials": [
+    {
+      "arm": "semaprax",
+      "trial": 1,
+      "original_full_corpus_status": "accepted",
+      "original_full_corpus_accepted": true,
+      "candidate_build_status": "passed",
+      "candidate_tests_status": "passed",
+      "checks": [
+        {
+          "name": "checked-in-sample-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "checked-in-sample-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "empty-input-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "empty-input-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "malformed-input-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "malformed-input-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "half-up-rounding-and-dash-size-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "half-up-rounding-and-dash-size-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "ties-and-1xx-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "ties-and-1xx-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "blank-lines-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "blank-lines-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "crlf-line-endings-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "crlf-line-endings-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "cr-line-endings-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "cr-line-endings-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-1",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-2",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-3",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-5",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-50",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "options-json-before-top",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "options-top-before-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "spec-sample-top3-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "missing-file",
+          "status": "passed",
+          "exit_code": 1,
+          "stderr": "SEMAPRAX operation failure: semaprax.filesystem.v1/2\n"
+        },
+        {
+          "name": "missing-file-argument",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: missing file; usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "unknown-flag",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: unknown flag; usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "missing-top-value",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: bad or missing --top value; usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-zero",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: bad or missing --top value; usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-too-large",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: bad or missing --top value; usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-negative",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: bad or missing --top value; usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-noninteger",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: bad or missing --top value; usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-decimal",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: bad or missing --top value; usage: loglens <file> [--top N] [--json]\n"
+        }
+      ],
+      "provider_num_turns": 27,
+      "deduplicated_assistant_messages_with_usage": 26,
+      "usage": {
+        "input_tokens": 52,
+        "cache_creation_input_tokens": 72479,
+        "cache_read_input_tokens": 1423942,
+        "output_tokens": 31625,
+        "cache_creation_ephemeral_5m_input_tokens": 0,
+        "cache_creation_ephemeral_1h_input_tokens": 72479
+      },
+      "provider_thinking_tokens_detail": 11273,
+      "legacy_net_input_tokens": 1307141,
+      "legacy_net_first_turn_input_plus_cache_tokens": 7282,
+      "provider_input_plus_cache_tokens_raw": 1496473,
+      "list_price_estimate_usd": 0.891058,
+      "provider_reported_api_equivalent_total_cost_usd": 0.8910584,
+      "provider_receipt_actual_usd": null,
+      "model_session_wall_seconds": 274.213,
+      "acceptance_wall_seconds": 8.537,
+      "final_candidate_source_metrics": {
+        "status": "measured_proxy",
+        "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+        "total_tokens": 8643,
+        "files": [
+          {
+            "path": "build.sh",
+            "bytes": 285,
+            "sha256": "cc53a86a11951d6045d4d17db1ff5c70083524e149679f87319c3f442bd2ad86",
+            "tokens": 111
+          },
+          {
+            "path": "loglens.spx",
+            "bytes": 15369,
+            "sha256": "3027ad8e11ece5924274b868308849852d8a101c429b540195aa8f4840e7e0b2",
+            "tokens": 5581
+          },
+          {
+            "path": "run.sh",
+            "bytes": 843,
+            "sha256": "2ae895ee9aea5f3642c1b98f716bca0a1c4f071968156b71b227ee1c51289904",
+            "tokens": 274
+          },
+          {
+            "path": "test.sh",
+            "bytes": 5678,
+            "sha256": "488ee0df36bff5c248d6876f7b3ac440031cae19be7d3494eb70c17576f0ef94",
+            "tokens": 2459
+          },
+          {
+            "path": "tests/expected.json",
+            "bytes": 299,
+            "sha256": "a8c2ba76cfc98a8abf9c2615c7a344c2ac75b8c2d092dd203e62214a5ee2e64d",
+            "tokens": 116
+          },
+          {
+            "path": "tests/expected.txt",
+            "bytes": 229,
+            "sha256": "82a0df698ab756076a4ed70e86946ae638eb8cb3f186fb180ae7323ecb9659a3",
+            "tokens": 102
+          }
+        ],
+        "excluded_directories": [
+          ".cache",
+          ".git",
+          ".mypy_cache",
+          ".pytest_cache",
+          ".ruff_cache",
+          ".semaprax",
+          ".spx-cache",
+          "__pycache__",
+          "acceptance-fixtures",
+          "build",
+          "coverage",
+          "dist",
+          "gen",
+          "generated",
+          "node_modules",
+          "out",
+          "target"
+        ],
+        "excluded_generated_extensions": [
+          ".c",
+          ".h",
+          "non-text/binary files"
+        ],
+        "tokenizer": {
+          "package": "@anthropic-ai/tokenizer",
+          "version": "0.0.4",
+          "dependency": "tiktoken",
+          "dependency_version": "1.0.22",
+          "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+          "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+          "runtime": "node",
+          "runtime_version": "v24.3.0",
+          "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+          "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea"
+        }
+      },
+      "prompt_sha256": "13dbe39f5e1b9eafa1ff5fc4e1b41a51621a5a588764c118a35feadf13bb5b40",
+      "transcript_sha256": "e81d423e5f2d435b8cf142ed8c0616e22ff4b350a9702e8214a101647f6d58a2",
+      "candidate_files_sha256": {
+        "acceptance-fixtures/blanks.log": "14b9091639f5cd1f8ca5dc35ed96df191d99ff3af28e07b22f2a5c262adfd2e9",
+        "acceptance-fixtures/cr.log": "90ad4f2fb626767eaaa2368d05ef96cc747d69840b5bd26cea6a69ea8d47c66e",
+        "acceptance-fixtures/crlf.log": "a2b93cf120dd2dd1d7e87d136c0a81cd73791533882da4ef641f6547901e0516",
+        "acceptance-fixtures/empty.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "acceptance-fixtures/malformed.log": "7849280cb320e7f3f6b7e88bd0c74fc9133eefcffaaa3eb228414f51b3f77f0d",
+        "acceptance-fixtures/rounding.log": "4f3186483846d1aa1882411d96251ddf22aa062a34270f064399c280cc0f7820",
+        "acceptance-fixtures/sample.log": "b4574c3e627aff7760a934ec5dc10c45abf76ade1f6ae0c20518c56cc6660598",
+        "acceptance-fixtures/ties.log": "a63d77b6295dd230f5763dcbe8aa421e8af222f5b0cd6eb0bf693e712d1a789c",
+        "build.sh": "cc53a86a11951d6045d4d17db1ff5c70083524e149679f87319c3f442bd2ad86",
+        "loglens.bin": "c16223fb9a7da5debff941c161fac967e3ad9c066e146abf349134f598ced944",
+        "loglens.spx": "3027ad8e11ece5924274b868308849852d8a101c429b540195aa8f4840e7e0b2",
+        "run.sh": "2ae895ee9aea5f3642c1b98f716bca0a1c4f071968156b71b227ee1c51289904",
+        "test.sh": "488ee0df36bff5c248d6876f7b3ac440031cae19be7d3494eb70c17576f0ef94",
+        "tests/expected.json": "a8c2ba76cfc98a8abf9c2615c7a344c2ac75b8c2d092dd203e62214a5ee2e64d",
+        "tests/expected.txt": "82a0df698ab756076a4ed70e86946ae638eb8cb3f186fb180ae7323ecb9659a3",
+        "tests/spec_example.log": "38070dc147fd8320c65287a348530a9fcb6d034be42992bcb929b6f62ea76c65"
+      },
+      "scope_assessment": {
+        "original_full_corpus_accepted": true,
+        "explicit_spec_checks": {
+          "status": "passed",
+          "passed": 32,
+          "failed": []
+        },
+        "additional_robustness_checks": {
+          "status": "passed",
+          "passed": 1,
+          "failed": []
+        },
+        "unclassified_checks": {
+          "status": "not_applicable",
+          "names": []
+        }
+      },
+      "usage_discrepancies": {
+        "output_tokens": {
+          "per_turn_sum": 983,
+          "final_result": 31625
+        }
+      }
+    },
+    {
+      "arm": "typescript",
+      "trial": 1,
+      "original_full_corpus_status": "accepted",
+      "original_full_corpus_accepted": true,
+      "candidate_build_status": "passed",
+      "candidate_tests_status": "passed",
+      "checks": [
+        {
+          "name": "checked-in-sample-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "checked-in-sample-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "empty-input-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "empty-input-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "malformed-input-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "malformed-input-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "half-up-rounding-and-dash-size-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "half-up-rounding-and-dash-size-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "ties-and-1xx-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "ties-and-1xx-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "blank-lines-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "blank-lines-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "crlf-line-endings-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "crlf-line-endings-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "cr-line-endings-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "cr-line-endings-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-1",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-2",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-3",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-5",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-50",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "options-json-before-top",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "options-top-before-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "spec-sample-top3-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "missing-file",
+          "status": "passed",
+          "exit_code": 1,
+          "stderr": "loglens: cannot read missing-loglens-input.log: ENOENT: no such file or directory, open 'missing-loglens-input.log'\n"
+        },
+        {
+          "name": "missing-file-argument",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: missing file argument (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "unknown-flag",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: unknown option: --unknown (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "missing-top-value",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: --top requires a value (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "top-zero",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: invalid --top value: 0 (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "top-too-large",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: invalid --top value: 51 (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "top-negative",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: invalid --top value: -1 (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "top-noninteger",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: invalid --top value: abc (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "top-decimal",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: invalid --top value: 1.0 (usage: loglens <file> [--top N] [--json])\n"
+        }
+      ],
+      "provider_num_turns": 9,
+      "deduplicated_assistant_messages_with_usage": 8,
+      "usage": {
+        "input_tokens": 16,
+        "cache_creation_input_tokens": 28321,
+        "cache_read_input_tokens": 192692,
+        "output_tokens": 9553,
+        "cache_creation_ephemeral_5m_input_tokens": 0,
+        "cache_creation_ephemeral_1h_input_tokens": 28321
+      },
+      "provider_thinking_tokens_detail": 1617,
+      "legacy_net_input_tokens": 162773,
+      "legacy_net_first_turn_input_plus_cache_tokens": 7282,
+      "provider_input_plus_cache_tokens_raw": 221029,
+      "list_price_estimate_usd": 0.247384,
+      "provider_reported_api_equivalent_total_cost_usd": 0.24738439999999998,
+      "provider_receipt_actual_usd": null,
+      "model_session_wall_seconds": 78.906,
+      "acceptance_wall_seconds": 3.446,
+      "final_candidate_source_metrics": {
+        "status": "measured_proxy",
+        "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+        "total_tokens": 3850,
+        "files": [
+          {
+            "path": "build.sh",
+            "bytes": 228,
+            "sha256": "35ca17b22e5a6cf76027c0f949f257e634016ed330052ab0cab45461df9a26d5",
+            "tokens": 68
+          },
+          {
+            "path": "run.sh",
+            "bytes": 92,
+            "sha256": "bfb76774ea26e2cb3fcb41612ec240c6552fdbc15fa01a1fe6a91bd1350e4ce1",
+            "tokens": 30
+          },
+          {
+            "path": "src/cli.ts",
+            "bytes": 795,
+            "sha256": "493b8b9c28fd3290682bc7bce8c365d3f59ba843d3b7c1600508f51d506f1706",
+            "tokens": 255
+          },
+          {
+            "path": "src/loglens.ts",
+            "bytes": 4340,
+            "sha256": "ceb9cdf05b0d16788b99f48c54f3bef1b4bf9ad52364eb70d8b2ad2189779660",
+            "tokens": 1529
+          },
+          {
+            "path": "test/loglens.test.ts",
+            "bytes": 5101,
+            "sha256": "260f48f9a9d59f4332536815efe6795a6cbce9169b4482b0c5ab0b12600629ec",
+            "tokens": 1934
+          },
+          {
+            "path": "test.sh",
+            "bytes": 111,
+            "sha256": "b8cbc3c94e969696d68bc2b990edd9f6f875aff8151ccdf618eeb85b0593800b",
+            "tokens": 34
+          }
+        ],
+        "excluded_directories": [
+          ".cache",
+          ".git",
+          ".mypy_cache",
+          ".pytest_cache",
+          ".ruff_cache",
+          ".semaprax",
+          ".spx-cache",
+          "__pycache__",
+          "acceptance-fixtures",
+          "build",
+          "coverage",
+          "dist",
+          "gen",
+          "generated",
+          "node_modules",
+          "out",
+          "target"
+        ],
+        "excluded_generated_extensions": [
+          ".c",
+          ".h",
+          "non-text/binary files"
+        ],
+        "tokenizer": {
+          "package": "@anthropic-ai/tokenizer",
+          "version": "0.0.4",
+          "dependency": "tiktoken",
+          "dependency_version": "1.0.22",
+          "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+          "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+          "runtime": "node",
+          "runtime_version": "v24.3.0",
+          "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+          "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea"
+        }
+      },
+      "prompt_sha256": "30ce0bc41b29590962f6f028420be45a6a7c197c27d191b9b73753908c7d04cd",
+      "transcript_sha256": "ff720a797b98c0b27892a2f073441a3d42cd4f3f1b78215e9dce727a6bc02d36",
+      "candidate_files_sha256": {
+        "acceptance-fixtures/blanks.log": "14b9091639f5cd1f8ca5dc35ed96df191d99ff3af28e07b22f2a5c262adfd2e9",
+        "acceptance-fixtures/cr.log": "90ad4f2fb626767eaaa2368d05ef96cc747d69840b5bd26cea6a69ea8d47c66e",
+        "acceptance-fixtures/crlf.log": "a2b93cf120dd2dd1d7e87d136c0a81cd73791533882da4ef641f6547901e0516",
+        "acceptance-fixtures/empty.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "acceptance-fixtures/malformed.log": "7849280cb320e7f3f6b7e88bd0c74fc9133eefcffaaa3eb228414f51b3f77f0d",
+        "acceptance-fixtures/rounding.log": "4f3186483846d1aa1882411d96251ddf22aa062a34270f064399c280cc0f7820",
+        "acceptance-fixtures/sample.log": "b4574c3e627aff7760a934ec5dc10c45abf76ade1f6ae0c20518c56cc6660598",
+        "acceptance-fixtures/ties.log": "a63d77b6295dd230f5763dcbe8aa421e8af222f5b0cd6eb0bf693e712d1a789c",
+        "build.sh": "35ca17b22e5a6cf76027c0f949f257e634016ed330052ab0cab45461df9a26d5",
+        "run.sh": "bfb76774ea26e2cb3fcb41612ec240c6552fdbc15fa01a1fe6a91bd1350e4ce1",
+        "src/cli.ts": "493b8b9c28fd3290682bc7bce8c365d3f59ba843d3b7c1600508f51d506f1706",
+        "src/loglens.ts": "ceb9cdf05b0d16788b99f48c54f3bef1b4bf9ad52364eb70d8b2ad2189779660",
+        "test/loglens.test.ts": "260f48f9a9d59f4332536815efe6795a6cbce9169b4482b0c5ab0b12600629ec",
+        "test.sh": "b8cbc3c94e969696d68bc2b990edd9f6f875aff8151ccdf618eeb85b0593800b"
+      },
+      "scope_assessment": {
+        "original_full_corpus_accepted": true,
+        "explicit_spec_checks": {
+          "status": "passed",
+          "passed": 32,
+          "failed": []
+        },
+        "additional_robustness_checks": {
+          "status": "passed",
+          "passed": 1,
+          "failed": []
+        },
+        "unclassified_checks": {
+          "status": "not_applicable",
+          "names": []
+        }
+      },
+      "usage_discrepancies": {
+        "output_tokens": {
+          "per_turn_sum": 810,
+          "final_result": 9553
+        }
+      }
+    },
+    {
+      "arm": "typescript",
+      "trial": 2,
+      "original_full_corpus_status": "accepted",
+      "original_full_corpus_accepted": true,
+      "candidate_build_status": "passed",
+      "candidate_tests_status": "passed",
+      "checks": [
+        {
+          "name": "checked-in-sample-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "checked-in-sample-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "empty-input-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "empty-input-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "malformed-input-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "malformed-input-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "half-up-rounding-and-dash-size-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "half-up-rounding-and-dash-size-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "ties-and-1xx-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "ties-and-1xx-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "blank-lines-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "blank-lines-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "crlf-line-endings-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "crlf-line-endings-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "cr-line-endings-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "cr-line-endings-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-1",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-2",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-3",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-5",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-50",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "options-json-before-top",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "options-top-before-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "spec-sample-top3-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "missing-file",
+          "status": "passed",
+          "exit_code": 1,
+          "stderr": "loglens: cannot read missing-loglens-input.log: ENOENT\n"
+        },
+        {
+          "name": "missing-file-argument",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: missing file; usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "unknown-flag",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: unknown option: --unknown; usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "missing-top-value",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: --top requires an integer between 1 and 50; usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-zero",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: --top requires an integer between 1 and 50; usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-too-large",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: --top requires an integer between 1 and 50; usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-negative",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: --top requires an integer between 1 and 50; usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-noninteger",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: --top requires an integer between 1 and 50; usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-decimal",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: --top requires an integer between 1 and 50; usage: loglens <file> [--top N] [--json]\n"
+        }
+      ],
+      "provider_num_turns": 4,
+      "deduplicated_assistant_messages_with_usage": 4,
+      "usage": {
+        "input_tokens": 8,
+        "cache_creation_input_tokens": 26011,
+        "cache_read_input_tokens": 65946,
+        "output_tokens": 8526,
+        "cache_creation_ephemeral_5m_input_tokens": 0,
+        "cache_creation_ephemeral_1h_input_tokens": 26011
+      },
+      "provider_thinking_tokens_detail": 1315,
+      "legacy_net_input_tokens": 62837,
+      "legacy_net_first_turn_input_plus_cache_tokens": 7282,
+      "provider_input_plus_cache_tokens_raw": 91965,
+      "list_price_estimate_usd": 0.202509,
+      "provider_reported_api_equivalent_total_cost_usd": 0.20250920000000003,
+      "provider_receipt_actual_usd": null,
+      "model_session_wall_seconds": 57.868,
+      "acceptance_wall_seconds": 4.247,
+      "final_candidate_source_metrics": {
+        "status": "measured_proxy",
+        "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+        "total_tokens": 3990,
+        "files": [
+          {
+            "path": "build.sh",
+            "bytes": 268,
+            "sha256": "679bc669c17be98f34ee1f929c0c6a9381f73cac143c9cf8f0279492064c3c28",
+            "tokens": 76
+          },
+          {
+            "path": "run.sh",
+            "bytes": 96,
+            "sha256": "6a4de5324651f5115e9f611e98e8e8852f79795e928ee087a2de0a2c5d6313c2",
+            "tokens": 31
+          },
+          {
+            "path": "src/loglens.ts",
+            "bytes": 5373,
+            "sha256": "912393b96e7c30a765145907845d3b7d1fbce2c5319af3be9c8722ee9457c1c4",
+            "tokens": 1833
+          },
+          {
+            "path": "test.sh",
+            "bytes": 126,
+            "sha256": "e3782311dc0b9181a68c2006a8ac84c1269d7d50e16f342a1818225328c96c23",
+            "tokens": 43
+          },
+          {
+            "path": "tests/fixtures/golden.json",
+            "bytes": 299,
+            "sha256": "a8c2ba76cfc98a8abf9c2615c7a344c2ac75b8c2d092dd203e62214a5ee2e64d",
+            "tokens": 116
+          },
+          {
+            "path": "tests/fixtures/golden.txt",
+            "bytes": 229,
+            "sha256": "82a0df698ab756076a4ed70e86946ae638eb8cb3f186fb180ae7323ecb9659a3",
+            "tokens": 102
+          },
+          {
+            "path": "tests/loglens.test.ts",
+            "bytes": 4712,
+            "sha256": "0c7fc2357ff0b5add5369bbb7e800025e20a60bd4b70e284b535437956bb688f",
+            "tokens": 1789
+          }
+        ],
+        "excluded_directories": [
+          ".cache",
+          ".git",
+          ".mypy_cache",
+          ".pytest_cache",
+          ".ruff_cache",
+          ".semaprax",
+          ".spx-cache",
+          "__pycache__",
+          "acceptance-fixtures",
+          "build",
+          "coverage",
+          "dist",
+          "gen",
+          "generated",
+          "node_modules",
+          "out",
+          "target"
+        ],
+        "excluded_generated_extensions": [
+          ".c",
+          ".h",
+          "non-text/binary files"
+        ],
+        "tokenizer": {
+          "package": "@anthropic-ai/tokenizer",
+          "version": "0.0.4",
+          "dependency": "tiktoken",
+          "dependency_version": "1.0.22",
+          "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+          "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+          "runtime": "node",
+          "runtime_version": "v24.3.0",
+          "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+          "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea"
+        }
+      },
+      "prompt_sha256": "c91f38c450fdee44fcaff00884c76a16046b990629b32d4274ea0a06a0c762ff",
+      "transcript_sha256": "9c4b47b9307444fc5b589d943a914297ea07cedb97a812b9b95fe9490a3c8405",
+      "candidate_files_sha256": {
+        "acceptance-fixtures/blanks.log": "14b9091639f5cd1f8ca5dc35ed96df191d99ff3af28e07b22f2a5c262adfd2e9",
+        "acceptance-fixtures/cr.log": "90ad4f2fb626767eaaa2368d05ef96cc747d69840b5bd26cea6a69ea8d47c66e",
+        "acceptance-fixtures/crlf.log": "a2b93cf120dd2dd1d7e87d136c0a81cd73791533882da4ef641f6547901e0516",
+        "acceptance-fixtures/empty.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "acceptance-fixtures/malformed.log": "7849280cb320e7f3f6b7e88bd0c74fc9133eefcffaaa3eb228414f51b3f77f0d",
+        "acceptance-fixtures/rounding.log": "4f3186483846d1aa1882411d96251ddf22aa062a34270f064399c280cc0f7820",
+        "acceptance-fixtures/sample.log": "b4574c3e627aff7760a934ec5dc10c45abf76ade1f6ae0c20518c56cc6660598",
+        "acceptance-fixtures/ties.log": "a63d77b6295dd230f5763dcbe8aa421e8af222f5b0cd6eb0bf693e712d1a789c",
+        "build.sh": "679bc669c17be98f34ee1f929c0c6a9381f73cac143c9cf8f0279492064c3c28",
+        "run.sh": "6a4de5324651f5115e9f611e98e8e8852f79795e928ee087a2de0a2c5d6313c2",
+        "src/loglens.ts": "912393b96e7c30a765145907845d3b7d1fbce2c5319af3be9c8722ee9457c1c4",
+        "test.sh": "e3782311dc0b9181a68c2006a8ac84c1269d7d50e16f342a1818225328c96c23",
+        "tests/fixtures/golden.json": "a8c2ba76cfc98a8abf9c2615c7a344c2ac75b8c2d092dd203e62214a5ee2e64d",
+        "tests/fixtures/golden.log": "9771fc11c3f72ff0c47651724a9592ee912f766aac00bff09478ce0e5b340d96",
+        "tests/fixtures/golden.txt": "82a0df698ab756076a4ed70e86946ae638eb8cb3f186fb180ae7323ecb9659a3",
+        "tests/loglens.test.ts": "0c7fc2357ff0b5add5369bbb7e800025e20a60bd4b70e284b535437956bb688f"
+      },
+      "scope_assessment": {
+        "original_full_corpus_accepted": true,
+        "explicit_spec_checks": {
+          "status": "passed",
+          "passed": 32,
+          "failed": []
+        },
+        "additional_robustness_checks": {
+          "status": "passed",
+          "passed": 1,
+          "failed": []
+        },
+        "unclassified_checks": {
+          "status": "not_applicable",
+          "names": []
+        }
+      },
+      "usage_discrepancies": {
+        "output_tokens": {
+          "per_turn_sum": 671,
+          "final_result": 8526
+        }
+      }
+    },
+    {
+      "arm": "semaprax",
+      "trial": 2,
+      "original_full_corpus_status": "accepted",
+      "original_full_corpus_accepted": true,
+      "candidate_build_status": "passed",
+      "candidate_tests_status": "passed",
+      "checks": [
+        {
+          "name": "checked-in-sample-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "checked-in-sample-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "empty-input-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "empty-input-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "malformed-input-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "malformed-input-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "half-up-rounding-and-dash-size-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "half-up-rounding-and-dash-size-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "ties-and-1xx-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "ties-and-1xx-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "blank-lines-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "blank-lines-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "crlf-line-endings-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "crlf-line-endings-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "cr-line-endings-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "cr-line-endings-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-1",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-2",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-3",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-5",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-50",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "options-json-before-top",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "options-top-before-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "spec-sample-top3-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "missing-file",
+          "status": "passed",
+          "exit_code": 1,
+          "stderr": "SEMAPRAX operation failure: semaprax.filesystem.v1/2\n"
+        },
+        {
+          "name": "missing-file-argument",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "unknown-flag",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "missing-top-value",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-zero",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-too-large",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-negative",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-noninteger",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-decimal",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: usage: loglens <file> [--top N] [--json]\n"
+        }
+      ],
+      "provider_num_turns": 17,
+      "deduplicated_assistant_messages_with_usage": 16,
+      "usage": {
+        "input_tokens": 32,
+        "cache_creation_input_tokens": 61392,
+        "cache_read_input_tokens": 709045,
+        "output_tokens": 27315,
+        "cache_creation_ephemeral_5m_input_tokens": 0,
+        "cache_creation_ephemeral_1h_input_tokens": 61392
+      },
+      "provider_thinking_tokens_detail": 13993,
+      "legacy_net_input_tokens": 653957,
+      "legacy_net_first_turn_input_plus_cache_tokens": 7282,
+      "provider_input_plus_cache_tokens_raw": 770469,
+      "list_price_estimate_usd": 0.660591,
+      "provider_reported_api_equivalent_total_cost_usd": 0.6605910000000002,
+      "provider_receipt_actual_usd": null,
+      "model_session_wall_seconds": 218.005,
+      "acceptance_wall_seconds": 7.909,
+      "final_candidate_source_metrics": {
+        "status": "measured_proxy",
+        "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+        "total_tokens": 6621,
+        "files": [
+          {
+            "path": "build.sh",
+            "bytes": 365,
+            "sha256": "86d066461f3e3f95b7973660823659dc34ef05d5dc8d7db201fa7b96f4ca43dc",
+            "tokens": 141
+          },
+          {
+            "path": "loglens.spx",
+            "bytes": 12244,
+            "sha256": "68281026a759317ce61333b450804ae7509213bed30caa51825fa9896ead912a",
+            "tokens": 4537
+          },
+          {
+            "path": "run.sh",
+            "bytes": 1329,
+            "sha256": "fe363028df37e83f158a809ae35821b1f4d496f243f3dd3fb6c2abcc128c9f79",
+            "tokens": 459
+          },
+          {
+            "path": "test.sh",
+            "bytes": 2007,
+            "sha256": "2b6e86924ed5ee12f5b960e193d1a15a496f711a68f7c0d05995734b96b07eb4",
+            "tokens": 696
+          },
+          {
+            "path": "tests/empty.expected.json",
+            "bytes": 183,
+            "sha256": "04bb7b21d87b3c84e13953020414f1f047cf78281fefc16a9e07b6434274e1be",
+            "tokens": 77
+          },
+          {
+            "path": "tests/empty.expected.txt",
+            "bytes": 153,
+            "sha256": "9632d37d3e19b13e7034924cedab15093e5960a6711d9478d413193c5701544b",
+            "tokens": 72
+          },
+          {
+            "path": "tests/mixed.expected.json",
+            "bytes": 246,
+            "sha256": "e9bd723b36b750303aaeb6f92872308145d71c45f7bdb14853d879a70b6bfbfd",
+            "tokens": 101
+          },
+          {
+            "path": "tests/mixed.expected.txt",
+            "bytes": 200,
+            "sha256": "b610cc6c48382ba50e4370d9e83f4c5ea0ecd0df8da5f3ed622a6f5963b8ac8f",
+            "tokens": 96
+          },
+          {
+            "path": "tests/nomatch.expected.json",
+            "bytes": 183,
+            "sha256": "d2a71f9ba937688b33e6a37145ae0232f774b0eb014a43d87c740fd8723474de",
+            "tokens": 77
+          },
+          {
+            "path": "tests/nomatch.expected.txt",
+            "bytes": 153,
+            "sha256": "d044d1dc9e0832440a4e0930b062b77667b27ff9df9d879493a1c5d93b0d22b3",
+            "tokens": 72
+          },
+          {
+            "path": "tests/sample.expected.json",
+            "bytes": 380,
+            "sha256": "cff5951ee5d7327f5a676d26554d1db15c27a083ad1fcea1b52a8432b3333253",
+            "tokens": 152
+          },
+          {
+            "path": "tests/sample.expected.txt",
+            "bytes": 341,
+            "sha256": "1301d1cf9601261ab146bbda59ae56bc71935454234dd3cc71f9d17f9849fa7b",
+            "tokens": 141
+          }
+        ],
+        "excluded_directories": [
+          ".cache",
+          ".git",
+          ".mypy_cache",
+          ".pytest_cache",
+          ".ruff_cache",
+          ".semaprax",
+          ".spx-cache",
+          "__pycache__",
+          "acceptance-fixtures",
+          "build",
+          "coverage",
+          "dist",
+          "gen",
+          "generated",
+          "node_modules",
+          "out",
+          "target"
+        ],
+        "excluded_generated_extensions": [
+          ".c",
+          ".h",
+          "non-text/binary files"
+        ],
+        "tokenizer": {
+          "package": "@anthropic-ai/tokenizer",
+          "version": "0.0.4",
+          "dependency": "tiktoken",
+          "dependency_version": "1.0.22",
+          "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+          "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+          "runtime": "node",
+          "runtime_version": "v24.3.0",
+          "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+          "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea"
+        }
+      },
+      "prompt_sha256": "d2f9f12cd68ca947e9c0b14dcfc939ad9b03e403215cfd60c5233468de083054",
+      "transcript_sha256": "529add479baec24b600368b873875390a8497ab53d2e83366a542ea82201f3d2",
+      "candidate_files_sha256": {
+        "acceptance-fixtures/blanks.log": "14b9091639f5cd1f8ca5dc35ed96df191d99ff3af28e07b22f2a5c262adfd2e9",
+        "acceptance-fixtures/cr.log": "90ad4f2fb626767eaaa2368d05ef96cc747d69840b5bd26cea6a69ea8d47c66e",
+        "acceptance-fixtures/crlf.log": "a2b93cf120dd2dd1d7e87d136c0a81cd73791533882da4ef641f6547901e0516",
+        "acceptance-fixtures/empty.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "acceptance-fixtures/malformed.log": "7849280cb320e7f3f6b7e88bd0c74fc9133eefcffaaa3eb228414f51b3f77f0d",
+        "acceptance-fixtures/rounding.log": "4f3186483846d1aa1882411d96251ddf22aa062a34270f064399c280cc0f7820",
+        "acceptance-fixtures/sample.log": "b4574c3e627aff7760a934ec5dc10c45abf76ade1f6ae0c20518c56cc6660598",
+        "acceptance-fixtures/ties.log": "a63d77b6295dd230f5763dcbe8aa421e8af222f5b0cd6eb0bf693e712d1a789c",
+        "build/loglens": "4da8cb36caa04d5b35e7fdfd345471f7fefff57e1cc15736a9e39f7e8aef6185",
+        "build.sh": "86d066461f3e3f95b7973660823659dc34ef05d5dc8d7db201fa7b96f4ca43dc",
+        "loglens.spx": "68281026a759317ce61333b450804ae7509213bed30caa51825fa9896ead912a",
+        "run.sh": "fe363028df37e83f158a809ae35821b1f4d496f243f3dd3fb6c2abcc128c9f79",
+        "test.sh": "2b6e86924ed5ee12f5b960e193d1a15a496f711a68f7c0d05995734b96b07eb4",
+        "tests/empty.expected.json": "04bb7b21d87b3c84e13953020414f1f047cf78281fefc16a9e07b6434274e1be",
+        "tests/empty.expected.txt": "9632d37d3e19b13e7034924cedab15093e5960a6711d9478d413193c5701544b",
+        "tests/empty.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tests/mixed.expected.json": "e9bd723b36b750303aaeb6f92872308145d71c45f7bdb14853d879a70b6bfbfd",
+        "tests/mixed.expected.txt": "b610cc6c48382ba50e4370d9e83f4c5ea0ecd0df8da5f3ed622a6f5963b8ac8f",
+        "tests/mixed.log": "b49c77c00a730274e0b5719b56a3869608fe6317ed644a2d7cb61cc705c336f9",
+        "tests/nomatch.expected.json": "d2a71f9ba937688b33e6a37145ae0232f774b0eb014a43d87c740fd8723474de",
+        "tests/nomatch.expected.txt": "d044d1dc9e0832440a4e0930b062b77667b27ff9df9d879493a1c5d93b0d22b3",
+        "tests/nomatch.log": "06c2ceed34faddce1a416866d56d3d934fe072a5b223516a9c90595d016088b6",
+        "tests/sample.expected.json": "cff5951ee5d7327f5a676d26554d1db15c27a083ad1fcea1b52a8432b3333253",
+        "tests/sample.expected.txt": "1301d1cf9601261ab146bbda59ae56bc71935454234dd3cc71f9d17f9849fa7b"
+      },
+      "scope_assessment": {
+        "original_full_corpus_accepted": true,
+        "explicit_spec_checks": {
+          "status": "passed",
+          "passed": 32,
+          "failed": []
+        },
+        "additional_robustness_checks": {
+          "status": "passed",
+          "passed": 1,
+          "failed": []
+        },
+        "unclassified_checks": {
+          "status": "not_applicable",
+          "names": []
+        }
+      },
+      "usage_discrepancies": {
+        "output_tokens": {
+          "per_turn_sum": 875,
+          "final_result": 27315
+        }
+      }
+    },
+    {
+      "arm": "semaprax",
+      "trial": 3,
+      "original_full_corpus_status": "accepted",
+      "original_full_corpus_accepted": true,
+      "candidate_build_status": "passed",
+      "candidate_tests_status": "passed",
+      "checks": [
+        {
+          "name": "checked-in-sample-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "checked-in-sample-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "empty-input-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "empty-input-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "malformed-input-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "malformed-input-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "half-up-rounding-and-dash-size-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "half-up-rounding-and-dash-size-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "ties-and-1xx-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "ties-and-1xx-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "blank-lines-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "blank-lines-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "crlf-line-endings-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "crlf-line-endings-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "cr-line-endings-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "cr-line-endings-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-1",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-2",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-3",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-5",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-50",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "options-json-before-top",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "options-top-before-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "spec-sample-top3-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "missing-file",
+          "status": "passed",
+          "exit_code": 1,
+          "stderr": "SEMAPRAX operation failure: semaprax.filesystem.v1/2\n"
+        },
+        {
+          "name": "missing-file-argument",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: missing file (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "unknown-flag",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: invalid arguments (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "missing-top-value",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: invalid arguments (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "top-zero",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: invalid arguments (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "top-too-large",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: invalid arguments (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "top-negative",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: invalid arguments (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "top-noninteger",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: invalid arguments (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "top-decimal",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: invalid arguments (usage: loglens <file> [--top N] [--json])\n"
+        }
+      ],
+      "provider_num_turns": 27,
+      "deduplicated_assistant_messages_with_usage": 26,
+      "usage": {
+        "input_tokens": 52,
+        "cache_creation_input_tokens": 73270,
+        "cache_read_input_tokens": 1492242,
+        "output_tokens": 31326,
+        "cache_creation_ephemeral_5m_input_tokens": 0,
+        "cache_creation_ephemeral_1h_input_tokens": 73270
+      },
+      "provider_thinking_tokens_detail": 8996,
+      "legacy_net_input_tokens": 1376232,
+      "legacy_net_first_turn_input_plus_cache_tokens": 7282,
+      "provider_input_plus_cache_tokens_raw": 1565564,
+      "list_price_estimate_usd": 0.904892,
+      "provider_reported_api_equivalent_total_cost_usd": 0.9048924,
+      "provider_receipt_actual_usd": null,
+      "model_session_wall_seconds": 270.817,
+      "acceptance_wall_seconds": 11.135,
+      "final_candidate_source_metrics": {
+        "status": "measured_proxy",
+        "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+        "total_tokens": 7702,
+        "files": [
+          {
+            "path": "build.sh",
+            "bytes": 413,
+            "sha256": "c68a3c15a3fc2f391988de89c002d2837ef816a6a85f4649c7d752d44a2030fb",
+            "tokens": 161
+          },
+          {
+            "path": "run.sh",
+            "bytes": 906,
+            "sha256": "e68c706db2a38fb4fd0c18bb144f5835cb44010862deecfc80566fc0c6366586",
+            "tokens": 282
+          },
+          {
+            "path": "src/loglens.spx",
+            "bytes": 12960,
+            "sha256": "4d03de148ba4d6b35734a71a73effc2095b1233e2ace4bfc26a9e588f321491c",
+            "tokens": 4677
+          },
+          {
+            "path": "test.sh",
+            "bytes": 5691,
+            "sha256": "261f9efa2f49d49b54bbd98a5d9c24716e3118e7dbb9940d84cd27816c169d12",
+            "tokens": 2364
+          },
+          {
+            "path": "tests/spec.expected.json",
+            "bytes": 299,
+            "sha256": "a8c2ba76cfc98a8abf9c2615c7a344c2ac75b8c2d092dd203e62214a5ee2e64d",
+            "tokens": 116
+          },
+          {
+            "path": "tests/spec.expected.txt",
+            "bytes": 229,
+            "sha256": "82a0df698ab756076a4ed70e86946ae638eb8cb3f186fb180ae7323ecb9659a3",
+            "tokens": 102
+          }
+        ],
+        "excluded_directories": [
+          ".cache",
+          ".git",
+          ".mypy_cache",
+          ".pytest_cache",
+          ".ruff_cache",
+          ".semaprax",
+          ".spx-cache",
+          "__pycache__",
+          "acceptance-fixtures",
+          "build",
+          "coverage",
+          "dist",
+          "gen",
+          "generated",
+          "node_modules",
+          "out",
+          "target"
+        ],
+        "excluded_generated_extensions": [
+          ".c",
+          ".h",
+          "non-text/binary files"
+        ],
+        "tokenizer": {
+          "package": "@anthropic-ai/tokenizer",
+          "version": "0.0.4",
+          "dependency": "tiktoken",
+          "dependency_version": "1.0.22",
+          "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+          "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+          "runtime": "node",
+          "runtime_version": "v24.3.0",
+          "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+          "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea"
+        }
+      },
+      "prompt_sha256": "6bb4667a10c91cf85352dfa340a72befead36c55be274f819234c407a2aa603c",
+      "transcript_sha256": "e629ad511ecabe8105d39840738e733bb5fa2dbd81796ba346082a898e107a6a",
+      "candidate_files_sha256": {
+        "acceptance-fixtures/blanks.log": "14b9091639f5cd1f8ca5dc35ed96df191d99ff3af28e07b22f2a5c262adfd2e9",
+        "acceptance-fixtures/cr.log": "90ad4f2fb626767eaaa2368d05ef96cc747d69840b5bd26cea6a69ea8d47c66e",
+        "acceptance-fixtures/crlf.log": "a2b93cf120dd2dd1d7e87d136c0a81cd73791533882da4ef641f6547901e0516",
+        "acceptance-fixtures/empty.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "acceptance-fixtures/malformed.log": "7849280cb320e7f3f6b7e88bd0c74fc9133eefcffaaa3eb228414f51b3f77f0d",
+        "acceptance-fixtures/rounding.log": "4f3186483846d1aa1882411d96251ddf22aa062a34270f064399c280cc0f7820",
+        "acceptance-fixtures/sample.log": "b4574c3e627aff7760a934ec5dc10c45abf76ade1f6ae0c20518c56cc6660598",
+        "acceptance-fixtures/ties.log": "a63d77b6295dd230f5763dcbe8aa421e8af222f5b0cd6eb0bf693e712d1a789c",
+        "build/loglens": "5eb1876c44dc79fce11e9a7935bb781c52f7da84a5bde3bba888709f48103bac",
+        "build.sh": "c68a3c15a3fc2f391988de89c002d2837ef816a6a85f4649c7d752d44a2030fb",
+        "run.sh": "e68c706db2a38fb4fd0c18bb144f5835cb44010862deecfc80566fc0c6366586",
+        "src/loglens.spx": "4d03de148ba4d6b35734a71a73effc2095b1233e2ace4bfc26a9e588f321491c",
+        "test.sh": "261f9efa2f49d49b54bbd98a5d9c24716e3118e7dbb9940d84cd27816c169d12",
+        "tests/spec.expected.json": "a8c2ba76cfc98a8abf9c2615c7a344c2ac75b8c2d092dd203e62214a5ee2e64d",
+        "tests/spec.expected.txt": "82a0df698ab756076a4ed70e86946ae638eb8cb3f186fb180ae7323ecb9659a3",
+        "tests/spec.log": "22f3969540d2dd0348d7c4f4ce08d5fa1faab5d6ddefe25163ce629ce8559046"
+      },
+      "scope_assessment": {
+        "original_full_corpus_accepted": true,
+        "explicit_spec_checks": {
+          "status": "passed",
+          "passed": 32,
+          "failed": []
+        },
+        "additional_robustness_checks": {
+          "status": "passed",
+          "passed": 1,
+          "failed": []
+        },
+        "unclassified_checks": {
+          "status": "not_applicable",
+          "names": []
+        }
+      },
+      "usage_discrepancies": {
+        "output_tokens": {
+          "per_turn_sum": 1241,
+          "final_result": 31326
+        }
+      }
+    },
+    {
+      "arm": "typescript",
+      "trial": 3,
+      "original_full_corpus_status": "accepted",
+      "original_full_corpus_accepted": true,
+      "candidate_build_status": "passed",
+      "candidate_tests_status": "passed",
+      "checks": [
+        {
+          "name": "checked-in-sample-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "checked-in-sample-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "empty-input-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "empty-input-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "malformed-input-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "malformed-input-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "half-up-rounding-and-dash-size-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "half-up-rounding-and-dash-size-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "ties-and-1xx-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "ties-and-1xx-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "blank-lines-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "blank-lines-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "crlf-line-endings-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "crlf-line-endings-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "cr-line-endings-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "cr-line-endings-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-1",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-2",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-3",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-5",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-50",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "options-json-before-top",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "options-top-before-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "spec-sample-top3-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "missing-file",
+          "status": "passed",
+          "exit_code": 1,
+          "stderr": "loglens: cannot read missing-loglens-input.log: ENOENT\n"
+        },
+        {
+          "name": "missing-file-argument",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: no file given\n"
+        },
+        {
+          "name": "unknown-flag",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: unknown flag: --unknown\n"
+        },
+        {
+          "name": "missing-top-value",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: bad or missing --top value\n"
+        },
+        {
+          "name": "top-zero",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: --top must be between 1 and 50\n"
+        },
+        {
+          "name": "top-too-large",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: --top must be between 1 and 50\n"
+        },
+        {
+          "name": "top-negative",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: bad or missing --top value\n"
+        },
+        {
+          "name": "top-noninteger",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: bad or missing --top value\n"
+        },
+        {
+          "name": "top-decimal",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: bad or missing --top value\n"
+        }
+      ],
+      "provider_num_turns": 9,
+      "deduplicated_assistant_messages_with_usage": 8,
+      "usage": {
+        "input_tokens": 16,
+        "cache_creation_input_tokens": 27795,
+        "cache_read_input_tokens": 188955,
+        "output_tokens": 9155,
+        "cache_creation_ephemeral_5m_input_tokens": 0,
+        "cache_creation_ephemeral_1h_input_tokens": 27795
+      },
+      "provider_thinking_tokens_detail": 1693,
+      "legacy_net_input_tokens": 158510,
+      "legacy_net_first_turn_input_plus_cache_tokens": 7282,
+      "provider_input_plus_cache_tokens_raw": 216766,
+      "list_price_estimate_usd": 0.240553,
+      "provider_reported_api_equivalent_total_cost_usd": 0.240553,
+      "provider_receipt_actual_usd": null,
+      "model_session_wall_seconds": 68.373,
+      "acceptance_wall_seconds": 5.22,
+      "final_candidate_source_metrics": {
+        "status": "measured_proxy",
+        "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+        "total_tokens": 3354,
+        "files": [
+          {
+            "path": "build.sh",
+            "bytes": 312,
+            "sha256": "5584e4041532dc9f571711dea216a96bad7c9dc162cc38a29a9c12f846d45bae",
+            "tokens": 103
+          },
+          {
+            "path": "run.sh",
+            "bytes": 69,
+            "sha256": "fa2397dccd63fb978854335571201a2c1b3f294c8bcbb4c4f01ae1dbf0d7b6a8",
+            "tokens": 27
+          },
+          {
+            "path": "src/loglens.ts",
+            "bytes": 3532,
+            "sha256": "d1394c92568acce6b220ab117a5975fdbeba722eb4981e0d852fa16961905f82",
+            "tokens": 1306
+          },
+          {
+            "path": "src/main.ts",
+            "bytes": 1458,
+            "sha256": "a344a2368618f9adc1005ab9790e9d408e60e63f6abb4a140bebe83118b4efee",
+            "tokens": 444
+          },
+          {
+            "path": "test/fixtures/golden.json",
+            "bytes": 299,
+            "sha256": "a8c2ba76cfc98a8abf9c2615c7a344c2ac75b8c2d092dd203e62214a5ee2e64d",
+            "tokens": 116
+          },
+          {
+            "path": "test/fixtures/golden.txt",
+            "bytes": 229,
+            "sha256": "82a0df698ab756076a4ed70e86946ae638eb8cb3f186fb180ae7323ecb9659a3",
+            "tokens": 102
+          },
+          {
+            "path": "test/loglens.test.ts",
+            "bytes": 3185,
+            "sha256": "68bd73ba0c888305561088ff9bf31ccb8438c71849851ef2ff35b9829d6964aa",
+            "tokens": 1224
+          },
+          {
+            "path": "test.sh",
+            "bytes": 84,
+            "sha256": "fbecc1706f7333f35fc1d2760ca2d7fe0089716365f9e830f738ade20b130276",
+            "tokens": 32
+          }
+        ],
+        "excluded_directories": [
+          ".cache",
+          ".git",
+          ".mypy_cache",
+          ".pytest_cache",
+          ".ruff_cache",
+          ".semaprax",
+          ".spx-cache",
+          "__pycache__",
+          "acceptance-fixtures",
+          "build",
+          "coverage",
+          "dist",
+          "gen",
+          "generated",
+          "node_modules",
+          "out",
+          "target"
+        ],
+        "excluded_generated_extensions": [
+          ".c",
+          ".h",
+          "non-text/binary files"
+        ],
+        "tokenizer": {
+          "package": "@anthropic-ai/tokenizer",
+          "version": "0.0.4",
+          "dependency": "tiktoken",
+          "dependency_version": "1.0.22",
+          "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+          "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+          "runtime": "node",
+          "runtime_version": "v24.3.0",
+          "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+          "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea"
+        }
+      },
+      "prompt_sha256": "996aa0d19685d52ffd5ca5e180b53007d5c381b31762f7f9a758c1c5b457bccd",
+      "transcript_sha256": "b1730ae229a5bace82073c9f39f0b9fe0caad9fc8b551d32992b6ef024adb0fc",
+      "candidate_files_sha256": {
+        "acceptance-fixtures/blanks.log": "14b9091639f5cd1f8ca5dc35ed96df191d99ff3af28e07b22f2a5c262adfd2e9",
+        "acceptance-fixtures/cr.log": "90ad4f2fb626767eaaa2368d05ef96cc747d69840b5bd26cea6a69ea8d47c66e",
+        "acceptance-fixtures/crlf.log": "a2b93cf120dd2dd1d7e87d136c0a81cd73791533882da4ef641f6547901e0516",
+        "acceptance-fixtures/empty.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "acceptance-fixtures/malformed.log": "7849280cb320e7f3f6b7e88bd0c74fc9133eefcffaaa3eb228414f51b3f77f0d",
+        "acceptance-fixtures/rounding.log": "4f3186483846d1aa1882411d96251ddf22aa062a34270f064399c280cc0f7820",
+        "acceptance-fixtures/sample.log": "b4574c3e627aff7760a934ec5dc10c45abf76ade1f6ae0c20518c56cc6660598",
+        "acceptance-fixtures/ties.log": "a63d77b6295dd230f5763dcbe8aa421e8af222f5b0cd6eb0bf693e712d1a789c",
+        "build.sh": "5584e4041532dc9f571711dea216a96bad7c9dc162cc38a29a9c12f846d45bae",
+        "run.sh": "fa2397dccd63fb978854335571201a2c1b3f294c8bcbb4c4f01ae1dbf0d7b6a8",
+        "src/loglens.ts": "d1394c92568acce6b220ab117a5975fdbeba722eb4981e0d852fa16961905f82",
+        "src/main.ts": "a344a2368618f9adc1005ab9790e9d408e60e63f6abb4a140bebe83118b4efee",
+        "test/fixtures/golden.json": "a8c2ba76cfc98a8abf9c2615c7a344c2ac75b8c2d092dd203e62214a5ee2e64d",
+        "test/fixtures/golden.log": "0f66f0b0295eddd85101870352c950b0e73dc1fb0f46611228ce761d25399cbc",
+        "test/fixtures/golden.txt": "82a0df698ab756076a4ed70e86946ae638eb8cb3f186fb180ae7323ecb9659a3",
+        "test/loglens.test.ts": "68bd73ba0c888305561088ff9bf31ccb8438c71849851ef2ff35b9829d6964aa",
+        "test.sh": "fbecc1706f7333f35fc1d2760ca2d7fe0089716365f9e830f738ade20b130276"
+      },
+      "scope_assessment": {
+        "original_full_corpus_accepted": true,
+        "explicit_spec_checks": {
+          "status": "passed",
+          "passed": 32,
+          "failed": []
+        },
+        "additional_robustness_checks": {
+          "status": "passed",
+          "passed": 1,
+          "failed": []
+        },
+        "unclassified_checks": {
+          "status": "not_applicable",
+          "names": []
+        }
+      },
+      "usage_discrepancies": {
+        "output_tokens": {
+          "per_turn_sum": 80,
+          "final_result": 9155
+        }
+      }
+    },
+    {
+      "arm": "typescript",
+      "trial": 4,
+      "original_full_corpus_status": "accepted",
+      "original_full_corpus_accepted": true,
+      "candidate_build_status": "passed",
+      "candidate_tests_status": "passed",
+      "checks": [
+        {
+          "name": "checked-in-sample-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "checked-in-sample-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "empty-input-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "empty-input-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "malformed-input-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "malformed-input-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "half-up-rounding-and-dash-size-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "half-up-rounding-and-dash-size-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "ties-and-1xx-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "ties-and-1xx-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "blank-lines-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "blank-lines-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "crlf-line-endings-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "crlf-line-endings-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "cr-line-endings-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "cr-line-endings-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-1",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-2",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-3",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-5",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-50",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "options-json-before-top",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "options-top-before-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "spec-sample-top3-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "missing-file",
+          "status": "passed",
+          "exit_code": 1,
+          "stderr": "loglens: cannot read missing-loglens-input.log: ENOENT\n"
+        },
+        {
+          "name": "missing-file-argument",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: missing <file> (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "unknown-flag",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: unknown flag: --unknown (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "missing-top-value",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: --top requires an integer from 1 to 50 (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "top-zero",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: --top requires an integer from 1 to 50 (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "top-too-large",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: --top requires an integer from 1 to 50 (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "top-negative",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: --top requires an integer from 1 to 50 (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "top-noninteger",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: --top requires an integer from 1 to 50 (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "top-decimal",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: --top requires an integer from 1 to 50 (usage: loglens <file> [--top N] [--json])\n"
+        }
+      ],
+      "provider_num_turns": 6,
+      "deduplicated_assistant_messages_with_usage": 5,
+      "usage": {
+        "input_tokens": 10,
+        "cache_creation_input_tokens": 27549,
+        "cache_read_input_tokens": 98984,
+        "output_tokens": 8766,
+        "cache_creation_ephemeral_5m_input_tokens": 0,
+        "cache_creation_ephemeral_1h_input_tokens": 27549
+      },
+      "provider_thinking_tokens_detail": 1475,
+      "legacy_net_input_tokens": 90133,
+      "legacy_net_first_turn_input_plus_cache_tokens": 7282,
+      "provider_input_plus_cache_tokens_raw": 126543,
+      "list_price_estimate_usd": 0.217673,
+      "provider_reported_api_equivalent_total_cost_usd": 0.2176728,
+      "provider_receipt_actual_usd": null,
+      "model_session_wall_seconds": 63.077,
+      "acceptance_wall_seconds": 5.399,
+      "final_candidate_source_metrics": {
+        "status": "measured_proxy",
+        "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+        "total_tokens": 3666,
+        "files": [
+          {
+            "path": "build.sh",
+            "bytes": 336,
+            "sha256": "79d19984cbce87e454599991479732a43802bd2a519a630abbbf875f76335e02",
+            "tokens": 107
+          },
+          {
+            "path": "run.sh",
+            "bytes": 54,
+            "sha256": "41a505e3ad6a0c387a1fe063c5b1a76f8fc0631a81b92680da7426872d83ad46",
+            "tokens": 23
+          },
+          {
+            "path": "src/cli.ts",
+            "bytes": 1750,
+            "sha256": "cef72ae6beb1d1409ee2517384b30e5e11f6e32c3f098dde081f349c3ee09a63",
+            "tokens": 519
+          },
+          {
+            "path": "src/report.ts",
+            "bytes": 3649,
+            "sha256": "fce6f435c66cba08f00b47896a601745c7f57d49d90fc42013594070388aa9e7",
+            "tokens": 1334
+          },
+          {
+            "path": "test/loglens.test.ts",
+            "bytes": 4418,
+            "sha256": "cf683893e6f60d60e9c484a902ea78908c9b9a157cc8b64de18656a55e77272e",
+            "tokens": 1652
+          },
+          {
+            "path": "test.sh",
+            "bytes": 77,
+            "sha256": "31f466497c5f28c4a64aff4e1b76c3e9dcd45336b80077bd273cb53f9d22d49a",
+            "tokens": 31
+          }
+        ],
+        "excluded_directories": [
+          ".cache",
+          ".git",
+          ".mypy_cache",
+          ".pytest_cache",
+          ".ruff_cache",
+          ".semaprax",
+          ".spx-cache",
+          "__pycache__",
+          "acceptance-fixtures",
+          "build",
+          "coverage",
+          "dist",
+          "gen",
+          "generated",
+          "node_modules",
+          "out",
+          "target"
+        ],
+        "excluded_generated_extensions": [
+          ".c",
+          ".h",
+          "non-text/binary files"
+        ],
+        "tokenizer": {
+          "package": "@anthropic-ai/tokenizer",
+          "version": "0.0.4",
+          "dependency": "tiktoken",
+          "dependency_version": "1.0.22",
+          "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+          "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+          "runtime": "node",
+          "runtime_version": "v24.3.0",
+          "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+          "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea"
+        }
+      },
+      "prompt_sha256": "7b1faafe73255ef10ce1a6654df4959d04114c3ca78a4facb5d6a5710964a2e0",
+      "transcript_sha256": "bd286cd01083e43d3317b17e00b1fee1b56d2a0b0e27a64c1e9167aeb85616f6",
+      "candidate_files_sha256": {
+        "acceptance-fixtures/blanks.log": "14b9091639f5cd1f8ca5dc35ed96df191d99ff3af28e07b22f2a5c262adfd2e9",
+        "acceptance-fixtures/cr.log": "90ad4f2fb626767eaaa2368d05ef96cc747d69840b5bd26cea6a69ea8d47c66e",
+        "acceptance-fixtures/crlf.log": "a2b93cf120dd2dd1d7e87d136c0a81cd73791533882da4ef641f6547901e0516",
+        "acceptance-fixtures/empty.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "acceptance-fixtures/malformed.log": "7849280cb320e7f3f6b7e88bd0c74fc9133eefcffaaa3eb228414f51b3f77f0d",
+        "acceptance-fixtures/rounding.log": "4f3186483846d1aa1882411d96251ddf22aa062a34270f064399c280cc0f7820",
+        "acceptance-fixtures/sample.log": "b4574c3e627aff7760a934ec5dc10c45abf76ade1f6ae0c20518c56cc6660598",
+        "acceptance-fixtures/ties.log": "a63d77b6295dd230f5763dcbe8aa421e8af222f5b0cd6eb0bf693e712d1a789c",
+        "build.sh": "79d19984cbce87e454599991479732a43802bd2a519a630abbbf875f76335e02",
+        "run.sh": "41a505e3ad6a0c387a1fe063c5b1a76f8fc0631a81b92680da7426872d83ad46",
+        "src/cli.ts": "cef72ae6beb1d1409ee2517384b30e5e11f6e32c3f098dde081f349c3ee09a63",
+        "src/report.ts": "fce6f435c66cba08f00b47896a601745c7f57d49d90fc42013594070388aa9e7",
+        "test/loglens.test.ts": "cf683893e6f60d60e9c484a902ea78908c9b9a157cc8b64de18656a55e77272e",
+        "test.sh": "31f466497c5f28c4a64aff4e1b76c3e9dcd45336b80077bd273cb53f9d22d49a"
+      },
+      "scope_assessment": {
+        "original_full_corpus_accepted": true,
+        "explicit_spec_checks": {
+          "status": "passed",
+          "passed": 32,
+          "failed": []
+        },
+        "additional_robustness_checks": {
+          "status": "passed",
+          "passed": 1,
+          "failed": []
+        },
+        "unclassified_checks": {
+          "status": "not_applicable",
+          "names": []
+        }
+      },
+      "usage_discrepancies": {
+        "output_tokens": {
+          "per_turn_sum": 727,
+          "final_result": 8766
+        }
+      }
+    },
+    {
+      "arm": "semaprax",
+      "trial": 4,
+      "original_full_corpus_status": "not_accepted",
+      "original_full_corpus_accepted": false,
+      "candidate_build_status": "passed",
+      "candidate_tests_status": "passed",
+      "checks": [
+        {
+          "name": "checked-in-sample-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "checked-in-sample-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "empty-input-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "empty-input-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "malformed-input-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "malformed-input-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "half-up-rounding-and-dash-size-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "half-up-rounding-and-dash-size-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "ties-and-1xx-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "ties-and-1xx-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "blank-lines-text",
+          "status": "failed",
+          "exit_code": 1,
+          "stderr": "SEMAPRAX operation failure: semaprax.text.v1/1\n"
+        },
+        {
+          "name": "blank-lines-json",
+          "status": "failed",
+          "exit_code": 1,
+          "stderr": "SEMAPRAX operation failure: semaprax.text.v1/1\n"
+        },
+        {
+          "name": "crlf-line-endings-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "crlf-line-endings-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "cr-line-endings-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "cr-line-endings-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-1",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-2",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-3",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-5",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-50",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "options-json-before-top",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "options-top-before-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "spec-sample-top3-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "missing-file",
+          "status": "passed",
+          "exit_code": 1,
+          "stderr": "SEMAPRAX operation failure: semaprax.filesystem.v1/2\n"
+        },
+        {
+          "name": "missing-file-argument",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "unknown-flag",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "missing-top-value",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-zero",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-too-large",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-negative",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-noninteger",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-decimal",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "usage: loglens <file> [--top N] [--json]\n"
+        }
+      ],
+      "provider_num_turns": 27,
+      "deduplicated_assistant_messages_with_usage": 26,
+      "usage": {
+        "input_tokens": 52,
+        "cache_creation_input_tokens": 76440,
+        "cache_read_input_tokens": 1484257,
+        "output_tokens": 31263,
+        "cache_creation_ephemeral_5m_input_tokens": 0,
+        "cache_creation_ephemeral_1h_input_tokens": 76440
+      },
+      "provider_thinking_tokens_detail": 11824,
+      "legacy_net_input_tokens": 1371417,
+      "legacy_net_first_turn_input_plus_cache_tokens": 7282,
+      "provider_input_plus_cache_tokens_raw": 1560749,
+      "list_price_estimate_usd": 0.915345,
+      "provider_reported_api_equivalent_total_cost_usd": 0.9153453999999999,
+      "provider_receipt_actual_usd": null,
+      "model_session_wall_seconds": 289.042,
+      "acceptance_wall_seconds": 8.788,
+      "final_candidate_source_metrics": {
+        "status": "measured_proxy",
+        "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+        "total_tokens": 7660,
+        "files": [
+          {
+            "path": "build.sh",
+            "bytes": 424,
+            "sha256": "c5e4acca8dde99ef037e7bf4c4889bb175f80db104cb9da09655e73644facd7b",
+            "tokens": 160
+          },
+          {
+            "path": "loglens.spx",
+            "bytes": 12362,
+            "sha256": "ba158c3f381b37a189b9a55b0a6196c46a09c30ee50d123aff5aae8395978674",
+            "tokens": 4672
+          },
+          {
+            "path": "run.sh",
+            "bytes": 939,
+            "sha256": "0751f4170f9663bc35da2cd6c3aee7008c66654a248acab8481070b57707d8a0",
+            "tokens": 323
+          },
+          {
+            "path": "test.sh",
+            "bytes": 5297,
+            "sha256": "b87874bb608ec21519821c2a4b15379aba8bbeb1b0d9a26171b26a4005c36754",
+            "tokens": 2212
+          },
+          {
+            "path": "tests/sample.json",
+            "bytes": 380,
+            "sha256": "cff5951ee5d7327f5a676d26554d1db15c27a083ad1fcea1b52a8432b3333253",
+            "tokens": 152
+          },
+          {
+            "path": "tests/sample.txt",
+            "bytes": 341,
+            "sha256": "1301d1cf9601261ab146bbda59ae56bc71935454234dd3cc71f9d17f9849fa7b",
+            "tokens": 141
+          }
+        ],
+        "excluded_directories": [
+          ".cache",
+          ".git",
+          ".mypy_cache",
+          ".pytest_cache",
+          ".ruff_cache",
+          ".semaprax",
+          ".spx-cache",
+          "__pycache__",
+          "acceptance-fixtures",
+          "build",
+          "coverage",
+          "dist",
+          "gen",
+          "generated",
+          "node_modules",
+          "out",
+          "target"
+        ],
+        "excluded_generated_extensions": [
+          ".c",
+          ".h",
+          "non-text/binary files"
+        ],
+        "tokenizer": {
+          "package": "@anthropic-ai/tokenizer",
+          "version": "0.0.4",
+          "dependency": "tiktoken",
+          "dependency_version": "1.0.22",
+          "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+          "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+          "runtime": "node",
+          "runtime_version": "v24.3.0",
+          "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+          "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea"
+        }
+      },
+      "prompt_sha256": "f1f4313ca2fbe9ff314bc9001bbd1a4849b2e6102927496a4cbc3b3bcde59ca2",
+      "transcript_sha256": "975a8f6ca7871ea1d680025c7d3047cd9af3c2741a809108a61c305e850623a7",
+      "candidate_files_sha256": {
+        "acceptance-fixtures/blanks.log": "14b9091639f5cd1f8ca5dc35ed96df191d99ff3af28e07b22f2a5c262adfd2e9",
+        "acceptance-fixtures/cr.log": "90ad4f2fb626767eaaa2368d05ef96cc747d69840b5bd26cea6a69ea8d47c66e",
+        "acceptance-fixtures/crlf.log": "a2b93cf120dd2dd1d7e87d136c0a81cd73791533882da4ef641f6547901e0516",
+        "acceptance-fixtures/empty.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "acceptance-fixtures/malformed.log": "7849280cb320e7f3f6b7e88bd0c74fc9133eefcffaaa3eb228414f51b3f77f0d",
+        "acceptance-fixtures/rounding.log": "4f3186483846d1aa1882411d96251ddf22aa062a34270f064399c280cc0f7820",
+        "acceptance-fixtures/sample.log": "b4574c3e627aff7760a934ec5dc10c45abf76ade1f6ae0c20518c56cc6660598",
+        "acceptance-fixtures/ties.log": "a63d77b6295dd230f5763dcbe8aa421e8af222f5b0cd6eb0bf693e712d1a789c",
+        "build/loglens": "2bcc71ec89fbc5fe2b2c3a88e4e0d0ff2b6a2409f5f3cab72c6c48906565f278",
+        "build.sh": "c5e4acca8dde99ef037e7bf4c4889bb175f80db104cb9da09655e73644facd7b",
+        "loglens.spx": "ba158c3f381b37a189b9a55b0a6196c46a09c30ee50d123aff5aae8395978674",
+        "run.sh": "0751f4170f9663bc35da2cd6c3aee7008c66654a248acab8481070b57707d8a0",
+        "test.sh": "b87874bb608ec21519821c2a4b15379aba8bbeb1b0d9a26171b26a4005c36754",
+        "tests/sample.json": "cff5951ee5d7327f5a676d26554d1db15c27a083ad1fcea1b52a8432b3333253",
+        "tests/sample.txt": "1301d1cf9601261ab146bbda59ae56bc71935454234dd3cc71f9d17f9849fa7b"
+      },
+      "scope_assessment": {
+        "original_full_corpus_accepted": false,
+        "explicit_spec_checks": {
+          "status": "failed",
+          "passed": 30,
+          "failed": [
+            "blank-lines-text",
+            "blank-lines-json"
+          ]
+        },
+        "additional_robustness_checks": {
+          "status": "passed",
+          "passed": 1,
+          "failed": []
+        },
+        "unclassified_checks": {
+          "status": "not_applicable",
+          "names": []
+        }
+      },
+      "usage_discrepancies": {
+        "output_tokens": {
+          "per_turn_sum": 1007,
+          "final_result": 31263
+        }
+      }
+    },
+    {
+      "arm": "semaprax",
+      "trial": 5,
+      "original_full_corpus_status": "accepted",
+      "original_full_corpus_accepted": true,
+      "candidate_build_status": "passed",
+      "candidate_tests_status": "passed",
+      "checks": [
+        {
+          "name": "checked-in-sample-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "checked-in-sample-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "empty-input-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "empty-input-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "malformed-input-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "malformed-input-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "half-up-rounding-and-dash-size-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "half-up-rounding-and-dash-size-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "ties-and-1xx-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "ties-and-1xx-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "blank-lines-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "blank-lines-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "crlf-line-endings-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "crlf-line-endings-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "cr-line-endings-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "cr-line-endings-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-1",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-2",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-3",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-5",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-50",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "options-json-before-top",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "options-top-before-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "spec-sample-top3-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "missing-file",
+          "status": "passed",
+          "exit_code": 1,
+          "stderr": "SEMAPRAX operation failure: semaprax.filesystem.v1/2\n"
+        },
+        {
+          "name": "missing-file-argument",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "unknown-flag",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "missing-top-value",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-zero",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-too-large",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-negative",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-noninteger",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "usage: loglens <file> [--top N] [--json]\n"
+        },
+        {
+          "name": "top-decimal",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "usage: loglens <file> [--top N] [--json]\n"
+        }
+      ],
+      "provider_num_turns": 38,
+      "deduplicated_assistant_messages_with_usage": 37,
+      "usage": {
+        "input_tokens": 74,
+        "cache_creation_input_tokens": 83169,
+        "cache_read_input_tokens": 2372005,
+        "output_tokens": 35238,
+        "cache_creation_ephemeral_5m_input_tokens": 0,
+        "cache_creation_ephemeral_1h_input_tokens": 83169
+      },
+      "provider_thinking_tokens_detail": 11800,
+      "legacy_net_input_tokens": 2185814,
+      "legacy_net_first_turn_input_plus_cache_tokens": 7282,
+      "provider_input_plus_cache_tokens_raw": 2455248,
+      "list_price_estimate_usd": 1.159605,
+      "provider_reported_api_equivalent_total_cost_usd": 1.159605,
+      "provider_receipt_actual_usd": null,
+      "model_session_wall_seconds": 329.766,
+      "acceptance_wall_seconds": 11.487,
+      "final_candidate_source_metrics": {
+        "status": "measured_proxy",
+        "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+        "total_tokens": 6674,
+        "files": [
+          {
+            "path": "build.sh",
+            "bytes": 412,
+            "sha256": "18e140c7c386d4e590536d7f1b09d5e76b975919bb70854ef6112a79f03c785f",
+            "tokens": 160
+          },
+          {
+            "path": "run.sh",
+            "bytes": 771,
+            "sha256": "638d5968f2a0b2681f334872f1e8405109161b42d5d5bf5d95e70ff98f3af155",
+            "tokens": 266
+          },
+          {
+            "path": "src/loglens.spx",
+            "bytes": 12520,
+            "sha256": "a8df4c6f43616bcf1d760e08f14e0317b01e996e7ef0000765c0885f4df8f3af",
+            "tokens": 4613
+          },
+          {
+            "path": "test.sh",
+            "bytes": 3016,
+            "sha256": "20b5a48d7b139c06e2e73ba2e901c5cc9bfdad2877805507dbecf29c26da4f02",
+            "tokens": 1124
+          },
+          {
+            "path": "tests/expected.json",
+            "bytes": 299,
+            "sha256": "a8c2ba76cfc98a8abf9c2615c7a344c2ac75b8c2d092dd203e62214a5ee2e64d",
+            "tokens": 116
+          },
+          {
+            "path": "tests/expected.txt",
+            "bytes": 229,
+            "sha256": "82a0df698ab756076a4ed70e86946ae638eb8cb3f186fb180ae7323ecb9659a3",
+            "tokens": 102
+          },
+          {
+            "path": "tests/sample.json",
+            "bytes": 380,
+            "sha256": "cff5951ee5d7327f5a676d26554d1db15c27a083ad1fcea1b52a8432b3333253",
+            "tokens": 152
+          },
+          {
+            "path": "tests/sample.txt",
+            "bytes": 341,
+            "sha256": "1301d1cf9601261ab146bbda59ae56bc71935454234dd3cc71f9d17f9849fa7b",
+            "tokens": 141
+          }
+        ],
+        "excluded_directories": [
+          ".cache",
+          ".git",
+          ".mypy_cache",
+          ".pytest_cache",
+          ".ruff_cache",
+          ".semaprax",
+          ".spx-cache",
+          "__pycache__",
+          "acceptance-fixtures",
+          "build",
+          "coverage",
+          "dist",
+          "gen",
+          "generated",
+          "node_modules",
+          "out",
+          "target"
+        ],
+        "excluded_generated_extensions": [
+          ".c",
+          ".h",
+          "non-text/binary files"
+        ],
+        "tokenizer": {
+          "package": "@anthropic-ai/tokenizer",
+          "version": "0.0.4",
+          "dependency": "tiktoken",
+          "dependency_version": "1.0.22",
+          "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+          "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+          "runtime": "node",
+          "runtime_version": "v24.3.0",
+          "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+          "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea"
+        }
+      },
+      "prompt_sha256": "4843b701a5b1e93035c54c3660d64b8bfc32f43bfef560da5ce1c2d0f3380e0c",
+      "transcript_sha256": "7618748c1bc89b3f67b2f80ea7422c2845af0df3e6457e8634ec1b688fee4945",
+      "candidate_files_sha256": {
+        "acceptance-fixtures/blanks.log": "14b9091639f5cd1f8ca5dc35ed96df191d99ff3af28e07b22f2a5c262adfd2e9",
+        "acceptance-fixtures/cr.log": "90ad4f2fb626767eaaa2368d05ef96cc747d69840b5bd26cea6a69ea8d47c66e",
+        "acceptance-fixtures/crlf.log": "a2b93cf120dd2dd1d7e87d136c0a81cd73791533882da4ef641f6547901e0516",
+        "acceptance-fixtures/empty.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "acceptance-fixtures/malformed.log": "7849280cb320e7f3f6b7e88bd0c74fc9133eefcffaaa3eb228414f51b3f77f0d",
+        "acceptance-fixtures/rounding.log": "4f3186483846d1aa1882411d96251ddf22aa062a34270f064399c280cc0f7820",
+        "acceptance-fixtures/sample.log": "b4574c3e627aff7760a934ec5dc10c45abf76ade1f6ae0c20518c56cc6660598",
+        "acceptance-fixtures/ties.log": "a63d77b6295dd230f5763dcbe8aa421e8af222f5b0cd6eb0bf693e712d1a789c",
+        "build/loglens": "73b16e13e17cdbee2000a14eca75bd85c07ebbb3b4833f15d42ea79a8293bcef",
+        "build.sh": "18e140c7c386d4e590536d7f1b09d5e76b975919bb70854ef6112a79f03c785f",
+        "run.sh": "638d5968f2a0b2681f334872f1e8405109161b42d5d5bf5d95e70ff98f3af155",
+        "src/loglens.spx": "a8df4c6f43616bcf1d760e08f14e0317b01e996e7ef0000765c0885f4df8f3af",
+        "test.sh": "20b5a48d7b139c06e2e73ba2e901c5cc9bfdad2877805507dbecf29c26da4f02",
+        "tests/expected.json": "a8c2ba76cfc98a8abf9c2615c7a344c2ac75b8c2d092dd203e62214a5ee2e64d",
+        "tests/expected.txt": "82a0df698ab756076a4ed70e86946ae638eb8cb3f186fb180ae7323ecb9659a3",
+        "tests/sample.json": "cff5951ee5d7327f5a676d26554d1db15c27a083ad1fcea1b52a8432b3333253",
+        "tests/sample.txt": "1301d1cf9601261ab146bbda59ae56bc71935454234dd3cc71f9d17f9849fa7b",
+        "tests/spec.log": "239ec4a6b79a4a1a199ff92ee21df5d7de2c330bd4889a83197eb8982b3d3f23"
+      },
+      "scope_assessment": {
+        "original_full_corpus_accepted": true,
+        "explicit_spec_checks": {
+          "status": "passed",
+          "passed": 32,
+          "failed": []
+        },
+        "additional_robustness_checks": {
+          "status": "passed",
+          "passed": 1,
+          "failed": []
+        },
+        "unclassified_checks": {
+          "status": "not_applicable",
+          "names": []
+        }
+      },
+      "usage_discrepancies": {
+        "output_tokens": {
+          "per_turn_sum": 1058,
+          "final_result": 35238
+        }
+      }
+    },
+    {
+      "arm": "typescript",
+      "trial": 5,
+      "original_full_corpus_status": "accepted",
+      "original_full_corpus_accepted": true,
+      "candidate_build_status": "passed",
+      "candidate_tests_status": "passed",
+      "checks": [
+        {
+          "name": "checked-in-sample-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "checked-in-sample-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "empty-input-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "empty-input-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "malformed-input-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "malformed-input-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "half-up-rounding-and-dash-size-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "half-up-rounding-and-dash-size-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "ties-and-1xx-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "ties-and-1xx-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "blank-lines-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "blank-lines-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "crlf-line-endings-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "crlf-line-endings-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "cr-line-endings-text",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "cr-line-endings-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-1",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-2",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-3",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-5",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "top-boundary-50",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "options-json-before-top",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "options-top-before-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "spec-sample-top3-json",
+          "status": "passed",
+          "exit_code": 0,
+          "stderr": ""
+        },
+        {
+          "name": "missing-file",
+          "status": "passed",
+          "exit_code": 1,
+          "stderr": "loglens: cannot read missing-loglens-input.log: ENOENT\n"
+        },
+        {
+          "name": "missing-file-argument",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: missing <file> (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "unknown-flag",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: unknown flag: --unknown (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "missing-top-value",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: --top requires an integer value (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "top-zero",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: --top must be between 1 and 50 (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "top-too-large",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: --top must be between 1 and 50 (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "top-negative",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: --top requires an integer value (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "top-noninteger",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: --top requires an integer value (usage: loglens <file> [--top N] [--json])\n"
+        },
+        {
+          "name": "top-decimal",
+          "status": "passed",
+          "exit_code": 2,
+          "stderr": "loglens: --top requires an integer value (usage: loglens <file> [--top N] [--json])\n"
+        }
+      ],
+      "provider_num_turns": 6,
+      "deduplicated_assistant_messages_with_usage": 5,
+      "usage": {
+        "input_tokens": 10,
+        "cache_creation_input_tokens": 11930,
+        "cache_read_input_tokens": 49155,
+        "output_tokens": 7557,
+        "cache_creation_ephemeral_5m_input_tokens": 0,
+        "cache_creation_ephemeral_1h_input_tokens": 11930
+      },
+      "provider_thinking_tokens_detail": 1531,
+      "legacy_net_input_tokens": 24685,
+      "legacy_net_first_turn_input_plus_cache_tokens": 7282,
+      "provider_input_plus_cache_tokens_raw": 61095,
+      "list_price_estimate_usd": 0.133141,
+      "provider_reported_api_equivalent_total_cost_usd": 0.133141,
+      "provider_receipt_actual_usd": null,
+      "model_session_wall_seconds": 53.795,
+      "acceptance_wall_seconds": 4.07,
+      "final_candidate_source_metrics": {
+        "status": "measured_proxy",
+        "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+        "total_tokens": 2662,
+        "files": [
+          {
+            "path": "build.sh",
+            "bytes": 140,
+            "sha256": "150561c0cd7b3ff1bfb23fa4542a424b61a444bee029c908cd5696f7016a62e8",
+            "tokens": 44
+          },
+          {
+            "path": "loglens.ts",
+            "bytes": 4597,
+            "sha256": "f16f0a0515a8081e5c423c2846e6582808324c6398f97cf7a7b78bb1dcdf7b45",
+            "tokens": 1570
+          },
+          {
+            "path": "run.sh",
+            "bytes": 54,
+            "sha256": "e17a688d68ce6f9986bcb4cf35c060a07a0e3d5a621f2c45f4f1239f4a21604c",
+            "tokens": 22
+          },
+          {
+            "path": "test.sh",
+            "bytes": 1904,
+            "sha256": "e34c458313944baa1b71d09ce97b04c87b1a794b09343712c9bdd8330127112d",
+            "tokens": 808
+          },
+          {
+            "path": "tests/expected.json",
+            "bytes": 299,
+            "sha256": "a8c2ba76cfc98a8abf9c2615c7a344c2ac75b8c2d092dd203e62214a5ee2e64d",
+            "tokens": 116
+          },
+          {
+            "path": "tests/expected.txt",
+            "bytes": 229,
+            "sha256": "82a0df698ab756076a4ed70e86946ae638eb8cb3f186fb180ae7323ecb9659a3",
+            "tokens": 102
+          }
+        ],
+        "excluded_directories": [
+          ".cache",
+          ".git",
+          ".mypy_cache",
+          ".pytest_cache",
+          ".ruff_cache",
+          ".semaprax",
+          ".spx-cache",
+          "__pycache__",
+          "acceptance-fixtures",
+          "build",
+          "coverage",
+          "dist",
+          "gen",
+          "generated",
+          "node_modules",
+          "out",
+          "target"
+        ],
+        "excluded_generated_extensions": [
+          ".c",
+          ".h",
+          "non-text/binary files"
+        ],
+        "tokenizer": {
+          "package": "@anthropic-ai/tokenizer",
+          "version": "0.0.4",
+          "dependency": "tiktoken",
+          "dependency_version": "1.0.22",
+          "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+          "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+          "runtime": "node",
+          "runtime_version": "v24.3.0",
+          "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+          "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea"
+        }
+      },
+      "prompt_sha256": "19db0fdba1e844b53635506bc22f7756813b151b1ea2a16a9aa57694f165eb21",
+      "transcript_sha256": "52e0e155ca3a5c6b845c8ee255d84a7c6b7142021c1d6dd437b2a790a07a7834",
+      "candidate_files_sha256": {
+        "acceptance-fixtures/blanks.log": "14b9091639f5cd1f8ca5dc35ed96df191d99ff3af28e07b22f2a5c262adfd2e9",
+        "acceptance-fixtures/cr.log": "90ad4f2fb626767eaaa2368d05ef96cc747d69840b5bd26cea6a69ea8d47c66e",
+        "acceptance-fixtures/crlf.log": "a2b93cf120dd2dd1d7e87d136c0a81cd73791533882da4ef641f6547901e0516",
+        "acceptance-fixtures/empty.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "acceptance-fixtures/malformed.log": "7849280cb320e7f3f6b7e88bd0c74fc9133eefcffaaa3eb228414f51b3f77f0d",
+        "acceptance-fixtures/rounding.log": "4f3186483846d1aa1882411d96251ddf22aa062a34270f064399c280cc0f7820",
+        "acceptance-fixtures/sample.log": "b4574c3e627aff7760a934ec5dc10c45abf76ade1f6ae0c20518c56cc6660598",
+        "acceptance-fixtures/ties.log": "a63d77b6295dd230f5763dcbe8aa421e8af222f5b0cd6eb0bf693e712d1a789c",
+        "build.sh": "150561c0cd7b3ff1bfb23fa4542a424b61a444bee029c908cd5696f7016a62e8",
+        "loglens.ts": "f16f0a0515a8081e5c423c2846e6582808324c6398f97cf7a7b78bb1dcdf7b45",
+        "run.sh": "e17a688d68ce6f9986bcb4cf35c060a07a0e3d5a621f2c45f4f1239f4a21604c",
+        "test.sh": "e34c458313944baa1b71d09ce97b04c87b1a794b09343712c9bdd8330127112d",
+        "tests/example.log": "f8bf2b7bc5d3f7e6b0b688b0dfa781c6df2d90072a6dee165bf99b9cac686b10",
+        "tests/expected.json": "a8c2ba76cfc98a8abf9c2615c7a344c2ac75b8c2d092dd203e62214a5ee2e64d",
+        "tests/expected.txt": "82a0df698ab756076a4ed70e86946ae638eb8cb3f186fb180ae7323ecb9659a3"
+      },
+      "scope_assessment": {
+        "original_full_corpus_accepted": true,
+        "explicit_spec_checks": {
+          "status": "passed",
+          "passed": 32,
+          "failed": []
+        },
+        "additional_robustness_checks": {
+          "status": "passed",
+          "passed": 1,
+          "failed": []
+        },
+        "unclassified_checks": {
+          "status": "not_applicable",
+          "names": []
+        }
+      },
+      "usage_discrepancies": {
+        "output_tokens": {
+          "per_turn_sum": 787,
+          "final_result": 7557
+        }
+      }
+    }
+  ],
+  "campaign_elapsed_wall_seconds": 1781.304,
+  "acceptance_scope_assessment": {
+    "classification_timing": "post-run diagnostic; does not alter original scoring",
+    "frozen_spec_sha256": "51bf564cb9f7eadd4b3bd12fac53b7857befa09b3ef757d9c34400a8509fdeae",
+    "full_corpus_acceptance": "original results and per-trial status remain authoritative",
+    "explicit_spec_checks": {
+      "failed_cases": [
+        {
+          "arm": "semaprax",
+          "number": 4,
+          "check": "blank-lines-text"
+        },
+        {
+          "arm": "semaprax",
+          "number": 4,
+          "check": "blank-lines-json"
+        }
+      ],
+      "trial_assessments": 10
+    },
+    "additional_robustness_checks": {
+      "not_specified_by_frozen_spec": [
+        "options-json-before-top"
+      ],
+      "failed_cases": [],
+      "trial_assessments": 10
+    },
+    "per_trial": [
+      {
+        "arm": "semaprax",
+        "number": 1,
+        "original_full_corpus_accepted": true,
+        "explicit_spec_checks": {
+          "status": "passed",
+          "passed": 32,
+          "failed": []
+        },
+        "additional_robustness_checks": {
+          "status": "passed",
+          "passed": 1,
+          "failed": []
+        },
+        "unclassified_checks": {
+          "status": "not_applicable",
+          "names": []
+        }
+      },
+      {
+        "arm": "typescript",
+        "number": 1,
+        "original_full_corpus_accepted": true,
+        "explicit_spec_checks": {
+          "status": "passed",
+          "passed": 32,
+          "failed": []
+        },
+        "additional_robustness_checks": {
+          "status": "passed",
+          "passed": 1,
+          "failed": []
+        },
+        "unclassified_checks": {
+          "status": "not_applicable",
+          "names": []
+        }
+      },
+      {
+        "arm": "typescript",
+        "number": 2,
+        "original_full_corpus_accepted": true,
+        "explicit_spec_checks": {
+          "status": "passed",
+          "passed": 32,
+          "failed": []
+        },
+        "additional_robustness_checks": {
+          "status": "passed",
+          "passed": 1,
+          "failed": []
+        },
+        "unclassified_checks": {
+          "status": "not_applicable",
+          "names": []
+        }
+      },
+      {
+        "arm": "semaprax",
+        "number": 2,
+        "original_full_corpus_accepted": true,
+        "explicit_spec_checks": {
+          "status": "passed",
+          "passed": 32,
+          "failed": []
+        },
+        "additional_robustness_checks": {
+          "status": "passed",
+          "passed": 1,
+          "failed": []
+        },
+        "unclassified_checks": {
+          "status": "not_applicable",
+          "names": []
+        }
+      },
+      {
+        "arm": "semaprax",
+        "number": 3,
+        "original_full_corpus_accepted": true,
+        "explicit_spec_checks": {
+          "status": "passed",
+          "passed": 32,
+          "failed": []
+        },
+        "additional_robustness_checks": {
+          "status": "passed",
+          "passed": 1,
+          "failed": []
+        },
+        "unclassified_checks": {
+          "status": "not_applicable",
+          "names": []
+        }
+      },
+      {
+        "arm": "typescript",
+        "number": 3,
+        "original_full_corpus_accepted": true,
+        "explicit_spec_checks": {
+          "status": "passed",
+          "passed": 32,
+          "failed": []
+        },
+        "additional_robustness_checks": {
+          "status": "passed",
+          "passed": 1,
+          "failed": []
+        },
+        "unclassified_checks": {
+          "status": "not_applicable",
+          "names": []
+        }
+      },
+      {
+        "arm": "typescript",
+        "number": 4,
+        "original_full_corpus_accepted": true,
+        "explicit_spec_checks": {
+          "status": "passed",
+          "passed": 32,
+          "failed": []
+        },
+        "additional_robustness_checks": {
+          "status": "passed",
+          "passed": 1,
+          "failed": []
+        },
+        "unclassified_checks": {
+          "status": "not_applicable",
+          "names": []
+        }
+      },
+      {
+        "arm": "semaprax",
+        "number": 4,
+        "original_full_corpus_accepted": false,
+        "explicit_spec_checks": {
+          "status": "failed",
+          "passed": 30,
+          "failed": [
+            "blank-lines-text",
+            "blank-lines-json"
+          ]
+        },
+        "additional_robustness_checks": {
+          "status": "passed",
+          "passed": 1,
+          "failed": []
+        },
+        "unclassified_checks": {
+          "status": "not_applicable",
+          "names": []
+        }
+      },
+      {
+        "arm": "semaprax",
+        "number": 5,
+        "original_full_corpus_accepted": true,
+        "explicit_spec_checks": {
+          "status": "passed",
+          "passed": 32,
+          "failed": []
+        },
+        "additional_robustness_checks": {
+          "status": "passed",
+          "passed": 1,
+          "failed": []
+        },
+        "unclassified_checks": {
+          "status": "not_applicable",
+          "names": []
+        }
+      },
+      {
+        "arm": "typescript",
+        "number": 5,
+        "original_full_corpus_accepted": true,
+        "explicit_spec_checks": {
+          "status": "passed",
+          "passed": 32,
+          "failed": []
+        },
+        "additional_robustness_checks": {
+          "status": "passed",
+          "passed": 1,
+          "failed": []
+        },
+        "unclassified_checks": {
+          "status": "not_applicable",
+          "names": []
+        }
+      }
+    ]
+  },
+  "report_constraints": [
+    "Costs are list-price estimates, not billing receipts.",
+    "Fixed context calibration is a separate one-turn proxy; no calibration subtraction.",
+    "Historical net input is not task-only input or an upper bound.",
+    "Final-source legacy-tokenizer proxy excludes discarded edits and is not cumulative authored output.",
+    "All attempts including the failed SEMAPRAX candidate count in accepted-task cost."
+  ]
+}

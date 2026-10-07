@@ -2,6 +2,8 @@
 
 Status: implemented additive native profile with focused local executable evidence.
 
+Audience: compiler contributors and authors of streaming command applications.
+
 Project v25 (`semaprax.project.v25`) selects
 `language-command-io.stream-text.v1`. It retains the exact
 `argv-utf8+stdin-stream.v1` input, four command capabilities, and explicit

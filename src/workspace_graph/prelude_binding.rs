@@ -327,7 +327,7 @@ use function @id("stream.inspect") from stream.input as inspect;
 @id("app.main") fn main() -> i64 { 0 }
 "#),
                 source("input.spx", &format!("module stream.input; @id(\"stream.inspect\") {signature} @id(\"input.main\") fn main() -> i64 {{ 0 }}")),
-            ]).unwrap_err();
+            ]).err().expect("unsupported Reader helper must be refused");
             assert_eq!(error[0].code, "SPX-G172");
             assert_eq!(error[0].path.as_deref(), Some("app.spx"));
             assert!(error[0].span.is_some());

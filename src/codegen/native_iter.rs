@@ -2,20 +2,30 @@
 //! bounded-Vec runtime and never allocate an iterator wrapper.
 
 mod owned;
+
+pub(super) fn program_uses_owned_runtime(program: &crate::hir::ResolvedProgram) -> bool {
+    crate::iterator_ops::resolved_program_uses_owned_iterator(program)
+        || crate::iterator_ops::resolved_program_uses_record_iterator(program)
+}
+
 pub(super) fn emit_runtime(
     output: &mut impl super::COutput,
     program: &crate::hir::ResolvedProgram,
 ) {
     use super::native_emit::{c_case_symbol, c_field_symbol};
     use crate::hir::DeclarationId;
-    let owned = crate::iterator_ops::resolved_program_uses_owned_iterator(program);
-    let runtime = if owned {
-        RUNTIME_C
+    let record = crate::iterator_ops::resolved_program_uses_record_iterator(program);
+    let mut scalar_runtime = RUNTIME_C.to_owned();
+    if record && !program_uses_scalar_iterator(program) {
+        omit_scalar_next(&mut scalar_runtime);
+    }
+    let runtime = if program_uses_owned_runtime(program) {
+        scalar_runtime
             .replace("spx_iter_move(", "spx_iter_scalar_move(")
             .replace("spx_iter_drop(", "spx_iter_scalar_drop(")
             + owned::RUNTIME
     } else {
-        RUNTIME_C.to_owned()
+        scalar_runtime
     };
     output.push_str(
         &runtime
@@ -32,6 +42,50 @@ pub(super) fn emit_runtime(
                 &c_field_symbol(&DeclarationId::new(crate::iterator_ops::REST_ID)),
             ),
     );
+}
+
+fn program_uses_scalar_iterator(program: &crate::hir::ResolvedProgram) -> bool {
+    let scalar = |ty: &crate::hir::ResolvedType| {
+        crate::iterator_ops::element(ty).is_some_and(crate::vec_ops::resolved_element_is_admitted)
+    };
+    program
+        .functions
+        .iter()
+        .chain(program.function_instances.iter().map(|i| &i.function))
+        .any(|function| {
+            if scalar(&function.return_type) || function.params.iter().any(|p| scalar(&p.ty)) {
+                return true;
+            }
+            let mut pending = function
+                .requires
+                .iter()
+                .chain(std::iter::once(&function.body))
+                .chain(&function.ensures)
+                .collect::<Vec<_>>();
+            while let Some(expression) = pending.pop() {
+                if scalar(&expression.ty) {
+                    return true;
+                }
+                crate::hir::push_resolved_expression_children_in_authored_order(
+                    expression,
+                    &mut pending,
+                );
+            }
+            false
+        })
+}
+
+fn omit_scalar_next(runtime: &mut String) {
+    const START: &str =
+        "static __attribute__((unused)) uint32_t spx_iter_next(struct spx_context *spx_ctx";
+    const END: &str =
+        "static __attribute__((unused)) spx_iter_v1 spx_iter_move(struct spx_context *spx_ctx";
+    let start = runtime.find(START).expect("scalar iterator next marker");
+    let end = start
+        + runtime[start..]
+            .find(END)
+            .expect("scalar iterator move marker");
+    runtime.replace_range(start..end, "");
 }
 
 pub(super) fn program_uses_iterator(program: &crate::hir::ResolvedProgram) -> bool {

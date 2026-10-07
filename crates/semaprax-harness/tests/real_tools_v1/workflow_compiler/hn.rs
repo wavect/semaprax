@@ -497,12 +497,13 @@ fn hp_hn02_real_oracle_inventory_survives_tests_in_package_name_and_module_comme
         } else {
             let path = r.project.join("src/tests.spx");
             let source = std::fs::read_to_string(&path).unwrap().replace(
-                "module ledger.tests;",
-                "module ledger.tests; // acceptance oracle",
+                "module ledger.tests;\n",
+                "module ledger.tests;\n// acceptance oracle\n",
             );
             std::fs::write(path, source).unwrap();
         }
-        assert!(r.compiler.check(&r.project).unwrap().ok);
+        let checked = r.compiler.check(&r.project).unwrap();
+        assert!(checked.ok, "{:?}", checked.diagnostics);
         let proposal = intent(json!({
             "kind": "replace_function_body",
             "target": "ledger.tests.main",
@@ -551,11 +552,10 @@ fn hp_hn02_real_oracle_inventory_survives_tests_in_package_name_and_module_comme
 #[test]
 #[ignore = "provisioned: needs SEMAPRAX_COMPILER"]
 fn hp_hn02_real_source_repair_preserves_multiline_contracts_and_effect_sets() {
-    let run = |tag: &str, source: String, hostile: Value, expected: &str| {
+    let run = |tag: &str, source: String, hostile: Value, honest: Value, expected: &str| {
         let r = rig(tag, None);
         std::fs::write(r.project.join("src/lib.spx"), &source).unwrap();
         assert!(!r.compiler.check(&r.project).unwrap().ok);
-        let honest = patch("SYNTAXERR", "price * qty");
         let report = go(
             &r,
             &cfg(
@@ -586,19 +586,23 @@ fn hp_hn02_real_source_repair_preserves_multiline_contracts_and_effect_sets() {
             "        result == price * qty\n{\n    SYNTAXERR",
             "        true\n{\n    price * qty",
         ),
+        json!({"schema": "semaprax.harness-proposal.v1", "source_patch": {"edits": [
+            {"path": "src/lib.spx", "find": "    ensures\n        result == price * qty\n", "replace": "    ensures result == price * qty\n"},
+            {"path": "src/lib.spx", "find": "SYNTAXERR", "replace": "price * qty"}
+        ]}}),
         "SPX-HPD042",
     );
 
     let effects = base
-        .replace("module ledger.lib;", "module ledger.lib;\n\npermit { clock.read }")
-        + "\n@id(\"ledger.effect_helper\")\nfn effect_helper(price: i64, qty: i64) -> i64\n    uses {\n    }\n{\n    SYNTAXERR\n}\n";
+        + "\n@id(\"ledger.effect_helper\")\nfn effect_helper(price: i64, qty: i64) -> i64\n{\n    SYNTAXERR\n}\n";
     run(
         "hp-hn02-effect-facts",
         effects,
         patch(
-            "    uses {\n    }\n{\n    SYNTAXERR",
-            "    uses {\n        clock.read\n    }\n{\n    price * qty",
+            "fn effect_helper(price: i64, qty: i64) -> i64\n{\n    SYNTAXERR",
+            "fn effect_helper(price: i64, qty: i64) -> i64\n    uses {\n        clock.read\n    }\n{\n    price * qty",
         ),
+        patch("SYNTAXERR", "price * qty"),
         "SPX-HPD043",
     );
 }

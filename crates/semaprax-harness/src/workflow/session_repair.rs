@@ -24,7 +24,7 @@ const MAX_EDIT_BYTES: usize = 64 * 1024;
 
 fn module_of(src: &str, path: &str) -> Option<String> {
     if let Ok(program) = semaprax::parse(src, path) {
-        return Some(program.module);
+        return Some(program.module.clone());
     }
     let rest = src.trim_start().strip_prefix("module")?;
     if !rest.starts_with(char::is_whitespace) {

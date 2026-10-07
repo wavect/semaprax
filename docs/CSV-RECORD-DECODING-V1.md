@@ -2,6 +2,8 @@
 
 Status: bounded source profile with focused local gates; hosted promotion is separate.
 
+Audience: standard-library users, compiler contributors, and backend implementers.
+
 `std.data.csv` frames comma-separated logical records over a borrowed byte view.
 CRLF and LF end a record only outside a quoted field. Embedded CRLF/LF stays
 in decoded field data; bare CR is data. Quotes may open only at a field start,

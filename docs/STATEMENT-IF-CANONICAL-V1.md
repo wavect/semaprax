@@ -1,5 +1,7 @@
 # Statement If Canonical Source v1
 
+Audience: language users, parser contributors, and formatter contributors.
+
 Status: implemented source projection with focused local source/graph, interpreter, native, Core Wasm and formatter/cache accounting evidence.
 
 Canonical formatting preserves an authored statement `if`, its `else if`

@@ -1414,6 +1414,7 @@ mod tests {
                 slots,
                 storage_leaves,
                 transitions: BTreeMap::new(),
+                variant_case_transitions: BTreeMap::new(),
                 finalizers: Vec::new(),
                 scope_exits: Vec::new(),
                 referenced_places: BTreeSet::new(),

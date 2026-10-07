@@ -182,6 +182,7 @@ def authored_source_metrics(candidate: Path, metadata: dict[str, Any] | None) ->
         row["tokens"] = count
     return {
         "status": "measured_proxy",
+        "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
         "total_tokens": sum(counts),
         "files": files,
         "excluded_directories": sorted(AUTHORED_EXCLUDED_DIRS),
@@ -268,7 +269,7 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
             "mode": "matched empty-task calibration session before trials",
             "prompt_sha256": sha_text(CALIBRATION_PROMPT),
             "prompt": CALIBRATION_PROMPT,
-            "subtraction": "one calibrated inherited-context proxy per trial; calibration prompt tokens removed with the legacy tokenizer proxy",
+            "usage_convention": "calibration is reported separately as a one-turn diagnostic; no calibration proxy is subtracted from trial usage",
         },
         "price_book": {
             "date": PRICE_BOOK_DATE,
@@ -332,7 +333,8 @@ def stream_usage(path: Path) -> dict[str, Any]:
     text_by_id: dict[str, str] = {}
     tool_use_ids: set[str] = set()
     tool_use_without_id = 0
-    models: set[str] = set()
+    message_models: set[str] = set()
+    model_usage_models: set[str] = set()
     visible_output = ""
     observed_result: dict[str, Any] | None = None
     invalid_lines = 0
@@ -348,7 +350,7 @@ def stream_usage(path: Path) -> dict[str, Any]:
             message = event.get("message")
             if isinstance(message, dict):
                 if isinstance(message.get("model"), str):
-                    models.add(message["model"])
+                    message_models.add(message["model"])
                 usage = message.get("usage")
                 identity = message.get("id")
                 if isinstance(usage, dict) and isinstance(identity, str):
@@ -378,7 +380,7 @@ def stream_usage(path: Path) -> dict[str, Any]:
             observed_result = event
             model_usage = event.get("modelUsage")
             if isinstance(model_usage, dict):
-                models.update(str(model) for model in model_usage)
+                model_usage_models.update(str(model) for model in model_usage)
 
     totals = _sum_usage(list(usage_by_id.values()))
     first = next(iter(usage_by_id.values()), {name: None for name in USAGE_FIELDS})
@@ -407,7 +409,9 @@ def stream_usage(path: Path) -> dict[str, Any]:
             for name in USAGE_FIELDS
         }
     return {
-        "models_observed": sorted(models),
+        "models_observed": sorted(message_models or model_usage_models),
+        "assistant_message_models_observed": sorted(message_models),
+        "model_usage_keys_observed": sorted(model_usage_models),
         "turns_with_usage": len(usage_by_id),
         "usage": totals,
         "usage_totals_source": "final_result_with_per_turn_fallback" if final_usage else "per_turn_deduplicated",
@@ -448,7 +452,12 @@ def input_tokens_total(usage: dict[str, int | None]) -> int | None:
     return sum(values) if all(value is not None for value in values) else None
 
 
-def inherited_context_proxy(
+def observed_model_matches(observed: Any, expected_observed_id: Any) -> bool:
+    """Require one unique message model, matched to calibration's observed id."""
+    return isinstance(expected_observed_id, str) and observed == [expected_observed_id]
+
+
+def one_turn_context_proxy(
     first_turn_usage: dict[str, int | None], calibration_prompt_tokens: int | None,
 ) -> int | None:
     baseline = input_tokens_total(first_turn_usage)
@@ -592,17 +601,20 @@ def launch_calibration(
     row["calibration_prompt_tokens_legacy_proxy"] = prompt_proxy
     baseline = input_tokens_total(observed.get("first_turn_usage", {}))
     row["first_turn_provider_input_plus_cache_tokens"] = baseline
-    row["inherited_context_input_tokens_proxy"] = inherited_context_proxy(
+    row["one_turn_context_input_tokens_proxy"] = one_turn_context_proxy(
         observed.get("first_turn_usage", {}), prompt_proxy
     )
-    row["context_subtraction_note"] = (
-        "Subtract one calibration baseline per print session. Calibration prompt tokens are removed with the legacy tokenizer proxy; "
-        "provider input counters themselves are exact reported usage. The result is an estimate of inherited context, not exact current-model tokenization."
+    row["context_diagnostic_note"] = (
+        "One-turn diagnostic only: provider first-turn input plus cache minus this fixed calibration prompt's legacy tokenizer proxy. "
+        "It is not task-only or exact net input; trial contexts repeat across turns and grow with task/tool history. No value is subtracted from trial totals."
     )
     row["list_price_estimate_usd"] = rate_card_estimate(observed.get("usage", {}))
     row["provider_receipt_actual_usd"] = None
-    model_matches = observed.get("models_observed") == [settings["model"]]
-    tokenizer_ready = tokenizer is None or row["inherited_context_input_tokens_proxy"] is not None
+    observed_models = observed.get("models_observed", [])
+    model_matches = len(observed_models) == 1
+    if model_matches:
+        row["observed_model_id"] = observed_models[0]
+    tokenizer_ready = tokenizer is None or row["one_turn_context_input_tokens_proxy"] is not None
     no_tool_use = observed.get("tool_use_events", 0) == 0
     row["status"] = (
         "ready"
@@ -610,7 +622,7 @@ def launch_calibration(
         else "failed"
     )
     if row["status"] != "ready":
-        row["failure"] = row.get("failure") or "calibration tool-use, counters, tokenizer proxy, exit, or model did not match the pinned configuration"
+        row["failure"] = row.get("failure") or "calibration tool-use, counters, tokenizer proxy, exit, or unique observed model did not match the pinned configuration"
     status = subprocess.run(
         ["git", "status", "--porcelain", "--untracked-files=all"],
         cwd=workspace, text=True, capture_output=True, check=False,
@@ -815,14 +827,14 @@ def launch_trial(
     row["observed"] = usage
     row["list_price_estimate_usd"] = rate_card_estimate(usage["usage"])
     row["provider_receipt_actual_usd"] = None
-    expected_model = settings["model"]
-    model_matches = bool(usage["models_observed"]) and usage["models_observed"] == [expected_model]
+    expected_model = settings.get("observed_model_id")
+    model_matches = observed_model_matches(usage.get("models_observed"), expected_model)
     if process["timed_out"]:
         row["failure"] = row.get("failure") or "trial hit wall-clock timeout"
     elif process["process_exit_code"] != 0:
         row["failure"] = row.get("failure") or f"Claude Code exited with {process['process_exit_code']}"
     elif not model_matches:
-        row["failure"] = "observed model missing or differs from pinned model"
+        row["failure"] = "observed model missing or differs from calibration model"
     else:
         acceptance_started = time.monotonic()
         row["acceptance"] = check_program(candidate, settings["timeout_seconds"], env)
@@ -831,25 +843,19 @@ def launch_trial(
         if row["status"] != "accepted":
             row["failure"] = "candidate failed independent build or acceptance checks"
     try:
-        row["authored_source_metrics"] = authored_source_metrics(
+        row["final_candidate_source_metrics"] = authored_source_metrics(
             candidate, settings.get("authored_source_tokenizer")
         )
     except (OSError, RuntimeError, UnicodeError, json.JSONDecodeError) as error:
-        row["authored_source_metrics"] = {
+        row["final_candidate_source_metrics"] = {
             "status": "measurement_failed", "total_tokens": None,
             "files": [], "tokenizer": settings.get("authored_source_tokenizer"),
             "error": str(error),
         }
-    gross_input = input_tokens_total(usage.get("usage", {}))
-    inherited_context = settings.get("calibration_result", {}).get("inherited_context_input_tokens_proxy")
-    row["provider_input_plus_cache_tokens_gross"] = gross_input
-    row["provider_input_plus_cache_tokens_after_context_proxy"] = (
-        gross_input - inherited_context
-        if gross_input is not None and inherited_context is not None else None
-    )
-    row["input_subtraction_convention"] = (
-        "gross input plus cache tokens minus one calibrated inherited-context proxy for this print session; "
-        "calibration prompt was removed using the legacy tokenizer proxy"
+    row["provider_input_plus_cache_tokens_raw"] = input_tokens_total(usage.get("usage", {}))
+    row["input_usage_note"] = (
+        "Raw provider-reported input and cache counters. These include repeated system/tool context on every turn "
+        "and task/tool history; the separate one-turn calibration diagnostic is not subtracted."
     )
     # Archive candidate source and generated outputs before deleting the
     # disposable sparse checkout. Any write outside the advertised candidate
@@ -911,12 +917,11 @@ def summarize(
             usage_totals[field] = sum(known) if known else None
             usage_missing[field] = len(values) - len(known)
         elapsed = [row.get("elapsed_seconds") for row in selected if row.get("elapsed_seconds") is not None]
-        gross_input = [row.get("provider_input_plus_cache_tokens_gross") for row in selected]
-        net_input = [row.get("provider_input_plus_cache_tokens_after_context_proxy") for row in selected]
-        authored = [row.get("authored_source_metrics", {}).get("total_tokens") for row in selected]
+        gross_input = [row.get("provider_input_plus_cache_tokens_raw") for row in selected]
+        authored = [row.get("final_candidate_source_metrics", {}).get("total_tokens") for row in selected]
         complete_cost = len(per_trial_costs) == len(selected) and all(value is not None for value in per_trial_costs)
         calibration_tokens = (
-            calibration_result.get("inherited_context_input_tokens_proxy")
+            calibration_result.get("one_turn_context_input_tokens_proxy")
             if calibration_result else None
         )
         rows.append({
@@ -930,26 +935,25 @@ def summarize(
             "provider_usage_totals_known_subtotal": usage_totals,
             "provider_usage_missing_trial_counts": usage_missing,
             "input_and_cache_are_separate_buckets": True,
-            "provider_input_plus_cache_tokens_gross_per_trial": gross_input,
-            "provider_input_plus_cache_tokens_gross_known_subtotal": (
+            "provider_input_plus_cache_tokens_raw_per_trial": gross_input,
+            "provider_input_plus_cache_tokens_raw_known_subtotal": (
                 sum(value for value in gross_input if value is not None)
                 if any(value is not None for value in gross_input) else None
             ),
-            "provider_input_plus_cache_tokens_incomplete_trials": sum(value is None for value in gross_input),
-            "provider_input_plus_cache_tokens_after_context_proxy_per_trial": net_input,
-            "provider_input_plus_cache_tokens_after_context_proxy_known_subtotal": (
-                sum(value for value in net_input if value is not None)
-                if calibration_tokens is not None and any(value is not None for value in net_input) else None
+            "provider_input_plus_cache_tokens_raw_incomplete_trials": sum(value is None for value in gross_input),
+            "one_turn_calibration_context_input_tokens_proxy": calibration_tokens,
+            "context_baseline_applied_to_trial_totals": False,
+            "context_accounting_note": (
+                "Raw provider counters include repeated fixed context on every turn plus task and tool history. "
+                "The separate single-turn calibration is diagnostic only and is not a task-only or net-input estimate."
             ),
-            "provider_input_plus_cache_tokens_after_context_proxy_incomplete_trials": sum(value is None for value in net_input),
-            "calibration_context_tokens_proxy_per_trial": calibration_tokens,
-            "authored_source_token_proxy_per_trial": authored,
-            "authored_source_token_proxy_known_subtotal": (
+            "final_candidate_source_token_proxy_per_trial": authored,
+            "final_candidate_source_token_proxy_known_subtotal": (
                 sum(value for value in authored if value is not None)
                 if any(value is not None for value in authored) else None
             ),
-            "authored_source_token_proxy_incomplete_trials": sum(value is None for value in authored),
-            "authored_source_token_claim": "legacy-Claude tokenizer proxy over inventoried authored text files; not current-model or billing tokens",
+            "final_candidate_source_token_proxy_incomplete_trials": sum(value is None for value in authored),
+            "authored_source_token_claim": "legacy-Claude tokenizer proxy over final candidate source inventory only; excludes rewritten/deleted text and is not cumulative authored generation, provider output, current-model tokens, or billing tokens",
             "turns": sum(row.get("observed", {}).get("turns_with_usage", 0) for row in selected),
             "per_trial_model_session_wall_seconds": elapsed,
             "aggregate_model_session_wall_seconds": round(sum(elapsed), 3),
@@ -1009,7 +1013,7 @@ def add_common_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--tokenizer-dir",
         default=None,
-        help="offline npm prefix containing @anthropic-ai/tokenizer; enables authored-source and calibration-prompt proxy counts",
+        help="offline npm prefix containing @anthropic-ai/tokenizer; enables final-source and calibration-prompt proxy counts",
     )
 
 
@@ -1050,11 +1054,13 @@ def main() -> int:
         )
         settings["calibration_result"] = {
             "status": calibration_result.get("status"),
-            "inherited_context_input_tokens_proxy": calibration_result.get("inherited_context_input_tokens_proxy"),
+            "observed_model_id": calibration_result.get("observed_model_id"),
+            "one_turn_context_input_tokens_proxy": calibration_result.get("one_turn_context_input_tokens_proxy"),
             "calibration_prompt_tokens_legacy_proxy": calibration_result.get("calibration_prompt_tokens_legacy_proxy"),
             "list_price_estimate_usd": calibration_result.get("list_price_estimate_usd"),
             "observed_usage": calibration_result.get("observed", {}).get("usage"),
         }
+        settings["observed_model_id"] = calibration_result.get("observed_model_id")
         settings["calibration"]["result_file"] = str(artifacts / "calibration.json")
         save_json(artifacts / "campaign.json", settings)
         if calibration_result.get("status") != "ready":

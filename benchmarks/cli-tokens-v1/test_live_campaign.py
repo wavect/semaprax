@@ -88,7 +88,7 @@ class LiveCampaignTests(unittest.TestCase):
         self.assertIsNone(result["fixed_context_tokens_in_this_session"])
         self.assertIsNone(live_campaign.rate_card_estimate(result["usage"]))
 
-    def test_calibration_subtracts_one_prompt_proxy_from_first_turn_input_and_cache(self):
+    def test_calibration_context_proxy_is_one_turn_diagnostic_only(self):
         first_turn = {
             "input_tokens": 100,
             "cache_creation_input_tokens": 20,
@@ -96,10 +96,28 @@ class LiveCampaignTests(unittest.TestCase):
             "output_tokens": 8,
         }
         self.assertEqual(live_campaign.input_tokens_total(first_turn), 150)
-        self.assertEqual(live_campaign.inherited_context_proxy(first_turn, 12), 138)
-        self.assertIsNone(live_campaign.inherited_context_proxy({"input_tokens": 100}, 12))
-        self.assertIsNone(live_campaign.inherited_context_proxy(first_turn, None))
-        self.assertIsNone(live_campaign.inherited_context_proxy(first_turn, 151))
+        self.assertEqual(live_campaign.one_turn_context_proxy(first_turn, 12), 138)
+        self.assertIsNone(live_campaign.one_turn_context_proxy({"input_tokens": 100}, 12))
+        self.assertIsNone(live_campaign.one_turn_context_proxy(first_turn, None))
+        self.assertIsNone(live_campaign.one_turn_context_proxy(first_turn, 151))
+
+    def test_model_identity_uses_observed_message_id_not_requested_alias_or_usage_key(self):
+        dated_model = "claude-sonnet-4-5-20260929"
+        events = [
+            {"type": "assistant", "message": {
+                "id": "turn-1", "model": dated_model, "usage": {"input_tokens": 5},
+            }},
+            {"type": "result", "modelUsage": {"claude-sonnet-4-5": {"inputTokens": 5}}},
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "stream.jsonl"
+            path.write_text("\n".join(json.dumps(event) for event in events) + "\n")
+            result = live_campaign.stream_usage(path)
+        self.assertEqual(result["models_observed"], [dated_model])
+        self.assertEqual(result["model_usage_keys_observed"], ["claude-sonnet-4-5"])
+        self.assertTrue(live_campaign.observed_model_matches(result["models_observed"], dated_model))
+        self.assertFalse(live_campaign.observed_model_matches(result["models_observed"], "claude-sonnet-4-5"))
+        self.assertFalse(live_campaign.observed_model_matches([dated_model, "other"], dated_model))
 
     def test_calibration_runner_uses_sparse_checkout_and_removes_clean_worktree(self):
         repo = live_campaign.REPO
@@ -142,7 +160,8 @@ class LiveCampaignTests(unittest.TestCase):
                     )
                 self.assertEqual(row["status"], "ready")
                 self.assertEqual(row["first_turn_provider_input_plus_cache_tokens"], 150)
-                self.assertIsNone(row["inherited_context_input_tokens_proxy"])
+                self.assertIsNone(row["one_turn_context_input_tokens_proxy"])
+                self.assertEqual(row["observed_model_id"], live_campaign.MODEL)
                 self.assertTrue(row["workspace_removed"])
                 self.assertFalse(workspace.exists())
             finally:
@@ -214,22 +233,21 @@ class LiveCampaignTests(unittest.TestCase):
     def test_summary_includes_failed_attempt_costs_and_keeps_unknown_usage(self):
         rows = [
             {"arm": "semaprax", "number": 1, "status": "accepted", "elapsed_seconds": 10,
-             "list_price_estimate_usd": 0.2, "provider_input_plus_cache_tokens_gross": 150,
-             "provider_input_plus_cache_tokens_after_context_proxy": 100,
-             "authored_source_metrics": {"total_tokens": 75},
+             "list_price_estimate_usd": 0.2, "provider_input_plus_cache_tokens_raw": 150,
+             "final_candidate_source_metrics": {"total_tokens": 75},
              "observed": {"usage": {"input_tokens": 100}, "turns_with_usage": 2}},
             {"arm": "semaprax", "number": 2, "status": "failed", "elapsed_seconds": 20,
-             "list_price_estimate_usd": 0.1, "provider_input_plus_cache_tokens_gross": None,
-             "provider_input_plus_cache_tokens_after_context_proxy": None,
-             "authored_source_metrics": {"total_tokens": None},
+             "list_price_estimate_usd": 0.1, "provider_input_plus_cache_tokens_raw": None,
+             "final_candidate_source_metrics": {"total_tokens": None},
              "observed": {"usage": {"input_tokens": 50}, "turns_with_usage": 1}},
         ]
-        calibration = {"inherited_context_input_tokens_proxy": 50, "list_price_estimate_usd": 0.03}
+        calibration = {"one_turn_context_input_tokens_proxy": 50, "list_price_estimate_usd": 0.03}
         summary = live_campaign.summarize(rows, calibration)
         arm = summary["arms"][0]
-        self.assertEqual(arm["provider_input_plus_cache_tokens_gross_known_subtotal"], 150)
-        self.assertEqual(arm["provider_input_plus_cache_tokens_after_context_proxy_known_subtotal"], 100)
-        self.assertEqual(arm["authored_source_token_proxy_known_subtotal"], 75)
+        self.assertEqual(arm["provider_input_plus_cache_tokens_raw_known_subtotal"], 150)
+        self.assertFalse(arm["context_baseline_applied_to_trial_totals"])
+        self.assertNotIn("provider_input_plus_cache_tokens_after_context_proxy_known_subtotal", arm)
+        self.assertEqual(arm["final_candidate_source_token_proxy_known_subtotal"], 75)
         self.assertEqual(summary["campaign_list_price_estimate_including_calibration_usd"], 0.33)
         self.assertEqual(summary["campaign_estimated_cost_per_accepted_task_including_calibration_usd"], 0.33)
         summary = arm

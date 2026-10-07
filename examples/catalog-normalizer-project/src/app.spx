@@ -343,7 +343,7 @@ fn label_layout(line: borrow Slice<u8>, token: usize, active: bool) -> usize
         let last = part + 1usize >= emit_len(line, source);
         source = if last { token_end(line, source) } else { source };
         part = if last { 0usize } else { part + 1usize };
-        raw = match byte_get(line, source) { Option::Some { value } => value, Option::None {} => 34u8, };
+        raw = match byte_get(line, source) { Option::Some { value: next } => next, Option::None {} => 34u8, };
         raw != 34u8
     }
     start * 2048usize + trimmed_length

@@ -1,5 +1,12 @@
 # Changelog
 
+- Record focused LOCAL source/graph/interpreter/C11 O0/O2 and physical Node
+  Wasm gates for the bounded owned-String record, loop-match, String-condition
+  and String-replacement slices. Preserve frozen-profile refusals and every
+  prior hosted distinction. Selected collection and Toolkit evidence remains
+  local; the final Native Map and Project v25 checks are still pending, with no
+  browser, hosted, public-package or full-profile claim.
+
 - Author typed Map/Set transport, removal and deterministic closed key/value
   operations, composing private Stream Text helpers and bounded record fields.
   Prelude v13 extends sorting v12; focused execution and pin regeneration await

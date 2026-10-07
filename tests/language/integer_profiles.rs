@@ -142,7 +142,7 @@ else {{ if(value!=INT64_MAX) return 92; const struct spx_normalized_status *stat
             let web = fixture.root.join("web");
             wasm::build_web(&selected, &web).unwrap();
             std::fs::write(web.join("package.json"), "{\"type\":\"module\"}").unwrap();
-            let runner = fixture.write("runner.mjs", &format!(r#"import {{ readFile }} from 'node:fs/promises';
+            let runner = fixture.write("runner.mjs", format!(r#"import {{ readFile }} from 'node:fs/promises';
 import {{ instantiateBytes, semanticStatus }} from './web/semaprax.js';
 const {{instance}}=await instantiateBytes(await readFile(new URL('./web/app.wasm',import.meta.url)),{{maxOwnedByteEntries:1}});
 for(let repeat=0;repeat<2;repeat++) {{
@@ -171,7 +171,7 @@ for(let repeat=0;repeat<2;repeat++) {{
         let web = fixture.root.join("web");
         wasm::build_web_with_scalar_exports(&program, &web, &exports).unwrap();
         let ids = serde_json::to_string(&exports).unwrap();
-        let runner = fixture.write("runner.mjs", &format!(r#"import {{ readFile }} from 'node:fs/promises';
+        let runner = fixture.write("runner.mjs", format!(r#"import {{ readFile }} from 'node:fs/promises';
 import {{ instantiateBytes }} from './web/semaprax.bindings.js';
 const runtime=await instantiateBytes(await readFile(new URL('./web/app.wasm',import.meta.url)));
 for (const id of {ids}) {{

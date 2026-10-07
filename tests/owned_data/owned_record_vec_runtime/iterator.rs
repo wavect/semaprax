@@ -21,8 +21,8 @@ const MANUAL_AND_LOOP: &str = r#"
   IterStep::Yield{item,rest}=>{
    let first=consume(item);
    let mut tail=0;
-   for own remaining in rest {tail=tail+consume(remaining);0}
-   if first==11 && tail==55 {29}else{0}
+   for own remaining in rest {tail=tail*100+consume(remaining);0}
+   if first==11 && tail==2233 {29}else{0}
   },
  }
 }

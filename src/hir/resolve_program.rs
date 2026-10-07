@@ -446,22 +446,6 @@ impl Resolver<'_> {
             .collect::<Result<Vec<_>, _>>()?;
         let function_instances =
             self.discover_function_instances(&functions, &function_templates)?;
-        // String Collections v1: every map value sits in an admitted position
-        // before inventories and cleanup plans are derived.
-        for function in functions
-            .iter()
-            .chain(function_instances.iter().map(|instance| &instance.function))
-        {
-            crate::string_ops::map_admission::check_function(function).map_err(|refusal| {
-                Diagnostic::error(
-                    crate::string_ops::map_admission::MAP_POSITION_CODE,
-                    refusal.message,
-                    refusal.span,
-                )
-                .at_path(&self.program.path)
-                .with_help(crate::string_ops::map_admission::MAP_POSITION_HELP)
-            })?;
-        }
         for agent in &self.program.agents {
             agent
                 .validate_execution_metadata(self.program)

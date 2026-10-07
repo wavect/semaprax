@@ -86,7 +86,6 @@ pub(crate) mod replacement;
 use crate::ast::{Param, ParamMode, Span, Type};
 use crate::hir::{OwnershipMode, ResolvedParam, ResolvedType, ValueId};
 
-pub(crate) mod map_admission;
 
 pub(crate) const LEN_NAME: &str = "string_len";
 pub(crate) const CONCAT_NAME: &str = "string_concat";
@@ -112,6 +111,7 @@ pub(crate) const MAP_HAS_NAME: &str = "map_has";
 pub(crate) const MAP_LEN_NAME: &str = "map_len";
 pub(crate) const MAP_KEY_AT_NAME: &str = "map_key_at";
 pub(crate) const MAP_VALUE_AT_NAME: &str = "map_value_at";
+pub(crate) const MAP_REMOVE_NAME: &str = "map_remove";
 pub(crate) const FROM_STR_NAME: &str = "string_from_str";
 pub(crate) const F64_FROM_I64_NAME: &str = "f64_from_i64";
 pub(crate) const I64_FROM_F64_NAME: &str = "i64_from_f64";
@@ -142,6 +142,7 @@ pub(crate) const MAP_HAS_ID: &str = "core.map.has";
 pub(crate) const MAP_LEN_ID: &str = "core.map.len";
 pub(crate) const MAP_KEY_AT_ID: &str = "core.map.key_at";
 pub(crate) const MAP_VALUE_AT_ID: &str = "core.map.value_at";
+pub(crate) const MAP_REMOVE_ID: &str = "core.map.remove.v2";
 pub(crate) const FROM_STR_ID: &str = "core.string.from_str";
 pub(crate) const F64_FROM_I64_ID: &str = "core.num.f64_from_i64";
 pub(crate) const I64_FROM_F64_ID: &str = "core.num.i64_from_f64";
@@ -245,6 +246,8 @@ pub(crate) enum StringOp {
     MapKeyAt,
     /// Borrowed value at an ascending-order index.
     MapValueAt,
+    /// Remove a key if present, transferring the map at call commit.
+    MapRemove,
     /// Copy of a borrowed `str` view into a new owned string.
     FromStr,
     /// `i64` to the nearest `f64`, ties to even.
@@ -338,6 +341,7 @@ impl StringOp {
             StringOp::MapLen => MAP_LEN_NAME,
             StringOp::MapKeyAt => MAP_KEY_AT_NAME,
             StringOp::MapValueAt => MAP_VALUE_AT_NAME,
+            StringOp::MapRemove => MAP_REMOVE_NAME,
             StringOp::FromStr => FROM_STR_NAME,
             StringOp::F64FromI64 => F64_FROM_I64_NAME,
             StringOp::I64FromF64 => I64_FROM_F64_NAME,
@@ -375,6 +379,7 @@ impl StringOp {
             StringOp::MapLen => MAP_LEN_ID,
             StringOp::MapKeyAt => MAP_KEY_AT_ID,
             StringOp::MapValueAt => MAP_VALUE_AT_ID,
+            StringOp::MapRemove => MAP_REMOVE_ID,
             StringOp::FromStr => FROM_STR_ID,
             StringOp::F64FromI64 => F64_FROM_I64_ID,
             StringOp::I64FromF64 => I64_FROM_F64_ID,
@@ -410,7 +415,7 @@ impl StringOp {
             StringOp::MapAdd => &["map", "key", "delta"],
             StringOp::MapSet => &["map", "key", "value"],
             StringOp::MapGetOr => &["map", "key", "default"],
-            StringOp::MapHas => &["map", "key"],
+            StringOp::MapHas | StringOp::MapRemove => &["map", "key"],
             StringOp::MapLen => &["map"],
             StringOp::MapKeyAt | StringOp::MapValueAt => &["map", "index"],
             StringOp::FromStr => &["s"],
@@ -451,7 +456,7 @@ impl StringOp {
                 ResolvedType::String,
                 ResolvedType::I64,
             ],
-            StringOp::MapHas => &[ResolvedType::StringMap, ResolvedType::String],
+            StringOp::MapHas | StringOp::MapRemove => &[ResolvedType::StringMap, ResolvedType::String],
             StringOp::MapLen => &[ResolvedType::StringMap],
             StringOp::MapKeyAt | StringOp::MapValueAt => {
                 &[ResolvedType::StringMap, ResolvedType::Usize]
@@ -495,12 +500,12 @@ impl StringOp {
     /// `map_add` and `map_set` return their consumed map as the next
     /// generation; they are only admitted as a same-owner reopen.
     pub(crate) fn reopens_map(self) -> bool {
-        matches!(self, StringOp::MapAdd | StringOp::MapSet)
+        matches!(self, StringOp::MapAdd | StringOp::MapSet | StringOp::MapRemove)
     }
 
     /// String Collections v1 forms a fifth optional backend group.
     pub(crate) fn is_collection(self) -> bool {
-        Self::COLLECTIONS.contains(&self)
+        Self::COLLECTIONS.contains(&self) || self == Self::MapRemove
     }
 
     /// Conversions v1 forms a sixth optional backend group.
@@ -585,7 +590,7 @@ impl StringOp {
             StringOp::UsizeFromU8 => ResolvedType::Usize,
             StringOp::F64FromI64 => ResolvedType::F64,
             StringOp::UsizeFromI64 => ResolvedType::Usize,
-            StringOp::MapNew | StringOp::MapAdd | StringOp::MapSet => ResolvedType::StringMap,
+            StringOp::MapNew | StringOp::MapAdd | StringOp::MapSet | StringOp::MapRemove => ResolvedType::StringMap,
             StringOp::MapLen => ResolvedType::Usize,
             StringOp::MapHas => ResolvedType::Bool,
             StringOp::MapKeyAt => ResolvedType::String,
@@ -618,7 +623,7 @@ impl StringOp {
             StringOp::UsizeFromU8 => Type::Usize,
             StringOp::F64FromI64 => Type::F64,
             StringOp::UsizeFromI64 => Type::Usize,
-            StringOp::MapNew | StringOp::MapAdd | StringOp::MapSet => Type::StringMap,
+            StringOp::MapNew | StringOp::MapAdd | StringOp::MapSet | StringOp::MapRemove => Type::StringMap,
             StringOp::MapLen => Type::Usize,
             StringOp::MapHas => Type::Bool,
             StringOp::MapKeyAt => Type::String,
@@ -688,6 +693,7 @@ pub(crate) fn by_name(name: &str) -> Option<StringOp> {
         MAP_LEN_NAME => Some(StringOp::MapLen),
         MAP_KEY_AT_NAME => Some(StringOp::MapKeyAt),
         MAP_VALUE_AT_NAME => Some(StringOp::MapValueAt),
+        MAP_REMOVE_NAME => Some(StringOp::MapRemove),
         FROM_STR_NAME => Some(StringOp::FromStr),
         F64_FROM_I64_NAME => Some(StringOp::F64FromI64),
         I64_FROM_F64_NAME => Some(StringOp::I64FromF64),
@@ -727,6 +733,7 @@ pub(crate) fn by_id(id: &str) -> Option<StringOp> {
         MAP_LEN_ID => Some(StringOp::MapLen),
         MAP_KEY_AT_ID => Some(StringOp::MapKeyAt),
         MAP_VALUE_AT_ID => Some(StringOp::MapValueAt),
+        MAP_REMOVE_ID => Some(StringOp::MapRemove),
         FROM_STR_ID => Some(StringOp::FromStr),
         F64_FROM_I64_ID => Some(StringOp::F64FromI64),
         I64_FROM_F64_ID => Some(StringOp::I64FromF64),

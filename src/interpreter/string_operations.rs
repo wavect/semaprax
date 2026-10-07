@@ -65,14 +65,13 @@ impl Evaluator<'_> {
             if argument.ty == ResolvedType::StringMap
                 && op.param_ownership(index) == hir::OwnershipMode::Borrow
             {
-                let ResolvedExprKind::Place(place) = &argument.kind else {
-                    return Err(Flow::Guard("borrowed map operand is not a named place"));
-                };
-                values.push(
-                    self.lookup_place(environment, place)?
-                        .ok_or(Flow::Guard("borrowed map owner is unavailable"))?,
-                );
-                continue;
+                if let ResolvedExprKind::Place(place) = &argument.kind {
+                    values.push(
+                        self.lookup_place(environment, place)?
+                            .ok_or(Flow::Guard("borrowed map owner is unavailable"))?,
+                    );
+                    continue;
+                }
             }
             values.push(self.evaluate(argument, environment, depth)?);
         }
@@ -271,6 +270,20 @@ impl Evaluator<'_> {
                         let key = self.materialize_utf8_copy(&key)?;
                         map.entries.insert(index, (key, value));
                     }
+                }
+                Ok(Value::Map(Arc::new(map)))
+            }
+            (StringOp::MapRemove, [Value::Map(_), Value::String(_)]) => {
+                let mut values = values.into_iter();
+                let (Some(Value::Map(map)), Some(Value::String(key))) =
+                    (values.next(), values.next())
+                else {
+                    return Err(Flow::Guard("ill-typed map removal operand"));
+                };
+                let mut map =
+                    Arc::try_unwrap(map).map_err(|_| Flow::Guard("aliased owned map carrier"))?;
+                if let Ok(index) = map.find(&key) {
+                    map.entries.remove(index);
                 }
                 Ok(Value::Map(Arc::new(map)))
             }

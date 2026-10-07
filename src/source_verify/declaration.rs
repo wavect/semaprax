@@ -66,7 +66,6 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
     let mut type_names = HashSet::new();
 
     check_type_identities(program, &mut ids, &mut type_names, &mut diagnostics);
-    check_string_map_declarations(program, &mut diagnostics);
 
     let mut interface_names = HashSet::new();
     let mut import_keys = HashMap::new();
@@ -200,56 +199,4 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
     diagnostics
 }
 
-/// String Collections v1: `Map<string, i64>` is admitted only as a local
-/// binding, so a signature, field, or variant payload that mentions it is
-/// refused with the same stable code as a misplaced map value.
-fn check_string_map_declarations(program: &Program, diagnostics: &mut Vec<Diagnostic>) {
-    use crate::string_ops::map_admission::{
-        type_mentions_map, MAP_POSITION_CODE, MAP_POSITION_HELP,
-    };
-    let mut refuse = |what: &str, span: Span| {
-        diagnostics.push(
-            error(
-                program,
-                MAP_POSITION_CODE,
-                format!(
-                    "`Map<string, i64>` is not admitted in a {what}; String Collections v1 maps are local bindings"
-                ),
-                span,
-            )
-            .with_help(MAP_POSITION_HELP),
-        );
-    };
-    let methods = program
-        .types
-        .iter()
-        .flat_map(|declaration| match &declaration.kind {
-            crate::ast::TypeDeclarationKind::Class { methods, .. } => methods.as_slice(),
-            _ => &[],
-        });
-    for function in program.functions.iter().chain(methods) {
-        for parameter in &function.params {
-            if type_mentions_map(&parameter.ty) {
-                refuse("function parameter", parameter.span);
-            }
-        }
-        if type_mentions_map(&function.return_type) {
-            refuse("function result", function.name_span);
-        }
-    }
-    for declaration in &program.types {
-        let fields: Vec<&crate::ast::FieldDeclaration> = match &declaration.kind {
-            crate::ast::TypeDeclarationKind::Record { fields }
-            | crate::ast::TypeDeclarationKind::Class { fields, .. } => fields.iter().collect(),
-            crate::ast::TypeDeclarationKind::Variant { cases } => {
-                cases.iter().flat_map(|case| &case.fields).collect()
-            }
-            crate::ast::TypeDeclarationKind::Resource { .. } => Vec::new(),
-        };
-        for field in fields {
-            if type_mentions_map(&field.ty) {
-                refuse("field", field.span);
-            }
-        }
-    }
-}
+

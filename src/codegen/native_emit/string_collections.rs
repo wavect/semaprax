@@ -28,6 +28,9 @@ pub(super) fn emit_runtime(
 ) {
     if strings.length_delimited && program_uses_collections(program, strings.include_instances) {
         output.push_str(RUNTIME_C);
+        if crate::string_ops::program_uses_operation(program, StringOp::MapRemove) {
+            output.push_str(REMOVE_RUNTIME_C);
+        }
     }
 }
 
@@ -114,6 +117,18 @@ impl<O: COutput> CEmitter<'_, O> {
                 argument(0),
                 argument(1)
             ),
+            StringOp::MapRemove => {
+                let plan = self.bytes_plan.ok_or_else(|| backend_error("map removal has no cleanup plan"))?;
+                let (source, source_flag, _) = plan.call_argument(expression, 0)?;
+                let (source, source_flag) = (source.to_owned(), source_flag.to_owned());
+                if source != argument(0) {
+                    return Err(backend_error("map removal operand is not its canonical call argument"));
+                }
+                self.line(&format!("{temporary} = spx_map_remove_v2({source}, {});", argument(1)));
+                self.line(&format!("{source_flag} = false;"));
+                self.line(&format!("{source} = NULL;"));
+                return Ok(());
+            }
             StringOp::MapAdd | StringOp::MapSet => {
                 let plan = self
                     .bytes_plan
@@ -276,5 +291,21 @@ static __attribute__((unused)) void spx_map_drop_v1(spx_map_v1 *map) {
         spx_string_drop(map->entries[index].key);
     free(map->entries);
     free(map);
+}
+"#;
+
+/// Additive removal helper; the v1 helper bytes remain frozen.
+const REMOVE_RUNTIME_C: &str = r#"
+static __attribute__((unused)) spx_map_v1 *spx_map_remove_v2(spx_map_v1 *map, const char *key) {
+    uint64_t index = UINT64_C(0);
+    if (!spx_map_find_v1(map, key, &index)) return map;
+    spx_string_drop(map->entries[index].key);
+    if (index + UINT64_C(1) < map->len)
+        memmove(map->entries + index, map->entries + index + 1,
+            (size_t)(map->len - index - UINT64_C(1)) * sizeof(spx_map_entry_v1));
+    map->len -= UINT64_C(1);
+    map->entries[map->len].key = NULL;
+    map->entries[map->len].value = INT64_C(0);
+    return map;
 }
 "#;

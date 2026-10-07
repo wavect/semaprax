@@ -11,6 +11,15 @@ and the same specification. `acceptance/corpus.json` is the shared test corpus;
 `oracle.py` generates its expected reports. Live results belong in
 `results-live.json` after matched runs are collected.
 
+The campaign defaults to preflight-only reporting. A scored run requires a
+reviewed qualification-evidence JSON file that binds the exact SPEC and
+acceptance corpus hashes, compiler source commit and binary hash, native
+streaming Project route, and a hashed per-case acceptance report with all 11
+cases passing, including the request with 65,537 leading whitespace bytes.
+Passing this evidence gate only allows a scored campaign; it does not close
+issue 611 or assert that it has been closed. See
+[`LIVE-CAMPAIGN.md`](LIVE-CAMPAIGN.md) for the evidence format and commands.
+
 The corpus is invoked through a command adapter that reads one request from
 stdin and writes one report to stdout. Example after an arm has been authored:
 

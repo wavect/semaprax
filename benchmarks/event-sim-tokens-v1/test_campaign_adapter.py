@@ -16,6 +16,57 @@ import campaign as live_campaign
 
 
 class ShiftSimCampaignTests(unittest.TestCase):
+    def _qualification_evidence(self, root: Path):
+        repo = live_campaign.REPO
+        commit = live_campaign.resolve_commit(repo, "HEAD")
+        spec = live_campaign.blob_at_commit(repo, commit, live_campaign.SPEC_RELATIVE)
+        corpus_bytes = live_campaign.blob_at_commit(repo, commit, live_campaign.CORPUS_RELATIVE)
+        corpus = json.loads(corpus_bytes.decode("utf-8"))
+        rows = []
+        for kind, cases in (("valid", corpus["valid"]), ("invalid", corpus["invalid"])):
+            for case in cases:
+                request = live_campaign.acceptance_case_request(case, kind)
+                expected = (
+                    json.dumps(case["expected"], ensure_ascii=False, separators=(",", ":")).encode("utf-8") + b"\n"
+                    if kind == "valid" else b""
+                )
+                rows.append({
+                    "name": case["name"], "kind": kind, "status": "passed",
+                    "input_bytes": len(request), "input_sha256": live_campaign.sha_bytes(request),
+                    "leading_whitespace_bytes": case.get("leading_whitespace_bytes", 0),
+                    "expected_exit_code": 0 if kind == "valid" else 2,
+                    "exit_code": 0 if kind == "valid" else 2,
+                    "stdout_sha256": live_campaign.sha_bytes(expected),
+                    "expected_stdout_sha256": live_campaign.sha_bytes(expected),
+                    "stderr_nonempty": kind == "invalid",
+                })
+        report = {
+            "schema": live_campaign.ACCEPTANCE_REPORT_SCHEMA,
+            "corpus_sha256": live_campaign.sha_bytes(corpus_bytes),
+            "status": "passed", "valid_cases": len(corpus["valid"]),
+            "invalid_cases": len(corpus["invalid"]), "cases": rows,
+        }
+        report_path = root / "acceptance-report.json"
+        report_bytes = (json.dumps(report, indent=2) + "\n").encode("utf-8")
+        report_path.write_bytes(report_bytes)
+        evidence = {
+            "schema": live_campaign.QUALIFICATION_EVIDENCE_SCHEMA,
+            "spec_sha256": live_campaign.sha_bytes(spec),
+            "acceptance_corpus_sha256": live_campaign.sha_bytes(corpus_bytes),
+            "compiler_source_commit": commit,
+            "compiler_binary_sha256": "a" * 64,
+            "native_project_route": {
+                "project_profile": live_campaign.NATIVE_PROJECT_PROFILE,
+                "input_route": live_campaign.NATIVE_INPUT_ROUTE,
+            },
+            "acceptance_report": {
+                "path": str(report_path), "sha256": live_campaign.sha_bytes(report_bytes),
+            },
+        }
+        evidence_path = root / "qualification-evidence.json"
+        evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+        return evidence_path, evidence, report_path
+
     def _run_trial_with_spec_edit(self, root: Path, edit_stage: str):
         spec_text = "# Frozen public spec\n"
         spec_hash = hashlib.sha256(spec_text.encode()).hexdigest()
@@ -73,10 +124,74 @@ class ShiftSimCampaignTests(unittest.TestCase):
             ))
         self.assertEqual(settings["qualification"]["status"], "preflight_not_qualified")
         self.assertEqual(settings["qualification"]["blocking_issue"], 611)
+        self.assertFalse(settings["qualification"]["scored_trials_allowed"])
         self.assertEqual(settings["trial_order"], [
             "semaprax", "typescript", "typescript", "semaprax", "semaprax",
             "typescript", "typescript", "semaprax", "semaprax", "typescript",
         ])
+
+    def test_pinned_native_evidence_gates_scored_trials_and_keeps_issue_open(self):
+        with tempfile.TemporaryDirectory() as directory:
+            evidence_path, evidence, report_path = self._qualification_evidence(Path(directory))
+            result = live_campaign.validate_qualification_evidence(
+                evidence_path, live_campaign.REPO, evidence["compiler_source_commit"], "a" * 64,
+            )
+            self.assertEqual(result["status"], "evidence_gate_passed")
+            self.assertTrue(result["scored_trials_allowed"])
+            self.assertIn("open", result["issue_611_status"])
+            self.assertEqual(result["acceptance_cases_passed"], 11)
+            self.assertGreater(
+                json.loads(report_path.read_text(encoding="utf-8"))["cases"][1]["input_bytes"], 65_536
+            )
+
+            with self.assertRaisesRegex(ValueError, "binary hash"):
+                live_campaign.validate_qualification_evidence(
+                    evidence_path, live_campaign.REPO, evidence["compiler_source_commit"], "b" * 64,
+                )
+
+            for key, value in (
+                ("spec_sha256", "0" * 64),
+                ("compiler_source_commit", "0" * 40),
+                ("native_project_route", {"project_profile": "wrong", "input_route": "wrong"}),
+            ):
+                changed = dict(evidence)
+                changed[key] = value
+                evidence_path.write_text(json.dumps(changed), encoding="utf-8")
+                with self.assertRaises(ValueError, msg=f"{key} must be bound"):
+                    live_campaign.validate_qualification_evidence(
+                        evidence_path, live_campaign.REPO, evidence["compiler_source_commit"], "a" * 64,
+                    )
+
+            evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            report["cases"][1]["status"] = "failed"
+            report_bytes = (json.dumps(report, indent=2) + "\n").encode("utf-8")
+            report_path.write_bytes(report_bytes)
+            evidence["acceptance_report"]["sha256"] = live_campaign.sha_bytes(report_bytes)
+            evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "large-leading-whitespace"):
+                live_campaign.validate_qualification_evidence(
+                    evidence_path, live_campaign.REPO, evidence["compiler_source_commit"], "a" * 64,
+                )
+
+    def test_acceptance_report_records_each_case_and_oversized_request(self):
+        with tempfile.TemporaryDirectory() as directory:
+            report_path = Path(directory) / "acceptance.json"
+            result = subprocess.run(
+                [
+                    sys.executable, str(HERE / "acceptance" / "run.py"), "--report-json", str(report_path),
+                    "--command-json", json.dumps([sys.executable, str(HERE / "oracle.py")]),
+                ],
+                text=True, capture_output=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            self.assertEqual(report["status"], "passed")
+            self.assertEqual(len(report["cases"]), 11)
+            oversized = next(row for row in report["cases"] if row["name"] == "large-leading-whitespace")
+            self.assertEqual(oversized["status"], "passed")
+            self.assertEqual(oversized["leading_whitespace_bytes"], 65_537)
+            self.assertGreater(oversized["input_bytes"], 65_536)
 
     def test_seed_history_exposes_only_public_spec_not_acceptance_oracle(self):
         source = live_campaign.REPO

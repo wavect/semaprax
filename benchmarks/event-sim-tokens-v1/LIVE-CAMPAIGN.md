@@ -13,13 +13,18 @@ five trials per arm. Without `--qualification-evidence`, every result remains
 preflight-only and must not be presented as a scored comparison. A supplied
 evidence file enables scored trials only after the campaign verifies the exact
 SPEC and corpus hashes, compiler source commit and binary hash, native Project
-stream route, and every per-case result. Both over-64-KiB valid cases must
+v2 stream route, and every per-case result. The selected SEMAPRAX command is
+`fn() -> i64` and returns a portable process status from 0 through 255. Both
+over-64-KiB valid cases must
 pass: 65,537 leading spaces and maximum cardinality with escaped JSON keys and
 identifiers. The compact maximum-cardinality control must remain at or below
 65,536 bytes. Both invalid capacity cases (9 servers and 257 patients) must
 exit 2, emit no stdout, and write exactly one diagnostic line to stderr. The
 gate is campaign evidence; it does not close issue 611 or assert that issue has
-been closed.
+been closed. Prior Project v23 / stream-v1 qualification evidence is historical
+and cannot qualify this v2 route. For stream-v2 SEMAPRAX candidates, ordinary
+invalid input must return application status 2 from the `i64` command result;
+do not produce it by triggering a contract, read, or runtime failure.
 
 The optional `--max-budget-usd` sets the CLI's per-session budget cap, so it
 applies separately to the calibration and each trial. `--timeout-seconds`
@@ -72,14 +77,17 @@ report; `acceptance_corpus_sha256` and `spec_sha256` must match the selected
 
 ```json
 {
-  "schema": "semaprax.event-sim-qualification-evidence.v1",
+  "schema": "semaprax.event-sim-qualification-evidence.v2",
   "spec_sha256": "<sha256 of SPEC.md at compiler source commit>",
   "acceptance_corpus_sha256": "<sha256 of acceptance/corpus.json at compiler source commit>",
   "compiler_source_commit": "<full compiler source commit>",
   "compiler_binary_sha256": "<sha256 of the compiler binary>",
   "native_project_route": {
-    "project_profile": "language-command-io.stream.v1",
-    "input_route": "argv-utf8+stdin-stream.v1"
+    "project_schema": "semaprax.project.v24",
+    "project_profile": "language-command-io.stream.v2",
+    "input_route": "argv-utf8+stdin-stream.v1",
+    "command_result_type": "i64",
+    "process_status_range": [0, 255]
   },
   "acceptance_report": {
     "path": "/absolute/path/outside-repository/shiftsim-qualification-report.json",

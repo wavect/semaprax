@@ -72,10 +72,7 @@ class ShiftSimCampaignTests(unittest.TestCase):
             "acceptance_corpus_sha256": live_campaign.sha_bytes(corpus_bytes),
             "compiler_source_commit": commit,
             "compiler_binary_sha256": "a" * 64,
-            "native_project_route": {
-                "project_profile": live_campaign.NATIVE_PROJECT_PROFILE,
-                "input_route": live_campaign.NATIVE_INPUT_ROUTE,
-            },
+            "native_project_route": live_campaign.NATIVE_PROJECT_ROUTE,
             "acceptance_report": {
                 "path": str(report_path), "sha256": live_campaign.sha_bytes(report_bytes),
             },
@@ -162,6 +159,7 @@ class ShiftSimCampaignTests(unittest.TestCase):
             self.assertEqual(settings["attempt_denominator"], 1)
             self.assertFalse(settings["qualification"]["scored_trials_allowed"])
             self.assertEqual(settings["qualification"]["issue_611_status"], "open")
+            self.assertEqual(settings["native_project_route"], live_campaign.NATIVE_PROJECT_ROUTE)
 
             args.artifacts = str(Path(directory) / "short-scored-plan")
             args.trials_per_arm = live_campaign.MIN_TRIALS_PER_ARM - 1
@@ -170,6 +168,17 @@ class ShiftSimCampaignTests(unittest.TestCase):
 
             with self.assertRaisesRegex(ValueError, "preflight arm"):
                 live_campaign.single_arm_preflight_plan(args, "unknown")
+
+    def test_both_arm_prompts_pin_the_v2_application_status_contract(self):
+        for arm in live_campaign.ARMS:
+            with self.subTest(arm=arm):
+                prompt = live_campaign.prompt_for(arm, Path("/candidate"), Path("/semaprax"))
+                self.assertIn("Project v24", prompt)
+                self.assertIn("language-command-io.stream.v2", prompt)
+                self.assertIn("argv-utf8+stdin-stream.v1", prompt)
+                self.assertIn("returning `i64` process status in the range 0..255", prompt)
+                self.assertIn("Return 0 for valid requests and 2 for invalid requests", prompt)
+                self.assertIn("same stdin and process", prompt)
 
     def test_pinned_native_evidence_gates_scored_trials_and_keeps_issue_open(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -180,6 +189,8 @@ class ShiftSimCampaignTests(unittest.TestCase):
             self.assertEqual(result["status"], "evidence_gate_passed")
             self.assertTrue(result["scored_trials_allowed"])
             self.assertIn("open", result["issue_611_status"])
+            self.assertEqual(result["native_project_route"], live_campaign.NATIVE_PROJECT_ROUTE)
+            self.assertEqual(evidence["schema"], "semaprax.event-sim-qualification-evidence.v2")
             corpus = json.loads((HERE / "acceptance" / "corpus.json").read_text(encoding="utf-8"))
             expected_case_count = sum(len(corpus[kind]) for kind in ("valid", "invalid"))
             self.assertEqual(result["acceptance_cases_passed"], expected_case_count)
@@ -194,10 +205,17 @@ class ShiftSimCampaignTests(unittest.TestCase):
                     evidence_path, repo, evidence["compiler_source_commit"], "b" * 64,
                 )
 
+            wrong_result_route = dict(live_campaign.NATIVE_PROJECT_ROUTE)
+            wrong_result_route["command_result_type"] = "bool"
+            wrong_range_route = dict(live_campaign.NATIVE_PROJECT_ROUTE)
+            wrong_range_route["process_status_range"] = [0, 1]
             for key, value in (
                 ("spec_sha256", "0" * 64),
                 ("compiler_source_commit", "0" * 40),
                 ("native_project_route", {"project_profile": "wrong", "input_route": "wrong"}),
+                ("native_project_route", wrong_result_route),
+                ("native_project_route", wrong_range_route),
+                ("schema", "semaprax.event-sim-qualification-evidence.v1"),
             ):
                 changed = dict(evidence)
                 changed[key] = value

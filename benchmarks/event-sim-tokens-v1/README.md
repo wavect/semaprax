@@ -9,14 +9,16 @@ and TeamDesk browser application.
 `SPEC.md` freezes the behavior. Both language arms receive the same task prompt
 and the same specification. `acceptance/corpus.json` is the shared test corpus;
 `oracle.py` generates its expected reports. It currently contains 11 valid and
-4 invalid cases. Live results belong in `results-live.json` after matched runs
-are collected.
+4 invalid cases (15 total). Live results belong in `results-live.json` after
+matched runs are collected.
 
 The campaign defaults to preflight-only reporting. A scored run requires a
 reviewed qualification-evidence JSON file that binds the exact SPEC and
 acceptance corpus hashes, compiler source commit and binary hash, native
-streaming Project route, and a hashed per-case acceptance report with every
-corpus case passing. The corpus includes both 65,537 leading whitespace bytes
+streaming Project v2 route, and a hashed per-case acceptance report with every
+corpus case passing. The SEMAPRAX command returns `i64` status 0 through 255
+under Project v24 / `language-command-io.stream.v2`; stdin remains
+`argv-utf8+stdin-stream.v1`. The corpus includes both 65,537 leading whitespace bytes
 and a maximum-cardinality request with legally escaped JSON keys and
 identifiers; the latter is over 65,536 bytes without whitespace. Compact
 maximum-cardinality input remains under the old byte boundary, and 9-server and
@@ -25,6 +27,9 @@ diagnostic line.
 Passing this evidence gate only allows a scored campaign; it does not close
 issue 611 or assert that it has been closed. See
 [`LIVE-CAMPAIGN.md`](LIVE-CAMPAIGN.md) for the evidence format and commands.
+Earlier Project v23 / `language-command-io.stream.v1` preflights and evidence
+remain historical and cannot qualify a v2 scored campaign. Qualification
+evidence uses a distinct v2 schema, so a prior v1 route or report is refused.
 
 The corpus is invoked through a command adapter that reads one request from
 stdin and writes one report to stdout. Example after an arm has been authored:

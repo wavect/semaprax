@@ -31,10 +31,20 @@ SEED_FILES = ("/benchmarks/event-sim-tokens-v1/SPEC.md",)
 CALIBRATION_PROMPT = "This is a context calibration request. Reply with exactly READY; do not use tools or read files."
 PRICE_BOOK_DATE = "2026-10-07"
 PRICE_BOOK_SOURCE = "https://platform.claude.com/docs/en/models/sonnet-5-5/overview"
-QUALIFICATION_EVIDENCE_SCHEMA = "semaprax.event-sim-qualification-evidence.v1"
+QUALIFICATION_EVIDENCE_SCHEMA = "semaprax.event-sim-qualification-evidence.v2"
 ACCEPTANCE_REPORT_SCHEMA = "semaprax.event-sim.acceptance-report.v1"
-NATIVE_PROJECT_PROFILE = "language-command-io.stream.v1"
+NATIVE_PROJECT_SCHEMA = "semaprax.project.v24"
+NATIVE_PROJECT_PROFILE = "language-command-io.stream.v2"
 NATIVE_INPUT_ROUTE = "argv-utf8+stdin-stream.v1"
+NATIVE_COMMAND_RESULT_TYPE = "i64"
+NATIVE_PROCESS_STATUS_RANGE = [0, 255]
+NATIVE_PROJECT_ROUTE = {
+    "project_schema": NATIVE_PROJECT_SCHEMA,
+    "project_profile": NATIVE_PROJECT_PROFILE,
+    "input_route": NATIVE_INPUT_ROUTE,
+    "command_result_type": NATIVE_COMMAND_RESULT_TYPE,
+    "process_status_range": NATIVE_PROCESS_STATUS_RANGE,
+}
 SPEC_RELATIVE = "benchmarks/event-sim-tokens-v1/SPEC.md"
 CORPUS_RELATIVE = "benchmarks/event-sim-tokens-v1/acceptance/corpus.json"
 
@@ -95,7 +105,7 @@ def validate_qualification_evidence(
     if semaprax_binary_sha256 is not None and binary_hash != semaprax_binary_sha256:
         raise ValueError("qualification evidence compiler binary hash does not match --semaprax-bin")
     route = evidence.get("native_project_route")
-    if route != {"project_profile": NATIVE_PROJECT_PROFILE, "input_route": NATIVE_INPUT_ROUTE}:
+    if route != NATIVE_PROJECT_ROUTE:
         raise ValueError("qualification evidence must identify the native streaming Project and input routes")
 
     report_ref = evidence.get("acceptance_report")
@@ -209,12 +219,20 @@ or validate the implementation without network access. `run.sh` must accept
 one JSON request on stdin, emit the exact report plus one newline on stdout,
 and produce the specified status-2 diagnostic for invalid requests. `test.sh`
 must run your own automated tests and fail nonzero on errors. The SEMAPRAX arm
-must use a native Project manifest and the compiler at `{semaprax_bin}` (also
-available as `$SEMAPRAX_BIN`), with Project profile `language-command-io.stream.v1`
-and input `argv-utf8+stdin-stream.v1`. Its streaming operations are documented
-by `$SEMAPRAX_BIN help language`. The TypeScript arm must use Node from `PATH`
-and provide the same stdin interface. Built-in language/compiler/runtime help
-is available to either arm.
+must use a native Project v24 manifest and the compiler at `{semaprax_bin}`
+(also available as `$SEMAPRAX_BIN`), with Project profile
+`language-command-io.stream.v2`, input `argv-utf8+stdin-stream.v1`, and an
+explicit command function returning `i64` process status in the range 0..255.
+Return 0 for valid requests and 2 for invalid requests, writing the specified
+diagnostic to stderr and nothing to stdout for invalid input. Do not use a
+failed contract or runtime failure to represent ordinary invalid input. Build
+the native command with `$SEMAPRAX_BIN build --manifest-path semaprax.toml
+--target native --output dist/shiftsim`, and have `run.sh` execute that native
+binary. `semaprax run` executes the ordinary Project entry and is not the
+selected command process adapter. Streaming operations are documented by
+`$SEMAPRAX_BIN help language`. The TypeScript arm must use Node from `PATH` and
+provide the same stdin and process status behavior. Built-in
+language/compiler/runtime help is available to either arm.
 The specification explicitly has no raw-input byte limit for JSON whitespace;
 the hidden acceptance corpus includes a valid request over 65,536 bytes due to
 leading whitespace.
@@ -282,6 +300,7 @@ def plan(args: argparse.Namespace, semaprax_binary_sha256: str | None = None) ->
         "authored_source_tokenizer": tokenizer,
         "arms": list(ARMS),
         "trial_order": rounds,
+        "native_project_route": NATIVE_PROJECT_ROUTE,
         "qualification": qualification,
         "price_book": {
             "date": PRICE_BOOK_DATE,

@@ -24,12 +24,16 @@ fn iterator_cleanup_cache_retains_exact_version_and_replays_owned_payloads() {
         "semaprax.cleanup-plan.v11",
         "semaprax.cleanup-plan.v12",
         "semaprax.cleanup-plan.v13",
+        "semaprax.cleanup-plan.v14",
+        "semaprax.cleanup-plan.v15",
     ] {
         let bytes = super::encode(&schema).unwrap();
         assert_eq!(super::decode::<&'static str>(&bytes).unwrap(), schema);
         assert!(static_token(&format!("{schema} ")).is_err());
+        let unknown = super::encode(&format!("{schema}+future")).unwrap();
+        assert!(super::decode::<&'static str>(&unknown).is_err());
     }
-    assert!(static_token("semaprax.cleanup-plan.v14").is_err());
+    assert!(static_token("semaprax.cleanup-plan.v16").is_err());
     let source = crate::check(
         "module iterator.cache; @id(\"main\") fn main()->i64 {let iterator=vec_into_iter<Bytes>(vec_with_capacity<Bytes>(0usize));let step=iter_next<Bytes>(iterator);match own step {IterStep::Done{}=>1,IterStep::Yield{item,rest}=>0,}}",
         "iterator-cache.spx",
@@ -64,7 +68,7 @@ fn iterator_cleanup_cache_retains_exact_version_and_replays_owned_payloads() {
         .unwrap();
     assert_eq!(
         record_function.cleanup_plan.schema,
-        "semaprax.cleanup-plan.v13"
+        "semaprax.cleanup-plan.v14"
     );
     let record_bytes = super::encode(&record_function.cleanup_plan).unwrap();
     record_function.cleanup_plan = super::decode(&record_bytes).unwrap();

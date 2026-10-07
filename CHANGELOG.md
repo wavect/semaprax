@@ -1,5 +1,9 @@
 # Changelog
 
+- Restore private semantic-cache round trips for the admitted CleanupPlan v14
+  owner-admission and v15 Vec-renewal profiles, preserving closed static-token
+  decoding and rejection of unknown or malformed versions.
+
 - Repair strict lint failures in cleanup replay, native/Wasm record iterator
   helpers and workspace imports without changing verification or settlement
   behavior; retain all existing regression assertions.

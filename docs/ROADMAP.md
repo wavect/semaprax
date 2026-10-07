@@ -199,9 +199,12 @@ fixtures are not supported application platforms.
 
 [Issue #241](https://github.com/wavect/semaprax/issues/241) tracks two current
 compiler capacity ceilings: `SPX-G171` limits a whole-project workspace graph
-to 67,108,864 builder bytes; `SPX-H006` limits one function to 65,536
-cleanup-replay terminal paths. Raising either needs evidence that replay and
-cache behavior stay finite at the new bound.
+to 67,108,864 builder bytes; `SPX-H006` limits cleanup replay to 32,000,000
+program-wide work units. The former 65,536-terminal-path limit per function
+now applies only to enumerated replay: above 4,096 paths replay compares the
+function factored by cleanup state, whose cost follows distinct cleanup
+states rather than independent decision combinations. Raising either budget
+needs evidence that replay and cache behavior stay finite at the new bound.
 
 ## 1.0: validate the complete programming system
 

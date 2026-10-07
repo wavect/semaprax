@@ -29,6 +29,7 @@ use super::{
     CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5,
     CLEANUP_PLAN_SCHEMA_V6, CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
 };
+mod factored;
 mod path_summary;
 mod skeleton_bound;
 mod skeleton_work;
@@ -39,7 +40,7 @@ use path_summary::{
 };
 #[cfg(test)]
 use path_summary::{cleanup_plan_requires_path_replay, STATUS_ONLY_PATH_SUMMARY_THRESHOLD};
-use skeleton_work::SkeletonWork;
+use skeleton_work::{empty_expr_path, Observations, SkeletonWork};
 
 #[cfg(test)]
 mod copy_success_result_tests;
@@ -71,6 +72,8 @@ const MAX_REPLAY_WORK_UNITS: usize = 32_000_000;
 struct ReplayBudget {
     remaining: usize,
     skeleton_remaining: usize,
+    /// Factored replay: merge equal-state skeleton paths (`skeleton_work`).
+    merge_paths: bool,
 }
 
 impl ReplayBudget {
@@ -78,6 +81,7 @@ impl ReplayBudget {
         Self {
             remaining: MAX_REPLAY_WORK_UNITS,
             skeleton_remaining: 0,
+            merge_paths: false,
         }
     }
 
@@ -86,6 +90,7 @@ impl ReplayBudget {
         Self {
             remaining: MAX_REPLAY_WORK_UNITS,
             skeleton_remaining: limit,
+            merge_paths: false,
         }
     }
 
@@ -273,13 +278,13 @@ enum SkeletonTerminal {
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct SkeletonPath {
-    observations: Vec<std::rc::Rc<SkeletonObservation>>,
+    observations: Observations,
     terminal: SkeletonTerminal,
 }
 
 #[derive(Clone)]
 struct ExprSkeletonPath {
-    observations: Vec<std::rc::Rc<SkeletonObservation>>,
+    observations: Observations,
     owned_source: Option<CleanupPlace>,
     failed: bool,
     residual: bool,
@@ -2867,6 +2872,9 @@ fn validate_typed_control_skeleton(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<(), Diagnostic> {
+    if factored::validate(program, function, budget)? {
+        return Ok(());
+    }
     let mut expected = hir_skeleton_paths(program, function, budget)?;
     let mut actual = plan_skeleton_paths(function, budget)?;
     expected.sort();
@@ -2979,15 +2987,6 @@ fn hir_skeleton_paths(
     Ok(completed)
 }
 
-fn empty_expr_path() -> ExprSkeletonPath {
-    ExprSkeletonPath {
-        observations: Vec::new(),
-        owned_source: None,
-        failed: false,
-        residual: false,
-    }
-}
-
 fn sequence_expression(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
@@ -3007,13 +3006,15 @@ fn sequence_skeleton_paths(
     suffixes: &[ExprSkeletonPath],
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
+    let prefixes = work.merged_paths(prefixes)?;
+    let suffixes = work.merged_suffixes(suffixes)?;
     let mut combined = Vec::new();
     for prefix in prefixes {
         if prefix.failed || prefix.residual {
             work.push_expr_path(&mut combined, prefix, "short-circuited skeleton path")?;
             continue;
         }
-        for suffix in suffixes {
+        for suffix in suffixes.iter() {
             let mut observations =
                 work.clone_observations(&prefix.observations, "skeleton prefix clone")?;
             work.extend_observations(
@@ -3332,7 +3333,7 @@ fn expression_skeleton(
                         };
                         produced = Some(work.singleton_path(
                             ExprSkeletonPath {
-                                observations: Vec::new(),
+                                observations: Observations::default(),
                                 owned_source,
                                 failed: false,
                                 residual: false,
@@ -5880,6 +5881,8 @@ fn sequence_call_argument(
     suffixes: &[ExprSkeletonPath],
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<Vec<CallSkeletonState>, Diagnostic> {
+    let states = work.merged_call_states(states)?;
+    let suffixes = work.merged_suffixes(suffixes)?;
     let mut next = Vec::new();
     for (prefix, commits) in states {
         if prefix.failed || prefix.residual {
@@ -5888,7 +5891,7 @@ fn sequence_call_argument(
             next.push((prefix, commits));
             continue;
         }
-        for suffix in suffixes {
+        for suffix in suffixes.iter() {
             let mut observations =
                 work.clone_observations(&prefix.observations, "call prefix clone")?;
             work.extend_observations(&mut observations, &suffix.observations, "call suffix clone")?;
@@ -6576,7 +6579,7 @@ fn plan_skeleton_paths(
                             function,
                             &mut paths,
                             SkeletonPath {
-                                observations,
+                                observations: observations.into(),
                                 terminal: SkeletonTerminal::Success,
                             },
                             "plan success path push",
@@ -6587,7 +6590,7 @@ fn plan_skeleton_paths(
                         function,
                         &mut paths,
                         SkeletonPath {
-                            observations,
+                            observations: observations.into(),
                             terminal: SkeletonTerminal::Failure,
                         },
                         "plan failure path push",

@@ -1024,54 +1024,40 @@ fixture now have one.
 ### Ceiling 2 — `SPX-H006`, the cleanup-replay path/work budget
 
 - **Constants:** `MAX_REPLAY_PATHS: usize = 65_536` and
-  `MAX_REPLAY_WORK_UNITS: usize = 32_000_000` —
-  `src/cleanup_plan/replay.rs:60-61`, enforced by
-  `validate_replay_size_budget` in `src/cleanup_plan/replay/path_summary.rs`.
-- **What it charges:** the number of distinct terminal control-flow paths
-  (and a separate structural "work units" count) cleanup replay must
-  independently enumerate for **one function**, checked both while resolving
-  to HIR and again in the independent `hir::validate` replay.
-- **Refinement of issue #241's characterization, reproduced this session:**
-  #241 describes the trigger as "roughly ten sequential `if`/`else`
-  classification branches." This session found that framing imprecise in a
-  way worth recording precisely:
-  - A **nested** nine-`else`-chain classifier (ten branches, exactly one of
-    which executes per call — the shape #241 calls "a per-record status
-    dispatcher") does **not** exhaust this budget by itself: terminal paths
-    grow additively with branch count (`~11` paths for ten branches), far
-    under `65_536`. Regression:
-    `tests/cleanup_backends/kernel_boundary.rs::a_ten_branch_nested_classifier_replays_within_budget`.
-  - A function summing `count` **independent** Copy-scalar
-    `(if v < i { 1 } else { 0 })` terms with `+` produces one CFG path per
-    combination of branch choices, so the terminal path count grows
-    combinatorially (exponentially) in `count`, not additively — a useful
-    lower-bound estimate is `2^count`, though the exact count `hir::validate`
-    enumerates runs higher than that naive estimate because the cleanup CFG
-    carries extra per-term bookkeeping paths beyond the two value branches.
-    The exact, reproduced crossover: **`count = 14` replays within budget;
-    `count = 15` fails with exactly** (this session measured and pinned the
-    literal count, 98,300, rather than repeating the theoretical `2^15 =
-    32,768` estimate, since the two do not match)
-    `` cleanup plan for function `app.main` failed independent replay: cleanup replay found 98300 terminal control-flow paths, exceeding the 65536 path budget: path count multiplies combinatorially (2^N) when N branch outcomes are combined independently within one function, not additively with branch count, so splitting into smaller functions only helps if it removes that combination -- restructure the branches to be mutually exclusive (a single dispatch chain, at most one branch executed per call) or combine their results across separate calls instead `` (`SPX-H006`; a later session rewrote this message to name the combinatorial driver and an actionable remedy directly, since the previous wording -- "cleanup replay path bound exceeds the global path budget" -- named only the budget, not the cause, and the natural fix an author reaches for reading it (splitting into helper functions) does not help unless it breaks the combination).
-    Regressions:
-    `tests/cleanup_backends/kernel_boundary.rs::fourteen_independent_scalar_comparisons_replay_within_budget`,
-    `...::fifteen_independent_scalar_comparisons_exceed_the_cleanup_replay_path_budget`,
-    and (pinning the diagnostic's content, not only its code)
-    `...::fifteen_independent_scalar_comparisons_diagnostic_names_the_combinatorial_driver_and_remedy`.
-  - **Implication:** the real cost driver is *combinatorial path
-    multiplication from mutually-independent branch results combined in the
-    same function*, not branch count in isolation. A ten-branch classifier
-    is safe alone; the same ten branches feeding independent, later-combined
-    booleans elsewhere in a larger function is not, well before `2^65_536`-
-    scale branch counts would suggest. This reframing does not by itself
-    explain every failure #241 records in the full catalog-normalizer
-    pipeline (that investigation combined this ceiling with `SPX-G171`
-    across multiple modules), but it gives issue #241 an exact, minimal,
-    from-scratch reproduction to build on, which its own report says it
-    lacked ("bisection reproduction commands are not preserved").
-- **Status:** independently reproduced this session from real source text
-  (not a synthesized `CleanupPlan` mutation) and reduced to a committed,
-  passing regression fixture at the exact boundary.
+  `MAX_REPLAY_WORK_UNITS: usize = 32_000_000` in
+  `src/cleanup_plan/replay.rs`, enforced by
+  `validate_replay_size_budget` in `src/cleanup_plan/replay/path_summary.rs`
+  and by the work charges of every replay phase.
+- **What it charges:** the work cleanup replay spends authenticating every
+  function, program-wide, checked while resolving to HIR and again in the
+  independent `hir::validate` replay. The path ceiling applies to functions
+  whose typed-control skeleton is still *enumerated*: those with at most
+  4,096 terminal paths by both the CFG and the HIR census, or with a cyclic
+  CFG. Above 4,096 paths the skeleton is compared factored by cleanup state
+  ([RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md#factored-skeleton-comparison)),
+  whose cost follows distinct cleanup states rather than the product of
+  independent decisions; only the work budget bounds it, and its exhaustion
+  above the path ceiling still reports the path-budget diagnostic.
+- **History, from issue #241:** before the factored comparison, a function
+  summing `count` independent Copy-scalar `(if v < i { 1 } else { 0 })`
+  terms produced one CFG path per combination of branch choices. `count =
+  14` replayed within budget and `count = 15` failed: replay measured 98,300
+  terminal paths (more than the naive `2^15`, because the cleanup CFG carries
+  per-term bookkeeping paths). A *nested* nine-`else`-chain classifier of ten
+  branches, by contrast, grows additively (`~11` paths) and never hit the
+  ceiling. The real cost driver was combinatorial path multiplication from
+  mutually independent decisions in one function, not branch count.
+  Regressions, all in `tests/cleanup_backends/kernel_boundary.rs`:
+  `fourteen_independent_scalar_comparisons_replay_within_budget`,
+  `fifteen_and_forty_independent_scalar_comparisons_replay_through_the_factored_comparison`
+  (formerly the failing fifteen-term fixture), and
+  `a_ten_branch_nested_classifier_replays_within_budget`. The path-budget
+  diagnostic's wording (cause and remedy) is pinned by
+  `cleanup_plan::replay::tests::factored::budget_exhausted_factored_comparison_keeps_the_path_budget_diagnostic`.
+- **Status:** reproduced from real source text, not a synthesized
+  `CleanupPlan` mutation; the corpus in
+  `tests/cleanup_backends/independent_branches.rs` runs functions far above
+  the former ceiling on the interpreter, native C, and Core Wasm.
 
 ### Ceiling 3 — `SPX-P207`, the token-level nesting pre-check (found and fixed)
 
@@ -1321,7 +1307,11 @@ papering over:
    unchanged) to name the actual cost driver — combinatorial multiplication of
    independently-combined branch outcomes, not raw branch count — and an
    actionable remedy, since making the diagnostic honest about the cause is
-   itself a deliverable when raising the bound is not yet justified. Raising
+   itself a deliverable when raising the bound is not yet justified. A later
+   change removed the cost driver instead of raising the bound: replay now
+   compares functions above 4,096 paths factored by cleanup state, so
+   independent decisions no longer count against `MAX_REPLAY_PATHS` (see
+   "Ceiling 2" above). Raising
    either bound, if ever justified, still needs the cross-backend
    near-boundary execution evidence this document's non-claims section notes
    is missing.

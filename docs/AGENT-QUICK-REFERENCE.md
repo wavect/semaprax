@@ -687,10 +687,9 @@ For a file holding `4`, ` 5 `, `x`, `10` on four lines, `semaprax run
 lines.spx -- nums.txt` prints `lines: 4` and `sum: 19` and exits 0; without an
 argument it prints the usage line to stderr and exits 2. Bind `arg_utf8(i)`
 before passing it on. Match `string_to_i64` directly; in a loop the match must
-be exactly `Option::Some { value }` and `Option::None {}`. Keep each function
-to a few `match`es: every match doubles its cleanup paths (`SPX-H006` past
-65,536). Offsets are byte offsets; `string_byte_at(s, i) == 32` tests a space
-without allocating.
+be exactly `Option::Some { value }` and `Option::None {}`. A function may hold
+many independent `if`s, `&&`/`||` operands, and `match`es. Offsets are byte
+offsets; `string_byte_at(s, i) == 32` tests a space without allocating.
 
 ## Lists and iterators
 

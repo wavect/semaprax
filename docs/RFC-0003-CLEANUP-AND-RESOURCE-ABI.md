@@ -348,6 +348,39 @@ units count operations such as cloning an observation vector, not its bytes or
 the cost of copying its contents. They are not a peak-heap, CPU-time, or source
 parsing bound. No plan schema, transition order, or backend authority changes.
 
+### Factored skeleton comparison
+
+The typed-control skeleton check compares the multiset of typed-HIR paths
+with the multiset of cleanup-CFG paths, each path being its decision,
+status, and ownership-event observations plus its success or failure
+terminal. Up to 4,096 terminal paths (by either the CFG or the HIR census)
+replay enumerates both multisets and compares them sorted, as before, under
+the 65,536-path ceiling. Above that, for an acyclic CFG, replay decides the
+same equality without enumerating the product of independent decisions:
+
+- The typed-HIR walk runs unchanged except that, wherever it sequences
+  paths, it merges paths whose cleanup state is identical (owned source,
+  failure, residual, and for call arguments the commit list) into one path
+  carrying the union of their observation sequences. Every later skeleton
+  step reads only that state, so the merged walk denotes exactly the
+  enumerated multiset, and its size follows the number of distinct cleanup
+  states instead of the number of decision combinations.
+- The merged HIR paths and the cleanup CFG each become an acyclic automaton
+  over observations. Bottom-up hash-consing of the weighted subset
+  construction gives two states one id exactly when they accept every
+  observation sequence the same number of times, so equal roots prove equal
+  multisets, duplicates included.
+
+The plan side is read from the plan alone and the HIR side from typed HIR
+alone; neither trusts the builder. All work, including the merged walk, is
+charged to the same program-wide work budget. If the factored comparison
+exhausts it above the path ceiling, the diagnostic is the path-budget
+`SPX-H006`; at or below the ceiling, enumeration decides instead. Emitted
+plans, graphs, and backend code are unchanged; only which plans replay can
+authenticate within budget changes. Test builds additionally run the
+factored comparison beside enumeration on every function small enough to
+enumerate and require the same verdict.
+
 ## Conformance trace
 
 Backend equivalence tests use the versioned [conformance trace v1](CONFORMANCE-TRACE-V1.md): a target-neutral event trace containing stable import/lifecycle IDs, semantic storage/place IDs, expression IDs for transitions, event kind (`initialize`, `transfer`, `call_commit`, `import_begin`, `import_end`, `select_failure`, `finalize_begin`, `finalize_end`, or `result_commit`), and normalized status. `select_failure` exposes the exact write-once source selected by every nested frame as well as the root. Callable imports may complete with a normalized failure; automatic-finalizer import completion is success-only in the type system. A trivial strategy emits both finalization events with success even though it performs no host call. Physical pointers, Wasm handles, status tokens, stack offsets, and host exception objects are excluded. Two backends conform only when they produce the same ordered semantic events and normalized final status for the same verified program and injected import outcomes.

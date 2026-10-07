@@ -101,7 +101,29 @@ pub(super) fn validate_replay_size_budget(function: &ResolvedFunction) -> Result
     {
         return Ok(());
     }
-    if cfg.terminal_paths > MAX_REPLAY_PATHS {
+    // The factored skeleton comparison grows with distinct cleanup states,
+    // not with the product of independent decisions, and charges its own work.
+    if super::factored::selected(function, cfg.terminal_paths, semantic_paths) {
+        return Ok(());
+    }
+    path_budget_errors(function, cfg.terminal_paths, semantic_paths)?;
+    let expression_units = expression_facts(function)?.len();
+    if cfg.work.saturating_add(expression_units) > MAX_REPLAY_WORK_UNITS {
+        return Err(replay_error(
+            function,
+            "cleanup replay combined path/work bound exceeds the global budget",
+        ));
+    }
+    Ok(())
+}
+
+/// The enumerating comparison's path budget.
+pub(super) fn path_budget_errors(
+    function: &ResolvedFunction,
+    cfg_paths: usize,
+    semantic_paths: usize,
+) -> Result<(), Diagnostic> {
+    if cfg_paths > MAX_REPLAY_PATHS {
         return Err(replay_error(
             function,
             format!(
@@ -112,7 +134,7 @@ pub(super) fn validate_replay_size_budget(function: &ResolvedFunction) -> Result
                  -- restructure the branches to be mutually exclusive (a single dispatch chain, \
                  at most one branch executed per call) or combine their results across separate \
                  calls instead",
-                cfg.terminal_paths, MAX_REPLAY_PATHS
+                cfg_paths, MAX_REPLAY_PATHS
             ),
         ));
     }
@@ -128,13 +150,6 @@ pub(super) fn validate_replay_size_budget(function: &ResolvedFunction) -> Result
                  exclusive (a single dispatch chain, at most one branch executed per call) or \
                  combine their results across separate calls instead"
             ),
-        ));
-    }
-    let expression_units = expression_facts(function)?.len();
-    if cfg.work.saturating_add(expression_units) > MAX_REPLAY_WORK_UNITS {
-        return Err(replay_error(
-            function,
-            "cleanup replay combined path/work bound exceeds the global budget",
         ));
     }
     Ok(())

@@ -97,9 +97,10 @@ admits an `Option<i64>` match only with the call as scrutinee; binding the
 result first (`let o = string_to_i64(s);`) is outside its profile (`SPX-F102`),
 while native C accepts it.
 
-Each two-arm match doubles the cleanup paths of its function. Many
-independent matches in one function exceed the 65,536-path replay budget
-(`SPX-H006`); parse fields in a loop or in separate functions instead.
+Independent matches in one function do not multiply its cleanup-replay cost:
+a field parser may test each field with its own `match` in one function.
+Cleanup replay compares such functions factored by cleanup state
+([RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md#factored-skeleton-comparison)).
 
 ## Command-line programs
 

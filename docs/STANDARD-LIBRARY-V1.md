@@ -293,26 +293,19 @@ These compiler bounds decide how large one package can be:
   *descriptor* carrier, which the standard-library conformance closure does not
   implement; a library function that must compare a prefix takes an explicit
   length instead.
-- The cleanup-plan replay path budget (`SPX-H006`) admits at most 65,536
-  terminal paths in one function. Lazy `&&` and `||` operands and `if`
-  branches each double that count, so a function holds about sixteen
-  independent decision points. A dense predicate written as one long lazy
-  chain is rejected; the fix is to split it, or to replace the chain with a
-  `match` table, which contributes one path per arm rather than doubling. This
-  is why a conformance module keeps each check in its own function.
-- Path counts *multiply* across sequential statements and only *sum* across
-  `match` arms. Two tables of eight arms each cost sixty-four paths in one
-  function body and sixteen in two, so packing several small tables into one
-  function can trip `SPX-H006` where splitting them apart does not. This is
-  the opposite of the usual intuition that fewer, larger functions are
-  cheaper, and it compounds with the per-function path doubling above.
+- Independent decision points no longer bound a function. Lazy `&&` and `||`
+  operands, `if` branches, and `match` tables multiply a function's terminal
+  paths, and cleanup replay once refused more than 65,536 of them
+  (`SPX-H006`), which is why existing conformance modules keep each check in
+  its own function. Above 4,096 paths replay now compares the function
+  factored by cleanup state
+  ([RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md#factored-skeleton-comparison)),
+  so a dense predicate or several tables may share one function.
 - `match` is not admitted in a `while` body (`SPX-T252`, `match expressions
   are not yet admitted in while bodies`). The single exception is a two-arm
   `Option::Some`/`Option::None` match, without guards, directly on a
   `byte_get(...)` call. Every other table lookup inside a loop is authored as
-  a helper function the loop calls, which is also what the path budget above
-  wants: the helper's arms sum inside the helper instead of multiplying into
-  the loop body. `while` bodies also reject string literals, fixed-array
+  a helper function the loop calls. `while` bodies also reject string literals, fixed-array
   literals, and `?` with the same code.
 - The byte-data profile (`useful-data.v1`) admits contracts throughout its
   inventory since the data emitter and npm recipe learned to lower and record

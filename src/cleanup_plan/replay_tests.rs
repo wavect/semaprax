@@ -7,6 +7,8 @@ use super::*;
 
 #[path = "replay_tests/block_work.rs"]
 mod block_work;
+#[path = "replay_tests/factored.rs"]
+mod factored;
 #[path = "replay_tests/transition_mutations.rs"]
 mod transition_mutations;
 
@@ -959,6 +961,7 @@ fn replay_budget_exhaustion_is_a_deterministic_diagnostic() {
     let mut budget = ReplayBudget {
         remaining: 1,
         skeleton_remaining: 0,
+        merge_paths: false,
     };
     let diagnostic = budget.charge(&function, 2, "hostile test").unwrap_err();
     assert_eq!(diagnostic.code, "SPX-H006");
@@ -987,6 +990,7 @@ fn assert_program_skeleton_authority(program: &ResolvedProgram) -> usize {
     let mut exact = ReplayBudget {
         remaining: independently_summed,
         skeleton_remaining: 0,
+        merge_paths: false,
     };
     assert_eq!(
         reserve_program_skeleton_work(program, functions(), &mut exact).unwrap(),
@@ -1000,6 +1004,7 @@ fn assert_program_skeleton_authority(program: &ResolvedProgram) -> usize {
     let mut one_less = ReplayBudget {
         remaining: independently_summed - 1,
         skeleton_remaining: 0,
+        merge_paths: false,
     };
     let diagnostic =
         reserve_program_skeleton_work(program, functions(), &mut one_less).unwrap_err();

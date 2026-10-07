@@ -111,10 +111,8 @@ pub(super) fn prepend_reservation(
             "renewal prefix insertion",
         )?;
         note_skeleton_materialization();
-        path.observations.insert(
-            0,
-            SkeletonObservation::ReserveRenewal { at, binding }.into(),
-        );
+        path.observations
+            .insert_front(SkeletonObservation::ReserveRenewal { at, binding }.into());
     }
     Ok(())
 }

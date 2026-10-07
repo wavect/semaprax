@@ -238,6 +238,7 @@ mod tests {
         let mut insufficient = ReplayBudget {
             remaining: bound - 1,
             skeleton_remaining: 0,
+            merge_paths: false,
         };
         let error =
             reserve_program_skeleton_work(&program, std::iter::once(function), &mut insufficient)

@@ -66,6 +66,8 @@ mod executable_try;
 mod executable_variant;
 #[path = "cleanup_backends/executor.rs"]
 mod executor;
+#[path = "cleanup_backends/independent_branches.rs"]
+mod independent_branches;
 #[path = "cleanup_backends/inventory.rs"]
 mod inventory;
 #[path = "cleanup_backends/kernel_boundary.rs"]

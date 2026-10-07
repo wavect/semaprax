@@ -1,5 +1,9 @@
 # Changelog
 
+- Repair strict lint failures in cleanup replay, native/Wasm record iterator
+  helpers and workspace imports without changing verification or settlement
+  behavior; retain all existing regression assertions.
+
 - Restore bounded CLI language help without changing its topic limits; complete
   documentation metadata and navigation, and join relocated source into the
   contracts that audit it. Make the stream-text native probe completion marker

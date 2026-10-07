@@ -130,7 +130,7 @@ pub(super) fn seal_changed_success_try_residual(
                             leaves[flag]
                                 .place
                                 .projections
-                                .starts_with(&[case.id.clone()])
+                                .starts_with(std::slice::from_ref(&case.id))
                         })
                         .copied()
                         .collect(),

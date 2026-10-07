@@ -22,8 +22,7 @@ pub(super) fn is_exact(
 pub(super) fn bind<O: COutput>(
     emitter: &mut CEmitter<'_, O>,
     staged: &str,
-    case: &DeclarationId,
-    field: &DeclarationId,
+    (case, field): (&DeclarationId, &DeclarationId),
     field_ty: &ResolvedType,
     binding: &hir::ResolvedBinding,
     mode: hir::ResolvedMatchMode,

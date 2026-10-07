@@ -49,11 +49,11 @@ fn record_shape(declaration: &TypeDeclaration) -> bool {
             == 1
 }
 
-fn forward_parameter<'a>(
-    function: &'a Function,
+fn forward_parameter(
+    function: &Function,
     allow_owned: bool,
     is_record: impl Fn(&Type) -> bool,
-) -> Option<&'a Param> {
+) -> Option<&Param> {
     if crate::stdin_stream_ops::ast_forward_signature(function) {
         return function.params.first();
     }

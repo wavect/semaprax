@@ -223,7 +223,7 @@ fn decode_tag(text: &str) -> Option<[u8; 32]> {
     if text.len() != result.len() * 2 {
         return None;
     }
-    for (output, pair) in result.iter_mut().zip(text.as_bytes().chunks_exact(2)) {
+    for (output, pair) in result.iter_mut().zip(text.as_bytes().as_chunks::<2>().0) {
         *output = digit(pair[0])? * 16 + digit(pair[1])?;
     }
     Some(result)

@@ -66,9 +66,10 @@ fn iterator_cleanup_cache_retains_exact_version_and_replays_owned_payloads() {
         .iter_mut()
         .find(|function| function.id.as_str() == "cache.main")
         .unwrap();
+    // Pure traversal has no native owner admission and retains the v13 profile.
     assert_eq!(
         record_function.cleanup_plan.schema,
-        "semaprax.cleanup-plan.v14"
+        "semaprax.cleanup-plan.v13"
     );
     let record_bytes = super::encode(&record_function.cleanup_plan).unwrap();
     record_function.cleanup_plan = super::decode(&record_bytes).unwrap();

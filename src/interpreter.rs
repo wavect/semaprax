@@ -81,6 +81,7 @@ mod owned_vec;
 mod prepared;
 mod public_api_argument;
 pub use public_api_argument::PublicApiArgument;
+mod map_collections;
 mod resolved_case;
 pub mod resumable;
 mod resumable_entry;
@@ -90,7 +91,7 @@ mod semantic_work;
 pub(crate) mod source_command;
 mod string_conditions;
 mod string_operations;
-mod map_collections;
+mod value_types;
 use api_admission::{
     owned_utf8_api_result_matches, public_api_argument_matches, public_api_parameter_type_matches,
     public_api_result_is_admitted, require_acyclic_public_api_closure,
@@ -3738,59 +3739,6 @@ impl Evaluator<'_> {
         Ok(Value::Bytes(value))
     }
 
-    /// Site 5 of the five admitted-variant-payload-profile classifiers named
-    /// in issue #261: sites 1 (`check_byte_data_declarations`, `SPX-T268`)
-    /// and 2 (`TypeTable::is_flat_owned_string_variant`, `SPX-O002`/`SPX-O104`)
-    /// gate source `Type`s; sites 3 (`is_admitted_owned_string_variant`,
-    /// `SPX-O117`) and 4 (`hir/validation.rs`, `SPX-H006`) gate resolved
-    /// `ResolvedType`s. This site checks a runtime `Value` instead, so it
-    /// cannot share either owning field predicate directly, but the Record
-    /// arm below still consults the same resolved-level
-    /// `is_admitted_copy_aggregate_variant_field` that sites 3 and 4 do.
-    /// Missing this disjunct is the worst-case symptom of the five: a
-    /// verified program that fails construction at run time on the
-    /// `SPX-F105` "impossible post-verify state" guard.
-    fn value_has_type(&self, value: &Value, ty: &ResolvedType) -> bool {
-        match (value, ty) {
-            (Value::Int(_), ResolvedType::I64)
-            | (Value::Int32(_), ResolvedType::I32)
-            | (Value::Uint8(_), ResolvedType::U8)
-            | (Value::Usize(_), ResolvedType::Usize)
-            | (Value::Char(_), ResolvedType::Char)
-            | (Value::Float32(_), ResolvedType::F32)
-            | (Value::Float64(_), ResolvedType::F64)
-            | (Value::Bool(_), ResolvedType::Bool)
-            | (
-                Value::OnceClosure(_),
-                ResolvedType::OnceFunction
-                | ResolvedType::OnceFunctionI64
-                | ResolvedType::OnceFunctionI64Pair,
-            )
-            | (Value::Bytes(_), ResolvedType::Bytes)
-            | (Value::Map(_), ResolvedType::StringMap)
-            | (Value::String(_), ResolvedType::String) => true,
-            (Value::Collection(carrier), expected)=>&carrier.ty==expected,
-            (Value::Closure(value), ResolvedType::MutFunctionI64) => value.mutable.is_some(),
-            (Value::Variant(carrier), expected) => &carrier.ty == expected,
-            (Value::Iter(carrier), expected) => {
-                crate::iterator_ops::is_iter(expected)
-                    && crate::iterator_ops::element(expected) == Some(&carrier.vector.element)
-            }
-            (Value::List(_), expected) => crate::list_ops::is_list(expected),
-            (Value::Record(carrier), ResolvedType::Nominal { declaration, .. }) => {
-                &carrier.record == declaration
-                    && (is_admitted_owned_byte_record(self.declarations, ty)
-                        // Copy Aggregate Variant Payload v1 (see the doc
-                        // comment above `value_has_type`).
-                        || crate::hir::is_admitted_copy_aggregate_variant_field(
-                            self.declarations,
-                            ty,
-                        ))
-            }
-            _ => false,
-        }
-    }
-
     fn evaluate_entry(
         &mut self,
         function: &ResolvedFunction,
@@ -4405,7 +4353,7 @@ impl Evaluator<'_> {
                     return Err(Flow::Guard("generic call identity is incomplete"));
                 }
                 if let Some(op) = crate::map_ops::by_id(callee.as_str()) {
-                    return self.evaluate_typed_map(op,type_arguments,args,environment,depth);
+                    return self.evaluate_typed_map(op, type_arguments, args, environment, depth);
                 }
                 if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
                     // Compiler-owned string operations evaluate in place;

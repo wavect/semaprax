@@ -19,6 +19,7 @@ impl Parser {
             tokens,
             cursor: 0,
             path,
+            discards: Default::default(),
         })
     }
 
@@ -36,6 +37,7 @@ impl Parser {
             tokens,
             cursor: 0,
             path,
+            discards: Default::default(),
         }
         .parse()?;
         Ok((program, comments))

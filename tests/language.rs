@@ -101,6 +101,8 @@ mod signed_minimum_literals;
 mod stable_id_nul;
 #[path = "language/std_collections_vec_wrappers.rs"]
 mod std_collections_vec_wrappers;
+#[path = "language/statement_if.rs"]
+mod statement_if;
 #[path = "language/string_branch_results.rs"]
 mod string_branch_results;
 #[path = "language/string_collections_v1.rs"]

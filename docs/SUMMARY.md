@@ -150,6 +150,7 @@ Audience: all documentation readers.
 - [Explicit mutation](EXPLICIT-MUTATION-V1.md)
 - [Field mutation](FIELD-MUTATION-V1.md)
 - [While loops](WHILE-LOOPS-V1.md)
+- [Language ergonomics (statement `if`)](LANGUAGE-ERGONOMICS-V1.md)
 - [Record invariants](RECORD-INVARIANTS-V1.md)
 - [Refutable match](REFUTABLE-MATCH-V1.md)
 - [String operations](STRING-OPS-V1.md)

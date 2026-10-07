@@ -26,6 +26,7 @@ mod lookahead;
 mod patterns;
 pub(crate) mod session_protocol;
 mod signed_minimum;
+mod statement_if;
 mod types;
 use types::expression_path;
 mod yields;
@@ -33,6 +34,8 @@ pub struct Parser {
     tokens: Vec<Token>,
     cursor: usize,
     path: String,
+    /// Names already given to statement-`if` discards in this file.
+    discards: statement_if::DiscardNames,
 }
 
 impl Parser {
@@ -805,7 +808,17 @@ impl Parser {
         minimum_precedence: u8,
         allow_record_literals: bool,
     ) -> Result<Expr, Diagnostic> {
-        let mut left = self.prefix(allow_record_literals)?;
+        let left = self.prefix(allow_record_literals)?;
+        self.binary_continuation(left, minimum_precedence, allow_record_literals)
+    }
+
+    /// Continue a binary expression whose left operand is already parsed.
+    fn binary_continuation(
+        &mut self,
+        mut left: Expr,
+        minimum_precedence: u8,
+        allow_record_literals: bool,
+    ) -> Result<Expr, Diagnostic> {
         while let Some(op) = self.binary_op() {
             let precedence = op.precedence();
             if precedence < minimum_precedence {
@@ -1197,23 +1210,65 @@ impl Parser {
     }
 
     fn block_after_open(&mut self, start: Span) -> Result<Expr, Diagnostic> {
+        let (statements, tail, end) = self.block_contents(false)?;
+        let Some(tail) = tail else {
+            return Err(self.error_here("SPX-P203", "block requires a final value expression"));
+        };
+        Ok(Expr {
+            kind: ExprKind::Block {
+                statements,
+                tail: Box::new(tail),
+            },
+            span: start.merge(end),
+        })
+    }
+
+    /// The statements and final expression of a block whose `{` was consumed,
+    /// through its `}`. Only a statement `if` branch passes `optional_tail`.
+    fn block_contents(
+        &mut self,
+        optional_tail: bool,
+    ) -> Result<(Vec<Statement>, Option<Expr>, Span), Diagnostic> {
         let mut statements = Vec::new();
+        let mut trailing_if = None;
         loop {
-            if self.at_keyword("let") {
-                statements.push(self.let_statement()?);
+            if self.at_keyword("if") {
+                let checkpoint = self.cursor;
+                match self.statement_if()? {
+                    statement_if::IfItem::Statement(statement) => {
+                        statements.push(statement);
+                        trailing_if = Some(checkpoint);
+                    }
+                    statement_if::IfItem::Value(tail) => {
+                        return self.block_tail_end(statements, tail);
+                    }
+                }
+                continue;
+            }
+            let statement = if self.at_keyword("let") {
+                self.let_statement()?
             } else if self.at_assign_statement() {
-                statements.push(self.assign_statement()?);
+                self.assign_statement()?
             } else if self.at_unsafe_statement() {
-                statements.push(self.unsafe_statement()?);
+                self.unsafe_statement()?
             } else if self.at_keyword("while") {
-                statements.push(self.while_statement()?);
+                self.while_statement()?
             } else if self.at_keyword("for") {
-                statements.push(for_loop::parse(self)?);
+                for_loop::parse(self)?
             } else {
                 break;
-            }
+            };
+            statements.push(statement);
+            trailing_if = None;
         }
         if self.at(&TokenKind::RBrace) {
+            if optional_tail {
+                let end = self.bump().span;
+                return Ok((statements, None, end));
+            }
+            if let Some(checkpoint) = trailing_if {
+                return Err(self.valueless_tail_if(checkpoint));
+            }
             return Err(self.error_here("SPX-P203", "block requires a final value expression"));
         }
         if let Some(diagnostic) = self
@@ -1223,17 +1278,19 @@ impl Parser {
             return Err(diagnostic);
         }
         let tail = self.expression(0)?;
+        self.block_tail_end(statements, tail)
+    }
+
+    fn block_tail_end(
+        &mut self,
+        statements: Vec<Statement>,
+        tail: Expr,
+    ) -> Result<(Vec<Statement>, Option<Expr>, Span), Diagnostic> {
         if self.take(&TokenKind::Semicolon) {
             return Err(self.expression_statement(&tail));
         }
         let end = self.expect(&TokenKind::RBrace, "`}` after block")?.span;
-        Ok(Expr {
-            kind: ExprKind::Block {
-                statements,
-                tail: Box::new(tail),
-            },
-            span: start.merge(end),
-        })
+        Ok((statements, Some(tail), end))
     }
 
     fn let_statement(&mut self) -> Result<Statement, Diagnostic> {

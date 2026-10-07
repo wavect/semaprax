@@ -60,8 +60,8 @@ fn main() -> i64
 - Give every declaration an `@id("dotted.stable.name")`. Without it the
   compiler warns `SPX-S103`; a function rename then changes its identity.
 - The entry point is exactly `fn main() -> i64`. There is no other signature.
-- A function body has zero or more statements (`let`, assignment, `while`,
-  `unsafe`) and one final expression. That expression supplies the block's
+- A function body has zero or more statements (`let`, assignment, `if`,
+  `while`, `for`, `unsafe`) and one final expression. That expression supplies the block's
   value. User code has no `return`, expression statement, tuple, or unit
   value.
 - Source blocks, delimiters, unary chains, and expression trees may nest at
@@ -133,8 +133,11 @@ fn main() -> i64
 }
 ```
 
-- `if` always has `else` and is an expression; `else if` chains are fine
-  (`fmt` writes them as `else { if … }`).
+- As a value, `if` always has `else`; `else if` chains are fine (`fmt`
+  writes them as `else { if … }`). As a statement, `if c { x = x + 1; }`
+  needs no `else` and no branch value, in loop bodies too; `fmt` writes it
+  as `let _if1 = if c { x = x + 1; 0 } else { 0 };`. The block still ends
+  with its own final expression.
 - A `while` condition must be `bool` and is checked before every iteration.
   Its body still needs a final expression, but that value is discarded; the
   condition controls repetition. While bodies admit

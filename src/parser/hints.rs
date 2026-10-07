@@ -36,9 +36,10 @@ const WHILE_BODY_HELP: &str = "end the `while` body with a final expression; its
                                discarded because the condition controls repetition";
 const FOR_BODY_HELP: &str = "end the `for` body with a final expression, such as `0`; its value \
                              is discarded";
-const BRANCH_HELP: &str = "`if` cannot stand as a statement: add an `else` branch, end both branches \
-                           with values, and bind or discard the result with `let _ = if … { …; value } \
-                           else { value };`";
+const BRANCH_HELP: &str =
+    "a statement `if` yields no value, so the enclosing block still ends with \
+                           a final expression after it; to make the `if` the value, end every \
+                           branch with a value and add an `else` branch";
 const FUNCTION_BODY_HELP: &str = "a function's value is its final expression; there is no `return`";
 const MISSING_ELSE_HELP: &str = "`if` is an expression and always has an `else` branch";
 const CALL_PATTERN_HELP: &str =

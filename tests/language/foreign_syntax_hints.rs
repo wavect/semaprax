@@ -204,15 +204,14 @@ fn main() -> i64
 {
     let mut x = 0;
     if x == 0 { x = 1; }
-    x
 }
 "#,
     );
     assert_eq!(diagnostic.code, "SPX-P203");
     assert!(
-        help(&diagnostic).contains("cannot stand as a statement")
-            && help(&diagnostic).contains("add an `else` branch")
-            && help(&diagnostic).contains("let _ = if"),
+        help(&diagnostic).contains("statement `if` yields no value")
+            && help(&diagnostic).contains("final expression after it")
+            && help(&diagnostic).contains("add an `else` branch"),
         "{diagnostic}"
     );
 }

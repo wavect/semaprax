@@ -114,6 +114,19 @@ fn creation_preview_never_admits_an_unsupported_authoritative_policy() {
 
 #[test]
 fn creation_policy_helper_expansion_is_bounded_and_conservative() {
+    // This deliberately deep fixture traverses the ordinary checked helper
+    // graph before preview generation. Match the CLI's main-thread stack;
+    // Rust's smaller default test-thread stack overflows in debug builds.
+    std::thread::Builder::new()
+        .name("creation-policy-diamond".to_owned())
+        .stack_size(8 * 1024 * 1024)
+        .spawn(creation_policy_helper_expansion)
+        .unwrap()
+        .join()
+        .unwrap();
+}
+
+fn creation_policy_helper_expansion() {
     let mut source = String::from("module bounded; record User { login: string, active: bool, } record Item { score: i64, } fn user_account(login: string, active: bool) -> bool { active } fn base(value: i64) -> bool { value > 0 } ");
     let mut previous = "base".to_owned();
     for index in 0..38 {

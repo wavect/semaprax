@@ -1046,9 +1046,9 @@ Other first-attempt diagnostics and their fixes:
 | for i in 0..n { … }|`SPX-P106`|Use while, a let mut counter, and a discarded tail|
 | while body ending after assignment|`SPX-P203`|Add a discarded scalar tail such as 0|
 | f(x); as a statement|`SPX-P106`|Discard it with let _ = f(x); or make it the tail|
-| let t = (1, 2);|`SPX-P106`|No tuples; use record|
+| let t = (1, 2);|`SPX-P106`|No tuples; declare a `record`|
 | Option::Some { value: 1 }|`SPX-T221`|Option<i64>::Some { value: 1 }|
-| index + 1 when index: usize|`SPX-T208`|Integer literals default to i64; write index + 1usize|
+| `index + 1` when `index: usize`|`SPX-T208`|Integer literals default to `i64`; write `index + 1usize`|
 | let a: i32 = 5|`SPX-T232`|Suffix the literal: let a: i32 = 5i32|
 | 9223372036854775808 or -(9223372036854775808)|`SPX-P003`|One literal: -9223372036854775808 or -2147483648i32. Whitespace after sign is trivia; parentheses separate it. Negating minimum or dividing by -1 overflows|
 | "a" + "b"|`SPX-T250`|string_concat("a", "b")|

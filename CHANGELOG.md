@@ -1,5 +1,12 @@
 # Changelog
 
+- Project row-aware write policies into conservative creation previews (OPT
+  #666): current-account inputs remain exact, row inputs are unknown, and
+  definite restrictions hide New without inventing a blank/default row.
+  The same admitted AST supplies lazy Boolean, match, helper and contract
+  semantics; the server still checks every actual write. Source and generated
+  callback regressions are authored; focused verification is pending.
+
 - Fix the TeamDesk v2 TypeScript reference's signed-i64 transport for OPT #662:
   preserve JSON number lexemes, use exact integer schema arithmetic and form
   values, and write numeric tokens through REST, audit, CSV and persistence.

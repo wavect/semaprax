@@ -1176,7 +1176,10 @@ fn order_status(paid: bool) -> string
   fields plus `me: i64` and `my_<account field>`. Unprefixed `can_read` /
   `can_write` (or `can_write_<name>`) are defaults; one taking row fields such
   as `member_id: i64` covers every entity with those fields, the most
-  specific default winning. Audit history and CSV export are automatic.
+  specific default winning. Creation controls hide New on a definite account
+  restriction; unknown row-dependent permissions keep the validated form
+  available. The server checks the actual new row. Audit history and CSV
+  export are automatic.
 - Run `semaprax fmt app.spx && semaprax webapp app.spx -o out && node
   out/server.mjs --self-test`. It reports checks and cleanup;
   `semaprax webapp app.spx --api` lists the API.

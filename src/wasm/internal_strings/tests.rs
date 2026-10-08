@@ -257,15 +257,18 @@ fn string_replacement_requires_new_profile_and_allocating_conditions_stay_refuse
     );
     let source="module rejected; @id(\"r.main\") fn main()->i64 { let mut index=0; while index<string_len(\"x\") { index=index+1; 0 } 0 }";
     let program = crate::parse(source, Path::new("condition.spx")).unwrap();
-    assert!(crate::verify::verify(&program)
-        .iter()
-        .any(|diagnostic| diagnostic.code == "SPX-T252"));
-    assert!(emit_module(
+    assert!(crate::verify::verify(&program).is_empty());
+    let error = emit_module(
         &program,
         &["r.main".into()],
-        InternalStringOptions::default()
+        InternalStringOptions::default(),
     )
-    .is_err());
+    .unwrap_err();
+    assert_eq!(error.code, "SPX-W111");
+    assert_eq!(
+        error.message,
+        "String condition temporaries require text-toolkit-v1"
+    );
 }
 
 #[test]

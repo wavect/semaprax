@@ -274,18 +274,26 @@ fn admission_is_additive_and_source_rejections_remain_authoritative() {
     )
     .unwrap();
     assert_eq!(ordinary_before, semaprax::wasm::emit_module(&ast).unwrap());
-    for source in [
-        "module negative; @id(\"main\") fn main() -> i64 { let mut text = \"x\"; text = \"y\"; 0 }",
-        // Owned String Loops v1 admits String storage in loop bodies; a
-        // String value in the re-evaluated condition stays refused.
-        "module negative; @id(\"main\") fn main() -> i64 { while string_len(\"x\") > 1 { 0 } 0 }",
+    for (source, message) in [
+        ("module negative; @id(\"main\") fn main() -> i64 { let mut text = \"x\"; text = \"y\"; 0 }",
+         "whole String replacement requires the explicit string-replacement-v1 profile"),
+        ("module negative; @id(\"main\") fn main() -> i64 { while string_len(\"x\") > 1 { 0 } 0 }",
+         "String condition temporaries require text-toolkit-v1"),
+    ] {
+        // Additive source profiles admit these original examples, while the
+        // frozen internal String selector retains its exact refusal.
+        let ast = semaprax::check(source, "admitted-source.spx").unwrap();
+        let resolved = semaprax::hir::resolve(&ast).unwrap();
+        semaprax::hir::validate(&resolved).unwrap();
+        let error = emit_module(&ast, &["main".to_owned()], InternalStringOptions::default()).unwrap_err();
+        assert_eq!(error.code, "SPX-W111");
+        assert_eq!(error.message, message);
+    }
+    for (source, expected) in [
+        ("module negative; @id(\"main\") fn main() -> i64 { let mut bytes = bytes_zeroed(1usize); bytes = bytes_zeroed(2usize); 0 }", "SPX-U105"),
+        ("module negative; @id(\"main\") fn main() -> i64 { let text = \"x\"; while string_len({ let moved = text; moved }) > 1 { 0 } 0 }", "SPX-T252"),
     ] {
         let errors = semaprax::check(source, "negative.spx").unwrap_err();
-        let expected = if source.contains("let mut text") {
-            "SPX-U105"
-        } else {
-            "SPX-T252"
-        };
         assert!(errors.iter().any(|error| error.code == expected));
     }
     let recursive = semaprax::check(

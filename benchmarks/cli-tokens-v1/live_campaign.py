@@ -24,6 +24,7 @@ from oracle import text as oracle_text
 
 import live_campaign_common as shared
 import measurement_evidence
+import qualification
 
 BENCHMARK = Path(__file__).resolve().parent
 REPO = BENCHMARK.parents[1]
@@ -74,6 +75,7 @@ ROUND_SEED_SHA256 = {
 }
 # Round 5 reruns the exact round-4 application after the OPT compiler batch.
 ROUND_SEED_SHA256[5] = dict(ROUND_SEED_SHA256[4])
+ROUND_SEED_SHA256[6] = dict(ROUND_SEED_SHA256[5])
 CURRENT_PRICE_USD_PER_MTOK = {**PRICE_USD_PER_MTOK, "cache_read": 0.1}
 
 NEWLINE_CHECKS = {
@@ -232,6 +234,7 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
         "round": round_number,
         "repository_commit": commit,
         "seed_files_sha256": seed_hashes,
+        **({"qualification": qualification.metadata()} if round_number >= 6 else {}),
         "artifacts": str(artifacts),
         "model": args.model,
         "effort": args.effort,
@@ -736,6 +739,24 @@ def check_program(
     return result
 
 
+def check_program_for_campaign(candidate: Path, timeout: float, env: dict[str, str],
+                               settings: dict[str, Any], arm: str, output: Path) -> dict[str, Any]:
+    if settings.get("round", 3) >= 6:
+        try:
+            qualification.require_settings(settings)
+        except (OSError, ValueError) as error:
+            return {"accepted": False, "checks": [], "boundary_checks": [],
+                    "qualification_failure": str(error)}
+    historical = check_program(candidate, timeout, env)
+    if settings.get("round", 3) < 6:
+        return historical
+    try:
+        return qualification.check(candidate, arm, env, output, settings, historical)
+    except (OSError, ValueError) as error:
+        return {**historical, "historical_33_check_accepted": historical.get("accepted") is True,
+                "accepted": False, "boundary_checks": [], "qualification_failure": str(error)}
+
+
 def launch_trial(
     repo: Path,
     artifacts: Path,
@@ -746,6 +767,8 @@ def launch_trial(
 ) -> dict[str, Any]:
     arm = trial["arm"]
     number = trial["number"]
+    if settings.get("round", 3) >= 6:
+        qualification.require_settings(settings)
     label = f"{arm}-{number:02d}"
     workspace = artifacts / "worktrees" / label
     workspace.parent.mkdir(parents=True, exist_ok=True)
@@ -801,7 +824,8 @@ def launch_trial(
             invalidate_trial_acceptance(row, guard_failure)
         else:
             acceptance_started = time.monotonic()
-            row["acceptance"] = check_program(candidate, settings["timeout_seconds"], env)
+            row["acceptance"] = check_program_for_campaign(candidate, settings["timeout_seconds"], env,
+                settings, arm, artifacts / "qualification" / label)
             row["acceptance_elapsed_seconds"] = round(time.monotonic() - acceptance_started, 3)
             row["status"] = "accepted" if row["acceptance"]["accepted"] else "not_accepted"
             if row["status"] != "accepted":

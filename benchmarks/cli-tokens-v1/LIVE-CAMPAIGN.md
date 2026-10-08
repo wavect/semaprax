@@ -1,5 +1,35 @@
 # LogLens round 3 live campaign
 
+## Future round 6 qualification
+
+The next Codex plan selects round 6. Its frozen SPEC/sample and both arm prompts
+remain identical to round 5. Accepted now requires the historical build,
+candidate tests and all 33 historical checks **and** the 16 independent
+[SPEC boundary comparisons](boundary-audit-v1/README.md). The historical oracle
+and its hashes remain unchanged; existing rounds and recounts retain their
+original gates and statuses.
+
+Both arms receive the same boundary inputs and exact expected bytes. Plans bind
+the independent corpus, facts generator, qualification adapter and SPEC hashes.
+Checks run after the paid attempt and before archival or workspace cleanup;
+full comparison stdout/stderr, fixtures, expected bytes and execution mode are
+saved under the new campaign's `qualification/<arm>-<number>/`. Each boundary
+process has a 120-second process-group timeout; any timeout or mismatch refuses
+acceptance. Native and interpreter routes remain eligible. All paid failures
+remain in the attempted-task and cost denominators; calibration stays separate.
+No expanded acceptance is assigned retroactively to an older result.
+
+Offline gates (no provider calls):
+
+```sh
+cd benchmarks/cli-tokens-v1
+python3 -m unittest -v test_qualification test_codex_campaign test_codex_report
+```
+
+The Claude adapter can explicitly select the same round-6 qualification with
+`--round 6`; its legacy default remains round 3. Preparing this code authorizes
+no new paid campaign.
+
 `live_campaign.py` is the launch and collection path for matched LogLens trials.
 It defaults to five trials per arm and pins Claude Code to `claude-sonnet-5-5`
 at medium effort. Each trial uses a detached worktree from a fresh one-commit

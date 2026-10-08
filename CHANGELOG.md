@@ -1,5 +1,10 @@
 # Changelog
 
+- Reduce repeated Shared Loan Plan checked work by retaining deterministic
+  forward reachability within one function build and examining only outgoing
+  edges of live loan nodes. The 1,000,000-unit ceiling, fail-closed boundary,
+  canonical plan order, independent replay and Graph bytes remain unchanged;
+  focused verification is pending.
 - Add explicit native-only Project v28
   `source-command.resource-output.v1` (OPT #678): preserve the v26 argv/file
   provider and authority while admitting 1 MiB per-String/authenticated

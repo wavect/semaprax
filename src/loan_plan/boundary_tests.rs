@@ -136,6 +136,79 @@ fn install_plan(
     program
 }
 
+fn uncached_live_nodes(cfg: &Cfg<'_>, start: u16, seeds: &BTreeSet<u16>) -> BTreeSet<u16> {
+    let mut reachable = BTreeSet::new();
+    let mut pending = vec![start];
+    while let Some(node) = pending.pop() {
+        if reachable.insert(node) {
+            pending.extend(cfg.successors[node as usize].iter().rev().copied());
+        }
+    }
+    let mut live = BTreeSet::new();
+    let mut pending = seeds
+        .iter()
+        .filter(|seed| reachable.contains(seed))
+        .copied()
+        .collect::<Vec<_>>();
+    pending.push(start);
+    while let Some(node) = pending.pop() {
+        if !reachable.contains(&node) || !live.insert(node) || node == start {
+            continue;
+        }
+        pending.extend(cfg.predecessors[node as usize].iter().rev().copied());
+    }
+    live
+}
+
+fn all_edge_liveness(cfg: &Cfg<'_>, live: &[BTreeSet<u16>]) -> (Vec<Vec<LoanId>>, Vec<Vec<u16>>) {
+    let mut edge_live = vec![Vec::new(); cfg.edges.len()];
+    let mut termination_edges = vec![Vec::new(); live.len()];
+    for (loan_index, nodes) in live.iter().enumerate() {
+        let id = LoanId(loan_index as u16);
+        for (edge_index, (from, to)) in cfg.edges.iter().copied().enumerate() {
+            if nodes.contains(&from) && nodes.contains(&to) {
+                edge_live[edge_index].push(id);
+            } else if nodes.contains(&from) {
+                termination_edges[loan_index].push(edge_index as u16);
+            }
+        }
+    }
+    (edge_live, termination_edges)
+}
+
+#[test]
+fn cached_reachability_and_live_source_edges_preserve_canonical_proof() {
+    let (program, index) = fixture(2);
+    let function = &program.functions[index];
+    let mut cfg_work = WorkCounter::new(usize::MAX);
+    let cfg = build_cfg(function, &mut cfg_work).expect("fixture CFG builds");
+    let start = cfg
+        .node(&function.body, LoanPointPhase::Before)
+        .expect("body start is indexed");
+    let end = cfg
+        .node(&function.body, LoanPointPhase::After)
+        .expect("body end is indexed");
+    let seeds = BTreeSet::from([end]);
+    let expected = uncached_live_nodes(&cfg, start, &seeds);
+
+    let mut reachable = BTreeMap::new();
+    let mut work = WorkCounter::new(usize::MAX);
+    let first = work::live_nodes(&cfg, start, &seeds, &mut reachable, &mut work).unwrap();
+    let first_work = work.used;
+    let second = work::live_nodes(&cfg, start, &seeds, &mut reachable, &mut work).unwrap();
+    let second_work = work.used - first_work;
+    assert_eq!(first, expected);
+    assert_eq!(second, expected);
+    assert!(second_work < first_work);
+
+    let live = vec![first, BTreeSet::from([start])];
+    let expected_edges = all_edge_liveness(&cfg, &live);
+    let before_edges = work.used;
+    let actual_edges = work::edge_liveness(&cfg, &live, &mut work).unwrap();
+    assert_eq!(actual_edges, expected_edges);
+    assert!(work.used - before_edges < live.len() * cfg.edges.len());
+}
+
 #[test]
 fn exact_4096_program_points_rebuild_and_first_representable_overflow_fail_closed() {
     let (program, index) = fixture(1);

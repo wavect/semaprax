@@ -28,6 +28,7 @@ pub enum LoanPointPhase {
 #[cfg(test)]
 mod boundary_tests;
 mod native_view;
+mod work;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct LoanProgramPoint {
@@ -231,6 +232,7 @@ struct Cfg<'a> {
     expressions: Vec<&'a ResolvedExpr>,
     edges: Vec<(u16, u16)>,
     successors: Vec<Vec<u16>>,
+    successor_edges: Vec<Vec<u16>>,
     predecessors: Vec<Vec<u16>>,
 }
 
@@ -570,9 +572,10 @@ fn build_cfg_plan_counted(
             })
         })
         .collect::<Vec<_>>();
+    let mut reachable = BTreeMap::new();
     let mut live = drafts
         .iter()
-        .map(|draft| live_nodes(&cfg, draft.start, &draft.seeds, work))
+        .map(|draft| work::live_nodes(&cfg, draft.start, &draft.seeds, &mut reachable, work))
         .collect::<Result<Vec<_>, _>>()?;
     for _ in 0..=drafts.len() {
         let mut changed = false;
@@ -584,7 +587,8 @@ fn build_cfg_plan_counted(
             let before = live[parent].len();
             let mut seeds = drafts[parent].seeds.clone();
             seeds.extend(live[child].iter().copied());
-            live[parent] = live_nodes(&cfg, drafts[parent].start, &seeds, work)?;
+            live[parent] =
+                work::live_nodes(&cfg, drafts[parent].start, &seeds, &mut reachable, work)?;
             changed |= live[parent].len() != before;
         }
         if !changed {
@@ -593,19 +597,7 @@ fn build_cfg_plan_counted(
     }
     reject_cfg_overlaps(program, &cfg, &aliases, &drafts, &live, work)?;
 
-    let mut edge_live = vec![Vec::<LoanId>::new(); cfg.edges.len()];
-    let mut termination_edges = vec![Vec::<u16>::new(); drafts.len()];
-    for (loan_index, nodes) in live.iter().enumerate() {
-        let id = LoanId(loan_index as u16);
-        for (edge_index, (from, to)) in cfg.edges.iter().copied().enumerate() {
-            charge(work)?;
-            if nodes.contains(&from) && nodes.contains(&to) {
-                edge_live[edge_index].push(id);
-            } else if nodes.contains(&from) && !nodes.contains(&to) {
-                termination_edges[loan_index].push(edge_index as u16);
-            }
-        }
-    }
+    let (mut edge_live, mut termination_edges) = work::edge_liveness(&cfg, &live, work)?;
     // A contract/body root has no outgoing CFG edge. A synchronous call
     // ending at that root completes on its incoming After edge, rather than
     // needing a nonexistent successor. Only admit this formerly rejected
@@ -643,23 +635,7 @@ fn build_cfg_plan_counted(
             }
         }
         // Recompute edge proof only for a previously rejected terminal shape.
-        for edges in &mut termination_edges {
-            edges.clear();
-        }
-        for loans in &mut edge_live {
-            loans.clear();
-        }
-        for (loan_index, nodes) in live.iter().enumerate() {
-            let id = LoanId(loan_index as u16);
-            for (edge_index, (from, to)) in cfg.edges.iter().copied().enumerate() {
-                charge(work)?;
-                if nodes.contains(&from) && nodes.contains(&to) {
-                    edge_live[edge_index].push(id);
-                } else if nodes.contains(&from) && !nodes.contains(&to) {
-                    termination_edges[loan_index].push(edge_index as u16);
-                }
-            }
-        }
+        (edge_live, termination_edges) = work::edge_liveness(&cfg, &live, work)?;
     }
     materialize_cfg_plan(cfg, drafts, parents, edge_live, termination_edges)
 }
@@ -908,9 +884,11 @@ fn build_cfg<'a>(
         return Err(error("function exceeds 4,096 loan CFG edges"));
     }
     let mut successors = vec![Vec::new(); points.len()];
+    let mut successor_edges = vec![Vec::new(); points.len()];
     let mut predecessors = vec![Vec::new(); points.len()];
-    for (from, to) in &edges {
+    for (edge, (from, to)) in edges.iter().enumerate() {
         successors[*from as usize].push(*to);
+        successor_edges[*from as usize].push(edge as u16);
         predecessors[*to as usize].push(*from);
     }
     Ok(Cfg {
@@ -919,6 +897,7 @@ fn build_cfg<'a>(
         expressions,
         edges,
         successors,
+        successor_edges,
         predecessors,
     })
 }
@@ -985,37 +964,6 @@ fn evaluation_children(expression: &ResolvedExpr) -> Vec<&ResolvedExpr> {
         | ResolvedExprKind::Place(_)
         | ResolvedExprKind::BorrowPlace { .. } => Vec::new(),
     }
-}
-
-fn live_nodes(
-    cfg: &Cfg<'_>,
-    start: u16,
-    seeds: &BTreeSet<u16>,
-    work: &mut WorkCounter,
-) -> Result<BTreeSet<u16>, Diagnostic> {
-    let mut reachable = BTreeSet::new();
-    let mut pending = vec![start];
-    while let Some(node) = pending.pop() {
-        charge(work)?;
-        if reachable.insert(node) {
-            pending.extend(cfg.successors[node as usize].iter().rev().copied());
-        }
-    }
-    let mut live = BTreeSet::new();
-    let mut pending = seeds
-        .iter()
-        .filter(|seed| reachable.contains(seed))
-        .copied()
-        .collect::<Vec<_>>();
-    pending.push(start);
-    while let Some(node) = pending.pop() {
-        charge(work)?;
-        if !reachable.contains(&node) || !live.insert(node) || node == start {
-            continue;
-        }
-        pending.extend(cfg.predecessors[node as usize].iter().rev().copied());
-    }
-    Ok(live)
 }
 
 fn reject_cfg_overlaps(

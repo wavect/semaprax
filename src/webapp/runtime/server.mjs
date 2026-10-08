@@ -1,5 +1,6 @@
 // node server.mjs [--port N] [--host 127.0.0.1] [--data DIR] [--setup] [--migrate]
 // node server.mjs --self-test [--data DIR]   (verify the whole app against its schema; exit 0/1)
+// node server.mjs --self-test-offline       (verify pure schema/runtime behavior without IO)
 // With accounts, --setup admits unauthenticated requests as an unrestricted setup user while no account
 // has a password: create the first account with a password, then sign in. Setup ends with the first password.
 import http from "node:http";
@@ -18,15 +19,18 @@ const { entities, enums, app } = S, ACCOUNT = S.account ?? null;
 const here = path.dirname(fileURLToPath(import.meta.url));
 const opt = { port: "8080", host: "127.0.0.1", data: "./data" };
 const argv = process.argv.slice(2), flag = (n) => { const i = argv.indexOf(n); if (i >= 0) argv.splice(i, 1); return i >= 0; };
-const SELF = flag("--self-test"), SETUP = flag("--setup"), MIGRATE = flag("--migrate");
+const SELF = flag("--self-test"), SELF_OFFLINE = flag("--self-test-offline"), SETUP = flag("--setup"), MIGRATE = flag("--migrate");
 for (let i = 0; i < argv.length; i += 2) {
   const k = argv[i].replace(/^--/, "");
-  if (!(k in opt) || argv[i + 1] === undefined || (SELF && k !== "data")) { console.error("usage: node server.mjs [--port N] [--host H] [--data DIR] [--setup] [--migrate] | --self-test [--data DIR]"); process.exit(2); }
+  if (!(k in opt) || argv[i + 1] === undefined || ((SELF || SELF_OFFLINE) && k !== "data")) { console.error("usage: node server.mjs [--port N] [--host H] [--data DIR] [--setup] [--migrate] | --self-test [--data DIR] | --self-test-offline"); process.exit(2); }
   opt[k] = argv[i + 1];
 }
+if (SELF_OFFLINE && (SELF || SETUP || MIGRATE || argv.length)) { console.error("usage: node server.mjs --self-test-offline"); process.exit(2); }
 const SCRYPT = { N: 16384, r: 8, p: 1 };
 function hashPw(pw, salt = crypto.randomBytes(16)) { return salt.toString("hex") + ":" + crypto.scryptSync(pw, salt, 32, SCRYPT).toString("hex"); }
 if (SELF) process.exit(await selfTest());
+// Keep this dispatch before data-directory initialization, lock creation, and listener setup.
+if (SELF_OFFLINE) process.exit(offlineSelfTest());
 const LIMIT = 1 << 20;
 const protection = security();
 const sha = (s) => crypto.createHash("sha256").update(s).digest("hex");
@@ -381,6 +385,119 @@ server.listen(Number(opt.port), opt.host, () => {
   console.log(`${app.title} listening on http://${opt.host}:${server.address().port}/ (data: ${dbFile})`);
   if (ACCOUNT && SETUP && auth.pw.size === 0) console.log("setup mode: requests are unrestricted until an account has a password");
 });
+
+// ---- --self-test-offline: exercise the generated schema/runtime without IO ----
+function offlineSelfTest() {
+  const fails = [], short = (v) => { const s = typeof v === "string" ? v : String(v); return s.length > 120 ? s.slice(0, 120) + "..." : s; };
+  const check = (ent, what, want, got, ok) => { if (!ok) fails.push(`FAIL ${ent} ${what}: ${want} got ${short(got)}`); return ok; };
+  const byPath = new Map(entities.map((e) => [e.path, e]));
+  const order = [], seen = new Set();
+  const visit = (e, stack) => {
+    if (seen.has(e.path)) return;
+    if (stack.includes(e.path)) { fails.push(`FAIL ${e.name} synthesize: cyclic or self reference ${e.path}`); return; }
+    for (const f of e.fields) if (f.type === "ref" && byPath.has(f.ref)) visit(byPath.get(f.ref), [...stack, e.path]);
+    seen.add(e.path); order.push(e);
+  };
+  entities.forEach((e) => visit(e, []));
+  const refs = Object.create(null), made = [], rejectedTypes = new Set();
+  const allowRule = ACCOUNT ? { text: "account may sign in", test: (r) => { try { return ACCOUNT.allowed(r) === true; } catch { return false; } } } : null;
+  const invalidValue = (type) => ({ string: 7, int: true, ref: true, float: true, bool: 1, char: "", enum: "__offline_invalid__" })[type];
+  const sameFields = (ent, a, b) => !!b && ent.fields.every((f) => a[f.name] === b[f.name]);
+  const alternatives = { string: ["", "a", "ab"], int: [-1n, 0n, 1n, 1000000n], float: [-1, 0, 1e6] };
+  let ruleWitnesses = 0, workflowWitnesses = 0, typeChecks = 0, computedChecks = 0, rollupChecks = 0, keyChecks = 0;
+  try {
+    for (const ent of order) {
+      const first = ACCOUNT && ent.path === ACCOUNT.entity
+        ? rt.synthesizeRow(ent, enums, refs, 20000, { extra: [allowRule] })
+        : null;
+      const synthesized = first?.row ? first : rt.synthesizeRow(ent, enums, refs);
+      if (!synthesized.row) { fails.push(`FAIL ${ent.name} synthesize: ${short(synthesized.fail)}`); continue; }
+      const row = Object.assign(Object.create(null), synthesized.row, { id: 1n });
+      const parsed = rt.parseJSON(rt.toJSON(ent, row, { strInts: true }));
+      const decoded = rt.decodeRow(ent, enums, parsed);
+      check(ent.name, "decode", "synthesized row round-trips", decoded.errors.map((e) => e.message).join(", "), !decoded.errors.length && sameFields(ent, row, decoded.row));
+      check(ent.name, "rules", "synthesized row satisfies rules", rt.evalRules(ent, row).map((e) => e.message).join(", "), !rt.evalRules(ent, row).length);
+      check(ent.name, "workflow start", "synthesized row starts in initial states", rt.stepErrors(ent, enums, row, null).map((e) => e.message).join(", "), !rt.stepErrors(ent, enums, row, null).length);
+      for (const f of ent.fields) {
+        const malformed = { ...row, [f.name]: invalidValue(f.type) };
+        const result = rt.decodeRow(ent, enums, malformed);
+        check(ent.name, `type ${f.type}`, `reject malformed ${f.name}`, result.errors.map((e) => e.message).join(", "), result.bad.has(f.name));
+        if (result.bad.has(f.name)) { rejectedTypes.add(f.type); typeChecks++; }
+      }
+      for (const rule of ent.rules || []) {
+        let witnessed = false;
+        for (const name of rule.fields || []) {
+          const f = ent.fields.find((x) => x.name === name);
+          if (!f || !alternatives[f.type] || (ent.steps || []).some((s) => s.field === name)) continue;
+          for (const value of alternatives[f.type]) {
+            if (value === row[name]) continue;
+            if (rt.evalRules(ent, { ...row, [name]: value }).some((e) => e.message === rule.text)) { witnessed = true; break; }
+          }
+          if (witnessed) break;
+        }
+        if (witnessed) ruleWitnesses++;
+      }
+      const keys = rt.keysOf(ent, ACCOUNT);
+      if (keys.length) {
+        const duplicate = rt.keyErrors(keys, { ...row, id: 2n }, [{ ...row, id: 1n }]);
+        check(ent.name, "unique keys", "detect duplicate synthetic row", duplicate.map((e) => e.message).join(", "), duplicate.length === keys.length);
+        keyChecks += duplicate.length === keys.length ? 1 : 0;
+      }
+      for (const step of ent.steps || []) {
+        const cases = rt.stepCases(ent, enums, step), from = row[step.field];
+        const allowed = cases.find((to) => to !== from && rt.stepOk(step, from, to) && !rt.evalRules(ent, { ...row, [step.field]: to }).length);
+        const denied = cases.find((to) => to !== from && !rt.stepOk(step, from, to));
+        if (allowed !== undefined) {
+          const errors = rt.stepErrors(ent, enums, { ...row, [step.field]: allowed }, row);
+          check(ent.name, "workflow allowed", `${step.field} permits ${from} -> ${allowed}`, errors.map((e) => e.message).join(", "), !errors.length);
+          if (!errors.length) workflowWitnesses++;
+        }
+        if (denied !== undefined) {
+          const errors = rt.stepErrors(ent, enums, { ...row, [step.field]: denied }, row);
+          check(ent.name, "workflow denied", `${step.field} rejects ${from} -> ${denied}`, errors.map((e) => e.message).join(", "), errors.some((e) => e.field === step.field));
+          if (errors.some((e) => e.field === step.field)) workflowWitnesses++;
+        }
+      }
+      const computed = rt.evalComputed(ent, row);
+      for (const c of ent.computed || []) {
+        check(ent.name, "computed", `derive ${c.name}`, computed[c.name], Object.hasOwn(computed, c.name));
+        if (Object.hasOwn(computed, c.name)) computedChecks++;
+      }
+      refs[ent.path] = row.id;
+      made.push({ ent, row });
+    }
+    const kids = (p) => ({ ent: byPath.get(p), rows: made.filter((m) => m.ent.path === p).map((m) => m.row) });
+    for (const { ent, row } of made) for (const u of ent.rollups || []) {
+      const local = rt.withRollups(ent, row, kids), child = byPath.get(u.child), childRows = kids(u.child).rows;
+      let expected = u.kind === "sum" && u.type === "float" ? 0 : 0n;
+      for (const candidate of childRows) {
+        if (candidate[u.via] !== row.id) continue;
+        let value = true;
+        if (u.field) value = child.fields.some((f) => f.name === u.field) ? candidate[u.field] : rt.evalComputed(child, candidate)[u.field];
+        if (value !== null && typeof value === "object") throw new Error(`computed child ${u.child}.${u.field} failed`);
+        if (u.kind === "count") { if (value === true) expected += 1n; }
+        else expected = u.type === "float" ? expected + value : rt.add(expected, value);
+      }
+      check(ent.name, "rollup", `${u.name} matches direct child reduction`, local[u.name], local[u.name] === expected);
+      if (local[u.name] === expected) rollupChecks++;
+      const computed = rt.evalComputed(ent, local);
+      for (const c of ent.computed || []) {
+        check(ent.name, "computed with rollups", `derive ${c.name}`, computed[c.name], Object.hasOwn(computed, c.name));
+        if (Object.hasOwn(computed, c.name)) computedChecks++;
+      }
+    }
+  } catch (e) { fails.push("FAIL offline self-test: " + short(e.message)); }
+  const ruleCount = entities.reduce((n, e) => n + (e.rules || []).length, 0);
+  const stepCount = entities.reduce((n, e) => n + (e.steps || []).length, 0);
+  const typeKinds = new Set(entities.flatMap((e) => e.fields.map((f) => f.type)));
+  check("schema", "type coverage", "reject one malformed value for every field type", [...typeKinds].join(","), [...typeKinds].every((t) => rejectedTypes.has(t)) && typeChecks > 0);
+  check("schema", "rule coverage", "witness at least one failed rule", String(ruleWitnesses), ruleCount === 0 || ruleWitnesses > 0);
+  check("schema", "workflow coverage", "exercise an allowed or denied transition", String(workflowWitnesses), stepCount === 0 || workflowWitnesses > 0);
+  if (fails.length) { console.log(fails.join("\n") + `\noffline self-test failed: ${fails.length} check(s)`); return 1; }
+  const sum = (k) => entities.reduce((n, e) => n + (k === "keys" ? rt.keysOf(e, ACCOUNT).length : (e[k] || []).length), 0);
+  console.log(`offline self-test ok: ${entities.length} entities, ${typeKinds.size} types, ${sum("rules")} rules, ${sum("computed")} computed, ${sum("keys")} keys, ${sum("steps")} workflows, ${sum("rollups")} rollups (decode, ${typeChecks} invalid types, ${ruleWitnesses} rule witnesses, ${keyChecks} duplicate-key checks, ${workflowWitnesses} workflow cases, ${computedChecks} computed, ${rollupChecks} rollup checks)`);
+  return 0;
+}
 
 // ---- --self-test: run the real server as a child on port 0, drive it from the schema alone ----
 async function selfTest() {

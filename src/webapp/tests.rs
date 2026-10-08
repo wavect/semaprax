@@ -279,6 +279,48 @@ fn the_generated_benchmark_app_passes_its_own_self_test() {
         stdout.starts_with("self-test ok: 10 entities, 25 rules, 10 computed"),
         "{stdout}"
     );
+
+    let offline_cwd = out.with_file_name("selftest-offline-cwd");
+    let _ = std::fs::remove_dir_all(&offline_cwd);
+    std::fs::create_dir_all(&offline_cwd).unwrap();
+    let mut offline_child = std::process::Command::new("node")
+        .arg(out.join("server.mjs"))
+        .arg("--self-test-offline")
+        .current_dir(&offline_cwd)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    let mut offline_completed = false;
+    while std::time::Instant::now() < deadline {
+        if offline_child.try_wait().unwrap().is_some() {
+            offline_completed = true;
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    if !offline_completed {
+        let _ = offline_child.kill();
+    }
+    let offline = offline_child.wait_with_output().unwrap();
+    let offline_stdout = String::from_utf8_lossy(&offline.stdout);
+    let offline_empty = std::fs::read_dir(&offline_cwd).unwrap().next().is_none();
+    let _ = std::fs::remove_dir_all(&offline_cwd);
+    assert!(
+        offline.status.success(),
+        "{offline_stdout}{}",
+        String::from_utf8_lossy(&offline.stderr)
+    );
+    assert!(offline_completed, "offline self-test did not exit without a listener");
+    assert!(
+        offline_stdout.starts_with("offline self-test ok: 10 entities,"),
+        "{offline_stdout}"
+    );
+    assert!(
+        !offline_stdout.contains("listening on") && offline_empty,
+        "offline self-test started a listener or wrote into its working directory: {offline_stdout}"
+    );
 }
 
 #[test]

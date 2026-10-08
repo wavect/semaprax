@@ -1,0 +1,598 @@
+{
+  "arms": {
+    "semaprax": {
+      "accepted": 1,
+      "actual_billed_usd_per_accepted_task": null,
+      "attempted": 5,
+      "conditional_api_equivalent_usd_all_attempts": 2.671178,
+      "conditional_api_equivalent_usd_per_accepted_task": 2.671178,
+      "failed_or_rejected": 4,
+      "metrics_all_attempts": {
+        "acceptance_wall_seconds": {
+          "mean_per_attempt": 29.072289599999998,
+          "median_per_attempt": 16.449205,
+          "total": 145.361448
+        },
+        "agent_wall_seconds": {
+          "mean_per_attempt": 653.8876,
+          "median_per_attempt": 546.24,
+          "total": 3269.438
+        },
+        "cache_write_input_tokens": {
+          "mean_per_attempt": 0,
+          "median_per_attempt": 0,
+          "total": 0
+        },
+        "cached_input_tokens": {
+          "mean_per_attempt": 1931827.2,
+          "median_per_attempt": 1595776,
+          "total": 9659136
+        },
+        "final_authored_tokens_proxy": {
+          "mean_per_attempt": 8019.4,
+          "median_per_attempt": 7826,
+          "total": 40097
+        },
+        "legacy_net_input_tokens": {
+          "mean_per_attempt": 1528834.8,
+          "median_per_attempt": 1260039,
+          "total": 7644174
+        },
+        "model_requests": {
+          "mean_per_attempt": 35.6,
+          "median_per_attempt": 30,
+          "total": 178
+        },
+        "output_tokens": {
+          "mean_per_attempt": 18811.6,
+          "median_per_attempt": 18402,
+          "total": 94058
+        },
+        "raw_input_tokens": {
+          "mean_per_attempt": 2008295.6,
+          "median_per_attempt": 1664079,
+          "total": 10041478
+        }
+      },
+      "planned": 5
+    },
+    "typescript": {
+      "accepted": 3,
+      "actual_billed_usd_per_accepted_task": null,
+      "attempted": 5,
+      "conditional_api_equivalent_usd_all_attempts": 0.912694,
+      "conditional_api_equivalent_usd_per_accepted_task": 0.30423133333333335,
+      "failed_or_rejected": 2,
+      "metrics_all_attempts": {
+        "acceptance_wall_seconds": {
+          "mean_per_attempt": 5.1486842,
+          "median_per_attempt": 4.161613,
+          "total": 25.743421
+        },
+        "agent_wall_seconds": {
+          "mean_per_attempt": 210.214,
+          "median_per_attempt": 208.325,
+          "total": 1051.07
+        },
+        "cache_write_input_tokens": {
+          "mean_per_attempt": 0,
+          "median_per_attempt": 0,
+          "total": 0
+        },
+        "cached_input_tokens": {
+          "mean_per_attempt": 195200,
+          "median_per_attempt": 189568,
+          "total": 976000
+        },
+        "final_authored_tokens_proxy": {
+          "mean_per_attempt": 5131,
+          "median_per_attempt": 5231,
+          "total": 25655
+        },
+        "legacy_net_input_tokens": {
+          "mean_per_attempt": 116415.4,
+          "median_per_attempt": 122492,
+          "total": 582077
+        },
+        "model_requests": {
+          "mean_per_attempt": 9,
+          "median_per_attempt": 9,
+          "total": 45
+        },
+        "output_tokens": {
+          "mean_per_attempt": 7829,
+          "median_per_attempt": 7838,
+          "total": 39145
+        },
+        "raw_input_tokens": {
+          "mean_per_attempt": 237564.4,
+          "median_per_attempt": 243641,
+          "total": 1187822
+        }
+      },
+      "planned": 5
+    }
+  },
+  "calibration_separate": {
+    "elapsed_seconds": 5.645,
+    "list_price": {
+      "actual_billed_usd": null,
+      "assumptions": "each request input <=272k; input/cache-read/cache-write/output use published standard rates",
+      "cache_write_cost_usd": 0.0,
+      "cache_write_tokens": 0,
+      "reason": null,
+      "standard_short_context_api_equivalent_usd": 0.026232
+    },
+    "observed": {
+      "codex_outer_turns": 1,
+      "effort_observed": "medium",
+      "final_turn_usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 13091,
+        "output_tokens": 5,
+        "reasoning_output_tokens": 0
+      },
+      "invalid_stream_lines": 0,
+      "legacy_net_input_tokens": 0,
+      "legacy_net_note": "Codex input includes cache subsets; subtract first request total once per model request for historical comparability only, never task-only input.",
+      "model_context_window": 258400,
+      "model_identity_note": "The exec JSONL does not expose an observed model identity.",
+      "model_identity_source": "client turn_context; provider-resolved model is unavailable",
+      "model_observed": "gpt-6.1-sol",
+      "model_request_count": 1,
+      "model_requests": [
+        {
+          "request_id": "resp_09c56ed6d30b9180016ac73c17596c8191b4f043f7b061d656",
+          "usage": {
+            "cache_write_input_tokens": 0,
+            "cached_input_tokens": 0,
+            "input_tokens": 13091,
+            "output_tokens": 5,
+            "reasoning_output_tokens": 0
+          }
+        }
+      ],
+      "provider_resolved_model": null,
+      "reconciled": true,
+      "reconciliation_note": "Per-request trace sum must equal final turn.completed usage; tool item counts are separate.",
+      "request_usage_sum": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 13091,
+        "output_tokens": 5,
+        "reasoning_output_tokens": 0
+      },
+      "rollout_malformed_lines": 0,
+      "rollout_orphan_usage_records": 0,
+      "stable_context_tokens": null,
+      "thread_ids": [
+        "01a11a42-b02c-7373-8a9f-5bd3dbe87b65"
+      ],
+      "tool_item_counts": {
+        "agent_message": 1
+      },
+      "turn_completed_events": 1
+    },
+    "process_exit_code": 0,
+    "resource_assessment": {
+      "acceptance_unchanged": true,
+      "clean_comparison_eligible": true,
+      "contaminated": false,
+      "cost_retained": true,
+      "incidents": [],
+      "minimum_free_bytes_by_device": {
+        "16777233": 10521907200
+      },
+      "receipt": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/resource-receipts/calibration.json"
+    },
+    "rollout_trace": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/transcripts/calibration.rollout.jsonl",
+    "separate_from_trials": true,
+    "status": "ready",
+    "subtracted_from_trials": false,
+    "timed_out": false,
+    "workspace_integrity_before_cleanup": {
+      "external_writes": {
+        "paths": [],
+        "status": "passed"
+      },
+      "public_inputs": {
+        "failed_files": [],
+        "files": {
+          "benchmarks/cli-tokens-v1/SPEC.md": {
+            "error": null,
+            "expected_sha256": "51bf564cb9f7eadd4b3bd12fac53b7857befa09b3ef757d9c34400a8509fdeae",
+            "observed_sha256": "51bf564cb9f7eadd4b3bd12fac53b7857befa09b3ef757d9c34400a8509fdeae",
+            "status": "passed"
+          },
+          "benchmarks/cli-tokens-v1/sample.log": {
+            "error": null,
+            "expected_sha256": "b4574c3e627aff7760a934ec5dc10c45abf76ade1f6ae0c20518c56cc6660598",
+            "observed_sha256": "b4574c3e627aff7760a934ec5dc10c45abf76ade1f6ae0c20518c56cc6660598",
+            "status": "passed"
+          }
+        },
+        "status": "passed"
+      },
+      "status": "passed"
+    },
+    "workspace_removed": true
+  },
+  "clean_comparison_eligible": true,
+  "complete": true,
+  "fixed_harness_context_note": "No per-request system/tool/task/history composition is exposed. Calibration is separate and is never subtracted.",
+  "fixed_harness_context_tokens": null,
+  "measurement_notes": {
+    "authored": "Final-source legacy Claude BPE proxy, including tests/docs/scripts. Not cumulative edits or exact GPT tokenization.",
+    "cost": "Conditional Standard short-context API-equivalent estimate, all attempted tasks divided by accepted tasks. Actual billed cost unavailable.",
+    "input": "Raw input includes cache subsets. Cache reads/writes are not added again.",
+    "model_identity": "Client turn_context confirms requested model/effort. Provider-resolved model and tier unavailable.",
+    "net_input": "Historical proxy: sum input minus first-request input times model-request count. Not task-only input.",
+    "turns": "Model requests from reconciled task-owned per-request rollout usage; outer CLI turns and tool calls are separate."
+  },
+  "planned_attempts": 10,
+  "provenance": {
+    "adapter": "codex-matched-loglens-v1",
+    "authored_source_tokenizer": {
+      "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+      "dependency": "tiktoken",
+      "dependency_version": "1.0.22",
+      "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+      "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+      "package": "@anthropic-ai/tokenizer",
+      "runtime": "node",
+      "runtime_version": "v24.3.0",
+      "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+      "version": "0.0.4"
+    },
+    "codex_version": "codex-cli 0.160.1",
+    "compiler_source_commit": "60002439e1b651ebbfbf3a887f12a20c927d720f",
+    "effort_requested": "medium",
+    "model_requested": "gpt-6.1-sol",
+    "price_book": {
+      "conditional": true,
+      "date": "2026-10-08",
+      "source": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+      "standard_short_context_usd_per_million": {
+        "cache_read": 0.1,
+        "cache_write": 2.5,
+        "input": 2.0,
+        "output": 10.0
+      }
+    },
+    "repository_commit": "c50c3bd7623354840504687d64260edb8ff3895f",
+    "round": 6,
+    "seed_files_sha256": {
+      "benchmarks/cli-tokens-v1/SPEC.md": "51bf564cb9f7eadd4b3bd12fac53b7857befa09b3ef757d9c34400a8509fdeae",
+      "benchmarks/cli-tokens-v1/sample.log": "b4574c3e627aff7760a934ec5dc10c45abf76ade1f6ae0c20518c56cc6660598"
+    },
+    "source_binary_sha256": "87e1d84bb618218159a3ebaec83dea285f2186486d7113962d08c71945474daa"
+  },
+  "recorded_attempts": 10,
+  "resource_contaminated_attempts": 0,
+  "results_sha256": "801e51fcc261917131860272fd0f950ea5516ddcb103210e0ea8510d1ec4b013",
+  "schema": "semaprax.codex-matched-recount.v1",
+  "trials": [
+    {
+      "acceptance_wall_seconds": 13.601541,
+      "agent_wall_seconds": 546.24,
+      "arm": "semaprax",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 1595776,
+      "conditional_api_equivalent_usd": 0.480204,
+      "evidence_sha256": {
+        "exec": "f8e19fece5245ea2ffcbfa2b607f1d4696cd137feb39af25ec34de6797863bda",
+        "rollout": "b5f3906980be5cc3c90669046fc2ba4989452873ababf6160e71071b3bd0e875"
+      },
+      "failure": "candidate failed independent acceptance",
+      "final_authored_tokens_proxy": 7826,
+      "legacy_net_input_tokens": 1260039,
+      "model_requests": 30,
+      "number": 1,
+      "output_tokens": 18402,
+      "raw_input_tokens": 1664079,
+      "reasoning_output_tokens_subset": 4252,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 10468237312
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/resource-receipts/semaprax-01.json"
+      },
+      "status": "not_accepted"
+    },
+    {
+      "acceptance_wall_seconds": 4.069762000000001,
+      "agent_wall_seconds": 168.362,
+      "arm": "typescript",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 176512,
+      "conditional_api_equivalent_usd": 0.137055,
+      "evidence_sha256": {
+        "exec": "c8ca9fcacf32ddc115a3a61b62f82806a705fe6f884622999b1958149d1bd079",
+        "rollout": "1bf1e6c4bf3e53c47ca01f72007f424de7946634868ec905d9eed74c6d66ca47"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 4478,
+      "legacy_net_input_tokens": 94541,
+      "model_requests": 8,
+      "number": 1,
+      "output_tokens": 6797,
+      "raw_input_tokens": 202229,
+      "reasoning_output_tokens_subset": 424,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 10376806400
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/resource-receipts/typescript-01.json"
+      },
+      "status": "accepted"
+    },
+    {
+      "acceptance_wall_seconds": 4.7545519999999994,
+      "agent_wall_seconds": 208.325,
+      "arm": "typescript",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 209280,
+      "conditional_api_equivalent_usd": 0.211208,
+      "evidence_sha256": {
+        "exec": "2c952cdd387c0478288730840491e67e140e4778720cc167cf90ad13008e54c1",
+        "rollout": "8ef29942e30b7916664f192de581f47f178a9880d1c935ee04d6c2b44582bb80"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 5231,
+      "legacy_net_input_tokens": 130620,
+      "model_requests": 10,
+      "number": 2,
+      "output_tokens": 7838,
+      "raw_input_tokens": 265230,
+      "reasoning_output_tokens_subset": 539,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 10369622016
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/resource-receipts/typescript-02.json"
+      },
+      "status": "accepted"
+    },
+    {
+      "acceptance_wall_seconds": 12.102432,
+      "agent_wall_seconds": 381.475,
+      "arm": "semaprax",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 722816,
+      "conditional_api_equivalent_usd": 0.331508,
+      "evidence_sha256": {
+        "exec": "6f161bae835ed990e9a277fd8d4a172d7712369e4ffa472ea99a442d16cacf14",
+        "rollout": "e5dbe24df107c994284a06b509fa87f9407b7530f46068a67021dfcc14ad5db7"
+      },
+      "failure": "candidate failed independent acceptance",
+      "final_authored_tokens_proxy": 7182,
+      "legacy_net_input_tokens": 550965,
+      "model_requests": 18,
+      "number": 2,
+      "output_tokens": 11808,
+      "raw_input_tokens": 793389,
+      "reasoning_output_tokens_subset": 1617,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 9607573504
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/resource-receipts/semaprax-02.json"
+      },
+      "status": "not_accepted"
+    },
+    {
+      "acceptance_wall_seconds": 43.001385,
+      "agent_wall_seconds": 828.262,
+      "arm": "semaprax",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 3060864,
+      "conditional_api_equivalent_usd": 0.7,
+      "evidence_sha256": {
+        "exec": "12073bf63a8ff3005f3ad1421fcd5911fa5a29981d965414c010f0b5b1b34197",
+        "rollout": "e52d9357243dc56f9785373233824f9796af9415c6648c28dc1085bdcd325e93"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 8154,
+      "legacy_net_input_tokens": 2409086,
+      "model_requests": 55,
+      "number": 3,
+      "output_tokens": 21599,
+      "raw_input_tokens": 3149826,
+      "reasoning_output_tokens_subset": 5604,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 9549611008
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/resource-receipts/semaprax-03.json"
+      },
+      "status": "accepted"
+    },
+    {
+      "acceptance_wall_seconds": 8.690570000000001,
+      "agent_wall_seconds": 230.736,
+      "arm": "typescript",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 179584,
+      "conditional_api_equivalent_usd": 0.156608,
+      "evidence_sha256": {
+        "exec": "61b6fd8f6f0853e11254aac11988831521c5e678e0afc0b633fc235f0122bb99",
+        "rollout": "8c862627e4951ecba14a7ead434275b25a207e10387baec1fe44dc39596bb102"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 5487,
+      "legacy_net_input_tokens": 99726,
+      "model_requests": 8,
+      "number": 3,
+      "output_tokens": 8299,
+      "raw_input_tokens": 207414,
+      "reasoning_output_tokens_subset": 584,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 10051035136
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/resource-receipts/typescript-03.json"
+      },
+      "status": "accepted"
+    },
+    {
+      "acceptance_wall_seconds": 4.161613,
+      "agent_wall_seconds": 196.501,
+      "arm": "typescript",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 221056,
+      "conditional_api_equivalent_usd": 0.19189,
+      "evidence_sha256": {
+        "exec": "3409e94c222da29c2caea45a25c0e751da7240f6bd25e21944555cc60a1e6063",
+        "rollout": "22ba39b6582c48549dc76d871f84424a207a4fd564cf16333f0e84d93326b781"
+      },
+      "failure": "candidate failed independent acceptance",
+      "final_authored_tokens_proxy": 4703,
+      "legacy_net_input_tokens": 134698,
+      "model_requests": 10,
+      "number": 4,
+      "output_tokens": 7328,
+      "raw_input_tokens": 269308,
+      "reasoning_output_tokens_subset": 562,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 9976668160
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/resource-receipts/typescript-04.json"
+      },
+      "status": "not_accepted"
+    },
+    {
+      "acceptance_wall_seconds": 60.20688499999999,
+      "agent_wall_seconds": 1055.185,
+      "arm": "semaprax",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 3249536,
+      "conditional_api_equivalent_usd": 0.787082,
+      "evidence_sha256": {
+        "exec": "269bbac2a2b199bf22e2e12c6dc9a3bc56985a5ceab38e96d2e48d3ab259e504",
+        "rollout": "ad6b9098a147b48aaaf8d6f4876489e359d6fa9dbdd612368be70038fbe307b2"
+      },
+      "failure": "candidate failed independent acceptance",
+      "final_authored_tokens_proxy": 9434,
+      "legacy_net_input_tokens": 2641479,
+      "model_requests": 52,
+      "number": 4,
+      "output_tokens": 27757,
+      "raw_input_tokens": 3341815,
+      "reasoning_output_tokens_subset": 10123,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 8650592256
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/resource-receipts/semaprax-04.json"
+      },
+      "status": "not_accepted"
+    },
+    {
+      "acceptance_wall_seconds": 16.449205,
+      "agent_wall_seconds": 458.276,
+      "arm": "semaprax",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 1030144,
+      "conditional_api_equivalent_usd": 0.372384,
+      "evidence_sha256": {
+        "exec": "a03cb94ada9383679cc89604516b7bf3d1652cb3987cabcc4fd81c83121357ea",
+        "rollout": "0bd68623dc87e7a892bfe5d2546f4fd3e74740318293b32e55f4cb0d63b52984"
+      },
+      "failure": "candidate failed independent acceptance",
+      "final_authored_tokens_proxy": 7501,
+      "legacy_net_input_tokens": 782605,
+      "model_requests": 23,
+      "number": 5,
+      "output_tokens": 14492,
+      "raw_input_tokens": 1092369,
+      "reasoning_output_tokens_subset": 3597,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 7984168960
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/resource-receipts/semaprax-05.json"
+      },
+      "status": "not_accepted"
+    },
+    {
+      "acceptance_wall_seconds": 4.066924,
+      "agent_wall_seconds": 247.146,
+      "arm": "typescript",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 189568,
+      "conditional_api_equivalent_usd": 0.215933,
+      "evidence_sha256": {
+        "exec": "24cd2ca6425198c7f8ca9f792f8092762700b534a39882de1e2911d29326ec83",
+        "rollout": "ad150d87c7050413f843f1a37c1d0c029a22032d01426bff488cef0f95867a4a"
+      },
+      "failure": "candidate failed independent acceptance",
+      "final_authored_tokens_proxy": 5756,
+      "legacy_net_input_tokens": 122492,
+      "model_requests": 9,
+      "number": 5,
+      "output_tokens": 8883,
+      "raw_input_tokens": 243641,
+      "reasoning_output_tokens_subset": 783,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 7979524096
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/resource-receipts/typescript-05.json"
+      },
+      "status": "not_accepted"
+    }
+  ],
+  "unlaunched_order": []
+}

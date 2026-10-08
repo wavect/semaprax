@@ -13,7 +13,7 @@ export async function browserChecks({base,arm,state,probe,artifacts}) {
   const url=(entity='',tail='')=>new URL(arm==='semaprax'?`#/${route(arm,entity)}${tail}`:`${route(arm,entity)}${tail}`,base).href;
   const go=async(entity='',tail='')=>{await page.goto(url(entity,tail));await page.waitForLoadState('networkidle');};
   const login=async role=>{await context.clearCookies();await go();await expect(page.getByRole('button',{name:/^Sign in$/i})).toBeVisible();await page.getByLabel('email',{exact:true}).fill(state.roles[role].email);await page.getByLabel('password',{exact:true}).fill(PASSWORD);await page.getByRole('button',{name:/^Sign in$/i}).click();await page.waitForLoadState('networkidle');await expect(page.getByRole('button',{name:/^Sign out$/i})).toBeVisible();};
-  const control=field=>page.getByLabel(new RegExp(`^${escaped(field).replaceAll('_','[_ ]')}\\s*$`,'i'));
+  const control=field=>page.getByLabel(new RegExp(`^${escaped(field).replaceAll('_','[_ ]')}`,'i'));
   const fill=async(entity,body)=>{for(const [field,type]of Object.entries(ENTITIES[entity])){const input=control(field);if(type==='bool')await input.setChecked(Boolean(body[field]));else if(type.startsWith('ref:')||ENUMS[type])await input.selectOption(String(body[field]));else await input.fill(String(body[field]));}if(entity==='Member')await control('password').fill(PASSWORD);};
   const submit=()=>page.getByRole('button',{name:/^(Create|Save)$/i}).click();
   const headers=()=>page.locator('table').first().locator('thead th');
@@ -22,6 +22,7 @@ export async function browserChecks({base,arm,state,probe,artifacts}) {
   const textIncludes=async expected=>assert.ok((await page.locator('body').innerText()).includes(String(expected)),`visible ${expected}`);
   const errorCount=async()=>page.locator('.err:visible, [role="alert"]:visible, form ul li:visible').evaluateAll(nodes=>nodes.filter(node=>node.textContent.trim()).length);
   try {
+    for(const entity of ['',...Object.keys(ENTITIES)])await probe.check(entity?`browser.${entity}.unauthenticated-page`:'browser.dashboard.unauthenticated-page','browser.navigation',async()=>{await context.clearCookies();await go(entity);await expect(page.getByRole('button',{name:/^Sign in$/i})).toBeVisible();assert.equal(await page.getByRole('button',{name:/^(Create|Save|Delete)$/i}).count(),0,'unauthenticated page never exposes writes');});
     await probe.check('browser.auth.pages-header-signout','browser.navigation',async()=>{await go('Task');await expect(page.getByRole('button',{name:/^Sign in$/i})).toBeVisible();await login('Admin');await textIncludes(state.roles.Admin.account.name);await textIncludes('Admin');await page.getByRole('button',{name:/^Sign out$/i}).click();await expect(page.getByRole('button',{name:/^Sign in$/i})).toBeVisible();await login('Admin');});
     if(!await page.getByRole('button',{name:/^Sign out$/i}).isVisible())return;
     for(const entity of Object.keys(ENTITIES))await probe.check(`browser.${entity}.navigation-detail-fields`,'browser.navigation',async()=>{

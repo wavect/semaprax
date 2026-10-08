@@ -112,7 +112,11 @@ Build/typecheck and candidate self-test run before the independent gate.
 compiler binary/source identity when supplied, Node version, launch endpoints,
 every passed/failed/unverified case, missing obligations, password evidence,
 and timestamps. `process.log` retains child stdout/stderr. Missing checks and
-unverified obligations fail qualification. Cases continue after ordinary
+unverified obligations fail qualification. Anonymous checks cover every entity
+CRUD method, row history, CSV, audit, and browser entity/dashboard routes.
+Positive CRUD changes every stored field and reads it back; foreign-id type
+failures cannot substitute for reference existence checks. Both numeric
+endpoints and quoted integer output are checked independently. Cases continue after ordinary
 assertion failures; fatal bootstrap/browser failures produce explicit missing
 cases. A physical browser failure is not converted into an API-only pass. Reference
 DOM compatibility assumptions (tables for list extraction and native select/

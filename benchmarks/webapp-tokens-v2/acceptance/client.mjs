@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { ENTITIES, integer } from './contract.mjs';
 const INT_FIELDS = new Set(['id','duration','days','length','remaining','weight','tasks','open_tasks','members','open_tickets','hours', ...Object.values(ENTITIES).flatMap(fields => Object.entries(fields).filter(([,type])=>type==='int'||type.startsWith('ref:')).map(([field])=>field))]);
 export const route = (arm, entity) => arm === 'semaprax' ? entity.replace(/[A-Z]/g,(letter,index)=>(index?'_':'')+letter.toLowerCase()) : entity.toLowerCase();
-export const lossless = text => JSON.parse(text, (key, value, context) => typeof value==='number'&&INT_FIELDS.has(key)&&context?.source ? context.source : value);
+export function numericInteger(source){const match=/^(-?)([0-9]+)(?:\.([0-9]+))?(?:[eE]([+-]?[0-9]+))?$/.exec(source);assert.ok(match,'numeric integer JSON source');const digits=BigInt(match[2]+(match[3]??'')),power=Number(match[4]??0)-(match[3]?.length??0);if(digits===0n)return '0';assert.ok(Number.isSafeInteger(power)&&Math.abs(power)<=30,'bounded signed64 integer exponent');const scale=10n**BigInt(Math.abs(power));assert.ok(power>=0||digits%scale===0n,'JSON value is integral');return integer(((power>=0?digits*scale:digits/scale)*(match[1]? -1n:1n)).toString()).toString();}
+export const lossless = text => JSON.parse(text,(key,value,context)=>{if(INT_FIELDS.has(key)){assert.notEqual(typeof value,'string',`JSON ${key} must be numeric, not quoted`);if(typeof value==='number')return numericInteger(context.source);}return value;});
 export const mutations=[];
 export class Client {
   constructor(base, arm) {this.base=base;this.arm=arm;this.cookies=new Map();}

@@ -1,0 +1,96 @@
+{
+  "schema": "semaprax.loglens-repair-mining.v1",
+  "counting": "Completed command output only; literal error[SPX-...] occurrences, not help-code mentions. Repeated emissions are occurrences, not unique defects or causal saved turns. Nonzero events can include expected-negative checks.",
+  "historical_compiler_source": "94fadd14cf27d045d22b23a79def640c95131c31",
+  "trials": [
+    {
+      "trial": "semaprax-01",
+      "trace_sha256": "ecec548c11871eeda3421ed703a9f715d3b76cef73784ee564bd802fc9fe188a",
+      "nonzero_command_events": 16,
+      "error_diagnostic_occurrences": {
+        "SPX-O101": 1,
+        "SPX-U105": 1,
+        "SPX-T252": 1,
+        "SPX-H006": 4,
+        "SPX-I307": 1,
+        "SPX-B104": 11
+      },
+      "profile_rejection_events": 1,
+      "interpreter_step_exhaustion_events": 0
+    },
+    {
+      "trial": "semaprax-02",
+      "trace_sha256": "d1b793c0616522f9b055f4991372311d93702d6ce2be4389ca3bb59769816e55",
+      "nonzero_command_events": 13,
+      "error_diagnostic_occurrences": {
+        "SPX-T205": 1,
+        "SPX-S109": 2,
+        "SPX-T201": 9,
+        "SPX-H006": 1,
+        "SPX-B104": 19,
+        "SPX-I307": 1
+      },
+      "profile_rejection_events": 1,
+      "interpreter_step_exhaustion_events": 0
+    },
+    {
+      "trial": "semaprax-03",
+      "trace_sha256": "7515fab953cc19756433dc556c08e3ce8768c2fb91388e9505eb15f31a400963",
+      "nonzero_command_events": 6,
+      "error_diagnostic_occurrences": {
+        "SPX-O107": 3,
+        "SPX-O101": 1,
+        "SPX-T266": 2,
+        "SPX-H006": 1,
+        "SPX-I307": 1
+      },
+      "profile_rejection_events": 1,
+      "interpreter_step_exhaustion_events": 0
+    },
+    {
+      "trial": "semaprax-04",
+      "trace_sha256": "8da3a5d0ba891b0d347a44bc934e964e50503f448a1a5da66f35eca06408efbe",
+      "nonzero_command_events": 10,
+      "error_diagnostic_occurrences": {
+        "SPX-B104": 3,
+        "SPX-F101": 1
+      },
+      "profile_rejection_events": 1,
+      "interpreter_step_exhaustion_events": 1
+    },
+    {
+      "trial": "semaprax-05",
+      "trace_sha256": "9b2c0c54cd3de847cccdedcc8e5a8a3ff5bac3704fb1720fb0ebba10ccec652b",
+      "nonzero_command_events": 34,
+      "error_diagnostic_occurrences": {
+        "SPX-B104": 25,
+        "SPX-F101": 1,
+        "SPX-F105": 2,
+        "SPX-T269": 2,
+        "SPX-T209": 4
+      },
+      "profile_rejection_events": 1,
+      "interpreter_step_exhaustion_events": 1
+    }
+  ],
+  "next_targets": [
+    {
+      "issue": 660,
+      "status": "fixed-and-verified",
+      "evidence": "String scalar-match region parent SPX-B104 repeatedly blocked four trials. Future live comparison is needed to measure actual savings."
+    },
+    {
+      "issue": 661,
+      "status": "implementation-in-progress",
+      "evidence": "Exact arithmetic remains authored boilerplate; boundary qualification must retain unrestricted byte totals."
+    },
+    {
+      "status": "investigate",
+      "evidence": "All five trials attempted web-only text-toolkit-v1 profile on native builds; improve command-specific help."
+    },
+    {
+      "status": "investigate",
+      "evidence": "Interpreter step exhaustion in two trials followed native failures; preserve explicit resource budgets and measure fixed compiler before changing defaults."
+    }
+  ]
+}

@@ -1,0 +1,848 @@
+{
+  "schema": "semaprax.teamdesk-reference-qualification-summary.v1",
+  "gate_source_commit": "1ba7241d478e7deb172c6d2d48f768016f65e962",
+  "typescript_source_commit": "79ce81bd244b0f6fd101eb3cd17c643862b1d030",
+  "full_qualification_passed": false,
+  "note": "Both references pass independent API/nonbrowser checks. Browser failures require adapter versus application classification; no full qualification or live-agent gain is claimed. Exact signed-i64 regression #662 is independently corroborated. Raw password ledgers contain disposable derived secrets and remain private.",
+  "trials": [
+    {
+      "arm": "typescript",
+      "raw_report_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-full-spec-659-typescript-79ce-r3/report.json",
+      "raw_report_sha256": "7711793ff49ae5d2aecf9a39866fd2d095f614c9fc8f738ac8dd14fbbf40bd14",
+      "spec_sha256": "7658414ed2bbb53477a93e4a00f36269954c5bc45f3148fe72ddd02f203a50dc",
+      "compiler": null,
+      "node": "v24.3.0",
+      "qualification": {
+        "passed": false,
+        "missingCases": [],
+        "missingGroups": [],
+        "failures": [
+          "browser.Customer.typed-form",
+          "browser.Project.typed-form",
+          "browser.Milestone.typed-form",
+          "browser.Sprint.typed-form",
+          "browser.Task.typed-form",
+          "browser.TimeEntry.typed-form",
+          "browser.Ticket.typed-form",
+          "browser.Payment.typed-form",
+          "browser.Expense.typed-form",
+          "browser.Leave.typed-form",
+          "browser.Release.typed-form",
+          "browser.Comment.successful-create-edit",
+          "browser.Agent.Task.own-actions",
+          "browser.Agent.Comment.own-actions",
+          "browser.Agent.TimeEntry.own-actions",
+          "browser.Agent.Ticket.own-actions",
+          "browser.Agent.TicketReply.own-actions",
+          "browser.Agent.Leave.own-actions",
+          "browser.Agent.Expense.own-actions"
+        ],
+        "cases": 909
+      },
+      "nonbrowser_cases": 575,
+      "nonbrowser_nonpassing": [],
+      "browser_nonpassing": [
+        {
+          "id": "browser.Customer.typed-form",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Project.typed-form",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Milestone.typed-form",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Sprint.typed-form",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Task.typed-form",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.TimeEntry.typed-form",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Ticket.typed-form",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Payment.typed-form",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Expense.typed-form",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Leave.typed-form",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Release.typed-form",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Comment.successful-create-edit",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Agent.Task.own-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Agent.Comment.own-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Agent.TimeEntry.own-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Agent.Ticket.own-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Agent.TicketReply.own-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Agent.Leave.own-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Agent.Expense.own-actions",
+          "status": "failed"
+        }
+      ]
+    },
+    {
+      "arm": "semaprax",
+      "raw_report_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-full-spec-659-semaprax-r3/report.json",
+      "raw_report_sha256": "86d12cf6641d31452b0d6a51dcaeedc297e168e96bed0ecea685a8d64d216827",
+      "spec_sha256": "7658414ed2bbb53477a93e4a00f36269954c5bc45f3148fe72ddd02f203a50dc",
+      "compiler": {
+        "path": "/Users/kevin/.codex/benchmark-binaries/semaprax-94fadd14c",
+        "sha256": "da3d978118e233acaef18e0b0e48cd8c4741da51d7636d84fefacb19703ba51c",
+        "source_sha": "94fadd14cf27d045d22b23a79def640c95131c31"
+      },
+      "node": "v24.3.0",
+      "qualification": {
+        "passed": false,
+        "missingCases": [],
+        "missingGroups": [],
+        "failures": [
+          "browser.Team.navigation-detail-fields",
+          "browser.Member.navigation-detail-fields",
+          "browser.Customer.navigation-detail-fields",
+          "browser.Project.navigation-detail-fields",
+          "browser.Sprint.navigation-detail-fields",
+          "browser.Task.navigation-detail-fields",
+          "browser.TimeEntry.navigation-detail-fields",
+          "browser.Ticket.navigation-detail-fields",
+          "browser.Invoice.navigation-detail-fields",
+          "browser.Leave.navigation-detail-fields",
+          "browser.dashboard.entity-and-enum-counts",
+          "browser.Team.successful-create-edit",
+          "browser.Member.successful-create-edit",
+          "browser.Customer.successful-create-edit",
+          "browser.Contact.successful-create-edit",
+          "browser.Project.successful-create-edit",
+          "browser.Milestone.successful-create-edit",
+          "browser.Sprint.successful-create-edit",
+          "browser.Task.successful-create-edit",
+          "browser.TimeEntry.successful-create-edit",
+          "browser.Invoice.successful-create-edit",
+          "browser.Payment.successful-create-edit",
+          "browser.Vendor.successful-create-edit",
+          "browser.Asset.successful-create-edit",
+          "browser.Leave.successful-create-edit",
+          "browser.Document.successful-create-edit",
+          "browser.Release.successful-create-edit",
+          "browser.Task.all-errors.pre-submit",
+          "browser.Team.list-search-sort-pagination-filter-csv",
+          "browser.Member.list-search-sort-pagination-filter-csv",
+          "browser.Customer.list-search-sort-pagination-filter-csv",
+          "browser.Contact.list-search-sort-pagination-filter-csv",
+          "browser.Project.list-search-sort-pagination-filter-csv",
+          "browser.Milestone.list-search-sort-pagination-filter-csv",
+          "browser.Sprint.list-search-sort-pagination-filter-csv",
+          "browser.Task.list-search-sort-pagination-filter-csv",
+          "browser.Comment.list-search-sort-pagination-filter-csv",
+          "browser.TimeEntry.list-search-sort-pagination-filter-csv",
+          "browser.Ticket.list-search-sort-pagination-filter-csv",
+          "browser.TicketReply.list-search-sort-pagination-filter-csv",
+          "browser.Invoice.list-search-sort-pagination-filter-csv",
+          "browser.Payment.list-search-sort-pagination-filter-csv",
+          "browser.Vendor.list-search-sort-pagination-filter-csv",
+          "browser.Expense.list-search-sort-pagination-filter-csv",
+          "browser.Asset.list-search-sort-pagination-filter-csv",
+          "browser.Leave.list-search-sort-pagination-filter-csv",
+          "browser.Document.list-search-sort-pagination-filter-csv",
+          "browser.Release.list-search-sort-pagination-filter-csv",
+          "browser.Member.team_id.links-backrefs",
+          "browser.Contact.customer_id.links-backrefs",
+          "browser.Project.team_id.links-backrefs",
+          "browser.Project.customer_id.links-backrefs",
+          "browser.Milestone.project_id.links-backrefs",
+          "browser.Sprint.project_id.links-backrefs",
+          "browser.Task.project_id.links-backrefs",
+          "browser.Task.milestone_id.links-backrefs",
+          "browser.Task.sprint_id.links-backrefs",
+          "browser.Task.member_id.links-backrefs",
+          "browser.Comment.task_id.links-backrefs",
+          "browser.Comment.member_id.links-backrefs",
+          "browser.TimeEntry.task_id.links-backrefs",
+          "browser.TimeEntry.member_id.links-backrefs",
+          "browser.Ticket.customer_id.links-backrefs",
+          "browser.Ticket.member_id.links-backrefs",
+          "browser.TicketReply.ticket_id.links-backrefs",
+          "browser.TicketReply.member_id.links-backrefs",
+          "browser.Invoice.customer_id.links-backrefs",
+          "browser.Payment.invoice_id.links-backrefs",
+          "browser.Expense.project_id.links-backrefs",
+          "browser.Expense.vendor_id.links-backrefs",
+          "browser.Expense.member_id.links-backrefs",
+          "browser.Asset.team_id.links-backrefs",
+          "browser.Leave.member_id.links-backrefs",
+          "browser.Document.project_id.links-backrefs",
+          "browser.Release.project_id.links-backrefs",
+          "browser.Task.Todo.workflow-options",
+          "browser.Task.Doing.workflow-options",
+          "browser.Task.Review.workflow-options",
+          "browser.Task.Done.workflow-options",
+          "browser.Ticket.Open.workflow-options",
+          "browser.Ticket.Resolved.workflow-options",
+          "browser.Ticket.Closed.workflow-options",
+          "browser.Expense.Draft.workflow-options",
+          "browser.Expense.Submitted.workflow-options",
+          "browser.Expense.Approved.workflow-options",
+          "browser.Expense.Rejected.workflow-options",
+          "browser.Expense.Paid.workflow-options",
+          "browser.Leave.Requested.workflow-options",
+          "browser.Leave.Approved.workflow-options",
+          "browser.Leave.Rejected.workflow-options",
+          "browser.Release.Planned.workflow-options",
+          "browser.Release.Released.workflow-options",
+          "browser.Admin.Team.hidden-actions",
+          "browser.Admin.Member.hidden-actions",
+          "browser.Admin.Customer.hidden-actions",
+          "browser.Admin.Contact.hidden-actions",
+          "browser.Admin.Project.hidden-actions",
+          "browser.Admin.Milestone.hidden-actions",
+          "browser.Admin.Sprint.hidden-actions",
+          "browser.Admin.Task.hidden-actions",
+          "browser.Admin.Comment.hidden-actions",
+          "browser.Admin.TimeEntry.hidden-actions",
+          "browser.Admin.Ticket.hidden-actions",
+          "browser.Admin.TicketReply.hidden-actions",
+          "browser.Admin.Invoice.hidden-actions",
+          "browser.Admin.Payment.hidden-actions",
+          "browser.Admin.Vendor.hidden-actions",
+          "browser.Admin.Expense.hidden-actions",
+          "browser.Admin.Asset.hidden-actions",
+          "browser.Admin.Leave.hidden-actions",
+          "browser.Admin.Document.hidden-actions",
+          "browser.Admin.Release.hidden-actions",
+          "browser.Manager.Customer.hidden-actions",
+          "browser.Manager.Contact.hidden-actions",
+          "browser.Manager.Project.hidden-actions",
+          "browser.Manager.Milestone.hidden-actions",
+          "browser.Manager.Sprint.hidden-actions",
+          "browser.Manager.Task.hidden-actions",
+          "browser.Manager.Comment.hidden-actions",
+          "browser.Manager.TimeEntry.hidden-actions",
+          "browser.Manager.Ticket.hidden-actions",
+          "browser.Manager.TicketReply.hidden-actions",
+          "browser.Manager.Invoice.hidden-actions",
+          "browser.Manager.Payment.hidden-actions",
+          "browser.Manager.Vendor.hidden-actions",
+          "browser.Manager.Expense.hidden-actions",
+          "browser.Manager.Asset.hidden-actions",
+          "browser.Manager.Leave.hidden-actions",
+          "browser.Manager.Document.hidden-actions",
+          "browser.Manager.Release.hidden-actions",
+          "browser.Agent.Task.hidden-actions",
+          "browser.Agent.Comment.hidden-actions",
+          "browser.Agent.TimeEntry.hidden-actions",
+          "browser.Agent.Ticket.hidden-actions",
+          "browser.Agent.TicketReply.hidden-actions",
+          "browser.Agent.Expense.hidden-actions",
+          "browser.Agent.Leave.hidden-actions",
+          "browser.Agent.Expense.own-actions",
+          "browser.history-old-new",
+          "browser.csv-all-twenty-entities"
+        ],
+        "cases": 909
+      },
+      "nonbrowser_cases": 575,
+      "nonbrowser_nonpassing": [],
+      "browser_nonpassing": [
+        {
+          "id": "browser.Team.navigation-detail-fields",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Member.navigation-detail-fields",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Customer.navigation-detail-fields",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Project.navigation-detail-fields",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Sprint.navigation-detail-fields",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Task.navigation-detail-fields",
+          "status": "failed"
+        },
+        {
+          "id": "browser.TimeEntry.navigation-detail-fields",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Ticket.navigation-detail-fields",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Invoice.navigation-detail-fields",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Leave.navigation-detail-fields",
+          "status": "failed"
+        },
+        {
+          "id": "browser.dashboard.entity-and-enum-counts",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Team.successful-create-edit",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Member.successful-create-edit",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Customer.successful-create-edit",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Contact.successful-create-edit",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Project.successful-create-edit",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Milestone.successful-create-edit",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Sprint.successful-create-edit",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Task.successful-create-edit",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.TimeEntry.successful-create-edit",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Invoice.successful-create-edit",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Payment.successful-create-edit",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Vendor.successful-create-edit",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Asset.successful-create-edit",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Leave.successful-create-edit",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Document.successful-create-edit",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Release.successful-create-edit",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Task.all-errors.pre-submit",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Team.list-search-sort-pagination-filter-csv",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Member.list-search-sort-pagination-filter-csv",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Customer.list-search-sort-pagination-filter-csv",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Contact.list-search-sort-pagination-filter-csv",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Project.list-search-sort-pagination-filter-csv",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Milestone.list-search-sort-pagination-filter-csv",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Sprint.list-search-sort-pagination-filter-csv",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Task.list-search-sort-pagination-filter-csv",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Comment.list-search-sort-pagination-filter-csv",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.TimeEntry.list-search-sort-pagination-filter-csv",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Ticket.list-search-sort-pagination-filter-csv",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.TicketReply.list-search-sort-pagination-filter-csv",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Invoice.list-search-sort-pagination-filter-csv",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Payment.list-search-sort-pagination-filter-csv",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Vendor.list-search-sort-pagination-filter-csv",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Expense.list-search-sort-pagination-filter-csv",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Asset.list-search-sort-pagination-filter-csv",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Leave.list-search-sort-pagination-filter-csv",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Document.list-search-sort-pagination-filter-csv",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Release.list-search-sort-pagination-filter-csv",
+          "status": "unverified"
+        },
+        {
+          "id": "browser.Member.team_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Contact.customer_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Project.team_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Project.customer_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Milestone.project_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Sprint.project_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Task.project_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Task.milestone_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Task.sprint_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Task.member_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Comment.task_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Comment.member_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.TimeEntry.task_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.TimeEntry.member_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Ticket.customer_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Ticket.member_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.TicketReply.ticket_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.TicketReply.member_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Invoice.customer_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Payment.invoice_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Expense.project_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Expense.vendor_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Expense.member_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Asset.team_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Leave.member_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Document.project_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Release.project_id.links-backrefs",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Task.Todo.workflow-options",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Task.Doing.workflow-options",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Task.Review.workflow-options",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Task.Done.workflow-options",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Ticket.Open.workflow-options",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Ticket.Resolved.workflow-options",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Ticket.Closed.workflow-options",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Expense.Draft.workflow-options",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Expense.Submitted.workflow-options",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Expense.Approved.workflow-options",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Expense.Rejected.workflow-options",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Expense.Paid.workflow-options",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Leave.Requested.workflow-options",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Leave.Approved.workflow-options",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Leave.Rejected.workflow-options",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Release.Planned.workflow-options",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Release.Released.workflow-options",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Admin.Team.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Admin.Member.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Admin.Customer.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Admin.Contact.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Admin.Project.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Admin.Milestone.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Admin.Sprint.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Admin.Task.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Admin.Comment.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Admin.TimeEntry.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Admin.Ticket.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Admin.TicketReply.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Admin.Invoice.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Admin.Payment.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Admin.Vendor.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Admin.Expense.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Admin.Asset.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Admin.Leave.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Admin.Document.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Admin.Release.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Manager.Customer.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Manager.Contact.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Manager.Project.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Manager.Milestone.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Manager.Sprint.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Manager.Task.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Manager.Comment.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Manager.TimeEntry.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Manager.Ticket.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Manager.TicketReply.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Manager.Invoice.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Manager.Payment.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Manager.Vendor.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Manager.Expense.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Manager.Asset.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Manager.Leave.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Manager.Document.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Manager.Release.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Agent.Task.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Agent.Comment.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Agent.TimeEntry.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Agent.Ticket.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Agent.TicketReply.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Agent.Expense.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Agent.Leave.hidden-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.Agent.Expense.own-actions",
+          "status": "failed"
+        },
+        {
+          "id": "browser.history-old-new",
+          "status": "failed"
+        },
+        {
+          "id": "browser.csv-all-twenty-entities",
+          "status": "failed"
+        }
+      ]
+    }
+  ]
+}

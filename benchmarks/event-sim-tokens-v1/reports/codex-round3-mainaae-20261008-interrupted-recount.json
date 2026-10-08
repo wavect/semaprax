@@ -1,0 +1,604 @@
+{
+  "actual_billed_usd": null,
+  "all_arms_have_minimum_trials": false,
+  "arms": {
+    "semaprax": {
+      "accepted": 2,
+      "actual_billed_usd": null,
+      "actual_billed_usd_per_accepted_task": null,
+      "attempted": 2,
+      "cache_write_input_tokens_per_attempt": [
+        0,
+        0
+      ],
+      "cached_input_tokens_per_attempt": [
+        2464128,
+        2035584
+      ],
+      "conditional_short_context_api_equivalent_usd_all_recorded_attempts": 1.3360310000000002,
+      "conditional_short_context_api_equivalent_usd_per_accepted_task": 0.6680155000000001,
+      "cost_includes_failed_attempts": true,
+      "cost_note": "Conditional standard short-context API-equivalent estimate; actual billing is unavailable.",
+      "failed_or_rejected": 0,
+      "final_authored_claude_bpe_proxy_per_attempt": [
+        9166,
+        8977
+      ],
+      "legacy_net_input_tokens_per_attempt": [
+        1897987,
+        1569200
+      ],
+      "metrics_all_recorded_attempts": {
+        "acceptance_wall_seconds": {
+          "mean_per_attempt": 34.237,
+          "median_per_attempt": 34.237,
+          "total": 68.474
+        },
+        "agent_wall_seconds": {
+          "mean_per_attempt": 809.0095,
+          "median_per_attempt": 809.0095,
+          "total": 1618.019
+        },
+        "cache_write_input_tokens": {
+          "mean_per_attempt": 0,
+          "median_per_attempt": 0.0,
+          "total": 0
+        },
+        "cached_input_tokens": {
+          "mean_per_attempt": 2249856,
+          "median_per_attempt": 2249856.0,
+          "total": 4499712
+        },
+        "final_authored_tokens_proxy": {
+          "mean_per_attempt": 9071.5,
+          "median_per_attempt": 9071.5,
+          "total": 18143
+        },
+        "legacy_net_input_tokens": {
+          "mean_per_attempt": 1733593.5,
+          "median_per_attempt": 1733593.5,
+          "total": 3467187
+        },
+        "model_request_turns": {
+          "mean_per_attempt": 45,
+          "median_per_attempt": 45.0,
+          "total": 90
+        },
+        "model_requests": {
+          "mean_per_attempt": 45,
+          "median_per_attempt": 45.0,
+          "total": 90
+        },
+        "output_tokens": {
+          "mean_per_attempt": 23949.5,
+          "median_per_attempt": 23949.5,
+          "total": 47899
+        },
+        "raw_input_tokens": {
+          "mean_per_attempt": 2351623.5,
+          "median_per_attempt": 2351623.5,
+          "total": 4703247
+        }
+      },
+      "metrics_per_attempt": {
+        "acceptance_wall_seconds": [
+          43.529,
+          24.945
+        ],
+        "agent_wall_seconds": [
+          764.388,
+          853.631
+        ],
+        "cache_write_input_tokens": [
+          0,
+          0
+        ],
+        "cached_input_tokens": [
+          2464128,
+          2035584
+        ],
+        "final_authored_tokens_proxy": [
+          9166,
+          8977
+        ],
+        "legacy_net_input_tokens": [
+          1897987,
+          1569200
+        ],
+        "model_request_turns": [
+          47,
+          43
+        ],
+        "model_requests": [
+          47,
+          43
+        ],
+        "output_tokens": [
+          23570,
+          24329
+        ],
+        "raw_input_tokens": [
+          2543485,
+          2159762
+        ]
+      },
+      "model_request_turns_per_attempt": [
+        47,
+        43
+      ],
+      "model_request_turns_total": 90,
+      "output_tokens_per_attempt": [
+        23570,
+        24329
+      ],
+      "planned": 5,
+      "raw_input_tokens_per_attempt": [
+        2543485,
+        2159762
+      ],
+      "recorded": 2
+    },
+    "typescript": {
+      "accepted": 2,
+      "actual_billed_usd": null,
+      "actual_billed_usd_per_accepted_task": null,
+      "attempted": 2,
+      "cache_write_input_tokens_per_attempt": [
+        0,
+        0
+      ],
+      "cached_input_tokens_per_attempt": [
+        92800,
+        102272
+      ],
+      "conditional_short_context_api_equivalent_usd_all_recorded_attempts": 0.23107699999999998,
+      "conditional_short_context_api_equivalent_usd_per_accepted_task": 0.11553849999999999,
+      "cost_includes_failed_attempts": true,
+      "cost_note": "Conditional standard short-context API-equivalent estimate; actual billing is unavailable.",
+      "failed_or_rejected": 0,
+      "final_authored_claude_bpe_proxy_per_attempt": [
+        4666,
+        5103
+      ],
+      "legacy_net_input_tokens_per_attempt": [
+        25125,
+        26082
+      ],
+      "metrics_all_recorded_attempts": {
+        "acceptance_wall_seconds": {
+          "mean_per_attempt": 3.482,
+          "median_per_attempt": 3.482,
+          "total": 6.964
+        },
+        "agent_wall_seconds": {
+          "mean_per_attempt": 200.13150000000002,
+          "median_per_attempt": 200.13150000000002,
+          "total": 400.26300000000003
+        },
+        "cache_write_input_tokens": {
+          "mean_per_attempt": 0,
+          "median_per_attempt": 0.0,
+          "total": 0
+        },
+        "cached_input_tokens": {
+          "mean_per_attempt": 97536,
+          "median_per_attempt": 97536.0,
+          "total": 195072
+        },
+        "final_authored_tokens_proxy": {
+          "mean_per_attempt": 4884.5,
+          "median_per_attempt": 4884.5,
+          "total": 9769
+        },
+        "legacy_net_input_tokens": {
+          "mean_per_attempt": 25603.5,
+          "median_per_attempt": 25603.5,
+          "total": 51207
+        },
+        "model_request_turns": {
+          "mean_per_attempt": 6.5,
+          "median_per_attempt": 6.5,
+          "total": 13
+        },
+        "model_requests": {
+          "mean_per_attempt": 6.5,
+          "median_per_attempt": 6.5,
+          "total": 13
+        },
+        "output_tokens": {
+          "mean_per_attempt": 7122.5,
+          "median_per_attempt": 7122.5,
+          "total": 14245
+        },
+        "raw_input_tokens": {
+          "mean_per_attempt": 114816,
+          "median_per_attempt": 114816.0,
+          "total": 229632
+        }
+      },
+      "metrics_per_attempt": {
+        "acceptance_wall_seconds": [
+          5.375,
+          1.589
+        ],
+        "agent_wall_seconds": [
+          190.145,
+          210.118
+        ],
+        "cache_write_input_tokens": [
+          0,
+          0
+        ],
+        "cached_input_tokens": [
+          92800,
+          102272
+        ],
+        "final_authored_tokens_proxy": [
+          4666,
+          5103
+        ],
+        "legacy_net_input_tokens": [
+          25125,
+          26082
+        ],
+        "model_request_turns": [
+          6,
+          7
+        ],
+        "model_requests": [
+          6,
+          7
+        ],
+        "output_tokens": [
+          6966,
+          7279
+        ],
+        "raw_input_tokens": [
+          107475,
+          122157
+        ]
+      },
+      "model_request_turns_per_attempt": [
+        6,
+        7
+      ],
+      "model_request_turns_total": 13,
+      "output_tokens_per_attempt": [
+        6966,
+        7279
+      ],
+      "planned": 5,
+      "raw_input_tokens_per_attempt": [
+        107475,
+        122157
+      ],
+      "recorded": 2
+    }
+  },
+  "calibration_fixed_composition_tokens": null,
+  "calibration_note": "Calibration is a separate diagnostic request and is never subtracted from trial usage or cost.",
+  "calibration_separate": {
+    "elapsed_seconds": 5.249,
+    "failure": null,
+    "list_price": {
+      "actual_billed_usd": null,
+      "assumptions": "each request input <=272k; input/cache-read/cache-write/output use published standard rates",
+      "cache_write_cost_usd": 0.0,
+      "cache_write_tokens": 0,
+      "reason": null,
+      "standard_short_context_api_equivalent_usd": 0.009451
+    },
+    "observed": {
+      "codex_outer_turns": 1,
+      "effort_observed": "medium",
+      "final_turn_usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 8832,
+        "input_tokens": 13091,
+        "output_tokens": 5,
+        "reasoning_output_tokens": 0
+      },
+      "invalid_stream_lines": 0,
+      "legacy_net_input_tokens": 0,
+      "legacy_net_note": "Codex input includes cache subsets; subtract first request total once per model request for historical comparability only, never task-only input.",
+      "model_context_window": 258400,
+      "model_identity_note": "The exec JSONL does not expose an observed model identity.",
+      "model_identity_source": "client turn_context; provider-resolved model is unavailable",
+      "model_observed": "gpt-6.1-sol",
+      "model_request_count": 1,
+      "model_requests": [
+        {
+          "request_id": "resp_05dd65bdd5fe274e016ac780b95ab4819187ac899f98b31cc2",
+          "usage": {
+            "cache_write_input_tokens": 0,
+            "cached_input_tokens": 8832,
+            "input_tokens": 13091,
+            "output_tokens": 5,
+            "reasoning_output_tokens": 0
+          }
+        }
+      ],
+      "provider_resolved_model": null,
+      "reconciled": true,
+      "reconciliation_note": "Per-request trace sum must equal final turn.completed usage; tool item counts are separate.",
+      "request_usage_sum": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 8832,
+        "input_tokens": 13091,
+        "output_tokens": 5,
+        "reasoning_output_tokens": 0
+      },
+      "rollout_malformed_lines": 0,
+      "rollout_orphan_usage_records": 0,
+      "stable_context_tokens": null,
+      "thread_ids": [
+        "01a11b4e-ca1d-73a2-9d3c-5b3314d7beef"
+      ],
+      "tool_item_counts": {
+        "agent_message": 1
+      },
+      "turn_completed_events": 1
+    },
+    "process_exit_code": 0,
+    "provider_receipt_actual_usd": null,
+    "resource_assessment": {
+      "acceptance_unchanged": true,
+      "clean_comparison_eligible": true,
+      "contaminated": false,
+      "cost_retained": true,
+      "incidents": [],
+      "minimum_free_bytes_by_device": {
+        "16777233": 7706357760
+      },
+      "receipt": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-mainaae-20261008/resource-receipts/calibration.json"
+    },
+    "rollout_trace": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-mainaae-20261008/transcripts/calibration.rollout.jsonl",
+    "separate_from_trials": true,
+    "status": "ready",
+    "stderr_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-mainaae-20261008/transcripts/calibration.stderr.txt",
+    "subtracted_from_trials": false,
+    "timed_out": false,
+    "transcript": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-mainaae-20261008/transcripts/calibration.jsonl",
+    "workspace_integrity_before_cleanup": {
+      "outside_candidate_paths": [],
+      "spec_integrity": "passed",
+      "status": "passed"
+    },
+    "worktree_removed_after_archive": true
+  },
+  "campaign_status": "interrupted",
+  "clean_comparison_eligible": false,
+  "comparison_status": "incomplete or resource assessment missing/contaminated; no comparative headline is supported",
+  "complete": false,
+  "fixed_harness_composition": null,
+  "fixed_harness_context_note": "No per-request fixed system/tool/task/history composition is exposed; no context baseline is subtracted.",
+  "fixed_harness_context_tokens": null,
+  "measurement_notes": {
+    "authored": "Final authored source is a Claude BPE tokenizer proxy over the final candidate inventory, not generated output or billed tokens.",
+    "cost": "Conditional Standard short-context API-equivalent estimate includes every recorded attempt, including failures, divided by accepted tasks; actual billed cost is unavailable.",
+    "input": "Raw input, cache reads, cache writes, and output remain separate counters; missing buckets stay null.",
+    "net_input": "Legacy net input is an explicit historical proxy: summed input minus first-request input times request count; it is not task-only input.",
+    "turns": "Model request turns come only from reconciled task-owned rollout records; outer CLI turns and tool items are separate."
+  },
+  "planned_attempts": 10,
+  "provenance": {
+    "adapter": "codex-matched-shiftsim-v2",
+    "authored_source_tokenizer": {
+      "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+      "dependency": "tiktoken",
+      "dependency_version": "1.0.22",
+      "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+      "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+      "package": "@anthropic-ai/tokenizer",
+      "runtime": "node",
+      "runtime_version": "v24.3.0",
+      "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+      "version": "0.0.4"
+    },
+    "codex_version": "codex-cli 0.160.1",
+    "compiler_source_commit": "aae2719e29df37438e55bf52b00da3d7954bbd7f",
+    "effort_requested": "medium",
+    "model_requested": "gpt-6.1-sol",
+    "price_book": {
+      "actual_billed_usd": null,
+      "conditional": true,
+      "date": "2026-10-08",
+      "source": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+      "standard_short_context_usd_per_million": {
+        "cache_read": 0.1,
+        "cache_write": 2.5,
+        "input": 2.0,
+        "output": 10.0
+      }
+    },
+    "repository_commit": "aae2719e29df37438e55bf52b00da3d7954bbd7f",
+    "round": 3,
+    "seed_files_sha256": {
+      "benchmarks/event-sim-tokens-v1/SPEC.md": "5a8631fc59f55d145bfabb62c8edd3f86164114e3d27b69422031b664b529e00"
+    },
+    "source_binary_sha256": "51bc391ca4c106374333ba0d272c702df263c384824933e29c12dd75b63e5a11"
+  },
+  "recorded_attempts": 4,
+  "resource_contaminated_attempts": 1,
+  "results_sha256": "60005d71bdf35fa8cfe7d09c1ec20c3f9b16536ee941c234570bac407398445d",
+  "schema": "semaprax.event-sim-codex-report.v1",
+  "trials": [
+    {
+      "acceptance_wall_seconds": 43.529,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 764.388,
+      "arm": "semaprax",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 2464128,
+      "conditional_api_equivalent_usd": 0.640827,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "86053e98cbc005d0a9b508fcaefd3459c862084359db9f072fec1a2f379eab87",
+        "exec": "d4fad28cd7671fbb9b07c0c210f48f42599133822eb4d45e60a5b39cfba176e6",
+        "prompt": "57fd0bd822dcb8b195ff48a7c2d87c6842233878cc87eced418080df5f9b6887",
+        "rollout": "bca1b4bfba3b3b48b0aeecc32f91dd24d033b59f396ba3b51b10352dd7e47b3d"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 9166,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 1897987,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 47,
+      "model_requests": 47,
+      "number": 1,
+      "output_tokens": 23570,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 2543485,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 7605219328
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-mainaae-20261008/resource-receipts/semaprax-01.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    },
+    {
+      "acceptance_wall_seconds": 5.375,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 190.145,
+      "arm": "typescript",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 92800,
+      "conditional_api_equivalent_usd": 0.10829,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "747b4aa1b208a7106e4227c76e21f192a96f81eea5bf6b23741473179fb316fd",
+        "exec": "0627a507a4f37af6d657b23f7312cbccf6dfc414317b7dfa74e77d50f7a74302",
+        "prompt": "03cbd0e0b605cacf3a9b126221fa39a359e158936c97bf4f025191d4b0c6f1ba",
+        "rollout": "d7b8af2cfccb4c1d5ba8e3653aff2f2cb0d0cb27905b042b645fe63626bdd91a"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 4666,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 25125,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 6,
+      "model_requests": 6,
+      "number": 1,
+      "output_tokens": 6966,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 107475,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 7548981248
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-mainaae-20261008/resource-receipts/typescript-01.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    },
+    {
+      "acceptance_wall_seconds": 1.589,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 210.118,
+      "arm": "typescript",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 102272,
+      "conditional_api_equivalent_usd": 0.122787,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "36e8d227df82e0694587c582c50ef23a45236e626d762aa09e84226db973ecc9",
+        "exec": "998916f969aa400d9150bc3b628f28b45349cf5d56557e877b23bffabe6d80d0",
+        "prompt": "6efc933f4c4b7448729e8f12b94b272a2954f3c9e0754045c2ec261164f189de",
+        "rollout": "be5e8a7c1a0684e5ad344db6a5fdcc7ff9eae93caf9b22577be0a1a0bf593f82"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 5103,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 26082,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 7,
+      "model_requests": 7,
+      "number": 2,
+      "output_tokens": 7279,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 122157,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 7510122496
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-mainaae-20261008/resource-receipts/typescript-02.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    },
+    {
+      "acceptance_wall_seconds": 24.945,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 853.631,
+      "arm": "semaprax",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 2035584,
+      "conditional_api_equivalent_usd": 0.695204,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "eb6dbe6814be2a7639bc13b9bd24b1a387024bd18bda679edd326422820b2194",
+        "exec": "8debf8492081a768065074fad9b20c0a624a0b8254aa770df4cf13f86606de20",
+        "prompt": "2d8b690e3d297a778851a7944b8cc05e7c521b02fd72632deb79360719bc6174",
+        "rollout": "042bbb662358ec29cd49edf5ffa84bc0e05d6d467df912427b5ef9b2d9f1b3a6"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 8977,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 1569200,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 43,
+      "model_requests": 43,
+      "number": 2,
+      "output_tokens": 24329,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 2159762,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": false,
+        "contaminated": true,
+        "cost_retained": true,
+        "incidents": [
+          {
+            "device": 16777233,
+            "free_bytes": 5154361344,
+            "kind": "disk_headroom_below_floor",
+            "path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-mainaae-20261008",
+            "unix_seconds": 1791461322.939189
+          }
+        ],
+        "minimum_free_bytes_by_device": {
+          "16777233": 4539781120
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-mainaae-20261008/resource-receipts/semaprax-02.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    }
+  ],
+  "unlaunched_order": [
+    "semaprax",
+    "typescript",
+    "typescript",
+    "semaprax",
+    "semaprax",
+    "typescript"
+  ],
+  "winner": null
+}

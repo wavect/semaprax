@@ -241,7 +241,7 @@ fn exact_nested_owned_and_borrowed_patterns_retain_binding_modes_and_owner() {
 }
 
 #[test]
-fn excluded_owned_byte_pattern_shape_retains_stable_source_diagnostic() {
+fn excluded_owned_byte_record_shape_is_rejected_before_pattern_resolution() {
     let source = r#"
 module test.nested_pattern_closed_shape;
 record Packet { payload: Bytes, text: string, }
@@ -251,15 +251,16 @@ fn invalid(packet: own Packet) -> i64 {
 fn main() -> i64 { 0 }
 "#;
     let errors = diagnostics(source);
-    assert!(
-        errors.iter().any(|diagnostic| {
-            diagnostic.code == "SPX-O117"
-                && diagnostic
-                    .message
-                    .contains("outside the bounded nested owned-Bytes profile")
-        }),
-        "excluded ownership-aware pattern must retain SPX-O117: {errors:?}"
-    );
+    // The record declaration itself is outside Nested Owned-Byte Records v1,
+    // so its stable error precedes ownership-aware pattern resolution.
+    let failures = errors
+        .iter()
+        .filter(|diagnostic| diagnostic.severity == semaprax::diagnostic::Severity::Error)
+        .collect::<Vec<_>>();
+    assert_eq!(failures.len(), 1, "excluded record diagnostics: {errors:?}");
+    assert_eq!(failures[0].code, "SPX-T268");
+    assert_eq!(failures[0].message,
+        "owned-Bytes record `Packet` must be a monomorphic acyclic record tree with only `Bytes` or direct Copy scalar leaves");
 }
 
 #[test]

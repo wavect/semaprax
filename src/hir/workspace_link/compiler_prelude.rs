@@ -189,8 +189,8 @@ pub(super) fn compiler_prelude_declarations_for(
     Ok(declarations)
 }
 
-pub(super) fn workspace_compiler_prelude()
--> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
+pub(super) fn workspace_compiler_prelude(
+) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
     workspace_compiler_prelude_for_vec(false)
 }
 
@@ -217,12 +217,12 @@ pub(super) fn workspace_compiler_prelude_for(
         false,
     )
 }
-pub(super) fn workspace_compiler_prelude_for_stream()
--> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
+pub(super) fn workspace_compiler_prelude_for_stream(
+) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
     workspace_compiler_prelude_selected(false, false, false, false, true, false, false)
 }
-pub(super) fn workspace_compiler_prelude_for_collections()
--> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
+pub(super) fn workspace_compiler_prelude_for_collections(
+) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
     workspace_compiler_prelude_selected(false, false, false, false, true, false, true)
 }
 fn workspace_compiler_prelude_selected(

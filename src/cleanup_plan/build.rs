@@ -2491,8 +2491,16 @@ impl<'a> PlanBuilder<'a> {
                         type_arguments,
                     } => {
                         let params = if let Some(op) = crate::map_ops::by_id(callee.as_str()) {
-                            if instance.is_some() {return Err(plan_error("typed collection intrinsic cannot carry a function instance"));}
-                            op.resolved_signature(type_arguments).ok_or_else(||plan_error("invalid typed collection cleanup signature"))?.0
+                            if instance.is_some() {
+                                return Err(plan_error(
+                                    "typed collection intrinsic cannot carry a function instance",
+                                ));
+                            }
+                            op.resolved_signature(type_arguments)
+                                .ok_or_else(|| {
+                                    plan_error("invalid typed collection cleanup signature")
+                                })?
+                                .0
                         } else if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
                             // Compiler-owned string operations carry their
                             // reserved identity instead of an authored

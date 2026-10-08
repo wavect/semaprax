@@ -587,11 +587,23 @@ fn booking_migrate_start(old_begin: i64) -> i64 { old_begin }
 #[test]
 fn v3_bad_constraint_and_migration_shapes_fail_closed() {
     for (name, function) in [
-        ("missing-other", "fn item_constraint(value: i64) -> bool { value > 0 }"),
-        ("wrong-other-type", "fn item_constraint(other_item_value: bool) -> bool { other_item_value }"),
-        ("wrong-destination", "fn item_migrate_missing() -> i64 { 1 }"),
+        (
+            "missing-other",
+            "fn item_constraint(value: i64) -> bool { value > 0 }",
+        ),
+        (
+            "wrong-other-type",
+            "fn item_constraint(other_item_value: bool) -> bool { other_item_value }",
+        ),
+        (
+            "wrong-destination",
+            "fn item_migrate_missing() -> i64 { 1 }",
+        ),
         ("wrong-return", "fn item_migrate_value() -> bool { true }"),
-        ("wrong-input", "fn item_migrate_value(value: i64) -> i64 { value }"),
+        (
+            "wrong-input",
+            "fn item_migrate_value(value: i64) -> i64 { value }",
+        ),
     ] {
         let source = format!("module v3; record Item {{ value: i64, }} {function}");
         let errors = generate(&write_temp(name, &source)).err().unwrap();
@@ -599,22 +611,41 @@ fn v3_bad_constraint_and_migration_shapes_fail_closed() {
     }
 }
 
-
 #[test]
 fn v3_runtime_security_migration_and_cross_row_contracts() {
-    let dir = std::env::temp_dir().join(format!("semaprax-webapp-v3-runtime-{}", std::process::id()));
+    let dir =
+        std::env::temp_dir().join(format!("semaprax-webapp-v3-runtime-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     for (name, bytes) in RUNTIME_FILES {
         std::fs::write(dir.join(name), bytes).unwrap();
     }
     std::fs::write(dir.join("package.json"), "{\"type\":\"module\"}").unwrap();
-    std::fs::write(dir.join("contracts.mjs"), include_str!("runtime-tests/v3.mjs")).unwrap();
-    std::fs::write(dir.join("http-contracts.mjs"), include_str!("runtime-tests/http-v3.mjs")).unwrap();
-    let output = std::process::Command::new("node").arg(dir.join("contracts.mjs")).output().expect("Node is required for the webapp v3 runtime contract");
-    let http = std::process::Command::new("node").arg(dir.join("http-contracts.mjs")).output().unwrap();
+    std::fs::write(
+        dir.join("contracts.mjs"),
+        include_str!("runtime-tests/v3.mjs"),
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("http-contracts.mjs"),
+        include_str!("runtime-tests/http-v3.mjs"),
+    )
+    .unwrap();
+    let output = std::process::Command::new("node")
+        .arg(dir.join("contracts.mjs"))
+        .output()
+        .expect("Node is required for the webapp v3 runtime contract");
+    let http = std::process::Command::new("node")
+        .arg(dir.join("http-contracts.mjs"))
+        .output()
+        .unwrap();
     std::fs::remove_dir_all(&dir).unwrap();
     for output in [output, http] {
-        assert!(output.status.success(), "{}\n{}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
+        assert!(
+            output.status.success(),
+            "{}\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
 }
 mod sg_regressions;

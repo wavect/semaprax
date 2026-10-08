@@ -198,5 +198,3 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
     }
     diagnostics
 }
-
-

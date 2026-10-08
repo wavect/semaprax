@@ -218,7 +218,7 @@ pub(crate) fn all_type_ids_v9() -> [&'static str; 23] {
 }
 
 pub(crate) fn all_reserved_ids() -> [&'static str; 66] {
-    let mut ids=["";66];
+    let mut ids = [""; 66];
     ids[..46].copy_from_slice(&[
         OPTION_ID,
         OPTION_NONE_ID,

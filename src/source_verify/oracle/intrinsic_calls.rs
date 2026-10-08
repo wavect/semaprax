@@ -23,7 +23,12 @@ pub(super) fn check_call(
     let typed = crate::map_ops::by_generic_name(name, type_arguments);
     let (params, result): (Vec<Param>, Type) = if let Some(op) = typed {
         let Some(signature) = op.ast_signature(type_arguments) else {
-            diagnostics.push(error(program, "SPX-T274", "typed collection requires admitted key/value type arguments", expression.span));
+            diagnostics.push(error(
+                program,
+                "SPX-T274",
+                "typed collection requires admitted key/value type arguments",
+                expression.span,
+            ));
             return None;
         };
         signature

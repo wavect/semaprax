@@ -70,7 +70,17 @@ impl OwnedGenericCallSite {
         span: Span,
     ) -> Result<(), Diagnostic> {
         match self {
-            Self::Map(op) => map::schedule(resolver, function, frames, type_arguments, args, bindings, path, span, op),
+            Self::Map(op) => map::schedule(
+                resolver,
+                function,
+                frames,
+                type_arguments,
+                args,
+                bindings,
+                path,
+                span,
+                op,
+            ),
             Self::List(op) => list::schedule(
                 resolver,
                 function,

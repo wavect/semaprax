@@ -86,7 +86,6 @@ pub(crate) mod replacement;
 use crate::ast::{Param, ParamMode, Span, Type};
 use crate::hir::{OwnershipMode, ResolvedParam, ResolvedType, ValueId};
 
-
 pub(crate) const LEN_NAME: &str = "string_len";
 pub(crate) const CONCAT_NAME: &str = "string_concat";
 pub(crate) const IS_EMPTY_NAME: &str = "string_is_empty";
@@ -456,7 +455,9 @@ impl StringOp {
                 ResolvedType::String,
                 ResolvedType::I64,
             ],
-            StringOp::MapHas | StringOp::MapRemove => &[ResolvedType::StringMap, ResolvedType::String],
+            StringOp::MapHas | StringOp::MapRemove => {
+                &[ResolvedType::StringMap, ResolvedType::String]
+            }
             StringOp::MapLen => &[ResolvedType::StringMap],
             StringOp::MapKeyAt | StringOp::MapValueAt => {
                 &[ResolvedType::StringMap, ResolvedType::Usize]
@@ -500,7 +501,10 @@ impl StringOp {
     /// `map_add` and `map_set` return their consumed map as the next
     /// generation; they are only admitted as a same-owner reopen.
     pub(crate) fn reopens_map(self) -> bool {
-        matches!(self, StringOp::MapAdd | StringOp::MapSet | StringOp::MapRemove)
+        matches!(
+            self,
+            StringOp::MapAdd | StringOp::MapSet | StringOp::MapRemove
+        )
     }
 
     /// String Collections v1 forms a fifth optional backend group.
@@ -590,7 +594,9 @@ impl StringOp {
             StringOp::UsizeFromU8 => ResolvedType::Usize,
             StringOp::F64FromI64 => ResolvedType::F64,
             StringOp::UsizeFromI64 => ResolvedType::Usize,
-            StringOp::MapNew | StringOp::MapAdd | StringOp::MapSet | StringOp::MapRemove => ResolvedType::StringMap,
+            StringOp::MapNew | StringOp::MapAdd | StringOp::MapSet | StringOp::MapRemove => {
+                ResolvedType::StringMap
+            }
             StringOp::MapLen => ResolvedType::Usize,
             StringOp::MapHas => ResolvedType::Bool,
             StringOp::MapKeyAt => ResolvedType::String,
@@ -623,7 +629,9 @@ impl StringOp {
             StringOp::UsizeFromU8 => Type::Usize,
             StringOp::F64FromI64 => Type::F64,
             StringOp::UsizeFromI64 => Type::Usize,
-            StringOp::MapNew | StringOp::MapAdd | StringOp::MapSet | StringOp::MapRemove => Type::StringMap,
+            StringOp::MapNew | StringOp::MapAdd | StringOp::MapSet | StringOp::MapRemove => {
+                Type::StringMap
+            }
             StringOp::MapLen => Type::Usize,
             StringOp::MapHas => Type::Bool,
             StringOp::MapKeyAt => Type::String,
@@ -811,9 +819,11 @@ pub(crate) fn is_same_owner_concat_source(value: &crate::ast::Expr, name: &str, 
     let crate::ast::ExprKind::Call { name: callee, .. } = &value.kind else {
         return false;
     };
-    if let crate::ast::ExprKind::Call {type_arguments,..}=&value.kind {
-        if let Some(op)=crate::map_ops::by_generic_name(callee,type_arguments) {
-            return op.reopens() && op.ast_type(type_arguments).as_ref()==Some(ty) && is_same_owner_concat_shape(value,name);
+    if let crate::ast::ExprKind::Call { type_arguments, .. } = &value.kind {
+        if let Some(op) = crate::map_ops::by_generic_name(callee, type_arguments) {
+            return op.reopens()
+                && op.ast_type(type_arguments).as_ref() == Some(ty)
+                && is_same_owner_concat_shape(value, name);
         }
     }
     let expected = match by_name(callee) {
@@ -835,10 +845,15 @@ pub(crate) fn is_same_owner_concat_shape(value: &crate::ast::Expr, name: &str) -
     else {
         return false;
     };
-    let typed=crate::map_ops::by_generic_name(callee,type_arguments);
-    (typed.is_some_and(|op|op.reopens()&&op.ast_type(type_arguments).is_some())
-        || (type_arguments.is_empty() && by_name(callee).is_some_and(StringOp::is_same_owner_reopen)))
-        && args.len() == typed.map_or_else(||by_name(callee).map_or(0,StringOp::arity),|op|op.arity())
+    let typed = crate::map_ops::by_generic_name(callee, type_arguments);
+    (typed.is_some_and(|op| op.reopens() && op.ast_type(type_arguments).is_some())
+        || (type_arguments.is_empty()
+            && by_name(callee).is_some_and(StringOp::is_same_owner_reopen)))
+        && args.len()
+            == typed.map_or_else(
+                || by_name(callee).map_or(0, StringOp::arity),
+                |op| op.arity(),
+            )
         && matches!(&args[0].kind, crate::ast::ExprKind::Var(source) if source == name)
         && !args[1..]
             .iter()
@@ -1095,15 +1110,25 @@ pub(crate) fn program_uses_op(program: &crate::hir::ResolvedProgram, op: StringO
 }
 
 /// Read-only presence query for optional additive helper groups.
-pub(crate) fn program_uses_operation(program: &crate::hir::ResolvedProgram, operation: StringOp) -> bool {
+pub(crate) fn program_uses_operation(
+    program: &crate::hir::ResolvedProgram,
+    operation: StringOp,
+) -> bool {
     let mut pending = Vec::new();
-    for function in program.functions.iter().chain(program.function_instances.iter().map(|i| &i.function)) {
+    for function in program
+        .functions
+        .iter()
+        .chain(program.function_instances.iter().map(|i| &i.function))
+    {
         pending.push(&function.body);
         pending.extend(function.requires.iter().chain(&function.ensures));
     }
     while let Some(expression) = pending.pop() {
-        if matches!(&expression.kind, crate::hir::ResolvedExprKind::Call {callee,..} if by_id(callee.as_str())==Some(operation)) {return true}
-        crate::hir::push_resolved_expression_children_in_authored_order(expression,&mut pending);
+        if matches!(&expression.kind, crate::hir::ResolvedExprKind::Call {callee,..} if by_id(callee.as_str())==Some(operation))
+        {
+            return true;
+        }
+        crate::hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
     }
     false
 }

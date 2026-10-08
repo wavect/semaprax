@@ -69,6 +69,8 @@ mod interop_scalar_widen;
 mod interpreter_scalar_widen;
 #[path = "language/loop_command_input_v1.rs"]
 mod loop_command_input_v1;
+#[path = "language/map_collections_v2.rs"]
+mod map_collections_v2;
 #[path = "language/match_mode_graph_v21.rs"]
 mod match_mode_graph_v21;
 #[path = "language/match_modes_syntax.rs"]
@@ -125,8 +127,6 @@ mod std_collections_vec_wrappers;
 mod string_branch_results;
 #[path = "language/string_collections_v1.rs"]
 mod string_collections_v1;
-#[path = "language/map_collections_v2.rs"]
-mod map_collections_v2;
 #[path = "language/string_numeric_text.rs"]
 mod string_numeric_text;
 #[path = "language/string_ops_v1.rs"]

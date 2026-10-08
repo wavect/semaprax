@@ -16,7 +16,8 @@ use crate::string_ops::StringOp;
 /// Whether a value owns String text: a `string`, or a String Collections v1
 /// map, whose keys are length-delimited Strings.
 pub(super) fn owns_text(ty: &ResolvedType) -> bool {
-    matches!(ty, ResolvedType::String | ResolvedType::StringMap) || crate::map_ops::is_typed_collection(ty)
+    matches!(ty, ResolvedType::String | ResolvedType::StringMap)
+        || crate::map_ops::is_typed_collection(ty)
 }
 
 /// Emit the map helpers when a length-delimited String profile reaches them;
@@ -28,7 +29,9 @@ pub(super) fn emit_runtime(
 ) {
     if strings.length_delimited && program_uses_collections(program, strings.include_instances) {
         output.push_str(RUNTIME_C);
-        if crate::string_ops::program_uses_operation(program, StringOp::MapRemove) || crate::map_ops::resolved_program_uses(program) {
+        if crate::string_ops::program_uses_operation(program, StringOp::MapRemove)
+            || crate::map_ops::resolved_program_uses(program)
+        {
             output.push_str(REMOVE_RUNTIME_C);
         }
     }
@@ -41,11 +44,28 @@ pub(super) fn program_uses_collections(
     include_instances: bool,
 ) -> bool {
     let mut pending = Vec::new();
-    if program.types.iter().any(|declaration|match &declaration.kind {
-        crate::hir::ResolvedTypeDeclarationKind::Record{fields}|crate::hir::ResolvedTypeDeclarationKind::Class{fields,..}=>fields.iter().any(|field|field.ty==ResolvedType::StringMap),_=>false,
-    }){return true;}
+    if program
+        .types
+        .iter()
+        .any(|declaration| match &declaration.kind {
+            crate::hir::ResolvedTypeDeclarationKind::Record { fields }
+            | crate::hir::ResolvedTypeDeclarationKind::Class { fields, .. } => fields
+                .iter()
+                .any(|field| field.ty == ResolvedType::StringMap),
+            _ => false,
+        })
+    {
+        return true;
+    }
     for function in super::string_runtime_functions(program, include_instances) {
-        if function.return_type==ResolvedType::StringMap || function.params.iter().any(|param|param.ty==ResolvedType::StringMap){return true;}
+        if function.return_type == ResolvedType::StringMap
+            || function
+                .params
+                .iter()
+                .any(|param| param.ty == ResolvedType::StringMap)
+        {
+            return true;
+        }
         pending.push(&function.body);
         pending.extend(function.requires.iter().chain(&function.ensures));
     }
@@ -122,13 +142,20 @@ impl<O: COutput> CEmitter<'_, O> {
                 argument(1)
             ),
             StringOp::MapRemove => {
-                let plan = self.bytes_plan.ok_or_else(|| backend_error("map removal has no cleanup plan"))?;
+                let plan = self
+                    .bytes_plan
+                    .ok_or_else(|| backend_error("map removal has no cleanup plan"))?;
                 let (source, source_flag, _) = plan.call_argument(expression, 0)?;
                 let (source, source_flag) = (source.to_owned(), source_flag.to_owned());
                 if source != argument(0) {
-                    return Err(backend_error("map removal operand is not its canonical call argument"));
+                    return Err(backend_error(
+                        "map removal operand is not its canonical call argument",
+                    ));
                 }
-                self.line(&format!("{temporary} = spx_map_remove_v2({source}, {});", argument(1)));
+                self.line(&format!(
+                    "{temporary} = spx_map_remove_v2({source}, {});",
+                    argument(1)
+                ));
                 self.line(&format!("{source_flag} = false;"));
                 self.line(&format!("{source} = NULL;"));
                 return Ok(());

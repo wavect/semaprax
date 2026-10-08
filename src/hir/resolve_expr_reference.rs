@@ -206,7 +206,9 @@ impl Resolver<'_> {
                         span: expr.span,
                     });
                 }
-                if let Some(op) = crate::string_ops::by_name(name).filter(|_| crate::map_ops::by_generic_name(name, type_arguments).is_none()) {
+                if let Some(op) = crate::string_ops::by_name(name)
+                    .filter(|_| crate::map_ops::by_generic_name(name, type_arguments).is_none())
+                {
                     // Oracle parity: the recursive-reference resolver admits string operations exactly like the iterative resolver.
                     if !type_arguments.is_empty() {
                         return Err(self.error(

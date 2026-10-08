@@ -40,7 +40,9 @@ pub(super) fn check_function_declarations<'p>(
                 function.name_span,
             ));
         }
-        if crate::string_ops::by_name(&function.name).is_some() || crate::map_ops::by_name(&function.name).is_some() {
+        if crate::string_ops::by_name(&function.name).is_some()
+            || crate::map_ops::by_name(&function.name).is_some()
+        {
             diagnostics.push(error(
                 program,
                 "SPX-S113",

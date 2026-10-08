@@ -328,15 +328,29 @@ pub(super) fn build(program: &Program, source: &str) -> Result<Model, Vec<Diagno
     for (function, index, suffix, kind) in &classified {
         if let Kind::Migration(field) = kind {
             if !migration_fields.insert((*index, field.clone())) {
-                errors.push(shape_error(format!("duplicate migration for `{field}`"), function.name_span, "keep exactly one migration for each destination field"));
+                errors.push(shape_error(
+                    format!("duplicate migration for `{field}`"),
+                    function.name_span,
+                    "keep exactly one migration for each destination field",
+                ));
                 continue;
             }
         }
         if matches!(kind, Kind::Constraint | Kind::Migration(_)) {
-            match v3::project(function, *index, suffix, kind, &entities, &enums, &mut translator) {
+            match v3::project(
+                function,
+                *index,
+                suffix,
+                kind,
+                &entities,
+                &enums,
+                &mut translator,
+            ) {
                 Ok((constraint, value)) => {
                     if constraint {
-                        entities[*index].summary.push(format!("constraint({suffix})"));
+                        entities[*index]
+                            .summary
+                            .push(format!("constraint({suffix})"));
                         entities[*index].constraints.push(value);
                     } else {
                         entities[*index].summary.push(format!("{suffix}()"));

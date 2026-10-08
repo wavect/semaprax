@@ -180,7 +180,6 @@ pub(crate) mod iterator_ops;
 pub(crate) mod kernel_zero;
 pub mod lexer;
 mod list_ops;
-mod map_ops;
 #[allow(
     dead_code,
     unused_imports,
@@ -211,6 +210,7 @@ mod map_ops;
 pub mod live_invocation;
 pub mod loan_plan;
 pub(crate) mod loop_calls;
+mod map_ops;
 #[allow(
     clippy::too_many_arguments,
     reason = "REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend"

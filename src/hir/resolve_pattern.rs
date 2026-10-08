@@ -12,9 +12,9 @@ use super::expr_nodes::{
 use super::ids::{DeclarationId, FunctionExecutionId, ValueId};
 use super::monomorphize::substitute_type;
 use super::nodes::{
+    resolver_admits_flat_owned_byte_variant, resolver_admits_flat_owned_string_variant,
     DeclarationKind, OwnershipMode, ResolvedBinding, ResolvedFieldDeclaration, ResolvedMatchMode,
-    ResolvedType, resolver_admits_flat_owned_byte_variant,
-    resolver_admits_flat_owned_string_variant,
+    ResolvedType,
 };
 use super::{Binding, Resolver};
 

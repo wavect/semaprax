@@ -518,7 +518,10 @@ pub(super) fn oracle_call(
             )
         });
     }
-    if crate::map_ops::by_generic_name(name, type_arguments).is_some() || crate::string_ops::by_name(name).is_some() || crate::str_ops::by_name(name).is_some() {
+    if crate::map_ops::by_generic_name(name, type_arguments).is_some()
+        || crate::string_ops::by_name(name).is_some()
+        || crate::str_ops::by_name(name).is_some()
+    {
         return super::intrinsic_calls::check_call(
             name,
             type_arguments,

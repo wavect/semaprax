@@ -12,8 +12,8 @@ use crate::source_verify::declared_type::{
 };
 use crate::source_verify::diagnostics::error;
 use crate::source_verify::type_table::{
-    NestedOwnedRecordAdmission, TypeTable, classify_nested_owned_byte_record,
-    owned_byte_record_copy_field_is_admitted,
+    classify_nested_owned_byte_record, owned_byte_record_copy_field_is_admitted,
+    NestedOwnedRecordAdmission, TypeTable,
 };
 use std::collections::{HashMap, HashSet};
 

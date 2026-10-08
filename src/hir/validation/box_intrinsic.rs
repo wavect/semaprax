@@ -93,8 +93,10 @@ pub(super) fn is_type(
     declaration: &DeclarationId,
     arguments: &[ResolvedType],
 ) -> bool {
-    crate::map_ops::is_typed_collection(&ResolvedType::Nominal{declaration:declaration.clone(),arguments:arguments.to_vec()})
-        || (matches!(
+    crate::map_ops::is_typed_collection(&ResolvedType::Nominal {
+        declaration: declaration.clone(),
+        arguments: arguments.to_vec(),
+    }) || (matches!(
         declaration.as_str(),
         crate::list_ops::LIST_ID | crate::list_ops::STEP_ID
     ) && arguments == [ResolvedType::I64])
@@ -135,8 +137,12 @@ pub(super) fn signature(
     args: &[ResolvedExpr],
 ) -> Result<Option<(Vec<ResolvedParam>, ResolvedType)>, Diagnostic> {
     if let Some(op) = crate::map_ops::by_id(callee.as_str()) {
-        let signature=op.resolved_signature(type_arguments).ok_or_else(||hir_error("invalid typed collection signature"))?;
-        if instance.is_some() || args.len()!=signature.0.len() {return Err(hir_error("invalid typed collection call shape"));}
+        let signature = op
+            .resolved_signature(type_arguments)
+            .ok_or_else(|| hir_error("invalid typed collection signature"))?;
+        if instance.is_some() || args.len() != signature.0.len() {
+            return Err(hir_error("invalid typed collection call shape"));
+        }
         return Ok(Some(signature));
     }
     if let Some(op) = crate::stdin_stream_ops::pure_by_id(callee.as_str()) {

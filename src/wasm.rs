@@ -958,10 +958,29 @@ fn emit_resolved_module_internal(
     let has_public_profile = !scalar_exports.is_empty() || !text_exports.is_empty();
     if aggregate::map_collections::uses(program) {
         hir::validate(program)?;
-        aggregate::conversions::validate_public_profile(program,has_public_profile)?;
-        if program.interfaces.iter().flat_map(|interface|&interface.imports).any(|import|import.native_rust){return Err(Diagnostic::io("SPX-W114","Native Rust imports are unavailable for WebAssembly targets"));}
-        if !text_exports.is_empty(){return Err(Diagnostic::io("SPX-W119","map profile does not widen borrowed-text exports"));}
-        return if scalar_exports.is_empty(){aggregate::emit(program)}else{aggregate::emit_scalar_exports(program,scalar_exports)};
+        aggregate::conversions::validate_public_profile(program, has_public_profile)?;
+        if program
+            .interfaces
+            .iter()
+            .flat_map(|interface| &interface.imports)
+            .any(|import| import.native_rust)
+        {
+            return Err(Diagnostic::io(
+                "SPX-W114",
+                "Native Rust imports are unavailable for WebAssembly targets",
+            ));
+        }
+        if !text_exports.is_empty() {
+            return Err(Diagnostic::io(
+                "SPX-W119",
+                "map profile does not widen borrowed-text exports",
+            ));
+        }
+        return if scalar_exports.is_empty() {
+            aggregate::emit(program)
+        } else {
+            aggregate::emit_scalar_exports(program, scalar_exports)
+        };
     }
     aggregate::conversions::validate_public_profile(program, has_public_profile)?;
     if crate::list_ops::resolved_program_uses_list(program) {
@@ -1916,7 +1935,10 @@ pub fn build_web(program: &Program, output: &Path) -> Result<(), Diagnostic> {
             .declaration(&declaration.id)
             .is_some_and(|item| item.identity_origin == IdentityOrigin::CompilerOwned)
     });
-    if uses_strings && !has_authored_aggregate && !aggregate::text_toolkit::program_uses_toolkit(&resolved) {
+    if uses_strings
+        && !has_authored_aggregate
+        && !aggregate::text_toolkit::program_uses_toolkit(&resolved)
+    {
         return Err(Diagnostic::io(
             "SPX-W116",
             "legacy scalar Web packages do not supply the required String runtime imports",

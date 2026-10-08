@@ -291,7 +291,12 @@ pub(super) fn resolved_call_params(
                 .collect());
         }
         if let Some(op) = crate::map_ops::by_id(callee.as_str()) {
-            return op.resolved_signature(type_arguments).map(|s|s.0).ok_or_else(||replay_error(function,"invalid typed collection replay signature"));
+            return op
+                .resolved_signature(type_arguments)
+                .map(|s| s.0)
+                .ok_or_else(|| {
+                    replay_error(function, "invalid typed collection replay signature")
+                });
         }
         if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
             return Ok(crate::string_ops::resolved_params(op));

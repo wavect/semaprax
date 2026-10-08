@@ -444,7 +444,9 @@ impl<'a> TypeTable<'a> {
     /// `contains_resource`: compiler-owned `Bytes` is not an opaque resource,
     /// but records and variants containing it are still non-Copy owners.
     pub(super) fn needs_drop(&self, ty: &Type) -> bool {
-        if crate::map_ops::ast_collection(ty) {return true}
+        if crate::map_ops::ast_collection(ty) {
+            return true;
+        }
         enum Frame {
             Enter(Type),
             Exit(String),
@@ -457,7 +459,7 @@ impl<'a> TypeTable<'a> {
                 Frame::Exit(instance) => {
                     visiting.remove(&instance);
                 }
-                Frame::Enter(ty) if crate::map_ops::ast_collection(&ty)=>return true,
+                Frame::Enter(ty) if crate::map_ops::ast_collection(&ty) => return true,
                 Frame::Enter(ty) => match ty {
                     Type::String
                     | Type::Bytes

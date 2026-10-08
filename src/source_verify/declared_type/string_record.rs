@@ -22,7 +22,7 @@ fn string_field<'a>(ty: &Type, types: &TypeTable<'a>) -> Option<(&'a str, &'a st
     };
     fields
         .iter()
-        .find(|field| types.contains_string(&field.ty)||crate::map_ops::ast_collection(&field.ty))
+        .find(|field| types.contains_string(&field.ty) || crate::map_ops::ast_collection(&field.ty))
         .map(|field| (declaration.name.as_str(), field.name.as_str()))
 }
 
@@ -75,7 +75,10 @@ pub(in crate::source_verify) fn admitted(root: &Type, types: &TypeTable<'_>) -> 
     let mut text = false;
     while let Some(frame) = pending.pop() {
         match frame {
-            Frame::Enter(ty, _) if crate::map_ops::ast_collection(&ty) => {text=true;leaves+=1;}
+            Frame::Enter(ty, _) if crate::map_ops::ast_collection(&ty) => {
+                text = true;
+                leaves += 1;
+            }
             Frame::Enter(Type::String, _) => {
                 text = true;
                 leaves += 1;

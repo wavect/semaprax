@@ -255,13 +255,11 @@ fn drop_bearing_aggregates_need_a_mode_and_value_types_must_not_have_one() {
         ),
         ["SPX-O001"]
     );
-    assert!(
-        ownership_codes(
-            "scalar",
-            param("token", ParamMode::Own, named("Token", Vec::new()))
-        )
-        .is_empty()
-    );
+    assert!(ownership_codes(
+        "scalar",
+        param("token", ParamMode::Own, named("Token", Vec::new()))
+    )
+    .is_empty());
 
     // The converse: a mode on a pure value type is its own code, so the two
     // mistakes never share a repair.
@@ -277,13 +275,11 @@ fn drop_bearing_aggregates_need_a_mode_and_value_types_must_not_have_one() {
         ["SPX-O002"]
     );
     assert!(ownership_codes("scalar", param("value", ParamMode::Value, Type::I64)).is_empty());
-    assert!(
-        ownership_codes(
-            "scalar",
-            param("plain", ParamMode::Value, named("Plain", Vec::new()))
-        )
-        .is_empty()
-    );
+    assert!(ownership_codes(
+        "scalar",
+        param("plain", ParamMode::Value, named("Plain", Vec::new()))
+    )
+    .is_empty());
 }
 
 #[test]
@@ -300,13 +296,11 @@ fn explicit_string_mode_explains_implicit_ownership_and_read_only_views() {
     let help = error.help.as_deref().unwrap();
     assert!(help.contains("text: string"));
     assert!(help.contains("text: borrow str"));
-    assert!(
-        crate::check(
-            &source.replace("text: own string", "text: string"),
-            "string-mode.spx"
-        )
-        .is_ok()
-    );
+    assert!(crate::check(
+        &source.replace("text: own string", "text: string"),
+        "string-mode.spx"
+    )
+    .is_ok());
 }
 
 #[test]

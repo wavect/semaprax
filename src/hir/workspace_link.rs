@@ -1145,7 +1145,7 @@ fn resolved_function_uses_list(function: &ResolvedFunction) -> bool {
 mod tests {
     use std::path::Path;
 
-    use crate::workspace_graph::{WorkspaceSource, build_owned};
+    use crate::workspace_graph::{build_owned, WorkspaceSource};
 
     mod profile_tests;
 

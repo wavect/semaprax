@@ -17,7 +17,10 @@ pub(crate) fn admitted(root: &ResolvedType, declarations: &DeclarationIndex) -> 
     let mut text = false;
     while let Some(frame) = pending.pop() {
         match frame {
-            Frame::Enter(ty, _) if crate::map_ops::is_collection(&ty) => {text=true;leaves+=1;}
+            Frame::Enter(ty, _) if crate::map_ops::is_collection(&ty) => {
+                text = true;
+                leaves += 1;
+            }
             Frame::Enter(ResolvedType::String, _) => {
                 text = true;
                 leaves += 1;

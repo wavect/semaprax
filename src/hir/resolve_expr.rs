@@ -228,7 +228,9 @@ impl Resolver<'_> {
                                 path,
                                 segment: "native-rust-arg",
                             });
-                        } else if let Some(op) = crate::string_ops::by_name(name).filter(|_| crate::map_ops::by_generic_name(name, type_arguments).is_none()) {
+                        } else if let Some(op) = crate::string_ops::by_name(name).filter(|_| {
+                            crate::map_ops::by_generic_name(name, type_arguments).is_none()
+                        }) {
                             if !type_arguments.is_empty() {
                                 return Err(self.error(
                                     "SPX-H006",

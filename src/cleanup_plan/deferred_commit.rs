@@ -52,7 +52,9 @@ pub(super) fn call_behavior(
 /// before they take the staged map, so a failed call leaves it in its
 /// call-argument slot for ordinary region cleanup.
 pub(super) fn is_map_reopen(callee: &DeclarationId) -> bool {
-    crate::map_ops::by_id(callee.as_str()).is_some_and(|op|op.reopens()) || crate::string_ops::by_id(callee.as_str()).is_some_and(crate::string_ops::StringOp::reopens_map)
+    crate::map_ops::by_id(callee.as_str()).is_some_and(|op| op.reopens())
+        || crate::string_ops::by_id(callee.as_str())
+            .is_some_and(crate::string_ops::StringOp::reopens_map)
 }
 
 /// `true` for a byte operation that is total after HIR admission and therefore

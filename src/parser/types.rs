@@ -162,7 +162,9 @@ impl Parser {
             name: "Map".to_owned(),
             arguments,
         };
-        if crate::map_ops::ast_collection(&found) {return Ok(found)}
+        if crate::map_ops::ast_collection(&found) {
+            return Ok(found);
+        }
         Err(refusal(self, found.to_string()))
     }
 

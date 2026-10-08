@@ -1,0 +1,139 @@
+{
+  "schema": "semaprax.opt-batch-verification.v1",
+  "issues": [
+    683,
+    684,
+    685
+  ],
+  "compiler_identity": {
+    "schema": "semaprax.compiler-build-identity.v1",
+    "compiler_source_commit": "4b33d6e5f6e3a0262bcc496dfa233f030fe119dc",
+    "binary_sha256": "a82625d9e9567ddade01252f8938261b819b685b3471d0d528fe49e6f1d7b0f6",
+    "binary": "/Users/kevin/.codex/benchmark-binaries/semaprax-4b33d6e5f",
+    "source_was_clean": true,
+    "cargo_target_was_private": true,
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked",
+      "-p",
+      "semaprax",
+      "--bin",
+      "semaprax"
+    ],
+    "build_log": "/Users/kevin/.codex/benchmark-runs/opt683-685-verification-20261008/compiler-freeze-build.log",
+    "note": "Actual exit 0 at clean source; private build after all selected tests and scoped clippy. No full quality gates."
+  },
+  "checks": [
+    {
+      "log": "/Users/kevin/.codex/benchmark-runs/opt683-685-verification-20261008/loan-plan.log",
+      "log_sha256": "274b78cca29483505a1d1f9e075c54b16a11ccc0dec68f08efcbacac909fd4d3",
+      "passed_cases": 13,
+      "exit_code": 101,
+      "note": "Initial subsystem run: 13 passed, one invalid new fixture failed; only failed case subsequently repaired and rerun."
+    },
+    {
+      "log": "/Users/kevin/.codex/benchmark-runs/opt683-685-verification-20261008/loan-distinct-fixed.log",
+      "log_sha256": "6957689b19dc1db4535a99872ac7b7354c88e238b666881ae90ac21ea27054da",
+      "passed_cases": 1,
+      "exit_code": 0,
+      "note": "Selected owning check passed with nonzero test count."
+    },
+    {
+      "log": "/Users/kevin/.codex/benchmark-runs/opt683-685-verification-20261008/project-private-vec-fixed.log",
+      "log_sha256": "b6d1ab820745306dadc2878e0b7f05357fe97b7780ecbe5451f84c89d5afc04c",
+      "passed_cases": 1,
+      "exit_code": 0,
+      "note": "Selected owning check passed with nonzero test count."
+    },
+    {
+      "log": "/Users/kevin/.codex/benchmark-runs/opt683-685-verification-20261008/language-private-vec.log",
+      "log_sha256": "a5512b8d817a22a887aa5f5e3619828cb7c9ff93e7157607676d9ed62b19f330",
+      "passed_cases": 2,
+      "exit_code": 0,
+      "note": "Selected owning check passed with nonzero test count."
+    },
+    {
+      "log": "/Users/kevin/.codex/benchmark-runs/opt683-685-verification-20261008/help-exact-bin-final.log",
+      "log_sha256": "488b2bd4908a6dd146d9dae2bd1f6ea3e7c75d586d997d1a8a6727f611d5a4d2",
+      "passed_cases": 1,
+      "exit_code": 0,
+      "note": "Selected owning check passed with nonzero test count."
+    },
+    {
+      "log": "/Users/kevin/.codex/benchmark-runs/opt683-685-verification-20261008/help-topics-final.log",
+      "log_sha256": "6967cea1b4743013b72f0b38ea63f7c857d84afe941cbc86d95bff7f23ec1a0a",
+      "passed_cases": 1,
+      "exit_code": 0,
+      "note": "Selected owning check passed with nonzero test count."
+    },
+    {
+      "log": "/Users/kevin/.codex/benchmark-runs/opt683-685-verification-20261008/documentation-pin.log",
+      "log_sha256": "947a69c6146d23487e7ea2e0b81df2997200b3537b0ab14eb13d3c23dd4c1284",
+      "passed_cases": 1,
+      "exit_code": 0,
+      "note": "Selected owning check passed with nonzero test count."
+    }
+  ],
+  "distinct_selected_cases_passed": 20,
+  "scoped_clippy": {
+    "command": [
+      "cargo",
+      "clippy",
+      "--locked",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--bin",
+      "semaprax",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit_code": 0,
+    "log_sha256": "20429e49ac518c811bb07210d7ddefba5d3affb103cab5d63e54748e57d6f273",
+    "source_at_invocation": "85cdc81f163dd8a8dc514e4b343faceaa0d22107",
+    "source_at_completion": "4b33d6e5f6e3a0262bcc496dfa233f030fe119dc",
+    "delta": "Only cfg(test) shortlist assertion whitespace formatting; enabled production source unchanged."
+  },
+  "formatting": {
+    "initial_whole_workspace_exit_code": 1,
+    "repairs": "Two new test assertions formatted; selected changed-file rustfmt checks exited 0.",
+    "final_help_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "hir_and_language_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "history": {
+    "invalid_selector": {
+      "log_sha256": "fcb612005778ebeb4f11840ae997a7cd68621b1867f6c67cb2378aa0fc03dc66",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "counts_as_verification": false,
+      "repair": "Use CLI binary target and cli_driver::cli namespace."
+    },
+    "failed_checks_retained": [
+      "loan-plan.log",
+      "project-private-vec.log",
+      "help-exact-bin.log",
+      "help-exact-bin-fixed.log"
+    ],
+    "repairs": [
+      "Enlarged real CFG fixture to retain all 256 distinct starts.",
+      "Authenticated exact borrowed Vec helper arguments in HIR loop validation; added hostile ownership mutation rejection.",
+      "Updated actual-catalogue shortlist expectation for its unchanged row-count ranking; retained synthetic catalogue-growth contract.",
+      "Restored exact T208 example/remedy and regenerated JSON pin."
+    ]
+  },
+  "scope": {
+    "full_quality_gates_run": false,
+    "heavy_cargo_jobs_concurrent": 1,
+    "target_dir": "private under worktree",
+    "limits_and_negative_controls_weakened": false,
+    "loan_work_limit": 1000000,
+    "graph_schema_changed": false,
+    "pins_regenerated": [
+      "docs/AGENT-DIAGNOSTIC-HELP.json"
+    ],
+    "live_savings_claimed": false
+  },
+  "artifacts": "/Users/kevin/.codex/benchmark-runs/opt683-685-verification-20261008"
+}

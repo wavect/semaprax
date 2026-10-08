@@ -114,7 +114,15 @@ every passed/failed/unverified case, missing obligations, password evidence,
 and timestamps. `process.log` retains child stdout/stderr. Missing checks and
 unverified obligations fail qualification. Cases continue after ordinary
 assertion failures; fatal bootstrap/browser failures produce explicit missing
-cases. A physical browser failure is not converted into an API-only pass.
+cases. A physical browser failure is not converted into an API-only pass. Reference
+DOM compatibility assumptions (tables for list extraction and native select/
+input controls) are adapter limits, not extra SPEC requirements. Unsupported
+semantic layouts are unverified and require a reviewed browser adapter; they
+are never silently accepted or called a functional SPEC failure. The oracle
+expectations remain fixed when an adapter changes. Detail/dashboard/reference
+checks use visible field text, counts, and actual row links rather than dt/dd
+or h2/h3 tags. Numeric and string sorting compare the complete independent
+order across the25-row pagination boundary in both directions.
 There is no live-agent gain claim in this gate preparation.
 
 The gate starts one application plus one Chromium process and issues hundreds

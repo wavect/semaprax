@@ -246,6 +246,7 @@ Audience: all documentation readers.
 - [Native Rust Rich Cargo Preparation v1](NATIVE-RUST-RICH-CARGO-PREPARATION-V1.md)
 - [Public Project Scaffold Capsule v3](PROJECT-SCAFFOLD-V3.md)
 - [Project Scaffold Capsule v4](PROJECT-SCAFFOLD-V4.md)
+- [Project Scaffold Capsule v5](PROJECT-SCAFFOLD-V5.md)
 - [Project Scaffold Service Template v1](PROJECT-SCAFFOLD-SERVICE-V1.md)
 - [Reference Service Host v1](REFERENCE-SERVICE-HOST-V1.md)
 - [Reference service JSON event v2](REFERENCE-SERVICE-JSON-EVENT-V2.md)

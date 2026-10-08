@@ -31,7 +31,19 @@ permit { process.args.read, process.stderr.write, process.stdin.read, process.st
 "#;
 
 const HELPERS: &str = r#"module stream.helpers;
-@id("data.count") fn count(values:borrow Vec<i64>)->usize {vec_len<i64>(values)}
+@id("data.at") fn at(values:borrow Vec<i64>,index:usize)->i64 {
+    if index<vec_len<i64>(values) {vec_get<i64>(values,index)}else{0}
+}
+@id("data.count") fn count(values:borrow Vec<i64>)->usize {
+    let mut index=0usize;
+    let mut total=0;
+    while index<vec_len<i64>(values) {
+        total=total+at(values,index);
+        index=index+1usize;
+        0
+    }
+    if total==7 {index}else{0usize}
+}
 @id("data.ascii") fn ascii(ignored:i64)->char {'x'}
 @id("data.ratio") fn ratio(value:f64)->f64 {value}
 @id("data.scalars")

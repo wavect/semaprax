@@ -91,16 +91,11 @@ pub(crate) fn stream_text_return_admitted(ty: &ResolvedType) -> bool {
         || useful_data_workspace_return_admitted(ty)
 }
 
-fn borrowed_copy_vec(ty: &ResolvedType) -> bool {
-    matches!(ty, ResolvedType::Nominal { declaration, arguments }
-        if declaration.as_str() == crate::prelude::VEC_ID
-            && matches!(arguments.as_slice(), [element] if crate::hir::generic_collection::scalar(element)))
-}
-
 /// Project v27 adds only one private carrier to the v25 helper surface.
 pub(crate) fn stream_data_parameter_admitted(parameter: &ResolvedParam) -> bool {
     stream_text_parameter_admitted(parameter)
-        || (parameter.ownership == OwnershipMode::Borrow && borrowed_copy_vec(&parameter.ty))
+        || (parameter.ownership == OwnershipMode::Borrow
+            && crate::vec_ops::resolved_copy_vec(&parameter.ty))
 }
 
 impl WorkspaceIoProfile {

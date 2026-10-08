@@ -10,7 +10,8 @@ own local evidence; they do not establish hosted or public ABI support.
 
 A `while` or `for` body may call a monomorphic user function
 whose result is a Copy scalar, flat Copy variant or `string`, and whose parameters are Copy
-scalars or flat Copy variants, named borrowed byte slices or `str` views, or consumed strings. The
+scalars or flat Copy variants, named borrowed byte slices or `str` views, exact
+compiler-owned `borrow Vec<T>` values for Copy-scalar `T`, or consumed strings. The
 closed read-only effects `process.args.read`, `fs.read`, and
 `process.environment.read` are admitted when ordinarily declared and permitted;
 other effectful user calls stay refused. Body-local Strings stage
@@ -68,6 +69,13 @@ generic calls outside an existing admitted intrinsic, and write-effect user call
 retain their refusals. This widening changes no graph or CleanupPlan schema:
 ordinary match decisions and per-iteration cleanup facts retain their existing
 meaning. Loop-entry ownership must still equal successful body-exit ownership.
+
+The borrowed Vec case admits only the compiler-owned identity and the eight
+Copy scalars `i64`, `i32`, `u8`, `usize`, `char`, `f32`, `f64`, and `bool`.
+Owned/shared Vec parameters, Vec results, `Vec<Bytes>`, authored elements and
+generic wrappers remain refused. Inside loops, use canonical compiler
+operations such as `vec_len<T>` and `vec_get<T>`; imported generic aliases do
+not become admitted intrinsics.
 
 ## Focused gates
 

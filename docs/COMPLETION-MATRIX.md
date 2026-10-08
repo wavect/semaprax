@@ -317,8 +317,10 @@ the remaining threshold, not as a list of existing features.
 
 Project v27 [Stream Data Command v1](STREAM-DATA-COMMAND-V1.md) has an authored
 focused native/refusal gate for authenticated private Copy-scalar and shared
-`Vec<Copy scalar>` helpers. The focused local native/refusal gate passes; this adds
-no hosted, Web, Wasm, npm, public-Vec, owned-Vec, or broader collection claim.
+`Vec<Copy scalar>` helpers, including exact immutable Vec helper calls from
+bounded loops. The existing v27 boundary gate passes; the loop-call extension
+is authored pending the combined source verification. This adds no hosted,
+Web, Wasm, npm, public-Vec, owned-Vec, or broader collection claim.
 
 | Requirement | Status | Evidence owner | Complete when |
 | --- | --- | --- | --- |

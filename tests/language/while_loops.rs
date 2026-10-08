@@ -375,6 +375,90 @@ fn main() -> i64 {
 }
 
 #[test]
+fn borrowed_copy_scalar_vec_helpers_are_admitted_inside_loops() {
+    for (ty, value) in [
+        ("i64", "7"),
+        ("i32", "7i32"),
+        ("u8", "7u8"),
+        ("usize", "7usize"),
+        ("char", "'x'"),
+        ("f32", "7.0f32"),
+        ("f64", "7.0"),
+        ("bool", "true"),
+    ] {
+        let source = format!(
+            r#"module test.while_vec_call;
+@id("call.length")
+fn length(values: borrow Vec<{ty}>) -> usize {{ vec_len<{ty}>(values) }}
+@id("app.main")
+fn main() -> i64 {{
+    let values = vec_push<{ty}>(vec_with_capacity<{ty}>(1usize), {value});
+    let mut iterations = 0usize;
+    let mut observed = 0usize;
+    while iterations < 1usize {{
+        observed = length(values);
+        iterations = iterations + 1usize;
+        0
+    }}
+    i64_from_usize(observed)
+}}
+"#
+        );
+        let checked = semaprax::check(&source, "while-copy-vec-call.spx")
+            .unwrap_or_else(|errors| panic!("{ty}: {errors:?}"));
+        let resolved = hir::resolve(&checked).unwrap_or_else(|error| panic!("{ty}: {error:?}"));
+        hir::validate(&resolved).unwrap_or_else(|error| panic!("{ty}: {error:?}"));
+    }
+}
+
+#[test]
+fn borrowed_copy_scalar_vec_helpers_keep_owned_noncopy_and_vec_result_shapes_closed() {
+    for (label, declaration, setup, call) in [
+        (
+            "owned Vec parameter",
+            "fn inspect(values: own Vec<i64>) -> usize { vec_len<i64>(values) }",
+            "let values = vec_push<i64>(vec_with_capacity<i64>(1usize), 7);",
+            "inspect(values)",
+        ),
+        (
+            "non-Copy Vec parameter",
+            "fn inspect(values: borrow Vec<Bytes>) -> usize { vec_len<Bytes>(values) }",
+            "let values = vec_push<Bytes>(vec_with_capacity<Bytes>(1usize), bytes_zeroed(1usize));",
+            "inspect(values)",
+        ),
+        (
+            "Vec result",
+            "fn inspect() -> Vec<i64> { vec_with_capacity<i64>(1usize) }",
+            "",
+            "inspect()",
+        ),
+    ] {
+        let source = format!(
+            r#"module test.while_vec_refusal;
+@id("call.inspect") {declaration}
+@id("app.main")
+fn main() -> i64 {{
+    {setup}
+    let mut iterations = 0usize;
+    while iterations < 1usize {{
+        let rejected = {call};
+        iterations = iterations + 1usize;
+        0
+    }}
+    0
+}}
+"#
+        );
+        let report = verify_diagnostics(&source);
+        assert!(
+            report.iter().any(|item| item.code == "SPX-T252"
+                && item.message.contains("`inspect`")),
+            "{label} stays outside loop calls: {report:?}"
+        );
+    }
+}
+
+#[test]
 fn record_owner_renewal_replays_every_copy_argument_at_both_trust_boundaries() {
     let rejected = r#"
 module test.while_record_renewal_argument;

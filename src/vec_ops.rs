@@ -280,6 +280,12 @@ pub(crate) fn resolved_element_is_admitted(ty: &ResolvedType) -> bool {
             | ResolvedType::Bool
     )
 }
+/// Exact compiler-owned Copy-scalar Vec identity after HIR resolution.
+pub(crate) fn resolved_copy_vec(ty: &ResolvedType) -> bool {
+    matches!(ty, ResolvedType::Nominal { declaration, arguments }
+        if declaration.as_str() == crate::prelude::VEC_ID
+            && matches!(arguments.as_slice(), [element] if resolved_element_is_admitted(element)))
+}
 /// Scalar admission remains frozen for generic wrappers. Bytes is admitted only
 /// by the owning intrinsic Vec boundary.
 pub(crate) fn ast_vec_element_is_admitted(ty: &Type) -> bool {

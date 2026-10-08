@@ -1,5 +1,11 @@
 # Changelog
 
+- Admit calls from bounded loop bodies to exact private helpers taking
+  compiler-owned `borrow Vec<Copy scalar>` parameters (OPT #684), matching the
+  existing Project v27 helper boundary. Owned/non-Copy/counterfeit Vec shapes,
+  Vec results, generic aliases, effects, older profiles and public roots remain
+  closed; focused verification is pending the combined source batch.
+
 - Reduce repeated Shared Loan Plan checked work by retaining deterministic
   forward reachability within one function build and examining only outgoing
   edges of live loan nodes. The 1,000,000-unit ceiling, fail-closed boundary,

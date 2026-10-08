@@ -179,7 +179,8 @@ fn main() -> i64
   Its body still needs a final expression, but that value is discarded; the
   condition controls repetition. While bodies admit
   Copy-scalar operations, user calls with declared read-only input effects
-  taking Copy scalars or flat Copy variants, borrowed byte slices or named `str` views, or consumed
+  taking Copy scalars or flat Copy variants, borrowed byte slices, named `str`
+  views, exact compiler-owned `borrow Vec<T>` for Copy-scalar `T`, or consumed
   strings and returning a scalar, flat Copy variant or string, matches over Copy
   scalars or variants with only Copy scalar payloads,
   and string literals and `string_*` calls (each iteration releases its own
@@ -190,6 +191,8 @@ fn main() -> i64
   Strings before each Boolean decision ([condition lifetime](STRING-CONDITION-LIFETIMES-V1.md)). Copy variant guards admit ordinary checked bool calls/blocks and
   case/wildcard/or patterns, require exhaustive unguarded fallback, and cannot
   consume an outer owner ([guard profile](GENERAL-LOOP-MATCH-V1.md)).
+  Use canonical `vec_*<T>` operations inside loops; imported generic aliases
+  remain generic calls and are refused with `SPX-T252`.
 - Bindings are immutable unless `let mut`. Assignment is a statement:
   `x = x + 1;` or `point.x = 5;`. Parameters are immutable. A `let mut`
   string can be replaced by a same-typed RHS; the completed RHS becomes its

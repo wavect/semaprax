@@ -52,6 +52,14 @@ values or captures, additional Reader shapes, or new effects. The entry and
 command are excluded from this private predicate even when a candidate
 signature would otherwise match it.
 
+The same exact borrowed Vec shape is admitted when one retained helper is
+called from a bounded `while` or `for` body. Loop calls do not widen the
+profile: ownership, element identity, result and effect checks replay at the
+source verifier, recursive oracle, HIR resolver and independent HIR validator.
+Canonical compiler Vec operations remain the admitted generic operations in a
+loop; importing a generic wrapper under another name does not turn it into an
+intrinsic.
+
 ## Verification and projections
 
 Workspace Graph reachability first authenticates the retained entry, command,
@@ -75,9 +83,10 @@ cargo test --locked -p semaprax --lib \
   -- --exact
 ```
 
-It covers native execution/output, exact command export and capability
-inventory, v24/v25 refusal, owned and non-Copy Vec refusal, exact public-root
-ABI refusal, and pre-artifact Web/npm refusal.
+It covers a private borrowed Copy-scalar Vec helper called from a bounded loop,
+native execution/output, exact command export and capability inventory,
+v24/v25 refusal, owned and non-Copy Vec refusal, exact public-root ABI refusal,
+and pre-artifact Web/npm refusal.
 
 The source import gate rejects owned or non-Copy Vec parameters with `SPX-G172`.
 Authenticated Copy-vector candidates reach the selected profile: v24 refuses

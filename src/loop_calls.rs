@@ -7,16 +7,17 @@
 //! that consumes a body-local `string`, or returns a new `string`, settles
 //! like any other owned call in that region: its staged arguments transfer
 //! at the call's commit boundary and an unconsumed result is released when
-//! the iteration ends. Declared read-only input effects are allowed. A consumed
-//! outer binding still changes ownership
-//! liveness inside the loop and keeps its existing diagnostic.
+//! the iteration ends. Exact compiler-owned Copy-scalar Vec parameters may be
+//! borrowed without transferring their owner. Declared read-only input effects
+//! are allowed. A consumed outer binding still changes ownership liveness
+//! inside the loop and keeps its existing diagnostic.
 
 use crate::ast::{ParamMode, Program, Type, TypeDeclarationKind};
 use crate::hir::{OwnershipMode, ResolvedType};
 use crate::source_verify::is_scalar_source_type;
 
 /// One source parameter a loop-body call admits: a Copy scalar or flat Copy variant, a borrowed
-/// byte slice or named `str`, or an owned `string` the call consumes.
+/// byte slice, named `str`, or exact Copy-scalar Vec, or an owned `string` the call consumes.
 pub(crate) fn ast_param_admitted(program: &Program, mode: ParamMode, ty: &Type) -> bool {
     match mode {
         ParamMode::Value => {
@@ -24,7 +25,9 @@ pub(crate) fn ast_param_admitted(program: &Program, mode: ParamMode, ty: &Type) 
         }
         ParamMode::Own => *ty == Type::String || crate::map_ops::ast_collection(ty),
         ParamMode::Borrow => {
-            matches!(ty, Type::SliceU8 | Type::Str) || crate::map_ops::ast_collection(ty)
+            matches!(ty, Type::SliceU8 | Type::Str)
+                || crate::map_ops::ast_collection(ty)
+                || crate::vec_ops::ast_copy_vec(ty)
         }
         ParamMode::Shared => false,
     }
@@ -68,6 +71,7 @@ pub(crate) fn resolved_param_admitted(
         OwnershipMode::Borrow => {
             matches!(ty, ResolvedType::SliceU8 | ResolvedType::Str)
                 || crate::map_ops::is_collection(ty)
+                || crate::vec_ops::resolved_copy_vec(ty)
         }
         OwnershipMode::Shared => false,
     }

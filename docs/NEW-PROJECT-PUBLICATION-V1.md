@@ -2,15 +2,18 @@
 
 Status: implemented bounded publication correction; **HOSTED GREEN** under the
 [v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
-Private-host and standalone creation retain separate admission and authority.
+The additive Project v26 source-command inventory correction has focused
+regressions authored; verification is pending. Private-host and standalone
+creation retain separate admission and authority.
 
 Audience: toolchain contributors, host integrators, and reviewers.
 
 ## Scope and unchanged interface
 
 The unpublished full toolchain owns `semaprax-full new <destination>` and the
-calculator, library, and service templates. Tag archives expose that full CLI
-as `semaprax`; the standalone registry compiler gains no private-host dependency.
+calculator, library, service, and `source-command-file-text` templates. Tag
+archives expose that full CLI as `semaprax`; the standalone registry compiler
+gains no private-host dependency.
 See the [quickstart](QUICKSTART.md) for the user workflow and
 [Project Manifest v1](PROJECT-MANIFEST-V1.md) for checked project semantics.
 The [Public Project Scaffold Capsule v3](PROJECT-SCAFFOLD-V3.md) derives and
@@ -21,8 +24,7 @@ v1](NEW-PROJECT-STANDALONE-V1.md), writes the same bytes through a bounded
 create-new route without this protocol's staging or identity re-verification.
 
 Publication changes neither command grammar, lowered Project schema, nor source
-semantics. The existing
-`--name` and closed `--template calculator|library|service` choices are
+semantics. The existing `--name` and closed template choices are
 admitted. The authority selects an exact source and root inventory before
 staging. Calculator and [service](PROJECT-SCAFFOLD-SERVICE-V1.md) share source
 names; library has different source names. Service also holds three
@@ -46,6 +48,13 @@ The service inventory adds `service-config.schema.json`,
 `service.config.json`, and `service-host-adapter-request.json` to the
 calculator shape. All nine files are checked before publication and after the
 no-replace rename.
+
+The additive [Project Scaffold Capsule v5](PROJECT-SCAFFOLD-V5.md)
+`source-command-file-text` authority holds exactly the three common root files,
+root `digits`, and source files `src/app.spx` and `src/tests.spx`. It has a
+dedicated inventory variant; it does not widen the calculator authority or
+adopt arbitrary scaffold files. All six files are authenticated before and
+after publication.
 
 There is no template discovery, arbitrary template input, network access,
 dependency installation, Git initialization, recursive cleanup API, general

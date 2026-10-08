@@ -31,6 +31,14 @@ const SERVICE_FILES: [(&str, &[u8]); 9] = [
     ("service.config.json", b"config\n"),
     ("service-host-adapter-request.json", b"request\n"),
 ];
+const SOURCE_COMMAND_FILE_TEXT_FILES: [(&str, &[u8]); 6] = [
+    ("README.md", b"readme\n"),
+    ("AGENTS.md", b"agents\n"),
+    ("semaprax.toml", b"manifest\n"),
+    ("src/app.spx", b"app\n"),
+    ("src/tests.spx", b"tests\n"),
+    ("digits", b"999\n"),
+];
 
 #[test]
 fn stage_and_output_collision_rejects_before_creating_children() {
@@ -228,6 +236,89 @@ fn service_partial_stage_drop_removes_only_its_owned_files() {
             .unwrap();
     authority.write("README.md", b"readme\n").unwrap();
     authority.write("AGENTS.md", b"agents\n").unwrap();
+    drop(authority);
+    assert!(names(&root).is_empty());
+    fs::remove_dir(root).unwrap();
+}
+
+#[test]
+fn source_command_file_text_inventory_publishes_exactly() {
+    let root = fixture();
+    let mut authority = NewProjectAuthority::create_source_command_file_text(
+        &root,
+        OsStr::new("command"),
+        OsStr::new("stage"),
+    )
+    .unwrap();
+    assert_eq!(
+        authority.write("src/core.spx", b"foreign\n"),
+        Err(NewProjectAuthorityError::Invalid)
+    );
+    for (path, bytes) in SOURCE_COMMAND_FILE_TEXT_FILES {
+        authority.write(path, bytes).unwrap();
+    }
+    authority
+        .publish_and_verify(&SOURCE_COMMAND_FILE_TEXT_FILES)
+        .unwrap();
+    drop(authority);
+    assert_eq!(names(&root), ["command"]);
+    assert_eq!(
+        names(&root.join("command")),
+        ["AGENTS.md", "README.md", "digits", "semaprax.toml", "src"]
+    );
+    assert_eq!(names(&root.join("command/src")), ["app.spx", "tests.spx"]);
+    for (relative, bytes) in SOURCE_COMMAND_FILE_TEXT_FILES {
+        remove_file(&root.join("command").join(relative), bytes);
+    }
+    fs::remove_dir(root.join("command/src")).unwrap();
+    fs::remove_dir(root.join("command")).unwrap();
+    fs::remove_dir(root).unwrap();
+}
+
+#[test]
+fn source_command_file_text_foreign_file_prevents_cleanup_adoption() {
+    let root = fixture();
+    let mut authority = NewProjectAuthority::create_source_command_file_text(
+        &root,
+        OsStr::new("command"),
+        OsStr::new("stage"),
+    )
+    .unwrap();
+    for (path, bytes) in SOURCE_COMMAND_FILE_TEXT_FILES {
+        authority.write(path, bytes).unwrap();
+    }
+    fs::write(root.join("stage/src/foreign.spx"), b"foreign\n").unwrap();
+    assert_eq!(
+        authority.authenticate(&SOURCE_COMMAND_FILE_TEXT_FILES),
+        Err(NewProjectAuthorityError::Changed)
+    );
+    drop(authority);
+    assert_eq!(names(&root), ["stage"]);
+    assert_eq!(
+        names(&root.join("stage/src")),
+        ["app.spx", "foreign.spx", "tests.spx"]
+    );
+    for (relative, bytes) in SOURCE_COMMAND_FILE_TEXT_FILES {
+        remove_file(&root.join("stage").join(relative), bytes);
+    }
+    remove_file(&root.join("stage/src/foreign.spx"), b"foreign\n");
+    fs::remove_dir(root.join("stage/src")).unwrap();
+    fs::remove_dir(root.join("stage")).unwrap();
+    fs::remove_dir(root).unwrap();
+}
+
+#[test]
+fn source_command_file_text_partial_stage_drop_removes_only_owned_entries() {
+    let root = fixture();
+    let mut authority = NewProjectAuthority::create_source_command_file_text(
+        &root,
+        OsStr::new("command"),
+        OsStr::new("stage"),
+    )
+    .unwrap();
+    authority.write("README.md", b"readme\n").unwrap();
+    authority.write("digits", b"999\n").unwrap();
+    authority.write("src/app.spx", b"app\n").unwrap();
     drop(authority);
     assert!(names(&root).is_empty());
     fs::remove_dir(root).unwrap();

@@ -61,6 +61,13 @@ hash, and independently rederives the same descriptor. Capsules from another
 schema or template cannot replay as v5. The capsule carries no filesystem,
 process, target-emission, native-build, or publication authority.
 
+The full toolchain materializes these bytes through a dedicated held
+`SourceCommandFileText` publication inventory: four exact root files
+(`README.md`, `AGENTS.md`, `semaprax.toml`, and `digits`) and two exact source
+files (`app.spx` and `tests.spx`). Foreign files fail authentication, and a
+failed partial write can discard only entries created through that authority.
+This does not grant authority to the descriptor itself.
+
 The generated `AGENTS.md` points directly to the compact `std.int.decimal`
 help card and gives profile-specific repairs for `SPX-G174` and the exact
 `SPX-H006` loan-program-point exhaustion. Those repairs preserve profile

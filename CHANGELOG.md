@@ -1,5 +1,10 @@
 # Changelog
 
+- Give the Project v26 `source-command-file-text` scaffold its own exact held
+  publication authority: root `digits`, two source files, and the three common
+  root files. Foreign entries still fail closed, and partial cleanup remains
+  limited to held identities; focused verification is pending.
+
 - Tighten generated web protocol boundaries: entity APIs require JSON number
   tokens for integer, float and reference fields while browser forms retain
   decimal-text entry; session deletion checks identity before CSRF; sign-in

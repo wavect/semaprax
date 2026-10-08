@@ -384,6 +384,12 @@ fn create_staging_authority(
             NewProjectAuthority::create_library(parent, output_name, std::ffi::OsStr::new(&name))
         } else if template == project::PROJECT_SCAFFOLD_TEMPLATE_SERVICE {
             NewProjectAuthority::create_service(parent, output_name, std::ffi::OsStr::new(&name))
+        } else if template == project::PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT {
+            NewProjectAuthority::create_source_command_file_text(
+                parent,
+                output_name,
+                std::ffi::OsStr::new(&name),
+            )
         } else {
             NewProjectAuthority::create(parent, output_name, std::ffi::OsStr::new(&name))
         };

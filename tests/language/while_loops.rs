@@ -451,8 +451,9 @@ fn main() -> i64 {{
         );
         let report = verify_diagnostics(&source);
         assert!(
-            report.iter().any(|item| item.code == "SPX-T252"
-                && item.message.contains("`inspect`")),
+            report
+                .iter()
+                .any(|item| item.code == "SPX-T252" && item.message.contains("`inspect`")),
             "{label} stays outside loop calls: {report:?}"
         );
     }

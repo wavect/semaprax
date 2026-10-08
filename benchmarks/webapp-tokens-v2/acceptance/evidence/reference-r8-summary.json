@@ -38,11 +38,11 @@
         }
       ],
       "compiler": {
-        "path": "/Users/kevin/.codex/benchmark-binaries/semaprax-e045527a6",
-        "sha256": "31891e0d229e217ebbdf71139f82654349e051eb06fb6b08e2984bea4ce6c8d1",
-        "source_sha": "e045527a611a048515349ab2f970043a5d33b185"
+        "path": "/Users/kevin/.codex/benchmark-binaries/semaprax-8bb9399e8",
+        "sha256": "75d57b9950682d0d84509b5047cf4894453dd8201dae6b304d8e4ec71431c7ef",
+        "source_sha": "8bb9399e848b644bc907b2282396f76ca51858a4"
       },
-      "finished_at": "2026-10-08T18:10:53.332Z",
+      "finished_at": "2026-10-08T19:14:10.020Z",
       "node": "v24.3.0",
       "password_evidence_verified": true,
       "qualification": {
@@ -56,9 +56,9 @@
       "reference_source_files_sha256": {
         "teamdesk.spx": "93b7c95f058b12d09b4799c15a36a1ebfe1cab38a5a595a2381618c112da4bc9"
       },
-      "report_file": "/Users/kevin/.codex/benchmark-runs/teamdesk-reference-requalification-0504ac737e52-20261008/evidence/semaprax/report.json",
-      "report_sha256": "ca1d2386d3c1a38f04c342a54f5d350b4cad63ca1208217a319c1caf4d6871fe",
-      "started_at": "2026-10-08T18:05:27.286Z",
+      "report_file": "/Users/kevin/.codex/benchmark-runs/teamdesk-reference-current-8bb9399e8-gateb6cf-20261008/evidence/semaprax/report.json",
+      "report_sha256": "3a1ebe6f71c09d3dcb38d8aea8b06c42781975480e4ece4d306e2d0d1a8f8dc6",
+      "started_at": "2026-10-08T19:07:56.677Z",
       "viewer_create_visibility": [
         {
           "id": "browser.Viewer.Team.hidden-actions",
@@ -179,12 +179,7 @@
           "status": "passed"
         }
       ],
-      "compiler": {
-        "path": "/Users/kevin/.codex/benchmark-binaries/semaprax-e045527a6",
-        "sha256": "31891e0d229e217ebbdf71139f82654349e051eb06fb6b08e2984bea4ce6c8d1",
-        "source_sha": "e045527a611a048515349ab2f970043a5d33b185"
-      },
-      "finished_at": "2026-10-08T18:10:21.414Z",
+      "finished_at": "2026-10-08T19:06:29.445Z",
       "node": "v24.3.0",
       "password_evidence_verified": true,
       "qualification": {
@@ -213,9 +208,9 @@
         "tsconfig.json": "d642f5424183a995f2475e74ac59aa0f2503ca53bad83fa905d45743ffb9e417",
         "vite.config.ts": "04504a1101152fa181213e15926b8a77d886251badc02e81e68b2c63e994039b"
       },
-      "report_file": "/Users/kevin/.codex/benchmark-runs/teamdesk-reference-requalification-0504ac737e52-20261008/evidence/typescript/report.json",
-      "report_sha256": "958bfddea8782fb6ee5847597b71ca94ef0d8776c2b0f2b0ed9418074151fa03",
-      "started_at": "2026-10-08T18:05:27.286Z",
+      "report_file": "/Users/kevin/.codex/benchmark-runs/teamdesk-reference-requalification-b6cf62177f6d-20261008/evidence/typescript/report.json",
+      "report_sha256": "0bae9a416082ef656325e9c6246af928cee95176dc8a1791526183718cbea880",
+      "started_at": "2026-10-08T19:01:08.853Z",
       "viewer_create_visibility": [
         {
           "id": "browser.Viewer.Team.hidden-actions",
@@ -300,12 +295,12 @@
       ]
     }
   },
-  "compiler_binary_sha256": "31891e0d229e217ebbdf71139f82654349e051eb06fb6b08e2984bea4ce6c8d1",
-  "compiler_source_commit": "e045527a611a048515349ab2f970043a5d33b185",
-  "gate_source": "0504ac737e52ef9f9492f236e50bfe95d5658de5",
+  "compiler_binary_sha256": "75d57b9950682d0d84509b5047cf4894453dd8201dae6b304d8e4ec71431c7ef",
+  "compiler_source_commit": "8bb9399e848b644bc907b2282396f76ca51858a4",
+  "gate_source": "b6cf62177f6d210ebb5cb48ddc9fc2a8d1d8f426",
   "qualified": true,
   "reference_source_commit": "3fcdf034a5e5da57c10845a8074c06f2862816e1",
   "schema": "semaprax.teamdesk.reference.qualification.v1",
-  "scope": "LOCAL physical Node API/restart/filesystem and Playwright Chromium; unchanged reference applications qualified against repaired gate; no live model or token-savings claim.",
+  "scope": "LOCAL Node API/restart/filesystem and Playwright Chromium; unchanged references qualified against repaired enum gate, SEMAPRAX using current clean compiler binary; no live model or language-advantage claim.",
   "spec_sha256": "7658414ed2bbb53477a93e4a00f36269954c5bc45f3148fe72ddd02f203a50dc"
 }

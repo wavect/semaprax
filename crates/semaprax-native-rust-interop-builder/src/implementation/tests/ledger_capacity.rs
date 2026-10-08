@@ -121,6 +121,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     // frame machinery they describe, so bind the root and the resolver files.
     let hir_resolver = concat!(
         include_str!("../../../../../src/hir.rs"),
+        include_str!("../../../../../src/hir/owned_text_record.rs"),
         include_str!("../../../../../src/stdin_stream_ops.rs"),
         include_str!("../../../../../src/stdin_stream_ops/analysis.rs"),
         include_str!("../../../../../src/hir/generic_collection.rs"),
@@ -147,6 +148,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir/workspace_link/stdin_stream.rs"),
         include_str!("../../../../../src/hir/resolve_expr/capacity.rs"),
         include_str!("../../../../../src/hir/resolve_box_call.rs"),
+        include_str!("../../../../../src/hir/resolve_box_call/map.rs"),
         include_str!("../../../../../src/hir/resolve_box_call/iterator.rs"),
         include_str!("../../../../../src/hir/resolve_box_call/list.rs"),
         include_str!("../../../../../src/hir/resolve_vec_call.rs"),
@@ -192,6 +194,8 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     );
     let hir_validator = concat!(
         include_str!("../../../../../src/hir/validation.rs"),
+        include_str!("../../../../../src/hir/validation/variant_guard_state.rs"),
+        include_str!("../../../../../src/hir/validation/string_replacement.rs"),
         include_str!("../../../../../src/hir/validation/borrowed_argument.rs"),
         include_str!("../../../../../src/hir/validation/borrowed_bytes_call_tests.rs"),
         include_str!("../../../../../src/hir/validation/iterator_loops.rs"),
@@ -238,6 +242,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     );
     let lower = concat!(
         include_str!("../../../../../src/cleanup_plan/build.rs"),
+        include_str!("../../../../../src/cleanup_plan/build/while_condition.rs"),
         include_str!("../../../../../src/cleanup_plan/build/transfer.rs"),
         include_str!("../../../../../src/cleanup_plan/build/string_replacement.rs"),
         include_str!("../../../../../src/cleanup_plan/build/owned_frame_finalizers.rs"),

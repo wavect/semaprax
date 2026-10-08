@@ -145,31 +145,6 @@ pub(crate) fn link_stdin_stream_text_command_workspace(
     )
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn stream_text_string_boundary_is_owned_and_does_not_widen_legacy_profiles() {
-        let ast=crate::parse("module t; @id(\"helper\") fn helper(text:string)->string { text } @id(\"app.main\") fn main()->i64 { 0 }",std::path::Path::new("text.spx")).unwrap();
-        let program = crate::hir::resolve(&ast).unwrap();
-        let helper = program
-            .functions
-            .iter()
-            .find(|function| function.id.as_str() == "helper")
-            .unwrap();
-        let old = WorkspaceIoProfile::StdinStreamCommand(DeclarationId::new("cmd"), true);
-        let selected = WorkspaceIoProfile::StdinStreamTextCommand(DeclarationId::new("cmd"));
-        assert!(!old.signature_admitted(helper));
-        assert!(selected.signature_admitted(helper));
-        let mut forged = helper.clone();
-        forged.params[0].ownership = OwnershipMode::Borrow;
-        assert!(!selected.signature_admitted(&forged));
-        forged = helper.clone();
-        forged.return_type = ResolvedType::SliceU8;
-        assert!(!selected.signature_admitted(&forged));
-    }
-}
-
 /// Additive private transport profile. Exact declaration facts authenticate records.
 pub(crate) fn stream_text_parameter_with_index(
     parameter: &ResolvedParam,
@@ -243,4 +218,29 @@ pub(crate) fn validate_stream_text_program(
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn stream_text_string_boundary_is_owned_and_does_not_widen_legacy_profiles() {
+        let ast=crate::parse("module t; @id(\"helper\") fn helper(text:string)->string { text } @id(\"app.main\") fn main()->i64 { 0 }",std::path::Path::new("text.spx")).unwrap();
+        let program = crate::hir::resolve(&ast).unwrap();
+        let helper = program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "helper")
+            .unwrap();
+        let old = WorkspaceIoProfile::StdinStreamCommand(DeclarationId::new("cmd"), true);
+        let selected = WorkspaceIoProfile::StdinStreamTextCommand(DeclarationId::new("cmd"));
+        assert!(!old.signature_admitted(helper));
+        assert!(selected.signature_admitted(helper));
+        let mut forged = helper.clone();
+        forged.params[0].ownership = OwnershipMode::Borrow;
+        assert!(!selected.signature_admitted(&forged));
+        forged = helper.clone();
+        forged.return_type = ResolvedType::SliceU8;
+        assert!(!selected.signature_admitted(&forged));
+    }
 }

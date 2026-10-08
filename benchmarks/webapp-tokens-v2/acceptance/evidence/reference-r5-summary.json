@@ -1,0 +1,281 @@
+{
+  "schema": "semaprax.teamdesk.reference.qualification.v1",
+  "gate_source": "40088afbf",
+  "spec_sha256": "7658414ed2bbb53477a93e4a00f36269954c5bc45f3148fe72ddd02f203a50dc",
+  "qualified": true,
+  "arms": {
+    "typescript": {
+      "report_file": "/Users/kevin/.codex/benchmark-runs/teamdesk-full-spec-659-typescript-ui-r5/report.json",
+      "report_sha256": "e2727dedf52d65db71e4e9cf7dbd34ef427b97d1da36eacf5fd63aaa4b969bee",
+      "node": "v24.3.0",
+      "qualification": {
+        "passed": true,
+        "missingCases": [],
+        "missingGroups": [],
+        "failures": [],
+        "cases": 912
+      },
+      "password_evidence_verified": true,
+      "api_and_browser_signed64": [
+        {
+          "id": "Sprint.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "Project.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "Ticket.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Sprint.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Project.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Ticket.signed64",
+          "status": "passed"
+        }
+      ],
+      "agent_workflow": [
+        {
+          "id": "browser.Agent.Leave.own-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Agent.Expense.own-actions",
+          "status": "passed"
+        }
+      ],
+      "viewer_create_visibility": [
+        {
+          "id": "browser.Viewer.Team.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Member.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Customer.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Contact.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Project.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Milestone.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Sprint.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Task.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Comment.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.TimeEntry.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Ticket.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.TicketReply.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Invoice.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Payment.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Vendor.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Expense.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Asset.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Leave.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Document.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Release.hidden-actions",
+          "status": "passed"
+        }
+      ],
+      "started_at": "2026-10-08T01:59:31.761Z",
+      "finished_at": "2026-10-08T02:04:23.281Z",
+      "reference_source": "40088afbf (79ce precision prerequisite; a5ab4bd5b UI policy repair)"
+    },
+    "semaprax": {
+      "report_file": "/Users/kevin/.codex/benchmark-runs/teamdesk-full-spec-659-semaprax-ui-r5/report.json",
+      "report_sha256": "6daef059fc1a8888f7ad036b2ac87e2ead456aa08eb6429231601a2802d0febd",
+      "node": "v24.3.0",
+      "qualification": {
+        "passed": true,
+        "missingCases": [],
+        "missingGroups": [],
+        "failures": [],
+        "cases": 912
+      },
+      "password_evidence_verified": true,
+      "api_and_browser_signed64": [
+        {
+          "id": "Sprint.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "Project.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "Ticket.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Sprint.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Project.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Ticket.signed64",
+          "status": "passed"
+        }
+      ],
+      "agent_workflow": [
+        {
+          "id": "browser.Agent.Leave.own-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Agent.Expense.own-actions",
+          "status": "passed"
+        }
+      ],
+      "viewer_create_visibility": [
+        {
+          "id": "browser.Viewer.Team.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Member.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Customer.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Contact.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Project.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Milestone.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Sprint.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Task.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Comment.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.TimeEntry.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Ticket.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.TicketReply.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Invoice.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Payment.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Vendor.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Expense.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Asset.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Leave.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Document.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Release.hidden-actions",
+          "status": "passed"
+        }
+      ],
+      "started_at": "2026-10-08T02:26:51.205Z",
+      "finished_at": "2026-10-08T02:32:24.613Z",
+      "compiler": {
+        "path": "/Users/kevin/.codex/benchmark-binaries/semaprax-3e15d4bcf",
+        "sha256": "08ffeea70a6b690b82e7bc7e8a1ca5d6f08e84cf195b75f2eb6f82cc2eebd9e6",
+        "source_sha": "3e15d4bcfc1a7732b2afc125360dacd898a046c3"
+      }
+    }
+  },
+  "scope": "LOCAL physical Node API/restart/filesystem and Playwright1.62 Chromium. Existing repaired reference apps only; no live model campaign, token-savings, hosted or production claim."
+}

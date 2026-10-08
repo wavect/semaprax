@@ -271,12 +271,21 @@ fn main() -> i64
     };
     // The normalizing transition borrows its input Path, transfers exactly
     // the caller's output buffer, and carries that owner as its cleanup root
-    // under the existing v5 schema.
+    // under byte-buffer renewal v17 for its same-owner bytes_set loop.
     let into = node("std.path.normalize.into");
     assert_eq!(into["params"][0]["ownership_mode"], "borrow");
     assert_eq!(into["params"][1]["ownership_mode"], "own");
     assert_eq!(into["result"]["ownership_mode"], "own");
-    assert_eq!(into["cleanup"]["schema"], "semaprax.cleanup-plan.v5");
+    assert_eq!(into["cleanup"]["schema"], "semaprax.cleanup-plan.v17");
+    let mut downgraded = document.clone();
+    let into_node = downgraded["nodes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|node| node["id"] == "std.path.normalize.into")
+        .unwrap();
+    into_node["cleanup"]["schema"] = "semaprax.cleanup-plan.v5".into();
+    assert!(graph::verify_json(&program, &downgraded.to_string()).is_err());
     assert_eq!(
         into["cleanup"]["entry_state"]["live_owned_parameters"]
             .as_array()

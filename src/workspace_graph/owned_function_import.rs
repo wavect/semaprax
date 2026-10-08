@@ -1,5 +1,6 @@
 //! Internal ordinary calls over explicitly imported resource-free byte records.
 //! Public Project descriptors and scalar linker signatures remain independent.
+use super::diagnostics::PROJECT_SIGNATURE_HELP;
 use super::*;
 mod text_collections;
 

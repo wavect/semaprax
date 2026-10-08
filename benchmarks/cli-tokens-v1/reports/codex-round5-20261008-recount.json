@@ -1,0 +1,473 @@
+{
+  "arms": {
+    "semaprax": {
+      "accepted": 5,
+      "actual_billed_usd_per_accepted_task": null,
+      "attempted": 5,
+      "conditional_api_equivalent_usd_all_attempts": 2.810469,
+      "conditional_api_equivalent_usd_per_accepted_task": 0.5620938,
+      "failed_or_rejected": 0,
+      "metrics_all_attempts": {
+        "acceptance_wall_seconds": {
+          "mean_per_attempt": 48.813,
+          "median_per_attempt": 15.116999999999997,
+          "total": 244.065
+        },
+        "agent_wall_seconds": {
+          "mean_per_attempt": 516.2772,
+          "median_per_attempt": 432.545,
+          "total": 2581.386
+        },
+        "cache_write_input_tokens": {
+          "mean_per_attempt": 0,
+          "median_per_attempt": 0,
+          "total": 0
+        },
+        "cached_input_tokens": {
+          "mean_per_attempt": 2196428.8,
+          "median_per_attempt": 1595264,
+          "total": 10982144
+        },
+        "final_authored_tokens_proxy": {
+          "mean_per_attempt": 7595.4,
+          "median_per_attempt": 7201,
+          "total": 37977
+        },
+        "legacy_net_input_tokens": {
+          "mean_per_attempt": 1735009.4,
+          "median_per_attempt": 1215680,
+          "total": 8675047
+        },
+        "model_requests": {
+          "mean_per_attempt": 40,
+          "median_per_attempt": 33,
+          "total": 200
+        },
+        "output_tokens": {
+          "mean_per_attempt": 18993,
+          "median_per_attempt": 14707,
+          "total": 94965
+        },
+        "raw_input_tokens": {
+          "mean_per_attempt": 2272689.4,
+          "median_per_attempt": 1659266,
+          "total": 11363447
+        }
+      },
+      "planned": 5
+    },
+    "typescript": {
+      "accepted": 5,
+      "actual_billed_usd_per_accepted_task": null,
+      "attempted": 5,
+      "conditional_api_equivalent_usd_all_attempts": 0.730231,
+      "conditional_api_equivalent_usd_per_accepted_task": 0.1460462,
+      "failed_or_rejected": 0,
+      "metrics_all_attempts": {
+        "acceptance_wall_seconds": {
+          "mean_per_attempt": 3.2274,
+          "median_per_attempt": 3.215,
+          "total": 16.137
+        },
+        "agent_wall_seconds": {
+          "mean_per_attempt": 156.0602,
+          "median_per_attempt": 150.384,
+          "total": 780.3009999999999
+        },
+        "cache_write_input_tokens": {
+          "mean_per_attempt": 0,
+          "median_per_attempt": 0,
+          "total": 0
+        },
+        "cached_input_tokens": {
+          "mean_per_attempt": 189670.4,
+          "median_per_attempt": 179456,
+          "total": 948352
+        },
+        "final_authored_tokens_proxy": {
+          "mean_per_attempt": 4752.4,
+          "median_per_attempt": 4873,
+          "total": 23762
+        },
+        "legacy_net_input_tokens": {
+          "mean_per_attempt": 103308,
+          "median_per_attempt": 98266,
+          "total": 516540
+        },
+        "model_requests": {
+          "mean_per_attempt": 8.4,
+          "median_per_attempt": 8,
+          "total": 42
+        },
+        "output_tokens": {
+          "mean_per_attempt": 7409.6,
+          "median_per_attempt": 7534,
+          "total": 37048
+        },
+        "raw_input_tokens": {
+          "mean_per_attempt": 216162,
+          "median_per_attempt": 205746,
+          "total": 1080810
+        }
+      },
+      "planned": 5
+    }
+  },
+  "calibration_separate": {
+    "elapsed_seconds": 4.2,
+    "list_price": {
+      "actual_billed_usd": null,
+      "assumptions": "each request input <=272k; input/cache-read/cache-write/output use published standard rates",
+      "cache_write_cost_usd": 0.0,
+      "cache_write_tokens": 0,
+      "reason": null,
+      "standard_short_context_api_equivalent_usd": 0.009403
+    },
+    "observed": {
+      "codex_outer_turns": 1,
+      "effort_observed": "medium",
+      "final_turn_usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 8832,
+        "input_tokens": 13067,
+        "output_tokens": 5,
+        "reasoning_output_tokens": 0
+      },
+      "invalid_stream_lines": 0,
+      "legacy_net_input_tokens": 0,
+      "legacy_net_note": "Codex input includes cache subsets; subtract first request total once per model request for historical comparability only, never task-only input.",
+      "model_context_window": 258400,
+      "model_identity_note": "The exec JSONL does not expose an observed model identity.",
+      "model_identity_source": "client turn_context; provider-resolved model is unavailable",
+      "model_observed": "gpt-6.1-sol",
+      "model_request_count": 1,
+      "model_requests": [
+        {
+          "request_id": "resp_0463b94034fec36c016ac6e41198788191bfaf488d1da0fe1d",
+          "usage": {
+            "cache_write_input_tokens": 0,
+            "cached_input_tokens": 8832,
+            "input_tokens": 13067,
+            "output_tokens": 5,
+            "reasoning_output_tokens": 0
+          }
+        }
+      ],
+      "provider_resolved_model": null,
+      "reconciled": true,
+      "reconciliation_note": "Per-request trace sum must equal final turn.completed usage; tool item counts are separate.",
+      "request_usage_sum": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 8832,
+        "input_tokens": 13067,
+        "output_tokens": 5,
+        "reasoning_output_tokens": 0
+      },
+      "stable_context_tokens": null,
+      "thread_ids": [
+        "01a118ea-dba3-7de1-844f-b0d95f19a8b5"
+      ],
+      "tool_item_counts": {
+        "agent_message": 1
+      },
+      "turn_completed_events": 1
+    },
+    "process_exit_code": 0,
+    "rollout_trace": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round5-20261008/transcripts/calibration.rollout.jsonl",
+    "separate_from_trials": true,
+    "status": "ready",
+    "subtracted_from_trials": false,
+    "timed_out": false,
+    "workspace_integrity_before_cleanup": {
+      "external_writes": {
+        "paths": [],
+        "status": "passed"
+      },
+      "public_inputs": {
+        "failed_files": [],
+        "files": {
+          "benchmarks/cli-tokens-v1/SPEC.md": {
+            "error": null,
+            "expected_sha256": "51bf564cb9f7eadd4b3bd12fac53b7857befa09b3ef757d9c34400a8509fdeae",
+            "observed_sha256": "51bf564cb9f7eadd4b3bd12fac53b7857befa09b3ef757d9c34400a8509fdeae",
+            "status": "passed"
+          },
+          "benchmarks/cli-tokens-v1/sample.log": {
+            "error": null,
+            "expected_sha256": "b4574c3e627aff7760a934ec5dc10c45abf76ade1f6ae0c20518c56cc6660598",
+            "observed_sha256": "b4574c3e627aff7760a934ec5dc10c45abf76ade1f6ae0c20518c56cc6660598",
+            "status": "passed"
+          }
+        },
+        "status": "passed"
+      },
+      "status": "passed"
+    },
+    "workspace_removed": true
+  },
+  "complete": true,
+  "fixed_harness_context_note": "No per-request system/tool/task/history composition is exposed. Calibration is separate and is never subtracted.",
+  "fixed_harness_context_tokens": null,
+  "measurement_notes": {
+    "authored": "Final-source legacy Claude BPE proxy, including tests/docs/scripts. Not cumulative edits or exact GPT tokenization.",
+    "cost": "Conditional Standard short-context API-equivalent estimate, all attempted tasks divided by accepted tasks. Actual billed cost unavailable.",
+    "input": "Raw input includes cache subsets. Cache reads/writes are not added again.",
+    "model_identity": "Client turn_context confirms requested model/effort. Provider-resolved model and tier unavailable.",
+    "net_input": "Historical proxy: sum input minus first-request input times model-request count. Not task-only input.",
+    "turns": "Model requests from reconciled task-owned per-request rollout usage; outer CLI turns and tool calls are separate."
+  },
+  "planned_attempts": 10,
+  "provenance": {
+    "adapter": "codex-matched-loglens-v1",
+    "authored_source_tokenizer": {
+      "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+      "dependency": "tiktoken",
+      "dependency_version": "1.0.22",
+      "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+      "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+      "package": "@anthropic-ai/tokenizer",
+      "runtime": "node",
+      "runtime_version": "v24.3.0",
+      "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+      "version": "0.0.4"
+    },
+    "codex_version": "codex-cli 0.160.1",
+    "compiler_source_commit": "94fadd14cf27d045d22b23a79def640c95131c31",
+    "effort_requested": "medium",
+    "model_requested": "gpt-6.1-sol",
+    "price_book": {
+      "conditional": true,
+      "date": "2026-10-08",
+      "source": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+      "standard_short_context_usd_per_million": {
+        "cache_read": 0.1,
+        "cache_write": 2.5,
+        "input": 2.0,
+        "output": 10.0
+      }
+    },
+    "repository_commit": "77051c58acd8f312173c5badb4ba7c355d374ca2",
+    "round": 5,
+    "seed_files_sha256": {
+      "benchmarks/cli-tokens-v1/SPEC.md": "51bf564cb9f7eadd4b3bd12fac53b7857befa09b3ef757d9c34400a8509fdeae",
+      "benchmarks/cli-tokens-v1/sample.log": "b4574c3e627aff7760a934ec5dc10c45abf76ade1f6ae0c20518c56cc6660598"
+    },
+    "source_binary_sha256": "da3d978118e233acaef18e0b0e48cd8c4741da51d7636d84fefacb19703ba51c"
+  },
+  "recorded_attempts": 10,
+  "results_sha256": "465e3ea166a42b8e2e524c15d55bc79d4e927c9544915beca37f6cf1029ac335",
+  "schema": "semaprax.codex-matched-recount.v1",
+  "trials": [
+    {
+      "acceptance_wall_seconds": 9.405000000000001,
+      "agent_wall_seconds": 348.033,
+      "arm": "semaprax",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 1595264,
+      "conditional_api_equivalent_usd": 0.43253,
+      "evidence_sha256": {
+        "exec": "ecec548c11871eeda3421ed703a9f715d3b76cef73784ee564bd802fc9fe188a",
+        "rollout": "9c96058f6c89dc40eacf04e97a5a0bb4a5badc9a75093bee61a0e4b9c66bf0a0"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 7020,
+      "legacy_net_input_tokens": 1215680,
+      "model_requests": 33,
+      "number": 1,
+      "output_tokens": 14500,
+      "raw_input_tokens": 1659266,
+      "reasoning_output_tokens_subset": 2070,
+      "status": "accepted"
+    },
+    {
+      "acceptance_wall_seconds": 3.215,
+      "agent_wall_seconds": 135.675,
+      "arm": "typescript",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 175744,
+      "conditional_api_equivalent_usd": 0.145616,
+      "evidence_sha256": {
+        "exec": "00df5ea72e0f41b380c5ca63d79bbbfe9e74cd58890dfb74ccbdd4cc1e543948",
+        "rollout": "f5c28c5a9d459a4dd1dd03fa45ed42cfaf2583a9d377794a821c0c869b17330d"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 5069,
+      "legacy_net_input_tokens": 94615,
+      "model_requests": 8,
+      "number": 1,
+      "output_tokens": 7534,
+      "raw_input_tokens": 202095,
+      "reasoning_output_tokens_subset": 578,
+      "status": "accepted"
+    },
+    {
+      "acceptance_wall_seconds": 2.996,
+      "agent_wall_seconds": 137.474,
+      "arm": "typescript",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 179456,
+      "conditional_api_equivalent_usd": 0.141696,
+      "evidence_sha256": {
+        "exec": "8fd7fd9f458c09a8289ec6d85568a66bd78171ba4c1caebd1af747b190cc4990",
+        "rollout": "95743c4ffb711e3b981a8caefbc58d5269b73bc210cba584a3c7c512ff0be269"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 4588,
+      "legacy_net_input_tokens": 98266,
+      "model_requests": 8,
+      "number": 2,
+      "output_tokens": 7117,
+      "raw_input_tokens": 205746,
+      "reasoning_output_tokens_subset": 560,
+      "status": "accepted"
+    },
+    {
+      "acceptance_wall_seconds": 15.116999999999997,
+      "agent_wall_seconds": 515.225,
+      "arm": "semaprax",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 2140032,
+      "conditional_api_equivalent_usd": 0.557325,
+      "evidence_sha256": {
+        "exec": "d1b793c0616522f9b055f4991372311d93702d6ce2be4389ca3bb59769816e55",
+        "rollout": "3b303f21dbf87d2a2bd6ac251b872ef805fb14b504c7dd523e9f70acb85202d3"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 8353,
+      "legacy_net_input_tokens": 1673613,
+      "model_requests": 40,
+      "number": 2,
+      "output_tokens": 20080,
+      "raw_input_tokens": 2211293,
+      "reasoning_output_tokens_subset": 4141,
+      "status": "accepted"
+    },
+    {
+      "acceptance_wall_seconds": 14.208,
+      "agent_wall_seconds": 248.062,
+      "arm": "semaprax",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 744832,
+      "conditional_api_equivalent_usd": 0.289749,
+      "evidence_sha256": {
+        "exec": "7515fab953cc19756433dc556c08e3ce8768c2fb91388e9505eb15f31a400963",
+        "rollout": "c22cff9684e593dee27d55a24a8a8d876a9495fb77ad30cbfe2d1793588cf4d8"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 7201,
+      "legacy_net_input_tokens": 553884,
+      "model_requests": 18,
+      "number": 3,
+      "output_tokens": 11325,
+      "raw_input_tokens": 795840,
+      "reasoning_output_tokens_subset": 1550,
+      "status": "accepted"
+    },
+    {
+      "acceptance_wall_seconds": 3.1609999999999996,
+      "agent_wall_seconds": 176.667,
+      "arm": "typescript",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 212224,
+      "conditional_api_equivalent_usd": 0.1536,
+      "evidence_sha256": {
+        "exec": "be3d1e92a7fa9414cb58c5ce3a3e6ee4f94339617be6bdefa3982135e946d8e2",
+        "rollout": "3a7c2abd38df3a3e265acf181184b6d1283812dec1b62b5e2d7a111925724c3b"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 4930,
+      "legacy_net_input_tokens": 118768,
+      "model_requests": 9,
+      "number": 3,
+      "output_tokens": 7746,
+      "raw_input_tokens": 239683,
+      "reasoning_output_tokens_subset": 775,
+      "status": "accepted"
+    },
+    {
+      "acceptance_wall_seconds": 3.22,
+      "agent_wall_seconds": 150.384,
+      "arm": "typescript",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 203008,
+      "conditional_api_equivalent_usd": 0.141163,
+      "evidence_sha256": {
+        "exec": "5b791339a846bf0da8ec86f8a7bb231660ddb8de7045fbe01e484ae57c680e3f",
+        "rollout": "8cbd28bd7d9d0b57a486d05a5c14d742110800a17b327d31c370bc475583cab0"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 4302,
+      "legacy_net_input_tokens": 107914,
+      "model_requests": 9,
+      "number": 4,
+      "output_tokens": 6922,
+      "raw_input_tokens": 228829,
+      "reasoning_output_tokens_subset": 359,
+      "status": "accepted"
+    },
+    {
+      "acceptance_wall_seconds": 90.186,
+      "agent_wall_seconds": 432.545,
+      "arm": "semaprax",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 1489792,
+      "conditional_api_equivalent_usd": 0.446253,
+      "evidence_sha256": {
+        "exec": "8da3a5d0ba891b0d347a44bc934e964e50503f448a1a5da66f35eca06408efbe",
+        "rollout": "ca0ab78f260ba4c080d14a2fc20b2599725cb71372a3e9f05d55fcc56a8df96c"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 7007,
+      "legacy_net_input_tokens": 1134750,
+      "model_requests": 32,
+      "number": 4,
+      "output_tokens": 14707,
+      "raw_input_tokens": 1564894,
+      "reasoning_output_tokens_subset": 3524,
+      "status": "accepted"
+    },
+    {
+      "acceptance_wall_seconds": 115.149,
+      "agent_wall_seconds": 1037.521,
+      "arm": "semaprax",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 5012224,
+      "conditional_api_equivalent_usd": 1.084612,
+      "evidence_sha256": {
+        "exec": "9b2c0c54cd3de847cccdedcc8e5a8a3ff5bac3704fb1720fb0ebba10ccec652b",
+        "rollout": "a268acd4983951d63d846e74e66a7135a567a06cb754c9b32834ee3bc3d2633e"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 8396,
+      "legacy_net_input_tokens": 4097120,
+      "model_requests": 77,
+      "number": 5,
+      "output_tokens": 34353,
+      "raw_input_tokens": 5132154,
+      "reasoning_output_tokens_subset": 12571,
+      "status": "accepted"
+    },
+    {
+      "acceptance_wall_seconds": 3.545,
+      "agent_wall_seconds": 180.101,
+      "arm": "typescript",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 177920,
+      "conditional_api_equivalent_usd": 0.148156,
+      "evidence_sha256": {
+        "exec": "15aaf3bcabb834980b0d935774b939e760fc3ef67099c031c88edfb81f7bf18b",
+        "rollout": "4602b7cedfa06b58a1ceba7815ac182675a66992d655d8265ddc69f3b2902b44"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 4873,
+      "legacy_net_input_tokens": 96977,
+      "model_requests": 8,
+      "number": 5,
+      "output_tokens": 7729,
+      "raw_input_tokens": 204457,
+      "reasoning_output_tokens_subset": 974,
+      "status": "accepted"
+    }
+  ],
+  "unlaunched_order": []
+}

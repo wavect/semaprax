@@ -111,3 +111,19 @@ The [official model pricing](https://developers.openai.com/api/docs/models/gpt-6
 was checked on 2026-10-08. A new provider campaign must retain its own prompt,
 model, CLI, usage, acceptance and source provenance; results cannot be merged
 into the historical Sonnet campaign.
+
+The Codex campaign's saved request accounting and candidate archive hashes can
+be independently recounted without another model call or candidate execution:
+
+```sh
+python3 benchmarks/cli-tokens-v1/codex_report.py /absolute/campaign/results.json
+```
+
+The report keeps all attempted tasks in cost and token totals, divides conditional
+API-equivalent cost by accepted tasks, and leaves unknown cost unknown. Partial
+campaigns list unlaunched attempts separately. Final authored tokens remain a
+legacy Claude tokenizer proxy; raw input includes cache subsets; historical net
+input is not task-only input. Fixed harness context and actual billing remain
+unavailable. Empty-task calibration is reported separately and never subtracted.
+The report does not requalify runtime behavior: it checks the saved acceptance,
+public-input guards, trace reconciliation, source hashes, and recorded evidence.

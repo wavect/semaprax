@@ -224,7 +224,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Doctor, canonical: "doctor", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax doctor [--profile <id>] [--target native|web|all] [--json]", "semaprax doctor verify-release <release-dir> --trusted-root-sha256 <64-lowercase-hex>"] },
     CommandSpec { id: CommandId::New, canonical: "new", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text]"] },
     CommandSpec { id: CommandId::ProjectScaffold, canonical: "project-scaffold", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax project-scaffold --name project-name [--template calculator|library|service|stdin-stream-text] [--layout frozen|tables]"] },
-    CommandSpec { id: CommandId::Build, canonical: "build", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax build <file> [--target native|native-callable|web|wasm] [--profile internal-strings-v1|text-toolkit-v1] [--function stable-id] [--export stable-id ...] [-o|--output path] [--json]", "semaprax build [<dir>|semaprax.toml|--manifest-path path] [--target native|web|wasm|npm|oci|rust] [-o|--output path] [--json]"] },
+    CommandSpec { id: CommandId::Build, canonical: "build", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax build <file> [--target native] [-o|--output path] [--json]", "semaprax build <file> --target native-callable --function stable-id [-o|--output path] [--json]", "semaprax build <file> --target web|wasm [--profile internal-strings-v1|text-toolkit-v1] [--export stable-id ...] [-o|--output path] [--json]", "semaprax build [<dir>|semaprax.toml|--manifest-path path] [--target native|web|wasm|npm|oci|rust] [-o|--output path] [--json]"] },
     CommandSpec { id: CommandId::Run, canonical: "run", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax run <file> [--json] [--max-steps N] [--max-bytes N] [--native] [-- <arg>...]", "semaprax run [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]"] },
     CommandSpec { id: CommandId::NetworkRun, canonical: "network-run", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax network-run [<dir>|semaprax.toml|--manifest-path path] --fixture fixture.json [--arg UTF8]... [--stdin path] [--max-steps N]"] },
     CommandSpec { id: CommandId::Test, canonical: "test", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax test [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]"] },
@@ -1215,6 +1215,26 @@ mod tests {
             assert!(!help.contains("|rust"));
             assert!(catalog(private).starts_with(BANNER));
             assert!(catalog(private).contains("\nsemaprax check "));
+        }
+    }
+
+    #[test]
+    fn build_help_separates_native_commands_from_explicit_web_profiles() {
+        for private in [false, true] {
+            let text = scoped("build", private).unwrap();
+            let native = text
+                .lines()
+                .find(|line| line.contains("[--target native]"))
+                .unwrap();
+            assert!(!native.contains("--profile"));
+            assert!(!native.contains("--export"));
+            let web = text
+                .lines()
+                .find(|line| line.contains("--target web|wasm"))
+                .unwrap();
+            assert!(web.contains("--profile internal-strings-v1|text-toolkit-v1"));
+            assert!(web.contains("--export stable-id"));
+            assert!(text.contains("--target native-callable --function stable-id"));
         }
     }
 

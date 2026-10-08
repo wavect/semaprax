@@ -6,13 +6,12 @@ static NEXT: AtomicU64 = AtomicU64::new(0);
 const SHAPES_CATALOG_PATH: &str = "docs/LANGUAGE-SHAPES-CATALOG.md";
 const DEV_LINE: &str =
     "semaprax dev <semaprax.toml> --jsonl|--human [--interpreter|--source-agent]\n";
-const BUILD_SOURCE_LINE: &str = "semaprax build <file> [--target native|native-callable|web|wasm] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o|--output path] [--json]\n";
+const BUILD_SOURCE_LINE: &str =
+    "semaprax build <file> [--target native] [-o|--output path] [--json]\n";
 const BUILD_PROJECT_LINE: &str = "semaprax build [<dir>|semaprax.toml|--manifest-path path] [--target native|web|wasm|npm|oci] [-o|--output path] [--json]\n";
 const DOCTOR_LINE: &str = "semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n";
-const NEW_LINE: &str =
-    "semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text]\n";
-const PROJECT_SCAFFOLD_LINE: &str =
-    "semaprax project-scaffold --name project-name [--template calculator|library|service|stdin-stream-text] [--layout frozen|tables]\n";
+const NEW_LINE: &str = "semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text]\n";
+const PROJECT_SCAFFOLD_LINE: &str = "semaprax project-scaffold --name project-name [--template calculator|library|service|stdin-stream-text] [--layout frozen|tables]\n";
 const BANNER: &str = "SEMAPRAX — Meaning in. Verified machine code out.\n";
 /// The guided overview must stay one screen; CLI Help v4 fixes the bound.
 const GUIDE_MAX_BYTES: usize = 2048;

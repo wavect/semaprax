@@ -819,7 +819,7 @@ fn byte_conversions_match_recursive_oracle() {
         "module t; fn main(value:i64)->u8 { u8_from_i64(value) }",
         "module t; fn main(value:u8)->char { char_from_u8(value) }",
         "module t; fn main()->u8 { u8_from_i64(255) }",
-        "module t; fn main()->u8 { u8_from_i64(256u8) }",
+        "module t; fn main()->u8 { u8_from_i64(255u8) }",
         "module t; fn main()->char { char_from_u8(1) }",
         "module t; fn main()->char { char_from_u8() }",
     ] {

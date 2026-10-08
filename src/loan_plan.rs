@@ -30,6 +30,8 @@ mod boundary_tests;
 mod native_view;
 mod work;
 
+pub(crate) use work::{REACHABILITY_BYTES_PER_EXPRESSION, REACHABILITY_FIXED_BYTES};
+
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct LoanProgramPoint {
     pub expression: ExpressionId,
@@ -379,13 +381,20 @@ fn build_cfg_plan(
 
 #[derive(Clone, Copy, Debug)]
 struct WorkCounter {
+    #[cfg(test)]
+    uncached_reachability: bool,
     used: usize,
     limit: usize,
 }
 
 impl WorkCounter {
     fn new(limit: usize) -> Self {
-        Self { used: 0, limit }
+        Self {
+            used: 0,
+            limit,
+            #[cfg(test)]
+            uncached_reachability: false,
+        }
     }
 }
 
@@ -572,10 +581,27 @@ fn build_cfg_plan_counted(
             })
         })
         .collect::<Vec<_>>();
-    let mut reachable = work::ReachabilityCache::default();
+    #[cfg(not(test))]
+    let reachable = work::Reachability::build(&cfg, drafts.iter().map(|draft| draft.start), work)?;
+    #[cfg(test)]
+    let reachable = if work.uncached_reachability {
+        work::Reachability::uncached(&cfg, drafts.iter().map(|draft| draft.start), work)?
+    } else {
+        work::Reachability::build(&cfg, drafts.iter().map(|draft| draft.start), work)?
+    };
     let mut live = drafts
         .iter()
-        .map(|draft| work::live_nodes(&cfg, draft.start, &draft.seeds, &mut reachable, work))
+        .enumerate()
+        .map(|(index, draft)| {
+            work::live_nodes(
+                &cfg,
+                LoanId(index as u16),
+                draft.start,
+                &draft.seeds,
+                &reachable,
+                work,
+            )
+        })
         .collect::<Result<Vec<_>, _>>()?;
     for _ in 0..=drafts.len() {
         let mut changed = false;
@@ -587,8 +613,14 @@ fn build_cfg_plan_counted(
             let before = live[parent].len();
             let mut seeds = drafts[parent].seeds.clone();
             seeds.extend(live[child].iter().copied());
-            live[parent] =
-                work::live_nodes(&cfg, drafts[parent].start, &seeds, &mut reachable, work)?;
+            live[parent] = work::live_nodes(
+                &cfg,
+                LoanId(parent as u16),
+                drafts[parent].start,
+                &seeds,
+                &reachable,
+                work,
+            )?;
             changed |= live[parent].len() != before;
         }
         if !changed {

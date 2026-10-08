@@ -250,36 +250,150 @@ fn all_edge_liveness(cfg: &Cfg<'_>, live: &[BTreeSet<u16>]) -> work::EdgeLivenes
 }
 
 #[test]
-fn cached_reachability_and_live_source_edges_preserve_canonical_proof() {
+fn batched_reachability_and_live_source_edges_preserve_canonical_proof() {
     let (program, index) = fixture(2);
     let function = &program.functions[index];
     let mut cfg_work = WorkCounter::new(usize::MAX);
     let cfg = build_cfg(function, &mut cfg_work).expect("fixture CFG builds");
-    let start = cfg
-        .node(&function.body, LoanPointPhase::Before)
-        .expect("body start is indexed");
-    let end = cfg
-        .node(&function.body, LoanPointPhase::After)
-        .expect("body end is indexed");
+    let start = cfg.node(&function.body, LoanPointPhase::Before).unwrap();
+    let end = cfg.node(&function.body, LoanPointPhase::After).unwrap();
     let seeds = BTreeSet::from([end]);
     let expected = uncached_live_nodes(&cfg, start, &seeds);
-
-    let mut reachable = work::ReachabilityCache::default();
     let mut work = WorkCounter::new(usize::MAX);
-    let first = work::live_nodes(&cfg, start, &seeds, &mut reachable, &mut work).unwrap();
-    let first_work = work.used;
-    let second = work::live_nodes(&cfg, start, &seeds, &mut reachable, &mut work).unwrap();
-    let second_work = work.used - first_work;
+    let reachable = work::Reachability::build(&cfg, [start].into_iter(), &mut work).unwrap();
+    let first = work::live_nodes(&cfg, LoanId(0), start, &seeds, &reachable, &mut work).unwrap();
     assert_eq!(first, expected);
-    assert_eq!(second, expected);
-    assert!(second_work < first_work);
-
     let live = vec![first, BTreeSet::from([start])];
     let expected_edges = all_edge_liveness(&cfg, &live);
     let before_edges = work.used;
     let actual_edges = work::edge_liveness(&cfg, &live, &mut work).unwrap();
     assert_eq!(actual_edges, expected_edges);
     assert!(work.used - before_edges < live.len() * cfg.edges.len());
+}
+
+#[test]
+fn batched_masks_match_independent_traversals_at_every_word_boundary() {
+    let (program, index) = fixture(64);
+    let mut function = program.functions[index].clone();
+    add_padding(&mut function, "batch.disconnected", 1, 1, 1);
+    let cfg = build_cfg(&function, &mut WorkCounter::new(usize::MAX)).unwrap();
+    let end = cfg.node(&function.body, LoanPointPhase::After).unwrap();
+    // Distinct starts exceed the former eight-entry memo; disconnected roots,
+    // branches and repeated starts exercise exact masks and unreachable seeds.
+    for count in [1, 8, 9, 63, 64, 65, 127, 128, 129, 255, 256] {
+        let starts = (0..count)
+            .map(|index| (index % cfg.points.len()) as u16)
+            .collect::<Vec<_>>();
+        let mut work = WorkCounter::new(usize::MAX);
+        let reachable = work::Reachability::build(&cfg, starts.iter().copied(), &mut work).unwrap();
+        let seeds = BTreeSet::from([end, (cfg.points.len() - 1) as u16]);
+        let mut live = Vec::new();
+        for (loan, start) in starts.iter().copied().enumerate() {
+            let nodes = work::live_nodes(
+                &cfg,
+                LoanId(loan as u16),
+                start,
+                &seeds,
+                &reachable,
+                &mut work,
+            )
+            .unwrap();
+            assert_eq!(
+                nodes,
+                uncached_live_nodes(&cfg, start, &seeds),
+                "loan {loan}/{count}"
+            );
+            live.push(nodes);
+        }
+        assert_eq!(
+            work::edge_liveness(&cfg, &live, &mut work).unwrap(),
+            all_edge_liveness(&cfg, &live)
+        );
+    }
+}
+
+#[test]
+fn batched_forward_work_is_shared_and_cycles_preserve_start_barriers() {
+    let (program, index) = fixture(64);
+    let function = &program.functions[index];
+    let mut cfg = build_cfg(function, &mut WorkCounter::new(usize::MAX)).unwrap();
+    // A linear analysis-only CFG with 256 distinct starts exposes the shape
+    // that an eight-start memo cannot share. This does not alter admission.
+    for node in 0..cfg.points.len() {
+        cfg.successors[node] = if node + 1 < cfg.points.len() {
+            vec![(node + 1) as u16]
+        } else {
+            vec![]
+        };
+        cfg.predecessors[node] = if node > 0 {
+            vec![(node - 1) as u16]
+        } else {
+            vec![]
+        };
+    }
+    let end = (cfg.points.len() - 1) as u16;
+    let starts = (0..MAX_LOANS_PER_FUNCTION_V1 as u16).collect::<Vec<_>>();
+    let mut batch_work = WorkCounter::new(usize::MAX);
+    let _ = work::Reachability::build(&cfg, starts.iter().copied(), &mut batch_work).unwrap();
+    let exact = batch_work.used;
+    let mut reference_work = WorkCounter::new(usize::MAX);
+    let _ =
+        work::Reachability::uncached(&cfg, starts.iter().copied(), &mut reference_work).unwrap();
+    assert!(exact < reference_work.used);
+    let mut exact_work = WorkCounter::new(exact);
+    work::Reachability::build(&cfg, starts.iter().copied(), &mut exact_work).unwrap();
+    assert_eq!(exact_work.used, exact);
+    let mut short_work = WorkCounter::new(exact - 1);
+    let error = work::Reachability::build(&cfg, starts.iter().copied(), &mut short_work)
+        .err()
+        .unwrap();
+    assert_eq!(short_work.used, exact);
+    assert_eq!(error.code, "SPX-H006");
+    assert_eq!(
+        error.message,
+        "loan analysis exceeds 1,000,000 checked work"
+    );
+    // A back edge challenges convergence. Reverse liveness must still stop at
+    // each loan's own start even though all starts can now reach every point.
+    cfg.successors[end as usize].push(0);
+    cfg.predecessors[0].push(end);
+    let reachable =
+        work::Reachability::build(&cfg, starts.iter().copied(), &mut batch_work).unwrap();
+    for loan in [0, 63, 64, 127, 128, 255] {
+        let seeds = BTreeSet::from([end]);
+        assert_eq!(
+            work::live_nodes(
+                &cfg,
+                LoanId(loan),
+                starts[loan as usize],
+                &seeds,
+                &reachable,
+                &mut batch_work
+            )
+            .unwrap(),
+            uncached_live_nodes(&cfg, starts[loan as usize], &seeds),
+        );
+    }
+}
+
+#[test]
+fn batched_forward_build_is_byte_exact_to_uncached_reachability_and_replays() {
+    let (program, index) = fixture_with_uses(32, true);
+    // Keep the authenticated source-derived cleanup carrier intact for full
+    // Graph serialization; synthetic padding is covered by CFG tests above.
+    let function = program.functions[index].clone();
+    let plan = build_plan(&program, &function).unwrap();
+    let mut reference_work = WorkCounter::new(usize::MAX);
+    reference_work.uncached_reachability = true;
+    let reference = build_cfg_plan_counted(&program, &function, &mut reference_work).unwrap();
+    assert_eq!(plan, reference);
+    let authenticated = install_plan(program.clone(), index, function.clone(), plan);
+    validate_program(&authenticated).expect("batched plan independently replays");
+    let reference = install_plan(program, index, function, reference);
+    assert_eq!(
+        crate::graph::to_hir_json(&authenticated, "batch.reference").unwrap(),
+        crate::graph::to_hir_json(&reference, "batch.reference").unwrap()
+    );
 }
 
 #[test]

@@ -111,14 +111,33 @@ control-flow edges, loan relations, and overlap checks. Exceeding any bound
 fails closed before Graph projection or backend admission; the implementation
 may not truncate, merge, sort, or repair the plan.
 
-Checked work counts actual deterministic traversals. Forward reachability for
-an identical CFG start may be retained within one canonical build. The bounded
-memo retains at most eight starts; an evicted start is traversed and charged
-again when needed. Edge liveness examines only canonical outgoing edges whose
-source is live for that loan. Retention does not cross a function build or
-independent replay. These optimizations must produce the same ordered plan and
-Graph bytes as an uncached full-edge membership scan; they do not raise the
-work ceiling.
+Checked work counts actual deterministic traversals. Within each canonical
+build, forward reachability is derived for all loans together: each point
+holds one loan-ID bit per reachable start in one through four 64-bit words.
+Seeding pushes reverse dense loan-ID order onto a fixed point stack; changed
+successors move to its front in reverse canonical successor order. Masks
+propagate until no bit changes. The queue has at most one pending entry per
+point and two fixed link slots and a membership byte per point. Work charges
+each initialized word, seed, dequeued point, changed-successor queue update,
+and actual edge-word merge. Reverse liveness retains the exact per-loan seed traversal and stops at
+that loan's own start; reachable-seed examinations are charged as well. Parent
+recomputations retain reverse child order and overwrite the parent with that
+child's exact seed-derived live set, rather than unioning sibling results.
+Edge liveness examines only canonical outgoing edges whose source is live for
+that loan. Retention does not cross a function build or independent replay.
+The ordered plan and Graph bytes must match independently traversed per-loan
+reachability and the full-edge membership scan; the work ceiling stays fixed.
+
+The maximum forward payload is 4,096 points times four words times eight bytes
+(**131,072 bytes**), plus 8,192 `u16` queue links (**16,384 bytes**) and 4,096
+membership bytes (**4,096 bytes**). The four boxed-slice carriers and queue
+indices have fixed `size_of`-derived overhead. Each expression's paired points
+contribute at most 74 bytes to the workspace resolver's structural footprint
+proof; its fixed per-function bundle includes the carriers. The unchanged
+structural expansion factor and 64 MiB workspace budget cover these footprints
+through compile-time assertions. This bounds the additional allocations; it
+does not claim a measured peak-memory reduction or change the existing live
+sets, CFG, retained proof capacity, or their accounting.
 
 ## Independent replay
 

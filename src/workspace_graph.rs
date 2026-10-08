@@ -153,12 +153,14 @@ const HIR_EXPR_FIXED_BUNDLE: usize = std::mem::size_of::<hir::ResolvedExpr>()
     + std::mem::size_of::<crate::cleanup_plan::CleanupTransition>()
     + std::mem::size_of::<crate::cleanup_plan::CleanupBlock>()
     + std::mem::size_of::<crate::cleanup_plan::CleanupEdge>()
-    + std::mem::size_of::<crate::cleanup_plan::CleanupRegion>();
+    + std::mem::size_of::<crate::cleanup_plan::CleanupRegion>()
+    + crate::loan_plan::REACHABILITY_BYTES_PER_EXPRESSION;
 const HIR_FUNCTION_FIXED_BUNDLE: usize = std::mem::size_of::<hir::ResolvedFunction>()
     + std::mem::size_of::<hir::ResolvedFunctionTemplate>()
     + std::mem::size_of::<hir::ResolvedFunctionInstance>()
     + std::mem::size_of::<crate::cleanup::CleanupInventory>()
-    + std::mem::size_of::<crate::cleanup_plan::CleanupPlan>();
+    + std::mem::size_of::<crate::cleanup_plan::CleanupPlan>()
+    + crate::loan_plan::REACHABILITY_FIXED_BYTES;
 const HIR_DECLARATION_FIXED_BUNDLE: usize = std::mem::size_of::<hir::Declaration>() * 12
     + std::mem::size_of::<hir::ResolvedTypeDeclaration>()
     + std::mem::size_of::<hir::ResolvedVariantCaseDeclaration>()

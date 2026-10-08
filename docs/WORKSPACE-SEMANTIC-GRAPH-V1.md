@@ -259,6 +259,17 @@ debit is the maximum of all attempts; no enclosing budget is reset or refunded.
 Explicit smaller-limit invocations and nested budgets retain their original
 core-refusal behavior, and a successful earlier attempt retains its receipt.
 
+The [shared-loan planner](SHARED-LOAN-PLAN-V1.md) uses bounded transient
+forward-reachability rows and a fixed point queue. Its maximum 74 bytes per
+expression (two points, each with four `u64` words, two `u16` links and one
+membership byte) is included in `HIR_EXPR_FIXED_BUNDLE`; the boxed carriers
+and queue indices are included in `HIR_FUNCTION_FIXED_BUNDLE`. Existing
+compile-time assertions keep both bundles under the unchanged sixteen-footprint
+fixed structural allowance. The forward table and queue do not survive a
+canonical build or replay, and retained loan-plan capacity stays independently
+charged only for nonempty own-root proof sidecars. This is an allocation bound,
+not a measured change to the historical corpus or receipt values.
+
 The identity factor was re-derived from measurement. A declaration identity at
 one resolved occurrence is retained by the HIR node, the declaration, type and
 call indexes, the validation sets, the cleanup inventory, the cleanup-plan

@@ -555,8 +555,8 @@ fn reference_interpreter_builds_strings_in_loops() {
                     .unwrap_or_else(|error| panic!("{id}: {error:?}"));
             interpreter::internal_strings::verify_envelope(&result.envelope).unwrap();
             interpreter::internal_strings::verify_envelope_against_source(
-                &fixture.source,
                 &result.envelope,
+                &fixture.source,
             )
             .unwrap();
             result

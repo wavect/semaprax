@@ -315,8 +315,8 @@ fn map_set_v2_interpreter_values_order_failure_and_private_boundaries() {
                     .unwrap_or_else(|error| panic!("{id}: {error:?}"));
             interpreter::internal_strings::verify_envelope(&result.envelope).unwrap();
             interpreter::internal_strings::verify_envelope_against_source(
-                &fixture.source,
                 &result.envelope,
+                &fixture.source,
             )
             .unwrap();
             result

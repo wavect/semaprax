@@ -139,7 +139,7 @@ pub(super) fn lower_profile(
         } else {
             format!(
                 "{LABEL} profile `{profile_name}` requires `[capabilities] required = {}`",
-                super::render_array(
+                super::super::render_array(
                     &expected_capabilities
                         .iter()
                         .map(|capability| (*capability).to_owned())

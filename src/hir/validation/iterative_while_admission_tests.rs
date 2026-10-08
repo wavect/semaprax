@@ -134,8 +134,9 @@ fn indexed(text: string) -> usize {
         std::path::Path::new("validation-indexed-alias-diagnostic.spx"),
     )
     .unwrap();
-    let program = crate::hir::resolve(&parsed).unwrap();
-    let diagnostic = crate::hir::validate(&program).unwrap_err();
+    let mut diagnostics = crate::hir::resolve(&parsed).unwrap_err();
+    assert_eq!(diagnostics.len(), 1);
+    let diagnostic = diagnostics.remove(0);
     assert_eq!(diagnostic.code, "SPX-H006");
     assert_eq!(
         diagnostic.message,

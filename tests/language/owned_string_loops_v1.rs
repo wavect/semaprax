@@ -211,6 +211,41 @@ fn condition_predicates() -> i64
     i
 }
 
+@id("loops.parameter_walk")
+fn parameter_walk(text: string) -> i64 {
+    let mut i = 0;
+    while i < string_len(text) { i = i + 1; 0 }
+    i
+}
+
+@id("loops.parameter_predicates")
+fn parameter_predicates(text: string, prefix: string, needle: string) -> i64 {
+    let mut i = 0;
+    while i < 2 && string_starts_with(text, prefix) && string_contains(text, needle) {
+        i = i + 1;
+        0
+    }
+    i
+}
+
+@id("loops.condition_parameters")
+fn condition_parameters() -> i64 {
+    parameter_walk("x") * 10 + parameter_predicates("abc", "a", "b")
+}
+
+@id("loops.parameter_temporary")
+fn parameter_temporary(text: string) -> i64 {
+    let mut i = 0;
+    while i < 2 && string_len(text) == 3 && string_len(string_concat("", "a")) == 1 {
+        i = i + 1;
+        0
+    }
+    i
+}
+
+@id("loops.condition_parameter_temporary")
+fn condition_parameter_temporary() -> i64 { parameter_temporary("abc") }
+
 @id("app.main")
 fn main() -> i64
 {
@@ -233,6 +268,8 @@ const CASES: &[(&str, &str)] = &[
     ("loops.condition_is_empty", "ok|1"),
     ("loops.condition_predicates", "ok|2"),
     ("loops.condition_failure", "semaprax.arithmetic.v1|1"),
+    ("loops.condition_parameters", "ok|12"),
+    ("loops.condition_parameter_temporary", "ok|2"),
 ];
 
 /// The literal-only cases the String-settling Wasm profile admits; numeric
@@ -249,6 +286,7 @@ const WASM_CASES: &[&str] = &[
     "loops.condition_is_empty",
     "loops.condition_predicates",
     "loops.condition_failure",
+    "loops.condition_parameters",
 ];
 
 fn command_available(command: &str) -> bool {

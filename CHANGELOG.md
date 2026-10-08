@@ -1,5 +1,10 @@
 # Changelog
 
+- Fix native String condition cleanup anchors to distinguish dormant inventory
+  slots from canonical runtime lifecycle references; mirror the distinction in
+  aggregate Wasm and Copy-variant guards. Parameter-read success and real-owner
+  parent-refusal regressions are authored for OPT #660; verification is pending.
+
 - Record focused LOCAL source/graph/interpreter/C11 O0/O2 and physical Node
   Wasm gates for the bounded owned-String record, loop-match, String-condition
   and String-replacement slices. Preserve frozen-profile refusals and every

@@ -44,7 +44,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         let mut pending = vec![guard];
         while let Some(expression) = pending.pop() {
             let storage = crate::cleanup_plan::StorageId::Temporary(expression.id.clone());
-            if plan.value(&storage).is_ok() || plan.has_projected_leaves(&storage) {
+            if (plan.value(&storage).is_ok() || plan.has_projected_leaves(&storage))
+                && plan.has_runtime_lifecycle(&storage)
+            {
                 anchors.insert(storage);
             }
             pending.extend(super::resolved_expr_children(expression));

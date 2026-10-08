@@ -1,6 +1,8 @@
 //! CleanupPlan finalization for owned Wasm carriers.
 
 use super::*;
+mod activity;
+pub(super) use activity::runtime_storages;
 
 impl Emitter<'_> {
     pub(super) fn emit_cleanup_actions(
@@ -248,6 +250,7 @@ impl Emitter<'_> {
             .filter_map(|place| match &place.storage {
                 crate::cleanup_plan::StorageId::Temporary(expression)
                     if descendants.contains(expression)
+                        && self.plan.runtime_cleanup_storage.contains(&place.storage)
                         && matches!(
                             self.plan.cleanup_storage_types.get(&place.storage),
                             Some(ty) if *ty == ResolvedType::String

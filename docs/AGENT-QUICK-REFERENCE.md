@@ -1047,6 +1047,7 @@ Other first-attempt diagnostics and their fixes:
 
 | You wrote | Code | Fix |
 | --- | --- | --- |
+| native ownership or cleanup lowering refuses a program after `check` succeeds | `SPX-B104` | Keep the exact message and a minimal source reproducer; this is a backend refusal, not evidence of a source ownership error. For `String scalar-match region parent is not canonical` on a named String condition read, report the compiler regression; do not remove cleanup checks |
 | `for i in 0..n { … }` | `SPX-P106` | Use `while`, a `let mut` counter, and a discarded tail |
 | a `while` body ending after assignment | `SPX-P203` | Add a discarded scalar tail such as `0` |
 | `f(x);` as a statement | `SPX-P106` | Discard it with `let _ = f(x);` or make it the tail |

@@ -144,6 +144,17 @@ fn boolean_branch_expression(
 }
 
 impl NativeBytesPlan {
+    /// Inventory-only slots retain their regions but never acquire a runtime
+    /// owner. Only canonical entry, transition and finalizer references can
+    /// make a slot a cleanup anchor.
+    pub(in crate::codegen) fn has_runtime_lifecycle(&self, storage: &StorageId) -> bool {
+        self.storage_leaves.get(storage).is_some_and(|leaves| {
+            leaves
+                .iter()
+                .any(|place| self.referenced_places.contains(place))
+        })
+    }
+
     /// Whether `storage` is a finalizable slot of some lexical region.
     pub(in crate::codegen) fn is_region_slot(&self, storage: &StorageId) -> bool {
         self.scope_exits
@@ -260,3 +271,6 @@ impl NativeBytesPlan {
         Ok(self.emit_finalizers(&selected.actions, false))
     }
 }
+
+#[cfg(test)]
+mod tests;

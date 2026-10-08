@@ -248,7 +248,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         while let Some(expression) = pending.pop() {
             if matches!(expression.ty, ResolvedType::String) {
                 let storage = crate::cleanup_plan::StorageId::Temporary(expression.id.clone());
-                if plan.value(&storage).is_ok() {
+                if plan.value(&storage).is_ok() && plan.has_runtime_lifecycle(&storage) {
                     anchors.insert(storage);
                 }
             }

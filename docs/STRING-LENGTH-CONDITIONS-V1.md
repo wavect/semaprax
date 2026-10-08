@@ -61,6 +61,11 @@ inventory temporary retains an authenticated lexical region, like the moving
 operand of a same-owner append, and never becomes live. The existing acyclic one-iteration loop plan remains sufficient; no condition cleanup
 region, back-edge, or schema extension is introduced.
 
+Native cleanup anchors exclude those dormant inventory slots by checking
+their canonical runtime lifecycle references. An available slot alone does
+not imply a condition-local owner. Real String temporaries still require
+their exact canonical child region and normal-scope exit.
+
 The derived identity sets are metadata, like the existing append index. Replay
 materialization units count path-evidence operations, not these sets' bytes,
 peak heap, or traversal time; they grant no new cleanup authority. Builder

@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "code": "SPX-B104",
+      "rows": [
+        {
+          "fix": "Keep the exact message and a minimal source reproducer; this is a backend refusal, not evidence of a source ownership error. For `String scalar-match region parent is not canonical` on a named String condition read, report the compiler regression; do not remove cleanup checks",
+          "wrote": "native ownership or cleanup lowering refuses a program after `check` succeeds"
+        }
+      ]
+    },
+    {
       "code": "SPX-G170",
       "rows": [
         {

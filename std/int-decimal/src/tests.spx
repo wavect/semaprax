@@ -1,0 +1,62 @@
+module std.int.decimal.tests;
+use function @id("std.int.decimal.digit") from std.int.decimal as digit;
+use function @id("std.int.decimal.digits") from std.int.decimal as digits;
+use function @id("std.int.decimal.valid") from std.int.decimal as valid;
+use function @id("std.int.decimal.canonicalize") from std.int.decimal as canonicalize;
+use function @id("std.int.decimal.compare") from std.int.decimal as compare;
+use function @id("std.int.decimal.add") from std.int.decimal as add;
+use function @id("std.int.decimal.subtract") from std.int.decimal as subtract;
+use function @id("std.int.decimal.divide") from std.int.decimal as divide;
+
+@id("std.int.decimal.tests.main")
+fn main() -> i64
+{
+    let text_0 = "";
+    let text_1 = "-1";
+    let text_2 = "+1";
+    let text_3 = "1.0";
+    let text_4 = "1 ";
+    let text_5 = "é";
+    let text_6 = "١";
+    let text_7 = "0000";
+    let text_8 = "00123";
+    let text_9 = "0";
+    let text_10 = "123";
+    let text_11 = "00";
+    let text_12 = "0123";
+    let text_13 = "0";
+    let text_14 = "0";
+    let text_15 = "9";
+    let text_16 = "10";
+    let text_17 = "10";
+    let text_18 = "9";
+    let text_19 = "123";
+    let text_20 = "124";
+    let text_21 = "124";
+    let text_22 = "123";
+    let text_23 = "1";
+    let text_24 = "123";
+    let text_25 = "999999999999999999999999";
+    let text_26 = "7";
+    let text_27 = "10";
+    let text_28 = "3";
+    let text_29 = "100";
+    let text_30 = "1";
+    let text_31 = "3";
+    let text_32 = "18446744073709551616";
+    let text_33 = "2";
+    let digit_probe = "9";
+    let mut failures = if digit(string_as_str(digit_probe), 0) == 9 { 0 } else { 256 };
+    if digits(string_as_str(text_0)) || digits(string_as_str(text_1)) || digits(string_as_str(text_2)) || digits(string_as_str(text_3)) || digits(string_as_str(text_4)) || digits(string_as_str(text_5)) || digits(string_as_str(text_6)) { failures = failures + 1; }
+    if !digits(string_as_str(text_7)) || !digits(string_as_str(text_8)) || !valid(string_as_str(text_9)) || !valid(string_as_str(text_10)) || valid(string_as_str(text_11)) || valid(string_as_str(text_12)) { failures = failures + 2; }
+    if canonicalize("0000") != "0" || canonicalize("00123") != "123" || canonicalize("7") != "7" { failures = failures + 4; }
+    if compare(string_as_str(text_13), string_as_str(text_14)) != 0 || compare(string_as_str(text_15), string_as_str(text_16)) != -1 || compare(string_as_str(text_17), string_as_str(text_18)) != 1 || compare(string_as_str(text_19), string_as_str(text_20)) != -1 || compare(string_as_str(text_21), string_as_str(text_22)) != 1 { failures = failures + 8; }
+    if add("0", "0") != "0" || add("99", "1") != "100" || add("1", "999999999999999999999999") != "1000000000000000000000000" { failures = failures + 16; }
+    if subtract("1000", string_as_str(text_23)) != "999" || subtract("123", string_as_str(text_24)) != "0" || subtract("1000000000000000000000000", string_as_str(text_25)) != "1" { failures = failures + 32; }
+    if divide("0", string_as_str(text_26)) != "0" || divide("7", string_as_str(text_27)) != "0" || divide("1000", string_as_str(text_28)) != "333" || divide("10101", string_as_str(text_29)) != "101" || divide("999", string_as_str(text_30)) != "999" { failures = failures + 64; }
+    if divide("1000000000000000000000000", string_as_str(text_31)) != "333333333333333333333333" || divide("18446744073709551616", string_as_str(text_32)) != "1" || divide("18446744073709551615", string_as_str(text_33)) != "9223372036854775807" { failures = failures + 128; }
+    let max_u64 = "18446744073709551615";
+    if divide("18446744073709551615", string_as_str(max_u64)) != "1" { failures = failures + 512; }
+    if add("99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999", "1") != "100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" { failures = failures + 1024; }
+    failures
+}

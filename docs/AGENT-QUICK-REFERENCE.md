@@ -1215,8 +1215,8 @@ fn order_status(paid: bool) -> string
 and widen `Some` with `i64_from_u8`. `std.bytes.get_or` is available in
 `useful-data.v1` (`semaprax help library std.bytes.get_or`).
 
-A Project keeps `semaprax.toml` beside `src/`. The table layout is canonical;
-the frozen one-line-per-key `semaprax.project.v1` layout remains admitted.
+Keep `semaprax.toml` beside `src/`. Tables are canonical; the frozen
+one-line-per-key `semaprax.project.v1` layout remains admitted.
 
 ```toml
 schema = "semaprax.manifest.v1"
@@ -1237,12 +1237,12 @@ web = ["calculator.add"]
 std.num = "^0.1.0"
 ```
 
-Use canonical table order, blank lines between tables, one-line arrays, and no
-comments; otherwise `SPX-J100` identifies the first differing help line (the
-frozen layout has six ordered lines). Unknown/reserved tables or keys give
-`SPX-J120`. `[package] profile` selects function-boundary carriers. Bundled
-`std.*` packages are version `0.1.0`; unknown packages or unsatisfied ranges
-are `SPX-J121`, and ordinary packages use the separate resolution route.
+Use canonical table order, blank lines, one-line arrays, and no comments.
+`SPX-J100` identifies the first differing help line; frozen v1 has six ordered
+lines. Unknown/reserved tables or keys give `SPX-J120`. `[package] profile`
+selects function-boundary carriers. Bundled `std.*` packages use `0.1.0`;
+unknown packages or unsatisfied ranges give `SPX-J121`. Ordinary packages
+use the separate resolution route.
 `[targets] matrix = ["wasm32"]` rejects native builds with `SPX-J122`.
 
 Import functions by stable ID after `module`, for example
@@ -1255,43 +1255,44 @@ points`, extract named helpers with admitted signatures; other H006 messages
 require their specific HIR or cleanup fix, not raised limits.
 
 A test module's `main` returns 0 on success. Each `@id`'d `fn test_<name>() ->
-i64` runs independently without parameters. Failures report stable ID and
-outcome; contract failures include clause and argument values. See [Project
-Test Cases v1](PROJECT-TEST-CASES-V1.md).
+i64` runs independently. Failures report stable ID and outcome; contract
+failures include clause and argument values. See [Project Test Cases v1](PROJECT-TEST-CASES-V1.md).
 
-`semaprax help library` lists all bundled modules; `semaprax help library all`
-prints the full offline [catalog](STANDARD-LIBRARY-CATALOG.md). Exact lookup is
-`semaprax help library <module|name|stable-id>`; import the returned `@id` and
-dependency. The catalog gives each function's contract, profile, and dependency
-route; matching is exact, with no fuzzy or prefix search. The installed
-compiler supplies bundled packages without a checkout.
+Use `semaprax help library` to list modules, `semaprax help library all` for
+the offline [catalog](STANDARD-LIBRARY-CATALOG.md), or
+`semaprax help library <module|name|stable-id>` for exact lookup (no fuzzy or
+prefix search). Import its `@id` and dependency; it supplies contracts and
+profiles. Bundled packages ship with the compiler.
 Bounded Vec uses `owned-data-api.v1` and `std.collections = "^0.1.0"`; import
 `std.collections.vec.*` by ID with an explicit Copy-scalar type argument.
 Mutators transfer and return the owner; there is no public export or stable
 generic ABI. [Package Manifest v1](PACKAGE-MANIFEST-V1.md) owns table layout;
 [Project Manifest v1](PROJECT-MANIFEST-V1.md) owns the frozen format.
 
-For native file-text commands, `semaprax new <dir> --template
-source-command-file-text` creates the v26 table Project; `project-scaffold`
-accepts the same template and selects tables. It uses `source-command.v1`,
+`semaprax new <dir> --template source-command-file-text` creates a v26 tables
+Project; `project-scaffold` uses the same template. It selects `source-command.v1`,
 `argv-utf8+file-text.v1`, and `native64`; interpreter, Web, Wasm, and npm
-refuse it. `doctor --profile` reports support but does not select a profile.
+refuse it. `doctor --profile` reports support; it does not select profiles.
 Opt in to v28 by setting `[package] profile =
 "source-command.resource-output.v1"` in the tables manifest; raw-source
-commands still select frozen v26 `source-command.v1`. V28 keeps the v26 ABI,
-16 arguments/65,536
-aggregate argument bytes, 65,536 bytes per file read, and 64 reservations/1 MiB
-reserved file bytes. It permits 1 MiB Strings, authenticated borrowed text, and
+commands still select frozen v26 `source-command.v1`. V28 keeps its ABI:
+16 arguments/65,536 aggregate argument bytes, 65,536 bytes per file read,
+and 64 reservations/1 MiB reserved file bytes. It permits 1 MiB Strings, authenticated borrowed text, and
 combined staged stdout/stderr appends; only native64 is admitted. V26 stays
 frozen at 65,536 bytes for its borrowed view/output contract. See [Project v28](PROJECT-MANIFEST-V28.md).
 
 `semaprax new <dir> --template stdin-stream-data` creates the Project v27
-native stream-data starter; `project-scaffold` accepts the same template and
-selects tables. It keeps the command input bounded and shows one private
-immutable `borrow Vec<i64>` helper; `main` and the selected command remain
-`fn() -> i64`. Web, Wasm, npm, and interpreter execution refuse v27. The
-`stdin-stream-text` scaffold remains Project v25 for private owned-String
-helpers.
+native stream-data starter with `language-command-io.stream-data.v1`;
+`project-scaffold` selects tables for the same template. It shows a bounded
+command and one private immutable `borrow Vec<i64>` helper; `main` and the command remain
+`fn() -> i64`. Web/npm refuse v27; Wasm also refuses it. Native-only applies
+to the selected command and streaming runtime. Pure `main` and test closures
+may run in the authority-free Project interpreter, which supplies no stdin
+provider or command adapter. The `stdin-stream-text` scaffold remains Project
+v25 for private owned-String helpers. V27 adds immutable `borrow Vec<T>`
+parameters for the eight Copy scalars (`i64`, `i32`, `u8`, `usize`, `char`,
+`f32`, `f64`, `bool`); v24/v25 retain their
+closed helper boundaries. See [Stream Data Command v1](STREAM-DATA-COMMAND-V1.md).
 
 `semaprax lock semaprax.toml --write` pins identity, source digests, interface,
 targets, and capabilities; `--verify` checks it and `--compare <base.lock>`

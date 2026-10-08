@@ -1,5 +1,9 @@
 # Changelog
 
+- Admit the exact Project v27 schema when authenticating pure entry/test
+  execution envelopes. Preserve canonical reconstruction, digest checks and
+  rejection of native-only source-command and unknown project schemas.
+
 - Add a shared browser/API creation preflight using the compiler-derived
   partial permission predicate (OPT #687). Only definitive row denial rejects
   before payload validation; concrete authorization and principal renewal after

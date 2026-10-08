@@ -22,6 +22,9 @@ Web, Wasm, and npm refuse v27 with `SPX-W120` before producing artifacts.
 Native-only describes the selected command target and streaming runtime. The
 inherited authority-free Project interpreter may still evaluate the ordinary
 pure `main` and test closures; it supplies no stdin provider or command adapter.
+Their canonical `semaprax.project-execution.v1` reports retain the exact
+`semaprax.project.v27` identity and replay through the closed execution-envelope
+verifier; replay supplies no execution authority.
 
 The ordinary entry and selected command remain separate exact external roots.
 The entry is an explicit authored `fn main() -> i64`; the selected command is

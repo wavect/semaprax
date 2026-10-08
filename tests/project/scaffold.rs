@@ -21,6 +21,8 @@ use sha2::{Digest, Sha256};
 /// graph projection for all templates, plus test/run for interpreter profiles.
 /// The Project v26 source-command template instead pins its intentional
 /// interpreter refusal; its executable route is the native build gate.
+/// V27 keeps the selected streaming command native-only, while its pure entry
+/// and test closures use the inherited authority-free Project interpreter.
 ///
 /// `tests/quickstart_v1/installed_journey.rs` walks the same path against a
 /// really `cargo install`ed binary, which is stronger evidence — but it covers
@@ -72,11 +74,7 @@ fn every_shipped_template_walks_the_documented_quickstart_journey() {
             snapshot.check()?;
             let options = semaprax::project::ProjectExecutionOptions::default();
             let graph_bytes = snapshot.semantic_graph().len();
-            if matches!(
-                template,
-                PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT
-                    | PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA
-            ) {
+            if template == PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT {
                 let test_error = snapshot.execute_test(&options).unwrap_err();
                 let run_error = snapshot.execute_entry(&options).unwrap_err();
                 assert_eq!(test_error.len(), 1);
@@ -87,6 +85,16 @@ fn every_shipped_template_walks_the_documented_quickstart_journey() {
             } else {
                 let tested = snapshot.execute_test(&options)?;
                 let ran = snapshot.execute_entry(&options)?;
+                if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA {
+                    assert_eq!(tested.stable_id(), "demo-project.tests.main");
+                    assert_eq!(ran.stable_id(), "demo-project.app.main");
+                    assert_eq!(
+                        ran.outcome(),
+                        &semaprax::project::ProjectExecutionOutcome::Returned(0)
+                    );
+                    semaprax::project::verify_execution_envelope(tested.envelope()).unwrap();
+                    semaprax::project::verify_execution_envelope(ran.envelope()).unwrap();
+                }
                 Ok((
                     Some(format!("{:?}", tested.outcome())),
                     Some(ran.outcome().clone()),
@@ -98,11 +106,7 @@ fn every_shipped_template_walks_the_documented_quickstart_journey() {
 
         let (tested, ran, graph_bytes) = walked
             .unwrap_or_else(|error| panic!("`{template}` fails the documented journey: {error:?}"));
-        if !matches!(
-            template,
-            PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT
-                | PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA
-        ) {
+        if template != PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT {
             let tested = tested.unwrap();
             let ran = ran.unwrap();
             assert!(

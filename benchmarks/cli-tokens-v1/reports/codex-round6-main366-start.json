@@ -1,0 +1,60 @@
+{
+  "schema": "semaprax.benchmark-campaign-start.v1",
+  "status": "launched_not_scored",
+  "campaign_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round6-main366-20261008",
+  "compiler_source_commit": "3660e0daf9335dc9d6dc27949a43cd40dff7326c",
+  "compiler_binary_sha256": "ba75eec45d71e714a72eaac21f325195f3c3af4f259d9a9835306c1fe4dcbedc",
+  "seed_source_commit": "77051c58acd8f312173c5badb4ba7c355d374ca2",
+  "model_requested": "gpt-6.1-sol",
+  "effort_requested": "medium",
+  "planned_attempts": 10,
+  "trial_order": [
+    "semaprax",
+    "typescript",
+    "typescript",
+    "semaprax",
+    "semaprax",
+    "typescript",
+    "typescript",
+    "semaprax",
+    "semaprax",
+    "typescript"
+  ],
+  "qualification": {
+    "boundary_checks": 16,
+    "case_timeout_seconds": 120,
+    "corpus_sha256": "9fd0993142aee8b47e5d3a4256379eeddcd903cadf69419717c40032d769c745",
+    "criterion": "historical build, candidate tests and all33 checks plus all16 independent SPEC boundary checks",
+    "execution_mode": "native or interpreter, as permitted by the unchanged prompt",
+    "facts_script_sha256": "97eaa89fbac7dc0311154e5b0bda4e2ccb389518a3aa593639fdc36173e7acf8",
+    "historical_checks": 33,
+    "profile": "loglens-historical33-plus-spec-boundaries.v1",
+    "qualification_script_sha256": "d2214ae5922fee6949767ca661cba84fa07aab4ad66d4f446160927f838d6dd5",
+    "spec_sha256": "51bf564cb9f7eadd4b3bd12fac53b7857befa09b3ef757d9c34400a8509fdeae"
+  },
+  "harness_source_snapshot": {
+    "files_sha256": {
+      "benchmarks/cli-tokens-v1/boundary-audit-v1/audit.py": "97eaa89fbac7dc0311154e5b0bda4e2ccb389518a3aa593639fdc36173e7acf8",
+      "benchmarks/cli-tokens-v1/boundary-audit-v1/corpus.json": "9fd0993142aee8b47e5d3a4256379eeddcd903cadf69419717c40032d769c745",
+      "benchmarks/cli-tokens-v1/codex_campaign.py": "98aa7e79957c3b947defff5aa6a418c3540d058f3dd9bda6d56a925f0e50e3ff",
+      "benchmarks/cli-tokens-v1/codex_report.py": "47bc737120310bcada88e19f2f6b546a53fdfcbd09104369f63e23862d71c6f0",
+      "benchmarks/cli-tokens-v1/live_campaign.py": "75ddbcb35fbeec78be6463d1c24b1cc4dfbbd82225ec1b891b3e656be50d8f75",
+      "benchmarks/cli-tokens-v1/measurement_evidence.py": "d21608107b9e1f80c1363389d9d9e345ba0eeb1d5e06fc281b415111ae1358a3",
+      "benchmarks/cli-tokens-v1/oracle.py": "195f14aaab02b5afb4506943dcd98ef26f630e98bd9927a0aa877a3097a6bd09",
+      "benchmarks/cli-tokens-v1/qualification.py": "d2214ae5922fee6949767ca661cba84fa07aab4ad66d4f446160927f838d6dd5",
+      "benchmarks/live_campaign_common.py": "8260235fd382f658388f4a863aeb55e9428e681ccd2fd4de13ac3212813aa0db"
+    },
+    "frozen_spec": {
+      "path": "benchmarks/cli-tokens-v1/SPEC.md",
+      "sha256": "51bf564cb9f7eadd4b3bd12fac53b7857befa09b3ef757d9c34400a8509fdeae",
+      "source": "seed_files_sha256"
+    },
+    "path": "harness-source",
+    "schema": "semaprax.codex-harness-source-snapshot.v1"
+  },
+  "calibration_status": "ready",
+  "calibration_report_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round6-main366-20261008/calibration.json",
+  "campaign_json_sha256": "338dbfcd68d1a573490797a218b6450204bb137e11d4be53accfa42aecca6fd2",
+  "calibration_json_sha256": "613d7bc6a2bc195a937d90eb405706c21b8830d1caf915a363d033a6c4b2b47a",
+  "measurement_scope": "Start record only, no accepted-task result or token advantage. READY calibration is separate and is never subtracted from trial usage. Exact fixed-harness composition and actual provider bills are unavailable. Final authored counts are a pinned legacy Claude-BPE proxy; requested Codex model/effort are matched."
+}

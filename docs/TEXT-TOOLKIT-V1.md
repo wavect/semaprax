@@ -17,6 +17,12 @@ arguments, nothing turned file contents into a `string`, and nothing cut a
 `string` into pieces. v1 adds five pure text operations, one file operation,
 and a command-line profile for single-file programs.
 
+For a native command, use `semaprax build app.spx --target native --output app`
+with a fresh destination. Omit `--profile`: the explicit `text-toolkit-v1`
+CLI selection belongs to Wasm/web exports, and native text support follows the
+source program. Existing outputs are refused (`SPX-I307`); select a new output
+or explicitly remove your previous build artifact before rebuilding.
+
 ## Operations
 
 All six are compiler-owned and reserved like the other `string_*` names

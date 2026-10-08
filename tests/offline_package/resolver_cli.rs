@@ -112,7 +112,9 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
         ),
         (
             concat!(
-                "semaprax build <file> [--target native|native-callable|web|wasm] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o|--output path] [--json]\n",
+                "semaprax build <file> [--target native] [-o|--output path] [--json]\n",
+                "semaprax build <file> --target native-callable --function stable-id [-o|--output path] [--json]\n",
+                "semaprax build <file> --target web|wasm [--profile internal-strings-v1|text-toolkit-v1] [--export stable-id ...] [-o|--output path] [--json]\n",
                 "semaprax build [<dir>|semaprax.toml|--manifest-path path] [--target native|web|wasm|npm|oci] [-o|--output path] [--json]\n",
             ),
             "semaprax build [<file>|semaprax.toml|--manifest-path path] [--target native|native-callable|web|wasm|npm] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o path]\n",

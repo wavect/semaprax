@@ -52,7 +52,10 @@ that contract so the page stays one screen as commands are added.
 Guided shapes summarize commands; they do not define accepted grammar. The
 catalog's usage lines remain authoritative. Scoped help shows separate source
 and project `build` shapes so their targets do not imply unsupported input
-capabilities. Those shapes also show `--json` and the `--output` spelling.
+capabilities. Source build shapes separately show native commands, native-callable
+functions, and Wasm/web exports. Only the Wasm/web form names `--profile`;
+native text support is selected from source. Those shapes also show `--json`
+and the `--output` spelling.
 Do not parse a guided shape as an admission rule.
 
 ## Exhaustive catalog

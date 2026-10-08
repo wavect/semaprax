@@ -157,5 +157,20 @@
     610,
     659,
     661
-  ]
+  ],
+  "rebased_integration": {
+    "source_commit": "8547c7b8f316cf80995fade69a1ffa91595d46c3",
+    "upstream_commits": [
+      "32404ef2ddbc069ea41d36853256803e82eb8832",
+      "99c20582dc5602292bd19bdc694caa5487818cfb"
+    ],
+    "upstream_scope": "one Wasm scalar conversion routing condition removed plus language fixture corrections; no native or webapp emitter changes",
+    "selected_clippy_passed": true,
+    "selected_clippy_log_sha256": "40380f2efa26b87a3d754ddb4198936f1ea7a18d3782939aedd49a968f983397",
+    "relevant_decimal_wasm_refusal_passed": true,
+    "refusal_log_sha256": "0d490365c7e94a3b0dfa054ac01e3b317412c8b130a3d0be73b3787ea1239290",
+    "compiler_path": "/Users/kevin/.codex/benchmark-binaries/semaprax-8547c7b8f",
+    "compiler_sha256": "69388f9d4928c19b20a3e830ee9c285fc2e9af3b72ae7eaae14e0217ef1639f0"
+  },
+  "qualified_source_archive_branch": "codex/opt-qualified-evidence-20261008"
 }

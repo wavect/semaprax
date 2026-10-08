@@ -466,7 +466,7 @@ function offlineSelfTest() {
       const local = rt.withRollups(ent, row, kids), computed = rt.evalComputed(ent, local);
       for (const c of ent.computed || []) {
         const value = computed[c.name], ok = Object.hasOwn(computed, c.name) && !(value && typeof value === "object" && Object.hasOwn(value, "error"));
-        const [, decodeError] = rt.decodeValue(c, enums, value);
+        const [, decodeError] = rt.decodeValue(c, enums, typeof value === "bigint" ? value.toString() : value);
         const typeMatches = c.type === "int" || c.type === "ref" ? typeof value === "bigint"
           : c.type === "float" ? typeof value === "number" && Number.isFinite(value)
             : c.type === "bool" ? typeof value === "boolean"

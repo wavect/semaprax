@@ -77,3 +77,12 @@ cargo test --locked -p semaprax --lib \
 It covers native execution/output, exact command export and capability
 inventory, v24/v25 refusal, owned and non-Copy Vec refusal, exact public-root
 ABI refusal, and pre-artifact Web/npm refusal.
+
+The source import gate rejects owned or non-Copy Vec parameters with `SPX-G172`.
+Authenticated Copy-vector candidates reach the selected profile: v24 refuses
+with `SPX-G174`, while the v25 and v27 HIR signature closures use `SPX-H006`.
+The selected command root is refused earlier with `SPX-G172` unless its
+explicit identity and exact `fn() -> i64` ABI are present.
+Read the accompanying message to distinguish signature/ABI refusal from work
+limits that share the same diagnostic code. V27 also independently refuses
+forged resolved carrier identities and non-Copy elements before native lowering.

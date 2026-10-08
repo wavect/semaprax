@@ -1,6 +1,7 @@
 //! Project v27 keeps the external stream-command ABI closed while admitting
 //! shared Copy-scalar vectors at authenticated private helper boundaries.
 use super::*;
+use crate::hir;
 
 fn manifest() -> String {
     format!(
@@ -19,7 +20,8 @@ permit { process.args.read, process.stderr.write, process.stdin.read, process.st
     let observed=count(values);
     let scalar=scalars(1,2i32,3u8,4usize,'x',5.0f32,6.0,true);
     let message="ok";
-    let written=stdout_write(str_as_bytes(string_as_str(message)));
+    let view=string_as_str(message);
+    let written=stdout_write(str_as_bytes(view));
     if empty && observed==1usize && scalar==0 {0}else{1}
 }
 @id("stream.app.main") fn main()->i64 {
@@ -179,16 +181,16 @@ fn private_vec_and_copy_scalar_helpers_keep_command_abi_closed() {
     }
 
     let v27 = manifest();
-    for old in [
-        PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2,
-        PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1,
+    for (old, code) in [
+        (PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2, "SPX-G174"),
+        (PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1, "SPX-H006"),
     ] {
         std::fs::write(
             root.join(MANIFEST_FILE),
             v27.replace(PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V1, old),
         )
         .unwrap();
-        assert_code(&root, "SPX-G174");
+        assert_code(&root, code);
     }
 
     std::fs::write(root.join(MANIFEST_FILE), &v27).unwrap();
@@ -240,13 +242,18 @@ fn private_vec_and_copy_scalar_helpers_keep_command_abi_closed() {
             "a/app.spx",
             &APP.replace(
                 "fn command()->i64",
-                "fn command(values:borrow Vec<i64>)->i64",
+                "fn command(root_values:borrow Vec<i64>)->i64",
             ),
         ),
     )
     .unwrap();
     let errors = with_authenticated_project(&root.join(MANIFEST_FILE), |_| Ok(())).unwrap_err();
-    assert!(errors.iter().any(|error| error.code == "SPX-G172"));
+    assert!(
+        errors.iter().any(|error| error.code == "SPX-G172"
+            && error.message
+                == "command I/O profile command must have an explicit identity and exact signature fn() -> i64"),
+        "{errors:?}"
+    );
 
     let _ = std::fs::remove_file(output);
     let _ = std::fs::remove_dir_all(root);

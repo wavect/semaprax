@@ -147,21 +147,22 @@ def _manifest_route(data: bytes) -> dict[str, Any]:
         manifest = tomllib.loads(data.decode("utf-8"))
     except (UnicodeError, tomllib.TOMLDecodeError) as error:
         raise ValueError("candidate manifest is not valid UTF-8 TOML") from error
-    package, command, exports = (manifest.get(name) for name in ("package", "command", "exports"))
-    if not all(isinstance(table, dict) for table in (package, command, exports)):
-        raise ValueError("candidate manifest lacks package, command, or exports table")
+    package, command, exports, capabilities = (
+        manifest.get(name) for name in ("package", "command", "exports", "capabilities"))
+    if not all(isinstance(table, dict) for table in (package, command, exports, capabilities)):
+        raise ValueError("candidate manifest lacks package, command, exports, or capabilities table")
     function = command.get("function")
     route = {
         "schema": manifest.get("schema"), "profile": package.get("profile"),
         "input": command.get("input"), "function": function,
-        "exports_web": exports.get("web"), "capabilities": manifest.get("capabilities"),
+        "exports_web": exports.get("web"), "capabilities": capabilities.get("required"),
     }
     if (route["schema"] != "semaprax.manifest.v1"
             or route["profile"] != NATIVE_PROJECT_ROUTE_V27["project_profile"]
             or route["input"] != NATIVE_PROJECT_ROUTE_V27["input_route"]
             or not isinstance(function, str) or not function
             or route["exports_web"] != [function]
-            or route["capabilities"] != STREAM_DATA_CAPABILITIES):
+            or capabilities != {"required": STREAM_DATA_CAPABILITIES}):
         raise ValueError("candidate manifest does not match the exact v27 stream-data command route")
     return route
 

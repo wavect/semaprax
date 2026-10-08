@@ -88,7 +88,6 @@ class ShiftSimCampaignTests(unittest.TestCase):
         candidate.mkdir()
         manifest = candidate / "semaprax.toml"
         manifest.write_text('''schema = "semaprax.manifest.v1"
-capabilities = ["process.args.read", "process.stderr.write", "process.stdin.read", "process.stdout.write"]
 [package]
 profile = "language-command-io.stream-data.v1"
 [command]
@@ -96,6 +95,8 @@ function = "run"
 input = "argv-utf8+stdin-stream.v1"
 [exports]
 web = ["run"]
+[capabilities]
+required = ["process.args.read", "process.stderr.write", "process.stdin.read", "process.stdout.write"]
 ''', encoding="utf-8")
         manifest_hash = live_campaign.sha_bytes(manifest.read_bytes())
         inventory = root / "candidate-source-inventory.json"
@@ -232,7 +233,7 @@ web = ["run"]
             self.assertEqual(settings["native_project_route"], live_campaign.NATIVE_PROJECT_ROUTE_V27)
             self.assertEqual(settings["qualification"]["candidate_manifest_sha256"],
                              live_campaign.sha_bytes(manifest.read_bytes()))
-            self.assertEqual(settings["qualification"]["candidate_source_inventory_path"], str(inventory))
+            self.assertEqual(settings["qualification"]["candidate_source_inventory_path"], str(inventory.resolve()))
             with self.assertRaisesRegex(ValueError, "schema must be"):
                 live_campaign.validate_qualification_evidence(
                     evidence_path, repo, evidence["compiler_source_commit"], "a" * 64,
@@ -257,8 +258,8 @@ web = ["run"]
         self.assertIn("native Project v27", prompt)
         self.assertIn("language-command-io.stream-data.v1", prompt)
         marker = "The TypeScript arm must use Node from `PATH` and provide the same stdin and process status behavior."
-        self.assertIn(marker, historical)
-        self.assertIn(marker, prompt)
+        self.assertIn(marker, " ".join(historical.split()))
+        self.assertIn(marker, " ".join(prompt.split()))
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             _, _, _, _, _, manifest = self._v3_qualification_evidence(root)

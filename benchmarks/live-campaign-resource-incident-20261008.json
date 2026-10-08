@@ -1,0 +1,46 @@
+{
+  "schema": "semaprax.benchmark-resource-incident.v1",
+  "incident": "shared APFS disk exhausted during ongoing matched trials",
+  "first_observed_error_utc": "2026-10-08T04:12:30Z",
+  "affected_attempts": [
+    {
+      "campaign": "loglens-codex-round6-main366-20261008",
+      "attempt": "semaprax-04",
+      "stderr_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round6-main366-20261008/transcripts/semaprax-04.stderr.txt",
+      "stderr_sha256_at_observation": "fff7db6484abacd150d5e771926b080829d56385c31240d5793dfdb98759dc6e",
+      "disk_error_lines": 21,
+      "first_disk_error": "2026-10-08T04:12:30.065799Z ERROR codex_rollout::recorder: rollout writer failed for /Users/kevin/.codex/sessions/2026/10/08/rollout-2026-10-08T06-12-11-01a119b6-29ba-7ea2-a4fe-c855c194b187.jsonl; buffered rollout items will be retried: No space left on device (os error 28); error_kind=StorageFull; raw_os_error=Some(28)",
+      "snapshot_only": true
+    },
+    {
+      "campaign": "shiftsim-codex-main3660e0daf-20261008",
+      "attempt": "semaprax-02",
+      "stderr_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-main3660e0daf-20261008/transcripts/semaprax-02.stderr.txt",
+      "stderr_sha256_at_observation": "26607956de51d3253a398388b3ce5b8516240ad60363fd529a099419b2f164f1",
+      "disk_error_lines": 21,
+      "first_disk_error": "2026-10-08T04:12:37.889858Z ERROR codex_rollout::recorder: rollout writer failed for /Users/kevin/.codex/sessions/2026/10/08/rollout-2026-10-08T06-01-41-01a119ac-9001-7a03-93e9-bcdf7d1c60ea.jsonl; buffered rollout items will be retried: No space left on device (os error 28); error_kind=StorageFull; raw_os_error=Some(28)",
+      "snapshot_only": true
+    },
+    {
+      "campaign": "teamdesk-codex-round1-main366-20261008",
+      "attempt": "typescript-01",
+      "stderr_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round1-main366-20261008/transcripts/typescript-01.stderr.txt",
+      "stderr_sha256_at_observation": "8dac6cdf28a9e33d170672c4980e3ca1114eb6b48693ca81bd68c509fd8cf9ae",
+      "disk_error_lines": 20,
+      "first_disk_error": "2026-10-08T04:12:44.529542Z ERROR codex_rollout::recorder: rollout writer failed for /Users/kevin/.codex/sessions/2026/10/08/rollout-2026-10-08T06-07-19-01a119b1-b76f-7ae2-a860-d794afc66921.jsonl; buffered rollout items will be retried: No space left on device (os error 28); error_kind=StorageFull; raw_os_error=Some(28)",
+      "snapshot_only": true
+    }
+  ],
+  "observed_task_failure": {
+    "campaign": "shiftsim-codex-main3660e0daf-20261008",
+    "attempt": "semaprax-02",
+    "failure": "SPX-B102 native linker errno28; agent explicitly retried build"
+  },
+  "cleanup_receipts": [
+    "opt-final-verification-20261008/primary-incremental-cleanup-live-campaigns.json",
+    "opt-final-verification-20261008/release-ci-incremental-cleanup-live-campaigns.json"
+  ],
+  "measurement_policy": "Retain every paid attempt and its original acceptance result. Flag resource-contaminated attempts separately; do not call the affected round a clean causal language comparison, silently exclude failed costs, or restart a still-live handle. Reconcile buffered rollout telemetry after process completion; unrecoverable counters remain null. A future clean matched rerun requires adequate shared-disk headroom.",
+  "compiler_source_commit": "3660e0daf9335dc9d6dc27949a43cd40dff7326c",
+  "cleanup_bytes": 3391937331
+}

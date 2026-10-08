@@ -1,0 +1,112 @@
+module std.data.json.scan.tests;
+use function @id("std.data.json.scan.failure") from std.data.json.scan as failure;
+use function @id("std.data.json.scan.key_before") from std.data.json.scan as key_before;
+use function @id("std.data.json.scan.object_unique") from std.data.json.scan as object_unique;
+use function @id("std.data.json.scan.strict_end") from std.data.json.scan as strict_end;
+use function @id("std.data.json.scan.is_document") from std.data.json.scan as is_document;
+use function @id("std.data.json.scan.is_unique") from std.data.json.scan as is_unique;
+use function @id("std.data.json.scan.root") from std.data.json.scan as root;
+use function @id("std.data.json.scan.kind") from std.data.json.scan as kind;
+use function @id("std.data.json.scan.value_end") from std.data.json.scan as value_end;
+use function @id("std.data.json.scan.first_member") from std.data.json.scan as first_member;
+use function @id("std.data.json.scan.member_value") from std.data.json.scan as member_value;
+use function @id("std.data.json.scan.next_member") from std.data.json.scan as next_member;
+use function @id("std.data.json.scan.first_element") from std.data.json.scan as first_element;
+use function @id("std.data.json.scan.next_element") from std.data.json.scan as next_element;
+use function @id("std.data.json.scan.key_eq") from std.data.json.scan as key_eq;
+use function @id("std.data.json.scan.decimal_end") from std.data.json.scan as decimal_end;
+
+@id("std.data.json.scan.tests.navigation")
+fn navigation() -> bool
+{
+    let sample = [123u8, 34u8, 97u8, 34u8, 58u8, 32u8, 91u8, 116u8, 114u8, 117u8, 101u8, 44u8, 32u8, 45u8, 49u8, 50u8, 46u8, 53u8, 48u8, 101u8, 43u8, 50u8, 93u8, 44u8, 32u8, 34u8, 92u8, 117u8, 48u8, 48u8, 54u8, 50u8, 34u8, 58u8, 32u8, 110u8, 117u8, 108u8, 108u8, 125u8];
+    let sample_view = array_as_slice(sample);
+    let a = [97u8];
+    let a_view = array_as_slice(a);
+    let b = [98u8];
+    let b_view = array_as_slice(b);
+    let first = first_member(sample_view, root(sample_view));
+    let array = member_value(sample_view, first);
+    let second = next_member(sample_view, first, 32usize);
+    let one = first_element(sample_view, array);
+    let number = next_element(sample_view, one, 32usize);
+    strict_end(sample_view, 32usize, 1) == byte_len(sample_view) && is_document(sample_view) && is_unique(sample_view) && root(sample_view) == 0usize && kind(sample_view, 0usize) == 1 && kind(sample_view, array) == 2 && kind(sample_view, one) == 5 && kind(sample_view, number) == 4 && key_eq(sample_view, first, a_view) && key_eq(sample_view, second, b_view) && member_value(sample_view, second) < byte_len(sample_view) && decimal_end(sample_view, number) == number + 9usize && value_end(sample_view, array, 32usize) < byte_len(sample_view) && next_element(sample_view, number, 32usize) == byte_len(sample_view) && next_member(sample_view, second, 32usize) == byte_len(sample_view) && first_member(sample_view, array) == byte_len(sample_view) && first_element(sample_view, one) == byte_len(sample_view)
+}
+
+@id("std.data.json.scan.tests.hostile")
+fn hostile() -> bool
+{
+    let escape = [123u8, 34u8, 97u8, 34u8, 58u8, 34u8, 92u8, 113u8, 34u8, 125u8];
+    let escape_view = array_as_slice(escape);
+    let hex = [34u8, 92u8, 117u8, 49u8, 50u8, 88u8, 52u8, 34u8];
+    let hex_view = array_as_slice(hex);
+    let high = [34u8, 92u8, 117u8, 68u8, 56u8, 51u8, 52u8, 34u8];
+    let high_view = array_as_slice(high);
+    let low = [34u8, 92u8, 117u8, 68u8, 68u8, 49u8, 69u8, 34u8];
+    let low_view = array_as_slice(low);
+    let pair = [34u8, 92u8, 117u8, 68u8, 56u8, 51u8, 52u8, 92u8, 117u8, 48u8, 48u8, 52u8, 49u8, 34u8];
+    let pair_view = array_as_slice(pair);
+    let control = [34u8, 97u8, 10u8, 98u8, 34u8];
+    let control_view = array_as_slice(control);
+    let utf8 = [34u8, 192u8, 175u8, 34u8];
+    let utf8_view = array_as_slice(utf8);
+    let utf8cut = [34u8, 226u8, 130u8, 34u8];
+    let utf8cut_view = array_as_slice(utf8cut);
+    let leading = [91u8, 48u8, 49u8, 93u8];
+    let leading_view = array_as_slice(leading);
+    let fraction = [91u8, 49u8, 46u8, 93u8];
+    let fraction_view = array_as_slice(fraction);
+    let exponent = [91u8, 49u8, 101u8, 43u8, 93u8];
+    let exponent_view = array_as_slice(exponent);
+    let comma = [91u8, 49u8, 44u8, 93u8];
+    let comma_view = array_as_slice(comma);
+    let colon = [123u8, 34u8, 97u8, 34u8, 32u8, 49u8, 125u8];
+    let colon_view = array_as_slice(colon);
+    let trailing = [123u8, 125u8, 32u8, 116u8, 114u8, 117u8, 101u8];
+    let trailing_view = array_as_slice(trailing);
+    let empty = [32u8];
+    let empty_view = array_as_slice(empty);
+    !is_document(escape_view) && !is_document(hex_view) && !is_document(high_view) && !is_document(low_view) && !is_document(pair_view) && !is_document(control_view) && !is_document(utf8_view) && !is_document(utf8cut_view) && !is_document(leading_view) && !is_document(fraction_view) && !is_document(exponent_view) && !is_document(comma_view) && !is_document(colon_view) && !is_document(trailing_view) && !is_document(empty_view)
+}
+
+@id("std.data.json.scan.tests.policies")
+fn policies() -> bool
+{
+    let same = [123u8, 34u8, 97u8, 34u8, 58u8, 49u8, 44u8, 34u8, 97u8, 34u8, 58u8, 50u8, 125u8];
+    let same_view = array_as_slice(same);
+    let encoded = [123u8, 34u8, 97u8, 34u8, 58u8, 49u8, 44u8, 34u8, 92u8, 117u8, 48u8, 48u8, 54u8, 49u8, 34u8, 58u8, 50u8, 125u8];
+    let encoded_view = array_as_slice(encoded);
+    let nested = [123u8, 34u8, 120u8, 34u8, 58u8, 123u8, 34u8, 97u8, 34u8, 58u8, 49u8, 44u8, 34u8, 92u8, 117u8, 48u8, 48u8, 54u8, 49u8, 34u8, 58u8, 50u8, 125u8, 125u8];
+    let nested_view = array_as_slice(nested);
+    let siblings = [91u8, 123u8, 34u8, 97u8, 34u8, 58u8, 49u8, 125u8, 44u8, 123u8, 34u8, 97u8, 34u8, 58u8, 50u8, 125u8, 93u8];
+    let siblings_view = array_as_slice(siblings);
+    let quoted = [123u8, 34u8, 120u8, 34u8, 58u8, 34u8, 123u8, 92u8, 34u8, 97u8, 92u8, 34u8, 58u8, 49u8, 125u8, 34u8, 44u8, 34u8, 121u8, 34u8, 58u8, 50u8, 125u8];
+    let quoted_view = array_as_slice(quoted);
+    is_document(same_view) && !is_unique(same_view) && is_document(encoded_view) && !is_unique(encoded_view) && !is_unique(nested_view) && is_unique(siblings_view) && is_unique(quoted_view) && strict_end(encoded_view, 32usize, 2) > byte_len(encoded_view) && object_unique(encoded_view, 0usize, 32usize) > byte_len(encoded_view) && key_before(encoded_view, 1usize, 7usize, 32usize) && failure(encoded_view, 7usize) > byte_len(encoded_view)
+}
+
+@id("std.data.json.scan.tests.depth")
+fn depth() -> bool
+{
+    let nested = [91u8, 91u8, 48u8, 93u8, 93u8];
+    let nested_view = array_as_slice(nested);
+    let flat = [48u8];
+    let flat_view = array_as_slice(flat);
+    strict_end(nested_view, 1usize, 0) > byte_len(nested_view) && strict_end(nested_view, 2usize, 0) == byte_len(nested_view) && strict_end(flat_view, 0usize, 0) == byte_len(flat_view)
+}
+
+@id("std.data.json.scan.tests.unicode")
+fn unicode() -> bool
+{
+    let valid = [91u8, 34u8, 92u8, 117u8, 68u8, 56u8, 51u8, 68u8, 92u8, 117u8, 68u8, 69u8, 48u8, 48u8, 34u8, 44u8, 34u8, 195u8, 169u8, 34u8, 93u8];
+    let view = array_as_slice(valid);
+    let first = first_element(view, 0usize);
+    let second = next_element(view, first, 32usize);
+    strict_end(view, 32usize, 1) == byte_len(view) && kind(view, first) == 3 && kind(view, second) == 3 && next_element(view, second, 32usize) == byte_len(view)
+}
+
+@id("std.data.json.scan.tests.main")
+fn main() -> i64
+{
+    if navigation() && hostile() && policies() && depth() && unicode() { 0 } else { 1 }
+}

@@ -398,6 +398,7 @@ const LANGUAGE_TOPICS: &[(&str, &str)] = &[
     ),
     ("web", "Web applications"),
     ("projects", "Projects"),
+    ("json", "JSON documents and cursors"),
     ("specifications", "Where the rules live"),
 ];
 
@@ -1283,7 +1284,7 @@ mod tests {
         assert!(LANGUAGE_REFERENCE.contains("```semaprax\n"));
         assert!(LANGUAGE_REFERENCE.ends_with('\n'));
         let reference_units = semaprax::agent_economics::lexical_tokens(LANGUAGE_REFERENCE);
-        assert_eq!(LANGUAGE_TOPICS.len(), 16);
+        assert_eq!(LANGUAGE_TOPICS.len(), 17);
         for (selector, heading) in LANGUAGE_TOPICS {
             let topic = language_topic(selector).unwrap();
             assert!(topic.starts_with(&format!("## {heading}\n")), "{selector}");

@@ -3261,6 +3261,229 @@
     {
       "declarations": [
         {
+          "description": [
+            "All offsets refer to the exact input view. A result above its length is",
+            "length + 1 + the first offending offset, as in the JSON scanner family."
+          ],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn failure(input: borrow Slice<u8>, offset: usize) -> usize",
+            "    ensures result > byte_len(input)"
+          ],
+          "id": "std.data.json.scan.failure",
+          "kind": "function",
+          "name": "failure",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn key_before(input: borrow Slice<u8>, first: usize, key: usize, depth_limit: usize) -> bool"
+          ],
+          "id": "std.data.json.scan.key_before",
+          "kind": "function",
+          "name": "key_before",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn object_unique(input: borrow Slice<u8>, open: usize, depth_limit: usize) -> usize"
+          ],
+          "id": "std.data.json.scan.object_unique",
+          "kind": "function",
+          "name": "object_unique",
+          "requires": 0
+        },
+        {
+          "description": [
+            "duplicate_policy: 0 accepts repeated names; 1 rejects decoded-equivalent",
+            "names in each object. Any other policy is rejected at offset zero."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn strict_end(input: borrow Slice<u8>, depth_limit: usize, duplicate_policy: i64) -> usize"
+          ],
+          "id": "std.data.json.scan.strict_end",
+          "kind": "function",
+          "name": "strict_end",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_document(input: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.data.json.scan.is_document",
+          "kind": "function",
+          "name": "is_document",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_unique(input: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.data.json.scan.is_unique",
+          "kind": "function",
+          "name": "is_unique",
+          "requires": 0
+        },
+        {
+          "description": [
+            "Call navigation only after strict_end succeeds. All starts returned here",
+            "are absolute offsets into the same borrowed view; length is the no-item mark."
+          ],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn root(input: borrow Slice<u8>) -> usize",
+            "    ensures result <= byte_len(input)"
+          ],
+          "id": "std.data.json.scan.root",
+          "kind": "function",
+          "name": "root",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn kind(input: borrow Slice<u8>, start: usize) -> i64",
+            "    ensures result >= 0 && result <= 7"
+          ],
+          "id": "std.data.json.scan.kind",
+          "kind": "function",
+          "name": "kind",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn value_end(input: borrow Slice<u8>, start: usize, depth_limit: usize) -> usize"
+          ],
+          "id": "std.data.json.scan.value_end",
+          "kind": "function",
+          "name": "value_end",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn first_member(input: borrow Slice<u8>, object: usize) -> usize"
+          ],
+          "id": "std.data.json.scan.first_member",
+          "kind": "function",
+          "name": "first_member",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn member_value(input: borrow Slice<u8>, key: usize) -> usize"
+          ],
+          "id": "std.data.json.scan.member_value",
+          "kind": "function",
+          "name": "member_value",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn next_member(input: borrow Slice<u8>, key: usize, depth_limit: usize) -> usize"
+          ],
+          "id": "std.data.json.scan.next_member",
+          "kind": "function",
+          "name": "next_member",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn first_element(input: borrow Slice<u8>, array: usize) -> usize"
+          ],
+          "id": "std.data.json.scan.first_element",
+          "kind": "function",
+          "name": "first_element",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn next_element(input: borrow Slice<u8>, element: usize, depth_limit: usize) -> usize"
+          ],
+          "id": "std.data.json.scan.next_element",
+          "kind": "function",
+          "name": "next_element",
+          "requires": 0
+        },
+        {
+          "description": [
+            "Compare a quoted member name with caller-supplied decoded UTF-8 bytes."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn key_eq(input: borrow Slice<u8>, key: usize, expected: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.data.json.scan.key_eq",
+          "kind": "function",
+          "name": "key_eq",
+          "requires": 0
+        },
+        {
+          "description": [
+            "Number bytes are preserved exactly: [start, decimal_end) is the source span."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn decimal_end(input: borrow Slice<u8>, start: usize) -> usize"
+          ],
+          "id": "std.data.json.scan.decimal_end",
+          "kind": "function",
+          "name": "decimal_end",
+          "requires": 0
+        }
+      ],
+      "dependency": "std.data.json.scan = \"^0.1.0\"",
+      "module": "std.data.json.scan",
+      "package": "std/data-json-scan",
+      "required_profile": "useful-data.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "portable"
+    },
+    {
+      "declarations": [
+        {
           "description": [],
           "effects": [],
           "ensures": 0,

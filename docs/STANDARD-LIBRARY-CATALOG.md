@@ -1882,6 +1882,122 @@ fn decoded_token_eq(input: borrow Slice<u8>, left: usize, right: usize) -> bool
 fn is_string(input: borrow Slice<u8>) -> bool
 ```
 
+## `std.data.json.scan`
+
+Package `std/data-json-scan`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.data.json.scan = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.data.json.scan.failure`
+
+All offsets refer to the exact input view. A result above its length is
+length + 1 + the first offending offset, as in the JSON scanner family.
+
+```semaprax
+fn failure(input: borrow Slice<u8>, offset: usize) -> usize
+    ensures result > byte_len(input)
+```
+
+### `std.data.json.scan.key_before`
+
+```semaprax
+fn key_before(input: borrow Slice<u8>, first: usize, key: usize, depth_limit: usize) -> bool
+```
+
+### `std.data.json.scan.object_unique`
+
+```semaprax
+fn object_unique(input: borrow Slice<u8>, open: usize, depth_limit: usize) -> usize
+```
+
+### `std.data.json.scan.strict_end`
+
+duplicate_policy: 0 accepts repeated names; 1 rejects decoded-equivalent
+names in each object. Any other policy is rejected at offset zero.
+
+```semaprax
+fn strict_end(input: borrow Slice<u8>, depth_limit: usize, duplicate_policy: i64) -> usize
+```
+
+### `std.data.json.scan.is_document`
+
+```semaprax
+fn is_document(input: borrow Slice<u8>) -> bool
+```
+
+### `std.data.json.scan.is_unique`
+
+```semaprax
+fn is_unique(input: borrow Slice<u8>) -> bool
+```
+
+### `std.data.json.scan.root`
+
+Call navigation only after strict_end succeeds. All starts returned here
+are absolute offsets into the same borrowed view; length is the no-item mark.
+
+```semaprax
+fn root(input: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(input)
+```
+
+### `std.data.json.scan.kind`
+
+```semaprax
+fn kind(input: borrow Slice<u8>, start: usize) -> i64
+    ensures result >= 0 && result <= 7
+```
+
+### `std.data.json.scan.value_end`
+
+```semaprax
+fn value_end(input: borrow Slice<u8>, start: usize, depth_limit: usize) -> usize
+```
+
+### `std.data.json.scan.first_member`
+
+```semaprax
+fn first_member(input: borrow Slice<u8>, object: usize) -> usize
+```
+
+### `std.data.json.scan.member_value`
+
+```semaprax
+fn member_value(input: borrow Slice<u8>, key: usize) -> usize
+```
+
+### `std.data.json.scan.next_member`
+
+```semaprax
+fn next_member(input: borrow Slice<u8>, key: usize, depth_limit: usize) -> usize
+```
+
+### `std.data.json.scan.first_element`
+
+```semaprax
+fn first_element(input: borrow Slice<u8>, array: usize) -> usize
+```
+
+### `std.data.json.scan.next_element`
+
+```semaprax
+fn next_element(input: borrow Slice<u8>, element: usize, depth_limit: usize) -> usize
+```
+
+### `std.data.json.scan.key_eq`
+
+Compare a quoted member name with caller-supplied decoded UTF-8 bytes.
+
+```semaprax
+fn key_eq(input: borrow Slice<u8>, key: usize, expected: borrow Slice<u8>) -> bool
+```
+
+### `std.data.json.scan.decimal_end`
+
+Number bytes are preserved exactly: [start, decimal_end) is the source span.
+
+```semaprax
+fn decimal_end(input: borrow Slice<u8>, start: usize) -> usize
+```
+
 ## `std.data.json.token`
 
 Package `std/data-json-token`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.data.json.token = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

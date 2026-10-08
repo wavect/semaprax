@@ -2,7 +2,7 @@
 
 Audience: language users, tool authors, and standard-library contributors.
 
-Status: partially implemented, across eight sibling packages that share one
+Status: partially implemented, across nine sibling packages that share one
 result encoding. Seven are pure, allocation-free, and operate on a borrowed
 byte view or Copy scalars; `std.data.json.dec` additionally fills one owned
 bounded byte buffer of fixed capacity inside a single function:
@@ -17,6 +17,7 @@ bounded byte buffer of fixed capacity inside a single function:
 | `std.data.json.doc` | **Structural documents**: the object and array grammar, a bounded nesting depth, trailing-byte rejection over a whole document, and a duplicate-key rule over byte-identical member names |
 | `std.data.json.dec` | **Decoded strings**: the exact decoded length of a JSON string, the decoded bytes of each token, and a buffer-backed comparison of the decoded bytes against a caller-supplied slice |
 | `std.data.json.query` | **Useful-data string queries**: borrowed-slice decoded length and pull surface, plus decoded-token equality without Reader/Writer types |
+| `std.data.json.scan` | **Strict whole-document facade**: complete grammar, UTF-8 and escape validation, decoded duplicate-key policy, and scalar navigation; [Strict JSON Scan v1](STRICT-JSON-SCAN-V1.md) owns its additive contract |
 
 A caller-provided output buffer and an owned document tree are Missing.
 

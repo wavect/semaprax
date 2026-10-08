@@ -1,0 +1,183 @@
+module std.data.json.scan;
+use function @id("std.data.json.doc.at_in") from std.data.json.doc as at_in;
+use function @id("std.data.json.doc.document_end") from std.data.json.doc as document_end;
+use function @id("std.data.json.doc.next_key") from std.data.json.doc as next_key;
+use function @id("std.data.json.doc.number_end") from std.data.json.doc as number_end;
+use function @id("std.data.json.doc.skip_space") from std.data.json.doc as skip_space;
+use function @id("std.data.json.doc.string_end") from std.data.json.doc as string_end;
+use function @id("std.data.json.doc.whole_end") from std.data.json.doc as whole_end;
+use function @id("std.data.json.query.byte_code") from std.data.json.query as byte_code;
+use function @id("std.data.json.query.decoded_len") from std.data.json.query as decoded_len;
+use function @id("std.data.json.query.decoded_token_eq") from std.data.json.query as decoded_token_eq;
+use function @id("std.data.json.query.emit_at") from std.data.json.query as emit_at;
+use function @id("std.data.json.query.emit_len") from std.data.json.query as emit_len;
+use function @id("std.data.json.query.scan_string") from std.data.json.query as scan_string;
+use function @id("std.data.json.query.token_end") from std.data.json.query as token_end;
+use function @id("std.data.json.utf8.utf8_end") from std.data.json.utf8 as utf8_end;
+
+// All offsets refer to the exact input view. A result above its length is
+// length + 1 + the first offending offset, as in the JSON scanner family.
+@id("std.data.json.scan.failure")
+fn failure(input: borrow Slice<u8>, offset: usize) -> usize
+    ensures result > byte_len(input)
+{
+    byte_len(input) + 1usize + offset
+}
+
+@id("std.data.json.scan.key_before")
+fn key_before(input: borrow Slice<u8>, first: usize, key: usize, depth_limit: usize) -> bool
+{
+    let mut cursor = first;
+    let mut duplicate = false;
+    let mut scanning = cursor < key;
+    while scanning {
+        duplicate = decoded_token_eq(input, cursor, key);
+        cursor = if duplicate { cursor } else { next_key(input, cursor, depth_limit) };
+        scanning = !duplicate && cursor < key;
+        scanning
+    }
+    duplicate
+}
+
+@id("std.data.json.scan.object_unique")
+fn object_unique(input: borrow Slice<u8>, open: usize, depth_limit: usize) -> usize
+{
+    let first = skip_space(input, open + 1usize);
+    let mut key = first;
+    let mut fault = open;
+    let mut duplicate = false;
+    let mut scanning = at_in(input, key, 34u8, 34u8);
+    while scanning {
+        duplicate = key_before(input, first, key, depth_limit);
+        fault = if duplicate { key } else { fault };
+        key = if duplicate { key } else { next_key(input, key, depth_limit) };
+        scanning = !duplicate && at_in(input, key, 34u8, 34u8);
+        scanning
+    }
+    if duplicate { failure(input, fault) } else { open }
+}
+
+// duplicate_policy: 0 accepts repeated names; 1 rejects decoded-equivalent
+// names in each object. Any other policy is rejected at offset zero.
+@id("std.data.json.scan.strict_end")
+fn strict_end(input: borrow Slice<u8>, depth_limit: usize, duplicate_policy: i64) -> usize
+{
+    let length = byte_len(input);
+    let structure = whole_end(input, depth_limit);
+    let unicode = if structure == length { utf8_end(input, 0usize) } else { length };
+    let mut index = 0usize;
+    let mut fault = 0usize;
+    let mut bad = false;
+    let mut scanning = structure == length && (duplicate_policy == 0 || duplicate_policy == 1) && index < length;
+    while scanning {
+        let quoted = at_in(input, index, 34u8, 34u8);
+        let unique = if !quoted && duplicate_policy == 1 && at_in(input, index, 123u8, 123u8) { object_unique(input, index, depth_limit) } else { index };
+        let end = if quoted { scan_string(input, index, false) } else { index + 1usize };
+        bad = unique > length || end > length;
+        fault = if unique > length { unique - length - 1usize } else { if end > length { end - length - 1usize } else { fault } };
+        index = if bad { index } else { end };
+        scanning = !bad && index < length;
+        scanning
+    }
+    let unicode_fault = if unicode > length { unicode - length - 1usize } else { length };
+    if duplicate_policy != 0 && duplicate_policy != 1 { failure(input, 0usize) } else { if structure > length { structure } else { if bad && fault < unicode_fault { failure(input, fault) } else { if unicode > length { unicode } else { if bad { failure(input, fault) } else { length } } } } }
+}
+
+@id("std.data.json.scan.is_document")
+fn is_document(input: borrow Slice<u8>) -> bool
+{
+    strict_end(input, 32usize, 0) == byte_len(input)
+}
+
+@id("std.data.json.scan.is_unique")
+fn is_unique(input: borrow Slice<u8>) -> bool
+{
+    strict_end(input, 32usize, 1) == byte_len(input)
+}
+
+// Call navigation only after strict_end succeeds. All starts returned here
+// are absolute offsets into the same borrowed view; length is the no-item mark.
+@id("std.data.json.scan.root")
+fn root(input: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(input)
+{
+    skip_space(input, 0usize)
+}
+
+@id("std.data.json.scan.kind")
+fn kind(input: borrow Slice<u8>, start: usize) -> i64
+    ensures result >= 0 && result <= 7
+{
+    match byte_get(input, start) { Option::Some { value: byte } => match byte { 123u8 => 1, 91u8 => 2, 34u8 => 3, 45u8 => 4, 48u8 => 4, 49u8 => 4, 50u8 => 4, 51u8 => 4, 52u8 => 4, 53u8 => 4, 54u8 => 4, 55u8 => 4, 56u8 => 4, 57u8 => 4, 116u8 => 5, 102u8 => 6, 110u8 => 7, _ => 0, }, Option::None {} => 0, }
+}
+
+@id("std.data.json.scan.value_end")
+fn value_end(input: borrow Slice<u8>, start: usize, depth_limit: usize) -> usize
+{
+    document_end(input, start, depth_limit)
+}
+
+@id("std.data.json.scan.first_member")
+fn first_member(input: borrow Slice<u8>, object: usize) -> usize
+{
+    let key = skip_space(input, object + 1usize);
+    if at_in(input, object, 123u8, 123u8) && at_in(input, key, 34u8, 34u8) { key } else { byte_len(input) }
+}
+
+@id("std.data.json.scan.member_value")
+fn member_value(input: borrow Slice<u8>, key: usize) -> usize
+{
+    skip_space(input, skip_space(input, string_end(input, key)) + 1usize)
+}
+
+@id("std.data.json.scan.next_member")
+fn next_member(input: borrow Slice<u8>, key: usize, depth_limit: usize) -> usize
+{
+    let next = next_key(input, key, depth_limit);
+    if next < byte_len(input) && at_in(input, next, 34u8, 34u8) { next } else { byte_len(input) }
+}
+
+@id("std.data.json.scan.first_element")
+fn first_element(input: borrow Slice<u8>, array: usize) -> usize
+{
+    let item = skip_space(input, array + 1usize);
+    if at_in(input, array, 91u8, 91u8) && !at_in(input, item, 93u8, 93u8) { item } else { byte_len(input) }
+}
+
+@id("std.data.json.scan.next_element")
+fn next_element(input: borrow Slice<u8>, element: usize, depth_limit: usize) -> usize
+{
+    let after = skip_space(input, document_end(input, element, depth_limit));
+    if at_in(input, after, 44u8, 44u8) { skip_space(input, after + 1usize) } else { byte_len(input) }
+}
+
+// Compare a quoted member name with caller-supplied decoded UTF-8 bytes.
+@id("std.data.json.scan.key_eq")
+fn key_eq(input: borrow Slice<u8>, key: usize, expected: borrow Slice<u8>) -> bool
+{
+    let total = decoded_len(input, key);
+    let mut index = key + 1usize;
+    let mut part = 0usize;
+    let mut offset = 0usize;
+    let mut equal = total == byte_len(expected);
+    let mut scanning = equal && offset < total;
+    while scanning {
+        let actual = emit_at(input, index, part);
+        let wanted = match byte_get(expected, offset) { Option::Some { value: byte } => byte_code(byte), Option::None {} => -1, };
+        equal = actual >= 0 && actual == wanted;
+        let last = part + 1usize >= emit_len(input, index);
+        index = if last { token_end(input, index) } else { index };
+        part = if last { 0usize } else { part + 1usize };
+        offset = offset + 1usize;
+        scanning = equal && offset < total;
+        scanning
+    }
+    equal
+}
+
+// Number bytes are preserved exactly: [start, decimal_end) is the source span.
+@id("std.data.json.scan.decimal_end")
+fn decimal_end(input: borrow Slice<u8>, start: usize) -> usize
+{
+    number_end(input, start)
+}

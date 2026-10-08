@@ -72,6 +72,70 @@ fn json_query_projection_executes_on_all_three_backends() {
     run_cursor_package("std.data.json.query");
 }
 
+#[test]
+fn json_strict_scan_executes_on_all_three_backends() {
+    run_cursor_package("std.data.json.scan");
+}
+
+#[test]
+fn json_strict_scan_is_bundled_for_an_ordinary_project() {
+    use semaprax::project::{self, ProjectExecutionOptions, ProjectExecutionOutcome};
+    let scratch = super::temporary("json-strict-consumer");
+    std::fs::create_dir_all(scratch.join("src")).unwrap();
+    std::fs::write(
+        scratch.join("semaprax.toml"),
+        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"json-strict-consumer\"\nversion = \"0.1.0\"\nprofile = \"useful-data.v1\"\n\n[modules]\nentry = \"consumer.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = []\n\n[dependencies]\nstd.data.json.scan = \"=0.1.0\"\n",
+    )
+    .unwrap();
+    std::fs::write(
+        scratch.join("src/app.spx"),
+        r#"module consumer.app;
+use function @id("std.data.json.scan.strict_end") from std.data.json.scan as strict_end;
+use function @id("std.data.json.scan.first_member") from std.data.json.scan as first_member;
+use function @id("std.data.json.scan.member_value") from std.data.json.scan as member_value;
+use function @id("std.data.json.scan.key_eq") from std.data.json.scan as key_eq;
+use function @id("std.data.json.scan.decimal_end") from std.data.json.scan as decimal_end;
+
+@id("consumer.main")
+fn main() -> i64
+{
+    let raw = [123u8, 34u8, 110u8, 34u8, 58u8, 45u8, 49u8, 46u8, 53u8, 125u8];
+    let name = [110u8];
+    let input = array_as_slice(raw);
+    let key = first_member(input, 0usize);
+    let value = member_value(input, key);
+    if strict_end(input, 32usize, 1) == byte_len(input) && key_eq(input, key, array_as_slice(name)) && decimal_end(input, value) == 9usize { 0 } else { 1 }
+}
+"#,
+    )
+    .unwrap();
+    std::fs::write(
+        scratch.join("src/tests.spx"),
+        "module consumer.tests;\n\n@id(\"consumer.tests.main\")\nfn main() -> i64\n{\n    0\n}\n",
+    )
+    .unwrap();
+    project::with_authenticated_project(&scratch.join("semaprax.toml"), |snapshot| {
+        snapshot.check()?;
+        assert_eq!(
+            snapshot.execute_entry(&ProjectExecutionOptions::default())?.outcome(),
+            &ProjectExecutionOutcome::Returned(0)
+        );
+        let workspace = snapshot.workspace_manifest();
+        for dependency in [
+            "std.data.json.scan",
+            "std.data.json.doc",
+            "std.data.json.query",
+            "std.data.json.utf8",
+            "std.data.json",
+        ] {
+            assert!(workspace.contains(&format!("dependencies/{dependency}/0.1.0/")));
+        }
+        Ok(())
+    })
+    .unwrap();
+    std::fs::remove_dir_all(scratch).unwrap();
+}
+
 fn run_cursor_package(module: &str) {
     super::run_examples_and_conformance(
         super::packages()

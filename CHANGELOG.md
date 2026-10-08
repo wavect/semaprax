@@ -5,6 +5,14 @@
   edges of live loan nodes. The 1,000,000-unit ceiling, fail-closed boundary,
   canonical plan order, independent replay and Graph bytes remain unchanged;
   focused verification is pending.
+
+- Add `std.data.json.scan` (OPT #680), a borrowed-byte strict whole-document
+  JSON facade with bounded depth, UTF-8 and escape validation, explicit
+  decoded-key duplicate policy, scalar member/array navigation, and exact
+  decimal source spans. The older document and query APIs keep their existing
+  behavior. Focused portable package and ordinary-project verification is
+  pending the shared final batch.
+
 - Add explicit native-only Project v28
   `source-command.resource-output.v1` (OPT #678): preserve the v26 argv/file
   provider and authority while admitting 1 MiB per-String/authenticated

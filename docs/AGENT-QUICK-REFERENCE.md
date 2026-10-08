@@ -1250,8 +1250,6 @@ prints the full offline [catalog](STANDARD-LIBRARY-CATALOG.md). Exact lookup is
 dependency. The catalog gives each function's contract, profile, and dependency
 route; matching is exact, with no fuzzy or prefix search. The installed
 compiler supplies bundled packages without a checkout.
-For JSON escape expansion/member-name comparison in v25 `stream-text`, use
-[JSON String Query v1](JSON-STRING-QUERY-V1.md) and `std.data.json.query`.
 Bounded Vec uses `owned-data-api.v1` and `std.collections = "^0.1.0"`; import
 `std.collections.vec.*` by ID with an explicit Copy-scalar type argument.
 Mutators transfer and return the owner; there is no public export or stable
@@ -1285,6 +1283,23 @@ reports breaking interface changes (nonzero for CI). `[dependencies]` accepts
 --cache <dir> --write` pins per-target resolution; `--verify` rechecks it.
 Build does not yet link resolved dependencies. See [Project Lock v1](PROJECT-LOCK-V1.md)
 and [Project Dependency Resolution v1](PROJECT-DEPENDENCY-RESOLUTION-V1.md).
+
+## JSON documents and cursors
+
+For a complete strict JSON document, add `std.data.json.scan = "^0.1.0"`
+under `[dependencies]` with `profile = "useful-data.v1"`. Import
+`std.data.json.scan.strict_end` by stable ID and call
+`strict_end(input, 32usize, policy)` before navigation. Policy `0` accepts
+duplicate names; `1` rejects decoded-equivalent names. A successful scan
+returns `byte_len(input)`; a greater result encodes the rejection offset.
+
+`root`, `kind`, `first_member`, `member_value`, `next_member`,
+`first_element`, `next_element`, `key_eq`, `value_end`, and `decimal_end`
+return scalar offsets or comparisons over the same borrowed byte view.
+`decimal_end` preserves the exact JSON number span. See
+[Strict JSON Scan v1](STRICT-JSON-SCAN-V1.md). For standalone decoded string
+tokens, use `std.data.json.query` and
+[JSON String Query v1](JSON-STRING-QUERY-V1.md).
 
 ## Where the rules live
 

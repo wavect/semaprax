@@ -1,0 +1,15 @@
+module std.data.json.scan.examples;
+use function @id("std.data.json.scan.is_document") from std.data.json.scan as is_document;
+use function @id("std.data.json.scan.first_member") from std.data.json.scan as first_member;
+use function @id("std.data.json.scan.key_eq") from std.data.json.scan as key_eq;
+
+@id("std.data.json.scan.examples.main")
+fn main() -> i64
+{
+    let document = [123u8, 34u8, 111u8, 107u8, 34u8, 58u8, 116u8, 114u8, 117u8, 101u8, 125u8];
+    let document_view = array_as_slice(document);
+    let name = [111u8, 107u8];
+    let name_view = array_as_slice(name);
+    let first = first_member(document_view, 0usize);
+    if is_document(document_view) && key_eq(document_view, first, name_view) { 0 } else { 1 }
+}

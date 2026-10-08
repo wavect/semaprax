@@ -13,6 +13,7 @@
     {"directory": "data-json-digits", "module": "std.data.json.digits", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "data-json-doc", "module": "std.data.json.doc", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "data-json-query", "module": "std.data.json.query", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
+    {"directory": "data-json-scan", "module": "std.data.json.scan", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "data-json-token", "module": "std.data.json.token", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "data-json-utf8", "module": "std.data.json.utf8", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "data-json-write", "module": "std.data.json.write", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},

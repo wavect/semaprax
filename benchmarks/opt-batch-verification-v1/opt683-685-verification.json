@@ -135,5 +135,44 @@
     ],
     "live_savings_claimed": false
   },
-  "artifacts": "/Users/kevin/.codex/benchmark-runs/opt683-685-verification-20261008"
+  "artifacts": "/Users/kevin/.codex/benchmark-runs/opt683-685-verification-20261008",
+  "upstream_merge": {
+    "source_commit": "758fe29c74ff799d8bde1234b099b555ed3be720",
+    "upstream_main": "0f5ddac18",
+    "source_delta": "Two source-graph whitelist literals v69/v70; other upstream changes only tests/docs.",
+    "selected_checks": [
+      {
+        "log": "/Users/kevin/.codex/benchmark-runs/opt683-685-verification-20261008/merge-graph-schemas.log",
+        "log_sha256": "b54a54264773d93fb3e9088f54497bcb966e6acc903437be93e37e07ee5cf6fd",
+        "exit_code": 0,
+        "passed_cases": 1
+      },
+      {
+        "log": "/Users/kevin/.codex/benchmark-runs/opt683-685-verification-20261008/merge-graph-manifest.log",
+        "log_sha256": "a5328a732874e1801250b57309da6ac53bae2f1e0b97032fc1cb52325b576e44",
+        "exit_code": 0,
+        "passed_cases": 1
+      }
+    ],
+    "scoped_clippy": {
+      "exit_code": 0,
+      "log": "/Users/kevin/.codex/benchmark-runs/opt683-685-verification-20261008/clippy-merged.log",
+      "log_sha256": "0dc9220038d8fdb3a129d44d3d03935df120610d7d7150a202bc61f7a4425b01",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "semaprax",
+        "--lib",
+        "--bin",
+        "semaprax",
+        "--",
+        "-D",
+        "warnings"
+      ]
+    },
+    "earlier_compiler_identity_remains_bound_to_its_actual_source": true
+  },
+  "distinct_selected_cases_passed_including_merge": 22
 }

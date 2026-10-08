@@ -1,5 +1,7 @@
 # Same-Owner Byte-Buffer Renewal v1
 
+Audience: language users and compiler contributors.
+
 Status: implemented with focused local success/failure, hostile replay, cache,
 native and Core-Wasm execution evidence. See the
 [OPT batch receipt](../benchmarks/opt-batch-verification-v1/opt680-682-verification.json).

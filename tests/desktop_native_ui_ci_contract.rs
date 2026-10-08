@@ -18,7 +18,11 @@ fn private_native_ui_is_platform_real_feature_gated_and_source_locked() {
         read(root, "src/codegen.rs"),
         read(root, "src/codegen/native_emit/guarded_variant.rs"),
         read(root, "src/codegen/native_emit/indexed_reads.rs"),
-        read(root, "src/codegen/native_source_command.rs"),
+        format_args!(
+            "{}\n{}",
+            read(root, "src/codegen/native_source_command.rs"),
+            read(root, "src/codegen/native_source_resource_command.rs")
+        ),
         read(root, "src/codegen/native_command_io.rs"),
         read(root, "src/codegen/native_box.rs"),
         read(root, "src/codegen/native_box/owned_payload.rs"),
@@ -33,7 +37,11 @@ fn private_native_ui_is_platform_real_feature_gated_and_source_locked() {
             "src/codegen/native_stdin_stream/exit_status/process_adapter.rs"
         ),
         read(root, "src/codegen/native_vec.rs"),
-        read(root, "src/codegen/native_vec/owned_payload.rs")
+        format_args!(
+            "{}\n{}",
+            read(root, "src/codegen/native_vec/owned_payload.rs"),
+            read(root, "src/codegen/native_vec/sort.rs")
+        )
     );
 
     assert_contains_all(

@@ -298,12 +298,22 @@ fn main() -> i64
             .clone()
     };
     // The copy borrows its input, transfers exactly the caller's Writer, and
-    // carries that owner as its cleanup root under the existing v5 schema.
+    // carries that owner as its cleanup root. Its same-owner bytes_set loop
+    // selects the authenticated byte-buffer renewal v17 schema.
     let copy = node("std.io.lines.reader.line-into");
     assert_eq!(copy["params"][0]["ownership_mode"], "borrow");
     assert_eq!(copy["params"][1]["ownership_mode"], "own");
     assert_eq!(copy["result"]["ownership_mode"], "own");
-    assert_eq!(copy["cleanup"]["schema"], "semaprax.cleanup-plan.v5");
+    assert_eq!(copy["cleanup"]["schema"], "semaprax.cleanup-plan.v17");
+    let mut downgraded = document.clone();
+    let copy_node = downgraded["nodes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|node| node["id"] == "std.io.lines.reader.line-into")
+        .unwrap();
+    copy_node["cleanup"]["schema"] = "semaprax.cleanup-plan.v5".into();
+    assert!(graph::verify_json(&program, &downgraded.to_string()).is_err());
     assert_eq!(
         copy["cleanup"]["entry_state"]["live_owned_parameters"]
             .as_array()

@@ -66,6 +66,15 @@ fn profiles_are_deterministic_and_broad_dispatch_files_force_full() {
     repository.write("src/graph/agent_query.rs", "pub fn agent_query() {}\n");
     repository.write("src/graph/nested_owned.rs", "pub fn nested_owned() {}\n");
     repository.write("src/graph/work_counter.rs", "pub fn work_counter() {}\n");
+    let additive_graph_modules = [
+        "src/graph/byte_buffer_renewal.rs",
+        "src/graph/filesystem_outcome.rs",
+        "src/graph/owned_text_record_loans.rs",
+        "src/graph/string_replacement.rs",
+    ];
+    for path in additive_graph_modules {
+        repository.write(path, "pub fn changed() {}\n");
+    }
     let plan = repository.changed_plan(&[]).unwrap();
     assert!(plan.contains("effective\tfull\n"));
     assert!(plan.contains(
@@ -91,6 +100,11 @@ fn profiles_are_deterministic_and_broad_dispatch_files_force_full() {
     assert!(plan.contains(
         "path\tsrc/graph/agent_execution.rs\tbroad-compiler-or-graph-dispatch\tfull-workspace\n"
     ));
+    for path in additive_graph_modules {
+        assert!(plan.contains(&format!(
+            "path\t{path}\tbroad-compiler-or-graph-dispatch\tfull-workspace\n"
+        )));
+    }
 }
 
 const BASE_CHANGED_GATES: &str = "gate\tdiff-check\ngate\tfmt-check\ngate\tcheck-workspace\ngate\ttest-advisory\ngate\tclippy-package\ngate\ttest-agent-context\ngate\trustdoc-package\n";
@@ -99,6 +113,7 @@ const BASE_CHANGED_GATES: &str = "gate\tdiff-check\ngate\tfmt-check\ngate\tcheck
 fn cli_and_editor_surfaces_route_changed_with_their_own_gates_in_fixed_order() {
     let repository = Repository::new();
     repository.write("src/cli/help.rs", "pub fn help() { /* changed */ }\n");
+    repository.write("src/cli/help/library.rs", "pub fn library() {}\n");
     repository.write(
         "src/cli/help/diagnostic_index.rs",
         "pub fn response() { /* changed */ }\n",
@@ -115,6 +130,9 @@ fn cli_and_editor_surfaces_route_changed_with_their_own_gates_in_fixed_order() {
         plan.contains("path\tsrc/cli/help.rs\tcli-surface\tcli-harnesses,documentation,rustdoc\n")
     );
     assert!(plan.contains("path\tsrc/cli/help/diagnostic_index.rs\tcli-surface\tcli-harnesses,documentation,rustdoc\n"));
+    assert!(plan.contains(
+        "path\tsrc/cli/help/library.rs\tcli-surface\tcli-harnesses,documentation,rustdoc\n"
+    ));
     assert!(plan.contains(
         "path\tsrc/cli_driver/report_options.rs\tcli-surface\tcli-harnesses,documentation,rustdoc\n"
     ));

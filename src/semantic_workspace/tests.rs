@@ -38,6 +38,8 @@ fn current_source_graph_schemas_are_admitted_without_widening_unknown_schemas() 
         "semaprax.graph.v66",
         "semaprax.graph.v67",
         "semaprax.graph.v68",
+        "semaprax.graph.v69",
+        "semaprax.graph.v70",
     ] {
         assert!(is_source_graph_schema(schema));
     }
@@ -52,6 +54,11 @@ fn current_source_graph_schemas_are_admitted_without_widening_unknown_schemas() 
         "semaprax.graph.v66 ",
         "semaprax.graph.v068",
         "semaprax.graph.v68 ",
+        "semaprax.graph.v069",
+        "semaprax.graph.v69 ",
+        "semaprax.graph.v070",
+        "semaprax.graph.v70 ",
+        "semaprax.graph.v71",
         "semaprax.graph.v999",
         "semaprax.graph.v067",
         "semaprax.graph.v67 ",
@@ -61,6 +68,20 @@ fn current_source_graph_schemas_are_admitted_without_widening_unknown_schemas() 
         assert!(!is_source_graph_schema(mutation));
     }
 }
+#[test]
+fn additive_loan_and_renewal_schemas_round_trip_through_workspace_manifest() {
+    let digest = format!("sha256:{}", "a".repeat(64));
+    let manifest = render_manifest_facts(&[
+        ("a.spx", "semaprax.graph.v69", &digest, &digest, 1),
+        ("b.spx", "semaprax.graph.v70", &digest, &digest, 1),
+    ])
+    .unwrap();
+    let facts = parse_manifest(&manifest).unwrap();
+    assert_eq!(facts[0].source_graph_schema, "semaprax.graph.v69");
+    assert_eq!(facts[1].source_graph_schema, "semaprax.graph.v70");
+    assert_eq!(render_manifest(&facts).unwrap(), manifest);
+}
+
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 

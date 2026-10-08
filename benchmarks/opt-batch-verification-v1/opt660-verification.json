@@ -1,0 +1,62 @@
+{
+  "clippy": {
+    "command": "cargo clippy --locked -p semaprax --lib --bin semaprax -- -D warnings",
+    "log_sha256": "a15126c7d3c18aef43d8cab5d703577d96375894f7ce47fc08ea01b12af7823c",
+    "status": "passed"
+  },
+  "compiler_build": {
+    "binary_sha256": "de286847759e96b9106793ca3ed208eefb03fa1ac625464e2b1bdf960494fcaf",
+    "initial_attempt": "failed solely with ENOSPC; retried after removing inactive compiler caches and completed test artifacts",
+    "source_commit": "2028eb8e36f3cf6dceb1c02ecf7bea89492b3e49",
+    "status": "passed"
+  },
+  "compiler_source_commit": "2028eb8e36f3cf6dceb1c02ecf7bea89492b3e49",
+  "focused_tests_passed": 10,
+  "full_quality_gates_run": false,
+  "harnesses": [
+    {
+      "cases": [
+        "agent_skill_bundle::tests::committed_bundle_is_pinned_and_regenerates_byte_identical",
+        "codegen::native_bytes::scalar_match_scope::tests::active_string_condition_temporary_still_requires_its_canonical_parent",
+        "codegen::native_bytes::scalar_match_scope::tests::dormant_named_string_read_keeps_inventory_without_a_runtime_anchor",
+        "wasm::aggregate::cleanup::activity::tests::runtime_census_distinguishes_named_reads_from_real_string_temporary_siblings"
+      ],
+      "harness": "lib",
+      "log_sha256": "c95326cac64e8923e564bb2f9ec4f59ee6c89e3a2201dbf9c3b2a91c3c51f354",
+      "passed": 4
+    },
+    {
+      "cases": [
+        "owned_string_loops_v1::native_string_loops_settle_every_allocation_on_every_exit",
+        "owned_string_loops_v1::owned_string_loops_round_trip_and_move_the_appended_owner",
+        "owned_string_loops_v1::reference_interpreter_builds_strings_in_loops",
+        "owned_string_loops_v1::string_settling_wasm_profile_releases_every_loop_owner"
+      ],
+      "harness": "language",
+      "log_sha256": "5d8c900c4d71a298710176b8f2f1dbc8b1d0310d0ccc590bdc60190f35a3e11f",
+      "passed": 4
+    },
+    {
+      "cases": [
+        "agent_quick_reference::diagnostic_help_is_pinned_and_covers_compiler_checked_examples"
+      ],
+      "harness": "documentation",
+      "log_sha256": "f4a922a12a74ff5458a310c5d0e51422abd1022d8d24f507c83e50fe039df987",
+      "passed": 1
+    },
+    {
+      "cases": [
+        "cli_driver::cli::help::tests::diagnostic_help_is_exact_complete_and_cheaper_than_the_index"
+      ],
+      "harness": "cli-help",
+      "log_sha256": "d8eec86e979b289d307dd51e94cf5c6c32cca75e4322c624c192a4832c61a103",
+      "passed": 1
+    }
+  ],
+  "limitations": "Selected compiler feature checks; no whole-harness or full quality-gate claim.",
+  "live_campaign_compiler_unchanged": "94fadd14cf27d045d22b23a79def640c95131c31",
+  "pin_refresh_commit": "3f0efdd27",
+  "rust_change_commit": "f77933ba7",
+  "schema": "semaprax.opt660-verification.v1",
+  "semantics": "Dormant structural String slots remain canonical inventory but cannot select runtime cleanup anchors. Real active temporaries retain canonical-parent checks. No cleanup vector is repaired or reordered."
+}

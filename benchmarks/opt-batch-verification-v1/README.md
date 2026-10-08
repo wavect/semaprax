@@ -11,3 +11,11 @@ Rounds3/4 precede the final repair series. Round6 used `4805025ab`, round8 used 
 [Compiler graph timings](OPT602-GRAPH-TIMINGS.md) compare three runs per version on two large fixtures. They are whole-version, prior-head debug CLI measurements, not live-agent cost or isolated optimization results. Live benchmark/receipt/context follow-ups remain separate.
 
 Final repair build: `cargo test --locked -p semaprax --lib --test language --no-run`, followed by exactly the two failing-case filters. Both passed in round11: `map_collections_v2::map_set_v2_native_balances_all_owners_at_o0_and_o2` and `project::tests::stdin_stream_command::text::collections::v25_collections_transport_executes_retained_and_native_routes`. Native Map exercises all 18 cases four times each at O0 and O2 with exact output, zero live owners and equal allocation/free counts. Project checks retained entry/test/prepared paths and the native stdin adapter. No source expectations or ownership guards were weakened.
+
+Follow-up [OPT #660](https://github.com/wavect/semaprax/issues/660) is verified
+by [ten focused checks](opt660-verification.json): dormant and active temporary
+anchor controls, source/graph round-trip, interpreter, native O0/O2 allocation
+settlement, Wasm settlement, installed bundle pin and diagnostic help. Selected
+clippy covered the compiler library and CLI with warnings denied. No full gates
+ran. The ongoing LogLens campaign retained compiler94fadd14c; this fix applies
+to subsequent rounds and cannot improve the recorded running campaign.

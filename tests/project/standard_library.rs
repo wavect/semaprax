@@ -441,6 +441,10 @@ fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
     assert!(!selected.is_empty());
     let scratch = temporary("lanes");
     for package in selected {
+        if package.module == "std.int.decimal" {
+            decimal::run_conformance();
+            continue;
+        }
         if package.module == "std.fs" {
             filesystem::run_conformance();
             filesystem_v2::run_conformance();
@@ -1297,6 +1301,8 @@ mod byte_spans;
 mod catalog;
 #[path = "standard_library/csv.rs"]
 mod csv;
+#[path = "standard_library/decimal.rs"]
+mod decimal;
 #[path = "standard_library/dependency_registry.rs"]
 mod dependency_registry;
 #[path = "standard_library/env_policy.rs"]

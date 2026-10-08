@@ -61,6 +61,7 @@ fn declared_owners() -> Vec<(&'static str, Owner)> {
         ("std.format", Test("formatting::format_writer_executes_on_all_three_backends")),
         ("std.fs", Test("filesystem::filesystem_standard_commands_execute_on_all_three_backends")),
         ("std.http", Test("async_net_backend_audit::async_http_net_execute_on_all_three_backends")),
+        ("std.int.decimal", Test("decimal::decimal_executes_on_admitted_backends")),
         ("std.io", Test("io_cursors::io_cursors_execute_on_all_three_backends")),
         ("std.io.lines", Test("io_lines::io_lines_execute_on_all_three_backends")),
         ("std.jobs", Test("db_jobs_backend_audit::db_and_jobs_execute_on_all_three_backends")),

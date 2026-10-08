@@ -190,6 +190,12 @@ const PACKAGES: &[BundledPackage] = &[
         dependencies: &["std.log.redact"],
     },
     BundledPackage {
+        name: "std.int.decimal",
+        path: "dependencies/std.int.decimal/0.1.0/decimal.spx",
+        source: include_str!("../../std/int-decimal/src/decimal.spx"),
+        dependencies: &[],
+    },
+    BundledPackage {
         name: "std.io",
         path: "dependencies/std.io/0.1.0/io.spx",
         source: include_str!("../../std/io/src/io.spx"),

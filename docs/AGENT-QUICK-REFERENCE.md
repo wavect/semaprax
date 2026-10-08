@@ -70,6 +70,15 @@ fn main() -> i64
   statement on its own line; `if`, `match`, and record literals stay on one
   line. Let `fmt` do it.
 
+For exact unsigned integers beyond `i64`, depend on `std.int.decimal = "^0.1.0"`
+with the `owned-data-api.v1` Project profile. Its source-authored `add`,
+`subtract`, `divide`, and `compare` operate on canonical decimal strings;
+`digits` admits untrusted ASCII input and `canonicalize` strips leading zeros.
+Subtract requires a nonnegative result; divide requires a nonzero divisor.
+Malformed inputs fail checked contracts. This partial alloc package lists
+interpreter and native C11 targets; it claims no public BigInt or Core Wasm ABI.
+See [the catalog](STANDARD-LIBRARY-CATALOG.md#stdintdecimal) for exact stable IDs.
+
 ## Scalars and literals
 
 - `i64`: `42`, `-1`; default integer, checked overflow.

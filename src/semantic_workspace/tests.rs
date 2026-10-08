@@ -37,6 +37,7 @@ fn current_source_graph_schemas_are_admitted_without_widening_unknown_schemas() 
         "semaprax.graph.v65",
         "semaprax.graph.v66",
         "semaprax.graph.v67",
+        "semaprax.graph.v68",
     ] {
         assert!(is_source_graph_schema(schema));
     }
@@ -49,6 +50,9 @@ fn current_source_graph_schemas_are_admitted_without_widening_unknown_schemas() 
         "semaprax.graph.v47",
         "semaprax.graph.v066",
         "semaprax.graph.v66 ",
+        "semaprax.graph.v068",
+        "semaprax.graph.v68 ",
+        "semaprax.graph.v999",
         "semaprax.graph.v067",
         "semaprax.graph.v67 ",
         "semaprax.graph.v065",
@@ -976,4 +980,46 @@ fn ordinary_workspace_initializer_still_rejects_imports_without_control_writes()
             ))
             .collect::<Vec<_>>()
     );
+}
+
+#[test]
+fn string_replacement_v68_workspace_preflight_preserves_exact_schema() {
+    let sources = vec![
+        canonical_source(
+            "a/provider.spx",
+            r#"module replace.provider;
+@id("replace.provider.replaced") fn replaced(text: string) -> string {
+    let mut output = text;
+    output = "replacement";
+    output
+}
+"#,
+        ),
+        canonical_source(
+            "z/app.spx",
+            r#"module replace.app;
+use function @id("replace.provider.replaced") from replace.provider as replaced;
+@id("replace.app.main") fn main() -> i64 { string_len(replaced("old")) }
+"#,
+        ),
+    ];
+    let paths = path_set(&["a/provider.spx", "z/app.spx"]);
+    let first = preflight_owned(&paths, sources.clone()).unwrap();
+    let second = preflight_owned(&paths, sources).unwrap();
+    assert_eq!(first.manifest(), second.manifest());
+    let provider = first
+        .files()
+        .iter()
+        .find(|file| file.path() == "a/provider.spx")
+        .unwrap();
+    assert_eq!(provider.source_graph_schema(), "semaprax.graph.v68");
+    parse_manifest(first.manifest()).unwrap();
+    for forged in [
+        "semaprax.graph.v068",
+        "semaprax.graph.v68 ",
+        "semaprax.graph.v999",
+    ] {
+        let manifest = first.manifest().replace("semaprax.graph.v68", forged);
+        assert_code(parse_manifest(&manifest), "SPX-G174");
+    }
 }

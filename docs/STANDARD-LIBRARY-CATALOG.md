@@ -5,8 +5,8 @@ Status: generated from `std/` through the `semaprax doc` documentation model by 
 Audience: agents and humans choosing a standard-library declaration.
 
 Use this catalog to find a bundled declaration and its required project profile.
-Each entry is compiler-verified and exercised by its package's interpreter,
-native C11, and Core Wasm conformance module. [Standard Library v1](STANDARD-LIBRARY-V1.md)
+Each entry has an owning conformance gate for its listed targets.
+Target metadata records the admitted interpreter, native C11, and Core Wasm scope. [Standard Library v1](STANDARD-LIBRARY-V1.md)
 owns the full contract; `std/catalog.json` is the machine-readable catalog.
 
 To use a package, add its dependency in `semaprax.toml`, then import its stable
@@ -4144,6 +4144,88 @@ capability to perform it.
 
 ```semaprax
 fn outbound_request_admitted(method: borrow Slice<u8>, scheme: borrow Slice<u8>, target: borrow Slice<u8>, endpoint_allowlisted: bool, body_len: usize, budget_millis: i64) -> bool
+```
+
+## `std.int.decimal`
+
+Package `std/int-decimal`, tier `alloc`, status partial. Required project profile: `owned-data-api.v1`. Dependency: `std.int.decimal = "^0.1.0"`. Targets: `interpreter`, `native-c11`.
+
+### `std.int.decimal.digit`
+
+Exact unsigned decimal integers use canonical owned UTF-8 strings. Arithmetic
+is digit-wise; no complete operand is converted to a machine integer.
+
+```semaprax
+fn digit(text: borrow str, index: i64) -> i64
+    requires index >= 0 && index < str_len_bytes(text)
+    ensures result >= -48 && result <= 207
+```
+
+### `std.int.decimal.digits`
+
+Nonempty ASCII digits, including leading zeros, are accepted for normalization.
+
+```semaprax
+fn digits(text: borrow str) -> bool
+```
+
+### `std.int.decimal.valid`
+
+Canonical means exactly "0", or a nonzero digit followed by ASCII digits.
+
+```semaprax
+fn valid(text: borrow str) -> bool
+```
+
+### `std.int.decimal.canonicalize`
+
+Call digits first for untrusted input. Malformed input fails its precondition.
+
+```semaprax
+fn canonicalize(text: string) -> string
+    requires digits(string_as_str(text))
+    ensures string_len(result) > 0
+```
+
+### `std.int.decimal.compare`
+
+```semaprax
+fn compare(left: borrow str, right: borrow str) -> i64
+    requires valid(left) && valid(right)
+    ensures result >= -1 && result <= 1
+```
+
+### `std.int.decimal.add`
+
+```semaprax
+fn add(left: string, right: string) -> string
+    requires valid(string_as_str(left)) && valid(string_as_str(right))
+    ensures string_len(result) > 0
+```
+
+### `std.int.decimal.subtract`
+
+Underflow is a checked contract failure. Compare before subtracting untrusted
+operands. The result is canonical even across a long borrow chain.
+
+```semaprax
+fn subtract(left: string, right: borrow str) -> string
+    requires valid(string_as_str(left)) && valid(right)
+    requires compare(string_as_str(left), right) >= 0
+    ensures string_len(result) > 0
+```
+
+### `std.int.decimal.divide`
+
+Long division returns the floor quotient. The partial remainder is shifted
+by one decimal place before adding each dividend digit. Since the previous
+remainder is below divisor, at most nine subtractions produce each digit.
+
+```semaprax
+fn divide(dividend: string, divisor: borrow str) -> string
+    requires valid(string_as_str(dividend)) && valid(divisor)
+    requires digit(divisor, 0) != 0
+    ensures string_len(result) > 0
 ```
 
 ## `std.io`

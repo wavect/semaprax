@@ -19,6 +19,15 @@
       ]
     },
     {
+      "code": "SPX-I307",
+      "rows": [
+        {
+          "fix": "Choose a fresh `--output` path, or explicitly remove the existing output after confirming it is your previous build artifact; the compiler never overwrites it automatically",
+          "wrote": "rebuilding into an existing output path"
+        }
+      ]
+    },
+    {
       "code": "SPX-M105",
       "rows": [
         {

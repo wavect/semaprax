@@ -535,6 +535,7 @@ fn single_file_build_refuses_existing_and_invalid_destinations_without_clobberin
     let result = run("native", &victim);
     assert_eq!(result.status.code(), Some(1));
     assert!(String::from_utf8_lossy(&result.stderr).contains("SPX-I307"));
+    assert!(String::from_utf8_lossy(&result.stderr).contains("choose a fresh --output path"));
     assert_eq!(std::fs::read(&victim).unwrap(), b"precious\n");
 
     let json_error = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -549,6 +550,10 @@ fn single_file_build_refuses_existing_and_invalid_destinations_without_clobberin
     assert!(json_error.stderr.is_empty());
     let diagnostic: serde_json::Value = serde_json::from_slice(&json_error.stdout).unwrap();
     assert_eq!(diagnostic["code"], "SPX-I307");
+    assert!(diagnostic["message"]
+        .as_str()
+        .unwrap()
+        .contains("after confirming it is your previous build artifact"));
 
     let result = run("native", &source);
     assert_eq!(result.status.code(), Some(1));
@@ -639,4 +644,23 @@ fn single_file_build_refuses_existing_and_invalid_destinations_without_clobberin
     std::fs::remove_file(victim).unwrap();
     std::fs::remove_file(source).unwrap();
     std::fs::remove_dir(root).unwrap();
+}
+
+#[test]
+fn native_build_profile_refusal_guides_to_native_form_before_source_access() {
+    for target in [vec![], vec!["--target", "native"]] {
+        let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+            .args(["build", "missing-native-profile-help.spx"])
+            .args(target)
+            .args(["--profile", "text-toolkit-v1"])
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+        let message = String::from_utf8(output.stderr).unwrap();
+        assert!(message.contains("requires a source file, --target web or wasm"));
+        assert!(message.contains("for a native command, omit --profile"));
+        assert!(message.contains("semaprax build <file> --target native --output <fresh-path>"));
+        assert!(!message.contains("cannot read"));
+    }
 }

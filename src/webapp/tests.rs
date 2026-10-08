@@ -439,7 +439,7 @@ fn v2_conventions_project_accounts_permissions_keys_steps_and_rollups() {
         2
     );
     assert!(schema.contains(
-        "canWrite: { row: true, test: (r, u) => (f_can_write(u.role) || (r.member_id === u.id)) }"
+        "canWrite: { row: true, test: (r, u) => (f_can_write(u.role) || (r.member_id === u.id)), create: (u) =>"
     ));
     assert!(schema.contains("{ name: \"key\", fields: [\"team_id\", \"code\"], value: (r) =>"));
     assert!(schema.contains("{ field: \"stage\", test: (from, to) => ((m"));
@@ -648,4 +648,5 @@ fn v3_runtime_security_migration_and_cross_row_contracts() {
         );
     }
 }
+mod creation_policy;
 mod sg_regressions;

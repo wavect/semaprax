@@ -455,7 +455,15 @@ pub(super) fn build(program: &Program, source: &str) -> Result<Model, Vec<Diagno
             }),
             Kind::CanRead | Kind::CanWrite => returns_bool().and_then(|()| {
                 translator.body(function, &bound).map(|(body, fields)| {
-                    let test = format!("{{ row: {}, test: (r, u) => {body} }}", !fields.is_empty());
+                    let create = if *kind == Kind::CanWrite && !fields.is_empty() {
+                        format!(", create: {}", translator.creation(function, &bound))
+                    } else {
+                        String::new()
+                    };
+                    let test = format!(
+                        "{{ row: {}, test: (r, u) => {body}{create} }}",
+                        !fields.is_empty()
+                    );
                     if *kind == Kind::CanRead {
                         entity.can_read = Some(test);
                     } else {
@@ -534,11 +542,17 @@ pub(super) fn build(program: &Program, source: &str) -> Result<Model, Vec<Diagno
             .map(|b| (b.name.clone(), b.ty.clone()))
             .collect();
         match translator.body(function, &bound) {
-            Ok((body, _)) => defaults.push((
-                kind,
-                row.clone(),
-                format!("{{ row: {}, test: (r, u) => {body} }}", !row.is_empty()),
-            )),
+            Ok((body, _)) => defaults.push((kind, row.clone(), {
+                let create = if kind == Kind::CanWrite && !row.is_empty() {
+                    format!(", create: {}", translator.creation(function, &bound))
+                } else {
+                    String::new()
+                };
+                format!(
+                    "{{ row: {}, test: (r, u) => {body}{create} }}",
+                    !row.is_empty()
+                )
+            })),
             Err(mut more) => errors.append(&mut more),
         }
     }

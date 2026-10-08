@@ -12,6 +12,8 @@ use crate::ast::{
 };
 use crate::diagnostic::Diagnostic;
 
+mod creation;
+
 const SUBSET_HELP: &str = "webapp functions may use literals, their parameters, `let`, arithmetic, comparisons, `&&`/`||`/`!`, `if`/`else`, `match` on variants and scalars, payload-free variant cases, string_len, string_len_chars, string_is_empty, string_contains, string_starts_with, string_concat, string_from_i64, string_from_char, `string_as_str` with the `str_*` view functions, and calls to other such functions";
 
 /// A JSON string literal, which is also a JavaScript string literal.
@@ -464,34 +466,7 @@ impl<'a> Translator<'a> {
     ) -> Result<(String, Ty), Diagnostic> {
         let (l, ty) = self.expr(left)?;
         let (r, _) = self.expr(right)?;
-        let checked = |name: &str| (format!("rt.{name}({l}, {r})"), Ty::Int);
-        Ok(match (op, &ty) {
-            (BinaryOp::Add, Ty::Int) => checked("add"),
-            (BinaryOp::Sub, Ty::Int) => checked("sub"),
-            (BinaryOp::Mul, Ty::Int) => checked("mul"),
-            (BinaryOp::Div, Ty::Int) => checked("div"),
-            (BinaryOp::Rem, Ty::Int) => checked("rem"),
-            (BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div, Ty::Float) => {
-                (format!("({l} {} {r})", op.text()), Ty::Float)
-            }
-            (BinaryOp::Eq, _) => (format!("({l} === {r})"), Ty::Bool),
-            (BinaryOp::Ne, _) => (format!("({l} !== {r})"), Ty::Bool),
-            (BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge, Ty::Int | Ty::Float) => {
-                (format!("({l} {} {r})", op.text()), Ty::Bool)
-            }
-            (BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge, Ty::Str) => (
-                format!("(rt.compareStrings({l}, {r}) {} 0)", op.text()),
-                Ty::Bool,
-            ),
-            (BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge, Ty::Char) => (
-                format!("({l}.codePointAt(0) {} {r}.codePointAt(0))", op.text()),
-                Ty::Bool,
-            ),
-            (BinaryOp::And | BinaryOp::Or, Ty::Bool) => {
-                (format!("({l} {} {r})", op.text()), Ty::Bool)
-            }
-            _ => return Err(outside(&format!("operator `{}` here", op.text()), expr)),
-        })
+        binary_values(op, l, r, &ty, expr)
     }
 
     fn call(
@@ -500,21 +475,7 @@ impl<'a> Translator<'a> {
         args: &'a [Expr],
         expr: &Expr,
     ) -> Result<(String, Ty), Diagnostic> {
-        let builtin = match name {
-            "string_len" => Some(("rt.len", Ty::Int)),
-            "string_len_chars" => Some(("rt.lenChars", Ty::Int)),
-            "string_is_empty" => Some(("rt.isEmpty", Ty::Bool)),
-            "string_contains" => Some(("rt.contains", Ty::Bool)),
-            "string_starts_with" => Some(("rt.startsWith", Ty::Bool)),
-            "string_concat" => Some(("rt.concat", Ty::Str)),
-            "string_from_i64" => Some(("rt.fromI64", Ty::Str)),
-            "string_from_char" | "string_as_str" => Some(("", Ty::Str)),
-            "str_len_bytes" => Some(("rt.len", Ty::Int)),
-            "str_is_empty" => Some(("rt.isEmpty", Ty::Bool)),
-            "str_contains" => Some(("rt.contains", Ty::Bool)),
-            "str_starts_with" => Some(("rt.startsWith", Ty::Bool)),
-            _ => None,
-        };
+        let builtin = builtin(name);
         let mut translated = Vec::new();
         for arg in args {
             translated.push(self.expr(arg)?.0);
@@ -529,5 +490,58 @@ impl<'a> Translator<'a> {
             .ok_or_else(|| outside(&format!("a call to `{name}`"), expr))?;
         let ty = self.helper(function, expr)?;
         Ok((format!("f_{name}({args})"), ty))
+    }
+}
+
+fn binary_values(
+    op: BinaryOp,
+    l: String,
+    r: String,
+    ty: &Ty,
+    expr: &Expr,
+) -> Result<(String, Ty), Diagnostic> {
+    let checked = |name: &str| (format!("rt.{name}({l}, {r})"), Ty::Int);
+    Ok(match (op, ty) {
+        (BinaryOp::Add, Ty::Int) => checked("add"),
+        (BinaryOp::Sub, Ty::Int) => checked("sub"),
+        (BinaryOp::Mul, Ty::Int) => checked("mul"),
+        (BinaryOp::Div, Ty::Int) => checked("div"),
+        (BinaryOp::Rem, Ty::Int) => checked("rem"),
+        (BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div, Ty::Float) => {
+            (format!("({l} {} {r})", op.text()), Ty::Float)
+        }
+        (BinaryOp::Eq, _) => (format!("({l} === {r})"), Ty::Bool),
+        (BinaryOp::Ne, _) => (format!("({l} !== {r})"), Ty::Bool),
+        (BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge, Ty::Int | Ty::Float) => {
+            (format!("({l} {} {r})", op.text()), Ty::Bool)
+        }
+        (BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge, Ty::Str) => (
+            format!("(rt.compareStrings({l}, {r}) {} 0)", op.text()),
+            Ty::Bool,
+        ),
+        (BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge, Ty::Char) => (
+            format!("({l}.codePointAt(0) {} {r}.codePointAt(0))", op.text()),
+            Ty::Bool,
+        ),
+        (BinaryOp::And | BinaryOp::Or, Ty::Bool) => (format!("({l} {} {r})", op.text()), Ty::Bool),
+        _ => return Err(outside(&format!("operator `{}` here", op.text()), expr)),
+    })
+}
+
+fn builtin(name: &str) -> Option<(&'static str, Ty)> {
+    match name {
+        "string_len" => Some(("rt.len", Ty::Int)),
+        "string_len_chars" => Some(("rt.lenChars", Ty::Int)),
+        "string_is_empty" => Some(("rt.isEmpty", Ty::Bool)),
+        "string_contains" => Some(("rt.contains", Ty::Bool)),
+        "string_starts_with" => Some(("rt.startsWith", Ty::Bool)),
+        "string_concat" => Some(("rt.concat", Ty::Str)),
+        "string_from_i64" => Some(("rt.fromI64", Ty::Str)),
+        "string_from_char" | "string_as_str" => Some(("", Ty::Str)),
+        "str_len_bytes" => Some(("rt.len", Ty::Int)),
+        "str_is_empty" => Some(("rt.isEmpty", Ty::Bool)),
+        "str_contains" => Some(("rt.contains", Ty::Bool)),
+        "str_starts_with" => Some(("rt.startsWith", Ty::Bool)),
+        _ => None,
     }
 }

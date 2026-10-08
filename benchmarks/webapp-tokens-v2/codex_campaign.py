@@ -50,7 +50,7 @@ SEED_FILES = (
     "/benchmarks/webapp-tokens-v2/acceptance/CONTRACT.md",
 )
 FROZEN_SPEC = "benchmarks/webapp-tokens-v2/SPEC.md"
-QUALIFICATION_RECEIPT = "benchmarks/webapp-tokens-v2/acceptance/evidence/reference-r6-summary.json"
+QUALIFICATION_RECEIPT = "benchmarks/webapp-tokens-v2/acceptance/evidence/reference-r7-summary.json"
 ACCEPTANCE_SOURCE_FILES = (
     FROZEN_SPEC,
     "benchmarks/webapp-tokens-v2/acceptance/package.json",

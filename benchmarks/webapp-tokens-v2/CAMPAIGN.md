@@ -23,9 +23,9 @@ final command summary. Use a fresh artifact path for each round.
 
 ```sh
 python3 benchmarks/webapp-tokens-v2/codex_campaign.py plan \
-  --round 2 \
-  --base-ref c50c3bd7623354840504687d64260edb8ff3895f \
-  --compiler-source-ref 60002439e1b651ebbfbf3a887f12a20c927d720f \
+  --round 3 \
+  --base-ref 3fcdf034a5e5da57c10845a8074c06f2862816e1 \
+  --compiler-source-ref aae2719e29df37438e55bf52b00da3d7954bbd7f \
   --semaprax-bin /absolute/path/to/semaprax \
   --tokenizer-dir /absolute/path/to/tokenizer-prefix \
   --playwright-root /absolute/path/with-pinned-playwright \
@@ -41,9 +41,9 @@ this harness.
 
 The acceptance gate uses Node 24+, the pinned Playwright 1.62.0 Chromium, a
 fresh evidence directory for every attempt, and loopback-only application
-servers. The retained r6 reference receipt is checked for both arms at 912/912.
+servers. The retained r7 reference receipt is checked for both arms at 912/912.
 Its SEMAPRAX reference was compiled from source
-`60002439e1b651ebbfbf3a887f12a20c927d720f`; this is qualification evidence,
+`aae2719e29df37438e55bf52b00da3d7954bbd7f`; this is qualification evidence,
 never a live-agent result. Before a paid request, the harness verifies the local
 Codex controls, Node, Playwright package, and Chromium executable. It snapshots
 the full transitive acceptance source closure and runs that snapshot. Seed

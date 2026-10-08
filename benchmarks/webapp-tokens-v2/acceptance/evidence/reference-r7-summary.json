@@ -1,0 +1,306 @@
+{
+  "arms": {
+    "semaprax": {
+      "agent_workflow": [
+        {
+          "id": "browser.Agent.Leave.own-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Agent.Expense.own-actions",
+          "status": "passed"
+        }
+      ],
+      "api_and_browser_signed64": [
+        {
+          "id": "Sprint.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "Project.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "Ticket.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Sprint.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Project.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Ticket.signed64",
+          "status": "passed"
+        }
+      ],
+      "compiler": {
+        "path": "/Users/kevin/.codex/benchmark-binaries/semaprax-aae2719e2",
+        "sha256": "51bc391ca4c106374333ba0d272c702df263c384824933e29c12dd75b63e5a11",
+        "source_sha": "aae2719e29df37438e55bf52b00da3d7954bbd7f"
+      },
+      "finished_at": "2026-10-08T11:40:29.174Z",
+      "node": "v24.3.0",
+      "password_evidence_verified": true,
+      "qualification": {
+        "cases": 912,
+        "failures": [],
+        "missingCases": [],
+        "missingGroups": [],
+        "passed": true
+      },
+      "reference_source_commit": "3fcdf034a5e5da57c10845a8074c06f2862816e1",
+      "reference_source_files_sha256": {
+        "teamdesk.spx": "93b7c95f058b12d09b4799c15a36a1ebfe1cab38a5a595a2381618c112da4bc9"
+      },
+      "report_file": "/Users/kevin/.codex/benchmark-runs/teamdesk-reference-requalification-aae2719e2-20261008/evidence-semaprax/report.json",
+      "report_sha256": "0274b1968837965bab2da2abf6394ee7d7494cd569fd82acc6c02dcdbe500cd0",
+      "started_at": "2026-10-08T11:34:47.184Z",
+      "viewer_create_visibility": [
+        {
+          "id": "browser.Viewer.Team.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Member.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Customer.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Contact.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Project.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Milestone.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Sprint.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Task.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Comment.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.TimeEntry.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Ticket.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.TicketReply.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Invoice.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Payment.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Vendor.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Expense.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Asset.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Leave.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Document.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Release.hidden-actions",
+          "status": "passed"
+        }
+      ]
+    },
+    "typescript": {
+      "agent_workflow": [
+        {
+          "id": "browser.Agent.Leave.own-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Agent.Expense.own-actions",
+          "status": "passed"
+        }
+      ],
+      "api_and_browser_signed64": [
+        {
+          "id": "Sprint.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "Project.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "Ticket.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Sprint.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Project.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Ticket.signed64",
+          "status": "passed"
+        }
+      ],
+      "finished_at": "2026-10-08T11:45:49.269Z",
+      "node": "v24.3.0",
+      "password_evidence_verified": true,
+      "qualification": {
+        "cases": 912,
+        "failures": [],
+        "missingCases": [],
+        "missingGroups": [],
+        "passed": true
+      },
+      "reference_source_commit": "3fcdf034a5e5da57c10845a8074c06f2862816e1",
+      "reference_source_files_sha256": {
+        ".gitignore": "0ba297cf012790a68b04efd9f50f4994fd581c361c35ec84535a6f60467bab2e",
+        "README.md": "0f5ead9f51bb39a4c8475516cb9a04e33a3da57cd423d8175a98c4d86dd5d6f8",
+        "index.html": "566b4f0645fe7175c07b162b2fbeb0bd9fc21eabe0382c06061e77cfadc2975a",
+        "package-lock.json": "36cbe83f76147a35acd2a73394144e6969a6b6a8f07d5a5eadc164b215baa711",
+        "package.json": "a8b89aa65fe1b7cdedcb31fa541cb8ace934f15477f7cbc014d2383b527a4935",
+        "server/index.ts": "5f5090240fbe44deaf88547e7965f8441a1f91608da3798edb3af844cc7039e7",
+        "shared/json.ts": "a2426cdbcd203693581bc19182bd6cd9fdda2125e60979e881d74e203f92cfc6",
+        "shared/schema.ts": "7b9af4c3454f42f832d008ce99eb16e3745a7fd83bceffb83e781a4e16617af5",
+        "src/api.ts": "79f66c7afe424281c4243390895c8a86a87517cc3e9ca39b75e8c25a70eaddb5",
+        "src/main.tsx": "2f4b7f45a82df5f2a56e8a350a91bbb1f2705cde2f69727bf39632630b6f8a5e",
+        "src/views.tsx": "0a663e0846a644003af60365ba41fea72339795d0d380092c8632482ad554e5f",
+        "tests/int64.test.ts": "5207652185af5e7a5a9fda2042be7155c600493158284151ae4fae2e46670f7c",
+        "tests/server-int64.test.ts": "d8c8af6e33eb3835a9b53382bcf0491813608f8a86be8a2b64390baab4752b8c",
+        "tests/ui-permissions.test.ts": "47f80847edcd07fd3ac6466ea0322388dc735e2aca11a3e611b1c4bfb416b2c7",
+        "tsconfig.json": "d642f5424183a995f2475e74ac59aa0f2503ca53bad83fa905d45743ffb9e417",
+        "vite.config.ts": "04504a1101152fa181213e15926b8a77d886251badc02e81e68b2c63e994039b"
+      },
+      "report_file": "/Users/kevin/.codex/benchmark-runs/teamdesk-reference-requalification-aae2719e2-20261008/evidence-typescript/report.json",
+      "report_sha256": "21227bc66275aceabbe7560db76ff3ec5a18da51d98bbbe6957cba681bd8b3e2",
+      "started_at": "2026-10-08T11:40:44.016Z",
+      "viewer_create_visibility": [
+        {
+          "id": "browser.Viewer.Team.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Member.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Customer.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Contact.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Project.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Milestone.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Sprint.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Task.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Comment.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.TimeEntry.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Ticket.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.TicketReply.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Invoice.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Payment.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Vendor.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Expense.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Asset.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Leave.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Document.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Release.hidden-actions",
+          "status": "passed"
+        }
+      ]
+    }
+  },
+  "compiler_binary_sha256": "51bc391ca4c106374333ba0d272c702df263c384824933e29c12dd75b63e5a11",
+  "compiler_source_commit": "aae2719e29df37438e55bf52b00da3d7954bbd7f",
+  "gate_source": "3fcdf034a5e5da57c10845a8074c06f2862816e1",
+  "qualified": true,
+  "reference_source_commit": "3fcdf034a5e5da57c10845a8074c06f2862816e1",
+  "schema": "semaprax.teamdesk.reference.qualification.v1",
+  "scope": "LOCAL physical Node API/restart/filesystem and Playwright 1.62 Chromium; refreshed reference qualification only; no live model campaign or token-savings claim.",
+  "spec_sha256": "7658414ed2bbb53477a93e4a00f36269954c5bc45f3148fe72ddd02f203a50dc"
+}

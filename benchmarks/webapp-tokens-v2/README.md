@@ -14,13 +14,13 @@ The additive [acceptance contract](acceptance/CONTRACT.md) and external API/Chro
 gate are implemented under [OPT #659](https://github.com/wavect/semaprax/issues/659).
 They keep this benchmark's SPEC frozen and derive obligations independently of
 either application schema. Missing or unverified requirements prevent qualification.
-The [reference qualification receipt](acceptance/evidence/reference-r6-summary.json)
+The [reference qualification receipt](acceptance/evidence/reference-r7-summary.json)
 records 912 passing obligations for each reference arm. The SEMAPRAX reference
-was qualified with compiler source `60002439e1b651ebbfbf3a887f12a20c927d720f`
-and binary SHA-256 `87e1d84bb618218159a3ebaec83dea285f2186486d7113962d08c71945474daa`;
+was qualified with compiler source `aae2719e29df37438e55bf52b00da3d7954bbd7f`
+and binary SHA-256 `51bc391ca4c106374333ba0d272c702df263c384824933e29c12dd75b63e5a11`;
 the receipt binds both reports to the frozen SPEC and acceptance gate. It does
-not establish current-head or fresh agent performance. The earlier r5 receipt
-remains preserved as historical evidence.
+not establish current-head or fresh agent performance. The earlier r5 and r6
+receipts remain preserved as historical evidence.
 The historical self-tests, partial permission scenario, and live token aggregates
 below are separate evidence. A clean matched Codex campaign with bound qualification
 reports and retained events is still required before a new comparative headline.

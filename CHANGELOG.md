@@ -1,5 +1,11 @@
 # Changelog
 
+- Fix the TeamDesk v2 TypeScript reference's signed-i64 transport for OPT #662:
+  preserve JSON number lexemes, use exact integer schema arithmetic and form
+  values, and write numeric tokens through REST, audit, CSV and persistence.
+  Local codec/schema, physical HTTP/restart, type-check and browser build gates
+  pass; the independent full-SPEC qualification remains a separate gate.
+
 - Fix native String condition cleanup anchors to distinguish dormant inventory
   slots from canonical runtime lifecycle references; mirror the distinction in
   aggregate Wasm and Copy-variant guards. Parameter-read success and real-owner

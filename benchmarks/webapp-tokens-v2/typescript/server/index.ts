@@ -3,23 +3,53 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from '
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { dirname, join } from 'node:path';
 import {
-  canRead, canWrite, entities, matching, names, referrers, stored, toCsv, validate, withComputed,
+  canRead, canWrite, entities, matching, names, normalizeRow, referrers, stored, toCsv, validate, withComputed,
   type EntityName, type Row,
 } from '../shared/schema.ts';
 
-type Audit = { time: string; member_id: number; entity: EntityName; id: number; action: string; changes: Row };
-type Db = { next: Record<string, number>; rows: Record<string, Row[]>; secrets: Record<number, string>; audit: Audit[] };
+import { asI64, I64_MAX, JsonNumber, parseJson, routeId, stringifyJson } from '../shared/json.ts';
+
+type Audit = { time: string; member_id: bigint; entity: EntityName; id: bigint; action: string; changes: Row };
+type Db = { next: Record<string, bigint>; rows: Record<string, Row[]>; secrets: Record<string, string>; audit: Audit[] };
 
 const file = join(process.env.DATA_DIR ?? 'data', 'teamdesk.json');
 const db: Db = existsSync(file)
-  ? JSON.parse(readFileSync(file, 'utf8'))
+  ? load(readFileSync(file, 'utf8'))
   : {
-      next: Object.fromEntries(names.map((name) => [name, 1])),
+      next: Object.fromEntries(names.map((name) => [name, 1n])),
       rows: Object.fromEntries(names.map((name) => [name, []])),
       secrets: {},
       audit: [],
     };
-const sessions = new Map<string, number>();
+/** Old numeric JSON files and new exact files share the same schema decoding. */
+function load(text: string): Db {
+  const raw = parseJson(text);
+  const integer = (value: unknown): bigint => {
+    const decoded = asI64(value);
+    if (decoded === undefined) throw new Error('invalid persisted i64');
+    return decoded;
+  };
+  const next = Object.fromEntries(names.map((name) => {
+    const value = raw.next[name];
+    // One internal exhaustion sentinel lets the final legal id survive restart.
+    const decoded = value instanceof JsonNumber && value.source === (I64_MAX + 1n).toString()
+      ? I64_MAX + 1n : integer(value);
+    if (decoded <= 0n) throw new Error('invalid persisted next id');
+    return [name, decoded];
+  }));
+  const rows = Object.fromEntries(names.map((name) => [name, raw.rows[name].map((r: Row) => {
+    const row = normalizeRow(name, r);
+    row.id = integer(r.id);
+    return row;
+  })]));
+  const audit = raw.audit.map((entry: any) => ({ ...entry, id: integer(entry.id), member_id: integer(entry.member_id),
+    changes: Object.fromEntries(Object.entries(entry.changes).map(([field, pair]: [string, any]) => [field,
+      pair.map((value: unknown) => value === null ? null : normalizeRow(entry.entity, { [field]: value })[field])])),
+  }));
+  return { next, rows, secrets: raw.secrets, audit };
+}
+
+const sessions = new Map<string, bigint>();
 
 const hash = (password: string, salt = randomBytes(16)) =>
   `${salt.toString('hex')}:${scryptSync(password, salt, 64).toString('hex')}`;
@@ -31,22 +61,23 @@ const unknown = hash(randomBytes(8).toString('hex'));
 
 function reply(res: ServerResponse, status: number, body?: unknown, headers: Record<string, string> = {}) {
   res.writeHead(status, { 'content-type': 'application/json', ...headers });
-  res.end(body === undefined ? undefined : JSON.stringify(body));
+  res.end(body === undefined ? undefined : stringifyJson(body));
 }
 
 async function readJson(req: IncomingMessage): Promise<any> {
   let text = '';
   for await (const chunk of req) if ((text += chunk).length > 1e6) return undefined;
   try {
-    return JSON.parse(text);
+    return parseJson(text);
   } catch {
     return undefined;
   }
 }
 
 /** Stores `input` over `before` (create, update) or removes `before` (no input); records the audit entry. */
-function commit(actor: number, name: EntityName, before?: Row, input?: Row): Row {
+function commit(actor: bigint, name: EntityName, before?: Row, input?: Row): Row {
   const rows = db.rows[name];
+  if (input && !before && db.next[name] > I64_MAX) throw new Error('id space exhausted');
   const after: Row | undefined = input && {
     id: before?.id ?? db.next[name]++,
     ...Object.fromEntries(stored(name).map((f) => [f.name, input[f.name]])),
@@ -61,12 +92,12 @@ function commit(actor: number, name: EntityName, before?: Row, input?: Row): Row
   else rows.splice(rows.indexOf(before!), 1);
   const id = (after ?? before)!.id;
   if (name === 'Member') {
-    if (input?.password) db.secrets[id] = hash(input.password);
-    if (!after) delete db.secrets[id];
+    if (input?.password) db.secrets[String(id)] = hash(input.password);
+    if (!after) delete db.secrets[String(id)];
   }
   db.audit.push({ time: new Date().toISOString(), member_id: actor, entity: name, id, action: !after ? 'delete' : before ? 'update' : 'create', changes });
   mkdirSync(dirname(file), { recursive: true });
-  writeFileSync(`${file}.tmp`, JSON.stringify(db));
+  writeFileSync(`${file}.tmp`, stringifyJson(db));
   renameSync(`${file}.tmp`, file);
   return after ?? before!;
 }
@@ -81,17 +112,17 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
     if (req.method === 'GET') return reply(res, 200, { needed });
     if (req.method !== 'POST' || !needed) return reply(res, 403, { error: 'setup is already done' });
     const team_id = db.next.Team;
-    const input = { ...(await readJson(req)), team_id, role: 'Admin', active: true };
+    const input = normalizeRow('Member', { ...(await readJson(req)), team_id, role: 'Admin', active: true });
     const errors = validate('Member', input, { ...db.rows, Team: [{ id: team_id }] });
     if (errors.length) return reply(res, 400, { errors });
-    commit(0, 'Team', undefined, { name: 'Administration', description: '' });
-    return reply(res, 201, commit(0, 'Member', undefined, input));
+    commit(0n, 'Team', undefined, { name: 'Administration', description: '' });
+    return reply(res, 201, commit(0n, 'Member', undefined, input));
   }
 
   if (slug === 'session' && req.method === 'POST') {
     const { email, password } = (await readJson(req)) ?? {};
     const member = db.rows.Member.find((m) => m.email === email);
-    const known = typeof password === 'string' && verify(password, db.secrets[member?.id ?? 0] ?? unknown);
+    const known = typeof password === 'string' && verify(password, db.secrets[String(member?.id ?? 0n)] ?? unknown);
     if (!member || !member.active || !known) return reply(res, 401, { error: 'invalid email or password' });
     const token = randomBytes(32).toString('base64url');
     sessions.set(token, member.id);
@@ -111,7 +142,8 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
   const name = names.find((n) => n.toLowerCase() === slug);
   if (!name || (extra !== undefined && extra !== 'history')) return reply(res, 404, { error: 'not found' });
   const rows = db.rows[name];
-  const id = idText === undefined ? undefined : Number(idText);
+  const id = routeId(idText);
+  if (idText !== undefined && id === undefined) return reply(res, 404, { error: `${name} ${idText} not found` });
   const row = rows.find((r) => r.id === id);
   if (id !== undefined && !(row && canRead(me, name, row))) return reply(res, 404, { error: `${name} ${idText} not found` });
 
@@ -133,7 +165,7 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
   }
 
   if ((req.method === 'POST' && id === undefined) || (req.method === 'PUT' && row)) {
-    const input = await readJson(req);
+    const input = normalizeRow(name, await readJson(req));
     if (!canWrite(me, name, ...(row ? [row] : []), input ?? {})) return reply(res, 403, { error: 'forbidden' });
     const errors = validate(name, input, db.rows, row);
     if (errors.length) return reply(res, 400, { errors });

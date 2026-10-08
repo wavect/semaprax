@@ -6,6 +6,7 @@
     "dev": "vite",
     "server": "node --experimental-strip-types server/index.ts",
     "check": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
     "build": "tsc --noEmit && vite build"
   },
   "dependencies": {

@@ -1,3 +1,4 @@
+import { integerEdit, routeId } from '../shared/json.ts';
 import { Fragment, useContext, useEffect, useState, type FormEvent, type ReactElement } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -27,7 +28,7 @@ function Value({ field, value, data }: { field: Field; value: unknown; data: Dat
   return <Link to={`${route(target)}/${value}`}>{row ? labelOf(target, row) : `#${value}`}</Link>;
 }
 
-function DeleteButton({ name, id, onDone }: { name: EntityName; id: number; onDone: () => void }) {
+function DeleteButton({ name, id, onDone }: { name: EntityName; id: bigint; onDone: () => void }) {
   const remove = async () => {
     if (!confirm(`Delete ${name} #${id}?`)) return;
     const errors = await send('DELETE', `${route(name)}/${id}`);
@@ -42,7 +43,7 @@ function Changes({ entries, data }: { entries: Row[]; data: Data }) {
     <ul>
       {entries.map((a, i) => (
         <li key={i}>
-          {a.time} {data.Member.find((m) => m.id === a.member_id)?.name ?? `member #${a.member_id}`} {a.action} {a.entity} #{a.id}:{' '}
+          {a.time} {data.Member.find((m) => m.id === a.member_id)?.name ?? `member #${a.member_id}`} {a.action} {a.entity} #{String(a.id)}:{' '}
           {Object.entries(a.changes).map(([key, [was, now]]: any) => `${key} ${was} → ${now}`).join(', ')}
         </li>
       ))}
@@ -163,7 +164,7 @@ export function List({ name, data, reload }: ViewProps) {
         </thead>
         <tbody>
           {rows.slice(current * PAGE_SIZE, (current + 1) * PAGE_SIZE).map((r) => (
-            <tr key={r.id}>
+            <tr key={String(r.id)}>
               {columns(name).map((c) => (
                 <td key={c.name}>
                   <Value field={c} value={r[c.name]} data={data} />
@@ -191,15 +192,16 @@ export function List({ name, data, reload }: ViewProps) {
 
 export function Detail({ name, data }: ViewProps) {
   const me = useContext(Me);
-  const id = Number(useParams().id);
+  const idText = useParams().id;
+  const id = routeId(idText);
   const navigate = useNavigate();
   const row = data[name].find((r) => r.id === id);
   const [history, setHistory] = useState<Row[]>([]);
   useEffect(() => void request('GET', `${route(name)}/${id}/history`).then((r) => r.ok && setHistory(r.json)), [name, id]);
-  if (!row || !canRead(me, name, row)) return <p>{name} {id} not found</p>;
+  if (id === undefined || !row || !canRead(me, name, row)) return <p>{name} {idText} not found</p>;
   return (
     <>
-      <h1>{name} #{id}</h1>
+      <h1>{name} #{String(id)}</h1>
       <dl>
         {columns(name).map((c) => (
           <Fragment key={c.name}>
@@ -223,7 +225,7 @@ export function Detail({ name, data }: ViewProps) {
               <h2>{other} ({f.name})</h2>
               <ul>
                 {rows.map((r) => (
-                  <li key={r.id}>
+                  <li key={String(r.id)}>
                     <Link to={`${route(other)}/${r.id}`}>{labelOf(other, r)}</Link>
                   </li>
                 ))}
@@ -254,21 +256,23 @@ function Input({ field, value, options, data, onChange }: {
       );
     case 'ref':
       return (
-        <select value={value || ''} onChange={(e) => onChange(Number(e.target.value))}>
+        <select value={String(value || '')} onChange={(e) => onChange(integerEdit(e.target.value))}>
           <option value="">-</option>
           {data[field.of as EntityName].map((r) => (
-            <option key={r.id} value={r.id}>{labelOf(field.of as EntityName, r)}</option>
+            <option key={String(r.id)} value={String(r.id)}>{labelOf(field.of as EntityName, r)}</option>
           ))}
         </select>
       );
     case 'string':
     case 'secret':
       return <input type={field.type === 'secret' ? 'password' : 'text'} value={value} onChange={(e) => onChange(e.target.value)} />;
+    case 'int':
+      return <input type="text" inputMode="numeric" value={String(value)} onChange={(e) => onChange(integerEdit(e.target.value))} />;
     default:
       return (
         <input
           type="number"
-          step={field.type === 'int' ? 1 : 'any'}
+          step="any"
           value={Number.isNaN(value) ? '' : value}
           onChange={(e) => onChange(e.target.valueAsNumber)}
         />
@@ -277,12 +281,12 @@ function Input({ field, value, options, data, onChange }: {
 }
 
 const blank = (f: Field) =>
-  ({ string: '', secret: '', int: 0, float: 0, bool: false, enum: enums[f.of]?.[0], ref: 0 })[f.type];
+  ({ string: '', secret: '', int: 0n, float: 0, bool: false, enum: enums[f.of]?.[0], ref: 0n })[f.type];
 
 export function Form({ name, data }: ViewProps) {
   const me = useContext(Me);
   const id = useParams().id;
-  const existing = id === undefined ? undefined : data[name].find((r) => r.id === Number(id));
+  const existing = id === undefined ? undefined : data[name].find((r) => r.id === routeId(id));
   const { fields } = entities[name];
   const [values, setValues] = useState<Row>(() => ({
     ...Object.fromEntries(fields.map((f) => [f.name, f.name === 'member_id' ? me.id : blank(f)])),

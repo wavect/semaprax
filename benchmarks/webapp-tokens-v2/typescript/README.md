@@ -28,3 +28,20 @@ the first Admin (plus a Team "Administration"): `POST /api/setup`
   `POST` (201), `PUT /<id>` (200), `DELETE /<id>` (204)
 - Errors: 400 `{errors}`, 401 not signed in, 403 forbidden write, 404 absent or unreadable, 409 referenced
 - A Member body carries `password` (required on create, optional on edit); it is never returned.
+
+## Exact integers
+
+The shared lossless JSON codec retains number tokens before schema validation.
+Every `int`, reference, row id, integer computed field, and integer rollup uses
+`bigint` within the signed 64-bit range. API and persistence JSON still contain
+unquoted numeric tokens. Decimal/exponent forms are decoded as integers only
+when their exact mathematical value is integral and in range; quoted numbers,
+fractions, and already-rounded unsafe JavaScript numbers are refused. Floats
+keep IEEE 64-bit `number` semantics. The mixed hours/rate formula converts only
+the validated 1..24 integer hours to a float.
+
+Integer form controls preserve text through partial or invalid edits and never
+use `valueAsNumber`; exact values, references, links, CSV, and audit history
+survive a restart. Existing numeric JSON data files use the same schema decoder.
+Run `npm test` for the codec, schema, HTTP numeric-token, audit, and restart
+regressions, followed by `npm run build` for the browser application.

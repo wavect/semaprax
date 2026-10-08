@@ -1,3 +1,5 @@
+import { asI64, parseJson, stringifyJson } from '../shared/json.ts';
+import { normalizeRow, normalizeView } from '../shared/schema.ts';
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { canRead, names, type EntityName, type Row } from '../shared/schema.ts';
 
@@ -10,9 +12,23 @@ export async function request(method: string, path: string, body?: unknown) {
   const res = await fetch(`/api${path}`, {
     method,
     headers: { 'content-type': 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : stringifyJson(body),
   });
-  return { ok: res.ok, json: res.status === 204 ? undefined : await res.json() };
+  return { ok: res.ok, json: res.status === 204 ? undefined : decodeResponse(path, parseJson(await res.text())) };
+}
+
+export function decodeResponse(path: string, body: any): any {
+  const audit = (entry: any) => ({ ...entry, id: asI64(entry.id), member_id: asI64(entry.member_id),
+    changes: Object.fromEntries(Object.entries(entry.changes).map(([field, pair]: [string, any]) => [field,
+      pair.map((value: unknown) => value === null ? null : normalizeRow(entry.entity, { [field]: value })[field])])),
+  });
+  if (path === '/audit' || path.split('?')[0].endsWith('/history')) return Array.isArray(body) ? body.map(audit) : body;
+  const slug = path.split('/')[1]?.split('?')[0];
+  const name = slug === 'me' || slug === 'session' || slug === 'setup' ? 'Member'
+    : names.find((n) => n.toLowerCase() === slug);
+  if (!name || !body || body.error || body.errors || typeof body !== 'object') return body;
+  const row = (value: Row) => normalizeView(name, value);
+  return Array.isArray(body) ? body.map(row) : row(body);
 }
 
 /** The error messages of a failed response; empty on success. */

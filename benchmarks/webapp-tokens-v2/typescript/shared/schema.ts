@@ -1,8 +1,10 @@
+import { asFloat, asI64, I64_MAX, I64_MIN, isI64 } from './json.ts';
+
 export type Row = Record<string, any>;
 export type Db = Record<string, Row[]>;
 export type Field = { name: string; type: 'string' | 'int' | 'float' | 'bool' | 'secret' | 'enum' | 'ref'; of: string };
-type Rule = [message: string, holds: (row: any, old?: any) => boolean];
-type Computed = Record<string, (row: any, db: Db) => string | number | boolean>;
+type Rule = [message: string, holds: (row: any, old?: any) => boolean, fields: string[]];
+type Computed = Record<string, (row: any, db: Db) => string | number | bigint | boolean>;
 
 export const enums: Record<string, string[]> = {
   Role: ['Admin', 'Manager', 'Agent', 'Viewer'],
@@ -55,36 +57,42 @@ const bytes = (text: string) => new TextEncoder().encode(text).length;
 const range = (key: string, min: number, max = Infinity, unit = '', measure = (v: any): number => v): Rule => [
   `${key} must be ${max === Infinity ? `>= ${min}` : `in ${min}..${max}`}${unit}`,
   (r) => measure(r[key]) >= min && measure(r[key]) <= max,
+  [key],
 ];
 const sized = (key: string, min: number, max: number) => range(key, min, max, ' bytes', bytes);
-const hasAt: (key: string) => Rule = (key) => [`${key} must contain @`, (r) => r[key].includes('@')];
-const prefix = (key: string, start: string): Rule => [`${key} must start with ${start}`, (r) => r[key].startsWith(start)];
+const hasAt: (key: string) => Rule = (key) => [`${key} must contain @`, (r) => r[key].includes('@'), [key]];
+const prefix = (key: string, start: string): Rule => [`${key} must start with ${start}`, (r) => r[key].startsWith(start), [key]];
 const within = (max: number): Rule[] => [
-  ['end_day must be >= start_day', (r) => r.end_day >= r.start_day],
-  [`end_day - start_day must be <= ${max}`, (r) => r.end_day - r.start_day <= max],
+  ['end_day must be >= start_day', (r) => r.end_day >= r.start_day, ['end_day', 'start_day']],
+  [`end_day - start_day must be <= ${max}`, (r) => r.end_day - r.start_day <= max, ['end_day', 'start_day']],
 ];
 
-const refs = (db: Db, name: string, key: string, id: number) => db[name].filter((r) => r[key] === id);
-const sum = (rows: Row[], key: string) => rows.reduce((total, r) => total + r[key], 0);
+const refs = (db: Db, name: string, key: string, id: bigint) => db[name].filter((r) => r[key] === id);
+const sum = (rows: Row[], key: string, integer = false): number | bigint =>
+  rows.reduce((total, r) => integer ? checked((total as bigint) + r[key]) : (total as number) + r[key], integer ? 0n : 0);
+const checked = (value: bigint): bigint => {
+  if (value < I64_MIN || value > I64_MAX) throw new RangeError('i64 overflow');
+  return value;
+};
 const isOpenTicket = (t: Row) => ['Open', 'Pending'].includes(t.state);
 const breached = (t: Row) => isOpenTicket(t) && t.age_hours > t.sla_hours;
-const expenses = (p: Row, db: Db) => sum(refs(db, 'Expense', 'project_id', p.id), 'amount');
-const received = (i: Row, db: Db) => sum(refs(db, 'Payment', 'invoice_id', i.id), 'amount');
+const expenses = (p: Row, db: Db) => (sum(refs(db, 'Expense', 'project_id', p.id), 'amount') as number);
+const received = (i: Row, db: Db) => (sum(refs(db, 'Payment', 'invoice_id', i.id), 'amount') as number);
 
 export const entities = {
   Team: entity({
     fields: 'name:string description:string',
     rules: [sized('name', 2, 60)],
-    computed: { members: (t, db) => refs(db, 'Member', 'team_id', t.id).length },
+    computed: { members: (t, db) => BigInt(refs(db, 'Member', 'team_id', t.id).length) },
   }),
   Member: entity({
     fields: 'team_id:Team name:string email:string role:Role active:bool password:secret',
     rules: [
       sized('name', 2, 80),
       hasAt('email'),
-      ['password must have at least 8 bytes', (m, old) => (old && m.password === '') || bytes(m.password) >= 8],
+      ['password must have at least 8 bytes', (m, old) => (old && m.password === '') || bytes(m.password) >= 8, ['password']],
     ],
-    computed: { hours: (m, db) => sum(refs(db, 'TimeEntry', 'member_id', m.id), 'hours') },
+    computed: { hours: (m, db) => sum(refs(db, 'TimeEntry', 'member_id', m.id), 'hours', true) },
     keys: ['email'],
   }),
   Customer: entity({
@@ -92,7 +100,7 @@ export const entities = {
     rules: [sized('company', 2, 120), hasAt('email'), range('seats', 1)],
     computed: {
       large: (c) => c.seats >= 100 || c.tier === 'Enterprise',
-      open_tickets: (c, db) => refs(db, 'Ticket', 'customer_id', c.id).filter(isOpenTicket).length,
+      open_tickets: (c, db) => BigInt(refs(db, 'Ticket', 'customer_id', c.id).filter(isOpenTicket).length),
       billed: (c, db) => sum(refs(db, 'Invoice', 'customer_id', c.id), 'amount'),
     },
     keys: ['email'],
@@ -108,14 +116,14 @@ export const entities = {
       sized('code', 2, 12),
       range('budget', 0),
       range('start_day', 0),
-      ['due_day must be >= start_day', (p) => p.due_day >= p.start_day],
+      ['due_day must be >= start_day', (p) => p.due_day >= p.start_day, ['due_day', 'start_day']],
     ],
     computed: {
       duration: (p) => p.due_day - p.start_day,
       late: (p) => p.status !== 'Done' && p.due_day < 100,
-      tasks: (p, db) => refs(db, 'Task', 'project_id', p.id).length,
-      open_tasks: (p, db) => refs(db, 'Task', 'project_id', p.id).filter((t) => t.status !== 'Done').length,
-      spent: (p, db) => sum(refs(db, 'Task', 'project_id', p.id), 'spent'),
+      tasks: (p, db) => BigInt(refs(db, 'Task', 'project_id', p.id).length),
+      open_tasks: (p, db) => BigInt(refs(db, 'Task', 'project_id', p.id).filter((t) => t.status !== 'Done').length),
+      spent: (p, db) => sum(refs(db, 'Task', 'project_id', p.id), 'spent', true),
       expenses,
       over_budget: (p, db) => expenses(p, db) > p.budget,
     },
@@ -136,12 +144,12 @@ export const entities = {
       sized('title', 3, 120),
       range('estimate', 0, 1000),
       range('spent', 0),
-      ['spent must be <= estimate * 3', (t) => t.spent <= t.estimate * 3],
+      ['spent must be <= estimate * 3', (t) => t.spent <= t.estimate * 3n, ['spent', 'estimate']],
     ],
     computed: {
-      remaining: (t) => (t.status === 'Done' ? 0 : t.estimate - t.spent),
+      remaining: (t) => (t.status === 'Done' ? 0n : t.estimate - t.spent),
       overrun: (t) => t.spent > t.estimate,
-      weight: (t) => t.estimate * { Low: 1, Medium: 2, High: 3, Urgent: 5 }[t.priority as string]!,
+      weight: (t) => t.estimate * { Low: 1n, Medium: 2n, High: 3n, Urgent: 5n }[t.priority as string]!,
       open: (t) => t.status !== 'Done',
     },
     flow: ['status', 'Todo>Doing Doing>Todo Doing>Review Review>Doing Review>Done'],
@@ -150,7 +158,7 @@ export const entities = {
   TimeEntry: entity({
     fields: 'task_id:Task member_id:Member hours:int billable:bool rate:float',
     rules: [range('hours', 1, 24), range('rate', 0)],
-    computed: { amount: (e) => (e.billable ? e.hours * e.rate : 0) },
+    computed: { amount: (e) => (e.billable ? Number(e.hours) * e.rate : 0) },
   }),
   Ticket: entity({
     fields: 'customer_id:Customer member_id:Member subject:string body:string severity:Severity state:TicketState sla_hours:int age_hours:int',
@@ -174,7 +182,7 @@ export const entities = {
   }),
   Payment: entity({
     fields: 'invoice_id:Invoice amount:float day:int',
-    rules: [['amount must be > 0', (p) => p.amount > 0], range('day', 0)],
+    rules: [['amount must be > 0', (p) => p.amount > 0, ['amount']], range('day', 0)],
   }),
   Vendor: entity({
     fields: 'name:string email:string',
@@ -183,7 +191,7 @@ export const entities = {
   }),
   Expense: entity({
     fields: 'project_id:Project vendor_id:Vendor member_id:Member description:string amount:float day:int state:ExpenseState',
-    rules: [sized('description', 3, 200), ['amount must be > 0', (e) => e.amount > 0], range('day', 0)],
+    rules: [sized('description', 3, 200), ['amount must be > 0', (e) => e.amount > 0, ['amount']], range('day', 0)],
     flow: ['state', 'Draft>Submitted Submitted>Approved Submitted>Rejected Rejected>Draft Approved>Paid'],
   }),
   Asset: entity({
@@ -194,7 +202,7 @@ export const entities = {
   Leave: entity({
     fields: 'member_id:Member kind:LeaveKind state:LeaveState start_day:int end_day:int',
     rules: within(30),
-    computed: { days: (l) => l.end_day - l.start_day + 1 },
+    computed: { days: (l) => (l.end_day as bigint) - (l.start_day as bigint) + 1n },
     flow: ['state', 'Requested>Approved Requested>Rejected'],
   }),
   Document: entity({
@@ -214,12 +222,42 @@ export const names = Object.keys(entities) as EntityName[];
 const valid: Record<Field['type'], (v: unknown, of: string) => boolean> = {
   string: (v) => typeof v === 'string',
   secret: (v) => typeof v === 'string',
-  int: (v) => Number.isSafeInteger(v),
+  int: (v) => isI64(v),
   float: (v) => typeof v === 'number' && Number.isFinite(v),
   bool: (v) => typeof v === 'boolean',
   enum: (v, of) => enums[of].includes(v as string),
-  ref: (v) => Number.isSafeInteger(v) && (v as number) > 0,
+  ref: (v) => isI64(v) && v > 0n,
 };
+
+/** Normalize parsed numeric tokens according to the entity schema. */
+export function normalizeRow(name: EntityName, input: unknown): any {
+  if (typeof input !== 'object' || input === null || Array.isArray(input)) return input;
+  const row = { ...input } as Row;
+  for (const field of entities[name].fields) {
+    const value = row[field.name];
+    const decoded = field.type === 'int' || field.type === 'ref' ? asI64(value)
+      : field.type === 'float' ? asFloat(value) : undefined;
+    if (decoded !== undefined) row[field.name] = decoded;
+  }
+  if (Object.hasOwn(row, 'id')) row.id = asI64(row.id) ?? row.id;
+  return row;
+}
+
+/** Decode API computed numbers with the same integer/float split as their formulas. */
+export function normalizeView(name: EntityName, input: Row): Row {
+  const row = normalizeRow(name, input);
+  const integer: Partial<Record<EntityName, string[]>> = {
+    Team: ['members'], Member: ['hours'], Customer: ['open_tickets'],
+    Project: ['duration', 'tasks', 'open_tasks', 'spent'],
+    Sprint: ['length'], Task: ['remaining', 'weight'], Leave: ['days'],
+  };
+  const float: Partial<Record<EntityName, string[]>> = {
+    Customer: ['billed'], Project: ['expenses'], Invoice: ['received', 'balance'], TimeEntry: ['amount'],
+  };
+  for (const key of integer[name] ?? []) if (Object.hasOwn(row, key)) row[key] = asI64(row[key]) ?? row[key];
+  for (const key of float[name] ?? []) if (Object.hasOwn(row, key)) row[key] = asFloat(row[key]) ?? row[key];
+  return row;
+}
 
 /** Every violated rule; `old` is the stored row when updating. */
 export function validate(name: EntityName, input: unknown, db: Db, old?: Row): string[] {
@@ -227,17 +265,18 @@ export function validate(name: EntityName, input: unknown, db: Db, old?: Row): s
   const row = input as Row;
   const { fields, rules, keys, flow } = entities[name];
   const mistyped = fields.filter((f) => !valid[f.type](row[f.name], f.of));
-  if (mistyped.length) return mistyped.map((f) => `${f.name} must be of type ${f.of}`);
+  const bad = new Set(mistyped.map((field) => field.name));
   const errors = [
+    ...mistyped.map((f) => `${f.name} must be of type ${f.of}`),
     ...fields
-      .filter((f) => f.type === 'ref' && !db[f.of].some((r) => r.id === row[f.name]))
+      .filter((f) => f.type === 'ref' && !bad.has(f.name) && !db[f.of].some((r) => r.id === row[f.name]))
       .map((f) => `${f.name} must reference an existing ${f.of}`),
-    ...rules.filter(([, holds]) => !holds(row, old)).map(([message]) => message),
+    ...rules.filter(([, holds, dependencies]) => !dependencies.some((field) => bad.has(field)) && !holds(row, old)).map(([message]) => message),
     ...keys
-      .filter((key) => db[name].some((r) => r.id !== old?.id && key.every((k) => r[k] === row[k])))
+      .filter((key) => !key.some((field) => bad.has(field)) && db[name].some((r) => r.id !== old?.id && key.every((k) => r[k] === row[k])))
       .map((key) => `${key.join(', ')} must be unique`),
   ];
-  if (flow) {
+  if (flow && !bad.has(flow.field)) {
     const [initial] = Object.keys(flow.moves);
     const [from, to] = [old ? old[flow.field] : initial, row[flow.field]];
     if (from !== to && !(old && flow.moves[from]?.includes(to)))
@@ -255,7 +294,15 @@ export function choices(name: EntityName, f: Field, current?: string): string[] 
 
 export const withComputed = (name: EntityName, row: Row, db: Db): Row => ({
   ...row,
-  ...Object.fromEntries(Object.entries(entities[name].computed).map(([key, compute]) => [key, compute(row, db)])),
+  ...Object.fromEntries(Object.entries(entities[name].computed).map(([key, compute]) => {
+    try {
+      const value = compute(row, db);
+      return [key, typeof value === 'bigint' ? checked(value)
+        : typeof value === 'number' && !Number.isFinite(value) ? { error: 'non_finite' } : value];
+    } catch (error) {
+      return [key, { error: error instanceof RangeError ? 'overflow' : 'computation failed' }];
+    }
+  })),
 });
 
 /** Stored fields: everything but the write-only password. */

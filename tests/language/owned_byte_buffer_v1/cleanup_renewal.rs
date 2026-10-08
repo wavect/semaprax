@@ -230,12 +230,19 @@ fn byte_renewal_failure_settles_both_owners_and_composes_without_rewriting_v15_v
             .flat_map(|block| &block.transitions)
             .filter(|transition| matches!(transition, CleanupTransition::Renew { .. }))
             .count(),
-        4
+        6 // Four Bytes, one Vec, and one String renewal in the same function.
     );
     let graph = graph::to_json(&composed).unwrap();
     graph::verify_json(&composed, &graph).unwrap();
     let document: serde_json::Value = serde_json::from_str(&graph).unwrap();
     assert_eq!(document["schema"], "semaprax.graph.v70");
+    for profile in ["vec_loop_renewal", "string_replacement"] {
+        assert!(document[profile]["updates"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|update| update["function"] == "buffer.main"));
+    }
     assert_eq!(
         document["byte_buffer_renewal"]["updates"]
             .as_array()

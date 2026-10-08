@@ -11,7 +11,9 @@ TypeScript, with `gpt-6.1-sol` at medium effort. Calibration is a separate
 record and is never subtracted from trial accounting. Every attempted trial,
 including failed or rejected attempts, remains in `results.json` with its
 transcript, task-owned rollout trace, conditional list-price estimate, and
-candidate archive. Provider billing receipts are never inferred.
+candidate archive. The summary reports raw and legacy-net input, authored
+source, conditional estimated cost per accepted task, and agent and acceptance
+wall time separately. Provider billing receipts are never inferred.
 
 Plan without a model request:
 
@@ -21,6 +23,7 @@ python3 benchmarks/webapp-tokens-v2/codex_campaign.py plan \
   --compiler-source-ref 3660e0daf9335dc9d6dc27949a43cd40dff7326c \
   --semaprax-bin /absolute/path/to/semaprax \
   --tokenizer-dir /absolute/path/to/tokenizer-prefix \
+  --playwright-root /absolute/path/with-pinned-playwright \
   --artifacts /absolute/path/to/new-artifacts \
   --model gpt-6.1-sol --effort medium --trials-per-arm 5 \
   --timeout-seconds 1800
@@ -35,4 +38,8 @@ The acceptance gate uses Node 24+, the pinned Playwright 1.62.0 Chromium, a
 fresh evidence directory for every attempt, and loopback-only application
 servers. The qualified reference receipt is retained and checked for both
 arms at 912/912; it is evidence for qualification only and is never treated
-as a live-agent result.
+as a live-agent result. Before a paid request, the harness verifies the local
+Codex controls, Node, Playwright package, and Chromium executable. It snapshots
+the full transitive acceptance source closure and runs that snapshot. Seed
+hashes and bytes come from `--base-ref`; candidate writes are confined to the
+new candidate root and rechecked before acceptance, archival, and cleanup.

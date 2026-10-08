@@ -15,8 +15,8 @@ use function @id("std.data.json.query.scan_string") from std.data.json.query as 
 use function @id("std.data.json.query.token_end") from std.data.json.query as token_end;
 use function @id("std.data.json.utf8.utf8_end") from std.data.json.utf8 as utf8_end;
 
-// All offsets refer to the exact input view. A result above its length is
-// length + 1 + the first offending offset, as in the JSON scanner family.
+// All offsets refer to the exact input view. A rejection is encoded as
+// length + 1 + its selected offset, as in the JSON scanner family.
 @id("std.data.json.scan.failure")
 fn failure(input: borrow Slice<u8>, offset: usize) -> usize
     ensures result > byte_len(input)
@@ -59,6 +59,7 @@ fn object_unique(input: borrow Slice<u8>, open: usize, depth_limit: usize) -> us
 
 // duplicate_policy: 0 accepts repeated names; 1 rejects decoded-equivalent
 // names in each object. Any other policy is rejected at offset zero.
+// Structural failure takes priority over UTF-8, string, and duplicate checks.
 @id("std.data.json.scan.strict_end")
 fn strict_end(input: borrow Slice<u8>, depth_limit: usize, duplicate_policy: i64) -> usize
 {

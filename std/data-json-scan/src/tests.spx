@@ -60,13 +60,15 @@ fn hostile() -> bool
     let exponent_view = array_as_slice(exponent);
     let comma = [91u8, 49u8, 44u8, 93u8];
     let comma_view = array_as_slice(comma);
+    let mixed = [91u8, 34u8, 92u8, 113u8, 34u8, 44u8, 93u8];
+    let mixed_view = array_as_slice(mixed);
     let colon = [123u8, 34u8, 97u8, 34u8, 32u8, 49u8, 125u8];
     let colon_view = array_as_slice(colon);
     let trailing = [123u8, 125u8, 32u8, 116u8, 114u8, 117u8, 101u8];
     let trailing_view = array_as_slice(trailing);
     let empty = [32u8];
     let empty_view = array_as_slice(empty);
-    !is_document(escape_view) && !is_document(hex_view) && !is_document(high_view) && !is_document(low_view) && !is_document(pair_view) && !is_document(control_view) && !is_document(utf8_view) && !is_document(utf8cut_view) && !is_document(leading_view) && !is_document(fraction_view) && !is_document(exponent_view) && !is_document(comma_view) && !is_document(colon_view) && !is_document(trailing_view) && !is_document(empty_view)
+    !is_document(escape_view) && !is_document(hex_view) && !is_document(high_view) && !is_document(low_view) && !is_document(pair_view) && !is_document(control_view) && !is_document(utf8_view) && !is_document(utf8cut_view) && !is_document(leading_view) && !is_document(fraction_view) && !is_document(exponent_view) && !is_document(comma_view) && strict_end(mixed_view, 32usize, 0) == byte_len(mixed_view) + 7usize && !is_document(colon_view) && !is_document(trailing_view) && !is_document(empty_view)
 }
 
 @id("std.data.json.scan.tests.policies")

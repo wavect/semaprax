@@ -19,8 +19,16 @@ state. Its inputs are borrowed `Slice<u8>` values; its outputs are Copy scalars.
 
 `strict_end(input, depth_limit, duplicate_policy)` validates exactly one whole
 document. On success it returns `byte_len(input)`. A result greater than that
-length encodes the first offending byte as `result - length - 1`, using the
-existing scanner family encoding. `is_document` and `is_unique` select a
+length encodes a selected rejection offset as `result - length - 1`, using the
+existing scanner family encoding. An unsupported duplicate policy selects
+offset zero. Otherwise structural grammar and depth failure takes priority,
+with the offset chosen by `std.data.json.doc.whole_end`. Only a structurally
+valid document proceeds to raw UTF-8, strict string, and decoded-duplicate
+checks. For these checks the facade chooses the earlier of the raw UTF-8
+failure and the first rejection found by its string/object scan. An object
+duplicate check can inspect keys ahead of the outer scan cursor. Therefore the
+selected offset is deterministic, but it need not be the earliest malformed
+byte across different validation stages. `is_document` and `is_unique` select a
 32-container maximum and return a boolean. Depth counts open objects and
 arrays and is clamped to 32 by the structural scanner. A complete value may be
 a scalar, array, or object; whitespace is limited to space, tab, LF, and CR.

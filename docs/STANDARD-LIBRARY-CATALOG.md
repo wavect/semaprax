@@ -1888,8 +1888,8 @@ Package `std/data-json-scan`, tier `portable`, status partial. Required project 
 
 ### `std.data.json.scan.failure`
 
-All offsets refer to the exact input view. A result above its length is
-length + 1 + the first offending offset, as in the JSON scanner family.
+All offsets refer to the exact input view. A rejection is encoded as
+length + 1 + its selected offset, as in the JSON scanner family.
 
 ```semaprax
 fn failure(input: borrow Slice<u8>, offset: usize) -> usize
@@ -1912,6 +1912,7 @@ fn object_unique(input: borrow Slice<u8>, open: usize, depth_limit: usize) -> us
 
 duplicate_policy: 0 accepts repeated names; 1 rejects decoded-equivalent
 names in each object. Any other policy is rejected at offset zero.
+Structural failure takes priority over UTF-8, string, and duplicate checks.
 
 ```semaprax
 fn strict_end(input: borrow Slice<u8>, depth_limit: usize, duplicate_policy: i64) -> usize

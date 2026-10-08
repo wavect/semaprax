@@ -85,7 +85,8 @@ def recount(path: Path) -> dict:
             'final_authored_tokens_proxy': metrics['total_tokens'],
             'agent_wall_seconds': original['elapsed_seconds'],
             'acceptance_wall_seconds': sum(original.get('acceptance', {}).get(key, {}).get('seconds', 0) for key in ('build', 'candidate_tests'))
-                + sum(check.get('seconds', 0) for check in original.get('acceptance', {}).get('checks', [])),
+                + sum(check.get('seconds', 0) for check in original.get('acceptance', {}).get('checks', [])
+                    + original.get('acceptance', {}).get('boundary_checks', [])),
             'conditional_api_equivalent_usd': price['standard_short_context_api_equivalent_usd'],
             'evidence_sha256': {'exec': digest(stream), 'rollout': digest(trace)},
         })

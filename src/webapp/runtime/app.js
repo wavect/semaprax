@@ -60,7 +60,7 @@ const canNew = (e) => {
   // Only the compiler's partial predicate can prove that no prospective row
   // is writable. Unknown row fields retain access to the validated form.
   if (typeof e.canWrite.create !== "function") return true;
-  try { return e.canWrite.create(ME) !== false; } catch { return false; }
+  try { return e.canWrite.create(ME) !== false; } catch { return true; }
 };
 const canAudit = () => free() || !ents[ACC.entity].canWrite || pass(ents[ACC.entity].canWrite, ME, ME);
 

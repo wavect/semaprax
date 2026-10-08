@@ -1228,8 +1228,9 @@ Failures report stable id and outcome (`failed calculator.tests.test_add: return
 reports the function, the clause, and the argument values (`contract: requires
 right != 0 in calculator.divide` / `arguments: left = 1, right = 0`).
 [Project Test Cases v1](PROJECT-TEST-CASES-V1.md) owns both.
-`semaprax help library` prints the [standard library catalog](STANDARD-LIBRARY-CATALOG.md)
-offline: every `std.*` function, contract, profile, and `[dependencies]` route.
+`semaprax help library` lists bundled modules; `semaprax help library all`
+prints the [standard library catalog](STANDARD-LIBRARY-CATALOG.md) offline:
+every `std.*` function, contract, profile, and `[dependencies]` route.
 Add the dependency and import its `@id`; the installed compiler supplies bundled
 packages without a checkout.
 For JSON escape expansion and decoded member-name comparison in a v25

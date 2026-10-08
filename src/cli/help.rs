@@ -2,6 +2,9 @@ use std::fmt::Write as _;
 use std::process::ExitCode;
 
 mod diagnostic_index;
+mod library;
+
+use library::library_help;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(usize)]
@@ -222,8 +225,8 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Serve, canonical: "serve", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax serve <file> [--max-request-bytes N]"] },
     CommandSpec { id: CommandId::QualityPlan, canonical: "quality-plan", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax quality-plan <quick|changed|full> [exact-changed-path ...]"] },
     CommandSpec { id: CommandId::Doctor, canonical: "doctor", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax doctor [--profile <id>] [--target native|web|all] [--json]", "semaprax doctor verify-release <release-dir> --trusted-root-sha256 <64-lowercase-hex>"] },
-    CommandSpec { id: CommandId::New, canonical: "new", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text]"] },
-    CommandSpec { id: CommandId::ProjectScaffold, canonical: "project-scaffold", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax project-scaffold --name project-name [--template calculator|library|service|stdin-stream-text] [--layout frozen|tables]"] },
+    CommandSpec { id: CommandId::New, canonical: "new", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text|source-command-file-text]"] },
+    CommandSpec { id: CommandId::ProjectScaffold, canonical: "project-scaffold", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax project-scaffold --name project-name [--template calculator|library|service|stdin-stream-text|source-command-file-text] [--layout frozen|tables]"] },
     CommandSpec { id: CommandId::Build, canonical: "build", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax build <file> [--target native] [-o|--output path] [--json]", "semaprax build <file> --target native-callable --function stable-id [-o|--output path] [--json]", "semaprax build <file> --target web|wasm [--profile internal-strings-v1|text-toolkit-v1] [--export stable-id ...] [-o|--output path] [--json]", "semaprax build [<dir>|semaprax.toml|--manifest-path path] [--target native|web|wasm|npm|oci|rust] [-o|--output path] [--json]"] },
     CommandSpec { id: CommandId::Run, canonical: "run", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax run <file> [--json] [--max-steps N] [--max-bytes N] [--native] [-- <arg>...]", "semaprax run [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]"] },
     CommandSpec { id: CommandId::NetworkRun, canonical: "network-run", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax network-run [<dir>|semaprax.toml|--manifest-path path] --fixture fixture.json [--arg UTF8]... [--stdin path] [--max-steps N]"] },
@@ -298,7 +301,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Version, canonical: "version", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax version [--json]"] },
     CommandSpec { id: CommandId::VersionFlag, canonical: "--version", aliases: &["-V"], availability: Availability::Public, global: true, usages: &["semaprax --version"] },
     CommandSpec { id: CommandId::Harness, canonical: "harness", aliases: &[], availability: Availability::Private, global: true, usages: &["semaprax-full harness <verb> [args]  (status explain resolve adopt trust revoke inspect run context exec recover decide endpoints skills bridge report conformance bench)"] },
-    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all", "semaprax help diagnostic <SPX-code|codes>", "semaprax help language", "semaprax help language <topic|topics>", "semaprax help library", "semaprax help library <module|name|stable-id>", "semaprax help shapes", "semaprax help shapes <kind|stable-id|path#stable-id>"] },
+    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all", "semaprax help diagnostic <SPX-code|codes>", "semaprax help language", "semaprax help language <topic|topics>", "semaprax help library", "semaprax help library all", "semaprax help library <module|name|stable-id>", "semaprax help shapes", "semaprax help shapes <kind|stable-id|path#stable-id>"] },
 ];
 fn available(spec: &CommandSpec, private: bool) -> bool {
     spec.availability == Availability::Public || private
@@ -449,79 +452,12 @@ pub(crate) fn diagnostic_entry(query: &str) -> Result<String, String> {
     diagnostic_index::response(query, entries)
 }
 
-/// The generated standard-library catalog, printed by `semaprax help library`:
-/// every `std.*` declaration with its signature and contracts, so an agent can
-/// pick a library function offline. The bytes are the repository document that
-/// `tests/project.rs::standard_library` regenerates from `std/` and pins.
+/// The generated standard-library catalog, printed by `semaprax help library all`.
+/// The bytes are the repository document that `tests/project.rs::standard_library`
+/// regenerates from `std/` and pins.
 pub(crate) const LIBRARY_CATALOG: &str = include_str!("../../docs/STANDARD-LIBRARY-CATALOG.md");
 const LIBRARY_INDEX: &str = include_str!("../../std/catalog.json");
 const SHAPES_INDEX: &str = include_str!("../../docs/LANGUAGE-SHAPES-CATALOG.json");
-
-pub(crate) fn library_entry(query: &str) -> Result<String, String> {
-    let catalog: serde_json::Value =
-        serde_json::from_str(LIBRARY_INDEX).expect("generated standard-library JSON must parse");
-    let modules = catalog["modules"]
-        .as_array()
-        .expect("generated standard-library JSON must contain modules");
-    let mut output = String::new();
-    for module in modules {
-        let module_id = module["module"]
-            .as_str()
-            .expect("generated standard-library module must have an identity");
-        let whole_module = query == module_id;
-        for declaration in module["declarations"]
-            .as_array()
-            .expect("generated standard-library module must contain declarations")
-        {
-            let id = declaration["id"]
-                .as_str()
-                .expect("generated standard-library declaration must have an identity");
-            let name = declaration["name"]
-                .as_str()
-                .expect("generated standard-library declaration must have a name");
-            if !whole_module && query != id && query != name {
-                continue;
-            }
-            if !output.is_empty() {
-                output.push('\n');
-            }
-            writeln!(output, "{id}").expect("writing to a string cannot fail");
-            writeln!(
-                output,
-                "dependency {}",
-                module["dependency"]
-                    .as_str()
-                    .expect("generated standard-library dependency must be text")
-            )
-            .expect("writing to a string cannot fail");
-            writeln!(
-                output,
-                "profile {}",
-                module["required_profile"]
-                    .as_str()
-                    .expect("generated standard-library profile must be text")
-            )
-            .expect("writing to a string cannot fail");
-            for line in declaration["head"]
-                .as_array()
-                .expect("generated standard-library declaration must have a head")
-            {
-                writeln!(
-                    output,
-                    "{}",
-                    line.as_str()
-                        .expect("generated standard-library head line must be text")
-                )
-                .expect("writing to a string cannot fail");
-            }
-        }
-    }
-    if output.is_empty() {
-        Err(format!("standard library has no exact match for `{query}`"))
-    } else {
-        Ok(output)
-    }
-}
 
 fn shape_fields(entry: &serde_json::Value) -> (&str, &str, &str, &str) {
     (
@@ -620,7 +556,7 @@ pub(crate) fn dispatch(args: &[String], private: bool) -> Option<Result<(), u8>>
             "diagnostic" => {
                 diagnostic_entry("codes").expect("the indexed diagnostic help lists its codes")
             }
-            "library" => LIBRARY_CATALOG.to_owned(),
+            "library" => library_help(None).expect("the standard-library index is generated"),
             "shapes" => SHAPES_CATALOG.to_owned(),
             command => match scoped(command, private) {
                 Some(output) => output,
@@ -643,7 +579,7 @@ pub(crate) fn dispatch(args: &[String], private: bool) -> Option<Result<(), u8>>
         let result = match args[1].as_str() {
             "diagnostic" => diagnostic_entry(&args[2]),
             "language" => language_topic(&args[2]),
-            "library" => library_entry(&args[2]),
+            "library" => library_help(Some(&args[2])),
             "shapes" => shape_entry(&args[2]),
             _ => unreachable!("closed scoped help catalog"),
         };
@@ -829,8 +765,8 @@ static GUIDE: &[GuideGroup] = &[
             },
             GuideEntry {
                 id: CommandId::Help,
-                shape: "help library [selector]",
-                summary: "One API or the full catalog",
+                shape: "help library [all|selector]",
+                summary: "Module index, one API, or full catalog",
             },
             GuideEntry {
                 id: CommandId::Help,
@@ -989,6 +925,7 @@ pub(crate) fn finish(outcome: Result<(), u8>, recovery_hint: Option<String>) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::library::library_entry;
     const DISPATCHER_INVENTORY: &[&str] = &[
         "compact",
         "check",

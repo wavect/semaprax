@@ -10,8 +10,9 @@ Audience: CLI users, coding agents, release engineers, and compiler
 contributors.
 
 V4 makes global help a guided one-screen overview. Use `semaprax help all`
-for the exhaustive catalog. The v1 catalog and scoped-help bytes, v2 typo
-behavior and v3 recovery hint stay unchanged.
+for the exhaustive command catalog. Existing command catalog output, v2 typo
+behavior, and the v3 recovery hint stay unchanged; scoped help adds an explicit
+full standard-library catalog selector.
 
 ## Why
 
@@ -74,6 +75,7 @@ Usage:
   semaprax help language
   semaprax help language <topic|topics>
   semaprax help library
+  semaprax help library all
   semaprax help library <module|name|stable-id>
   semaprax help shapes
   semaprax help shapes <kind|stable-id|path#stable-id>
@@ -144,19 +146,24 @@ smaller than the full card in both measures. The guarded `scalars` section is
 also capped at 1,024 bytes and 300 units and must remain more than twenty times
 smaller in both measures. The current card is 52,372 bytes and 14,673 units;
 `scalars` is 788 bytes and 293 units, while the topic inventory is 718 bytes
-and 94 units. Scoped help for `help` lists all nine shapes.
+and 94 units. Scoped help for `help` lists all ten shapes.
 
 ## Standard-library catalog
 
 `semaprax help library` is the sixth `help` shape. For either executable it
-returns status zero, empty stderr, and exactly the bytes of the repository's
-generated [standard library catalog](STANDARD-LIBRARY-CATALOG.md), compiled
-into the binary: every `std.*` declaration with its signature, effects, and
-contracts. `tests/project.rs::standard_library` regenerates that document from
-`std/` and pins it, so the printed catalog cannot list a function the compiler
-does not ship.
+returns status zero, empty stderr, and a compact index of all 50 bundled module
+identities with exact-lookup and full-catalog syntax. The index comes from the
+same generated `std/catalog.json` as declaration lookup, so each listed module
+is shipped by the compiler. The current index is 872 bytes and 237 lexical
+units; the executable gate caps it at 2,048 bytes and 256 units.
 
-`semaprax help library <module|name|stable-id>` is the seventh shape and uses the
+`semaprax help library all` is the seventh shape. It returns status zero, empty
+stderr, and exactly the bytes of the repository's generated [standard library
+catalog](STANDARD-LIBRARY-CATALOG.md), compiled into the binary: every `std.*`
+declaration with its signature, effects, and contracts. `tests/project.rs::standard_library`
+regenerates and pins that document from `std/`.
+
+`semaprax help library <module|name|stable-id>` is the eighth shape and uses the
 generated `std/catalog.json` from that same gate. Matching is exact and
 case-sensitive. A module identity returns its declarations in catalog order;
 a declaration name or persistent identity returns every exact match in that
@@ -179,7 +186,7 @@ remains unchanged.
 
 ## Language shapes catalog
 
-`semaprax help shapes` is the eighth `help` shape. For either executable it
+`semaprax help shapes` is the ninth `help` shape. For either executable it
 returns status zero, empty stderr, and exactly the bytes of the repository's
 generated [language shapes catalog](LANGUAGE-SHAPES-CATALOG.md), compiled into
 the binary: every declaration of every committed example, grouped by kind,
@@ -188,7 +195,7 @@ with its `@id` and canonical header as the `semaprax doc` model renders it.
 `examples/` and pins it, so the printed shapes are exactly the ones the
 compiler verifies.
 
-`semaprax help shapes <kind|stable-id|path#stable-id>` is the ninth shape and
+`semaprax help shapes <kind|stable-id|path#stable-id>` is the tenth shape and
 uses the generated `docs/LANGUAGE-SHAPES-CATALOG.json` companion from the same
 gate. Matching is exact and case-sensitive. A declaration kind returns the
 canonical exemplar with the fewest repository lexical units, then fewest
@@ -211,8 +218,8 @@ in both measures. The original full-catalog bytes remain unchanged.
 
 Scoped help (`help <command>`, `<command> --help`, `<command> -h`), the
 malformed-position rejection, and the recovery hint are unchanged except for
-the additive `build` grammar described above. Help still calls no host hook,
-reads no path, inspects no environment, and grants no authority.
+the additive `build` grammar and library catalog selector. Help still calls no
+host hook, reads no path, inspects no environment, and grants no authority.
 
 ## Evidence
 
@@ -220,7 +227,7 @@ The standalone and full-toolchain help harnesses prove: the guided page's
 banner, byte bound, group headings, capability filtering, and that each guided
 entry resolves to a scoped-help command; `help all` byte structure, ordering,
 and capability filtering for both executables; that every `help all` line still
-has exact scoped help; all nine `help` grammar lines; the full language-card
+has exact scoped help; all ten `help` grammar lines; the full language-card
 and both generated catalogs' byte identities; bounded diagnostic navigation,
 complete-table reachability and exact lookup through catalogue growth,
 generated-companion pin, compiler-example coverage, topic inventory, and section

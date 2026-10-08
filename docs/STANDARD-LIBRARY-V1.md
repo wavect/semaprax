@@ -11,7 +11,8 @@ This contract defines library composition, required public declaration fields,
 portability tiers, required modules, hosted-effect vocabulary, and the Everyday
 profile. The [completion matrix](COMPLETION-MATRIX.md) owns status. The generated
 [catalog](STANDARD-LIBRARY-CATALOG.md) lists current declarations;
-`semaprax help library` prints it offline, and
+`semaprax help library` lists bundled modules offline,
+`semaprax help library all` prints the catalog, and
 `semaprax help library <module|name|stable-id>` selects a compact exact entry
 from its JSON companion. `tests/project.rs::standard_library` is the executable
 gate.

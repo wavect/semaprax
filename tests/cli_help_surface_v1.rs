@@ -10,8 +10,8 @@ const BUILD_SOURCE_LINE: &str =
     "semaprax build <file> [--target native] [-o|--output path] [--json]\n";
 const BUILD_PROJECT_LINE: &str = "semaprax build [<dir>|semaprax.toml|--manifest-path path] [--target native|web|wasm|npm|oci] [-o|--output path] [--json]\n";
 const DOCTOR_LINE: &str = "semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n";
-const NEW_LINE: &str = "semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text]\n";
-const PROJECT_SCAFFOLD_LINE: &str = "semaprax project-scaffold --name project-name [--template calculator|library|service|stdin-stream-text] [--layout frozen|tables]\n";
+const NEW_LINE: &str = "semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text|source-command-file-text]\n";
+const PROJECT_SCAFFOLD_LINE: &str = "semaprax project-scaffold --name project-name [--template calculator|library|service|stdin-stream-text|source-command-file-text] [--layout frozen|tables]\n";
 const BANNER: &str = "SEMAPRAX — Meaning in. Verified machine code out.\n";
 /// The guided overview must stay one screen; CLI Help v4 fixes the bound.
 const GUIDE_MAX_BYTES: usize = 2048;
@@ -382,13 +382,31 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     let (library, library_dir) = invoke(&["help", "library"]);
     assert!(library.status.success());
     assert!(library.stderr.is_empty());
+    let library_index = std::str::from_utf8(&library.stdout).unwrap();
+    assert!(library_index.starts_with("Standard library modules (50):\n"));
+    assert!(library_index.contains("\n  std.int.decimal\n"));
+    assert!(library_index.contains("semaprax help library <module|name|stable-id>"));
+    assert!(library_index.contains("semaprax help library all"));
+    assert_eq!(
+        library
+            .stdout
+            .split(|byte| *byte == b'\n')
+            .filter(|line| line.starts_with(b"  std."))
+            .count(),
+        50
+    );
+    assert!(library.stdout.len() <= 2_048);
+    assert!(semaprax::agent_economics::lexical_tokens(library_index) <= 256);
+    std::fs::remove_dir(library_dir).unwrap();
     let catalog = std::fs::read(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/STANDARD-LIBRARY-CATALOG.md"),
     )
     .unwrap();
-    assert_eq!(library.stdout, catalog);
-    assert!(library.stdout.starts_with(b"# Standard library catalog\n"));
-    std::fs::remove_dir(library_dir).unwrap();
+    let (all_library, all_library_dir) = invoke(&["help", "library", "all"]);
+    assert!(all_library.status.success());
+    assert!(all_library.stderr.is_empty());
+    assert_eq!(all_library.stdout, catalog);
+    std::fs::remove_dir(all_library_dir).unwrap();
     let (shapes, shapes_dir) = invoke(&["help", "shapes"]);
     assert!(shapes.status.success());
     assert!(shapes.stderr.is_empty());
@@ -543,6 +561,7 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
                 "  semaprax help language\n",
                 "  semaprax help language <topic|topics>\n",
                 "  semaprax help library\n",
+                "  semaprax help library all\n",
                 "  semaprax help library <module|name|stable-id>\n",
                 "  semaprax help shapes\n",
                 "  semaprax help shapes <kind|stable-id|path#stable-id>\n"

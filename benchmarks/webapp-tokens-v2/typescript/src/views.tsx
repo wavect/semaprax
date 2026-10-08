@@ -316,7 +316,7 @@ export function Form({ name, data }: ViewProps) {
             <Input
               field={f}
               value={values[f.name]}
-              options={choices(name, f, existing?.[f.name])}
+              options={choices(name, f, existing?.[f.name], me, values)}
               data={data}
               onChange={(v) => setValues({ ...values, [f.name]: v })}
             />

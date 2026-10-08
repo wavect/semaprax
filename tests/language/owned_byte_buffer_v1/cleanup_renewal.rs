@@ -40,15 +40,24 @@ module test.byte_cleanup_renewal_composed;
  if vec_len<i64>(values)==1usize {1}else{0}
 }
 @id("legacy.string") fn string_replacement()->i64 {
- let mut text="old";text="new";if string_len(text)==3usize {3}else{0}
+ let mut text="old";text="new";if string_len(text)==3 {3}else{0}
 }
 @id("buffer.main") fn main()->i64 {
+ let mut values=vec_with_capacity<i64>(1usize);let mut index=0;
+ while index<1 {values=vec_push<i64>(values,index);index=index+1;0}
+ let mut text="old";text="new";
  let raw=[1u8,2u8,3u8,4u8,5u8,6u8];let source=array_as_slice(raw);
  let mut one=bytes_zeroed(1usize);one=bytes_set(one,0usize,1u8);
  let mut five=bytes_zeroed(5usize);five=bytes_set5(five,0usize,1u8,2u8,3u8,4u8,5u8);
  let mut tagged5=bytes_zeroed(5usize);tagged5=bytes_set1_or5_from_slice(tagged5,0usize,9u8,source,9223372036854775808usize);
  let mut tagged48=bytes_zeroed(48usize);tagged48=bytes_set1_or6_or48_from_slice(tagged48,0usize,9u8,source,13835058055282163712usize);
- if byte_len(bytes_as_slice(one))+byte_len(bytes_as_slice(five))+byte_len(bytes_as_slice(tagged5))+byte_len(bytes_as_slice(tagged48))==59usize {7}else{1}
+ let one_first=match byte_get(bytes_as_slice(one),0usize){Option::Some{value}=>value,Option::None{}=>0u8,};
+ let five_last=match byte_get(bytes_as_slice(five),4usize){Option::Some{value}=>value,Option::None{}=>0u8,};
+ let tagged5_last=match byte_get(bytes_as_slice(tagged5),4usize){Option::Some{value}=>value,Option::None{}=>0u8,};
+ let tagged48_first=match byte_get(bytes_as_slice(tagged48),0usize){Option::Some{value}=>value,Option::None{}=>0u8,};
+ let tagged48_source_last=match byte_get(bytes_as_slice(tagged48),5usize){Option::Some{value}=>value,Option::None{}=>0u8,};
+ let tagged48_zero=match byte_get(bytes_as_slice(tagged48),47usize){Option::Some{value}=>value,Option::None{}=>1u8,};
+ if vec_len<i64>(values)==1usize && string_len(text)==3 && byte_len(bytes_as_slice(one))+byte_len(bytes_as_slice(five))+byte_len(bytes_as_slice(tagged5))+byte_len(bytes_as_slice(tagged48))==59usize && one_first==1u8 && five_last==5u8 && tagged5_last==5u8 && tagged48_first==1u8 && tagged48_source_last==6u8 && tagged48_zero==0u8 {7}else{1}
 }
 "#;
 

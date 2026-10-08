@@ -24,6 +24,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import live_campaign_common as common
+import campaign_resources as resources
 
 BENCHMARK = Path(__file__).resolve().parent
 REPO = BENCHMARK.parents[1]
@@ -57,6 +58,7 @@ ACCEPTANCE_SOURCE_FILES = (
 HARNESS_SOURCE_FILES = (
     "benchmarks/webapp-tokens-v2/codex_campaign.py",
     "benchmarks/live_campaign_common.py",
+    "benchmarks/campaign_resources.py",
     QUALIFICATION_RECEIPT,
     *ACCEPTANCE_SOURCE_FILES,
 )
@@ -445,6 +447,7 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
         "codex_version": subprocess.run([args.codex_binary, "--version"], capture_output=True, text=True, check=True).stdout.strip(),
         "price_book": {"date": "2026-10-08", "source": "https://developers.openai.com/api/docs/models/gpt-6.1-sol", "standard_short_context_usd_per_million": PRICE_USD_PER_MTOK, "conditional": True},
         "attempt_denominator": args.trials_per_arm * len(ARMS),
+        "resource_policy": resources.policy(),
         "source_binary_sha256": common.digest(Path(args.semaprax_bin).resolve(strict=True)),
         "calibration": {"prompt": CALIBRATION_PROMPT, "separate": True, "subtracted_from_trials": False},
         "measurement": {"stable_context_tokens": None, "legacy_net_input_tokens": None,
@@ -682,6 +685,7 @@ def check_candidate(candidate: Path, output: Path, arm: str, settings: dict[str,
             "failure": None if accepted else "acceptance contract failed: " + ", ".join(contract_failures)}
 
 
+@resources.guarded_attempt
 def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any], settings: dict[str, Any], semaprax_bin: Path) -> dict[str, Any]:
     """Run one paid attempt. Every attempted trial remains in the result denominator."""
     arm, number = trial["arm"], trial["number"]
@@ -784,6 +788,7 @@ def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any]
     return row
 
 
+@resources.guarded_attempt
 def launch_calibration(repo: Path, artifacts: Path, commit: str, settings: dict[str, Any], semaprax_bin: Path) -> dict[str, Any]:
     """One separately reported empty-task request; it is never subtracted from trials."""
     workspace = artifacts / "worktrees" / "calibration"
@@ -853,6 +858,9 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "attempt_denominator": len(ARMS) * MIN_TRIALS_PER_ARM,
         "recorded_attempts": len(rows),
+        "resource_contaminated_attempts": sum(bool(row.get("resource_assessment", {}).get("contaminated")) for row in rows),
+        "clean_comparison_eligible": len(rows) >= len(ARMS) * MIN_TRIALS_PER_ARM and all(
+            row.get("resource_assessment", {}).get("clean_comparison_eligible") is True for row in rows),
         "accepted_attempts": accepted,
         "failed_or_rejected_attempts": len(rows) - accepted,
         "usage_all_attempts": {
@@ -934,7 +942,8 @@ def main() -> int:
                 # A bounded model task timeout is a scored failure, not a
                 # reason to omit the other matched attempts. Missing final
                 # telemetry after that timeout remains unknown in accounting.
-                interrupted = (row.get("runner_error") is True
+                interrupted = (row.get("resource_assessment", {}).get("contaminated") is True
+                    or row.get("runner_error") is True
                     or row.get("workspace_retained_for_review") is True
                     or (not row.get("timed_out") and (
                         row.get("process_exit_code") not in (0, None)

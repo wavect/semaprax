@@ -1,0 +1,66 @@
+{
+  "all_missing_paid_attempts_retained": true,
+  "attempts": [
+    {
+      "accepted": false,
+      "campaign": "loglens-codex-round6-main366-20261008",
+      "conditional_api_equivalent_usd": null,
+      "evidence_sha256": {
+        "semaprax-04.jsonl": "d08bf353c2f611599a81d098b5597d15db2d6716da43d5fefb64791deea995ad",
+        "semaprax-04.rollout.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "semaprax-04.stderr.txt": "fff7db6484abacd150d5e771926b080829d56385c31240d5793dfdb98759dc6e"
+      },
+      "final_turn_events": 0,
+      "reason": "runner terminated after shared-volume ENOSPC; final acceptance result unavailable",
+      "recovered_attempt": "semaprax-04",
+      "recovery_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round6-main366-20261008/interrupted-attempt-recovery.json",
+      "recovery_sha256": "0fd0e34c2877a425c8aed0e7f7e572a7128327baaedcb87d70193468d48e8df9",
+      "thread_ids": [
+        "01a119b6-29ba-7ea2-a4fe-c855c194b187"
+      ],
+      "usage_reconciled": false
+    },
+    {
+      "accepted": false,
+      "campaign": "shiftsim-codex-main3660e0daf-20261008",
+      "conditional_api_equivalent_usd": null,
+      "evidence_sha256": {
+        "semaprax-02.jsonl": "ddcc4129dc1c5e62ecd9eadcdf0b0973753e86ad05b4b4d8af9384c3a81b55e1",
+        "semaprax-02.rollout.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "semaprax-02.stderr.txt": "26607956de51d3253a398388b3ce5b8516240ad60363fd529a099419b2f164f1"
+      },
+      "final_turn_events": 0,
+      "reason": "runner terminated after shared-volume ENOSPC; final acceptance result unavailable",
+      "recovered_attempt": "semaprax-02",
+      "recovery_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-main3660e0daf-20261008/interrupted-attempt-recovery.json",
+      "recovery_sha256": "778d7bddb81faf9c11d1fa3d29ca2b09c126f736022cbcffe68ea52e53641479",
+      "thread_ids": [
+        "01a119ac-9001-7a03-93e9-bcdf7d1c60ea"
+      ],
+      "usage_reconciled": false
+    },
+    {
+      "accepted": false,
+      "campaign": "teamdesk-codex-round1-main366-20261008",
+      "conditional_api_equivalent_usd": null,
+      "evidence_sha256": {
+        "typescript-01.jsonl": "f2e424053265097b1eaa1f7f2ccfd8ea781f9608b0769acc9cbcc080ffca1171",
+        "typescript-01.rollout.jsonl": "5f4a63ad66c88202b3b160b78dab6b001c8aec8f1e5313cee7c110f641ca8ad8",
+        "typescript-01.stderr.txt": "8dac6cdf28a9e33d170672c4980e3ca1114eb6b48693ca81bd68c509fd8cf9ae"
+      },
+      "final_turn_events": 0,
+      "reason": "runner terminated after shared-volume ENOSPC; final acceptance result unavailable",
+      "recovered_attempt": "typescript-01",
+      "recovery_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round1-main366-20261008/interrupted-attempt-recovery.json",
+      "recovery_sha256": "3e880cc826efe1edd495447f1992a7beb7a19404a6821652a2d372ed9d36e1a2",
+      "thread_ids": [
+        "01a119b1-b76f-7ae2-a860-d794afc66921"
+      ],
+      "usage_reconciled": false
+    }
+  ],
+  "clean_comparison_eligible": false,
+  "no_acceptance_reruns": true,
+  "no_paid_reruns": true,
+  "schema": "semaprax.interrupted-campaign-recovery-summary.v1"
+}

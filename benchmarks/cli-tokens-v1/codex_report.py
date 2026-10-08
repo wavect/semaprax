@@ -46,6 +46,8 @@ def summarize(data: dict, rows: list[dict]) -> dict:
                 'legacy_net_input_tokens', 'output_tokens', 'final_authored_tokens_proxy', 'agent_wall_seconds', 'acceptance_wall_seconds')},
         }
     return {'complete': len(rows) == len(order), 'arms': arms,
+            'resource_contaminated_attempts': sum(bool(row.get('resource_assessment', {}).get('contaminated')) for row in rows),
+            'clean_comparison_eligible': len(rows) == len(order) and all(row.get('resource_assessment', {}).get('clean_comparison_eligible') is True for row in rows),
             'planned_attempts': len(order), 'recorded_attempts': len(rows),
             'unlaunched_order': order[len(rows):], 'trials': rows}
 
@@ -55,41 +57,55 @@ def recount(path: Path) -> dict:
     rows = []
     for original in data['trials']:
         label = f"{original['arm']}-{original['number']:02d}"
-        stream, trace = Path(original['transcript']), Path(original['rollout_trace'])
-        observed = campaign.trace_usage(campaign.parse_exec_jsonl(stream), trace)
-        require(observed['reconciled'], f'{label}: raw usage does not reconcile')
-        for key in ('model_request_count', 'request_usage_sum', 'legacy_net_input_tokens', 'model_observed', 'effort_observed'):
-            require(observed[key] == original['observed'][key], f'{label}: saved {key} differs from trace')
-        price = campaign.list_price_estimate(observed['model_requests'])
-        require(price == original['list_price'], f'{label}: saved price differs from conditional recount')
-        archive = Path(original['candidate_archive'])
-        for relative, expected in original['candidate_files_sha256'].items():
+        stream = Path(original['transcript']) if original.get('transcript') else None
+        trace = Path(original['rollout_trace']) if original.get('rollout_trace') else None
+        observed = campaign.trace_usage(campaign.parse_exec_jsonl(stream), trace) if (
+            stream and trace and stream.is_file() and trace.is_file()) else {'reconciled': False}
+        if original['status'] == 'accepted':
+            require(observed['reconciled'], f'{label}: accepted without reconciled raw usage')
+            require(original.get('candidate_archive') and original.get('candidate_files_sha256')
+                    and original.get('final_candidate_source_metrics', {}).get('files'), f'{label}: accepted without archived source evidence')
+        if observed['reconciled']:
+            for key in ('model_request_count', 'request_usage_sum', 'legacy_net_input_tokens', 'model_observed', 'effort_observed'):
+                require(observed[key] == original['observed'][key], f'{label}: saved {key} differs from trace')
+            price = campaign.list_price_estimate(observed['model_requests'])
+            require(price == original['list_price'], f'{label}: saved price differs from conditional recount')
+        else:
+            require(not original.get('observed', {}).get('reconciled'), f'{label}: saved reconciled usage differs from trace')
+            price = {'standard_short_context_api_equivalent_usd': None}
+        archive = Path(original['candidate_archive']) if original.get('candidate_archive') else None
+        for relative, expected in original.get('candidate_files_sha256', {}).items():
+            require(archive is not None, f'{label}: missing archive')
             target = archive / relative
             require(target.is_file() and digest(target) == expected, f'{label}: archive hash differs: {relative}')
-        metrics = original['final_candidate_source_metrics']
-        for file in metrics['files']:
-            require(digest(archive / file['path']) == file['sha256'], f'{label}: source metrics hash differs')
-        require(sum(file['tokens'] for file in metrics['files']) == metrics['total_tokens'], f'{label}: source token sum differs')
+        metrics = original.get('final_candidate_source_metrics', {})
+        for file in metrics.get('files', []):
+            require(archive is not None and digest(archive / file['path']) == file['sha256'], f'{label}: source metrics hash differs')
+        if metrics.get('files'):
+            require(sum(file['tokens'] for file in metrics['files']) == metrics.get('total_tokens'), f'{label}: source token sum differs')
         if original['status'] == 'accepted':
             require(original['acceptance']['accepted'], f'{label}: accepted without acceptance evidence')
             for key in ('workspace_integrity_before_acceptance', 'workspace_integrity_before_archive', 'workspace_integrity_before_cleanup'):
                 require(original[key]['status'] == 'passed', f'{label}: accepted with failed integrity')
-        usage = observed['request_usage_sum']
+        usage = observed.get('request_usage_sum', {}) if observed.get('reconciled') else {}
         rows.append({
             'arm': original['arm'], 'number': original['number'], 'status': original['status'],
-            'failure': original['failure'], 'model_requests': observed['model_request_count'],
-            'raw_input_tokens': usage['input_tokens'], 'cached_input_tokens': usage['cached_input_tokens'],
-            'cache_write_input_tokens': usage['cache_write_input_tokens'], 'output_tokens': usage['output_tokens'],
-            'reasoning_output_tokens_subset': usage['reasoning_output_tokens'],
-            'legacy_net_input_tokens': observed['legacy_net_input_tokens'],
-            'final_authored_tokens_proxy': metrics['total_tokens'],
-            'agent_wall_seconds': original['elapsed_seconds'],
+            'failure': original['failure'], 'resource_assessment': original.get('resource_assessment', {}),
+            'model_requests': observed.get('model_request_count'),
+            'raw_input_tokens': usage.get('input_tokens'), 'cached_input_tokens': usage.get('cached_input_tokens'),
+            'cache_write_input_tokens': usage.get('cache_write_input_tokens'), 'output_tokens': usage.get('output_tokens'),
+            'reasoning_output_tokens_subset': usage.get('reasoning_output_tokens'),
+            'legacy_net_input_tokens': observed.get('legacy_net_input_tokens'),
+            'final_authored_tokens_proxy': metrics.get('total_tokens'),
+            'agent_wall_seconds': original.get('elapsed_seconds'),
             'acceptance_wall_seconds': sum(original.get('acceptance', {}).get(key, {}).get('seconds', 0) for key in ('build', 'candidate_tests'))
                 + sum(check.get('seconds', 0) for check in original.get('acceptance', {}).get('checks', [])
                     + original.get('acceptance', {}).get('boundary_checks', [])),
             'conditional_api_equivalent_usd': price['standard_short_context_api_equivalent_usd'],
-            'evidence_sha256': {'exec': digest(stream), 'rollout': digest(trace)},
+            'evidence_sha256': {key: digest(value) for key, value in (('exec', stream), ('rollout', trace)) if value is not None and value.is_file()},
         })
+        if 'acceptance' not in original:
+            rows[-1]['acceptance_wall_seconds'] = None
     result = summarize(data, rows)
     result.update({
         'schema': 'semaprax.codex-matched-recount.v1', 'results_sha256': digest(path),

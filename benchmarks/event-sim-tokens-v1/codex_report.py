@@ -100,13 +100,16 @@ def summarize(data: dict[str, Any], rows: list[dict[str, Any]]) -> dict[str, Any
 
     complete = len(rows) == len(order)
     all_arms_complete = all(arms[arm]["recorded"] >= campaign.MIN_TRIALS_PER_ARM for arm in campaign.ARMS)
-    comparison_ready = complete and all_arms_complete
+    resource_clean = all(row.get("resource_assessment", {}).get("clean_comparison_eligible") is True for row in rows)
+    comparison_ready = complete and all_arms_complete and resource_clean
     return {
         "complete": complete,
         "all_arms_have_minimum_trials": all_arms_complete,
+        "resource_contaminated_attempts": sum(bool(row.get("resource_assessment", {}).get("contaminated")) for row in rows),
+        "clean_comparison_eligible": comparison_ready,
         "comparison_status": (
             "complete; all arms have five recorded trials"
-            if comparison_ready else "incomplete; no comparative headline is supported"
+            if comparison_ready else "incomplete or resource assessment missing/contaminated; no comparative headline is supported"
         ),
         "winner": None,
         "arms": arms,
@@ -170,6 +173,7 @@ def _recount_trial(original: dict[str, Any]) -> dict[str, Any]:
     return {
         "arm": original.get("arm"), "number": original.get("number"),
         "status": original.get("status"), "failure": original.get("failure"),
+        "resource_assessment": original.get("resource_assessment", {}),
         "trace_status": "reconciled" if observed.get("reconciled") else "missing_or_unreconciled",
         "model_observed": observed.get("model_observed") if observed.get("reconciled") else None,
         "effort_observed": observed.get("effort_observed") if observed.get("reconciled") else None,

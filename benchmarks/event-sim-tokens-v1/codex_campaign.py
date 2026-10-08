@@ -33,6 +33,17 @@ import campaign as shiftsim
 
 MODEL, EFFORT, TIMEOUT_SECONDS = codex.MODEL, codex.EFFORT, codex.TIMEOUT_SECONDS
 ARMS, MIN_TRIALS_PER_ARM = shiftsim.ARMS, shiftsim.MIN_TRIALS_PER_ARM
+HARNESS_SOURCE_FILES = (*codex.HARNESS_SOURCE_FILES,
+    "benchmarks/event-sim-tokens-v1/SPEC.md",
+    "benchmarks/event-sim-tokens-v1/acceptance/corpus.json",
+    "benchmarks/event-sim-tokens-v1/acceptance/run.py",
+    "benchmarks/event-sim-tokens-v1/campaign.py",
+    "benchmarks/event-sim-tokens-v1/codex_campaign.py",
+    "benchmarks/event-sim-tokens-v1/codex_report.py",
+    "benchmarks/event-sim-tokens-v1/corpus_io.py",
+    "benchmarks/event-sim-tokens-v1/oracle.py",
+)
+
 
 
 def plan(args: argparse.Namespace) -> dict[str, Any]:
@@ -62,6 +73,8 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
     base.update({
         "schema": "semaprax.event-sim-codex-campaign.v1",
         "adapter": "codex-matched-shiftsim-v1",
+        "resource_policy": codex.resources.policy(),
+        "harness_source_files_sha256": codex.harness_source_inventory(REPO, HARNESS_SOURCE_FILES),
         "model_requested": MODEL,
         "effort_requested": EFFORT,
         "model": MODEL,
@@ -158,6 +171,7 @@ def observe(workspace: Path, artifacts: Path, label: str, stream: Path) -> dict[
             "provider_receipt_actual_usd": None}
 
 
+@codex.resources.guarded_attempt
 def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict[str, Any],
                  settings: dict[str, Any], semaprax_bin: Path) -> dict[str, Any]:
     """Persist one attempt, reconcile exact task telemetry, and recheck each boundary."""
@@ -237,6 +251,7 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
     return row
 
 
+@codex.resources.guarded_attempt
 def launch_calibration(seed_repo: Path, artifacts: Path, seed_commit: str,
                        settings: dict[str, Any], semaprax_bin: Path) -> dict[str, Any]:
     """A separate tool-free READY request, with the same isolation and cleanup."""
@@ -277,6 +292,10 @@ def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
     settings = plan(args)
     artifacts, binary = Path(settings["artifacts"]), Path(args.semaprax_bin).expanduser().resolve()
     artifacts.mkdir(parents=True)
+    snapshot = codex.snapshot_harness_sources(REPO, artifacts, settings["harness_source_files_sha256"],
+        settings["seed_files_sha256"]["benchmarks/event-sim-tokens-v1/SPEC.md"],
+        relative_files=HARNESS_SOURCE_FILES, spec_path="benchmarks/event-sim-tokens-v1/SPEC.md")
+    settings["harness_source_snapshot"] = snapshot
     seed = shiftsim.common.create_seed_repository(Path(args.repo).resolve(), settings["repository_commit"],
                                                    artifacts / "seed-repository", shiftsim.SEED_FILES)
     settings.update(seed); settings["semaprax_binary"] = str(binary)
@@ -295,7 +314,8 @@ def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
             (artifacts / "attempts" / f"{arm}-{numbers[arm]:02d}.json").write_text(
                 json.dumps(row, indent=2, sort_keys=True) + "\n")
             # A nonzero Codex exit can include quota exhaustion; do not retry or launch later paid attempts.
-            if (row.get("process_exit_code") not in (0, None) or row.get("timed_out")
+            if (row.get("resource_assessment", {}).get("contaminated")
+                    or row.get("process_exit_code") not in (0, None) or row.get("timed_out")
                     or row.get("runner_error") or row.get("workspace_retained_for_review")
                     or row.get("telemetry_valid") is False):
                 break

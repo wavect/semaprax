@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any
 
 import live_campaign as legacy
+import campaign_resources as resources
 
 BENCHMARK = Path(__file__).resolve().parent
 REPO = BENCHMARK.parents[1]
@@ -43,6 +44,7 @@ HARNESS_SOURCE_FILES = (
     "benchmarks/cli-tokens-v1/oracle.py",
     "benchmarks/cli-tokens-v1/qualification.py",
     "benchmarks/live_campaign_common.py",
+    "benchmarks/campaign_resources.py",
 )
 PRICE_USD_PER_MTOK = {
     "input": 2.0, "cache_read": 0.1, "cache_write": 2.5, "output": 10.0,
@@ -51,11 +53,11 @@ SHORT_CONTEXT_LIMIT = 272_000
 CALIBRATION_PROMPT = "This is a context calibration request. Reply with exactly READY; do not use tools or read files."
 
 
-def harness_source_inventory(repo: Path = REPO) -> dict[str, str]:
+def harness_source_inventory(repo: Path = REPO, relative_files: tuple[str, ...] | None = None) -> dict[str, str]:
     """Hash the complete local source closure used by the matched campaign."""
     root = repo.resolve(strict=True)
     inventory: dict[str, str] = {}
-    for relative in HARNESS_SOURCE_FILES:
+    for relative in (HARNESS_SOURCE_FILES if relative_files is None else relative_files):
         source = root / relative
         if source.is_symlink() or not source.is_file():
             raise ValueError(f"campaign harness source is not a regular file: {relative}")
@@ -68,9 +70,10 @@ def harness_source_inventory(repo: Path = REPO) -> dict[str, str]:
 
 
 def snapshot_harness_sources(repo: Path, artifacts: Path, expected: dict[str, str],
-                             frozen_spec_sha256: str) -> dict[str, Any]:
+                             frozen_spec_sha256: str, *, relative_files: tuple[str, ...] | None = None,
+                             spec_path: str = "benchmarks/cli-tokens-v1/SPEC.md") -> dict[str, Any]:
     """Copy only the pinned harness closure and verify every retained byte."""
-    current = harness_source_inventory(repo)
+    current = harness_source_inventory(repo) if relative_files is None else harness_source_inventory(repo, relative_files)
     if current != expected:
         raise ValueError("campaign harness source changed after the immutable plan")
     destination = artifacts / "harness-source"
@@ -94,7 +97,7 @@ def snapshot_harness_sources(repo: Path, artifacts: Path, expected: dict[str, st
         "path": "harness-source",
         "files_sha256": current,
         "frozen_spec": {
-            "path": "benchmarks/cli-tokens-v1/SPEC.md",
+            "path": spec_path,
             "sha256": frozen_spec_sha256,
             "source": "seed_files_sha256",
         },
@@ -328,6 +331,7 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
         "codex_version": subprocess.run([args.codex_binary, "--version"], capture_output=True, text=True, check=True).stdout.strip(),
         "price_book": {"date": "2026-10-08", "source": "https://developers.openai.com/api/docs/models/gpt-6.1-sol", "standard_short_context_usd_per_million": PRICE_USD_PER_MTOK, "conditional": True},
         "attempt_denominator": args.trials_per_arm * len(ARMS),
+        "resource_policy": resources.policy(),
         "source_binary_sha256": legacy.digest(Path(args.semaprax_bin).resolve(strict=True)),
         "calibration": {"prompt": CALIBRATION_PROMPT, "separate": True, "subtracted_from_trials": False},
         "measurement": {"stable_context_tokens": None, "legacy_net_input_tokens": None,
@@ -387,6 +391,7 @@ def cleanup_trial(repo: Path, workspace: Path, settings: dict[str, Any], row: di
         row["cleanup_error"] = legacy.bounded_text(removed.stderr)
 
 
+@resources.guarded_attempt
 def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any], settings: dict[str, Any], semaprax_bin: Path) -> dict[str, Any]:
     """Run one paid attempt. Every attempted trial remains in the result denominator."""
     arm, number = trial["arm"], trial["number"]
@@ -443,6 +448,7 @@ def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any]
     return row
 
 
+@resources.guarded_attempt
 def launch_calibration(repo: Path, artifacts: Path, commit: str, settings: dict[str, Any], semaprax_bin: Path) -> dict[str, Any]:
     """One separately reported empty-task request; it is never subtracted from trials."""
     workspace = artifacts / "worktrees" / "calibration"
@@ -512,10 +518,14 @@ def main() -> int:
             rows = []; counters = {arm: 0 for arm in ARMS}
             for arm in result["trial_order"]:
                 counters[arm] += 1
-                rows.append(launch_trial(artifacts / "seed-repository", artifacts, seed["seed_repository_commit"],
-                                         {"arm": arm, "number": counters[arm]}, result, Path(args.semaprax_bin).resolve()))
+                row = launch_trial(artifacts / "seed-repository", artifacts, seed["seed_repository_commit"],
+                                   {"arm": arm, "number": counters[arm]}, result, Path(args.semaprax_bin).resolve())
+                rows.append(row)
                 (artifacts / "results.json").write_text(json.dumps({"campaign": result, "calibration": calibration, "trials": rows}, indent=2, sort_keys=True) + "\n")
-            result = {"status": "completed", "artifacts": str(artifacts), "attempts": len(rows),
+                if row.get("resource_assessment", {}).get("contaminated"):
+                    break
+            result = {"status": "completed" if len(rows) == len(result["trial_order"]) else "interrupted",
+                      "artifacts": str(artifacts), "attempts": len(rows),
                       "accepted": sum(row.get("status") == "accepted" for row in rows),
                       "failed_or_rejected_attempts": sum(row.get("status") != "accepted" for row in rows)}
         print(json.dumps(result, indent=2, sort_keys=True))

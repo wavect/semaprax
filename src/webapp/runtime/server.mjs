@@ -381,7 +381,18 @@ const server = http.createServer((req, res) => {
   }
   fail(res, 404, "not found");
 });
+const listenError = (error) => {
+  const code = error?.code;
+  if (code === "EPERM" || code === "EACCES") {
+    console.error(`${code}: listen denied. --self-test-offline is schema-only; full server/browser acceptance still required.`);
+  } else {
+    console.error(`server listen failed (${code ?? "unknown"}): ${error?.message ?? error}`);
+  }
+  process.exitCode = 1;
+};
+server.once("error", listenError);
 server.listen(Number(opt.port), opt.host, () => {
+  server.off("error", listenError);
   console.log(`${app.title} listening on http://${opt.host}:${server.address().port}/ (data: ${dbFile})`);
   if (ACCOUNT && SETUP && auth.pw.size === 0) console.log("setup mode: requests are unrestricted until an account has a password");
 });

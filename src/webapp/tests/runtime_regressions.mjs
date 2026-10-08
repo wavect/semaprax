@@ -63,7 +63,38 @@ const hold = async (route, body, auth = cookie, method = "PUT") => {
   });
 };
 const item = (state = "Draft", user_id = 1) => ({ user_id, state, text: "retained" });
+const startupFailure = async (code) => {
+  const preload = path.join(root, `listen-${code}.mjs`), dir = path.join(root, `listen-data-${code}`);
+  fs.writeFileSync(preload, `import net from "node:net";
+net.Server.prototype.listen = function () { const error = Object.assign(new Error("simulated listen failure"), { code: ${JSON.stringify(code)} }); process.nextTick(() => this.emit("error", error)); return this; };
+`);
+  return await new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, ["--import", preload, path.join(app, "server.mjs"), "--data", dir], { stdio: ["ignore", "pipe", "pipe"] });
+    children.add(child); let stdout = "", stderr = "", settled = false;
+    const timer = setTimeout(() => { child.kill("SIGKILL"); finish(new Error(`simulated ${code} startup timed out`)); }, 5000);
+    const finish = (error, result) => {
+      if (settled) return; settled = true; clearTimeout(timer);
+      if (error) reject(error); else resolve(result);
+    };
+    child.stdout.on("data", (chunk) => stdout += chunk);
+    child.stderr.on("data", (chunk) => stderr += chunk);
+    child.once("error", (error) => { children.delete(child); finish(error); });
+    child.once("close", (status, signal) => {
+      children.delete(child);
+      finish(null, { status, signal, stdout, stderr: stderr.trim() });
+    });
+  });
+};
 try {
+  const deniedListen = await startupFailure("EPERM");
+  assert.equal(deniedListen.status, 1);
+  assert.match(deniedListen.stderr, /EPERM: listen denied.*--self-test-offline is schema-only; full server\/browser acceptance still required/);
+  assert.ok((`server exited: ${deniedListen.stderr}`).length <= 120, "full guidance survives the --self-test error summary bound");
+  assert.doesNotMatch(deniedListen.stderr, /Unhandled.*error|simulated listen failure|\n\s+at /);
+  const occupiedListen = await startupFailure("EADDRINUSE");
+  assert.equal(occupiedListen.status, 1);
+  assert.match(occupiedListen.stderr, /server listen failed \(EADDRINUSE\)/);
+  assert.doesNotMatch(occupiedListen.stderr, /self-test-offline/);
   server = await start();
   const created = await call("POST", "/api/user", { email: "admin@example.test", active: true, admin: true, password: "password123" });
   assert.equal(created.status, 201);

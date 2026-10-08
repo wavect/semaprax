@@ -1313,7 +1313,19 @@ mod tests {
             "    ensures result != 0 || left == right\n",
             "    ensures result == 0 || left != right\n",
         );
-        assert_eq!(library_entry("compare").unwrap(), expected);
+        let decimal = concat!(
+            "std.int.decimal.compare\n",
+            "dependency std.int.decimal = \"^0.1.0\"\n",
+            "profile owned-data-api.v1\n",
+            "fn compare(left: borrow str, right: borrow str) -> i64\n",
+            "    requires valid(left) && valid(right)\n",
+            "    ensures result >= -1 && result <= 1\n",
+        );
+        assert_eq!(library_entry("std.int.decimal.compare").unwrap(), decimal);
+        assert_eq!(
+            library_entry("compare").unwrap(),
+            format!("{expected}\n{decimal}")
+        );
         assert_eq!(library_entry("std.core.compare").unwrap(), expected);
         assert!(expected.len() <= 512);
         assert!(expected.len() * 50 < LIBRARY_CATALOG.len());

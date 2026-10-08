@@ -451,11 +451,15 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     );
     std::fs::remove_dir(shape_extra_dir).unwrap();
     let expected_compare = b"std.core.compare\ndependency std.core = \"^0.1.0\"\nprofile scalar\nfn compare(left: i64, right: i64) -> i64\n    ensures result >= -1 && result <= 1\n    ensures result != 0 || left == right\n    ensures result == 0 || left != right\n";
-    for selector in ["std.core.compare", "compare"] {
+    let expected_decimal = b"std.int.decimal.compare\ndependency std.int.decimal = \"^0.1.0\"\nprofile owned-data-api.v1\nfn compare(left: borrow str, right: borrow str) -> i64\n    requires valid(left) && valid(right)\n    ensures result >= -1 && result <= 1\n";
+    for (selector, expected) in [
+        ("std.core.compare", expected_compare.as_slice()),
+        ("std.int.decimal.compare", expected_decimal.as_slice()),
+    ] {
         let (entry, directory) = invoke(&["help", "library", selector]);
         assert!(entry.status.success());
         assert!(entry.stderr.is_empty());
-        assert_eq!(entry.stdout, expected_compare);
+        assert_eq!(entry.stdout, expected);
         assert!(entry.stdout.len() <= 512);
         assert!(entry.stdout.len() * 50 < catalog.len());
         let entry_units =
@@ -466,6 +470,28 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
         assert!(entry_units * 50 < catalog_units);
         std::fs::remove_dir(directory).unwrap();
     }
+    let (ambiguous, ambiguous_dir) = invoke(&["help", "library", "compare"]);
+    assert!(ambiguous.status.success());
+    assert!(ambiguous.stderr.is_empty());
+    assert_eq!(
+        ambiguous.stdout,
+        [
+            expected_compare.as_slice(),
+            b"\n",
+            expected_decimal.as_slice()
+        ]
+        .concat()
+    );
+    assert!(ambiguous.stdout.len() <= 512);
+    assert!(ambiguous.stdout.len() * 50 < catalog.len());
+    let combined_units =
+        semaprax::agent_economics::lexical_tokens(std::str::from_utf8(&ambiguous.stdout).unwrap());
+    assert!(combined_units <= 2 * 128);
+    assert!(
+        combined_units * 50
+            < semaprax::agent_economics::lexical_tokens(std::str::from_utf8(&catalog).unwrap())
+    );
+    std::fs::remove_dir(ambiguous_dir).unwrap();
     let (module, module_dir) = invoke(&["help", "library", "std.core"]);
     assert!(module.status.success());
     assert!(module.stderr.is_empty());

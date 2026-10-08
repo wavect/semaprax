@@ -1,0 +1,1735 @@
+{
+  "attempts": [
+    {
+      "acceptance_cases_reported": 912,
+      "acceptance_checks_by_status": {
+        "passed": 912
+      },
+      "acceptance_wall_seconds": 323.34,
+      "agent_wall_seconds": 261.161,
+      "arm": "semaprax",
+      "cache_write_input_tokens_subset": 0,
+      "cached_input_tokens_subset": 606848,
+      "conditional_api_equivalent_usd": 0.290461,
+      "effort_observed": "medium",
+      "evidence": {
+        "candidate_archive": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/candidates/semaprax-01",
+        "candidate_files_sha256_preserved": {
+          "README.md": "627bbe5024094401ef562046c81dd5bc4e9a9d79810ec0f8c7e410ffa0bde942",
+          "app.spx": "bfe2d9dc3a73c21dbbb3fac715f283f9e671c09803934c523031f6f2e087e042",
+          "build.sh": "25af79f4296a9b7cd0eb6b2fd0d251bc1f4004085366d9af96b0e3b2f3e2eb2e",
+          "full-test.log": "11b6699bab99771489f86bb2391a5e150ed96dfecb06453c79306764f79233c1",
+          "launch-test.log": "6422c811f5cb66b22774fe292b5b938c54149ad76bbc85c38ba1c6f17f5fd176",
+          "launch.mjs": "67b8832ee617cfdc76f6d3a614164ad852986e4d427b514422209d89a427b1ab",
+          "offline-test.log": "a71bfdf212eab350d7e7a4731a885251e8381b8ae75a778f5de6fb77e9fd957b",
+          "run.sh": "ccea28ce50b1c89932f355ec9bc8bee470db38b917efe61deeb5f432231b2b30",
+          "self-test.log": "b26a54613a4eedae5b4ce049d9b4075f4c3cc2e5568944346fd9e9aca7459a05",
+          "test.sh": "e4d0b2e664b5485a57882bf556301730dedd98dfbc726793a5c4c9abf84e383a",
+          "tests.mjs": "c52ddd4938e49be1d21c126dc843cbdfe1f01465adc292ff8a40276f65bbb82e"
+        },
+        "rollout_trace": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/transcripts/semaprax-01.rollout.jsonl",
+        "rollout_trace_sha256": "053091866d9adcf158dd1f9485723d4c11a18244f718f99bab8414320c898092",
+        "transcript": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/transcripts/semaprax-01.jsonl",
+        "transcript_sha256": "f2f2ad0cc7b4a1ac7e02a6d5959d3d1407d0213976e7aa423cb8131ffdac6c69"
+      },
+      "failure_preserved": null,
+      "label": "semaprax-01",
+      "legacy_final_source_inventory_proxy_preserved": {
+        "excluded_directories": [
+          ".cache",
+          ".git",
+          ".mypy_cache",
+          ".pytest_cache",
+          ".ruff_cache",
+          ".semaprax",
+          ".spx-cache",
+          "__pycache__",
+          "acceptance-fixtures",
+          "build",
+          "coverage",
+          "dist",
+          "gen",
+          "generated",
+          "node_modules",
+          "out",
+          "target"
+        ],
+        "excluded_generated_extensions": [
+          ".c",
+          ".h",
+          "non-text/binary files"
+        ],
+        "files": [
+          {
+            "bytes": 2778,
+            "path": "README.md",
+            "sha256": "627bbe5024094401ef562046c81dd5bc4e9a9d79810ec0f8c7e410ffa0bde942",
+            "tokens": 708
+          },
+          {
+            "bytes": 10750,
+            "path": "app.spx",
+            "sha256": "bfe2d9dc3a73c21dbbb3fac715f283f9e671c09803934c523031f6f2e087e042",
+            "tokens": 3422
+          },
+          {
+            "bytes": 217,
+            "path": "build.sh",
+            "sha256": "25af79f4296a9b7cd0eb6b2fd0d251bc1f4004085366d9af96b0e3b2f3e2eb2e",
+            "tokens": 83
+          },
+          {
+            "bytes": 1840,
+            "path": "launch.mjs",
+            "sha256": "67b8832ee617cfdc76f6d3a614164ad852986e4d427b514422209d89a427b1ab",
+            "tokens": 587
+          },
+          {
+            "bytes": 65,
+            "path": "run.sh",
+            "sha256": "ccea28ce50b1c89932f355ec9bc8bee470db38b917efe61deeb5f432231b2b30",
+            "tokens": 27
+          },
+          {
+            "bytes": 135,
+            "path": "test.sh",
+            "sha256": "e4d0b2e664b5485a57882bf556301730dedd98dfbc726793a5c4c9abf84e383a",
+            "tokens": 53
+          },
+          {
+            "bytes": 7399,
+            "path": "tests.mjs",
+            "sha256": "c52ddd4938e49be1d21c126dc843cbdfe1f01465adc292ff8a40276f65bbb82e",
+            "tokens": 2581
+          }
+        ],
+        "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+        "status": "measured_proxy",
+        "tokenizer": {
+          "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+          "dependency": "tiktoken",
+          "dependency_version": "1.0.22",
+          "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+          "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+          "package": "@anthropic-ai/tokenizer",
+          "runtime": "node",
+          "runtime_version": "v24.3.0",
+          "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+          "version": "0.0.4"
+        },
+        "total_tokens": 7461
+      },
+      "legacy_net_input_tokens": 429769,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_count": 18,
+      "number": 1,
+      "output_tokens": 9329,
+      "provider_receipt_actual_usd": null,
+      "raw_input_tokens": 675091,
+      "reasoning_output_tokens_subset": 686,
+      "resource_assessment_preserved": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 8187305984
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/resource-receipts/semaprax-01.json"
+      },
+      "status_preserved": "accepted"
+    },
+    {
+      "acceptance_cases_reported": 1,
+      "acceptance_checks_by_status": {
+        "failed": 1
+      },
+      "acceptance_wall_seconds": 34.119,
+      "agent_wall_seconds": 950.608,
+      "arm": "typescript",
+      "cache_write_input_tokens_subset": 0,
+      "cached_input_tokens_subset": 1406336,
+      "conditional_api_equivalent_usd": 0.78232,
+      "effort_observed": "medium",
+      "evidence": {
+        "candidate_archive": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/candidates/typescript-01",
+        "candidate_files_sha256_preserved": {
+          ".gitignore": "4ed69e99602064eb659d5580e0249b7a68b169d0f1a0757587133349d86cdcca",
+          ".npm-cache/_cacache/content-v2/sha512/02/ea/7b69439fa5b01483644e38937a230e5ff43301973bb4988926fe66a52d014dfd84203b8f300a3d0ac5adec10726f3d5160eec891faa4489f05dddaa8502b": "fa8b176fa0b5d1d72b41ad33443f1f4f75933157a45010dffb51719f40c19c67",
+          ".npm-cache/_cacache/content-v2/sha512/04/55/dab0c4bae86e0d2ef99996d48873bb955b7f87a074f7d736beccad6528ff1da104319a4a77e04fab910224c46d0cbb8502be35e58e534e5cea50a257aacc": "364dd1983d57dfed96b34ff95b0437fe3dd47088e9f70d378d3a2d6584461a08",
+          ".npm-cache/_cacache/content-v2/sha512/05/1e/d5bc30951cefaadb10445ac9314ba0c9135a919dbec3c7352ba206fbd425a849f89c07162c88019df8a9749a6abf329ac6f7202b464cab4314cee978cccc": "3c9b042a38e099cbd00a9bd792042aefb62a70b3f0f1ba1a3cbddf07e5eb1230",
+          ".npm-cache/_cacache/content-v2/sha512/0a/35/eb3474e7bea055a8781d072b18def9364fcb692476f9fd131e1c9053c956bdc60ba0081d02253c7fde83bc455d904503f7f75456a41ec3ea12e39bc57db8": "8f3b9fbc531e0c08e2c329cf1ff57bbe121e2d10061b65a05614a25b2255cc43",
+          ".npm-cache/_cacache/content-v2/sha512/0e/c8/e197460ccbdefafa0f3fc8cb6cffb7be11c49ff831870d33fa30cfc6036550f8b63d1ed3f498ba5b55cadbf4d1d0df984731365032a99bd9259e632d7fb7": "4d4d8a2988143daed8d3324d757440bb055a8cb75d8bb0399ef0191e690542a8",
+          ".npm-cache/_cacache/content-v2/sha512/0f/0a/97a99cae9390225967f751f2e2443279103778f7383a3bdc1c959ee450cbf659116be072a35e9ff9b7c259d7541b41f512ebf71108a1b0621b4d018f3c91": "4145466ca315b652cb2548bfe9ee705a888fb95d39107a664ef82a7afb2db5ca",
+          ".npm-cache/_cacache/content-v2/sha512/12/56/35d83691386b9a9fe94c999f02be8fd951b5cf7bb12773ff5553f6f54f72a9e1dc32b5170d751f03a1224de523494ff0aebdc080d031c356630e09e3dd45": "a3a874fd111af7f42a8bdef62b2ca8f3f83f25b0f9c8a8fec45f668972dcf95a",
+          ".npm-cache/_cacache/content-v2/sha512/14/47/2eb4adf73ec81feb3c08f9c3528645620c95bca6b0bbd98c6a0dd756f639862d0802752836814ae31aee35ac15a0403d58105548346dfb6f925d3dd162fe": "47e6cb34f3f5b164b6165a1ba39b8fbf8c3764c215100a274a35108c7d0700cb",
+          ".npm-cache/_cacache/content-v2/sha512/17/a6/c4c9a995f632860050449a54277ac44f18e42a4b6f94c22d049b5e717a73b11da7f686fe8bf180959f7acf74f24e8897cf8829cb211cafc156aa318dcc23": "6a917895a313fc1d3c161c28fe39970c10bf2344cbb62e6eb7e9105c7ef43f62",
+          ".npm-cache/_cacache/content-v2/sha512/1a/17/4f832d5e978fc898fd395f4e54c38730dbf33ddc10949a712f599352b650b310a304e05924f98a680393a21cd426a12ec269f6fc5dadcfc9af26d50af37a": "ec8f3c0dfb21497db5a3480c45a6cf6f9b18d3b337b2ea4d03e3ef2a9c2bb358",
+          ".npm-cache/_cacache/content-v2/sha512/1a/45/a0fd5a1f6c902befde4dea69d93896fb190ea7c40229e4bec097293e5f4a1018cf3385d4445fc305b8237ef0280f511df9570ec4c3cad47162283a1e2ea5": "853f50f1bd1017cb6508b83e93131eaf9de682d455dff56165be04f12e220e5a",
+          ".npm-cache/_cacache/content-v2/sha512/1b/bb/0762280f635ee83b94985a77c3ff4313070551efcd52fc923ae377bf26151881581613feb54a85b7347f4a5942b22aae4b561de7a627fdf5692dea3f3a27": "00824ca9e3a146e73a071849b085668ae2012b7fff58056442ab9d33d1e357e8",
+          ".npm-cache/_cacache/content-v2/sha512/22/ec/86aaf29cd34a04cfd0e92a5b8c91adedd112df9be4f07648ff387f9ea6c7e9e7a656d8d4fc8fe763a890c5d2f1fdf763b7ca4366e61bea4741a45a2cb050": "b744b00449c3c797deb42155cac4aeb7f670001670040142e0616bd6afd483f0",
+          ".npm-cache/_cacache/content-v2/sha512/23/9c/fb1f76dfff8d64b6c3552eda4dd3001adf7e8792a20743906e3cb1214e4b758d54b266978d288cd38045a69718dd83cd51d0881409c684f8e93736fadf66": "cf16861f356fd766361ba4d85d5462b6320e0e59f05cb55c762d8f5dff83e234",
+          ".npm-cache/_cacache/content-v2/sha512/28/68/fff18e37c77e5a6550edb7e27898ad61a0b18750b3187d290e0c93508cd0c2de85b53ea3e8c4cc28d292d4b1633f5041b338dfcdc5e1f2c047cd5cd3f757": "05c8cf8e7c3a6b56cada7668fe9342b10f4b625efc92aba9ba05b9e8fe4d71a3",
+          ".npm-cache/_cacache/content-v2/sha512/2a/57/f85314bac72de87fce8a7d783b0de546e217b04f88330a395879a32a5e1a7f6d9ace82e4560deb351691aff8e84781195bda481890b61051b2095050ef90": "d9b0c2fb585a7d0057ea758444d9b219fad5bf24a8326031b1cca0c6ef509d97",
+          ".npm-cache/_cacache/content-v2/sha512/2a/93/40450037230bfe8d3034bad51555bae1f8996baf516fd1ee7a186cc014e5cdedd93f16f89a0d6f0b1e62b9d8395c1f858fda7ea023cbcdd5a7ac045828f7": "b11e78819544a6606e3317647a5593c102ea38d3c5afae62cd63f9c2c369485a",
+          ".npm-cache/_cacache/content-v2/sha512/2a/fa/78e7d1eb576144275080b22d4abbe318de46ac1f5f53172913cf6c5698c7aae9b936354dd75ef7c9f90eb59b4c64b56c2dfb51d261fdc966c4e6b3769126": "17f7253ec7e4e09f68371192fded2b5241a5cf85e610e5059b1d49e878fe1898",
+          ".npm-cache/_cacache/content-v2/sha512/2c/8f/6effe95a606e03b354c3292256d983eb22571560ec22d9f502eb1078de5b9e0a383157895f7ce0990ad605887e9334e5feb50297c7ded3e082876e1c8711": "70b16782a39ad16672e47c33473559a25bff9640214df91cb9dd153005d71a02",
+          ".npm-cache/_cacache/content-v2/sha512/2e/c1/94b93bd0c9279b36b30abeb38789dfb0a42a5917e2014f99b64b9a5264327efa65222210b94f8063df957b9a7067d8827836646a6f251c0e7935604a4e04": "30ce1a7b4df77ac2e07a48ae1deb280cdcc381ebd7cc5c716b490f4919a35859",
+          ".npm-cache/_cacache/content-v2/sha512/30/47/b751ea043585455f3a17116b2f72983a66f96b14d94e43b10eb2f848dc27c05f0ccf7cef10c2ec5de349dea6c60aab2c954274dd11fbfaf2af75c8b70aad": "6d58b4aefaa3aa02b9652c5d560e4fd250e5b6861d7a1b2adb35ef619178a6a4",
+          ".npm-cache/_cacache/content-v2/sha512/35/3f/2edccfdd3574a815a37ef9654ec7a05353ea23497ddb63f58870bc2c7b8222b6dd1a0ba431ac490255fb0953738e55f41fefded4b98e901f4140d7a6f302": "734eb5c556dbbbb64f906517035598ab7e92c742008e67adf42660c96de77b6a",
+          ".npm-cache/_cacache/content-v2/sha512/37/d6/44aeb0fec96e607820ed06a9cea31991f3eb4d2a21aec4a943a6e2717ecaa96b674571ec5ace218013faa81cb8830eb79534cba9c46992a0d972bec03783": "e32d8ff2cc0455c5210f92f0844d2cb6e1d61b83ee17d7b328fe410f9021e4cd",
+          ".npm-cache/_cacache/content-v2/sha512/3d/be/628cfad9f3d1831fcdb6dcbe143fc8ba400a56c6cd3845b3d02537960d5d3f91e476137e8c78a9f2afa2d899452fa91448f88bfced2b85d56e84ac837363": "124565ecd300d7187973060ba6b1d1c4f296e55f0489ddfd6af794f516fed127",
+          ".npm-cache/_cacache/content-v2/sha512/42/4b/420df27410d7333c3330413f3f0d3d34a7b063dac3d9cacdc462a116879d5a266aa066ddc6070864e57c79712c84c9f31406e924f49466ebbfc2b109bfb8": "982ed71d13cb6416d48698f1b14f04421315818627a16cc993b7780552559dec",
+          ".npm-cache/_cacache/content-v2/sha512/44/6c/305a7c10be455f6af295b76d8518bc3ec5849dcc04709b4aeee83853540dee994e6165cdbc57790ee2cb6062bcab4e52e9baf808f468a28e5b408cd6dca8": "89c1ac9c946ee8905a875837114528e97eeae35e03be3190584b2216af43e4a7",
+          ".npm-cache/_cacache/content-v2/sha512/44/97/a7ebc4bb658fd68fa7886836f53637e11b0dbf373d872f542d5e27833d0d56951376eacc79f5fb2a17eeb7c4f7e556cd857e45e1c19f15699c8fa7ae8225": "8fb31f41b100f6c621af69b782a25989639ed23e5dd5c61edf6e925e2c663b02",
+          ".npm-cache/_cacache/content-v2/sha512/45/d2/547e5704ddc5332a232a420b02bb4e853eef5474824ed1b7986cf84737893a6a9809b627dca02b53f5b7313a9601b690f690233a49bce0e026aeb16fcf29": "d884c7a2d8adb5568c1272d92b4f9c62707f4226cf9e7b22e7b957c7361e3c53",
+          ".npm-cache/_cacache/content-v2/sha512/46/01/c10afb636ce2b681748d04d22436811cf6aa1512d6aede18fc804a8a42e2f71d90226ca6ab585108dcb7e6e8460a90b6a53a1f1e4ab8fd6fe721f47fd504": "46dd458b3d2bc29daa0e9e01f13b399ab544a8013f27ac6c51b56b831c8a0ed3",
+          ".npm-cache/_cacache/content-v2/sha512/49/00/7029abf3a2eaf45f144b9f5be00a17a28287e1cd542a0269f8a5909c9c3aff02420a55264fe703a46ec85ddc4f1d2d568a8a0b0d59b720e63792aa22e4ff": "a208faf59bc2a61079b40b0a6c706d79b6153d2dc08facd96ef188c3839adac1",
+          ".npm-cache/_cacache/content-v2/sha512/4c/bd/2131cf71cf2f3a543df59d48b0cdde68b5101cc843dcb1e802c6894ed0fbdc5ee1f5bf490409efd42339d816286992f539c20fe3938bf44d31057e6e777f": "fdbe8ac6d7d22e28bd2f013496c233de0906a261cc7e1a7b3eee9bb5fcc70bf0",
+          ".npm-cache/_cacache/content-v2/sha512/4e/ed/65aca5548b1c6c561c25679d2d5df33982ac65aed03cd779a1c53c4f4078e93ef6bf3c529baeb1e2abf759ccd3493fa9fd85a3df876d910be884100005ed": "3522d42cce0502400df3917f04baeea15659f2630d9cc0afb51e2ba8d550b570",
+          ".npm-cache/_cacache/content-v2/sha512/4f/b8/dffb9ce0b191f0349e25bd0eff69ecdbca4d27357fb32555a998703b558b04c7b6bbaabe5183921bb4916a920cdee58dacaeeab545463c43cdfb39dee217": "f30a35f6af8c347d01b8ff2f8662272f7d986cf21b916704d86c249a90b97e25",
+          ".npm-cache/_cacache/content-v2/sha512/50/e4/a1b0fc33ecdacc52a851eadd215a315dbaf3b36edbfbb680c7d7f848adf44d2030679c159dd02c094c6bd3a67815966c0609d3fdfd997fb55ac3a9cb98cd": "e4f1d8fe63a9ab93ef66c92b0ad1af9c1326adbf7f1bd5e9053cac0fee6f26ae",
+          ".npm-cache/_cacache/content-v2/sha512/50/f5/154b25db3a1eb6eca8822064128305b319e04a2e4689f4f24476b9e0230312cf12d1e234b8f9fd5fd636fb57305b83c9c52da628b6f54f1424ea76b99302": "dbb3b9b10b0a2828f5af58a6317685b1a150464c6bd54995069c526aba45e6e4",
+          ".npm-cache/_cacache/content-v2/sha512/53/6f/8336bfb04a3a6c4d2ff0646607abb19cc1fb9298a88abe83ef2b6db3c13951854f75c8e9e2378a914792a1223be27fbcacc3f773fe12a67c31f4462b3868": "1d382e6ea27221dcf02fc1cada5c5d396c4ca499552201323ca43713baa60012",
+          ".npm-cache/_cacache/content-v2/sha512/56/3d/6317770f7f183b3807e823b42754a2e820b966d8917da67547ad7f2ac7b0073226164fe343000ee30a194d8114b85932dcfdf0f59572e63e2c65ba3fb71a": "514a4ed09355fe1417f03e89c5a5f518745e2eb75a4069d25b55a3e7298069de",
+          ".npm-cache/_cacache/content-v2/sha512/59/48/f6aa5c5a42d3b883a3eae5cdbd193716183c9df22b4bf334e58a98040b3dc97ac02288e2a8b5df0953aa2d0773c00a01bac64254c9585ba0c4be6e37bf8c": "ba2755afc0e6c6705326711fd218ebe107a527eccbd6485155fde98ed000bee7",
+          ".npm-cache/_cacache/content-v2/sha512/5e/63/967bb7b21d81f5e1c2dd54fa3283e18e1f7ad85fef8aa73af2949c125bdf2ddcd93e53c5ce97c15628e830b7375bf255c67facd8c035337873167f16acca": "08afb33db600d11fc89b98fac4054f19d5d3e0fe527063116150e1ecc2d2377b",
+          ".npm-cache/_cacache/content-v2/sha512/65/94/99bc8354caac095935288c96fe3763799c794ba1ba5ab347d9a54585e0e7843859570c6402bfb751bc07f2dd94f9d2907882c54b7eebfe2907db06310ef7": "0855f8189b5caa1571d8f673843b699b25c2f96e042a43f4210dd5f3413b9a79",
+          ".npm-cache/_cacache/content-v2/sha512/67/5e/1d1b7d3976068bbba7e80754d741a805896f097d250851a52e3da290e8db413ca1753ffa9772a7e1e9ce8afe270fa9dcb7ec99a36e20577fa24d83a4b297": "6c727ffdfdfda1b46843f00ccbd04e1b798818a4e44386eb5b003b1c47cc008a",
+          ".npm-cache/_cacache/content-v2/sha512/67/d4/d72a2413ceae4d09c856c38f18b997d1bed1af703556c992b5eee52debce6681e004f4e179a1d04365940d9342a42b64a00e66de7bc466ee1d38d1233c2d": "222bd578a83fa89bf4a0db8d3eef9452861e68b06490d67e882bdfbd7589e122",
+          ".npm-cache/_cacache/content-v2/sha512/68/a3/178840b69712498b8361795418a5a58c42360a544d8eeb99daf2a322dc07239fe399a0f9e418209024980dd8bd0244a0defc4b66a7f5e79b493e221b647b": "ebdfa5c05113a3133ec8f9be2c2901de430fc1d5bd0a478f2e0e473933905f7d",
+          ".npm-cache/_cacache/content-v2/sha512/6b/85/0641a58f1f9f663975189c01b67b09dc412e22e05e374efdc9a0033eb365430264bd36c2bc1a90cc2eb0873e4b054fb8772ba4cea14367da96fb4685f1e2": "50f14ae6cfe8360cb2259ba3e93305e069036f13251d69d3cbee9e1d4775ca04",
+          ".npm-cache/_cacache/content-v2/sha512/6d/12/128022233f6d3fb5b5923d63048b9e1054f45913192e0fd9492fe508c542adc15240f305b54eb6f58ccb354455e8d42053359ff98690bd42f98a59da292b": "db52f9f62558baab13353dd39e3200750fc33e6a129a575b46226f493776e230",
+          ".npm-cache/_cacache/content-v2/sha512/75/10/5995bb76b04b45f0c9f830e0d38737bd7c83dd0e83a15529573002b2e5d41b3982bda4e3a83d8e056addce4edaf4fbccdb268e534d9c25b1fc58fe40cd26": "1d471bfcec2c605a1dc0cb53f7892163a290a5f2fc2adcfcfcbe369551ef24ab",
+          ".npm-cache/_cacache/content-v2/sha512/78/2b/4bff3ac896b1e5ea5940eb5c4285e2913d2625b4053972d19a6e3bd29e8aad6c7a465b11036328e9ab5b3f0cae3c789c531200515468dcee6f24559f5c4d": "3ae2ef891fc97adde168008cc81989bd9b7ebe4901a8bff06dba6a3cf4b3cefd",
+          ".npm-cache/_cacache/content-v2/sha512/7a/31/f0ad0418726f719d38af4a19f62033a5233227377e005ec92fabd42272f0ad133ab5573725bbfb4a17c26ad4283c246d862fafc49a382c093ee55dea44de": "4bdf46cf597b875ce16770f151159ca34f96c20ba3c112dc8d7f6c6d6cce770c",
+          ".npm-cache/_cacache/content-v2/sha512/7e/4c/d253d12ddcf14f6fde7d78ab79227ac35d92018ad6da181a45f3bbe5a28edd2d8ac0ff8aba437406d6e814c04928790f5659413b940bb8d9e3e24be05620": "7a132c17cc12ecd54243d30b46848d37e804f182469a586db850dd8d3ada4bf2",
+          ".npm-cache/_cacache/content-v2/sha512/81/4b/bd8707d6bef1030419a0b40a30402a23c19989e6670b9f76ae7de0ac8ad8a3b37f9fd8db2b3ed94058847a38f8aa96397de8654251b2ded07caa22955aa0": "fcc029f7bc311b6f69c64c8e2185db6ae6cd60af64806d94f7b617e3eeffe32a",
+          ".npm-cache/_cacache/content-v2/sha512/81/96/dea6c761dd60ed8192962febd33e1ef52d206b9bf638fd00d905509c61f99e4c412ea0e630952cbe1b54ad7c983efd9cb9e74bbfdd30136e6eea0db6ccb6": "b5ced4fd7c23a580549182676c43c03a8731b9625e66270f443ab27cd21b502d",
+          ".npm-cache/_cacache/content-v2/sha512/82/30/3f9057837df7c823c08ea0fb2f2cfbc4d7a8560d311cd7ed1029034a524b95f22263aac0b8c57b3cfc5cee2f4bfd115dfd92ec536c081c1684d1cb2d9319": "b74f9bd6010a0887f05796457b13346178d8574106158cbf66bdf8e37d45fd39",
+          ".npm-cache/_cacache/content-v2/sha512/87/f3/54692c86e44cb1048a7c611c68e1131edbfa9082fca8c11c1533385884108e35b5bc3d4b20e2590532b86066151ee73dcbdcc88b0eebf227f09a3dad80f0": "a67c2c19e0281996d2f7ddcc41f561abff796ed1cb07276ebad6982dbb67a7c1",
+          ".npm-cache/_cacache/content-v2/sha512/89/7e/e8d6717ea8d6f706fe662d882a7e017d66787d7bff0c2977666dbf06bf6438ece288cd3c043c3d6875ad47ae013061ab532c98f4c108c7bc816df036f9dd": "3e16ca278ffb1be064ef0ea108cc7ec65caf3e7b7060b97e44915efd0a85a2ac",
+          ".npm-cache/_cacache/content-v2/sha512/8b/00/d9aa0d10006ae0f516afe47e27d0ceb87379a4479f5c27ac10a7eec2e2723482c984c5a79d6982cd3b8e1e4f802d041c236d38863cc96dd8c7744fd1fd25": "cfa1a9a5e18988850e548f4f6b629c58da32dc32bebb116e58ea301e516fd16d",
+          ".npm-cache/_cacache/content-v2/sha512/8e/5d/6f6733c38a72ebf5e52ddc9feded5e8580d130f508ef04f772b33f4a7d00c3e357d0ac2d98e2f290762694a454f86d795bd511e12e9a7cc2d9ba3394e04b": "10e108c9cf7d5f2879053dff18515fb405abf2ccef63eaaf017d9c571687a1d3",
+          ".npm-cache/_cacache/content-v2/sha512/91/02/bd2c6185887b6b5a236166d03b41bc35ec0433f9d9ac10a3834485535c0f7e7b9312ff681910185826dd771ab033e7f20e64a75d1ffd19dd33ff660a3ecb": "3e9f5e0ee1b0a00ce6272e0a7f2d7937fd71ef886080812250aafdf02dcf6d18",
+          ".npm-cache/_cacache/content-v2/sha512/92/9a/8ecd10876ebd733692db2b9fc68ea70cef4e5653e988701a3209172f02f7ced13707ac341f25e68c963becc3a0a6843e84d86e4aeb06065d81fc1c3f5c39": "6935dd1aa115dd9e9eeecbaca6b21f03d522493ce7faafc69b066601ad379507",
+          ".npm-cache/_cacache/content-v2/sha512/94/a1/8a6d0698718420e2b89b2ea148c64ba7353821af1e6d25f6a10921e22702debf35d16f3d1a755798fd06387c472ac9217050cee5dea5eec185dfd5c53ec6": "58bb5a012ead4e01239f7cd047b77fa733264486d3302e77ef4def9dd7c51d30",
+          ".npm-cache/_cacache/content-v2/sha512/96/87/13910c8abf0204801cd5ae7f3af7779b73dec5d94f191e36d7c035c9e459f64c2a4dc1394a71a28b91d1e8a7973f89c38513baaded0f490b986728d6ba1a": "0cf63b5ed704654bdc7574be035883b2eb3f8872c795a6b8dbb690cb7a3d54b9",
+          ".npm-cache/_cacache/content-v2/sha512/97/2b/b13c6aff59f86b95e9b608bfd472751cd7372a280226043cee918ed8e45ff242235d928ebe7d12debe5c351e03324b0edfeb5d54218e34f04b71452a0add": "1218830a93538a4f730d530138e945ea6a65b45e099ee7a9ea538a05141babdc",
+          ".npm-cache/_cacache/content-v2/sha512/9a/0d/ce3cc578857cb0c29a03c6edd075ae7108a422faf09366af12f49fc4a64841d87cca5eae12345644dfe34af77258c5cf153127a9fa5394482fd154a681ab": "0f60f3d3dc5efa299e3464d29b6a7dc51d1dff665fe7b036aa95021ce6fd827a",
+          ".npm-cache/_cacache/content-v2/sha512/9c/01/89e26efda9eb68a863072ef663d98694e5bd1d5aa33e4301d8b6b1f5728f1cfac2e62dfc04b3232b56632d3b98c42aeaeae2fe7a3f3012ac74f59d7e684f": "ec125f983052fc56557b4db9afe5e6c5c8a17b87958e63202bdab8a066ee120f",
+          ".npm-cache/_cacache/content-v2/sha512/9e/c3/51caad2bdb3b06f007111d692773d4110395c2b9e0bb81632bb3e1b1dad9599fd85c97ccee75f874d258493d8d4313b36667a6c3b13f60db27b2f265e58c": "257b0e29fb807039d3d67fe7c9188a2b9696403c57821b10cb6c8d635e39789a",
+          ".npm-cache/_cacache/content-v2/sha512/a1/75/6229a79924e2e9a64b08180f4aecd0a5c5dce63356186e9f5fb7fb84264860ef7fb6f798efd8eaabcae316308c2f7b128383abf43bb7e2ceb317e0113bfa": "3aefb809d75c3672a5ac4831bd2c2319b97a12c3293ad5726cdbe4e737ce2eb1",
+          ".npm-cache/_cacache/content-v2/sha512/a2/e2/30a16f5421d2cdd558539f1a5acc478e3c64654836ae3a1f4ec44c36b2faa2a67b284414b96c9d393b369563ecc403f908f87929fddbe7192daac04bb6f2": "f954db4eff819bf22000d50188141f63ee9aaee8efd96bcec11b2a5fef30016a",
+          ".npm-cache/_cacache/content-v2/sha512/a3/96/bdc4a8dbb6e858e818b94b7f87bdb444466a2e69b59bc947295d7500d6ef863542a844e8bd6f2389f0cd271db1d81e46080a2325ab1920d4a9189a6db94b": "1974803337cb6a1a86a6fdcf45a05ff0555220140d5ca70a58306f9f9b895af6",
+          ".npm-cache/_cacache/content-v2/sha512/a4/9d/ac61ac104b447f588f76f068f91a53e14c6cdb31e96ad3ee0836d49834357d12b289717eb18c65a4a06fd59c1ddda549b4d3300b6aa92b503efba4ee530d": "5e345675666e58e36e8c8385e442a18e7815e36ab6b6470835f12a61a80fec6b",
+          ".npm-cache/_cacache/content-v2/sha512/a6/ea/be19fdf9a08db815e375d4b92851016abfdbb035e5a9c57662fc98b7ad1228280cca9f145a67e1a48f4bca4bd6428931127e783537d2f23b25efa3e9be1a": "5e0ee28d5536e986cf5ff2da0f096fb84810d9136c2a64c6c78a6b495a0e7764",
+          ".npm-cache/_cacache/content-v2/sha512/a9/e8/711a4463e7987f7dff0431a27e71887268a947231a980e7ebcdb0403ed1369f54ba3390b07a20dae4b4af6bf3af8a56fac5dff7435e79aca370d697ddf16": "7a31904bc45f1bb232d5e5dd797d12296f4a27fb4bf0f6d517827700f997dc1f",
+          ".npm-cache/_cacache/content-v2/sha512/aa/84/29ad9bf3e70405270303a9eb1e4575afdeba8cbe18296d715f5725a16f1f57e3b3ce200ea2ffe75779f12664aa0080e69375a22035232a30853ad72472cc": "1865223be6b834c44abf5ebedafb1707019b4941be8021469980c7ef4c2e1155",
+          ".npm-cache/_cacache/content-v2/sha512/ab/b8/f981e2bbc6cdd4252766f7f8b2b5435c9419cb998c7512749e0855c73debad76a80831e15e1ed519812dc48652b1741100bbc3b0b490b098bac4ce94aced": "ae1833409d89597238c9fdbea03add5a419ff2aa9657e29265134231c1a00bc7",
+          ".npm-cache/_cacache/content-v2/sha512/ac/f9/86da73acf0077cba933875f4e2428e1f3a1928b57108f1959fd7ceb55f8433877522d935831d1a009ae2596d8d9319c6943b6fb7b6579d57b91b780e1e21": "f6337ec72d37a816f420c46aae57604b170676d3741a3177bf73af3352c4b9fa",
+          ".npm-cache/_cacache/content-v2/sha512/b5/10/12a3676f63a416c326f2da44a8877c51914fe3f858847355137fe215df1fe3077b22920a02084a9bd8ad822d7248eddd062e2e056645b0bfaf345080d3d1": "175b9391f0c0ed4e4734904dc54c6f3f6baad62ffe509eed7e1621bf62321de7",
+          ".npm-cache/_cacache/content-v2/sha512/b8/a7/60d86dc63422909fd6f260ea716c6aab4f67c63b9291b7927ff1bde9a24f2b4faab119617a871332262118b407fe155c98b83f6145a0ea5f9b8f15827865": "5ae134779aa22c2c04b691d361bc1f3c004c354e81c7ee166ea1c6e848eedc4f",
+          ".npm-cache/_cacache/content-v2/sha512/b9/f1/5dd978bdd8e0153d8b32f8fe27eff53b7baf1f7b1d3e11ef20486f4a5fb7a8d3ce025a2438b1dc64b6f765d1b38fba95ed5493d8d7dce4e84c16a9443c96": "755508f0bb974706739e5cf3a94f546c5c8c149dbcd407c599f36cdd89056f9d",
+          ".npm-cache/_cacache/content-v2/sha512/ba/72/cdcf6e5d0fdfd240d54cd94641d82b1581284f53072cd128243d98809b4800ae67fd7f4330b2b2f0a6205c44d69cdb2744f1ef60f0c308c4cfd201c8d1f8": "2816fa4a01c0c962ed7284c467428f2eb55b3b1bb0c8f84ce8e018239ba37a74",
+          ".npm-cache/_cacache/content-v2/sha512/bd/f1/2aa574efc13f75ca19b075fa2e4ad3768522b04efc91b3caa92df003cababf9310f0d2164ced693d520d4510b8fc8486f2f92ffe910092445177da7bf643": "c340ddf5ba598073a62de027ca879763bad9c7f237b41b57f2dbd0e9dcc23ca1",
+          ".npm-cache/_cacache/content-v2/sha512/c1/2f/a1020252851d0a844bcf240adfb8f54dd7e1f3d6dd18ea7e632eb1906e46f8bab80f13fd11bdefb590c075bffa16807826e1621c57e8bb176a53563fb689": "8d9bed01a672e7eaf387942d781ad47c6a43089a30a0306060f9fd5ac7870347",
+          ".npm-cache/_cacache/content-v2/sha512/c1/e9/ba59a063e0d69561574d84b3cf55a7044ba649f8a0417d2913303dd86716cfdeb9b70e2f39b4953996369436168eca7b7e023d31aee858bb3401b7c9fbd6": "5b5446f3d32b10ba38cb308af5f65e76afcddaacd7b817e71055a6de6ab934e0",
+          ".npm-cache/_cacache/content-v2/sha512/c2/63/21737adcde1fd656774eb9809983fe6c6b56420586df2220c5feecfe59dd89888a8617372378c3969961122173c576568567d3f013bc27829908018329e8": "e0d4348f32efd880f23dc0a4da59a6d22026741778abab2cea479e0adedca3f3",
+          ".npm-cache/_cacache/content-v2/sha512/c5/c7/87dac9e1b5be4cf658aa0ec984c39ea57b7efa993664117fe311bfd1c4d1727a036e97b78db250973fd1438ff2dcbb45fc284c8c71e3f69eda5a1eb0c454": "d3aedb2807967b7eb37fd11b03b7e3701e725af79c650d0812ff7213f8f882d9",
+          ".npm-cache/_cacache/content-v2/sha512/c6/2a/8c411e3101e1d3b81f6e5a6f9f1517083a02813223813fe7978b24fb8ec8150aad5b915ca0b74d28012a3007b11db6938769a3e02adf35d8ff5a6fe0c328": "e17ade950c193fe09adfc7915fe29ac26166c8782d00e7c3879e7e9de02c5428",
+          ".npm-cache/_cacache/content-v2/sha512/c8/ba/bb2cc518a4ee60456d0613482e0dca8307cb3f2c780668fd714ce1f6143f769c1be54bd93da4dbf3428a4c082be72eaff5facbbf56f7dba3adcf1b7acda0": "fe32da4e399c661ae2a0e250807c0b925d3ad904d3011a85d1d67112da224c72",
+          ".npm-cache/_cacache/content-v2/sha512/cf/33/51f9275048327373c8e869e3fc410a0242bf0db98c76748232b65d507811191c9f6e5ba85e6ecad881bcfc849c1441aa374d608cb667d5f0dbb5b7038b03": "c64c71a119630d5abe8246889edf334b2ca9ddad094e20d623332956b1453ccf",
+          ".npm-cache/_cacache/content-v2/sha512/cf/51/c629c632db103c00641fc2b9f43c0cbe3c1ed7fc64a3dd45495bda8aca7e37c566be825e675e6538aaa2cc4735952c50bc2aeb145fc4ffd240a2398a4021": "f3501f8ee1c73f7568fecb22c11231162c0467e59262461da5579519307427a3",
+          ".npm-cache/_cacache/content-v2/sha512/cf/a1/7b2bd6d5f3911fb1e442a766f3ae9c90d06930d6e2e809e97d5c15563e0fd38d18fde12909cd44c67ce6b86ecee226f056b501b45aaef09c8d2ccb0dc405": "40aa26f7cbb282b754ac0cdc7c5b6a1a1170c9cd74d61f863b8644397afec09f",
+          ".npm-cache/_cacache/content-v2/sha512/cf/ac/d695d0c6052253102207478e276bda3f9d0a6941fbe0074ad3f3588c28a21bba469e1393a00a041d55636cac423784b92d5cf8bf310282a785ec88d32e79": "645704c59c9dbfb9ed5fcfcce41e75f34af640f9ae0093151c87ee0b78c29b06",
+          ".npm-cache/_cacache/content-v2/sha512/d1/11/ca673ef0c1f7ef914fb6305553d8d9e32b8e2cb0b115fa6d02009692d8ab26a2baf08fb5b11f4d233b448e096dbafed20d5272474e85db943b37dc8dfc61": "16372a88ba52d8f31a6298ec5c02b45c51b7333b59c500cf6aa6ae8e16e502f7",
+          ".npm-cache/_cacache/content-v2/sha512/d3/a2/322b4f47df08b87066e10c1c29e60506a3420ab6761af2dc9389ea618ab3c22ba7dba1b54689730c239ccb43868a1183f7c19dc0ad4e38a3ef0a32b486fd": "8afa100bf1bafc073813b589980414576b20c66bf3598af229d30b92183fa1a9",
+          ".npm-cache/_cacache/content-v2/sha512/d5/1e/248982971958aa10dd029e80eb5dcd52b43f67880c2efa3d9dba45b3ac3e1b260b03e250e6129d0245b73a13fbd82487d31f03e6c3268ab554ae74809d3c": "ad38a4b96f6ba1d21a030cee067a6c84f1b9ef1ad63cb1cf93e34dd3bb3421a4",
+          ".npm-cache/_cacache/content-v2/sha512/d6/4d/a500644c7c74dcc2e35870235499a51f7e642ff0a58c7e1da225451e465c25c07e0574d1bb99f3c8d7434f7cb1c9153844e13cabe26bfb9133593a23ee06": "87dcd8372e8f2d0225de852c9f810c23712616cc2681556f8f4292535b7e42c6",
+          ".npm-cache/_cacache/content-v2/sha512/da/49/2dffb9e227a32010fc45d1b61d43a7ad65a03e7d0bc370b29c921cb5c8840ecdaa0a8c10634a3eb7fda2d58d8137aa146de5dbccfae5327c283a50a0816c": "bc16f658c1f6d63e0c8738ab881d03f49f1955d8f853cdcb8f7d315cf62f0082",
+          ".npm-cache/_cacache/content-v2/sha512/de/13/7b35ab2462f3032d0639e609d6dcd43e99eb0401ea53aa583e5446e3ef3cea10c055361cdc19861ea85a3f4e5633e9e42215ca751dcb0264efa71a04bcce": "df9f92ef26a35d4f92cb8a73415dfea8dadaf294a03e60e4d176df82f38d17c9",
+          ".npm-cache/_cacache/content-v2/sha512/de/74/15500b6f90a1fdcda85f5a0c3de8973fb853a68c0084d64433f3613696a5a61c1823cdb365b02db69ee4137da86659e42d4eae6743fe0d9ddd80d708f8cc": "94fb962c489aae2c4e5581f1494721083dc76dddd7c703314dd4d7ff965d2a3f",
+          ".npm-cache/_cacache/content-v2/sha512/e2/9e/5545d979764accd8554bf6e6af600a33b85fe125ae90aa6732a51e4834578c461c204ae405e67ebb018bf7150d38d5eb74efb064eea12ad50b9691304e13": "e88c52a9d833a334da3ea5c4462194bfece7bfe8b72bb5ffc1eb4b25ae038e7c",
+          ".npm-cache/_cacache/content-v2/sha512/e3/7a/c03137cd21ec6149e6ecf773ecc65ce476e9391facdd5618b47c2f382f09e1c3faa44fac36c7914d62f4adf5eb6f2910b2d1603e9d6c24c460711e6212fe": "ac137f559fdb348cc561e420dfb2e839d9529ec60a5b8c5c3a626a7683d36978",
+          ".npm-cache/_cacache/content-v2/sha512/e3/d7/068546d78fc41e9efd224ccc40d5c141cf15e872da42f548ddefbb7559c6c922bea717f788ee0ffc320c6b62574546e017be36bbc504706afa16ee482bc5": "c02fcaea0bef927cae3a287dd6c316d8a9da12c8b9ba104f2387978fbe16234d",
+          ".npm-cache/_cacache/content-v2/sha512/e4/77/caee4e629bb2d3381d04a824267efcb80b5dc6f764ac8f55539a8b932b7009bf28ca4e716e095d2f70c003fc94be242e03bc320146b9407892058e1e555a": "3ae19d702c95656b46dcadc5a64f3df61be559cf2e14c176b04d5d233c13c0b8",
+          ".npm-cache/_cacache/content-v2/sha512/e6/0c/350182d4d7c3d661105dd010926fba1c31280472799daa5942f2587a92c95b14ce5e950f1efa6b79470c7a49cf40bf5a50d98d691af26e831b77146cde17": "5230d9cddcc06e1ebf2e46afab121d32bc2ce52275d59888590b5b75a9561f66",
+          ".npm-cache/_cacache/content-v2/sha512/e6/37/dc61b656f4442ce93800f1d5b3d3c347df344ad0c3d2e72b8a9f830d3af31ae5a2d092f9db87c91b2c55bec3a703300ce17f34fdc5283e0854dcd4392a0a": "178bf89556192e8ff38619aab568f3b2923c870b174d49cdf8c5e91fabbc5ca4",
+          ".npm-cache/_cacache/content-v2/sha512/e6/6e/2740aa7ead945bd3d2cd1f9f463380714e1f76e75ff295b2886e97bb4e91b17c9fbd92fe812e42c15c88e3b296e06e720136a948db7b519d3593d2c9d423": "031d4427a99f2f3f6cac18bbbf308594a67e4f47d10f4896fdec446505b040e0",
+          ".npm-cache/_cacache/content-v2/sha512/e7/1a/037d7f9f2fb7da0139da82658fa5b16dc21fd1efb5a630caaa1c64bae42defbc1d181eb805f81d58999df8e35b4c8f99fade4d36d765cda09c339617df43": "c77e7a5d5ff31dd7acea7c44d4a0455e0528cdacbd24a8cb6c82b66d239b587e",
+          ".npm-cache/_cacache/content-v2/sha512/e8/59/73b9b4cb646dc9d9afcd542025784863ceae68c601f268253dc985ef70bb2fa1568726afece715c8ebf5d73fab73ed1f7100eb479d23bfb57b45dd645394": "f6616e15e530ed552f9daa2d3ce71963947c6bc7c98c9b64fd3e673fd02622c6",
+          ".npm-cache/_cacache/content-v2/sha512/e8/af/342489df50773a181ff5edecec3efeee1b1406a820efe9e5737b01a7a0e4cefd2eb8580ec0bbf317d22ef9c2f2122a235b2b1068f7d9a1e795564ee9b273": "e6c0aa84564d53c166e4a6028ac70ce3616167c26de9ef99fdd0573b43687bd6",
+          ".npm-cache/_cacache/content-v2/sha512/ee/61/c3389497b482883583978ed10289ffbf6502e4f0d8b01340f96cc0da09adbec5973a028f547b2ae3c49386922d8ace5d2bdc6b43261b04b971309888afee": "bab3e6d48582e5441c8aafc6fa1e1d267b6175e09b785c49a028c02cecc4d4ac",
+          ".npm-cache/_cacache/content-v2/sha512/f0/fb/dc5dfef48130d9060b7da6dc49f1e9417818dc2ce01c3ada0efe63c98ed8e2d7e09d19b1e09bbee89b51abb0fc6c884fae5c8a4d48aeb8518688c105dde1": "2cc7973029fb3b69f77cf55b42be307ff34f63a68e55a173872a9712253fbc90",
+          ".npm-cache/_cacache/content-v2/sha512/f7/33/89e9941101e9dadf5329387f554b3233f0ebb7609ff0b58fde426e53dae85f846eff53708eacc4bcc4eb54ad9ae9f4e81d9b3127218383c9ede763556acc": "67cf35a14a9eabd4ad36ddf14eab87fbc373d332ff97485fd106206db2a7507a",
+          ".npm-cache/_cacache/content-v2/sha512/f9/dd/05e0c28c09b795509c06f7ab90e12800ce764d4aaf7723757ef4d1c0e0ea6fa86f26442a4674a98af25fdd974da1d820831f05b616a8a59d3c837009ea8c": "9ec82a8e4971899006c14628083dbfd6e00dd5e6b4776a3df2e5a8ef1eab1507",
+          ".npm-cache/_cacache/content-v2/sha512/fb/ab/40eedfca06ca46184ffa1004398c43e2ea4b7c2d1e991eb3546dc38ac39b89fd7e5eeea0758211cc28f558a8134a9e7fc27d9757f2deca6bc0bb2f528451": "5e17fa4748ffb7ac0bb32600dbc441f64ea8af8505c7f29280e6be3edba14948",
+          ".npm-cache/_cacache/content-v2/sha512/fd/46/9fd65033af9f5770ca56d28f7a5a811fafe5572b6397e14f40805a22487b152781e9a67205523b58cecc831f6fad80035a41bdbfa31606c023daa4dd45a4": "148abf9bc2af7fdb1381eabd5bc2cd14bb8c4326ac9372e738741fc81821933b",
+          ".npm-cache/_cacache/content-v2/sha512/fe/c3/3774ed853b35e3290849ba8d10d7bdf07f628ea3cb7823cbc7cba945f69a14a7b6ca4f4fcd1c4f1f3d7db73f07e19f291faa70b6c51c4e9d5c395ee18868": "0c712225ccca9a70bf83f2ac2f52a268c858c7df3b3df196f1623239d80d3c09",
+          ".npm-cache/_cacache/index-v5/00/0d/de13673d9ce0488425116cb65f9de1532751c13ed0efecd75b7db795da1b": "fcfe6042ce3686262b8a4f7d6fc89f0c3436355af13ae98b883cf8e7e59048d0",
+          ".npm-cache/_cacache/index-v5/00/ea/2f1f69406d4b8c1e603fd26d533d431289c56468419754d9ba1df3b88c5f": "eb9ab181b4def41226d374bb227f853d1de3daf816268425985094ae529bb9dc",
+          ".npm-cache/_cacache/index-v5/06/9a/2fd6464ed4dd1f3b23879b816372a2e625252abefd5e5701825624e15dcb": "5ba019bc56dd663edc4c856bdf63947a5b31f6e4180383d1e558d6ebb63c25ea",
+          ".npm-cache/_cacache/index-v5/0a/d0/656d08a513cf41cf02f0fcb0e63ba171f108175b3c711837ec0c0f93f955": "b2a1bd6e71d343a4d2721878c3eeca96f6c682ae6250fde58cf383d58238a8aa",
+          ".npm-cache/_cacache/index-v5/0c/4f/40538ba255692d7e4ae83fca43808ba442b0763caef1ad2ee1fe07dac46b": "0071421a46a734e21121b214d6d9a910b06eb7345c29dbbc7382e0131acbf756",
+          ".npm-cache/_cacache/index-v5/0d/01/58cbe482acb2f4e2b961dfc2cdd7143d35b8f091f18831fcdcf72dc7cd4f": "2f34a3ccdc9e2b48462e7c6ed9e5f244174eae22fc124d2b92bd09d62b90e542",
+          ".npm-cache/_cacache/index-v5/0f/29/59b93e2e981c254277863f3daacce6d1f2680d75a0096899596cfbe473bb": "5577c825aec3661094981cfa5d0e7d5166e0090d8409965f872dac70cd8d1a39",
+          ".npm-cache/_cacache/index-v5/14/60/a8b30a439dfcf0b09abd5dce256cec215e5094780e39dae9291d68c45eea": "80e4c6995ac34a81390f128aad2cdac7c7038f02cdb72baa0a1bda5347c4af8c",
+          ".npm-cache/_cacache/index-v5/14/69/f55f414232029c850a9540c6e7b2b460bf5235a87590ab9e6614f9d6604b": "0820b7beb1e37605652833a1b01b8023ec1049b75f2b4d2199548629181640cc",
+          ".npm-cache/_cacache/index-v5/18/70/3849f3c1fa39383ce61dfadb908796c9646f9a97f258c3ed9322170e28cb": "ab916adfe57eb92291d44246f9a1ab7c52aebba623157c6d9ea3860a1806355d",
+          ".npm-cache/_cacache/index-v5/1d/f7/ff50042ed750407ee24737aa4f44db894fa2cc397e685bcb877b30b929c4": "8a2b6fcac876a6ce9c11d4a7dcf6cf4a2f0660da8fb4b5e2470cd3c139985daf",
+          ".npm-cache/_cacache/index-v5/1e/59/064ac66040d7820a41b4342f9685c2ed6b4556989cc76cf89118dd265f79": "9dbc48bc26595d051285f84f82edaf7d4e0fd2caef21908e321c84ba335d2ebc",
+          ".npm-cache/_cacache/index-v5/21/1e/ef30fa51cda1f7fec7431ff72e4dceadd4c8c12da056e18c4a3a6335cbf4": "f8e1440d1b6e1b57c96a40831149a9697ba6f47eab7641fb10fbf0f689b4c980",
+          ".npm-cache/_cacache/index-v5/21/a7/bd8af8e4938b9fee217abddb09ce52db330434e323c828aeabe5bd909ae7": "7c55c78866378ac219427394e1e74dbe27835654c81b07ac0f0c7bd4da50aaba",
+          ".npm-cache/_cacache/index-v5/23/d7/5f2e04fe73aa013a02edf031459ca2412692ea65964115ebe84f8dd26f97": "46530d0c39f6bd74c756d6490966acbf2ae3147a260f0539806430d303c4773b",
+          ".npm-cache/_cacache/index-v5/26/d4/4022921afad2e38857eb774774f73ce1bd92b1c21069b7125dc7c7578551": "b0196444c155a413ed479c6b24c47b78f982c343c2f70fda25ee5651a79853b2",
+          ".npm-cache/_cacache/index-v5/27/26/56d3868cdb645b2dd09110debc35e2e7b4e26d0210d08755dce2a8cd9ae8": "d47106206ac388512feb11f73a4889dc6736eb1443bb137389b96119b2c13b44",
+          ".npm-cache/_cacache/index-v5/27/ef/452a94b385f28d524a6fd9178863fe32cc70bc3d94033a3dda9c91b2e128": "70f618489fc3e9a68d17bb87a80e535172ee742cf413eb14d84bb598b941ff7c",
+          ".npm-cache/_cacache/index-v5/29/da/115303ea18a519131a06a54e40e89d11ac3d6417db6551daad7b909f4d80": "60d860e74586c3c77c6283141fd13a64b656bd885cdb950ed9a8ef9de8073595",
+          ".npm-cache/_cacache/index-v5/2b/da/6982325342014668c157bf0ea438d99699825c60e6f9149c6a78cac444e6": "e7b2616d87b1ad6503d633b4617da95414194a6e7b5a536e7cf78ad32bfbbce3",
+          ".npm-cache/_cacache/index-v5/2c/24/e89f8bf36bf4f4865512579b711f7cba1f7f3a4cc4d8b133abb9793b0ea9": "88103dc35d3407c1614eba7754684db9aa87dce0a20eb2ebcc112fe7e0f2ae3b",
+          ".npm-cache/_cacache/index-v5/2e/79/1a42176a040acd97682b202cd8fbda5a6dad0a13d43e2654a3301f3bde95": "611eb5994677712ba40e4b34cf1c75a00ebaa6e37bbe887ca4b78e7652445062",
+          ".npm-cache/_cacache/index-v5/33/9d/f71725d19cd210f8d8c241a23c3799ddd144b786489151e61202b1d6d94f": "340a401c25b6c220dcd8cf0d3932324598fc68ebbed3c90a3dac6a2093857d16",
+          ".npm-cache/_cacache/index-v5/36/be/0ead91f41740fe9ea1c7402110ca80a57d9341e0910825095ce698a4c1c0": "a87a741530fbbff0d3e05d0bb17abb63c0439207aeaa986c50d6fbed2d2a4e15",
+          ".npm-cache/_cacache/index-v5/37/23/212967cc095d0a505921b885fb8787cf2ec98190533b10b7fdca2697a7dc": "77c50f872599c8c778d7d8f57d1b5ba182c2c965d3f6bc39c621db817e467a02",
+          ".npm-cache/_cacache/index-v5/3f/6b/d5dd1776bc8b91a94cc71eb3a1e40a8d0e261a2123ce326bf670dde8c98b": "808b32be7fa0832a64a12a8d6088157b4c3a2cea89aa655fb89ab6c33407ceb5",
+          ".npm-cache/_cacache/index-v5/42/75/0a5d928eccd3d26024823f03c4c2dec41e70a31fa5def48d65dc75dd2cb6": "b103fe67c20a9353dfe72f31c2c45d1ed6eb92cdd14bce5027550da3615d332b",
+          ".npm-cache/_cacache/index-v5/42/98/91ca587de8f2a43a792968c4c652e025455b6bd2ed604f4514936043cd55": "1b303f567e255450ec386a673a912eabd56429aef742218372bae1e86df60ebc",
+          ".npm-cache/_cacache/index-v5/43/50/6f323d33c93ebdecf8393bb1b8a3677fd4666d2488b0304da3c01d0df39e": "fc92648b52935228f97e4fc9db7392bcdac349c62b33f2a85a7cd87b63bbf7a4",
+          ".npm-cache/_cacache/index-v5/45/74/a45e494ca2e846d401646ceab55186fcfe87c4fa76d70a3850d08faf8949": "9fef0f21b048a969af985972bf8489f7a8a25b05cff253e3fdc970871cf30f8f",
+          ".npm-cache/_cacache/index-v5/48/01/446856e2adb28de3b02a5e5f396a79399380f2c39ce620c3e58951730f91": "526f35674f44f3d256e5b08210d621fcd7f7334d90c0395eb00b34cee7d17a8b",
+          ".npm-cache/_cacache/index-v5/49/61/c98f1cdf494d5afde6448966f8b5b9ae83d1b42c6702670e15e8a7f68552": "3968a87a51fd7a9bbe63133225811bf1fc44f9ef5c2fb9e145a61b9eb6f8989f",
+          ".npm-cache/_cacache/index-v5/4b/f9/b76c81c987c93bb0106da040b3ab5ecf81a25b7a26e02f465029ed4d6798": "07af1e51890618e8ab53d2f0dee59afa5e9c4267da5e659bea358c0825381951",
+          ".npm-cache/_cacache/index-v5/4d/f4/9ddc9f878c52039554fd9be6ee3852f10163225591207069618d4544e7b8": "aa3af993bc3eb5bca74421787d2671c8179b2c17a0bb7a9527c7864db62920b5",
+          ".npm-cache/_cacache/index-v5/55/4b/4d855dd8d61c847d498c12ebf5b56c4b2c52a793ccb85a93ef8f4050f6f7": "ba4b24d117150160cd7870ca578f982833e2e7a5421371cdd334b688294dee04",
+          ".npm-cache/_cacache/index-v5/57/65/488cfd8a7357308cb5342d7740514a70bb9d452198ac6e8d08e251223766": "604b4e42b6b2733c00480d57890fd967895eec0d65d859ac0eb05615728a4f94",
+          ".npm-cache/_cacache/index-v5/57/7b/95112e98b4bc2be6215b091776e3d2bf34ec38f00a388732a4c8602a3ceb": "94fc6107dd2ecab8b00051b589c3a850bfe030845cb604a07014b1a75962d8a4",
+          ".npm-cache/_cacache/index-v5/5a/48/df2b2137355548fc0e2edd8c75e03ade0d1036d9466886d3c4f7ea6248af": "91f037c9f4c1210c0037c868b030cffe9bf15718a6b69c7711ea46e88a58f836",
+          ".npm-cache/_cacache/index-v5/5e/1e/ec73cb10b2f32d6e39ab917041d3bb996ae7791a73f4dfdfe4d81b144894": "814b687bfc2582e1114f221eca39b3e6ed0aa660b8f04be97e6257ebdafbf2b2",
+          ".npm-cache/_cacache/index-v5/5e/33/6995086770c0fd20bde380734bac6e97b85bea142bcf120f67d2aa35f79c": "f9046a104c4861d140012ea1ebd3fe97dfe7e5ea4712b8dc0f06663e53a9b04c",
+          ".npm-cache/_cacache/index-v5/60/0e/68aeea94d6bb2c70e202aeab276f06eac1ee3ceb7df6b91e06a28446dcf9": "7ed015bb245cca27843349ec99a75e27b2e4e4e3d9bca5c12e4616106cb68d64",
+          ".npm-cache/_cacache/index-v5/62/1f/67ce826ee436322a29f15679f982de17704f76557ffb3d73d932a4944c7c": "7f2bac8fe8a0b1653291bb27a7d1d3ecef3c4343f6e16fb59e998e6161b02034",
+          ".npm-cache/_cacache/index-v5/62/c6/c7fa8f4763ce45f543d6952e5a1787fcb67fff9e7372f0684fe68cfbe342": "bf6ea2857378c83212deaaf8e6b7b8253da88925ac8705c980e80065e0b9ac70",
+          ".npm-cache/_cacache/index-v5/63/0f/60d33c85aada062253edaba5298089fbb58f2378322219b4e30056b21b10": "52edf3e66ca1ff7aadf4ceb60c007c452f8e57accceb1eb33f373555af47412c",
+          ".npm-cache/_cacache/index-v5/67/0a/fabd763853ebbcf262aee7c534a63c12987fa59e78ee4bda2dccb315b9db": "e805b948e79d766c62d8e96d4fde9822f977b760506cb83daaaf5d3ee15dd55e",
+          ".npm-cache/_cacache/index-v5/6a/b2/cff74a8452b6159ec5df4cd310e05e05bfaa99de31da7de4b5a7a7a849d9": "0babce507efb05bd9a7ac2a1062e68cdc15ef9cfe284be56bf46de2602402d77",
+          ".npm-cache/_cacache/index-v5/6e/08/0a84dd62b4598449c207776abe790759c0c4c952bd0ab824b9044ccee34e": "c8b5a9709c24a802aaf56655339fe62b73c9ad46b48a1d4030b8f7b5ac1022fc",
+          ".npm-cache/_cacache/index-v5/6f/9f/4244544732d3e784c8fd360e0ea256a943488c53a834da3d0ddf3e83af9b": "1f0720ca6fbea83469f846780c2094582936649a89ff0e89ed224e694422343d",
+          ".npm-cache/_cacache/index-v5/72/6d/1f762623db4b06a91bc30095cbf96aa9a8527cf43bb93f9d2f30a3585d5a": "35b42b63d1c9d2d207a50798495f1a80eb5f101a250411a03544552bcd6fb6fe",
+          ".npm-cache/_cacache/index-v5/72/87/fd71abe3255e114af17cb31a8780099570d0154d04f92eaf76f8cde804e5": "97f1ee41e78c69fc37fea71c33a54b68fc736d3aebe6ad4106fe39392097b1f3",
+          ".npm-cache/_cacache/index-v5/73/e2/434e6cce71a37629e1945f6d35d5e52c1e34aa88ef24d1915846c72775f1": "a5a35e8e2837f282c2830021b1b7bb4c7ac2fc0dd3cf75aa1a66c74932c772fd",
+          ".npm-cache/_cacache/index-v5/74/a2/bfbb11976e217879fc56d81950c0a294104dc4764119a093a9e4d03c8ce0": "7cb6c9641b6c177b17ee97cc665b17ca2f9037943d0b0b404fa402dc66400f62",
+          ".npm-cache/_cacache/index-v5/79/2b/a261187919d92768a88a7dd2d99815ee7f043463f14693e43ecf6ab9a13e": "a2c561f10139d1cd9b97f2c5230bb8140851642b37df770af8a73ea023646ca7",
+          ".npm-cache/_cacache/index-v5/79/33/8a7ef4c50bc61b5227b7a2e213cbed3123809387343f87e623627e6c2467": "9a978007ab4943488f47c18562d7229252157ff6f6ea68dc97dc19157f524b85",
+          ".npm-cache/_cacache/index-v5/7a/eb/3c3d3bae96103eea0881228975bc730e8e1a86f3b47584173536f19d4b08": "af917acfe1498276f9d1e26454b5c3970a262b64e5e0d402261a93edf926c864",
+          ".npm-cache/_cacache/index-v5/7c/01/a2c7cee872051584ce9afbd7cd92701c7fe77cb8be37a304f4703459da8e": "40ccfd424335641ca8468445ffe187fde96330052a6a8e48a7389163cf4874af",
+          ".npm-cache/_cacache/index-v5/7c/22/e50fc0132ff15f9bd4ffd260aacb79b3ef25c78697efb5381a263eccb2b3": "c54555ae2adeafc8cde0016847cbdb2f16387179370edc66b9274be282d51cf4",
+          ".npm-cache/_cacache/index-v5/80/3a/4a5732c282b178c7db04d066e1bf72f3e188eb895364b06eb795a5f7e87b": "fabd76471873b846941f16b078e57e77b660ec829b462a8c344c299b78dd7d38",
+          ".npm-cache/_cacache/index-v5/82/b4/b93a2c68eef00c8236ae5a1a6f24c4a1ccc82d947db81e9809c03fce5481": "d231efba5e00945ba5e2d100f7b6d31a9b31593abece613d15df40f3afaebdca",
+          ".npm-cache/_cacache/index-v5/8a/b7/b7679ff1eb44c2bea09ffc5effb00b0f2f4b22f3328ebe4d5def88acf9de": "b816e0d06163c3a2e2691fb83478fb8fbd8360ffef6d64c89ce0b1eb5e206ff2",
+          ".npm-cache/_cacache/index-v5/8b/93/7b95e0dedcb8078233a6c78e446ab86eeb34fe91750c0e4ce90602a1e1eb": "fb0bb1682c984b4b194685c2e36d71a5b05a4944c86dbb90496bbc4646d6a2e0",
+          ".npm-cache/_cacache/index-v5/8c/ce/6084eecc73caaa38e50178c1b29332fe5d5d9cd6180952c41afd4e4e5fc0": "f2701e3b0fb1a8fbaad652d4a7b40a10c81e34d618597ccb117b016281b885b6",
+          ".npm-cache/_cacache/index-v5/8d/18/d15a104a0944c809e757c0151fec03c18e6bfd3d1700acc26735df43e79f": "35133db24e06f96b0f7deacb93af073e5e524ffa0658cc033ac4f1aacd7436ee",
+          ".npm-cache/_cacache/index-v5/8d/23/74e25f29f138fa682cf4784147983d729a626c439e8dd2f5d0fb57319868": "7ea3b63956ad787ac893481866294df6275ac716c44a4a8cb8811fd9c368f4d2",
+          ".npm-cache/_cacache/index-v5/90/53/8c061789582f306e5cd49035ee51582e6495bd621f643d2451345dc3b3dc": "8022cacdb5c475d52b8cf84d338b6d2085e5f2289e019559f8b4708d0f7841bd",
+          ".npm-cache/_cacache/index-v5/93/09/72adca232a03beb43a8b72dac70aea04b97a0bf6b9fefbbe65e78ce2ab06": "5fe35396952ed2cd1a1aa35853993aeaa3dd5e3d42d031e5628ee3a5855d277a",
+          ".npm-cache/_cacache/index-v5/95/75/687939821827baf89453eb86559a27c09f58aeb98ea6455ac1964224bc85": "7660806ae1b9a2539d2696d7dfd846914ce63a8b282de2de62fdf7da3db7cbfd",
+          ".npm-cache/_cacache/index-v5/96/61/0dc6a31037614c3499074cd3668e8ad99a6ebeaf67ab7777bff17e41a8f2": "041973c4ac1c42e42922d082f0c1d0309aef9995f8321ce7f1e98f6d378e7183",
+          ".npm-cache/_cacache/index-v5/96/e8/97d2c6e5c772f993e1a5b5fdeae5e52c835ac89d689ba43dbe025d54d880": "2db806cf0a6c31848160fc2b739bcc1478b03319637ace3611105b94ea6acfa8",
+          ".npm-cache/_cacache/index-v5/9b/8c/88b3b8aae31fcb4c8aee70663d7c1bdf72a065a32589977f261f7ec81b8d": "672ed7e01358c77318a097fde7b3a2aa169954ca8106d6e753f369c172d11762",
+          ".npm-cache/_cacache/index-v5/9d/ac/896209f48728e5c51546b3eee1a7f3ca0e3f1fd7a3ed03452a8c45bc6d6a": "056f50e732677e920aca39fbcaa5fafd160ef77b71644947626b16f3c0546d06",
+          ".npm-cache/_cacache/index-v5/a0/2a/0a00d5e3b33e6bb5b42bee1aa91b11bca6d7939ab45e2788568c101d8fdd": "c2b100dcb1d6204f59c003be3dc75127830f9afccef5071d2071c74a5c3af41e",
+          ".npm-cache/_cacache/index-v5/a1/5e/c9aa1c46bf0c67511379e97bd07fca87532422f2506214f94db8861160d3": "2a17871c6abcd8285535dee7080665501e4e8ee61b9c3c5cb86a1e005678a3ea",
+          ".npm-cache/_cacache/index-v5/a2/aa/9af1f2c5216d57925681562e3a425fcaed71f790c8207dcdef380ef352f5": "fe15484e44a083f574290ad350c0ad81616afda400ed4ec52a7757dfea4cb7f6",
+          ".npm-cache/_cacache/index-v5/a4/96/1394bfe3119ef9620ccb5d4eb6c4001ab70c64efb55f558a35ad46138686": "b00cbf9a05c6b9823fd9572327b3689b3b97b9fec324cf3e3751e61f76d5867a",
+          ".npm-cache/_cacache/index-v5/a6/eb/5672834f1013134431fc8a076f0234611b6f557cbb3f79d1d17edd2e9172": "a7d96378e1ac8bf047074d7409d35d038820a30b52b2c0ece92b28e9482eeca4",
+          ".npm-cache/_cacache/index-v5/ae/54/24fd04498d836720ed69690ea3560e29c949549e12a1cc96ead68284d80b": "2de7c000edc5fa6f6b73decb6c44d9263f859ac923919e93074da0441f39a989",
+          ".npm-cache/_cacache/index-v5/b0/74/187b89c53e1962773f0ae13e020357b58665412f5615c5fa61b6ad710cad": "a47b1c1394136200863257f367b7b4a91c98517677cc38a87d9292068b6ae1ee",
+          ".npm-cache/_cacache/index-v5/b0/84/caadc2f4c9276458d2a2106923d73e149934db79695406328a3e01cd37dd": "e74aae6f60345956226147e00cbfa09b4bd32aee8d10a7b6184ca2832179031d",
+          ".npm-cache/_cacache/index-v5/b6/b1/f58f7d63bb6409cc7c88c376c2e6981aab7c77b23cf6868e771e5e888b30": "ef1d917c5ae01ddc64196f1b74d98f5293d6eeec5b278f59f004f25c397fb434",
+          ".npm-cache/_cacache/index-v5/b6/f1/e33f70a6240b78c7b115c307cccfb06810336f289a7274c0325778f50bf4": "cd5257a16baae1b4e13218d9a75a1d1d01caa80a2c74587fd73f76ff8181d7c5",
+          ".npm-cache/_cacache/index-v5/b9/bf/1e3daaea93f68bf9dcdd7e978b6dd8f43627145028c05ccc5d6187e7a25d": "3f4db77ceee70023cc0cb634c78ef756633f1c44702f453cd566305b6feff5a1",
+          ".npm-cache/_cacache/index-v5/ba/a7/7433b88ce6abd01175a353478cee90b80578dc5ee509a03e935b93c11fd9": "6fb3171548e30cbcada369760bd1eb4337e9202ec89a10466c191280c4a9f8c4",
+          ".npm-cache/_cacache/index-v5/bd/f5/7462e8144ef39f6322deba8717f0def02b5f7234eb74a63a9d803b256ea7": "e048d236dbc5d1177b9a4668e7d35ef276817fbcfee92352db9376df93b72899",
+          ".npm-cache/_cacache/index-v5/bf/07/9672ccd5d1b968aaac0d946fa3edfb7bf457bbf9ea32c1949fbe55b875f4": "17abd01bac139535c15478e5527663df919df1af1f7ae94ed953772a0814fd6c",
+          ".npm-cache/_cacache/index-v5/bf/75/e0a414c99c96512754fe77ca0218a498fdef0696ddf29d6c3389d59cb0c5": "38c9c19548fb65dda95d1132780450452079428ff4ba23749028940a170aed9e",
+          ".npm-cache/_cacache/index-v5/bf/7f/ea97e7dba47211746ae8f3bbab912fda350142444f41ed61f89fc9df914f": "7fe73431f02ce731ffe10cb4a65b2c3ecf8c6cc3ae645fad96aa416bd93a012f",
+          ".npm-cache/_cacache/index-v5/c0/01/0f37fce3404d3803622e53bc455f626c216e6d51187937166715733bda49": "d79974177b308fdd866c769f7981e592143f81f638d77ca69255009ff3101e54",
+          ".npm-cache/_cacache/index-v5/c2/a3/4d94c6c25990732f631da05a710bc3d90594982ac55c4556c82cb1edbdad": "e74ea520426663c93bb7cf2e4b73433ec841e7b6e9fa7167637aa31409a68829",
+          ".npm-cache/_cacache/index-v5/c8/a7/23253204a85b603787214b96ba25b0c438d92bbf95a998c84f8794f65218": "1bbb13719ddb609c6a74e0ab15f5647dce206a4ac4e4ca014ed3e244aadca4ee",
+          ".npm-cache/_cacache/index-v5/c9/1f/e25f670d26bc26d1cb236efef449fc8718223fd484c4107ba797934cb10c": "c5161008bfc06437504ec37854a1b053bb84495364f05cb0213e6c29a9faac16",
+          ".npm-cache/_cacache/index-v5/cf/4b/00d89bfd0ac984d06a82cd31f98d8509bc0bf7eb452d723a00985ef6c590": "63f4701803f3a9513bbb42f841a2f2a5ad0f2df6effdd35c6d316ec7bf5e5f2a",
+          ".npm-cache/_cacache/index-v5/d0/57/3aa5d94761ad382e1a1acc61203736494009e20422bce1dd1433666dd012": "1b7f7fdb9b875c03d44f90546c10b5dee41cbdc48b59ca3dd4401235e3ca2ebc",
+          ".npm-cache/_cacache/index-v5/d1/26/8e01e6bce59ac02f0d20fc97382749190cb73f6006f9526fc7fb1ec79dd4": "6c4d5a49bf8aa74c75269202f3bdc7d42227a1c8fd35acf26a695c9df7a917c2",
+          ".npm-cache/_cacache/index-v5/d1/c5/255526ac0589eb11dcc4f2c8ab30a85974521fd4921adfd05b04a6e92a1f": "3bb90d0ff32f47cd32a6d98aece9ec884392433887e92df1ab7d3592a10f895f",
+          ".npm-cache/_cacache/index-v5/e1/13/48011259d0e96d76bb6477a88e2828eb597909fd035b03109bd1f2cc4e3e": "d584cb754586b3073f6575f819870ff780a317d7d542fa0ce953d0e888c953b8",
+          ".npm-cache/_cacache/index-v5/e3/fd/4770783f9e8a04dc1981e9b336245aa81e7c44c38754a79c812ab556e605": "8a4d2aba76ba5eee74541442705db73ed19f5519c4de49a5893aeb8f2981dfd1",
+          ".npm-cache/_cacache/index-v5/e8/ad/09d01e1a140286a104a3deaa2cda92fe426a5115039ba9b221f230288b0c": "2364262cbeab1d9483c15390235b6978220c1d377a0e91f3a8144671da2b9632",
+          ".npm-cache/_cacache/index-v5/ec/52/1da406197170b616eda8e749f38787cc2f6a51a7cc273ecb5c757804513e": "3f50fcdc00f1dc01e5b6de3d41c1d8a83454f92ae8beda6c5fe29f44a24e4681",
+          ".npm-cache/_cacache/index-v5/ed/9d/4c32f49f0217f94baa4eb5a4186db9976f78d87830ea29f4c767006edd54": "3852d67ee7c460bb550cc81b6b30b65c51004499c7c30ada9133ce1ba2b1e951",
+          ".npm-cache/_cacache/index-v5/f3/7d/4cc6b41f107368f314d38d6fe39e7f469a62bafdd5ae79c0aedfd8107b5a": "d8e9e73970d3ce06e384cdfe14c454dd427585f478bd387a9a2392a6f990ff51",
+          ".npm-cache/_cacache/index-v5/f4/1e/c9539dfa3d4317dbdf44f7c62cbbb7422c27328913bd25f0f55d8ecf388a": "47cba0e87531bd4c10fe2a7335d7ee7baf9f006bea6eebcd6ea4ad3cbb196511",
+          ".npm-cache/_cacache/index-v5/f6/44/be954aca6e8bac59ed3f9aeedddfb27aff4451daf808e122d86491a37f77": "a75fc841894d94ae08803b9128bbcd9cae94d0c5160eb8c72945fbd7ae001200",
+          ".npm-cache/_cacache/index-v5/f7/e0/43d80404ad489768dd8284a1b9b3b1663724dfec3ae72d43d7be32aaedcb": "b1be6a01824618d88cb2105ffc5799008f989b1bab0ec77130406a4e395b6914",
+          ".npm-cache/_cacache/index-v5/fa/b0/270c46999fcd788692cf8c754e6bdd786af42ef53d4cdd0b3724aa22eb11": "3739427abcec65b457abffe69c07dac043103814e4b528e3bf037a60e8a6956b",
+          ".npm-cache/_cacache/index-v5/fb/b1/96a652a3a18c22058949f8378610aa81816a26fea10473aa084322826918": "c48486807b4a4cb861f077fd9358d80ba90ec9ed0a4ae5a5728eb20f32c999a9",
+          ".npm-cache/_cacache/index-v5/fc/e0/2b4dfa55fa981cae589ed1c43ceb6d6257fc5509d526f76d88f043c9ba7c": "fc530a3dcb0d85d17db2b589e28fdd78e467771abfaf1442f724255732f306bd",
+          ".npm-cache/_logs/2026-10-08T19_56_51_212Z-debug-0.log": "5ae6113fc918fd51925810e82bddf936d6570c6647d048b82336f0ab03873d42",
+          ".npm-cache/_logs/2026-10-08T19_56_56_006Z-debug-0.log": "e740638d2d5dca42032b198e85c713c323f9298385c25beb40814e1dcdaa712e",
+          ".npm-cache/_logs/2026-10-08T19_57_02_632Z-debug-0.log": "ad0bdcba315de1ac617995b2b53dfc19b467da500070cd77003b488fe8dbc2bd",
+          ".npm-cache/_logs/2026-10-08T20_02_12_830Z-debug-0.log": "dfdc06ca49b484387b9d9d83de93604e2e3a2899f5f3bdb02700c25c8ccb92e2",
+          ".npm-cache/_update-notifier-last-checked": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "README.md": "4d02dcb21d4d786c475b8acd8e89d1f710fb067a51fc1ff8f6166a284271d38a",
+          "build.mjs": "d1aff8860a60f643075b0f296ac99ebef28666b93285c8edeeda2a62907e1578",
+          "build.sh": "d9e235e72f86d7da98ab9286a50041390e258f3dea63a083bf333e38e4f26a5b",
+          "package-lock.json": "e7b39a4b2c31b3af5571c182eb4434b1e53c8e9c8a74aef7e6c4be6ba414f846",
+          "package.json": "152ace5024347e52331c7d66bdd34cfe8b5dbb885406e91f357fbd4daddf4dc4",
+          "public/index.html": "734ee41afb2fe01507a07030c218a3e639601f62b39b88f8ef193f2dd2748d62",
+          "public/style.css": "841b94da2cd7a32092eea552c172895ee41bfed4fe31c6570061f576f67e60e7",
+          "run.sh": "0fdf8cde5a7ebb507614ccfcb254f961ebdcb13e458b213307d777eca919dd5c",
+          "src/app.tsx": "c5ac72b046d53702463a583284d24eb755fca325bad933515904b24217adfb09",
+          "src/schema.ts": "ced0601582a8963454e7e4581f8b51564b66bf3b8df38cf1f27f082889f011bf",
+          "src/server.ts": "a20b84d3ac58872d73265ed257f625ab6ee830972f0778a27e8ae0c3b203ef3e",
+          "test.sh": "d522fc417ca44c67d308b408a8cf4f490470286b867874b20a565793f8d90518",
+          "tests/application.test.mjs": "d5133600e6d0072b26595116fa75d25a52277834d41fc90bb16961407012f73b",
+          "tsconfig.json": "305ffdaf6008b60f8aab94cdf176d43b206994d0b6eec734ddb2b11f529d3b55"
+        },
+        "rollout_trace": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/transcripts/typescript-01.rollout.jsonl",
+        "rollout_trace_sha256": "9819b0e41cfadf08dbb80f47fb612888acaf65d5f2f1ef2f52829e4fbef4a4d4",
+        "transcript": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/transcripts/typescript-01.jsonl",
+        "transcript_sha256": "5e32e285e75ecf9b6789e64cd868e6fcb2e17899b6f3a9335efa8785d3cc7505"
+      },
+      "failure_preserved": "candidate failed independent 912-case acceptance",
+      "label": "typescript-01",
+      "legacy_final_source_inventory_proxy_preserved": {
+        "excluded_directories": [
+          ".cache",
+          ".git",
+          ".mypy_cache",
+          ".pytest_cache",
+          ".ruff_cache",
+          ".semaprax",
+          ".spx-cache",
+          "__pycache__",
+          "acceptance-fixtures",
+          "build",
+          "coverage",
+          "dist",
+          "gen",
+          "generated",
+          "node_modules",
+          "out",
+          "target"
+        ],
+        "excluded_generated_extensions": [
+          ".c",
+          ".h",
+          "non-text/binary files"
+        ],
+        "files": [
+          {
+            "bytes": 53,
+            "path": ".gitignore",
+            "sha256": "4ed69e99602064eb659d5580e0249b7a68b169d0f1a0757587133349d86cdcca",
+            "tokens": 24
+          },
+          {
+            "bytes": 4515,
+            "path": "README.md",
+            "sha256": "4d02dcb21d4d786c475b8acd8e89d1f710fb067a51fc1ff8f6166a284271d38a",
+            "tokens": 1141
+          },
+          {
+            "bytes": 468,
+            "path": "build.mjs",
+            "sha256": "d1aff8860a60f643075b0f296ac99ebef28666b93285c8edeeda2a62907e1578",
+            "tokens": 151
+          },
+          {
+            "bytes": 145,
+            "path": "build.sh",
+            "sha256": "d9e235e72f86d7da98ab9286a50041390e258f3dea63a083bf333e38e4f26a5b",
+            "tokens": 54
+          },
+          {
+            "bytes": 11320,
+            "path": "package-lock.json",
+            "sha256": "e7b39a4b2c31b3af5571c182eb4434b1e53c8e9c8a74aef7e6c4be6ba414f846",
+            "tokens": 4385
+          },
+          {
+            "bytes": 1634,
+            "path": "package.json",
+            "sha256": "152ace5024347e52331c7d66bdd34cfe8b5dbb885406e91f357fbd4daddf4dc4",
+            "tokens": 609
+          },
+          {
+            "bytes": 281,
+            "path": "public/index.html",
+            "sha256": "734ee41afb2fe01507a07030c218a3e639601f62b39b88f8ef193f2dd2748d62",
+            "tokens": 82
+          },
+          {
+            "bytes": 4920,
+            "path": "public/style.css",
+            "sha256": "841b94da2cd7a32092eea552c172895ee41bfed4fe31c6570061f576f67e60e7",
+            "tokens": 1819
+          },
+          {
+            "bytes": 65,
+            "path": "run.sh",
+            "sha256": "0fdf8cde5a7ebb507614ccfcb254f961ebdcb13e458b213307d777eca919dd5c",
+            "tokens": 27
+          },
+          {
+            "bytes": 13254,
+            "path": "src/app.tsx",
+            "sha256": "c5ac72b046d53702463a583284d24eb755fca325bad933515904b24217adfb09",
+            "tokens": 4668
+          },
+          {
+            "bytes": 13959,
+            "path": "src/schema.ts",
+            "sha256": "ced0601582a8963454e7e4581f8b51564b66bf3b8df38cf1f27f082889f011bf",
+            "tokens": 4753
+          },
+          {
+            "bytes": 10075,
+            "path": "src/server.ts",
+            "sha256": "a20b84d3ac58872d73265ed257f625ab6ee830972f0778a27e8ae0c3b203ef3e",
+            "tokens": 3365
+          },
+          {
+            "bytes": 48,
+            "path": "test.sh",
+            "sha256": "d522fc417ca44c67d308b408a8cf4f490470286b867874b20a565793f8d90518",
+            "tokens": 21
+          },
+          {
+            "bytes": 22882,
+            "path": "tests/application.test.mjs",
+            "sha256": "d5133600e6d0072b26595116fa75d25a52277834d41fc90bb16961407012f73b",
+            "tokens": 7222
+          },
+          {
+            "bytes": 220,
+            "path": "tsconfig.json",
+            "sha256": "305ffdaf6008b60f8aab94cdf176d43b206994d0b6eec734ddb2b11f529d3b55",
+            "tokens": 63
+          }
+        ],
+        "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+        "status": "measured_proxy",
+        "tokenizer": {
+          "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+          "dependency": "tiktoken",
+          "dependency_version": "1.0.22",
+          "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+          "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+          "package": "@anthropic-ai/tokenizer",
+          "runtime": "node",
+          "runtime_version": "v24.3.0",
+          "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+          "version": "0.0.4"
+        },
+        "total_tokens": 28384
+      },
+      "legacy_net_input_tokens": 1063614,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_count": 35,
+      "number": 1,
+      "output_tokens": 37583,
+      "provider_receipt_actual_usd": null,
+      "raw_input_tokens": 1539264,
+      "reasoning_output_tokens_subset": 9490,
+      "resource_assessment_preserved": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 5754437632
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/resource-receipts/typescript-01.json"
+      },
+      "status_preserved": "not_accepted"
+    },
+    {
+      "acceptance_cases_reported": 912,
+      "acceptance_checks_by_status": {
+        "failed": 41,
+        "passed": 851,
+        "unverified": 20
+      },
+      "acceptance_wall_seconds": 474.529,
+      "agent_wall_seconds": 886.565,
+      "arm": "typescript",
+      "cache_write_input_tokens_subset": 0,
+      "cached_input_tokens_subset": 1065088,
+      "conditional_api_equivalent_usd": 0.548941,
+      "effort_observed": "medium",
+      "evidence": {
+        "candidate_archive": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/candidates/typescript-02",
+        "candidate_files_sha256_preserved": {
+          "README.md": "fa6842b62ae4ceed365cdee82d880da5eb3a973a5832d42c133b7e824b33c47a",
+          "build.mjs": "e87e0bbe7b3b8dee4c55054602aaca7bfd37c1fdf4a74ff78e137a237c90b318",
+          "build.sh": "3295f37ade80c3a9aea5e547bbfc44a91f7e1a5416afb105d7349aafdda6ea64",
+          "install.cjs": "9c081f9c8c19de8ce700188636ab8de9c2cf4eeae55336528d208d83512ba9ac",
+          "package.json": "310c14fcbcaf611dc51a916314308aaaff4a3c6b272fb250d356d7c0d14dbacb",
+          "run.sh": "0fdf8cde5a7ebb507614ccfcb254f961ebdcb13e458b213307d777eca919dd5c",
+          "src/app.ts": "5fbecf45c686c04165c09bc23b3fc2a6a65031e5f64d6a5391887f4a5426a6de",
+          "src/server.ts": "2b2b066ba2eb747bb3259ba3a61bafd6a96b330a9d97baa3ed1362052f49c0e8",
+          "src/shared.ts": "709e6289955d35d8f3a8db9a40f74b1315bd6bc11621c0f494d03864d4b6506a",
+          "src/style.css": "fe6f9257c8491f45ca1038525c47cfde54d6990860a2a8f0e456b49335b77472",
+          "src/tests.ts": "b01d1ff1f20813cde207ae3ab7c5198d79b682175e9286ad7e5e6e0808d2ca62",
+          "src/ui.tsx": "daec5ac49a4de64e9ca6ed77188abaae14266d981d7a4b3393efb0bb2412f1a3",
+          "test.sh": "d522fc417ca44c67d308b408a8cf4f490470286b867874b20a565793f8d90518",
+          "tsconfig.json": "843aa0cdd3ba10e246d46cf8e5a802510e4162eb49e0b7b9410d0a2e3177cd77",
+          "vendor/@esbuild__darwin-arm64-0.21.5.tgz": "4145466ca315b652cb2548bfe9ee705a888fb95d39107a664ef82a7afb2db5ca",
+          "vendor/@types__node-22.20.5.tgz": "1d382e6ea27221dcf02fc1cada5c5d396c4ca499552201323ca43713baa60012",
+          "vendor/@types__prop-types-15.7.15.tgz": "6a917895a313fc1d3c161c28fe39970c10bf2344cbb62e6eb7e9105c7ef43f62",
+          "vendor/@types__react-18.3.31.tgz": "c340ddf5ba598073a62de027ca879763bad9c7f237b41b57f2dbd0e9dcc23ca1",
+          "vendor/@types__react-dom-18.3.7.tgz": "6d58b4aefaa3aa02b9652c5d560e4fd250e5b6861d7a1b2adb35ef619178a6a4",
+          "vendor/csstype-3.2.3.tgz": "f3501f8ee1c73f7568fecb22c11231162c0467e59262461da5579519307427a3",
+          "vendor/esbuild-0.21.5.tgz": "0f60f3d3dc5efa299e3464d29b6a7dc51d1dff665fe7b036aa95021ce6fd827a",
+          "vendor/js-tokens-4.0.0.tgz": "d884c7a2d8adb5568c1272d92b4f9c62707f4226cf9e7b22e7b957c7361e3c53",
+          "vendor/loose-envify-1.4.0.tgz": "1218830a93538a4f730d530138e945ea6a65b45e099ee7a9ea538a05141babdc",
+          "vendor/manifest.json": "cfa6657966b57555dea92d00c34633af35eaa707f37dd9a7a8f82cabe74ed188",
+          "vendor/react-18.3.1.tgz": "8d9bed01a672e7eaf387942d781ad47c6a43089a30a0306060f9fd5ac7870347",
+          "vendor/react-dom-18.3.1.tgz": "031d4427a99f2f3f6cac18bbbf308594a67e4f47d10f4896fdec446505b040e0",
+          "vendor/scheduler-0.23.2.tgz": "e4f1d8fe63a9ab93ef66c92b0ad1af9c1326adbf7f1bd5e9053cac0fee6f26ae",
+          "vendor/typescript-5.9.3.tgz": "10e108c9cf7d5f2879053dff18515fb405abf2ccef63eaaf017d9c571687a1d3",
+          "vendor/undici-types-6.21.0.tgz": "cfa1a9a5e18988850e548f4f6b629c58da32dc32bebb116e58ea301e516fd16d"
+        },
+        "rollout_trace": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/transcripts/typescript-02.rollout.jsonl",
+        "rollout_trace_sha256": "c20a84d775ac2c818ef43b6815e9e7e7ed876545f7835384990375bdae9c5fa6",
+        "transcript": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/transcripts/typescript-02.jsonl",
+        "transcript_sha256": "86f8f6cb20a7dc38414dd0cecca034cd640ef34b0c5dddfb1dd82671043ce06e"
+      },
+      "failure_preserved": "candidate failed independent 912-case acceptance",
+      "label": "typescript-02",
+      "legacy_final_source_inventory_proxy_preserved": {
+        "excluded_directories": [
+          ".cache",
+          ".git",
+          ".mypy_cache",
+          ".pytest_cache",
+          ".ruff_cache",
+          ".semaprax",
+          ".spx-cache",
+          "__pycache__",
+          "acceptance-fixtures",
+          "build",
+          "coverage",
+          "dist",
+          "gen",
+          "generated",
+          "node_modules",
+          "out",
+          "target"
+        ],
+        "excluded_generated_extensions": [
+          ".c",
+          ".h",
+          "non-text/binary files"
+        ],
+        "files": [
+          {
+            "bytes": 4068,
+            "path": "README.md",
+            "sha256": "fa6842b62ae4ceed365cdee82d880da5eb3a973a5832d42c133b7e824b33c47a",
+            "tokens": 953
+          },
+          {
+            "bytes": 439,
+            "path": "build.mjs",
+            "sha256": "e87e0bbe7b3b8dee4c55054602aaca7bfd37c1fdf4a74ff78e137a237c90b318",
+            "tokens": 145
+          },
+          {
+            "bytes": 117,
+            "path": "build.sh",
+            "sha256": "3295f37ade80c3a9aea5e547bbfc44a91f7e1a5416afb105d7349aafdda6ea64",
+            "tokens": 46
+          },
+          {
+            "bytes": 592,
+            "path": "install.cjs",
+            "sha256": "9c081f9c8c19de8ce700188636ab8de9c2cf4eeae55336528d208d83512ba9ac",
+            "tokens": 174
+          },
+          {
+            "bytes": 394,
+            "path": "package.json",
+            "sha256": "310c14fcbcaf611dc51a916314308aaaff4a3c6b272fb250d356d7c0d14dbacb",
+            "tokens": 142
+          },
+          {
+            "bytes": 65,
+            "path": "run.sh",
+            "sha256": "0fdf8cde5a7ebb507614ccfcb254f961ebdcb13e458b213307d777eca919dd5c",
+            "tokens": 27
+          },
+          {
+            "bytes": 7918,
+            "path": "src/app.ts",
+            "sha256": "5fbecf45c686c04165c09bc23b3fc2a6a65031e5f64d6a5391887f4a5426a6de",
+            "tokens": 2725
+          },
+          {
+            "bytes": 945,
+            "path": "src/server.ts",
+            "sha256": "2b2b066ba2eb747bb3259ba3a61bafd6a96b330a9d97baa3ed1362052f49c0e8",
+            "tokens": 317
+          },
+          {
+            "bytes": 11032,
+            "path": "src/shared.ts",
+            "sha256": "709e6289955d35d8f3a8db9a40f74b1315bd6bc11621c0f494d03864d4b6506a",
+            "tokens": 3800
+          },
+          {
+            "bytes": 4266,
+            "path": "src/style.css",
+            "sha256": "fe6f9257c8491f45ca1038525c47cfde54d6990860a2a8f0e456b49335b77472",
+            "tokens": 1585
+          },
+          {
+            "bytes": 12321,
+            "path": "src/tests.ts",
+            "sha256": "b01d1ff1f20813cde207ae3ab7c5198d79b682175e9286ad7e5e6e0808d2ca62",
+            "tokens": 4125
+          },
+          {
+            "bytes": 11927,
+            "path": "src/ui.tsx",
+            "sha256": "daec5ac49a4de64e9ca6ed77188abaae14266d981d7a4b3393efb0bb2412f1a3",
+            "tokens": 4192
+          },
+          {
+            "bytes": 48,
+            "path": "test.sh",
+            "sha256": "d522fc417ca44c67d308b408a8cf4f490470286b867874b20a565793f8d90518",
+            "tokens": 21
+          },
+          {
+            "bytes": 249,
+            "path": "tsconfig.json",
+            "sha256": "843aa0cdd3ba10e246d46cf8e5a802510e4162eb49e0b7b9410d0a2e3177cd77",
+            "tokens": 71
+          },
+          {
+            "bytes": 2882,
+            "path": "vendor/manifest.json",
+            "sha256": "cfa6657966b57555dea92d00c34633af35eaa707f37dd9a7a8f82cabe74ed188",
+            "tokens": 1522
+          }
+        ],
+        "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+        "status": "measured_proxy",
+        "tokenizer": {
+          "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+          "dependency": "tiktoken",
+          "dependency_version": "1.0.22",
+          "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+          "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+          "package": "@anthropic-ai/tokenizer",
+          "runtime": "node",
+          "runtime_version": "v24.3.0",
+          "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+          "version": "0.0.4"
+        },
+        "total_tokens": 19845
+      },
+      "legacy_net_input_tokens": 703509,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_count": 32,
+      "number": 2,
+      "output_tokens": 29583,
+      "provider_receipt_actual_usd": null,
+      "raw_input_tokens": 1138389,
+      "reasoning_output_tokens_subset": 7821,
+      "resource_assessment_preserved": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 5759193088
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/resource-receipts/typescript-02.json"
+      },
+      "status_preserved": "not_accepted"
+    },
+    {
+      "acceptance_cases_reported": 912,
+      "acceptance_checks_by_status": {
+        "passed": 912
+      },
+      "acceptance_wall_seconds": 318.007,
+      "agent_wall_seconds": 453.362,
+      "arm": "semaprax",
+      "cache_write_input_tokens_subset": 0,
+      "cached_input_tokens_subset": 1046144,
+      "conditional_api_equivalent_usd": 0.42594,
+      "effort_observed": "medium",
+      "evidence": {
+        "candidate_archive": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/candidates/semaprax-02",
+        "candidate_files_sha256_preserved": {
+          "README.md": "919f9d18cd653c3c57eb1bc5a26f1fc9b01604daa3775ab1ea82b1e27eed6df8",
+          "app.spx": "9923380443e050f8c9fe9ab9f024e9e20a3fa662e05dc405580a27e352befc29",
+          "author.py": "9fa4ef54c2a4d4425c1e8fe85e01d71876fbc2c808da6b445ab5c84ec78bb19a",
+          "build.sh": "bf7ad78cbe8c84b23f7cfa9905048281511e95a309fae1af3320b6bc748805a1",
+          "launch.mjs": "991a95338472dd85d628887cd0123f77a3387ddd24db623e76f0c49f4c1ab597",
+          "run.sh": "c5f1fb562e64502cece067e1b02b71cbaf28542f38c9c5af20b10ab770b492f3",
+          "setup.mjs": "5aff975a0ccc3ae249e31ac5d6b17b5822c1a56afe26f5037abe2692366b3cb8",
+          "test.sh": "2168be829fbb3c50128479945ffcf0385830fc32a1c70ff876c1fa7be1dc9264",
+          "tests/application.test.mjs": "d38de8c8e326dcf561e2737cf25291bfce63e7cfe728637c9b4c0787cb4b9fb0",
+          "tests/handler-worker.mjs": "a341f4437586225c7547d0131cda1e3221f12d1cb5da000bc04ca4d0a83820a4",
+          "webapp/app.js": "171888b5f6da073a3e0c063a593c7f327fa9482b390733ddad4eb1bf14389b5f",
+          "webapp/index.html": "6d16a0ffa0fec2c0254f1d5af5557a76cc75f7cde301b5230bbb06ac71809fe4",
+          "webapp/runtime.js": "1e6ba80565312422b3a6d9f740e3620aa2023552294ce963f442c9e42f080751",
+          "webapp/schema.js": "ba59e9e42799ec455d5394719ed5d4918eed46409c7fa3537c717fddeb66a5fd",
+          "webapp/security.mjs": "7e0404e8f4ef2f5299273ea08bf93a8ebcfa2b384add49121e0fd26e9436d277",
+          "webapp/server.mjs": "2ed7421b8ac129f5db5415e6fdff036cb21a21d6d057e96888b2c805d541cd0c",
+          "webapp/state.mjs": "8b3c06aa05d7e45994e4578c6fd9bb4906d3575433ed71408578cfc1c9414892",
+          "webapp/style.css": "36b4fe13dee9ce5e15686dba1a5139475ad0388330eb27dc8460b7f8acc5f24a"
+        },
+        "rollout_trace": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/transcripts/semaprax-02.rollout.jsonl",
+        "rollout_trace_sha256": "2da6fd91f83afea4b9f9cd209c05a6f25def10d2ab14741472c46ea2d083b6b8",
+        "transcript": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/transcripts/semaprax-02.jsonl",
+        "transcript_sha256": "4326a31d43e9d83368e23a7973e32b935e2e393eb63a19e2c2c4375359776b34"
+      },
+      "failure_preserved": null,
+      "label": "semaprax-02",
+      "legacy_final_source_inventory_proxy_preserved": {
+        "excluded_directories": [
+          ".cache",
+          ".git",
+          ".mypy_cache",
+          ".pytest_cache",
+          ".ruff_cache",
+          ".semaprax",
+          ".spx-cache",
+          "__pycache__",
+          "acceptance-fixtures",
+          "build",
+          "coverage",
+          "dist",
+          "gen",
+          "generated",
+          "node_modules",
+          "out",
+          "target"
+        ],
+        "excluded_generated_extensions": [
+          ".c",
+          ".h",
+          "non-text/binary files"
+        ],
+        "files": [
+          {
+            "bytes": 4233,
+            "path": "README.md",
+            "sha256": "919f9d18cd653c3c57eb1bc5a26f1fc9b01604daa3775ab1ea82b1e27eed6df8",
+            "tokens": 1098
+          },
+          {
+            "bytes": 12066,
+            "path": "app.spx",
+            "sha256": "9923380443e050f8c9fe9ab9f024e9e20a3fa662e05dc405580a27e352befc29",
+            "tokens": 3942
+          },
+          {
+            "bytes": 8110,
+            "path": "author.py",
+            "sha256": "9fa4ef54c2a4d4425c1e8fe85e01d71876fbc2c808da6b445ab5c84ec78bb19a",
+            "tokens": 2666
+          },
+          {
+            "bytes": 192,
+            "path": "build.sh",
+            "sha256": "bf7ad78cbe8c84b23f7cfa9905048281511e95a309fae1af3320b6bc748805a1",
+            "tokens": 77
+          },
+          {
+            "bytes": 2840,
+            "path": "launch.mjs",
+            "sha256": "991a95338472dd85d628887cd0123f77a3387ddd24db623e76f0c49f4c1ab597",
+            "tokens": 882
+          },
+          {
+            "bytes": 60,
+            "path": "run.sh",
+            "sha256": "c5f1fb562e64502cece067e1b02b71cbaf28542f38c9c5af20b10ab770b492f3",
+            "tokens": 25
+          },
+          {
+            "bytes": 1722,
+            "path": "setup.mjs",
+            "sha256": "5aff975a0ccc3ae249e31ac5d6b17b5822c1a56afe26f5037abe2692366b3cb8",
+            "tokens": 524
+          },
+          {
+            "bytes": 160,
+            "path": "test.sh",
+            "sha256": "2168be829fbb3c50128479945ffcf0385830fc32a1c70ff876c1fa7be1dc9264",
+            "tokens": 57
+          },
+          {
+            "bytes": 17598,
+            "path": "tests/application.test.mjs",
+            "sha256": "d38de8c8e326dcf561e2737cf25291bfce63e7cfe728637c9b4c0787cb4b9fb0",
+            "tokens": 5749
+          },
+          {
+            "bytes": 1282,
+            "path": "tests/handler-worker.mjs",
+            "sha256": "a341f4437586225c7547d0131cda1e3221f12d1cb5da000bc04ca4d0a83820a4",
+            "tokens": 380
+          },
+          {
+            "bytes": 17491,
+            "path": "webapp/app.js",
+            "sha256": "171888b5f6da073a3e0c063a593c7f327fa9482b390733ddad4eb1bf14389b5f",
+            "tokens": 6235
+          },
+          {
+            "bytes": 367,
+            "path": "webapp/index.html",
+            "sha256": "6d16a0ffa0fec2c0254f1d5af5557a76cc75f7cde301b5230bbb06ac71809fe4",
+            "tokens": 133
+          },
+          {
+            "bytes": 13819,
+            "path": "webapp/runtime.js",
+            "sha256": "1e6ba80565312422b3a6d9f740e3620aa2023552294ce963f442c9e42f080751",
+            "tokens": 4556
+          },
+          {
+            "bytes": 32509,
+            "path": "webapp/schema.js",
+            "sha256": "ba59e9e42799ec455d5394719ed5d4918eed46409c7fa3537c717fddeb66a5fd",
+            "tokens": 12003
+          },
+          {
+            "bytes": 1747,
+            "path": "webapp/security.mjs",
+            "sha256": "7e0404e8f4ef2f5299273ea08bf93a8ebcfa2b384add49121e0fd26e9436d277",
+            "tokens": 553
+          },
+          {
+            "bytes": 46746,
+            "path": "webapp/server.mjs",
+            "sha256": "2ed7421b8ac129f5db5415e6fdff036cb21a21d6d057e96888b2c805d541cd0c",
+            "tokens": 15421
+          },
+          {
+            "bytes": 6185,
+            "path": "webapp/state.mjs",
+            "sha256": "8b3c06aa05d7e45994e4578c6fd9bb4906d3575433ed71408578cfc1c9414892",
+            "tokens": 1702
+          },
+          {
+            "bytes": 3516,
+            "path": "webapp/style.css",
+            "sha256": "36b4fe13dee9ce5e15686dba1a5139475ad0388330eb27dc8460b7f8acc5f24a",
+            "tokens": 1335
+          }
+        ],
+        "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+        "status": "measured_proxy",
+        "tokenizer": {
+          "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+          "dependency": "tiktoken",
+          "dependency_version": "1.0.22",
+          "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+          "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+          "package": "@anthropic-ai/tokenizer",
+          "runtime": "node",
+          "runtime_version": "v24.3.0",
+          "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+          "version": "0.0.4"
+        },
+        "total_tokens": 57338
+      },
+      "legacy_net_input_tokens": 810285,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_count": 23,
+      "number": 2,
+      "output_tokens": 16611,
+      "provider_receipt_actual_usd": null,
+      "raw_input_tokens": 1123752,
+      "reasoning_output_tokens_subset": 3697,
+      "resource_assessment_preserved": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 7830327296
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/resource-receipts/semaprax-02.json"
+      },
+      "status_preserved": "accepted"
+    },
+    {
+      "acceptance_cases_reported": 912,
+      "acceptance_checks_by_status": {
+        "passed": 912
+      },
+      "acceptance_wall_seconds": 322.135,
+      "agent_wall_seconds": 430.623,
+      "arm": "semaprax",
+      "cache_write_input_tokens_subset": 0,
+      "cached_input_tokens_subset": 1089792,
+      "conditional_api_equivalent_usd": 0.374773,
+      "effort_observed": "medium",
+      "evidence": {
+        "candidate_archive": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/candidates/semaprax-03",
+        "candidate_files_sha256_preserved": {
+          "README.md": "77faaf3ec4690c8af3f17b27c60f81b9ed00a2a5ff2b788f11bc122dfa3d365b",
+          "app.spx": "89a69bd8eb34ee7d81bc267e4d9c42b05ababb607aa778b8f367c4423468b45b",
+          "build.sh": "c08d88fd5f7be805d145f4ff97b1543cf45cbf81e7b76739f1747b8e2237ad55",
+          "launch.mjs": "b6a28a2d5a4ea1a34baf119485099c684730a7e650640210cbf92e252f3c2150",
+          "run.sh": "c5f1fb562e64502cece067e1b02b71cbaf28542f38c9c5af20b10ab770b492f3",
+          "test.mjs": "3130aed7ad8071fcf51c7c174ccb94109f8e9425d70558e8da6cda3f823d665f",
+          "test.sh": "e35d91358944a9ccf17573233fc42afe245f88365f46e3a464d2f82016a2dcae"
+        },
+        "rollout_trace": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/transcripts/semaprax-03.rollout.jsonl",
+        "rollout_trace_sha256": "12422f8f8c404f48fe15ff56ba4e161142b0621f03b926b0fef7e80004e4c50a",
+        "transcript": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/transcripts/semaprax-03.jsonl",
+        "transcript_sha256": "999f99affe0d561fd8592a7d8b20a319ee4b41eeb10d77e812adf87b501d9ced"
+      },
+      "failure_preserved": null,
+      "label": "semaprax-03",
+      "legacy_final_source_inventory_proxy_preserved": {
+        "excluded_directories": [
+          ".cache",
+          ".git",
+          ".mypy_cache",
+          ".pytest_cache",
+          ".ruff_cache",
+          ".semaprax",
+          ".spx-cache",
+          "__pycache__",
+          "acceptance-fixtures",
+          "build",
+          "coverage",
+          "dist",
+          "gen",
+          "generated",
+          "node_modules",
+          "out",
+          "target"
+        ],
+        "excluded_generated_extensions": [
+          ".c",
+          ".h",
+          "non-text/binary files"
+        ],
+        "files": [
+          {
+            "bytes": 3604,
+            "path": "README.md",
+            "sha256": "77faaf3ec4690c8af3f17b27c60f81b9ed00a2a5ff2b788f11bc122dfa3d365b",
+            "tokens": 898
+          },
+          {
+            "bytes": 10472,
+            "path": "app.spx",
+            "sha256": "89a69bd8eb34ee7d81bc267e4d9c42b05ababb607aa778b8f367c4423468b45b",
+            "tokens": 3291
+          },
+          {
+            "bytes": 188,
+            "path": "build.sh",
+            "sha256": "c08d88fd5f7be805d145f4ff97b1543cf45cbf81e7b76739f1747b8e2237ad55",
+            "tokens": 74
+          },
+          {
+            "bytes": 2781,
+            "path": "launch.mjs",
+            "sha256": "b6a28a2d5a4ea1a34baf119485099c684730a7e650640210cbf92e252f3c2150",
+            "tokens": 851
+          },
+          {
+            "bytes": 60,
+            "path": "run.sh",
+            "sha256": "c5f1fb562e64502cece067e1b02b71cbaf28542f38c9c5af20b10ab770b492f3",
+            "tokens": 25
+          },
+          {
+            "bytes": 13380,
+            "path": "test.mjs",
+            "sha256": "3130aed7ad8071fcf51c7c174ccb94109f8e9425d70558e8da6cda3f823d665f",
+            "tokens": 4165
+          },
+          {
+            "bytes": 53,
+            "path": "test.sh",
+            "sha256": "e35d91358944a9ccf17573233fc42afe245f88365f46e3a464d2f82016a2dcae",
+            "tokens": 24
+          }
+        ],
+        "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+        "status": "measured_proxy",
+        "tokenizer": {
+          "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+          "dependency": "tiktoken",
+          "dependency_version": "1.0.22",
+          "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+          "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+          "package": "@anthropic-ai/tokenizer",
+          "runtime": "node",
+          "runtime_version": "v24.3.0",
+          "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+          "version": "0.0.4"
+        },
+        "total_tokens": 9328
+      },
+      "legacy_net_input_tokens": 828508,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_count": 24,
+      "number": 3,
+      "output_tokens": 13417,
+      "provider_receipt_actual_usd": null,
+      "raw_input_tokens": 1155604,
+      "reasoning_output_tokens_subset": 2391,
+      "resource_assessment_preserved": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 9025204224
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/resource-receipts/semaprax-03.json"
+      },
+      "status_preserved": "accepted"
+    },
+    {
+      "acceptance_cases_reported": 1,
+      "acceptance_checks_by_status": {
+        "failed": 1
+      },
+      "acceptance_wall_seconds": 3.421,
+      "agent_wall_seconds": 943.491,
+      "arm": "typescript",
+      "cache_write_input_tokens_subset": 0,
+      "cached_input_tokens_subset": 1425920,
+      "conditional_api_equivalent_usd": 0.6806,
+      "effort_observed": "medium",
+      "evidence": {
+        "candidate_archive": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/candidates/typescript-03",
+        "candidate_files_sha256_preserved": {
+          "README.md": "bb4a0f40b52293d37d0f7ab6572e24849475f19e3bddaae6513d98f9c9f3e0dd",
+          "build.mjs": "1642ce767dd7773e02eb72cb64bec45515ac35e74144e67cf4619411ab79c5b3",
+          "build.sh": "427fe603ba212e46ecc072cf8dadc32f906f8cfef6d25ff4d3a7b3623436dd2e",
+          "package.json": "07c4f47c8bf85edc6e7ad024e96427f66a62c6c9c3394f336e77658385b42953",
+          "run.sh": "0fdf8cde5a7ebb507614ccfcb254f961ebdcb13e458b213307d777eca919dd5c",
+          "src/app.ts": "3969babd7bdc690cbdd0a9a7efe9107b7192559781f1a6467169be1b67ba5e48",
+          "src/model.ts": "33389b82626071a33e6ac4f63663974109154dd7623144cd215d56bbae36d2e3",
+          "src/server.ts": "c31ef8f215eaf5781f4088128d0e2a7ddc4a96f30ffb1ceb482d3a14032ba7ef",
+          "src/style.css": "7b9719306e548633a55f922d49949803df9c455db6ec90f5a8c8b5704c113ac8",
+          "src/ui.tsx": "2db0b239e1c02873c0cefe7b9923bd3d467abb6accf874f586809bd0247b77d2",
+          "test.sh": "d94e38112adcceb1ae75c0509906d87d3fbf1d8eac67de04cd7fc6981947f7b2",
+          "tests.mjs": "170715d5d37816f97dfea2f12233f53c2e42ec0e5cb4770fc637c5e4ee3cea89",
+          "tsconfig.json": "16efe54e130ddbd7af9f6c0dd7b201dffacf2b14a506e7365606cb2c85645ecc"
+        },
+        "rollout_trace": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/transcripts/typescript-03.rollout.jsonl",
+        "rollout_trace_sha256": "344cba46dafe11b55ba463d15f297f723c207efbc9de03f68e640957f422792b",
+        "transcript": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/transcripts/typescript-03.jsonl",
+        "transcript_sha256": "d4ea17820b5efc31fc6671db8fa67e3c4ad1d004e384e64c67566d49b72c9479"
+      },
+      "failure_preserved": "candidate failed independent 912-case acceptance",
+      "label": "typescript-03",
+      "legacy_final_source_inventory_proxy_preserved": {
+        "excluded_directories": [
+          ".cache",
+          ".git",
+          ".mypy_cache",
+          ".pytest_cache",
+          ".ruff_cache",
+          ".semaprax",
+          ".spx-cache",
+          "__pycache__",
+          "acceptance-fixtures",
+          "build",
+          "coverage",
+          "dist",
+          "gen",
+          "generated",
+          "node_modules",
+          "out",
+          "target"
+        ],
+        "excluded_generated_extensions": [
+          ".c",
+          ".h",
+          "non-text/binary files"
+        ],
+        "files": [
+          {
+            "bytes": 4276,
+            "path": "README.md",
+            "sha256": "bb4a0f40b52293d37d0f7ab6572e24849475f19e3bddaae6513d98f9c9f3e0dd",
+            "tokens": 1021
+          },
+          {
+            "bytes": 1114,
+            "path": "build.mjs",
+            "sha256": "1642ce767dd7773e02eb72cb64bec45515ac35e74144e67cf4619411ab79c5b3",
+            "tokens": 347
+          },
+          {
+            "bytes": 100,
+            "path": "build.sh",
+            "sha256": "427fe603ba212e46ecc072cf8dadc32f906f8cfef6d25ff4d3a7b3623436dd2e",
+            "tokens": 40
+          },
+          {
+            "bytes": 344,
+            "path": "package.json",
+            "sha256": "07c4f47c8bf85edc6e7ad024e96427f66a62c6c9c3394f336e77658385b42953",
+            "tokens": 130
+          },
+          {
+            "bytes": 65,
+            "path": "run.sh",
+            "sha256": "0fdf8cde5a7ebb507614ccfcb254f961ebdcb13e458b213307d777eca919dd5c",
+            "tokens": 27
+          },
+          {
+            "bytes": 8882,
+            "path": "src/app.ts",
+            "sha256": "3969babd7bdc690cbdd0a9a7efe9107b7192559781f1a6467169be1b67ba5e48",
+            "tokens": 2970
+          },
+          {
+            "bytes": 12510,
+            "path": "src/model.ts",
+            "sha256": "33389b82626071a33e6ac4f63663974109154dd7623144cd215d56bbae36d2e3",
+            "tokens": 4326
+          },
+          {
+            "bytes": 861,
+            "path": "src/server.ts",
+            "sha256": "c31ef8f215eaf5781f4088128d0e2a7ddc4a96f30ffb1ceb482d3a14032ba7ef",
+            "tokens": 291
+          },
+          {
+            "bytes": 6598,
+            "path": "src/style.css",
+            "sha256": "7b9719306e548633a55f922d49949803df9c455db6ec90f5a8c8b5704c113ac8",
+            "tokens": 2442
+          },
+          {
+            "bytes": 15854,
+            "path": "src/ui.tsx",
+            "sha256": "2db0b239e1c02873c0cefe7b9923bd3d467abb6accf874f586809bd0247b77d2",
+            "tokens": 5326
+          },
+          {
+            "bytes": 54,
+            "path": "test.sh",
+            "sha256": "d94e38112adcceb1ae75c0509906d87d3fbf1d8eac67de04cd7fc6981947f7b2",
+            "tokens": 24
+          },
+          {
+            "bytes": 18487,
+            "path": "tests.mjs",
+            "sha256": "170715d5d37816f97dfea2f12233f53c2e42ec0e5cb4770fc637c5e4ee3cea89",
+            "tokens": 5889
+          },
+          {
+            "bytes": 234,
+            "path": "tsconfig.json",
+            "sha256": "16efe54e130ddbd7af9f6c0dd7b201dffacf2b14a506e7365606cb2c85645ecc",
+            "tokens": 70
+          }
+        ],
+        "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+        "status": "measured_proxy",
+        "tokenizer": {
+          "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+          "dependency": "tiktoken",
+          "dependency_version": "1.0.22",
+          "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+          "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+          "package": "@anthropic-ai/tokenizer",
+          "runtime": "node",
+          "runtime_version": "v24.3.0",
+          "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+          "version": "0.0.4"
+        },
+        "total_tokens": 22903
+      },
+      "legacy_net_input_tokens": 1025394,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_count": 37,
+      "number": 3,
+      "output_tokens": 33340,
+      "provider_receipt_actual_usd": null,
+      "raw_input_tokens": 1528224,
+      "reasoning_output_tokens_subset": 7032,
+      "resource_assessment_preserved": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 7609389056
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/resource-receipts/typescript-03.json"
+      },
+      "status_preserved": "not_accepted"
+    },
+    {
+      "acceptance_cases_reported": 912,
+      "acceptance_checks_by_status": {
+        "failed": 24,
+        "passed": 888
+      },
+      "acceptance_wall_seconds": 292.164,
+      "agent_wall_seconds": 826.777,
+      "arm": "typescript",
+      "cache_write_input_tokens_subset": 0,
+      "cached_input_tokens_subset": 1092352,
+      "conditional_api_equivalent_usd": 0.511375,
+      "effort_observed": "medium",
+      "evidence": {
+        "candidate_archive": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/candidates/typescript-04",
+        "candidate_files_sha256_preserved": {
+          "README.md": "df1987e451721d7eed6b34308a8972375165d9e809e3029bcf392cf1082f7cc1",
+          "build.mjs": "f80de83f2dec725cae701a231c59520177d6c82e000120cc36b071bdaaac45cc",
+          "build.sh": "7041fdd36a11a4ccc6f613eae9d070207cab6d6d4033a8c855342c2d02d31a4a",
+          "package-lock.json": "ed03af106d7219121db3ebe67967b6915e1ce47b918ad7dfb896d42c60e2fb95",
+          "package.json": "b27588ada737cd19add6411d7c8f79de46fd2862dfe98484c62ccd015f366d79",
+          "run.sh": "0fdf8cde5a7ebb507614ccfcb254f961ebdcb13e458b213307d777eca919dd5c",
+          "src/app.tsx": "d35b0d24147d5882098ab0426496e7837cd8f10a13ecbe722167be088ac513b7",
+          "src/index.html": "dca5a185dd8bd9f01a7f72744e5f71089dea175301c433793debfc90905d2ec6",
+          "src/model.ts": "dc90761b2dd8d4acbd3b7c5736edf89c4abbbcedc333f31c3dc0156a3d1e296d",
+          "src/server.ts": "3c2978bc86ff4302d7af35afd6ab2a32add0856bb90bff25a28cbff78f783c1b",
+          "src/style.css": "2e5ebe4f0f54d4ad09c5896273f309b00bd2d9c077681a88c14713004d2e27b2",
+          "test.sh": "6abce786ef6decdb93c22850b28972d03337c6151ae5bd112e0900c00de2ab18",
+          "tests.mjs": "9869cb4fef20c6e1582bb8a0ed3a217522e80bf10652a863f0d27b0f72d64325",
+          "tsconfig.json": "08f7b2733d9ef9d6d059ac2e9c19089e2dc67b7a0ebbed25fb3c99f33c19a697"
+        },
+        "rollout_trace": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/transcripts/typescript-04.rollout.jsonl",
+        "rollout_trace_sha256": "894972f3ee5907ddee836602bb8c6b144e64feff519d9fe24feef73b6169bc4b",
+        "transcript": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/transcripts/typescript-04.jsonl",
+        "transcript_sha256": "497ff972f967aac2b4ea859dc222b3323c28cff041aa0d6a4f02aca4dc273cf4"
+      },
+      "failure_preserved": "candidate failed independent 912-case acceptance",
+      "label": "typescript-04",
+      "legacy_final_source_inventory_proxy_preserved": {
+        "excluded_directories": [
+          ".cache",
+          ".git",
+          ".mypy_cache",
+          ".pytest_cache",
+          ".ruff_cache",
+          ".semaprax",
+          ".spx-cache",
+          "__pycache__",
+          "acceptance-fixtures",
+          "build",
+          "coverage",
+          "dist",
+          "gen",
+          "generated",
+          "node_modules",
+          "out",
+          "target"
+        ],
+        "excluded_generated_extensions": [
+          ".c",
+          ".h",
+          "non-text/binary files"
+        ],
+        "files": [
+          {
+            "bytes": 2271,
+            "path": "README.md",
+            "sha256": "df1987e451721d7eed6b34308a8972375165d9e809e3029bcf392cf1082f7cc1",
+            "tokens": 572
+          },
+          {
+            "bytes": 774,
+            "path": "build.mjs",
+            "sha256": "f80de83f2dec725cae701a231c59520177d6c82e000120cc36b071bdaaac45cc",
+            "tokens": 254
+          },
+          {
+            "bytes": 87,
+            "path": "build.sh",
+            "sha256": "7041fdd36a11a4ccc6f613eae9d070207cab6d6d4033a8c855342c2d02d31a4a",
+            "tokens": 37
+          },
+          {
+            "bytes": 9748,
+            "path": "package-lock.json",
+            "sha256": "ed03af106d7219121db3ebe67967b6915e1ce47b918ad7dfb896d42c60e2fb95",
+            "tokens": 3807
+          },
+          {
+            "bytes": 1296,
+            "path": "package.json",
+            "sha256": "b27588ada737cd19add6411d7c8f79de46fd2862dfe98484c62ccd015f366d79",
+            "tokens": 491
+          },
+          {
+            "bytes": 65,
+            "path": "run.sh",
+            "sha256": "0fdf8cde5a7ebb507614ccfcb254f961ebdcb13e458b213307d777eca919dd5c",
+            "tokens": 27
+          },
+          {
+            "bytes": 15560,
+            "path": "src/app.tsx",
+            "sha256": "d35b0d24147d5882098ab0426496e7837cd8f10a13ecbe722167be088ac513b7",
+            "tokens": 5341
+          },
+          {
+            "bytes": 295,
+            "path": "src/index.html",
+            "sha256": "dca5a185dd8bd9f01a7f72744e5f71089dea175301c433793debfc90905d2ec6",
+            "tokens": 86
+          },
+          {
+            "bytes": 12130,
+            "path": "src/model.ts",
+            "sha256": "dc90761b2dd8d4acbd3b7c5736edf89c4abbbcedc333f31c3dc0156a3d1e296d",
+            "tokens": 4171
+          },
+          {
+            "bytes": 9512,
+            "path": "src/server.ts",
+            "sha256": "3c2978bc86ff4302d7af35afd6ab2a32add0856bb90bff25a28cbff78f783c1b",
+            "tokens": 3227
+          },
+          {
+            "bytes": 6948,
+            "path": "src/style.css",
+            "sha256": "2e5ebe4f0f54d4ad09c5896273f309b00bd2d9c077681a88c14713004d2e27b2",
+            "tokens": 2568
+          },
+          {
+            "bytes": 61,
+            "path": "test.sh",
+            "sha256": "6abce786ef6decdb93c22850b28972d03337c6151ae5bd112e0900c00de2ab18",
+            "tokens": 26
+          },
+          {
+            "bytes": 18799,
+            "path": "tests.mjs",
+            "sha256": "9869cb4fef20c6e1582bb8a0ed3a217522e80bf10652a863f0d27b0f72d64325",
+            "tokens": 6099
+          },
+          {
+            "bytes": 232,
+            "path": "tsconfig.json",
+            "sha256": "08f7b2733d9ef9d6d059ac2e9c19089e2dc67b7a0ebbed25fb3c99f33c19a697",
+            "tokens": 69
+          }
+        ],
+        "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+        "status": "measured_proxy",
+        "tokenizer": {
+          "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+          "dependency": "tiktoken",
+          "dependency_version": "1.0.22",
+          "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+          "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+          "package": "@anthropic-ai/tokenizer",
+          "runtime": "node",
+          "runtime_version": "v24.3.0",
+          "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+          "version": "0.0.4"
+        },
+        "total_tokens": 26775
+      },
+      "legacy_net_input_tokens": 699987,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_count": 33,
+      "number": 4,
+      "output_tokens": 28993,
+      "provider_receipt_actual_usd": null,
+      "raw_input_tokens": 1148457,
+      "reasoning_output_tokens_subset": 5543,
+      "resource_assessment_preserved": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": false,
+        "contaminated": true,
+        "cost_retained": true,
+        "incidents": [
+          {
+            "device": 16777233,
+            "free_bytes": 5231644672,
+            "kind": "disk_headroom_below_floor",
+            "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008",
+            "unix_seconds": 1791494761.5523012
+          }
+        ],
+        "minimum_free_bytes_by_device": {
+          "16777233": 2010214400
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/resource-receipts/typescript-04.json"
+      },
+      "status_preserved": "not_accepted"
+    }
+  ],
+  "calibration_separate_preserved": {
+    "elapsed_seconds": 4.883,
+    "list_price": {
+      "actual_billed_usd": null,
+      "assumptions": "each request input <=272k; input/cache-read/cache-write/output use published standard rates",
+      "cache_write_cost_usd": 0.0,
+      "cache_write_tokens": 0,
+      "reason": null,
+      "standard_short_context_api_equivalent_usd": 0.009771
+    },
+    "observed": {
+      "codex_outer_turns": 1,
+      "effort_observed": "medium",
+      "final_turn_usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 8832,
+        "input_tokens": 13251,
+        "output_tokens": 5,
+        "reasoning_output_tokens": 0
+      },
+      "invalid_stream_lines": 0,
+      "legacy_net_input_tokens": 0,
+      "legacy_net_note": "Codex input includes cache subsets; subtract first request total once per model request for historical comparability only, never task-only input.",
+      "model_context_window": 258400,
+      "model_identity_note": "The exec JSONL does not expose an observed model identity.",
+      "model_identity_source": "client turn_context; provider-resolved model is unavailable",
+      "model_observed": "gpt-6.1-sol",
+      "model_request_count": 1,
+      "model_requests": [
+        {
+          "request_id": "resp_0b1a3c44cb4c1f0d016ac7f3056e88819194f9410840b46b04",
+          "usage": {
+            "cache_write_input_tokens": 0,
+            "cached_input_tokens": 8832,
+            "input_tokens": 13251,
+            "output_tokens": 5,
+            "reasoning_output_tokens": 0
+          }
+        }
+      ],
+      "provider_resolved_model": null,
+      "reconciled": true,
+      "reconciliation_note": "Per-request trace sum must equal final turn.completed usage; tool item counts are separate.",
+      "request_usage_sum": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 8832,
+        "input_tokens": 13251,
+        "output_tokens": 5,
+        "reasoning_output_tokens": 0
+      },
+      "rollout_malformed_lines": 0,
+      "rollout_orphan_usage_records": 0,
+      "stable_context_tokens": null,
+      "thread_ids": [
+        "01a11d0d-436f-7140-b85a-6c7df36b2dcb"
+      ],
+      "tool_item_counts": {
+        "agent_message": 1
+      },
+      "turn_completed_events": 1
+    },
+    "process_exit_code": 0,
+    "provider_receipt_actual_usd": null,
+    "resource_assessment": {
+      "acceptance_unchanged": true,
+      "clean_comparison_eligible": true,
+      "contaminated": false,
+      "cost_retained": true,
+      "incidents": [],
+      "minimum_free_bytes_by_device": {
+        "16777233": 8809947136
+      },
+      "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/resource-receipts/calibration.json"
+    },
+    "rollout_trace": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/transcripts/calibration.rollout.jsonl",
+    "rollout_trace_sha256": "64fd37a5c85ac2c553f5acfc1a95b2b1d730584699234b84575f5deea3bec1f4",
+    "separate_from_trials": true,
+    "status": "ready",
+    "stderr_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/transcripts/calibration.stderr.txt",
+    "subtracted_from_trials": false,
+    "timed_out": false,
+    "transcript": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/transcripts/calibration.jsonl",
+    "transcript_sha256": "4f355c79ff3e5eb70058d55ed93249987163d07d9359fdaf2341e328f485106f",
+    "workspace_integrity_before_cleanup": {
+      "outside_candidate_paths": [],
+      "seed_files": {
+        "benchmarks/webapp-tokens-v2/SPEC.md": "passed",
+        "benchmarks/webapp-tokens-v2/acceptance/CONTRACT.md": "passed"
+      },
+      "status": "passed"
+    },
+    "workspace_removed": true
+  },
+  "calibration_sha256": "eea1ab8d9224414fe0161d96d6552eb5ae931d6df41ea491282c7958e77e9d7c",
+  "calibration_subtracted_from_trials": false,
+  "campaign_round": 8,
+  "captured_at_utc": "2026-10-08T21:41:08.391734+00:00",
+  "clean_comparison_eligible": false,
+  "fixed_harness_context_tokens": null,
+  "full_campaign_replay_eligible": false,
+  "launcher_exit_code": 2,
+  "measurement_notes": {
+    "campaign": "Partial terminal record: 7 completed authoring/acceptance attempts, 3 unlaunched. No full ten-attempt result, clean matched comparison, language-savings ratio, or extrapolation is supported.",
+    "context": "Fixed harness context is null because full request composition is unavailable. Separate calibration is retained and is never subtracted from task totals.",
+    "cost": "Conditional published standard short-context API-equivalent estimate, not provider billing. Sum only the seven observed attempts; unlaunched trial costs are unknown, not zero. No completed-campaign cost-per-accepted headline.",
+    "input": "Raw provider input includes cache-read and cache-write subsets; subsets are not added to input again.",
+    "legacy_net": "Frozen historical convention subtracts first-request input times request count; this is a legacy proxy, never task-only or calibrated fixed-context usage.",
+    "next": "A fresh clean matched campaign requires fully verified source and removal of root Cargo target disk load. Do not resume/restart the terminal paid handle or rewrite this interrupted evidence. Seven-of-ten is ineligible for corrected full-campaign replay under frozen campaign prerequisites.",
+    "outcomes": "All original statuses and acceptance checks are preserved. TS04 is resource contaminated; its observed failures must not be interpreted as a clean comparative rejection. Its costs remain included.",
+    "source": "Preserved Claude-BPE final-file inventory proxy, not cumulative authored work or exact current-model tokenization. No authored-source ratio. Generated outputs, dependency locks, and unresolved provenance require the separately implemented hash/recipe-bound component audit; this partial sidecar makes no new authorship classification. SEM02 includes webapp output inventory and TS01/TS04 include dependency lockfiles."
+  },
+  "original_summary_preserved": {
+    "acceptance_wall_seconds_all_attempts": 1767.715,
+    "acceptance_wall_seconds_per_accepted_task": 589.2383333333333,
+    "accepted_attempts": 3,
+    "accepted_authored_source_tokens": 74127,
+    "agent_wall_seconds_all_attempts": 4752.587,
+    "agent_wall_seconds_per_accepted_task": 1584.1956666666667,
+    "attempt_denominator": 10,
+    "authored_source_tokens_per_accepted_task": 24709.0,
+    "calibration_separate": true,
+    "clean_comparison_eligible": false,
+    "cost_claim": "conditional standard short-context API-equivalent estimate; no provider billing receipt",
+    "failed_or_rejected_attempts": 4,
+    "list_price_estimate_all_attempts_usd": 3.61441,
+    "list_price_estimate_known_attempts": 7,
+    "list_price_estimate_per_accepted_task_usd": 1.204803,
+    "provider_receipt_actual_usd": null,
+    "recorded_attempts": 7,
+    "resource_contaminated_attempts": 1,
+    "usage_all_attempts": {
+      "cache_write_input_tokens_subset": 0,
+      "cached_input_tokens_subset": 7732480,
+      "legacy_net_input_tokens": 5561066,
+      "output_tokens": 168856,
+      "raw_input_tokens": 8308781
+    }
+  },
+  "original_summary_warning": "Fields with a ten-attempt denominator are legacy saved summaries; only seven attempts were observed. Recorded totals do not establish a completed campaign.",
+  "provenance": {
+    "artifacts": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008",
+    "base_commit": "59269e937e553d7a032b71f5bd17b3102549483d",
+    "campaign_json_sha256": "446be19fbe5c6269f12e18f99cdbe8357f9b769615f958b6a90b99d46a4583b1",
+    "compiler_binary_sha256": "75d57b9950682d0d84509b5047cf4894453dd8201dae6b304d8e4ec71431c7ef",
+    "compiler_source_commit": "8bb9399e848b644bc907b2282396f76ca51858a4",
+    "frozen_accounting_helper": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-20261008/harness-source/benchmarks/webapp-tokens-v2/codex_campaign.py",
+    "frozen_accounting_helper_sha256": "61bf9640b36f15d3d1a6152aefcbe03a48666ff2af0dcc790ac16d86f387aa4b",
+    "qualification_gate_commit": "b6cf62177f6d210ebb5cb48ddc9fc2a8d1d8f426",
+    "results_json_sha256": "7ab55b40efdd2a33818c69cf270ad5e5f5f141e97926ee223e57e3613b113217",
+    "terminal_receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round8-base59269-gateb6cf-source8bb9399e8-terminal-receipt.json",
+    "terminal_receipt_sha256": "8157c3b0cdd7acccd4e24a4b8026eb8057a8e4c96fd8c059602d6e2f72054580"
+  },
+  "read_only_reconciliation": {
+    "all_7_price_estimates_match": true,
+    "all_7_saved_inventory_sums_match": true,
+    "all_7_trace_sums_match": true,
+    "all_saved_counted_file_hashes_match_archives": true,
+    "original_evidence_modified": false,
+    "summary_matches_frozen_helper": true,
+    "tests_builds_paid_runs_executed": false
+  },
+  "recorded_attempt_totals": {
+    "accepted_attempts": 3,
+    "conditional_api_equivalent_usd_all_recorded_attempts": "3.614410",
+    "contaminated_attempts": 1,
+    "legacy_final_source_inventory_proxy_all_recorded_attempts": 172034,
+    "not_accepted_attempts": 4,
+    "recorded_attempts": 7,
+    "usage": {
+      "cache_write_input_tokens_subset": 0,
+      "cached_input_tokens_subset": 7732480,
+      "legacy_net_input_tokens": 5561066,
+      "output_tokens": 168856,
+      "raw_input_tokens": 8308781
+    }
+  },
+  "recorded_completed_attempts": 7,
+  "recorded_per_arm_totals": {
+    "semaprax": {
+      "accepted_attempts": 3,
+      "conditional_api_equivalent_usd_all_recorded_attempts": "1.091174",
+      "contaminated_attempts": 0,
+      "legacy_final_source_inventory_proxy_all_recorded_attempts": 74127,
+      "not_accepted_attempts": 0,
+      "recorded_attempts": 3,
+      "usage": {
+        "cache_write_input_tokens_subset": 0,
+        "cached_input_tokens_subset": 2742784,
+        "legacy_net_input_tokens": 2068562,
+        "output_tokens": 39357,
+        "raw_input_tokens": 2954447
+      }
+    },
+    "typescript": {
+      "accepted_attempts": 0,
+      "conditional_api_equivalent_usd_all_recorded_attempts": "2.523236",
+      "contaminated_attempts": 1,
+      "legacy_final_source_inventory_proxy_all_recorded_attempts": 97907,
+      "not_accepted_attempts": 4,
+      "recorded_attempts": 4,
+      "usage": {
+        "cache_write_input_tokens_subset": 0,
+        "cached_input_tokens_subset": 4989696,
+        "legacy_net_input_tokens": 3492504,
+        "output_tokens": 129499,
+        "raw_input_tokens": 5354334
+      }
+    }
+  },
+  "root_host_observation": {
+    "dev_test_debug": 0,
+    "incremental": 0,
+    "jobs": 1,
+    "receipt_eligibility_flags_changed": false,
+    "root_cargo_contributed_to_shared_host_disk_pressure": true,
+    "root_reported_free_before_start_gib": 7.6,
+    "session": 64344,
+    "source": "root agent coordination; independently measured disk floor is in TS04 preserved receipt",
+    "start_approx_local": "2026-10-08 23:22 Europe/Vienna",
+    "target": "/Users/kevin/.codex/worktrees/opt-main-repair/AI-Lang/target/final-692-693"
+  },
+  "scheduled_attempts": 10,
+  "schema": "semaprax.teamdesk.round8.partial-terminal-recount.v1",
+  "source_component_existing_note": {
+    "applied_new_authorship_classification": false,
+    "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/authored-metric-followup.txt",
+    "sha256": "f86c9612a5a7b2edbae70d7d12978e1f30b631a94068b1aa9009591d7460be43"
+  },
+  "status": "interrupted_partial",
+  "unlaunched_attempts": [
+    {
+      "cost": null,
+      "label": "semaprax-04",
+      "status": "unlaunched"
+    },
+    {
+      "cost": null,
+      "label": "semaprax-05",
+      "status": "unlaunched"
+    },
+    {
+      "cost": null,
+      "label": "typescript-05",
+      "status": "unlaunched"
+    }
+  ]
+}

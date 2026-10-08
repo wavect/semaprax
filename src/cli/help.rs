@@ -1356,11 +1356,9 @@ mod tests {
             t269,
             concat!(
                 "SPX-T269\n",
-                "wrote: second direct write on a path, loop-reachable write, or over 65,536 ",
-                "combined output\n",
-                "fix: Keep one `stdout_write`/`stderr_write` site per path outside loops; ",
-                "cap staged stdout + stderr at 65,536 bytes. Line-command append may loop ",
-                "but shares this total.\n",
+                "wrote: repeated direct output on one path or direct output reachable from a loop\n",
+                "fix: Keep at most one direct `stdout_write` and `stderr_write` per path, outside loops. ",
+                "Staged stdout + stderr share 65,536 bytes; line-command append may loop but shares this total.\n",
             )
         );
         let full_index = language_topic("mistakes-index").unwrap();

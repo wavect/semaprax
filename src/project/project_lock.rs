@@ -90,6 +90,9 @@ pub fn render_project_lock(snapshot: &ProjectSnapshot) -> Result<String, Vec<Dia
             ),
         ),
         ProjectProfile::SourceCommandV1 => ("source-command.v1", None),
+        ProjectProfile::SourceCommandResourceOutputV1 => {
+            ("source-command.resource-output.v1", None)
+        }
         ProjectProfile::SourceLocalFutureV1 => ("source-local-future.v1", None),
         ProjectProfile::SourceLocalFutureIndexedRustV1 => {
             ("source-local-future-indexed-rust.v1", None)

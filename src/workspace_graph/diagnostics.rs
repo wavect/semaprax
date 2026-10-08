@@ -11,6 +11,9 @@ use super::{
     MAX_TOTAL_SOURCE_BYTES, MAX_USES,
 };
 
+pub(super) const PROVIDER_MAIN_HELP: &str = "`entry` in semaprax.toml must name the module that declares `main`; every other listed source is a provider module and declares no `main`";
+pub(super) const PROJECT_SIGNATURE_HELP: &str = "Project v1 function boundaries admit only Copy scalar values; keep records, classes, variants, Option, and Result inside functions, or select a project profile that explicitly admits the required public carrier";
+
 /// Canonical shared wire object for every artifact that embeds Workspace
 /// Semantic Graph limits. The values derive from the limits enforced by the
 /// graph builder, rather than being separately restated by each consumer.

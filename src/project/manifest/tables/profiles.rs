@@ -20,6 +20,17 @@ pub(super) fn lower_profile(
         }
         return Ok(PROJECT_SCHEMA_V26);
     }
+    if profile == ProjectProfile::SourceCommandResourceOutputV1 {
+        if command.is_none() || input != Some(PROJECT_SOURCE_COMMAND_INPUT_V1) {
+            return Err(grammar("source-command.resource-output.v1 requires an explicit command function and input = \"argv-utf8+file-text.v1\""));
+        }
+        if !crate::source_command::selects_resource_output(capabilities)
+            || !capabilities.windows(2).all(|v| v[0] < v[1])
+        {
+            return Err(grammar("source-command.resource-output.v1 requires a strictly sorted nonempty subset of fs.read, process.args.read, process.stderr.write, process.stdout.write, other than stdout alone"));
+        }
+        return Ok(PROJECT_SCHEMA_V28);
+    }
     let profile_name = profile.name().unwrap_or("scalar");
     let (schema, expected_input, expected_capabilities): (&str, Option<&str>, &[&str]) =
         match profile {
@@ -47,6 +58,7 @@ pub(super) fn lower_profile(
                 &PROJECT_FILESYSTEM_CAPABILITIES_V1,
             ),
             ProjectProfile::SourceCommandV1 => unreachable!("handled above"),
+            ProjectProfile::SourceCommandResourceOutputV1 => unreachable!("handled above"),
             ProjectProfile::ScalarV1 => (PROJECT_SCHEMA, None, &[]),
             ProjectProfile::UsefulTextConsumerV1 => (PROJECT_SCHEMA_V2, None, &[]),
             ProjectProfile::UsefulDataV2 => (PROJECT_SCHEMA_V16, None, &[]),
@@ -157,6 +169,9 @@ pub(super) fn lower_profile(
 pub(super) fn profile_by_name(name: &str) -> Option<ProjectProfile> {
     Some(match name {
         PROJECT_PROFILE_SOURCE_COMMAND_V1 => ProjectProfile::SourceCommandV1,
+        PROJECT_PROFILE_SOURCE_COMMAND_RESOURCE_OUTPUT_V1 => {
+            ProjectProfile::SourceCommandResourceOutputV1
+        }
         PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1 => ProjectProfile::UsefulTextConsumerV1,
         PROJECT_PROFILE_USEFUL_DATA_V2 => ProjectProfile::UsefulDataV2,
         PROJECT_PROFILE_USEFUL_DATA_V1 => ProjectProfile::UsefulDataV1,

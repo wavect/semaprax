@@ -31,11 +31,39 @@ pub fn selects(permits: &[String]) -> bool {
             .all(|effect| EFFECTS.contains(&effect.as_str()))
 }
 
+/// Project v28 is explicitly selected by its table profile. It preserves
+/// v26's capability inventory; the larger resource envelope grants no new
+/// authority and does not require unused argv or file access.
+pub(crate) fn selects_resource_output(permits: &[String]) -> bool {
+    selects(permits)
+}
+
 /// Authenticate the complete authority of a command-line program before any
 /// hosted or native work: permits, per-function effects, and every reachable
 /// host operation.
 pub(crate) fn validate_authority(program: &ResolvedProgram) -> Result<(), Diagnostic> {
-    if !selects(&program.permits) {
+    validate_authority_inner(program, false)
+}
+
+/// Authenticate the additive Project-v28 source command. It retains v26's
+/// authority inventory and admits only the two status-bearing output append
+/// operations; profile-specific capacity/provenance checks remain in the
+/// selected native emitter.
+pub(crate) fn validate_resource_output_authority(
+    program: &ResolvedProgram,
+) -> Result<(), Diagnostic> {
+    validate_authority_inner(program, true)
+}
+
+fn validate_authority_inner(
+    program: &ResolvedProgram,
+    resource_output: bool,
+) -> Result<(), Diagnostic> {
+    if if resource_output {
+        !selects_resource_output(&program.permits)
+    } else {
+        !selects(&program.permits)
+    } {
         return Err(authority_error(
             "module permits must be a subset of `fs.read`, `process.args.read`, `process.stderr.write`, and `process.stdout.write`",
         ));
@@ -64,12 +92,19 @@ pub(crate) fn validate_authority(program: &ResolvedProgram) -> Result<(), Diagno
         pending.extend(function.requires.iter().chain(&function.ensures));
         while let Some(expression) = pending.pop() {
             if let ResolvedExprKind::HostCommandCall(call) = &expression.kind {
-                if !matches!(
+                let base = matches!(
                     call.operation,
                     ResolvedHostCommandOperation::ArgsLen
                         | ResolvedHostCommandOperation::ArgUtf8
                         | ResolvedHostCommandOperation::StderrWrite
-                ) {
+                );
+                let append = resource_output
+                    && matches!(
+                        call.operation,
+                        ResolvedHostCommandOperation::StdoutAppend
+                            | ResolvedHostCommandOperation::StderrAppend
+                    );
+                if !base && !append {
                     return Err(authority_error(format!(
                         "`{}` is outside the command-line profile; read files with `file_read_text`",
                         crate::command_io_ops::name(call.operation)

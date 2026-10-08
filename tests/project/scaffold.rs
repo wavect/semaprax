@@ -795,7 +795,7 @@ fn source_command_file_text_template_selects_native_v26_and_decimal_dependency()
     assert_eq!(derived.files()[5].bytes(), b"000999999999999999999999");
     let guide = derived.files()[1].utf8();
     assert!(guide.contains("semaprax help library std.int.decimal"));
-    assert!(guide.contains("function exceeds 4,096 loan program points"));
+    assert!(guide.contains("function exceeds\n4,096 loan program points"));
     assert!(!guide.contains("--target web"));
 
     let replayed = replay_project_scaffold_v1(

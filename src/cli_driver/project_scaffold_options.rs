@@ -65,7 +65,7 @@ pub(super) fn parse(arguments: &[String]) -> Result<(&str, &str, project::Scaffo
     Ok((
         name,
         template.unwrap_or(project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR),
-        layout.unwrap_or_else(|| {
+        layout.unwrap_or({
             if matches!(
                 template,
                 Some(

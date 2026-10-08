@@ -309,19 +309,23 @@ fn source_command_file_text_foreign_file_prevents_cleanup_adoption() {
 
 #[test]
 fn source_command_file_text_partial_stage_drop_removes_only_owned_entries() {
-    let root = fixture();
-    let mut authority = NewProjectAuthority::create_source_command_file_text(
-        &root,
-        OsStr::new("command"),
-        OsStr::new("stage"),
-    )
-    .unwrap();
-    authority.write("README.md", b"readme\n").unwrap();
-    authority.write("digits", b"999\n").unwrap();
-    authority.write("src/app.spx", b"app\n").unwrap();
-    drop(authority);
-    assert!(names(&root).is_empty());
-    fs::remove_dir(root).unwrap();
+    // Prepared inventories require an ordered prefix in each directory.
+    // Exercise every interrupted prefix of the ordinary scaffold write order.
+    for prefix in 0..=SOURCE_COMMAND_FILE_TEXT_FILES.len() {
+        let root = fixture();
+        let mut authority = NewProjectAuthority::create_source_command_file_text(
+            &root,
+            OsStr::new("command"),
+            OsStr::new("stage"),
+        )
+        .unwrap();
+        for (path, bytes) in &SOURCE_COMMAND_FILE_TEXT_FILES[..prefix] {
+            authority.write(path, bytes).unwrap();
+        }
+        drop(authority);
+        assert!(names(&root).is_empty(), "interrupted prefix {prefix}");
+        fs::remove_dir(root).unwrap();
+    }
 }
 
 #[cfg(unix)]

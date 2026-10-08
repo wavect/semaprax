@@ -284,7 +284,15 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
         b"help accepts exactly one operand; unexpected extra operand `extra`\n"
     );
     std::fs::remove_dir(diagnostic_extra_dir).unwrap();
-    let (library, library_dir) = invoke(&["help", "library"]);
+    let (library_index, library_index_dir) = invoke(&["help", "library"]);
+    assert!(library_index.status.success());
+    assert!(library_index.stderr.is_empty());
+    assert!(library_index.stdout.len() <= 1_024);
+    let index = String::from_utf8(library_index.stdout).unwrap();
+    assert!(index.contains("std.int.decimal"));
+    assert!(index.contains("semaprax help library all"));
+    std::fs::remove_dir(library_index_dir).unwrap();
+    let (library, library_dir) = invoke(&["help", "library", "all"]);
     assert!(library.status.success());
     assert!(library.stderr.is_empty());
     let catalog = std::fs::read(
@@ -432,7 +440,7 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
                 "  semaprax help language\n",
                 "  semaprax help language <topic|topics>\n",
                 "  semaprax help library\n",
-                "  semaprax help library <module|name|stable-id>\n",
+                "  semaprax help library <all|module|name|stable-id>\n",
                 "  semaprax help shapes\n",
                 "  semaprax help shapes <kind|stable-id|path#stable-id>\n"
             )

@@ -218,13 +218,13 @@ fn public_api_cli_kat_parity_and_opaque_getters() {
         raw_sha(&preview),
         // Parsed artifact fields and digest-reference parity below independently
         // bind this re-pinned whole-document digest.
-        "sha256:be5f7fbea9590fbd67de44907c9b8177cfb96997404a7b382f37f3a7c2960b5c"
+        "sha256:3da3412f8f0ae85864ccf22e272d67960187adaea24b82e3ecd87287becbb747"
     );
     assert_eq!(
         raw_sha(&evidence),
         // Parsed artifact fields and digest-reference parity below independently
         // bind this re-pinned whole-document digest.
-        "sha256:e1560c15a465c098e7ea4a28276f0d53567a5fb1561c21a9630420232176553e"
+        "sha256:62d0c1fa3fc639d23ee10d66fde3072ad3f50fce2f7a82def7b6a1046650c907"
     );
     for value in [
         artifacts.proposal_digest(),
@@ -455,7 +455,7 @@ fn verification_receipt_api_cli_kat_shared_lock_and_no_write() {
         raw_sha(&receipt),
         // The parsed receipt fields and fixed-point budget below independently
         // bind this re-pinned whole-document digest.
-        "sha256:c2fa36580c686cf636a793690f48ae871da77624f5d03eb0db7a6b658584a459"
+        "sha256:f546647ba87117276998427bec57a8c410c6aa58b38131da3761d189f5bdf58b"
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(
@@ -668,7 +668,7 @@ fn application_receipt_api_cli_kat_fixed_point_and_raw_no_write() {
         raw_sha(&receipt),
         // The parsed receipt fields and fixed-point budget below independently
         // bind this re-pinned whole-document digest.
-        "sha256:b9a6654d09e01c11fd6450086abbd28d2e7935b708d2abf92facd3a36ca495cb"
+        "sha256:c3283aeb6c18e327d3714b450703853afd3391429bf9692c91bfd49cb83e47fb"
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(

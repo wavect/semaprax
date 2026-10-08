@@ -1194,13 +1194,12 @@ fn order_status(paid: bool) -> string
 
 ## Projects
 
-`str_byte_at(text, 0usize)` reads borrowed UTF-8 bytes without an owned copy;
-match its `Option<u8>` and use `i64_from_u8(byte)` to widen `Some` exactly.
-`std.bytes.get_or` is also available in `useful-data.v1`:
-`semaprax help library std.bytes.get_or`.
+`str_byte_at(text, 0usize)` reads borrowed UTF-8 bytes; match its `Option<u8>`
+and widen `Some` with `i64_from_u8`. `std.bytes.get_or` is available in
+`useful-data.v1` (`semaprax help library std.bytes.get_or`).
 
-A project puts `semaprax.toml` beside `src/`. Use the table layout below;
-the frozen one-line-per-key `semaprax.project.v1` layout remains admitted:
+A Project keeps `semaprax.toml` beside `src/`. The table layout is canonical;
+the frozen one-line-per-key `semaprax.project.v1` layout remains admitted.
 
 ```toml
 schema = "semaprax.manifest.v1"
@@ -1221,83 +1220,69 @@ web = ["calculator.add"]
 std.num = "^0.1.0"
 ```
 
-Canonical manifests use the shown table order, one blank line between tables,
-one-line arrays, and no comments. Otherwise `SPX-J100` names the first differing
-line in `help` (the frozen layout uses six ordered lines). Unknown/reserved tables
-or keys are `SPX-J120`. `[package] profile` selects the admitted consumer
-profile. `[dependencies]` links packages from the compiler's closed bundled
-`std.*` inventory at version `0.1.0`; unknown packages and unsatisfied ranges
-fail with `SPX-J121`, while ordinary non-bundled packages still require the
-separate resolution route. `[targets] matrix = ["wasm32"]` rejects native
-builds with `SPX-J122`.
+Use canonical table order, blank lines between tables, one-line arrays, and no
+comments; otherwise `SPX-J100` identifies the first differing help line (the
+frozen layout has six ordered lines). Unknown/reserved tables or keys give
+`SPX-J120`. `[package] profile` selects function-boundary carriers. Bundled
+`std.*` packages are version `0.1.0`; unknown packages or unsatisfied ranges
+are `SPX-J121`, and ordinary packages use the separate resolution route.
+`[targets] matrix = ["wasm32"]` rejects native builds with `SPX-J122`.
 
-Import by stable identity:
-`use function @id("calculator.add") from calculator.core as add;` directly
-after `module`; `entry` names the module declaring `main`. The manifest's
-selected profile owns its admitted function-boundary carriers. Project v1
-admits only Copy scalars; later profiles add specific borrowed or owned text,
-byte, and aggregate shapes without making every aggregate portable. On
-`SPX-G174`, inspect the manifest profile and its owning Project specification,
-then keep the aggregate local, use an admitted carrier such as that profile's
-`Slice`, `str`, or `Bytes` shape, or explicitly select the compatible profile.
-Do not change the signature merely to resemble another profile's example.
+Import functions by stable ID after `module`, for example
+`use function @id("calculator.add") from calculator.core as add;`; `entry`
+names the module declaring `main`. Project v1 admits Copy scalars; later
+profiles add only their stated text, byte, and aggregate carriers. On
+`SPX-G174`, keep unsupported aggregates local or select a profile that admits
+the intended boundary. For `SPX-H006: function exceeds 4,096 loan program
+points`, extract named helpers with admitted signatures; other H006 messages
+require their specific HIR or cleanup fix, not raised limits.
 
-For the exact `SPX-H006` message `function exceeds 4,096 loan program points`,
-extract cohesive named helpers before expanding generated matches, parsers, or
-serializers further. Each helper signature must remain inside the selected
-profile's boundary rules. Other `SPX-H006` messages identify different closed
-HIR or cleanup-plan failures; follow their stated diagnostic instead of
-raising the loan limits.
+A test module's `main` returns 0 on success. Each `@id`'d `fn test_<name>() ->
+i64` runs independently without parameters. Failures report stable ID and
+outcome; contract failures include clause and argument values. See [Project
+Test Cases v1](PROJECT-TEST-CASES-V1.md).
 
-A test module's `main` returns `0` on success;
-`semaprax test semaprax.toml` prints `project tests passed`. Each
-`fn test_<name>() -> i64` with an `@id` runs independently, without parameters.
-Failures report stable id and outcome (`failed calculator.tests.test_add: returned
-2`), with `cases` in the `--json` envelope. A violated `requires` or `ensures`
-reports the function, the clause, and the argument values (`contract: requires
-right != 0 in calculator.divide` / `arguments: left = 1, right = 0`).
-[Project Test Cases v1](PROJECT-TEST-CASES-V1.md) owns both.
-`semaprax help library` lists bundled modules; `semaprax help library all`
-prints the [standard library catalog](STANDARD-LIBRARY-CATALOG.md) offline:
-every `std.*` function, contract, profile, and `[dependencies]` route.
-Add the dependency and import its `@id`; the installed compiler supplies bundled
-packages without a checkout.
-For JSON escape expansion and decoded member-name comparison in a v25
-`stream-text` project, use [JSON String Query v1](JSON-STRING-QUERY-V1.md) and
-the `std.data.json.query` catalog entry.
-Bounded Vec uses profile `owned-data-api.v1` and
-`std.collections = "^0.1.0"`. Import `std.collections.vec.*` by stable identity
-with an explicit Copy-scalar type argument. Mutators transfer and return the
-owner; the package has no public exports or stable generic ABI.
-For one API, use `semaprax help library <module|name|stable-id>`: exact identity,
-dependency, profile, signature, effects, and contracts, without fuzzy or prefix
-search. [CLI Help v4](CLI-HELP-V4.md) owns the bounded lookup measurements.
-[Package Manifest v1](PACKAGE-MANIFEST-V1.md) owns the table layout,
-[Project Manifest v1](PROJECT-MANIFEST-V1.md) the frozen one,
-[examples/calculator-project](../examples/calculator-project/semaprax.toml) is
-the committed instance. `semaprax new <dir> --template stdin-stream-text` creates
-a Project v25 streaming command; `doctor --profile` reports support but does
-not select the Project profile. `project-scaffold` accepts the same template
-and chooses the required tables layout. `semaprax new <dir> --template
-source-command-file-text` creates the Project v26 native file-text command
-described above and also chooses the required tables layout.
+`semaprax help library` lists all bundled modules; `semaprax help library all`
+prints the full offline [catalog](STANDARD-LIBRARY-CATALOG.md). Exact lookup is
+`semaprax help library <module|name|stable-id>`; import the returned `@id` and
+dependency. The catalog gives each function's contract, profile, and dependency
+route; matching is exact, with no fuzzy or prefix search. The installed
+compiler supplies bundled packages without a checkout.
+For JSON escape expansion/member-name comparison in v25 `stream-text`, use
+[JSON String Query v1](JSON-STRING-QUERY-V1.md) and `std.data.json.query`.
+Bounded Vec uses `owned-data-api.v1` and `std.collections = "^0.1.0"`; import
+`std.collections.vec.*` by ID with an explicit Copy-scalar type argument.
+Mutators transfer and return the owner; there is no public export or stable
+generic ABI. [Package Manifest v1](PACKAGE-MANIFEST-V1.md) owns table layout;
+[Project Manifest v1](PROJECT-MANIFEST-V1.md) owns the frozen format.
 
-The `stdin-stream-text` scaffold remains Project v25. Select Project v27
-profile `language-command-io.stream-data.v1` explicitly when authenticated
-private helpers also need immutable `borrow Vec<T>` parameters for the eight
-Copy scalars. The ordinary `main` and selected command stay `fn() -> i64`;
-v24/v25 retain their closed helper boundaries, and Web/npm refuse v27.
+For native file-text commands, `semaprax new <dir> --template
+source-command-file-text` creates the v26 table Project; `project-scaffold`
+accepts the same template and selects tables. It uses `source-command.v1`,
+`argv-utf8+file-text.v1`, and `native64`; interpreter, Web, Wasm, and npm
+refuse it. `doctor --profile` reports support but does not select a profile.
+Opt in to v28 by setting `[package] profile =
+"source-command.resource-output.v1"` in the tables manifest; raw-source
+commands still select frozen v26 `source-command.v1`. V28 keeps the v26 ABI,
+16 arguments/65,536
+aggregate argument bytes, 65,536 bytes per file read, and 64 reservations/1 MiB
+reserved file bytes. It permits 1 MiB Strings, authenticated borrowed text, and
+combined staged stdout/stderr appends; only native64 is admitted. V26 stays
+frozen at 65,536 bytes for its borrowed view/output contract. See [Project v28](PROJECT-MANIFEST-V28.md).
 
-`semaprax lock semaprax.toml --write` pins the project to a deterministic
-`semaprax.lock` (identity, source digests, interface digest, targets,
-capabilities); `--verify` re-checks it and `--compare <base.lock>` reports
-whether the interface change is breaking, exiting nonzero for CI. A
-`[dependencies]` table names dotted package identities with `^`/`~`/`=` ranges;
-`semaprax resolve semaprax.toml --target native64 --cache <dir> --write` selects
-them against a local content-addressed cache and pins the per-target
-resolution, and `--verify` re-checks it. A build does not yet link resolved
-dependencies. See [Project Lock v1](PROJECT-LOCK-V1.md) and
-[Project Dependency Resolution v1](PROJECT-DEPENDENCY-RESOLUTION-V1.md).
+The `stdin-stream-text` scaffold remains Project v25. Select v27
+`language-command-io.stream-data.v1` when authenticated private helpers need
+immutable `borrow Vec<T>` parameters for the eight Copy scalars; `main` and the
+selected command remain `fn() -> i64`. Web/npm refuse v27; v24/v25 retain their
+closed helper boundaries.
+
+`semaprax lock semaprax.toml --write` pins identity, source digests, interface,
+targets, and capabilities; `--verify` checks it and `--compare <base.lock>`
+reports breaking interface changes (nonzero for CI). `[dependencies]` accepts
+`^`, `~`, or `=` ranges. `semaprax resolve semaprax.toml --target native64
+--cache <dir> --write` pins per-target resolution; `--verify` rechecks it.
+Build does not yet link resolved dependencies. See [Project Lock v1](PROJECT-LOCK-V1.md)
+and [Project Dependency Resolution v1](PROJECT-DEPENDENCY-RESOLUTION-V1.md).
 
 ## Where the rules live
 

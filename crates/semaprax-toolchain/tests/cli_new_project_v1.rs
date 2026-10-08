@@ -250,6 +250,56 @@ fn service_template_has_exact_bytes_and_passes_the_developer_loop() {
 }
 
 #[test]
+fn source_command_file_text_template_has_exact_bytes_and_passes_check() {
+    let fixture = Fixture::new("source-command-file-text");
+    let created = cli(
+        &fixture.root,
+        &[
+            "new",
+            "decimal-command",
+            "--template",
+            "source-command-file-text",
+        ],
+    );
+    assert_success(&created);
+    assert_eq!(
+        String::from_utf8(created.stdout).unwrap(),
+        "created source-command-file-text project decimal-command\n"
+    );
+
+    let files = read_tree(&fixture.root.join("decimal-command"));
+    assert_eq!(
+        files.keys().map(String::as_str).collect::<Vec<_>>(),
+        [
+            "AGENTS.md",
+            "README.md",
+            "digits",
+            "semaprax.toml",
+            "src/app.spx",
+            "src/tests.spx"
+        ]
+    );
+    let scaffold = semaprax::project::derive_project_scaffold_v1_with_layout(
+        "decimal-command",
+        "source-command-file-text",
+        semaprax::project::ScaffoldLayout::Tables,
+    )
+    .unwrap();
+    assert_eq!(
+        scaffold
+            .files()
+            .iter()
+            .map(|file| (file.path().to_owned(), file.bytes().to_vec()))
+            .collect::<BTreeMap<_, _>>(),
+        files
+    );
+    assert_success(&cli(
+        &fixture.root,
+        &["check", "decimal-command/semaprax.toml"],
+    ));
+}
+
+#[test]
 fn generated_project_validation_never_reopens_the_ambient_staging_tree() {
     let implementation = include_str!("../src/new_project.rs");
     let scaffold = concat!(

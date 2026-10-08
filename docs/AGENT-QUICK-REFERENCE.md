@@ -695,6 +695,21 @@ ordinary dependencies such as `std.int.decimal`. This route is native-only and
 refuses interpreter/Web/npm/Wasm execution. See [Project v26](PROJECT-MANIFEST-V26.md)
 and the [decimal CLI example](../examples/source-command-project/semaprax.toml).
 
+The dependency-ready starter and its exact small library card are:
+
+```sh
+semaprax new decimal-command --template source-command-file-text
+cd decimal-command
+semaprax help library std.int.decimal
+semaprax check .
+semaprax build --manifest-path semaprax.toml --target native --output app
+./app digits
+```
+
+Its manifest pins `std.int.decimal = "=0.1.0"`; import
+`std.int.decimal.canonicalize`, `std.int.decimal.add`, and
+`std.int.decimal.divide` by the stable IDs printed by the library card.
+
 Build with `semaprax build lines.spx --target native --output lines`. Omit
 `--profile`: `text-toolkit-v1` and `internal-strings-v1` are Wasm/web export
 profiles; native text operations come from source. Destinations must be fresh.
@@ -1216,11 +1231,23 @@ builds with `SPX-J122`.
 
 Import by stable identity:
 `use function @id("calculator.add") from calculator.core as add;` directly
-after `module`; `entry` names the module declaring `main`. Project v1 function parameters and results are limited
-to Copy scalar values. Records, classes, variants, `Option`, and `Result` may
-be used as module-local implementation details inside scalar-signature
-functions, but cannot cross a function boundary; `SPX-G174` points at a
-declaration whose signature leaves that profile. A test module's `main` returns `0` on success;
+after `module`; `entry` names the module declaring `main`. The manifest's
+selected profile owns its admitted function-boundary carriers. Project v1
+admits only Copy scalars; later profiles add specific borrowed or owned text,
+byte, and aggregate shapes without making every aggregate portable. On
+`SPX-G174`, inspect the manifest profile and its owning Project specification,
+then keep the aggregate local, use an admitted carrier such as that profile's
+`Slice`, `str`, or `Bytes` shape, or explicitly select the compatible profile.
+Do not change the signature merely to resemble another profile's example.
+
+For the exact `SPX-H006` message `function exceeds 4,096 loan program points`,
+extract cohesive named helpers before expanding generated matches, parsers, or
+serializers further. Each helper signature must remain inside the selected
+profile's boundary rules. Other `SPX-H006` messages identify different closed
+HIR or cleanup-plan failures; follow their stated diagnostic instead of
+raising the loan limits.
+
+A test module's `main` returns `0` on success;
 `semaprax test semaprax.toml` prints `project tests passed`. Each
 `fn test_<name>() -> i64` with an `@id` runs independently, without parameters.
 Failures report stable id and outcome (`failed calculator.tests.test_add: returned
@@ -1249,7 +1276,9 @@ search. [CLI Help v4](CLI-HELP-V4.md) owns the bounded lookup measurements.
 the committed instance. `semaprax new <dir> --template stdin-stream-text` creates
 a Project v25 streaming command; `doctor --profile` reports support but does
 not select the Project profile. `project-scaffold` accepts the same template
-and chooses the required tables layout.
+and chooses the required tables layout. `semaprax new <dir> --template
+source-command-file-text` creates the Project v26 native file-text command
+described above and also chooses the required tables layout.
 
 `semaprax lock semaprax.toml --write` pins the project to a deterministic
 `semaprax.lock` (identity, source digests, interface digest, targets,

@@ -21,6 +21,15 @@ imports decimal normalization, addition and division through the ordinary
 bundled dependency registry. Its selected declarations keep their source IDs,
 contracts, ownership facts and cleanup plans.
 
+Create the same dependency-ready shape without copying the example:
+
+```sh
+semaprax new decimal-command --template source-command-file-text
+```
+
+[Project Scaffold Capsule v5](PROJECT-SCAFFOLD-V5.md) owns that template's
+exact bytes, inventory, replay, and independent digest domain.
+
 ```toml
 [package]
 name = "decimal-command"

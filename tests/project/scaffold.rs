@@ -2,6 +2,7 @@ use semaprax::assurance_manifest::project::{generate_from_snapshot, ProjectAssur
 use semaprax::project::{
     derive_project_scaffold_v1, derive_project_scaffold_v1_with_layout, replay_project_scaffold_v1,
     with_authenticated_project, ScaffoldLayout, PROJECT_SCAFFOLD_TEMPLATES,
+    PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT,
 };
 use sha2::{Digest, Sha256};
 
@@ -15,8 +16,10 @@ use sha2::{Digest, Sha256};
 ///
 /// It asserts the DEFAULT options deliberately. A test that passed an explicit
 /// budget would prove nothing about the experience a user actually gets.
-/// Every shipped template walks the journey `docs/QUICKSTART.md` documents:
-/// check, test, run, and a semantic-graph projection.
+/// Every shipped template walks its documented journey: a check and semantic
+/// graph projection for all templates, plus test/run for interpreter profiles.
+/// The Project v26 source-command template instead pins its intentional
+/// interpreter refusal; its executable route is the native build gate.
 ///
 /// `tests/quickstart_v1/installed_journey.rs` walks the same path against a
 /// really `cargo install`ed binary, which is stronger evidence — but it covers
@@ -35,7 +38,10 @@ use sha2::{Digest, Sha256};
 #[test]
 fn every_shipped_template_walks_the_documented_quickstart_journey() {
     for template in PROJECT_SCAFFOLD_TEMPLATES {
-        let layout = if matches!(template, "service" | "stdin-stream-text") {
+        let layout = if matches!(
+            template,
+            "service" | "stdin-stream-text" | "source-command-file-text"
+        ) {
             ScaffoldLayout::Tables
         } else {
             ScaffoldLayout::Frozen
@@ -64,27 +70,41 @@ fn every_shipped_template_walks_the_documented_quickstart_journey() {
         let walked = with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
             snapshot.check()?;
             let options = semaprax::project::ProjectExecutionOptions::default();
-            let tested = snapshot.execute_test(&options)?;
-            let ran = snapshot.execute_entry(&options)?;
             let graph_bytes = snapshot.semantic_graph().len();
-            Ok((
-                format!("{:?}", tested.outcome()),
-                ran.outcome().clone(),
-                graph_bytes,
-            ))
+            if template == PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT {
+                let test_error = snapshot.execute_test(&options).unwrap_err();
+                let run_error = snapshot.execute_entry(&options).unwrap_err();
+                assert_eq!(test_error.len(), 1);
+                assert_eq!(test_error[0].code, "SPX-F102");
+                assert_eq!(run_error.len(), 1);
+                assert_eq!(run_error[0].code, "SPX-F102");
+                Ok((None, None, graph_bytes))
+            } else {
+                let tested = snapshot.execute_test(&options)?;
+                let ran = snapshot.execute_entry(&options)?;
+                Ok((
+                    Some(format!("{:?}", tested.outcome())),
+                    Some(ran.outcome().clone()),
+                    graph_bytes,
+                ))
+            }
         });
         std::fs::remove_dir_all(&root).ok();
 
         let (tested, ran, graph_bytes) = walked
             .unwrap_or_else(|error| panic!("`{template}` fails the documented journey: {error:?}"));
-        assert!(
-            tested.contains("Returned(0)"),
-            "`{template}` project tests did not pass: {tested}"
-        );
-        assert!(
-            matches!(ran, semaprax::project::ProjectExecutionOutcome::Returned(_)),
-            "`{template}` entry did not run to a value: {ran:?}"
-        );
+        if template != PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT {
+            let tested = tested.unwrap();
+            let ran = ran.unwrap();
+            assert!(
+                tested.contains("Returned(0)"),
+                "`{template}` project tests did not pass: {tested}"
+            );
+            assert!(
+                matches!(ran, semaprax::project::ProjectExecutionOutcome::Returned(_)),
+                "`{template}` entry did not run to a value: {ran:?}"
+            );
+        }
         assert!(
             graph_bytes > 0,
             "`{template}` projected an empty semantic graph"
@@ -95,7 +115,10 @@ fn every_shipped_template_walks_the_documented_quickstart_journey() {
 #[test]
 fn every_shipped_template_fits_the_default_assurance_budget() {
     for template in PROJECT_SCAFFOLD_TEMPLATES {
-        let layout = if matches!(template, "service" | "stdin-stream-text") {
+        let layout = if matches!(
+            template,
+            "service" | "stdin-stream-text" | "source-command-file-text"
+        ) {
             ScaffoldLayout::Tables
         } else {
             ScaffoldLayout::Frozen
@@ -692,6 +715,92 @@ fn stdin_stream_text_template_selects_one_native_v25_command() {
     let replayed = replay_project_scaffold_v1(
         NAME,
         "stdin-stream-text",
+        &derived.canonical_bytes(),
+        derived.digest(),
+    )
+    .unwrap();
+    assert_eq!(replayed.canonical_bytes(), derived.canonical_bytes());
+}
+
+#[test]
+fn source_command_file_text_template_selects_native_v26_and_decimal_dependency() {
+    let long_name = "a".repeat(64);
+    let long = derive_project_scaffold_v1_with_layout(
+        &long_name,
+        "source-command-file-text",
+        ScaffoldLayout::Tables,
+    )
+    .unwrap();
+    let command_line = long.files()[2]
+        .utf8()
+        .lines()
+        .find(|line| line.starts_with("function = "))
+        .unwrap();
+    let command_id = command_line
+        .strip_prefix("function = \"")
+        .unwrap()
+        .strip_suffix('"')
+        .unwrap();
+    assert!(command_id.len() <= 32);
+
+    let frozen = derive_project_scaffold_v1_with_layout(
+        NAME,
+        "source-command-file-text",
+        ScaffoldLayout::Frozen,
+    )
+    .unwrap_err();
+    assert_eq!(frozen[0].code, "SPX-J115");
+
+    let derived = derive_project_scaffold_v1_with_layout(
+        NAME,
+        "source-command-file-text",
+        ScaffoldLayout::Tables,
+    )
+    .unwrap();
+    assert_eq!(derived.schema(), "semaprax.project-scaffold.v5");
+    assert_eq!(derived.project_schema(), "semaprax.project.v26");
+    assert_eq!(
+        derived
+            .files()
+            .iter()
+            .map(|file| file.path())
+            .collect::<Vec<_>>(),
+        [
+            "README.md",
+            "AGENTS.md",
+            "semaprax.toml",
+            "src/app.spx",
+            "src/tests.spx",
+            "digits",
+        ]
+    );
+
+    let manifest = derived.files()[2].utf8();
+    assert!(manifest.contains("profile = \"source-command.v1\""));
+    assert!(manifest.contains("input = \"argv-utf8+file-text.v1\""));
+    assert!(manifest.contains("std.int.decimal = \"=0.1.0\""));
+    assert!(manifest.contains("matrix = [\"native64\"]"));
+    assert!(manifest.contains("function = \"demo-project.command\""));
+    assert!(manifest.contains("required = [\"fs.read\", \"process.args.read\", \"process.stderr.write\", \"process.stdout.write\"]"));
+
+    let app = derived.files()[3].utf8();
+    for stable_id in [
+        "std.int.decimal.canonicalize",
+        "std.int.decimal.add",
+        "std.int.decimal.divide",
+        "demo-project.command",
+    ] {
+        assert!(app.contains(stable_id), "missing `{stable_id}`");
+    }
+    assert_eq!(derived.files()[5].bytes(), b"000999999999999999999999\n");
+    let guide = derived.files()[1].utf8();
+    assert!(guide.contains("semaprax help library std.int.decimal"));
+    assert!(guide.contains("function exceeds 4,096 loan program points"));
+    assert!(!guide.contains("--target web"));
+
+    let replayed = replay_project_scaffold_v1(
+        NAME,
+        "source-command-file-text",
         &derived.canonical_bytes(),
         derived.digest(),
     )

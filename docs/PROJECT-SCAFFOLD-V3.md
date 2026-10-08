@@ -19,7 +19,7 @@ The table layout lets a new project start in the format ecosystem tooling reads.
 ## Command
 
 ```text
-semaprax project-scaffold --name <name> [--template calculator|library|service|stdin-stream-text] [--layout frozen|tables]
+semaprax project-scaffold --name <name> [--template calculator|library|service|stdin-stream-text|source-command-file-text] [--layout frozen|tables]
 ```
 
 `--layout frozen` (the default) emits the v2 capsule, byte-for-byte identical
@@ -37,6 +37,10 @@ silently removed.
 The `stdin-stream-text` template uses the same command syntax but emits the
 additive v4 capsule because its manifest lowers to Project v25. See
 [Project Scaffold Capsule v4](PROJECT-SCAFFOLD-V4.md).
+
+The `source-command-file-text` template likewise requires the tables layout
+and emits the additive v5 capsule because its manifest lowers to Project v26.
+See [Project Scaffold Capsule v5](PROJECT-SCAFFOLD-V5.md).
 
 ## Capsule
 

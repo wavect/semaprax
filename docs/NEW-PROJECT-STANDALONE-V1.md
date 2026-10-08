@@ -19,7 +19,7 @@ with the same grammar, templates, file bytes, and success line.
 ## Grammar and template
 
 ```text
-semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text]
+semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text|source-command-file-text]
 ```
 
 The grammar and every shared rejection message are those of the full
@@ -28,23 +28,25 @@ component and must match lowercase `[a-z][a-z0-9-]*` within 64 bytes. The
 template defaults to `calculator`; every template of the [Public Project
 Scaffold Capsule v3](PROJECT-SCAFFOLD-V3.md) is admitted, and an unknown one is
 rejected with `unknown new template <name>; expected calculator or library or
-service or stdin-stream-text`. `new` selects the extensible table layout. The calculator and
+service or stdin-stream-text or source-command-file-text`. `new` selects the
+extensible table layout. The calculator and
 [service](PROJECT-SCAFFOLD-SERVICE-V1.md) templates both separate their
 entry-module logic into `src/core.spx` and import it by stable identity from
 the entry module; the library retains its existing three source modules. The
 `stdin-stream-text` template adds `src/input.spx` for the bounded reader and
-private String helper and is documented in [Project Scaffold Capsule v3](PROJECT-SCAFFOLD-V3.md).
-files are exactly the v3 capsule's files for that template and name, in that
-order. The full toolchain's `new` publishes all three inventories through its
-stricter held-parent staged authority, sharing one authority path for the
-calculator and service templates (identical source file names) and a separate
-one for the library template.
+private String helper and is documented in [Project Scaffold Capsule v4](PROJECT-SCAFFOLD-V4.md).
+The `source-command-file-text` template adds a sample `digits` input, pins
+`std.int.decimal = "=0.1.0"`, and selects Project v26's native-only file-text
+command profile; [Project Scaffold Capsule v5](PROJECT-SCAFFOLD-V5.md) owns its
+exact six-file inventory. Files are exactly the selected capsule's files for
+that template and name, in that order. The full toolchain's `new` publishes
+each closed inventory through its stricter held-parent staged authority.
 
 ## Route
 
 On success the standalone compiler has performed exactly these steps:
 
-1. Derive the table-layout v3 scaffold in memory; a derivation failure is
+1. Derive the selected table-layout scaffold in memory; a derivation failure is
    reported before the filesystem is touched.
 2. Resolve the destination to an absolute path. Its parent must exist and be a
    directory when inspected without following a final symbolic link; the
@@ -53,8 +55,8 @@ On success the standalone compiler has performed exactly these steps:
    directory the scaffold needs (`src`), then each file with create-new
    semantics, in scaffold order.
 4. Read every file back and require byte equality with the scaffold.
-5. Authenticate the written project through the ordinary Project v1 snapshot
-   path and run its `check`.
+5. Authenticate the written project through the ordinary selected-Project
+   snapshot path and run its `check`.
 6. Print `created <template> project <destination>` with the destination as
    the caller spelled it, and exit zero.
 
@@ -87,4 +89,7 @@ existing directories and files without touching them, the exit-two invocation
 rejections and their messages, the missing-parent failure, and the guided and
 scoped help entries. The standalone help harness pins the
 public catalog entry; the quickstart harness executes the documented flow with
-the standalone binary alone.
+the standalone binary alone. The source-command case pins its Project v26
+manifest, dependency, sample input, and successful `check`; interpreter
+test/run are intentional `SPX-F102` refusals and native execution remains with
+the Project v26 owner gate.

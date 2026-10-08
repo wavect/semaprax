@@ -349,6 +349,37 @@ fn standalone_new_creates_the_stream_text_template_and_tests_owned_string_helper
 }
 
 #[test]
+fn standalone_new_creates_the_source_command_file_text_template() {
+    let fixture = Fixture::new("source-command-file-text");
+    let created = cli(
+        &fixture.root,
+        &[
+            "new",
+            "decimal-command",
+            "--template",
+            "source-command-file-text",
+        ],
+    );
+    assert!(created.status.success(), "{}", stderr(&created));
+    assert_eq!(
+        stdout(&created),
+        "created source-command-file-text project decimal-command\n"
+    );
+    let project = fixture.root.join("decimal-command");
+    assert_eq!(
+        read_tree(&project),
+        scaffold_files("decimal-command", "source-command-file-text")
+    );
+
+    let manifest = std::fs::read_to_string(project.join("semaprax.toml")).unwrap();
+    assert!(manifest.contains("profile = \"source-command.v1\""));
+    assert!(manifest.contains("std.int.decimal = \"=0.1.0\""));
+    assert!(manifest.contains("matrix = [\"native64\"]"));
+    let check = cli(&project, &["check", "."]);
+    assert!(check.status.success(), "{}", stderr(&check));
+}
+
+#[test]
 fn standalone_new_refuses_existing_invalid_and_parentless_destinations() {
     let fixture = Fixture::new("rejections");
     std::fs::create_dir(fixture.root.join("existing")).unwrap();
@@ -389,7 +420,7 @@ hint: run `semaprax new --help` for usage\n"
     assert_eq!(template.status.code(), Some(2));
     assert_eq!(
         stderr(&template),
-        "new: unknown new template `web`; expected calculator or library or service or stdin-stream-text\nhint: run `semaprax new --help` for usage\n"
+        "new: unknown new template `web`; expected calculator or library or service or stdin-stream-text or source-command-file-text\nhint: run `semaprax new --help` for usage\n"
     );
     assert!(!fixture.root.join("fine").exists());
 
@@ -421,7 +452,7 @@ fn standalone_new_is_listed_by_help_and_describes_its_grammar() {
     assert!(scoped.status.success());
     assert_eq!(
         stdout(&scoped),
-        "Usage:\n  semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text]\n"
+        "Usage:\n  semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text|source-command-file-text]\n"
     );
     let guided = cli(&fixture.root, &["--help"]);
     assert!(stdout(&guided).contains("\n  new <destination>"));

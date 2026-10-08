@@ -1,6 +1,8 @@
 # Strict JSON Scan v1
 
-Status: additive source package, pending focused executable verification.
+Status: additive source package; focused local interpreter, native C11, Core Wasm,
+ordinary-project bundling, and catalog checks pass. See the
+[OPT batch receipt](../benchmarks/opt-batch-verification-v1/opt680-682-verification.json).
 
 `std.data.json.scan` is a borrowed-byte, allocation-free facade for applications
 that need to consume a complete JSON document. It composes the existing

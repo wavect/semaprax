@@ -4,20 +4,21 @@
   forward reachability within one function build and examining only outgoing
   edges of live loan nodes. The 1,000,000-unit ceiling, fail-closed boundary,
   canonical plan order, independent replay and Graph bytes remain unchanged;
-  focused verification is pending.
+  focused local proof, exact-budget replay and first-overflow checks pass.
 
 - Add `std.data.json.scan` (OPT #680), a borrowed-byte strict whole-document
   JSON facade with bounded depth, UTF-8 and escape validation, explicit
   decoded-key duplicate policy, scalar member/array navigation, and exact
   decimal source spans. The older document and query APIs keep their existing
-  behavior. Focused portable package and ordinary-project verification is
-  pending the shared final batch.
+  behavior. Focused local interpreter/native/Core-Wasm package execution,
+  ordinary-project bundling, catalog and help checks pass.
 
-- Add source-complete same-owner byte-buffer renewal through CleanupPlan v17 and
+- Add same-owner byte-buffer renewal through CleanupPlan v17 and
   Graph v70. Exact `bytes_set`, `bytes_set5`, `bytes_set1_or5_from_slice`, and
   `bytes_set1_or6_or48_from_slice` assignments retain their prior cleanup
   position across conditional branches and bounded loops while v15/v16 retain
-  their meanings. Focused verification remains pending.
+  their meanings. Focused local replay, cache, native and physical Core-Wasm
+  success/failure checks pass, including same-function Vec/String composition.
 
 - Add explicit native-only Project v28
   `source-command.resource-output.v1` (OPT #678): preserve the v26 argv/file

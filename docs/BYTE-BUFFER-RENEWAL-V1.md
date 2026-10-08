@@ -1,6 +1,8 @@
 # Same-Owner Byte-Buffer Renewal v1
 
-Status: source implementation complete; focused verification pending.
+Status: implemented with focused local success/failure, hostile replay, cache,
+native and Core-Wasm execution evidence. See the
+[OPT batch receipt](../benchmarks/opt-batch-verification-v1/opt680-682-verification.json).
 
 This additive profile closes the cleanup-history gap for the existing
 same-owner byte-buffer replacement admitted by
@@ -22,8 +24,9 @@ whole binding:
 All existing source and HIR checks remain in force: the assignment and first
 argument must name the same binding, the operation signature must match, no
 projection qualifies, and no overlapping loan may survive the replacement.
-The profile does not admit another byte carrier, growable storage, a second
-owner, a field update, or a general owned loop.
+The profile does not admit another byte carrier, growable storage, another
+owning operand to the update, a field update, or a general owned loop.
+Unrelated existing owners remain permitted.
 
 ## CleanupPlan v17
 
@@ -79,7 +82,8 @@ remains closed as specified by the owning buffer profiles.
 
 The owning language harness covers a conditional update with two simultaneous
 owners, success and checked failure settlement, native and Wasm emission,
-interpreter/native execution, all four update operations, v15/v16 composition,
+interpreter/native execution, physical Core-Wasm success/failure reentry, all
+four update operations, same-function v15/v16 composition,
 canonical graph replay, and deterministic source, graph, C, and Wasm output.
 Independent cleanup replay mutates reservations, transfers, destinations,
 mutability, and schema identity. The cache gate round-trips an exact v17 plan

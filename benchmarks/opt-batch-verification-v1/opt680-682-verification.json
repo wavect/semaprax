@@ -1,0 +1,623 @@
+{
+  "schema": "semaprax.opt.batch-verification.v1",
+  "source_commit_before_receipt": "aae2719e29df37438e55bf52b00da3d7954bbd7f",
+  "issues": [
+    680,
+    681,
+    682
+  ],
+  "full_quality_gates_run": false,
+  "verification_scope": "One final focused batch after all three implementations, followed by only failed or strengthened fixture checks; no full gates or all-target test runs.",
+  "checks": [
+    {
+      "name": "lib-boundary-cached-proof",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "semaprax",
+        "--lib",
+        "loan_plan::boundary_tests::cached_reachability_and_live_source_edges_preserve_canonical_proof",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "cwd": "/Users/kevin/.codex/worktrees/opt-main-repair/AI-Lang",
+      "log": "/Users/kevin/.codex/benchmark-runs/opt680-682-verification-20261008/selected-logs-attempt2/01-lib-boundary-cached-proof.log",
+      "exit_code": 0,
+      "elapsed_seconds": 172.839,
+      "reported_test_counts": [
+        1
+      ],
+      "finished_at_utc": "2026-10-08T10:59:06.637296+00:00",
+      "source_head": "d1fddefbe536ae1003e94554e55486a250f0521a",
+      "log_sha256": "43b461be13650d22ae72c2013915aa0e971c8babd47360f7bc17d5f7c22d7d30"
+    },
+    {
+      "name": "lib-boundary-million-work",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "semaprax",
+        "--lib",
+        "loan_plan::boundary_tests::exact_million_work_build_replays_and_the_first_extra_unit_is_fail_closed",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "cwd": "/Users/kevin/.codex/worktrees/opt-main-repair/AI-Lang",
+      "log": "/Users/kevin/.codex/benchmark-runs/opt680-682-verification-20261008/selected-logs-attempt7/01-lib-boundary-million-work.log",
+      "exit_code": 0,
+      "elapsed_seconds": 206.586,
+      "reported_test_counts": [
+        1
+      ],
+      "finished_at_utc": "2026-10-08T11:18:19.190109+00:00",
+      "source_head": "907424a2d112fabc631f4fb378281f733586e911",
+      "log_sha256": "d466e505ac4b6410f2bd14d843d435de364173de8cf1f64464ec1c1fe0ffb9b4"
+    },
+    {
+      "name": "lib-option-try-residual",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "semaprax",
+        "--lib",
+        "loan_plan::tests::option_try_residual_edge_terminates_a_normal_path_loan",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "cwd": "/Users/kevin/.codex/worktrees/opt-main-repair/AI-Lang",
+      "log": "/Users/kevin/.codex/benchmark-runs/opt680-682-verification-20261008/selected-logs-attempt4/01-lib-option-try-residual.log",
+      "exit_code": 0,
+      "elapsed_seconds": 0.511,
+      "reported_test_counts": [
+        1
+      ],
+      "finished_at_utc": "2026-10-08T11:08:18.857049+00:00",
+      "source_head": "0cc43f2bc102bf0c44b4276a011759e650e251db",
+      "log_sha256": "a472b365a26618b487fc7b2e535430ec0219355999f891c6d1266cdd23344179"
+    },
+    {
+      "name": "lib-byte-renewal-proof-rejections",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "semaprax",
+        "--lib",
+        "cleanup_plan::replay::renewal::tests::byte_renewal_rejects_missing_forged_downgraded_and_unauthenticated_proofs",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "cwd": "/Users/kevin/.codex/worktrees/opt-main-repair/AI-Lang",
+      "log": "/Users/kevin/.codex/benchmark-runs/opt680-682-verification-20261008/selected-logs-attempt4/02-lib-byte-renewal-proof-rejections.log",
+      "exit_code": 0,
+      "elapsed_seconds": 0.187,
+      "reported_test_counts": [
+        1
+      ],
+      "finished_at_utc": "2026-10-08T11:08:19.044154+00:00",
+      "source_head": "0cc43f2bc102bf0c44b4276a011759e650e251db",
+      "log_sha256": "0b1830ef7945c968c1b2dd4a0b3fdaa46b9e35a6cea4a8aac6b070056fb0bd1a"
+    },
+    {
+      "name": "lib-nested-owned-record-cache",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "semaprax",
+        "--lib",
+        "cache_codec::nested_owned_records_tests::iterator_cleanup_cache_retains_exact_version_and_replays_owned_payloads",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "cwd": "/Users/kevin/.codex/worktrees/opt-main-repair/AI-Lang",
+      "log": "/Users/kevin/.codex/benchmark-runs/opt680-682-verification-20261008/selected-logs-attempt4/03-lib-nested-owned-record-cache.log",
+      "exit_code": 0,
+      "elapsed_seconds": 0.196,
+      "reported_test_counts": [
+        1
+      ],
+      "finished_at_utc": "2026-10-08T11:08:19.240693+00:00",
+      "source_head": "0cc43f2bc102bf0c44b4276a011759e650e251db",
+      "log_sha256": "1d87c2358fd2a2c77dff9b55818c80ff671800186ef010334e8d14a2724cbb59"
+    },
+    {
+      "name": "project-json-strict-all-backends",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "semaprax",
+        "--test",
+        "project",
+        "standard_library::json_cursors::json_strict_scan_executes_on_all_three_backends",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "cwd": "/Users/kevin/.codex/worktrees/opt-main-repair/AI-Lang",
+      "log": "/Users/kevin/.codex/benchmark-runs/opt680-682-verification-20261008/selected-logs-attempt4/04-project-json-strict-all-backends.log",
+      "exit_code": 0,
+      "elapsed_seconds": 117.637,
+      "reported_test_counts": [
+        1
+      ],
+      "finished_at_utc": "2026-10-08T11:10:16.877488+00:00",
+      "source_head": "0cc43f2bc102bf0c44b4276a011759e650e251db",
+      "log_sha256": "2ea1380a656459c71301f97d4d11a7975dc73c083fbbba8d1cc829eb0aa2c58e"
+    },
+    {
+      "name": "project-json-strict-bundled",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "semaprax",
+        "--test",
+        "project",
+        "standard_library::json_cursors::json_strict_scan_is_bundled_for_an_ordinary_project",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "cwd": "/Users/kevin/.codex/worktrees/opt-main-repair/AI-Lang",
+      "log": "/Users/kevin/.codex/benchmark-runs/opt680-682-verification-20261008/selected-logs-attempt9/01-project-json-strict-bundled.log",
+      "exit_code": 0,
+      "elapsed_seconds": 16.047,
+      "reported_test_counts": [
+        1
+      ],
+      "finished_at_utc": "2026-10-08T11:26:30.542984+00:00",
+      "source_head": "c0ced3226ffaca6fd163533178a801f5b0f5f5c1",
+      "log_sha256": "f25cbac37b827cb131598cdac9c9ceea3a1171cb99496a50be96bfa0b46a4e9d"
+    },
+    {
+      "name": "project-committed-catalogs",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "semaprax",
+        "--test",
+        "project",
+        "standard_library::committed_catalogs_match_the_sources",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "cwd": "/Users/kevin/.codex/worktrees/opt-main-repair/AI-Lang",
+      "log": "/Users/kevin/.codex/benchmark-runs/opt680-682-verification-20261008/selected-logs-attempt5/01-project-committed-catalogs.log",
+      "exit_code": 0,
+      "elapsed_seconds": 27.109,
+      "reported_test_counts": [
+        1
+      ],
+      "finished_at_utc": "2026-10-08T11:11:04.990541+00:00",
+      "source_head": "0cc43f2bc102bf0c44b4276a011759e650e251db",
+      "log_sha256": "8e5bfddec67666de532a976c7803ff5ee63933403378ccc3026ba4aee8adcf24"
+    },
+    {
+      "name": "language-byte-renewal-history-routes",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "semaprax",
+        "--test",
+        "language",
+        "owned_byte_buffer_v1::cleanup_renewal::conditional_two_owner_byte_renewal_preserves_history_and_backend_routes",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "cwd": "/Users/kevin/.codex/worktrees/opt-main-repair/AI-Lang",
+      "log": "/Users/kevin/.codex/benchmark-runs/opt680-682-verification-20261008/selected-logs-attempt8/01-language-byte-renewal-history-routes.log",
+      "exit_code": 0,
+      "elapsed_seconds": 14.053,
+      "reported_test_counts": [
+        1
+      ],
+      "finished_at_utc": "2026-10-08T11:21:40.137218+00:00",
+      "source_head": "907424a2d112fabc631f4fb378281f733586e911",
+      "log_sha256": "82a78569b8f4ebe09b055ff45f89d6459bf3c165a88729815e0233da2a729bb6"
+    },
+    {
+      "name": "language-byte-renewal-failures-compose",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "semaprax",
+        "--test",
+        "language",
+        "owned_byte_buffer_v1::cleanup_renewal::byte_renewal_failure_settles_both_owners_and_composes_without_rewriting_v15_v16",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "cwd": "/Users/kevin/.codex/worktrees/opt-main-repair/AI-Lang",
+      "log": "/Users/kevin/.codex/benchmark-runs/opt680-682-verification-20261008/selected-logs-attempt10/01-language-byte-renewal-failures-compose.log",
+      "exit_code": 0,
+      "elapsed_seconds": 11.387,
+      "reported_test_counts": [
+        1
+      ],
+      "finished_at_utc": "2026-10-08T11:28:05.384488+00:00",
+      "source_head": "aae2719e29df37438e55bf52b00da3d7954bbd7f",
+      "log_sha256": "7c4a72040edafb7d1eb3a3c14ef5dac3eb87c11ec9fed05f1d29d8ab32259f5f"
+    },
+    {
+      "name": "cli-language-reference-budget",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "semaprax",
+        "--bin",
+        "semaprax",
+        "cli_driver::cli::help::tests::language_reference_and_exact_topics_are_bounded_repository_sections",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "cwd": "/Users/kevin/.codex/worktrees/opt-main-repair/AI-Lang",
+      "log": "/Users/kevin/.codex/benchmark-runs/opt680-682-verification-20261008/selected-logs-attempt6/01-cli-language-reference-budget.log",
+      "exit_code": 0,
+      "elapsed_seconds": 9.752,
+      "reported_test_counts": [
+        1
+      ],
+      "finished_at_utc": "2026-10-08T11:11:57.781519+00:00",
+      "source_head": "0cc43f2bc102bf0c44b4276a011759e650e251db",
+      "log_sha256": "2021f1f36fb38a40e7d5f0d593f9f31c9ce68ba16f3f4c1f99724a424aa4c82f"
+    }
+  ],
+  "attempt_history": [
+    {
+      "attempt": 2,
+      "receipt_sha256": "7028d1262158f4274da6600c2e85570ba99a3753b441bc9ea9fc5a399df20fba",
+      "status": "stopped_on_failure",
+      "source_head": "d1fddefbe536ae1003e94554e55486a250f0521a",
+      "cases": [
+        {
+          "name": "lib-boundary-cached-proof",
+          "exit_code": 0,
+          "reported_test_counts": [
+            1
+          ],
+          "elapsed_seconds": 172.839
+        },
+        {
+          "name": "lib-boundary-million-work",
+          "exit_code": 101,
+          "reported_test_counts": [
+            1
+          ],
+          "elapsed_seconds": 7.429
+        }
+      ]
+    },
+    {
+      "attempt": 3,
+      "receipt_sha256": "50d868d4edbf5d7fe46dad9238003b750a166fb9b10430ccfc0291fea90590f4",
+      "status": "stopped_on_failure",
+      "source_head": "0cc43f2bc102bf0c44b4276a011759e650e251db",
+      "cases": [
+        {
+          "name": "lib-boundary-million-work",
+          "exit_code": 101,
+          "reported_test_counts": [
+            1
+          ],
+          "elapsed_seconds": 183.876
+        }
+      ]
+    },
+    {
+      "attempt": 4,
+      "receipt_sha256": "a736284b2fb4a6ae2c66ed25b9eb8c20428c0998e9c8e1856d44eaafb93dd465",
+      "status": "stopped_on_failure",
+      "source_head": "0cc43f2bc102bf0c44b4276a011759e650e251db",
+      "cases": [
+        {
+          "name": "lib-option-try-residual",
+          "exit_code": 0,
+          "reported_test_counts": [
+            1
+          ],
+          "elapsed_seconds": 0.511
+        },
+        {
+          "name": "lib-byte-renewal-proof-rejections",
+          "exit_code": 0,
+          "reported_test_counts": [
+            1
+          ],
+          "elapsed_seconds": 0.187
+        },
+        {
+          "name": "lib-nested-owned-record-cache",
+          "exit_code": 0,
+          "reported_test_counts": [
+            1
+          ],
+          "elapsed_seconds": 0.196
+        },
+        {
+          "name": "project-json-strict-all-backends",
+          "exit_code": 0,
+          "reported_test_counts": [
+            1
+          ],
+          "elapsed_seconds": 117.637
+        },
+        {
+          "name": "project-json-strict-bundled",
+          "exit_code": 101,
+          "reported_test_counts": [
+            1
+          ],
+          "elapsed_seconds": 0.442
+        }
+      ]
+    },
+    {
+      "attempt": 5,
+      "receipt_sha256": "e9ae5a64c695f5554e78f9931762be04eb717f3f5b95dbe2fbf4040595c29330",
+      "status": "stopped_on_failure",
+      "source_head": "0cc43f2bc102bf0c44b4276a011759e650e251db",
+      "cases": [
+        {
+          "name": "project-committed-catalogs",
+          "exit_code": 0,
+          "reported_test_counts": [
+            1
+          ],
+          "elapsed_seconds": 27.109
+        },
+        {
+          "name": "language-byte-renewal-history-routes",
+          "exit_code": 0,
+          "reported_test_counts": [
+            1
+          ],
+          "elapsed_seconds": 10.593
+        },
+        {
+          "name": "language-byte-renewal-failures-compose",
+          "exit_code": 101,
+          "reported_test_counts": [
+            1
+          ],
+          "elapsed_seconds": 1.29
+        }
+      ]
+    },
+    {
+      "attempt": 6,
+      "receipt_sha256": "0c675c8f5d8d2eb656086bf032c9c203bcd82c4e7741af0ce70a2988069ec326",
+      "status": "all_selected_cases_passed",
+      "source_head": "0cc43f2bc102bf0c44b4276a011759e650e251db",
+      "cases": [
+        {
+          "name": "cli-language-reference-budget",
+          "exit_code": 0,
+          "reported_test_counts": [
+            1
+          ],
+          "elapsed_seconds": 9.752
+        }
+      ]
+    },
+    {
+      "attempt": 7,
+      "receipt_sha256": "97f2a72009f4d650e030c1124a9967facc8fc3699e52297784de694f850ee63e",
+      "status": "stopped_on_failure",
+      "source_head": "907424a2d112fabc631f4fb378281f733586e911",
+      "cases": [
+        {
+          "name": "lib-boundary-million-work",
+          "exit_code": 0,
+          "reported_test_counts": [
+            1
+          ],
+          "elapsed_seconds": 206.586
+        },
+        {
+          "name": "project-json-strict-bundled",
+          "exit_code": 101,
+          "reported_test_counts": [
+            1
+          ],
+          "elapsed_seconds": 130.54
+        }
+      ]
+    },
+    {
+      "attempt": 8,
+      "receipt_sha256": "8ee8bc0838e84fdf2f31b917a04614aed9a6b54081e10009270a080dc31d3af2",
+      "status": "stopped_on_failure",
+      "source_head": "907424a2d112fabc631f4fb378281f733586e911",
+      "cases": [
+        {
+          "name": "language-byte-renewal-history-routes",
+          "exit_code": 0,
+          "reported_test_counts": [
+            1
+          ],
+          "elapsed_seconds": 14.053
+        },
+        {
+          "name": "language-byte-renewal-failures-compose",
+          "exit_code": 101,
+          "reported_test_counts": [
+            1
+          ],
+          "elapsed_seconds": 1.58
+        }
+      ]
+    },
+    {
+      "attempt": 9,
+      "receipt_sha256": "ee07e597fb426719a448690e252d9ad701018d48fb049d6f1bdd590e1885137f",
+      "status": "stopped_on_failure",
+      "source_head": "c0ced3226ffaca6fd163533178a801f5b0f5f5c1",
+      "cases": [
+        {
+          "name": "project-json-strict-bundled",
+          "exit_code": 0,
+          "reported_test_counts": [
+            1
+          ],
+          "elapsed_seconds": 16.047
+        },
+        {
+          "name": "language-byte-renewal-failures-compose",
+          "exit_code": 101,
+          "reported_test_counts": [
+            1
+          ],
+          "elapsed_seconds": 9.088
+        }
+      ]
+    },
+    {
+      "attempt": 10,
+      "receipt_sha256": "b80501e3df5699ed864bd62ed2a3bea5e9ac9bebaa4aa044105dccace93b95c3",
+      "status": "all_selected_cases_passed",
+      "source_head": "aae2719e29df37438e55bf52b00da3d7954bbd7f",
+      "cases": [
+        {
+          "name": "language-byte-renewal-failures-compose",
+          "exit_code": 0,
+          "reported_test_counts": [
+            1
+          ],
+          "elapsed_seconds": 11.387
+        }
+      ]
+    }
+  ],
+  "scoped_clippy": {
+    "command": [
+      "cargo",
+      "clippy",
+      "--locked",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--bin",
+      "semaprax",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "source_head": "d1fddefbe536ae1003e94554e55486a250f0521a",
+    "exit_code": 0,
+    "log_sha256": "950f2301ad2a55937ab80562588983d2e21753bc9b536cd528811156dd446f87",
+    "subsequent_src_changes": [
+      "src/loan_plan/boundary_tests.rs",
+      "src/wasm/internal_strings/tests.rs"
+    ],
+    "applicability": "Subsequent src changes are test-only; production library and binary Rust source remain byte-identical."
+  },
+  "format": {
+    "head": "aae2719e29df37438e55bf52b00da3d7954bbd7f",
+    "command": [
+      "cargo",
+      "fmt",
+      "--package",
+      "semaprax",
+      "--",
+      "--check"
+    ],
+    "exit_code": 0,
+    "time": "2026-10-08T11:28:16.409741+00:00",
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "compiler_artifact": {
+    "schema": "semaprax.compiler-build-identity.v1",
+    "compiler_source_commit": "aae2719e29df37438e55bf52b00da3d7954bbd7f",
+    "binary_sha256": "51bc391ca4c106374333ba0d272c702df263c384824933e29c12dd75b63e5a11",
+    "binary": "/Users/kevin/.codex/benchmark-binaries/semaprax-aae2719e2",
+    "source_was_clean": true,
+    "cargo_target_was_private": true,
+    "build_command": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "semaprax",
+      "--test",
+      "language",
+      "owned_byte_buffer_v1::cleanup_renewal::byte_renewal_failure_settles_both_owners_and_composes_without_rewriting_v15_v16",
+      "--",
+      "--exact",
+      "--nocapture"
+    ],
+    "build_log": "/Users/kevin/.codex/benchmark-runs/opt680-682-verification-20261008/selected-logs-attempt10/01-language-byte-renewal-failures-compose.log",
+    "note": "Integration target verifies Cargo CLI build freshness; production Rust source is byte-identical to the scoped clippy revision except cfg(test) modules."
+  },
+  "environment": {
+    "cargo_build_jobs": 1,
+    "cargo_incremental": false,
+    "cargo_target_was_private": true,
+    "node": "v24.3.0",
+    "clang": "/usr/bin/clang",
+    "core_wasm_execution": "Selected strict JSON package and byte-renewal success/failure tests execute emitted Core Wasm locally in Node; byte-renewal cases assert four reentries, exact two allocations/drops, authenticated path-specific order and empty arena."
+  },
+  "fixture_repairs": [
+    "After reduced examined work, use genuine connected last-use work plus examined HIR roots to reach exactly 1,000,000; preserve exact replay, limit-minus-one and first-overflow assertions, within 256 loans and 4,096 node/edge caps.",
+    "The ordinary useful-data consumer explicitly exports a borrowed-slice consumer.validate wrapper as its profile requires.",
+    "Before publication, failed byte-set retains a staged call-argument epoch; assert its exact HIR exit before physical Wasm order. Successful renewal restores reserved history."
+  ],
+  "pins": "Committed standard-library JSON/Markdown catalogs matched their sources in the selected owning test.",
+  "retained_infrastructure_events": [
+    {
+      "receipt": "failed-link-artifact-cleanup.json",
+      "sha256": "0ae06c0e7a7e1783f7b2b34ffe5cc627ee781a26a1b3727421c68162a975d0fe",
+      "description": "Initial filtered lib-test link failed with ENOSPC; no test executed. Only the corrupt output was removed before retry."
+    },
+    {
+      "receipt": "inactive-index-cleanup.json",
+      "sha256": "328e14b447f12a675d52106236a669ee13a6ad672a5cddb0484e8bdaabd79138",
+      "description": "Removed ignored inactive graph caches after confirming no tracked content or open handles; source and paid artifacts retained."
+    },
+    {
+      "receipt": "selected-receipt.json",
+      "sha256": "3f2c9081efa1de41d29f5daa9cb53ef424dcdceefdac9265c1b732c573545c52",
+      "description": "Initial runner used an incorrect package name and was interrupted before a selected test ran; corrected subsequent runs use semaprax."
+    }
+  ],
+  "claims": {
+    "local_finite_evidence": true,
+    "hosted_or_general_backend_equivalence_claim": false,
+    "live_token_or_turn_gain_measured": false,
+    "benchmark_followups": [
+      606,
+      610
+    ],
+    "actual_provider_billing": null,
+    "fixed_harness_request_composition": null
+  },
+  "recorded_at_utc": "2026-10-08T11:28:19.908959+00:00"
+}

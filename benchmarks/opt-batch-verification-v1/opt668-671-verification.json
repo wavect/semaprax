@@ -1,0 +1,118 @@
+{
+  "schema": "semaprax.opt.batch-verification.v1",
+  "source_commit": "f00c28b425ace0a6fe67d191af7f53a135238a6f",
+  "full_quality_gates_run": false,
+  "rust_checks": [
+    {
+      "evidence": "batch2-web-title.log",
+      "passed": 1,
+      "log_sha256": "e617d522b76782968c4413a8059f21f1eb9cf129be134c34ac2a82745b7dc4be"
+    },
+    {
+      "evidence": "batch2-web-api-options.log",
+      "passed": 1,
+      "log_sha256": "76caa4e0b0a02a0abe07e88bd830d79736d1feee7184f884ed4456e7ac2a2bd5"
+    },
+    {
+      "evidence": "batch2-web-http.log",
+      "passed": 1,
+      "log_sha256": "8cd7a6467e568490e51b2232648de3133ff11a42197367910df70d27450ece4a"
+    },
+    {
+      "evidence": "batch2-web-security.log",
+      "passed": 1,
+      "log_sha256": "402403470b47b08912a4004448cc09186a64ac21bffca952a9493b5169dc6977"
+    },
+    {
+      "evidence": "batch2-library-help.log",
+      "passed": 1,
+      "log_sha256": "3b0b1dd5fc96a47b689017e675b3aad36f729e7691b18c4a1b4ec33f5b7a92fb"
+    },
+    {
+      "evidence": "batch2-scaffold-options.log",
+      "passed": 1,
+      "log_sha256": "0714e1176579204ba6d21154b4391e447e663f6d09a20fc27cb8da8fbfb702ae"
+    },
+    {
+      "evidence": "batch2-scaffold-developer-path.log",
+      "passed": 2,
+      "log_sha256": "9fafcd4e0fe8d38687e4428e2cbadb7af8d13552c11475467aeadbb4abaf51b3"
+    },
+    {
+      "evidence": "batch2-standalone-help.log",
+      "passed": 1,
+      "log_sha256": "d6290472c11888fa7ea14c97b2f374b62e4644d88c0b88fc04fed7c0b3d54a0e"
+    },
+    {
+      "evidence": "batch2-standalone-scoped-help.log",
+      "passed": 1,
+      "log_sha256": "0aae41549810682b166ddf2ecb1934dd14fe9ac039d3e42df056f87dcea41610"
+    },
+    {
+      "evidence": "batch2-offline-help-snapshot.log",
+      "passed": 1,
+      "log_sha256": "8cc4a7eec7d0ad4668f4c834db496102689fe37c6c3dfd806b2d67d2791f5f92"
+    },
+    {
+      "evidence": "batch2-full-scaffold.log",
+      "passed": 1,
+      "log_sha256": "5b5d854a8a0ed796d937319261e42f6f318430ef79f4d1a4f309045ee29270c2"
+    },
+    {
+      "evidence": "batch2-full-help-scoped.log",
+      "passed": 1,
+      "log_sha256": "98a1522b9b872414b354eb85334962fe30648f5502dc53f82e7094ef06849516"
+    },
+    {
+      "evidence": "batch2-authority.log",
+      "passed": 3,
+      "log_sha256": "9b29020685b48c777f2da446626f73a286366e100f66731973b416a6df4f1bea"
+    },
+    {
+      "evidence": "batch2-full-help.log",
+      "passed": 1,
+      "scope": "Only full_help_is_exact_capability_aware_and_inert passed; initial scoped-help failed and was repaired/rerun separately; unintended unrelated hot-reload test terminated. No whole-file pass claim.",
+      "log_sha256": "8ced619f1f999e97d7bcc6bdc1c5bef502a71f76c8e0d6126f18eb1371b845d5"
+    }
+  ],
+  "issues_ready_to_close": [
+    669,
+    670,
+    671
+  ],
+  "remaining_scope": {
+    "668": "Resource guards and interrupted-attempt reporting implemented; clean matched reruns pending headroom.",
+    "live_comparison": "No new live-model savings, pure generated TeamDesk live pass or cost advantage claimed."
+  },
+  "integration_repairs": [
+    "Dedicated source-command held publication inventory",
+    "Every ordered interrupted scaffold write prefix",
+    "Exact capsule guide newline assertion",
+    "Full toolchain compact index/full catalog, topic/code pins and multiple compare matches",
+    "Exact numeric JSON overflow witness",
+    "Selected clippy eager default style"
+  ],
+  "upstream_scope": "Rebased main documentation metadata/catalog links and one CI decimal-test entry; no upstream semantic source changes.",
+  "selected_clippy": [
+    {
+      "command": "cargo clippy --locked -p semaprax --lib --bin semaprax -- -D warnings",
+      "exit_code": 0,
+      "log_sha256": "385b4d99fa86f6157270ac1d7545c160a2c3fa74e9f59481e6c8635aaef5e16a"
+    },
+    {
+      "command": "cargo clippy --locked -p semaprax-toolchain --bin semaprax-full -- -D warnings",
+      "exit_code": 0,
+      "log_sha256": "de9d73681bc6d7c735d5c71c90f086b29cf9c4d4611dd08023284db4bd2cf758"
+    },
+    {
+      "command": "cargo clippy --locked -p semaprax-native-rust-owned-data-package --lib -- -D warnings",
+      "exit_code": 0,
+      "log_sha256": "23a9e593681847a4317fee2113c5835afedbe79798ee5e39faafde37c9ed3b2f"
+    }
+  ],
+  "static_checks": {
+    "cargo_fmt_check": "passed",
+    "git_diff_check": "passed",
+    "changed_rust_module_budgets": "passed"
+  }
+}

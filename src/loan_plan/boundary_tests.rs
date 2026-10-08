@@ -160,7 +160,7 @@ fn uncached_live_nodes(cfg: &Cfg<'_>, start: u16, seeds: &BTreeSet<u16>) -> BTre
     live
 }
 
-fn all_edge_liveness(cfg: &Cfg<'_>, live: &[BTreeSet<u16>]) -> (Vec<Vec<LoanId>>, Vec<Vec<u16>>) {
+fn all_edge_liveness(cfg: &Cfg<'_>, live: &[BTreeSet<u16>]) -> work::EdgeLiveness {
     let mut edge_live = vec![Vec::new(); cfg.edges.len()];
     let mut termination_edges = vec![Vec::new(); live.len()];
     for (loan_index, nodes) in live.iter().enumerate() {
@@ -191,7 +191,7 @@ fn cached_reachability_and_live_source_edges_preserve_canonical_proof() {
     let seeds = BTreeSet::from([end]);
     let expected = uncached_live_nodes(&cfg, start, &seeds);
 
-    let mut reachable = BTreeMap::new();
+    let mut reachable = work::ReachabilityCache::default();
     let mut work = WorkCounter::new(usize::MAX);
     let first = work::live_nodes(&cfg, start, &seeds, &mut reachable, &mut work).unwrap();
     let first_work = work.used;

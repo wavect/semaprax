@@ -572,7 +572,7 @@ fn build_cfg_plan_counted(
             })
         })
         .collect::<Vec<_>>();
-    let mut reachable = BTreeMap::new();
+    let mut reachable = work::ReachabilityCache::default();
     let mut live = drafts
         .iter()
         .map(|draft| work::live_nodes(&cfg, draft.start, &draft.seeds, &mut reachable, work))

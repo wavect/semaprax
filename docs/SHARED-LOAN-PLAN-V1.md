@@ -112,11 +112,13 @@ fails closed before Graph projection or backend admission; the implementation
 may not truncate, merge, sort, or repair the plan.
 
 Checked work counts actual deterministic traversals. Forward reachability for
-an identical CFG start may be retained within one canonical build, and edge
-liveness examines only canonical outgoing edges whose source is live for that
-loan. Retention does not cross a function build or independent replay. These
-optimizations must produce the same ordered plan and Graph bytes as an
-uncached full-edge membership scan; they do not raise the work ceiling.
+an identical CFG start may be retained within one canonical build. The bounded
+memo retains at most eight starts; an evicted start is traversed and charged
+again when needed. Edge liveness examines only canonical outgoing edges whose
+source is live for that loan. Retention does not cross a function build or
+independent replay. These optimizations must produce the same ordered plan and
+Graph bytes as an uncached full-edge membership scan; they do not raise the
+work ceiling.
 
 ## Independent replay
 

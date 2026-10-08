@@ -1004,7 +1004,14 @@ use function @id("replace.provider.replaced") from replace.provider as replaced;
         ),
     ];
     let paths = path_set(&["a/provider.spx", "z/app.spx"]);
-    let first = preflight_owned(&paths, sources.clone()).unwrap();
+    let copied = sources
+        .iter()
+        .map(|s| SemanticWorkspaceSource {
+            path: s.path.clone(),
+            source: s.source.clone(),
+        })
+        .collect();
+    let first = preflight_owned(&paths, copied).unwrap();
     let second = preflight_owned(&paths, sources).unwrap();
     assert_eq!(first.manifest(), second.manifest());
     let provider = first

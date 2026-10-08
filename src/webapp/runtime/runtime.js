@@ -164,10 +164,18 @@ export function synthesizeRow(ent, enums, refs, budget = 20000, opt = {}) {
     }
     return [];
   };
-  const last = fs.length - 1, at = fs.map(() => []);
+  const last = fs.length - 1, at = Array.from({ length: Math.max(1, fs.length) }, () => []);
   for (const r of ent.rules || []) at[Math.max(0, ...(r.fields || []).map((n) => (idx.has(n) ? idx.get(n) : last)))]?.push(r);
   at[Math.max(0, last)].push(...(opt.extra || []));
   const row = Object.create(null); let evals = 0, worst = -1, why = "";
+  if (fs.length === 0) {
+    for (const rule of at[0]) {
+      if (++evals > budget) return { fail: "search budget exhausted" };
+      let ok; try { ok = rule.test(row) === true; } catch { ok = false; }
+      if (!ok) return { fail: rule.text };
+    }
+    return { row };
+  }
   const go = (d) => {
     if (d > last) return true;
     const f = fs[d];

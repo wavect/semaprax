@@ -689,9 +689,9 @@ passes `data.txt` to `arg_utf8`; add `--native` for native. `main` returns
 checked read failure prints one stderr line and exits 1.
 [Text Toolkit v1](TEXT-TOOLKIT-V1.md).
 
-`SPX-T269`: one direct `stdout_write` and one `stderr_write` per path; neither
-may be loop-reachable. Their staged bytes share a 65,536 total. Project v7
-line-command appends may loop, but share the same total. See [transcript rules](BOUNDED-STDOUT-TRANSCRIPT-V1.md)
+`SPX-T269`: keep direct writes outside loops and within selected-profile
+capacity admission. The default combined stdout + stderr cap is 65,536 bytes;
+Project v28 permits 1 MiB staged appends. See [transcript rules](BOUNDED-STDOUT-TRANSCRIPT-V1.md)
 and [Project v7](PROJECT-MANIFEST-V1.md#additive-project-manifest-v7-line-command-profile).
 
 Source-library CLIs use table-manifest `source-command.v1`, empty web exports,
@@ -1094,7 +1094,7 @@ Other first-attempt diagnostics and their fixes:
 | Some(1), None|`SPX-T203`, `SPX-T202`|Option<i64>::Some { value: 1 }, Option<i64>::None {}|
 | s.len() on a string|`SPX-T203`|Call string_len(s); see Compiler-owned functions for text operations. Only classes have methods|
 | str_as_bytes(text) or str_as_bytes(string_as_str(text))|`SPX-T263`, `SPX-T266`|Bind view first: let view = string_as_str(text); str_as_bytes(view)|
-| repeated direct output on one path or direct output reachable from a loop|`SPX-T269`|Keep at most one direct `stdout_write` and `stderr_write` per path, outside loops. Staged stdout + stderr share 65,536 bytes; line-command append may loop but shares this total.|
+| repeated direct output on one path or direct output reachable from a loop|`SPX-T269`|Keep direct writes outside loops and within selected-profile limits. Default combined stdout + stderr cap: 65,536 bytes; Project v28 staged appends: 1 MiB.|
 | string_as_str("literal")|`SPX-T266`|Bind the literal before passing it to string_as_str|
 | shape == Shape::Box { width: 1 } or option == Option<i64>::None {}|`SPX-T207`|Only payload-free, non-generic variants compare with ==; test others with match shape { Shape::Dot {} => true, _ => false, }|
 | an or-pattern alternative with a payload, such as Shape::Box { width: w }|`SPX-M105`|Or-pattern alternatives are payload-free cases; give a payload case its own arm|

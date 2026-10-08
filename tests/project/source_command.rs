@@ -65,6 +65,29 @@ fn resource_app(repeats: usize, result: i64) -> String {
     )
 }
 
+fn resource_direct_app() -> &'static str {
+    r#"module decimal.command;
+permit { fs.read, process.args.read, process.stdout.write }
+
+@id("decimal.command.main")
+fn main() -> i64 uses { fs.read, process.args.read, process.stdout.write }
+{
+    if args_len() != 1usize {
+        2
+    } else {
+        let path = arg_utf8(0usize);
+        let left = file_read_text(path);
+        let right = file_read_text(path);
+        let joined = string_concat(left, right);
+        let joined_view = string_as_str(joined);
+        let joined_bytes = str_as_bytes(joined_view);
+        let written = stdout_write(joined_bytes);
+        if written == 131072usize { 0 } else { 1 }
+    }
+}
+"#
+}
+
 const APP: &str = r#"module decimal.command;
 use function @id("std.int.decimal.canonicalize") from std.int.decimal as canonicalize;
 use function @id("std.int.decimal.add") from std.int.decimal as add;
@@ -175,6 +198,23 @@ fn resource_output_stages_large_appends_and_discards_every_failed_attempt() {
             snapshot.check()?;
             let graph: serde_json::Value = serde_json::from_str(snapshot.semantic_graph()).unwrap();
             assert_eq!(graph["project_schema"], "semaprax.project.v28");
+            assert_eq!(
+                graph["source_command_resource_output"],
+                serde_json::json!({
+                    "schema": "semaprax.source-command-resource-output.v1",
+                    "profile": "source-command.resource-output.v1",
+                    "portable_capacity_summaries_role": "pre-hir-source-site-admission-only",
+                    "legacy_direct_output_max_bytes": 65_536,
+                    "multiple_unknown_direct_roots": "refused",
+                    "owned_string_max_bytes": 1_048_576,
+                    "authenticated_borrowed_str_max_bytes": 1_048_576,
+                    "ordinary_slice_max_bytes": 65_536,
+                    "owned_bytes_max_bytes": 131_072,
+                    "combined_staged_output_max_bytes": 1_048_576,
+                    "publication": "terminal-success-only",
+                    "failure": "discard-wipe-free",
+                })
+            );
             let graph_digest = graph["graph_digest"].as_str().unwrap().to_owned();
             let lock: serde_json::Value =
                 serde_json::from_str(&project::render_project_lock(snapshot)?).unwrap();
@@ -270,6 +310,63 @@ fn resource_output_stages_large_appends_and_discards_every_failed_attempt() {
 }
 
 #[test]
+#[cfg_attr(windows, ignore = "native SourceCommand adapter is Unix-only")]
+fn resource_output_wide_direct_borrowed_text_uses_checked_v28_route() {
+    let manifest = RESOURCE_MANIFEST.replace(
+        "[\"fs.read\", \"process.args.read\", \"process.stderr.write\", \"process.stdout.write\"]",
+        "[\"fs.read\", \"process.args.read\", \"process.stdout.write\"]",
+    );
+    let fixture = Fixture::new(resource_direct_app(), &manifest);
+    let binary = fixture.0.join("wide-direct-command");
+    project::with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+        snapshot.build_native(&binary)
+    })
+    .unwrap();
+    std::fs::write(fixture.0.join("full"), vec![b'8'; 65_536]).unwrap();
+    let output = Command::new(&binary)
+        .current_dir(&fixture.0)
+        .arg("full")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    assert_eq!(output.stdout.len(), 131_072);
+    assert!(output.stdout.iter().all(|byte| *byte == b'8'));
+}
+
+#[test]
+fn source_command_profiles_retain_pre_hir_multiple_unknown_write_refusal() {
+    let source = r#"module decimal.command;
+permit { fs.read, process.args.read, process.stderr.write, process.stdout.write }
+
+@id("decimal.command.main")
+fn main() -> i64 uses { fs.read, process.args.read, process.stderr.write, process.stdout.write }
+{
+    let path = arg_utf8(0usize);
+    let stdout_text = file_read_text(path);
+    let stdout_view = string_as_str(stdout_text);
+    let stdout_written = stdout_write(str_as_bytes(stdout_view));
+    let stderr_text = file_read_text(path);
+    let stderr_view = string_as_str(stderr_text);
+    let stderr_written = stderr_write(str_as_bytes(stderr_view));
+    0
+}
+"#;
+    for manifest in [
+        RESOURCE_MANIFEST.to_owned(),
+        RESOURCE_MANIFEST.replace("source-command.resource-output.v1", "source-command.v1"),
+    ] {
+        let fixture = Fixture::new(source, &manifest);
+        let errors =
+            project::with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+                snapshot.check()
+            })
+            .unwrap_err();
+        assert_eq!(errors[0].code, "SPX-T269", "{manifest}");
+    }
+}
+
+#[test]
 fn resource_output_refuses_legacy_append_mixtures() {
     let mixed = r#"module decimal.command;
 permit { process.stderr.write, process.stdout.write }
@@ -307,6 +404,7 @@ fn source_command_bundled_decimal_native_and_closed_runtime_failures() {
         snapshot.check()?;
         let graph: serde_json::Value = serde_json::from_str(snapshot.semantic_graph()).unwrap();
         assert_eq!(graph["project_schema"], "semaprax.project.v26");
+        assert!(graph.get("source_command_resource_output").is_none());
         let lock: serde_json::Value =
             serde_json::from_str(&project::render_project_lock(snapshot)?).unwrap();
         assert_eq!(lock["payload"]["package"]["profile"], "source-command.v1");

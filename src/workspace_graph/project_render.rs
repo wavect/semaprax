@@ -141,7 +141,13 @@ pub(super) fn render_project_graph_json(
         usage.used_manifest_bytes,
     )
     .expect("writing to a string cannot fail");
-    output.push_str("},\"nonclaims\":[");
+    output.push('}');
+    if project_schema == crate::project::PROJECT_SCHEMA_V28 {
+        output.push_str(
+            ",\"source_command_resource_output\":{\"schema\":\"semaprax.source-command-resource-output.v1\",\"profile\":\"source-command.resource-output.v1\",\"portable_capacity_summaries_role\":\"pre-hir-source-site-admission-only\",\"legacy_direct_output_max_bytes\":65536,\"multiple_unknown_direct_roots\":\"refused\",\"owned_string_max_bytes\":1048576,\"authenticated_borrowed_str_max_bytes\":1048576,\"ordinary_slice_max_bytes\":65536,\"owned_bytes_max_bytes\":131072,\"combined_staged_output_max_bytes\":1048576,\"publication\":\"terminal-success-only\",\"failure\":\"discard-wipe-free\"}",
+        );
+    }
+    output.push_str(",\"nonclaims\":[");
     for (index, nonclaim) in PROJECT_GRAPH_NONCLAIMS.iter().enumerate() {
         if index > 0 {
             output.push(',');

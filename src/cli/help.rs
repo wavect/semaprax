@@ -1357,8 +1357,8 @@ mod tests {
             concat!(
                 "SPX-T269\n",
                 "wrote: repeated direct output on one path or direct output reachable from a loop\n",
-                "fix: Keep at most one direct `stdout_write` and `stderr_write` per path, outside loops. ",
-                "Staged stdout + stderr share 65,536 bytes; line-command append may loop but shares this total.\n",
+                "fix: Keep direct writes outside loops and within selected-profile limits. ",
+                "Default combined stdout + stderr cap: 65,536 bytes; Project v28 staged appends: 1 MiB.\n",
             )
         );
         let full_index = language_topic("mistakes-index").unwrap();

@@ -58,8 +58,13 @@ root executes, the adapter allocates one 2,097,152-byte block containing one
 full-capacity partition for each channel; allocation failure executes no source
 code. The profile admits `stdout_append` and `stderr_append`, including bounded
 repetition. Append overflow records the existing sticky command-output status.
-Legacy `stdout_write`/`stderr_write` remain available, but a reachable closure
-may not mix legacy writes with appends or contain multiple legacy write sites.
+Legacy `stdout_write`/`stderr_write` remain available with the frozen pre-HIR
+rule: direct writes stay outside loops, at most one write per channel is
+reachable on a path, and multiple unknown borrowed roots or a fixed plus
+dynamic direct transcript remain refused during source admission. A reachable
+closure may not mix legacy writes with appends. The v28 checked direct-write
+helper defensively maps any admitted combined-cap overflow to command-output
+status; it does not widen direct-write source admission.
 
 Every output operation copies into staging while its authenticated source view
 is live. Root failure, failed postconditions, cleanup failure, invalid exit
@@ -76,7 +81,11 @@ heap-allocation quota.
 Only `native64` is admitted. Interpreter execution retains `SPX-F102`; Web,
 Wasm, and npm retain `SPX-W120` before artifacts. The manifest, lock, semantic
 graph, Project digest, held-source checks, and fresh native publication bind
-the v28 profile and schema exactly.
+the v28 profile and schema exactly. The project graph's
+`source_command_resource_output` object records the 1 MiB String, authenticated
+borrowed-text, and combined staged-output envelope. The source graph's retained
+65,536-byte portable capacity summaries remain pre-HIR source-site admission
+facts; v28 does not reinterpret them as its native adapter's runtime envelope.
 
 Project v26 `source-command.v1`, its generated C bytes, 65,536-byte borrowed
 view/output limit, operation admission, and all target refusals remain frozen.

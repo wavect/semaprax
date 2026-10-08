@@ -129,8 +129,8 @@ fn unlisted_declaring_file(
 }
 
 /// `unknown function `name`` inside a project, where another listed module
-/// declares `name` under an explicit `@id`: replace the generic
-/// "declare or import" help with the exact `use` line, so the agent does not
+/// declares `name` under an explicit `@id`: prefer that exact project match
+/// over a generic or standard-library suggestion, so the agent does not
 /// have to search the project for the declaring module and its identity.
 pub(super) fn hint_importable_function(
     errors: Vec<Diagnostic>,
@@ -176,11 +176,7 @@ fn unknown_function_name(diagnostic: &Diagnostic) -> Option<&str> {
         .message
         .strip_prefix("unknown function `")?
         .strip_suffix('`')?;
-    diagnostic
-        .help
-        .as_deref()
-        .is_some_and(|help| help.starts_with(&format!("declare `{name}` in this module")))
-        .then_some(name)
+    Some(name)
 }
 
 /// `(module, function name, stable id)` for every explicitly identified
@@ -244,6 +240,57 @@ fn read_bounded(path: &Path) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn exact_project_import_outranks_catalog_but_ambiguity_preserves_it() {
+        let root = std::env::temp_dir().join(format!(
+            "semaprax-project-import-hint-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+        let source = "module app; @id(\"app.main\") fn main() -> i64 { divide(4, 2) }";
+        std::fs::write(root.join("app.spx"), source).unwrap();
+        let program = crate::parse(source, Path::new("app.spx")).unwrap();
+        let diagnostic = crate::verify::verify(&program)
+            .into_iter()
+            .find(|item| item.code == "SPX-T203")
+            .unwrap();
+        assert!(diagnostic
+            .help
+            .as_deref()
+            .unwrap()
+            .contains("std.int.decimal"));
+        let declared = vec!["app.spx".to_owned(), "provider.spx".to_owned()];
+        let missing = hint_importable_function(vec![diagnostic.clone()], &root, &declared);
+        assert_eq!(missing[0].help, diagnostic.help);
+        std::fs::write(
+            root.join("provider.spx"),
+            "module provider; @id(\"provider.divide\") fn divide(a: i64, b: i64) -> i64 { a / b }",
+        )
+        .unwrap();
+        let exact = hint_importable_function(vec![diagnostic.clone()], &root, &declared);
+        assert_eq!(exact[0].code, diagnostic.code);
+        assert_eq!(exact[0].message, diagnostic.message);
+        assert_eq!(exact[0].span, diagnostic.span);
+        assert_eq!(exact[0].path, diagnostic.path);
+        assert!(exact[0]
+            .help
+            .as_deref()
+            .unwrap()
+            .contains("use function @id(\"provider.divide\") from provider as divide;"));
+        std::fs::write(
+            root.join("other.spx"),
+            "module other; @id(\"other.divide\") fn divide(a: i64, b: i64) -> i64 { a / b }",
+        )
+        .unwrap();
+        let ambiguous = hint_importable_function(
+            vec![diagnostic.clone()],
+            &root,
+            &[declared, vec!["other.spx".to_owned()]].concat(),
+        );
+        assert_eq!(ambiguous[0].help, diagnostic.help);
+        std::fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn module_header_scan_accepts_comments_and_rejects_other_shapes() {

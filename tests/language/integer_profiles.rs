@@ -58,6 +58,11 @@ const OWNED_FAILURE_SOURCE: &str = r#"module test.integer_owned_failure;
     let invalid = usize_from_i64(-1);
     if byte_len(bytes_as_slice(live)) == invalid { 1 } else { 0 }
 }
+@id("numeric.live_byte_negative") fn live_byte_negative() -> i64 {
+    let live = bytes_zeroed(4usize);
+    let invalid = u8_from_i64(-1);
+    if byte_len(bytes_as_slice(live)) == usize_from_u8(invalid) { 1 } else { 0 }
+}
 @id("numeric.live_rem32overflow") fn live_rem32overflow() -> i64 {
     let live = bytes_zeroed(4usize);
     let left = -2147483648i32;
@@ -70,6 +75,7 @@ const OWNED_FAILURE_SOURCE: &str = r#"module test.integer_owned_failure;
 
 const OWNED_FAILURE_CASES: &[(&str, &str)] = &[
     ("numeric.live_bytes", "semaprax.convert.v1|1"),
+    ("numeric.live_byte_negative", "semaprax.convert.v1|1"),
     ("numeric.live_rem32overflow", "semaprax.arithmetic.v1|7"),
 ];
 
@@ -223,7 +229,11 @@ fn integer_profiles_agree_on_scalar_and_aggregate_backends() {
 #[test]
 fn checked_numeric_failures_finalize_an_unrelated_live_bytes_owner() {
     let resolved = hir::resolve(&checked_program(OWNED_FAILURE_SOURCE)).unwrap();
-    for id in ["numeric.live_bytes", "numeric.live_rem32overflow"] {
+    for id in [
+        "numeric.live_bytes",
+        "numeric.live_byte_negative",
+        "numeric.live_rem32overflow",
+    ] {
         let function = resolved
             .functions
             .iter()

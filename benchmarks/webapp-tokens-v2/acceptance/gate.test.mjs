@@ -1,9 +1,10 @@
 import test from 'node:test';
+import {createServer} from 'node:http';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import { rowShape,lossless } from './client.mjs';
+import { Client,rowShape,lossless } from './client.mjs';
 import { ENTITIES,ENUMS,COVERAGE,SPEC_SHA256,integer,seed,canRead,canWrite,computed } from './contract.mjs';
 import { sha256,requiredCases,qualify,passwordChecks } from './qualification.mjs';
 import { localUrl } from './process.mjs';
@@ -16,3 +17,5 @@ test('dropping any mandatory case or coverage family prevents qualification',()=
 test('independent computed branch and rollup witnesses reject omitted semantics',()=>{const all=Object.fromEntries(Object.keys(ENTITIES).map(name=>[name,[]]));all.Task=[{project_id:1,status:'Done',spent:'7'}];all.Expense=[{project_id:1,amount:11}];assert.deepEqual(computed('Project',{id:1,start_day:'0',due_day:'101',status:'Active',budget:10},all),{duration:'101',late:false,tasks:'1',open_tasks:'0',spent:'7',expenses:11,over_budget:true});assert.equal(computed('Task',{status:'Done',estimate:'10',spent:'12',priority:'Urgent'},all).remaining,'0');assert.equal(computed('Ticket',{state:'Open',age_hours:'20',sla_hours:'1',severity:'Major'},all).escalation,'watch');});
 test('CSV preserves commas quotes newlines, launch excludes remote authority',()=>{assert.deepEqual(parseCsv('id,body\r\n1,"a, ""b""\nc"\r\n'),[['id','body'],['1','a, "b"\nc']]);assert.throws(()=>parseCsv('"unterminated'));assert.equal(localUrl('http://127.0.0.1:8123/'),'http://127.0.0.1:8123/');for(const url of ['https://127.0.0.1:8123/','http://example.com:8123/','http://127.0.0.1:8123/path'])assert.throws(()=>localUrl(url));});
 test('failed and missing cases stay failures, unsupported KDF remains unverified',async()=>{const probe=new Probe();await probe.check('negative','auth',()=>assert.fail('deliberately omitted behavior'));assert.equal(probe.rows[0].status,'failed');assert.equal(qualify(probe.rows).passed,false);const root=await fs.mkdtemp(path.join(os.tmpdir(),'teamdesk-gate-test-'));try{await fs.writeFile(path.join(root,'state.sqlite'),'opaque independent-proof-required data');const result=await passwordChecks({data:root,ledger:path.join(root,'missing-ledger')});assert.equal(result.verified,false);}finally{await fs.rm(root,{recursive:true,force:true});}});
+
+test('hostile API missing fields and weakened write responses are observed externally',async()=>{const server=createServer((req,res)=>{res.setHeader('content-type','application/json');if(req.method==='POST'){res.writeHead(201);res.end(JSON.stringify({id:1}));}else{res.writeHead(200);res.end(JSON.stringify({id:1,name:'Team without mandatory description'}));}});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));try{const client=new Client(`http://127.0.0.1:${server.address().port}/`,'typescript');const row=await client.entity('GET','Team',1,undefined,200);assert.throws(()=>rowShape('Team',row.json));const body={member_id:2};assert.equal(canWrite('Agent','Task',body,1),false);await assert.rejects(client.entity('POST','Task',undefined,body,403));}finally{await new Promise(resolve=>server.close(resolve));}});

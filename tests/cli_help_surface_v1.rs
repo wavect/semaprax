@@ -335,7 +335,7 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     let start = card_text.find("## JSON documents and cursors\n").unwrap();
     let section = &card_text[start..];
     let end = section.find("\n## ").unwrap_or(section.len());
-    assert_eq!(json_topic.stdout, section[..end].as_bytes());
+    assert_eq!(json_topic.stdout, &section.as_bytes()[..end]);
     std::fs::remove_dir(json_topic_dir).unwrap();
     let (scalars, scalars_dir) = invoke(&["help", "language", "scalars"]);
     assert!(scalars.status.success());

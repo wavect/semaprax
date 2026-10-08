@@ -682,24 +682,22 @@ Consuming an enclosing owner is `SPX-T252`.
 
 ## Command-line programs
 
-Permitting `fs.read`, `process.args.read`, or `process.stderr.write`
-(optionally `process.stdout.write`) selects CLI behavior. `semaprax run
-lines.spx -- data.txt` (also `--native` or a native build) passes `data.txt` to
-`arg_utf8`. `main` returns status `0..=255`; stdout/stderr appear after return.
-`file_read_text` stays below the current directory; checked read
-failures print one stderr line and exit 1. [Text Toolkit v1](TEXT-TOOLKIT-V1.md).
+`fs.read`, `process.args.read`, or `process.stderr.write` (optionally
+`process.stdout.write`) selects CLI behavior. `semaprax run lines.spx -- data.txt`
+passes `data.txt` to `arg_utf8`; `--native` also selects native. `main` returns
+status `0..=255`; stdout/stderr appear after return. `file_read_text` stays
+below cwd; checked read failures print one stderr line and exit 1.
+[Text Toolkit v1](TEXT-TOOLKIT-V1.md).
 
-For `SPX-T269`, each executable path admits at most one direct `stdout_write`
-and one `stderr_write`, outside loops, with at most 65,536 combined staged
-bytes. Project v7 line-command `stdout_append`/`stderr_append` may loop, but
-share that same cumulative total. See [transcript rules](BOUNDED-STDOUT-TRANSCRIPT-V1.md)
+`SPX-T269`: one direct `stdout_write` and one `stderr_write` per path; neither
+may be loop-reachable. Their staged bytes share a 65,536 total. Project v7
+line-command appends may loop, but share the same total. See [transcript rules](BOUNDED-STDOUT-TRANSCRIPT-V1.md)
 and [Project v7](PROJECT-MANIFEST-V1.md#additive-project-manifest-v7-line-command-profile).
 
-For source-library CLIs, use table-manifest `source-command.v1`, empty web
-exports, the exact `[command]` main ID, `argv-utf8+file-text.v1`, sorted
-capabilities, and `native64`. `semaprax build <project> --target native
---output <fresh-path>` links ordinary packages such as `std.int.decimal`;
-interpreter/Web/npm/Wasm are refused. See [Project v26](PROJECT-MANIFEST-V26.md)
+Source-library CLIs use table-manifest `source-command.v1`, empty web exports,
+the exact `[command]` main ID, `argv-utf8+file-text.v1`, sorted capabilities,
+and `native64`. Native builds link ordinary dependencies such as
+`std.int.decimal`; interpreter/Web/npm/Wasm are refused. See [Project v26](PROJECT-MANIFEST-V26.md)
 and the [decimal CLI example](../examples/source-command-project/semaprax.toml).
 
 The dependency-ready starter and its exact small library card are:
@@ -713,28 +711,31 @@ semaprax build --manifest-path semaprax.toml --target native --output app
 ./app digits
 ```
 
-Its manifest pins `std.int.decimal = "=0.1.0"`; import
-`std.int.decimal.canonicalize`, `std.int.decimal.add`, and
-`std.int.decimal.divide` by the stable IDs printed by the library card.
+It pins `std.int.decimal = "=0.1.0"`; import `canonicalize`, `add`, and
+`divide` by the stable IDs in `semaprax help library std.int.decimal`.
 
-Build `lines.spx` natively with a fresh `--output`. Omit `--profile`:
+Build `lines.spx` natively to fresh `--output`; omit `--profile` because
 `text-toolkit-v1` and `internal-strings-v1` are Wasm/web export profiles. On
-`SPX-I307`, choose a fresh output or remove the prior artifact after confirming
+`SPX-I307`, choose a new output or remove your prior artifact after checking
 ownership; the compiler never overwrites it.
 
 Project v23 streaming uses `argv-utf8+stdin-stream.v1` and
-`language-command-io.stream.v1`; native reuses a 4096-byte buffer, while
-`stdin_read()` remains a snapshot. Open/Next require `process.stdin.read`; open
-runs once per path, outside loops. End a borrowed chunk before Next (`SPX-T265`).
-[Streaming contract](BOUNDED-STDIN-STREAM-V1.md) covers EOF/chunks and owner
-renewal.
+`language-command-io.stream.v1`; native reuses a 4096-byte buffer; `stdin_read()`
+remains a snapshot. Open prefills; zero bytes is EOF, short positive reads are
+chunks. Open/Next need `process.stdin.read`; Eof/Chunk inspect named readers
+purely. Open runs once per path, never in loops. Readers have no constructor,
+generic, aggregate, or public ABI escape. End each borrowed chunk before Next
+(`SPX-T265`); exact acyclic `own StdinReader -> StdinReader` helpers may renew
+the owner. [Streaming contract](BOUNDED-STDIN-STREAM-V1.md).
 
 Exit codes: `semaprax help language specifications`.
 
-Pure single-file `run` tries `semaprax.interpret.v1`, then retries `SPX-F102`
-owned-`string` refusals with `semaprax.interpret.internal-strings.v1`; if both
-refuse, report the diagnostic. Permit-selected command/stdout runners skip
-this fallback. [Internal String Interpreter v1](INTERPRETER-INTERNAL-STRINGS-V1.md).
+On the pure single-file interpreter route, `run` tries `semaprax.interpret.v1`,
+then retries refusals with the internal String profile for owned `string`
+parameters/results otherwise refused by `SPX-F102`. If both refuse, report the
+ordinary diagnostic. Retry JSON `schema` is
+`semaprax.interpret.internal-strings.v1`. Permit-selected command and stdout
+runners skip this fallback. See [Internal String Interpreter v1](INTERPRETER-INTERNAL-STRINGS-V1.md).
 
 ```semaprax
 module app.lines;
@@ -788,14 +789,13 @@ fn main() -> i64
 }
 ```
 
-For lines `4`, ` 5 `, `x`, `10`, running `lines.spx -- nums.txt` prints
-`lines: 4` and `sum: 19` (exit 0); no argument prints usage to stderr (exit 2).
-Bind `arg_utf8(i)` before passing it on. To compare an argument, copy it into a
-`string` (`let raw = arg_utf8(1usize); let flag = string_from_str(raw);`), then
-compare `flag == "--top"`. Match `string_to_i64` directly; in loops use exactly
-`Option::Some { value }` and `Option::None {}`. Functions admit multiple
-independent `if`s, `&&`/`||` operands, and `match`es. Offsets are bytes;
-`string_byte_at(s, i) == 32` tests a space without allocation.
+With `nums.txt` containing `4`, ` 5 `, `x`, `10`, the sample prints `lines: 4`
+and `sum: 19` (exit 0); no args prints usage to stderr (exit 2). Bind
+`arg_utf8(i)` before forwarding; copy to `string` with `string_from_str` to
+compare a flag. Match `string_to_i64` directly; loop cases use
+`Option::Some { value }` and `Option::None {}`. Multiple `if`s, `&&`/`||`, and
+`match`es are admitted. Offsets are bytes; `string_byte_at(s, i) == 32` checks
+space without allocation.
 
 ## String-keyed maps
 
@@ -1093,7 +1093,7 @@ Other first-attempt diagnostics and their fixes:
 | Some(1), None|`SPX-T203`, `SPX-T202`|Option<i64>::Some { value: 1 }, Option<i64>::None {}|
 | s.len() on a string|`SPX-T203`|Call string_len(s); see Compiler-owned functions for text operations. Only classes have methods|
 | str_as_bytes(text) or str_as_bytes(string_as_str(text))|`SPX-T263`, `SPX-T266`|Bind view first: let view = string_as_str(text); str_as_bytes(view)|
-| second direct write on a path, loop-reachable write, or over 65,536 combined output|`SPX-T269`|Keep one `stdout_write`/`stderr_write` site per path outside loops; cap staged stdout + stderr at 65,536 bytes. Line-command append may loop but shares this total.|
+| repeated direct output on one path or direct output reachable from a loop|`SPX-T269`|Keep at most one direct `stdout_write` and `stderr_write` per path, outside loops. Staged stdout + stderr share 65,536 bytes; line-command append may loop but shares this total.|
 | string_as_str("literal")|`SPX-T266`|Bind the literal before passing it to string_as_str|
 | shape == Shape::Box { width: 1 } or option == Option<i64>::None {}|`SPX-T207`|Only payload-free, non-generic variants compare with ==; test others with match shape { Shape::Dot {} => true, _ => false, }|
 | an or-pattern alternative with a payload, such as Shape::Box { width: w }|`SPX-M105`|Or-pattern alternatives are payload-free cases; give a payload case its own arm|

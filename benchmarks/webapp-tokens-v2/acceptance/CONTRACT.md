@@ -62,7 +62,10 @@ document; actual link checks await the destination's visible heading to avoid
 inspecting an earlier SPA route while asynchronous fetches are still running. The
 gate does not require a CSS framework, candidate test ids, or a supplied
 manifest. Chromium interacts with the real UI and records download bytes and
-a screenshot. Client validation is checked by observing **zero entity
+a screenshot. Browser authoring witnesses use values expressible through the permitted
+single-line string editor, including quotes and UTF-8; arbitrary multiline
+string preservation is independently checked through API and CSV.
+Client validation is checked by observing **zero entity
 mutations** before the displayed error, rather than reading client code.
 
 ## Password evidence limits

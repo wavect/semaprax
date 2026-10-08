@@ -22,10 +22,11 @@ use super::{
     REASON_UNSUPPORTED_RESULT_TYPE,
 };
 
-/// The retained Project v25 selector; legacy callers retain their closed map.
+/// Selected Project data profiles; legacy callers retain their closed map.
 #[derive(Clone, Copy)]
 pub(crate) enum ResolvedFunctionProfile {
     Legacy,
+    OwnedData,
     StreamText,
 }
 impl ResolvedFunctionProfile {
@@ -36,6 +37,8 @@ impl ResolvedFunctionProfile {
                 | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
         ) {
             Self::StreamText
+        } else if matches!(profile, crate::project::ProjectProfile::OwnedDataApiV1) {
+            Self::OwnedData
         } else {
             Self::Legacy
         }
@@ -45,6 +48,25 @@ impl ResolvedFunctionProfile {
         program: &hir::ResolvedProgram,
     ) -> std::collections::BTreeMap<&str, &hir::ResolvedFunction> {
         let mut admitted = admitted_resolved_functions(program);
+        if matches!(self, Self::OwnedData) {
+            // The selected package route admits its checked data signatures,
+            // without widening ordinary single-file or legacy Project maps.
+            admitted.extend(
+                program
+                    .functions
+                    .iter()
+                    .filter(|function| {
+                        program
+                            .declarations
+                            .declaration(&function.id)
+                            .is_some_and(|declaration| {
+                                declaration.identity_origin == hir::IdentityOrigin::Explicit
+                            })
+                            && resolved_signature_is_admitted(function, &program.declarations)
+                    })
+                    .map(|function| (function.id.as_str(), function)),
+            );
+        }
         if matches!(self, Self::StreamText) {
             admitted.extend(
                 program
@@ -345,6 +367,41 @@ mod tests {
             ),
             ResolvedFunctionProfile::Legacy
         ));
+    }
+    #[test]
+    fn owned_data_project_admits_string_helpers_without_widening_legacy() {
+        let program = string_program("text");
+        let profile =
+            ResolvedFunctionProfile::for_project(crate::project::ProjectProfile::OwnedDataApiV1);
+        assert!(matches!(profile, ResolvedFunctionProfile::OwnedData));
+        let error = evaluate_resolved_profile_i64_entry(
+            &program,
+            "app.main",
+            1000,
+            ResolvedFunctionProfile::Legacy,
+        )
+        .unwrap_err();
+        assert_eq!(error[0].code, "SPX-F102");
+        assert!(error[0].message.contains("unsupported_callee"));
+        let evaluated =
+            evaluate_resolved_profile_i64_entry(&program, "app.main", 1000, profile).unwrap();
+        assert!(matches!(
+            evaluated.outcome,
+            super::super::ResolvedEvaluationOutcome::ReturnedI64(7)
+        ));
+        let prepared = super::super::prepared::prepare_resolved_i64_with_profile(
+            &program, "app.main", profile,
+        )
+        .unwrap();
+        assert!(prepared.function_ids().any(|id| id == "text.helper"));
+        let mut hostile = program.clone();
+        let helper = hostile
+            .functions
+            .iter_mut()
+            .find(|f| f.id.as_str() == "text.helper")
+            .unwrap();
+        helper.effects.push("fs.read".into());
+        assert!(!profile.admitted(&hostile).contains_key("text.helper"));
     }
     #[test]
     fn stream_text_owned_call_failure_keeps_selected_status() {

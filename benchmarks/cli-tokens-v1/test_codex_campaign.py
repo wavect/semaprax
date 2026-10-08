@@ -1,3 +1,4 @@
+import hashlib
 import json
 import tempfile
 import unittest
@@ -102,6 +103,39 @@ class CodexCampaignTests(unittest.TestCase):
             result = codex_campaign.capabilities("fixture-codex")
         self.assertEqual(run.call_args.args[0], ["fixture-codex", "exec", "--help"])
         self.assertEqual(result["status"], "ready")
+
+    def test_harness_source_snapshot_copies_and_hashes_exact_closure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            artifacts = root / "future-campaign"
+            artifacts.mkdir()
+            prior = root / "round5" / "campaign.json"
+            prior.parent.mkdir()
+            prior.write_bytes(b"saved round five bytes\n")
+            prior_before = prior.read_bytes()
+
+            inventory = codex_campaign.harness_source_inventory()
+            snapshot = codex_campaign.snapshot_harness_sources(
+                codex_campaign.REPO, artifacts, inventory, "frozen-spec-seed-hash",
+            )
+
+            self.assertEqual(set(inventory), set(codex_campaign.HARNESS_SOURCE_FILES))
+            self.assertEqual(snapshot["files_sha256"], inventory)
+            copied = artifacts / "harness-source"
+            copied_files = {
+                path.relative_to(copied).as_posix()
+                for path in copied.rglob("*") if path.is_file()
+            }
+            self.assertEqual(copied_files, {*codex_campaign.HARNESS_SOURCE_FILES, "manifest.json"})
+            for relative, expected_hash in inventory.items():
+                self.assertEqual(
+                    hashlib.sha256((copied / relative).read_bytes()).hexdigest(),
+                    expected_hash,
+                )
+            manifest = json.loads((copied / "manifest.json").read_text())
+            self.assertEqual(manifest, snapshot)
+            self.assertEqual(manifest["frozen_spec"]["sha256"], "frozen-spec-seed-hash")
+            self.assertEqual(prior.read_bytes(), prior_before)
 
 
 if __name__ == "__main__":

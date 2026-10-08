@@ -63,15 +63,23 @@ const hold = async (route, body, auth = cookie, method = "PUT") => {
   });
 };
 const item = (state = "Draft", user_id = 1) => ({ user_id, state, text: "retained" });
-const startupFailure = async (code) => {
-  const preload = path.join(root, `listen-${code}.mjs`), dir = path.join(root, `listen-data-${code}`);
+const startupFailure = async (code, selfTestParent = false) => {
+  const preload = path.join(root, `listen-${code}.mjs`), dir = path.join(root, `listen-data-${code}-${selfTestParent ? "self-test" : "direct"}`);
   fs.writeFileSync(preload, `import net from "node:net";
-net.Server.prototype.listen = function () { const error = Object.assign(new Error("simulated listen failure"), { code: ${JSON.stringify(code)} }); process.nextTick(() => this.emit("error", error)); return this; };
+if (!process.argv.includes("--self-test")) net.Server.prototype.listen = function () { const error = Object.assign(new Error("simulated listen failure"), { code: ${JSON.stringify(code)} }); process.nextTick(() => this.emit("error", error)); return this; };
 `);
   return await new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, ["--import", preload, path.join(app, "server.mjs"), "--data", dir], { stdio: ["ignore", "pipe", "pipe"] });
-    children.add(child); let stdout = "", stderr = "", settled = false;
-    const timer = setTimeout(() => { child.kill("SIGKILL"); finish(new Error(`simulated ${code} startup timed out`)); }, 5000);
+    const script = path.join(app, "server.mjs");
+    const args = selfTestParent ? [script, "--self-test", "--data", dir] : ["--import", preload, script, "--data", dir];
+    const options = { stdio: ["ignore", "pipe", "pipe"] };
+    if (selfTestParent) options.env = {
+      ...process.env,
+      NODE_OPTIONS: [process.env.NODE_OPTIONS, `--import=${pathToFileURL(preload).href}`].filter(Boolean).join(" "),
+    };
+    const child = spawn(process.execPath, args, options);
+    children.add(child); let stdout = "", stderr = "", settled = false, timedOut = false;
+    const timeoutMs = selfTestParent ? 15000 : 5000;
+    const timer = setTimeout(() => { timedOut = true; child.kill("SIGKILL"); }, timeoutMs);
     const finish = (error, result) => {
       if (settled) return; settled = true; clearTimeout(timer);
       if (error) reject(error); else resolve(result);
@@ -81,7 +89,8 @@ net.Server.prototype.listen = function () { const error = Object.assign(new Erro
     child.once("error", (error) => { children.delete(child); finish(error); });
     child.once("close", (status, signal) => {
       children.delete(child);
-      finish(null, { status, signal, stdout, stderr: stderr.trim() });
+      if (timedOut) finish(new Error(`${selfTestParent ? "--self-test parent" : code} startup timed out after ${timeoutMs}ms`));
+      else finish(null, { status, signal, stdout, stderr: stderr.trim() });
     });
   });
 };
@@ -89,8 +98,12 @@ try {
   const deniedListen = await startupFailure("EPERM");
   assert.equal(deniedListen.status, 1);
   assert.match(deniedListen.stderr, /EPERM: listen denied.*--self-test-offline is schema-only; full server\/browser acceptance still required/);
-  assert.ok((`server exited: ${deniedListen.stderr}`).length <= 120, "full guidance survives the --self-test error summary bound");
   assert.doesNotMatch(deniedListen.stderr, /Unhandled.*error|simulated listen failure|\n\s+at /);
+  const selfTestDeniedListen = await startupFailure("EPERM", true);
+  assert.equal(selfTestDeniedListen.status, 1, "the real --self-test parent preserves child listen failure");
+  assert.match(selfTestDeniedListen.stdout, /FAIL self-test: server exited: EPERM: listen denied\. --self-test-offline is schema-only; full server\/browser acceptance still required/);
+  assert.doesNotMatch(selfTestDeniedListen.stdout, /listening on http/);
+  assert.doesNotMatch(`${selfTestDeniedListen.stdout}\n${selfTestDeniedListen.stderr}`, /Unhandled.*error|simulated listen failure|\n\s+at /);
   const occupiedListen = await startupFailure("EADDRINUSE");
   assert.equal(occupiedListen.status, 1);
   assert.match(occupiedListen.stderr, /server listen failed \(EADDRINUSE\)/);

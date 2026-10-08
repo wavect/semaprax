@@ -55,13 +55,18 @@ branches, lazy Boolean flow, scalar matching/guards, mutable scalar bindings,
 loops, internal calls, requires and ensures are covered. Later [Owned String Loops v1](OWNED-STRING-LOOPS-V1.md) admits owned
 body storage and same-owner append. [Named String Length Conditions v1](STRING-LENGTH-CONDITIONS-V1.md)
 adds exact `string_len(namedString)` inspection in conditions without a clone.
-Allocating String conditions retain `SPX-T252`. Repeated String
-settlement is exercised by scalar-signature helpers that allocate and release
-Strings internally on each iteration; this does not add owned loop storage
-or CleanupPlan back-edges.
-String assignment remains the existing source-level `SPX-U105` rejection:
-[Explicit Mutation v1](EXPLICIT-MUTATION-V1.md) admits only Copy scalar targets.
-This profile does not widen source mutation or weaken verifier admission.
+[String Condition Lifetimes v1](STRING-CONDITION-LIFETIMES-V1.md) admits
+condition-local String temporaries at source level; this frozen Wasm selector
+rejects them with `SPX-W111` ("String condition temporaries require
+text-toolkit-v1"). Consuming an enclosing String in a condition remains a
+source-level `SPX-T252` refusal. Repeated String settlement is exercised by
+scalar-signature helpers that allocate and release Strings internally on each
+iteration.
+[Whole String Replacement v1](STRING-REPLACEMENT-V1.md) admits whole mutable
+String replacement at source level. This frozen selector rejects replacement
+with `SPX-W111` ("whole String replacement requires the explicit
+string-replacement-v1 profile"). Bytes and other excluded owned assignment
+targets retain `SPX-U105`; these additive String profiles do not widen them.
 
 The explicit additive `emit_copy_variant_module` API is specified by
 [Copy Variant String Settlement v1](WASM-INTERNAL-STRING-COPY-VARIANTS-V1.md).

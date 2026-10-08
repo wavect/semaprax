@@ -98,7 +98,7 @@ fn cli_language_help_documents_run_string_fallback_and_json_schemas() {
         "`semaprax.interpret.internal-strings.v1`",
         "Permit-selected command and stdout",
         "runners skip this fallback.",
-        "refuse, report the ordinary diagnostic.",
+        "refuse, report the\nordinary diagnostic.",
     ] {
         assert!(help.contains(detail), "missing help detail: {detail}");
     }
@@ -115,7 +115,7 @@ fn cli_language_projects_distinguishes_the_private_stream_data_profile() {
         "The `stdin-stream-text` scaffold remains Project v25.",
         "`language-command-io.stream-data.v1`",
         "immutable `borrow Vec<T>` parameters for the eight",
-        "v24/v25 retain their closed helper boundaries",
+        "v24/v25 retain their\nclosed helper boundaries",
         "Web/npm refuse v27",
     ] {
         assert!(

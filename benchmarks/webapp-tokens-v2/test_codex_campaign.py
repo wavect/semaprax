@@ -735,6 +735,112 @@ class WebappCampaignTests(unittest.TestCase):
             self.assertTrue(api_port.isdecimal() and ui_port.isdecimal())
             self.assertEqual(Path(data), output / "data")
 
+    def test_runner_capture_reproduces_complete_raw_tree_and_build_failure_still_rejects(self):
+        # Collector-only fixture evidence: this executable is deliberately not
+        # a real compiler or an application, and cannot satisfy acceptance.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); artifacts = root / "artifacts"; artifacts.mkdir()
+            commit = campaign.resolve_commit(ROOT, "HEAD")
+            seeds = campaign.pinned_seed_hashes(ROOT, commit)
+            inventory = campaign.harness_source_inventory(ROOT, seeds[campaign.FROZEN_SPEC])
+            snapshot = campaign.snapshot_harness_sources(
+                ROOT, artifacts, inventory, commit, seeds[campaign.FROZEN_SPEC])
+            candidate = root / "candidate"; (candidate / "src").mkdir(parents=True)
+            (candidate / "src/app.spx").write_text("// collector fixture source; no application\n")
+            (candidate / "build.sh").write_text(
+                "printf 'build\\n' >> \"$TEAMDESK_DATA_DIR/scripts.log\"\nexit 23\n")
+            for script, marker in (("test.sh", "test"), ("run.sh", "run")):
+                (candidate / script).write_text(
+                    f"printf '{marker}\\n' >> \"$TEAMDESK_DATA_DIR/scripts.log\"\nexit 99\n")
+            # The declaration closes only retained input source. A preexisting
+            # excluded candidate directory must not enter that source closure.
+            (candidate / "out").mkdir()
+            (candidate / "out/preexisting.txt").write_text("excluded candidate cache\n")
+            retained = [{"path": name, "sha256": campaign.common.digest(candidate / name)}
+                        for name in ("build.sh", "run.sh", "src/app.spx", "test.sh")]
+            declaration = {"schema": "semaprax.compiler-output-capture.v1",
+                           "argv": ["webapp", "src/app.spx", "-o", "{output}"],
+                           "input_files": retained, "output_directory": "generated"}
+            (candidate / "compiler-output-capture.json").write_text(json.dumps(declaration))
+
+            payloads = {"index.html": b"collector-only deterministic HTML\n",
+                        "nested/node_modules/raw.bin": b"\x00\xffcomplete raw evidence\n",
+                        "server.mjs": b"// collector-only fixture output\n"}
+            calls = root / "fixture-compiler-invocations.jsonl"
+            compiler = root / "fixture-compiler"
+            compiler.write_text(
+                f"#!{sys.executable}\n"
+                "import json, os, sys\nfrom pathlib import Path\n"
+                "assert sys.argv[1:4] == ['webapp', 'src/app.spx', '-o']\n"
+                "destination = Path(sys.argv[4])\n"
+                "before = sorted(path.name for path in destination.iterdir())\n"
+                "assert before == [], 'each direct capture starts in a fresh empty root'\n"
+                f"with Path({str(calls)!r}).open('a') as log:\n"
+                "    log.write(json.dumps({'argv': sys.argv[1:], 'cwd': os.getcwd(), "
+                "'output_entries_before': before}) + '\\n')\n"
+                f"payloads = json.loads({json.dumps({name: value.hex() for name, value in payloads.items()})!r})\n"
+                "for name, value in payloads.items():\n"
+                "    target = destination / name\n"
+                "    target.parent.mkdir(parents=True, exist_ok=True)\n"
+                "    target.write_bytes(bytes.fromhex(value))\n")
+            compiler.chmod(0o755)
+            node = shutil.which("node")
+            self.assertIsNotNone(node, "Node24 is required for the runner integration gate")
+            settings = {"artifacts": str(artifacts), "harness_source_snapshot": snapshot,
+                        "acceptance": {"runner": "benchmarks/webapp-tokens-v2/acceptance/run.mjs",
+                                       "capabilities": {"node_binary": node}},
+                        "qualification": {"spec_sha256": seeds[campaign.FROZEN_SPEC]},
+                        "compiler_source_commit": commit,
+                        "source_binary_sha256": campaign.common.digest(compiler),
+                        "acceptance_timeout_seconds": 30}
+            settings["acceptance"]["capabilities"]["playwright_root"] = str(
+                ROOT / "benchmarks/webapp-tokens-v2/acceptance")
+            output = root / "evidence"
+            result = campaign.check_candidate(candidate, output, "semaprax", settings, compiler)
+            self.assertFalse(result["accepted"])
+            self.assertEqual(result["exit_code"], 1)
+            report = result["report"]
+            self.assertGreaterEqual(int(report["node"].split(".")[0].removeprefix("v")), 24)
+            invocations = [json.loads(line) for line in calls.read_text().splitlines()]
+            self.assertEqual(len(invocations), 2)
+            capture_roots = [output / "compiler-output-raw", output / "compiler-output-repeat"]
+            self.assertNotEqual(*capture_roots)
+            for invocation, capture_root in zip(invocations, capture_roots):
+                self.assertEqual(invocation, {"argv": ["webapp", "src/app.spx", "-o", str(capture_root)],
+                                              "cwd": str(candidate.resolve()), "output_entries_before": []})
+                actual = {path.relative_to(capture_root).as_posix(): path.read_bytes()
+                          for path in capture_root.rglob("*") if path.is_file()}
+                self.assertEqual(actual, payloads)
+            receipt_path = output / "compiler-output-receipt.json"
+            receipt = json.loads(receipt_path.read_text())
+            self.assertEqual(receipt["schema"], "semaprax.compiler-output-provenance.v1")
+            self.assertEqual(receipt["cwd"], ".")
+            expected_raw = [{"raw_path": name, "sha256": hashlib.sha256(payload).hexdigest()}
+                            for name, payload in sorted(payloads.items())]
+            expected_final = [{**row, "final_path": "generated/" + row["raw_path"]}
+                              for row in expected_raw]
+            self.assertEqual(receipt["raw_outputs"], expected_final)
+            self.assertEqual(receipt["repeat_outputs"], expected_raw)
+            self.assertEqual(receipt["input_files"], retained)
+            self.assertEqual(receipt["argv"], declaration["argv"])
+            self.assertEqual(receipt["raw_root"], "compiler-output-raw")
+            self.assertEqual(receipt["compiler"], {"source_sha": commit,
+                                                   "binary_sha256": campaign.common.digest(compiler)})
+            proof = report["compiler_output_receipt"]
+            self.assertEqual(Path(proof["path"]), receipt_path)
+            self.assertEqual(proof["sha256"], hashlib.sha256(receipt_path.read_bytes()).hexdigest())
+            self.assertEqual(proof["compiler"], receipt["compiler"])
+            self.assertEqual(proof["raw_outputs"], expected_final)
+            self.assertEqual((output / "data/scripts.log").read_text().splitlines(), ["build"])
+            self.assertEqual(report["candidate_after"], report["candidate_before"])
+            self.assertFalse(report["qualification"]["passed"])
+            self.assertEqual(report["qualification"]["cases"], 1)
+            self.assertEqual(len(report["qualification"]["missingCases"]), 912)
+            self.assertEqual(report["qualification"]["failures"], ["runner-fatal"])
+            self.assertEqual([row["id"] for row in report["checks"]], ["runner-fatal"])
+            self.assertIn("build.sh failed", report["checks"][0]["error"])
+            self.assertIn("912-case inventory", result["failure"])
+
     def test_summary_keeps_usage_cost_and_wall_time_separate_from_calibration(self):
         def row(status, raw, net, authored, price, agent, acceptance):
             return {"status": status, "observed": {"request_usage_sum": {

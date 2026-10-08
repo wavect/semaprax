@@ -388,26 +388,46 @@ fn exact_million_work_build_replays_and_the_first_extra_unit_is_fail_closed() {
     let (leaf_work, leaf_points, leaf_edges) = measure_delta(1, 0, 0);
     let (branch_work, branch_points, branch_edges) = measure_delta(0, 1, 0);
     let (match_work, match_points, match_edges) = measure_delta(0, 0, 1);
+    let mut tuning_probe = base.clone();
+    add_padding(&mut tuning_probe, "work.tuning.probe", 1, 0, 0);
+    let (tuning_result, tuning_used) =
+        build_cfg_plan_with_work_limit(&program, &tuning_probe, usize::MAX);
+    tuning_result.expect("the residue-tuning work probe builds");
+    let (tuning_points, tuning_edges) = cfg_counts(&tuning_probe);
+    let tuning_work = tuning_used - base_work;
+    let tuning_points = tuning_points - base_points;
+    let tuning_edges = tuning_edges - base_edges;
 
     let mut shape = None;
     for matches in 0..=((MAX_LOAN_PLAN_WORK_V1 - base_work) / match_work) {
         let after_matches = base_work + matches * match_work;
         for branches in 0..=((MAX_LOAN_PLAN_WORK_V1 - after_matches) / branch_work) {
-            let remaining = MAX_LOAN_PLAN_WORK_V1 - after_matches - branches * branch_work;
-            if !remaining.is_multiple_of(leaf_work) {
-                continue;
+            let after_branches = after_matches + branches * branch_work;
+            let max_live_leaves = (MAX_LOAN_PLAN_WORK_V1 - after_branches) / leaf_work;
+            for live_leaves in (0..=max_live_leaves).rev() {
+                let remaining = MAX_LOAN_PLAN_WORK_V1 - after_branches - live_leaves * leaf_work;
+                if !remaining.is_multiple_of(tuning_work) {
+                    continue;
+                }
+                let tuning_leaves = remaining / tuning_work;
+                let points = base_points
+                    + match_points * matches
+                    + branch_points * branches
+                    + leaf_points * live_leaves
+                    + tuning_points * tuning_leaves;
+                let edges = base_edges
+                    + match_edges * matches
+                    + branch_edges * branches
+                    + leaf_edges * live_leaves
+                    + tuning_edges * tuning_leaves;
+                if points <= MAX_LOAN_ENDPOINTS_V1 - leaf_points
+                    && edges <= MAX_LOAN_EDGES_V1 - leaf_edges
+                {
+                    shape = Some((live_leaves, branches, matches, tuning_leaves));
+                    break;
+                }
             }
-            let leaves = remaining / leaf_work;
-            let points = base_points
-                + match_points * matches
-                + branch_points * branches
-                + leaf_points * leaves;
-            let edges =
-                base_edges + match_edges * matches + branch_edges * branches + leaf_edges * leaves;
-            if points <= MAX_LOAN_ENDPOINTS_V1 - leaf_points
-                && edges <= MAX_LOAN_EDGES_V1 - leaf_edges
-            {
-                shape = Some((leaves, branches, matches));
+            if shape.is_some() {
                 break;
             }
         }
@@ -415,9 +435,9 @@ fn exact_million_work_build_replays_and_the_first_extra_unit_is_fail_closed() {
             break;
         }
     }
-    let (leaves, branches, matches) = shape.unwrap_or_else(|| {
+    let (live_leaves, branches, matches, tuning_leaves) = shape.unwrap_or_else(|| {
         panic!(
-            "a one-million-work fixture exists: base work/points/edges={base_work}/{base_points}/{base_edges}, leaf={leaf_work}/{leaf_points}/{leaf_edges}, branch={branch_work}/{branch_points}/{branch_edges}, match={match_work}/{match_points}/{match_edges}"
+            "a one-million-work fixture exists: base work/points/edges={base_work}/{base_points}/{base_edges}, live leaf={leaf_work}/{leaf_points}/{leaf_edges}, branch={branch_work}/{branch_points}/{branch_edges}, match={match_work}/{match_points}/{match_edges}, tuning leaf={tuning_work}/{tuning_points}/{tuning_edges}"
         )
     });
     let mut exact = base.clone();
@@ -425,10 +445,11 @@ fn exact_million_work_build_replays_and_the_first_extra_unit_is_fail_closed() {
         &mut exact,
         WORK_ROOT_LOANS,
         "work.boundary",
-        leaves,
+        live_leaves,
         branches,
         matches,
     );
+    add_padding(&mut exact, "work.tuning.boundary", tuning_leaves, 0, 0);
 
     let (plan, used) = build_cfg_plan_with_work_limit(&program, &exact, MAX_LOAN_PLAN_WORK_V1);
     let plan = plan.expect("exactly 1,000,000 work units are admitted");

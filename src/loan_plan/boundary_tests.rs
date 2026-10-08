@@ -360,7 +360,11 @@ fn exact_4096_cfg_edges_rebuild_and_edge_4097_fails_before_point_capacity() {
 
 #[test]
 fn exact_million_work_build_replays_and_the_first_extra_unit_is_fail_closed() {
-    let (program, index) = fixture_with_uses(MAX_LOANS_PER_FUNCTION_V1, true);
+    // Each byte_len last use is itself a synchronous borrowed-call loan. Pair
+    // 128 own-root views with their 128 real last-use calls to exercise the
+    // exact 256-loan boundary without exceeding it before work measurement.
+    const WORK_ROOT_LOANS: usize = MAX_LOANS_PER_FUNCTION_V1 / 2;
+    let (program, index) = fixture_with_uses(WORK_ROOT_LOANS, true);
     let base = program.functions[index].clone();
     let (base_result, base_work) = build_cfg_plan_with_work_limit(&program, &base, usize::MAX);
     base_result.expect("the unpadded boundary fixture builds");
@@ -370,7 +374,7 @@ fn exact_million_work_build_replays_and_the_first_extra_unit_is_fail_closed() {
         let mut probe = base.clone();
         add_live_padding(
             &mut probe,
-            MAX_LOANS_PER_FUNCTION_V1,
+            WORK_ROOT_LOANS,
             "work.probe",
             leaves,
             branches,
@@ -411,11 +415,15 @@ fn exact_million_work_build_replays_and_the_first_extra_unit_is_fail_closed() {
             break;
         }
     }
-    let (leaves, branches, matches) = shape.expect("a one-million-work fixture exists");
+    let (leaves, branches, matches) = shape.unwrap_or_else(|| {
+        panic!(
+            "a one-million-work fixture exists: base work/points/edges={base_work}/{base_points}/{base_edges}, leaf={leaf_work}/{leaf_points}/{leaf_edges}, branch={branch_work}/{branch_points}/{branch_edges}, match={match_work}/{match_points}/{match_edges}"
+        )
+    });
     let mut exact = base.clone();
     add_live_padding(
         &mut exact,
-        MAX_LOANS_PER_FUNCTION_V1,
+        WORK_ROOT_LOANS,
         "work.boundary",
         leaves,
         branches,
@@ -439,14 +447,7 @@ fn exact_million_work_build_replays_and_the_first_extra_unit_is_fail_closed() {
         "loan analysis exceeds 1,000,000 checked work"
     );
 
-    add_live_padding(
-        &mut exact,
-        MAX_LOANS_PER_FUNCTION_V1,
-        "work.overflow",
-        1,
-        0,
-        0,
-    );
+    add_live_padding(&mut exact, WORK_ROOT_LOANS, "work.overflow", 1, 0, 0);
     let (overflow, used) = build_cfg_plan_with_work_limit(&program, &exact, MAX_LOAN_PLAN_WORK_V1);
     let error = overflow.unwrap_err();
     assert_eq!(used, MAX_LOAN_PLAN_WORK_V1 + 1);

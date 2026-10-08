@@ -142,6 +142,11 @@ def execution_mode(candidate: Path, arm: str) -> dict:
     calls = [line.strip() for line in script.splitlines() if not line.lstrip().startswith('#')
              and (re.search(r'\bexec\b', line) or re.match(r'\s*node\s', line) or re.search(r'\srun\s', line))]
     native = []
+    transport = candidate / 'transport.mjs'
+    transport_calls = []
+    if transport.is_file() and any('transport.mjs' in line for line in calls):
+        transport_calls = [line.strip() for line in transport.read_text().splitlines()
+                           if 'spawnSync(compiler' in line or "'run', source" in line]
     for path in sorted(candidate.rglob('*')):
         if not path.is_file() or path.suffix in ('.log', '.json', '.txt'):
             continue
@@ -151,6 +156,8 @@ def execution_mode(candidate: Path, arm: str) -> dict:
             native.append(path.relative_to(candidate).as_posix())
     if arm == 'semaprax' and any(re.search(r'\brun\s', line) for line in calls):
         mode = 'interpreter_via_semaprax_run'
+    elif arm == 'semaprax' and len(transport_calls) == 2:
+        mode = 'interpreter_via_node_chunk_transport'
     elif arm == 'semaprax' and native:
         mode = 'native_executable_via_wrapper'
     elif arm == 'typescript' and any(re.search(r'\bnode\b', line) for line in calls):
@@ -159,6 +166,8 @@ def execution_mode(candidate: Path, arm: str) -> dict:
         mode = 'wrapper_unclassified'
     return {'mode': mode, 'basis': 'copied entry wrapper and built executable magic; no native-only acceptance requirement',
             'entry_calls': calls, 'native_artifacts': native,
+            'transport_calls': transport_calls,
+            'transport_sha256': sha(transport.read_bytes()) if transport_calls else None,
             'run_script_sha256': sha((candidate / 'run.sh').read_bytes())}
 
 
@@ -270,6 +279,7 @@ def audit(results: Path, output: Path, build_timeout: int, case_timeout: int) ->
         rows.append(row)
         report = {'schema': SCHEMA, 'historical_results': str(results.resolve()), 'historical_results_sha256': sha(source_bytes),
                   'spec_sha256': corpus['spec_sha256'], 'corpus_sha256': sha(corpus_bytes),
+                  'audit_script_sha256': sha(Path(__file__).read_bytes()),
                   'compiler_sha256': data['campaign']['source_binary_sha256'],
                   'compiler_source_commit': data['campaign']['compiler_source_commit'],
                   'build_timeout_seconds': build_timeout, 'case_timeout_seconds': case_timeout,

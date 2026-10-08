@@ -78,6 +78,11 @@ class BoundaryAuditTests(unittest.TestCase):
             self.assertEqual(audit.execution_mode(root, 'semaprax')['mode'], 'native_executable_via_wrapper')
             (root / 'run.sh').write_text('node "$DIR/dist/loglens.js" "$@"\n')
             self.assertEqual(audit.execution_mode(root, 'typescript')['mode'], 'node_via_wrapper')
+            (root / 'run.sh').write_text('exec node "$DIR/transport.mjs" "$compiler" "$source" "$@"\n')
+            (root / 'transport.mjs').write_text("const result = spawnSync(compiler, [\n 'run', source,\n]);\n")
+            mode = audit.execution_mode(root, 'semaprax')
+            self.assertEqual(mode['mode'], 'interpreter_via_node_chunk_transport')
+            self.assertEqual(mode['transport_sha256'], audit.sha((root / 'transport.mjs').read_bytes()))
 
     def test_cost_denominator_keeps_every_paid_failure_and_unknown_receipts(self):
         rows = [{'arm': 'semaprax', 'historical_status': 'accepted', 'expanded_qualification_passed': good,

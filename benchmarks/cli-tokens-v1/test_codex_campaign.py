@@ -33,8 +33,8 @@ class CodexCampaignTests(unittest.TestCase):
                  "cache_write_input_tokens": 2, "output_tokens": 7, "reasoning_output_tokens": 3}}
         events = [
             {"type": "turn_context", "payload": {"model": "gpt-6.1-sol", "effort": "medium"}},
-            {"type": "token_usage_record", "payload": {"response_id": "r1", "turn_token_usage": final["final_turn_usage"]}},
-            {"type": "token_usage_record", "payload": {"response_id": "r1", "turn_token_usage": final["final_turn_usage"]}},
+            {"type": "token_usage_record", "payload": {"response_id": "r1", "usage": final["final_turn_usage"]}},
+            {"type": "token_usage_record", "payload": {"response_id": "r1", "usage": final["final_turn_usage"]}},
             {"type": "event_msg", "payload": {"type": "token_count", "info": {"model_context_window": 258400}}},
         ]
         with tempfile.TemporaryDirectory() as directory:
@@ -45,6 +45,36 @@ class CodexCampaignTests(unittest.TestCase):
         self.assertEqual(observed["model_request_count"], 1)
         self.assertEqual(observed["model_observed"], "gpt-6.1-sol")
         self.assertEqual(observed["model_context_window"], 258400)
+
+    def test_multi_request_uses_response_usage_not_cumulative_turn_totals(self):
+        def counts(n):
+            return {"input_tokens": n, "cached_input_tokens": n // 2,
+                    "cache_write_input_tokens": 0, "output_tokens": n // 10, "reasoning_output_tokens": 0}
+        events = [{"type": "turn_context", "payload": {"model": "gpt-6.1-sol", "effort": "medium"}},
+                  {"type": "token_usage_record", "payload": {"response_id": "r1", "usage": counts(100), "turn_token_usage": counts(100)}},
+                  {"type": "token_usage_record", "payload": {"response_id": "r2", "usage": counts(200), "turn_token_usage": counts(300)}}]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "rollout.jsonl"
+            path.write_text("\n".join(json.dumps(e) for e in events))
+            result = codex_campaign.trace_usage({"final_turn_usage": counts(300)}, path)
+        self.assertTrue(result["reconciled"])
+        self.assertEqual(result["model_request_count"], 2)
+        self.assertEqual(result["legacy_net_input_tokens"], 100)
+        self.assertEqual(result["request_usage_sum"]["input_tokens"], 300)
+
+    def test_task_rollout_ignores_unrelated_sessions_and_binds_cwd(self):
+        thread = "01a118e1-0017-78d0-8c6f-2e391487cbc3"
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); workspace = root / "worktree"; workspace.mkdir()
+            owned = root / f"rollout-{thread}.jsonl"
+            owned.write_text(json.dumps({"type": "session_meta", "payload": {
+                "id": thread, "cwd": str(workspace), "creator_account_id": "private"}}) + "\n")
+            (root / "unrelated.jsonl").write_text("not our session")
+            output = root / "copy.jsonl"
+            self.assertEqual(codex_campaign.copy_task_rollout([thread], workspace, output, root), output)
+            self.assertNotIn("private", output.read_text())
+            self.assertIsNone(codex_campaign.copy_task_rollout([thread], root, output, root))
+        self.assertIsNone(codex_campaign._usage({"input_tokens": True})["input_tokens"])
 
     def test_command_disables_the_same_features_for_each_arm(self):
         command = codex_campaign.codex_command("write it")

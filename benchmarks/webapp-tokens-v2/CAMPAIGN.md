@@ -41,9 +41,9 @@ this harness.
 
 The acceptance gate uses Node 24+, the pinned Playwright 1.62.0 Chromium, a
 fresh evidence directory for every attempt, and loopback-only application
-servers. The retained r7 reference receipt is checked for both arms at 912/912.
+servers. The retained r8 reference receipt is checked for both arms at 912/912.
 Its SEMAPRAX reference was compiled from source
-`aae2719e29df37438e55bf52b00da3d7954bbd7f`; this is qualification evidence,
+`e045527a611a048515349ab2f970043a5d33b185`; this is qualification evidence,
 never a live-agent result. Before a paid request, the harness verifies the local
 Codex controls, Node, Playwright package, and Chromium executable. It snapshots
 the full transitive acceptance source closure and runs that snapshot. Seed

@@ -168,11 +168,13 @@ emits no stdout, and reports
 does not admit fuzzy or prefix matching, so an underspecified query cannot
 silently expand into the full catalog.
 
-The full catalog is currently 22,076 bytes and 6,662 lexical units. The
-`std.core.compare` name and stable-ID lookup outputs are identical: 226 bytes
-and 68 lexical units, with ceilings of 512 bytes and 128 units. Both measures
-must remain more than 50 times smaller than the full catalog. Integration
-evidence pins those bounds while the original full-catalog byte equality
+Qualified `std.core.compare` and `std.int.decimal.compare` lookups each keep
+ceilings of 512 bytes and 128 lexical units, and remain more than 50 times
+smaller than the full catalog. The bare name `compare` now returns both exact
+matches, separated by a blank line, in catalog order. Its combined result is
+pinned to 512 bytes and twice the per-result lexical ceiling; each qualified
+result still satisfies the original per-result bounds. Integration evidence
+pins both signatures and the combined output, while full-catalog byte equality
 remains unchanged.
 
 ## Language shapes catalog

@@ -74,7 +74,7 @@ pub fn emit_hir_c_with_stdin_stream_text(
     )
 }
 
-/// Project v27: v25 runtime plus private borrowed Vec<Copy scalar> helpers.
+/// Project v27: v25 runtime plus private borrowed `Vec<Copy scalar>` helpers.
 pub fn emit_hir_c_with_stdin_stream_data(
     program: &ResolvedProgram,
     command_id: &str,

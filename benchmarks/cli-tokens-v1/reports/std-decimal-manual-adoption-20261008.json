@@ -1,0 +1,321 @@
+{
+  "report_kind": "manual_std_decimal_adoption",
+  "date": "2026-10-08",
+  "scope": "Manual external copy of accepted S01, not a matched live-agent benchmark or billing measurement",
+  "compiler": {
+    "source_commit": "3e15d4bcfc1a7732b2afc125360dacd898a046c3",
+    "binary_sha256": "08ffeea70a6b690b82e7bc7e8a1ca5d6f08e84cf195b75f2eb6f82cc2eebd9e6",
+    "binary_path": "/Users/kevin/.codex/benchmark-binaries/semaprax-3e15d4bcf"
+  },
+  "implementation_commit": "0939fb2113b1bbce62dcb74d6911973e9efaf2b8",
+  "original_archive": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round5-20261008/candidates/semaprax-01",
+  "adoption_copy": "/Users/kevin/.codex/benchmark-runs/loglens-decimal-adoption-20261008/candidates/semaprax-01",
+  "original_archive_unchanged": true,
+  "route": {
+    "profile": "source-command.v1",
+    "project_schema": "semaprax.project.v26",
+    "target": "native64",
+    "execution": "native_executable_via_wrapper",
+    "dependency": "std.int.decimal = \"=0.1.0\"",
+    "flattened_library_source": false,
+    "host_arithmetic_in_application": false
+  },
+  "checks": {
+    "build": "passed",
+    "unchanged_candidate_tests": {
+      "status": "passed",
+      "passed": 148
+    },
+    "historical": {
+      "passed": 33,
+      "total": 33
+    },
+    "independent_boundaries": {
+      "passed": 16,
+      "total": 16
+    },
+    "accepted": true
+  },
+  "authored_source_proxy": {
+    "tokenizer": {
+      "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+      "dependency": "tiktoken",
+      "dependency_version": "1.0.22",
+      "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+      "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+      "package": "@anthropic-ai/tokenizer",
+      "runtime": "node",
+      "runtime_version": "v24.3.0",
+      "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+      "version": "0.0.4"
+    },
+    "original_total_tokens": 7020,
+    "adoption_total_tokens": 6898,
+    "difference_tokens": 122,
+    "difference_percent": 1.74,
+    "inventory_scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+    "original_files": [
+      {
+        "path": "README.md",
+        "bytes": 1086,
+        "sha256": "39c4114a8885194cfb78463878750a6e841deec72c240df4ae2a9f361da01d0a",
+        "tokens": 242
+      },
+      {
+        "path": "build.sh",
+        "bytes": 224,
+        "sha256": "d98a6cbbe0374391d48032b797ea8e23f3379ecfb9a6b8a03a314b8da908ffa1",
+        "tokens": 93
+      },
+      {
+        "path": "loglens.spx",
+        "bytes": 12211,
+        "sha256": "6134671f8a62909cc06b97930fb9b387b944e0b0f40eb7ad92215e0351d3f2a9",
+        "tokens": 4287
+      },
+      {
+        "path": "run.sh",
+        "bytes": 692,
+        "sha256": "8b866849995f6b10d2c6d6adf18e9cad04af193c7f1d7253aaf49437cdabae33",
+        "tokens": 245
+      },
+      {
+        "path": "test.sh",
+        "bytes": 110,
+        "sha256": "1b0310d382ab1044fa99792a7bcf1878a39b5b0c68f0224df533d8abf82db6e9",
+        "tokens": 47
+      },
+      {
+        "path": "tests.py",
+        "bytes": 6464,
+        "sha256": "9a1cc1732bb828c8e81a27a59f2ab8f42cac726d9211a7b8f2e0e937f204d22c",
+        "tokens": 2106
+      }
+    ],
+    "adoption_files": [
+      {
+        "path": "README.md",
+        "bytes": 1491,
+        "sha256": "f85189575aee67e6e80422dd69c99f98f1452176e0c79cf1f80ae66954317d7f",
+        "tokens": 323
+      },
+      {
+        "path": "build.sh",
+        "bytes": 232,
+        "sha256": "ec1e69b4352392cc09e3b081f06bb95a2b04b31034a2753ca3b38aac39cb96f2",
+        "tokens": 90
+      },
+      {
+        "path": "loglens.spx",
+        "bytes": 10774,
+        "sha256": "1dc38ea3348c6869ccd9fac1dd976175fa5b63ee6d9ad0877b354ecf37157143",
+        "tokens": 3865
+      },
+      {
+        "path": "run.sh",
+        "bytes": 692,
+        "sha256": "8b866849995f6b10d2c6d6adf18e9cad04af193c7f1d7253aaf49437cdabae33",
+        "tokens": 245
+      },
+      {
+        "path": "semaprax.toml",
+        "bytes": 480,
+        "sha256": "f0d817239d98ab19decbfb1654cfcb9d3a1c6d3585520514dfc6f478ff8191dd",
+        "tokens": 190
+      },
+      {
+        "path": "test.sh",
+        "bytes": 110,
+        "sha256": "1b0310d382ab1044fa99792a7bcf1878a39b5b0c68f0224df533d8abf82db6e9",
+        "tokens": 47
+      },
+      {
+        "path": "tests.py",
+        "bytes": 6464,
+        "sha256": "9a1cc1732bb828c8e81a27a59f2ab8f42cac726d9211a7b8f2e0e937f204d22c",
+        "tokens": 2106
+      },
+      {
+        "path": "tests.spx",
+        "bytes": 76,
+        "sha256": "17931167ead21a462faf52c3d9eb2ca437787673aa888899f2bc1565ca714001",
+        "tokens": 32
+      }
+    ],
+    "limitations": [
+      "Legacy Claude tokenizer proxy; not current-model or billing tokenization",
+      "Final inventory only; no cumulative edits, provider tokens, turns or cost measured",
+      "Difference includes canonical formatting and Project manifest/test/build/README changes",
+      "Shared compiler and standard library source excluded by unchanged candidate-inventory convention"
+    ]
+  },
+  "provenance": {
+    "raw_receipt_path": "/Users/kevin/.codex/benchmark-runs/loglens-decimal-adoption-20261008/qualification.json",
+    "raw_receipt_sha256": "4275f75673cde6cb24954e1cbebe102f4a41ffc2eb566e5e236277793220375e",
+    "initial_canonicality_refusal_receipt": "/Users/kevin/.codex/benchmark-runs/loglens-decimal-adoption-20261008/qualification-attempt1.json",
+    "harness": {
+      "scope": "unchanged archived33-check harness + oracle from recorded repository commit, no model calls",
+      "repository_commit": "77051c58acd8f312173c5badb4ba7c355d374ca2",
+      "oracle_sha256": "195f14aaab02b5afb4506943dcd98ef26f630e98bd9927a0aa877a3097a6bd09",
+      "seed_files_sha256": {
+        "benchmarks/cli-tokens-v1/SPEC.md": "51bf564cb9f7eadd4b3bd12fac53b7857befa09b3ef757d9c34400a8509fdeae",
+        "benchmarks/cli-tokens-v1/sample.log": "b4574c3e627aff7760a934ec5dc10c45abf76ade1f6ae0c20518c56cc6660598"
+      },
+      "archived_campaign": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round5-20261008"
+    },
+    "boundary_qualification": {
+      "profile": "loglens-historical33-plus-spec-boundaries.v1",
+      "historical_checks": 33,
+      "boundary_checks": 16,
+      "spec_sha256": "51bf564cb9f7eadd4b3bd12fac53b7857befa09b3ef757d9c34400a8509fdeae",
+      "corpus_sha256": "9fd0993142aee8b47e5d3a4256379eeddcd903cadf69419717c40032d769c745",
+      "facts_script_sha256": "97eaa89fbac7dc0311154e5b0bda4e2ccb389518a3aa593639fdc36173e7acf8",
+      "qualification_script_sha256": "d2214ae5922fee6949767ca661cba84fa07aab4ad66d4f446160927f838d6dd5",
+      "case_timeout_seconds": 120,
+      "criterion": "historical build, candidate tests and all33 checks plus all16 independent SPEC boundary checks",
+      "execution_mode": "native or interpreter, as permitted by the unchanged prompt"
+    },
+    "preserved_exact_files": {
+      "run.sh": "8b866849995f6b10d2c6d6adf18e9cad04af193c7f1d7253aaf49437cdabae33",
+      "tests.py": "9a1cc1732bb828c8e81a27a59f2ab8f42cac726d9211a7b8f2e0e937f204d22c",
+      "test.sh": "1b0310d382ab1044fa99792a7bcf1878a39b5b0c68f0224df533d8abf82db6e9"
+    }
+  },
+  "boundaries": [
+    {
+      "name": "spec-boundary-utf8-bytewise-tie-order-text",
+      "status": "passed",
+      "exit_code": 0,
+      "input_sha256": "144902cf0f44ac6e1920abcafd196cd07062edb8df4de043f4efef847f76e0dd",
+      "expected_stdout_sha256": "a15bfe7db6a3af2ff29af4b8eee4165de65484296a8008c9b9d069e24e83cf0a",
+      "actual_stdout_sha256": "a15bfe7db6a3af2ff29af4b8eee4165de65484296a8008c9b9d069e24e83cf0a"
+    },
+    {
+      "name": "spec-boundary-utf8-bytewise-tie-order-json",
+      "status": "passed",
+      "exit_code": 0,
+      "input_sha256": "144902cf0f44ac6e1920abcafd196cd07062edb8df4de043f4efef847f76e0dd",
+      "expected_stdout_sha256": "bccb87b6067218c6c86c39065e4fcf4877900ccb2dd88507771847de807ca6fd",
+      "actual_stdout_sha256": "bccb87b6067218c6c86c39065e4fcf4877900ccb2dd88507771847de807ca6fd"
+    },
+    {
+      "name": "spec-boundary-decimal-above-js-safe-integer-text",
+      "status": "passed",
+      "exit_code": 0,
+      "input_sha256": "9e132cda8295c9a35b50cacac91e058a7c003669914e7c6fde6ab507bac5b0d8",
+      "expected_stdout_sha256": "6cae3621e5e1199a062db8fc96881e63583052bf081ca211c281e38b42888242",
+      "actual_stdout_sha256": "6cae3621e5e1199a062db8fc96881e63583052bf081ca211c281e38b42888242"
+    },
+    {
+      "name": "spec-boundary-decimal-above-js-safe-integer-json",
+      "status": "passed",
+      "exit_code": 0,
+      "input_sha256": "9e132cda8295c9a35b50cacac91e058a7c003669914e7c6fde6ab507bac5b0d8",
+      "expected_stdout_sha256": "11269123f7b2d706d41113a9bd22f8e20f45bf32e5395a94cbe71dcfbd70cd4b",
+      "actual_stdout_sha256": "11269123f7b2d706d41113a9bd22f8e20f45bf32e5395a94cbe71dcfbd70cd4b"
+    },
+    {
+      "name": "spec-boundary-decimal-sum-beyond-i64-text",
+      "status": "passed",
+      "exit_code": 0,
+      "input_sha256": "18328afd003a1c1697b295f62dd6d6593d18f59cba667e3464fb4baeed987e70",
+      "expected_stdout_sha256": "b0ffbea40077fa9af78e078bd3795e5fe1818ebd3e2b979b3c405793d5f3dae1",
+      "actual_stdout_sha256": "b0ffbea40077fa9af78e078bd3795e5fe1818ebd3e2b979b3c405793d5f3dae1"
+    },
+    {
+      "name": "spec-boundary-decimal-sum-beyond-i64-json",
+      "status": "passed",
+      "exit_code": 0,
+      "input_sha256": "18328afd003a1c1697b295f62dd6d6593d18f59cba667e3464fb4baeed987e70",
+      "expected_stdout_sha256": "76e1226ad2fc435efa7c509431ad34b98a32849e88489e8e043e34ba8bdb5630",
+      "actual_stdout_sha256": "76e1226ad2fc435efa7c509431ad34b98a32849e88489e8e043e34ba8bdb5630"
+    },
+    {
+      "name": "spec-boundary-decimal-unbounded-token-text",
+      "status": "passed",
+      "exit_code": 0,
+      "input_sha256": "596d2c472b652b39609f9a6c76c02ce015dbded5f8e6b18fe497fe69d9bd05b4",
+      "expected_stdout_sha256": "838969ce49996f88b1ea140a23bbec64035fd2cd3d1d2abfbe4a5137471dee52",
+      "actual_stdout_sha256": "838969ce49996f88b1ea140a23bbec64035fd2cd3d1d2abfbe4a5137471dee52"
+    },
+    {
+      "name": "spec-boundary-decimal-unbounded-token-json",
+      "status": "passed",
+      "exit_code": 0,
+      "input_sha256": "596d2c472b652b39609f9a6c76c02ce015dbded5f8e6b18fe497fe69d9bd05b4",
+      "expected_stdout_sha256": "8ed8e1e559dd83bf4b9609bf83e3b24691a7500fb8ec0dfde80bcbd8c617f4ac",
+      "actual_stdout_sha256": "8ed8e1e559dd83bf4b9609bf83e3b24691a7500fb8ec0dfde80bcbd8c617f4ac"
+    },
+    {
+      "name": "spec-boundary-exactly-64-kib-text",
+      "status": "passed",
+      "exit_code": 0,
+      "input_sha256": "b32c86be194b19d3584414059ea3975e94895dff3379d4b80cc0c83aeee5d3ce",
+      "expected_stdout_sha256": "f81bca9849714139aecbeb7fc19e208b386256a1e978cb84f8a9e5ecbe45ec1e",
+      "actual_stdout_sha256": "f81bca9849714139aecbeb7fc19e208b386256a1e978cb84f8a9e5ecbe45ec1e"
+    },
+    {
+      "name": "spec-boundary-exactly-64-kib-json",
+      "status": "passed",
+      "exit_code": 0,
+      "input_sha256": "b32c86be194b19d3584414059ea3975e94895dff3379d4b80cc0c83aeee5d3ce",
+      "expected_stdout_sha256": "508be9e73bdff666704206d08121c7330b0395c033fd6ad648c2da0203f0f80c",
+      "actual_stdout_sha256": "508be9e73bdff666704206d08121c7330b0395c033fd6ad648c2da0203f0f80c"
+    },
+    {
+      "name": "spec-boundary-literal-plus-timezone-text",
+      "status": "passed",
+      "exit_code": 0,
+      "input_sha256": "7f38797b2fce3db67c206ce2c043fa6dd4658788b3d977e698dae24e4f8b1af1",
+      "expected_stdout_sha256": "734d8d5f1a655422a1c17d682a52fb7f5c2b0ada5e15554105f9e5aa1bdc5c75",
+      "actual_stdout_sha256": "734d8d5f1a655422a1c17d682a52fb7f5c2b0ada5e15554105f9e5aa1bdc5c75"
+    },
+    {
+      "name": "spec-boundary-literal-plus-timezone-json",
+      "status": "passed",
+      "exit_code": 0,
+      "input_sha256": "7f38797b2fce3db67c206ce2c043fa6dd4658788b3d977e698dae24e4f8b1af1",
+      "expected_stdout_sha256": "562cc4b9967a60499415e5d51f1e4a426ee0be368ac1725cc639f5cbe06be86f",
+      "actual_stdout_sha256": "562cc4b9967a60499415e5d51f1e4a426ee0be368ac1725cc639f5cbe06be86f"
+    },
+    {
+      "name": "spec-boundary-strict-request-and-path-grammar-text",
+      "status": "passed",
+      "exit_code": 0,
+      "input_sha256": "45ef082854590ac369aefcfbb92bdcef15d4af0ee8c54a9e9f72641bb18b99a9",
+      "expected_stdout_sha256": "37d6beb28811d4ffcfb33a1d43be0ba5d3383939e53f0d7848f7b01198e5fa85",
+      "actual_stdout_sha256": "37d6beb28811d4ffcfb33a1d43be0ba5d3383939e53f0d7848f7b01198e5fa85"
+    },
+    {
+      "name": "spec-boundary-strict-request-and-path-grammar-json",
+      "status": "passed",
+      "exit_code": 0,
+      "input_sha256": "45ef082854590ac369aefcfbb92bdcef15d4af0ee8c54a9e9f72641bb18b99a9",
+      "expected_stdout_sha256": "cf9f9946d44c8fdfd4e632c23466eb56329f2de12611b7a4a1893f438852fab0",
+      "actual_stdout_sha256": "cf9f9946d44c8fdfd4e632c23466eb56329f2de12611b7a4a1893f438852fab0"
+    },
+    {
+      "name": "spec-boundary-half-up-and-all-line-terminators-text",
+      "status": "passed",
+      "exit_code": 0,
+      "input_sha256": "8334e4d4e1ceca01066b7f2ad59a92b9be96e0e117b6920f1c71ec741b27a615",
+      "expected_stdout_sha256": "43c8fd0799013bec1e961aeb62c2f0e09563e28c9f8ad31bd445f9300a2930a5",
+      "actual_stdout_sha256": "43c8fd0799013bec1e961aeb62c2f0e09563e28c9f8ad31bd445f9300a2930a5"
+    },
+    {
+      "name": "spec-boundary-half-up-and-all-line-terminators-json",
+      "status": "passed",
+      "exit_code": 0,
+      "input_sha256": "8334e4d4e1ceca01066b7f2ad59a92b9be96e0e117b6920f1c71ec741b27a615",
+      "expected_stdout_sha256": "b36fab7488d2ce0023f38328ae2826e1e43a2becc4aa2891742e603720fef149",
+      "actual_stdout_sha256": "b36fab7488d2ce0023f38328ae2826e1e43a2becc4aa2891742e603720fef149"
+    }
+  ],
+  "claims": {
+    "live_agent_trial": false,
+    "provider_token_turn_or_bill_gain": false,
+    "wasm_or_interpreter_project_profile_support": false,
+    "full_repository_gate": false
+  },
+  "issue_status": "OPT #661 remains open pending a fresh matched live assessment; #667 closure additionally requires owning Rust tests and clippy."
+}

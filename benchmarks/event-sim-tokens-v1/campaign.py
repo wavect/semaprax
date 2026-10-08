@@ -822,6 +822,7 @@ def closed_authored_inventory(candidate: Path) -> dict[str, Any]:
                 continue
             files.append({"path": relative.as_posix(), "bytes": path.stat().st_size,
                           "sha256": common.digest(path)})
+    files.sort(key=lambda row: row["path"])
     encoded = json.dumps(files, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
     return {"schema": "semaprax.closed-authored-inventory.v1", "files": files,
             "sha256": sha_bytes(encoded)}

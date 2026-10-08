@@ -1,0 +1,765 @@
+{
+  "schema": "semaprax.manual-adoption-qualified.v1",
+  "qualification_evidence": {
+    "acceptance_corpus_sha256": "3c285999cfcf6a905e885d636ac55ba0ccb0f5999ef5b20ac3a8c17a2e023587",
+    "acceptance_report": {
+      "path": "/Users/kevin/.codex/benchmark-runs/shiftsim-v27-manual-20261008/qualification-v3-r2/acceptance-report.json",
+      "sha256": "6d2edb5c32701c57d8f4b8c2c065c2e0bbd2951c1db88598c2dcda62c88dc1af"
+    },
+    "candidate_source": {
+      "inventory": {
+        "path": "/Users/kevin/.codex/benchmark-runs/shiftsim-v27-manual-20261008/qualification-v3-r2/candidate-source-inventory.json",
+        "sha256": "b8a594149b1b12ad12e27519dfd983fa0fd1b14160c482ed2594dafbe5c4a738"
+      },
+      "manifest": {
+        "path": "/Users/kevin/.codex/benchmark-runs/shiftsim-v27-manual-20261008/qualification-v3-r2/candidate-semaprax.toml",
+        "sha256": "d3687236ce9319a609262111f5ceb60e244e0227143d6a3811d75745469e94fd"
+      }
+    },
+    "compiler_binary_sha256": "87e1d84bb618218159a3ebaec83dea285f2186486d7113962d08c71945474daa",
+    "compiler_source_commit": "60002439e1b651ebbfbf3a887f12a20c927d720f",
+    "native_project_route": {
+      "command_result_type": "i64",
+      "input_route": "argv-utf8+stdin-stream.v1",
+      "process_status_range": [
+        0,
+        255
+      ],
+      "project_profile": "language-command-io.stream-data.v1",
+      "project_schema": "semaprax.project.v27"
+    },
+    "qualification_build_receipt": {
+      "path": "/Users/kevin/.codex/benchmark-runs/shiftsim-v27-manual-20261008/qualification-v3-r2/qualification-build-receipt.json",
+      "sha256": "2e1ec1d3d0de94fd1d56312609dde02805fce23b80344247565146fe7a9e54d0"
+    },
+    "qualification_subject": {
+      "candidate_manifest_sha256": "d3687236ce9319a609262111f5ceb60e244e0227143d6a3811d75745469e94fd",
+      "closed_authored_inventory_sha256": "17d0d9da00dea8378e904436837ee5b3930916d71f58482dc2aa5c0a3ab0eb8f",
+      "compiler_binary_sha256": "87e1d84bb618218159a3ebaec83dea285f2186486d7113962d08c71945474daa",
+      "compiler_source_commit": "60002439e1b651ebbfbf3a887f12a20c927d720f",
+      "native_binary_sha256": "dd44f27ad29bfcb60703740a6c7340d99fa43c32771e13ce0a3abe8dbd03e6f7"
+    },
+    "qualified_native_binary": {
+      "path": "/Users/kevin/.codex/benchmark-runs/shiftsim-v27-manual-20261008/qualification-v3-r2/qualified-native-binary",
+      "sha256": "dd44f27ad29bfcb60703740a6c7340d99fa43c32771e13ce0a3abe8dbd03e6f7"
+    },
+    "schema": "semaprax.event-sim-qualification-evidence.v3",
+    "spec_sha256": "5a8631fc59f55d145bfabb62c8edd3f86164114e3d27b69422031b664b529e00"
+  },
+  "artifacts": {
+    "byte_acceptance": {
+      "path": "/Users/kevin/.codex/benchmark-runs/shiftsim-byte-conversion-manual-20261008/qualification-report.json",
+      "sha256": "6d2edb5c32701c57d8f4b8c2c065c2e0bbd2951c1db88598c2dcda62c88dc1af",
+      "document": {
+        "schema": "semaprax.event-sim.acceptance-report.v1",
+        "corpus_sha256": "3c285999cfcf6a905e885d636ac55ba0ccb0f5999ef5b20ac3a8c17a2e023587",
+        "status": "passed",
+        "valid_cases": 11,
+        "invalid_cases": 4,
+        "cases": [
+          {
+            "name": "empty",
+            "kind": "valid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 29,
+            "input_sha256": "660e736b2f40966f3e6f4fbf78d4e7e638a4de29ff6055f3b3626e4618354119",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 0,
+            "exit_code": 0,
+            "stdout_sha256": "3f258101c222b9309ce6bb4755ba998ab6c8e0779afadeb6233ac57eeb1963c4",
+            "expected_stdout_sha256": "3f258101c222b9309ce6bb4755ba998ab6c8e0779afadeb6233ac57eeb1963c4",
+            "stderr_nonempty": false
+          },
+          {
+            "name": "large-leading-whitespace",
+            "kind": "valid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 65631,
+            "input_sha256": "9d4ee09fec7eb2e7f445c11f4d73857d52ad9f159bd58b1ccf315db84ae39996",
+            "leading_whitespace_bytes": 65537,
+            "expected_exit_code": 0,
+            "exit_code": 0,
+            "stdout_sha256": "6bb65351ec1213f5a5bfd0ad2d73d339c0025b8f04ed561b373b18bee1bc9332",
+            "expected_stdout_sha256": "6bb65351ec1213f5a5bfd0ad2d73d339c0025b8f04ed561b373b18bee1bc9332",
+            "stderr_nonempty": false
+          },
+          {
+            "name": "single-exact-deadline",
+            "kind": "valid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 94,
+            "input_sha256": "fd0048c1e68da08726840c653d89e23dbca250e8e43769030ad4f278fa748b0e",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 0,
+            "exit_code": 0,
+            "stdout_sha256": "80880d6c7198f128c72b3f3249e2f256d4d305c697bece8bf3fb7227fbe38e01",
+            "expected_stdout_sha256": "80880d6c7198f128c72b3f3249e2f256d4d305c697bece8bf3fb7227fbe38e01",
+            "stderr_nonempty": false
+          },
+          {
+            "name": "priority-and-id-ties",
+            "kind": "valid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 224,
+            "input_sha256": "b50521136c0424e9883552596faa41e4f622ecdcf25991447de18ac0f8ace328",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 0,
+            "exit_code": 0,
+            "stdout_sha256": "b1651957f28f7944b1cc7e859bdc1f956b48b34d208d92669c5fed16cfff7a5c",
+            "expected_stdout_sha256": "b1651957f28f7944b1cc7e859bdc1f956b48b34d208d92669c5fed16cfff7a5c",
+            "stderr_nonempty": false
+          },
+          {
+            "name": "completion-and-arrival-same-time",
+            "kind": "valid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 154,
+            "input_sha256": "8eb222d3621d61567e670aa2d72291854314bcfbecdc11440e4b5ca8cb524d4d",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 0,
+            "exit_code": 0,
+            "stdout_sha256": "9c0bc99e05260b8dc44d336e3fc8281acc43d417b2d44ddfce9daa7f43a01368",
+            "expected_stdout_sha256": "9c0bc99e05260b8dc44d336e3fc8281acc43d417b2d44ddfce9daa7f43a01368",
+            "stderr_nonempty": false
+          },
+          {
+            "name": "queued-priority-tie",
+            "kind": "valid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 280,
+            "input_sha256": "33a62041a0f2f68976cb4f12e7358b7904ebcc2285c2798c5695539bc464d580",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 0,
+            "exit_code": 0,
+            "stdout_sha256": "2e10935c889b485ebbd1967943078e0c75cab4220eb3f01b422ef73b0a0d008b",
+            "expected_stdout_sha256": "2e10935c889b485ebbd1967943078e0c75cab4220eb3f01b422ef73b0a0d008b",
+            "stderr_nonempty": false
+          },
+          {
+            "name": "multiple-workers",
+            "kind": "valid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 285,
+            "input_sha256": "bac7004009515fc62bf56f488ef5051eb8209dd2ce4fc499bda18cf9967ad777",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 0,
+            "exit_code": 0,
+            "stdout_sha256": "bc10af887d002468923166484e26978f97f1f22c72c90e142277e9bd9cf9acb7",
+            "expected_stdout_sha256": "bc10af887d002468923166484e26978f97f1f22c72c90e142277e9bd9cf9acb7",
+            "stderr_nonempty": false
+          },
+          {
+            "name": "idle-gap-and-late",
+            "kind": "valid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 165,
+            "input_sha256": "3afa7b88593eb7d11acabf3b914e837b5ad486f11c6ce6cec6c8103cb446ed9f",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 0,
+            "exit_code": 0,
+            "stdout_sha256": "c54ba8af815aa06bb4a740e374bfade07606ce28afdabc784a508a9d13587044",
+            "expected_stdout_sha256": "c54ba8af815aa06bb4a740e374bfade07606ce28afdabc784a508a9d13587044",
+            "stderr_nonempty": false
+          },
+          {
+            "name": "long-queue-metrics",
+            "kind": "valid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 803,
+            "input_sha256": "eec15954f1e3ab51b6be078472a894c398e6b262335e6547ae902c84dc11a904",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 0,
+            "exit_code": 0,
+            "stdout_sha256": "6551952c72137642d53fa29942c6fd61be2d72ab956a9be0f696d335e778e59f",
+            "expected_stdout_sha256": "6551952c72137642d53fa29942c6fd61be2d72ab956a9be0f696d335e778e59f",
+            "stderr_nonempty": false
+          },
+          {
+            "name": "max-cardinality-compact",
+            "kind": "valid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 23987,
+            "input_sha256": "f3c5aa5555cd59bb8ab1ddc55db67a62073a350faa407c699829e1b5b56a601c",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 0,
+            "exit_code": 0,
+            "stdout_sha256": "8e98dc686f4cd9a340b9f0249be197c6606a03645ef50cb58a7c0c42343a8b38",
+            "expected_stdout_sha256": "8e98dc686f4cd9a340b9f0249be197c6606a03645ef50cb58a7c0c42343a8b38",
+            "stderr_nonempty": false
+          },
+          {
+            "name": "max-cardinality-escaped-keys-and-ids",
+            "kind": "valid",
+            "status": "passed",
+            "input_encoding": "unicode-escaped-keys-and-identifiers-v1",
+            "input_bytes": 86142,
+            "input_sha256": "b113e40f0b827af3002887706e61dc74866483b6424eefc341b79231e1b0a505",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 0,
+            "exit_code": 0,
+            "stdout_sha256": "8e98dc686f4cd9a340b9f0249be197c6606a03645ef50cb58a7c0c42343a8b38",
+            "expected_stdout_sha256": "8e98dc686f4cd9a340b9f0249be197c6606a03645ef50cb58a7c0c42343a8b38",
+            "stderr_nonempty": false
+          },
+          {
+            "name": "patients-without-workers",
+            "kind": "invalid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 90,
+            "input_sha256": "390775d11f531711091645c17b29b5e2c147fafbe58e54c316c3f4a5cd4d0c94",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 2,
+            "exit_code": 2,
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "expected_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stderr_nonempty": true,
+            "stderr_line_count": 1,
+            "stderr_ends_with_newline": true,
+            "stderr_one_diagnostic_line": true
+          },
+          {
+            "name": "duplicate-patient-id",
+            "kind": "invalid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 156,
+            "input_sha256": "f265ddc0a48a8a5d583c91c5b0a37edb16c17ef40064eedde94f7007f11a1b7b",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 2,
+            "exit_code": 2,
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "expected_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stderr_nonempty": true,
+            "stderr_line_count": 1,
+            "stderr_ends_with_newline": true,
+            "stderr_one_diagnostic_line": true
+          },
+          {
+            "name": "nine-servers-exceeds-capacity",
+            "kind": "invalid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 199,
+            "input_sha256": "5c0b0ce9f37baf61db30098cfb40728fa98b83d1a8f10161f9e1f588eea33517",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 2,
+            "exit_code": 2,
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "expected_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stderr_nonempty": true,
+            "stderr_line_count": 1,
+            "stderr_ends_with_newline": true,
+            "stderr_one_diagnostic_line": true
+          },
+          {
+            "name": "257-patients-exceeds-capacity",
+            "kind": "invalid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 19835,
+            "input_sha256": "dd97e0b13d0a63778d660f1311898c4592778aa08ce69675d8778435818c6ed5",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 2,
+            "exit_code": 2,
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "expected_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stderr_nonempty": true,
+            "stderr_line_count": 1,
+            "stderr_ends_with_newline": true,
+            "stderr_one_diagnostic_line": true
+          }
+        ]
+      }
+    },
+    "vec_acceptance": {
+      "path": "/Users/kevin/.codex/benchmark-runs/shiftsim-v27-manual-20261008/qualification-v3-r2/acceptance-report.json",
+      "sha256": "6d2edb5c32701c57d8f4b8c2c065c2e0bbd2951c1db88598c2dcda62c88dc1af",
+      "document": {
+        "schema": "semaprax.event-sim.acceptance-report.v1",
+        "corpus_sha256": "3c285999cfcf6a905e885d636ac55ba0ccb0f5999ef5b20ac3a8c17a2e023587",
+        "status": "passed",
+        "valid_cases": 11,
+        "invalid_cases": 4,
+        "cases": [
+          {
+            "name": "empty",
+            "kind": "valid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 29,
+            "input_sha256": "660e736b2f40966f3e6f4fbf78d4e7e638a4de29ff6055f3b3626e4618354119",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 0,
+            "exit_code": 0,
+            "stdout_sha256": "3f258101c222b9309ce6bb4755ba998ab6c8e0779afadeb6233ac57eeb1963c4",
+            "expected_stdout_sha256": "3f258101c222b9309ce6bb4755ba998ab6c8e0779afadeb6233ac57eeb1963c4",
+            "stderr_nonempty": false
+          },
+          {
+            "name": "large-leading-whitespace",
+            "kind": "valid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 65631,
+            "input_sha256": "9d4ee09fec7eb2e7f445c11f4d73857d52ad9f159bd58b1ccf315db84ae39996",
+            "leading_whitespace_bytes": 65537,
+            "expected_exit_code": 0,
+            "exit_code": 0,
+            "stdout_sha256": "6bb65351ec1213f5a5bfd0ad2d73d339c0025b8f04ed561b373b18bee1bc9332",
+            "expected_stdout_sha256": "6bb65351ec1213f5a5bfd0ad2d73d339c0025b8f04ed561b373b18bee1bc9332",
+            "stderr_nonempty": false
+          },
+          {
+            "name": "single-exact-deadline",
+            "kind": "valid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 94,
+            "input_sha256": "fd0048c1e68da08726840c653d89e23dbca250e8e43769030ad4f278fa748b0e",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 0,
+            "exit_code": 0,
+            "stdout_sha256": "80880d6c7198f128c72b3f3249e2f256d4d305c697bece8bf3fb7227fbe38e01",
+            "expected_stdout_sha256": "80880d6c7198f128c72b3f3249e2f256d4d305c697bece8bf3fb7227fbe38e01",
+            "stderr_nonempty": false
+          },
+          {
+            "name": "priority-and-id-ties",
+            "kind": "valid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 224,
+            "input_sha256": "b50521136c0424e9883552596faa41e4f622ecdcf25991447de18ac0f8ace328",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 0,
+            "exit_code": 0,
+            "stdout_sha256": "b1651957f28f7944b1cc7e859bdc1f956b48b34d208d92669c5fed16cfff7a5c",
+            "expected_stdout_sha256": "b1651957f28f7944b1cc7e859bdc1f956b48b34d208d92669c5fed16cfff7a5c",
+            "stderr_nonempty": false
+          },
+          {
+            "name": "completion-and-arrival-same-time",
+            "kind": "valid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 154,
+            "input_sha256": "8eb222d3621d61567e670aa2d72291854314bcfbecdc11440e4b5ca8cb524d4d",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 0,
+            "exit_code": 0,
+            "stdout_sha256": "9c0bc99e05260b8dc44d336e3fc8281acc43d417b2d44ddfce9daa7f43a01368",
+            "expected_stdout_sha256": "9c0bc99e05260b8dc44d336e3fc8281acc43d417b2d44ddfce9daa7f43a01368",
+            "stderr_nonempty": false
+          },
+          {
+            "name": "queued-priority-tie",
+            "kind": "valid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 280,
+            "input_sha256": "33a62041a0f2f68976cb4f12e7358b7904ebcc2285c2798c5695539bc464d580",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 0,
+            "exit_code": 0,
+            "stdout_sha256": "2e10935c889b485ebbd1967943078e0c75cab4220eb3f01b422ef73b0a0d008b",
+            "expected_stdout_sha256": "2e10935c889b485ebbd1967943078e0c75cab4220eb3f01b422ef73b0a0d008b",
+            "stderr_nonempty": false
+          },
+          {
+            "name": "multiple-workers",
+            "kind": "valid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 285,
+            "input_sha256": "bac7004009515fc62bf56f488ef5051eb8209dd2ce4fc499bda18cf9967ad777",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 0,
+            "exit_code": 0,
+            "stdout_sha256": "bc10af887d002468923166484e26978f97f1f22c72c90e142277e9bd9cf9acb7",
+            "expected_stdout_sha256": "bc10af887d002468923166484e26978f97f1f22c72c90e142277e9bd9cf9acb7",
+            "stderr_nonempty": false
+          },
+          {
+            "name": "idle-gap-and-late",
+            "kind": "valid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 165,
+            "input_sha256": "3afa7b88593eb7d11acabf3b914e837b5ad486f11c6ce6cec6c8103cb446ed9f",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 0,
+            "exit_code": 0,
+            "stdout_sha256": "c54ba8af815aa06bb4a740e374bfade07606ce28afdabc784a508a9d13587044",
+            "expected_stdout_sha256": "c54ba8af815aa06bb4a740e374bfade07606ce28afdabc784a508a9d13587044",
+            "stderr_nonempty": false
+          },
+          {
+            "name": "long-queue-metrics",
+            "kind": "valid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 803,
+            "input_sha256": "eec15954f1e3ab51b6be078472a894c398e6b262335e6547ae902c84dc11a904",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 0,
+            "exit_code": 0,
+            "stdout_sha256": "6551952c72137642d53fa29942c6fd61be2d72ab956a9be0f696d335e778e59f",
+            "expected_stdout_sha256": "6551952c72137642d53fa29942c6fd61be2d72ab956a9be0f696d335e778e59f",
+            "stderr_nonempty": false
+          },
+          {
+            "name": "max-cardinality-compact",
+            "kind": "valid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 23987,
+            "input_sha256": "f3c5aa5555cd59bb8ab1ddc55db67a62073a350faa407c699829e1b5b56a601c",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 0,
+            "exit_code": 0,
+            "stdout_sha256": "8e98dc686f4cd9a340b9f0249be197c6606a03645ef50cb58a7c0c42343a8b38",
+            "expected_stdout_sha256": "8e98dc686f4cd9a340b9f0249be197c6606a03645ef50cb58a7c0c42343a8b38",
+            "stderr_nonempty": false
+          },
+          {
+            "name": "max-cardinality-escaped-keys-and-ids",
+            "kind": "valid",
+            "status": "passed",
+            "input_encoding": "unicode-escaped-keys-and-identifiers-v1",
+            "input_bytes": 86142,
+            "input_sha256": "b113e40f0b827af3002887706e61dc74866483b6424eefc341b79231e1b0a505",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 0,
+            "exit_code": 0,
+            "stdout_sha256": "8e98dc686f4cd9a340b9f0249be197c6606a03645ef50cb58a7c0c42343a8b38",
+            "expected_stdout_sha256": "8e98dc686f4cd9a340b9f0249be197c6606a03645ef50cb58a7c0c42343a8b38",
+            "stderr_nonempty": false
+          },
+          {
+            "name": "patients-without-workers",
+            "kind": "invalid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 90,
+            "input_sha256": "390775d11f531711091645c17b29b5e2c147fafbe58e54c316c3f4a5cd4d0c94",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 2,
+            "exit_code": 2,
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "expected_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stderr_nonempty": true,
+            "stderr_line_count": 1,
+            "stderr_ends_with_newline": true,
+            "stderr_one_diagnostic_line": true
+          },
+          {
+            "name": "duplicate-patient-id",
+            "kind": "invalid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 156,
+            "input_sha256": "f265ddc0a48a8a5d583c91c5b0a37edb16c17ef40064eedde94f7007f11a1b7b",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 2,
+            "exit_code": 2,
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "expected_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stderr_nonempty": true,
+            "stderr_line_count": 1,
+            "stderr_ends_with_newline": true,
+            "stderr_one_diagnostic_line": true
+          },
+          {
+            "name": "nine-servers-exceeds-capacity",
+            "kind": "invalid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 199,
+            "input_sha256": "5c0b0ce9f37baf61db30098cfb40728fa98b83d1a8f10161f9e1f588eea33517",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 2,
+            "exit_code": 2,
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "expected_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stderr_nonempty": true,
+            "stderr_line_count": 1,
+            "stderr_ends_with_newline": true,
+            "stderr_one_diagnostic_line": true
+          },
+          {
+            "name": "257-patients-exceeds-capacity",
+            "kind": "invalid",
+            "status": "passed",
+            "input_encoding": "compact",
+            "input_bytes": 19835,
+            "input_sha256": "dd97e0b13d0a63778d660f1311898c4592778aa08ce69675d8778435818c6ed5",
+            "leading_whitespace_bytes": 0,
+            "expected_exit_code": 2,
+            "exit_code": 2,
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "expected_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stderr_nonempty": true,
+            "stderr_line_count": 1,
+            "stderr_ends_with_newline": true,
+            "stderr_one_diagnostic_line": true
+          }
+        ]
+      }
+    },
+    "vec_inventory": {
+      "path": "/Users/kevin/.codex/benchmark-runs/shiftsim-v27-manual-20261008/qualification-v3-r2/candidate-source-inventory.json",
+      "sha256": "b8a594149b1b12ad12e27519dfd983fa0fd1b14160c482ed2594dafbe5c4a738",
+      "document": {
+        "files": [
+          {
+            "bytes": 1783,
+            "path": "README.md",
+            "sha256": "9ca7ec5c2c774dbb18dfaefc1561a51f00ef21e0c4f0f74aca20cfb49c4db95e"
+          },
+          {
+            "bytes": 283,
+            "path": "build.sh",
+            "sha256": "8c07e8f5af9fd009864d73dfe920d38fc7dab1e546a3595f331560a275416e52"
+          },
+          {
+            "bytes": 60,
+            "path": "run.sh",
+            "sha256": "895c6776dc906b947063dcd47f8dc63403038e5eac0dfb57fe953f4c94d780c6"
+          },
+          {
+            "bytes": 464,
+            "path": "semaprax.toml",
+            "sha256": "d3687236ce9319a609262111f5ceb60e244e0227143d6a3811d75745469e94fd"
+          },
+          {
+            "bytes": 15950,
+            "path": "src/app.spx",
+            "sha256": "4fb638ef22c721b10a899bbc849b7d47dbddca583b9d9e0939767100d9ecb06d"
+          },
+          {
+            "bytes": 332,
+            "path": "src/tests.spx",
+            "sha256": "1e945de66f176944d9369d2f8608308c88ec572c7a1e3bd6577ae1e06ebd3638"
+          },
+          {
+            "bytes": 190,
+            "path": "test.sh",
+            "sha256": "a254c4ef11151e232eb4ee0b528f47bfaa63950daf79d1eb79b7ad7262a271df"
+          },
+          {
+            "bytes": 6484,
+            "path": "tests.py",
+            "sha256": "b6f488db3ce9395729f5ba743664b10e22937a35ee3647a82882a1feb1cdde26"
+          }
+        ],
+        "schema": "semaprax.closed-authored-inventory.v1",
+        "sha256": "17d0d9da00dea8378e904436837ee5b3930916d71f58482dc2aa5c0a3ab0eb8f"
+      }
+    },
+    "vec_build_receipt": {
+      "path": "/Users/kevin/.codex/benchmark-runs/shiftsim-v27-manual-20261008/qualification-v3-r2/qualification-build-receipt.json",
+      "sha256": "2e1ec1d3d0de94fd1d56312609dde02805fce23b80344247565146fe7a9e54d0",
+      "document": {
+        "acceptance_report_sha256": "6d2edb5c32701c57d8f4b8c2c065c2e0bbd2951c1db88598c2dcda62c88dc1af",
+        "qualification_subject": {
+          "candidate_manifest_sha256": "d3687236ce9319a609262111f5ceb60e244e0227143d6a3811d75745469e94fd",
+          "closed_authored_inventory_sha256": "17d0d9da00dea8378e904436837ee5b3930916d71f58482dc2aa5c0a3ab0eb8f",
+          "compiler_binary_sha256": "87e1d84bb618218159a3ebaec83dea285f2186486d7113962d08c71945474daa",
+          "compiler_source_commit": "60002439e1b651ebbfbf3a887f12a20c927d720f",
+          "native_binary_sha256": "dd44f27ad29bfcb60703740a6c7340d99fa43c32771e13ce0a3abe8dbd03e6f7"
+        },
+        "schema": "semaprax.event-sim-qualification-build-receipt.v1"
+      }
+    }
+  },
+  "authored_inventory_recount": {
+    "schema": "semaprax.manual-adoption-recount.v1",
+    "measurement": "Complete retained authored inventory; @anthropic-ai/tokenizer 0.0.4 Claude BPE after NFKC. Proxy only: not actual gpt-6.1 model tokens, turns, input, billing, or live gain.",
+    "rows": [
+      {
+        "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-main3660e0daf-20261008/candidates/semaprax-01",
+        "files": [
+          {
+            "path": "README.md",
+            "sha256": "8514aae9521ff1a6f530d100e8bb4e0c41258471b3082d412114b68709abde8b",
+            "bytes": 1733,
+            "authored_tokens": 371
+          },
+          {
+            "path": "build.sh",
+            "sha256": "8c07e8f5af9fd009864d73dfe920d38fc7dab1e546a3595f331560a275416e52",
+            "bytes": 283,
+            "authored_tokens": 111
+          },
+          {
+            "path": "run.sh",
+            "sha256": "895c6776dc906b947063dcd47f8dc63403038e5eac0dfb57fe953f4c94d780c6",
+            "bytes": 60,
+            "authored_tokens": 25
+          },
+          {
+            "path": "semaprax.toml",
+            "sha256": "672920772d611f9a186364cf2b6cca0e7023576b56d0b2779b7fba796ae6ffec",
+            "bytes": 459,
+            "authored_tokens": 172
+          },
+          {
+            "path": "src/app.spx",
+            "sha256": "d54fd285509c9d4aed1dda13cd22e66af0565d7d69b266d9ac0cf0ea5a3dab87",
+            "bytes": 32040,
+            "authored_tokens": 11377
+          },
+          {
+            "path": "src/tests.spx",
+            "sha256": "1e945de66f176944d9369d2f8608308c88ec572c7a1e3bd6577ae1e06ebd3638",
+            "bytes": 332,
+            "authored_tokens": 148
+          },
+          {
+            "path": "test.sh",
+            "sha256": "a254c4ef11151e232eb4ee0b528f47bfaa63950daf79d1eb79b7ad7262a271df",
+            "bytes": 190,
+            "authored_tokens": 86
+          },
+          {
+            "path": "tests.py",
+            "sha256": "b6f488db3ce9395729f5ba743664b10e22937a35ee3647a82882a1feb1cdde26",
+            "bytes": 6484,
+            "authored_tokens": 1966
+          }
+        ],
+        "authored_tokens": 14256
+      },
+      {
+        "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-byte-conversion-manual-20261008/candidates/semaprax-01",
+        "files": [
+          {
+            "path": "README.md",
+            "sha256": "8514aae9521ff1a6f530d100e8bb4e0c41258471b3082d412114b68709abde8b",
+            "bytes": 1733,
+            "authored_tokens": 371
+          },
+          {
+            "path": "build.sh",
+            "sha256": "8c07e8f5af9fd009864d73dfe920d38fc7dab1e546a3595f331560a275416e52",
+            "bytes": 283,
+            "authored_tokens": 111
+          },
+          {
+            "path": "run.sh",
+            "sha256": "895c6776dc906b947063dcd47f8dc63403038e5eac0dfb57fe953f4c94d780c6",
+            "bytes": 60,
+            "authored_tokens": 25
+          },
+          {
+            "path": "semaprax.toml",
+            "sha256": "672920772d611f9a186364cf2b6cca0e7023576b56d0b2779b7fba796ae6ffec",
+            "bytes": 459,
+            "authored_tokens": 172
+          },
+          {
+            "path": "src/app.spx",
+            "sha256": "32754e0ef9a6ddfee506bbab9c4580eb33e0040905524e53fe259e4edfcba9d6",
+            "bytes": 23610,
+            "authored_tokens": 7720
+          },
+          {
+            "path": "src/tests.spx",
+            "sha256": "1e945de66f176944d9369d2f8608308c88ec572c7a1e3bd6577ae1e06ebd3638",
+            "bytes": 332,
+            "authored_tokens": 148
+          },
+          {
+            "path": "test.sh",
+            "sha256": "a254c4ef11151e232eb4ee0b528f47bfaa63950daf79d1eb79b7ad7262a271df",
+            "bytes": 190,
+            "authored_tokens": 86
+          },
+          {
+            "path": "tests.py",
+            "sha256": "b6f488db3ce9395729f5ba743664b10e22937a35ee3647a82882a1feb1cdde26",
+            "bytes": 6484,
+            "authored_tokens": 1966
+          }
+        ],
+        "authored_tokens": 10599
+      },
+      {
+        "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-v27-manual-20261008/candidates/semaprax-01",
+        "files": [
+          {
+            "path": "README.md",
+            "sha256": "9ca7ec5c2c774dbb18dfaefc1561a51f00ef21e0c4f0f74aca20cfb49c4db95e",
+            "bytes": 1783,
+            "authored_tokens": 383
+          },
+          {
+            "path": "build.sh",
+            "sha256": "8c07e8f5af9fd009864d73dfe920d38fc7dab1e546a3595f331560a275416e52",
+            "bytes": 283,
+            "authored_tokens": 111
+          },
+          {
+            "path": "run.sh",
+            "sha256": "895c6776dc906b947063dcd47f8dc63403038e5eac0dfb57fe953f4c94d780c6",
+            "bytes": 60,
+            "authored_tokens": 25
+          },
+          {
+            "path": "semaprax.toml",
+            "sha256": "d3687236ce9319a609262111f5ceb60e244e0227143d6a3811d75745469e94fd",
+            "bytes": 464,
+            "authored_tokens": 174
+          },
+          {
+            "path": "src/app.spx",
+            "sha256": "4fb638ef22c721b10a899bbc849b7d47dbddca583b9d9e0939767100d9ecb06d",
+            "bytes": 15950,
+            "authored_tokens": 5226
+          },
+          {
+            "path": "src/tests.spx",
+            "sha256": "1e945de66f176944d9369d2f8608308c88ec572c7a1e3bd6577ae1e06ebd3638",
+            "bytes": 332,
+            "authored_tokens": 148
+          },
+          {
+            "path": "test.sh",
+            "sha256": "a254c4ef11151e232eb4ee0b528f47bfaa63950daf79d1eb79b7ad7262a271df",
+            "bytes": 190,
+            "authored_tokens": 86
+          },
+          {
+            "path": "tests.py",
+            "sha256": "b6f488db3ce9395729f5ba743664b10e22937a35ee3647a82882a1feb1cdde26",
+            "bytes": 6484,
+            "authored_tokens": 1966
+          }
+        ],
+        "authored_tokens": 8119
+      }
+    ]
+  },
+  "authored_checks_per_adoption": 284,
+  "independent_checks_per_adoption": 15,
+  "log_sha256": {
+    "final-byte-manual-own": "611da385074cc5964b1688d6c07782339edb0569ff1b733ddcd90db0da8515ee",
+    "final-byte-manual-hidden": "934102e1e61ebb7fc0489170f40bf4f97f78ef68ac6c9fe7f021823510029394",
+    "final-vec-manual-own": "611da385074cc5964b1688d6c07782339edb0569ff1b733ddcd90db0da8515ee",
+    "final-vec-manual-qualification-r2": "ad583d72b0e3f1fc55ffad67a18fa53e466562a385816acb77d49653aebb9334",
+    "final-inventory-order": "c346f1228fe88f4ab3cb336ffa610dc3a34ec7c7bb7d05df7a1c222f2d928881"
+  },
+  "limitation": "These are manual semantic-preserving adoptions of an accepted historical candidate, not new live agent attempts. Claude BPE authored-token proxy: 14256 -> 10599 with conversions -> 8119 with direct private vectors. No live turn/input/billing advantage established. Original historical candidate and paid traces remain unchanged.",
+  "qualification_repair": "Initial manual files required canonical formatting. Initial v3 wrapper produced directory-traversal rather than globally path-sorted inventory and failed closed after acceptance; its output is preserved separately. The targeted ordering regression and corrected v3-r2 qualification pass."
+}

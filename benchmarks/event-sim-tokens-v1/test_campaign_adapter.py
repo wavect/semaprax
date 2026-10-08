@@ -348,6 +348,19 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
             with patch.object(live_campaign.shutil, "copyfile", side_effect=drift):
                 with self.assertRaisesRegex(ValueError, "during copy"):
                     live_campaign.copy_qualification_artifacts(qualification, artifacts)
+    def test_closed_inventory_sorts_full_relative_paths_before_binding(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name in ("z.sh", "src/z.spx", "tests.py", "tests/unit.spx"):
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(name, encoding="utf-8")
+            inventory = live_campaign.closed_authored_inventory(root)
+            self.assertEqual([row["path"] for row in inventory["files"]],
+                             ["src/z.spx", "tests.py", "tests/unit.spx", "z.sh"])
+            self.assertEqual(live_campaign._validate_closed_inventory_document(inventory),
+                             inventory["files"])
+
     def test_provider_quota_requires_a_structured_failed_result(self):
         for result in (
             {"is_error": True, "api_error_status": 429, "api_error": "usage_limit_reached"},

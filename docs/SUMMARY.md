@@ -190,6 +190,7 @@ Audience: all documentation readers.
 - [Class inheritance](CLASS-INHERITANCE-V1.md)
 - [Portable indexed byte data](PORTABLE-INDEXED-BYTE-DATA-V1.md)
 - [Owned Bounded Byte Buffer v1](OWNED-BOUNDED-BYTE-BUFFER-V1.md), [v2](OWNED-BOUNDED-BYTE-BUFFER-V2.md), and [same-owner renewal](BYTE-BUFFER-RENEWAL-V1.md)
+- [Strict JSON Scan v1](STRICT-JSON-SCAN-V1.md)
 - [Owned Bounded Vec](OWNED-BOUNDED-VEC-V1.md)
 - [Owned Bounded Vec v2](OWNED-BOUNDED-VEC-V2.md)
 - [Owned Bounded Vec For Traversal](OWNED-BOUNDED-VEC-FOR-TRAVERSAL-V1.md)

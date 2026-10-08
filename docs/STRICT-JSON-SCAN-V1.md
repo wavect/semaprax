@@ -1,5 +1,7 @@
 # Strict JSON Scan v1
 
+Audience: language users and compiler contributors.
+
 Status: additive source package; focused local interpreter, native C11, Core Wasm,
 ordinary-project bundling, and catalog checks pass. See the
 [OPT batch receipt](../benchmarks/opt-batch-verification-v1/opt680-682-verification.json).

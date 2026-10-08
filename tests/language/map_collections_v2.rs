@@ -322,6 +322,19 @@ fn map_set_v2_interpreter_values_order_failure_and_private_boundaries() {
     fixture.cleanup();
 }
 
+// Typed collection carriers use calloc. Observe that allocation through the
+// same exact pointer ledger as malloc; retain all foreign/interior/duplicate
+// free and balanced-owner assertions without increasing the ledger capacity.
+const CALLOC_EVIDENCE_C: &str = r#"
+static __attribute__((unused)) void *fixture_calloc(size_t count, size_t size) {
+    REQUIRE(count != 0 && size != 0 && count <= SIZE_MAX / size);
+    void *pointer = fixture_malloc(count * size);
+    memset(pointer, 0, count * size);
+    return pointer;
+}
+#define calloc fixture_calloc
+"#;
+
 #[test]
 fn map_set_v2_native_balances_all_owners_at_o0_and_o2() {
     if Command::new("clang").arg("--version").output().is_err() {
@@ -329,9 +342,9 @@ fn map_set_v2_native_balances_all_owners_at_o0_and_o2() {
     }
     let program = parse(SOURCE, Path::new("map-native.spx")).unwrap();
     let generated = codegen::emit_c(&program).unwrap();
-    let mut probe = format!("{}\n{}\n{generated}\n#undef malloc\n#undef free\nint main(void) {{\nREQUIRE(fixture_binary_stdout());\nstruct spx_status_entry entries[32]; struct spx_context context={{0}}; REQUIRE(spx_context_init(&context,19,entries,32,NULL,NULL,NULL));\n",
+    let mut probe = format!("{}\n{}\n{}\n{generated}\n#undef malloc\n#undef calloc\n#undef free\nint main(void) {{\nREQUIRE(fixture_binary_stdout());\nstruct spx_status_entry entries[32]; struct spx_context context={{0}}; REQUIRE(spx_context_init(&context,19,entries,32,NULL,NULL,NULL));\n",
         include_str!("../support/native_fixture_stdio.c"),
-        include_str!("../native_owned_utf8_settlement_v1/allocations.c"));
+        include_str!("../native_owned_utf8_settlement_v1/allocations.c"), CALLOC_EVIDENCE_C);
     let mut expected = String::new();
     for _ in 0..4 {
         for (id, observation) in CASES {

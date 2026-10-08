@@ -1535,7 +1535,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     })?;
                     let value = self.emit_expr(&initializer.value)?;
                     self.require_type(&value.ty, &field.ty, "record field initializer")?;
-                    if matches!(field.ty, ResolvedType::Bytes | ResolvedType::String) {
+                    if matches!(field.ty, ResolvedType::Bytes | ResolvedType::String)
+                        || crate::map_ops::is_collection(&field.ty)
+                    {
                         let plan = self.bytes_plan.ok_or_else(|| {
                             backend_error("owned Bytes record field has no cleanup plan")
                         })?;

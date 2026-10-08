@@ -154,6 +154,7 @@ Audience: all documentation readers.
 - [Statement If Canonical Source v1](STATEMENT-IF-CANONICAL-V1.md)
 - [Integer Numeric Profile v2](INTEGER-NUMERIC-PROFILE-V2.md)
 - [Byte Widening v1](BYTE-WIDENING-V1.md)
+- [Byte Conversions v1](BYTE-CONVERSIONS-V1.md)
 - [Borrowed Text Byte Access v1](BORROWED-TEXT-BYTE-ACCESS-V1.md)
 - [Record invariants](RECORD-INVARIANTS-V1.md)
 - [Refutable match](REFUTABLE-MATCH-V1.md)
@@ -695,3 +696,4 @@ Audience: all documentation readers.
 - [Kernel-0 accepted-profile receipts, 2 October 2026](evidence/kernel-zero-f99c76dc2/README.md)
 
 - [Stream Text Command v1](STREAM-TEXT-COMMAND-V1.md)
+- [Stream Data Command v1](STREAM-DATA-COMMAND-V1.md)

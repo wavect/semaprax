@@ -542,7 +542,7 @@ pub(super) fn build(program: &Program, source: &str) -> Result<Model, Vec<Diagno
             .map(|b| (b.name.clone(), b.ty.clone()))
             .collect();
         match translator.body(function, &bound) {
-            Ok((body, _)) => defaults.push((kind, row.clone(), {
+            Ok((body, _)) => defaults.push((kind.clone(), row.clone(), {
                 let create = if kind == Kind::CanWrite && !row.is_empty() {
                     format!(", create: {}", translator.creation(function, &bound))
                 } else {

@@ -466,8 +466,14 @@ function offlineSelfTest() {
       const local = rt.withRollups(ent, row, kids), computed = rt.evalComputed(ent, local);
       for (const c of ent.computed || []) {
         const value = computed[c.name], ok = Object.hasOwn(computed, c.name) && !(value && typeof value === "object" && Object.hasOwn(value, "error"));
-        check(ent.name, "computed", `derive ${c.name} without runtime error`, value, ok);
-        if (ok) computedChecks++;
+        const [, decodeError] = rt.decodeValue(c, enums, value);
+        const typeMatches = c.type === "int" || c.type === "ref" ? typeof value === "bigint"
+          : c.type === "float" ? typeof value === "number" && Number.isFinite(value)
+            : c.type === "bool" ? typeof value === "boolean"
+              : ["string", "char", "enum"].includes(c.type) && typeof value === "string";
+        const valid = ok && !decodeError && typeMatches;
+        check(ent.name, "computed", `derive ${c.name} with declared type and without runtime error`, value, valid);
+        if (valid) computedChecks++;
       }
       for (const u of ent.rollups || []) {
         const child = byPath.get(u.child), childRows = kids(u.child).rows;

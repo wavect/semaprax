@@ -216,7 +216,7 @@ fn invariants_verify_and_round_trip_canonically() {
     assert!(verify::verify(&refused)
         .iter()
         .any(|d| d.code == "SPX-T309"));
-    assert!(hir::resolve(&refused).is_err());
+    assert!(semaprax::hir::resolve(&refused).is_err());
     for source in [RANGE, UPDATE, TEAM] {
         let program = parse(source, Path::new("invariant.spx")).unwrap();
         assert!(verify::verify(&program).is_empty());

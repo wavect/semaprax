@@ -3,6 +3,7 @@ use semaprax::project::{
     derive_project_scaffold_v1, derive_project_scaffold_v1_with_layout, replay_project_scaffold_v1,
     with_authenticated_project, ScaffoldLayout, PROJECT_SCAFFOLD_TEMPLATES,
     PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT,
+    PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA,
 };
 use sha2::{Digest, Sha256};
 
@@ -40,7 +41,7 @@ fn every_shipped_template_walks_the_documented_quickstart_journey() {
     for template in PROJECT_SCAFFOLD_TEMPLATES {
         let layout = if matches!(
             template,
-            "service" | "stdin-stream-text" | "source-command-file-text"
+            "service" | "stdin-stream-text" | "stdin-stream-data" | "source-command-file-text"
         ) {
             ScaffoldLayout::Tables
         } else {
@@ -71,7 +72,11 @@ fn every_shipped_template_walks_the_documented_quickstart_journey() {
             snapshot.check()?;
             let options = semaprax::project::ProjectExecutionOptions::default();
             let graph_bytes = snapshot.semantic_graph().len();
-            if template == PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT {
+            if matches!(
+                template,
+                PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT
+                    | PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA
+            ) {
                 let test_error = snapshot.execute_test(&options).unwrap_err();
                 let run_error = snapshot.execute_entry(&options).unwrap_err();
                 assert_eq!(test_error.len(), 1);
@@ -93,7 +98,11 @@ fn every_shipped_template_walks_the_documented_quickstart_journey() {
 
         let (tested, ran, graph_bytes) = walked
             .unwrap_or_else(|error| panic!("`{template}` fails the documented journey: {error:?}"));
-        if template != PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT {
+        if !matches!(
+            template,
+            PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT
+                | PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA
+        ) {
             let tested = tested.unwrap();
             let ran = ran.unwrap();
             assert!(
@@ -117,7 +126,7 @@ fn every_shipped_template_fits_the_default_assurance_budget() {
     for template in PROJECT_SCAFFOLD_TEMPLATES {
         let layout = if matches!(
             template,
-            "service" | "stdin-stream-text" | "source-command-file-text"
+            "service" | "stdin-stream-text" | "stdin-stream-data" | "source-command-file-text"
         ) {
             ScaffoldLayout::Tables
         } else {
@@ -715,6 +724,66 @@ fn stdin_stream_text_template_selects_one_native_v25_command() {
     let replayed = replay_project_scaffold_v1(
         NAME,
         "stdin-stream-text",
+        &derived.canonical_bytes(),
+        derived.digest(),
+    )
+    .unwrap();
+    assert_eq!(replayed.canonical_bytes(), derived.canonical_bytes());
+}
+
+#[test]
+fn stdin_stream_data_template_selects_one_native_v27_command_and_borrowed_vec_helper() {
+    let frozen =
+        derive_project_scaffold_v1_with_layout(NAME, "stdin-stream-data", ScaffoldLayout::Frozen)
+            .unwrap_err();
+    assert_eq!(frozen[0].code, "SPX-J115");
+
+    let derived =
+        derive_project_scaffold_v1_with_layout(NAME, "stdin-stream-data", ScaffoldLayout::Tables)
+            .unwrap();
+    assert_eq!(derived.schema(), "semaprax.project-scaffold.v6");
+    assert_eq!(derived.project_schema(), "semaprax.project.v27");
+    assert_eq!(
+        derived
+            .files()
+            .iter()
+            .map(|file| file.path())
+            .collect::<Vec<_>>(),
+        [
+            "README.md",
+            "AGENTS.md",
+            "semaprax.toml",
+            "src/app.spx",
+            "src/input.spx",
+            "src/tests.spx",
+        ]
+    );
+
+    let manifest = derived.files()[2].utf8();
+    assert!(manifest.contains("profile = \"language-command-io.stream-data.v1\""));
+    assert!(manifest.contains("sources = [\"src/app.spx\", \"src/input.spx\", \"src/tests.spx\"]"));
+    assert!(manifest.contains("web = [\"demo-project.command\"]"));
+    assert!(manifest.contains("function = \"demo-project.command\""));
+    assert!(manifest.contains("input = \"argv-utf8+stdin-stream.v1\""));
+    assert!(manifest.contains("required = [\"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]"));
+
+    let app = derived.files()[3].utf8();
+    assert!(app.contains("stdin_stream_open()"));
+    assert!(app.contains("stdin_stream_eof(reader)"));
+    assert!(app.contains("stdin_stream_chunk(reader)"));
+    assert!(app.contains("stdin_stream_next(reader)"));
+    assert!(app.contains("vec_with_capacity<i64>(1usize)"));
+    let input = derived.files()[4].utf8();
+    assert!(input.contains("fn count(values: borrow Vec<i64>) -> usize"));
+    assert!(input.contains("vec_len<i64>(values)"));
+    assert!(input.contains("vec_get<i64>(values, index)"));
+    let guide = derived.files()[1].utf8();
+    assert!(guide.contains("fixed-capacity sample, not an input buffer"));
+    assert!(guide.contains("Web, Wasm, npm, and interpreter execution are not admitted"));
+
+    let replayed = replay_project_scaffold_v1(
+        NAME,
+        "stdin-stream-data",
         &derived.canonical_bytes(),
         derived.digest(),
     )

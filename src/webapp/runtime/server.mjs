@@ -146,6 +146,7 @@ function who(req) {
 }
 const canR = (c, t, r) => c.free || !t.ent.canRead || pass(t.ent.canRead, r, c.u);
 const canW = (c, t, r) => c.free || !t.ent.canWrite || pass(t.ent.canWrite, r, c.u);
+const canNew = (c, t) => rt.canNew(c, t);
 // GET /api/audit: allowed without accounts, in setup mode, or when canWrite of the account entity passes for (u, u).
 const canAudit = (c) => c.free || !accT.ent.canWrite || pass(accT.ent.canWrite, c.u, c.u);
 function checkPw(pw, stored) {
@@ -301,7 +302,7 @@ async function api(req, res, parts, c) {
   if (!hasId) {
     if (m === "GET") return list(req, res, t, c);
     if (m !== "POST") return fail(res, 405, "method not allowed");
-    if (t.ent.canWrite && !t.ent.canWrite.row && !canW(c, t, {})) return fail(res, 403, `not allowed to create ${t.ent.name}`);
+    if (!canNew(c, t)) return fail(res, 403, `not allowed to create ${t.ent.name}`);
   } else {
     if (m !== "GET" && (hist || (m !== "PUT" && m !== "DELETE"))) return fail(res, 405, "method not allowed");
     if (!cur) return fail(res, 404, `${t.ent.name} ${id} not found`);

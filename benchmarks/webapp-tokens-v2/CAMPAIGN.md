@@ -49,3 +49,16 @@ Codex controls, Node, Playwright package, and Chromium executable. It snapshots
 the full transitive acceptance source closure and runs that snapshot. Seed
 hashes and bytes come from `--base-ref`; candidate writes are confined to the
 new candidate root and rechecked before acceptance, archival, and cleanup.
+
+## Separate rescoring
+
+`codex_rescore.py` is an offline follow-up only after a terminal receipt binds
+a finalized ten-trial campaign. A fully launched campaign that is marked interrupted for retained resource contamination may be separately rescored only when its terminal receipt binds that interruption, every trial identity, an empty unlaunched order, and the actual process exit; the original results and contamination assessment remain archival evidence. It requires the original results and
+artifact hashes, the exact compiler binary/source SHA, a newly qualified gate
+source and receipt, a clarification document, and a fresh output path. It
+copies each closed candidate archive into a separate writable directory and
+writes a versioned sidecar; it never rewrites original results, costs,
+transcripts, prompts, or candidate archives. `--validate-sidecar` rechecks the
+original result hash, new gate hashes, clarification hash, and all ten unique
+arm/number identities. This sidecar is new acceptance evidence, not a claim
+that the frozen original gate or paid wall time changed.

@@ -54,14 +54,7 @@ async function loadAll() {
 const free = () => !ACC || SETUP;
 const pass = (p, r, u) => { try { return p.test(r, u) === true; } catch { return false; } };
 const canW = (e, r) => free() || !e.canWrite || pass(e.canWrite, r, ME);
-const canNew = (e) => {
-  if (free() || !e.canWrite) return true;
-  if (!e.canWrite.row) return pass(e.canWrite, {}, ME);
-  // Only the compiler's partial predicate can prove that no prospective row
-  // is writable. Unknown row fields retain access to the validated form.
-  if (typeof e.canWrite.create !== "function") return true;
-  try { return e.canWrite.create(ME) !== false; } catch { return true; }
-};
+const canNew = (e) => rt.canNew({ free: free(), u: ME }, e);
 const canAudit = () => free() || !ents[ACC.entity].canWrite || pass(ents[ACC.entity].canWrite, ME, ME);
 
 const colsOf = (e) => [{ name: "id", type: "int", id: true }, ...e.fields, ...(e.computed || []).map((c) => ({ ...c, computed: true }))];

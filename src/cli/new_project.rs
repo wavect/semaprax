@@ -1,6 +1,6 @@
 //! The `new` invocation grammar shared by both executables.
 //!
-//! `semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text|source-command-file-text]`.
+//! `semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text|stdin-stream-data|source-command-file-text]`.
 //! The full toolchain parses the same grammar inside its private publication
 //! module and spells every shared rejection identically; its held-parent
 //! authority shares the calculator and service source-directory shape, with
@@ -167,7 +167,7 @@ mod tests {
         );
         assert_eq!(
             parse(&strings(&["x", "--template", "web"])).unwrap_err(),
-            "unknown new template `web`; expected calculator or library or service or stdin-stream-text or source-command-file-text"
+            "unknown new template `web`; expected calculator or library or service or stdin-stream-text or stdin-stream-data or source-command-file-text"
         );
         let service = parse(&strings(&["svc", "--template", "service"])).unwrap();
         assert_eq!(service.template, "service");
@@ -175,6 +175,9 @@ mod tests {
         let stream = parse(&strings(&["streamer", "--template", "stdin-stream-text"])).unwrap();
         assert_eq!(stream.template, "stdin-stream-text");
         assert_eq!(stream.name, "streamer");
+        let data = parse(&strings(&["data", "--template", "stdin-stream-data"])).unwrap();
+        assert_eq!(data.template, "stdin-stream-data");
+        assert_eq!(data.name, "data");
         let source = parse(&strings(&[
             "decimal",
             "--template",

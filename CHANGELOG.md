@@ -1,5 +1,22 @@
 # Changelog
 
+- Add a shared browser/API creation preflight using the compiler-derived
+  partial permission predicate (OPT #687). Only definitive row denial rejects
+  before payload validation; concrete authorization and principal renewal after
+  body reads remain authoritative. The generated HTTP runtime regression passes.
+
+- Add the canonical native Project v27 `stdin-stream-data` starter, with
+  Scaffold Capsule v6, an immutable borrowed scalar-vector helper, and direct
+  CLI/language discovery (OPT #688). Earlier capsule bytes and profile limits
+  remain unchanged. Canonical replay, CLI/help fixtures, and native creation,
+  checking, building, and streamed execution are verified.
+
+- Repair TeamDesk acceptance readiness and equivalent CSV/audit representations
+  (OPT #689), retaining all application obligations and case identities. Frozen
+  paid results remain unchanged. Six selected gate regressions and ten hostile
+  rescorer regressions pass; separately pinned reference qualification and
+  full archival rescoring remain independent evidence.
+
 - Admit calls from bounded loop bodies to exact private helpers taking
   compiler-owned `borrow Vec<Copy scalar>` parameters (OPT #684), matching the
   existing Project v27 helper boundary. Owned/non-Copy/counterfeit Vec shapes,

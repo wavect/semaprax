@@ -1000,7 +1000,7 @@ def main() -> int:
                     "summary": summarize(rows)}, indent=2, sort_keys=True) + "\n")
                 if interrupted:
                     break
-            status = "completed" if not remaining else "interrupted"
+            status = "interrupted" if interrupted else ("completed" if not remaining else "interrupted")
             result = {"status": status, "artifacts": str(artifacts),
                       "round": result["round"], "unlaunched_trial_order": remaining, **summarize(rows)}
         print(json.dumps(result, indent=2, sort_keys=True))

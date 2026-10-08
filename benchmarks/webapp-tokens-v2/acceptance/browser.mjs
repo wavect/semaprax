@@ -5,7 +5,7 @@ import { ENTITIES, ENUMS, INVALID, KEYS, WORKFLOWS, COMPUTED, PASSWORD, canRead,
 import { route,lossless,rowShape } from './client.mjs';
 import { parseCsv } from './api.mjs';
 import { direction } from './ordering.mjs';
-import { directPage,followEntity,numericEditor } from './browser-support.mjs';
+import { directPage,followEntity,numericEditor,signInLabel } from './browser-support.mjs';
 const escaped = value => value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 export async function browserChecks({base,arm,state,probe,artifacts}) {
   const require=createRequire(path.join(process.env.PLAYWRIGHT_PACKAGE_ROOT??path.dirname(new URL(import.meta.url).pathname),'package.json'));
@@ -14,7 +14,7 @@ export async function browserChecks({base,arm,state,probe,artifacts}) {
   page.setDefaultTimeout(10000);page.setDefaultNavigationTimeout(15000);
   const url=(entity='',tail='')=>new URL(arm==='semaprax'?`#/${route(arm,entity)}${tail}`:`${route(arm,entity)}${tail}`,base).href;
   const go=async(entity='',tail='')=>directPage(page,url(entity,tail));
-  const login=async role=>{await context.clearCookies();await go();await expect(page.getByRole('button',{name:/^Sign in$/i})).toBeVisible();await page.getByLabel('email',{exact:true}).fill(state.roles[role].email);await page.getByLabel('password',{exact:true}).fill(PASSWORD);await page.getByRole('button',{name:/^Sign in$/i}).click();await page.waitForLoadState('networkidle');await expect(page.getByRole('button',{name:/^Sign out$/i})).toBeVisible();};
+  const login=async role=>{await context.clearCookies();await go();await expect(page.getByRole('button',{name:/^Sign in$/i})).toBeVisible();await page.getByLabel(signInLabel('email')).fill(state.roles[role].email);await page.getByLabel(signInLabel('password')).fill(PASSWORD);await page.getByRole('button',{name:/^Sign in$/i}).click();await page.waitForLoadState('networkidle');await expect(page.getByRole('button',{name:/^Sign out$/i})).toBeVisible();};
   const control=field=>page.getByLabel(new RegExp(`^${escaped(field).replaceAll('_','[_ ]')}`,'i'));
   const fill=async(entity,body)=>{for(const [field,type]of Object.entries(ENTITIES[entity])){const input=control(field);if(type==='bool')await input.setChecked(Boolean(body[field]));else if(type.startsWith('ref:')||ENUMS[type])await input.selectOption(String(body[field]));else await input.fill(String(body[field]));}if(entity==='Member')await control('password').fill(PASSWORD);};
   const submit=()=>page.getByRole('button',{name:/^(Create|Save)$/i}).click();

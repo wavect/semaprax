@@ -3687,7 +3687,11 @@ The additive [webapp v3](WEBAPP-PROJECTION-V3.md) convention binder lives in
 `webapp/translate/creation.rs` projects the same admitted permission AST with
 unknown row inputs for advisory creation controls. It shares the translator's
 exact scalar operations; `webapp/model.rs` attaches the callback only to
-row-aware write policies. The authoritative server policy remains unchanged.
+row-aware write policies. `webapp/runtime/runtime.js` owns the shared
+`canNew` decision used by both browser and server: a row preview can reject
+only on exact `false`, while the generated server retains the concrete
+post-validation permission check and re-resolves the principal after body
+reads. The partial preview grants no write authority.
 The embedded `security.mjs` owns bounded sign-in budgets and session-bound CSRF,
 and `state.mjs` stages migration and pairwise candidate constraints before
 publication. These generated host modules use the existing operator-selected

@@ -42,6 +42,9 @@ pub const PROJECT_SCAFFOLD_SCHEMA_V4: &str = "semaprax.project-scaffold.v4";
 /// Capsule schema for the Project v26 native file-text source-command
 /// template. Its digest domain is independent of every earlier capsule.
 pub const PROJECT_SCAFFOLD_SCHEMA_V5: &str = "semaprax.project-scaffold.v5";
+/// Capsule schema for the Project v27 native stream-data command template.
+/// Its digest domain is independent of every earlier capsule.
+pub const PROJECT_SCAFFOLD_SCHEMA_V6: &str = "semaprax.project-scaffold.v6";
 pub const PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR: &str = "calculator";
 pub const PROJECT_SCAFFOLD_TEMPLATE_LIBRARY: &str = "library";
 /// A multi-user service composed from bounded bundled standard-library decision
@@ -56,14 +59,18 @@ pub const PROJECT_SCAFFOLD_TEMPLATE_SERVICE: &str = "service";
 /// through the bounded reusable stream reader and may pass owned Strings to
 /// private module helpers.
 pub const PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_TEXT: &str = "stdin-stream-text";
+/// A native Project v27 command that keeps stream input bounded and shows a
+/// private immutable borrowed `Vec<Copy scalar>` helper boundary.
+pub const PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA: &str = "stdin-stream-data";
 /// A native Project v26 command that reads one UTF-8 file and imports the
 /// bundled `std.int.decimal` source package through an exact dependency.
 pub const PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT: &str = "source-command-file-text";
-pub const PROJECT_SCAFFOLD_TEMPLATES: [&str; 5] = [
+pub const PROJECT_SCAFFOLD_TEMPLATES: [&str; 6] = [
     PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR,
     PROJECT_SCAFFOLD_TEMPLATE_LIBRARY,
     PROJECT_SCAFFOLD_TEMPLATE_SERVICE,
     PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_TEXT,
+    PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA,
     PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT,
 ];
 pub const PROJECT_SCAFFOLD_FILE_COUNT: usize = 5;
@@ -71,6 +78,7 @@ pub const PROJECT_SCAFFOLD_TABLES_FILE_COUNT: usize = 6;
 pub const PROJECT_SCAFFOLD_LIBRARY_FILE_COUNT: usize = 6;
 pub const PROJECT_SCAFFOLD_SERVICE_FILE_COUNT: usize = 9;
 pub const PROJECT_SCAFFOLD_STDIN_STREAM_TEXT_FILE_COUNT: usize = 6;
+pub const PROJECT_SCAFFOLD_STDIN_STREAM_DATA_FILE_COUNT: usize = 6;
 pub const PROJECT_SCAFFOLD_SOURCE_COMMAND_FILE_TEXT_FILE_COUNT: usize = 6;
 pub const MAX_PROJECT_SCAFFOLD_NAME_BYTES: usize = 64;
 pub const MAX_PROJECT_SCAFFOLD_DESCRIPTOR_BYTES: usize = 65_536;
@@ -125,6 +133,15 @@ pub const PROJECT_SCAFFOLD_STDIN_STREAM_TEXT_INVENTORY: [&str;
     "src/input.spx",
     "src/tests.spx",
 ];
+pub const PROJECT_SCAFFOLD_STDIN_STREAM_DATA_INVENTORY: [&str;
+    PROJECT_SCAFFOLD_STDIN_STREAM_DATA_FILE_COUNT] = [
+    "README.md",
+    "AGENTS.md",
+    "semaprax.toml",
+    "src/app.spx",
+    "src/input.spx",
+    "src/tests.spx",
+];
 pub const PROJECT_SCAFFOLD_SOURCE_COMMAND_FILE_TEXT_INVENTORY: [&str;
     PROJECT_SCAFFOLD_SOURCE_COMMAND_FILE_TEXT_FILE_COUNT] = [
     "README.md",
@@ -144,6 +161,8 @@ pub fn project_scaffold_inventory(template: &str) -> &'static [&'static str] {
         &PROJECT_SCAFFOLD_SERVICE_INVENTORY
     } else if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_TEXT {
         &PROJECT_SCAFFOLD_STDIN_STREAM_TEXT_INVENTORY
+    } else if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA {
+        &PROJECT_SCAFFOLD_STDIN_STREAM_DATA_INVENTORY
     } else if template == PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT {
         &PROJECT_SCAFFOLD_SOURCE_COMMAND_FILE_TEXT_INVENTORY
     } else {
@@ -163,6 +182,8 @@ pub fn project_scaffold_inventory_with_layout(
         &PROJECT_SCAFFOLD_SERVICE_INVENTORY
     } else if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_TEXT {
         &PROJECT_SCAFFOLD_STDIN_STREAM_TEXT_INVENTORY
+    } else if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA {
+        &PROJECT_SCAFFOLD_STDIN_STREAM_DATA_INVENTORY
     } else if template == PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT {
         &PROJECT_SCAFFOLD_SOURCE_COMMAND_FILE_TEXT_INVENTORY
     } else if layout == ScaffoldLayout::Tables {
@@ -176,6 +197,7 @@ const DIGEST_DOMAIN: &[u8] = b"semaprax.project-scaffold.digest.v2\0";
 const DIGEST_DOMAIN_V3: &[u8] = b"semaprax.project-scaffold.digest.v3\0";
 const DIGEST_DOMAIN_V4: &[u8] = b"semaprax.project-scaffold.digest.v4\0";
 const DIGEST_DOMAIN_V5: &[u8] = b"semaprax.project-scaffold.digest.v5\0";
+const DIGEST_DOMAIN_V6: &[u8] = b"semaprax.project-scaffold.digest.v6\0";
 
 /// Which `semaprax.toml` layout a scaffold emits. `Frozen` is the frozen
 /// `semaprax.project.v1` line layout under capsule schema v2 (byte-identical to
@@ -211,7 +233,8 @@ impl ScaffoldLayout {
             PROJECT_SCAFFOLD_SCHEMA => Some(Self::Frozen),
             PROJECT_SCAFFOLD_SCHEMA_V3
             | PROJECT_SCAFFOLD_SCHEMA_V4
-            | PROJECT_SCAFFOLD_SCHEMA_V5 => Some(Self::Tables),
+            | PROJECT_SCAFFOLD_SCHEMA_V5
+            | PROJECT_SCAFFOLD_SCHEMA_V6 => Some(Self::Tables),
             _ => None,
         }
     }
@@ -305,6 +328,12 @@ const STDIN_STREAM_TEXT_MANIFEST: &str = "schema = \"semaprax.manifest.v1\"\n\n[
 const STDIN_STREAM_TEXT_APP: &str = "module {{module}}.app;\nuse function @id(\"{{name}}.read_stream\") from {{module}}.input as read_stream;\nuse function @id(\"{{name}}.normalize\") from {{module}}.input as normalize;\n\npermit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }\n\n@id(\"{{command}}\")\nfn command() -> i64\n    uses { process.stdin.read }\n{\n    let saw_chunk = read_stream();\n    let marker = normalize(\" ready \");\n    if string_len(marker) == 5 { if saw_chunk { 0 } else { 1 } } else { 1 }\n}\n\n@id(\"{{name}}.app.main\")\nfn main() -> i64\n{\n    let marker = normalize(\" ready \");\n    if string_len(marker) == 5 { 0 } else { 1 }\n}\n";
 const STDIN_STREAM_TEXT_INPUT: &str = "module {{module}}.input;\n\npermit { process.stdin.read }\n\n@id(\"{{name}}.read_stream\")\nfn read_stream() -> bool\n    uses { process.stdin.read }\n{\n    let mut reader = stdin_stream_open();\n    let mut saw_chunk = false;\n    while !stdin_stream_eof(reader) {\n        let chunk_size = { let chunk = stdin_stream_chunk(reader); byte_len(chunk) };\n        saw_chunk = saw_chunk || chunk_size > 0usize;\n        reader = stdin_stream_next(reader);\n        0\n    }\n    saw_chunk\n}\n\n@id(\"{{name}}.normalize\")\nfn normalize(text: string) -> string\n{\n    string_trim(text)\n}\n";
 const STDIN_STREAM_TEXT_TESTS: &str = "module {{module}}.tests;\nuse function @id(\"{{name}}.normalize\") from {{module}}.input as normalize;\n\n@id(\"{{name}}.tests.main\")\nfn main() -> i64\n{\n    let marker = normalize(\" ready \");\n    if string_len(marker) == 5 { 0 } else { 1 }\n}\n";
+const STDIN_STREAM_DATA_GUIDE: &str = "\n## Native stream-data command\n\nThis project selects Project v27 profile `language-command-io.stream-data.v1`\nand input `argv-utf8+stdin-stream.v1`. Build the selected command with\n`semaprax build --manifest-path semaprax.toml --target native --output app`,\nthen run `./app`. Web, Wasm, npm, and interpreter execution are not admitted.\n\n`input.spx` demonstrates one private helper that immutably borrows a\n`Vec<i64>`. It is a fixed-capacity sample, not an input buffer: process each\nborrowed stdin chunk in its block and keep any aggregate local to the command.\n";
+const STDIN_STREAM_DATA_README: &str = "# {{name}}\n\nA native stream-data command project with a private borrowed scalar-vector\nhelper.\n\n```sh\nsemaprax check .\nsemaprax build --manifest-path semaprax.toml --target native --output app\n./app\n```\n\nThe generated `command` is selected by the Project manifest. Its vector is a\nsmall helper example, not a request to buffer standard input. Web, Wasm, npm,\nand interpreter execution are refused for this profile. Read `AGENTS.md` before\nediting the source.\n";
+const STDIN_STREAM_DATA_MANIFEST: &str = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"{{name}}\"\nversion = \"0.1.0\"\nprofile = \"language-command-io.stream-data.v1\"\n\n[modules]\nentry = \"{{module}}.app\"\nsources = [\"src/app.spx\", \"src/input.spx\", \"src/tests.spx\"]\ntests = [\"{{module}}.tests\"]\n\n[exports]\nweb = [\"{{command}}\"]\n\n[command]\nfunction = \"{{command}}\"\ninput = \"argv-utf8+stdin-stream.v1\"\n\n[capabilities]\nrequired = [\"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]\n";
+const STDIN_STREAM_DATA_APP: &str = "module {{module}}.app;\nuse function @id(\"{{name}}.count\") from {{module}}.input as count;\n\npermit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }\n\n@id(\"{{command}}\")\nfn command() -> i64\n    uses { process.stdin.read }\n{\n    let mut reader = stdin_stream_open();\n    let mut saw_chunk = false;\n    while !stdin_stream_eof(reader) {\n        let chunk_size = { let chunk = stdin_stream_chunk(reader); byte_len(chunk) };\n        saw_chunk = saw_chunk || chunk_size > 0usize;\n        reader = stdin_stream_next(reader);\n        0\n    }\n    let values = vec_push<i64>(vec_with_capacity<i64>(1usize), 7);\n    let observed = count(values);\n    if observed == 1usize { 0 } else { 1 }\n}\n\n@id(\"{{name}}.app.main\")\nfn main() -> i64\n{\n    let values = vec_push<i64>(vec_with_capacity<i64>(1usize), 7);\n    if count(values) == 1usize { 0 } else { 1 }\n}\n";
+const STDIN_STREAM_DATA_INPUT: &str = "module {{module}}.input;\n\n@id(\"{{name}}.count\")\nfn count(values: borrow Vec<i64>) -> usize\n{\n    let mut index = 0usize;\n    let mut total = 0;\n    while index < vec_len<i64>(values) {\n        total = total + vec_get<i64>(values, index);\n        index = index + 1usize;\n        0\n    }\n    if total == 7 { index } else { 0usize }\n}\n";
+const STDIN_STREAM_DATA_TESTS: &str = "module {{module}}.tests;\nuse function @id(\"{{name}}.count\") from {{module}}.input as count;\n\n@id(\"{{name}}.tests.main\")\nfn main() -> i64\n{\n    let values = vec_push<i64>(vec_with_capacity<i64>(1usize), 7);\n    if count(values) == 1usize { 0 } else { 1 }\n}\n";
 const SOURCE_COMMAND_FILE_TEXT_GUIDE: &str = "\n## Native file-text source command\n\nThis project selects Project v26 profile `source-command.v1`, input\n`argv-utf8+file-text.v1`, and native64 only. The command expects one path below\nthe current directory. Build and run the generated executable with:\n\n```sh\nsemaprax check .\nsemaprax build --manifest-path semaprax.toml --target native --output app\n./app digits\n```\n\n`std.int.decimal = \"=0.1.0\"` is an exact bundled dependency. Inspect its\nsmall API card with `semaprax help library std.int.decimal`; import functions by\nthe stable IDs shown there. This starter demonstrates `canonicalize`, `add`,\nand `divide` without copying decimal arithmetic into the application.\n\nThe interpreter, Web, Wasm, and npm routes refuse this profile. `SPX-G174`\nmeans a function signature is outside the selected profile: keep the aggregate\nlocal, use a carrier admitted by Project v26, or select the profile that owns\nthe intended boundary. For the exact `SPX-H006` message `function exceeds\n4,096 loan program points`, extract named helpers whose signatures remain\nadmitted by this profile; do not raise the verifier limit. Other `SPX-H006`\nmessages are closed trust-boundary refusals and require their stated fix.\n";
 const SOURCE_COMMAND_FILE_TEXT_README: &str = "# {{name}}\n\nA native command project that reads a UTF-8 file and uses the bundled decimal\nsource package.\n\n```sh\nsemaprax check .\nsemaprax build --manifest-path semaprax.toml --target native --output app\n./app digits\n```\n\nThe command prints `(canonical decimal input + 1) / 3`. Web, Wasm, npm, and\ninterpreter execution are refused for this profile. Read `AGENTS.md` before\nediting the source.\n";
 const SOURCE_COMMAND_FILE_TEXT_MANIFEST: &str = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"{{name}}\"\nversion = \"0.1.0\"\nprofile = \"source-command.v1\"\n\n[modules]\nentry = \"{{module}}.command\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"{{module}}.tests\"]\n\n[exports]\nweb = []\n\n[command]\nfunction = \"{{command}}\"\ninput = \"argv-utf8+file-text.v1\"\n\n[capabilities]\nrequired = [\"fs.read\", \"process.args.read\", \"process.stderr.write\", \"process.stdout.write\"]\n\n[dependencies]\nstd.int.decimal = \"=0.1.0\"\n\n[targets]\nmatrix = [\"native64\"]\n";
@@ -412,7 +441,8 @@ pub fn derive_project_scaffold_v1(
 /// `semaprax.manifest.v1` layout and renders under capsule schema v3, except
 /// the Project-v25 stream-text template, which uses capsule schema v4, and the
 /// Project-v26 file-text source-command template, which uses capsule schema
-/// v5. The calculator also demonstrates a cross-module stable-ID import.
+/// v5, and the Project-v27 stream-data template uses capsule schema v6. The
+/// calculator also demonstrates a cross-module stable-ID import.
 pub fn derive_project_scaffold_v1_with_layout(
     project_name: &str,
     template: &str,
@@ -422,6 +452,7 @@ pub fn derive_project_scaffold_v1_with_layout(
     validate_project_name(project_name)?;
     let is_service = template == PROJECT_SCAFFOLD_TEMPLATE_SERVICE;
     let is_stdin_stream_text = template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_TEXT;
+    let is_stdin_stream_data = template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA;
     let is_source_command_file_text =
         template == PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT;
     if is_service && layout == ScaffoldLayout::Frozen {
@@ -432,6 +463,11 @@ pub fn derive_project_scaffold_v1_with_layout(
     if is_stdin_stream_text && layout == ScaffoldLayout::Frozen {
         return Err(scaffold_error(
             "the stdin-stream-text template uses the [package], [command], and [capabilities] tables, so it needs the tables manifest layout",
+        ));
+    }
+    if is_stdin_stream_data && layout == ScaffoldLayout::Frozen {
+        return Err(scaffold_error(
+            "the stdin-stream-data template uses the [package], [command], and [capabilities] tables, so it needs the tables manifest layout",
         ));
     }
     if is_source_command_file_text && layout == ScaffoldLayout::Frozen {
@@ -458,6 +494,8 @@ pub fn derive_project_scaffold_v1_with_layout(
     }
     let manifest = if is_source_command_file_text {
         SOURCE_COMMAND_FILE_TEXT_MANIFEST
+    } else if is_stdin_stream_data {
+        STDIN_STREAM_DATA_MANIFEST
     } else if is_stdin_stream_text {
         STDIN_STREAM_TEXT_MANIFEST
     } else if is_service {
@@ -478,6 +516,15 @@ pub fn derive_project_scaffold_v1_with_layout(
             SOURCE_COMMAND_FILE_TEXT_APP,
             SOURCE_COMMAND_FILE_TEXT_TESTS,
             SOURCE_COMMAND_FILE_TEXT_DIGITS,
+        ]
+    } else if is_stdin_stream_data {
+        vec![
+            STDIN_STREAM_DATA_README,
+            AGENTS,
+            manifest,
+            STDIN_STREAM_DATA_APP,
+            STDIN_STREAM_DATA_INPUT,
+            STDIN_STREAM_DATA_TESTS,
         ]
     } else if is_stdin_stream_text {
         vec![
@@ -555,6 +602,13 @@ pub fn derive_project_scaffold_v1_with_layout(
                         "- Value `if` requires `else`; statement `if` permits an omitted `else` and `else if`.\n  A `while` condition decides whether to loop; its body ends with a tail expression.",
                     );
                 combined.push_str(STDIN_STREAM_TEXT_GUIDE);
+            }
+            if *path == "AGENTS.md" && is_stdin_stream_data {
+                combined = combined.replace(
+                    "- `semaprax build . --target web -o dist/web` emits a browser package.",
+                    "- `semaprax build --manifest-path semaprax.toml --target native --output app` builds the command.",
+                );
+                combined.push_str(STDIN_STREAM_DATA_GUIDE);
             }
             if *path == "AGENTS.md" && is_source_command_file_text {
                 combined = combined.replace(
@@ -727,13 +781,17 @@ fn validate_rendered_project(
     ) {
         Ok(execution) => execution,
         Err(diagnostics)
-            if template == PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT
-                && diagnostics.len() == 1
+            if matches!(
+                template,
+                PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT
+                    | PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA
+            ) && diagnostics.len() == 1
                 && diagnostics[0].code == "SPX-F102" =>
         {
             // `validate_owned_project_test` checks the full revision before it
-            // asks the interpreter to execute tests. Project v26 deliberately
-            // refuses that interpreter route; its executable gate is native.
+            // asks the interpreter to execute tests. Projects v26 and v27
+            // deliberately refuse that interpreter route; their executable
+            // gates are native.
             return Ok(());
         }
         Err(diagnostics) => {
@@ -809,7 +867,9 @@ fn render_descriptor_tail(artifact: &ProjectScaffoldV1) -> String {
 }
 
 fn capsule_schema(template: &str, layout: ScaffoldLayout) -> &'static str {
-    if template == PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT {
+    if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA {
+        PROJECT_SCAFFOLD_SCHEMA_V6
+    } else if template == PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT {
         PROJECT_SCAFFOLD_SCHEMA_V5
     } else if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_TEXT {
         PROJECT_SCAFFOLD_SCHEMA_V4
@@ -819,7 +879,9 @@ fn capsule_schema(template: &str, layout: ScaffoldLayout) -> &'static str {
 }
 
 fn project_schema(template: &str) -> &'static str {
-    if template == PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT {
+    if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA {
+        super::PROJECT_SCHEMA_V27
+    } else if template == PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT {
         super::PROJECT_SCHEMA_V26
     } else if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_TEXT {
         super::PROJECT_SCHEMA_V25
@@ -834,15 +896,15 @@ fn artifact_digest(
     canonical_without_digest: &str,
 ) -> String {
     let mut hash = Sha256::new();
-    hash.update(
-        if template == PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT {
-            DIGEST_DOMAIN_V5
-        } else if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_TEXT {
-            DIGEST_DOMAIN_V4
-        } else {
-            layout.digest_domain()
-        },
-    );
+    hash.update(if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA {
+        DIGEST_DOMAIN_V6
+    } else if template == PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT {
+        DIGEST_DOMAIN_V5
+    } else if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_TEXT {
+        DIGEST_DOMAIN_V4
+    } else {
+        layout.digest_domain()
+    });
     hash.update((canonical_without_digest.len() as u64).to_le_bytes());
     hash.update(canonical_without_digest.as_bytes());
     format!("sha256:{:x}", crate::digest_hex::LowerHex(hash.finalize()))

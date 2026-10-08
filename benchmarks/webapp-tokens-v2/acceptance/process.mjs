@@ -15,10 +15,19 @@ export function start(command,args,{cwd,env,log,timeout=120000}){
   return {child,done,kill,get closed(){return closed;},get stdout(){return stdout;}};
 }
 export async function finish(process){process.kill();await Promise.race([process.done,new Promise(resolve=>setTimeout(resolve,5000))]);if(!process.closed){process.kill('SIGKILL');await process.done;}}
+export function readinessPath(arm) {
+  assert.ok(['semaprax', 'typescript'].includes(arm), 'known application arm');
+  return arm === 'semaprax' ? 'api/session' : 'api/me';
+}
+export async function readyResponse(response) {
+  if (![200, 401].includes(response.status)) return false;
+  try { const body = await response.json(); return body !== null && typeof body === 'object' && !Array.isArray(body); }
+  catch { return false; }
+}
 export async function launch({candidate,env,log}){
   const process=start('/bin/sh',[path.join(candidate,'run.sh')],{cwd:candidate,env,log,timeout:45*60*1000});let descriptor;
   const deadline=Date.now()+30000;while(Date.now()<deadline&&!process.closed){for(const line of process.stdout.split('\n')){try{const value=JSON.parse(line);if(value.api_base_url&&value.ui_base_url){descriptor={api:localUrl(value.api_base_url),ui:localUrl(value.ui_base_url)};break;}}catch{}}
-    if(descriptor){try{const result=await fetch(descriptor.api+'api/'+(env.TEAMDESK_ARM==='semaprax'?'session':'setup'),{signal:AbortSignal.timeout(1000)});if([200,401].includes(result.status))return {...process,...descriptor};}catch{}}
+    if(descriptor){try{const result=await fetch(descriptor.api+readinessPath(env.TEAMDESK_ARM),{signal:AbortSignal.timeout(1000),redirect:'manual'});if(await readyResponse(result))return {...process,...descriptor};}catch{}}
     await new Promise(resolve=>setTimeout(resolve,50));}
   await finish(process);throw new Error('run.sh did not publish a ready loopback launch descriptor within30s');
 }

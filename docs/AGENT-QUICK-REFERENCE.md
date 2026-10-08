@@ -732,6 +732,8 @@ generic, aggregate, or public ABI escape. End each borrowed chunk before Next
 (`SPX-T265`); exact acyclic `own StdinReader -> StdinReader` helpers may renew
 the owner. [Streaming contract](BOUNDED-STDIN-STREAM-V1.md).
 
+Native v27 starter: `semaprax new <dir> --template stdin-stream-data`.
+
 Exit codes: `semaprax help language specifications`.
 
 On the pure single-file interpreter route, `run` tries `semaprax.interpret.v1`,
@@ -1281,11 +1283,13 @@ reserved file bytes. It permits 1 MiB Strings, authenticated borrowed text, and
 combined staged stdout/stderr appends; only native64 is admitted. V26 stays
 frozen at 65,536 bytes for its borrowed view/output contract. See [Project v28](PROJECT-MANIFEST-V28.md).
 
-The `stdin-stream-text` scaffold remains Project v25. Select v27
-`language-command-io.stream-data.v1` when authenticated private helpers need
-immutable `borrow Vec<T>` parameters for the eight Copy scalars; `main` and the
-selected command remain `fn() -> i64`. Web/npm refuse v27; v24/v25 retain their
-closed helper boundaries.
+`semaprax new <dir> --template stdin-stream-data` creates the Project v27
+native stream-data starter; `project-scaffold` accepts the same template and
+selects tables. It keeps the command input bounded and shows one private
+immutable `borrow Vec<i64>` helper; `main` and the selected command remain
+`fn() -> i64`. Web, Wasm, npm, and interpreter execution refuse v27. The
+`stdin-stream-text` scaffold remains Project v25 for private owned-String
+helpers.
 
 `semaprax lock semaprax.toml --write` pins identity, source digests, interface,
 targets, and capabilities; `--verify` checks it and `--compare <base.lock>`

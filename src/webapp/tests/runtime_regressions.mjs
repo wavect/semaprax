@@ -8,6 +8,8 @@ import { spawn } from "node:child_process";
 import { pathToFileURL } from "node:url";
 const app = path.resolve(process.argv[2]);
 const rt = await import(pathToFileURL(path.join(app, "runtime.js")));
+const { entities } = await import(pathToFileURL(path.join(app, "schema.js")));
+const entity = (name) => entities.find((e) => e.path === name);
 const root = fs.mkdtempSync(path.join(os.tmpdir(), "semaprax-sg-http-"));
 const data = path.join(root, "data");
 const children = new Set();
@@ -40,11 +42,17 @@ const call = async (method, route, body, auth = cookie) => {
   const text = await response.text();
   return { status: response.status, value: text ? JSON.parse(text) : null, location: response.headers.get("location"), cookie: response.headers.get("set-cookie")?.split(";")[0] };
 };
-const hold = async (route, body, auth = cookie) => {
+const callRaw = async (method, route, body, auth = cookie) => {
+  const authorization = await mutationHeaders(auth);
+  const response = await fetch(server.url + route, { method, headers: { "content-type": "application/json", ...authorization }, body });
+  const text = await response.text();
+  return { status: response.status, value: text ? JSON.parse(text) : null };
+};
+const hold = async (route, body, auth = cookie, method = "PUT") => {
   const authorization = await mutationHeaders(auth);
   return new Promise((resolve, reject) => {
   const bytes = JSON.stringify(body);
-  const req = http.request(server.url + route, { method: "PUT", headers: { Expect: "100-continue", "content-length": Buffer.byteLength(bytes), "content-type": "application/json", ...authorization } });
+  const req = http.request(server.url + route, { method, headers: { Expect: "100-continue", "content-length": Buffer.byteLength(bytes), "content-type": "application/json", ...authorization } });
   const result = new Promise((done, fail) => {
     req.on("response", (res) => { let text = ""; res.on("data", (s) => text += s); res.on("end", () => done({ status: res.statusCode, value: text ? JSON.parse(text) : null })); });
     req.on("error", fail);
@@ -64,6 +72,21 @@ try {
   assert.ok(cookie);
   assert.equal((await call("POST", "/api/user", { email: "other@example.test", active: true, admin: false, password: "password123" })).status, 201);
   const otherCookie = (await call("POST", "/api/session", { login: "other@example.test", password: "password123" }, null)).cookie;
+  const admin = (await call("GET", "/api/user/1")).value;
+  const other = (await call("GET", "/api/user/2", undefined, otherCookie)).value;
+  const restricted = entity("restricted"), locked = entity("locked");
+  assert.equal(restricted.canWrite.create(other), false);
+  assert.equal(restricted.canWrite.create(admin), null, "admin preview leaves owner unknown");
+  assert.equal(rt.canNew({ free: true, u: null }, restricted), true, "setup/free context stays unrestricted");
+  assert.equal(rt.canNew({ free: false, u: other }, restricted), false, "browser and server share definite row denial");
+  assert.equal(rt.canNew({ free: false, u: admin }, restricted), true, "browser and server preserve unknown row input");
+  assert.equal(locked.canWrite.row, false);
+  assert.equal(rt.canNew({ free: false, u: other }, locked), false, "non-row policy keeps ordinary canWrite behavior");
+  assert.equal(rt.canNew({ free: false, u: admin }, { path: "unrestricted" }), true, "missing policy stays unrestricted");
+  assert.equal((await callRaw("POST", "/api/restricted", "{", otherCookie)).status, 403, "definite refusal precedes malformed JSON parsing");
+  assert.equal((await call("POST", "/api/restricted", { owner: 1, text: "denied" }, otherCookie)).status, 403, "definite refusal precedes valid body validation");
+  assert.equal((await call("POST", "/api/restricted", { owner: 1, text: "allowed" })).status, 201, "unknown preview admits a concretely permitted row");
+  assert.equal((await call("POST", "/api/restricted", { owner: 2, text: "denied" })).status, 403, "unknown preview retains concrete row authorization");
   // Browser controls retain decimal-string decoding, while the JSON API
   // admits only number tokens for integer, float, and reference fields.
   assert.equal(rt.decodeValue({ type: "int" }, {}, "12")[0], 12n);
@@ -135,6 +158,10 @@ try {
   paused = await hold(row.location, item("Draft", 2));
   assert.equal((await call("PUT", "/api/user/1", { email: "admin@example.test", active: true, admin: false })).status, 200);
   assert.equal((await paused.release()).status, 403);
+  assert.equal((await call("PUT", "/api/user/1", { email: "admin@example.test", active: true, admin: true })).status, 200);
+  paused = await hold("/api/restricted", { owner: 1, text: "role changed while body was pending" }, cookie, "POST");
+  assert.equal((await call("PUT", "/api/user/1", { email: "admin@example.test", active: true, admin: false })).status, 200);
+  assert.equal((await paused.release()).status, 403, "updated role is checked against the concrete create row");
   assert.equal((await call("PUT", "/api/user/1", { email: "admin@example.test", active: true, admin: true })).status, 200);
   // Canonical alias cannot admit a second stale writer. Separate directory works.
   const alias = path.join(root, "alias"); fs.symlinkSync(data, alias, "dir");

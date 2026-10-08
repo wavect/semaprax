@@ -7,9 +7,10 @@ import os from 'node:os';
 import { Client,rowShape,lossless } from './client.mjs';
 import { ENTITIES,ENUMS,COVERAGE,SPEC_SHA256,integer,seed,canRead,canWrite,computed } from './contract.mjs';
 import { sha256,requiredCases,qualify,passwordChecks } from './qualification.mjs';
-import { localUrl } from './process.mjs';
+import { localUrl,readinessPath,readyResponse,launch,finish,unusedPort } from './process.mjs';
 import {direction} from './ordering.mjs';
-import { parseCsv,Probe } from './api.mjs';
+import { parseCsv,csvColumns,auditChangeValues,Probe,deniedWriteStatuses,auditRowId } from './api.mjs';
+test('denied writes keep readable targets strict and audit IDs resolve the affected row',()=>{assert.deepEqual(deniedWriteStatuses(true),[403]);assert.deepEqual(deniedWriteStatuses(false),[403,404]);for(const status of [200,201,204]){assert.equal(deniedWriteStatuses(true).includes(status),false);assert.equal(deniedWriteStatuses(false).includes(status),false);}assert.equal(auditRowId({id:7,row_id:31,record_id:32}),31);assert.equal(auditRowId({id:7,record_id:32}),32);assert.equal(auditRowId({id:7}),7);});
 test('frozen SPEC byte identity and exactly20 independently named entities',async()=>{assert.equal(sha256(await fs.readFile(new URL('../SPEC.md',import.meta.url))),SPEC_SHA256);assert.equal(Object.keys(ENTITIES).length,20);assert.equal(Object.keys(ENUMS).length,12);});
 test('omitting any stored field fails independent row shape',()=>{const refs=Object.fromEntries(Object.keys(ENTITIES).map(name=>[name,1]));for(const entity of Object.keys(ENTITIES)){const row={...seed(entity,refs,17),id:1};delete row.password;rowShape(entity,row);for(const field of Object.keys(ENTITIES[entity])){const missing={...row};delete missing[field];assert.throws(()=>rowShape(entity,missing),`${entity}.${field}`);}}});
 test('exact signed64 witness preserves unsafe numeric lexemes',()=>{const row=lossless('{"id":1,"start_day":-9223372036854775808,"due_day":9223372036854775807,"age_hours":9007199254740993}');assert.equal(integer(row.start_day),-(1n<<63n));assert.equal(integer(row.due_day),(1n<<63n)-1n);assert.equal(integer(row.age_hours),9007199254740993n);assert.throws(()=>integer(9007199254740993));assert.throws(()=>integer('9223372036854775808'));for(const field of ['id','start_day','due_day','age_hours','member_id'])assert.throws(()=>lossless(JSON.stringify({[field]:'1'})),'quoted integer JSON cannot pass');assert.equal(integer(lossless('{\"id\":1.0}').id),1n);assert.equal(integer(lossless('{\"age_hours\":9007199254740993e0}').age_hours),9007199254740993n);});
@@ -23,6 +24,70 @@ test('hostile API missing fields and weakened write responses are observed exter
 
 test('actual sort order and pagination omissions cannot satisfy ordering oracle',()=>{const rows=Array.from({length:27},(_,n)=>({id:String(n+1),value:String(n+1)})),ids=rows.map(row=>row.id);assert.equal(direction(ids,rows,'value','int'),-1);assert.equal(direction(ids.slice().reverse(),rows,'value','int'),1);const wrong=ids.slice();[wrong[24],wrong[25]]=[wrong[25],wrong[24]];assert.throws(()=>direction(wrong,rows,'value','int'),'wrong boundary order');assert.throws(()=>direction(ids.slice(0,25),rows,'value','int'),'dropped page');const duplicate=ids.slice();duplicate[26]=duplicate[25];assert.throws(()=>direction(duplicate,rows,'value','int'),'duplicate row');});
 
-import {numericEditor,directPage} from './browser-support.mjs';
+import {numericEditor,directPage,signInLabel} from './browser-support.mjs';
 test('exact numeric editors are accepted without accepting untyped strings',()=>{numericEditor('int',{type:'text',inputmode:'numeric'});numericEditor('int',{type:'number',step:'1'});numericEditor('float',{type:'number',step:'any'});assert.throws(()=>numericEditor('int',{type:'text'}));assert.throws(()=>numericEditor('float',{type:'text',inputmode:'numeric'}));assert.throws(()=>numericEditor('int',{type:'number',step:'0.1'}));});
 test('direct route awaits a fresh document rather than earlier hash networkidle',async()=>{const calls=[],page={goto:async(...args)=>calls.push(args)};await directPage(page,'http://127.0.0.1:1234/#/task/1/edit');assert.deepEqual(calls,[['about:blank'],['http://127.0.0.1:1234/#/task/1/edit',{waitUntil:'networkidle'}]]);});
+
+
+test('CSV header representation preserves exact columns and rejects malformed data',()=>{
+  for (const header of ['id,name', '"id","name"', '\uFEFF"id","name"'])
+    assert.deepEqual(csvColumns(header+'\r\n1,"a, ""b""\nc"\r\n',['id','name']),[['id','name'],['1','a, "b"\nc']]);
+  assert.deepEqual(parseCsv('id,name\n1,\n'),[['id','name'],['1','']]);
+  assert.deepEqual(parseCsv('id,name\n1,""'),[['id','name'],['1','']]);
+  for (const invalid of ['"id"junk,name\n1,x', 'i"d,name\n1,x', 'id,name\n1', 'id,name\n1,x,y', 'id,name\r1,x', 'id,id\n1,2', 'name\nx', ''])
+    assert.throws(()=>csvColumns(invalid,['id','name']),invalid);
+});
+test('audit old/new representations preserve exact values and reject wrong changes',()=>{
+  for (const change of [['before','after'],{old:'before',new:'after'}]) assert.deepEqual(auditChangeValues(change),['before','after']);
+  for (const change of [null, 'before', ['before'], ['before','after','extra'], {old:'before'}, {new:'after'}, {old:'before',new:'after',extra:1}])
+    assert.throws(()=>auditChangeValues(change));
+  for (const change of [['after','before'],{old:'after',new:'before'},{old:'before',new:'wrong'}])
+    assert.throws(()=>assert.deepEqual(auditChangeValues(change),['before','after']));
+});
+test('readiness uses current member without setup and rejects unhealthy responses',async()=>{
+  assert.equal(readinessPath('semaprax'),'api/session'); assert.equal(readinessPath('typescript'),'api/me');
+  assert.throws(()=>readinessPath('unknown'));
+  for (const status of [200,401]) assert.equal(await readyResponse(new Response('{}',{status})),true);
+  for (const status of [302,403,404,500,503]) assert.equal(await readyResponse(new Response('{}',{status})),false);
+  for (const body of ['not JSON','null','[]']) assert.equal(await readyResponse(new Response(body,{status:200})),false);
+});
+
+
+test('initialized TypeScript setup refusal does not prevent restart readiness',async()=>{
+  const candidate=await fs.mkdtemp(path.join(os.tmpdir(),'teamdesk-ready-test-'));
+  const env={...process.env,NODE_BINARY:process.execPath,TEAMDESK_ARM:'typescript',TEAMDESK_PORT:String(await unusedPort())};
+  const log={write(){}}; let running;
+  try {
+    await fs.writeFile(path.join(candidate,'run.sh'),'#!/bin/sh\nexec "$NODE_BINARY" server.mjs\n');
+    await fs.writeFile(path.join(candidate,'server.mjs'),`
+      import {createServer} from 'node:http';
+      import {existsSync} from 'node:fs';
+      const server=createServer((req,res)=>{
+        res.setHeader('content-type','application/json');
+        const status=req.url==='/api/me'?401:req.url==='/api/setup'?(existsSync('initialized')?403:200):404;
+        res.writeHead(status);res.end(JSON.stringify({error:status===403?'Setup is already complete':'sign in required'}));
+      });
+      server.listen(Number(process.env.TEAMDESK_PORT),'127.0.0.1',()=>{
+        const url='http://127.0.0.1:'+server.address().port+'/';
+        console.log(JSON.stringify({api_base_url:url,ui_base_url:url}));
+      });
+      process.on('SIGTERM',()=>server.close(()=>process.exit(0)));
+    `);
+    running=await launch({candidate,env,log});
+    assert.equal((await fetch(running.api+'api/setup')).status,200);
+    await fs.writeFile(path.join(candidate,'initialized'),'yes');
+    await finish(running);running=null;
+    running=await launch({candidate,env,log});
+    assert.equal((await fetch(running.api+'api/setup')).status,403);
+    assert.equal((await fetch(running.api+'api/me')).status,401);
+  } finally {if(running)await finish(running);await fs.rm(candidate,{recursive:true,force:true});}
+});
+
+
+test('sign-in label capitalization preserves exact accessible field identity',()=>{
+  for (const label of ['email','Email','EMAIL']) assert.equal(signInLabel('email').test(label),true);
+  for (const label of ['password','Password','PASSWORD']) assert.equal(signInLabel('password').test(label),true);
+  for (const label of ['recovery email','email address of another member','new password','password confirmation'])
+    for (const field of ['email','password']) assert.equal(signInLabel(field).test(label),false);
+  assert.throws(()=>signInLabel('.*'));
+});

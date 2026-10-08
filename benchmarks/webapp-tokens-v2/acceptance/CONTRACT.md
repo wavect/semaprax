@@ -39,7 +39,7 @@ retain ordinary application authentication and authorization:
 | Current member | `GET /api/session` | `GET /api/me` |
 | Sign out | `DELETE /api/session` | same |
 | CSRF | GET `/api/session/csrf`; retain cookie and send `x-csrf-token` on mutations | ordinary session cookie; no reference CSRF endpoint |
-| Audit identity/time | `by` / `at` | `member_id` / `time` |
+| Audit entry and affected row | `id` is the affected row; actor/time `by` / `at` | `id` is the audit event; affected row `row_id`, then `record_id`; actor/time `member_id` / `time` |
 
 Entity CRUD, CSV `?format=csv`, search `?q=`, enumeration filter query fields,
 and `/<id>/history` are the public interface. JSON int fields are **numeric
@@ -50,7 +50,18 @@ SPEC (an unreadable target may already be 404). Mutation errors return an
 `errors` array with every violated rule. Passwords never appear in rows.
 These paths add no migration, deployment, or other application feature.
 
+Readiness probes use the documented current-member route, accepting a JSON
+object with 200 or unauthenticated 401; setup endpoints are not health probes.
+Audit changed-field values may be a two-item `[old,new]` pair or an object
+with exactly `old` and `new` fields. Their values and every audit obligation
+remain independently checked. CSV headers are decoded as CSV, including
+quoted columns and an optional leading UTF-8 BOM. Records must have consistent
+width and required columns, and quoted fields preserve commas, quotes and
+newlines. These representation normalizations apply identically to both arms.
+
+
 The browser uses ordinary visible controls: sign-in labels email/password;
+sign-in label capitalization is immaterial;
 entity navigation; field labels; New/Edit/Create-or-Save/Delete/Cancel;
 search, enum filters, table column sorting, Prev/Next, CSV, and history.
 SEM uses hash routes; the TS reference uses pathname routes. Selectors permit

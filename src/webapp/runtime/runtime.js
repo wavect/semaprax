@@ -2,6 +2,19 @@
 export class Trap extends Error {
   constructor(code) { super(code); this.name = "Trap"; this.code = code; }
 }
+// Return false only when creation is definitely unavailable to this principal.
+// Row policies use their compiler-derived partial predicate; unknown inputs
+// and preview failures leave admission to the authoritative concrete check.
+export function canNew(c, target) {
+  const ent = target?.ent ?? target;
+  const policy = ent?.canWrite;
+  if (c.free || !policy) return true;
+  if (!policy.row) {
+    try { return policy.test({}, c.u) === true; } catch { return false; }
+  }
+  if (typeof policy.create !== "function") return true;
+  try { return policy.create(c.u) !== false; } catch { return true; }
+}
 const MIN = -(2n ** 63n), MAX = 2n ** 63n - 1n;
 const chk = (v) => { if (v < MIN || v > MAX) throw new Trap("overflow"); return v; };
 const nz = (b) => { if (b === 0n) throw new Trap("division_by_zero"); return b; };

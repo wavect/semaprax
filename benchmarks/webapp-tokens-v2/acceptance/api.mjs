@@ -1,7 +1,48 @@
 import assert from 'node:assert/strict';
 import { Client, rowShape, route, mutations } from './client.mjs';
 import { ENTITIES, ENUMS, KEYS, WORKFLOWS, COMPUTED, PASSWORD, INVALID, integer, equalId, seed, computed, canRead, canWrite, AGENT_WRITES } from './contract.mjs';
-export function parseCsv(text){const rows=[];let row=[],field='',quoted=false;for(let i=0;i<text.length;i++){const c=text[i];if(quoted){if(c==='\"'&&text[i+1]==='\"'){field+='\"';i++;}else if(c==='\"')quoted=false;else field+=c;}else if(c==='\"')quoted=true;else if(c===','){row.push(field);field='';}else if(c==='\n'){row.push(field.replace(/\r$/,''));rows.push(row);row=[];field='';}else field+=c;}assert.equal(quoted,false,'unterminated CSV quote');if(field||row.length){row.push(field.replace(/\r$/,''));rows.push(row);}return rows;}
+export const deniedWriteStatuses = readable => readable ? [403] : [403,404];
+export const auditRowId = entry => entry?.row_id ?? entry?.record_id ?? entry?.id;
+export function parseCsv(text) {
+  if (text.startsWith('\uFEFF')) text = text.slice(1);
+  const rows = []; let row = [], field = '', state = 'start';
+  const endField = () => { row.push(field); field = ''; state = 'start'; };
+  const endRow = () => { endField(); rows.push(row); row = []; };
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (state === 'quoted') {
+      if (c !== '"') field += c;
+      else if (text[i + 1] === '"') { field += '"'; i++; }
+      else state = 'closed';
+      continue;
+    }
+    if (c === ',') { endField(); continue; }
+    if (c === '\n' || c === '\r') {
+      if (c === '\r') { assert.equal(text[i + 1], '\n', 'bare CSV record CR'); i++; }
+      endRow(); continue;
+    }
+    assert.notEqual(state, 'closed', 'bytes after closing CSV quote');
+    if (c === '"') { assert.equal(state, 'start', 'quote inside unquoted CSV field'); state = 'quoted'; }
+    else { field += c; state = 'bare'; }
+  }
+  assert.notEqual(state, 'quoted', 'unterminated CSV quote');
+  if (field || row.length || state !== 'start') endRow();
+  if (rows.length) for (const values of rows) assert.equal(values.length, rows[0].length, 'CSV row width');
+  return rows;
+}
+export function csvColumns(text, required) {
+  const rows = parseCsv(text), header = rows[0];
+  assert.ok(header?.length, 'CSV header is required');
+  assert.equal(new Set(header).size, header.length, 'duplicate CSV column');
+  for (const field of required) assert.ok(header.includes(field), `CSV column ${field}`);
+  return rows;
+}
+export function auditChangeValues(change) {
+  if (Array.isArray(change)) { assert.equal(change.length, 2, 'audit old/new pair'); return change; }
+  assert.ok(change && typeof change === 'object', 'audit old/new values');
+  assert.deepEqual(Object.keys(change).sort(), ['new', 'old'], 'audit old/new fields');
+  return [change.old, change.new];
+}
 const errors = response => {assert.equal(response.status,400,response.text);const values=response.json?.errors;assert.ok(Array.isArray(values)&&values.length,'400 reports errors');return values;};
 export class Probe {
   constructor() {this.rows=[];}
@@ -14,6 +55,13 @@ export async function apiChecks({base,arm,restart,probe}) {
   const replace = async(entity,row,body,client=admin,status=200) => {const result=await client.entity('PUT',entity,row.id,body,status);if(status===200){rowShape(entity,result.json);for(const field of Object.keys(ENTITIES[entity]))assert.equal(String(result.json[field]),String(body[field]?.rawJSON??body[field]),`${entity}.${field} replacement retained`);}return result;};
   const stored = (entity,row) => ({...Object.fromEntries(Object.keys(ENTITIES[entity]).map(field=>[field,row[field]])),...(entity==='Member'?{password:PASSWORD}:{})});
   const allRows = async()=>Object.fromEntries(await Promise.all(Object.keys(ENTITIES).map(async entity=>[entity,(await admin.entity('GET',entity,undefined,undefined,200)).json])));
+  const denyWrite = async(client,method,entity,id,body,readable,label) => {
+    const before=(await admin.entity('GET',entity,id,undefined,200)).text;
+    const response=await client.entity(method,entity,id,body);
+    assert.ok(deniedWriteStatuses(readable).includes(response.status),`${label}: unexpected ${method} status ${response.status}: ${response.text}`);
+    assert.equal((await admin.entity('GET',entity,id,undefined,200)).text,before,`${label}: denied ${method} changed the stored row`);
+    return response;
+  };
   const setup=await probe.check('bootstrap','auth',async()=>{
     const email='admin@example.test';let account;
     if(arm==='typescript') {const response=await admin.request('POST','setup',{name:'Benchmark Admin',email,password:PASSWORD});assert.equal(response.status,201,response.text);account=response.json;refs.Team=account.team_id;}
@@ -91,14 +139,15 @@ export async function apiChecks({base,arm,restart,probe}) {
     const list=(await client.entity('GET',entity,undefined,undefined,200)).json,all=(await admin.entity('GET',entity,undefined,undefined,200)).json;assert.deepEqual(list.map(row=>String(row.id)).sort(),all.filter(row=>canRead(role,entity,row,account.id)).map(row=>String(row.id)).sort(),'every row obeys independent visibility predicate');assert.equal(list.some(row=>equalId(row.id,refs[entity])),readable,'list visibility');await client.entity('GET',entity,refs[entity],undefined,readable?200:404);
     const writable=canWrite(role,entity,body,account.id),response=await client.entity('POST',entity,undefined,body,writable?201:403);
     if(writable){const row=response.json;await replace(entity,row,stored(entity,row),client);await client.entity('DELETE',entity,row.id,undefined,204);}
-    else {await client.entity('PUT',entity,refs[entity],inputs[entity],readable?403:404);await client.entity('DELETE',entity,refs[entity],undefined,readable?403:404);}
+    else {await denyWrite(client,'PUT',entity,refs[entity],inputs[entity],readable,`${role}.${entity}.matrix`);await denyWrite(client,'DELETE',entity,refs[entity],undefined,readable,`${role}.${entity}.matrix`);}
   });
   for(const entity of AGENT_WRITES)await probe.check(`${entity}.own-other`,'own-other-rows',async()=>{
     const a=roles.Agent,b=roles.OtherAgent;let own=await create(entity,make(entity,{member_id:a.account.id}),a.client);const other=await create(entity,make(entity,{member_id:b.account.id}),b.client);
     await a.client.entity('GET',entity,own.id,undefined,200);await a.client.entity('GET',entity,other.id,undefined,entity==='Expense'?404:200);await replace(entity,own,stored(entity,own),a.client);
-    await replace(entity,own,{...stored(entity,own),member_id:b.account.id},a.client,403);
-    await replace(entity,other,{...stored(entity,other),member_id:a.account.id},a.client,entity==='Expense'?404:403);await a.client.entity('DELETE',entity,other.id,undefined,entity==='Expense'?404:403);
-    if(entity==='Expense'||entity==='Leave'){const field='state';if(entity==='Expense')own=(await replace(entity,own,{...stored(entity,own),state:'Submitted'},a.client)).json;await replace(entity,own,{...stored(entity,own),[field]:'Approved'},a.client,403);const before=(await admin.entity('GET',entity,undefined,undefined,200)).text;const overlapping=await a.client.entity('POST',entity,undefined,make(entity,{member_id:a.account.id,[field]:'Approved'}));assert.ok([400,403].includes(overlapping.status),'non-first and forbidden state is refused; SPEC sets no overlap precedence');assert.equal((await admin.entity('GET',entity,undefined,undefined,200)).text,before);let approved=other;if(entity==='Expense')approved=(await replace(entity,approved,{...stored(entity,approved),state:'Submitted'})).json;approved=(await replace(entity,approved,{...stored(entity,approved),state:'Approved'})).json;await replace(entity,approved,{...stored(entity,approved),state:entity==='Expense'?'Draft':'Requested'},b.client,403);await b.client.entity('DELETE',entity,approved.id,undefined,403);}
+    await denyWrite(a.client,'PUT',entity,own.id,{...stored(entity,own),member_id:b.account.id},true,`${entity}.own-other own-row reassignment`);
+    await denyWrite(a.client,'PUT',entity,other.id,{...stored(entity,other),member_id:a.account.id},entity!=='Expense',`${entity}.own-other other-row reassignment`);
+    await denyWrite(a.client,'DELETE',entity,other.id,undefined,entity!=='Expense',`${entity}.own-other other-row delete`);
+    if(entity==='Expense'||entity==='Leave'){const field='state';if(entity==='Expense')own=(await replace(entity,own,{...stored(entity,own),state:'Submitted'},a.client)).json;await denyWrite(a.client,'PUT',entity,own.id,{...stored(entity,own),[field]:'Approved'},true,`${entity}.own-other invalid own state`);const before=(await admin.entity('GET',entity,undefined,undefined,200)).text;const overlapping=await a.client.entity('POST',entity,undefined,make(entity,{member_id:a.account.id,[field]:'Approved'}));assert.ok([400,403].includes(overlapping.status),'non-first and forbidden state is refused; SPEC sets no overlap precedence');assert.equal((await admin.entity('GET',entity,undefined,undefined,200)).text,before);let approved=other;if(entity==='Expense')approved=(await replace(entity,approved,{...stored(entity,approved),state:'Submitted'})).json;approved=(await replace(entity,approved,{...stored(entity,approved),state:'Approved'})).json;await denyWrite(b.client,'PUT',entity,approved.id,{...stored(entity,approved),state:entity==='Expense'?'Draft':'Requested'},true,`${entity}.own-other denied state transition`);await denyWrite(b.client,'DELETE',entity,approved.id,undefined,true,`${entity}.own-other denied delete after state transition`);}
     await a.client.entity('DELETE',entity,own.id,undefined,204);
   });
   await probe.check('password-edit','auth',async()=>{const account=await create('Member',make('Member',{email:'password-edit@example.test'})),body={...stored('Member',account),password:PASSWORD+'-changed'};await replace('Member',account,body);const client=new Client(base,arm);assert.equal((await client.request('POST','session',{[arm==='semaprax'?'login':'email']:account.email,password:PASSWORD})).status,401);await client.login(account.email,PASSWORD+'-changed');});
@@ -109,13 +158,13 @@ export async function apiChecks({base,arm,restart,probe}) {
   });
   await probe.check('audit-create-update-delete','audit',async()=>{
     const body=make('Vendor'),row=await create('Vendor',body),changed={...body,name:'Changed vendor'};await replace('Vendor',row,changed);await admin.entity('DELETE','Vendor',row.id,undefined,204);
-    const log=(await admin.request('GET','audit')).json;assert.ok(Array.isArray(log));const entries=log.filter(e=>equalId(e.id,row.id)&&String(e.entity).replaceAll('_','').toLowerCase()==='vendor');assert.equal(entries.length,3);assert.deepEqual(entries.map(e=>e.action),['create','update','delete']);for(const entry of entries){assert.ok(entry.time??entry.at);assert.ok(equalId(entry.member_id??entry.by??entry.member,roles.Admin.account.id));assert.ok(entry.changes&&Object.keys(entry.changes).length);}
-    const update=entries[1].changes.name;assert.deepEqual(update,[body.name,changed.name]);for(const role of ['Manager','Agent','Viewer'])assert.equal((await roles[role].client.request('GET','audit')).status,403);
-    for(const mutation of mutations){const entries=log.filter(e=>equalId(e.id,mutation.id)&&String(e.entity).replaceAll('_','').toLowerCase()===mutation.entity.toLowerCase()&&e.action===mutation.action);assert.ok(entries.length,`every ${mutation.action} ${mutation.entity} is audited`);if(mutation.actor)assert.ok(entries.some(e=>equalId(e.member_id??e.by??e.member,mutation.actor)),'audit actual actor');}
+    const log=(await admin.request('GET','audit')).json;assert.ok(Array.isArray(log));const entries=log.filter(e=>equalId(auditRowId(e),row.id)&&String(e.entity).replaceAll('_','').toLowerCase()==='vendor');assert.equal(entries.length,3);assert.deepEqual(entries.map(e=>e.action),['create','update','delete']);for(const entry of entries){assert.ok(entry.time??entry.at);assert.ok(equalId(entry.member_id??entry.by??entry.member,roles.Admin.account.id));assert.ok(entry.changes&&Object.keys(entry.changes).length);}
+    const update=entries[1].changes.name;assert.deepEqual(auditChangeValues(update),[body.name,changed.name]);for(const role of ['Manager','Agent','Viewer'])assert.equal((await roles[role].client.request('GET','audit')).status,403);
+    for(const mutation of mutations){const entries=log.filter(e=>equalId(auditRowId(e),mutation.id)&&String(e.entity).replaceAll('_','').toLowerCase()===mutation.entity.toLowerCase()&&e.action===mutation.action);assert.ok(entries.length,`every ${mutation.action} ${mutation.entity} is audited`);if(mutation.actor)assert.ok(entries.some(e=>equalId(e.member_id??e.by??e.member,mutation.actor)),'audit actual actor');}
     const existing=(await admin.request('GET',`${route(arm,'Vendor')}/${refs.Vendor}/history`)).json;assert.ok(Array.isArray(existing)&&existing.length>=1);
   });
   for(const entity of Object.keys(ENTITIES))await probe.check(`${entity}.csv`,'csv',async()=>{
-    const response=await admin.request('GET',`${route(arm,entity)}?format=csv`);assert.equal(response.status,200);assert.match(response.headers.get('content-type'),/text\/csv/);for(const field of ['id',...Object.keys(ENTITIES[entity]),...(COMPUTED[entity]??[])])assert.ok(response.text.split(/\r?\n/,1)[0].split(',').includes(field),`${entity} CSV column ${field}`);
+    const response=await admin.request('GET',`${route(arm,entity)}?format=csv`);assert.equal(response.status,200);assert.match(response.headers.get('content-type'),/text\/csv/);csvColumns(response.text,['id',...Object.keys(ENTITIES[entity]),...(COMPUTED[entity]??[])]);
     assert.ok(response.text.includes(String(refs[entity])));const history=await admin.request('GET',`${route(arm,entity)}/${refs[entity]}/history`);assert.equal(history.status,200);assert.ok(Array.isArray(history.json)&&history.json.length>0,'every entity has row history');for(const role of ['Manager','Agent','Viewer']){const actor=roles[role],actual=await actor.client.request('GET',`${route(arm,entity)}?format=csv`);assert.equal(actual.status,200);const rows=parseCsv(actual.text),index=rows[0].indexOf('id'),all=(await admin.entity('GET',entity,undefined,undefined,200)).json;assert.deepEqual(rows.slice(1).map(row=>row[index]).sort(),all.filter(row=>canRead(role,entity,row,actor.account.id)).map(row=>String(row.id)).sort(),'every CSV row uses independent visibility');}const absent=await admin.request('GET',`${route(arm,entity)}?format=csv&q=__absent_search_659__`);assert.equal(absent.status,200);assert.equal(absent.text.trim().split(/\r?\n/).length,1);
     const searchField=Object.entries(ENTITIES[entity]).find(([,type])=>type==='string')?.[0];if(searchField){const query=String(initial[entity][searchField]).toLowerCase(),all=(await admin.entity('GET',entity,undefined,undefined,200)).json,expected=all.filter(row=>Object.entries(ENTITIES[entity]).some(([field,type])=>type==='string'&&String(row[field]).toLowerCase().includes(query))).map(row=>String(row.id));const filtered=await admin.request('GET',`${route(arm,entity)}?format=csv&q=${encodeURIComponent(query)}`);assert.equal(filtered.status,200);const parsed=parseCsv(filtered.text);assert.deepEqual(parsed.slice(1).map(row=>row[parsed[0].indexOf('id')]).sort(),expected.sort(),'CSV positive search preserves all matches');}
     for(const [field,type]of Object.entries(ENTITIES[entity]))if(ENUMS[type]){const chosen=ENUMS[type][0],filtered=await admin.request('GET',`${route(arm,entity)}?format=csv&${field}=${chosen}`);assert.equal(filtered.status,200);const parsed=parseCsv(filtered.text),index=parsed[0].indexOf('id'),expected=(await admin.entity('GET',entity,undefined,undefined,200)).json.filter(row=>row[field]===chosen).map(row=>String(row.id));assert.deepEqual(parsed.slice(1).map(row=>row[index]).sort(),expected.sort(),'CSV positive enum filter returns every matching row');}

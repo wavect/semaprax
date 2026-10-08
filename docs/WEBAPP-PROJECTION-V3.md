@@ -28,6 +28,23 @@ sign-out and entity mutations return 401; a signed-in request with a missing or
 mismatched token returns 403. These tokens supplement the existing SameSite cookie and do not grant permissions.
 Existing HTTP clients must adopt this explicit mutation protocol.
 
+## Row-aware create preflight
+
+For a row-aware `can_write` policy, the generated server evaluates the
+compiler-derived `create(u)` partial predicate after ordinary route
+authentication, CSRF, and method checks, before reading a POST body. Only an
+exact `false` rejects the request at this point. A `true` preview does not
+admit a row, and an unknown result, missing preview, or preview exception
+continues to body decoding and validation. The server then resolves the session
+again after the asynchronous body read and applies the concrete `can_write`
+predicate to the proposed row before commit. Non-row policies retain their
+existing preflight check; free and setup contexts remain unrestricted.
+
+The browser's New control and the server use the same runtime decision:
+definitive row denials hide the control or return 403 early, while unknown row
+values preserve the form and leave permission to the concrete server check.
+The partial predicate never grants write authority.
+
 ## Pairwise cross-row rules
 
 `<entity>_constraint` and `<entity>_constraint_<name>` are pure bool functions.
@@ -96,7 +113,9 @@ adds no authority. The generated server uses its existing socket, crypto, clock,
 and explicitly selected data directory. No outbound connection is introduced.
 
 Focused selectors, to run after the complete implementation batch:
-`webapp::tests::v3_` plus the existing generated server self-test. The authored
+`webapp::tests::v3_`,
+`webapp::tests::sg_regressions::sg_generated_http_runtime_regressions`, plus the
+existing generated server self-test. The authored
 runtime fixture checks CSRF session binding, expiry and both rate budgets, migration
 failure atomicity, preserved ids, duplicate ids, and incoming constraint changes.
 The HTTP fixture exercises rejected and accepted writes, sign-in, sign-out, CSRF,

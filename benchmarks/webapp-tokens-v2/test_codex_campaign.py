@@ -1,4 +1,5 @@
 import json
+import stat
 import sys
 import contextlib
 import io
@@ -11,6 +12,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import codex_campaign as campaign
+import codex_rescore as rescore
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -22,6 +24,123 @@ class WebappCampaignTests(unittest.TestCase):
         # independently exercised with low-space and ENOSPC controls.
         self.enterContext(patch("campaign_resources.snapshot", return_value=[
             {"device": 1, "path": "/fixture", "free_bytes": 10 * 1024**3}]))
+
+    def test_rescore_requires_a_terminal_complete_ten_trial_receipt(self):
+        rows = [{"arm": arm, "number": number}
+                for arm in campaign.ARMS for number in range(1, 6)]
+        receipt = {"schema": rescore.TERMINAL_SCHEMA, "status": "complete",
+                   "campaign_sha256": "campaign", "results_sha256": "results",
+                   "process_exit_code": 0, "trials": rows}
+        self.assertEqual(rescore.terminal_trials({"campaign_status": "complete", "trials": rows},
+                                                 receipt, "results", "campaign"), rows)
+        with self.assertRaisesRegex(ValueError, "ten-trial"):
+            rescore.terminal_trials({"campaign_status": "running", "trials": rows[:4]},
+                                    receipt, "results", "campaign")
+
+    def test_rescore_admits_receipt_finalized_full_interruption_but_not_running(self):
+        rows = [{"arm": arm, "number": number, "resource_assessment": {"contaminated": arm == "typescript" and number == 5}}
+                for arm in campaign.ARMS for number in range(1, 6)]
+        receipt = {"schema": rescore.TERMINAL_SCHEMA, "status": "finalized", "campaign_status": "interrupted",
+                   "campaign_sha256": "campaign", "results_sha256": "results", "process_exit_code": 0,
+                   "actual_process_exit_code": 0, "unlaunched_trial_order": [], "trial_ids": [
+                       {"arm": row["arm"], "number": row["number"]} for row in rows]}
+        self.assertEqual(rescore.terminal_trials({"campaign_status": "interrupted", "unlaunched_trial_order": [], "trials": rows}, receipt, "results", "campaign"), rows)
+        with self.assertRaisesRegex(ValueError, "finalized"):
+            rescore.terminal_trials({"campaign_status": "running", "unlaunched_trial_order": [], "trials": rows}, receipt, "results", "campaign")
+
+    def test_rescore_rejects_duplicate_or_missing_trial_identity(self):
+        rows = [{"arm": arm, "number": number}
+                for arm in campaign.ARMS for number in range(1, 6)]
+        duplicate = [*rows[:-1], {"arm": "typescript", "number": 4}]
+        receipt = {"schema": rescore.TERMINAL_SCHEMA, "status": "complete",
+                   "campaign_sha256": "campaign", "results_sha256": "results",
+                   "process_exit_code": 0, "trials": duplicate}
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            rescore.terminal_trials({"campaign_status": "complete", "trials": duplicate},
+                                    receipt, "results", "campaign")
+
+    def test_rescore_archive_copy_rejects_symlinks_and_preserves_file_mode(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); archive = root / "archive"; archive.mkdir()
+            source = archive / "run.sh"; source.write_text("#!/bin/sh\n")
+            source.chmod(0o755)
+            expected = rescore.rel_file_inventory(archive)
+            copied = rescore.copy_closed_archive(archive, root / "copy", expected)
+            self.assertEqual(copied, expected)
+            self.assertEqual(stat.S_IMODE((root / "copy/run.sh").stat().st_mode), 0o755)
+            (archive / "escape").symlink_to(source)
+            with self.assertRaisesRegex(ValueError, "symlink"):
+                rescore.rel_file_inventory(archive)
+
+    def test_rescore_reference_report_hash_drift_is_refused(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); report = root / "reference.json"; report.write_text("{}")
+            receipt = {"arms": {"typescript": {"report_file": str(report), "report_sha256": "0" * 64}}}
+            with self.assertRaisesRegex(ValueError, "hash binding"):
+                rescore.reference_case_groups(receipt, "typescript", {"qualification": {"spec_sha256": "x"},
+                    "harness_source_snapshot": {"files_sha256": {}}, "compiler_source_commit": "y"}, "z")
+
+    def test_rescore_reference_summary_ids_cannot_replace_full_report(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); report = root / "reference.json"; report.write_text(json.dumps({"checks": []}))
+            receipt = {"arms": {"typescript": {"report_file": str(report),
+                       "report_sha256": rescore.digest(report), "spotlight": [{"id": f"forged-{i}"} for i in range(912)]}}}
+            with self.assertRaisesRegex(ValueError, "full accepted"):
+                rescore.reference_case_groups(receipt, "typescript", {"qualification": {"spec_sha256": "x"},
+                    "harness_source_snapshot": {"files_sha256": {}}, "compiler_source_commit": "y"}, "z")
+
+    def test_rescore_accepted_report_requires_exact_reference_case_groups(self):
+        runner = "benchmarks/webapp-tokens-v2/acceptance/run.mjs"
+        settings = {"qualification": {"spec_sha256": "x"},
+                    "harness_source_snapshot": {"files_sha256": {runner: "a" * 64}},
+                    "compiler_source_commit": "y"}
+        groups = {"one", "two"}; required = {f"case-{index}": "one" if index % 2 else "two" for index in range(912)}
+        checks = [{"id": case, "group": group, "status": "passed"} for case, group in required.items()]
+        report = {"schema": "semaprax.teamdesk.acceptance.v1", "arm": "typescript", "spec_sha256": "x",
+                  "gate": [{"name": "run.mjs", "sha256": "a" * 64}], "checks": checks,
+                  "qualification": {"passed": True, "cases": 912, "missingCases": [], "missingGroups": [], "failures": []}}
+        self.assertTrue(rescore.report_is_accepted(report, "typescript", settings, "unused", required, groups))
+        report["checks"][0]["group"] = "one" if report["checks"][0]["group"] == "two" else "two"
+        self.assertFalse(rescore.report_is_accepted(report, "typescript", settings, "unused", required, groups))
+
+
+    def test_rescore_hostile_settings_candidate_and_wall_bindings(self):
+        campaign_record = {"artifacts": "original", "harness_source_snapshot": {"path": "old", "files_sha256": {}},
+                           "qualification": {"spec_sha256": "old", "required_cases": 1}}
+        gate = {"path": "gate-source", "runner_files_sha256": {"runner": "a" * 64},
+                "original_frozen_inputs": {"spec_sha256": "b" * 64}}
+        settings = rescore.rescore_settings(campaign_record, Path("/fresh-output"), gate)
+        self.assertEqual(settings["artifacts"], "/fresh-output")
+        self.assertNotEqual({**settings, "artifacts": "tampered"}, settings)
+        with tempfile.TemporaryDirectory() as directory:
+            archive = Path(directory) / "archive"; archive.mkdir(); (archive / "app").write_text("v1")
+            inventory = rescore.rel_file_inventory(archive)
+            source, row = {"candidate_archive": str(archive), "candidate_files_sha256": inventory}, {
+                "candidate_files_sha256": inventory, "new_acceptance": {"seconds": 1.25},
+                "new_acceptance_wall_seconds": 1.25}
+            self.assertTrue(rescore.retained_candidate_matches(source, row))
+            self.assertTrue(rescore.scored_wall_matches(row))
+            row["new_acceptance_wall_seconds"] = 1.5
+            self.assertFalse(rescore.scored_wall_matches(row))
+            (archive / "app").write_text("tampered")
+            self.assertFalse(rescore.retained_candidate_matches(source, row))
+
+    def test_rescore_malformed_candidate_rows_are_not_accepted(self):
+        settings = {"qualification": {"spec_sha256": "x"},
+                    "harness_source_snapshot": {"files_sha256": {}}, "compiler_source_commit": "y"}
+        malformed = {"schema": "semaprax.teamdesk.acceptance.v1", "arm": "typescript", "spec_sha256": "x",
+                     "gate": [{"name": [], "sha256": "a"}], "checks": [{"id": [], "group": "g", "status": "passed"}],
+                     "qualification": {"passed": True, "cases": 912, "missingCases": [], "missingGroups": [], "failures": []}}
+        self.assertFalse(rescore.report_is_accepted(malformed, "typescript", settings, "unused", {}, {"g"}))
+
+    def test_rescore_hostile_gate_inventory_shape_is_refused(self):
+        runner = set(campaign.ACCEPTANCE_SOURCE_FILES)
+        files = runner | {"benchmarks/webapp-tokens-v2/acceptance/CONTRACT.md"}
+        hashes = {name: "a" * 64 for name in files}
+        gate = {"files_sha256": hashes, "runner_files_sha256": {name: hashes[name] for name in runner}}
+        self.assertTrue(rescore.gate_inventory_shapes(gate))
+        gate["runner_files_sha256"]["forged"] = "b" * 64
+        self.assertFalse(rescore.gate_inventory_shapes(gate))
 
     def test_plan_pins_public_seed_receipt_and_matched_order(self):
         args = type("Args", (), {

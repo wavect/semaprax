@@ -10,8 +10,8 @@ const BUILD_SOURCE_LINE: &str =
     "semaprax build <file> [--target native] [-o|--output path] [--json]\n";
 const BUILD_PROJECT_LINE: &str = "semaprax build [<dir>|semaprax.toml|--manifest-path path] [--target native|web|wasm|npm|oci] [-o|--output path] [--json]\n";
 const DOCTOR_LINE: &str = "semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n";
-const NEW_LINE: &str = "semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text|source-command-file-text]\n";
-const PROJECT_SCAFFOLD_LINE: &str = "semaprax project-scaffold --name project-name [--template calculator|library|service|stdin-stream-text|source-command-file-text] [--layout frozen|tables]\n";
+const NEW_LINE: &str = "semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text|stdin-stream-data|source-command-file-text]\n";
+const PROJECT_SCAFFOLD_LINE: &str = "semaprax project-scaffold --name project-name [--template calculator|library|service|stdin-stream-text|stdin-stream-data|source-command-file-text] [--layout frozen|tables]\n";
 const BANNER: &str = "SEMAPRAX — Meaning in. Verified machine code out.\n";
 /// The guided overview must stay one screen; CLI Help v4 fixes the bound.
 const GUIDE_MAX_BYTES: usize = 2048;
@@ -44,7 +44,7 @@ const LANGUAGE_TOPICS: &str = concat!(
 );
 const DIAGNOSTIC_CODES: &str = concat!(
     "Common diagnostic codes:\n",
-    "  SPX-P106 SPX-T203 SPX-P201 SPX-T205 SPX-T266 SPX-B104 SPX-G170 SPX-I307 SPX-M105 SPX-O001 SPX-O101 SPX-P003\n",
+    "  SPX-P106 SPX-H006 SPX-T203 SPX-T252 SPX-P201 SPX-T205 SPX-T266 SPX-B104 SPX-G170 SPX-I307 SPX-J100 SPX-M105\n",
     "Fix: semaprax help diagnostic <code>\n",
     "All: semaprax help language mistakes-index\n",
 );
@@ -415,8 +415,9 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     assert!(library.status.success());
     assert!(library.stderr.is_empty());
     let library_index = std::str::from_utf8(&library.stdout).unwrap();
-    assert!(library_index.starts_with("Standard library modules (50):\n"));
+    assert!(library_index.starts_with("Standard library modules (51):\n"));
     assert!(library_index.contains("\n  std.int.decimal\n"));
+    assert!(library_index.contains("\n  std.data.json.scan\n"));
     assert!(library_index.contains("semaprax help library <module|name|stable-id>"));
     assert!(library_index.contains("semaprax help library all"));
     assert_eq!(
@@ -425,7 +426,7 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
             .split(|byte| *byte == b'\n')
             .filter(|line| line.starts_with(b"  std."))
             .count(),
-        50
+        51
     );
     assert!(library.stdout.len() <= 2_048);
     assert!(semaprax::agent_economics::lexical_tokens(library_index) <= 256);

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -25,7 +26,15 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import live_campaign_common as common
 import campaign_resources as resources
-import typescript_bootstrap as bootstrap
+
+# Direct file loading works for external spec_from_file_location callers and
+# never resolves these trusted siblings through cwd or ambient sys.modules.
+_bootstrap_spec = importlib.util.spec_from_file_location(
+    "_semaprax_teamdesk_bootstrap", Path(__file__).resolve().with_name("typescript_bootstrap.py"))
+if _bootstrap_spec is None or _bootstrap_spec.loader is None:
+    raise RuntimeError("cannot load trusted TypeScript bootstrap sibling")
+bootstrap = importlib.util.module_from_spec(_bootstrap_spec)
+_bootstrap_spec.loader.exec_module(bootstrap)
 
 BENCHMARK = Path(__file__).resolve().parent
 REPO = BENCHMARK.parents[1]
@@ -672,14 +681,16 @@ def trial_environment(compiler: Path | None) -> dict[str, str]:
 
 def prompt_for(arm: str, candidate: Path, compiler: Path, tooling: dict[str, Any] | None = None) -> str:
     language = "TypeScript/React" if arm == "typescript" else "SEMAPRAX"
+    root_note = f"Create the new implementation root {candidate}, then work only inside it."
     compiler_note = (f"Use the supplied compiler at {compiler} for the webapp projection; do not build or fetch a compiler."
                      if arm == "semaprax" else "Do not use SEMAPRAX or substitute another language.")
     if arm == "typescript" and tooling is not None:
+        root_note = (f"The implementation root {candidate} already exists with private dependency tools; "
+                     "work only inside it and create your own application files.")
         compiler_note += " " + bootstrap.prompt_note(tooling)
     return f"""Build the complete TeamDesk Enterprise web application described by the supplied SPEC.md and acceptance CONTRACT.md.
 
-You are writing the {language} arm. Create the new implementation root {candidate}, then work only inside it. Create build.sh, test.sh, and run.sh at the candidate root. {compiler_note}
-For the SEMAPRAX arm, optionally add `compiler-output-capture.json` for future source-component accounting. It must declare schema `semaprax.compiler-output-capture.v1`, `argv` exactly `webapp`, one source input, `-o`, `{{output}}` (and optional `--title`, title), `output_directory` `out`, and `input_files` containing every retained candidate file with its SHA-256. The gate runs only that direct compiler command into runner-owned scratch before build.sh; it never treats this declaration as a substitute for build, tests, or acceptance.
+You are writing the {language} arm. {root_note} Create build.sh, test.sh, and run.sh at the candidate root. {compiler_note}
 Implement every requirement: all 20 entities and fields, validation, references, unique keys, workflows, computed fields and rollups, accounts, sessions, role and row permissions, audit history, CSV export, REST CRUD API, persistence, and the browser UI. The independent gate is authoritative and covers all 912 obligations; do not weaken, edit, or bypass it. Keep the API and UI on loopback using TEAMDESK_HOST, TEAMDESK_PORT, TEAMDESK_UI_PORT, TEAMDESK_DATA_DIR, and make run.sh stay in the foreground while emitting the required readiness JSON line.
 
 Use only the files and tools available in this isolated workspace. Run your own build and tests before reporting completion. Do not edit files outside the candidate directory. When finished, leave all implementation files in {candidate} and briefly report the commands and results."""

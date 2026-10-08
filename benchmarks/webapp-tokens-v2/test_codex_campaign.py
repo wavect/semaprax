@@ -5,9 +5,11 @@ import sys
 import contextlib
 import io
 import hashlib
+import importlib.util
 import shutil
 import subprocess
 import tempfile
+import types
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -118,8 +120,8 @@ class WebappCampaignTests(unittest.TestCase):
                 bootstrap.validate(receipt, "fixture-node")
 
     def test_bootstrap_prompt_and_frozen_closure_keep_legacy_rescore_contract(self):
-        self.assertIs(rescore.dependency_inventory, dependencies.dependency_inventory)
-        self.assertIs(rescore.copy_dependency_bundle, dependencies.copy_dependency_bundle)
+        self.assertIs(rescore.dependency_inventory, rescore.dependencies.dependency_inventory)
+        self.assertIs(rescore.copy_dependency_bundle, rescore.dependencies.copy_dependency_bundle)
         self.assertIn("benchmarks/webapp-tokens-v2/dependency_bundle.py", campaign.HARNESS_SOURCE_FILES)
         self.assertIn("benchmarks/webapp-tokens-v2/typescript_bootstrap.py", campaign.HARNESS_SOURCE_FILES)
         candidate, compiler = Path("/candidate"), Path("/compiler")
@@ -129,9 +131,38 @@ class WebappCampaignTests(unittest.TestCase):
         supplied = campaign.prompt_for("typescript", candidate, compiler, tooling)
         self.assertIn("react 18.3.1", supplied)
         self.assertIn("Author your own package.json", supplied)
+        self.assertIn("already exists with private dependency tools", supplied)
+        self.assertNotIn("Create the new implementation root", supplied)
         self.assertNotIn("node_modules", legacy)
         self.assertEqual(campaign.prompt_for("semaprax", candidate, compiler),
                          campaign.prompt_for("semaprax", candidate, compiler, tooling))
+
+    def test_bootstrap_sibling_loading_ignores_cwd_and_ambient_helper_modules(self):
+        benchmark = Path(__file__).resolve().parent
+        shadow = types.ModuleType("untrusted_shadow")
+        original_cwd = Path.cwd()
+        original_path = list(sys.path)
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.dict(sys.modules, {"typescript_bootstrap": shadow, "dependency_bundle": shadow}):
+            try:
+                os.chdir(directory)
+                sys.path[:] = [p for p in original_path if p and Path(p).resolve() != benchmark]
+                loaded = {}
+                for name in ("codex_campaign", "typescript_bootstrap", "codex_rescore"):
+                    spec = importlib.util.spec_from_file_location(f"external_{name}", benchmark / f"{name}.py")
+                    module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(module)
+                    loaded[name] = module
+                self.assertEqual(Path(loaded["codex_campaign"].bootstrap.__file__).resolve(),
+                                 benchmark / "typescript_bootstrap.py")
+                for module in (loaded["codex_campaign"].bootstrap, loaded["typescript_bootstrap"], loaded["codex_rescore"]):
+                    self.assertEqual(Path(module.dependencies.__file__).resolve(), benchmark / "dependency_bundle.py")
+                    self.assertTrue(callable(module.dependencies.copy_dependency_bundle))
+                self.assertIs(sys.modules["typescript_bootstrap"], shadow)
+                self.assertIs(sys.modules["dependency_bundle"], shadow)
+            finally:
+                os.chdir(original_cwd)
+                sys.path[:] = original_path
 
     def test_bootstrap_drift_refuses_a_paid_request_before_invocation(self):
         with tempfile.TemporaryDirectory() as directory:

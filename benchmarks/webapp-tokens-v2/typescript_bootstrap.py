@@ -7,6 +7,7 @@ involved. Preparation and validation make no model requests.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import os
 import platform
@@ -16,7 +17,12 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-import dependency_bundle as dependencies
+_dependency_spec = importlib.util.spec_from_file_location(
+    "_semaprax_teamdesk_dependencies", Path(__file__).resolve().with_name("dependency_bundle.py"))
+if _dependency_spec is None or _dependency_spec.loader is None:
+    raise RuntimeError("cannot load trusted dependency bundle sibling")
+dependencies = importlib.util.module_from_spec(_dependency_spec)
+_dependency_spec.loader.exec_module(dependencies)
 
 SCHEMA = "semaprax.teamdesk.typescript-bootstrap.v1"
 CORE_PACKAGES = ("react", "react-dom", "react-router-dom", "typescript", "vite",

@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
+import importlib.util
 import json
 import math
 import os
@@ -26,7 +27,15 @@ REPO = BENCHMARK.parents[1]
 sys.path.insert(0, str(BENCHMARK))
 sys.path.insert(0, str(BENCHMARK.parent))
 import codex_campaign as campaign
-from dependency_bundle import dependency_inventory, copy_dependency_bundle, dependency_fingerprint
+_dependency_spec = importlib.util.spec_from_file_location(
+    "_semaprax_teamdesk_rescore_dependencies", BENCHMARK / "dependency_bundle.py")
+if _dependency_spec is None or _dependency_spec.loader is None:
+    raise RuntimeError("cannot load trusted rescore dependency sibling")
+dependencies = importlib.util.module_from_spec(_dependency_spec)
+_dependency_spec.loader.exec_module(dependencies)
+dependency_inventory = dependencies.dependency_inventory
+copy_dependency_bundle = dependencies.copy_dependency_bundle
+dependency_fingerprint = dependencies.dependency_fingerprint
 
 SCHEMA = "semaprax.teamdesk.codex-rescore.v1"
 TERMINAL_SCHEMA = "semaprax.codex-campaign-terminal.v1"

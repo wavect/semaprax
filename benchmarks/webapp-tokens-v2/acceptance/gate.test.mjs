@@ -101,15 +101,15 @@ test('enum filters accept named controls or their legacy field-qualified clear o
   assert.throws(()=>enumFilterSelectors('status: all'));
 });
 
-test('form fields require exact native-control labels while action names remain role-neutral',()=>{
+test('form fields accept admitted prefix labels on native controls while action names remain role-neutral',()=>{
   const contact=formFieldLabel('Contact'),teamId=formFieldLabel('team_id');
-  for(const label of ['Contact',' contact ','CONTACT'])assert.equal(contact.test(label),true);
-  for(const label of ['Contact navigation','Contact details','team id','team_id'])assert.equal(contact.test(label),false);
-  for(const label of ['team id','team_id',' Team ID '])assert.equal(teamId.test(label),true);
+  for(const label of ['Contact',' contact ','CONTACT','Contact navigation','Contact details'])assert.equal(contact.test(label),true);
+  for(const label of ['Amount (USD)',' amount: USD'])assert.equal(formFieldLabel('amount').test(label),true);
+  for(const label of ['team id','team_id',' Team ID ','Team identifier'])assert.equal(teamId.test(label),true);
   assert.throws(()=>formFieldLabel('Contact details'));
 });
 
-test('actions union exact links and buttons while form controls exclude labelled navigation and duplicates',async()=>{
+test('actions union exact links and buttons while native form controls exclude navigation and duplicates',async()=>{
   const calls=[];
   const link={kind:'link',or(other){calls.push(['or',other.kind]);return {count:async()=>1};}};
   const button={kind:'button'};

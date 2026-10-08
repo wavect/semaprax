@@ -17,7 +17,7 @@ export function enumFilterSelectors(field) {
 export function formFieldLabel(field) {
   assert.ok(typeof field==='string'&&/^[A-Za-z][A-Za-z0-9_]*$/.test(field),'known form field');
   const escaped=field.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replaceAll('_','[_ ]');
-  return new RegExp(`^\\s*${escaped}\\s*$`,'i');
+  return new RegExp(`^\\s*${escaped}`,'i');
 }
 
 export function formControl(page,field) {

@@ -67,7 +67,7 @@ search, enum filters, table column sorting, Prev/Next, CSV, and history.
 An enum filter may expose its field as the control's accessible name with a
 separate `All` clear option, or retain the legacy field-qualified
 `field: all` clear option; an unrelated `All` control is not that field's filter.
-Create, Edit, and Delete may be links or buttons when their accessible action names are unique. Form field lookup uses that field's exact accessible label on an input, select, or textarea; navigation text does not satisfy a form field.
+Create, Edit, and Delete may be links or buttons when their accessible action names are unique. Form field lookup accepts the admitted case-insensitive field-label prefix on an input, select, or textarea; navigation text does not satisfy a form field.
 SEM uses hash routes; the TS reference uses pathname routes. Selectors permit
 both existing captions (`+ New Task` or `New Task`, `Next ›` or `Next`,
 `CSV` or `Export CSV`). An integer editor may use a numeric input or an

@@ -162,7 +162,7 @@ fn malformed_or_effectful_loop_matches_keep_their_semantic_diagnostics() {
     );
     assert_rejected(
         &VALID.replace("match byte_get(bytes, index)", "match Option<u8>::None {}"),
-        "SPX-T252",
+        "SPX-T223",
     );
     assert_rejected(
         &VALID.replace(
@@ -216,10 +216,10 @@ fn a_near_miss_indexed_match_says_which_detail_is_wrong() {
         );
     }
 
-    // Matching Copy values is admitted, but constructing aggregate values
-    // during an iteration stays outside the bounded loop profile.
+    // General Loop Match admits Copy construction, but the explicit Option<u8>
+    // instantiation remains outside its closed generic type vocabulary.
     let unrelated = VALID.replace("match byte_get(bytes, index)", "match Option<u8>::None {}");
-    assert_rejected(&unrelated, "SPX-T252");
+    assert_rejected(&unrelated, "SPX-T223");
 }
 
 #[test]

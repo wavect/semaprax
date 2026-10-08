@@ -730,7 +730,7 @@ fn string_conditions_allocate_only_inside_their_iteration_region() {
         "string_contains(text, string_concat(\"b\", \"c\"))",
     ] {
         let source = format!(
-            "module condition; fn main()->i64 {{let text=\"abc\"; while {condition} {{0}} 0}}"
+            "module condition; @id(\"app.main\") fn main()->i64 {{let text=\"abc\"; while {condition} {{0}} 0}}"
         );
         let program = parse(&source, Path::new("condition.spx")).unwrap();
         let found = verify::verify(&program);

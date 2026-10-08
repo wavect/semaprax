@@ -1029,7 +1029,6 @@ fn emit_resolved_module_internal(
         || program_uses_byte_data(program)
         || program_uses_vec(program)
         || program_uses_box(program)
-        || aggregate::conversions::program_uses_numeric(program)
         || aggregate::text_toolkit::program_uses_toolkit(program)
     {
         if has_public_profile {

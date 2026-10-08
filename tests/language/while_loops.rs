@@ -299,8 +299,8 @@ fn main() -> i64 {
 
 #[test]
 fn string_conditions_and_unsafe_inside_loops_are_spx_t252() {
-    // Owned String Loops v1 admits String storage in a loop body; a String
-    // value in the re-evaluated condition stays outside the loop slice.
+    // Named/direct String predicates are admitted; an allocating nested operand
+    // and an unsafe boundary remain outside the loop condition profile.
     let sources = [
         (
             "string condition",
@@ -309,7 +309,7 @@ module test.while_string;
 @id("app.main")
 fn main() -> i64 {
     let mut count = 0;
-    while count < string_len("xx") {
+    while count < string_len(string_concat("x", "x")) {
         count = count + 1;
         count < 2
     }

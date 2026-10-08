@@ -277,9 +277,9 @@ fn mismatched_non_literal_operands_get_no_literal_hint() {
 }
 
 #[test]
-fn string_ordering_reports_only_the_string_specific_diagnostic() {
+fn mixed_string_ordering_reports_only_the_type_mismatch_diagnostic() {
     let found = diagnostics(
-        "module habit.string_order;\n@id(\"app.main\")\nfn main() -> i64\n{\n    if \"a\" < \"b\" { 1 } else { 0 }\n}\n",
+        "module habit.string_order;\n@id(\"app.main\")\nfn main() -> i64\n{\n    if \"a\" < true { 1 } else { 0 }\n}\n",
     );
     assert_eq!(
         found
@@ -287,7 +287,7 @@ fn string_ordering_reports_only_the_string_specific_diagnostic() {
             .filter(|diagnostic| diagnostic.severity.is_error())
             .map(|diagnostic| diagnostic.code)
             .collect::<Vec<_>>(),
-        vec!["SPX-T250"]
+        vec!["SPX-T208"]
     );
 }
 

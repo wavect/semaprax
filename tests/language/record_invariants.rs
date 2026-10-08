@@ -94,8 +94,7 @@ record Team {
 @id("team.seats")
 fn seats(count: i64) -> i64
 {
-    let team = Team { name: "core", seats: count };
-    team.seats
+    count
 }
 
 @id("app.main")
@@ -208,6 +207,16 @@ fn assert_contract_failure(outcome: &serde_json::Value) {
 
 #[test]
 fn invariants_verify_and_round_trip_canonically() {
+    // Invariant-bearing String records are schema-only; production remains closed.
+    let executable = TEAM.replace(
+        "    count\n}",
+        "    let team = Team { name: \"core\", seats: count };\n    team.seats\n}",
+    );
+    let refused = parse(&executable, Path::new("invariant-string-production.spx")).unwrap();
+    assert!(verify::verify(&refused)
+        .iter()
+        .any(|d| d.code == "SPX-T309"));
+    assert!(hir::resolve(&refused).is_err());
     for source in [RANGE, UPDATE, TEAM] {
         let program = parse(source, Path::new("invariant.spx")).unwrap();
         assert!(verify::verify(&program).is_empty());

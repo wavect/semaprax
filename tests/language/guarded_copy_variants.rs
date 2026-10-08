@@ -190,6 +190,7 @@ module test.guarded_copy_variants;
     let mut values = vec_with_capacity<i64>(2usize);
     values = vec_push<i64>(values, 1);
     values = vec_push<i64>(values, 3);
+    let values = values;
     let mut out = "";
     let mut total = 0;
     for item in values {

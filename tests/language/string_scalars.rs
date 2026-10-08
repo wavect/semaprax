@@ -154,14 +154,12 @@ fn main() -> i64 { if "a" + "b" == "ab" { 7 } else { 8 } }
         r#"
 module test.string_order;
 @id("app.main")
-fn main() -> i64 { if "a" < "b" { 1 } else { 0 } }
+fn main() -> i64 { if "a" < 1 { 1 } else { 0 } }
 "#,
     );
     assert!(
-        ordering
-            .iter()
-            .any(|item| item.code == "SPX-T250" && item.message.contains('<')),
-        "string ordering must be rejected: {ordering:?}"
+        ordering.iter().any(|item| item.code == "SPX-T208"),
+        "mixed String/integer ordering must be rejected: {ordering:?}"
     );
 
     let mixed_equality = diagnostics(

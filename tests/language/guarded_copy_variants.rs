@@ -219,10 +219,10 @@ const CASES: &[(&str, &str)] = &[
     ("guards.constructed-nested", "ok|7"),
     ("guards.constructed-inspect", "ok|3"),
     ("guards.constructed-condition", "ok|3"),
-    ("guards.constructed-failure", "semaprax.arithmetic.v1|1"),
+    ("guards.constructed-failure", "semaprax.arithmetic.v1|4"),
     (
         "guards.constructed-operand-failure",
-        "semaprax.arithmetic.v1|1",
+        "semaprax.arithmetic.v1|4",
     ),
     ("guards.constructed-for", "ok|6"),
 ];

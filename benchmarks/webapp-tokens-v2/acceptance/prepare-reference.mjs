@@ -10,6 +10,6 @@ if(values.arm==='typescript')await fs.cp(path.join(benchmark,'typescript'),candi
 else await fs.copyFile(path.join(benchmark,'semaprax','teamdesk.spx'),path.join(candidate,'teamdesk.spx'));
 await fs.copyFile(path.join(here,'reference-server.mjs'),path.join(candidate,'reference-server.mjs'));
 const build=values.arm==='typescript'?'npm ci --ignore-scripts\nnpm run build':'test -n "$SEMAPRAX_BIN"\n"$SEMAPRAX_BIN" webapp teamdesk.spx --output generated';
-const test=values.arm==='typescript'?'npm run check':'node generated/server.mjs --self-test';
+const test=values.arm==='typescript'?'npm test\nnpm run check':'node generated/server.mjs --self-test';
 for(const [name,body]of Object.entries({'build.sh':build,'test.sh':test,'run.sh':'node reference-server.mjs'}))await fs.writeFile(path.join(candidate,name),'#!/bin/sh\nset -eu\n'+body+'\n',{mode:0o755});
 console.log(JSON.stringify({candidate,arm:values.arm,kind:'reference-qualification-adapter',changes:'launch scripts and static proxy only; reference application bytes copied unchanged'}));

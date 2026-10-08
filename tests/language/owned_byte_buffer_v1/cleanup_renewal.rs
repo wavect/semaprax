@@ -115,6 +115,7 @@ fn conditional_two_owner_byte_renewal_preserves_history_and_backend_routes() {
         wasm::emit_module(&program).unwrap(),
         wasm::emit_module(&program).unwrap()
     );
+    run_wasm(&program, "success", Some(7), None);
     run_native(&program, "success", Some("7"), None);
 }
 
@@ -139,7 +140,9 @@ fn byte_renewal_failure_settles_both_owners_and_composes_without_rewriting_v15_v
         "semaprax.byte-buffer.v1"
     );
     assert_eq!(envelope["payload"]["outcome"]["status"]["code"], 1);
-    assert!(wasm::emit_module(&failed).unwrap().starts_with(b"\0asm"));
+    let wasm = wasm::emit_module(&failed).unwrap();
+    assert!(wasm.starts_with(b"\0asm"));
+    run_wasm(&failed, "failure", None, Some(16));
     run_native(&failed, "failure", None, Some(73));
 
     let composed = parse(COMPOSED, "byte-cleanup-renewal-composed.spx").unwrap();
@@ -194,6 +197,74 @@ fn byte_renewal_failure_settles_both_owners_and_composes_without_rewriting_v15_v
     assert_eq!(
         document["string_replacement"]["schema"],
         "semaprax.string-replacement.v1"
+    );
+}
+
+fn run_wasm(
+    program: &semaprax::ast::Program,
+    label: &str,
+    value: Option<i64>,
+    status: Option<u32>,
+) {
+    if !command_available("node") {
+        return;
+    }
+    let path = std::env::temp_dir().join(format!(
+        "semaprax-byte-cleanup-renewal-{label}-{}.wasm",
+        std::process::id()
+    ));
+    std::fs::write(&path, wasm::emit_module(program).unwrap()).unwrap();
+    let script = r#"
+const fs=require('fs');
+const bytes=fs.readFileSync(process.argv[1]);
+const expectedValue=process.argv[2]==='none'?null:BigInt(process.argv[2]);
+const expectedStatus=process.argv[3]==='none'?null:Number(process.argv[3]);
+let instance,next=1,allocations=[],drops=[];
+const entries=new Map();
+const decode=carrier=>{const word=BigInt.asUintN(64,carrier),length=Number(word&0xffffffffn),root=Number((word>>32n)&0xffffffffn),token=root&0x7fffffff;if((root&0x80000000)===0||token===0)throw Error('invalid owned Bytes carrier');return{word,length,token}};
+const read=carrier=>{const decoded=decode(carrier),value=entries.get(decoded.token);if(!(value instanceof Uint8Array)||value.length!==decoded.length)throw Error('stale owned Bytes carrier');return{decoded,value}};
+const allocate=value=>{const bytes=new Uint8Array(value),token=next++;entries.set(token,bytes);allocations.push(token);return BigInt.asIntN(64,((0x80000000n|BigInt(token))<<32n)|BigInt(bytes.length))};
+const setBytes=(carrier,index,values)=>{const {decoded,value}=read(carrier);if(typeof index!=='bigint'||index<0n||index>BigInt(value.length)||BigInt(value.length)-index<BigInt(values.length)||!values.every(byte=>Number.isInteger(byte)&&byte>=0&&byte<=255))throw Error('owned byte interval');value.set(values,Number(index));return BigInt.asIntN(64,decoded.word)};
+const unexpected=name=>()=>{throw Error(`unexpected ${name}`)};
+const env={
+  spx_add:(a,b)=>a+b,spx_sub:(a,b)=>a-b,spx_mul:(a,b)=>a*b,spx_div:(a,b)=>a/b,spx_rem:(a,b)=>a%b,spx_neg:a=>-a,
+  spx_contract_fail:selector=>{throw Object.assign(Error(`status:${selector}`),{selector:Number(selector)})},
+  spx_bytes_copy:carrier=>allocate(read(carrier).value),
+  spx_bytes_zeroed:length=>{if(typeof length!=='bigint'||length<0n||length>131072n)throw Error('owned byte capacity');return allocate(new Uint8Array(Number(length)))},
+  spx_bytes_set:(carrier,index,byte)=>setBytes(carrier,index,[byte]),
+  spx_bytes_set5:unexpected('spx_bytes_set5'),
+  spx_bytes_set1_or5:unexpected('spx_bytes_set1_or5'),
+  spx_bytes_set1_or6_or48:unexpected('spx_bytes_set1_or6_or48'),
+  spx_bytes_get:(carrier,index)=>{const value=read(carrier).value,at=Number(index);return typeof index==='bigint'&&index>=0n&&index<BigInt(value.length)?value[at]:-1},
+  spx_bytes_as_slice:carrier=>{read(carrier);return carrier},
+  spx_bytes_drop:carrier=>{const {decoded}=read(carrier);if(!entries.delete(decoded.token))throw Error('double owned Bytes drop');drops.push(decoded.token)},
+};
+(async()=>{
+  ({instance}=await WebAssembly.instantiate(bytes,{env}));
+  for(let round=0;round<4;round++){
+    allocations=[];drops=[];let actualValue=null,actualStatus=null;
+    try{actualValue=instance.exports.semaprax_main()}catch(error){if(!Object.hasOwn(error,'selector'))throw error;actualStatus=error.selector}
+    if(actualValue!==expectedValue||actualStatus!==expectedStatus)throw Error(`outcome:${actualValue}:${actualStatus}`);
+    if(allocations.length!==2||drops.length!==2)throw Error(`cleanup-count:${allocations}:${drops}`);
+    if(drops[0]!==allocations[1]||drops[1]!==allocations[0])throw Error(`cleanup-order:${allocations}:${drops}`);
+    if(entries.size!==0)throw Error(`unsettled:${entries.size}`);
+  }
+})().catch(error=>{console.error(error);process.exit(2)});
+"#;
+    let output = Command::new("node")
+        .arg("-e")
+        .arg(script)
+        .arg(&path)
+        .arg(value.map_or_else(|| "none".to_owned(), |value| value.to_string()))
+        .arg(status.map_or_else(|| "none".to_owned(), |status| status.to_string()))
+        .output()
+        .unwrap();
+    let _ = std::fs::remove_file(path);
+    assert!(
+        output.status.success(),
+        "Core Wasm {label} failed: stdout={} stderr={}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
     );
 }
 

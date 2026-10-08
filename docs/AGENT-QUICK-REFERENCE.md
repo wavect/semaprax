@@ -687,6 +687,15 @@ below the current directory. A checked failure (missing file, out-of-range slice
 and exits with 1.
 Rules: [Text Toolkit v1](TEXT-TOOLKIT-V1.md).
 
+For a CLI that imports source libraries, select table-manifest
+`[package] profile = "source-command.v1"`, empty web exports, the exact
+main stable ID in `[command]`, `input = "argv-utf8+file-text.v1"`, the
+explicit sorted capability subset, and `[targets] matrix = ["native64"]`.
+Then `semaprax build <project> --target native --output <fresh-path>` links
+ordinary dependencies such as `std.int.decimal`. This native-only Project
+route refuses interpreter/Web/npm/Wasm execution; see [Project v26](PROJECT-MANIFEST-V26.md)
+and the [decimal CLI example](../examples/source-command-project/semaprax.toml).
+
 Build a native command with `semaprax build lines.spx --target native --output lines`.
 Omit `--profile`: `text-toolkit-v1` and `internal-strings-v1` are explicit
 Wasm/web export profiles; native text operations are selected from the source.

@@ -4,6 +4,10 @@ use super::*;
 fn every_legacy_marker_reports_one_exact_closed_profile() {
     let legacy = [
         (
+            PreparedProjectAdmission::SourceCommandV1,
+            ProjectProfile::SourceCommandV1,
+        ),
+        (
             PreparedProjectAdmission::UsefulTextConsumerV1,
             ProjectProfile::UsefulTextConsumerV1,
         ),

@@ -12,12 +12,15 @@
 //! manifest whose bytes differ from its own rendering and names the first
 //! differing line, so agents get a byte-precise fix instead of a shape error.
 
-use super::{PROJECT_SCHEMA_V17, PROJECT_SCHEMA_V18};
+mod profiles;
+use super::{PROJECT_SCHEMA_V17, PROJECT_SCHEMA_V18, PROJECT_SCHEMA_V26};
 use crate::project::profile::{
     valid_environment_capabilities, valid_process_capabilities,
     PROJECT_ENVIRONMENT_CAPABILITIES_V1, PROJECT_PROCESS_CAPABILITIES_V1,
     PROJECT_PROFILE_ENVIRONMENT_IO_V1,
 };
+use crate::project::profile::{PROJECT_PROFILE_SOURCE_COMMAND_V1, PROJECT_SOURCE_COMMAND_INPUT_V1};
+use profiles::{lower_profile, profile_by_name};
 
 use super::{
     valid_semver, ProjectManifest, MAX_VERSION_BYTES, PROJECT_SCHEMA, PROJECT_SCHEMA_V10,
@@ -385,6 +388,15 @@ pub(super) fn parse(lines: &[&str], law_layout: bool) -> Result<TableParts, Vec<
         }
     };
 
+    if profile == ProjectProfile::SourceCommandV1
+        && !target_matrix
+            .as_ref()
+            .is_some_and(|matrix| matrix.len() == 1 && matrix[0] == PACKAGE_TARGET_NATIVE64)
+    {
+        return Err(grammar(
+            "source-command.v1 requires [targets] matrix = [\"native64\"]",
+        ));
+    }
     let schema = lower_profile(
         profile,
         command.as_deref(),
@@ -485,6 +497,7 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
             | PROJECT_PROFILE_FILESYSTEM_IO_V3
             | PROJECT_PROFILE_ENVIRONMENT_IO_V1
             | PROJECT_PROFILE_PROCESS_IO_V1
+            | PROJECT_PROFILE_SOURCE_COMMAND_V1
     );
     if command_profile {
         if let Some(command) = tables.iter().find(|table| table.name == "command") {
@@ -514,6 +527,7 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
             )));
         }
         let expected_input = match profile {
+            PROJECT_PROFILE_SOURCE_COMMAND_V1 => Some(PROJECT_SOURCE_COMMAND_INPUT_V1),
             PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2 => Some(PROJECT_COMMAND_INPUT_V1),
             PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1
             | PROJECT_PROFILE_LINE_COMMAND_IO_V1
@@ -547,7 +561,10 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
             _ => &PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2,
         };
         if let Some(required) = table_list(tables, "capabilities", "required") {
-            if if profile == PROJECT_PROFILE_ENVIRONMENT_IO_V1 {
+            if if profile == PROJECT_PROFILE_SOURCE_COMMAND_V1 {
+                !crate::source_command::selects(required)
+                    || !required.windows(2).all(|v| v[0] < v[1])
+            } else if profile == PROJECT_PROFILE_ENVIRONMENT_IO_V1 {
                 !valid_environment_capabilities(required)
             } else if profile == PROJECT_PROFILE_PROCESS_IO_V1 {
                 !valid_process_capabilities(required)
@@ -557,15 +574,20 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
                     .map(String::as_str)
                     .eq(expected_capabilities.iter().copied())
             } {
-                diagnostics.push(scaffold_diagnostic(format!(
-                    "{LABEL} profile `{profile}` requires `[capabilities] required = {}`",
-                    super::render_array(
-                        &expected_capabilities
-                            .iter()
-                            .map(|capability| (*capability).to_owned())
-                            .collect::<Vec<_>>()
+                let message = if profile == PROJECT_PROFILE_SOURCE_COMMAND_V1 {
+                    "source-command.v1 requires a sorted nonempty subset of fs.read, process.args.read, process.stderr.write, process.stdout.write, other than stdout alone".to_owned()
+                } else {
+                    format!(
+                        "{LABEL} profile `{profile}` requires `[capabilities] required = {}",
+                        super::render_array(
+                            &expected_capabilities
+                                .iter()
+                                .map(|capability| (*capability).to_owned())
+                                .collect::<Vec<_>>()
+                        )
                     )
-                )));
+                };
+                diagnostics.push(scaffold_diagnostic(message));
             }
         }
     } else {
@@ -622,6 +644,7 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
                         | PROJECT_PROFILE_FILESYSTEM_IO_V3
                         | PROJECT_PROFILE_ENVIRONMENT_IO_V1
                         | PROJECT_PROFILE_PROCESS_IO_V1
+                        | PROJECT_PROFILE_SOURCE_COMMAND_V1
                 ))
         {
             diagnostics.push(if exports.len() > super::MAX_WEB_EXPORTS {
@@ -650,6 +673,7 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
                     | PROJECT_PROFILE_FILESYSTEM_IO_V3
                     | PROJECT_PROFILE_ENVIRONMENT_IO_V1
                     | PROJECT_PROFILE_PROCESS_IO_V1
+                    | PROJECT_PROFILE_SOURCE_COMMAND_V1
             )
         }) {
             if exports.len() != 1 || exports.first().map(String::as_str) != Some(command) {
@@ -747,144 +771,6 @@ fn table_list<'a>(tables: &'a [Table<'a>], table: &str, key: &str) -> Option<&'a
         Value::List(values) => Some(values),
         Value::Text(_) => None,
     }
-}
-
-/// Check the profile-specific rules the frozen schemas encode positionally and
-/// return the frozen profile contract the manifest lowers to.
-fn lower_profile(
-    profile: ProjectProfile,
-    command: Option<&str>,
-    input: Option<&str>,
-    capabilities: &[String],
-) -> Result<&'static str, Vec<Diagnostic>> {
-    let profile_name = profile.name().unwrap_or("scalar");
-    let (schema, expected_input, expected_capabilities): (&str, Option<&str>, &[&str]) =
-        match profile {
-            ProjectProfile::ProcessIoV1 => {
-                (PROJECT_SCHEMA_V18, None, &PROJECT_PROCESS_CAPABILITIES_V1)
-            }
-            ProjectProfile::EnvironmentIoV1 => (
-                PROJECT_SCHEMA_V17,
-                None,
-                &PROJECT_ENVIRONMENT_CAPABILITIES_V1,
-            ),
-            ProjectProfile::FilesystemIoV2 => (
-                PROJECT_SCHEMA_V15,
-                None,
-                &PROJECT_FILESYSTEM_CAPABILITIES_V1,
-            ),
-            ProjectProfile::FilesystemIoV3 => (
-                PROJECT_SCHEMA_V19,
-                None,
-                &PROJECT_FILESYSTEM_CAPABILITIES_V1,
-            ),
-            ProjectProfile::FilesystemIoV1 => (
-                PROJECT_SCHEMA_V14,
-                None,
-                &PROJECT_FILESYSTEM_CAPABILITIES_V1,
-            ),
-            ProjectProfile::ScalarV1 => (PROJECT_SCHEMA, None, &[]),
-            ProjectProfile::UsefulTextConsumerV1 => (PROJECT_SCHEMA_V2, None, &[]),
-            ProjectProfile::UsefulDataV2 => (PROJECT_SCHEMA_V16, None, &[]),
-            ProjectProfile::UsefulDataV1 => (PROJECT_SCHEMA_V3, None, &[]),
-            ProjectProfile::UsefulDataCommandV1 => (
-                PROJECT_SCHEMA_V4,
-                None,
-                &[PROJECT_COMMAND_STDOUT_CAPABILITY],
-            ),
-            ProjectProfile::UsefulDataCommandV2 => (
-                PROJECT_SCHEMA_V5,
-                Some(PROJECT_COMMAND_INPUT_V1),
-                &PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2,
-            ),
-            ProjectProfile::LanguageCommandIoV1 => (
-                PROJECT_SCHEMA_V6,
-                Some(PROJECT_LANGUAGE_COMMAND_INPUT_V1),
-                &PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2,
-            ),
-            ProjectProfile::StdinStreamCommandIoV1
-            | ProjectProfile::StdinStreamCommandIoV2
-            | ProjectProfile::StdinStreamTextCommandIoV1 => (
-                if profile == ProjectProfile::StdinStreamTextCommandIoV1 {
-                    PROJECT_SCHEMA_V25
-                } else if profile == ProjectProfile::StdinStreamCommandIoV2 {
-                    PROJECT_SCHEMA_V24
-                } else {
-                    PROJECT_SCHEMA_V23
-                },
-                Some(PROJECT_LANGUAGE_COMMAND_STREAM_INPUT_V1),
-                &PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2,
-            ),
-            ProjectProfile::LineCommandIoV1 => (
-                PROJECT_SCHEMA_V7,
-                Some(PROJECT_LANGUAGE_COMMAND_INPUT_V1),
-                &PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2,
-            ),
-            ProjectProfile::OwnedDataApiV1 => (PROJECT_SCHEMA_V8, None, &[]),
-            ProjectProfile::FlatOwnedRecordApiV1 => (PROJECT_SCHEMA_V9, None, &[]),
-            ProjectProfile::OwnedUtf8ApiV1 => (PROJECT_SCHEMA_V10, None, &[]),
-            ProjectProfile::NestedOwnedRecordApiV1 => (PROJECT_SCHEMA_V11, None, &[]),
-            ProjectProfile::PublicGenericWasmProviderV1 => (PROJECT_SCHEMA_V20, None, &[]),
-            ProjectProfile::SourceLocalFutureV1 => (PROJECT_SCHEMA_V21, None, &[]),
-            ProjectProfile::SourceLocalFutureIndexedRustV1 => (PROJECT_SCHEMA_V22, None, &[]),
-            ProjectProfile::NetworkCommandIoV1 => (
-                PROJECT_SCHEMA_V12,
-                Some(PROJECT_LANGUAGE_COMMAND_INPUT_V1),
-                &PROJECT_NETWORK_COMMAND_CAPABILITIES_V1,
-            ),
-            ProjectProfile::HttpsCommandIoV1 => (
-                PROJECT_SCHEMA_V13,
-                Some(PROJECT_LANGUAGE_COMMAND_INPUT_V1),
-                &PROJECT_HTTPS_COMMAND_CAPABILITIES_V1,
-            ),
-        };
-    let is_command_profile = !expected_capabilities.is_empty();
-    match (is_command_profile, command) {
-        (true, None) => {
-            return Err(grammar(format!(
-                "{LABEL} profile `{profile_name}` requires a `[command]` table with `function`"
-            )));
-        }
-        (false, Some(_)) => {
-            return Err(grammar(format!(
-                "{LABEL} profile `{profile_name}` does not admit a `[command]` table"
-            )));
-        }
-        _ => {}
-    }
-    if input != expected_input {
-        return Err(grammar(match expected_input {
-            Some(expected) => format!(
-                "{LABEL} profile `{profile_name}` requires `[command] input = \"{expected}\"`"
-            ),
-            None => format!("{LABEL} profile `{profile_name}` does not admit `[command] input`"),
-        }));
-    }
-    if if profile == ProjectProfile::EnvironmentIoV1 {
-        !valid_environment_capabilities(capabilities)
-    } else if profile == ProjectProfile::ProcessIoV1 {
-        !valid_process_capabilities(capabilities)
-    } else {
-        !capabilities
-            .iter()
-            .map(String::as_str)
-            .eq(expected_capabilities.iter().copied())
-    } {
-        return Err(grammar(if expected_capabilities.is_empty() {
-            format!("{LABEL} profile `{profile_name}` does not admit a `[capabilities]` table")
-        } else {
-            format!(
-                "{LABEL} profile `{profile_name}` requires `[capabilities] required = {}`",
-                super::render_array(
-                    &expected_capabilities
-                        .iter()
-                        .map(|capability| (*capability).to_owned())
-                        .collect::<Vec<_>>()
-                )
-            )
-        }));
-    }
-    Ok(schema)
 }
 
 fn parse_dependencies(table: TableReader<'_>) -> Result<Vec<PackageDependency>, Vec<Diagnostic>> {
@@ -1442,42 +1328,6 @@ fn valid_table_name(name: &str) -> bool {
         && name
             .bytes()
             .all(|byte| byte.is_ascii_lowercase() || byte == b'-')
-}
-
-fn profile_by_name(name: &str) -> Option<ProjectProfile> {
-    Some(match name {
-        PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1 => ProjectProfile::UsefulTextConsumerV1,
-        PROJECT_PROFILE_USEFUL_DATA_V2 => ProjectProfile::UsefulDataV2,
-        PROJECT_PROFILE_USEFUL_DATA_V1 => ProjectProfile::UsefulDataV1,
-        PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1 => ProjectProfile::UsefulDataCommandV1,
-        PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2 => ProjectProfile::UsefulDataCommandV2,
-        PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1 => ProjectProfile::LanguageCommandIoV1,
-        PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V1 => ProjectProfile::StdinStreamCommandIoV1,
-        PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2 => ProjectProfile::StdinStreamCommandIoV2,
-        PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1 => {
-            ProjectProfile::StdinStreamTextCommandIoV1
-        }
-        PROJECT_PROFILE_LINE_COMMAND_IO_V1 => ProjectProfile::LineCommandIoV1,
-        PROJECT_PROFILE_OWNED_DATA_API_V1 => ProjectProfile::OwnedDataApiV1,
-        PROJECT_PROFILE_FLAT_OWNED_RECORD_API_V1 => ProjectProfile::FlatOwnedRecordApiV1,
-        PROJECT_PROFILE_OWNED_UTF8_API_V1 => ProjectProfile::OwnedUtf8ApiV1,
-        PROJECT_PROFILE_NESTED_OWNED_RECORD_API_V1 => ProjectProfile::NestedOwnedRecordApiV1,
-        PROJECT_PROFILE_PUBLIC_GENERIC_WASM_PROVIDER_V1 => {
-            ProjectProfile::PublicGenericWasmProviderV1
-        }
-        PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_V1 => ProjectProfile::SourceLocalFutureV1,
-        PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_INDEXED_RUST_V1 => {
-            ProjectProfile::SourceLocalFutureIndexedRustV1
-        }
-        PROJECT_PROFILE_NETWORK_COMMAND_IO_V1 => ProjectProfile::NetworkCommandIoV1,
-        PROJECT_PROFILE_HTTPS_COMMAND_IO_V1 => ProjectProfile::HttpsCommandIoV1,
-        PROJECT_PROFILE_ENVIRONMENT_IO_V1 => ProjectProfile::EnvironmentIoV1,
-        PROJECT_PROFILE_PROCESS_IO_V1 => ProjectProfile::ProcessIoV1,
-        PROJECT_PROFILE_FILESYSTEM_IO_V2 => ProjectProfile::FilesystemIoV2,
-        PROJECT_PROFILE_FILESYSTEM_IO_V3 => ProjectProfile::FilesystemIoV3,
-        PROJECT_PROFILE_FILESYSTEM_IO_V1 => ProjectProfile::FilesystemIoV1,
-        _ => return None,
-    })
 }
 
 fn scaffold_diagnostic(message: String) -> Diagnostic {

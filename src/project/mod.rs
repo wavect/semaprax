@@ -90,6 +90,7 @@ mod semantic_transaction_v2;
 mod semantic_transaction_v2_workflow;
 pub mod service_host_adapter_request;
 mod snapshot_building;
+mod source_command;
 use snapshot_building::load_snapshot_building;
 mod source_hint;
 pub(crate) mod standard_dependencies;
@@ -422,8 +423,8 @@ pub use manifest::{
     PROJECT_SCHEMA_V14, PROJECT_SCHEMA_V15, PROJECT_SCHEMA_V16, PROJECT_SCHEMA_V17,
     PROJECT_SCHEMA_V18, PROJECT_SCHEMA_V19, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V20,
     PROJECT_SCHEMA_V21, PROJECT_SCHEMA_V22, PROJECT_SCHEMA_V23, PROJECT_SCHEMA_V24,
-    PROJECT_SCHEMA_V25, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6,
-    PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
+    PROJECT_SCHEMA_V25, PROJECT_SCHEMA_V26, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4,
+    PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
 };
 pub use native_sdk::{
     with_native_owned_data_sdk_subject, ProjectNativeRustPackage, ProjectNativeRustPackageMode,
@@ -582,11 +583,12 @@ pub use profile::{
     PROJECT_PROFILE_LINE_COMMAND_IO_V1, PROJECT_PROFILE_NESTED_OWNED_RECORD_API_V1,
     PROJECT_PROFILE_NETWORK_COMMAND_IO_V1, PROJECT_PROFILE_OWNED_DATA_API_V1,
     PROJECT_PROFILE_OWNED_UTF8_API_V1, PROJECT_PROFILE_PROCESS_IO_V1,
-    PROJECT_PROFILE_PUBLIC_GENERIC_WASM_PROVIDER_V1, PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_V1,
-    PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V1, PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2,
-    PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1,
-    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2, PROJECT_PROFILE_USEFUL_DATA_V1,
-    PROJECT_PROFILE_USEFUL_DATA_V2, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
+    PROJECT_PROFILE_PUBLIC_GENERIC_WASM_PROVIDER_V1, PROJECT_PROFILE_SOURCE_COMMAND_V1,
+    PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_V1, PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V1,
+    PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2, PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1,
+    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2,
+    PROJECT_PROFILE_USEFUL_DATA_V1, PROJECT_PROFILE_USEFUL_DATA_V2,
+    PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1, PROJECT_SOURCE_COMMAND_INPUT_V1,
 };
 pub use public_api::{
     derive_public_api_descriptor, replay_public_api_descriptor, PublicApiDescriptor,
@@ -1140,6 +1142,9 @@ impl ProjectSnapshot {
             native_publication::NativeOutput::prepare(output).map_err(|error| vec![error])?;
         let profile = self.manifest.project_profile();
         let prepared = match profile {
+            ProjectProfile::SourceCommandV1 => {
+                crate::codegen::emit_hir_c_with_source_command(&self.entry_program)
+            }
             ProjectProfile::UsefulDataCommandV2 => crate::codegen::emit_hir_c_with_native_command(
                 &self.public_api_program,
                 self.manifest.command().unwrap_or(""),

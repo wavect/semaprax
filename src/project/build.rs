@@ -225,6 +225,7 @@ fn finish_build(
             } else if manifest.project_profile().is_filesystem()
                 || manifest.project_profile() == super::ProjectProfile::EnvironmentIoV1
                 || manifest.project_profile() == super::ProjectProfile::ProcessIoV1
+                || manifest.project_profile() == super::ProjectProfile::SourceCommandV1
             {
                 &filesystem_roots
             } else {

@@ -588,6 +588,7 @@ fn project_v8_is_activated_only_by_manifest_and_profile_admission() {
         include_str!("../../src/project/manifest.rs"),
         include_str!("../../src/project/manifest/stream.rs"),
         include_str!("../../src/project/manifest/tables.rs"),
+        include_str!("../../src/project/manifest/tables/profiles.rs"),
         include_str!("../../src/project/manifest/validation.rs")
     );
     let profile = include_str!("../../src/project/profile.rs");

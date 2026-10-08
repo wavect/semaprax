@@ -217,3 +217,6 @@ mod v8_promotion_receipt;
 mod v9_recipe_consumer;
 #[path = "project/v9_recipe_identity.rs"]
 mod v9_recipe_identity;
+
+#[path = "project/source_command.rs"]
+mod source_command;

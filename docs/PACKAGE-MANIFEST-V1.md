@@ -117,7 +117,8 @@ manifest does, and reports the source layout through
 project route, descriptor, revision store header, and generated package reads
 only the contract, so a table manifest produces the same `project_schema`
 values, the same web/npm/native artifacts, and the same Wasm bytes as its
-frozen equivalent. Only the manifest bytes differ, and with them the
+frozen equivalent. The additive v26 source-command profile has only this
+table layout and its explicitly admitted native target. Only the manifest bytes differ, and with them the
 canonical manifest embedded in images, revision-store entries, and candidate
 archives.
 
@@ -130,6 +131,7 @@ archives.
 | `useful-data-command.v2` | `semaprax.project.v5` | [Project Manifest v5](PROJECT-MANIFEST-V5.md) |
 | `language-command-io.v1` | `semaprax.project.v6` | [Bounded Language Command IO v1](BOUNDED-LANGUAGE-COMMAND-IO-V1.md) |
 | `line-command-io.v1` | `semaprax.project.v7` | [Project Manifest v1, v7 profile](PROJECT-MANIFEST-V1.md#additive-project-manifest-v7-line-command-profile) |
+| `source-command.v1` | `semaprax.project.v26` (table only) | [Linked Native Source Commands](PROJECT-MANIFEST-V26.md) |
 | `owned-data-api.v1` | `semaprax.project.v8` | [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md) |
 | `flat-owned-record-api.v1` | `semaprax.project.v9` | [Public Flat Owned Record API v1](PUBLIC-FLAT-OWNED-RECORD-API-V1.md) |
 | `owned-utf8-api.v1` | `semaprax.project.v10` | [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md) |

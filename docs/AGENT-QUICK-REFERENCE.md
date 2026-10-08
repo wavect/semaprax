@@ -1058,52 +1058,60 @@ Replace a 256-arm i64-to-byte or byte-to-char match with
 
 ## Habits from other languages: diagnostic index
 
-Other first-attempt diagnostics and their fixes:
-
 | You wrote|Code|Fix|
 | ---|---|---|
-| native ownership/cleanup lowering refuses after successful check|`SPX-B104`|Preserve exact message + minimal reproducer: backend refusal, not source ownership error. Named String condition read with String scalar-match region parent is not canonical is a compiler regression; retain cleanup checks|
-| for i in 0..n { … }|`SPX-P106`|Use while, a let mut counter, and a discarded tail|
-| while body ending after assignment|`SPX-P203`|Add a discarded scalar tail such as 0|
-| f(x); as a statement|`SPX-P106`|Discard it with let _ = f(x); or make it the tail|
-| let t = (1, 2);|`SPX-P106`|No tuples; declare a `record`|
+| native cleanup lowering refusal after check|`SPX-B104`|Record exact error + repro. String-condition scalar-match region “parent is not canonical” is backend regression; preserve cleanup checks|
+| range `for` loop|`SPX-P106`|Use `while`, mutable counter, discarded tail|
+| assignment-only while body|`SPX-P203`|End with discarded scalar, e.g. 0|
+| call as statement|`SPX-P106`|Use `let _ = f(x)` or tail result|
+| tuple|`SPX-P106`|No tuples; declare a `record`|
 | Option::Some { value: 1 }|`SPX-T221`|Option<i64>::Some { value: 1 }|
-| `index + 1` when `index: usize`|`SPX-T208`|Integer literals default to `i64`; write `index + 1usize`|
-| let a: i32 = 5|`SPX-T232`|Suffix the literal: let a: i32 = 5i32|
-| 9223372036854775808 or -(9223372036854775808)|`SPX-P003`|One literal: -9223372036854775808 or -2147483648i32. Whitespace after sign is trivia; parentheses separate it. Negating minimum or dividing by -1 overflows|
+| `usize` index plus integer literal|`SPX-T208`|Literals default to `i64`; write `index + 1usize`|
+| unsuffixed `i32` literal|`SPX-T232`|Suffix: 5i32|
+| i64 max + 1 or parenthesized min negation|`SPX-P003`|One literal: -9223372036854775808 or -2147483648i32; spaces are trivia, parens separate. Min negation or division by -1 overflows|
 | "a" + "b"|`SPX-T250`|string_concat("a", "b")|
-| f("abc") or f(owned) for borrow str|`SPX-T205`|Bind then borrow: let s = "abc"; f(string_as_str(s))|
-| i64_from_f64(3) or usize_from_i64(1.5)|`SPX-T205`|Match types: i64_from_f64(3.0) or usize_from_i64(1)|
-| f64_from_i64(1, 2)|`SPX-T204`|Pass one argument: f64_from_i64(1)|
-| Unsupported Map<f64,i64> / Set<f64>|`SPX-T274`|Keys: string, i64, bool; values: String or Copy scalars|
-| implicit collection ownership at helper boundary|`SPX-O001`|Use explicit own/borrow parameters; owned results move|
-| Unsupported String/collection record profile|`SPX-T309`|Use explicit IDs, monomorphic acyclic records, own/borrow parameters; no invariants|
-| point.get() on a record|`SPX-T203`|Records have no methods: call get(point) or use a class|
-| let x = 1; let x = x + 1;|`SPX-T209`|No shadowing; pick a new name|
-| assignment to an immutable binding|`SPX-U101`|Declare it with let mut before assigning|
-| fn main() -> bool|`SPX-T104`|main returns i64; CLI exit status 0 means success|
-| a second consume(b) after own|`SPX-O101`|Take borrow in the callee or pass a fresh value|
-| struct, enum, pub, const|`SPX-P104`|Use record, variant, omit visibility, or return values from functions|
-| match x { 0 => 0, _ => 1 }|`SPX-P106`|End every arm with ,, even the last; a declaration's last field/case may omit it|
-| x += 1;|`SPX-P201`|x = x + 1;|
-| c ? a : b|`SPX-P106`|if c { a } else { b }|
-| break, continue|`SPX-P106`|Put the exit test in while condition|
-| x as i64|`SPX-P106`|Use named conversions (Scalars and literals; range checked), or one integer type with suffixed literals|
-| Rust/JavaScript closure|`SPX-P201`|Use fn(x: i64) -> i64 { x + 1 }|
-| use std::io;|`SPX-G170`|Compiler-owned functions need no import; projects import one declaration: use function @id("…") from module as name;|
-| rebuilding into an existing output path|`SPX-I307`|Choose fresh --output, or remove existing output only after confirming it is your prior build artifact; it never overwrites automatically|
-| f()? in main|`SPX-T218`|Only Result functions propagate; match in main|
-| [1, 2, 3]|`SPX-T262`|Arrays hold bytes ([1u8, 2u8]); use Vec<i64>|
-| fn f() or -> ()|`SPX-P106`, `SPX-P105`|Spell the result type; unit is unsupported|
-| a[0]|`SPX-P106`|Use byte_get(array_as_slice(a), 0usize) (Option<u8>)|
+| str arg from literal or owned String|`SPX-T205`|Bind String; pass string_as_str(s)|
+| wrong numeric conversion type|`SPX-T205`|Use i64_from_f64(3.0) or usize_from_i64(1)|
+| too many conversion args|`SPX-T204`|Pass one: f64_from_i64(1)|
+| float Map key / Set element|`SPX-T274`|Keys: string/i64/bool; values: String or Copy scalars|
+| implicit collection ownership at helper boundary|`SPX-O001`|Declare own/borrow; results move|
+| unsupported String/collection record|`SPX-T309`|Explicit IDs; monomorphic acyclic records; own/borrow; no invariants|
+| point.get() on a record|`SPX-T203`|Call get(point) or use a class; records have no methods|
+| shadowed binding|`SPX-T209`|Rename binding|
+| assignment to immutable|`SPX-U101`|Use let mut|
+| fn main() -> bool|`SPX-T104`|Return i64; CLI 0 succeeds|
+| reuse after own|`SPX-O101`|Borrow in callee or pass fresh value|
+| struct/enum/pub/const|`SPX-P104`|Use record/variant; omit visibility; return values|
+| match arm without comma|`SPX-P106`|Comma every arm; final field/case may omit it|
+| compound assignment|`SPX-P201`|Write x = x + 1|
+| ternary expression|`SPX-P106`|Use `if c { a } else { b }`|
+| break / continue|`SPX-P106`|Put exit test in `while` condition|
+| `x as i64`|`SPX-P106`|Use named checked conversion or suffixed literals|
+| Rust/JS closure|`SPX-P201`|Use fn(x: i64) -> i64 { x + 1 }|
+| use std::io;|`SPX-G170`|Built-ins need no import; project imports stable IDs|
+| rebuild to existing output|`SPX-I307`|Fresh --output; remove only after confirming it is your artifact. Never overwrite|
+| f()? in main|`SPX-T218`|Only Result propagates; match in main|
+| array literal|`SPX-T262`|Arrays are bytes; use Vec<i64>|
+| `fn f()` or `-> ()`|`SPX-P106`, `SPX-P105`|Spell result type; no unit|
+| `a[0]`|`SPX-P106`|`byte_get(array_as_slice(a), 0usize)` (`Option<u8>`)|
 | Some(1), None|`SPX-T203`, `SPX-T202`|Option<i64>::Some { value: 1 }, Option<i64>::None {}|
-| s.len() on a string|`SPX-T203`|Call string_len(s); see Compiler-owned functions for text operations. Only classes have methods|
-| str_as_bytes(text) or str_as_bytes(string_as_str(text))|`SPX-T263`, `SPX-T266`|Bind view first: let view = string_as_str(text); str_as_bytes(view)|
+| s.len() on string|`SPX-T203`|Use string_len(s); only classes have methods|
+| str_as_bytes(text) / nested string_as_str|`SPX-T263`, `SPX-T266`|Bind view: let v = string_as_str(text); str_as_bytes(v)|
 | repeated direct output on one path or direct output reachable from a loop|`SPX-T269`|Keep direct writes outside loops and within selected-profile limits. Default combined stdout + stderr cap: 65,536 bytes; Project v28 staged appends: 1 MiB.|
-| string_as_str("literal")|`SPX-T266`|Bind the literal before passing it to string_as_str|
-| shape == Shape::Box { width: 1 } or option == Option<i64>::None {}|`SPX-T207`|Only payload-free, non-generic variants compare with ==; test others with match shape { Shape::Dot {} => true, _ => false, }|
-| an or-pattern alternative with a payload, such as Shape::Box { width: w }|`SPX-M105`|Or-pattern alternatives are payload-free cases; give a payload case its own arm|
-| String, int, or unsupported Vec inference/element types|`SPX-T001`/`SPX-T281`|Use string/scalars; spell Copy element and wrapper/vec_*<T> types; projects may use authenticated std.collections aliases|
+| string_as_str("literal")|`SPX-T266`|Bind literal first: let s = "literal"; string_as_str(s)|
+| comparing payload/generic variant|`SPX-T207`|Only payload-free, non-generic variants support ==; else match|
+| payload in or-pattern|`SPX-M105`|Payload-free alternatives only; separate payload arms|
+| String/int or unsupported Vec types|`SPX-T001`/`SPX-T281`|Use string/scalars; spell Copy Vec<T> args; projects may import authenticated aliases|
+| bad [modules] lists|`SPX-J100`|2–16 sorted sources; one bounded test module ≠ entry. entry="app", sources=["a.spx","b.spx"], tests=["app.tests"]; [Manifest](PACKAGE-MANIFEST-V1.md)|
+| generic call in while body|`SPX-T252`|vec_len<T>; imported generic aliases stay closed; see [While](WHILE-LOOPS-V1.md)|
+| rejected while helper|`SPX-T252`|Borrow exact compiler Vec<T> of Copy scalars; result scalar, flat Copy variant or string|
+| outer owned binding changes in while|`SPX-T252`|Keep outer ownership unchanged|
+| Vec literal capacity >8192|`SPX-T282`|Reduce vec_with_capacity<T>; Vec-only limit; see [Vec](OWNED-BOUNDED-VEC-V1.md)|
+| lookalike Vec wrapper|`SPX-T283`|Import exact std.collections.vec.* stable ID; no authored substitute; see [Vec](OWNED-BOUNDED-VEC-V1.md)|
+| function exceeds 256 shared loans|`SPX-H006`|Reduce shared loans; never raise limit; see [Loan Plan](SHARED-LOAN-PLAN-V1.md)|
+| function exceeds 4096 loan points|`SPX-H006`|Simplify flow; extract admitted helpers|
+| function exceeds 4096 CFG edges|`SPX-H006`|Simplify flow; extract admitted helpers|
+| loan analysis exceeds 1000000 checked work|`SPX-H006`|Reduce analysis work; never raise bound|
 
 ## Web applications
 

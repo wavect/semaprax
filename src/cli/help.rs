@@ -1362,6 +1362,65 @@ mod tests {
                 "Default combined stdout + stderr cap: 65,536 bytes; Project v28 staged appends: 1 MiB.\n",
             )
         );
+        for (code, expected) in [
+            (
+                "SPX-J100",
+                concat!(
+                    "SPX-J100\n",
+                    "wrote: bad [modules] lists\n",
+                    "fix: 2–16 sorted sources; one bounded test module ≠ entry. entry=\"app\", sources=[\"a.spx\",\"b.spx\"], tests=[\"app.tests\"]; [Manifest](PACKAGE-MANIFEST-V1.md)\n",
+                ),
+            ),
+            (
+                "SPX-T252",
+                concat!(
+                    "SPX-T252\n",
+                    "wrote: generic call in while body\n",
+                    "fix: vec_len<T>; imported generic aliases stay closed; see [While](WHILE-LOOPS-V1.md)\n",
+                    "\n",
+                    "wrote: rejected while helper\n",
+                    "fix: Borrow exact compiler Vec<T> of Copy scalars; result scalar, flat Copy variant or string\n",
+                    "\n",
+                    "wrote: outer owned binding changes in while\n",
+                    "fix: Keep outer ownership unchanged\n",
+                ),
+            ),
+            (
+                "SPX-T282",
+                concat!(
+                    "SPX-T282\n",
+                    "wrote: Vec literal capacity >8192\n",
+                    "fix: Reduce vec_with_capacity<T>; Vec-only limit; see [Vec](OWNED-BOUNDED-VEC-V1.md)\n",
+                ),
+            ),
+            (
+                "SPX-T283",
+                concat!(
+                    "SPX-T283\n",
+                    "wrote: lookalike Vec wrapper\n",
+                    "fix: Import exact std.collections.vec.* stable ID; no authored substitute; see [Vec](OWNED-BOUNDED-VEC-V1.md)\n",
+                ),
+            ),
+            (
+                "SPX-H006",
+                concat!(
+                    "SPX-H006\n",
+                    "wrote: function exceeds 256 shared loans\n",
+                    "fix: Reduce shared loans; never raise limit; see [Loan Plan](SHARED-LOAN-PLAN-V1.md)\n",
+                    "\n",
+                    "wrote: function exceeds 4096 loan points\n",
+                    "fix: Simplify flow; extract admitted helpers\n",
+                    "\n",
+                    "wrote: function exceeds 4096 CFG edges\n",
+                    "fix: Simplify flow; extract admitted helpers\n",
+                    "\n",
+                    "wrote: loan analysis exceeds 1000000 checked work\n",
+                    "fix: Reduce analysis work; never raise bound\n",
+                ),
+            ),
+        ] {
+            assert_eq!(diagnostic_entry(code).unwrap(), expected);
+        }
         let full_index = language_topic("mistakes-index").unwrap();
         assert!(t208.len() * 20 < full_index.len());
         assert!(

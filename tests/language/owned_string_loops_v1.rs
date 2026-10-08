@@ -539,9 +539,31 @@ fn reference_interpreter_builds_strings_in_loops() {
     let canonical = format::canonical(&parse(SOURCE, Path::new("owned-string-loops.spx")).unwrap());
     let fixture = Fixture::new(&canonical);
     for (id, expected) in CASES {
-        let result =
-            interpreter::interpret(&fixture.source, id, &[], &InterpreterOptions::default())
-                .unwrap();
+        let options = InterpreterOptions::default();
+        let result = if matches!(
+            *id,
+            "loops.condition_parameters" | "loops.condition_parameter_temporary"
+        ) {
+            // Direct String-signature helpers require the explicit internal
+            // profile; the frozen ordinary interpreter must still refuse them.
+            let errors = interpreter::interpret(&fixture.source, id, &[], &options).unwrap_err();
+            assert_eq!(errors.len(), 1, "{id}: {errors:?}");
+            assert_eq!(errors[0].code, "SPX-F102", "{id}: {errors:?}");
+            assert!(errors[0].message.contains("unsupported_callee"));
+            let result =
+                interpreter::internal_strings::interpret(&fixture.source, id, &[], &options)
+                    .unwrap_or_else(|error| panic!("{id}: {error:?}"));
+            interpreter::internal_strings::verify_envelope(&result.envelope).unwrap();
+            interpreter::internal_strings::verify_envelope_against_source(
+                &fixture.source,
+                &result.envelope,
+            )
+            .unwrap();
+            result
+        } else {
+            interpreter::interpret(&fixture.source, id, &[], &options)
+                .unwrap_or_else(|error| panic!("{id}: {error:?}"))
+        };
         let envelope: Value = serde_json::from_str(&result.envelope).unwrap();
         let outcome = &envelope["payload"]["outcome"];
         let observed = if outcome["kind"] == "returned" {

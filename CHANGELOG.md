@@ -20,6 +20,11 @@
 
 - Recognize unique TeamDesk Create/Edit/Delete links or buttons and restrict admitted field-label prefixes to native form controls (OPT #692).
 
+- Add `node server.mjs --self-test-offline` generated-runtime checks for socketless agent
+  environments, with bounded language help and regression guards against
+  listeners, child processes and writes (OPT #693). Full server self-tests and
+  independent application acceptance remain required.
+
 - Repair TeamDesk acceptance readiness and equivalent CSV/audit representations
   (OPT #689), retaining all application obligations and case identities. Frozen
   paid results remain unchanged. Six selected gate regressions and ten hostile

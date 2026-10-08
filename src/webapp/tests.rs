@@ -330,14 +330,18 @@ syncBuiltinESMExports();
         let _ = std::fs::remove_dir_all(cwd);
         (output, completed, empty)
     };
-    let (offline, offline_completed, offline_empty) = run_offline(&out.join("server.mjs"), &offline_cwd);
+    let (offline, offline_completed, offline_empty) =
+        run_offline(&out.join("server.mjs"), &offline_cwd);
     let offline_stdout = String::from_utf8_lossy(&offline.stdout);
     assert!(
         offline.status.success(),
         "{offline_stdout}{}",
         String::from_utf8_lossy(&offline.stderr)
     );
-    assert!(offline_completed, "offline self-test did not exit within the bound");
+    assert!(
+        offline_completed,
+        "offline self-test did not exit within the bound"
+    );
     assert!(
         offline_stdout.starts_with("offline self-test ok: 10 entities,"),
         "{offline_stdout}"
@@ -351,7 +355,10 @@ syncBuiltinESMExports();
         "offline self-test attempted a forbidden operation: {}",
         String::from_utf8_lossy(&offline.stderr)
     );
-    let empty_source = write_temp("offline-empty-entity", "module offline.empty;\nrecord Empty {}\n");
+    let empty_source = write_temp(
+        "offline-empty-entity",
+        "module offline.empty;\nrecord Empty {}\n",
+    );
     let empty_projection = generate(&empty_source).unwrap();
     let empty_out = empty_source.with_file_name("offline-empty-out");
     let _ = std::fs::remove_dir_all(&empty_out);
@@ -366,8 +373,14 @@ syncBuiltinESMExports();
         "{empty_stdout}{}",
         String::from_utf8_lossy(&empty_run.stderr)
     );
-    assert!(empty_completed && empty_cwd, "empty-entity offline self-test did not remain offline: {empty_stdout}");
-    assert!(empty_stdout.starts_with("offline self-test ok: 1 entities, 0 types,"), "{empty_stdout}");
+    assert!(
+        empty_completed && empty_cwd,
+        "empty-entity offline self-test did not remain offline: {empty_stdout}"
+    );
+    assert!(
+        empty_stdout.starts_with("offline self-test ok: 1 entities, 0 types,"),
+        "{empty_stdout}"
+    );
     assert!(
         !String::from_utf8_lossy(&empty_run.stderr).contains("OFFLINE_GUARD_TRIP"),
         "empty-entity offline self-test attempted a forbidden operation: {}",

@@ -9,6 +9,7 @@ import subprocess
 from unittest.mock import patch
 
 import live_campaign
+import live_campaign_common as shared
 import measurement_evidence
 
 
@@ -415,6 +416,17 @@ class LiveCampaignTests(unittest.TestCase):
             "five_minute_tokens": 600_000,
             "one_hour_tokens": 400_000,
         })
+
+    def test_rate_card_accepts_an_explicit_newer_price_book_without_changing_default(self):
+        usage = {
+            "input_tokens": 1_000_000,
+            "cache_creation_input_tokens": 1_000_000,
+            "cache_read_input_tokens": 1_000_000,
+            "output_tokens": 1_000_000,
+        }
+        self.assertEqual(shared.rate_card_estimate_details(usage)["usd"], 14.7)
+        newer_prices = {**shared.PRICE_USD_PER_MTOK, "cache_read": 0.1}
+        self.assertEqual(shared.rate_card_estimate_details(usage, newer_prices)["usd"], 14.6)
 
     def test_summary_includes_failed_attempt_costs_and_keeps_unknown_usage(self):
         rows = [

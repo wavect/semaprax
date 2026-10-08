@@ -449,18 +449,27 @@ def cache_write_pricing(usage: dict[str, int | None]) -> dict[str, Any]:
     return {"basis": "assumed_all_cache_writes_5m", "five_minute_tokens": total, "one_hour_tokens": 0}
 
 
-def rate_card_estimate_details(usage: dict[str, int | None]) -> dict[str, Any]:
+def rate_card_estimate_details(
+    usage: dict[str, int | None],
+    per_million_prices: dict[str, float] | None = None,
+) -> dict[str, Any]:
+    prices = PRICE_USD_PER_MTOK if per_million_prices is None else per_million_prices
+    if set(prices) != set(PRICE_USD_PER_MTOK) or any(
+        isinstance(rate, bool) or not isinstance(rate, (int, float)) or not math.isfinite(rate) or rate < 0
+        for rate in prices.values()
+    ):
+        raise ValueError("rate card must provide finite nonnegative prices for every usage bucket")
     cache = cache_write_pricing(usage)
     required = ("input_tokens", "cache_read_input_tokens", "output_tokens")
     known = cache["basis"] not in {"unavailable", "inconsistent_provider_ttl_breakdown"}
     if not all(usage.get(key) is not None for key in required) or not known:
         return {"usd": None, "cache_write_pricing": cache}
     amount = (
-        usage["input_tokens"] * PRICE_USD_PER_MTOK["input"]
-        + cache["five_minute_tokens"] * PRICE_USD_PER_MTOK["cache_write_5m"]
-        + cache["one_hour_tokens"] * PRICE_USD_PER_MTOK["cache_write_1h"]
-        + usage["cache_read_input_tokens"] * PRICE_USD_PER_MTOK["cache_read"]
-        + usage["output_tokens"] * PRICE_USD_PER_MTOK["output"]
+        usage["input_tokens"] * prices["input"]
+        + cache["five_minute_tokens"] * prices["cache_write_5m"]
+        + cache["one_hour_tokens"] * prices["cache_write_1h"]
+        + usage["cache_read_input_tokens"] * prices["cache_read"]
+        + usage["output_tokens"] * prices["output"]
     ) / 1_000_000
     return {"usd": round(amount, 6), "cache_write_pricing": cache}
 

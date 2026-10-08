@@ -172,5 +172,19 @@
     "compiler_path": "/Users/kevin/.codex/benchmark-binaries/semaprax-8547c7b8f",
     "compiler_sha256": "69388f9d4928c19b20a3e830ee9c285fc2e9af3b72ae7eaae14e0217ef1639f0"
   },
-  "qualified_source_archive_branch": "codex/opt-qualified-evidence-20261008"
+  "qualified_source_archive_branch": "codex/opt-qualified-evidence-20261008",
+  "latest_rebased_integration": {
+    "source_commit": "bed9bae3d64ab222678a906575f63b7b3457469b",
+    "upstream_commit": "bd814eada40bf8745df97fe9868e7dd79ca6728b",
+    "upstream_scope": "Wasm float-conversion aggregate routing and language fixtures; no native or webapp emitter changes. The integer-only decimal library does not use the newly admitted float conversion route.",
+    "selected_clippy_passed": true,
+    "selected_clippy_log_sha256": "7de276b64aa358952121a1cea08566e96ec381ac1c4021594914d1438ede8d98",
+    "selected_clippy_seconds": 35.21,
+    "refusal_test_rerun_after_latest_rebase": false,
+    "evidence_source_branches": [
+      "codex/opt-qualified-evidence-20261008",
+      "codex/opt-integration-evidence-20261008"
+    ],
+    "qualification_scope": "Prior frozen-source qualification retained with explicit source identities; no new current-head live benchmark claim."
+  }
 }

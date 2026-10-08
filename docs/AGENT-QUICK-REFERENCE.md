@@ -698,8 +698,8 @@ and the [decimal CLI example](../examples/source-command-project/semaprax.toml).
 Build with `semaprax build lines.spx --target native --output lines`. Omit
 `--profile`: `text-toolkit-v1` and `internal-strings-v1` are Wasm/web export
 profiles; native text operations come from source. Destinations must be fresh.
-On `SPX-I307`, choose a new `--output` or remove the prior build artifact; the
-compiler never overwrites it.
+On `SPX-I307`, choose a new `--output` or, after confirming ownership, remove
+the prior build artifact. The compiler never overwrites it.
 
 Streaming uses Project v23 input
 `argv-utf8+stdin-stream.v1` and profile `language-command-io.stream.v1`.

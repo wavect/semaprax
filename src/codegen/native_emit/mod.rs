@@ -142,6 +142,7 @@ fn emit_hir_c_with_options(
     // command entry opens its file root with `O_DIRECTORY | O_CLOEXEC`;
     // glibc declares these under strict C11 only with POSIX.1-2008 visibility.
     if output_profile.is_command()
+        || output_profile == NativeOutputProfile::SourceCommand
         || crate::string_ops::program_uses_op(program, crate::string_ops::StringOp::FileReadText)
     {
         network_io::emit_feature_macros(&mut output);

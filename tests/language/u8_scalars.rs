@@ -356,12 +356,12 @@ fn main() -> i64 { let b = 2u8; let negated = -b; 0 }
         r#"
 module test.u8_rem;
 @id("app.main")
-fn main() -> i64 { if 9u8 % 2u8 == 1u8 { 7 } else { 8 } }
+fn main() -> i64 { if 9u8 % 2 == 1u8 { 7 } else { 8 } }
 "#,
     );
     assert!(
         remainder.iter().any(|item| item.code == "SPX-T208"),
-        "remainder stays i64-only"
+        "remainder rejects mixed u8 and i64 operands"
     );
 
     let mixed_ordering = diagnostics(

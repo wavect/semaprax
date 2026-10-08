@@ -128,9 +128,9 @@ fn byte_widening_preserves_exact_source_diagnostics() {
     assert!(verify::verify(&ast)
         .iter()
         .any(|diagnostic| diagnostic.code == "SPX-S113"));
-    // The old fallible numeric family remains separately refused by Wasm.
+    // Float conversions remain refused; Numeric Profile v2 admits integers.
     let old = parse(
-        "module t; @id(\"app.main\") fn main()->i64 { i64_from_usize(1usize) }",
+        "module t; @id(\"app.main\") fn main()->i64 { i64_from_f64(1.0) }",
         Path::new("old.spx"),
     )
     .unwrap();

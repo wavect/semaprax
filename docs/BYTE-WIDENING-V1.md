@@ -26,8 +26,10 @@ Calls use the existing ordinary Call AST/HIR/graph projection. The identity is
 an additive intrinsic table entry, outside the frozen Conversions v1 and
 Project builtin catalogs. No graph/prelude/schema change is required. Source
 that does not name the operation retains its projection and target bytes.
-The [Conversions v1](LANGUAGE-ERGONOMICS-V1.md) family keeps its exact catalog,
-checked statuses and `SPX-W116` Wasm refusal. The new byte widening uses inline
+The [Conversions v1](LANGUAGE-ERGONOMICS-V1.md) family keeps its exact catalog
+and checked statuses. [Integer Numeric Profile v2](INTEGER-NUMERIC-PROFILE-V2.md)
+admits its checked integer conversions on Wasm; float conversions retain their
+`SPX-W116` Wasm refusal. The new byte widening uses inline
 native `(int64_t)` and Wasm `i64.extend_i32_u`; it needs no String runtime or
 host conversion import. Existing closed target signature, ownership and
 capability rules still apply; this addition does not expand a public byte/text

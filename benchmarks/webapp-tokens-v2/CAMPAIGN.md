@@ -17,8 +17,13 @@ wall time separately. Provider billing receipts are never inferred.
 
 Plan without a model request:
 
+`plan` and `run` accept `--round N` as a positive integer campaign identity;
+it defaults to `1` and is recorded in `campaign.json`, `results.json`, and the
+final command summary. Use a fresh artifact path for each round.
+
 ```sh
 python3 benchmarks/webapp-tokens-v2/codex_campaign.py plan \
+  --round 2 \
   --base-ref c50c3bd7623354840504687d64260edb8ff3895f \
   --compiler-source-ref 60002439e1b651ebbfbf3a887f12a20c927d720f \
   --semaprax-bin /absolute/path/to/semaprax \

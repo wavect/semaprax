@@ -38,10 +38,23 @@ class WebappCampaignTests(unittest.TestCase):
                                                       "semaprax", "typescript", "typescript", "semaprax",
                                                       "semaprax", "typescript"])
         self.assertEqual(settings["qualification"]["required_cases"], 912)
+        self.assertEqual(settings["round"], 1)
         self.assertEqual(set(settings["seed_files_sha256"]), {
             "benchmarks/webapp-tokens-v2/SPEC.md",
             "benchmarks/webapp-tokens-v2/acceptance/CONTRACT.md",
         })
+        args.round = 2
+        self.assertEqual(campaign.plan(args)["round"], 2)
+        args.round = 0
+        with self.assertRaisesRegex(ValueError, "positive integer"):
+            campaign.plan(args)
+
+    def test_cli_rejects_non_positive_round_before_planning(self):
+        with patch.object(sys, "argv", ["campaign", "plan", "--round", "0"]), \
+                contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit) as error:
+                campaign.main()
+        self.assertEqual(error.exception.code, 2)
 
     def test_seed_hashes_and_repository_are_exported_from_base_ref(self):
         with tempfile.TemporaryDirectory() as directory:

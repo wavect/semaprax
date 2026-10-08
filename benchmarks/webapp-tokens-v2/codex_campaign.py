@@ -31,13 +31,24 @@ REPO = BENCHMARK.parents[1]
 MODEL = "gpt-6.1-sol"
 EFFORT = "medium"
 TIMEOUT_SECONDS = 1800
+
+
+def positive_round(value: str) -> int:
+    try:
+        number = int(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("round must be a positive integer") from error
+    if number < 1:
+        raise argparse.ArgumentTypeError("round must be a positive integer")
+    return number
+
+
 ARMS = ("semaprax", "typescript")
 MIN_TRIALS_PER_ARM = 5
 SEED_FILES = (
     "/benchmarks/webapp-tokens-v2/SPEC.md",
     "/benchmarks/webapp-tokens-v2/acceptance/CONTRACT.md",
 )
-ROUND = 1
 FROZEN_SPEC = "benchmarks/webapp-tokens-v2/SPEC.md"
 QUALIFICATION_RECEIPT = "benchmarks/webapp-tokens-v2/acceptance/evidence/reference-r6-summary.json"
 ACCEPTANCE_SOURCE_FILES = (
@@ -428,6 +439,9 @@ def run_codex(command: list[str], workspace: Path, env: dict[str, str], stream: 
 
 
 def plan(args: argparse.Namespace) -> dict[str, Any]:
+    round_number = getattr(args, "round", 1)
+    if isinstance(round_number, bool) or not isinstance(round_number, int) or round_number < 1:
+        raise ValueError("campaign round must be a positive integer")
     repo = Path(args.repo).resolve(strict=True)
     commit = resolve_commit(repo, args.base_ref)
     compiler_source_commit = resolve_commit(repo, args.compiler_source_ref)
@@ -450,7 +464,7 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
     if args.trials_per_arm != MIN_TRIALS_PER_ARM or args.timeout_seconds != TIMEOUT_SECONDS:
         raise ValueError("matched campaign requires five trials per arm and a 1800-second timeout")
     return {
-        "adapter": "codex-matched-teamdesk-webapp-v1", "round": ROUND, "repository_commit": commit,
+        "adapter": "codex-matched-teamdesk-webapp-v1", "round": round_number, "repository_commit": commit,
         "repository_root": str(repo),
         "compiler_source_commit": compiler_source_commit,
         "seed_files_sha256": hashes, "artifacts": str(artifacts), "model_requested": args.model,
@@ -920,6 +934,8 @@ def main() -> int:
     plan_parser = sub.add_parser("plan", help="write no artifacts and make no model request")
     run_parser = sub.add_parser("run", help="launch the explicitly acknowledged matched campaign")
     for current in (plan_parser, run_parser):
+        current.add_argument("--round", type=positive_round, default=1,
+                             help="positive campaign identity recorded in campaign and result reports (default: 1)")
         current.add_argument("--repo", default=str(REPO)); current.add_argument("--base-ref", required=True)
         current.add_argument("--artifacts", required=True); current.add_argument("--semaprax-bin", required=True)
         current.add_argument("--compiler-source-ref", required=True,
@@ -959,7 +975,8 @@ def main() -> int:
                 (artifacts / "results.json").write_text(json.dumps({"campaign": result, "calibration": calibration,
                     "trials": [], "unlaunched_trial_order": result["trial_order"],
                     "campaign_status": "calibration_failed", "summary": summarize([])}, indent=2, sort_keys=True) + "\n")
-                print(json.dumps({"status": "calibration_failed", "artifacts": str(artifacts)}, indent=2))
+                print(json.dumps({"status": "calibration_failed", "round": result["round"],
+                                  "artifacts": str(artifacts)}, indent=2))
                 return 2
             rows = []; counters = {arm: 0 for arm in ARMS}; remaining = list(result["trial_order"])
             while remaining:
@@ -985,7 +1002,7 @@ def main() -> int:
                     break
             status = "completed" if not remaining else "interrupted"
             result = {"status": status, "artifacts": str(artifacts),
-                      "unlaunched_trial_order": remaining, **summarize(rows)}
+                      "round": result["round"], "unlaunched_trial_order": remaining, **summarize(rows)}
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0 if result.get("status", "ready") in {"ready", "completed"} else 2
     except (OSError, ValueError, subprocess.SubprocessError) as error:

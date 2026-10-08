@@ -511,7 +511,7 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
             self.assertEqual(result["status"], "qualified")
             acceptance = next(command for command in commands if "--report-json" in command)
             accepted_command = json.loads(acceptance[acceptance.index("--command-json") + 1])
-            self.assertEqual(accepted_command, [str(output / "qualified-native-binary")])
+            self.assertEqual(accepted_command, [str(output.resolve() / "qualified-native-binary")])
             evidence = json.loads((output / "qualification-evidence.json").read_text())
             self.assertEqual(evidence["qualification_subject"]["native_binary_sha256"],
                              live_campaign.sha_bytes(b"accepted native"))

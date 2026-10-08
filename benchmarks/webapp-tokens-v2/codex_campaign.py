@@ -731,9 +731,11 @@ def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any]
             invalidate(row, "workspace integrity failed before acceptance")
         else:
             started = time.monotonic()
-            row["acceptance"] = check_candidate(
-                candidate, artifacts / "qualification" / label, arm, settings, semaprax_bin)
-            row["acceptance_elapsed_seconds"] = round(time.monotonic() - started, 3)
+            try:
+                row["acceptance"] = check_candidate(
+                    candidate, artifacts / "qualification" / label, arm, settings, semaprax_bin)
+            finally:
+                row["acceptance_elapsed_seconds"] = round(time.monotonic() - started, 3)
             row["status"] = "accepted" if row["acceptance"]["accepted"] else "not_accepted"
             if row["status"] != "accepted":
                 row["failure"] = "candidate failed independent 912-case acceptance"
@@ -840,7 +842,8 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
     output = complete_sum([row.get("observed", {}).get("request_usage_sum", {}).get("output_tokens") for row in rows])
     legacy_net = complete_sum([row.get("observed", {}).get("legacy_net_input_tokens") for row in rows])
     agent_wall = complete_sum([row.get("elapsed_seconds") for row in rows])
-    acceptance_wall_values = [row.get("acceptance", {}).get("seconds", 0) for row in rows]
+    acceptance_wall_values = [row.get("acceptance_elapsed_seconds",
+        row.get("acceptance", {}).get("seconds", None if "acceptance" in row else 0)) for row in rows]
     acceptance_wall = (sum(acceptance_wall_values)
                        if all(isinstance(value, (int, float)) for value in acceptance_wall_values) else None)
     authored_values = [row.get("final_candidate_source_metrics", {}).get("total_tokens") for row in accepted_rows]
@@ -928,9 +931,14 @@ def main() -> int:
                 row = launch_trial(artifacts / "seed-repository", artifacts, seed["seed_repository_commit"],
                                    {"arm": arm, "number": counters[arm]}, result, Path(args.semaprax_bin).resolve())
                 rows.append(row)
-                interrupted = (row.get("runner_error") is True or row.get("timed_out") is True
-                    or row.get("process_exit_code") not in (0, None)
-                    or row.get("workspace_retained_for_review") is True or row.get("telemetry_valid") is False)
+                # A bounded model task timeout is a scored failure, not a
+                # reason to omit the other matched attempts. Missing final
+                # telemetry after that timeout remains unknown in accounting.
+                interrupted = (row.get("runner_error") is True
+                    or row.get("workspace_retained_for_review") is True
+                    or (not row.get("timed_out") and (
+                        row.get("process_exit_code") not in (0, None)
+                        or row.get("telemetry_valid") is False)))
                 (artifacts / "results.json").write_text(json.dumps({"campaign": result, "calibration": calibration,
                     "trials": rows, "unlaunched_trial_order": remaining,
                     "campaign_status": "interrupted" if interrupted else ("complete" if not remaining else "running"),

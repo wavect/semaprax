@@ -1,4 +1,7 @@
 import json
+import sys
+import contextlib
+import io
 import hashlib
 import shutil
 import subprocess
@@ -113,6 +116,41 @@ class WebappCampaignTests(unittest.TestCase):
             self.assertEqual(observed["model_request_count"], 1)
             self.assertEqual(campaign.list_price_estimate(observed["model_requests"])["actual_billed_usd"], None)
 
+    def test_model_task_timeout_keeps_all_ten_matched_attempts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "campaign"
+            order = ["semaprax", "typescript", "typescript", "semaprax", "semaprax",
+                     "typescript", "typescript", "semaprax", "semaprax", "typescript"]
+            snapshot = {"files_sha256": {}}
+            settings = {"capabilities": {"status": "ready"},
+                "acceptance": {"capabilities": {"status": "ready"}},
+                "artifacts": str(artifacts), "harness_source_snapshot": snapshot,
+                "repository_commit": "seed", "seed_files_sha256": {campaign.FROZEN_SPEC: "hash"},
+                "trial_order": order}
+            attempts = []
+            def trial(_repo, _artifacts, _commit, requested, _settings, _compiler):
+                attempts.append(requested)
+                timeout = len(attempts) == 1
+                return {**requested, "status": "failed" if timeout else "accepted",
+                    "timed_out": timeout, "process_exit_code": -15 if timeout else 0,
+                    "telemetry_valid": not timeout}
+            argv = ["campaign", "run", "--repo", str(ROOT), "--base-ref", "HEAD",
+                "--compiler-source-ref", "HEAD", "--artifacts", str(artifacts),
+                "--semaprax-bin", "/bin/sh", "--tokenizer-dir", "/tmp/tokenizer",
+                "--acknowledge-paid-attempts"]
+            with patch.object(sys, "argv", argv), patch.object(campaign, "plan", return_value=settings), \
+                    patch.object(campaign, "snapshot_harness_sources", return_value=snapshot), \
+                    patch.object(campaign, "create_seed_repository", return_value={"seed_repository_commit": "seed"}), \
+                    patch.object(campaign, "launch_calibration", return_value={"status": "ready"}), \
+                    patch.object(campaign, "launch_trial", side_effect=trial), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(campaign.main(), 0)
+            result = json.loads((artifacts / "results.json").read_text())
+            self.assertEqual([row["arm"] for row in attempts], order)
+            self.assertEqual(result["campaign_status"], "complete")
+            self.assertEqual(result["summary"]["failed_or_rejected_attempts"], 1)
+            self.assertIsNone(result["summary"]["list_price_estimate_per_accepted_task_usd"])
+
     def test_paid_acceptance_timeout_returns_a_persistable_failed_row(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -159,6 +197,7 @@ class WebappCampaignTests(unittest.TestCase):
                                             {"arm": "typescript", "number": 1}, settings, root / "semaprax")
             self.assertEqual(row["status"], "failed")
             self.assertTrue(row["runner_error"])
+            self.assertGreaterEqual(row["acceptance_elapsed_seconds"], 0)
             self.assertIn("timed out", row["failure"])
             self.assertEqual(row["elapsed_seconds"], 1.25)
             self.assertEqual(row["candidate_files_sha256"], {"app.ts": campaign.common.digest(

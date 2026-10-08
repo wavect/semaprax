@@ -105,6 +105,27 @@ fn cli_language_help_documents_run_string_fallback_and_json_schemas() {
 }
 
 #[test]
+fn cli_language_projects_distinguishes_the_private_stream_data_profile() {
+    let (output, working_directory) = invoke(&["help", "language", "projects"]);
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let help = String::from_utf8(output.stdout).unwrap();
+    for detail in [
+        "The `stdin-stream-text` scaffold remains Project v25.",
+        "`language-command-io.stream-data.v1`",
+        "immutable `borrow Vec<T>` parameters for the eight",
+        "v24/v25 retain their closed helper boundaries",
+        "Web/npm refuse v27",
+    ] {
+        assert!(
+            help.contains(detail),
+            "missing project help detail: {detail}"
+        );
+    }
+    std::fs::remove_dir(working_directory).unwrap();
+}
+
+#[test]
 fn standalone_help_is_exact_capability_aware_and_inert() {
     let (empty, empty_dir) = invoke(&[]);
     // Bare `semaprax` is the first contact anyone has with the tool: it prints

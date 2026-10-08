@@ -348,5 +348,7 @@ fn native_v24_stream_exit_preserves_application_status_and_discards_invalid_resu
     let _ = std::fs::remove_dir_all(root);
 }
 
+#[path = "stdin_stream_command/stream_data.rs"]
+mod stream_data;
 #[path = "stdin_stream_command/text.rs"]
 mod text;

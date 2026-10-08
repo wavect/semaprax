@@ -21,11 +21,13 @@ pub(super) fn validate_selected_command(
         profile,
         WorkspaceIoProfile::StdinStreamCommand(_, true)
             | WorkspaceIoProfile::StdinStreamTextCommand(_)
+            | WorkspaceIoProfile::StdinStreamDataCommand(_)
     );
     if let WorkspaceIoProfile::LanguageCommand { command }
     | WorkspaceIoProfile::LineCommand { command }
     | WorkspaceIoProfile::StdinStreamCommand(command, _)
-    | WorkspaceIoProfile::StdinStreamTextCommand(command) = profile
+    | WorkspaceIoProfile::StdinStreamTextCommand(command)
+    | WorkspaceIoProfile::StdinStreamDataCommand(command) = profile
     {
         let selected = functions
             .iter()
@@ -88,6 +90,19 @@ pub(crate) fn stream_text_return_admitted(ty: &ResolvedType) -> bool {
         || crate::stdin_stream_ops::is_reader(ty)
         || useful_data_workspace_return_admitted(ty)
 }
+
+fn borrowed_copy_vec(ty: &ResolvedType) -> bool {
+    matches!(ty, ResolvedType::Nominal { declaration, arguments }
+        if declaration.as_str() == crate::prelude::VEC_ID
+            && matches!(arguments.as_slice(), [element] if crate::hir::generic_collection::scalar(element)))
+}
+
+/// Project v27 adds only one private carrier to the v25 helper surface.
+pub(crate) fn stream_data_parameter_admitted(parameter: &ResolvedParam) -> bool {
+    stream_text_parameter_admitted(parameter)
+        || (parameter.ownership == OwnershipMode::Borrow && borrowed_copy_vec(&parameter.ty))
+}
+
 impl WorkspaceIoProfile {
     pub(super) fn is_stream(&self) -> bool {
         matches!(
@@ -95,9 +110,35 @@ impl WorkspaceIoProfile {
             Self::StdinStreamCommand(..)
                 | Self::StdinStreamTextCommand(_)
                 | Self::StdinStreamTextEntry
+                | Self::StdinStreamDataCommand(_)
+                | Self::StdinStreamDataEntry
         )
     }
-    pub(super) fn signature_admitted(&self, function: &ResolvedFunction) -> bool {
+    pub(super) fn signature_admitted(
+        &self,
+        function: &ResolvedFunction,
+        entrypoint: &DeclarationId,
+    ) -> bool {
+        if matches!(
+            self,
+            Self::StdinStreamDataCommand(_) | Self::StdinStreamDataEntry
+        ) {
+            let command = match self {
+                Self::StdinStreamDataCommand(command) => Some(command),
+                _ => None,
+            };
+            let private = &function.id != entrypoint && command != Some(&function.id);
+            return stream_text_return_admitted(&function.return_type)
+                && (!crate::stdin_stream_ops::is_reader(&function.return_type)
+                    || crate::stdin_stream_ops::resolved_forward_signature(function))
+                && function.params.iter().all(|parameter| {
+                    if private {
+                        stream_data_parameter_admitted(parameter)
+                    } else {
+                        stream_text_parameter_admitted(parameter)
+                    }
+                });
+        }
         if matches!(
             self,
             Self::StdinStreamTextCommand(_) | Self::StdinStreamTextEntry
@@ -118,6 +159,33 @@ impl WorkspaceIoProfile {
                 })
         }
     }
+}
+
+pub(crate) fn link_stdin_stream_data_entry_workspace(
+    module: String,
+    entrypoint: DeclarationId,
+    functions: Vec<LinkedScalarFunction>,
+) -> Result<ResolvedProgram, Diagnostic> {
+    link_useful_data_workspace_profile(
+        module,
+        entrypoint,
+        functions,
+        WorkspaceIoProfile::StdinStreamDataEntry,
+    )
+}
+
+pub(crate) fn link_stdin_stream_data_command_workspace(
+    module: String,
+    entrypoint: DeclarationId,
+    command: DeclarationId,
+    functions: Vec<LinkedScalarFunction>,
+) -> Result<ResolvedProgram, Diagnostic> {
+    link_useful_data_workspace_profile(
+        module,
+        entrypoint,
+        functions,
+        WorkspaceIoProfile::StdinStreamDataCommand(command),
+    )
 }
 pub(crate) fn link_stdin_stream_text_entry_workspace(
     module: String,
@@ -220,6 +288,58 @@ pub(crate) fn validate_stream_text_program(
     Ok(())
 }
 
+/// Recheck the v27 retained closure after aggregate-aware linking. The entry
+/// and selected command keep the exact external `fn () -> i64` ABI; only
+/// authenticated non-root helpers receive the additive borrowed Vec carrier.
+pub(crate) fn validate_stream_data_program(
+    program: &ResolvedProgram,
+    command: Option<&DeclarationId>,
+) -> Result<(), Diagnostic> {
+    if !program.interfaces.is_empty() {
+        return Err(link_error(
+            "stream data transport does not admit foreign interfaces",
+        ));
+    }
+    for function in &program.functions {
+        let root = function.id == program.entrypoint || command == Some(&function.id);
+        let admitted = if root {
+            function.params.is_empty() && function.return_type == ResolvedType::I64
+        } else {
+            stream_text_return_admitted(&function.return_type)
+                && function.params.iter().all(stream_data_parameter_admitted)
+        };
+        if !admitted
+            || !crate::hir::authored_nominal_declarations(function).is_empty()
+            || program
+                .declarations
+                .declaration(&function.id)
+                .is_none_or(|d| d.identity_origin != IdentityOrigin::Explicit)
+            || (command.is_none() && !function.effects.is_empty())
+            || !function.effects.iter().all(|effect| {
+                matches!(
+                    effect.as_str(),
+                    crate::command_io_ops::ARGS_READ_EFFECT
+                        | crate::command_io_ops::STDIN_READ_EFFECT
+                        | crate::command_io_ops::STDERR_WRITE_EFFECT
+                        | crate::host_io_ops::STDOUT_WRITE_EFFECT
+                )
+            })
+        {
+            return Err(link_error(
+                "stream data helper requires an explicit admitted signature/effect closure",
+            ));
+        }
+        if crate::stdin_stream_ops::is_reader(&function.return_type)
+            && !crate::stdin_stream_ops::resolved_forward_signature(function)
+        {
+            return Err(link_error(
+                "stream data reader result is outside forwarding profile",
+            ));
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -234,13 +354,14 @@ mod tests {
             .unwrap();
         let old = WorkspaceIoProfile::StdinStreamCommand(DeclarationId::new("cmd"), true);
         let selected = WorkspaceIoProfile::StdinStreamTextCommand(DeclarationId::new("cmd"));
-        assert!(!old.signature_admitted(helper));
-        assert!(selected.signature_admitted(helper));
+        let entrypoint = DeclarationId::new("app.main");
+        assert!(!old.signature_admitted(helper, &entrypoint));
+        assert!(selected.signature_admitted(helper, &entrypoint));
         let mut forged = helper.clone();
         forged.params[0].ownership = OwnershipMode::Borrow;
-        assert!(!selected.signature_admitted(&forged));
+        assert!(!selected.signature_admitted(&forged, &entrypoint));
         forged = helper.clone();
         forged.return_type = ResolvedType::SliceU8;
-        assert!(!selected.signature_admitted(&forged));
+        assert!(!selected.signature_admitted(&forged, &entrypoint));
     }
 }

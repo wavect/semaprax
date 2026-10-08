@@ -46,6 +46,10 @@ pub const PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1: &str = "language-command-io.v1
 pub const PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V1: &str = "language-command-io.stream.v1";
 pub const PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1: &str =
     "language-command-io.stream-text.v1";
+/// Native streaming command whose authenticated private helpers may borrow
+/// compiler-owned vectors of Copy scalars.
+pub const PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V1: &str =
+    "language-command-io.stream-data.v1";
 pub const PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2: &str = "language-command-io.stream.v2";
 pub const PROJECT_PROFILE_LINE_COMMAND_IO_V1: &str = "line-command-io.v1";
 pub const PROJECT_PROFILE_NETWORK_COMMAND_IO_V1: &str = "network-command-io.v1";
@@ -109,7 +113,7 @@ pub const PROJECT_HTTPS_COMMAND_CAPABILITIES_V1: [&str; 5] = [
 pub const PROJECT_COMMAND_INPUT_V1: &str = "stdin-bytes+one-utf8-arg.v1";
 /// Exact immutable invocation snapshot selected only by Project v6.
 pub const PROJECT_LANGUAGE_COMMAND_INPUT_V1: &str = "argv-utf8+stdin-bytes.v1";
-/// Exact chunked stdin input route selected by Project v23/v24.
+/// Exact chunked stdin input route selected by Project v23-v25 and v27.
 pub const PROJECT_LANGUAGE_COMMAND_STREAM_INPUT_V1: &str = "argv-utf8+stdin-stream.v1";
 
 /// One exact Project profile selected by the manifest schema. This enum is the
@@ -127,6 +131,7 @@ pub enum ProjectProfile {
     StdinStreamCommandIoV1,
     StdinStreamCommandIoV2,
     StdinStreamTextCommandIoV1,
+    StdinStreamDataCommandIoV1,
     LineCommandIoV1,
     NetworkCommandIoV1,
     HttpsCommandIoV1,
@@ -152,6 +157,7 @@ impl ProjectProfile {
             Self::StdinStreamCommandIoV1
                 | Self::StdinStreamCommandIoV2
                 | Self::StdinStreamTextCommandIoV1
+                | Self::StdinStreamDataCommandIoV1
         )
     }
     pub(crate) const fn is_filesystem(self) -> bool {
@@ -203,6 +209,9 @@ impl ProjectProfile {
             Self::StdinStreamCommandIoV2 => Some(PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2),
             Self::StdinStreamTextCommandIoV1 => {
                 Some(PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1)
+            }
+            Self::StdinStreamDataCommandIoV1 => {
+                Some(PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V1)
             }
             Self::LineCommandIoV1 => Some(PROJECT_PROFILE_LINE_COMMAND_IO_V1),
             Self::NetworkCommandIoV1 => Some(PROJECT_PROFILE_NETWORK_COMMAND_IO_V1),

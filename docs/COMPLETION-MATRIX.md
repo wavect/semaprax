@@ -315,6 +315,11 @@ the remaining threshold, not as a list of existing features.
 
 ### Language and safety
 
+Project v27 [Stream Data Command v1](STREAM-DATA-COMMAND-V1.md) has an authored
+focused native/refusal gate for authenticated private Copy-scalar and shared
+`Vec<Copy scalar>` helpers. Current-compiler verification is pending; this adds
+no hosted, Web, Wasm, npm, public-Vec, owned-Vec, or broader collection claim.
+
 | Requirement | Status | Evidence owner | Complete when |
 | --- | --- | --- | --- |
 | Records and algebraic variants | Partial; the additive bounded monomorphic owned String-record runtime has focused LOCAL source/graph/interpreter/C11 O0/O2/physical Node Wasm gates in the OPT batch; the final Native Map and Project v25 focused checks passed. Bounded concrete and generic owned records, nested reconstruction, exact destructuring/update, multiple owners, admitted authored generic variants and owned Result retain their prior hosted-green backend evidence. Direct monomorphic String variant payloads additionally pass the local `cleanup_backends::owned_string_variant` gate across interpreter, C11 and Node Core Wasm; hosted validation of that addition remains separate. | [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md), [owned records](OWNED-BYTE-RECORD-ALGEBRA-V1.md), [concrete generics](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md), [nested records](NESTED-OWNED-BYTE-RECORDS-V1.md), [destructuring](NESTED-OWNED-RECORD-DESTRUCTURING-V1.md), [update](NESTED-OWNED-RECORD-UPDATE-V1.md), [variants](OWNED-BYTE-VARIANT-ALGEBRA-V1.md), [generic variants](GENERIC-AUTHORED-VARIANTS-V1.md), [String variants](OWNED-STRING-VARIANTS-V1.md) | Verify general owned propagation, generic package signatures, nested/resource aggregates, variants, matching, cleanup and public generic ABIs. Previously green nested-relay and generic-owned gates remain regression obligations, not unexecuted tasks. |

@@ -46,6 +46,7 @@ pub(super) enum PreparedProjectAdmission {
     StdinStreamCommandIoV1,
     StdinStreamCommandIoV2,
     StdinStreamTextCommandIoV1,
+    StdinStreamDataCommandIoV1,
     LineCommandIoV1,
     NetworkCommandIoV1,
     HttpsCommandIoV1,
@@ -82,6 +83,7 @@ impl PreparedProjectAdmission {
             Self::StdinStreamCommandIoV1 => ProjectProfile::StdinStreamCommandIoV1,
             Self::StdinStreamCommandIoV2 => ProjectProfile::StdinStreamCommandIoV2,
             Self::StdinStreamTextCommandIoV1 => ProjectProfile::StdinStreamTextCommandIoV1,
+            Self::StdinStreamDataCommandIoV1 => ProjectProfile::StdinStreamDataCommandIoV1,
             Self::LineCommandIoV1 => ProjectProfile::LineCommandIoV1,
             Self::NetworkCommandIoV1 => ProjectProfile::NetworkCommandIoV1,
             Self::FilesystemIoV1 => ProjectProfile::FilesystemIoV1,
@@ -231,6 +233,10 @@ pub(super) fn prepare(
         ProjectProfile::StdinStreamTextCommandIoV1 => {
             stdin_stream_command::admit(program, manifest.command().unwrap_or(""), true)?;
             Ok(PreparedProjectAdmission::StdinStreamTextCommandIoV1)
+        }
+        ProjectProfile::StdinStreamDataCommandIoV1 => {
+            stdin_stream_command::admit(program, manifest.command().unwrap_or(""), true)?;
+            Ok(PreparedProjectAdmission::StdinStreamDataCommandIoV1)
         }
         ProjectProfile::LineCommandIoV1 => {
             legacy::line_command(program, manifest.command().unwrap_or(""))?;

@@ -78,6 +78,7 @@ pub const PROJECT_SCHEMA_V23: &str = "semaprax.project.v23";
 pub const PROJECT_SCHEMA_V25: &str = "semaprax.project.v25";
 /// Native linked SourceCommand, selected only by the table manifest.
 pub const PROJECT_SCHEMA_V26: &str = "semaprax.project.v26";
+pub const PROJECT_SCHEMA_V27: &str = "semaprax.project.v27";
 pub const PROJECT_SCHEMA_V24: &str = "semaprax.project.v24";
 pub const PROJECT_SCHEMA_V16: &str = "semaprax.project.v16";
 pub const PROJECT_SCHEMA_V15: &str = "semaprax.project.v15";
@@ -735,6 +736,7 @@ impl ProjectManifest {
             PROJECT_SCHEMA_V24 => "Project v24",
             PROJECT_SCHEMA_V25 => "Project v25",
             PROJECT_SCHEMA_V26 => "Project v26",
+            PROJECT_SCHEMA_V27 => "Project v27",
             PROJECT_SCHEMA_V7 => "Project v7",
             PROJECT_SCHEMA_V8 => "Project v8",
             PROJECT_SCHEMA_V9 => "Project v9",

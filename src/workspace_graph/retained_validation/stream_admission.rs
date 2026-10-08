@@ -2,6 +2,87 @@
 
 use crate::hir::{self, OwnershipMode, ResolvedParam, ResolvedType};
 
+pub(in crate::workspace_graph) fn owned_stream_entry(
+    build: &super::super::WorkspaceGraphBuild,
+    profile: crate::project::ProjectProfile,
+    entry_module: &str,
+) -> Result<Option<hir::ResolvedProgram>, Vec<crate::diagnostic::Diagnostic>> {
+    let mut linked = match profile {
+        crate::project::ProjectProfile::StdinStreamTextCommandIoV1
+        | crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
+            build.linked_owned_data_api_program_with_roots(entry_module, &[])?
+        }
+        _ => return Ok(None),
+    };
+    match profile {
+        crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => {
+            hir::validate_stream_text_program(&linked, None)
+        }
+        crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
+            hir::validate_stream_data_program(&linked, None)
+        }
+        _ => unreachable!("non-stream profile returned above"),
+    }
+    .map_err(|error| vec![error])?;
+    build.attach_project_agents(&mut linked)?;
+    Ok(Some(linked))
+}
+
+pub(in crate::workspace_graph) fn owned_stream_command(
+    build: &super::super::WorkspaceGraphBuild,
+    profile: crate::project::ProjectProfile,
+    entry_module: &str,
+    additional_roots: &[String],
+    dependency_anchors: bool,
+) -> Result<Option<hir::ResolvedProgram>, Vec<crate::diagnostic::Diagnostic>> {
+    let label = match profile {
+        crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => "text",
+        crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => "data",
+        _ => return Ok(None),
+    };
+    if additional_roots.is_empty() {
+        return build
+            .linked_project_program(entry_module, profile, dependency_anchors)
+            .map(Some);
+    }
+    let [command] = additional_roots else {
+        return Err(vec![super::super::graph_error(
+            "SPX-G172",
+            format!("stream {label} command must select exactly one explicit command"),
+        )]);
+    };
+    let mut linked =
+        build.linked_owned_data_api_program_with_roots(entry_module, additional_roots)?;
+    match profile {
+        crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => {
+            text_command_program(&mut linked, command)
+        }
+        crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
+            data_command_program(&mut linked, command)
+        }
+        _ => unreachable!("non-stream profile returned above"),
+    }
+    .map_err(|error| vec![error])?;
+    Ok(Some(linked))
+}
+
+pub(in crate::workspace_graph) fn stream_test_program(
+    build: &super::super::WorkspaceGraphBuild,
+    profile: crate::project::ProjectProfile,
+    test_module: &str,
+    dependency_anchors: bool,
+) -> Result<hir::ResolvedProgram, Vec<crate::diagnostic::Diagnostic>> {
+    match profile {
+        crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
+            build.linked_stream_data_test_program(test_module)
+        }
+        crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => {
+            build.linked_stream_text_test_program(test_module)
+        }
+        _ => build.linked_project_program(test_module, profile, dependency_anchors),
+    }
+}
+
 pub(in crate::workspace_graph) fn stream_parameter_admitted(parameter: &ResolvedParam) -> bool {
     (crate::stdin_stream_ops::is_reader(&parameter.ty)
         && matches!(
@@ -23,6 +104,9 @@ pub(in crate::workspace_graph) fn command_link(
     functions: Vec<hir::LinkedScalarFunction>,
 ) -> Result<hir::ResolvedProgram, crate::diagnostic::Diagnostic> {
     let link = match profile {
+        crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
+            hir::link_stdin_stream_data_command_workspace
+        }
         crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => {
             hir::link_stdin_stream_text_command_workspace
         }
@@ -42,12 +126,25 @@ pub(in crate::workspace_graph) fn entry_link(
     entrypoint: hir::DeclarationId,
     functions: Vec<hir::LinkedScalarFunction>,
 ) -> Result<hir::ResolvedProgram, crate::diagnostic::Diagnostic> {
-    let link = if profile == crate::project::ProjectProfile::StdinStreamTextCommandIoV1 {
-        hir::link_stdin_stream_text_entry_workspace
-    } else {
-        hir::link_useful_data_workspace
+    let link = match profile {
+        crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
+            hir::link_stdin_stream_data_entry_workspace
+        }
+        crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => {
+            hir::link_stdin_stream_text_entry_workspace
+        }
+        _ => hir::link_useful_data_workspace,
     };
     link(module, entrypoint, functions)
+}
+
+pub(in crate::workspace_graph) fn data_project_shape(
+    module: &super::WorkspaceResolvedModule,
+) -> bool {
+    module.types.is_empty()
+        && module.interfaces.is_empty()
+        && module.function_templates.is_empty()
+        && module.function_instances.is_empty()
 }
 
 /// The additive private text profile admits only monomorphic record schemas.
@@ -76,6 +173,24 @@ pub(in crate::workspace_graph) fn text_command_program(
     )?;
     // The authenticated Project command adapter owns the full declared
     // capability inventory, including adapter effects unused by its body.
+    program.permits = crate::project::PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2
+        .iter()
+        .map(|effect| (*effect).to_owned())
+        .collect();
+    hir::validate(program)
+}
+
+pub(in crate::workspace_graph) fn data_command_program(
+    program: &mut hir::ResolvedProgram,
+    command: &str,
+) -> Result<(), crate::diagnostic::Diagnostic> {
+    let command = hir::DeclarationId::new(command);
+    hir::validate_stream_data_program(program, Some(&command))?;
+    crate::command_io_ops::validate_operation_profile(
+        program,
+        &command,
+        crate::command_io_ops::CommandOperationProfile::StdinStreamV1,
+    )?;
     program.permits = crate::project::PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2
         .iter()
         .map(|effect| (*effect).to_owned())

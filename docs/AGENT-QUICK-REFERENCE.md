@@ -1286,6 +1286,12 @@ and chooses the required tables layout. `semaprax new <dir> --template
 source-command-file-text` creates the Project v26 native file-text command
 described above and also chooses the required tables layout.
 
+The `stdin-stream-text` scaffold remains Project v25. Select Project v27
+profile `language-command-io.stream-data.v1` explicitly when authenticated
+private helpers also need immutable `borrow Vec<T>` parameters for the eight
+Copy scalars. The ordinary `main` and selected command stay `fn() -> i64`;
+v24/v25 retain their closed helper boundaries, and Web/npm refuse v27.
+
 `semaprax lock semaprax.toml --write` pins the project to a deterministic
 `semaprax.lock` (identity, source digests, interface digest, targets,
 capabilities); `--verify` re-checks it and `--compare <base.lock>` reports

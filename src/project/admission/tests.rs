@@ -36,6 +36,10 @@ fn every_legacy_marker_reports_one_exact_closed_profile() {
             ProjectProfile::StdinStreamTextCommandIoV1,
         ),
         (
+            PreparedProjectAdmission::StdinStreamDataCommandIoV1,
+            ProjectProfile::StdinStreamDataCommandIoV1,
+        ),
+        (
             PreparedProjectAdmission::StdinStreamCommandIoV2,
             ProjectProfile::StdinStreamCommandIoV2,
         ),

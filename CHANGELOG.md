@@ -9,6 +9,11 @@
   aggregate Core Wasm. Values outside `0..=255` keep the existing checked
   conversion status; focused cross-backend verification is pending the shared
   source batch.
+- Add table-only Project v27 `language-command-io.stream-data.v1`, preserving
+  the exact v25 native streaming command/root ABI while admitting authenticated
+  non-root helper parameters of `borrow Vec<Copy scalar>` and the existing
+  private Copy-scalar surface. Keep v23-v25 frozen, retain the v25 runtime and
+  quotas, and refuse owned/non-Copy/public Vec boundaries plus Web/npm targets.
 
 - Tighten generated web protocol boundaries: entity APIs require JSON number
   tokens for integer, float and reference fields while browser forms retain

@@ -26,6 +26,7 @@ pub(crate) enum NativeOutputProfile {
     StdinStreamCommandIo,
     StdinStreamExitCommandIo,
     StdinStreamTextCommandIo,
+    StdinStreamDataCommandIo,
     LineCommandIo,
     /// Bounded Language Network I/O v1: the line-command input/output
     /// machinery plus the closed TCP operation family and its settlement.
@@ -123,13 +124,15 @@ impl NativeOutputProfile {
                 stream_epochs: false,
                 command_carriers: false,
             },
-            Self::StdinStreamTextCommandIo => StringRuntimeSelection {
-                length_delimited: true,
-                include_instances: true,
-                stream_epochs: true,
-                command_carriers: true,
-                ..StringRuntimeSelection::FROZEN
-            },
+            Self::StdinStreamTextCommandIo | Self::StdinStreamDataCommandIo => {
+                StringRuntimeSelection {
+                    length_delimited: true,
+                    include_instances: true,
+                    stream_epochs: true,
+                    command_carriers: true,
+                    ..StringRuntimeSelection::FROZEN
+                }
+            }
             Self::StdinStreamCommandIo | Self::StdinStreamExitCommandIo => StringRuntimeSelection {
                 stream_epochs: true,
                 command_carriers: true,
@@ -154,6 +157,7 @@ impl NativeOutputProfile {
             Self::StdinStreamCommandIo
                 | Self::StdinStreamExitCommandIo
                 | Self::StdinStreamTextCommandIo
+                | Self::StdinStreamDataCommandIo
         )
     }
 
@@ -165,6 +169,7 @@ impl NativeOutputProfile {
                 | Self::SourceCommand
                 | Self::OwnedDataProvider
                 | Self::StdinStreamTextCommandIo
+                | Self::StdinStreamDataCommandIo
         )
     }
 
@@ -183,6 +188,7 @@ impl NativeOutputProfile {
                 | Self::StdinStreamCommandIo
                 | Self::StdinStreamExitCommandIo
                 | Self::StdinStreamTextCommandIo
+                | Self::StdinStreamDataCommandIo
                 | Self::LineCommandIo
                 | Self::NetworkCommandIo
                 | Self::HttpsCommandIo
@@ -201,6 +207,7 @@ impl NativeOutputProfile {
                 | Self::StdinStreamCommandIo
                 | Self::StdinStreamExitCommandIo
                 | Self::StdinStreamTextCommandIo
+                | Self::StdinStreamDataCommandIo
                 | Self::LineCommandIo
                 | Self::NetworkCommandIo
                 | Self::HttpsCommandIo
@@ -221,6 +228,7 @@ impl NativeOutputProfile {
                 | Self::StdinStreamCommandIo
                 | Self::StdinStreamExitCommandIo
                 | Self::StdinStreamTextCommandIo
+                | Self::StdinStreamDataCommandIo
                 | Self::LineCommandIo
                 | Self::NetworkCommandIo
                 | Self::HttpsCommandIo
@@ -265,6 +273,10 @@ mod tests {
             selected.tracks_present_strings()
                 && selected.is_command()
                 && selected.is_stdin_stream()
+        );
+        assert_eq!(
+            NativeOutputProfile::StdinStreamDataCommandIo.string_runtime(),
+            selected.string_runtime()
         );
     }
 }

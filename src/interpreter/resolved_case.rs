@@ -30,7 +30,11 @@ pub(crate) enum ResolvedFunctionProfile {
 }
 impl ResolvedFunctionProfile {
     pub(crate) fn for_project(profile: crate::project::ProjectProfile) -> Self {
-        if profile == crate::project::ProjectProfile::StdinStreamTextCommandIoV1 {
+        if matches!(
+            profile,
+            crate::project::ProjectProfile::StdinStreamTextCommandIoV1
+                | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
+        ) {
             Self::StreamText
         } else {
             Self::Legacy

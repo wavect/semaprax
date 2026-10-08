@@ -277,6 +277,7 @@ fn emit_hir_c_with_options(
                 output_profile,
                 NativeOutputProfile::StdinStreamExitCommandIo
                     | NativeOutputProfile::StdinStreamTextCommandIo
+                    | NativeOutputProfile::StdinStreamDataCommandIo
             ) {
                 super::native_stdin_stream::exit_status::emit_runner(&mut output, symbol);
                 super::native_stdin_stream::exit_status::emit_process_adapter(&mut output);

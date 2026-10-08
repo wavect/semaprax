@@ -9,17 +9,20 @@ mod compiler_prelude;
 mod profile_diagnostics;
 mod stdin_stream;
 pub(crate) use stdin_stream::{
-    link_stdin_stream_command_workspace, link_stdin_stream_exit_command_workspace,
+    link_stdin_stream_command_workspace, link_stdin_stream_data_command_workspace,
+    link_stdin_stream_data_entry_workspace, link_stdin_stream_exit_command_workspace,
     link_stdin_stream_text_command_workspace, link_stdin_stream_text_entry_workspace,
-    stream_text_parameter_admitted, stream_text_parameter_with_index, stream_text_return_admitted,
-    stream_text_return_with_index, validate_stream_text_program,
+    stream_data_parameter_admitted, stream_text_parameter_admitted,
+    stream_text_parameter_with_index, stream_text_return_admitted, stream_text_return_with_index,
+    validate_stream_data_program, validate_stream_text_program,
 };
 pub(in crate::hir) mod native_owner;
 
 pub(crate) use compiler_prelude::compiler_prelude_declarations;
 use compiler_prelude::{
     compiler_prelude_declarations_for, compiler_prelude_declarations_for_vec,
-    workspace_compiler_prelude, workspace_compiler_prelude_for, workspace_compiler_prelude_for_vec,
+    workspace_compiler_prelude, workspace_compiler_prelude_for,
+    workspace_compiler_prelude_for_stream_data, workspace_compiler_prelude_for_vec,
     workspace_linker_prelude_program,
 };
 
@@ -486,12 +489,17 @@ pub(crate) fn link_owned_data_api_workspace(
         .types
         .iter()
         .any(|t| crate::map_ops::is_declaration(t.id.as_str()));
-    let (mut declarations, mut types) = if uses_private_collections {
-        compiler_prelude::workspace_compiler_prelude_for_collections()?
-    } else if functions
+    let uses_stream = functions
         .iter()
-        .any(crate::stdin_stream_ops::resolved_function_uses)
-    {
+        .any(crate::stdin_stream_ops::resolved_function_uses);
+    let uses_vec = functions.iter().any(resolved_function_uses_vec);
+    let (mut declarations, mut types) = if uses_private_collections && uses_vec {
+        compiler_prelude::workspace_compiler_prelude_for_stream_data_collections()?
+    } else if uses_private_collections {
+        compiler_prelude::workspace_compiler_prelude_for_collections()?
+    } else if uses_stream && uses_vec {
+        compiler_prelude::workspace_compiler_prelude_for_stream_data()?
+    } else if uses_stream {
         compiler_prelude::workspace_compiler_prelude_for_stream()?
     } else {
         compiler_prelude::selected_for_owned_data(&functions, &parts)?
@@ -681,6 +689,8 @@ enum WorkspaceIoProfile {
     StdinStreamCommand(DeclarationId, bool),
     StdinStreamTextCommand(DeclarationId),
     StdinStreamTextEntry,
+    StdinStreamDataCommand(DeclarationId),
+    StdinStreamDataEntry,
     LineCommand { command: DeclarationId },
     NetworkCommand { command: DeclarationId },
     NetworkEntry,
@@ -710,16 +720,17 @@ fn link_useful_data_workspace_profile(
             )));
         }
         let effects_admitted = match &profile {
-            WorkspaceIoProfile::Pure | WorkspaceIoProfile::StdinStreamTextEntry => {
-                function.effects.is_empty()
-            }
+            WorkspaceIoProfile::Pure
+            | WorkspaceIoProfile::StdinStreamTextEntry
+            | WorkspaceIoProfile::StdinStreamDataEntry => function.effects.is_empty(),
             WorkspaceIoProfile::Stdout => {
                 function.effects.is_empty()
                     || function.effects == [crate::host_io_ops::STDOUT_WRITE_EFFECT]
             }
             WorkspaceIoProfile::LanguageCommand { .. }
             | WorkspaceIoProfile::StdinStreamCommand(..)
-            | WorkspaceIoProfile::StdinStreamTextCommand(_) => {
+            | WorkspaceIoProfile::StdinStreamTextCommand(_)
+            | WorkspaceIoProfile::StdinStreamDataCommand(_) => {
                 function.effects.iter().all(|effect| {
                     matches!(
                         effect.as_str(),
@@ -751,7 +762,7 @@ fn link_useful_data_workspace_profile(
                 })
             }
         };
-        if !effects_admitted || !profile.signature_admitted(function) {
+        if !effects_admitted || !profile.signature_admitted(function, &entrypoint) {
             return Err(link_error(format!(
                 "workspace function `{}` is outside the Useful Data linker profile",
                 function.id
@@ -788,7 +799,12 @@ fn link_useful_data_workspace_profile(
     // result of `byte_get`. Rebuild the canonical prelude declaration facts
     // before inserting retained workspace functions; a default index would
     // lose the nominal type behind match/capacity validation.
-    let (mut declarations, compiler_types) = if profile.is_stream() {
+    let (mut declarations, compiler_types) = if matches!(
+        profile,
+        WorkspaceIoProfile::StdinStreamDataCommand(_) | WorkspaceIoProfile::StdinStreamDataEntry
+    ) {
+        workspace_compiler_prelude_for_stream_data()?
+    } else if profile.is_stream() {
         compiler_prelude::workspace_compiler_prelude_for_stream()?
     } else {
         workspace_compiler_prelude()?
@@ -829,11 +845,14 @@ fn link_useful_data_workspace_profile(
     let mut linked = ResolvedProgram {
         module,
         permits: match &profile {
-            WorkspaceIoProfile::Pure | WorkspaceIoProfile::StdinStreamTextEntry => Vec::new(),
+            WorkspaceIoProfile::Pure
+            | WorkspaceIoProfile::StdinStreamTextEntry
+            | WorkspaceIoProfile::StdinStreamDataEntry => Vec::new(),
             WorkspaceIoProfile::Stdout => vec![crate::host_io_ops::STDOUT_WRITE_EFFECT.to_owned()],
             WorkspaceIoProfile::LanguageCommand { .. }
             | WorkspaceIoProfile::StdinStreamCommand(..)
-            | WorkspaceIoProfile::StdinStreamTextCommand(_) => vec![
+            | WorkspaceIoProfile::StdinStreamTextCommand(_)
+            | WorkspaceIoProfile::StdinStreamDataCommand(_) => vec![
                 crate::command_io_ops::ARGS_READ_EFFECT.to_owned(),
                 crate::command_io_ops::STDERR_WRITE_EFFECT.to_owned(),
                 crate::command_io_ops::STDIN_READ_EFFECT.to_owned(),
@@ -875,7 +894,8 @@ fn link_useful_data_workspace_profile(
     };
     match &profile {
         WorkspaceIoProfile::StdinStreamCommand(command, _)
-        | WorkspaceIoProfile::StdinStreamTextCommand(command) => {
+        | WorkspaceIoProfile::StdinStreamTextCommand(command)
+        | WorkspaceIoProfile::StdinStreamDataCommand(command) => {
             crate::command_io_ops::validate_operation_profile(
                 &linked,
                 command,
@@ -912,6 +932,7 @@ fn link_useful_data_workspace_profile(
         }
         WorkspaceIoProfile::Pure
         | WorkspaceIoProfile::StdinStreamTextEntry
+        | WorkspaceIoProfile::StdinStreamDataEntry
         | WorkspaceIoProfile::Stdout
         | WorkspaceIoProfile::NetworkEntry
         | WorkspaceIoProfile::HttpsEntry => {}

@@ -1183,10 +1183,8 @@ impl WorkspaceGraphBuild {
             self.attach_project_agents(&mut linked)?;
             return Ok(linked);
         }
-        if profile == crate::project::ProjectProfile::StdinStreamTextCommandIoV1 {
-            let mut linked = self.linked_owned_data_api_program_with_roots(entry_module, &[])?;
-            hir::validate_stream_text_program(&linked, None).map_err(|e| vec![e])?;
-            self.attach_project_agents(&mut linked)?;
+        if let Some(linked) = retained_validation::owned_stream_entry(self, profile, entry_module)?
+        {
             return Ok(linked);
         }
         validate_entry_module(entry_module)?;
@@ -1378,6 +1376,7 @@ impl WorkspaceGraphBuild {
                         | crate::project::ProjectProfile::StdinStreamCommandIoV1
                         | crate::project::ProjectProfile::StdinStreamCommandIoV2
                         | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
+                        | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
                         | crate::project::ProjectProfile::LineCommandIoV1
                         | crate::project::ProjectProfile::ProcessIoV1
                 ) || function.effects.is_empty()
@@ -1481,7 +1480,8 @@ impl WorkspaceGraphBuild {
             crate::project::ProjectProfile::LanguageCommandIoV1
             | crate::project::ProjectProfile::StdinStreamCommandIoV1
             | crate::project::ProjectProfile::StdinStreamCommandIoV2
-            | crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => {
+            | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
+            | crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
                 // The selected command is retained separately from this pure entry.
                 retained_validation::entry_link(
                     profile,
@@ -1543,19 +1543,13 @@ impl WorkspaceGraphBuild {
         if profile.is_owned_api() {
             return self.linked_owned_data_api_program_with_roots(entry_module, additional_roots);
         }
-        if profile == crate::project::ProjectProfile::StdinStreamTextCommandIoV1 {
-            if additional_roots.is_empty() {
-                return self.linked_project_program(entry_module, profile, dependency_anchors);
-            }
-            let [command] = additional_roots else {
-                return Err(vec![graph_error(
-                    "SPX-G172",
-                    "stream text command must select exactly one explicit command",
-                )]);
-            };
-            let mut linked =
-                self.linked_owned_data_api_program_with_roots(entry_module, additional_roots)?;
-            retained_validation::text_command_program(&mut linked, command).map_err(|e| vec![e])?;
+        if let Some(linked) = retained_validation::owned_stream_command(
+            self,
+            profile,
+            entry_module,
+            additional_roots,
+            dependency_anchors,
+        )? {
             return Ok(linked);
         }
         let base = self.linked_project_program(entry_module, profile, dependency_anchors)?;
@@ -1705,7 +1699,8 @@ impl WorkspaceGraphBuild {
             crate::project::ProjectProfile::LanguageCommandIoV1
             | crate::project::ProjectProfile::StdinStreamCommandIoV1
             | crate::project::ProjectProfile::StdinStreamCommandIoV2
-            | crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => {
+            | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
+            | crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
                 let [command_id] = additional_roots else {
                     return Err(vec![graph_error(
                         "SPX-G172",
@@ -1813,6 +1808,7 @@ impl WorkspaceGraphBuild {
                 | crate::project::ProjectProfile::StdinStreamCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamCommandIoV2
                 | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
+                | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
                 | crate::project::ProjectProfile::LineCommandIoV1
                 | crate::project::ProjectProfile::ProcessIoV1
         ) {
@@ -1841,7 +1837,8 @@ impl WorkspaceGraphBuild {
                 .is_some_and(|fact| fact.origin == hir::IdentityOrigin::Explicit);
             let (return_type, signature) = match web_roots.profile {
                 crate::project::ProjectProfile::StdinStreamCommandIoV2
-                | crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => {
+                | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
+                | crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
                     (hir::ResolvedType::I64, "i64")
                 }
                 _ => (hir::ResolvedType::Bool, "bool"),
@@ -1865,16 +1862,12 @@ impl WorkspaceGraphBuild {
             web_roots.dependency_anchors,
         )?;
         self.attach_project_agents(&mut web_program)?;
-        let test_program =
-            if web_roots.profile == crate::project::ProjectProfile::StdinStreamTextCommandIoV1 {
-                self.linked_stream_text_test_program(test_module)?
-            } else {
-                self.linked_project_program(
-                    test_module,
-                    web_roots.profile,
-                    web_roots.dependency_anchors,
-                )?
-            };
+        let test_program = retained_validation::stream_test_program(
+            self,
+            web_roots.profile,
+            test_module,
+            web_roots.dependency_anchors,
+        )?;
         let projection = self.into_project_projection(
             workspace_revision,
             source_facts,
@@ -2017,6 +2010,8 @@ impl WorkspaceGraphBuild {
             let project_shape_admitted = profile.is_owned_api()
                 || (profile == crate::project::ProjectProfile::StdinStreamTextCommandIoV1
                     && retained_validation::text_project_shape(module))
+                || (profile == crate::project::ProjectProfile::StdinStreamDataCommandIoV1
+                    && retained_validation::data_project_shape(module))
                 || matches!(profile, crate::project::ProjectProfile::ScalarV1)
                 || (module.types.is_empty()
                     && module.interfaces.is_empty()
@@ -2071,6 +2066,7 @@ impl WorkspaceGraphBuild {
             // the owned-data linker and canonical descriptor.
             if profile.is_owned_api()
                 || profile == crate::project::ProjectProfile::StdinStreamTextCommandIoV1
+                || profile == crate::project::ProjectProfile::StdinStreamDataCommandIoV1
             {
                 continue;
             }
@@ -2088,6 +2084,9 @@ impl WorkspaceGraphBuild {
                 let admitted_parameter = |parameter: &hir::ResolvedParam| match profile {
                     crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => {
                         hir::stream_text_parameter_admitted(parameter)
+                    }
+                    crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
+                        hir::stream_data_parameter_admitted(parameter)
                     }
                     crate::project::ProjectProfile::StdinStreamCommandIoV1
                     | crate::project::ProjectProfile::StdinStreamCommandIoV2 => {
@@ -2133,6 +2132,9 @@ impl WorkspaceGraphBuild {
                 };
                 let admitted_return = match profile {
                     crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => {
+                        hir::stream_text_return_admitted(&function.return_type)
+                    }
+                    crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
                         hir::stream_text_return_admitted(&function.return_type)
                     }
                     crate::project::ProjectProfile::StdinStreamCommandIoV1

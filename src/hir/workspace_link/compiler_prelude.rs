@@ -221,9 +221,17 @@ pub(super) fn workspace_compiler_prelude_for_stream(
 ) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
     workspace_compiler_prelude_selected(false, false, false, false, true, false, false)
 }
+pub(super) fn workspace_compiler_prelude_for_stream_data(
+) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
+    workspace_compiler_prelude_selected(true, false, false, false, true, false, false)
+}
 pub(super) fn workspace_compiler_prelude_for_collections(
 ) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
     workspace_compiler_prelude_selected(false, false, false, false, true, false, true)
+}
+pub(super) fn workspace_compiler_prelude_for_stream_data_collections(
+) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
+    workspace_compiler_prelude_selected(true, false, false, false, true, false, true)
 }
 fn workspace_compiler_prelude_selected(
     include_vec: bool,

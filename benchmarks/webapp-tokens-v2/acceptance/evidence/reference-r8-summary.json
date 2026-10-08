@@ -42,23 +42,23 @@
         "sha256": "31891e0d229e217ebbdf71139f82654349e051eb06fb6b08e2984bea4ce6c8d1",
         "source_sha": "e045527a611a048515349ab2f970043a5d33b185"
       },
-      "finished_at": "2026-10-08T13:38:15.540Z",
+      "finished_at": "2026-10-08T18:10:53.332Z",
       "node": "v24.3.0",
       "password_evidence_verified": true,
       "qualification": {
-        "passed": true,
+        "cases": 912,
+        "failures": [],
         "missingCases": [],
         "missingGroups": [],
-        "failures": [],
-        "cases": 912
+        "passed": true
       },
       "reference_source_commit": "3fcdf034a5e5da57c10845a8074c06f2862816e1",
       "reference_source_files_sha256": {
         "teamdesk.spx": "93b7c95f058b12d09b4799c15a36a1ebfe1cab38a5a595a2381618c112da4bc9"
       },
-      "report_file": "/Users/kevin/.codex/benchmark-runs/teamdesk-reference-requalification-e045527a6-20261008/evidence/semaprax/report.json",
-      "report_sha256": "f73244ef5cd95ed4b639307e2f22cffe05abcdd86953520901d293390e4005c4",
-      "started_at": "2026-10-08T13:32:38.205Z",
+      "report_file": "/Users/kevin/.codex/benchmark-runs/teamdesk-reference-requalification-0504ac737e52-20261008/evidence/semaprax/report.json",
+      "report_sha256": "ca1d2386d3c1a38f04c342a54f5d350b4cad63ca1208217a319c1caf4d6871fe",
+      "started_at": "2026-10-08T18:05:27.286Z",
       "viewer_create_visibility": [
         {
           "id": "browser.Viewer.Team.hidden-actions",
@@ -179,15 +179,20 @@
           "status": "passed"
         }
       ],
-      "finished_at": "2026-10-08T13:40:21.976Z",
+      "compiler": {
+        "path": "/Users/kevin/.codex/benchmark-binaries/semaprax-e045527a6",
+        "sha256": "31891e0d229e217ebbdf71139f82654349e051eb06fb6b08e2984bea4ce6c8d1",
+        "source_sha": "e045527a611a048515349ab2f970043a5d33b185"
+      },
+      "finished_at": "2026-10-08T18:10:21.414Z",
       "node": "v24.3.0",
       "password_evidence_verified": true,
       "qualification": {
-        "passed": true,
+        "cases": 912,
+        "failures": [],
         "missingCases": [],
         "missingGroups": [],
-        "failures": [],
-        "cases": 912
+        "passed": true
       },
       "reference_source_commit": "3fcdf034a5e5da57c10845a8074c06f2862816e1",
       "reference_source_files_sha256": {
@@ -208,9 +213,9 @@
         "tsconfig.json": "d642f5424183a995f2475e74ac59aa0f2503ca53bad83fa905d45743ffb9e417",
         "vite.config.ts": "04504a1101152fa181213e15926b8a77d886251badc02e81e68b2c63e994039b"
       },
-      "report_file": "/Users/kevin/.codex/benchmark-runs/teamdesk-reference-requalification-e045527a6-20261008/evidence/typescript/report.json",
-      "report_sha256": "d9e57dc91e0f46eee9a0e9b29022fc68484b47ccec96682c11ba3c5ead644c76",
-      "started_at": "2026-10-08T13:35:26.094Z",
+      "report_file": "/Users/kevin/.codex/benchmark-runs/teamdesk-reference-requalification-0504ac737e52-20261008/evidence/typescript/report.json",
+      "report_sha256": "958bfddea8782fb6ee5847597b71ca94ef0d8776c2b0f2b0ed9418074151fa03",
+      "started_at": "2026-10-08T18:05:27.286Z",
       "viewer_create_visibility": [
         {
           "id": "browser.Viewer.Team.hidden-actions",
@@ -292,20 +297,15 @@
           "id": "browser.Viewer.Release.hidden-actions",
           "status": "passed"
         }
-      ],
-      "compiler": {
-        "path": "/Users/kevin/.codex/benchmark-binaries/semaprax-e045527a6",
-        "sha256": "31891e0d229e217ebbdf71139f82654349e051eb06fb6b08e2984bea4ce6c8d1",
-        "source_sha": "e045527a611a048515349ab2f970043a5d33b185"
-      }
+      ]
     }
   },
   "compiler_binary_sha256": "31891e0d229e217ebbdf71139f82654349e051eb06fb6b08e2984bea4ce6c8d1",
   "compiler_source_commit": "e045527a611a048515349ab2f970043a5d33b185",
-  "gate_source": "e045527a611a048515349ab2f970043a5d33b185",
+  "gate_source": "0504ac737e52ef9f9492f236e50bfe95d5658de5",
   "qualified": true,
   "reference_source_commit": "3fcdf034a5e5da57c10845a8074c06f2862816e1",
   "schema": "semaprax.teamdesk.reference.qualification.v1",
-  "scope": "LOCAL physical Node API/restart/filesystem and Playwright 1.62 Chromium; refreshed reference qualification only; no live model campaign or token-savings claim.",
+  "scope": "LOCAL physical Node API/restart/filesystem and Playwright Chromium; unchanged reference applications qualified against repaired gate; no live model or token-savings claim.",
   "spec_sha256": "7658414ed2bbb53477a93e4a00f36269954c5bc45f3148fe72ddd02f203a50dc"
 }

@@ -305,6 +305,15 @@
       ]
     },
     {
+      "code": "SPX-T269",
+      "rows": [
+        {
+          "fix": "Keep one `stdout_write`/`stderr_write` site per path outside loops; cap staged stdout + stderr at 65,536 bytes. Line-command append may loop but shares this total.",
+          "wrote": "second direct write on a path, loop-reachable write, or over 65,536 combined output"
+        }
+      ]
+    },
+    {
       "code": "SPX-T274",
       "rows": [
         {

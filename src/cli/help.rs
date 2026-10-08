@@ -1351,6 +1351,18 @@ mod tests {
             )
         );
         assert!(t208.len() <= 256);
+        let t269 = diagnostic_entry("SPX-T269").unwrap();
+        assert_eq!(
+            t269,
+            concat!(
+                "SPX-T269\n",
+                "wrote: second direct write on a path, loop-reachable write, or over 65,536 ",
+                "combined output\n",
+                "fix: Keep one `stdout_write`/`stderr_write` site per path outside loops; ",
+                "cap staged stdout + stderr at 65,536 bytes. Line-command append may loop ",
+                "but shares this total.\n",
+            )
+        );
         let full_index = language_topic("mistakes-index").unwrap();
         assert!(t208.len() * 20 < full_index.len());
         assert!(

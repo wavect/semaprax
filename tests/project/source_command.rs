@@ -208,9 +208,11 @@ fn source_command_bundled_decimal_native_and_closed_runtime_failures() {
         .unwrap();
     assert_eq!(output.status.code(), Some(1));
     assert!(output.stdout.is_empty());
-    assert!(String::from_utf8(output.stderr)
-        .unwrap()
-        .contains("semaprax.contract.v1"));
+    let diagnostic = String::from_utf8(output.stderr).unwrap();
+    assert!(diagnostic.starts_with("SEMAPRAX contract failure\n  contract: requires "));
+    assert!(diagnostic.contains(" in std.int.decimal.canonicalize\n"));
+    assert!(diagnostic.ends_with("  arguments: text = <data>\n"));
+    assert_eq!(diagnostic.lines().count(), 3);
 }
 
 #[test]

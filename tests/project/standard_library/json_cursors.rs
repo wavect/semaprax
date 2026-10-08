@@ -84,7 +84,7 @@ fn json_strict_scan_is_bundled_for_an_ordinary_project() {
     std::fs::create_dir_all(scratch.join("src")).unwrap();
     std::fs::write(
         scratch.join("semaprax.toml"),
-        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"json-strict-consumer\"\nversion = \"0.1.0\"\nprofile = \"useful-data.v1\"\n\n[modules]\nentry = \"consumer.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = [\"consumer.main\"]\n\n[dependencies]\nstd.data.json.scan = \"=0.1.0\"\n",
+        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"json-strict-consumer\"\nversion = \"0.1.0\"\nprofile = \"useful-data.v1\"\n\n[modules]\nentry = \"consumer.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = [\"consumer.validate\"]\n\n[dependencies]\nstd.data.json.scan = \"=0.1.0\"\n",
     )
     .unwrap();
     std::fs::write(
@@ -96,6 +96,12 @@ use function @id("std.data.json.scan.member_value") from std.data.json.scan as m
 use function @id("std.data.json.scan.key_eq") from std.data.json.scan as key_eq;
 use function @id("std.data.json.scan.decimal_end") from std.data.json.scan as decimal_end;
 
+@id("consumer.validate")
+fn validate(input: borrow Slice<u8>) -> bool
+{
+    strict_end(input, 32usize, 1) == byte_len(input)
+}
+
 @id("consumer.main")
 fn main() -> i64
 {
@@ -104,7 +110,7 @@ fn main() -> i64
     let input = array_as_slice(raw);
     let key = first_member(input, 0usize);
     let value = member_value(input, key);
-    if strict_end(input, 32usize, 1) == byte_len(input) && key_eq(input, key, array_as_slice(name)) && decimal_end(input, value) == 9usize { 0 } else { 1 }
+    if validate(input) && key_eq(input, key, array_as_slice(name)) && decimal_end(input, value) == 9usize { 0 } else { 1 }
 }
 "#,
     )

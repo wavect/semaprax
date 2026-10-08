@@ -1,0 +1,931 @@
+{
+  "actual_billed_usd": null,
+  "all_arms_have_minimum_trials": true,
+  "arms": {
+    "semaprax": {
+      "accepted": 5,
+      "actual_billed_usd": null,
+      "actual_billed_usd_per_accepted_task": null,
+      "attempted": 5,
+      "cache_write_input_tokens_per_attempt": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "cached_input_tokens_per_attempt": [
+        1888000,
+        1041536,
+        1348992,
+        1644800,
+        929280
+      ],
+      "conditional_short_context_api_equivalent_usd_all_recorded_attempts": 2.148971,
+      "conditional_short_context_api_equivalent_usd_per_accepted_task": 0.4297942,
+      "cost_includes_failed_attempts": true,
+      "cost_note": "Conditional standard short-context API-equivalent estimate; actual billing is unavailable.",
+      "failed_or_rejected": 0,
+      "final_authored_claude_bpe_proxy_per_attempt": [
+        9133,
+        9126,
+        9082,
+        7882,
+        7185
+      ],
+      "legacy_net_input_tokens_per_attempt": [
+        1379357,
+        761539,
+        978915,
+        1212785,
+        632414
+      ],
+      "metrics_all_recorded_attempts": {
+        "acceptance_wall_seconds": {
+          "mean_per_attempt": 20.145200000000003,
+          "median_per_attempt": 18.92,
+          "total": 100.726
+        },
+        "agent_wall_seconds": {
+          "mean_per_attempt": 589.7669999999999,
+          "median_per_attempt": 548.279,
+          "total": 2948.835
+        },
+        "cache_write_input_tokens": {
+          "mean_per_attempt": 0,
+          "median_per_attempt": 0,
+          "total": 0
+        },
+        "cached_input_tokens": {
+          "mean_per_attempt": 1370521.6,
+          "median_per_attempt": 1348992,
+          "total": 6852608
+        },
+        "final_authored_tokens_proxy": {
+          "mean_per_attempt": 8481.6,
+          "median_per_attempt": 9082,
+          "total": 42408
+        },
+        "legacy_net_input_tokens": {
+          "mean_per_attempt": 993002,
+          "median_per_attempt": 978915,
+          "total": 4965010
+        },
+        "model_request_turns": {
+          "mean_per_attempt": 31.8,
+          "median_per_attempt": 31,
+          "total": 159
+        },
+        "model_requests": {
+          "mean_per_attempt": 31.8,
+          "median_per_attempt": 31,
+          "total": 159
+        },
+        "output_tokens": {
+          "mean_per_attempt": 17379,
+          "median_per_attempt": 16872,
+          "total": 86895
+        },
+        "raw_input_tokens": {
+          "mean_per_attempt": 1429997.6,
+          "median_per_attempt": 1404917,
+          "total": 7149988
+        }
+      },
+      "metrics_per_attempt": {
+        "acceptance_wall_seconds": [
+          19.405,
+          18.8,
+          18.92,
+          24.963,
+          18.638
+        ],
+        "agent_wall_seconds": [
+          787.458,
+          548.279,
+          732.17,
+          472.398,
+          408.53
+        ],
+        "cache_write_input_tokens": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "cached_input_tokens": [
+          1888000,
+          1041536,
+          1348992,
+          1644800,
+          929280
+        ],
+        "final_authored_tokens_proxy": [
+          9133,
+          9126,
+          9082,
+          7882,
+          7185
+        ],
+        "legacy_net_input_tokens": [
+          1379357,
+          761539,
+          978915,
+          1212785,
+          632414
+        ],
+        "model_request_turns": [
+          42,
+          25,
+          31,
+          36,
+          25
+        ],
+        "model_requests": [
+          42,
+          25,
+          31,
+          36,
+          25
+        ],
+        "output_tokens": [
+          22848,
+          16231,
+          18622,
+          16872,
+          12322
+        ],
+        "raw_input_tokens": [
+          1956521,
+          1105089,
+          1404917,
+          1707497,
+          975964
+        ]
+      },
+      "model_request_turns_per_attempt": [
+        42,
+        25,
+        31,
+        36,
+        25
+      ],
+      "model_request_turns_total": 159,
+      "output_tokens_per_attempt": [
+        22848,
+        16231,
+        18622,
+        16872,
+        12322
+      ],
+      "planned": 5,
+      "raw_input_tokens_per_attempt": [
+        1956521,
+        1105089,
+        1404917,
+        1707497,
+        975964
+      ],
+      "recorded": 5
+    },
+    "typescript": {
+      "accepted": 5,
+      "actual_billed_usd": null,
+      "actual_billed_usd_per_accepted_task": null,
+      "attempted": 5,
+      "cache_write_input_tokens_per_attempt": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "cached_input_tokens_per_attempt": [
+        71552,
+        130816,
+        61824,
+        86656,
+        91776
+      ],
+      "conditional_short_context_api_equivalent_usd_all_recorded_attempts": 0.635751,
+      "conditional_short_context_api_equivalent_usd_per_accepted_task": 0.1271502,
+      "cost_includes_failed_attempts": true,
+      "cost_note": "Conditional standard short-context API-equivalent estimate; actual billing is unavailable.",
+      "failed_or_rejected": 0,
+      "final_authored_claude_bpe_proxy_per_attempt": [
+        5245,
+        4833,
+        4530,
+        4989,
+        4661
+      ],
+      "legacy_net_input_tokens_per_attempt": [
+        23325,
+        42950,
+        15182,
+        25055,
+        23408
+      ],
+      "metrics_all_recorded_attempts": {
+        "acceptance_wall_seconds": {
+          "mean_per_attempt": 5.5126,
+          "median_per_attempt": 4.8,
+          "total": 27.563
+        },
+        "agent_wall_seconds": {
+          "mean_per_attempt": 213.1936,
+          "median_per_attempt": 218.917,
+          "total": 1065.968
+        },
+        "cache_write_input_tokens": {
+          "mean_per_attempt": 0,
+          "median_per_attempt": 0,
+          "total": 0
+        },
+        "cached_input_tokens": {
+          "mean_per_attempt": 88524.8,
+          "median_per_attempt": 86656,
+          "total": 442624
+        },
+        "final_authored_tokens_proxy": {
+          "mean_per_attempt": 4851.6,
+          "median_per_attempt": 4833,
+          "total": 24258
+        },
+        "legacy_net_input_tokens": {
+          "mean_per_attempt": 25984,
+          "median_per_attempt": 23408,
+          "total": 129920
+        },
+        "model_request_turns": {
+          "mean_per_attempt": 6.2,
+          "median_per_attempt": 6,
+          "total": 31
+        },
+        "model_requests": {
+          "mean_per_attempt": 6.2,
+          "median_per_attempt": 6,
+          "total": 31
+        },
+        "output_tokens": {
+          "mean_per_attempt": 7309,
+          "median_per_attempt": 7496,
+          "total": 36545
+        },
+        "raw_input_tokens": {
+          "mean_per_attempt": 111128.6,
+          "median_per_attempt": 105806,
+          "total": 555643
+        }
+      },
+      "metrics_per_attempt": {
+        "acceptance_wall_seconds": [
+          4.8,
+          4.107,
+          6.404,
+          7.963,
+          4.289
+        ],
+        "agent_wall_seconds": [
+          254.993,
+          248.003,
+          181.03,
+          218.917,
+          163.025
+        ],
+        "cache_write_input_tokens": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "cached_input_tokens": [
+          71552,
+          130816,
+          61824,
+          86656,
+          91776
+        ],
+        "final_authored_tokens_proxy": [
+          5245,
+          4833,
+          4530,
+          4989,
+          4661
+        ],
+        "legacy_net_input_tokens": [
+          23325,
+          42950,
+          15182,
+          25055,
+          23408
+        ],
+        "model_request_turns": [
+          6,
+          8,
+          5,
+          6,
+          6
+        ],
+        "model_requests": [
+          6,
+          8,
+          5,
+          6,
+          6
+        ],
+        "output_tokens": [
+          8033,
+          7496,
+          6412,
+          7777,
+          6827
+        ],
+        "raw_input_tokens": [
+          105723,
+          152814,
+          83847,
+          107453,
+          105806
+        ]
+      },
+      "model_request_turns_per_attempt": [
+        6,
+        8,
+        5,
+        6,
+        6
+      ],
+      "model_request_turns_total": 31,
+      "output_tokens_per_attempt": [
+        8033,
+        7496,
+        6412,
+        7777,
+        6827
+      ],
+      "planned": 5,
+      "raw_input_tokens_per_attempt": [
+        105723,
+        152814,
+        83847,
+        107453,
+        105806
+      ],
+      "recorded": 5
+    }
+  },
+  "calibration_fixed_composition_tokens": null,
+  "calibration_note": "Calibration is a separate diagnostic request and is never subtracted from trial usage or cost.",
+  "calibration_separate": {
+    "elapsed_seconds": 5.612,
+    "failure": null,
+    "list_price": {
+      "actual_billed_usd": null,
+      "assumptions": "each request input <=272k; input/cache-read/cache-write/output use published standard rates",
+      "cache_write_cost_usd": 0.0,
+      "cache_write_tokens": 0,
+      "reason": null,
+      "standard_short_context_api_equivalent_usd": 0.017493
+    },
+    "observed": {
+      "codex_outer_turns": 1,
+      "effort_observed": "medium",
+      "final_turn_usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 4608,
+        "input_tokens": 13099,
+        "output_tokens": 5,
+        "reasoning_output_tokens": 0
+      },
+      "invalid_stream_lines": 0,
+      "legacy_net_input_tokens": 0,
+      "legacy_net_note": "Codex input includes cache subsets; subtract first request total once per model request for historical comparability only, never task-only input.",
+      "model_context_window": 258400,
+      "model_identity_note": "The exec JSONL does not expose an observed model identity.",
+      "model_identity_source": "client turn_context; provider-resolved model is unavailable",
+      "model_observed": "gpt-6.1-sol",
+      "model_request_count": 1,
+      "model_requests": [
+        {
+          "request_id": "resp_01bf17ac5312d333016ac79d6aeeb0819180f448fc2ecebc4a",
+          "usage": {
+            "cache_write_input_tokens": 0,
+            "cached_input_tokens": 4608,
+            "input_tokens": 13099,
+            "output_tokens": 5,
+            "reasoning_output_tokens": 0
+          }
+        }
+      ],
+      "provider_resolved_model": null,
+      "reconciled": true,
+      "reconciliation_note": "Per-request trace sum must equal final turn.completed usage; tool item counts are separate.",
+      "request_usage_sum": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 4608,
+        "input_tokens": 13099,
+        "output_tokens": 5,
+        "reasoning_output_tokens": 0
+      },
+      "rollout_malformed_lines": 0,
+      "rollout_orphan_usage_records": 0,
+      "stable_context_tokens": null,
+      "thread_ids": [
+        "01a11bbe-de5e-7c53-9721-68e767b501b1"
+      ],
+      "tool_item_counts": {
+        "agent_message": 1
+      },
+      "turn_completed_events": 1
+    },
+    "process_exit_code": 0,
+    "provider_receipt_actual_usd": null,
+    "resource_assessment": {
+      "acceptance_unchanged": true,
+      "clean_comparison_eligible": true,
+      "contaminated": false,
+      "cost_retained": true,
+      "incidents": [],
+      "minimum_free_bytes_by_device": {
+        "16777233": 8487514112
+      },
+      "receipt": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/resource-receipts/calibration.json"
+    },
+    "rollout_trace": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/transcripts/calibration.rollout.jsonl",
+    "separate_from_trials": true,
+    "status": "ready",
+    "stderr_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/transcripts/calibration.stderr.txt",
+    "subtracted_from_trials": false,
+    "timed_out": false,
+    "transcript": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/transcripts/calibration.jsonl",
+    "workspace_integrity_before_cleanup": {
+      "outside_candidate_paths": [],
+      "spec_integrity": "passed",
+      "status": "passed"
+    },
+    "worktree_removed_after_archive": true
+  },
+  "campaign_status": "complete",
+  "clean_comparison_eligible": true,
+  "comparison_status": "complete; all arms have five recorded trials",
+  "complete": true,
+  "fixed_harness_composition": null,
+  "fixed_harness_context_note": "No per-request fixed system/tool/task/history composition is exposed; no context baseline is subtracted.",
+  "fixed_harness_context_tokens": null,
+  "measurement_notes": {
+    "authored": "Final authored source is a Claude BPE tokenizer proxy over the final candidate inventory, not generated output or billed tokens.",
+    "cost": "Conditional Standard short-context API-equivalent estimate includes every recorded attempt, including failures, divided by accepted tasks; actual billed cost is unavailable.",
+    "input": "Raw input, cache reads, cache writes, and output remain separate counters; missing buckets stay null.",
+    "net_input": "Legacy net input is an explicit historical proxy: summed input minus first-request input times request count; it is not task-only input.",
+    "turns": "Model request turns come only from reconciled task-owned rollout records; outer CLI turns and tool items are separate."
+  },
+  "planned_attempts": 10,
+  "provenance": {
+    "adapter": "codex-matched-shiftsim-v2",
+    "authored_source_tokenizer": {
+      "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+      "dependency": "tiktoken",
+      "dependency_version": "1.0.22",
+      "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+      "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+      "package": "@anthropic-ai/tokenizer",
+      "runtime": "node",
+      "runtime_version": "v24.3.0",
+      "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+      "version": "0.0.4"
+    },
+    "codex_version": "codex-cli 0.160.1",
+    "compiler_source_commit": "e045527a611a048515349ab2f970043a5d33b185",
+    "effort_requested": "medium",
+    "model_requested": "gpt-6.1-sol",
+    "price_book": {
+      "actual_billed_usd": null,
+      "conditional": true,
+      "date": "2026-10-08",
+      "source": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+      "standard_short_context_usd_per_million": {
+        "cache_read": 0.1,
+        "cache_write": 2.5,
+        "input": 2.0,
+        "output": 10.0
+      }
+    },
+    "repository_commit": "e045527a611a048515349ab2f970043a5d33b185",
+    "round": 3,
+    "seed_files_sha256": {
+      "benchmarks/event-sim-tokens-v1/SPEC.md": "5a8631fc59f55d145bfabb62c8edd3f86164114e3d27b69422031b664b529e00"
+    },
+    "source_binary_sha256": "31891e0d229e217ebbdf71139f82654349e051eb06fb6b08e2984bea4ce6c8d1"
+  },
+  "recorded_attempts": 10,
+  "resource_contaminated_attempts": 0,
+  "results_sha256": "e2f7e18aacf41e858099b7c936263b1c8d25d7f68b5f0556b51f9ec034ad127a",
+  "schema": "semaprax.event-sim-codex-report.v1",
+  "trials": [
+    {
+      "acceptance_wall_seconds": 19.405,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 787.458,
+      "arm": "semaprax",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 1888000,
+      "conditional_api_equivalent_usd": 0.554322,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "5fca19adce75c9bb3443b05092d9d34777120245f41409ac4fc95c7e13aee7be",
+        "exec": "846cf48f8fc0eb96c3180d1646ebac4f1abd1727a6c077e7af9e22c24502e769",
+        "prompt": "8f69345c21e89040e4367799edaba1bd2b56aab2b0f2ded24d5ce857cf50db49",
+        "rollout": "672f7f6657da6b9dddc89951e8ae9cc5711cbffadc3e1b8f3c3e21614f0218ea"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 9133,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 1379357,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 42,
+      "model_requests": 42,
+      "number": 1,
+      "output_tokens": 22848,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 1956521,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 8473251840
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/resource-receipts/semaprax-01.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    },
+    {
+      "acceptance_wall_seconds": 4.8,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 254.993,
+      "arm": "typescript",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 71552,
+      "conditional_api_equivalent_usd": 0.155827,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "c6f01134bfd2ee8c66abb2bdc041bb73d92a65aeeb10539a38cd7a209ad63d3a",
+        "exec": "1a70f0dc59dcd9b5d0575de0dbeec2b0dd119abe4598338894afc7706c1a5e81",
+        "prompt": "09811705a03348041a1eed499932841e43254ae6c20f64f762c6424116d18329",
+        "rollout": "397e5cc451e7652d9c7ade0481b20bd4185baa74fa545792475a505ce4157d5a"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 5245,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 23325,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 6,
+      "model_requests": 6,
+      "number": 1,
+      "output_tokens": 8033,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 105723,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 9541308416
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/resource-receipts/typescript-01.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    },
+    {
+      "acceptance_wall_seconds": 4.107,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 248.003,
+      "arm": "typescript",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 130816,
+      "conditional_api_equivalent_usd": 0.132038,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "617256e326da5bd127ce2523bbe98fa9c73e125752c83962b69c83e78181ee48",
+        "exec": "5410dbf9557c67eafd2ab7509bd53ab7e031717fe675eb273b4cc3e23b59326f",
+        "prompt": "901a066ae65df08051f266aeceae399d39e0a854507ef696da47e713d99f444c",
+        "rollout": "4224733e9eb080f7fa3b58083ea0122e61cd27a9f5d071d4ec4e01d7cc2c8686"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 4833,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 42950,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 8,
+      "model_requests": 8,
+      "number": 2,
+      "output_tokens": 7496,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 152814,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 9541025792
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/resource-receipts/typescript-02.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    },
+    {
+      "acceptance_wall_seconds": 18.8,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 548.279,
+      "arm": "semaprax",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 1041536,
+      "conditional_api_equivalent_usd": 0.39357,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "ed26189d483951ec9fa7c410d1dd62916ef4c473cc60a81b87fa39e39a41dcac",
+        "exec": "7b719ff60a636603b7c5ebc10cf0bef01d7c2bf302924a289b05829a6c486879",
+        "prompt": "fe99a65cb1e0170402bee71320c8216942ed89617c1e79e30bdca9fde56e795d",
+        "rollout": "062bca801e1e24ae640456db4a0289bcb6f9c88efba9acb12cde78df994f83a1"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 9126,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 761539,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 25,
+      "model_requests": 25,
+      "number": 2,
+      "output_tokens": 16231,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 1105089,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 9482559488
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/resource-receipts/semaprax-02.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    },
+    {
+      "acceptance_wall_seconds": 18.92,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 732.17,
+      "arm": "semaprax",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 1348992,
+      "conditional_api_equivalent_usd": 0.432969,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "48985e85e8f909f9656d92d2edc6e82972c825f2bfeb90d59bb9f53ee157868e",
+        "exec": "fdf23d06f05d226c4671132fbcb943af1a5f3340032f4b3cef7fe08d5181ba75",
+        "prompt": "cda569ea838e2d2267049ab7194f1f1d6e87a47fd95a634709ad4152a27dc41a",
+        "rollout": "21bd2a225eaa777ac6b3280a6601663e8725acf55ca7001b4ed04c13551d56de"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 9082,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 978915,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 31,
+      "model_requests": 31,
+      "number": 3,
+      "output_tokens": 18622,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 1404917,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 9406627840
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/resource-receipts/semaprax-03.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    },
+    {
+      "acceptance_wall_seconds": 6.404,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 181.03,
+      "arm": "typescript",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 61824,
+      "conditional_api_equivalent_usd": 0.114348,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "7f9a5a350503a0aa3a313e546c3b0b3fd37dd4b4602095d3c29f872b76a01c4a",
+        "exec": "91ffc4206a016ca105fd6dc5b1bee8102cee5a7bcc25c267d009edb4ab55415b",
+        "prompt": "52610b371559c3ac72a46249b596806eb2fa49347bc7feda639252afe2cc514e",
+        "rollout": "586d1f94098229d33c70841e085ccb4273073a8c7b5a678d7ea28cde971f316f"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 4530,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 15182,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 5,
+      "model_requests": 5,
+      "number": 3,
+      "output_tokens": 6412,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 83847,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 9404313600
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/resource-receipts/typescript-03.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    },
+    {
+      "acceptance_wall_seconds": 7.963,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 218.917,
+      "arm": "typescript",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 86656,
+      "conditional_api_equivalent_usd": 0.12803,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "37fe80a5e315f9f5c345ffca5c2de47debc3d103290f137d7bae519765907905",
+        "exec": "df9bf4279e6ed973dc343bce5513806be1f57f0521891ff061b42c84af3ee334",
+        "prompt": "8278948b839de985296e075fe0d25b86da580fc75c22d0f25b165624244cd41e",
+        "rollout": "6c96f8d071f766bfd6831614c966e089faed4a4a31200c8a744cb4234f6db865"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 4989,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 25055,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 6,
+      "model_requests": 6,
+      "number": 4,
+      "output_tokens": 7777,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 107453,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 9411690496
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/resource-receipts/typescript-04.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    },
+    {
+      "acceptance_wall_seconds": 24.963,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 472.398,
+      "arm": "semaprax",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 1644800,
+      "conditional_api_equivalent_usd": 0.458594,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "f25f987b025cca78d38bc7953f27cefc06d40dde908debb22f921bcde7524147",
+        "exec": "fd04b580dd14dcf7e29673cdcdae389f9a72b4e9ac467ab6345c52a874bdb103",
+        "prompt": "278efc8c98fbc7abdad35a250f8dca72f88c0a9b119959ca6fe553c0203be2e6",
+        "rollout": "98b49586f3721d37fa0c819fadf8f26f9c8e9b0e19b67ec1cf9a33202ecf4ff5"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 7882,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 1212785,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 36,
+      "model_requests": 36,
+      "number": 4,
+      "output_tokens": 16872,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 1707497,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 9490116608
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/resource-receipts/semaprax-04.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    },
+    {
+      "acceptance_wall_seconds": 18.638,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 408.53,
+      "arm": "semaprax",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 929280,
+      "conditional_api_equivalent_usd": 0.309516,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "13c3810afbedbcbb747d9194c0ad0b331694cf25d925fbfc38133273f08df543",
+        "exec": "b42988dc2031593c87a48e8991d41028af7afa3247b43a4ce455a386209f5792",
+        "prompt": "b96d4fa065e14f695cbd159cf5100f8ee76b786d0f525a8afd928558215d0c31",
+        "rollout": "9c5fb6275d0e79b8a06d38869ea6a55e07a668a7cebf85e055e33de16cbc6462"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 7185,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 632414,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 25,
+      "model_requests": 25,
+      "number": 5,
+      "output_tokens": 12322,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 975964,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 9502797824
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/resource-receipts/semaprax-05.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    },
+    {
+      "acceptance_wall_seconds": 4.289,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 163.025,
+      "arm": "typescript",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 91776,
+      "conditional_api_equivalent_usd": 0.105508,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "5b4c5ca75608394fbc2d31de6a6699c7d6bac62cb27c40d13ab54cd81e560d71",
+        "exec": "b3c5c087fd0645b32f41b0e2ecc43c22194f1f905f0f23323e03214ac190f050",
+        "prompt": "633b1e21f9332e04d1037d2fa7179ae80ad16a8dd3a728209758cbba401399b0",
+        "rollout": "1c176cd0036da96e8db4e76eb9c24418b074b21726881ce2d2e3be22fecc3479"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 4661,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 23408,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 6,
+      "model_requests": 6,
+      "number": 5,
+      "output_tokens": 6827,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 105806,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 9513791488
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/resource-receipts/typescript-05.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    }
+  ],
+  "unlaunched_order": [],
+  "winner": null
+}

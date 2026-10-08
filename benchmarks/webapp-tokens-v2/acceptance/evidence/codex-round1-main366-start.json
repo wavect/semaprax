@@ -1,0 +1,78 @@
+{
+  "schema": "semaprax.benchmark-campaign-start.v1",
+  "status": "launched_not_scored",
+  "artifacts": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round1-main366-20261008",
+  "compiler_source_commit": "3660e0daf9335dc9d6dc27949a43cd40dff7326c",
+  "compiler_binary_sha256": "ba75eec45d71e714a72eaac21f325195f3c3af4f259d9a9835306c1fe4dcbedc",
+  "seed_source_commit": "3660e0daf9335dc9d6dc27949a43cd40dff7326c",
+  "harness_source_branch": "codex/web-campaign-evidence-20261008",
+  "harness_source_commit": "4080ac2bb",
+  "harness_source_snapshot": {
+    "files_sha256": {
+      "benchmarks/live_campaign_common.py": "8260235fd382f658388f4a863aeb55e9428e681ccd2fd4de13ac3212813aa0db",
+      "benchmarks/webapp-tokens-v2/SPEC.md": "7658414ed2bbb53477a93e4a00f36269954c5bc45f3148fe72ddd02f203a50dc",
+      "benchmarks/webapp-tokens-v2/acceptance/api.mjs": "06eef892c3225635db1efcfffeab912cf94df82029ed30544208cea5b80bf3ae",
+      "benchmarks/webapp-tokens-v2/acceptance/browser-support.mjs": "554ee787d63add9ffc7f47b47a8b8fd7538ad30d0d9c4ac96bfa8135e0d3338f",
+      "benchmarks/webapp-tokens-v2/acceptance/browser.mjs": "c40cf2b6e65cb5106d8ce056b3209bd666497d6dea9c265f6c54692fc7f0694b",
+      "benchmarks/webapp-tokens-v2/acceptance/client.mjs": "62ed73c9a7fdc58f784ad13f42e9564ddba17204c0345c567b11c65f0901e667",
+      "benchmarks/webapp-tokens-v2/acceptance/contract.mjs": "3d2dc6708d257119c5e9907354ca56af1bf606de36d190e270004ea069b3c0bd",
+      "benchmarks/webapp-tokens-v2/acceptance/evidence/reference-r5-summary.json": "9194b111dd2fdc911e4b787f2eca29ec9eb4c0366583e6baa151c382cdf9a058",
+      "benchmarks/webapp-tokens-v2/acceptance/kdf-observer.mjs": "71491c33895ff14a0f3ff49e28c012c96ee257a21ec838597ba2340761f3eb70",
+      "benchmarks/webapp-tokens-v2/acceptance/ordering.mjs": "0bd129909a436f2e3875f880391558c51303729721cf91850d5a2cc59f1f58fa",
+      "benchmarks/webapp-tokens-v2/acceptance/package-lock.json": "d4543c177776d98affde51bff8770d03d23ea8920d715d7bb2e7ec216c968cf3",
+      "benchmarks/webapp-tokens-v2/acceptance/package.json": "a534c7fe5d2afbad01316b49ef108b54b29e50eb9e5e08379a288e86ea6fa0ad",
+      "benchmarks/webapp-tokens-v2/acceptance/process.mjs": "f94a80ae066a8e8b07ba31f75f008693872ac68693ad7a6ee22a9ffe3cabc9d3",
+      "benchmarks/webapp-tokens-v2/acceptance/qualification.mjs": "934c09570a9b7aaa14079bdb2ddba2f224dca01f1a570a9acba1cb0ba4e3322c",
+      "benchmarks/webapp-tokens-v2/acceptance/run.mjs": "109a37409d6f9395fe28fa0c6376daf50dc2a3fe22388afd0579727c8c2be42c",
+      "benchmarks/webapp-tokens-v2/codex_campaign.py": "a470559c685894af1606018ff5863cec2e67ba1b7d0a3acaad3344f5a0f3c8bc"
+    },
+    "frozen_spec": {
+      "path": "benchmarks/webapp-tokens-v2/SPEC.md",
+      "sha256": "7658414ed2bbb53477a93e4a00f36269954c5bc45f3148fe72ddd02f203a50dc",
+      "source": "seed_files_sha256"
+    },
+    "path": "harness-source",
+    "schema": "semaprax.codex-harness-source-snapshot.v1"
+  },
+  "qualification": {
+    "gate_source_commit": "40088afbf16650cb50452a5e2e3217fa7a54e374",
+    "receipt": "benchmarks/webapp-tokens-v2/acceptance/evidence/reference-r5-summary.json",
+    "receipt_sha256": "9194b111dd2fdc911e4b787f2eca29ec9eb4c0366583e6baa151c382cdf9a058",
+    "required_arms": [
+      "semaprax",
+      "typescript"
+    ],
+    "required_cases": 912,
+    "spec_sha256": "7658414ed2bbb53477a93e4a00f36269954c5bc45f3148fe72ddd02f203a50dc"
+  },
+  "model_requested": "gpt-6.1-sol",
+  "effort_requested": "medium",
+  "attempt_denominator": 10,
+  "trial_order": [
+    "semaprax",
+    "typescript",
+    "typescript",
+    "semaprax",
+    "semaprax",
+    "typescript",
+    "typescript",
+    "semaprax",
+    "semaprax",
+    "typescript"
+  ],
+  "acceptance_runtime": {
+    "chromium_executable": "/Users/kevin/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+    "chromium_executable_exists": true,
+    "node_binary": "/Users/kevin/.nvm/versions/node/v24.3.0/bin/node",
+    "node_version": "v24.3.0",
+    "playwright_root": "/Users/kevin/.codex/worktrees/webapp-full-spec-acceptance/AI-Lang/benchmarks/webapp-tokens-v2/acceptance",
+    "playwright_version": "1.62.0",
+    "probe_stderr": "",
+    "status": "ready"
+  },
+  "calibration_status": "ready",
+  "campaign_json_sha256": "807e34e46a3625cf65e4aa6f3e0b85422b6b01a8f1ab32dbba69b281bed0c617",
+  "calibration_json_sha256": "2311ecff7139406fbda59068883bbe9dadef3b73ef09ede9780f9199ca2b6cca",
+  "qualification_scope": "Prior local reference qualification at recorded exact source identities permits this new live campaign; no completed-task result or token advantage is claimed in a start receipt. Live candidate acceptance requires all912 exact frozen gate cases plus own build/tests.",
+  "measurement_scope": "Separate READY calibration is never subtracted; fixed hidden-context composition and actual bills remain unknown. Final authored source uses pinned legacy Claude BPE proxy. All attempted tasks, including failures, remain in the denominator."
+}

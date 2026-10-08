@@ -109,7 +109,11 @@ const PACKAGES: &[BundledPackage] = &[
         name: "std.data.json.scan",
         path: "dependencies/std.data.json.scan/0.1.0/scan.spx",
         source: include_str!("../../std/data-json-scan/src/scan.spx"),
-        dependencies: &["std.data.json.doc", "std.data.json.query", "std.data.json.utf8"],
+        dependencies: &[
+            "std.data.json.doc",
+            "std.data.json.query",
+            "std.data.json.utf8",
+        ],
     },
     BundledPackage {
         name: "std.data.json.token",

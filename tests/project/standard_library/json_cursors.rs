@@ -117,7 +117,9 @@ fn main() -> i64
     project::with_authenticated_project(&scratch.join("semaprax.toml"), |snapshot| {
         snapshot.check()?;
         assert_eq!(
-            snapshot.execute_entry(&ProjectExecutionOptions::default())?.outcome(),
+            snapshot
+                .execute_entry(&ProjectExecutionOptions::default())?
+                .outcome(),
             &ProjectExecutionOutcome::Returned(0)
         );
         let workspace = snapshot.workspace_manifest();

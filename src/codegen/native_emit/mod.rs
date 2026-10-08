@@ -321,7 +321,7 @@ fn emit_hir_c_with_options(
             return Ok(output.into_string());
         }
         if output_profile == NativeOutputProfile::SourceResourceCommand {
-            native_source_resource_command::emit_process_adapter(&mut output, symbol);
+            native_source_resource_command::emit_process_adapter(&mut output, symbol, program);
             return Ok(output.into_string());
         }
         write!(

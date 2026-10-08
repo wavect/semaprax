@@ -192,7 +192,22 @@ static spx_status_token spx_host_command_stderr_append_resource_str_v1(
 
 "##;
 
-pub(super) fn emit_process_adapter(output: &mut impl COutput, root_symbol: &str) {
+pub(super) fn emit_process_adapter(
+    output: &mut impl COutput,
+    root_symbol: &str,
+    program: &crate::hir::ResolvedProgram,
+) {
+    let uses_file_text =
+        crate::string_ops::program_uses_op(program, crate::string_ops::StringOp::FileReadText);
+    let file_root_setup = if uses_file_text {
+        r#"#if defined(_WIN32)
+    state.file_root = -1;
+#else
+    state.file_root = open(".", O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+#endif"#
+    } else {
+        "    state.file_root = -1;"
+    };
     writeln!(
         output,
         r#"#if defined(_WIN32)
@@ -260,11 +275,7 @@ int main(int argc, char **argv) {{
     state.command.output.stdout_bytes = output_block;
     state.command.output.stderr_bytes = output_block + (size_t)SPX_COMMAND_OUTPUT_CAPACITY_V1;
     state.command.input = &input;
-#if defined(_WIN32)
-    state.file_root = -1;
-#else
-    state.file_root = open(".", O_RDONLY | O_DIRECTORY | O_CLOEXEC);
-#endif
+{file_root_setup}
     struct spx_status_entry spx_status_entries[UINT32_C(1)];
     struct spx_context spx_ctx = {{0}};
     if (!spx_context_init(&spx_ctx, UINT64_C(1), spx_status_entries, UINT32_C(1), NULL, NULL, &state)) {{
@@ -331,8 +342,7 @@ mod tests {
         assert!(OUTPUT_RUNTIME_C.contains("else spx_slice_u8_require_valid(value);"));
         assert!(!OUTPUT_RUNTIME_C.contains("#define SPX_SLICE_U8_MAX_BYTES"));
         assert!(!OUTPUT_RUNTIME_C.contains("#define SPX_OWNED_BYTES_MAX_BYTES"));
-        let mut output = String::new();
-        emit_process_adapter(&mut output, "spx_root");
+        let output = emit("");
         assert_eq!(
             output
                 .matches("malloc((size_t)SPX_SOURCE_RESOURCE_OUTPUT_ALLOCATION_V1)")
@@ -363,6 +373,33 @@ mod tests {
         assert!(ordinary.contains("spx_status = spx_host_command_stdout_append_v1(spx_ctx,"));
         assert!(!ordinary
             .contains("spx_status = spx_host_command_stdout_append_resource_str_v1(spx_ctx,"));
+    }
+
+    #[test]
+    fn file_root_authority_requires_reachable_file_text() {
+        let without_file = emit(
+            "    let text = \"plain\";\n    let view = string_as_str(text);\n    let written = stdout_append(str_as_bytes(view));",
+        );
+        assert!(without_file.contains("state.file_root = -1;"));
+        assert!(!without_file.contains("state.file_root = open(\".\""));
+
+        let source = r#"module resource.native;
+permit { fs.read, process.args.read, process.stdout.write }
+
+@id("resource.main")
+fn main() -> i64 uses { fs.read, process.args.read, process.stdout.write }
+{
+    let path = arg_utf8(0usize);
+    let text = file_read_text(path);
+    let view = string_as_str(text);
+    let written = stdout_append(str_as_bytes(view));
+    0
+}
+"#;
+        let parsed = crate::parse(source, "resource-native-file.spx").unwrap();
+        let resolved = crate::hir::resolve(&parsed).unwrap();
+        let with_file = crate::codegen::emit_hir_c_with_source_resource_command(&resolved).unwrap();
+        assert!(with_file.contains("state.file_root = open(\".\""));
     }
 
     #[test]

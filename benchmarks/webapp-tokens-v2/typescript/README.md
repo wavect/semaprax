@@ -45,3 +45,9 @@ use `valueAsNumber`; exact values, references, links, CSV, and audit history
 survive a restart. Existing numeric JSON data files use the same schema decoder.
 Run `npm test` for the codec, schema, HTTP numeric-token, audit, and restart
 regressions, followed by `npm run build` for the browser application.
+
+The UI intersects workflow edges with the ordinary write predicate for each
+prospective row (OPT #666): Agents retain own Draft→Submitted Expense edits,
+while Expense and Leave approval actions stay hidden. The server keeps its
+authoritative old-and-new-row authorization checks. Full independent browser
+qualification is recorded separately from the reference self-tests.

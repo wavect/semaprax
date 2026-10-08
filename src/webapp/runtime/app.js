@@ -54,7 +54,14 @@ async function loadAll() {
 const free = () => !ACC || SETUP;
 const pass = (p, r, u) => { try { return p.test(r, u) === true; } catch { return false; } };
 const canW = (e, r) => free() || !e.canWrite || pass(e.canWrite, r, ME);
-const canNew = (e) => free() || !e.canWrite || e.canWrite.row || pass(e.canWrite, {}, ME);
+const canNew = (e) => {
+  if (free() || !e.canWrite) return true;
+  if (!e.canWrite.row) return pass(e.canWrite, {}, ME);
+  // Only the compiler's partial predicate can prove that no prospective row
+  // is writable. Unknown row fields retain access to the validated form.
+  if (typeof e.canWrite.create !== "function") return true;
+  try { return e.canWrite.create(ME) !== false; } catch { return false; }
+};
 const canAudit = () => free() || !ents[ACC.entity].canWrite || pass(ents[ACC.entity].canWrite, ME, ME);
 
 const colsOf = (e) => [{ name: "id", type: "int", id: true }, ...e.fields, ...(e.computed || []).map((c) => ({ ...c, computed: true }))];
@@ -168,7 +175,8 @@ function formView(e, row) {
     if (f.type === "bool") return h("input", { type: "checkbox", checked: !!v });
     if (f.type === "enum") {
       const cases = !st ? enums[f.enum] : row ? enums[f.enum].filter((c) => c === v || rt.stepOk(st, v, c)) : enums[f.enum].slice(0, 1);
-      return h("select", {}, cases.map((c) => h("option", { value: c, selected: v === c }, c)));
+      const permitted = !st || !row ? cases : cases.filter((c) => canW(e, { ...row, [f.name]: c }));
+      return h("select", {}, permitted.map((c) => h("option", { value: c, selected: v === c }, c)));
     }
     if (f.type === "ref") return h("select", {}, h("option", { value: "" }, "— select —"), D[f.ref].map((r) => h("option", { value: String(r.id), selected: v === r.id }, labelOf(f.ref, r.id))));
     if (f.type === "int" || f.type === "float") return h("input", { type: "number", step: f.type === "int" ? "1" : "any", value: v === undefined ? "" : String(v) });

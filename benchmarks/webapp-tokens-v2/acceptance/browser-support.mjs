@@ -20,6 +20,21 @@ export function formFieldLabel(field) {
   return new RegExp(`^\\s*${escaped}\\s*$`,'i');
 }
 
+export function formControl(page,field) {
+  return page.getByLabel(formFieldLabel(field)).and(page.locator('input,select,textarea'));
+}
+
+export function actionControl(page,name,entity) {
+  const escaped=value=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const label=entity?new RegExp(`^(?:\\+ )?${escaped(name)} ${escaped(entity)}$`,'i'):new RegExp(`^${escaped(name)}$`,'i');
+  return page.getByRole('link',{name:label}).or(page.getByRole('button',{name:label}));
+}
+
+export async function uniqueControl(locator,description) {
+  assert.equal(await locator.count(),1,`one ${description} control`);
+  return locator;
+}
+
 // Typed integer editors may use inputmode rather than the browser Number
 // implementation. The physical create/readback checks remain the value oracle.
 export function numericEditor(type, attributes) {

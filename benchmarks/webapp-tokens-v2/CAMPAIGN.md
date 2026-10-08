@@ -77,7 +77,7 @@ The browser gate recognizes enum filters by an exact field-labelled control or
 the legacy field-qualified clear option. It still checks every enum value
 against displayed rows and resets the selected filter; a generic unrelated
 `All` control is not accepted.
-Permission actions may be links or buttons with one exact accessible action name. Form locators are scoped to the active form so navigation labels cannot collide with fields.
+Permission actions may be links or buttons with one exact accessible action name. Form locators require native input, select, or textarea controls so navigation labels cannot collide with fields.
 
 TypeScript replay that needs excluded dependencies requires an explicit
 `--dependency-receipt` using `semaprax.rescore.dependencies.v1`. It binds

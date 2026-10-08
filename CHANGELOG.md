@@ -6,6 +6,16 @@
   Local codec/schema, physical HTTP/restart, type-check and browser build gates
   pass; the independent full-SPEC qualification remains a separate gate.
 
+- Add the Partial alloc `std.int.decimal` package (OPT #661): canonical
+  unsigned decimal normalization, comparison, exact addition/subtraction and
+  floor division, bundled dependency resolution and generated discovery.
+  Checked contracts reject malformed input, unsigned underflow and zero
+  divisors. The package lists interpreter/native C11, with no Core Wasm or
+  primitive BigInt claim. Admit supported String-replacement graph v68 in
+  Semantic Workspace preflight (OPT #664), retaining exact schema refusals.
+  Focused flattened source/interpreter/native checks passed locally; current
+  compiler Project and authored Rust gates remain pending integration.
+
 - Fix native String condition cleanup anchors to distinguish dormant inventory
   slots from canonical runtime lifecycle references; mirror the distinction in
   aggregate Wasm and Copy-variant guards. Parameter-read success and real-owner

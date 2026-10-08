@@ -154,6 +154,43 @@ are not yet linked by Project builds. A source file may still vendor a library
 module explicitly. `std.bytes` requires the `useful-data.v1` profile and
 `std.text` requires `useful-text-consumer.v1`.
 
+### Exact unsigned decimal integers
+
+`std.int.decimal` is an additive Partial alloc package for unrestricted digit
+values represented as canonical strings: `0`, or a nonzero ASCII digit followed
+by digits. It adds no primitive type or ambient authority. `digits` accepts
+nonempty ASCII digits including leading zeros; `canonicalize` strips them.
+`valid` recognizes canonical input, `compare` returns -1/0/1, and `add`,
+`subtract`, and `divide` compute exact canonical results digit by digit.
+Subtraction refuses unsigned underflow; division computes the floor quotient
+and refuses zero. Malformed arithmetic inputs fail `semaprax.contract.v1`
+with the requires-false code. `Option<string>` is outside the executable
+generic profile (`SPX-T223`), so these calls use checked preconditions rather
+than an owning Option result. Callers can use `digits`, `valid`, and `compare`
+to admit untrusted input first.
+
+Consume it through `[dependencies] std.int.decimal = "^0.1.0"` with
+`owned-data-api.v1` and stable-ID imports. Strings own their parameters
+implicitly; borrowed divisors/comparison operands use named owners and
+`string_as_str`. There is no public export ABI. The explicit targets are
+interpreter and native C11. Standalone internal String Wasm signatures and
+Text Toolkit `string_slice` still have their existing refusals; this package
+makes no Core Wasm support claim. All operations remain subject to the
+invocation's ordinary memory/fuel limits. Front-prepending addition and
+subtraction copy strings and are quadratic in digits; long division performs
+at most nine subtractions per dividend digit and also copies decimal strings.
+No operand is narrowed to a machine integer.
+
+Arithmetic postconditions express nonempty results. The source verifier
+refuses borrowing the synthetic `result` place (`SPX-T266`), so the stronger
+canonical-output property is established structurally by decimal digit
+construction/normalization and by the exact conformance cases, rather than
+through an unadmitted `valid(string_as_str(result))` expression. The owning
+`standard_library::decimal` gates cover long carry/borrow chains, values above
+u64, leading zeros, malformed UTF-8 digit lookalikes, zero and underflow
+failures, and ordinary bundled consumers. These new gates are authored until
+the current compiler runs them; earlier release evidence does not cover them.
+
 ## Portability tiers
 
 | Tier | Scope |

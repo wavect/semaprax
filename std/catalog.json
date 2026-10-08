@@ -7197,6 +7197,146 @@
     {
       "declarations": [
         {
+          "description": [
+            "Exact unsigned decimal integers use canonical owned UTF-8 strings. Arithmetic",
+            "is digit-wise; no complete operand is converted to a machine integer."
+          ],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn digit(text: borrow str, index: i64) -> i64",
+            "    requires index >= 0 && index < str_len_bytes(text)",
+            "    ensures result >= -48 && result <= 207"
+          ],
+          "id": "std.int.decimal.digit",
+          "kind": "function",
+          "name": "digit",
+          "requires": 1
+        },
+        {
+          "description": [
+            "Nonempty ASCII digits, including leading zeros, are accepted for normalization."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn digits(text: borrow str) -> bool"
+          ],
+          "id": "std.int.decimal.digits",
+          "kind": "function",
+          "name": "digits",
+          "requires": 0
+        },
+        {
+          "description": [
+            "Canonical means exactly \"0\", or a nonzero digit followed by ASCII digits."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn valid(text: borrow str) -> bool"
+          ],
+          "id": "std.int.decimal.valid",
+          "kind": "function",
+          "name": "valid",
+          "requires": 0
+        },
+        {
+          "description": [
+            "Call digits first for untrusted input. Malformed input fails its precondition."
+          ],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn canonicalize(text: string) -> string",
+            "    requires digits(string_as_str(text))",
+            "    ensures string_len(result) > 0"
+          ],
+          "id": "std.int.decimal.canonicalize",
+          "kind": "function",
+          "name": "canonicalize",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn compare(left: borrow str, right: borrow str) -> i64",
+            "    requires valid(left) && valid(right)",
+            "    ensures result >= -1 && result <= 1"
+          ],
+          "id": "std.int.decimal.compare",
+          "kind": "function",
+          "name": "compare",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn add(left: string, right: string) -> string",
+            "    requires valid(string_as_str(left)) && valid(string_as_str(right))",
+            "    ensures string_len(result) > 0"
+          ],
+          "id": "std.int.decimal.add",
+          "kind": "function",
+          "name": "add",
+          "requires": 1
+        },
+        {
+          "description": [
+            "Underflow is a checked contract failure. Compare before subtracting untrusted",
+            "operands. The result is canonical even across a long borrow chain."
+          ],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn subtract(left: string, right: borrow str) -> string",
+            "    requires valid(string_as_str(left)) && valid(right)",
+            "    requires compare(string_as_str(left), right) >= 0",
+            "    ensures string_len(result) > 0"
+          ],
+          "id": "std.int.decimal.subtract",
+          "kind": "function",
+          "name": "subtract",
+          "requires": 2
+        },
+        {
+          "description": [
+            "Long division returns the floor quotient. The partial remainder is shifted",
+            "by one decimal place before adding each dividend digit. Since the previous",
+            "remainder is below divisor, at most nine subtractions produce each digit."
+          ],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn divide(dividend: string, divisor: borrow str) -> string",
+            "    requires valid(string_as_str(dividend)) && valid(divisor)",
+            "    requires digit(divisor, 0) != 0",
+            "    ensures string_len(result) > 0"
+          ],
+          "id": "std.int.decimal.divide",
+          "kind": "function",
+          "name": "divide",
+          "requires": 2
+        }
+      ],
+      "dependency": "std.int.decimal = \"^0.1.0\"",
+      "module": "std.int.decimal",
+      "package": "std/int-decimal",
+      "required_profile": "owned-data-api.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11"
+      ],
+      "tier": "alloc"
+    },
+    {
+      "declarations": [
+        {
           "description": [],
           "effects": [],
           "ensures": 0,

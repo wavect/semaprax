@@ -26,6 +26,7 @@ mod owned_try;
 mod owned_values;
 mod places;
 mod record_iterator_item;
+mod resource_text;
 mod stdin_stream;
 mod unary;
 mod variant_equality;
@@ -293,6 +294,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         }
         Ok(())
     }
+
     fn emit_byte_op(
         &mut self,
         op: crate::byte_ops::ByteOp,
@@ -352,14 +354,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         };
         match op {
             crate::byte_ops::ByteOp::Len => {
-                self.line(&format!(
-                    "{temporary} = spx_byte_len({});",
-                    arguments[0].code
-                ));
+                let helper = self.resource_text_len_helper(&args[0]);
+                self.line(&format!("{temporary} = {helper}({});", arguments[0].code));
             }
             crate::byte_ops::ByteOp::Get => {
                 let slice = &arguments[0].code;
-                self.line(&format!("spx_slice_u8_require_valid({slice});"));
+                let validator = self.resource_text_validator(&args[0]);
+                self.line(&format!("{validator}({slice});"));
                 self.emit_option_byte_read(
                     &return_type,
                     slice,
@@ -659,7 +660,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             "{temporary} = (spx_slice_u8_v1) {{ .ptr = ({}).len == UINT64_C(0) ? NULL : (const uint8_t *)({}).data, .len = ({}).len }};",
                             source.code, source.code, source.code
                         ));
-                        self.line(&format!("spx_slice_u8_require_valid({temporary});"));
+                        let validator = self.resource_text_validator(expr);
+                        self.line(&format!("{validator}({temporary});"));
                     }
                     crate::byte_ops::ByteOp::StringAsStr => {
                         self.require_type(
@@ -785,8 +787,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         self.require_type(&end.ty, &ResolvedType::Usize, "byte_range end")?;
         self.require_type(&expr.ty, &ResolvedType::SliceU8, "byte_range result")?;
         let temporary = self.temporary(&ResolvedType::SliceU8)?;
+        let helper = self.resource_text_range_helper(expr);
         self.line(&format!(
-            "spx_status = spx_byte_range_v1(spx_ctx, {}, {}, {}, &{temporary});",
+            "spx_status = {helper}(spx_ctx, {}, {}, {}, &{temporary});",
             source.code, start.code, end.code
         ));
         self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
@@ -849,12 +852,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             "host stdout write result",
                         )?;
                         let temporary = self.temporary(&ResolvedType::Usize)?;
-                        let helper = if self.output_profile.is_language_command() {
-                            "spx_host_command_stdout_write_v1"
-                        } else {
-                            "spx_host_stdout_write_v1"
-                        };
-                        self.line(&format!("{temporary} = {helper}(spx_ctx, {});", value.code));
+                        self.emit_stdout_write(&args[0], &value.code, &temporary);
                         return Ok(CValue {
                             code: temporary,
                             ty: ResolvedType::Usize,
@@ -1166,6 +1164,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         let value = match &expr.kind {
             ResolvedExprKind::Block { statements, tail } => {
                 let saved = self.variables.clone();
+                let saved_resource_text_views = self.resource_text_views.clone();
                 for statement in statements {
                     match statement {
                         ResolvedStatement::Let {
@@ -1174,6 +1173,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             value,
                             ..
                         } => {
+                            let resource_text_view = self.produces_resource_text_view(value);
                             if *mutable {
                                 self.mutable_bindings.insert(binding.id.clone());
                             }
@@ -1256,6 +1256,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                     binding.id
                                 )));
                             }
+                            if resource_text_view && !*mutable {
+                                self.resource_text_views.insert(binding.id.clone());
+                            }
                         }
                         ResolvedStatement::Assign {
                             binding,
@@ -1263,6 +1266,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             value: assigned,
                             ..
                         } => {
+                            self.resource_text_views.remove(&binding.id);
                             // The assigned value is emitted fully first; the
                             // store is a plain C11 assignment into the local
                             // or, for Field Mutation v1, into its one direct
@@ -1458,6 +1462,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 }
                 self.emit_block_plan_scope_exit(expr)?;
                 self.variables = saved;
+                self.resource_text_views = saved_resource_text_views;
                 tail
             }
             _ => unreachable!("non-Block expression reached emit_block_expr"),

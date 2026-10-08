@@ -21,6 +21,9 @@ pub(crate) enum NativeOutputProfile {
     /// two staged output channels, and `file_read_text` below the invocation
     /// directory, all supplied by the generated process adapter.
     SourceCommand,
+    /// Project v28 source command with additive heap-backed String and output
+    /// capacities. The v26 SourceCommand projection remains frozen.
+    SourceResourceCommand,
     UsefulDataCommand,
     LanguageCommandIo,
     StdinStreamCommandIo,
@@ -57,6 +60,7 @@ pub(super) struct StringRuntimeSelection {
     /// The single-file command profile always carries borrowed text and byte
     /// slices, which its argument and output adapters use.
     pub(super) command_carriers: bool,
+    pub(super) resource_strings: bool,
 }
 
 impl StringRuntimeSelection {
@@ -67,6 +71,7 @@ impl StringRuntimeSelection {
         reserved_bytes: false,
         stream_epochs: false,
         command_carriers: false,
+        resource_strings: false,
     };
 }
 
@@ -98,6 +103,7 @@ impl NativeOutputProfile {
                     reserved_bytes: false,
                     stream_epochs: false,
                     command_carriers: false,
+                    resource_strings: false,
                 }
             }
             Self::SourceCommand => StringRuntimeSelection {
@@ -107,6 +113,16 @@ impl NativeOutputProfile {
                 reserved_bytes: false,
                 stream_epochs: false,
                 command_carriers: true,
+                resource_strings: false,
+            },
+            Self::SourceResourceCommand => StringRuntimeSelection {
+                length_delimited: true,
+                provider_carriers: false,
+                include_instances: true,
+                reserved_bytes: false,
+                stream_epochs: false,
+                command_carriers: true,
+                resource_strings: true,
             },
             Self::OwnedUtf8Provider => StringRuntimeSelection {
                 length_delimited: true,
@@ -115,6 +131,7 @@ impl NativeOutputProfile {
                 reserved_bytes: false,
                 stream_epochs: false,
                 command_carriers: false,
+                resource_strings: false,
             },
             Self::ReservedBytesProvider => StringRuntimeSelection {
                 length_delimited: true,
@@ -123,6 +140,7 @@ impl NativeOutputProfile {
                 reserved_bytes: true,
                 stream_epochs: false,
                 command_carriers: false,
+                resource_strings: false,
             },
             Self::StdinStreamTextCommandIo | Self::StdinStreamDataCommandIo => {
                 StringRuntimeSelection {
@@ -167,6 +185,7 @@ impl NativeOutputProfile {
             Self::Legacy
                 | Self::StdoutTranscript
                 | Self::SourceCommand
+                | Self::SourceResourceCommand
                 | Self::OwnedDataProvider
                 | Self::StdinStreamTextCommandIo
                 | Self::StdinStreamDataCommandIo
@@ -183,6 +202,7 @@ impl NativeOutputProfile {
             self,
             Self::StdoutTranscript
                 | Self::SourceCommand
+                | Self::SourceResourceCommand
                 | Self::UsefulDataCommand
                 | Self::LanguageCommandIo
                 | Self::StdinStreamCommandIo
@@ -235,6 +255,7 @@ impl NativeOutputProfile {
                 | Self::EnvironmentCommandIo
                 | Self::ProcessCommandIo
                 | Self::SourceCommand
+                | Self::SourceResourceCommand
         )
     }
 }
@@ -242,6 +263,24 @@ impl NativeOutputProfile {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn source_resource_selection_is_additive() {
+        let frozen = NativeOutputProfile::SourceCommand.string_runtime();
+        let resource = NativeOutputProfile::SourceResourceCommand.string_runtime();
+        assert!(!frozen.resource_strings);
+        assert!(resource.resource_strings);
+        assert_eq!(
+            StringRuntimeSelection {
+                resource_strings: false,
+                ..resource
+            },
+            frozen
+        );
+        assert!(NativeOutputProfile::SourceResourceCommand.is_language_command());
+        assert!(!NativeOutputProfile::SourceResourceCommand.is_command());
+    }
+
     #[test]
     fn stream_text_selection_is_additive_and_old_string_runtime_is_frozen() {
         for profile in [

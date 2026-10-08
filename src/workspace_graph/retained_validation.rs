@@ -1285,7 +1285,7 @@ pub(super) fn project_effects_admitted(
     effects: &[String],
     natives: &ScalarNativeImports,
 ) -> bool {
-    if profile == crate::project::ProjectProfile::SourceCommandV1 {
+    if profile.is_source_command() {
         return effects
             .iter()
             .all(|v| crate::source_command::EFFECTS.contains(&v.as_str()));
@@ -1344,7 +1344,7 @@ pub(super) fn permits_admitted(
     entry_module: &str,
     natives: &ScalarNativeImports,
 ) -> bool {
-    if profile == crate::project::ProjectProfile::SourceCommandV1 {
+    if profile.is_source_command() {
         return module
             .permits
             .iter()

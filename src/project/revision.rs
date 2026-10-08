@@ -472,6 +472,7 @@ impl ProjectRevision {
                 ProjectProfile::EnvironmentIoV1 => "v17",
                 ProjectProfile::ProcessIoV1 => "v18",
                 ProjectProfile::SourceCommandV1 => "v26",
+                ProjectProfile::SourceCommandResourceOutputV1 => "v28",
                 ProjectProfile::PublicGenericWasmProviderV1 => "v20",
                 ProjectProfile::SourceLocalFutureV1 => "v21",
                 ProjectProfile::SourceLocalFutureIndexedRustV1 => "v22",

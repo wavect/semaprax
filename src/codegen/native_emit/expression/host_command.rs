@@ -189,10 +189,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             "stderr_write argument",
                         )?;
                         let temporary = self.temporary(&ResolvedType::Usize)?;
-                        self.line(&format!(
-                            "{temporary} = spx_host_command_stderr_write_v1(spx_ctx, {});",
-                            value.code
-                        ));
+                        self.emit_stderr_write(argument, &value.code, &temporary);
                         CValue {
                             code: temporary,
                             ty: ResolvedType::Usize,
@@ -202,6 +199,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         let [argument] = call.args.as_slice() else {
                             return Err(backend_error("command append arity disagrees with HIR"));
                         };
+                        let resource_text_view = self.is_resource_text_slice(argument);
                         let value = self.emit_expr(argument)?;
                         self.require_type(
                             &value.ty,
@@ -209,9 +207,15 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             "command append argument",
                         )?;
                         let temporary = self.temporary(&ResolvedType::Usize)?;
-                        let helper = match call.operation {
-                            Operation::StdoutAppend => "spx_host_command_stdout_append_v1",
-                            Operation::StderrAppend => "spx_host_command_stderr_append_v1",
+                        let helper = match (call.operation, resource_text_view) {
+                            (Operation::StdoutAppend, true) => {
+                                "spx_host_command_stdout_append_resource_str_v1"
+                            }
+                            (Operation::StderrAppend, true) => {
+                                "spx_host_command_stderr_append_resource_str_v1"
+                            }
+                            (Operation::StdoutAppend, false) => "spx_host_command_stdout_append_v1",
+                            (Operation::StderrAppend, false) => "spx_host_command_stderr_append_v1",
                             _ => unreachable!("append operation was matched above"),
                         };
                         self.line(&format!(

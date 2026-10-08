@@ -56,6 +56,7 @@ pub(super) enum PreparedProjectAdmission {
     EnvironmentIoV1,
     ProcessIoV1,
     SourceCommandV1,
+    SourceCommandResourceOutputV1,
     /// An authenticated no-export alloc-tier standard package retains its
     /// internal owned closure without constructing a public descriptor.
     OwnedDataNoExports,
@@ -90,6 +91,7 @@ impl PreparedProjectAdmission {
             Self::EnvironmentIoV1 => ProjectProfile::EnvironmentIoV1,
             Self::ProcessIoV1 => ProjectProfile::ProcessIoV1,
             Self::SourceCommandV1 => ProjectProfile::SourceCommandV1,
+            Self::SourceCommandResourceOutputV1 => ProjectProfile::SourceCommandResourceOutputV1,
             Self::FilesystemIoV2 => ProjectProfile::FilesystemIoV2,
             Self::FilesystemIoV3 => ProjectProfile::FilesystemIoV3,
             Self::HttpsCommandIoV1 => ProjectProfile::HttpsCommandIoV1,
@@ -167,6 +169,10 @@ pub(super) fn prepare(
         ProjectProfile::SourceCommandV1 => {
             super::source_command::admit(program, manifest)?;
             Ok(PreparedProjectAdmission::SourceCommandV1)
+        }
+        ProjectProfile::SourceCommandResourceOutputV1 => {
+            super::source_command::admit(program, manifest)?;
+            Ok(PreparedProjectAdmission::SourceCommandResourceOutputV1)
         }
         ProjectProfile::ScalarV1 if native_callback::declares_callback(program) => {
             native_callback::prepare(program, manifest.web_exports())?;

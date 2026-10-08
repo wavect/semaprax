@@ -13,13 +13,19 @@
 //! differing line, so agents get a byte-precise fix instead of a shape error.
 
 mod profiles;
-use super::{PROJECT_SCHEMA_V17, PROJECT_SCHEMA_V18, PROJECT_SCHEMA_V26, PROJECT_SCHEMA_V27};
+use super::{
+    PROJECT_SCHEMA_V17, PROJECT_SCHEMA_V18, PROJECT_SCHEMA_V26, PROJECT_SCHEMA_V27,
+    PROJECT_SCHEMA_V28,
+};
 use crate::project::profile::{
     valid_environment_capabilities, valid_process_capabilities,
     PROJECT_ENVIRONMENT_CAPABILITIES_V1, PROJECT_PROCESS_CAPABILITIES_V1,
     PROJECT_PROFILE_ENVIRONMENT_IO_V1,
 };
-use crate::project::profile::{PROJECT_PROFILE_SOURCE_COMMAND_V1, PROJECT_SOURCE_COMMAND_INPUT_V1};
+use crate::project::profile::{
+    PROJECT_PROFILE_SOURCE_COMMAND_RESOURCE_OUTPUT_V1, PROJECT_PROFILE_SOURCE_COMMAND_V1,
+    PROJECT_SOURCE_COMMAND_INPUT_V1,
+};
 use profiles::{lower_profile, profile_by_name};
 
 use super::{
@@ -389,13 +395,13 @@ pub(super) fn parse(lines: &[&str], law_layout: bool) -> Result<TableParts, Vec<
         }
     };
 
-    if profile == ProjectProfile::SourceCommandV1
+    if profile.is_source_command()
         && !target_matrix
             .as_ref()
             .is_some_and(|matrix| matrix.len() == 1 && matrix[0] == PACKAGE_TARGET_NATIVE64)
     {
         return Err(grammar(
-            "source-command.v1 requires [targets] matrix = [\"native64\"]",
+            "source-command profiles require [targets] matrix = [\"native64\"]",
         ));
     }
     let schema = lower_profile(
@@ -500,6 +506,7 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
             | PROJECT_PROFILE_ENVIRONMENT_IO_V1
             | PROJECT_PROFILE_PROCESS_IO_V1
             | PROJECT_PROFILE_SOURCE_COMMAND_V1
+            | PROJECT_PROFILE_SOURCE_COMMAND_RESOURCE_OUTPUT_V1
     );
     if command_profile {
         if let Some(command) = tables.iter().find(|table| table.name == "command") {
@@ -530,6 +537,9 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
         }
         let expected_input = match profile {
             PROJECT_PROFILE_SOURCE_COMMAND_V1 => Some(PROJECT_SOURCE_COMMAND_INPUT_V1),
+            PROJECT_PROFILE_SOURCE_COMMAND_RESOURCE_OUTPUT_V1 => {
+                Some(PROJECT_SOURCE_COMMAND_INPUT_V1)
+            }
             PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2 => Some(PROJECT_COMMAND_INPUT_V1),
             PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1
             | PROJECT_PROFILE_LINE_COMMAND_IO_V1
@@ -567,6 +577,9 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
             if if profile == PROJECT_PROFILE_SOURCE_COMMAND_V1 {
                 !crate::source_command::selects(required)
                     || !required.windows(2).all(|v| v[0] < v[1])
+            } else if profile == PROJECT_PROFILE_SOURCE_COMMAND_RESOURCE_OUTPUT_V1 {
+                !crate::source_command::selects_resource_output(required)
+                    || !required.windows(2).all(|v| v[0] < v[1])
             } else if profile == PROJECT_PROFILE_ENVIRONMENT_IO_V1 {
                 !valid_environment_capabilities(required)
             } else if profile == PROJECT_PROFILE_PROCESS_IO_V1 {
@@ -579,6 +592,8 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
             } {
                 let message = if profile == PROJECT_PROFILE_SOURCE_COMMAND_V1 {
                     "source-command.v1 requires a sorted nonempty subset of fs.read, process.args.read, process.stderr.write, process.stdout.write, other than stdout alone".to_owned()
+                } else if profile == PROJECT_PROFILE_SOURCE_COMMAND_RESOURCE_OUTPUT_V1 {
+                    "source-command.resource-output.v1 requires a sorted nonempty subset of fs.read, process.args.read, process.stderr.write, process.stdout.write, other than stdout alone".to_owned()
                 } else {
                     format!(
                         "{LABEL} profile `{profile}` requires `[capabilities] required = {}",
@@ -648,6 +663,7 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
                         | PROJECT_PROFILE_ENVIRONMENT_IO_V1
                         | PROJECT_PROFILE_PROCESS_IO_V1
                         | PROJECT_PROFILE_SOURCE_COMMAND_V1
+                        | PROJECT_PROFILE_SOURCE_COMMAND_RESOURCE_OUTPUT_V1
                 ))
         {
             diagnostics.push(if exports.len() > super::MAX_WEB_EXPORTS {
@@ -677,6 +693,7 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
                     | PROJECT_PROFILE_ENVIRONMENT_IO_V1
                     | PROJECT_PROFILE_PROCESS_IO_V1
                     | PROJECT_PROFILE_SOURCE_COMMAND_V1
+                    | PROJECT_PROFILE_SOURCE_COMMAND_RESOURCE_OUTPUT_V1
             )
         }) {
             if exports.len() != 1 || exports.first().map(String::as_str) != Some(command) {

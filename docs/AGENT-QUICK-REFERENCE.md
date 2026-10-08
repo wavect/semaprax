@@ -684,23 +684,24 @@ Consuming an enclosing owner is `SPX-T252`.
 
 `fs.read`, `process.args.read`, or `process.stderr.write` (optionally
 `process.stdout.write`) selects CLI behavior. `semaprax run lines.spx -- data.txt`
-passes `data.txt` to `arg_utf8`; `--native` also selects native. `main` returns
-status `0..=255`; stdout/stderr appear after return. `file_read_text` stays
-below cwd; checked read failures print one stderr line and exit 1.
+passes `data.txt` to `arg_utf8`; add `--native` for native. `main` returns
+`0..=255`; output appears after return. `file_read_text` stays below cwd;
+checked read failure prints one stderr line and exits 1.
 [Text Toolkit v1](TEXT-TOOLKIT-V1.md).
 
-`SPX-T269`: one direct `stdout_write` and one `stderr_write` per path; neither
-may be loop-reachable. Their staged bytes share a 65,536 total. Project v7
-line-command appends may loop, but share the same total. See [transcript rules](BOUNDED-STDOUT-TRANSCRIPT-V1.md)
+`SPX-T269`: keep direct writes outside loops and within selected-profile
+capacity admission. The default combined stdout + stderr cap is 65,536 bytes;
+Project v28 permits 1 MiB staged appends. See [transcript rules](BOUNDED-STDOUT-TRANSCRIPT-V1.md)
 and [Project v7](PROJECT-MANIFEST-V1.md#additive-project-manifest-v7-line-command-profile).
 
 Source-library CLIs use table-manifest `source-command.v1`, empty web exports,
 the exact `[command]` main ID, `argv-utf8+file-text.v1`, sorted capabilities,
-and `native64`. Native builds link ordinary dependencies such as
-`std.int.decimal`; interpreter/Web/npm/Wasm are refused. See [Project v26](PROJECT-MANIFEST-V26.md)
-and the [decimal CLI example](../examples/source-command-project/semaprax.toml).
+and `native64`; other targets refuse. [Project v26](PROJECT-MANIFEST-V26.md).
+V28 `source-command.resource-output.v1` keeps v26 file quotas but raises String,
+authenticated borrowed text, and combined staged append output to 1 MiB.
+[Project v28](PROJECT-MANIFEST-V28.md).
 
-The dependency-ready starter and its exact small library card are:
+Dependency starter and library card:
 
 ```sh
 semaprax new decimal-command --template source-command-file-text
@@ -711,8 +712,8 @@ semaprax build --manifest-path semaprax.toml --target native --output app
 ./app digits
 ```
 
-It pins `std.int.decimal = "=0.1.0"`; import `canonicalize`, `add`, and
-`divide` by the stable IDs in `semaprax help library std.int.decimal`.
+It pins `std.int.decimal = "=0.1.0"`; import `canonicalize`, `add`, and `divide`
+by IDs from `semaprax help library std.int.decimal`.
 
 Build `lines.spx` natively to fresh `--output`; omit `--profile` because
 `text-toolkit-v1` and `internal-strings-v1` are Wasm/web export profiles. On
@@ -1093,7 +1094,7 @@ Other first-attempt diagnostics and their fixes:
 | Some(1), None|`SPX-T203`, `SPX-T202`|Option<i64>::Some { value: 1 }, Option<i64>::None {}|
 | s.len() on a string|`SPX-T203`|Call string_len(s); see Compiler-owned functions for text operations. Only classes have methods|
 | str_as_bytes(text) or str_as_bytes(string_as_str(text))|`SPX-T263`, `SPX-T266`|Bind view first: let view = string_as_str(text); str_as_bytes(view)|
-| repeated direct output on one path or direct output reachable from a loop|`SPX-T269`|Keep at most one direct `stdout_write` and `stderr_write` per path, outside loops. Staged stdout + stderr share 65,536 bytes; line-command append may loop but shares this total.|
+| repeated direct output on one path or direct output reachable from a loop|`SPX-T269`|Keep direct writes outside loops and within selected-profile limits. Default combined stdout + stderr cap: 65,536 bytes; Project v28 staged appends: 1 MiB.|
 | string_as_str("literal")|`SPX-T266`|Bind the literal before passing it to string_as_str|
 | shape == Shape::Box { width: 1 } or option == Option<i64>::None {}|`SPX-T207`|Only payload-free, non-generic variants compare with ==; test others with match shape { Shape::Dot {} => true, _ => false, }|
 | an or-pattern alternative with a payload, such as Shape::Box { width: w }|`SPX-M105`|Or-pattern alternatives are payload-free cases; give a payload case its own arm|

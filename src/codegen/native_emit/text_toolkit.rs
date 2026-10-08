@@ -66,7 +66,11 @@ impl<O: COutput> CEmitter<'_, O> {
                 argument(1)
             ),
             StringOp::FileReadText => {
-                if self.output_profile != super::NativeOutputProfile::SourceCommand {
+                if !matches!(
+                    self.output_profile,
+                    super::NativeOutputProfile::SourceCommand
+                        | super::NativeOutputProfile::SourceResourceCommand
+                ) {
                     return Err(backend_error(
                         "file_read_text requires the native single-file command profile",
                     ));

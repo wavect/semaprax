@@ -35,7 +35,7 @@ use crate::ast::{
     TypeDeclaration, TypeDeclarationKind,
 };
 use crate::diagnostic::Diagnostic;
-use crate::{format, graph, hir, prelude, workspace};
+use crate::{format, graph, hir, prelude, project::ProjectProfile as P, workspace};
 use diagnostics::{graph_error, limit_error, project_function_error, use_error};
 use expected_projection::{
     collect_expected_edges, synthetic_program, validate_dependency_dag, verify_resolved_call_edges,
@@ -1335,7 +1335,7 @@ impl WorkspaceGraphBuild {
                         ),
                         Some(function.span),
                     )
-                    .with_help(PROVIDER_MAIN_HELP)]);
+                    .with_help(diagnostics::PROVIDER_MAIN_HELP)]);
                 }
                 if dependency_anchor {
                     continue;
@@ -1504,7 +1504,8 @@ impl WorkspaceGraphBuild {
             | crate::project::ProjectProfile::FilesystemIoV3
             | crate::project::ProjectProfile::EnvironmentIoV1
             | crate::project::ProjectProfile::ProcessIoV1
-            | crate::project::ProjectProfile::SourceCommandV1
+            | P::SourceCommandV1
+            | P::SourceCommandResourceOutputV1
             | crate::project::ProjectProfile::OwnedDataApiV1
             | crate::project::ProjectProfile::PublicGenericWasmProviderV1
             | crate::project::ProjectProfile::SourceLocalFutureV1
@@ -1762,7 +1763,8 @@ impl WorkspaceGraphBuild {
             | crate::project::ProjectProfile::FilesystemIoV3
             | crate::project::ProjectProfile::EnvironmentIoV1
             | crate::project::ProjectProfile::ProcessIoV1
-            | crate::project::ProjectProfile::SourceCommandV1
+            | P::SourceCommandV1
+            | P::SourceCommandResourceOutputV1
             | crate::project::ProjectProfile::OwnedDataApiV1
             | crate::project::ProjectProfile::PublicGenericWasmProviderV1
             | crate::project::ProjectProfile::SourceLocalFutureV1
@@ -2057,7 +2059,7 @@ impl WorkspaceGraphBuild {
                     ),
                     Some(function.span),
                 )
-                .with_help(PROVIDER_MAIN_HELP)]);
+                .with_help(diagnostics::PROVIDER_MAIN_HELP)]);
             }
             // Owned-data and v25 text admission are reachability-gated. Irrelevant
             // verified functions receive no runtime or target authority and
@@ -2116,7 +2118,8 @@ impl WorkspaceGraphBuild {
                     | crate::project::ProjectProfile::FilesystemIoV3
                     | crate::project::ProjectProfile::EnvironmentIoV1
                     | crate::project::ProjectProfile::ProcessIoV1
-                    | crate::project::ProjectProfile::SourceCommandV1
+                    | P::SourceCommandV1
+                    | P::SourceCommandResourceOutputV1
                     | crate::project::ProjectProfile::OwnedDataApiV1
                     | crate::project::ProjectProfile::FlatOwnedRecordApiV1
                     | crate::project::ProjectProfile::OwnedUtf8ApiV1
@@ -2163,7 +2166,8 @@ impl WorkspaceGraphBuild {
                     | crate::project::ProjectProfile::FilesystemIoV3
                     | crate::project::ProjectProfile::EnvironmentIoV1
                     | crate::project::ProjectProfile::ProcessIoV1
-                    | crate::project::ProjectProfile::SourceCommandV1
+                    | P::SourceCommandV1
+                    | P::SourceCommandResourceOutputV1
                     | crate::project::ProjectProfile::OwnedDataApiV1
                     | crate::project::ProjectProfile::PublicGenericWasmProviderV1
                     | crate::project::ProjectProfile::SourceLocalFutureV1
@@ -2196,7 +2200,7 @@ impl WorkspaceGraphBuild {
                         function.span,
                     )
                     .at_path(&module.path)
-                    .with_help(PROJECT_SIGNATURE_HELP)]);
+                    .with_help(diagnostics::PROJECT_SIGNATURE_HELP)]);
                 }
                 if !effects_admitted {
                     let profile = retained_validation::project_linker_name(profile);
@@ -6002,9 +6006,6 @@ fn validate_retained_declaration_shapes(
     }
     Ok(())
 }
-
-const PROVIDER_MAIN_HELP: &str = "`entry` in semaprax.toml must name the module that declares `main`; every other listed source is a provider module and declares no `main`";
-const PROJECT_SIGNATURE_HELP: &str = "Project v1 function boundaries admit only Copy scalar values; keep records, classes, variants, Option, and Result inside functions, or select a project profile that explicitly admits the required public carrier";
 
 #[cfg(test)]
 #[path = "workspace_graph/tests.rs"]

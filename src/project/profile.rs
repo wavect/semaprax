@@ -3,6 +3,9 @@ pub const PROJECT_PROFILE_PROCESS_IO_V1: &str = "process-io.v1";
 /// Native argv and read-only text-file command with linked source dependencies.
 pub const PROJECT_PROFILE_SOURCE_COMMAND_V1: &str = "source-command.v1";
 pub const PROJECT_SOURCE_COMMAND_INPUT_V1: &str = "argv-utf8+file-text.v1";
+/// Native source command with a larger heap-backed String/output envelope.
+pub const PROJECT_PROFILE_SOURCE_COMMAND_RESOURCE_OUTPUT_V1: &str =
+    "source-command.resource-output.v1";
 pub const PROJECT_ENVIRONMENT_CAPABILITIES_V1: [&str; 5] = [
     "process.args.read",
     "process.environment.read",
@@ -141,6 +144,7 @@ pub enum ProjectProfile {
     EnvironmentIoV1,
     ProcessIoV1,
     SourceCommandV1,
+    SourceCommandResourceOutputV1,
     OwnedDataApiV1,
     FlatOwnedRecordApiV1,
     OwnedUtf8ApiV1,
@@ -179,6 +183,7 @@ impl ProjectProfile {
                 | Self::EnvironmentIoV1
                 | Self::ProcessIoV1
                 | Self::SourceCommandV1
+                | Self::SourceCommandResourceOutputV1
                 | Self::OwnedDataApiV1
                 | Self::FlatOwnedRecordApiV1
                 | Self::OwnedUtf8ApiV1
@@ -193,6 +198,13 @@ impl ProjectProfile {
         matches!(
             self,
             Self::SourceLocalFutureV1 | Self::SourceLocalFutureIndexedRustV1
+        )
+    }
+
+    pub(crate) const fn is_source_command(self) -> bool {
+        matches!(
+            self,
+            Self::SourceCommandV1 | Self::SourceCommandResourceOutputV1
         )
     }
 
@@ -218,6 +230,9 @@ impl ProjectProfile {
             Self::EnvironmentIoV1 => Some(PROJECT_PROFILE_ENVIRONMENT_IO_V1),
             Self::ProcessIoV1 => Some(PROJECT_PROFILE_PROCESS_IO_V1),
             Self::SourceCommandV1 => Some(PROJECT_PROFILE_SOURCE_COMMAND_V1),
+            Self::SourceCommandResourceOutputV1 => {
+                Some(PROJECT_PROFILE_SOURCE_COMMAND_RESOURCE_OUTPUT_V1)
+            }
             Self::FilesystemIoV2 => Some(PROJECT_PROFILE_FILESYSTEM_IO_V2),
             Self::FilesystemIoV3 => Some(PROJECT_PROFILE_FILESYSTEM_IO_V3),
             Self::FilesystemIoV1 => Some(PROJECT_PROFILE_FILESYSTEM_IO_V1),

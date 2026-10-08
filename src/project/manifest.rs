@@ -79,6 +79,8 @@ pub const PROJECT_SCHEMA_V25: &str = "semaprax.project.v25";
 /// Native linked SourceCommand, selected only by the table manifest.
 pub const PROJECT_SCHEMA_V26: &str = "semaprax.project.v26";
 pub const PROJECT_SCHEMA_V27: &str = "semaprax.project.v27";
+/// Additive native large-resource SourceCommand contract.
+pub const PROJECT_SCHEMA_V28: &str = "semaprax.project.v28";
 pub const PROJECT_SCHEMA_V24: &str = "semaprax.project.v24";
 pub const PROJECT_SCHEMA_V16: &str = "semaprax.project.v16";
 pub const PROJECT_SCHEMA_V15: &str = "semaprax.project.v15";
@@ -737,6 +739,7 @@ impl ProjectManifest {
             PROJECT_SCHEMA_V25 => "Project v25",
             PROJECT_SCHEMA_V26 => "Project v26",
             PROJECT_SCHEMA_V27 => "Project v27",
+            PROJECT_SCHEMA_V28 => "Project v28",
             PROJECT_SCHEMA_V7 => "Project v7",
             PROJECT_SCHEMA_V8 => "Project v8",
             PROJECT_SCHEMA_V9 => "Project v9",
@@ -832,7 +835,7 @@ impl ProjectManifest {
             && !profile.is_filesystem()
             && profile != ProjectProfile::EnvironmentIoV1
             && profile != ProjectProfile::ProcessIoV1
-            && profile != ProjectProfile::SourceCommandV1
+            && !profile.is_source_command()
             && profile != ProjectProfile::UsefulDataV2
             && !profile.is_source_local_future()
         {
@@ -860,7 +863,7 @@ impl ProjectManifest {
                 "{version_label} web exports must use bounded lowercase [a-z0-9._-] stable IDs"
             )));
         }
-        if profile == ProjectProfile::SourceCommandV1 && !web_exports.is_empty() {
+        if profile.is_source_command() && !web_exports.is_empty() {
             return Err(grammar(
                 "source-command.v1 requires an empty web export list",
             ));
@@ -870,12 +873,12 @@ impl ProjectManifest {
                 || ((profile.is_filesystem()
                     || profile == ProjectProfile::EnvironmentIoV1
                     || profile == ProjectProfile::ProcessIoV1
-                    || profile == ProjectProfile::SourceCommandV1)
+                    || profile.is_source_command())
                     && !web_exports.is_empty())
                 || (!profile.is_filesystem()
                     && profile != ProjectProfile::EnvironmentIoV1
                     && profile != ProjectProfile::ProcessIoV1
-                    && profile != ProjectProfile::SourceCommandV1
+                    && !profile.is_source_command()
                     && (web_exports.len() != 1 || web_exports.first() != Some(command)))
             {
                 return Err(grammar(format!(

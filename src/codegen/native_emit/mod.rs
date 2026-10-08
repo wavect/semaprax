@@ -3,7 +3,8 @@ pub(crate) mod public_generic_bridge;
 use super::{
     backend_error, c_i32, c_i64, native_box, native_byte_data, native_bytes, native_command,
     native_command_io, native_host_output, native_iter, native_resource, native_runtime,
-    native_source_command, native_vec, resource_lowering_gate, COutput, NATIVE_SCALAR_RUNTIME_C,
+    native_source_command, native_source_resource_command, native_vec, resource_lowering_gate,
+    COutput, NATIVE_SCALAR_RUNTIME_C,
 };
 #[cfg(test)]
 use super::{
@@ -46,6 +47,7 @@ mod nested_owned;
 mod network_io;
 mod output_profile;
 mod owned_strings;
+mod resource_strings;
 mod scope_anchors;
 mod string_collections;
 mod string_ops;
@@ -143,6 +145,7 @@ fn emit_hir_c_with_options(
     // glibc declares these under strict C11 only with POSIX.1-2008 visibility.
     if output_profile.is_command()
         || output_profile == NativeOutputProfile::SourceCommand
+        || output_profile == NativeOutputProfile::SourceResourceCommand
         || crate::string_ops::program_uses_op(program, crate::string_ops::StringOp::FileReadText)
     {
         network_io::emit_feature_macros(&mut output);
@@ -190,6 +193,8 @@ fn emit_hir_c_with_options(
         native_command_io::emit_runtime(&mut output);
     } else if output_profile == NativeOutputProfile::SourceCommand {
         native_source_command::emit_runtime(&mut output, program);
+    } else if output_profile == NativeOutputProfile::SourceResourceCommand {
+        native_source_resource_command::emit_runtime(&mut output, program);
     } else if output_profile.supports_stdout_transcript() {
         native_host_output::emit_runtime(&mut output);
     }
@@ -313,6 +318,10 @@ fn emit_hir_c_with_options(
         }
         if output_profile == NativeOutputProfile::SourceCommand {
             native_source_command::emit_process_adapter(&mut output, symbol);
+            return Ok(output.into_string());
+        }
+        if output_profile == NativeOutputProfile::SourceResourceCommand {
+            native_source_resource_command::emit_process_adapter(&mut output, symbol);
             return Ok(output.into_string());
         }
         write!(
@@ -510,7 +519,9 @@ fn emit_native_prelude_inner(
         output.push_str(NATIVE_USIZE_RUNTIME_C);
     }
     if program_uses_strings(program, strings.include_instances) {
-        output.push_str(if strings.length_delimited {
+        output.push_str(if strings.resource_strings {
+            resource_strings::LENGTH_DELIMITED_RUNTIME_C
+        } else if strings.length_delimited {
             NATIVE_LENGTH_DELIMITED_STRING_RUNTIME_C
         } else {
             NATIVE_STRING_RUNTIME_C
@@ -520,7 +531,9 @@ fn emit_native_prelude_inner(
     if program_uses_string_ops(program, strings.include_instances) {
         // String operation helpers stay out of programs that cannot reach
         // them, so existing projections keep their exact committed bytes.
-        output.push_str(if strings.length_delimited {
+        output.push_str(if strings.resource_strings {
+            resource_strings::LENGTH_DELIMITED_OPS_RUNTIME_C
+        } else if strings.length_delimited {
             NATIVE_LENGTH_DELIMITED_STRING_OPS_RUNTIME_C
         } else {
             NATIVE_STRING_OPS_RUNTIME_C
@@ -548,7 +561,11 @@ fn emit_native_prelude_inner(
     if needs_borrowed_str {
         // Borrowed text is a distinct length-aware carrier. Keep it behind a
         // reachability gate so every pre-text native projection is byte exact.
-        output.push_str(NATIVE_BORROWED_STR_RUNTIME_C);
+        output.push_str(if strings.resource_strings {
+            resource_strings::BORROWED_STR_RUNTIME_C
+        } else {
+            NATIVE_BORROWED_STR_RUNTIME_C
+        });
     }
     if string_views::program_uses_string_as_str(program, strings.include_instances) {
         output.push_str(if strings.length_delimited {
@@ -2357,6 +2374,9 @@ struct CEmitter<'a, O: COutput> {
     variables: HashMap<ValueId, CBinding>,
     /// `let mut` bindings; a Copy read of one is snapshotted (issue #561).
     mutable_bindings: BTreeSet<ValueId>,
+    /// Exact local `str`/Slice roots derived from an owned resource-profile
+    /// String. Carrier shape alone never enters this set.
+    resource_text_views: BTreeSet<ValueId>,
     function: &'a ResolvedFunction,
     functions: &'a HashMap<FunctionExecutionId, CFunction>,
     record_layouts: &'a AggregateLayoutCache,
@@ -2390,6 +2410,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             resource_abi: emission.resource_abi,
             variables,
             mutable_bindings: BTreeSet::new(),
+            resource_text_views: BTreeSet::new(),
             function,
             functions: emission.functions,
             record_layouts: emission.record_layouts,

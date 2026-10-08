@@ -3657,6 +3657,12 @@ rechecks and fresh output ownership. This native-only profile acquires runtime
 argv/file authority only in its invocation adapter; representation linking and
 Project graph/lock facts carry no host authority.
 
+The additive [Project v28 resource-output source command](PROJECT-MANIFEST-V28.md)
+reuses that exact argv/file provider and native publication boundary. Its
+separate native output profile owns the 1 MiB per-String/authenticated
+borrowed-text and combined staged-output bounds, heap staging, and append
+admission; shared Slice and owned Bytes representations remain unchanged.
+
 The explicit [Stream Text Command v1](STREAM-TEXT-COMMAND-V1.md) selector is
 owned by Project profile/manifest admission, `workspace_link/stdin_stream`, and
 `native_emit/output_profile`. Retained workspace stream admission selects the

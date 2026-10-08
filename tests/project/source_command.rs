@@ -33,6 +33,61 @@ std.int.decimal = "=0.1.0"
 matrix = ["native64"]
 "#;
 
+const RESOURCE_MANIFEST: &str = r#"schema = "semaprax.manifest.v1"
+
+[package]
+name = "decimal-command"
+version = "0.1.0"
+profile = "source-command.resource-output.v1"
+
+[modules]
+entry = "decimal.command"
+sources = ["app.spx", "tests.spx"]
+tests = ["decimal.tests"]
+
+[exports]
+web = []
+
+[command]
+function = "decimal.command.main"
+input = "argv-utf8+file-text.v1"
+
+[capabilities]
+required = ["fs.read", "process.args.read", "process.stderr.write", "process.stdout.write"]
+
+[targets]
+matrix = ["native64"]
+"#;
+
+fn resource_app(repeats: usize, result: i64) -> String {
+    format!(
+        "module decimal.command;\npermit {{ fs.read, process.args.read, process.stderr.write, process.stdout.write }}\n\n@id(\"decimal.command.main\")\nfn main() -> i64 uses {{ fs.read, process.args.read, process.stderr.write, process.stdout.write }}\n{{\n    if args_len() != 1usize {{\n        let usage = \"usage\\n\";\n        let view = string_as_str(usage);\n        let ignored = stderr_append(str_as_bytes(view));\n        2\n    }} else {{\n        let path = arg_utf8(0usize);\n        let left = file_read_text(path);\n        let right = file_read_text(path);\n        let joined = string_concat(left, right);\n        let joined_view = string_as_str(joined);\n        let joined_bytes = str_as_bytes(joined_view);\n        let mut index = 0usize;\n        while index < {repeats}usize {{\n            let written = stdout_append(joined_bytes);\n            index = index + 1usize;\n            index < {repeats}usize\n        }}\n        {result}\n    }}\n}}\n"
+    )
+}
+
+fn resource_direct_app() -> &'static str {
+    r#"module decimal.command;
+permit { fs.read, process.args.read, process.stdout.write }
+
+@id("decimal.command.main")
+fn main() -> i64 uses { fs.read, process.args.read, process.stdout.write }
+{
+    if args_len() != 1usize {
+        2
+    } else {
+        let path = arg_utf8(0usize);
+        let left = file_read_text(path);
+        let right = file_read_text(path);
+        let joined = string_concat(left, right);
+        let joined_view = string_as_str(joined);
+        let joined_bytes = str_as_bytes(joined_view);
+        let written = stdout_write(joined_bytes);
+        if written == 131072usize { 0 } else { 1 }
+    }
+}
+"#
+}
+
 const APP: &str = r#"module decimal.command;
 use function @id("std.int.decimal.canonicalize") from std.int.decimal as canonicalize;
 use function @id("std.int.decimal.add") from std.int.decimal as add;
@@ -111,6 +166,236 @@ fn source_command_manifest_projects_exact_profile_and_refuses_other_targets() {
 }
 
 #[test]
+fn resource_output_manifest_projects_additive_v28_without_changing_v26() {
+    let manifest = ProjectManifest::parse(RESOURCE_MANIFEST).unwrap();
+    assert_eq!(manifest.schema(), "semaprax.project.v28");
+    assert_eq!(
+        manifest.project_profile(),
+        ProjectProfile::SourceCommandResourceOutputV1
+    );
+    assert_eq!(manifest.to_canonical_toml(), RESOURCE_MANIFEST);
+    assert_eq!(
+        ProjectManifest::parse(MANIFEST).unwrap().schema(),
+        "semaprax.project.v26"
+    );
+    for invalid in [
+        RESOURCE_MANIFEST.replace("argv-utf8+file-text.v1", "argv-utf8+stdin-bytes.v1"),
+        RESOURCE_MANIFEST.replace("matrix = [\"native64\"]", "matrix = [\"wasm32\"]"),
+        RESOURCE_MANIFEST.replace("\"fs.read\", ", "\"process.stdin.read\", "),
+        RESOURCE_MANIFEST.replace("web = []", "web = [\"decimal.command.main\"]"),
+    ] {
+        assert!(ProjectManifest::parse(&invalid).is_err(), "{invalid}");
+    }
+}
+
+#[test]
+#[cfg_attr(windows, ignore = "native SourceCommand adapter is Unix-only")]
+fn resource_output_stages_large_appends_and_discards_every_failed_attempt() {
+    let fixture = Fixture::new(&resource_app(8, 0), RESOURCE_MANIFEST);
+    let binary = fixture.0.join("resource-command");
+    let (semantic_graph, semantic_graph_digest) =
+        project::with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+            snapshot.check()?;
+            let graph: serde_json::Value = serde_json::from_str(snapshot.semantic_graph()).unwrap();
+            assert_eq!(graph["project_schema"], "semaprax.project.v28");
+            assert_eq!(
+                graph["source_command_resource_output"],
+                serde_json::json!({
+                    "schema": "semaprax.source-command-resource-output.v1",
+                    "profile": "source-command.resource-output.v1",
+                    "portable_capacity_summaries_role": "pre-hir-source-site-admission-only",
+                    "legacy_direct_output_max_bytes": 65_536,
+                    "multiple_unknown_direct_roots": "refused",
+                    "owned_string_max_bytes": 1_048_576,
+                    "authenticated_borrowed_str_max_bytes": 1_048_576,
+                    "ordinary_slice_max_bytes": 65_536,
+                    "owned_bytes_max_bytes": 131_072,
+                    "combined_staged_output_max_bytes": 1_048_576,
+                    "publication": "terminal-success-only",
+                    "failure": "discard-wipe-free",
+                })
+            );
+            let graph_digest = graph["graph_digest"].as_str().unwrap().to_owned();
+            let lock: serde_json::Value =
+                serde_json::from_str(&project::render_project_lock(snapshot)?).unwrap();
+            assert_eq!(
+                lock["payload"]["package"]["profile"],
+                "source-command.resource-output.v1"
+            );
+            assert_eq!(
+                lock["payload"]["package"]["contract"],
+                "semaprax.project.v28"
+            );
+            assert_eq!(
+                lock["payload"]["interface"]["kind"],
+                "source-command.resource-output.v1"
+            );
+            assert_eq!(
+                lock["payload"]["interface"]["digest"],
+                serde_json::Value::Null
+            );
+            assert_eq!(
+                snapshot
+                    .execute_entry(&ProjectExecutionOptions::default())
+                    .unwrap_err()[0]
+                    .code,
+                "SPX-F102"
+            );
+            assert_eq!(snapshot.test_wasm_module().unwrap_err()[0].code, "SPX-W120");
+            assert_eq!(
+                snapshot.build_npm_inline(1_000_000).unwrap_err()[0].code,
+                "SPX-W120"
+            );
+            snapshot.build_native(&binary)?;
+            Ok((snapshot.semantic_graph().to_owned(), graph_digest))
+        })
+        .unwrap();
+    project::with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+        assert_eq!(snapshot.semantic_graph(), semantic_graph);
+        let graph: serde_json::Value = serde_json::from_str(snapshot.semantic_graph()).unwrap();
+        assert_eq!(graph["project_schema"], "semaprax.project.v28");
+        assert_eq!(
+            graph["graph_digest"].as_str(),
+            Some(semantic_graph_digest.as_str())
+        );
+        Ok(())
+    })
+    .unwrap();
+    let payload = vec![b'7'; 65_536];
+    std::fs::write(fixture.0.join("full"), &payload).unwrap();
+    let output = Command::new(&binary)
+        .current_dir(&fixture.0)
+        .arg("full")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    assert_eq!(output.stdout.len(), 1_048_576);
+    assert!(output.stdout.iter().all(|byte| *byte == b'7'));
+
+    let over = resource_app(8, 0).replacen(
+        "        0\n    }\n}",
+        "        let extra = \"x\";\n        let extra_view = string_as_str(extra);\n        let extra_written = stderr_append(str_as_bytes(extra_view));\n        0\n    }\n}",
+        1,
+    );
+    for (name, source) in [("over", over), ("late-failure", resource_app(3, 256))] {
+        let failed = Fixture::new(&source, RESOURCE_MANIFEST);
+        let failed_binary = failed.0.join(name);
+        project::with_authenticated_project(&failed.0.join("semaprax.toml"), |snapshot| {
+            snapshot.build_native(&failed_binary)
+        })
+        .unwrap();
+        std::fs::write(failed.0.join("full"), &payload).unwrap();
+        let output = Command::new(&failed_binary)
+            .current_dir(&failed.0)
+            .arg("full")
+            .output()
+            .unwrap();
+        assert!(!output.status.success());
+        assert!(output.stdout.is_empty());
+    }
+
+    let stale = Fixture::new(&resource_app(3, 0), RESOURCE_MANIFEST);
+    let source_path = stale.0.join("app.spx");
+    let stale_output = stale.0.join("stale-resource-command");
+    let result = project::with_authenticated_project(&stale.0.join("semaprax.toml"), |snapshot| {
+        let changed = resource_app(4, 0);
+        let parsed = semaprax::parse(&changed, &source_path).unwrap();
+        std::fs::write(&source_path, semaprax::format::canonical(&parsed)).unwrap();
+        assert!(snapshot.build_native(&stale_output).is_err());
+        assert!(!stale_output.exists());
+        Ok(())
+    });
+    assert!(result.is_err());
+}
+
+#[test]
+#[cfg_attr(windows, ignore = "native SourceCommand adapter is Unix-only")]
+fn resource_output_wide_direct_borrowed_text_uses_checked_v28_route() {
+    let manifest = RESOURCE_MANIFEST.replace(
+        "[\"fs.read\", \"process.args.read\", \"process.stderr.write\", \"process.stdout.write\"]",
+        "[\"fs.read\", \"process.args.read\", \"process.stdout.write\"]",
+    );
+    let fixture = Fixture::new(resource_direct_app(), &manifest);
+    let binary = fixture.0.join("wide-direct-command");
+    project::with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+        snapshot.build_native(&binary)
+    })
+    .unwrap();
+    std::fs::write(fixture.0.join("full"), vec![b'8'; 65_536]).unwrap();
+    let output = Command::new(&binary)
+        .current_dir(&fixture.0)
+        .arg("full")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    assert_eq!(output.stdout.len(), 131_072);
+    assert!(output.stdout.iter().all(|byte| *byte == b'8'));
+}
+
+#[test]
+fn source_command_profiles_retain_pre_hir_multiple_unknown_write_refusal() {
+    let source = r#"module decimal.command;
+permit { fs.read, process.args.read, process.stderr.write, process.stdout.write }
+
+@id("decimal.command.main")
+fn main() -> i64 uses { fs.read, process.args.read, process.stderr.write, process.stdout.write }
+{
+    let path = arg_utf8(0usize);
+    let stdout_text = file_read_text(path);
+    let stdout_view = string_as_str(stdout_text);
+    let stdout_written = stdout_write(str_as_bytes(stdout_view));
+    let stderr_text = file_read_text(path);
+    let stderr_view = string_as_str(stderr_text);
+    let stderr_written = stderr_write(str_as_bytes(stderr_view));
+    0
+}
+"#;
+    for manifest in [
+        RESOURCE_MANIFEST.to_owned(),
+        RESOURCE_MANIFEST.replace("source-command.resource-output.v1", "source-command.v1"),
+    ] {
+        let fixture = Fixture::new(source, &manifest);
+        let errors =
+            project::with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+                snapshot.check()
+            })
+            .unwrap_err();
+        assert_eq!(errors[0].code, "SPX-T269", "{manifest}");
+    }
+}
+
+#[test]
+fn resource_output_refuses_legacy_append_mixtures() {
+    let mixed = r#"module decimal.command;
+permit { process.stderr.write, process.stdout.write }
+@id("decimal.command.main")
+fn main() -> i64 uses { process.stderr.write, process.stdout.write }
+{
+    let first = "first";
+    let first_view = string_as_str(first);
+    let wrote = stdout_write(str_as_bytes(first_view));
+    let second = "second";
+    let second_view = string_as_str(second);
+    let appended = stderr_append(str_as_bytes(second_view));
+    0
+}
+"#;
+    let manifest = RESOURCE_MANIFEST.replace(
+        "[\"fs.read\", \"process.args.read\", \"process.stderr.write\", \"process.stdout.write\"]",
+        "[\"process.stderr.write\", \"process.stdout.write\"]",
+    );
+    let fixture = Fixture::new(mixed, &manifest);
+    let errors =
+        project::with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+            snapshot.check()
+        })
+        .unwrap_err();
+    assert!(errors.iter().any(|error| error.code == "SPX-W114"));
+}
+
+#[test]
 #[cfg_attr(windows, ignore = "native SourceCommand adapter is Unix-only")]
 fn source_command_bundled_decimal_native_and_closed_runtime_failures() {
     let fixture = Fixture::new(APP, MANIFEST);
@@ -119,6 +404,7 @@ fn source_command_bundled_decimal_native_and_closed_runtime_failures() {
         snapshot.check()?;
         let graph: serde_json::Value = serde_json::from_str(snapshot.semantic_graph()).unwrap();
         assert_eq!(graph["project_schema"], "semaprax.project.v26");
+        assert!(graph.get("source_command_resource_output").is_none());
         let lock: serde_json::Value =
             serde_json::from_str(&project::render_project_lock(snapshot)?).unwrap();
         assert_eq!(lock["payload"]["package"]["profile"], "source-command.v1");

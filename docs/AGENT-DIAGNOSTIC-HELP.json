@@ -308,7 +308,7 @@
       "code": "SPX-T269",
       "rows": [
         {
-          "fix": "Keep at most one direct `stdout_write` and `stderr_write` per path, outside loops. Staged stdout + stderr share 65,536 bytes; line-command append may loop but shares this total.",
+          "fix": "Keep direct writes outside loops and within selected-profile limits. Default combined stdout + stderr cap: 65,536 bytes; Project v28 staged appends: 1 MiB.",
           "wrote": "repeated direct output on one path or direct output reachable from a loop"
         }
       ]

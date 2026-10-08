@@ -43,7 +43,7 @@ _Static_assert(
     }
 }
 
-const FILE_TEXT_RUNTIME_C: &str = r#"#if !defined(_WIN32)
+pub(super) const FILE_TEXT_RUNTIME_C: &str = r#"#if !defined(_WIN32)
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/stat.h>

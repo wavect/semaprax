@@ -45,6 +45,7 @@ mod native_scalar_runtime;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 mod native_settlement_derivation;
 mod native_source_command;
+mod native_source_resource_command;
 #[cfg_attr(
     not(test),
     allow(
@@ -196,6 +197,27 @@ pub fn emit_hir_c_with_source_command(program: &ResolvedProgram) -> Result<Strin
         program,
         &HashMap::new(),
         NativeOutputProfile::SourceCommand,
+        None,
+    )
+}
+
+/// Emit the additive Project-v28 source command with resource-sized Strings
+/// and a heap-backed staged output envelope.
+pub(crate) fn emit_hir_c_with_source_resource_command(
+    program: &ResolvedProgram,
+) -> Result<String, Diagnostic> {
+    hir::validate(program)?;
+    crate::source_command::validate_resource_output_authority(program)?;
+    crate::command_io_ops::validate_operation_profile(
+        program,
+        &program.entrypoint,
+        crate::command_io_ops::CommandOperationProfile::SourceResourceV1,
+    )?;
+    reject_native_rust_for_native(program)?;
+    emit_hir_c_with_labels(
+        program,
+        &HashMap::new(),
+        NativeOutputProfile::SourceResourceCommand,
         None,
     )
 }

@@ -133,6 +133,7 @@ archives.
 | `line-command-io.v1` | `semaprax.project.v7` | [Project Manifest v1, v7 profile](PROJECT-MANIFEST-V1.md#additive-project-manifest-v7-line-command-profile) |
 | `source-command.v1` | `semaprax.project.v26` (table only) | [Linked Native Source Commands](PROJECT-MANIFEST-V26.md) |
 | `language-command-io.stream-data.v1` | `semaprax.project.v27` (table only) | [Stream Data Command v1](STREAM-DATA-COMMAND-V1.md) |
+| `source-command.resource-output.v1` | `semaprax.project.v28` (table only) | [Source-command resource output](PROJECT-MANIFEST-V28.md) |
 | `owned-data-api.v1` | `semaprax.project.v8` | [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md) |
 | `flat-owned-record-api.v1` | `semaprax.project.v9` | [Public Flat Owned Record API v1](PUBLIC-FLAT-OWNED-RECORD-API-V1.md) |
 | `owned-utf8-api.v1` | `semaprax.project.v10` | [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md) |

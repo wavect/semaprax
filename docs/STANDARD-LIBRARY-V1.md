@@ -494,3 +494,11 @@ release and branch-governance evidence remain separate from this package gate.
 canonical form. Nothing here claims a package registry, ordinary-package
 build integration, hosted effects, deterministic handlers, or any module
 outside the packages listed in `std/packages.json`.
+
+Ordinary native CLI consumers can import the bundled source packages through
+[Project v26 `source-command.v1`](PROJECT-MANIFEST-V26.md), retaining explicit
+argv/read-only file capabilities and checked library contracts. The
+[decimal CLI](../examples/source-command-project/semaprax.toml) uses
+`std.int.decimal` without copying its source. Provider package profiles in the
+catalog remain their own admission contracts; this consumer route does not
+grant Wasm or interpreter invocation support.

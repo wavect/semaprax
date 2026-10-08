@@ -1,0 +1,7 @@
+module decimal.tests;
+
+@id("decimal.tests.main")
+fn main() -> i64
+{
+    0
+}

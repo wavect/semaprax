@@ -32,7 +32,7 @@ TIMEOUT_SECONDS = 1800
 ARMS = legacy.ARMS
 MIN_TRIALS_PER_ARM = legacy.MIN_TRIALS_PER_ARM
 SEED_FILES = legacy.SEED_FILES
-ROUND = 5
+ROUND = 6
 PRICE_USD_PER_MTOK = {
     "input": 2.0, "cache_read": 0.1, "cache_write": 2.5, "output": 10.0,
 }
@@ -242,6 +242,7 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
         "adapter": "codex-matched-loglens-v1", "round": ROUND, "repository_commit": commit,
         "compiler_source_commit": compiler_source_commit,
         "seed_files_sha256": hashes, "artifacts": str(artifacts), "model_requested": args.model,
+        "qualification": legacy.qualification.metadata(),
         "effort_requested": args.effort, "timeout_seconds": args.timeout_seconds,
         "trial_order": [arm for index in range(args.trials_per_arm) for arm in (ARMS if index % 2 == 0 else tuple(reversed(ARMS)))],
         "authored_source_tokenizer": legacy.tokenizer_metadata(args.tokenizer_dir),
@@ -311,6 +312,7 @@ def cleanup_trial(repo: Path, workspace: Path, settings: dict[str, Any], row: di
 def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any], settings: dict[str, Any], semaprax_bin: Path) -> dict[str, Any]:
     """Run one paid attempt. Every attempted trial remains in the result denominator."""
     arm, number = trial["arm"], trial["number"]
+    legacy.qualification.require_settings(settings)
     label = f"{arm}-{number:02d}"
     workspace = artifacts / "worktrees" / label
     row: dict[str, Any] = {**trial, "workspace": str(workspace), "status": "failed", "failure": None}
@@ -349,7 +351,8 @@ def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any]
         if guard_error:
             legacy.invalidate_trial_acceptance(row, guard_error)
         else:
-            row["acceptance"] = legacy.check_program(candidate, settings["timeout_seconds"], legacy.trial_environment(semaprax_bin))
+            row["acceptance"] = legacy.check_program_for_campaign(candidate, settings["timeout_seconds"],
+                legacy.trial_environment(semaprax_bin), settings, arm, artifacts / "qualification" / label)
             row["status"] = "accepted" if row["acceptance"]["accepted"] else "not_accepted"
             if row["status"] != "accepted": row["failure"] = "candidate failed independent acceptance"
     row["final_candidate_source_metrics"] = legacy.authored_source_metrics(candidate, settings["authored_source_tokenizer"])

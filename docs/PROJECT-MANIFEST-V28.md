@@ -63,13 +63,13 @@ may not mix legacy writes with appends or contain multiple legacy write sites.
 
 Every output operation copies into staging while its authenticated source view
 is live. Root failure, failed postconditions, cleanup failure, invalid exit
-status, or the sticky append-capacity failure wipes and frees both partitions
-without publishing application bytes. Success publishes stderr and then stdout
-only after postconditions and non-result cleanup, then wipes and frees staging.
-Infallible String and legacy direct-write invariant violations retain the
-existing abort behavior and carry no cleanup claim. The contract states
-per-String and staged-output caps; it does not claim an invocation-wide
-cumulative heap-allocation quota.
+status, or checked append/direct-write capacity failure wipes and frees both
+partitions without publishing application bytes. Success publishes stderr and
+then stdout only after postconditions and non-result cleanup, then wipes and
+frees staging. Infallible String and view-shape invariant violations retain the
+existing abort behavior and carry no cleanup claim. The contract states per-String
+and staged-output caps; it does not claim an invocation-wide cumulative
+heap-allocation quota.
 
 ## Targets and preservation
 

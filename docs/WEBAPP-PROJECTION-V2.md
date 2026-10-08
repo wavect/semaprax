@@ -82,7 +82,15 @@ runtime files implement:
   A create checks the new row, an update checks the old and the new row, and
   a delete checks the old row. After reading a mutation body the server resolves
   the current principal and row again, then validates and commits without an
-  intervening await. The UI hides actions the account cannot take.
+  intervening await. The UI hides actions the account cannot take. Row-aware
+  write policies gain a compiler-derived `create(u)` preview with `true`,
+  `false`, or `null` for unknown prospective row values. Only definitely false
+  hides the New action; unknown permits opening the ordinary validated form,
+  without granting server authority. This preserves nondefault custom-field
+  creation policies. Workflow options intersect the step edges with the checked
+  write policy for each candidate next-state row, so approval states remain
+  hidden from restricted accounts while their ordinary transitions remain
+  available.
 - **Audit:** every create, update, and delete is published with its required
   audit fact in the atomic `state.json` snapshot and mirrored to `audit.jsonl`
   with time, account, entity, id, and the changed fields with old and new

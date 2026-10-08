@@ -286,10 +286,11 @@ export function validate(name: EntityName, input: unknown, db: Db, old?: Row): s
 }
 
 /** The options a workflow field offers, else every enumeration value. */
-export function choices(name: EntityName, f: Field, current?: string): string[] {
+export function choices(name: EntityName, f: Field, current?: string, me?: Row, prospective?: Row): string[] {
   const flow = entities[name].flow;
   if (flow?.field !== f.name) return enums[f.of];
-  return current === undefined ? [Object.keys(flow.moves)[0]] : [current, ...(flow.moves[current] ?? [])];
+  const permitted = current === undefined ? [Object.keys(flow.moves)[0]] : [current, ...(flow.moves[current] ?? [])];
+  return me && prospective ? permitted.filter((next) => canWrite(me, name, { ...prospective, [f.name]: next })) : permitted;
 }
 
 export const withComputed = (name: EntityName, row: Row, db: Db): Row => ({

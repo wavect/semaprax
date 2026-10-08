@@ -180,7 +180,7 @@ the frozen prelude as its identity scope. Reverse-dependent test declarations
 cannot occur in that module's synthetic HIR and therefore cannot enlarge its
 identity bound. Every previously accepted estimate is retained exactly; the
 fallback runs only after a builder-limit refusal. Structural and string factors,
-the 18 MiB limit, and actual allocation charges remain unchanged.
+the 64 MiB limit, and actual allocation charges remain unchanged.
 
 If both estimates refuse, a third attempt accounts inline AST storage once:
 embedded String headers, and the audited inline expression and pattern fields,
@@ -221,7 +221,7 @@ that historical transient-body peak. Ordinary imported stubs now clone only
 their signature: their provider bodies and contracts are never allocated in
 the consumer. Checked compiler wrappers still retain their full implementations
 and their existing runtime charges. The new fallback keeps all retained
-structure, string, identity, and runtime costs, and the same 18 MiB limit;
+structure, string, identity, and runtime costs, and the same 64 MiB limit;
 earlier successful receipts remain unchanged.
 
 Only an uncached core may use this final sequential-AST peak. The builder

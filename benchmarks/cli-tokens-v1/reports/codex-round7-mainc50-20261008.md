@@ -13,7 +13,7 @@ source was `60002439e1b651ebbfbf3a887f12a20c927d720f`, and the executable
 SHA-256 was `87e1d84bb618218159a3ebaec83dea285f2186486d7113962d08c71945474daa`.
 All ten attempts were recorded, with zero resource-contaminated attempts.
 
-| Per-attempt mean across all five attempts | SEMAPRAX | TypeScript |
+| Metric (five attempts per arm) | SEMAPRAX | TypeScript |
 |---|---:|---:|
 | Accepted | 1/5 | 3/5 |
 | Model requests | 35.6 | 9 |

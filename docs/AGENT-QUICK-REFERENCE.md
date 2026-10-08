@@ -1191,7 +1191,9 @@ fn order_status(paid: bool) -> string
   available. The server checks the actual new row. Audit history and CSV
   export are automatic.
 - Run `semaprax fmt app.spx && semaprax webapp app.spx -o out --title "Shop" && node
-  out/server.mjs --self-test`. It reports checks and cleanup;
+  out/server.mjs --self-test-offline` for deterministic in-memory runtime
+  checks with no data directory, listener, or child. `--self-test [--data DIR]`
+  remains the real loopback-server check; full acceptance remains mandatory.
   `semaprax webapp app.spx --api` lists the API.
 - Cross-row rules: `<entity>_constraint_name(fields, other_<entity>_<field>)
   -> bool` (optional `_name` suffix) checks every distinct row pair; incoming changes recheck it.

@@ -112,6 +112,12 @@ expression semantics, and `webapp/emit` publishes deterministic schema objects.
 adds no authority. The generated server uses its existing socket, crypto, clock,
 and explicitly selected data directory. No outbound connection is introduced.
 
+`node server.mjs --self-test-offline` performs deterministic in-memory runtime
+checks before data-directory initialization, listener creation, or a child
+process. It accepts no runtime options and exits zero only when every check
+passes. `--self-test [--data DIR]` remains the real loopback-server self-test;
+the offline check does not replace the mandatory acceptance suite.
+
 Focused selectors, to run after the complete implementation batch:
 `webapp::tests::v3_`,
 `webapp::tests::sg_regressions::sg_generated_http_runtime_regressions`, plus the

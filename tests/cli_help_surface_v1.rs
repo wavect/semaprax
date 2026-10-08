@@ -107,6 +107,23 @@ fn cli_language_help_documents_run_string_fallback_and_json_schemas() {
 }
 
 #[test]
+fn cli_language_web_distinguishes_offline_runtime_checks_from_the_server_check() {
+    let (output, working_directory) = invoke(&["help", "language", "web"]);
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let help = String::from_utf8(output.stdout).unwrap();
+    for detail in [
+        "node\n  out/server.mjs --self-test-offline",
+        "deterministic in-memory runtime\n  checks with no data directory, listener, or child",
+        "`--self-test [--data DIR]`\n  remains the real loopback-server check",
+        "full acceptance remains mandatory",
+    ] {
+        assert!(help.contains(detail), "missing web help detail: {detail}");
+    }
+    std::fs::remove_dir(working_directory).unwrap();
+}
+
+#[test]
 fn cli_language_projects_distinguishes_the_private_stream_data_profile() {
     let (output, working_directory) = invoke(&["help", "language", "projects"]);
     assert!(output.status.success());

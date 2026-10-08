@@ -44,7 +44,7 @@ const LANGUAGE_TOPICS: &str = concat!(
 );
 const DIAGNOSTIC_CODES: &str = concat!(
     "Common diagnostic codes:\n",
-    "  SPX-P106 SPX-T203 SPX-P201 SPX-T205 SPX-T266 SPX-B104 SPX-G170 SPX-I307 SPX-M105 SPX-O001 SPX-O101 SPX-P003\n",
+    "  SPX-P106 SPX-H006 SPX-T203 SPX-T252 SPX-P201 SPX-T205 SPX-T266 SPX-B104 SPX-G170 SPX-I307 SPX-J100 SPX-M105\n",
     "Fix: semaprax help diagnostic <code>\n",
     "All: semaprax help language mistakes-index\n",
 );

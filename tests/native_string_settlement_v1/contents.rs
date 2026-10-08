@@ -246,7 +246,11 @@ fn provisioned_embedded_nul_native_values_asan_ubsan() {
 
 #[test]
 fn nul_does_not_widen_string_operators_or_invalid_unicode_admission() {
-    let invalid_operator = r#"module strings.invalid; @id("s.main") fn main() -> i64 { if "a\u{0}" < "b\u{0}" { 1 } else { 0 } }"#;
+    // Copy Scalar Sort v1 admits bytewise ordering, including embedded NUL.
+    let ordering = r#"module strings.ordering; @id("s.main") fn main() -> i64 { if "a\u{0}" < "b\u{0}" { 1 } else { 0 } }"#;
+    let admitted = checked(ordering);
+    semaprax::hir::validate(&semaprax::hir::resolve(&admitted).unwrap()).unwrap();
+    let invalid_operator = r#"module strings.invalid; @id("s.main") fn main() -> i64 { string_len("a\u{0}" + "b\u{0}") }"#;
     let program = semaprax::parse(invalid_operator, Path::new("invalid-operator.spx")).unwrap();
     assert!(semaprax::verify::verify(&program)
         .iter()

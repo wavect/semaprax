@@ -1040,49 +1040,49 @@ takes a binding, not a literal (`SPX-T266`):
 
 Other first-attempt diagnostics and their fixes:
 
-| You wrote | Code | Fix |
-| --- | --- | --- |
-| native ownership or cleanup lowering refuses a program after `check` succeeds | `SPX-B104` | Keep the exact message and a minimal source reproducer; this is a backend refusal, not evidence of a source ownership error. For `String scalar-match region parent is not canonical` on a named String condition read, report the compiler regression; do not remove cleanup checks |
-| `for i in 0..n { … }` | `SPX-P106` | Use `while`, a `let mut` counter, and a discarded tail |
-| a `while` body ending after assignment | `SPX-P203` | Add a discarded scalar tail such as `0` |
-| `f(x);` as a statement | `SPX-P106` | Discard it with `let _ = f(x);` or make it the tail |
-| `let t = (1, 2);` | `SPX-P106` | No tuples; declare a `record` |
-| `Option::Some { value: 1 }` | `SPX-T221` | `Option<i64>::Some { value: 1 }` |
-| `index + 1` when `index: usize` | `SPX-T208` | Integer literals default to `i64`; write `index + 1usize` |
-| `let a: i32 = 5` | `SPX-T232` | Suffix the literal: `let a: i32 = 5i32` |
-| `9223372036854775808` or `-(9223372036854775808)` | `SPX-P003` | Write `-9223372036854775808` or `-2147483648i32` as one literal. Whitespace after the sign is trivia; parentheses separate it. Negating the minimum or dividing it by `-1` overflows |
-| `"a" + "b"` | `SPX-T250` | `string_concat("a", "b")` |
-| `f("abc")` or `f(owned)` for `borrow str` | `SPX-T205` | `let s = "abc"; f(string_as_str(s))` |
-| `i64_from_f64(3)` or `usize_from_i64(1.5)` | `SPX-T205` | Match input types: `i64_from_f64(3.0)` or `usize_from_i64(1)` |
-| `f64_from_i64(1, 2)` | `SPX-T204` | Pass one argument: `f64_from_i64(1)` |
-| Unsupported `Map<f64,i64>` / `Set<f64>` | `SPX-T274` | Keys are `string`, `i64`, `bool`; map values are String or Copy scalars |
-| implicit collection ownership at a helper boundary | `SPX-O001` | Use explicit `own` or `borrow` parameters; owned results move |
-| Unsupported String/collection record profile | `SPX-T309` | Use explicit IDs and monomorphic acyclic records with `own`/`borrow` parameters; no invariants |
-| `point.get()` on a record | `SPX-T203` | Records have no methods; call `get(point)` or use a `class` |
-| `let x = 1; let x = x + 1;` | `SPX-T209` | No shadowing; pick a new name |
-| assignment to an immutable binding | `SPX-U101` | Declare it with `let mut` before assigning |
-| `fn main() -> bool` | `SPX-T104` | `main` returns `i64`; CLI exit status `0` means success |
-| a second `consume(b)` after `own` | `SPX-O101` | Take `borrow` in the callee or pass a fresh value |
-| `struct`, `enum`, `pub`, `const` | `SPX-P104` | `record`, `variant`, no visibility keyword, a function returning the value |
-| `match x { 0 => 0, _ => 1 }` | `SPX-P106` | Every match arm ends with `,`, including the last; a declaration's last field or case may omit it |
-| `x += 1;` | `SPX-P201` | `x = x + 1;` |
-| `c ? a : b` | `SPX-P106` | `if c { a } else { b }` |
-| `break`, `continue` | `SPX-P106` | Put the exit test in the `while` condition |
-| `x as i64` | `SPX-P106` | Use named conversions (Scalars and literals); range failures are checked. Otherwise keep one integer type and suffix literals |
-| a Rust or JavaScript closure | `SPX-P201` | `fn(x: i64) -> i64 { x + 1 }` |
-| `use std::io;` | `SPX-G170` | Compiler-owned functions need no import; projects import one declaration with `use function @id("…") from module as name;` |
-| rebuilding into an existing output path | `SPX-I307` | Choose a fresh `--output` path, or explicitly remove the existing output after confirming it is your previous build artifact; the compiler never overwrites it automatically |
-| `f()?` in `main` | `SPX-T218` | Only a function returning `Result` propagates; `match` the result in `main` |
-| `[1, 2, 3]` | `SPX-T262` | Array literals hold bytes (`[1u8, 2u8]`); use a `Vec<i64>` |
-| `fn f()` or `-> ()` | `SPX-P106`, `SPX-P105` | Spell the result type; unit is unsupported |
-| `a[0]` | `SPX-P106` | `byte_get(array_as_slice(a), 0usize)` returns `Option<u8>` |
-| `Some(1)`, `None` | `SPX-T203`, `SPX-T202` | `Option<i64>::Some { value: 1 }`, `Option<i64>::None {}` |
-| `s.len()` on a `string` | `SPX-T203` | Call `string_len(s)`; see Compiler-owned functions for other text operations. Only classes have methods |
-| `str_as_bytes(text)` or `str_as_bytes(string_as_str(text))` | `SPX-T263`, `SPX-T266` | Bind the view first: `let view = string_as_str(text); str_as_bytes(view)` |
-| `string_as_str("literal")` | `SPX-T266` | Bind the literal, then pass that binding to `string_as_str` |
-| `shape == Shape::Box { width: 1 }` or `option == Option<i64>::None {}` | `SPX-T207` | Only payload-free, non-generic variants compare with `==`; test others with `match shape { Shape::Dot {} => true, _ => false, }` |
-| an or-pattern alternative with a payload, such as `Shape::Box { width: w }` | `SPX-M105` | Or-pattern alternatives are payload-free cases; give a payload case its own arm |
-| `String`, `int`, or unsupported `Vec` inference/element types | `SPX-T001`/`SPX-T281` | Use `string` or scalar types; spell Copy element and wrapper/`vec_*<T>` arguments explicitly. Projects can use authenticated `std.collections` aliases |
+| You wrote|Code|Fix|
+| ---|---|---|
+| native ownership/cleanup lowering refuses after successful `check`|`SPX-B104`|Preserve exact message + minimal reproducer: backend refusal, not source ownership error. Named String condition read with `String scalar-match region parent is not canonical` is a compiler regression; retain cleanup checks|
+| `for i in 0..n { … }`|`SPX-P106`|Use `while`, a `let mut` counter, and a discarded tail|
+| `while` body ending after assignment|`SPX-P203`|Add a discarded scalar tail such as `0`|
+| `f(x);` as a statement|`SPX-P106`|Discard it with `let _ = f(x);` or make it the tail|
+| `let t = (1, 2);`|`SPX-P106`|No tuples; use `record`|
+| `Option::Some { value: 1 }`|`SPX-T221`|`Option<i64>::Some { value: 1 }`|
+| `index + 1` when `index: usize`|`SPX-T208`|Integer literals default to `i64`; write `index + 1usize`|
+| `let a: i32 = 5`|`SPX-T232`|Suffix the literal: `let a: i32 = 5i32`|
+| `9223372036854775808` or `-(9223372036854775808)`|`SPX-P003`|One literal: `-9223372036854775808` or `-2147483648i32`. Whitespace after sign is trivia; parentheses separate it. Negating minimum or dividing by `-1` overflows|
+| `"a" + "b"`|`SPX-T250`|`string_concat("a", "b")`|
+| `f("abc")` or `f(owned)` for `borrow str`|`SPX-T205`|Bind then borrow: `let s = "abc"; f(string_as_str(s))`|
+| `i64_from_f64(3)` or `usize_from_i64(1.5)`|`SPX-T205`|Match types: `i64_from_f64(3.0)` or `usize_from_i64(1)`|
+| `f64_from_i64(1, 2)`|`SPX-T204`|Pass one argument: `f64_from_i64(1)`|
+| Unsupported `Map<f64,i64>` / `Set<f64>`|`SPX-T274`|Keys: `string`, `i64`, `bool`; values: String or Copy scalars|
+| implicit collection ownership at helper boundary|`SPX-O001`|Use explicit `own`/`borrow` parameters; owned results move|
+| Unsupported String/collection record profile|`SPX-T309`|Use explicit IDs, monomorphic acyclic records, `own`/`borrow` parameters; no invariants|
+| `point.get()` on a record|`SPX-T203`|Records have no methods: call `get(point)` or use a `class`|
+| `let x = 1; let x = x + 1;`|`SPX-T209`|No shadowing; pick a new name|
+| assignment to an immutable binding|`SPX-U101`|Declare it with `let mut` before assigning|
+| `fn main() -> bool`|`SPX-T104`|`main` returns `i64`; CLI exit status `0` means success|
+| a second `consume(b)` after `own`|`SPX-O101`|Take `borrow` in the callee or pass a fresh value|
+| `struct`, `enum`, `pub`, `const`|`SPX-P104`|Use `record`, `variant`, omit visibility, or return values from functions|
+| `match x { 0 => 0, _ => 1 }`|`SPX-P106`|End every arm with `,`, even the last; a declaration's last field/case may omit it|
+| `x += 1;`|`SPX-P201`|`x = x + 1;`|
+| `c ? a : b`|`SPX-P106`|`if c { a } else { b }`|
+| `break`, `continue`|`SPX-P106`|Put the exit test in `while` condition|
+| `x as i64`|`SPX-P106`|Use named conversions (Scalars and literals; range checked), or one integer type with suffixed literals|
+| Rust/JavaScript closure|`SPX-P201`|Use `fn(x: i64) -> i64 { x + 1 }`|
+| `use std::io;`|`SPX-G170`|Compiler-owned functions need no import; projects import one declaration: `use function @id("…") from module as name;`|
+| rebuilding into an existing output path|`SPX-I307`|Choose fresh `--output`, or remove existing output only after confirming it is your prior build artifact; it never overwrites automatically|
+| `f()?` in `main`|`SPX-T218`|Only `Result` functions propagate; `match` in `main`|
+| `[1, 2, 3]`|`SPX-T262`|Arrays hold bytes (`[1u8, 2u8]`); use `Vec<i64>`|
+| `fn f()` or `-> ()`|`SPX-P106`, `SPX-P105`|Spell the result type; unit is unsupported|
+| `a[0]`|`SPX-P106`|Use `byte_get(array_as_slice(a), 0usize)` (`Option<u8>`)|
+| `Some(1)`, `None`|`SPX-T203`, `SPX-T202`|`Option<i64>::Some { value: 1 }`, `Option<i64>::None {}`|
+| `s.len()` on a `string`|`SPX-T203`|Call `string_len(s)`; see Compiler-owned functions for text operations. Only classes have methods|
+| `str_as_bytes(text)` or `str_as_bytes(string_as_str(text))`|`SPX-T263`, `SPX-T266`|Bind view first: `let view = string_as_str(text); str_as_bytes(view)`|
+| `string_as_str("literal")`|`SPX-T266`|Bind the literal before passing it to `string_as_str`|
+| `shape == Shape::Box { width: 1 }` or `option == Option<i64>::None {}`|`SPX-T207`|Only payload-free, non-generic variants compare with `==`; test others with `match shape { Shape::Dot {} => true, _ => false, }`|
+| an or-pattern alternative with a payload, such as `Shape::Box { width: w }`|`SPX-M105`|Or-pattern alternatives are payload-free cases; give a payload case its own arm|
+| `String`, `int`, or unsupported `Vec` inference/element types|`SPX-T001`/`SPX-T281`|Use `string`/scalars; spell Copy element and wrapper/`vec_*<T>` types; projects may use authenticated `std.collections` aliases|
 
 ## Web applications
 

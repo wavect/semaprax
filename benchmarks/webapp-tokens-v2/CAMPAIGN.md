@@ -73,6 +73,11 @@ candidate/evidence directories and original trial order retained. Its worker
 count and elapsed rescore time are separate from original agent and scoring
 wall times.
 
+The browser gate recognizes enum filters by an exact field-labelled control or
+the legacy field-qualified clear option. It still checks every enum value
+against displayed rows and resets the selected filter; a generic unrelated
+`All` control is not accepted.
+
 TypeScript replay that needs excluded dependencies requires an explicit
 `--dependency-receipt` using `semaprax.rescore.dependencies.v1`. It binds
 each `typescript-01` through `typescript-05` bundle to the archived

@@ -64,6 +64,9 @@ The browser uses ordinary visible controls: sign-in labels email/password;
 sign-in label capitalization and surrounding whitespace are immaterial;
 entity navigation; field labels; New/Edit/Create-or-Save/Delete/Cancel;
 search, enum filters, table column sorting, Prev/Next, CSV, and history.
+An enum filter may expose its field as the control's accessible name with a
+separate `All` clear option, or retain the legacy field-qualified
+`field: all` clear option; an unrelated `All` control is not that field's filter.
 SEM uses hash routes; the TS reference uses pathname routes. Selectors permit
 both existing captions (`+ New Task` or `New Task`, `Next ›` or `Next`,
 `CSV` or `Export CSV`). An integer editor may use a numeric input or an

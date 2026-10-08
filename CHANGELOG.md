@@ -14,6 +14,10 @@
 - Preserve ordinary sign-in label whitespace and separate qualification
   contract metadata from the executable TeamDesk gate inventory (OPT #689).
 
+- Accept equivalent field-labelled TeamDesk enum filters while retaining the
+  legacy field-qualified clear option and rejecting unrelated `All` controls
+  (OPT #691).
+
 - Repair TeamDesk acceptance readiness and equivalent CSV/audit representations
   (OPT #689), retaining all application obligations and case identities. Frozen
   paid results remain unchanged. Six selected gate regressions and ten hostile

@@ -24,7 +24,7 @@ test('hostile API missing fields and weakened write responses are observed exter
 
 test('actual sort order and pagination omissions cannot satisfy ordering oracle',()=>{const rows=Array.from({length:27},(_,n)=>({id:String(n+1),value:String(n+1)})),ids=rows.map(row=>row.id);assert.equal(direction(ids,rows,'value','int'),-1);assert.equal(direction(ids.slice().reverse(),rows,'value','int'),1);const wrong=ids.slice();[wrong[24],wrong[25]]=[wrong[25],wrong[24]];assert.throws(()=>direction(wrong,rows,'value','int'),'wrong boundary order');assert.throws(()=>direction(ids.slice(0,25),rows,'value','int'),'dropped page');const duplicate=ids.slice();duplicate[26]=duplicate[25];assert.throws(()=>direction(duplicate,rows,'value','int'),'duplicate row');});
 
-import {numericEditor,directPage,signInLabel} from './browser-support.mjs';
+import {numericEditor,directPage,enumFilterSelectors,signInLabel} from './browser-support.mjs';
 test('exact numeric editors are accepted without accepting untyped strings',()=>{numericEditor('int',{type:'text',inputmode:'numeric'});numericEditor('int',{type:'number',step:'1'});numericEditor('float',{type:'number',step:'any'});assert.throws(()=>numericEditor('int',{type:'text'}));assert.throws(()=>numericEditor('float',{type:'text',inputmode:'numeric'}));assert.throws(()=>numericEditor('int',{type:'number',step:'0.1'}));});
 test('direct route awaits a fresh document rather than earlier hash networkidle',async()=>{const calls=[],page={goto:async(...args)=>calls.push(args)};await directPage(page,'http://127.0.0.1:1234/#/task/1/edit');assert.deepEqual(calls,[['about:blank'],['http://127.0.0.1:1234/#/task/1/edit',{waitUntil:'networkidle'}]]);});
 
@@ -90,4 +90,13 @@ test('sign-in label capitalization preserves exact accessible field identity',()
   for (const label of ['recovery email','email address of another member','new password','password confirmation'])
     for (const field of ['email','password']) assert.equal(signInLabel(field).test(label),false);
   assert.throws(()=>signInLabel('.*'));
+});
+
+test('enum filters accept named controls or their legacy field-qualified clear option',()=>{
+  const status=enumFilterSelectors('status'),priority=enumFilterSelectors('priority');
+  for(const label of ['Status',' status ','STATUS'])assert.equal(status.name.test(label),true);
+  for(const label of ['status: all',' Status: All '])assert.equal(status.legacyAll.test(label),true);
+  for(const label of ['Priority','priority: all','All','ticket status'])assert.equal(status.name.test(label)||status.legacyAll.test(label),false);
+  assert.equal(priority.name.test('Priority'),true);assert.equal(priority.legacyAll.test('priority: all'),true);
+  assert.throws(()=>enumFilterSelectors('status: all'));
 });

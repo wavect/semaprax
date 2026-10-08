@@ -5,6 +5,15 @@ export function signInLabel(field) {
   return new RegExp(`^\\s*${field}\\s*$`, 'i');
 }
 
+// Enum filters identify their field through an ordinary accessible control
+// name or the legacy field-qualified clear-option caption.
+export function enumFilterSelectors(field) {
+  assert.ok(typeof field==='string'&&/^[A-Za-z][A-Za-z0-9_]*$/.test(field),'known enum field');
+  const escaped=field.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replaceAll('_','[_ ]');
+  return {name:new RegExp(`^\\s*${escaped}\\s*$`,'i'),
+          legacyAll:new RegExp(`^\\s*${escaped}:\\s*all\\s*$`,'i')};
+}
+
 // Typed integer editors may use inputmode rather than the browser Number
 // implementation. The physical create/readback checks remain the value oracle.
 export function numericEditor(type, attributes) {

@@ -53,6 +53,41 @@ class CodexCampaignTests(unittest.TestCase):
         self.assertEqual(observed["model_observed"], "gpt-6.1-sol")
         self.assertEqual(observed["model_context_window"], 258400)
 
+    def test_trace_rejects_malformed_rollout_line_even_when_usage_matches(self):
+        usage = {"input_tokens": 100, "cached_input_tokens": 30,
+                 "cache_write_input_tokens": 2, "output_tokens": 7,
+                 "reasoning_output_tokens": 3}
+        events = [
+            {"type": "turn_context", "payload": {"model": "gpt-6.1-sol", "effort": "medium"}},
+            {"type": "token_usage_record", "payload": {"response_id": "r1", "usage": usage}},
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "rollout.jsonl"
+            path.write_text("\n".join([*(json.dumps(event) for event in events), "{malformed"])
+            observed = codex_campaign.trace_usage({"final_turn_usage": usage}, path)
+        self.assertFalse(observed["reconciled"])
+        self.assertEqual(observed["rollout_malformed_lines"], 1)
+        self.assertEqual(observed["rollout_orphan_usage_records"], 0)
+        self.assertEqual(observed["model_requests"], [])
+
+    def test_trace_rejects_orphan_usage_record_even_when_totals_match(self):
+        usage = {"input_tokens": 100, "cached_input_tokens": 30,
+                 "cache_write_input_tokens": 2, "output_tokens": 7,
+                 "reasoning_output_tokens": 3}
+        events = [
+            {"type": "turn_context", "payload": {"model": "gpt-6.1-sol", "effort": "medium"}},
+            {"type": "token_usage_record", "payload": {"response_id": "r1", "usage": usage}},
+            {"type": "token_usage_record", "payload": {"usage": {key: 0 for key in usage}}},
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "rollout.jsonl"
+            path.write_text("\n".join(json.dumps(event) for event in events) + "\n")
+            observed = codex_campaign.trace_usage({"final_turn_usage": usage}, path)
+        self.assertFalse(observed["reconciled"])
+        self.assertEqual(observed["rollout_malformed_lines"], 0)
+        self.assertEqual(observed["rollout_orphan_usage_records"], 1)
+        self.assertEqual(observed["model_requests"], [])
+
     def test_multi_request_uses_response_usage_not_cumulative_turn_totals(self):
         def counts(n):
             return {"input_tokens": n, "cached_input_tokens": n // 2,

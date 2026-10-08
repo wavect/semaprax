@@ -78,6 +78,8 @@ ACCEPTANCE_SOURCE_FILES = (
 )
 HARNESS_SOURCE_FILES = (
     "benchmarks/webapp-tokens-v2/codex_campaign.py",
+    "benchmarks/authored_source_recount.py",
+    "benchmarks/compiler_output_provenance.py",
     "benchmarks/webapp-tokens-v2/typescript_bootstrap.py",
     "benchmarks/webapp-tokens-v2/dependency_bundle.py",
     "benchmarks/live_campaign_common.py",

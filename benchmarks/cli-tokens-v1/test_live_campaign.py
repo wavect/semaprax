@@ -97,13 +97,40 @@ class LiveCampaignTests(unittest.TestCase):
             receipt = root / "receipt.json"
             receipt.write_text(json.dumps({"schema": "semaprax.compiler-output-provenance.v1",
                 "compiler": {"source_sha": "a" * 40, "binary_sha256": "b" * 64},
+                "cwd": ".", "argv": ["webapp", "app.spx", "-o", "{output}"],
                 "input_files": [{"path": "app.spx", "sha256": by_path["app.spx"]["sha256"]}],
-                "raw_root": "raw-output", "raw_outputs": [{"raw_path": "app.js", "final_path": "app.js", "sha256": by_path["app.js"]["sha256"]}]}))
+                "raw_root": "raw-output", "raw_outputs": [{"raw_path": "app.js", "final_path": "app.js", "sha256": by_path["app.js"]["sha256"]}],
+                "repeat_outputs": [{"raw_path": "app.js", "sha256": by_path["app.js"]["sha256"]}]}))
             sidecar = {"schema": authored_recount.CLASSIFICATION_SCHEMA, "origin": {"kind": "fixture"}, "files": [
                 {"path": "app.spx", "sha256": by_path["app.spx"]["sha256"], "classification": "authored_source"},
                 {"path": "app.js", "sha256": by_path["app.js"]["sha256"], "classification": "generated_output", "compiler_output_receipt": True}]}
             kwargs = {"trusted_compiler": ("a" * 40, "b" * 64), "compiler_receipt": (receipt, authored_recount.digest(receipt))}
-            self.assertEqual(authored_recount.recount(candidate, {"status": "measured_proxy", "tokenizer": {}, "total_tokens": 2, "files": files}, sidecar, **kwargs)["components"]["generated_output"], 1)
+            metrics = {"status": "measured_proxy", "tokenizer": {}, "total_tokens": 2, "files": files}
+            counted = authored_recount.recount(candidate, metrics, sidecar, **kwargs)
+            self.assertEqual(counted["components"]["generated_output"], 1)
+            self.assertTrue(next(row for row in counted["files"] if row["path"] == "app.js")["compiler_output_receipt"])
+            self.assertEqual(counted["compiler_output_receipt"]["sha256"], kwargs["compiler_receipt"][1])
+            metric_file, sidecar_file, results_file = [root / name for name in ("metrics.json", "classification.json", "results.json")]
+            metric_file.write_text(json.dumps(metrics)); sidecar_file.write_text(json.dumps(sidecar))
+            receipt_data = json.loads(receipt.read_text())
+            results_file.write_text(json.dumps({"campaign": {"compiler_source_commit": "a" * 40, "source_binary_sha256": "b" * 64}, "trials": [{"arm": "semaprax", "number": 1, "candidate_archive": str(candidate), "final_candidate_source_metrics": metrics, "acceptance": {"report": {"compiler": {"source_sha": "a" * 40, "sha256": "b" * 64}, "compiler_output_receipt": {"path": str(receipt), "sha256": kwargs["compiler_receipt"][1], "compiler": receipt_data["compiler"], "raw_outputs": receipt_data["raw_outputs"]}}}}]}))
+            results_sha = authored_recount.digest(results_file)
+            base_args = ["recount", "--candidate", str(candidate), "--metrics", str(metric_file), "--classification", str(sidecar_file), "--campaign-results", str(results_file), "--trial-label", "semaprax-01"]
+            output = root / "counted.json"
+            with patch.object(sys, "argv", [*base_args, "--campaign-results-sha256", results_sha, "--output", str(output)]):
+                self.assertEqual(authored_recount.main(), 0)
+            self.assertEqual(json.loads(output.read_text())["compiler_proof_origin"]["results_sha256"], results_sha)
+            refused_output = root / "refused.json"
+            for extra in ([], ["--campaign-results-sha256", "0" * 64]):
+                with patch.object(sys, "argv", [*base_args, *extra, "--output", str(refused_output)]):
+                    self.assertEqual(authored_recount.main(), 2)
+                self.assertFalse(refused_output.exists())
+            original_receipt = receipt.read_text()
+            for bad_argv in (["webapp", "../app.spx", "-o", "{output}"], ["webapp", "missing.spx", "-o", "{output}"]):
+                changed = {**receipt_data, "argv": bad_argv}; receipt.write_text(json.dumps(changed))
+                with self.assertRaises(ValueError):
+                    authored_recount.recount(candidate, metrics, sidecar, trusted_compiler=kwargs["trusted_compiler"], compiler_receipt=(receipt, authored_recount.digest(receipt)))
+            receipt.write_text(original_receipt)
             (raw / "app.js").write_text("postprocessed")
             with self.assertRaisesRegex(ValueError, "raw output differs"):
                 authored_recount.recount(candidate, {"status": "measured_proxy", "tokenizer": {}, "total_tokens": 2, "files": files}, sidecar, **kwargs)

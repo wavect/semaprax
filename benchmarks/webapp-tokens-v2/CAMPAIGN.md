@@ -159,3 +159,38 @@ source, proven generated output, dependency locks, and unresolved files.
 Generated exclusions need closed recipe/entrypoint chains ending in classified
 authored source. The output retains the legacy total and tokenizer binding and
 sets both authorship verification and ratio eligibility to false.
+
+
+## Optional raw compiler-output evidence
+
+Future acceptance invocations can inspect an optional
+`compiler-output-capture.json` at the candidate root. It is measurement metadata,
+not an application requirement or an additional instruction in the paid agent
+prompt. Existing campaigns and their outcomes are never retrofitted.
+
+The declaration uses `semaprax.compiler-output-capture.v1`, with `argv` equal to
+`["webapp", "app.spx", "-o", "{output}"]` (optionally followed by `"--title"` and a
+title), a safe relative `output_directory`, and ordered `input_files` rows of
+`{path, sha256}`. Inputs cover the retained candidate inventory before build,
+excluding the declaration itself and the archive's generated/cache directories.
+The source argument must belong to that inventory. Capture currently requires
+the pinned SEMAPRAX compiler; unsupported TypeScript toolchains remain unresolved.
+
+The runner invokes that compiler directly in two fresh evidence directories,
+checks unchanged compiler/input bytes and equal raw manifests, and writes a
+`semaprax.compiler-output-provenance.v1` receipt. It never executes a candidate
+script for this capture and never writes generated files into the candidate.
+The mandatory build, own tests, server launch and all 912 independent obligations
+still determine acceptance. Capture time is part of acceptance wall time.
+
+This is a fresh reproduction before the acceptance build's postprocessors. It
+does not prove what the agent historically typed or which tool originally wrote
+a final file. A final file can use the raw-output component only when its exact
+hash matches the captured bytes; changed files stay unresolved.
+
+Compiler-backed recounts require `--campaign-results`, the known immutable
+`--campaign-results-sha256`, and `--trial-label`. The recount derives compiler and
+receipt bindings from that exact trial, checks the supplied metrics/candidate,
+rehashes retained raw bytes, and publishes the receipt and validator code hashes.
+It does not execute archived build scripts. Authorship remains unverified and
+these component counts do not establish a language token ratio.

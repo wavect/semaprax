@@ -1,5 +1,14 @@
 # Changelog
 
+- Capture optional raw compiler-output evidence before acceptance builds, with
+  fresh reproduction and immutable campaign/trial bindings for source-component
+  recounting (OPT #696). Matching file contents remain a final-file proxy, not
+  historical authorship. Original campaign evidence is unchanged.
+
+- Provide an opt-in pinned, private TypeScript dependency bootstrap for future
+  matched web campaigns (OPT #697), without reference application code or
+  scripts. Record supplied tooling and fixed prompt bytes separately.
+
 - Clarify that `help shapes` lists the full catalog and `help shapes function`
   narrows it to matching declaration shapes (OPT #694).
 

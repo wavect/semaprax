@@ -21,8 +21,55 @@ const manifests=async root=>(await tree(root)).map(([name,bytes])=>({name,sha256
 const report={schema:'semaprax.teamdesk.acceptance.v1',arm:values.arm,spec_sha256:SPEC_SHA256,node:process.version,started_at:new Date().toISOString(),candidate_before:await manifests(candidate),gate:await manifests(directory),checks:[],qualification:{passed:false},authority:{network:'explicit loopback candidate URLs',files:[candidate,output],processes:'build.sh test.sh run.sh and browser'}};
 if(values.compiler){assert.ok(/^[a-f0-9]{40}$/.test(values['compiler-source-sha']??''),'compiler exact source SHA required');report.compiler={path:await fs.realpath(values.compiler),sha256:sha256(await fs.readFile(values.compiler)),source_sha:values['compiler-source-sha']};}
 const env={...process.env,TEAMDESK_ARM:values.arm,TEAMDESK_DATA_DIR:data,TEAMDESK_HOST:'127.0.0.1',TEAMDESK_PORT:String(await unusedPort()),TEAMDESK_UI_PORT:String(await unusedPort()),TEAMDESK_KDF_LEDGER:path.join(output,'kdf.jsonl'),SEMAPRAX_BIN:values.compiler??process.env.SEMAPRAX_BIN??'',NODE_OPTIONS:`${process.env.NODE_OPTIONS??''} --import=${pathToFileURL(path.join(directory,'kdf-observer.mjs')).href}`};if(values['playwright-root'])process.env.PLAYWRIGHT_PACKAGE_ROOT=path.resolve(values['playwright-root']);
-const safeRelative=value=>{assert.equal(typeof value,'string','capture path string');assert.ok(value&&!path.isAbsolute(value)&&!value.split(path.sep).includes('..')&&path.posix.normalize(value)===value,'capture path is safe');return value;};
-const capture=async()=>{const declarationPath=path.join(candidate,'compiler-output-capture.json');let declaration;try{declaration=JSON.parse(await fs.readFile(declarationPath,'utf8'));}catch(error){if(error?.code==='ENOENT')return undefined;throw error;}assert.ok(values.compiler&&values.arm==='semaprax','only a trusted Semaprax compiler can capture raw output');assert.deepEqual(Object.keys(declaration).sort(),['argv','input_files','output_directory','schema']);assert.equal(declaration.schema,'semaprax.compiler-output-capture.v1');assert.ok(Array.isArray(declaration.argv)&&[4,6].includes(declaration.argv.length));assert.equal(declaration.argv[0],'webapp');assert.equal(declaration.argv[2],'-o');assert.equal(declaration.argv[3],'{output}');if(declaration.argv.length===6){assert.equal(declaration.argv[4],'--title');assert.equal(typeof declaration.argv[5],'string');}const inputFiles=declaration.input_files;assert.ok(Array.isArray(inputFiles)&&inputFiles.length>0);const before=await manifests(candidate), actual=new Map(before.map(row=>[row.name,row.sha256]));actual.delete('compiler-output-capture.json');const source=safeRelative(declaration.argv[1]);assert.ok(actual.has(source),'capture source is not retained');const inputs=[];for(const row of inputFiles){assert.deepEqual(Object.keys(row).sort(),['path','sha256']);const name=safeRelative(row.path);assert.equal(actual.get(name),row.sha256,'capture input differs from candidate');inputs.push({path:name,sha256:row.sha256});}assert.deepEqual(new Set(inputs.map(row=>row.path)),new Set(actual.keys()),'capture input closure must include every retained candidate file');const outputDirectory=safeRelative(declaration.output_directory);assert.equal(outputDirectory,'out','capture output directory is fixed');const rawRoot=path.join(output,'compiler-output-raw');await fs.mkdir(rawRoot);const argv=[...declaration.argv];argv[3]=rawRoot;const captureProcess=start(values.compiler,argv,{cwd:candidate,env:{PATH:process.env.PATH??''},log,timeout:180000});const result=await captureProcess.done;assert.equal(result.code,0,'direct compiler capture failed; see process.log');const rawOutputs=(await tree(rawRoot)).map(([rawPath,bytes])=>({raw_path:rawPath,final_path:path.posix.join(outputDirectory,rawPath),sha256:sha256(bytes)}));assert.ok(rawOutputs.length>0,'direct compiler capture produced no files');const repeatOutputs=(await tree(rawRoot)).map(([rawPath,bytes])=>({raw_path:rawPath,sha256:sha256(bytes)}));const receipt={schema:'semaprax.compiler-output-provenance.v1',compiler:{source_sha:values['compiler-source-sha'],binary_sha256:report.compiler.sha256},cwd:'.',argv:declaration.argv,input_files:inputs,raw_root:'compiler-output-raw',raw_outputs:rawOutputs,repeat_outputs:repeatOutputs};const receiptPath=path.join(output,'compiler-output-receipt.json');await fs.writeFile(receiptPath,JSON.stringify(receipt,null,2)+'\n');report.compiler_output_receipt={path:receiptPath,sha256:sha256(await fs.readFile(receiptPath)),compiler:receipt.compiler,raw_outputs:rawOutputs};return receipt;};
+const safeRelative=value=>{assert.equal(typeof value,'string','capture path string');assert.ok(value&&value!=='.'&&!path.isAbsolute(value)&&!value.split(path.sep).includes('..')&&path.posix.normalize(value)===value,'capture path is safe');return value;};
+// Optional evidence capture never replaces the mandatory build, tests or gate.
+const rawManifest=async root=>{
+  const rows=[];
+  const visit=async directory=>{
+    const entries=await fs.readdir(directory,{withFileTypes:true});
+    entries.sort((a,b)=>a.name<b.name?-1:a.name>b.name?1:0);
+    for(const entry of entries){
+      const file=path.join(directory,entry.name);
+      assert.ok(!entry.isSymbolicLink(),'raw compiler evidence has no symlinks');
+      if(entry.isDirectory())await visit(file);
+      else{assert.ok(entry.isFile(),'raw compiler evidence contains only regular files');rows.push({raw_path:path.relative(root,file).split(path.sep).join('/'),sha256:sha256(await fs.readFile(file))});}
+    }
+  };
+  await visit(root);return rows;
+};
+const archiveExcluded=new Set(['.git','.cache','.mypy_cache','.pytest_cache','__pycache__','dist','node_modules','out','target']);
+const retainedInputs=async()=> (await manifests(candidate)).filter(row=>row.name!=='compiler-output-capture.json'&&!row.name.split(path.sep).some(part=>archiveExcluded.has(part))).map(row=>({path:row.name.split(path.sep).join('/'),sha256:row.sha256}));
+const capture=async()=>{
+  const declarationPath=path.join(candidate,'compiler-output-capture.json');let declaration;
+  try{assert.ok(!(await fs.lstat(declarationPath)).isSymbolicLink(),'capture declaration is regular');declaration=JSON.parse(await fs.readFile(declarationPath,'utf8'));}
+  catch(error){if(error?.code==='ENOENT')return;throw error;}
+  assert.ok(values.compiler&&values.arm==='semaprax','only a trusted Semaprax compiler can capture raw output');
+  assert.deepEqual(Object.keys(declaration).sort(),['argv','input_files','output_directory','schema']);
+  assert.equal(declaration.schema,'semaprax.compiler-output-capture.v1');
+  assert.ok(Array.isArray(declaration.argv)&&[4,6].includes(declaration.argv.length));
+  assert.equal(declaration.argv[0],'webapp');assert.equal(declaration.argv[2],'-o');assert.equal(declaration.argv[3],'{output}');
+  const source=safeRelative(declaration.argv[1]);
+  if(declaration.argv.length===6){assert.equal(declaration.argv[4],'--title');assert.equal(typeof declaration.argv[5],'string');}
+  const inputs=await retainedInputs();assert.ok(inputs.some(row=>row.path===source),'source belongs to retained inputs');
+  assert.deepEqual(declaration.input_files,inputs,'capture closes the retained input inventory; declaration and generated/cache directories are excluded');
+  const outputDirectory=safeRelative(declaration.output_directory);
+  const compile=async basename=>{
+    const root=path.join(output,basename);await fs.mkdir(root);
+    assert.equal(sha256(await fs.readFile(report.compiler.path)),report.compiler.sha256,'compiler bytes remain pinned');
+    const argv=[...declaration.argv];argv[3]=root;
+    const process=start(report.compiler.path,argv,{cwd:candidate,env:{PATH:process.env.PATH??''},log,timeout:180000});
+    assert.equal((await process.done).code,0,'direct compiler capture failed; see process.log');
+    assert.equal(sha256(await fs.readFile(report.compiler.path)),report.compiler.sha256,'compiler bytes remain pinned');
+    assert.deepEqual(await retainedInputs(),inputs,'compiler capture leaves candidate inputs unchanged');
+    return await rawManifest(root);
+  };
+  const raw=await compile('compiler-output-raw');assert.ok(raw.length>0,'compiler produced raw files');
+  const repeat=await compile('compiler-output-repeat');assert.deepEqual(repeat,raw,'fresh compiler reproduction matches raw bytes');
+  const rawOutputs=raw.map(row=>({...row,final_path:path.posix.join(outputDirectory,row.raw_path)}));
+  const receipt={schema:'semaprax.compiler-output-provenance.v1',compiler:{source_sha:values['compiler-source-sha'],binary_sha256:report.compiler.sha256},cwd:'.',argv:declaration.argv,input_files:inputs,raw_root:'compiler-output-raw',raw_outputs:rawOutputs,repeat_outputs:repeat};
+  const receiptPath=path.join(output,'compiler-output-receipt.json');await fs.writeFile(receiptPath,JSON.stringify(receipt,null,2)+'\n');
+  report.compiler_output_receipt={path:receiptPath,sha256:sha256(await fs.readFile(receiptPath)),compiler:receipt.compiler,raw_outputs:rawOutputs};
+};
 const log=createWriteStream(path.join(output,'process.log'),{flags:'wx'}),probe=new Probe();let server;
 try{
   await capture();

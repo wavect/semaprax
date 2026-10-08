@@ -110,3 +110,53 @@ fn exact_512_nested_indexed_matches_validate_on_a_low_stack() {
     drop(nested);
     drop(program);
 }
+
+#[test]
+fn indexed_read_from_inline_byte_view_points_to_the_view_and_names_the_alias_fix() {
+    let source = r#"
+module test.validation_indexed_alias_diagnostic;
+@id("indexed.alias")
+fn indexed(text: string) -> usize {
+    let view = string_as_str(text);
+    let mut index = 0usize;
+    let mut total = 0usize;
+    while index < 1usize {
+        total = total + byte_len(str_as_bytes(view));
+        index = index + 1usize;
+        index < 1usize
+    }
+    total
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let parsed = crate::parse(
+        source,
+        std::path::Path::new("validation-indexed-alias-diagnostic.spx"),
+    )
+    .unwrap();
+    let program = crate::hir::resolve(&parsed).unwrap();
+    let diagnostic = crate::hir::validate(&program).unwrap_err();
+    assert_eq!(diagnostic.code, "SPX-H006");
+    assert_eq!(
+        diagnostic.message,
+        "while loop indexed byte reads require an existing byte-slice alias"
+    );
+    let start = source.find("str_as_bytes(view)").unwrap();
+    let span = diagnostic.span.expect("inline byte view has a source span");
+    assert_eq!(
+        (span.start, span.end),
+        (start, start + "str_as_bytes(view)".len())
+    );
+    let prefix = &source[..start];
+    let line = prefix.bytes().filter(|byte| *byte == b'\n').count() + 1;
+    let column = prefix
+        .rfind('\n')
+        .map_or(start + 1, |newline| start - newline);
+    assert_eq!((span.line, span.column), (line, column));
+    assert_eq!(
+        diagnostic.help.as_deref(),
+        Some(
+            "bind the byte view before the loop, for example `let bytes = str_as_bytes(text);`, then pass `bytes` to `byte_len` or `byte_get`"
+        )
+    );
+}

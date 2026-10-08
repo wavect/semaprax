@@ -217,6 +217,7 @@ pub(crate) fn owned_capacity_bytes(plan: &LoanPlan) -> Option<usize> {
 struct CfgDraft {
     site: ExpressionId,
     origin: Place,
+    origin_span: Span,
     parent_root: Option<ValueId>,
     binding: Option<ValueId>,
     start: u16,
@@ -460,6 +461,7 @@ fn build_cfg_plan_counted(
             drafts.push(CfgDraft {
                 site: expression.id.clone(),
                 origin: resolve_origin(&aliases, place.clone(), work)?,
+                origin_span: expression.span,
                 parent_root: aliases
                     .contains_key(&place.root)
                     .then(|| place.root.clone()),
@@ -479,6 +481,7 @@ fn build_cfg_plan_counted(
             drafts.push(CfgDraft {
                 site: expression.id.clone(),
                 origin: resolve_origin(&aliases, place.clone(), work)?,
+                origin_span: argument.span,
                 parent_root: aliases
                     .contains_key(&place.root)
                     .then(|| place.root.clone()),
@@ -507,6 +510,7 @@ fn build_cfg_plan_counted(
                 drafts.push(CfgDraft {
                     site: expression.id.clone(),
                     origin: origin.clone(),
+                    origin_span: scrutinee.span,
                     parent_root: aliases
                         .contains_key(&place.root)
                         .then(|| place.root.clone()),
@@ -1098,22 +1102,30 @@ fn reject_overlap_at(
     live: &[BTreeSet<u16>],
     span: Span,
 ) -> Result<(), Diagnostic> {
-    if drafts.iter().zip(live).any(|(loan, live)| {
+    if let Some((loan, _)) = drafts.iter().zip(live).find(|(loan, live)| {
         live.contains(&node)
             && loan.origin.root == place.root
             && (place.projections.starts_with(&loan.origin.projections)
                 || loan.origin.projections.starts_with(&place.projections))
     }) {
         let message = "move, mutation, or transfer overlaps an active shared loan";
-        // Carry only an existing HIR span from the operation that conflicts.
-        // Hand-built/hostile HIR may have no source provenance, represented by
-        // the default span; keep that diagnostic locationless rather than
-        // fabricating a location.
-        let diagnostic = if span.start < span.end && span.line > 0 && span.column > 0 {
+        // Keep the conflicting operation as the primary location. Hand-built
+        // or hostile HIR may have no source provenance, represented by the
+        // default span; never fabricate either location.
+        let mut diagnostic = if span.start < span.end && span.line > 0 && span.column > 0 {
             Diagnostic::error("SPX-H006", message, span)
         } else {
             error(message)
         };
+        if loan.origin_span.start < loan.origin_span.end
+            && loan.origin_span.line > 0
+            && loan.origin_span.column > 0
+        {
+            diagnostic = diagnostic.with_help(format!(
+                "the active shared loan begins at {}:{}; end its uses before moving, mutating, or transferring the owner",
+                loan.origin_span.line, loan.origin_span.column
+            ));
+        }
         Err(diagnostic)
     } else {
         Ok(())

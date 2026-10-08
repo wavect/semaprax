@@ -145,10 +145,27 @@ fn move_assignment_before_let_without_span(function: &mut hir::ResolvedFunction,
     *span = Default::default();
 }
 
+fn clear_let_value_span(function: &mut hir::ResolvedFunction, let_name: &str) {
+    let ResolvedExprKind::Block { statements, .. } = &mut function.body.kind else {
+        unreachable!("function body remains a block");
+    };
+    let value = statements
+        .iter_mut()
+        .find_map(|statement| match statement {
+            ResolvedStatement::Let { binding, value, .. } if binding.name == let_name => {
+                Some(value)
+            }
+            _ => None,
+        })
+        .unwrap_or_else(|| panic!("missing let binding {let_name}"));
+    value.span = Default::default();
+}
+
 fn assert_overlap_span(
     source: &str,
     function_id: &str,
     operation_span: Option<(usize, usize)>,
+    origin_start: Option<usize>,
     reorder: impl FnOnce(&mut hir::ResolvedFunction),
 ) {
     let parsed = parse(source, Path::new("shared-loan-overlap-span.spx")).unwrap();
@@ -185,6 +202,13 @@ fn assert_overlap_span(
     } else {
         assert_eq!(diagnostic.span, None, "missing HIR span stays locationless");
     }
+    let expected_help = origin_start.map(|start| {
+        let (line, column) = source_line_column(source, start);
+        format!(
+            "the active shared loan begins at {line}:{column}; end its uses before moving, mutating, or transferring the owner"
+        )
+    });
+    assert_eq!(diagnostic.help, expected_help);
 
     let hostile =
         hir::validate(&program).expect_err("overlapping hostile HIR must remain rejected");
@@ -206,10 +230,12 @@ module test.shared_loan_move_span;
 @id("app.main") fn main() -> i64 { 0 }
 "#;
     let move_start = move_source.find("take(owned)").unwrap() + "take(".len();
+    let move_origin = move_source.find("bytes_as_slice(owned)").unwrap();
     assert_overlap_span(
         move_source,
         "loan.invalid",
         Some((move_start, move_start + "owned".len())),
+        Some(move_origin),
         |function| swap_let_statements(function, "observed", "conflict"),
     );
 
@@ -228,16 +254,33 @@ module test.shared_loan_assignment_span;
         .find("owned = bytes_set(owned, 0usize, 65u8);")
         .unwrap();
     let assignment_end = assignment_start + "owned = bytes_set(owned, 0usize, 65u8);".len();
+    let assignment_origin = assignment_source.find("bytes_as_slice(owned)").unwrap();
     assert_overlap_span(
         assignment_source,
         "loan.invalid",
         Some((assignment_start, assignment_end)),
+        Some(assignment_origin),
         |function| move_assignment_before_let(function, "observed"),
     );
 
-    assert_overlap_span(assignment_source, "loan.invalid", None, |function| {
-        move_assignment_before_let_without_span(function, "observed")
-    });
+    assert_overlap_span(
+        assignment_source,
+        "loan.invalid",
+        None,
+        Some(assignment_origin),
+        |function| move_assignment_before_let_without_span(function, "observed"),
+    );
+
+    assert_overlap_span(
+        assignment_source,
+        "loan.invalid",
+        Some((assignment_start, assignment_end)),
+        None,
+        |function| {
+            move_assignment_before_let(function, "observed");
+            clear_let_value_span(function, "view");
+        },
+    );
 }
 
 #[test]

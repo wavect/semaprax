@@ -280,8 +280,12 @@ pub(super) fn require_admitted_while_operation(
     }
     let slice = &args[0];
     let ResolvedExprKind::Place(place) = &slice.kind else {
-        return Err(hir_error(
+        return Err(hir_error_at_span(
+            slice.span,
             "while loop indexed byte reads require an existing byte-slice alias",
+        )
+        .with_help(
+            "bind the byte view before the loop, for example `let bytes = str_as_bytes(text);`, then pass `bytes` to `byte_len` or `byte_get`",
         ));
     };
     if slice.ty != ResolvedType::SliceU8
@@ -294,8 +298,12 @@ pub(super) fn require_admitted_while_operation(
                 .byte_slice_provenance(&place.root)
                 .is_none())
     {
-        return Err(hir_error(
+        return Err(hir_error_at_span(
+            slice.span,
             "while loop indexed byte read lacks authenticated slice provenance",
+        )
+        .with_help(
+            "bind the byte view before the loop, for example `let bytes = str_as_bytes(text);`, then pass `bytes` to `byte_len` or `byte_get`",
         ));
     }
     Ok(())

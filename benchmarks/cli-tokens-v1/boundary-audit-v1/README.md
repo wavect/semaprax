@@ -59,3 +59,7 @@ not independently recounted provider receipts. Calibration remains separate.
 A zero expanded-accepted denominator produces no cost-per-accepted estimate.
 These finite probes are an executable qualification gate, not a proof over all
 possible inputs or a change to historical acceptance.
+
+The first completed campaign's independent qualification is recorded in
+[RESULTS-20261008.md](RESULTS-20261008.md), including its failures, execution
+modes, preserved historical statuses, cost scope, and exact evidence hashes.

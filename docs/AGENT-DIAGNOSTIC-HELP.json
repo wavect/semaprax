@@ -93,7 +93,7 @@
           "wrote": "f(x); as a statement"
         },
         {
-          "fix": "No tuples; use record",
+          "fix": "No tuples; declare a `record`",
           "wrote": "let t = (1, 2);"
         },
         {
@@ -223,8 +223,8 @@
       "code": "SPX-T208",
       "rows": [
         {
-          "fix": "Integer literals default to i64; write index + 1usize",
-          "wrote": "index + 1 when index: usize"
+          "fix": "Integer literals default to `i64`; write `index + 1usize`",
+          "wrote": "`index + 1` when `index: usize`"
         }
       ]
     },

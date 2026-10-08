@@ -293,8 +293,17 @@ const deny = (name) => () => { console.error(`OFFLINE_GUARD_TRIP ${name}`); thro
 http.Server.prototype.listen = deny('http listener');
 net.Server.prototype.listen = deny('network listener');
 for (const name of ['spawn','spawnSync','exec','execSync','execFile','execFileSync','fork']) childProcess[name] = deny(`child_process.${name}`);
-for (const name of ['mkdirSync','writeFileSync','appendFileSync','writeSync','writevSync','truncateSync','ftruncateSync','openSync','renameSync','unlinkSync','rmdirSync','rmSync','mkdtempSync','createWriteStream','mkdir','writeFile','appendFile','write','writev','truncate','ftruncate','open','rename','unlink','rmdir','rm','mkdtemp','copyFile','cp','link','symlink']) fs[name] = deny(`fs.${name}`);
-for (const name of ['mkdir','writeFile','appendFile','write','truncate','open','rename','unlink','rmdir','rm','mkdtemp','copyFile','cp','link','symlink']) fs.promises[name] = deny(`fs.promises.${name}`);
+for (const name of ['mkdirSync','writeFileSync','appendFileSync','writeSync','writevSync','truncateSync','ftruncateSync','renameSync','unlinkSync','rmdirSync','rmSync','mkdtempSync','createWriteStream','mkdir','writeFile','appendFile','write','writev','truncate','ftruncate','rename','unlink','rmdir','rm','mkdtemp','copyFile','cp','link','symlink']) fs[name] = deny(`fs.${name}`);
+for (const name of ['mkdir','writeFile','appendFile','write','truncate','rename','unlink','rmdir','rm','mkdtemp','copyFile','cp','link','symlink']) fs.promises[name] = deny(`fs.promises.${name}`);
+const writeFlags = fs.constants.O_WRONLY | fs.constants.O_RDWR | fs.constants.O_APPEND | fs.constants.O_CREAT | fs.constants.O_TRUNC;
+for (const [object, name] of [[fs, 'openSync'], [fs, 'open'], [fs.promises, 'open']]) {
+  const original = object[name];
+  object[name] = (...args) => {
+    const flags = args[1] ?? 'r';
+    if (typeof flags === 'number' ? (flags & writeFlags) !== 0 : /[wa+]/.test(flags)) deny(`fs.${name} write`)();
+    return original.apply(object, args);
+  };
+}
 globalThis.fetch = deny('fetch');
 syncBuiltinESMExports();
 "#,

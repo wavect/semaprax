@@ -159,7 +159,7 @@ fn source_command_bundled_decimal_native_and_closed_runtime_failures() {
     let c = semaprax::codegen::emit_c_with_source_command(&control).unwrap();
     let control_binary = fixture.0.join("control");
     semaprax::codegen::compile_native_executable(&c, &control_binary).unwrap();
-    std::fs::write(fixture.0.join("digits"), "000999999999999999999999").unwrap();
+    std::fs::write(fixture.0.join("digits"), format!("000{}", "9".repeat(24))).unwrap();
     let output = Command::new(&binary)
         .current_dir(&fixture.0)
         .arg("digits")

@@ -245,6 +245,9 @@ pub(super) fn validate_imported_function(
         return Ok(());
     }
     let byte_parameter = package::admitted_byte_parameter;
+    let borrowed_copy_vec_parameter = |param: &crate::ast::Param| {
+        param.mode == ParamMode::Borrow && crate::vec_ops::ast_copy_vec(&param.ty)
+    };
     let has_byte_parameter = function.params.iter().any(byte_parameter);
     let scalar_return = matches!(
         function.return_type,
@@ -261,6 +264,7 @@ pub(super) fn validate_imported_function(
         || function.params.iter().any(|param| {
             param.mode != ParamMode::Value
                 && !byte_parameter(param)
+                && !borrowed_copy_vec_parameter(param)
                 && !(param.mode == ParamMode::Borrow && param.ty == Type::Str)
         })
         || (has_byte_parameter && !scalar_return)
@@ -272,7 +276,7 @@ pub(super) fn validate_imported_function(
         )]);
     }
     for param in &function.params {
-        if byte_parameter(param) {
+        if byte_parameter(param) || borrowed_copy_vec_parameter(param) {
             continue;
         }
         if !signature_type_is_admitted(

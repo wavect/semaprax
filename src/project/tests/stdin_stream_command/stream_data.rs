@@ -73,9 +73,9 @@ fn fixture() -> PathBuf {
     root.canonicalize().unwrap()
 }
 
-fn assert_g174(root: &Path) {
+fn assert_code(root: &Path, code: &str) {
     let errors = with_authenticated_project(&root.join(MANIFEST_FILE), |_| Ok(())).unwrap_err();
-    assert!(errors.iter().any(|error| error.code == "SPX-G174"));
+    assert!(errors.iter().any(|error| error.code == code), "{errors:?}");
 }
 
 #[test]
@@ -100,10 +100,45 @@ fn private_vec_and_copy_scalar_helpers_keep_command_abi_closed() {
                     .map(|effect| (*effect).to_owned())
                     .collect::<Vec<_>>()
             );
+            // The resolved profile independently refuses facts that cannot pass
+            // the source import gate, including a lookalike carrier identity.
+            for invalid in 0..3 {
+                let mut forged = snapshot.public_api_program().clone();
+                let helper = forged
+                    .functions
+                    .iter_mut()
+                    .find(|function| function.id.as_str() == "data.count")
+                    .unwrap();
+                if invalid == 0 {
+                    helper.params[0].ownership = hir::OwnershipMode::Own;
+                } else if let hir::ResolvedType::Nominal {
+                    declaration,
+                    arguments,
+                } = &mut helper.params[0].ty
+                {
+                    if invalid == 1 {
+                        arguments[0] = hir::ResolvedType::Bytes;
+                    } else {
+                        *declaration = hir::DeclarationId::new("forged.Vec");
+                    }
+                } else {
+                    panic!("checked helper retains the Vec carrier");
+                }
+                assert_eq!(
+                    hir::validate_stream_data_program(
+                        &forged,
+                        Some(&hir::DeclarationId::new("stream.command"))
+                    )
+                    .unwrap_err()
+                    .code,
+                    "SPX-H006"
+                );
+            }
             let emitted = crate::codegen::emit_hir_c_with_stdin_stream_data(
                 snapshot.public_api_program(),
                 "stream.command",
-            )?;
+            )
+            .map_err(|error| vec![error])?;
             assert!(emitted.contains("spx_language_command_stream_run_v2"));
             assert!(emitted.contains("spx_vec_len"));
             snapshot.build_native(&output)?;
@@ -153,7 +188,7 @@ fn private_vec_and_copy_scalar_helpers_keep_command_abi_closed() {
             v27.replace(PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V1, old),
         )
         .unwrap();
-        assert_g174(&root);
+        assert_code(&root, "SPX-G174");
     }
 
     std::fs::write(root.join(MANIFEST_FILE), &v27).unwrap();
@@ -162,7 +197,7 @@ fn private_vec_and_copy_scalar_helpers_keep_command_abi_closed() {
         &HELPERS.replace("values:borrow Vec<i64>", "values:own Vec<i64>"),
     );
     std::fs::write(root.join("b/helpers.spx"), helpers).unwrap();
-    assert_g174(&root);
+    assert_code(&root, "SPX-G172");
 
     std::fs::write(
         root.join("b/helpers.spx"),
@@ -187,7 +222,7 @@ fn private_vec_and_copy_scalar_helpers_keep_command_abi_closed() {
             );
         std::fs::write(root.join(path), canonical_source(path, &source)).unwrap();
     }
-    assert_g174(&root);
+    assert_code(&root, "SPX-G172");
 
     std::fs::write(
         root.join("b/helpers.spx"),

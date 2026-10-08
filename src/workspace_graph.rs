@@ -1863,7 +1863,7 @@ impl WorkspaceGraphBuild {
         )?;
         self.attach_project_agents(&mut web_program)?;
         let test_program = retained_validation::stream_test_program(
-            self,
+            &self,
             web_roots.profile,
             test_module,
             web_roots.dependency_anchors,

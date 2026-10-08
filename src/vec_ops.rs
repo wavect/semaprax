@@ -262,6 +262,11 @@ pub(crate) fn ast_element_is_admitted(ty: &Type) -> bool {
             | Type::Bool
     )
 }
+/// Exact compiler-owned Copy-scalar Vec spelling before HIR identity resolution.
+pub(crate) fn ast_copy_vec(ty: &Type) -> bool {
+    matches!(ty, Type::Named { name, arguments }
+        if name == "Vec" && matches!(arguments.as_slice(), [element] if ast_element_is_admitted(element)))
+}
 pub(crate) fn resolved_element_is_admitted(ty: &ResolvedType) -> bool {
     matches!(
         ty,

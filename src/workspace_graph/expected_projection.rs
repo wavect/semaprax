@@ -51,7 +51,6 @@ pub(super) use uncached_peak::{
     initial_core_prebound, next_retention_prebound_with_uncached_peak,
     uncached_output_peak_prebound,
 };
-
 pub(super) struct SyntheticBuilderCosts {
     pub(super) raw_clone_and_hir: usize,
     retained_clone_and_hir: usize,
@@ -60,7 +59,6 @@ pub(super) struct SyntheticBuilderCosts {
     retained_hir: usize,
     synthetic_ast: usize,
 }
-
 pub(super) fn synthetic_builder_bytes(
     program: &Program,
     authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
@@ -68,7 +66,6 @@ pub(super) fn synthetic_builder_bytes(
 ) -> Result<SyntheticBuilderCosts, Vec<Diagnostic>> {
     synthetic_builder_bytes_scoped(program, authored, programs, None, 0, true)
 }
-
 pub(super) fn synthetic_builder_bytes_scoped(
     program: &Program,
     authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
@@ -510,13 +507,11 @@ fn generic_instance_source_cost(program: &Program) -> Result<GenericInstanceCost
     }
     Ok(total)
 }
-
 pub(super) fn checked_builder_sum(left: usize, right: usize) -> Result<usize, Vec<Diagnostic>> {
     left.checked_add(right)
         .filter(|total| *total <= active_builder_limit())
         .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])
 }
-
 pub(super) fn rewrite_type_runtime_cost(
     ty: &Type,
     target_module: &str,
@@ -524,7 +519,10 @@ pub(super) fn rewrite_type_runtime_cost(
     programs: &[Program],
     cost: &mut StructuralCost,
 ) -> Result<(), Vec<Diagnostic>> {
-    if crate::stdin_stream_ops::ast_is_reader(ty) || crate::map_ops::ast_collection(ty) {
+    if crate::stdin_stream_ops::ast_is_reader(ty)
+        || crate::map_ops::ast_collection(ty)
+        || crate::vec_ops::ast_copy_vec(ty)
+    {
         return Ok(());
     }
     let Type::Named { name, arguments } = ty else {
@@ -887,14 +885,16 @@ pub(super) fn synthetic_program(
     }
     Ok(synthetic)
 }
-
 pub(super) fn rewrite_type(
     ty: &mut Type,
     target_module: &str,
     caller: &Program,
     programs: &[Program],
 ) -> Result<(), Vec<Diagnostic>> {
-    if crate::stdin_stream_ops::ast_is_reader(ty) || crate::map_ops::ast_collection(ty) {
+    if crate::stdin_stream_ops::ast_is_reader(ty)
+        || crate::map_ops::ast_collection(ty)
+        || crate::vec_ops::ast_copy_vec(ty)
+    {
         return Ok(());
     }
     let Type::Named { name, arguments } = ty else {

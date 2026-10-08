@@ -2809,6 +2809,13 @@ fn admitted_resolved_functions_with_profile(
         .filter(|function| match profile {
             SourceProfile::Legacy => {
                 resolved_signature_is_admitted(function, &program.declarations)
+                    // Shared data admission also serves additive host profiles;
+                    // direct String signatures require the explicit source profile.
+                    && function.return_type != ResolvedType::String
+                    && function
+                        .params
+                        .iter()
+                        .all(|parameter| parameter.ty != ResolvedType::String)
             }
             SourceProfile::InternalStrings => {
                 function.effects.is_empty()

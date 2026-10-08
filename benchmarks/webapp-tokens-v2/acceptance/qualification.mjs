@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { COVERAGE, PASSWORD, ENTITIES, INVALID, KEYS, WORKFLOWS, ENUMS } from './contract.mjs';
+import { COVERAGE, PASSWORD, ENTITIES, INVALID, KEYS, WORKFLOWS, ENUMS, COMPUTED } from './contract.mjs';
 import { tree } from './process.mjs';
 export const sha256=value=>createHash('sha256').update(value).digest('hex');
 // This obligation inventory is fixed before candidates run. A missing check is
@@ -10,6 +10,7 @@ export function requiredCases(){const ids=['bootstrap','all-computed-and-rollups
   for(const [entity,fields]of Object.entries(ENTITIES)){ids.push(`${entity}.shape`,`${entity}.crud-roundtrip`,`${entity}.anonymous-all-routes`,`browser.${entity}.unauthenticated-page`,`${entity}.csv`,`browser.${entity}.navigation-detail-fields`,`browser.${entity}.typed-form`,`browser.${entity}.successful-create-edit`,`browser.${entity}.list-search-sort-pagination-filter-csv`);for(const [field,type]of Object.entries(fields)){ids.push(`${entity}.${field}.type`);if(type.startsWith('ref:'))ids.push(`${entity}.${field}.reference`,`browser.${entity}.${field}.links-backrefs`);if(ENUMS[type]&&WORKFLOWS[entity]?.[0]!==field)for(const value of ENUMS[type])ids.push(`${entity}.${field}.${value}.enum`);}for(const role of ['Admin','Manager','Agent','Viewer'])ids.push(`${role}.${entity}.matrix`,`browser.${role}.${entity}.hidden-actions`);}
   for(const [entity,name]of INVALID){ids.push(`${entity}.${name}`,`browser.${entity}.${name}.pre-submit`);if(name.endsWith('.short')||name.endsWith('.long'))ids.push(`${entity}.${name}.valid-endpoint`);}
   for(let i=0;i<19;i++)ids.push(`numeric-valid-${i}`);
+  for(const entity of Object.keys(COMPUTED))ids.push(`${entity}.computed-readonly`);
   for(const entity of Object.keys(KEYS))ids.push(`${entity}.keys`,`browser.${entity}.unique-key`);
   for(const [entity,[field]]of Object.entries(WORKFLOWS)){const states=ENUMS[ENTITIES[entity][field]];for(const state of states.slice(1))ids.push(`${entity}.create.${state}`);for(const from of states){ids.push(`browser.${entity}.${from}.workflow-options`);for(const to of states)ids.push(`${entity}.${from}.${to}`);}}
   for(const entity of ['Task','Comment','TimeEntry','Ticket','TicketReply','Leave','Expense'])ids.push(`${entity}.own-other`,`browser.Agent.${entity}.own-actions`);

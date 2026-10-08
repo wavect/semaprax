@@ -126,7 +126,10 @@ are never silently accepted or called a functional SPEC failure. The oracle
 expectations remain fixed when an adapter changes. Detail/dashboard/reference
 checks use visible field text, counts, and actual row links rather than dt/dd
 or h2/h3 tags. Numeric and string sorting compare the complete independent
-order across the25-row pagination boundary in both directions.
+order for every stored/computed column across all25-row pages in both directions.
+Equal sort keys may retain any order; complete row membership and monotonic
+field values are checked independently. Read-only computed mutations are
+refused or ignored, and computed values are observed in the detail UI.
 There is no live-agent gain claim in this gate preparation.
 
 The gate starts one application plus one Chromium process and issues hundreds

@@ -1,0 +1,4 @@
+import assert from 'node:assert/strict';
+import { integer } from './contract.mjs';
+export function compareValue(a,b,type){if(type==='int'||type.startsWith('ref:')){const left=integer(a),right=integer(b);return left<right?-1:left>right?1:0;}if(type==='float'||type==='bool')return a<b?-1:a>b?1:0;return String(a).localeCompare(String(b));}
+export function direction(ids,rows,field,type){assert.equal(ids.length,rows.length,'pagination returns every row');assert.deepEqual(ids.slice().sort(),rows.map(row=>String(row.id)).sort(),'no missing or duplicate rows');const byId=new Map(rows.map(row=>[String(row.id),row]));let sign=0;for(let n=1;n<ids.length;n++){const next=Math.sign(compareValue(byId.get(ids[n-1])[field],byId.get(ids[n])[field],type));if(next){assert.ok(sign===0||sign===next,`${field} actual row order is monotonic across pages`);sign=next;}}return sign;}

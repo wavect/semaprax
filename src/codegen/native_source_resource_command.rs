@@ -342,7 +342,14 @@ mod tests {
         assert!(OUTPUT_RUNTIME_C.contains("else spx_slice_u8_require_valid(value);"));
         assert!(!OUTPUT_RUNTIME_C.contains("#define SPX_SLICE_U8_MAX_BYTES"));
         assert!(!OUTPUT_RUNTIME_C.contains("#define SPX_OWNED_BYTES_MAX_BYTES"));
-        let output = emit("");
+        let parsed = crate::parse(
+            "module resource.adapter; @id(\"resource.main\") fn main() -> i64 { 0 }",
+            "resource-adapter.spx",
+        )
+        .unwrap();
+        let resolved = crate::hir::resolve(&parsed).unwrap();
+        let mut output = String::new();
+        emit_process_adapter(&mut output, "spx_root", &resolved);
         assert_eq!(
             output
                 .matches("malloc((size_t)SPX_SOURCE_RESOURCE_OUTPUT_ALLOCATION_V1)")

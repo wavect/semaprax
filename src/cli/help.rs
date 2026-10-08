@@ -1325,9 +1325,9 @@ mod tests {
         assert!(entries.len() >= 20);
 
         let codes = diagnostic_entry("codes").unwrap();
-        assert!(codes.starts_with(
-            "Common diagnostic codes:\n  SPX-P106 SPX-H006 SPX-T203 SPX-T252 "
-        ));
+        assert!(
+            codes.starts_with("Common diagnostic codes:\n  SPX-P106 SPX-H006 SPX-T203 SPX-T252 ")
+        );
         assert!(codes.ends_with("All: semaprax help language mistakes-index\n"));
         assert_eq!(codes.lines().count(), 4);
         assert!(codes.len() <= 256, "{} bytes", codes.len());

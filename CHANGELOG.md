@@ -1,5 +1,12 @@
 # Changelog
 
+- Clarify that `help shapes` lists the full catalog and `help shapes function`
+  narrows it to matching declaration shapes (OPT #694).
+
+- Report generated-server permission-denied listener startup errors concisely
+  with guidance to the limited schema-only offline check, while preserving
+  nonzero failure and full server/browser acceptance requirements (OPT #695).
+
 - Admit the exact Project v27 schema when authenticating pure entry/test
   execution envelopes. Preserve canonical reconstruction, digest checks and
   rejection of native-only source-command and unknown project schemas.

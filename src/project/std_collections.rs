@@ -8,7 +8,7 @@ use crate::semantic_workspace::SemanticWorkspaceSource;
 
 use super::manifest::ProjectManifest;
 
-const WRAPPER_IDS: [&str; 8] = [
+const WRAPPER_IDS: [&str; 9] = [
     "std.collections.vec.with-capacity",
     "std.collections.vec.push",
     "std.collections.vec.len",
@@ -17,6 +17,7 @@ const WRAPPER_IDS: [&str; 8] = [
     "std.collections.vec.reserve-exact",
     "std.collections.vec.set",
     "std.collections.vec.clear",
+    "std.collections.vec.sort",
 ];
 
 const AUTHENTICATED_SOURCES: [(&str, &str); 3] = [

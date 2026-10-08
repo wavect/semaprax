@@ -6,6 +6,7 @@ use function @id("std.collections.vec.len") from std.collections as len;
 use function @id("std.collections.vec.push") from std.collections as push;
 use function @id("std.collections.vec.reserve-exact") from std.collections as reserve_exact;
 use function @id("std.collections.vec.set") from std.collections as set;
+use function @id("std.collections.vec.sort") from std.collections as sort;
 use function @id("std.collections.vec.with-capacity") from std.collections as with_capacity;
 
 @id("std.collections.tests.i64")
@@ -16,8 +17,11 @@ fn check_i64() -> bool
     values = reserve_exact<i64>(values, 2usize);
     values = set<i64>(values, 0usize, 17);
     let ready = len<i64>(values) == 1usize && capacity<i64>(values) == 3usize && get<i64>(values, 0usize) == 17;
+    values = push<i64>(values, -7);
+    values = sort<i64>(values);
+    let sorted = get<i64>(values, 0usize) == -7 && get<i64>(values, 1usize) == 17 && len<i64>(values) == 2usize && capacity<i64>(values) == 3usize;
     values = clear<i64>(values);
-    ready && len<i64>(values) == 0usize && capacity<i64>(values) == 3usize
+    ready && sorted && len<i64>(values) == 0usize && capacity<i64>(values) == 3usize
 }
 
 @id("std.collections.tests.i32")
@@ -28,8 +32,11 @@ fn check_i32() -> bool
     values = reserve_exact<i32>(values, 2usize);
     values = set<i32>(values, 0usize, 17i32);
     let ready = len<i32>(values) == 1usize && capacity<i32>(values) == 3usize && get<i32>(values, 0usize) == 17i32;
+    values = push<i32>(values, -7i32);
+    values = sort<i32>(values);
+    let sorted = get<i32>(values, 0usize) == -7i32 && get<i32>(values, 1usize) == 17i32 && len<i32>(values) == 2usize && capacity<i32>(values) == 3usize;
     values = clear<i32>(values);
-    ready && len<i32>(values) == 0usize && capacity<i32>(values) == 3usize
+    ready && sorted && len<i32>(values) == 0usize && capacity<i32>(values) == 3usize
 }
 
 @id("std.collections.tests.u8")
@@ -40,8 +47,11 @@ fn check_u8() -> bool
     values = reserve_exact<u8>(values, 2usize);
     values = set<u8>(values, 0usize, 7u8);
     let ready = len<u8>(values) == 1usize && capacity<u8>(values) == 3usize && get<u8>(values, 0usize) == 7u8;
+    values = push<u8>(values, 0u8);
+    values = sort<u8>(values);
+    let sorted = get<u8>(values, 0usize) == 0u8 && get<u8>(values, 1usize) == 7u8 && len<u8>(values) == 2usize && capacity<u8>(values) == 3usize;
     values = clear<u8>(values);
-    ready && len<u8>(values) == 0usize && capacity<u8>(values) == 3usize
+    ready && sorted && len<u8>(values) == 0usize && capacity<u8>(values) == 3usize
 }
 
 @id("std.collections.tests.usize")
@@ -52,8 +62,11 @@ fn check_usize() -> bool
     values = reserve_exact<usize>(values, 2usize);
     values = set<usize>(values, 0usize, 17usize);
     let ready = len<usize>(values) == 1usize && capacity<usize>(values) == 3usize && get<usize>(values, 0usize) == 17usize;
+    values = push<usize>(values, 0usize);
+    values = sort<usize>(values);
+    let sorted = get<usize>(values, 0usize) == 0usize && get<usize>(values, 1usize) == 17usize && len<usize>(values) == 2usize && capacity<usize>(values) == 3usize;
     values = clear<usize>(values);
-    ready && len<usize>(values) == 0usize && capacity<usize>(values) == 3usize
+    ready && sorted && len<usize>(values) == 0usize && capacity<usize>(values) == 3usize
 }
 
 @id("std.collections.tests.char")
@@ -64,8 +77,11 @@ fn check_char() -> bool
     values = reserve_exact<char>(values, 2usize);
     values = set<char>(values, 0usize, 'z');
     let ready = len<char>(values) == 1usize && capacity<char>(values) == 3usize && get<char>(values, 0usize) == 'z';
+    values = push<char>(values, 'a');
+    values = sort<char>(values);
+    let sorted = get<char>(values, 0usize) == 'a' && get<char>(values, 1usize) == 'z' && len<char>(values) == 2usize && capacity<char>(values) == 3usize;
     values = clear<char>(values);
-    ready && len<char>(values) == 0usize && capacity<char>(values) == 3usize
+    ready && sorted && len<char>(values) == 0usize && capacity<char>(values) == 3usize
 }
 
 @id("std.collections.tests.f32")
@@ -76,8 +92,11 @@ fn check_f32() -> bool
     values = reserve_exact<f32>(values, 2usize);
     values = set<f32>(values, 0usize, 2.5f32);
     let ready = len<f32>(values) == 1usize && capacity<f32>(values) == 3usize && get<f32>(values, 0usize) == 2.5f32;
+    values = push<f32>(values, -7.5f32);
+    values = sort<f32>(values);
+    let sorted = get<f32>(values, 0usize) == -7.5f32 && get<f32>(values, 1usize) == 2.5f32 && len<f32>(values) == 2usize && capacity<f32>(values) == 3usize;
     values = clear<f32>(values);
-    ready && len<f32>(values) == 0usize && capacity<f32>(values) == 3usize
+    ready && sorted && len<f32>(values) == 0usize && capacity<f32>(values) == 3usize
 }
 
 @id("std.collections.tests.f64")
@@ -88,8 +107,11 @@ fn check_f64() -> bool
     values = reserve_exact<f64>(values, 2usize);
     values = set<f64>(values, 0usize, 3.5);
     let ready = len<f64>(values) == 1usize && capacity<f64>(values) == 3usize && get<f64>(values, 0usize) == 3.5;
+    values = push<f64>(values, -7.5);
+    values = sort<f64>(values);
+    let sorted = get<f64>(values, 0usize) == -7.5 && get<f64>(values, 1usize) == 3.5 && len<f64>(values) == 2usize && capacity<f64>(values) == 3usize;
     values = clear<f64>(values);
-    ready && len<f64>(values) == 0usize && capacity<f64>(values) == 3usize
+    ready && sorted && len<f64>(values) == 0usize && capacity<f64>(values) == 3usize
 }
 
 @id("std.collections.tests.bool")
@@ -100,8 +122,11 @@ fn check_bool() -> bool
     values = reserve_exact<bool>(values, 2usize);
     values = set<bool>(values, 0usize, false);
     let ready = len<bool>(values) == 1usize && capacity<bool>(values) == 3usize && !get<bool>(values, 0usize);
+    values = push<bool>(values, true);
+    values = sort<bool>(values);
+    let sorted = get<bool>(values, 0usize) == false && get<bool>(values, 1usize) == true && len<bool>(values) == 2usize && capacity<bool>(values) == 3usize;
     values = clear<bool>(values);
-    ready && len<bool>(values) == 0usize && capacity<bool>(values) == 3usize
+    ready && sorted && len<bool>(values) == 0usize && capacity<bool>(values) == 3usize
 }
 
 @id("std.collections.tests.main")

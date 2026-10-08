@@ -308,12 +308,9 @@ fn profile_rules_reject_missing_or_foreign_command_facts() {
         "required = [\"process.stdin.read\"]",
     );
     let wrong_capability_errors = reject(&wrong_capabilities);
-    assert!(
-        wrong_capability_errors.iter().any(|diagnostic| diagnostic
-            .message
-            .contains("requires `[capabilities] required = [\"process.stdout.write\"]`")),
-        "{wrong_capability_errors:?}"
-    );
+    assert_eq!(wrong_capability_errors[0].code, "SPX-J100");
+    assert_eq!(wrong_capability_errors[0].message,
+        "Package Manifest v1 profile `useful-data-command.v1` requires `[capabilities] required = [\"process.stdout.write\"]`");
     let with_input = v4.replace(
         "function = \"demo.run\"\n",
         "function = \"demo.run\"\ninput = \"stdin-bytes+one-utf8-arg.v1\"\n",

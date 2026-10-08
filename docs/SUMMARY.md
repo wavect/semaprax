@@ -237,6 +237,7 @@ Audience: all documentation readers.
 - [Project Manifest v18: Process I/O](PROJECT-MANIFEST-V18.md)
 - [Project Manifest v19: Filesystem I/O v3](PROJECT-MANIFEST-V19.md)
 - [Project Manifest v26: linked native source commands](PROJECT-MANIFEST-V26.md)
+- [Project Manifest v28: resource source commands](PROJECT-MANIFEST-V28.md)
 - [Package Manifest v1](PACKAGE-MANIFEST-V1.md)
 - [Package Manifest v2: explicit native law sources](PACKAGE-MANIFEST-V2.md)
 - [Native Law Declarations v1](NATIVE-LAW-DECLARATIONS-V1.md)

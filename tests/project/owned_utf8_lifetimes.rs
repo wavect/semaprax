@@ -186,8 +186,7 @@ fn closed_descriptor_shape_and_value_string_parameter_modes_are_not_widened() {
 
 #[test]
 fn loop_string_admission_and_v10_scalar_helper_rejection_remain_closed() {
-    // Owned String Loops v1 admits String storage in loop bodies; a String
-    // value in the re-evaluated loop condition stays refused.
+    // String Condition Lifetimes v1 admits condition-local temporary owners.
     let direct = r#"module rejected.string_loop;
 @id("s.main") fn main() -> i64 {
     let mut i = 0;
@@ -195,7 +194,17 @@ fn loop_string_admission_and_v10_scalar_helper_rejection_remain_closed() {
     i
 }
 "#;
-    assert!(semaprax::check(direct, "direct-string-loop.spx")
+    let admitted = semaprax::check(direct, "direct-string-loop.spx").unwrap();
+    semaprax::hir::validate(&semaprax::hir::resolve(&admitted).unwrap()).unwrap();
+    let consuming = r#"module rejected.string_loop;
+@id("s.main") fn main() -> i64 {
+    let text = "iteration";
+    let mut i = 0;
+    while i < string_len({ let moved = text; moved }) { i = i + 1; 0 }
+    i
+}
+"#;
+    assert!(semaprax::check(consuming, "consuming-string-loop.spx")
         .unwrap_err()
         .iter()
         .any(|error| error.code == "SPX-T252"));

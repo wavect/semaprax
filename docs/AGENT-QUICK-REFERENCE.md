@@ -1050,6 +1050,9 @@ fn main() -> i64
 takes a binding, not a literal (`SPX-T266`):
 `let view = string_as_str(text); stdout_write(str_as_bytes(view))`.
 
+Replace a 256-arm i64-to-byte or byte-to-char match with
+`u8_from_i64(value)` then `char_from_u8(byte)`; narrowing is checked.
+
 ## Habits from other languages: diagnostic index
 
 Other first-attempt diagnostics and their fixes:
@@ -1083,7 +1086,6 @@ Other first-attempt diagnostics and their fixes:
 | c ? a : b|`SPX-P106`|if c { a } else { b }|
 | break, continue|`SPX-P106`|Put the exit test in while condition|
 | x as i64|`SPX-P106`|Use named conversions (Scalars and literals; range checked), or one integer type with suffixed literals|
-| a 256-arm i64-to-byte or byte-to-char match|—|Use `u8_from_i64(value)` then `char_from_u8(byte)`; narrowing is checked|
 | Rust/JavaScript closure|`SPX-P201`|Use fn(x: i64) -> i64 { x + 1 }|
 | use std::io;|`SPX-G170`|Compiler-owned functions need no import; projects import one declaration: use function @id("…") from module as name;|
 | rebuilding into an existing output path|`SPX-I307`|Choose fresh --output, or remove existing output only after confirming it is your prior build artifact; it never overwrites automatically|

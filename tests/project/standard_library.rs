@@ -264,7 +264,7 @@ fn collections_is_the_exact_alloc_tier_transparent_vec_surface() {
     let (library, entry, tests) = package_sources(&package);
     assert_eq!(entry, "std.collections.examples");
     assert_eq!(tests, "std.collections.tests");
-    assert_eq!(library.program.functions.len(), 8);
+    assert_eq!(library.program.functions.len(), 9);
     let identities = library
         .program
         .functions
@@ -282,6 +282,7 @@ fn collections_is_the_exact_alloc_tier_transparent_vec_surface() {
             "std.collections.vec.reserve-exact",
             "std.collections.vec.set",
             "std.collections.vec.clear",
+            "std.collections.vec.sort",
         ]
     );
     assert!(library
@@ -308,6 +309,7 @@ fn collections_is_the_exact_alloc_tier_transparent_vec_surface() {
             "reserve_exact",
             "set",
             "clear",
+            "sort",
         ] {
             assert!(
                 conformance.contains(&format!("{operation}<{scalar}>")),
@@ -821,6 +823,20 @@ fn package_manifest_links_bundled_std_csv_toml_and_path() {
     )
     .unwrap();
 
+    let manifest_path = scratch.join("semaprax.toml");
+    let public_manifest = std::fs::read_to_string(&manifest_path).unwrap();
+    let internal_source = std::fs::read_to_string(scratch.join("src/csv.spx")).unwrap();
+    let errors = project::with_authenticated_project(&manifest_path, |_| Ok(())).unwrap_err();
+    assert!(errors.iter().any(|error| error.code == "SPX-W115"
+        && error.message == "Owned Bounded Byte Buffer v1 is internal-only and has no public WebAssembly adapter"), "{errors:?}");
+    std::fs::write(
+        &manifest_path,
+        public_manifest
+            .replace("useful-data.v2", "owned-data-api.v1")
+            .replace("web = [\"consumer.csv-fields\"]", "web = []"),
+    )
+    .unwrap();
+
     project::with_authenticated_project(&scratch.join("semaprax.toml"), |snapshot| {
         snapshot.check()?;
         assert_eq!(
@@ -844,6 +860,35 @@ fn package_manifest_links_bundled_std_csv_toml_and_path() {
         assert!(snapshot
             .workspace_manifest()
             .contains("dependencies/std.path/0.1.0/path.spx"));
+        Ok(())
+    })
+    .unwrap();
+    // Retain the public byte-export gate on a closure without internal buffers.
+    let public_source = internal_source
+        .lines()
+        .filter(|line| {
+            !line.contains("std.io.writer")
+                && !line.contains("std.data.csv.record-field-into")
+                && !line.contains("let written =")
+                && !line.contains("let output =")
+                && !line.contains("let quote =")
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+        .replace(
+            " && byte_len(bytes_as_slice(output)) == 3usize && quote == 34u8",
+            "",
+        );
+    std::fs::write(scratch.join("src/csv.spx"), format!("{public_source}\n")).unwrap();
+    std::fs::write(&manifest_path, public_manifest).unwrap();
+    project::with_authenticated_project(&manifest_path, |snapshot| {
+        snapshot.check()?;
+        assert_eq!(
+            snapshot
+                .execute_entry(&project::ProjectExecutionOptions::default())?
+                .outcome(),
+            &project::ProjectExecutionOutcome::Returned(0)
+        );
         Ok(())
     })
     .unwrap();

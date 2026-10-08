@@ -4,8 +4,8 @@
       "code": "SPX-B104",
       "rows": [
         {
-          "fix": "Preserve exact message + minimal reproducer: backend refusal, not source ownership error. Named String condition read with `String scalar-match region parent is not canonical` is a compiler regression; retain cleanup checks",
-          "wrote": "native ownership/cleanup lowering refuses after successful `check`"
+          "fix": "Preserve exact message + minimal reproducer: backend refusal, not source ownership error. Named String condition read with String scalar-match region parent is not canonical is a compiler regression; retain cleanup checks",
+          "wrote": "native ownership/cleanup lowering refuses after successful check"
         }
       ]
     },
@@ -13,8 +13,8 @@
       "code": "SPX-G170",
       "rows": [
         {
-          "fix": "Compiler-owned functions need no import; projects import one declaration: `use function @id(\"…\") from module as name;`",
-          "wrote": "`use std::io;`"
+          "fix": "Compiler-owned functions need no import; projects import one declaration: use function @id(\"…\") from module as name;",
+          "wrote": "use std::io;"
         }
       ]
     },
@@ -22,7 +22,7 @@
       "code": "SPX-I307",
       "rows": [
         {
-          "fix": "Choose fresh `--output`, or remove existing output only after confirming it is your prior build artifact; it never overwrites automatically",
+          "fix": "Choose fresh --output, or remove existing output only after confirming it is your prior build artifact; it never overwrites automatically",
           "wrote": "rebuilding into an existing output path"
         }
       ]
@@ -32,7 +32,7 @@
       "rows": [
         {
           "fix": "Or-pattern alternatives are payload-free cases; give a payload case its own arm",
-          "wrote": "an or-pattern alternative with a payload, such as `Shape::Box { width: w }`"
+          "wrote": "an or-pattern alternative with a payload, such as Shape::Box { width: w }"
         }
       ]
     },
@@ -40,7 +40,7 @@
       "code": "SPX-O001",
       "rows": [
         {
-          "fix": "Use explicit `own`/`borrow` parameters; owned results move",
+          "fix": "Use explicit own/borrow parameters; owned results move",
           "wrote": "implicit collection ownership at helper boundary"
         }
       ]
@@ -49,8 +49,8 @@
       "code": "SPX-O101",
       "rows": [
         {
-          "fix": "Take `borrow` in the callee or pass a fresh value",
-          "wrote": "a second `consume(b)` after `own`"
+          "fix": "Take borrow in the callee or pass a fresh value",
+          "wrote": "a second consume(b) after own"
         }
       ]
     },
@@ -58,8 +58,8 @@
       "code": "SPX-P003",
       "rows": [
         {
-          "fix": "One literal: `-9223372036854775808` or `-2147483648i32`. Whitespace after sign is trivia; parentheses separate it. Negating minimum or dividing by `-1` overflows",
-          "wrote": "`9223372036854775808` or `-(9223372036854775808)`"
+          "fix": "One literal: -9223372036854775808 or -2147483648i32. Whitespace after sign is trivia; parentheses separate it. Negating minimum or dividing by -1 overflows",
+          "wrote": "9223372036854775808 or -(9223372036854775808)"
         }
       ]
     },
@@ -67,8 +67,8 @@
       "code": "SPX-P104",
       "rows": [
         {
-          "fix": "Use `record`, `variant`, omit visibility, or return values from functions",
-          "wrote": "`struct`, `enum`, `pub`, `const`"
+          "fix": "Use record, variant, omit visibility, or return values from functions",
+          "wrote": "struct, enum, pub, const"
         }
       ]
     },
@@ -77,7 +77,7 @@
       "rows": [
         {
           "fix": "Spell the result type; unit is unsupported",
-          "wrote": "`fn f()` or `-> ()`"
+          "wrote": "fn f() or -> ()"
         }
       ]
     },
@@ -85,40 +85,40 @@
       "code": "SPX-P106",
       "rows": [
         {
-          "fix": "Use `while`, a `let mut` counter, and a discarded tail",
-          "wrote": "`for i in 0..n { … }`"
+          "fix": "Use while, a let mut counter, and a discarded tail",
+          "wrote": "for i in 0..n { … }"
         },
         {
-          "fix": "Discard it with `let _ = f(x);` or make it the tail",
-          "wrote": "`f(x);` as a statement"
+          "fix": "Discard it with let _ = f(x); or make it the tail",
+          "wrote": "f(x); as a statement"
         },
         {
-          "fix": "No tuples; use `record`",
-          "wrote": "`let t = (1, 2);`"
+          "fix": "No tuples; use record",
+          "wrote": "let t = (1, 2);"
         },
         {
-          "fix": "End every arm with `,`, even the last; a declaration's last field/case may omit it",
-          "wrote": "`match x { 0 => 0, _ => 1 }`"
+          "fix": "End every arm with ,, even the last; a declaration's last field/case may omit it",
+          "wrote": "match x { 0 => 0, _ => 1 }"
         },
         {
-          "fix": "`if c { a } else { b }`",
-          "wrote": "`c ? a : b`"
+          "fix": "if c { a } else { b }",
+          "wrote": "c ? a : b"
         },
         {
-          "fix": "Put the exit test in `while` condition",
-          "wrote": "`break`, `continue`"
+          "fix": "Put the exit test in while condition",
+          "wrote": "break, continue"
         },
         {
           "fix": "Use named conversions (Scalars and literals; range checked), or one integer type with suffixed literals",
-          "wrote": "`x as i64`"
+          "wrote": "x as i64"
         },
         {
           "fix": "Spell the result type; unit is unsupported",
-          "wrote": "`fn f()` or `-> ()`"
+          "wrote": "fn f() or -> ()"
         },
         {
-          "fix": "Use `byte_get(array_as_slice(a), 0usize)` (`Option<u8>`)",
-          "wrote": "`a[0]`"
+          "fix": "Use byte_get(array_as_slice(a), 0usize) (Option<u8>)",
+          "wrote": "a[0]"
         }
       ]
     },
@@ -126,11 +126,11 @@
       "code": "SPX-P201",
       "rows": [
         {
-          "fix": "`x = x + 1;`",
-          "wrote": "`x += 1;`"
+          "fix": "x = x + 1;",
+          "wrote": "x += 1;"
         },
         {
-          "fix": "Use `fn(x: i64) -> i64 { x + 1 }`",
+          "fix": "Use fn(x: i64) -> i64 { x + 1 }",
           "wrote": "Rust/JavaScript closure"
         }
       ]
@@ -139,8 +139,8 @@
       "code": "SPX-P203",
       "rows": [
         {
-          "fix": "Add a discarded scalar tail such as `0`",
-          "wrote": "`while` body ending after assignment"
+          "fix": "Add a discarded scalar tail such as 0",
+          "wrote": "while body ending after assignment"
         }
       ]
     },
@@ -148,8 +148,8 @@
       "code": "SPX-T001",
       "rows": [
         {
-          "fix": "Use `string`/scalars; spell Copy element and wrapper/`vec_*<T>` types; projects may use authenticated `std.collections` aliases",
-          "wrote": "`String`, `int`, or unsupported `Vec` inference/element types"
+          "fix": "Use string/scalars; spell Copy element and wrapper/vec_*<T> types; projects may use authenticated std.collections aliases",
+          "wrote": "String, int, or unsupported Vec inference/element types"
         }
       ]
     },
@@ -157,8 +157,8 @@
       "code": "SPX-T104",
       "rows": [
         {
-          "fix": "`main` returns `i64`; CLI exit status `0` means success",
-          "wrote": "`fn main() -> bool`"
+          "fix": "main returns i64; CLI exit status 0 means success",
+          "wrote": "fn main() -> bool"
         }
       ]
     },
@@ -166,8 +166,8 @@
       "code": "SPX-T202",
       "rows": [
         {
-          "fix": "`Option<i64>::Some { value: 1 }`, `Option<i64>::None {}`",
-          "wrote": "`Some(1)`, `None`"
+          "fix": "Option<i64>::Some { value: 1 }, Option<i64>::None {}",
+          "wrote": "Some(1), None"
         }
       ]
     },
@@ -175,16 +175,16 @@
       "code": "SPX-T203",
       "rows": [
         {
-          "fix": "Records have no methods: call `get(point)` or use a `class`",
-          "wrote": "`point.get()` on a record"
+          "fix": "Records have no methods: call get(point) or use a class",
+          "wrote": "point.get() on a record"
         },
         {
-          "fix": "`Option<i64>::Some { value: 1 }`, `Option<i64>::None {}`",
-          "wrote": "`Some(1)`, `None`"
+          "fix": "Option<i64>::Some { value: 1 }, Option<i64>::None {}",
+          "wrote": "Some(1), None"
         },
         {
-          "fix": "Call `string_len(s)`; see Compiler-owned functions for text operations. Only classes have methods",
-          "wrote": "`s.len()` on a `string`"
+          "fix": "Call string_len(s); see Compiler-owned functions for text operations. Only classes have methods",
+          "wrote": "s.len() on a string"
         }
       ]
     },
@@ -192,8 +192,8 @@
       "code": "SPX-T204",
       "rows": [
         {
-          "fix": "Pass one argument: `f64_from_i64(1)`",
-          "wrote": "`f64_from_i64(1, 2)`"
+          "fix": "Pass one argument: f64_from_i64(1)",
+          "wrote": "f64_from_i64(1, 2)"
         }
       ]
     },
@@ -201,12 +201,12 @@
       "code": "SPX-T205",
       "rows": [
         {
-          "fix": "Bind then borrow: `let s = \"abc\"; f(string_as_str(s))`",
-          "wrote": "`f(\"abc\")` or `f(owned)` for `borrow str`"
+          "fix": "Bind then borrow: let s = \"abc\"; f(string_as_str(s))",
+          "wrote": "f(\"abc\") or f(owned) for borrow str"
         },
         {
-          "fix": "Match types: `i64_from_f64(3.0)` or `usize_from_i64(1)`",
-          "wrote": "`i64_from_f64(3)` or `usize_from_i64(1.5)`"
+          "fix": "Match types: i64_from_f64(3.0) or usize_from_i64(1)",
+          "wrote": "i64_from_f64(3) or usize_from_i64(1.5)"
         }
       ]
     },
@@ -214,8 +214,8 @@
       "code": "SPX-T207",
       "rows": [
         {
-          "fix": "Only payload-free, non-generic variants compare with `==`; test others with `match shape { Shape::Dot {} => true, _ => false, }`",
-          "wrote": "`shape == Shape::Box { width: 1 }` or `option == Option<i64>::None {}`"
+          "fix": "Only payload-free, non-generic variants compare with ==; test others with match shape { Shape::Dot {} => true, _ => false, }",
+          "wrote": "shape == Shape::Box { width: 1 } or option == Option<i64>::None {}"
         }
       ]
     },
@@ -223,8 +223,8 @@
       "code": "SPX-T208",
       "rows": [
         {
-          "fix": "Integer literals default to `i64`; write `index + 1usize`",
-          "wrote": "`index + 1` when `index: usize`"
+          "fix": "Integer literals default to i64; write index + 1usize",
+          "wrote": "index + 1 when index: usize"
         }
       ]
     },
@@ -233,7 +233,7 @@
       "rows": [
         {
           "fix": "No shadowing; pick a new name",
-          "wrote": "`let x = 1; let x = x + 1;`"
+          "wrote": "let x = 1; let x = x + 1;"
         }
       ]
     },
@@ -241,8 +241,8 @@
       "code": "SPX-T218",
       "rows": [
         {
-          "fix": "Only `Result` functions propagate; `match` in `main`",
-          "wrote": "`f()?` in `main`"
+          "fix": "Only Result functions propagate; match in main",
+          "wrote": "f()? in main"
         }
       ]
     },
@@ -250,8 +250,8 @@
       "code": "SPX-T221",
       "rows": [
         {
-          "fix": "`Option<i64>::Some { value: 1 }`",
-          "wrote": "`Option::Some { value: 1 }`"
+          "fix": "Option<i64>::Some { value: 1 }",
+          "wrote": "Option::Some { value: 1 }"
         }
       ]
     },
@@ -259,8 +259,8 @@
       "code": "SPX-T232",
       "rows": [
         {
-          "fix": "Suffix the literal: `let a: i32 = 5i32`",
-          "wrote": "`let a: i32 = 5`"
+          "fix": "Suffix the literal: let a: i32 = 5i32",
+          "wrote": "let a: i32 = 5"
         }
       ]
     },
@@ -268,8 +268,8 @@
       "code": "SPX-T250",
       "rows": [
         {
-          "fix": "`string_concat(\"a\", \"b\")`",
-          "wrote": "`\"a\" + \"b\"`"
+          "fix": "string_concat(\"a\", \"b\")",
+          "wrote": "\"a\" + \"b\""
         }
       ]
     },
@@ -277,8 +277,8 @@
       "code": "SPX-T262",
       "rows": [
         {
-          "fix": "Arrays hold bytes (`[1u8, 2u8]`); use `Vec<i64>`",
-          "wrote": "`[1, 2, 3]`"
+          "fix": "Arrays hold bytes ([1u8, 2u8]); use Vec<i64>",
+          "wrote": "[1, 2, 3]"
         }
       ]
     },
@@ -286,8 +286,8 @@
       "code": "SPX-T263",
       "rows": [
         {
-          "fix": "Bind view first: `let view = string_as_str(text); str_as_bytes(view)`",
-          "wrote": "`str_as_bytes(text)` or `str_as_bytes(string_as_str(text))`"
+          "fix": "Bind view first: let view = string_as_str(text); str_as_bytes(view)",
+          "wrote": "str_as_bytes(text) or str_as_bytes(string_as_str(text))"
         }
       ]
     },
@@ -295,12 +295,12 @@
       "code": "SPX-T266",
       "rows": [
         {
-          "fix": "Bind view first: `let view = string_as_str(text); str_as_bytes(view)`",
-          "wrote": "`str_as_bytes(text)` or `str_as_bytes(string_as_str(text))`"
+          "fix": "Bind view first: let view = string_as_str(text); str_as_bytes(view)",
+          "wrote": "str_as_bytes(text) or str_as_bytes(string_as_str(text))"
         },
         {
-          "fix": "Bind the literal before passing it to `string_as_str`",
-          "wrote": "`string_as_str(\"literal\")`"
+          "fix": "Bind the literal before passing it to string_as_str",
+          "wrote": "string_as_str(\"literal\")"
         }
       ]
     },
@@ -308,8 +308,8 @@
       "code": "SPX-T274",
       "rows": [
         {
-          "fix": "Keys: `string`, `i64`, `bool`; values: String or Copy scalars",
-          "wrote": "Unsupported `Map<f64,i64>` / `Set<f64>`"
+          "fix": "Keys: string, i64, bool; values: String or Copy scalars",
+          "wrote": "Unsupported Map<f64,i64> / Set<f64>"
         }
       ]
     },
@@ -317,8 +317,8 @@
       "code": "SPX-T281",
       "rows": [
         {
-          "fix": "Use `string`/scalars; spell Copy element and wrapper/`vec_*<T>` types; projects may use authenticated `std.collections` aliases",
-          "wrote": "`String`, `int`, or unsupported `Vec` inference/element types"
+          "fix": "Use string/scalars; spell Copy element and wrapper/vec_*<T> types; projects may use authenticated std.collections aliases",
+          "wrote": "String, int, or unsupported Vec inference/element types"
         }
       ]
     },
@@ -326,7 +326,7 @@
       "code": "SPX-T309",
       "rows": [
         {
-          "fix": "Use explicit IDs, monomorphic acyclic records, `own`/`borrow` parameters; no invariants",
+          "fix": "Use explicit IDs, monomorphic acyclic records, own/borrow parameters; no invariants",
           "wrote": "Unsupported String/collection record profile"
         }
       ]
@@ -335,7 +335,7 @@
       "code": "SPX-U101",
       "rows": [
         {
-          "fix": "Declare it with `let mut` before assigning",
+          "fix": "Declare it with let mut before assigning",
           "wrote": "assignment to an immutable binding"
         }
       ]

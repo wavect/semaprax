@@ -57,8 +57,8 @@ const capture=async()=>{
     const root=path.join(output,basename);await fs.mkdir(root);
     assert.equal(sha256(await fs.readFile(report.compiler.path)),report.compiler.sha256,'compiler bytes remain pinned');
     const argv=[...declaration.argv];argv[3]=root;
-    const process=start(report.compiler.path,argv,{cwd:candidate,env:{PATH:process.env.PATH??''},log,timeout:180000});
-    assert.equal((await process.done).code,0,'direct compiler capture failed; see process.log');
+    const compilerProcess=start(report.compiler.path,argv,{cwd:candidate,env:{PATH:process.env.PATH??''},log,timeout:180000});
+    assert.equal((await compilerProcess.done).code,0,'direct compiler capture failed; see process.log');
     assert.equal(sha256(await fs.readFile(report.compiler.path)),report.compiler.sha256,'compiler bytes remain pinned');
     assert.deepEqual(await retainedInputs(),inputs,'compiler capture leaves candidate inputs unchanged');
     return await rawManifest(root);

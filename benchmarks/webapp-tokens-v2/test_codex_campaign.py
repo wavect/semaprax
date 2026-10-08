@@ -801,6 +801,12 @@ class WebappCampaignTests(unittest.TestCase):
             self.assertEqual(result["exit_code"], 1)
             report = result["report"]
             self.assertGreaterEqual(int(report["node"].split(".")[0].removeprefix("v")), 24)
+            self.assertTrue(calls.is_file(), "compiler capture never invoked fixture: " + json.dumps({
+                "report": {"checks": report["checks"], "compiler": report.get("compiler"),
+                           "qualification": {key: value for key, value in report["qualification"].items()
+                                             if key not in ("missingCases", "missingGroups")}},
+                "stdout": result["stdout"], "stderr": result["stderr"],
+                "process_log": (output / "process.log").read_text()}, indent=2))
             invocations = [json.loads(line) for line in calls.read_text().splitlines()]
             self.assertEqual(len(invocations), 2)
             capture_roots = [output / "compiler-output-raw", output / "compiler-output-repeat"]

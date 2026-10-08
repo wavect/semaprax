@@ -84,7 +84,7 @@ fn json_strict_scan_is_bundled_for_an_ordinary_project() {
     std::fs::create_dir_all(scratch.join("src")).unwrap();
     std::fs::write(
         scratch.join("semaprax.toml"),
-        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"json-strict-consumer\"\nversion = \"0.1.0\"\nprofile = \"useful-data.v1\"\n\n[modules]\nentry = \"consumer.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = []\n\n[dependencies]\nstd.data.json.scan = \"=0.1.0\"\n",
+        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"json-strict-consumer\"\nversion = \"0.1.0\"\nprofile = \"useful-data.v1\"\n\n[modules]\nentry = \"consumer.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = [\"consumer.main\"]\n\n[dependencies]\nstd.data.json.scan = \"=0.1.0\"\n",
     )
     .unwrap();
     std::fs::write(

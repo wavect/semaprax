@@ -314,7 +314,7 @@ fn batched_masks_match_independent_traversals_at_every_word_boundary() {
 
 #[test]
 fn batched_forward_work_is_shared_and_cycles_preserve_start_barriers() {
-    let (program, index) = fixture(64);
+    let (program, index) = fixture(128);
     let function = &program.functions[index];
     let mut cfg = build_cfg(function, &mut WorkCounter::new(usize::MAX)).unwrap();
     // A linear analysis-only CFG with 256 distinct starts exposes the shape

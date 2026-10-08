@@ -39,7 +39,7 @@ SEED_FILES = (
 )
 ROUND = 1
 FROZEN_SPEC = "benchmarks/webapp-tokens-v2/SPEC.md"
-QUALIFICATION_RECEIPT = "benchmarks/webapp-tokens-v2/acceptance/evidence/reference-r5-summary.json"
+QUALIFICATION_RECEIPT = "benchmarks/webapp-tokens-v2/acceptance/evidence/reference-r6-summary.json"
 ACCEPTANCE_SOURCE_FILES = (
     FROZEN_SPEC,
     "benchmarks/webapp-tokens-v2/acceptance/package.json",

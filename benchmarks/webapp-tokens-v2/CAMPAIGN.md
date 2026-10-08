@@ -19,8 +19,8 @@ Plan without a model request:
 
 ```sh
 python3 benchmarks/webapp-tokens-v2/codex_campaign.py plan \
-  --base-ref 3660e0daf9335dc9d6dc27949a43cd40dff7326c \
-  --compiler-source-ref 3660e0daf9335dc9d6dc27949a43cd40dff7326c \
+  --base-ref c50c3bd7623354840504687d64260edb8ff3895f \
+  --compiler-source-ref 60002439e1b651ebbfbf3a887f12a20c927d720f \
   --semaprax-bin /absolute/path/to/semaprax \
   --tokenizer-dir /absolute/path/to/tokenizer-prefix \
   --playwright-root /absolute/path/with-pinned-playwright \
@@ -36,9 +36,10 @@ this harness.
 
 The acceptance gate uses Node 24+, the pinned Playwright 1.62.0 Chromium, a
 fresh evidence directory for every attempt, and loopback-only application
-servers. The qualified reference receipt is retained and checked for both
-arms at 912/912; it is evidence for qualification only and is never treated
-as a live-agent result. Before a paid request, the harness verifies the local
+servers. The retained r6 reference receipt is checked for both arms at 912/912.
+Its SEMAPRAX reference was compiled from source
+`60002439e1b651ebbfbf3a887f12a20c927d720f`; this is qualification evidence,
+never a live-agent result. Before a paid request, the harness verifies the local
 Codex controls, Node, Playwright package, and Chromium executable. It snapshots
 the full transitive acceptance source closure and runs that snapshot. Seed
 hashes and bytes come from `--base-ref`; candidate writes are confined to the

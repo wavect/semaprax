@@ -1,0 +1,285 @@
+{
+  "arms": {
+    "semaprax": {
+      "agent_workflow": [
+        {
+          "id": "browser.Agent.Leave.own-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Agent.Expense.own-actions",
+          "status": "passed"
+        }
+      ],
+      "api_and_browser_signed64": [
+        {
+          "id": "Sprint.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "Project.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "Ticket.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Sprint.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Project.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Ticket.signed64",
+          "status": "passed"
+        }
+      ],
+      "compiler": {
+        "path": "/Users/kevin/.codex/benchmark-binaries/semaprax-60002439e",
+        "sha256": "87e1d84bb618218159a3ebaec83dea285f2186486d7113962d08c71945474daa",
+        "source_sha": "60002439e1b651ebbfbf3a887f12a20c927d720f"
+      },
+      "finished_at": "2026-10-08T06:56:33.691Z",
+      "node": "v24.3.0",
+      "password_evidence_verified": true,
+      "qualification": {
+        "cases": 912,
+        "failures": [],
+        "missingCases": [],
+        "missingGroups": [],
+        "passed": true
+      },
+      "reference_source_commit": "c50c3bd7623354840504687d64260edb8ff3895f",
+      "report_file": "/Users/kevin/.codex/benchmark-runs/teamdesk-reference-requalification-60002439e-20261008/evidence-semaprax/report.json",
+      "report_sha256": "72118063fe8982d390badf94b8ec0168e3b27dfe7879e212b7bd8321046955be",
+      "started_at": "2026-10-08T06:51:02.128Z",
+      "viewer_create_visibility": [
+        {
+          "id": "browser.Viewer.Team.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Member.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Customer.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Contact.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Project.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Milestone.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Sprint.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Task.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Comment.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.TimeEntry.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Ticket.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.TicketReply.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Invoice.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Payment.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Vendor.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Expense.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Asset.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Leave.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Document.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Release.hidden-actions",
+          "status": "passed"
+        }
+      ]
+    },
+    "typescript": {
+      "agent_workflow": [
+        {
+          "id": "browser.Agent.Leave.own-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Agent.Expense.own-actions",
+          "status": "passed"
+        }
+      ],
+      "api_and_browser_signed64": [
+        {
+          "id": "Sprint.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "Project.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "Ticket.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Sprint.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Project.signed64",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Ticket.signed64",
+          "status": "passed"
+        }
+      ],
+      "finished_at": "2026-10-08T07:01:46.289Z",
+      "node": "v24.3.0",
+      "password_evidence_verified": true,
+      "qualification": {
+        "cases": 912,
+        "failures": [],
+        "missingCases": [],
+        "missingGroups": [],
+        "passed": true
+      },
+      "reference_source_commit": "c50c3bd7623354840504687d64260edb8ff3895f",
+      "report_file": "/Users/kevin/.codex/benchmark-runs/teamdesk-reference-requalification-60002439e-20261008/evidence-typescript/report.json",
+      "report_sha256": "0355a6909823e93644b1508301d113319ba555202cc1edbecee2bd082bf4e72a",
+      "started_at": "2026-10-08T06:56:51.495Z",
+      "viewer_create_visibility": [
+        {
+          "id": "browser.Viewer.Team.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Member.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Customer.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Contact.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Project.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Milestone.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Sprint.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Task.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Comment.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.TimeEntry.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Ticket.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.TicketReply.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Invoice.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Payment.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Vendor.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Expense.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Asset.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Leave.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Document.hidden-actions",
+          "status": "passed"
+        },
+        {
+          "id": "browser.Viewer.Release.hidden-actions",
+          "status": "passed"
+        }
+      ]
+    }
+  },
+  "compiler_binary_sha256": "87e1d84bb618218159a3ebaec83dea285f2186486d7113962d08c71945474daa",
+  "compiler_source_commit": "60002439e1b651ebbfbf3a887f12a20c927d720f",
+  "gate_source": "40088afbf",
+  "qualified": true,
+  "reference_source_commit": "c50c3bd7623354840504687d64260edb8ff3895f",
+  "schema": "semaprax.teamdesk.reference.qualification.v1",
+  "scope": "LOCAL physical Node API/restart/filesystem and Playwright 1.62 Chromium; refreshed reference qualification only; no live model campaign or token-savings claim.",
+  "spec_sha256": "7658414ed2bbb53477a93e4a00f36269954c5bc45f3148fe72ddd02f203a50dc"
+}

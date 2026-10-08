@@ -86,13 +86,52 @@ impl<O: COutput> CEmitter<'_, O> {
         }
     }
 
-    pub(super) fn resource_text_stdout_helper(&self, expression: &ResolvedExpr) -> &'static str {
-        if self.is_resource_text_slice(expression) {
-            "spx_host_command_stdout_write_resource_str_v1"
-        } else if self.output_profile.is_language_command() {
-            "spx_host_command_stdout_write_v1"
+    pub(super) fn emit_stdout_write(
+        &mut self,
+        expression: &ResolvedExpr,
+        value: &str,
+        result: &str,
+    ) {
+        if self.output_profile == NativeOutputProfile::SourceResourceCommand {
+            let helper = if self.is_resource_text_slice(expression) {
+                "spx_host_command_stdout_write_resource_str_checked_v1"
+            } else {
+                "spx_host_command_stdout_write_checked_v1"
+            };
+            self.line(&format!(
+                "spx_status = {helper}(spx_ctx, {value}, &{result});"
+            ));
+            self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
         } else {
-            "spx_host_stdout_write_v1"
+            let helper = if self.output_profile.is_language_command() {
+                "spx_host_command_stdout_write_v1"
+            } else {
+                "spx_host_stdout_write_v1"
+            };
+            self.line(&format!("{result} = {helper}(spx_ctx, {value});"));
+        }
+    }
+
+    pub(super) fn emit_stderr_write(
+        &mut self,
+        expression: &ResolvedExpr,
+        value: &str,
+        result: &str,
+    ) {
+        if self.output_profile == NativeOutputProfile::SourceResourceCommand {
+            let helper = if self.is_resource_text_slice(expression) {
+                "spx_host_command_stderr_write_resource_str_checked_v1"
+            } else {
+                "spx_host_command_stderr_write_checked_v1"
+            };
+            self.line(&format!(
+                "spx_status = {helper}(spx_ctx, {value}, &{result});"
+            ));
+            self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+        } else {
+            self.line(&format!(
+                "{result} = spx_host_command_stderr_write_v1(spx_ctx, {value});"
+            ));
         }
     }
 }

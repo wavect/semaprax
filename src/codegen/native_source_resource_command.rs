@@ -10,12 +10,12 @@ pub(super) fn emit_runtime(output: &mut impl COutput, program: &crate::hir::Reso
     super::native_command_io::emit_line_runtime(output);
     output.push_str(
         r#"static __attribute__((unused)) void spx_source_resource_output_table_v1(void) {
-    (void)&spx_host_command_stdout_write_v1;
-    (void)&spx_host_command_stderr_write_v1;
+    (void)&spx_host_command_stdout_write_checked_v1;
+    (void)&spx_host_command_stderr_write_checked_v1;
     (void)&spx_host_command_stdout_append_v1;
     (void)&spx_host_command_stderr_append_v1;
-    (void)&spx_host_command_stdout_write_resource_str_v1;
-    (void)&spx_host_command_stderr_write_resource_str_v1;
+    (void)&spx_host_command_stdout_write_resource_str_checked_v1;
+    (void)&spx_host_command_stderr_write_resource_str_checked_v1;
     (void)&spx_host_command_stdout_append_resource_str_v1;
     (void)&spx_host_command_stderr_append_resource_str_v1;
 }
@@ -102,39 +102,44 @@ static struct spx_command_output_staging_v1 *spx_source_resource_output_v1(
     return staging;
 }
 
-static uint64_t spx_host_command_output_write_v1(
+static spx_status_token spx_source_resource_output_failure_v1(struct spx_context *spx_ctx);
+
+static spx_status_token spx_host_command_output_write_checked_v1(
     struct spx_context *spx_ctx, spx_slice_u8_v1 value, bool stderr_channel,
-    bool resource_text
+    bool resource_text, uint64_t *result_out
 ) {
     if (resource_text) spx_source_resource_slice_require_valid_v1(value);
     else spx_slice_u8_require_valid(value);
+    if (result_out == NULL) spx_runtime_invariant_failure("command write result is unavailable");
+    *result_out = UINT64_C(0);
     struct spx_command_output_staging_v1 *staging = spx_source_resource_output_v1(spx_ctx);
     uint64_t other = stderr_channel ? staging->stdout_length : staging->stderr_length;
     if (other > SPX_COMMAND_OUTPUT_CAPACITY_V1 ||
         value.len > SPX_COMMAND_OUTPUT_CAPACITY_V1 - other)
-        spx_runtime_invariant_failure("combined command output capacity exceeded");
+        return spx_source_resource_output_failure_v1(spx_ctx);
     uint8_t *destination = stderr_channel ? staging->stderr_bytes : staging->stdout_bytes;
     if (value.len != UINT64_C(0)) memcpy(destination, value.ptr, (size_t)value.len);
     if (stderr_channel) staging->stderr_length = value.len;
     else staging->stdout_length = value.len;
-    return value.len;
+    *result_out = value.len;
+    return SPX_STATUS_SUCCESS;
 }
 
-static uint64_t spx_host_command_stdout_write_v1(
-    struct spx_context *spx_ctx, spx_slice_u8_v1 value
-) { return spx_host_command_output_write_v1(spx_ctx, value, false, false); }
+static spx_status_token spx_host_command_stdout_write_checked_v1(
+    struct spx_context *spx_ctx, spx_slice_u8_v1 value, uint64_t *result_out
+) { return spx_host_command_output_write_checked_v1(spx_ctx, value, false, false, result_out); }
 
-static uint64_t spx_host_command_stderr_write_v1(
-    struct spx_context *spx_ctx, spx_slice_u8_v1 value
-) { return spx_host_command_output_write_v1(spx_ctx, value, true, false); }
+static spx_status_token spx_host_command_stderr_write_checked_v1(
+    struct spx_context *spx_ctx, spx_slice_u8_v1 value, uint64_t *result_out
+) { return spx_host_command_output_write_checked_v1(spx_ctx, value, true, false, result_out); }
 
-static uint64_t spx_host_command_stdout_write_resource_str_v1(
-    struct spx_context *spx_ctx, spx_slice_u8_v1 value
-) { return spx_host_command_output_write_v1(spx_ctx, value, false, true); }
+static spx_status_token spx_host_command_stdout_write_resource_str_checked_v1(
+    struct spx_context *spx_ctx, spx_slice_u8_v1 value, uint64_t *result_out
+) { return spx_host_command_output_write_checked_v1(spx_ctx, value, false, true, result_out); }
 
-static uint64_t spx_host_command_stderr_write_resource_str_v1(
-    struct spx_context *spx_ctx, spx_slice_u8_v1 value
-) { return spx_host_command_output_write_v1(spx_ctx, value, true, true); }
+static spx_status_token spx_host_command_stderr_write_resource_str_checked_v1(
+    struct spx_context *spx_ctx, spx_slice_u8_v1 value, uint64_t *result_out
+) { return spx_host_command_output_write_checked_v1(spx_ctx, value, true, true, result_out); }
 
 static spx_status_token spx_source_resource_output_failure_v1(struct spx_context *spx_ctx) {
     spx_status_token token = SPX_STATUS_SUCCESS;
@@ -321,6 +326,8 @@ mod tests {
         assert!(OUTPUT_RUNTIME_C.contains(
             "spx_host_command_output_append_v1(spx_ctx, value, false, true, result_out)"
         ));
+        assert!(OUTPUT_RUNTIME_C.contains("return spx_source_resource_output_failure_v1(spx_ctx);"));
+        assert!(!OUTPUT_RUNTIME_C.contains("combined command output capacity exceeded"));
         assert!(OUTPUT_RUNTIME_C.contains("else spx_slice_u8_require_valid(value);"));
         assert!(!OUTPUT_RUNTIME_C.contains("#define SPX_SLICE_U8_MAX_BYTES"));
         assert!(!OUTPUT_RUNTIME_C.contains("#define SPX_OWNED_BYTES_MAX_BYTES"));
@@ -356,5 +363,16 @@ mod tests {
         assert!(ordinary.contains("spx_status = spx_host_command_stdout_append_v1(spx_ctx,"));
         assert!(!ordinary
             .contains("spx_status = spx_host_command_stdout_append_resource_str_v1(spx_ctx,"));
+    }
+
+    #[test]
+    fn legacy_direct_write_uses_checked_resource_status_path() {
+        let generated = emit(
+            "    let text = \"checked\";\n    let view = string_as_str(text);\n    let written = stdout_write(str_as_bytes(view));",
+        );
+        assert!(generated.contains(
+            "spx_status = spx_host_command_stdout_write_resource_str_checked_v1(spx_ctx,"
+        ));
+        assert!(generated.contains("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;"));
     }
 }

@@ -182,7 +182,6 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         let [argument] = call.args.as_slice() else {
                             return Err(backend_error("stderr_write arity disagrees with HIR"));
                         };
-                        let resource_text_view = self.is_resource_text_slice(argument);
                         let value = self.emit_expr(argument)?;
                         self.require_type(
                             &value.ty,
@@ -190,12 +189,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             "stderr_write argument",
                         )?;
                         let temporary = self.temporary(&ResolvedType::Usize)?;
-                        let helper = if resource_text_view {
-                            "spx_host_command_stderr_write_resource_str_v1"
-                        } else {
-                            "spx_host_command_stderr_write_v1"
-                        };
-                        self.line(&format!("{temporary} = {helper}(spx_ctx, {});", value.code));
+                        self.emit_stderr_write(argument, &value.code, &temporary);
                         CValue {
                             code: temporary,
                             ty: ResolvedType::Usize,

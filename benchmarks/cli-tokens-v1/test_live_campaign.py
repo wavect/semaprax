@@ -85,6 +85,32 @@ class LiveCampaignTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "cycle"):
                 authored_recount.recount(candidate, metrics, cycle)
 
+    def test_authored_recount_requires_retained_trusted_raw_compiler_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); candidate = root / "candidate"; candidate.mkdir()
+            (candidate / "app.spx").write_text("module app;\n")
+            (candidate / "app.js").write_text("generated")
+            files = [{"path": path.name, "sha256": authored_recount.digest(path), "tokens": 1}
+                     for path in sorted(candidate.iterdir())]
+            by_path = {row["path"]: row for row in files}
+            raw = root / "raw-output"; raw.mkdir(); (raw / "app.js").write_text("generated")
+            receipt = root / "receipt.json"
+            receipt.write_text(json.dumps({"schema": "semaprax.compiler-output-provenance.v1",
+                "compiler": {"source_sha": "a" * 40, "binary_sha256": "b" * 64},
+                "input_files": [{"path": "app.spx", "sha256": by_path["app.spx"]["sha256"]}],
+                "raw_root": "raw-output", "raw_outputs": [{"raw_path": "app.js", "final_path": "app.js", "sha256": by_path["app.js"]["sha256"]}]}))
+            sidecar = {"schema": authored_recount.CLASSIFICATION_SCHEMA, "origin": {"kind": "fixture"}, "files": [
+                {"path": "app.spx", "sha256": by_path["app.spx"]["sha256"], "classification": "authored_source"},
+                {"path": "app.js", "sha256": by_path["app.js"]["sha256"], "classification": "generated_output", "compiler_output_receipt": True}]}
+            kwargs = {"trusted_compiler": ("a" * 40, "b" * 64), "compiler_receipt": (receipt, authored_recount.digest(receipt))}
+            self.assertEqual(authored_recount.recount(candidate, {"status": "measured_proxy", "tokenizer": {}, "total_tokens": 2, "files": files}, sidecar, **kwargs)["components"]["generated_output"], 1)
+            (raw / "app.js").write_text("postprocessed")
+            with self.assertRaisesRegex(ValueError, "raw output differs"):
+                authored_recount.recount(candidate, {"status": "measured_proxy", "tokenizer": {}, "total_tokens": 2, "files": files}, sidecar, **kwargs)
+            (raw / "app.js").write_text("generated"); bad = {**kwargs, "trusted_compiler": ("c" * 40, "b" * 64)}
+            with self.assertRaisesRegex(ValueError, "trusted compiler"):
+                authored_recount.recount(candidate, {"status": "measured_proxy", "tokenizer": {}, "total_tokens": 2, "files": files}, sidecar, **bad)
+
     def test_provider_session_turns_remain_separate_and_unknown_when_invalid(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "stream.jsonl"

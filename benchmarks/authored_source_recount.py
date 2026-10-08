@@ -16,6 +16,7 @@ import stat
 from pathlib import Path
 from typing import Any
 
+import compiler_output_provenance as compiler_provenance
 import live_campaign_common as common
 
 SCHEMA = "semaprax.authored-source-recount.v1"
@@ -105,7 +106,9 @@ def metrics_inventory(candidate: Path, metrics: dict[str, Any]) -> dict[str, dic
     return inventory
 
 
-def classify(inventory: dict[str, dict[str, Any]], candidate: Path, sidecar: dict[str, Any]) -> list[dict[str, Any]]:
+def classify(inventory: dict[str, dict[str, Any]], candidate: Path, sidecar: dict[str, Any],
+             trusted_compiler: tuple[str, str] | None = None,
+             compiler_receipt: tuple[Path, str] | None = None) -> list[dict[str, Any]]:
     if sidecar.get("schema") != CLASSIFICATION_SCHEMA or not isinstance(sidecar.get("origin"), dict):
         raise ValueError("classification sidecar schema or origin differs")
     rows = sidecar.get("files")
@@ -130,6 +133,14 @@ def classify(inventory: dict[str, dict[str, Any]], candidate: Path, sidecar: dic
             return
         if row["classification"] != "generated_output":
             raise ValueError("generated output provenance does not end in authored source")
+        receipt = row.get("compiler_output_receipt")
+        if receipt is not None:
+            if receipt is not True or trusted_compiler is None or compiler_receipt is None:
+                raise ValueError("generated compiler output lacks trusted compiler evidence")
+            outputs = compiler_provenance.validate(*compiler_receipt, candidate, *trusted_compiler)
+            if outputs.get(path) != inventory[path]["sha256"]:
+                raise ValueError("generated compiler output differs from captured raw output")
+            return
         next_chain = {*chain, path}
         for path_key, hash_key in (("recipe_path", "recipe_sha256"), ("entrypoint_path", "entrypoint_sha256")):
             evidence_path, evidence_hash = row.get(path_key), row.get(hash_key)
@@ -151,11 +162,13 @@ def classify(inventory: dict[str, dict[str, Any]], candidate: Path, sidecar: dic
 
 
 def recount(candidate: Path, metrics: dict[str, Any], sidecar: dict[str, Any],
-            metrics_sha256: str | None = None) -> dict[str, Any]:
+            metrics_sha256: str | None = None,
+            trusted_compiler: tuple[str, str] | None = None,
+            compiler_receipt: tuple[Path, str] | None = None) -> dict[str, Any]:
     if candidate.is_symlink() or not candidate.is_dir():
         raise ValueError("candidate must be a real directory")
     inventory = metrics_inventory(candidate, metrics)
-    rows = classify(inventory, candidate, sidecar)
+    rows = classify(inventory, candidate, sidecar, trusted_compiler, compiler_receipt)
     totals = {kind: 0 for kind in CLASSES}
     output = []
     for row in rows:
@@ -175,6 +188,9 @@ def recount(candidate: Path, metrics: dict[str, Any], sidecar: dict[str, Any],
                                 {"path": key, "sha256": row["sha256"]}
                                 for key, row in sorted(inventory.items())])},
         "components": totals, "files": output, "classification_origin": sidecar["origin"],
+        **({"compiler_output_receipt": {"path": str(compiler_receipt[0]),
+            "sha256": compiler_receipt[1], "receipt": load(compiler_receipt[0])}}
+           if compiler_receipt is not None else {}),
         "classification_complete": True, "authorship_verified": False, "ratio_eligible": False,
         "limits": "final-file proxy only; not cumulative authorship or provider output",
     }
@@ -186,13 +202,37 @@ def main() -> int:
     parser.add_argument("--metrics", required=True)
     parser.add_argument("--classification", required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--compiler-source-sha")
+    parser.add_argument("--compiler-binary-sha256")
+    parser.add_argument("--compiler-output-receipt")
+    parser.add_argument("--compiler-output-receipt-sha256")
+    parser.add_argument("--campaign-results")
+    parser.add_argument("--trial-label")
     try:
         args = parser.parse_args()
         raw_candidate, metrics_path = Path(args.candidate), Path(args.metrics)
         if raw_candidate.is_symlink():
             raise ValueError("candidate must not be a symlink")
+        proof_values = (args.campaign_results, args.trial_label)
+        if any(value is None for value in proof_values) and any(value is not None for value in proof_values):
+            raise ValueError("campaign results and trial label must be supplied together")
+        trusted_compiler = compiler_receipt = None
+        if all(value is not None for value in proof_values):
+            results_path = Path(args.campaign_results); results = load(results_path)
+            campaign = results.get("campaign"); trials = results.get("trials")
+            if not isinstance(campaign, dict) or not isinstance(trials, list): raise ValueError("campaign results lack immutable campaign/trials")
+            matched = [row for row in trials if isinstance(row, dict) and f"{row.get('arm')}-{row.get('number', 0):02d}" == args.trial_label]
+            if len(matched) != 1: raise ValueError("campaign results trial identity differs")
+            report = matched[0].get("acceptance", {}).get("report", {}); receipt = report.get("compiler_output_receipt", {})
+            compiler = campaign.get("compiler_source_commit"), campaign.get("source_binary_sha256")
+            if not all(isinstance(value, str) for value in compiler) or not isinstance(receipt, dict): raise ValueError("campaign lacks trusted compiler receipt")
+            receipt_path, receipt_sha = receipt.get("path"), receipt.get("sha256")
+            if not isinstance(receipt_path, str) or not isinstance(receipt_sha, str): raise ValueError("acceptance receipt binding differs")
+            trusted_compiler = compiler; compiler_receipt = (Path(receipt_path), receipt_sha)
+        elif any(value is not None for value in (args.compiler_source_sha,args.compiler_binary_sha256,args.compiler_output_receipt,args.compiler_output_receipt_sha256)):
+            raise ValueError("compiler proof mode requires immutable campaign results and exact trial label")
         result = recount(raw_candidate.resolve(strict=True), load(metrics_path), load(Path(args.classification)),
-                         digest(metrics_path))
+                         digest(metrics_path), trusted_compiler, compiler_receipt)
         output = Path(args.output)
         if output.exists() or output.is_symlink():
             raise ValueError("output must be absent")

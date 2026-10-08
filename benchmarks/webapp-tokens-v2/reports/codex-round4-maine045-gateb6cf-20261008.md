@@ -39,9 +39,9 @@ The separate recount covers all 30 final candidate inventories across TeamDesk r
 
 The full all-dataset report and embedded per-file classification evidence are [authored-source-components-20261008.md](../../reports/authored-source-components-20261008.md) and its JSON companion. `Authored-source` means files classified as source-like program, test, configuration, or documentation in the final retained inventory; it does not verify authorship or cumulative effort. Generated-output entries require retained recipe and entrypoint hashes. The counts use the legacy Claude BPE proxy (`@anthropic-ai/tokenizer` 0.0.4 / `tiktoken` 1.0.22, bundled Claude BPE fingerprint `8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea`), not exact billed usage or a verified current model tokenizer. Authorship verification and ratio eligibility are false. These measurements do not establish a language advantage.
 
-## Independent reference qualification (0504)
+## Independent reference qualification (b6cf)
 
-The fresh reference qualification is separate from the original paid attempt measurements. The receipt at `/Users/kevin/.codex/benchmark-runs/teamdesk-round4-rescore-0504ac737e52-deps-v1-20261008/gate-source/qualification-receipt.json` records both SEMAPRAX and TypeScript references passing all 912 cases, with no missing cases, missing groups, or failures. The gate source is `0504ac737e52ef9f9492f236e50bfe95d5658de5`; the frozen SPEC SHA-256 is `7658414ed2bbb53477a93e4a00f36269954c5bc45f3148fe72ddd02f203a50dc`. Reference report SHA-256 values are SEMAPRAX `ca1d2386d3c1a38f04c342a54f5d350b4cad63ca1208217a319c1caf4d6871fe` and TypeScript `958bfddea8782fb6ee5847597b71ca94ef0d8776c2b0f2b0ed9418074151fa03`. This qualifies the reference gates; it does not itself complete the candidate rescore.
+The fresh reference qualification is separate from the original paid attempt measurements. The receipt at `/Users/kevin/.codex/benchmark-runs/teamdesk-round4-rescore-b6cf62177f6d-deps-v1-20261008/gate-source/qualification-receipt.json` records both SEMAPRAX and TypeScript references passing all 912 cases, with no missing cases, missing groups, or failures. The gate source is `b6cf62177f6d210ebb5cb48ddc9fc2a8d1d8f426`; the frozen SPEC SHA-256 is `7658414ed2bbb53477a93e4a00f36269954c5bc45f3148fe72ddd02f203a50dc`. Reference report SHA-256 values are SEMAPRAX `19a9ecf6d5e2daf40f158bedfb43e127b3cd47cdee413cd8e097ecb8ab1f96fb` and TypeScript `0bae9a416082ef656325e9c6246af928cee95176dc8a1791526183718cbea880`. This qualifies the reference gates; it does not itself complete the candidate rescore.
 
 ## Frozen original provenance
 
@@ -54,16 +54,16 @@ The fresh reference qualification is separate from the original paid attempt mea
 - Compiler source commit: `e045527a611a048515349ab2f970043a5d33b185`
 - Supplied compiler binary SHA-256: `31891e0d229e217ebbdf71139f82654349e051eb06fb6b08e2984bea4ce6c8d1`
 - Frozen harness manifest SHA-256: `3d91fd4d6827f80b56588d7986990ea984e96fbfb92fc894f06d0d9c72ccc96c`
-- Separate reference qualification receipt SHA-256: `9916ba266514e1ad823a583b3902388bac99bc571f18fc229700ba8066b7b72b`
+- Separate reference qualification receipt SHA-256: `9073742fac1b2eb400189153f6549df4ad6720a10f4b17b4983543dee07d9e0e`
 - All-dataset source-component recount SHA-256: `c4097fc45dfdbbd1b742686deed906d5863008323a94a108186696503443e529`
 
 
 ## Fresh candidate rescore
 
-The terminal rescore retained all ten unchanged archived candidate identities under the qualified 0504 gate. Accepted attempts have exact passing 912-case coverage with no missing cases or groups. Rejected and unscorable attempts remain in the report with the validator-admitted evidence and status; partial coverage and failed checks are not converted into passes. SEMAPRAX: 5/5 accepted, 0/5 not accepted, 0/5 unscorable; TypeScript: 0/5 accepted, 5/5 not accepted, 0/5 unscorable. These fresh outcomes do not replace original outcomes or paid measurements.
+The terminal rescore retained all ten unchanged archived candidate identities under the qualified b6cf gate. Accepted attempts have exact passing 912-case coverage with no missing cases or groups. Rejected and unscorable attempts remain in the report with the validator-admitted evidence and status; partial coverage and failed checks are not converted into passes. SEMAPRAX: 5/5 accepted, 0/5 not accepted, 0/5 unscorable; TypeScript: 0/5 accepted, 5/5 not accepted, 0/5 unscorable. These fresh outcomes do not replace original outcomes or paid measurements.
 
-The validated sidecar SHA-256 is 6a23ffb3bcf1aeb5027a16ec4ac6a0bb310017efa4874c83e016b281fd9ba6ac. The machine-readable JSON embeds original frozen measurements, terminal/campaign/results bindings, the 0504 reference receipt, dependency receipt, ten TeamDesk source-component records, and all ten rescore rows and report bindings.
+The validated sidecar SHA-256 is 2ea40e25fbbe516e34ae910361b01c0b9465ae907717cf2be1c8c0a0ccf8c237. The machine-readable JSON embeds original frozen measurements, terminal/campaign/results bindings, the b6cf reference receipt, dependency receipt, ten TeamDesk source-component records, and all ten rescore rows and report bindings.
 
 The original TypeScript attempt 05 remains resource-contaminated. Dependency receipts retain historical_byte_identity_verified=false where historical bytes are unproven. Agent wall times may overlap on the shared host.
 
-The gate0504 replay exposed two additional enum-control representation false negatives; their source repair is tracked in #691 and the completed separately pinned gateb6cf replay is published in [the final rescore report](codex-round4-maine045-gateb6cf-20261008.md). These old-gate observations are retained as prior-gate evidence, not a current-head or clean comparison.
+The repaired enum selector accepts both labelled controls and the legacy composite All option text, while retaining per-value row assertions. Other failed application checks remain failures; changed failure counts are not all attributed to this selector repair. All ten replay reports contain all 912 cases.

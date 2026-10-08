@@ -15,6 +15,7 @@ import math
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import time
@@ -29,6 +30,7 @@ import codex_campaign as campaign
 
 SCHEMA = "semaprax.teamdesk.codex-rescore.v1"
 TERMINAL_SCHEMA = "semaprax.codex-campaign-terminal.v1"
+DEPENDENCY_SCHEMA = "semaprax.rescore.dependencies.v1"
 ARCHIVE_EXCLUDED = set(campaign.ARCHIVE_EXCLUDED_DIRS)
 
 
@@ -90,6 +92,116 @@ def copy_closed_archive(source: Path, destination: Path, expected: dict[str, str
     if copied != actual:
         raise ValueError("candidate copy inventory differs from archived source")
     return copied
+
+
+def dependency_inventory(bundle: Path, *, allow_other: bool = False) -> dict[str, list[dict[str, Any]]]:
+    """Return the closed, link-preserving dependency bundle inventory."""
+    if bundle.is_symlink() or not bundle.is_dir():
+        raise ValueError("dependency bundle must be a real directory")
+    bundle = bundle.resolve(strict=True)
+    allowed = {"node_modules", ".cache"}
+    children = sorted(bundle.iterdir(), key=lambda path: path.name)
+    top = [path.name for path in children]
+    if not top or (not allow_other and set(top) - allowed):
+        raise ValueError("dependency bundle has an unsupported top-level path")
+    roots = [path for path in children if path.name in allowed]
+    if any(path.is_symlink() or not path.is_dir() for path in roots):
+        raise ValueError("dependency bundle top-level paths must be real directories")
+    def link_target(path: Path) -> str:
+        target = os.readlink(path)
+        if Path(target).is_absolute():
+            raise ValueError("dependency bundle has an external symlink")
+        try:
+            resolved = (path.parent / target).resolve(strict=False)
+            relative = resolved.relative_to(bundle)
+        except ValueError as error:
+            raise ValueError("dependency bundle has an external symlink") from error
+        if resolved == bundle or not relative.parts or relative.parts[0] not in allowed:
+            raise ValueError("dependency bundle has a root symlink")
+        return target
+    files: list[dict[str, Any]] = []
+    links: list[dict[str, Any]] = []
+    for top_root in roots:
+      for current, directories, names in os.walk(top_root, topdown=True, followlinks=False):
+          root = Path(current)
+          retained: list[str] = []
+          for name in sorted(directories):
+              path = root / name
+              relative = path.relative_to(bundle).as_posix()
+              mode = path.lstat().st_mode
+              if path.is_symlink():
+                  target = link_target(path)
+                  links.append({"path": relative, "target": target, "mode": stat.S_IMODE(path.stat().st_mode)})
+              elif stat.S_ISDIR(mode):
+                  retained.append(name)
+              else:
+                  raise ValueError("dependency bundle contains a non-directory path")
+          directories[:] = retained
+          for name in sorted(names):
+              path = root / name
+              relative = path.relative_to(bundle).as_posix()
+              mode = path.lstat().st_mode
+              if path.is_symlink():
+                  target = link_target(path)
+                  links.append({"path": relative, "target": target, "mode": stat.S_IMODE(path.stat().st_mode)})
+              elif stat.S_ISREG(mode):
+                  files.append({"path": relative, "sha256": digest(path), "mode": stat.S_IMODE(mode)})
+              else:
+                  raise ValueError("dependency bundle contains a non-regular file")
+    return {"files": files, "symlinks": links}
+
+
+def copy_dependency_bundle(bundle: Path, destination: Path, expected: dict[str, list[dict[str, Any]]]) -> str:
+    if destination.is_symlink() or not destination.is_dir():
+        raise ValueError("dependency copy destination must be a real candidate directory")
+    before = dependency_inventory(bundle)
+    if before != expected:
+        raise ValueError("dependency bundle inventory or hashes differ from receipt")
+    if any((destination / name).exists() or (destination / name).is_symlink() for name in (".cache", "node_modules")):
+        raise ValueError("candidate already contains a dependency directory")
+    for row in before["files"]:
+        source, target = bundle / row["path"], destination / row["path"]
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target, follow_symlinks=False)
+        os.chmod(target, row["mode"])
+    for row in before["symlinks"]:
+        target = destination / row["path"]
+        target.parent.mkdir(parents=True, exist_ok=True)
+        os.symlink(row["target"], target)
+    copied = dependency_inventory(destination, allow_other=True)
+    if copied != before or dependency_inventory(bundle) != before:
+        raise ValueError("dependency bundle drifted while copying")
+    return hashlib.sha256(json.dumps(copied, separators=(",", ":"), sort_keys=True).encode()).hexdigest()
+
+
+def dependency_fingerprint(inventory: dict[str, list[dict[str, Any]]]) -> str:
+    return hashlib.sha256(json.dumps(inventory, separators=(",", ":"), sort_keys=True).encode()).hexdigest()
+
+
+def dependency_entries(receipt_path: Path, original_trials: list[dict[str, Any]]) -> tuple[dict[str, Any], str]:
+    receipt = load_json(receipt_path)
+    entries = receipt.get("entries")
+    wanted = {f"typescript-{number:02d}" for number in range(1, campaign.MIN_TRIALS_PER_ARM + 1)}
+    if receipt.get("schema") != DEPENDENCY_SCHEMA or not isinstance(entries, dict) or set(entries) != wanted:
+        raise ValueError("dependency receipt does not bind every TypeScript trial")
+    originals = {(row["arm"], row["number"]): row for row in original_trials}
+    for key, entry in entries.items():
+        row = originals[("typescript", int(key[-2:]))]
+        expected = row.get("candidate_files_sha256")
+        if not isinstance(entry, dict) or not isinstance(expected, dict):
+            raise ValueError("dependency receipt entry lacks original candidate binding")
+        bundle = Path(str(entry.get("bundle_path", "")))
+        package_json, package_lock = expected.get("package.json"), expected.get("package-lock.json")
+        if (bundle.is_symlink() or not bundle.is_dir() or not isinstance(package_json, str)
+                or entry.get("package_json_sha256") != package_json
+                or entry.get("package_lock_sha256") != package_lock
+                or entry.get("historical_byte_identity_verified") is not False
+                or not isinstance(entry.get("recovery_origin"), (str, dict))
+                or not entry.get("recovery_origin")
+                or not isinstance(entry.get("inventory"), dict)
+                or dependency_inventory(bundle) != entry["inventory"]):
+            raise ValueError("dependency receipt entry differs from its original candidate or closed bundle")
+    return receipt, digest(receipt_path)
 
 
 def terminal_trials(results: dict[str, Any], terminal: dict[str, Any], results_sha: str, campaign_sha: str) -> list[dict[str, Any]]:
@@ -351,6 +463,18 @@ def validate_sidecar(path: Path, repo: Path) -> dict[str, Any]:
     if original_results.get("campaign") != campaign_record:
         raise ValueError("original results no longer bind the supplied campaign record")
     original_trials = terminal_trials(original_results, terminal, digest(original_path), digest(campaign_path))
+    dependency = sidecar.get("dependency_receipt")
+    dependency_receipt = None
+    dependency_sha = None
+    if dependency is not None:
+        if not isinstance(dependency, dict):
+            raise ValueError("sidecar dependency receipt binding is malformed")
+        dependency_path = Path(str(dependency.get("path", "")))
+        if digest(dependency_path) != dependency.get("sha256"):
+            raise ValueError("sidecar dependency receipt hash drifted")
+        dependency_receipt, dependency_sha = dependency_entries(dependency_path, original_trials)
+        if dependency_sha != dependency.get("sha256"):
+            raise ValueError("sidecar dependency receipt differs from its hash binding")
     if (compiler.get("source_sha") != campaign_record.get("compiler_source_commit")
             or compiler.get("sha256") != campaign_record.get("source_binary_sha256")
             or digest(Path(str(compiler.get("path", "")))) != compiler.get("sha256")):
@@ -395,9 +519,26 @@ def validate_sidecar(path: Path, repo: Path) -> dict[str, Any]:
         if status not in {"accepted", "not_accepted", "unscorable"}:
             raise ValueError("rescore sidecar has an invalid new status")
         if status == "unscorable":
-            if not isinstance(row.get("reason"), str) or row.get("new_acceptance") is not None:
+            if (not isinstance(row.get("reason"), str) or row.get("new_acceptance") is not None
+                    or (identity[0] != "typescript" and row.get("dependency_setup") is not None)):
                 raise ValueError("unscorable original attempt lacks a retained reason")
             continue
+        if identity[0] == "typescript":
+            if dependency_receipt is None:
+                raise ValueError("TypeScript attempt was scored without a dependency receipt")
+            entry = dependency_receipt["entries"][f"{identity[0]}-{identity[1]:02d}"]
+            setup = row.get("dependency_setup")
+            if (not isinstance(setup, dict) or setup.get("entry") != f"{identity[0]}-{identity[1]:02d}"
+                    or setup.get("bundle_path") != str(Path(entry["bundle_path"]).resolve())
+                    or setup.get("bundle_inventory_sha256") != dependency_fingerprint(entry["inventory"])
+                    or setup.get("copy_sha256") != dependency_fingerprint(entry["inventory"])
+                    or setup.get("receipt_sha256") != dependency_sha):
+                raise ValueError("TypeScript dependency setup differs from the receipt-bound bundle")
+            candidate = path.parent / "candidates" / f"{identity[0]}-{identity[1]:02d}"
+            if dependency_inventory(candidate, allow_other=True) != entry["inventory"]:
+                raise ValueError("TypeScript dependency copy drifted after rescoring")
+        elif row.get("dependency_setup") is not None:
+            raise ValueError("SEMAPRAX attempt unexpectedly has a dependency setup")
         acceptance = row.get("new_acceptance")
         if (not isinstance(acceptance, dict) or not isinstance(row.get("reason"), str)
                 or not scored_wall_matches(row)):
@@ -421,17 +562,25 @@ def rescore(args: argparse.Namespace) -> dict[str, Any]:
     original_path = Path(args.original_results)
     artifacts = Path(args.artifacts)
     compiler = Path(args.semaprax_bin)
+    dependency_value = getattr(args, "dependency_receipt", None)
+    dependency_path = Path(dependency_value) if dependency_value else None
     terminal_path, qualification_path, clarification = (Path(value) for value in
         (args.terminal_receipt, args.qualification_receipt, args.clarification))
     output = Path(args.output).resolve()
     if (original_path.is_symlink() or not original_path.is_file() or artifacts.is_symlink() or not artifacts.is_dir()
             or compiler.is_symlink() or not compiler.is_file() or terminal_path.is_symlink() or not terminal_path.is_file()
             or qualification_path.is_symlink() or not qualification_path.is_file() or clarification.is_symlink()
-            or not clarification.is_file() or output.exists() or output.is_symlink()):
+            or not clarification.is_file() or (dependency_path is not None
+            and (dependency_path.is_symlink() or not dependency_path.is_file()))
+            or output.exists() or output.is_symlink()):
         raise ValueError("rescore inputs must be genuine files/directories and output must be absent")
     original_path, artifacts, compiler = (value.resolve(strict=True) for value in (original_path, artifacts, compiler))
     terminal_path, qualification_path, clarification = (value.resolve(strict=True) for value in (terminal_path, qualification_path, clarification))
-    for protected in (artifacts, original_path, compiler, terminal_path, qualification_path, clarification):
+    if dependency_path is not None:
+        dependency_path = dependency_path.resolve(strict=True)
+    for protected in (artifacts, original_path, compiler, terminal_path, qualification_path, clarification, dependency_path):
+        if protected is None:
+            continue
         try:
             output.relative_to(protected if protected.is_dir() else protected.parent)
         except ValueError:
@@ -450,6 +599,10 @@ def rescore(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("original campaign record must be a regular file")
     terminal = load_json(terminal_path)
     trials = terminal_trials(original, terminal, digest(original_path), digest(campaign_path))
+    dependency_receipt: dict[str, Any] | None = None
+    dependency_receipt_sha: str | None = None
+    if dependency_path is not None:
+        dependency_receipt, dependency_receipt_sha = dependency_entries(dependency_path, trials)
     for original_row in trials:
         archive = original_row.get("candidate_archive")
         if isinstance(archive, str):
@@ -483,29 +636,46 @@ def rescore(args: argparse.Namespace) -> dict[str, Any]:
                                "original_paid_wall_seconds": original_row.get("elapsed_seconds"),
                                "original_cost": original_row.get("list_price"),
                                "original_resource_assessment": original_row.get("resource_assessment"),
-                               "rescore_status": "unscorable"}
+                               "rescore_status": "unscorable", "dependency_setup": None}
         archive = original_row.get("candidate_archive")
         expected = original_row.get("candidate_files_sha256")
         if not isinstance(archive, str) or not isinstance(expected, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in expected.items()):
             row["reason"] = "original attempt has no closed archived candidate inventory"
             return row
+        entry = None
+        if arm == "typescript":
+            if dependency_receipt is None:
+                row["reason"] = "TypeScript dependency bundle is unavailable for offline replay"
+                return row
+            entry = dependency_receipt["entries"][f"{arm}-{number:02d}"]
         verify_gate_unchanged(repo, output, gate)
         candidate = output / "candidates" / f"{arm}-{number:02d}"
         copied = copy_closed_archive(Path(archive), candidate, expected)
+        if entry is not None:
+            bundle = Path(entry["bundle_path"])
+            copied_dependency = copy_dependency_bundle(bundle, candidate, entry["inventory"])
+            row["dependency_setup"] = {"entry": f"{arm}-{number:02d}", "bundle_path": str(bundle.resolve()),
+                                       "bundle_inventory_sha256": dependency_fingerprint(entry["inventory"]),
+                                       "copy_sha256": copied_dependency,
+                                       "receipt_sha256": dependency_receipt_sha}
         evidence = output / "acceptance" / f"{arm}-{number:02d}"
         evidence.mkdir(parents=True)
         try:
             result = campaign.check_candidate(candidate, evidence, arm, settings, compiler)
         except (OSError, ValueError, subprocess.SubprocessError) as error:
             verify_gate_unchanged(repo, output, gate)
-            if rel_file_inventory(candidate) != copied or rel_file_inventory(Path(archive)) != expected:
+            if (rel_file_inventory(candidate) != copied or rel_file_inventory(Path(archive)) != expected
+                    or (entry is not None and dependency_inventory(candidate, allow_other=True) != entry["inventory"]
+                        or entry is not None and dependency_inventory(Path(entry["bundle_path"])) != entry["inventory"])):
                 raise ValueError("candidate copy or original archive changed during failed rescoring")
             row.update({"rescore_status": "not_accepted", "reason": f"new gate execution failed: {error}",
                         "candidate_files_sha256": copied, "new_acceptance": {"accepted": False, "report": {}},
                         "new_acceptance_wall_seconds": None, "new_report_path": None, "new_report_sha256": None})
             return row
         verify_gate_unchanged(repo, output, gate)
-        if rel_file_inventory(candidate) != copied or rel_file_inventory(Path(archive)) != expected:
+        if (rel_file_inventory(candidate) != copied or rel_file_inventory(Path(archive)) != expected
+                or (entry is not None and dependency_inventory(candidate, allow_other=True) != entry["inventory"]
+                    or entry is not None and dependency_inventory(Path(entry["bundle_path"])) != entry["inventory"])):
             raise ValueError("candidate copy or original archive changed during rescoring")
         report_path = evidence / "report.json"
         report = load_json(report_path) if report_path.is_file() and not report_path.is_symlink() else None
@@ -525,7 +695,7 @@ def rescore(args: argparse.Namespace) -> dict[str, Any]:
         rows = list(executor.map(score_one, trials))
     rescore_wall_seconds = round(time.monotonic() - rescore_started, 3)
     verify_gate_unchanged(repo, output, gate)
-    sidecar = {"schema": SCHEMA, "rescore_jobs": args.jobs, "rescore_wall_seconds": rescore_wall_seconds, "claim": "separate rescoring evidence; original paid results and costs are retained", "original": {"results": str(original_path), "results_sha256": digest(original_path), "campaign": str(campaign_path), "campaign_sha256": digest(campaign_path), "terminal_receipt": str(terminal_path), "terminal_receipt_sha256": digest(terminal_path)}, "gate": gate, "compiler": {"path": str(compiler), "sha256": args.compiler_sha256, "source_sha": args.compiler_source_sha}, "settings": settings, "trials": rows}
+    sidecar = {"schema": SCHEMA, "rescore_jobs": args.jobs, "rescore_wall_seconds": rescore_wall_seconds, "claim": "separate rescoring evidence; original paid results and costs are retained", "original": {"results": str(original_path), "results_sha256": digest(original_path), "campaign": str(campaign_path), "campaign_sha256": digest(campaign_path), "terminal_receipt": str(terminal_path), "terminal_receipt_sha256": digest(terminal_path)}, "dependency_receipt": None if dependency_path is None else {"path": str(dependency_path), "sha256": dependency_receipt_sha}, "gate": gate, "compiler": {"path": str(compiler), "sha256": args.compiler_sha256, "source_sha": args.compiler_source_sha}, "settings": settings, "trials": rows}
     (output / "rescore.json").write_text(json.dumps(sidecar, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return sidecar
 
@@ -537,7 +707,7 @@ def main() -> int:
     parser.add_argument("--semaprax-bin"); parser.add_argument("--compiler-sha256")
     parser.add_argument("--compiler-source-sha"); parser.add_argument("--clarification")
     parser.add_argument("--qualification-receipt"); parser.add_argument("--gate-source")
-    parser.add_argument("--output"); parser.add_argument("--jobs", type=int, choices=(1, 2), default=1); parser.add_argument("--validate-sidecar")
+    parser.add_argument("--output"); parser.add_argument("--dependency-receipt"); parser.add_argument("--jobs", type=int, choices=(1, 2), default=1); parser.add_argument("--validate-sidecar")
     try:
         args = parser.parse_args()
         repo = Path(args.repo).resolve(strict=True)

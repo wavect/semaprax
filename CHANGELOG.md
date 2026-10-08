@@ -20,6 +20,12 @@
   rescorer regressions pass; separately pinned reference qualification and
   full archival rescoring remain independent evidence.
 
+- Add offline TeamDesk rescore dependency receipts and final-source component
+  recounting (OPT #689, #690). Both retain original campaign accounting:
+  dependency recovery is hash-bound but does not claim original-runtime
+  equivalence, and component metrics remain final-file proxies rather than
+  verified authorship or a ratio.
+
 - Admit calls from bounded loop bodies to exact private helpers taking
   compiler-owned `borrow Vec<Copy scalar>` parameters (OPT #684), matching the
   existing Project v27 helper boundary. Owned/non-Copy/counterfeit Vec shapes,

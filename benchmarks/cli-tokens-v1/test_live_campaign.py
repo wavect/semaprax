@@ -2,11 +2,15 @@ import hashlib
 import json
 import os
 import tempfile
+import sys
 import unittest
 from argparse import Namespace
 from pathlib import Path
 import subprocess
 from unittest.mock import patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import authored_source_recount as authored_recount
 
 import live_campaign
 import live_campaign_common as shared
@@ -14,6 +18,73 @@ import measurement_evidence
 
 
 class LiveCampaignTests(unittest.TestCase):
+    def test_hash_bound_authored_recount_separates_generated_and_lock_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            candidate = Path(directory); (candidate / "src").mkdir(); (candidate / "public").mkdir()
+            (candidate / "src/main.ts").write_text("source")
+            (candidate / "scripts").mkdir(); (candidate / "scripts/build.mjs").write_text("recipe")
+            (candidate / "public/app.js").write_text("bundle")
+            (candidate / "public/app.min.js").write_text("minified")
+            (candidate / "package-lock.json").write_text("lock")
+            files = [{"path": path.relative_to(candidate).as_posix(), "sha256": authored_recount.digest(path), "tokens": index + 1}
+                     for index, path in enumerate(sorted(p for p in candidate.rglob("*") if p.is_file()))]
+            by_path = {row["path"]: row for row in files}
+            classification = {"schema": authored_recount.CLASSIFICATION_SCHEMA, "origin": {"kind": "fixture"}, "files": [
+                {"path": "src/main.ts", "sha256": by_path["src/main.ts"]["sha256"], "classification": "authored_source"},
+                {"path": "scripts/build.mjs", "sha256": by_path["scripts/build.mjs"]["sha256"], "classification": "authored_source"},
+                {"path": "public/app.js", "sha256": by_path["public/app.js"]["sha256"], "classification": "generated_output", "recipe_path": "scripts/build.mjs", "recipe_sha256": by_path["scripts/build.mjs"]["sha256"], "entrypoint_path": "scripts/build.mjs", "entrypoint_sha256": by_path["scripts/build.mjs"]["sha256"]},
+                {"path": "public/app.min.js", "sha256": by_path["public/app.min.js"]["sha256"], "classification": "generated_output", "recipe_path": "public/app.js", "recipe_sha256": by_path["public/app.js"]["sha256"], "entrypoint_path": "public/app.js", "entrypoint_sha256": by_path["public/app.js"]["sha256"]},
+                {"path": "package-lock.json", "sha256": by_path["package-lock.json"]["sha256"], "classification": "dependency_lock"}]}
+            metrics = {"status": "measured_proxy", "scope": "fixture", "tokenizer": {"fingerprint_sha256": "fixture"},
+                       "total_tokens": sum(row["tokens"] for row in files), "files": files}
+            result = authored_recount.recount(candidate, metrics, classification)
+            self.assertEqual(result["components"]["generated_output"], by_path["public/app.js"]["tokens"] + by_path["public/app.min.js"]["tokens"])
+            self.assertEqual(result["legacy_final_inventory_proxy_tokens"], metrics["total_tokens"])
+            (candidate / "public/app.js").write_text("drift")
+            with self.assertRaisesRegex(ValueError, "inventory drifted"):
+                authored_recount.recount(candidate, metrics, classification)
+
+    def test_authored_recount_refuses_omitted_source_total_drift_and_generated_provenance(self):
+        with tempfile.TemporaryDirectory() as directory:
+            candidate = Path(directory)
+            (candidate / "src").mkdir()
+            (candidate / "src/main.ts").write_text("source")
+            (candidate / "src/entry.ts").write_text("entry")
+            (candidate / "bundle.js").write_text("generated")
+            (candidate / "bundle2.js").write_text("generated twice")
+            files = [{"path": path.relative_to(candidate).as_posix(), "sha256": authored_recount.digest(path), "tokens": 1}
+                     for path in sorted(candidate.rglob("*")) if path.is_file()]
+            by_path = {row["path"]: row for row in files}
+            metrics = {"status": "measured_proxy", "tokenizer": {"fingerprint_sha256": "fixture"},
+                       "total_tokens": len(files), "files": files}
+            sidecar = {"schema": authored_recount.CLASSIFICATION_SCHEMA, "origin": {"kind": "fixture"}, "files": [
+                {"path": "src/main.ts", "sha256": by_path["src/main.ts"]["sha256"], "classification": "authored_source"},
+                {"path": "src/entry.ts", "sha256": by_path["src/entry.ts"]["sha256"], "classification": "authored_source"},
+                {"path": "bundle.js", "sha256": by_path["bundle.js"]["sha256"], "classification": "generated_output",
+                 "recipe_path": "bundle.js", "recipe_sha256": by_path["bundle.js"]["sha256"],
+                 "entrypoint_path": "src/entry.ts", "entrypoint_sha256": by_path["src/entry.ts"]["sha256"]},
+                {"path": "bundle2.js", "sha256": by_path["bundle2.js"]["sha256"], "classification": "unresolved"}]}
+            with self.assertRaisesRegex(ValueError, "provenance is unsafe"):
+                authored_recount.recount(candidate, metrics, sidecar)
+            incomplete = json.loads(json.dumps(sidecar))
+            incomplete["files"][2].update({"recipe_path": "src/main.ts", "recipe_sha256": by_path["src/main.ts"]["sha256"]})
+            del incomplete["files"][2]["entrypoint_sha256"]
+            with self.assertRaisesRegex(ValueError, "lacks exact provenance"):
+                authored_recount.recount(candidate, metrics, incomplete)
+            with self.assertRaisesRegex(ValueError, "total differs"):
+                authored_recount.recount(candidate, {**metrics, "total_tokens": 0}, sidecar)
+            with self.assertRaisesRegex(ValueError, "omitted or added"):
+                authored_recount.recount(candidate, {**metrics, "files": files[:-1], "total_tokens": len(files) - 1}, sidecar)
+
+            cycle = json.loads(json.dumps(sidecar))
+            cycle["files"][2].update({"recipe_path": "bundle2.js", "recipe_sha256": by_path["bundle2.js"]["sha256"],
+                                      "entrypoint_path": "bundle2.js", "entrypoint_sha256": by_path["bundle2.js"]["sha256"]})
+            cycle["files"][3].update({"classification": "generated_output",
+                                      "recipe_path": "bundle.js", "recipe_sha256": by_path["bundle.js"]["sha256"],
+                                      "entrypoint_path": "bundle.js", "entrypoint_sha256": by_path["bundle.js"]["sha256"]})
+            with self.assertRaisesRegex(ValueError, "cycle"):
+                authored_recount.recount(candidate, metrics, cycle)
+
     def test_provider_session_turns_remain_separate_and_unknown_when_invalid(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "stream.jsonl"

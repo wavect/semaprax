@@ -1,3 +1,4 @@
+import os
 import json
 import stat
 import sys
@@ -124,6 +125,37 @@ class WebappCampaignTests(unittest.TestCase):
             self.assertFalse(rescore.scored_wall_matches(row))
             (archive / "app").write_text("tampered")
             self.assertFalse(rescore.retained_candidate_matches(source, row))
+
+    def test_rescore_dependency_bundle_copy_preserves_modes_and_internal_bin_link(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); bundle = root / "bundle"; candidate = root / "candidate"
+            executable = bundle / "node_modules/pkg/bin/tool"
+            executable.parent.mkdir(parents=True); executable.write_text("#!/bin/sh\n"); executable.chmod(0o755)
+            link = bundle / "node_modules/.bin/tool"; link.parent.mkdir(parents=True)
+            link.symlink_to("../pkg/bin/tool")
+            candidate.mkdir(); (candidate / "app.ts").write_text("source")
+            inventory = rescore.dependency_inventory(bundle)
+            copied = rescore.copy_dependency_bundle(bundle, candidate, inventory)
+            self.assertEqual(copied, rescore.dependency_fingerprint(inventory))
+            self.assertEqual((candidate / "node_modules/pkg/bin/tool").stat().st_mode & 0o777, 0o755)
+            self.assertEqual(os.readlink(candidate / "node_modules/.bin/tool"), "../pkg/bin/tool")
+            escape = candidate / "node_modules/.bin/escape"
+            escape.symlink_to("../../app.ts")
+            with self.assertRaisesRegex(ValueError, "root symlink"):
+                rescore.dependency_inventory(candidate, allow_other=True)
+            escape.unlink()
+            executable.write_text("drift")
+            (root / "other").mkdir()
+            with self.assertRaisesRegex(ValueError, "inventory or hashes"):
+                rescore.copy_dependency_bundle(bundle, root / "other", inventory)
+
+    def test_rescore_dependency_bundle_refuses_external_symlink(self):
+        with tempfile.TemporaryDirectory() as directory:
+            bundle = Path(directory) / "bundle"
+            link = bundle / "node_modules/.bin/tool"; link.parent.mkdir(parents=True)
+            link.symlink_to("/private/outside")
+            with self.assertRaisesRegex(ValueError, "external symlink"):
+                rescore.dependency_inventory(bundle)
 
     def test_rescore_malformed_candidate_rows_are_not_accepted(self):
         settings = {"qualification": {"spec_sha256": "x"},

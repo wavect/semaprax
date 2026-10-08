@@ -72,3 +72,22 @@ Offline rescoring accepts `--jobs 1` (default) or `--jobs 2`, with isolated
 candidate/evidence directories and original trial order retained. Its worker
 count and elapsed rescore time are separate from original agent and scoring
 wall times.
+
+TypeScript replay that needs excluded dependencies requires an explicit
+`--dependency-receipt` using `semaprax.rescore.dependencies.v1`. It binds
+each `typescript-01` through `typescript-05` bundle to the archived
+`package.json`, optional lockfile, and a closed hash/mode/link inventory
+limited to `node_modules` and `.cache`. The rescorer copies that inventory
+into the separate candidate, records the receipt and copy fingerprints, and
+rechecks both bundle and source inventories. A missing bundle is unscorable
+offline infrastructure, not an application rejection; recovery provenance and
+an explicit false historical-byte-identity field do not claim original-runtime
+equivalence.
+
+`authored_source_recount.py` produces a separate, hash-bound
+`semaprax.authored-source-recount.v1` sidecar from existing measured
+per-file proxy metrics. It partitions final inventory tokens into authored
+source, proven generated output, dependency locks, and unresolved files.
+Generated exclusions need closed recipe/entrypoint chains ending in classified
+authored source. The output retains the legacy total and tokenizer binding and
+sets both authorship verification and ratio eligibility to false.

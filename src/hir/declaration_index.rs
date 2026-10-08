@@ -61,11 +61,9 @@ impl DeclarationIndex {
             }
         }
     }
-
     pub fn byte_slice_provenance(&self, value: &ValueId) -> Option<&ByteSliceProvenance> {
         self.byte_slice_roots.get(value)
     }
-
     pub fn byte_slice_provenances(
         &self,
     ) -> impl ExactSizeIterator<Item = (&ValueId, &ByteSliceProvenance)> {

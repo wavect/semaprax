@@ -189,7 +189,6 @@ fn program_uses_strings(program: &ResolvedProgram) -> bool {
     functions_use_strings(program.functions.iter())
         || hir::owned_text_record::program_uses_strings(program)
 }
-
 fn functions_use_strings<'a>(
     functions: impl IntoIterator<Item = &'a hir::ResolvedFunction>,
 ) -> bool {
@@ -292,7 +291,6 @@ fn functions_use_strings<'a>(
     }
     false
 }
-
 fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
     if crate::iterator_ops::resolved_program_uses_owned_iterator(program) {
         return true;
@@ -686,7 +684,6 @@ impl ByteOutput for Vec<u8> {
     fn push(&mut self, value: u8) {
         Vec::push(self, value);
     }
-
     fn extend_bytes(&mut self, values: &[u8]) {
         self.extend_from_slice(values);
     }
@@ -696,7 +693,6 @@ impl ByteOutput for crate::bounded_output::CappedVec {
     fn push(&mut self, value: u8) {
         self.push(value);
     }
-
     fn extend_bytes(&mut self, values: &[u8]) {
         self.extend_from_slice(values);
     }
@@ -827,7 +823,6 @@ pub(crate) struct PackageScalarExportFact {
     pub(crate) parameters: Vec<&'static str>,
     pub(crate) result: &'static str,
 }
-
 pub(crate) fn emit_resolved_package_scalar_exports(
     program: &ResolvedProgram,
     export_ids: &[String],
@@ -1906,7 +1901,6 @@ fn emit_resolved_module_internal(
     }
     Ok(module.into_vec())
 }
-
 pub fn build_web(program: &Program, output: &Path) -> Result<(), Diagnostic> {
     reject_native_rust_imports(program)?;
     let resolved = hir::resolve(program).map_err(|diagnostics| {
@@ -2124,15 +2118,12 @@ impl ProjectWebBuild {
     pub fn envelope(&self) -> &str {
         &self.envelope
     }
-
     pub fn payload_digest(&self) -> &str {
         &self.payload_digest
     }
-
     pub fn artifact_bytes(&self) -> usize {
         self.artifact_bytes
     }
-
     pub fn max_bytes(&self) -> usize {
         self.max_bytes
     }
@@ -2195,7 +2186,6 @@ impl PreparedProjectWeb {
         ];
         publish_scalar_package(output, &artifacts)
     }
-
     pub(crate) fn into_inline(
         self,
         project_name: &str,
@@ -2227,11 +2217,9 @@ impl PreparedProjectWeb {
         )
     }
 }
-
 fn project_web_build_error(message: impl Into<String>) -> Diagnostic {
     Diagnostic::io("SPX-W117", message)
 }
-
 fn build_project_web_carrier(
     identity: ProjectWebIdentity<'_>,
     max_bytes: usize,
@@ -2290,7 +2278,6 @@ fn build_project_web_carrier(
     verify_project_web_build(&build)?;
     Ok(build)
 }
-
 fn render_project_web_build_payload(
     identity: ProjectWebIdentity<'_>,
     max_bytes: usize,
@@ -2347,7 +2334,6 @@ fn render_project_web_build_payload(
     }
     Ok(payload)
 }
-
 fn verify_project_web_build(build: &ProjectWebBuild) -> Result<(), Diagnostic> {
     if build.max_bytes == 0
         || build.max_bytes > MAX_PROJECT_WEB_BUILD_BYTES
@@ -2564,7 +2550,6 @@ fn verify_project_web_build(build: &ProjectWebBuild) -> Result<(), Diagnostic> {
     }
     Ok(())
 }
-
 fn project_web_payload_digest(payload: &[u8]) -> String {
     let mut digest = Sha256::new();
     digest.update(PROJECT_WEB_BUILD_DIGEST_DOMAIN);
@@ -2575,7 +2560,6 @@ fn project_web_payload_digest(payload: &[u8]) -> String {
         crate::digest_hex::LowerHex(digest.finalize())
     )
 }
-
 fn verify_embedded_project_web_manifest(
     artifacts: &[Vec<u8>],
     project: &str,
@@ -2811,7 +2795,6 @@ fn verify_embedded_project_web_manifest(
     }
     Ok(())
 }
-
 fn decode_lower_hex(value: &str) -> Result<Vec<u8>, Diagnostic> {
     if value.len() & 1 == 1 {
         return Err(project_web_build_error(
@@ -2836,7 +2819,6 @@ fn decode_lower_hex(value: &str) -> Result<Vec<u8>, Diagnostic> {
     }
     Ok(bytes)
 }
-
 pub(crate) fn prepare_project_web_with_scalar_exports(
     program: &ResolvedProgram,
     project_name: &str,
@@ -2902,7 +2884,6 @@ pub(crate) fn emit_resumable_scalar_projection(
     let bytes = emit_resolved_module_internal(program, &plans, &[])?;
     Ok((bytes, entry_symbol))
 }
-
 fn publish_scalar_package(output: &Path, artifacts: &[(&str, &[u8])]) -> Result<(), Diagnostic> {
     output.file_name().ok_or_else(|| {
         Diagnostic::io(
@@ -3022,11 +3003,9 @@ fn publish_scalar_package(output: &Path, artifacts: &[(&str, &[u8])]) -> Result<
     }
     Ok(())
 }
-
 fn is_plain_directory(metadata: &fs::Metadata) -> bool {
     metadata.is_dir() && !metadata.file_type().is_symlink() && !metadata_is_reparse(metadata)
 }
-
 fn is_plain_regular_file(metadata: &fs::Metadata) -> bool {
     metadata.is_file() && !metadata.file_type().is_symlink() && !metadata_is_reparse(metadata)
 }
@@ -3043,7 +3022,6 @@ fn metadata_is_reparse(metadata: &fs::Metadata) -> bool {
 fn metadata_is_reparse(_metadata: &fs::Metadata) -> bool {
     false
 }
-
 fn write_and_authenticate_scalar_artifacts(
     directory: &Path,
     artifacts: &[(&str, &[u8])],

@@ -69,3 +69,8 @@ attempts while retaining the original denominator and unlaunched order.
 `--max-budget-usd` is refused because this CLI adapter cannot enforce a strict
 monetary cap. Offline tests use synthetic model events and real minimal Git
 worktrees; they are adapter evidence, not a live matched campaign.
+
+Once a run has produced `results.json`, regenerate its read-only Codex report
+with `python3 codex_report.py /path/to/results.json`. It derives model-request
+usage and conditional cost only from reconciled rollout traces; missing traces
+and incomplete arms remain explicit in the JSON report.

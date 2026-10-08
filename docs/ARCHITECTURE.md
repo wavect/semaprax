@@ -3651,6 +3651,10 @@ exact pure-entry and command linker; neither changes capability authority.
 
 The additive [webapp v3](WEBAPP-PROJECTION-V3.md) convention binder lives in
 `webapp/model/v3.rs`; the ordinary translator keeps expression semantics.
+`webapp/translate/creation.rs` projects the same admitted permission AST with
+unknown row inputs for advisory creation controls. It shares the translator's
+exact scalar operations; `webapp/model.rs` attaches the callback only to
+row-aware write policies. The authoritative server policy remains unchanged.
 The embedded `security.mjs` owns bounded sign-in budgets and session-bound CSRF,
 and `state.mjs` stages migration and pairwise candidate constraints before
 publication. These generated host modules use the existing operator-selected

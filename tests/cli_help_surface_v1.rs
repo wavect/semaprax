@@ -415,8 +415,9 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     assert!(library.status.success());
     assert!(library.stderr.is_empty());
     let library_index = std::str::from_utf8(&library.stdout).unwrap();
-    assert!(library_index.starts_with("Standard library modules (50):\n"));
+    assert!(library_index.starts_with("Standard library modules (51):\n"));
     assert!(library_index.contains("\n  std.int.decimal\n"));
+    assert!(library_index.contains("\n  std.data.json.scan\n"));
     assert!(library_index.contains("semaprax help library <module|name|stable-id>"));
     assert!(library_index.contains("semaprax help library all"));
     assert_eq!(
@@ -425,7 +426,7 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
             .split(|byte| *byte == b'\n')
             .filter(|line| line.starts_with(b"  std."))
             .count(),
-        50
+        51
     );
     assert!(library.stdout.len() <= 2_048);
     assert!(semaprax::agent_economics::lexical_tokens(library_index) <= 256);

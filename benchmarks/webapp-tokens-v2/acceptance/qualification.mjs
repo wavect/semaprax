@@ -14,7 +14,7 @@ export function requiredCases(){const ids=['bootstrap','all-computed-and-rollups
   for(const entity of Object.keys(KEYS))ids.push(`${entity}.keys`,`browser.${entity}.unique-key`);
   for(const [entity,[field]]of Object.entries(WORKFLOWS)){const states=ENUMS[ENTITIES[entity][field]];for(const state of states.slice(1))ids.push(`${entity}.create.${state}`);for(const from of states){ids.push(`browser.${entity}.${from}.workflow-options`);for(const to of states)ids.push(`${entity}.${from}.${to}`);}}
   for(const entity of ['Task','Comment','TimeEntry','Ticket','TicketReply','Leave','Expense'])ids.push(`${entity}.own-other`,`browser.Agent.${entity}.own-actions`);
-  ids.push('account.Manager','account.Agent','account.Viewer','Sprint.signed64','Project.signed64','Ticket.signed64');return ids.sort();
+  ids.push('account.Manager','account.Agent','account.Viewer','Sprint.signed64','Project.signed64','Ticket.signed64','browser.Sprint.signed64','browser.Project.signed64','browser.Ticket.signed64');return ids.sort();
 }
 export function qualify(rows){assert.equal(new Set(rows.map(row=>row.id)).size,rows.length,'duplicate case identities');const missingCases=requiredCases().filter(id=>!rows.some(row=>row.id===id));const missingGroups=COVERAGE.filter(group=>!rows.some(row=>row.group===group));const failures=rows.filter(row=>row.status!=='passed');return {passed:missingCases.length===0&&missingGroups.length===0&&failures.length===0,missingCases,missingGroups,failures:failures.map(row=>row.id),cases:rows.length};}
 export async function passwordChecks({data,ledger}){

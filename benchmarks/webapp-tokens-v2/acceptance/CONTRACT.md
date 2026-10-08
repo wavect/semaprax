@@ -54,7 +54,12 @@ The browser uses ordinary visible controls: sign-in labels email/password;
 entity navigation; field labels; New/Edit/Create-or-Save/Delete/Cancel;
 search, enum filters, table column sorting, Prev/Next, CSV, and history.
 SEM uses hash routes; the TS reference uses pathname routes. Selectors permit
-both existing captions (`+ New Task` or `New Task`, `Next ›` or `Next`). The
+both existing captions (`+ New Task` or `New Task`, `Next ›` or `Next`,
+`CSV` or `Export CSV`). An integer editor may use a numeric input or an
+exact decimal text input with `inputmode=numeric`; physical request/readback
+checks remain authoritative for integer values. Direct page checks open a fresh
+document; actual link checks await the destination's visible heading to avoid
+inspecting an earlier SPA route while asynchronous fetches are still running. The
 gate does not require a CSS framework, candidate test ids, or a supplied
 manifest. Chromium interacts with the real UI and records download bytes and
 a screenshot. Client validation is checked by observing **zero entity

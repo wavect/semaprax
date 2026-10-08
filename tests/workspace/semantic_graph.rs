@@ -546,9 +546,9 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
             "type_reference",
         ])
     );
-    // Current structural accounting adds 600 bytes to this fixture. Rebuilding
-    // the prior digest with only this debit restored reproduces its exact KAT.
-    assert_eq!(graph.budget().used_builder_bytes(), 336_437);
+    // Current accounting adds 12 bytes to the prior 336437-byte debit.
+    // Restoring only that debit and derived digest reproduces the exact KAT.
+    assert_eq!(graph.budget().used_builder_bytes(), 336_449);
     assert_eq!(
         document_digest(graph.to_json().as_bytes()),
         // Exact graph fields and API/CLI byte parity above independently bind
@@ -562,7 +562,7 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
         // `budget.used_builder_bytes` and this digest move; this fixture
         // declares no session protocol, so nothing else in the document
         // moves.
-        "sha256:a25e282fb8e141994fa429986e0cecafa2d57e4e91f8880b56ccb0ef75f84058"
+        "sha256:1750a00f3865e11aeb1c1f19b2d8781ed9f569cac2d5b6135566ebc50af66024"
     );
 
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -964,7 +964,7 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
         "capability"
     );
 
-    // The current 600-byte workspace structural debit changes only the embedded
+    // The current 12-byte workspace builder debit changes only the embedded
     // workspace budget and its derived graph/artifact digests in these KATs.
     // Restoring that debit and reminting reproduces all eight prior digests.
     // Re-pinned: issue #297 (commit b8116173) added
@@ -989,14 +989,14 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(capability_review.as_bytes()),
         ],
         [
-            "sha256:55d6864974c948cc3568bf9542c1b9661e89f408ab3cec76b11d2514e2320bb8",
-            "sha256:ec857006640d496d0181d7e1f177ab5789a467e824020c6c9a6499e08e2b6a55",
-            "sha256:0325c5c27a23f55a299b6f8afe418c0a83d775772929f2b382a748dd6c6c47a8",
-            "sha256:19243376d603912ec093ec1aa676e6b693711bfb087e66efa72187b00d49bf15",
-            "sha256:deebaed958c4ab5bb1e4d47f42fddf51c38c808a9ccb3348d1d3958150a4b205",
-            "sha256:20a0ad69b70a6a762ee6edd32b5fdec5df7f4d8ad18823c09c26cc179472dc7f",
-            "sha256:5bfa3ad3ff710a26bd4c3a1eea6fa8a10e8ae90f463ccd9470aedd25a222bb24",
-            "sha256:f901ebb09fab2f5e04009ae93ee649e4d1677952bab52e9c27de027ce8c02684",
+            "sha256:1ef7215d638028865979c8424406cf51b53fa422fafe0f64ad9256e1c20e67f4",
+            "sha256:b7869109b3594d3147bfcbf4dfb9d87556cdc1a4ea930deb2bda907adf88cc6e",
+            "sha256:a6afd87b0c10d96f92ad7d3d8d791f1a4edb7038bd7b600df7a8c40076e844a2",
+            "sha256:ddb2cbab243f4039e287dce6d0a66e7af2ae0a04fe54c0e7d7765d37cfc73a71",
+            "sha256:9779a87d2731c225e2ac462e55f0fd8b5180939612722c436261c9d08b56b893",
+            "sha256:9ad0a3c41065189942d9ef4845f30018c6caed862a02280a90958890e585faad",
+            "sha256:3beb92a9739a183d3e4294c998820e1d3387667eadde5cabd992cd495311903f",
+            "sha256:9f5c76d2da3e49fc2b88deb6fd77c647fe3fd4aa151094816ba417816fa1e73e",
         ]
     );
 

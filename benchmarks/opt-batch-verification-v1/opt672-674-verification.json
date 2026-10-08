@@ -1,0 +1,82 @@
+{
+  "schema": "semaprax.opt.batch-verification.v1",
+  "source_commit_before_receipt": "0ca01c668f6a5319c1f8223ba389a7e97f3e63f5",
+  "compiler_artifact": {
+    "schema": "semaprax.compiler-build-identity.v1",
+    "compiler_source_commit": "60002439e1b651ebbfbf3a887f12a20c927d720f",
+    "binary_sha256": "87e1d84bb618218159a3ebaec83dea285f2186486d7113962d08c71945474daa",
+    "binary": "/Users/kevin/.codex/benchmark-binaries/semaprax-60002439e",
+    "source_was_clean": true,
+    "cargo_target_was_private": true,
+    "build_log": "/Users/kevin/.codex/benchmark-runs/opt-final-verification-20261008/final-compiler-binary.log"
+  },
+  "full_quality_gates_run": false,
+  "checks": [
+    {
+      "evidence": "final-web-trace-accounting.log",
+      "log_sha256": "2c37d50a88147ca2ebd5197d74ee37d462dab650d793512e849814c28d5a38f0"
+    },
+    {
+      "evidence": "final-event-v27.log",
+      "log_sha256": "46458b1324727147e4904885207e0cff5ddfac7a60128a26dc01eabdff1e31bb"
+    },
+    {
+      "evidence": "final-trace-accounting.log",
+      "log_sha256": "56e03afda220e7ba78bbcecf9a2e53a0149cfc3e311fa10bbd01b25e8e5ba671"
+    },
+    {
+      "evidence": "final-byte-oracle.log",
+      "log_sha256": "b8515a21acfdaee6192ca18f90bdd26169f21e35f623cd2cdeecb96e904aa5ba"
+    },
+    {
+      "evidence": "final-byte-parity.log",
+      "log_sha256": "8597bf1d181b82eb6c13854bc70fbd43e9218b88763e07e5691f29b21d594ada"
+    },
+    {
+      "evidence": "final-stream-help.log",
+      "log_sha256": "b38b70b903d898176d61dd94a3eae9b90d63eb9781ccb31edeccb894163d7db8"
+    },
+    {
+      "evidence": "final-clippy.log",
+      "log_sha256": "539de84bebd50d8377c6480ef5bb42901f97b2f0a9cc9d34c3c31eaa39bfb709"
+    },
+    {
+      "evidence": "final-compiler-binary.log",
+      "log_sha256": "f1bb531cf88479c40bfdbb1643f99f1054572154ca817440d9cceda4ec09bbc7"
+    },
+    {
+      "evidence": "final-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "evidence": "final-diff.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "evidence": "final-upstream-merge-clippy.log",
+      "log_sha256": "93aa750e3bda2b2c0917d50825f2799116b772c9ceb44a79a5efbbe99472a88c"
+    },
+    {
+      "evidence": "batch3-stream-data.log",
+      "log_sha256": "b806be0425f61ac3b7a0fd231fda5695388cd5e704360ad18a421eee65614305"
+    },
+    {
+      "evidence": "batch3-stream-v25.log",
+      "log_sha256": "6dd29f2f130c7e73be888ff6a6fbf8fdd35a4da438180b08134bc44dd692cc44"
+    },
+    {
+      "evidence": "batch3-stream-v24.log",
+      "log_sha256": "64eb04d9f6462f003d980c6c91842c51a78461cc53039626f4b7162486c8fa11"
+    },
+    {
+      "evidence": "batch3-stream-prelude.log",
+      "log_sha256": "1447b94f9ef6292a78ca3f8fc2a385e07ab265efe7db409fbd5690e0a1ae9020"
+    }
+  ],
+  "scope": "Only selected affected tests; one final source-batch check, then scoped clippy for a concurrent seven-line upstream interpreter restriction. No full harness or all-target clippy.",
+  "reused_evidence": "Four passing stream-data/old-profile/prelude selectors predate the final conversion oracle fixture fix; their compiler paths are unchanged.",
+  "repairs": "The final batch caught an unclosed synthetic-fixture expression; only that fixture and its four accounting selectors were repaired/rerun. Initial selector-name typo was corrected before Cargo started. Earlier source-batch fixture failures are retained in external logs.",
+  "measurement": "No new live agent gain is claimed. Manual adoption qualification and fresh matched campaigns remain separate. Actual provider billing and hidden request composition remain unavailable/null.",
+  "pins": "Existing frozen conversion catalog and historical campaign SPEC/corpus/prompt evidence were not moved.",
+  "module_budgets": "39 changed Rust files passed their existing budgets; the upstream interpreter addition remains below its recorded limit."
+}

@@ -7,8 +7,8 @@
 - Add compiler-owned checked `u8_from_i64` and exact `char_from_u8`
   conversions (OPT #673) across the interpreter, native C11, and scalar and
   aggregate Core Wasm. Values outside `0..=255` keep the existing checked
-  conversion status; focused cross-backend verification is pending the shared
-  source batch.
+  conversion status; focused local cross-backend, source/graph, diagnostic and
+  live-owner failure-settlement verification passes.
 - Add table-only Project v27 `language-command-io.stream-data.v1`, preserving
   the exact v25 native streaming command/root ABI while admitting authenticated
   non-root helper parameters of `borrow Vec<Copy scalar>` and the existing

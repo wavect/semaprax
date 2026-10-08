@@ -2,8 +2,9 @@
 
 Audience: Project command authors and compiler/backend contributors.
 
-Status: additive native profile under integration. The focused executable gate
-must pass before broader product support is claimed.
+Status: additive native profile with a passing focused local native execution,
+source/graph, old-profile, carrier-authentication, public-ABI, and target-refusal
+gate. Broader product support remains separate.
 
 ## Selection and compatibility
 

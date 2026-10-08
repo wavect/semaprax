@@ -2,9 +2,9 @@
 
 Audience: language users, agent authors, and compiler contributors.
 
-Status: bounded implementation; focused verification is owned by
-`tests/language/integer_profiles.rs` and remains pending until its required
-source batch runs.
+Status: bounded implementation with focused local interpreter, native C11,
+and scalar/aggregate Core Wasm verification in
+`tests/language/integer_profiles.rs`.
 
 Byte Conversions v1 extends the additive integer conversion profile with two
 compiler-owned scalar operations:

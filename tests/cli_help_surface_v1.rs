@@ -91,13 +91,14 @@ fn cli_language_help_documents_run_string_fallback_and_json_schemas() {
     assert!(output.stderr.is_empty());
     let help = String::from_utf8(output.stdout).unwrap();
     for detail in [
-        "On the pure single-file interpreter route, `run` tries the ordinary",
-        "On refusal, `run` retries with the",
-        "results otherwise refused with `SPX-F102`",
+        "On the pure single-file interpreter route, `run` tries",
+        "then retries refusals with the internal String profile",
+        "parameters/results otherwise refused by `SPX-F102`",
         "`semaprax.interpret.v1`",
         "`semaprax.interpret.internal-strings.v1`",
         "Permit-selected command and stdout",
-        "do not use this interpreter fallback.",
+        "runners skip this fallback.",
+        "refuse, report the ordinary diagnostic.",
     ] {
         assert!(help.contains(detail), "missing help detail: {detail}");
     }

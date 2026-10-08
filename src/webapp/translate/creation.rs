@@ -39,6 +39,7 @@ impl<'a> Translator<'a> {
             scope,
             fresh: 0,
             pending: BTreeSet::new(),
+            remaining: 4096,
         };
         let body = projection.function(function);
         format!("(u) => {{ {SUPPORT}const value={body}; return value===F?false:typeof value==='boolean'?value:null; }}")
@@ -50,6 +51,7 @@ struct Projection<'t, 'a> {
     scope: Vec<Binding>,
     fresh: usize,
     pending: BTreeSet<String>,
+    remaining: usize,
 }
 
 impl<'a> Projection<'_, 'a> {
@@ -92,6 +94,12 @@ impl<'a> Projection<'_, 'a> {
     }
 
     fn expr(&mut self, expr: &'a Expr) -> (String, Ty) {
+        // Inlining a repeated helper graph must not expand exponentially.
+        // Exhaustion loses precision, never source admission or authority.
+        if self.remaining == 0 {
+            return ("U".to_owned(), Ty::Bool);
+        }
+        self.remaining -= 1;
         match &expr.kind {
             ExprKind::Int(v) => (format!("{v}n"), Ty::Int),
             ExprKind::Float64(bits) => (format!("{:?}", f64::from_bits(*bits)), Ty::Float),

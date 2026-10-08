@@ -111,3 +111,40 @@ fn creation_preview_never_admits_an_unsupported_authoritative_policy() {
         "{errors:?}"
     );
 }
+
+#[test]
+fn creation_policy_helper_expansion_is_bounded_and_conservative() {
+    let mut source = String::from("module bounded; record User { login: string, active: bool, } record Item { score: i64, } fn user_account(login: string, active: bool) -> bool { active } fn base(value: i64) -> bool { value > 0 } ");
+    let mut previous = "base".to_owned();
+    for index in 0..38 {
+        let name = format!("chain_{index}");
+        source.push_str(&format!(
+            "fn {name}(value: i64) -> bool {{ {previous}(value) || {previous}(value) }} "
+        ));
+        previous = name;
+    }
+    source.push_str(&format!(
+        "fn item_can_write(score: i64) -> bool {{ {previous}(score) }}"
+    ));
+    let path = write_temp("creation-bounded", &source);
+    let projection = generate(&path).unwrap();
+    assert!(
+        schema(&projection).len() < 1_000_000,
+        "abstract helper projection must stay bounded"
+    );
+    let out = path.with_file_name("out");
+    let _ = std::fs::remove_dir_all(&out);
+    write(&out, &projection).unwrap();
+    let script = "import{pathToFileURL}from'node:url';import assert from'node:assert/strict';const{entities}=await import(pathToFileURL(process.argv[1]));assert.equal(entities.find(e=>e.path==='item').canWrite.create({}),null);";
+    let result = std::process::Command::new("node")
+        .args(["--input-type=module", "-e", script])
+        .arg(out.join("schema.js"))
+        .output()
+        .expect("Node is required for creation policy gate");
+    assert!(
+        result.status.success(),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    std::fs::remove_dir_all(out).unwrap();
+}

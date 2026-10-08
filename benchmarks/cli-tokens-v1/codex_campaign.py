@@ -33,11 +33,74 @@ ARMS = legacy.ARMS
 MIN_TRIALS_PER_ARM = legacy.MIN_TRIALS_PER_ARM
 SEED_FILES = legacy.SEED_FILES
 ROUND = 6
+HARNESS_SOURCE_FILES = (
+    "benchmarks/cli-tokens-v1/boundary-audit-v1/audit.py",
+    "benchmarks/cli-tokens-v1/boundary-audit-v1/corpus.json",
+    "benchmarks/cli-tokens-v1/codex_campaign.py",
+    "benchmarks/cli-tokens-v1/codex_report.py",
+    "benchmarks/cli-tokens-v1/live_campaign.py",
+    "benchmarks/cli-tokens-v1/measurement_evidence.py",
+    "benchmarks/cli-tokens-v1/oracle.py",
+    "benchmarks/cli-tokens-v1/qualification.py",
+    "benchmarks/live_campaign_common.py",
+)
 PRICE_USD_PER_MTOK = {
     "input": 2.0, "cache_read": 0.1, "cache_write": 2.5, "output": 10.0,
 }
 SHORT_CONTEXT_LIMIT = 272_000
 CALIBRATION_PROMPT = "This is a context calibration request. Reply with exactly READY; do not use tools or read files."
+
+
+def harness_source_inventory(repo: Path = REPO) -> dict[str, str]:
+    """Hash the complete local source closure used by the matched campaign."""
+    root = repo.resolve(strict=True)
+    inventory: dict[str, str] = {}
+    for relative in HARNESS_SOURCE_FILES:
+        source = root / relative
+        if source.is_symlink() or not source.is_file():
+            raise ValueError(f"campaign harness source is not a regular file: {relative}")
+        try:
+            source.resolve(strict=True).relative_to(root)
+        except ValueError as error:
+            raise ValueError(f"campaign harness source escapes repository: {relative}") from error
+        inventory[relative] = hashlib.sha256(source.read_bytes()).hexdigest()
+    return inventory
+
+
+def snapshot_harness_sources(repo: Path, artifacts: Path, expected: dict[str, str],
+                             frozen_spec_sha256: str) -> dict[str, Any]:
+    """Copy only the pinned harness closure and verify every retained byte."""
+    current = harness_source_inventory(repo)
+    if current != expected:
+        raise ValueError("campaign harness source changed after the immutable plan")
+    destination = artifacts / "harness-source"
+    if destination.exists():
+        raise ValueError("campaign harness source snapshot must be new")
+    destination.mkdir(parents=True)
+    for relative, wanted in current.items():
+        source = repo / relative
+        target = destination / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        contents = source.read_bytes()
+        if hashlib.sha256(contents).hexdigest() != wanted:
+            raise ValueError(f"campaign harness source changed while snapshotting: {relative}")
+        target.write_bytes(contents)
+    for relative, wanted in current.items():
+        copied = destination / relative
+        if hashlib.sha256(copied.read_bytes()).hexdigest() != wanted:
+            raise ValueError(f"campaign harness source snapshot hash differs: {relative}")
+    snapshot = {
+        "schema": "semaprax.codex-harness-source-snapshot.v1",
+        "path": "harness-source",
+        "files_sha256": current,
+        "frozen_spec": {
+            "path": "benchmarks/cli-tokens-v1/SPEC.md",
+            "sha256": frozen_spec_sha256,
+            "source": "seed_files_sha256",
+        },
+    }
+    (destination / "manifest.json").write_text(json.dumps(snapshot, indent=2, sort_keys=True) + "\n")
+    return snapshot
 
 
 def _usage(value: Any) -> dict[str, int | None]:
@@ -225,6 +288,11 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
     compiler_source_commit = legacy.resolve_commit(repo, args.compiler_source_ref)
     hashes = legacy.pinned_seed_hashes(repo, commit)
     legacy.validate_round_identity(ROUND, hashes)
+    qualification = legacy.qualification.metadata()
+    frozen_spec_hash = hashes["benchmarks/cli-tokens-v1/SPEC.md"]
+    if frozen_spec_hash != qualification["spec_sha256"]:
+        raise ValueError("future campaign frozen SPEC differs from boundary qualification")
+    harness_sources = harness_source_inventory()
     artifacts = Path(args.artifacts).expanduser().resolve()
     try:
         artifacts.relative_to(repo)
@@ -242,7 +310,17 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
         "adapter": "codex-matched-loglens-v1", "round": ROUND, "repository_commit": commit,
         "compiler_source_commit": compiler_source_commit,
         "seed_files_sha256": hashes, "artifacts": str(artifacts), "model_requested": args.model,
-        "qualification": legacy.qualification.metadata(),
+        "harness_source_snapshot": {
+            "schema": "semaprax.codex-harness-source-snapshot.v1",
+            "path": "harness-source",
+            "files_sha256": harness_sources,
+            "frozen_spec": {
+                "path": "benchmarks/cli-tokens-v1/SPEC.md",
+                "sha256": frozen_spec_hash,
+                "source": "seed_files_sha256",
+            },
+        },
+        "qualification": qualification,
         "effort_requested": args.effort, "timeout_seconds": args.timeout_seconds,
         "trial_order": [arm for index in range(args.trials_per_arm) for arm in (ARMS if index % 2 == 0 else tuple(reversed(ARMS)))],
         "authored_source_tokenizer": legacy.tokenizer_metadata(args.tokenizer_dir),
@@ -416,6 +494,13 @@ def main() -> int:
             if result["capabilities"]["status"] != "ready":
                 raise ValueError("installed Codex CLI lacks required isolated-execution controls")
             artifacts = Path(result["artifacts"]); artifacts.mkdir(parents=True)
+            snapshot = snapshot_harness_sources(
+                REPO, artifacts,
+                result["harness_source_snapshot"]["files_sha256"],
+                result["seed_files_sha256"]["benchmarks/cli-tokens-v1/SPEC.md"],
+            )
+            if snapshot != result["harness_source_snapshot"]:
+                raise ValueError("campaign harness source snapshot differs from the immutable plan")
             seed = legacy.create_seed_repository(Path(args.repo).resolve(), result["repository_commit"], artifacts / "seed-repository")
             result.update(seed); result["semaprax_binary"] = str(Path(args.semaprax_bin).resolve())
             (artifacts / "campaign.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")

@@ -205,8 +205,8 @@
       "code": "SPX-T203",
       "rows": [
         {
-          "fix": "Call get(point) or use a class; records have no methods",
-          "wrote": "point.get() on a record"
+          "fix": "Call get(point) or use class; records have no methods",
+          "wrote": "method call on record"
         },
         {
           "fix": "Option<i64>::Some { value: 1 }, Option<i64>::None {}",
@@ -253,8 +253,8 @@
       "code": "SPX-T208",
       "rows": [
         {
-          "fix": "Literals default to `i64`; write `index + 1usize`",
-          "wrote": "`usize` index plus integer literal"
+          "fix": "Integer literals default to `i64`; write `index + 1usize`",
+          "wrote": "`index + 1` when `index: usize`"
         }
       ]
     },

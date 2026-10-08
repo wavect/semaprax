@@ -1066,7 +1066,7 @@ Replace a 256-arm i64-to-byte or byte-to-char match with
 | call as statement|`SPX-P106`|Use `let _ = f(x)` or tail result|
 | tuple|`SPX-P106`|No tuples; declare a `record`|
 | Option::Some { value: 1 }|`SPX-T221`|Option<i64>::Some { value: 1 }|
-| `usize` index plus integer literal|`SPX-T208`|Literals default to `i64`; write `index + 1usize`|
+| `index + 1` when `index: usize`|`SPX-T208`|Integer literals default to `i64`; write `index + 1usize`|
 | unsuffixed `i32` literal|`SPX-T232`|Suffix: 5i32|
 | i64 max + 1 or parenthesized min negation|`SPX-P003`|One literal: -9223372036854775808 or -2147483648i32; spaces are trivia, parens separate. Min negation or division by -1 overflows|
 | "a" + "b"|`SPX-T250`|string_concat("a", "b")|
@@ -1076,7 +1076,7 @@ Replace a 256-arm i64-to-byte or byte-to-char match with
 | float Map key / Set element|`SPX-T274`|Keys: string/i64/bool; values: String or Copy scalars|
 | implicit collection ownership at helper boundary|`SPX-O001`|Declare own/borrow; results move|
 | unsupported String/collection record|`SPX-T309`|Explicit IDs; monomorphic acyclic records; own/borrow; no invariants|
-| point.get() on a record|`SPX-T203`|Call get(point) or use a class; records have no methods|
+| method call on record|`SPX-T203`|Call get(point) or use class; records have no methods|
 | shadowed binding|`SPX-T209`|Rename binding|
 | assignment to immutable|`SPX-U101`|Use let mut|
 | fn main() -> bool|`SPX-T104`|Return i64; CLI 0 succeeds|

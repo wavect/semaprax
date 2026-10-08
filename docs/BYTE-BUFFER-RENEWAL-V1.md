@@ -38,10 +38,14 @@ bounded while body has the same entry and exit state.
 
 If the element check or a later operation fails before publication, the
 selected status remains sticky and the staged old generation is finalized by
-the existing failure exit. Exactly one generation is live and finalized. The
-builder and independent replay both derive the update from HIR and reject a
-missing reservation, an ordinary transfer, a different binding, a forged
-projection, an immutable binding, or a downgraded schema.
+the existing failure exit. Staging removes the old generation from its named
+slot and appends the call-argument epoch after unrelated live owners, so the
+failure exit's reverse order finalizes that staged generation first. Only a
+successful `renew` restores the reserved named-slot history. Exactly one
+generation is live and finalized. The builder and independent replay both
+derive the update from HIR and reject a missing reservation, an ordinary
+transfer, a different binding, a forged projection, an immutable binding, or a
+downgraded schema.
 
 CleanupPlan v17 composes the existing v15 Vec and v16 String renewal semantics
 when those shapes occur in the same function. Functions without authenticated

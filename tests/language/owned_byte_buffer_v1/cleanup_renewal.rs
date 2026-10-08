@@ -81,12 +81,25 @@ fn conditional_two_owner_byte_renewal_preserves_history_and_backend_routes() {
             .count(),
         1
     );
-    assert!(plan.exits.iter().any(|exit| {
-        matches!(
-            exit.continuation,
-            semaprax::cleanup_plan::ExitContinuation::CommitResult { .. }
-        ) && exit.finalize_in_order.len() == 2
-    }));
+    let [buffer, held] = initial_owner_storages(main_function(&resolved));
+    let commit = plan
+        .exits
+        .iter()
+        .find(|exit| {
+            matches!(
+                exit.continuation,
+                semaprax::cleanup_plan::ExitContinuation::CommitResult { .. }
+            )
+        })
+        .unwrap();
+    assert_eq!(
+        commit
+            .finalize_in_order
+            .iter()
+            .map(|action| action.source.storage.clone())
+            .collect::<Vec<_>>(),
+        [held, buffer]
+    );
     let interpreted = interpret(SUCCESS, "conditional-renewal-success");
     assert!(
         interpreted.contains("\"kind\":\"returned\"") && interpreted.contains("\"value\":\"7\"")
@@ -115,7 +128,7 @@ fn conditional_two_owner_byte_renewal_preserves_history_and_backend_routes() {
         wasm::emit_module(&program).unwrap(),
         wasm::emit_module(&program).unwrap()
     );
-    run_wasm(&program, "success", Some(7), None);
+    run_wasm(&program, "success", Some(7), None, "renewed");
     run_native(&program, "success", Some("7"), None);
 }
 
@@ -126,12 +139,43 @@ fn byte_renewal_failure_settles_both_owners_and_composes_without_rewriting_v15_v
     hir::validate(&resolved).unwrap();
     let plan = &main_function(&resolved).cleanup_plan;
     assert_eq!(plan.schema, "semaprax.cleanup-plan.v17");
-    assert!(plan.exits.iter().any(|exit| {
-        matches!(
-            exit.continuation,
-            semaprax::cleanup_plan::ExitContinuation::ReturnFailure { .. }
-        ) && exit.finalize_in_order.len() == 2
-    }));
+    let [buffer, held] = initial_owner_storages(main_function(&resolved));
+    let set_status = plan
+        .status_sources
+        .iter()
+        .find(|source| {
+            matches!(&source.producer,
+            semaprax::cleanup_plan::StatusProducer::PropagatedCall { callee }
+                if callee.as_str() == "core.bytes.set")
+        })
+        .unwrap();
+    let failure = plan
+        .exits
+        .iter()
+        .find(|exit| {
+            matches!(&exit.continuation,
+            semaprax::cleanup_plan::ExitContinuation::ReturnFailure { source }
+                if source == &set_status.id)
+        })
+        .unwrap();
+    // Failure precedes `renew`: the old buffer has moved from its named slot
+    // into the call-argument epoch after `held`, so reverse finalization is
+    // staged buffer then held. Success restores named history above.
+    assert_eq!(failure.finalize_in_order.len(), 2);
+    let staged = &failure.finalize_in_order[0].source;
+    assert!(matches!(
+        &staged.storage,
+        StorageId::CallArgument {
+            parameter_index: 0,
+            ..
+        }
+    ));
+    assert_eq!(failure.finalize_in_order[1].source.storage, held);
+    assert!(plan.blocks.iter().flat_map(|block| &block.transitions).any(
+        |transition| matches!(transition,
+            CleanupTransition::Transfer { source, destination, .. }
+                if source.storage == buffer && destination == staged)
+    ));
     let interpreted = interpret(FAILURE, "conditional-renewal-failure");
     let envelope: serde_json::Value = serde_json::from_str(&interpreted).unwrap();
     assert_eq!(envelope["payload"]["outcome"]["kind"], "failed");
@@ -142,7 +186,7 @@ fn byte_renewal_failure_settles_both_owners_and_composes_without_rewriting_v15_v
     assert_eq!(envelope["payload"]["outcome"]["status"]["code"], 1);
     let wasm = wasm::emit_module(&failed).unwrap();
     assert!(wasm.starts_with(b"\0asm"));
-    run_wasm(&failed, "failure", None, Some(16));
+    run_wasm(&failed, "failure", None, Some(16), "staged-first");
     run_native(&failed, "failure", None, Some(73));
 
     let composed = parse(COMPOSED, "byte-cleanup-renewal-composed.spx").unwrap();
@@ -200,11 +244,24 @@ fn byte_renewal_failure_settles_both_owners_and_composes_without_rewriting_v15_v
     );
 }
 
+fn initial_owner_storages(function: &ResolvedFunction) -> [StorageId; 2] {
+    let ResolvedExprKind::Block { statements, .. } = &function.body.kind else {
+        panic!("main block")
+    };
+    [0, 1].map(|index| {
+        let ResolvedStatement::Let { binding, .. } = &statements[index] else {
+            panic!("owned binding")
+        };
+        StorageId::Value(binding.id.clone())
+    })
+}
+
 fn run_wasm(
     program: &semaprax::ast::Program,
     label: &str,
     value: Option<i64>,
     status: Option<u32>,
+    drop_order: &str,
 ) {
     if !command_available("node") {
         return;
@@ -219,6 +276,7 @@ const fs=require('fs');
 const bytes=fs.readFileSync(process.argv[1]);
 const expectedValue=process.argv[2]==='none'?null:BigInt(process.argv[2]);
 const expectedStatus=process.argv[3]==='none'?null:Number(process.argv[3]);
+const dropOrder=process.argv[4];
 let instance,next=1,allocations=[],drops=[];
 const entries=new Map();
 const decode=carrier=>{const word=BigInt.asUintN(64,carrier),length=Number(word&0xffffffffn),root=Number((word>>32n)&0xffffffffn),token=root&0x7fffffff;if((root&0x80000000)===0||token===0)throw Error('invalid owned Bytes carrier');return{word,length,token}};
@@ -246,7 +304,8 @@ const env={
     try{actualValue=instance.exports.semaprax_main()}catch(error){if(!Object.hasOwn(error,'selector'))throw error;actualStatus=error.selector}
     if(actualValue!==expectedValue||actualStatus!==expectedStatus)throw Error(`outcome:${actualValue}:${actualStatus}`);
     if(allocations.length!==2||drops.length!==2)throw Error(`cleanup-count:${allocations}:${drops}`);
-    if(drops[0]!==allocations[1]||drops[1]!==allocations[0])throw Error(`cleanup-order:${allocations}:${drops}`);
+    const expectedDrops=dropOrder==='renewed'?[allocations[1],allocations[0]]:dropOrder==='staged-first'?allocations:null;
+    if(expectedDrops===null||drops[0]!==expectedDrops[0]||drops[1]!==expectedDrops[1])throw Error(`cleanup-order:${dropOrder}:${allocations}:${drops}`);
     if(entries.size!==0)throw Error(`unsettled:${entries.size}`);
   }
 })().catch(error=>{console.error(error);process.exit(2)});
@@ -257,6 +316,7 @@ const env={
         .arg(&path)
         .arg(value.map_or_else(|| "none".to_owned(), |value| value.to_string()))
         .arg(status.map_or_else(|| "none".to_owned(), |status| status.to_string()))
+        .arg(drop_order)
         .output()
         .unwrap();
     let _ = std::fs::remove_file(path);

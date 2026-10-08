@@ -885,8 +885,8 @@ fn a_loop_carried_fill_is_admitted_with_one_owner_and_one_destruction_path() {
         1,
         "the loop-carried fill stages one canonical argument epoch"
     );
-    // The binding is republished by exactly one transfer, and the buffer is
-    // staged out of it by exactly one transfer.
+    // v17 reserves the binding before staging and republishes it with Renew.
+    // Only allocation and staging use ordinary transfers.
     let binding = plan
         .slots
         .iter()
@@ -911,7 +911,77 @@ fn a_loop_carried_fill_is_admitted_with_one_owner_and_one_destruction_path() {
                 out + usize::from(source.storage == binding),
             )
         });
-    assert_eq!(into_binding, 2, "allocation and one republication");
+    assert_eq!(
+        into_binding, 1,
+        "only allocation transfers into the binding"
+    );
+    assert_eq!(plan.schema, semaprax::cleanup_plan::CLEANUP_PLAN_SCHEMA_V17);
+    let transitions: Vec<_> = plan
+        .blocks
+        .iter()
+        .flat_map(|block| &block.transitions)
+        .collect();
+    assert_eq!(
+        transitions
+            .iter()
+            .filter(|transition| matches!(transition,
+                CleanupTransition::ReserveRenewal { binding: reserved, .. }
+                    if reserved.storage == binding))
+            .count(),
+        1,
+        "one reservation authenticates the original binding history"
+    );
+    assert_eq!(
+        transitions
+            .iter()
+            .filter(|transition| matches!(transition,
+                CleanupTransition::Renew { destination, .. }
+                    if destination.storage == binding))
+            .count(),
+        1,
+        "one renewal republishes the same owner at its reserved position"
+    );
+    // Independent HIR replay must refuse the previous transfer model, a
+    // missing reservation, and a schema downgrade on this exact loop fixture.
+    for mode in 0..3 {
+        let mut forged = resolved.clone();
+        let function = forged
+            .functions
+            .iter_mut()
+            .find(|function| function.id == main_function(&resolved).id)
+            .unwrap();
+        for block in &mut function.cleanup_plan.blocks {
+            if mode == 0 {
+                block.transitions.retain(|transition| {
+                    !matches!(transition, CleanupTransition::ReserveRenewal { .. })
+                });
+            }
+            for transition in &mut block.transitions {
+                if mode == 1 {
+                    if let CleanupTransition::Renew {
+                        at,
+                        source,
+                        destination,
+                    } = transition
+                    {
+                        *transition = CleanupTransition::Transfer {
+                            at: at.clone(),
+                            source: source.clone(),
+                            destination: destination.clone(),
+                        };
+                    }
+                }
+            }
+        }
+        if mode == 2 {
+            function.cleanup_plan.schema = semaprax::cleanup_plan::CLEANUP_PLAN_SCHEMA_V5;
+        }
+        assert_eq!(
+            hir::validate(&forged).unwrap_err().code,
+            "SPX-H006",
+            "mode {mode}"
+        );
+    }
     assert_eq!(out_of_binding, 1, "one staged transfer out of the binding");
     // No exit ever destroys more than one owner.
     for exit in &plan.exits {

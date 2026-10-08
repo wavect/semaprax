@@ -302,9 +302,28 @@ fn map_set_v2_source_roundtrip_and_checked_graph() {
 fn map_set_v2_interpreter_values_order_failure_and_private_boundaries() {
     let fixture = Fixture::new(SOURCE);
     for (id, expected) in CASES {
-        let result =
-            interpreter::interpret(&fixture.source, id, &[], &InterpreterOptions::default())
-                .unwrap_or_else(|error| panic!("{id}: {error:?}"));
+        let options = InterpreterOptions::default();
+        let result = if *id == "map.helpers" {
+            // Direct String-signature helpers require the explicit internal
+            // profile; the frozen ordinary interpreter must still refuse them.
+            let errors = interpreter::interpret(&fixture.source, id, &[], &options).unwrap_err();
+            assert_eq!(errors.len(), 1, "{id}: {errors:?}");
+            assert_eq!(errors[0].code, "SPX-F102", "{id}: {errors:?}");
+            assert!(errors[0].message.contains("unsupported_callee"));
+            let result =
+                interpreter::internal_strings::interpret(&fixture.source, id, &[], &options)
+                    .unwrap_or_else(|error| panic!("{id}: {error:?}"));
+            interpreter::internal_strings::verify_envelope(&result.envelope).unwrap();
+            interpreter::internal_strings::verify_envelope_against_source(
+                &result.envelope,
+                &fixture.source,
+            )
+            .unwrap();
+            result
+        } else {
+            interpreter::interpret(&fixture.source, id, &[], &options)
+                .unwrap_or_else(|error| panic!("{id}: {error:?}"))
+        };
         let envelope: Value = serde_json::from_str(&result.envelope).unwrap();
         let outcome = &envelope["payload"]["outcome"];
         let observed = if outcome["kind"] == "returned" {

@@ -187,10 +187,10 @@ module test.guarded_copy_variants;
     string_len(kept)
 }
 @id("guards.constructed-for") fn constructed_for() -> i64 {
-    let mut values = vec_with_capacity<i64>(2usize);
-    values = vec_push<i64>(values, 1);
-    values = vec_push<i64>(values, 3);
-    let values = values;
+    let mut building = vec_with_capacity<i64>(2usize);
+    building = vec_push<i64>(building, 1);
+    building = vec_push<i64>(building, 3);
+    let values = building;
     let mut out = "";
     let mut total = 0;
     for item in values {

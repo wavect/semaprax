@@ -722,6 +722,7 @@ fn shapes_outside_owned_string_loops_v1_stay_refused() {
 fn string_conditions_allocate_only_inside_their_iteration_region() {
     for condition in [
         "string_len(\"a\") < 2",
+        "string_len({ text }) < 2",
         "match 0 { n if string_len(\"guard\") > n => true, _ => false, }",
         "{ while false { string_len(text) } false }",
         "{ while false { while string_len(text) < 1 { 0 } 0 } false }",
@@ -739,7 +740,7 @@ fn string_conditions_allocate_only_inside_their_iteration_region() {
     }
     for condition in [
         "string_len(string_concat(text, \"b\")) < 2",
-        "string_len({ text }) < 2",
+        "string_len({ let moved = text; moved }) < 2",
     ] {
         let found = diagnostics(&format!("let text=\"a\"; while {condition} {{0}} 0"));
         assert!(

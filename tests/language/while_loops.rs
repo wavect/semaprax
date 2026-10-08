@@ -299,7 +299,7 @@ fn main() -> i64 {
 
 #[test]
 fn string_conditions_and_unsafe_inside_loops_are_spx_t252() {
-    // Named/direct String predicates are admitted; an allocating nested operand
+    // Computed String conditions are admitted; consuming an enclosing owner
     // and an unsafe boundary remain outside the loop condition profile.
     let sources = [
         (
@@ -308,8 +308,9 @@ fn string_conditions_and_unsafe_inside_loops_are_spx_t252() {
 module test.while_string;
 @id("app.main")
 fn main() -> i64 {
+    let text = "x";
     let mut count = 0;
-    while count < string_len(string_concat("x", "x")) {
+    while count < string_len(string_concat(text, "x")) {
         count = count + 1;
         count < 2
     }

@@ -15,7 +15,7 @@ pub(super) fn admitted(operation: StringOp) -> bool {
     )
 }
 
-pub(in crate::wasm) fn program_uses_numeric(program: &ResolvedProgram) -> bool {
+pub(in crate::wasm) fn program_uses_float_conversion(program: &ResolvedProgram) -> bool {
     let mut pending = Vec::new();
     for function in program.functions.iter().chain(
         program
@@ -27,7 +27,7 @@ pub(in crate::wasm) fn program_uses_numeric(program: &ResolvedProgram) -> bool {
         pending.extend(function.requires.iter().chain(&function.ensures));
     }
     while let Some(expression) = pending.pop() {
-        if matches!(&expression.kind, ResolvedExprKind::Call { callee, .. } if crate::string_ops::by_id(callee.as_str()).is_some_and(admitted))
+        if matches!(&expression.kind, ResolvedExprKind::Call { callee, .. } if matches!(crate::string_ops::by_id(callee.as_str()), Some(StringOp::F64FromI64 | StringOp::I64FromF64)))
         {
             return true;
         }
@@ -40,7 +40,7 @@ pub(in crate::wasm) fn validate_public_profile(
     program: &ResolvedProgram,
     public: bool,
 ) -> Result<(), Diagnostic> {
-    if public && program_uses_numeric(program) {
+    if public && program_uses_float_conversion(program) {
         crate::string_ops::refuse_collections_for_wasm(program)?;
     }
     Ok(())

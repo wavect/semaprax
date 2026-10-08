@@ -408,6 +408,39 @@ fn main() -> i64 {{
             .unwrap_or_else(|errors| panic!("{ty}: {errors:?}"));
         let resolved = hir::resolve(&checked).unwrap_or_else(|error| panic!("{ty}: {error:?}"));
         hir::validate(&resolved).unwrap_or_else(|error| panic!("{ty}: {error:?}"));
+        if ty == "i64" {
+            let mut hostile = resolved.clone();
+            let main = hostile
+                .functions
+                .iter_mut()
+                .find(|function| function.id.as_str() == "app.main")
+                .unwrap();
+            let hir::ResolvedExprKind::Block { statements, .. } = &mut main.body.kind else {
+                panic!("Vec loop main remains a block")
+            };
+            let body = statements
+                .iter_mut()
+                .find_map(|statement| match statement {
+                    hir::ResolvedStatement::While { body, .. } => Some(body),
+                    _ => None,
+                })
+                .expect("Vec loop remains present");
+            let hir::ResolvedExprKind::Block { statements, .. } = &mut body.kind else {
+                panic!("Vec loop body remains a block")
+            };
+            let argument = statements
+                .iter_mut()
+                .find_map(|statement| match statement {
+                    hir::ResolvedStatement::Assign { value, .. } => match &mut value.kind {
+                        hir::ResolvedExprKind::Call { args, .. } => args.first_mut(),
+                        _ => None,
+                    },
+                    _ => None,
+                })
+                .expect("borrowed Vec helper call retains its argument");
+            argument.ownership = hir::OwnershipMode::Value;
+            assert_eq!(hir::validate(&hostile).unwrap_err().code, "SPX-H006");
+        }
     }
 }
 

@@ -429,6 +429,19 @@ impl HirValidator<'_> {
                                     "while loop owner observer requires a whole named cursor",
                                 ));
                             }
+                        } else if parameter.ownership == OwnershipMode::Borrow
+                            && crate::vec_ops::resolved_copy_vec(&parameter.ty)
+                        {
+                            if parameter.ty != argument.ty
+                                || !matches!(&argument.kind, ResolvedExprKind::Place(place)
+                                    if place.projections.is_empty()
+                                        && matches!(argument.ownership,
+                                            OwnershipMode::Own | OwnershipMode::Borrow))
+                            {
+                                return Err(hir_error(
+                                    "while loop borrowed Vec helper requires a whole named Copy-scalar Vec",
+                                ));
+                            }
                         } else if parameter.ownership != OwnershipMode::Own
                             || parameter.ty == ResolvedType::String
                         {

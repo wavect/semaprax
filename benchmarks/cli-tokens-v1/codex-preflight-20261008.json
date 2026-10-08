@@ -1,0 +1,26 @@
+{
+  "schema": "semaprax.benchmark.codex-preflight.v1",
+  "status": "ready",
+  "request_model": "gpt-6.1-sol",
+  "request_effort": "medium",
+  "observed_model": "gpt-6.1-sol",
+  "observed_effort": "medium",
+  "observed_service_tier": null,
+  "provider_usage": {
+    "input_tokens": 12743,
+    "cached_input_tokens": 8832,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 5,
+    "reasoning_output_tokens": 0
+  },
+  "stream_sha256": "166011b53edf3ceba8e5c9293cdca5fe52d84b30ee90a64989b10eb9e8160aed",
+  "rollout_sha256": "13dfe6eb937a3485d3f5b593a7e8dbc5b8660e88af10e9890a1cbc6b7c9c9dbf",
+  "fixed_context_input_tokens": null,
+  "context_claim": "preflight includes prompt and harness; no subtraction or exact fixed-context claim",
+  "actual_billed_cost_usd": null,
+  "standard_short_context_api_equivalent_estimate_usd": 0.0087552,
+  "estimate_claim": "conditional Standard short-context rate-card estimate, not a subscription billing receipt; preflight read-only is separate from matched workspace-write campaign calibration",
+  "price_source": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+  "price_checked": "2026-10-08",
+  "artifacts": "/Users/kevin/.codex/benchmark-runs/codex-loglens-preflight-20261008"
+}

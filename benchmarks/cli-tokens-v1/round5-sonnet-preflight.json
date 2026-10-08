@@ -1,0 +1,15 @@
+{
+  "schema": "semaprax.benchmark.preflight-refusal.v1",
+  "campaign": "LogLens round5 Sonnet5.5",
+  "planned_trials_per_arm": 5,
+  "trials_launched": 0,
+  "status": "weekly_provider_limit",
+  "reset_as_reported": "7pm Europe/Vienna",
+  "compiler_source_commit": "94fadd14c",
+  "repository_seed_commit": "77db58e7f",
+  "calibration_sha256": "df25ca2501e323ee582ffcf31ba6dd00e96e4937b68bffb804014fff8f74c7f9",
+  "calibration_transcript_sha256": "2948ed667712b9d7850ccd23e087813884818e965fb4192f84296cff39b9063e",
+  "provider_reported_api_equivalent_total_cost_usd": 0,
+  "actual_billed_cost_usd": null,
+  "artifacts": "/Users/kevin/.codex/benchmark-runs/loglens-round5-20261008"
+}

@@ -92,3 +92,22 @@ per arm: SEMAPRAX accepted 4/5 and TypeScript 5/5. See
 [the round 4 report](ROUND-4-REPORT.md) and
 [accounted evidence](round4-accounted-evidence.json) for usage, fixed-context
 calibration, estimated cost per accepted task and saved-artifact identities.
+
+## Next round preflight (2026-10-08)
+
+The Sonnet round-5 plan preserves the exact round-4 specification and sample
+hashes, with five attempts per arm. Its calibration was rejected by the
+account weekly quota; **zero application trials launched**. The
+[preflight record](round5-sonnet-preflight.json) binds the retained artifacts.
+This is not a scored campaign or a language-comparison result.
+
+A separate Codex GPT-6.1 Sol medium-effort entitlement preflight returned
+`READY`. Its [record](codex-preflight-20261008.json) preserves raw input/cache/
+cache-write/output counters and trace hashes. This read-only preflight is
+separate from any matched application campaign and calibration. Its conditional
+Standard short-context API rate-card estimate is not an actual subscription
+billing receipt, and unavailable fixed-context composition remains null.
+The [official model pricing](https://developers.openai.com/api/docs/models/gpt-6.1-sol)
+was checked on 2026-10-08. A new provider campaign must retain its own prompt,
+model, CLI, usage, acceptance and source provenance; results cannot be merged
+into the historical Sonnet campaign.

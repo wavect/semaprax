@@ -156,7 +156,7 @@ fn indexed(text: string) -> usize {
     assert_eq!(
         diagnostic.help.as_deref(),
         Some(
-            "bind the byte view before the loop, for example `let bytes = str_as_bytes(text);`, then pass `bytes` to `byte_len` or `byte_get`"
+            "bind the byte view of a named `str` before the loop: `let bytes = str_as_bytes(view);`, then pass `bytes` to `byte_len` or `byte_get`"
         )
     );
 }

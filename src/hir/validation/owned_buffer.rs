@@ -285,7 +285,7 @@ pub(super) fn require_admitted_while_operation(
             "while loop indexed byte reads require an existing byte-slice alias",
         )
         .with_help(
-            "bind the byte view before the loop, for example `let bytes = str_as_bytes(text);`, then pass `bytes` to `byte_len` or `byte_get`",
+            "bind the byte view of a named `str` before the loop: `let bytes = str_as_bytes(view);`, then pass `bytes` to `byte_len` or `byte_get`",
         ));
     };
     if slice.ty != ResolvedType::SliceU8
@@ -303,7 +303,7 @@ pub(super) fn require_admitted_while_operation(
             "while loop indexed byte read lacks authenticated slice provenance",
         )
         .with_help(
-            "bind the byte view before the loop, for example `let bytes = str_as_bytes(text);`, then pass `bytes` to `byte_len` or `byte_get`",
+            "bind the byte view of a named `str` before the loop: `let bytes = str_as_bytes(view);`, then pass `bytes` to `byte_len` or `byte_get`",
         ));
     }
     Ok(())

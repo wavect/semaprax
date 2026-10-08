@@ -1285,6 +1285,11 @@ pub(super) fn project_effects_admitted(
     effects: &[String],
     natives: &ScalarNativeImports,
 ) -> bool {
+    if profile == crate::project::ProjectProfile::SourceCommandV1 {
+        return effects
+            .iter()
+            .all(|v| crate::source_command::EFFECTS.contains(&v.as_str()));
+    }
     (profile == crate::project::ProjectProfile::EnvironmentIoV1
         && effects.iter().all(|effect| {
             crate::project::PROJECT_ENVIRONMENT_CAPABILITIES_V1.contains(&effect.as_str())
@@ -1338,6 +1343,12 @@ pub(super) fn permits_admitted(
     entry_module: &str,
     natives: &ScalarNativeImports,
 ) -> bool {
+    if profile == crate::project::ProjectProfile::SourceCommandV1 {
+        return module
+            .permits
+            .iter()
+            .all(|v| crate::source_command::EFFECTS.contains(&v.as_str()));
+    }
     if profile.is_stdin_stream() {
         return module.permits.iter().all(|permit| {
             crate::project::PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2.contains(&permit.as_str())

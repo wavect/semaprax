@@ -1504,6 +1504,7 @@ impl WorkspaceGraphBuild {
             | crate::project::ProjectProfile::FilesystemIoV3
             | crate::project::ProjectProfile::EnvironmentIoV1
             | crate::project::ProjectProfile::ProcessIoV1
+            | crate::project::ProjectProfile::SourceCommandV1
             | crate::project::ProjectProfile::OwnedDataApiV1
             | crate::project::ProjectProfile::PublicGenericWasmProviderV1
             | crate::project::ProjectProfile::SourceLocalFutureV1
@@ -1766,6 +1767,7 @@ impl WorkspaceGraphBuild {
             | crate::project::ProjectProfile::FilesystemIoV3
             | crate::project::ProjectProfile::EnvironmentIoV1
             | crate::project::ProjectProfile::ProcessIoV1
+            | crate::project::ProjectProfile::SourceCommandV1
             | crate::project::ProjectProfile::OwnedDataApiV1
             | crate::project::ProjectProfile::PublicGenericWasmProviderV1
             | crate::project::ProjectProfile::SourceLocalFutureV1
@@ -2115,6 +2117,7 @@ impl WorkspaceGraphBuild {
                     | crate::project::ProjectProfile::FilesystemIoV3
                     | crate::project::ProjectProfile::EnvironmentIoV1
                     | crate::project::ProjectProfile::ProcessIoV1
+                    | crate::project::ProjectProfile::SourceCommandV1
                     | crate::project::ProjectProfile::OwnedDataApiV1
                     | crate::project::ProjectProfile::FlatOwnedRecordApiV1
                     | crate::project::ProjectProfile::OwnedUtf8ApiV1
@@ -2158,6 +2161,7 @@ impl WorkspaceGraphBuild {
                     | crate::project::ProjectProfile::FilesystemIoV3
                     | crate::project::ProjectProfile::EnvironmentIoV1
                     | crate::project::ProjectProfile::ProcessIoV1
+                    | crate::project::ProjectProfile::SourceCommandV1
                     | crate::project::ProjectProfile::OwnedDataApiV1
                     | crate::project::ProjectProfile::PublicGenericWasmProviderV1
                     | crate::project::ProjectProfile::SourceLocalFutureV1

@@ -6,6 +6,12 @@
   The same admitted AST supplies lazy Boolean, match, helper and contract
   semantics; the server still checks every actual write. Source and generated
   callback regressions are authored; focused verification is pending.
+- Add native-only Project v26 `source-command.v1` for ordinary source-library
+  imports in argv/read-only file CLI programs (OPT #667). Preserve exact
+  SourceCommand authority, checked status/cleanup and immutable publication;
+  interpreter/Web/npm/Wasm refuse explicitly. Owning native import, malformed
+  entry/authority, canonical projection and source-drift gates are authored
+  pending current-compiler verification.
 
 - Fix the TeamDesk v2 TypeScript reference's signed-i64 transport for OPT #662:
   preserve JSON number lexemes, use exact integer schema arithmetic and form

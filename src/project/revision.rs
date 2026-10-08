@@ -429,6 +429,8 @@ impl ProjectRevision {
 
     /// Build Project v1 as one deterministic pathless scalar-Web carrier.
     pub fn build_web_inline(&self, max_bytes: usize) -> Result<ProjectWebBuild, Vec<Diagnostic>> {
+        super::source_command::require_portable(self.manifest.project_profile())
+            .map_err(|error| vec![error])?;
         if self.manifest.project_profile().is_stdin_stream() {
             return Err(vec![Diagnostic::io(
                 "SPX-W120",
@@ -468,6 +470,7 @@ impl ProjectRevision {
                 ProjectProfile::FilesystemIoV3 => "v19",
                 ProjectProfile::EnvironmentIoV1 => "v17",
                 ProjectProfile::ProcessIoV1 => "v18",
+                ProjectProfile::SourceCommandV1 => "v26",
                 ProjectProfile::PublicGenericWasmProviderV1 => "v20",
                 ProjectProfile::SourceLocalFutureV1 => "v21",
                 ProjectProfile::SourceLocalFutureIndexedRustV1 => "v22",
@@ -891,6 +894,8 @@ impl ProjectRevision {
 
     /// Emit the sole retained test-module closure as legacy core Wasm.
     pub fn test_wasm_module(&self) -> Result<Vec<u8>, Vec<Diagnostic>> {
+        super::source_command::require_portable(self.manifest.project_profile())
+            .map_err(|error| vec![error])?;
         crate::wasm::emit_resolved_module(&self.test_program).map_err(|error| vec![error])
     }
 }

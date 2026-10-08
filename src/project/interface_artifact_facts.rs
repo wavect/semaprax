@@ -346,7 +346,7 @@ fn derive_source_interface(
         | ProjectProfile::PublicGenericWasmProviderV1
         | ProjectProfile::SourceLocalFutureV1
         | ProjectProfile::SourceLocalFutureIndexedRustV1 => return Ok(None),
-        ProjectProfile::ProcessIoV1 => return Ok(None),
+        ProjectProfile::ProcessIoV1 | ProjectProfile::SourceCommandV1 => return Ok(None),
     };
     let canonical_bytes = String::from_utf8(bytes)
         .map_err(|_| invalid("compiler-owned interface descriptor is not canonical UTF-8"))?;

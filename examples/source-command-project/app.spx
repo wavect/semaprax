@@ -1,0 +1,13 @@
+module decimal.command;
+use function @id("std.int.decimal.canonicalize") from std.int.decimal as canonicalize;
+use function @id("std.int.decimal.add") from std.int.decimal as add;
+use function @id("std.int.decimal.divide") from std.int.decimal as divide;
+
+permit { fs.read, process.args.read, process.stderr.write, process.stdout.write }
+
+@id("decimal.command.main")
+fn main() -> i64
+    uses { fs.read, process.args.read, process.stderr.write, process.stdout.write }
+{
+    if args_len() != 1usize { let usage = "usage\n"; let view = string_as_str(usage); let ignored = stderr_write(str_as_bytes(view)); 2 } else { let path = arg_utf8(0usize); let input = file_read_text(path); let value = canonicalize(input); let sum = add(value, "1"); let divisor = "3"; let output = divide(sum, string_as_str(divisor)); let view = string_as_str(output); let ignored = stdout_write(str_as_bytes(view)); 0 }
+}

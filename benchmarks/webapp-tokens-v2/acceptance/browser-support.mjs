@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 
 export function signInLabel(field) {
   assert.ok(['email', 'password'].includes(field), 'known sign-in field');
-  return new RegExp(`^${field}$`, 'i');
+  return new RegExp(`^\\s*${field}\\s*$`, 'i');
 }
 
 // Typed integer editors may use inputmode rather than the browser Number

@@ -85,8 +85,8 @@ test('initialized TypeScript setup refusal does not prevent restart readiness',a
 
 
 test('sign-in label capitalization preserves exact accessible field identity',()=>{
-  for (const label of ['email','Email','EMAIL']) assert.equal(signInLabel('email').test(label),true);
-  for (const label of ['password','Password','PASSWORD']) assert.equal(signInLabel('password').test(label),true);
+  for (const label of ['email','Email','EMAIL',' email ','\nEmail\t']) assert.equal(signInLabel('email').test(label),true);
+  for (const label of ['password','Password','PASSWORD',' password ','\tPassword\n']) assert.equal(signInLabel('password').test(label),true);
   for (const label of ['recovery email','email address of another member','new password','password confirmation'])
     for (const field of ['email','password']) assert.equal(signInLabel(field).test(label),false);
   assert.throws(()=>signInLabel('.*'));

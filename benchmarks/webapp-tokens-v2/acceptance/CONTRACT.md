@@ -61,7 +61,7 @@ newlines. These representation normalizations apply identically to both arms.
 
 
 The browser uses ordinary visible controls: sign-in labels email/password;
-sign-in label capitalization is immaterial;
+sign-in label capitalization and surrounding whitespace are immaterial;
 entity navigation; field labels; New/Edit/Create-or-Save/Delete/Cancel;
 search, enum filters, table column sorting, Prev/Next, CSV, and history.
 SEM uses hash routes; the TS reference uses pathname routes. Selectors permit

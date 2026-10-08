@@ -133,14 +133,54 @@ class WebappCampaignTests(unittest.TestCase):
                      "qualification": {"passed": True, "cases": 912, "missingCases": [], "missingGroups": [], "failures": []}}
         self.assertFalse(rescore.report_is_accepted(malformed, "typescript", settings, "unused", {}, {"g"}))
 
+    def test_rescore_snapshot_keeps_contract_outside_runtime_gate_inventory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); output = root / "output"; contract = "benchmarks/webapp-tokens-v2/acceptance/CONTRACT.md"
+            for relative in campaign.ACCEPTANCE_SOURCE_FILES:
+                path = root / relative; path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("export const COVERAGE = ['g'];\n" if path.name == "contract.mjs" else f"fixture {relative}\n")
+            contract_path = root / contract; contract_path.write_text("contract fixture\n")
+            receipt, clarification = root / "receipt.json", root / "clarification.md"
+            receipt.write_text("{}"); clarification.write_text("clarification\n")
+            original = {"seed_files_sha256": {campaign.FROZEN_SPEC: rescore.digest(root / campaign.FROZEN_SPEC),
+                        contract: rescore.digest(contract_path)}}
+            commit = "a" * 40
+            with patch.object(campaign, "validate_qualification_receipt", return_value=commit), \
+                    patch.object(campaign, "resolve_commit", return_value=commit), \
+                    patch.object(campaign, "_git_file", side_effect=lambda _repo, _commit, rel: (root / rel).read_bytes()):
+                gate = rescore.snapshot_gate(root, output, original, clarification, receipt, commit)
+            runtime = output / "gate-source/benchmarks/webapp-tokens-v2/acceptance"
+            self.assertFalse((runtime / "CONTRACT.md").exists())
+            self.assertEqual(rescore.contract_groups(runtime / "contract.mjs"), {"g"})
+            self.assertEqual({path.relative_to(runtime).as_posix() for path in runtime.rglob("*") if path.is_file()},
+                             {Path(name).name for name in campaign.ACCEPTANCE_SOURCE_FILES if "/acceptance/" in name})
+            self.assertEqual(rescore.digest(output / gate["contract_document"]["snapshot_path"]), gate["contract_document"]["sha256"])
+            self.assertTrue(rescore.gate_inventory_shapes(gate))
+
+    def test_rescore_refuses_invalid_jobs_and_nonfinite_wall_before_reading_originals(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "rescore.json"
+            for jobs, wall in [(0, 1), (3, 1), (True, 1), ([], 1), (1, float("nan")),
+                               (2, float("inf")), (1, -1), (1, True), (1, "slow")]:
+                with self.subTest(jobs=jobs, wall=wall):
+                    path.write_text(json.dumps({"schema": rescore.SCHEMA,
+                                               "rescore_jobs": jobs, "rescore_wall_seconds": wall}))
+                    with self.assertRaisesRegex(ValueError, "invalid jobs or wall-time"):
+                        rescore.validate_sidecar(path, Path(directory))
+
     def test_rescore_hostile_gate_inventory_shape_is_refused(self):
         runner = set(campaign.ACCEPTANCE_SOURCE_FILES)
-        files = runner | {"benchmarks/webapp-tokens-v2/acceptance/CONTRACT.md"}
-        hashes = {name: "a" * 64 for name in files}
-        gate = {"files_sha256": hashes, "runner_files_sha256": {name: hashes[name] for name in runner}}
+        hashes = {name: "a" * 64 for name in runner}
+        gate = {"files_sha256": hashes, "runner_files_sha256": {name: hashes[name] for name in runner},
+                "contract_document": {"repo_path": "benchmarks/webapp-tokens-v2/acceptance/CONTRACT.md",
+                                      "sha256": "b" * 64, "snapshot_path": "gate-metadata/CONTRACT.md"}}
         self.assertTrue(rescore.gate_inventory_shapes(gate))
         gate["runner_files_sha256"]["forged"] = "b" * 64
         self.assertFalse(rescore.gate_inventory_shapes(gate))
+        gate["runner_files_sha256"].pop("forged")
+        for key, value in (("repo_path", "wrong"), ("snapshot_path", "gate-source/CONTRACT.md"), ("sha256", 7)):
+            hostile = {**gate, "contract_document": {**gate["contract_document"], key: value}}
+            self.assertFalse(rescore.gate_inventory_shapes(hostile))
 
     def test_plan_pins_public_seed_receipt_and_matched_order(self):
         args = type("Args", (), {

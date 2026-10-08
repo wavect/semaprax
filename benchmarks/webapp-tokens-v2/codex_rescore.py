@@ -8,13 +8,16 @@ records a new gate result beside the original status and paid-wall evidence.
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
+import math
 import os
 import re
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -128,7 +131,8 @@ def snapshot_gate(repo: Path, output: Path, original: dict[str, Any], clarificat
                   qualification_path: Path, gate_source: str) -> dict[str, Any]:
     old_seed = original.get("seed_files_sha256", {})
     spec_sha = old_seed.get(campaign.FROZEN_SPEC)
-    old_contract = old_seed.get("benchmarks/webapp-tokens-v2/acceptance/CONTRACT.md")
+    contract_relative = "benchmarks/webapp-tokens-v2/acceptance/CONTRACT.md"
+    old_contract = old_seed.get(contract_relative)
     if not isinstance(spec_sha, str) or not isinstance(old_contract, str):
         raise ValueError("original campaign lacks frozen SPEC and CONTRACT identities")
     clarification_sha = digest(clarification)
@@ -138,12 +142,11 @@ def snapshot_gate(repo: Path, output: Path, original: dict[str, Any], clarificat
     if campaign.resolve_commit(repo, gate_source) != gate_commit:
         raise ValueError("new gate source does not match the qualification receipt")
     runner_files = tuple(campaign.ACCEPTANCE_SOURCE_FILES)
-    files = (*runner_files, "benchmarks/webapp-tokens-v2/acceptance/CONTRACT.md")
     hashes: dict[str, str] = {}
     destination = output / "gate-source"
     if destination.exists():
         raise ValueError("new gate snapshot destination must be absent")
-    for relative in files:
+    for relative in runner_files:
         source = repo / relative
         hashes[relative] = digest(source)
         target = destination / relative
@@ -154,13 +157,23 @@ def snapshot_gate(repo: Path, output: Path, original: dict[str, Any], clarificat
         shutil.copy2(source, target, follow_symlinks=False)
         if digest(target) != hashes[relative]:
             raise ValueError("new gate snapshot hash differs while copying")
+    contract_source = repo / contract_relative
+    contract_hash = digest(contract_source)
+    if contract_source.read_bytes() != campaign._git_file(repo, gate_commit, contract_relative):
+        raise ValueError("new contract differs from qualified commit")
+    contract_snapshot = output / "gate-metadata" / "CONTRACT.md"
+    contract_snapshot.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(contract_source, contract_snapshot, follow_symlinks=False)
+    if digest(contract_snapshot) != contract_hash:
+        raise ValueError("new contract snapshot hash differs while copying")
     snapshot_receipt = destination / "qualification-receipt.json"
     snapshot_clarification = destination / "clarification.md"
     shutil.copy2(receipt_path, snapshot_receipt, follow_symlinks=False)
     shutil.copy2(clarification, snapshot_clarification, follow_symlinks=False)
     return {
-        "path": "gate-source", "files_sha256": hashes,
-        "runner_files_sha256": {relative: hashes[relative] for relative in runner_files},
+        "path": "gate-source", "files_sha256": hashes, "runner_files_sha256": dict(hashes),
+        "contract_document": {"repo_path": contract_relative, "sha256": contract_hash,
+                              "snapshot_path": "gate-metadata/CONTRACT.md"},
         "qualification_receipt": {"path": str(receipt_path), "sha256": digest(receipt_path),
                                     "snapshot_path": "gate-source/qualification-receipt.json",
                                     "gate_source_commit": gate_commit, "required_cases": 912},
@@ -174,6 +187,10 @@ def verify_gate_unchanged(repo: Path, output: Path, gate: dict[str, Any]) -> Non
     for relative, wanted in gate["files_sha256"].items():
         if digest(repo / relative) != wanted or digest(output / gate["path"] / relative) != wanted:
             raise ValueError(f"new gate source drifted: {relative}")
+    contract = gate["contract_document"]
+    if (digest(repo / contract["repo_path"]) != contract["sha256"]
+            or digest(output / contract["snapshot_path"]) != contract["sha256"]):
+        raise ValueError("new contract source drifted")
     receipt = gate["qualification_receipt"]
     clarification = gate["clarification"]
     if (digest(Path(receipt["path"])) != receipt["sha256"]
@@ -267,12 +284,14 @@ def report_is_accepted(report: dict[str, Any], arm: str, settings: dict[str, Any
 
 def gate_inventory_shapes(gate: dict[str, Any]) -> bool:
     runner = set(campaign.ACCEPTANCE_SOURCE_FILES)
-    files = runner | {"benchmarks/webapp-tokens-v2/acceptance/CONTRACT.md"}
-    recorded, recorded_runner = gate.get("files_sha256"), gate.get("runner_files_sha256")
-    return (isinstance(recorded, dict) and isinstance(recorded_runner, dict)
-            and set(recorded) == files and set(recorded_runner) == runner
+    recorded, recorded_runner, contract = (gate.get("files_sha256"), gate.get("runner_files_sha256"),
+                                             gate.get("contract_document"))
+    return (isinstance(recorded, dict) and isinstance(recorded_runner, dict) and isinstance(contract, dict)
+            and set(recorded) == runner and set(recorded_runner) == runner
             and all(isinstance(value, str) for value in recorded.values())
-            and all(recorded_runner[name] == recorded[name] for name in runner))
+            and all(recorded_runner[name] == recorded[name] for name in runner)
+            and contract.get("repo_path") == "benchmarks/webapp-tokens-v2/acceptance/CONTRACT.md"
+            and isinstance(contract.get("sha256"), str) and contract.get("snapshot_path") == "gate-metadata/CONTRACT.md")
 
 
 def validate_gate_inventory(repo: Path, gate: dict[str, Any], campaign_record: dict[str, Any], gate_commit: str) -> None:
@@ -286,6 +305,9 @@ def validate_gate_inventory(repo: Path, gate: dict[str, Any], campaign_record: d
     for relative, wanted in gate["files_sha256"].items():
         if hashlib.sha256(campaign._git_file(repo, gate_commit, relative)).hexdigest() != wanted:
             raise ValueError(f"sidecar gate inventory differs from its qualified commit: {relative}")
+    contract = gate["contract_document"]
+    if hashlib.sha256(campaign._git_file(repo, gate_commit, contract["repo_path"])).hexdigest() != contract["sha256"]:
+        raise ValueError("sidecar contract differs from its qualified commit")
 
 
 def rescore_settings(campaign_record: dict[str, Any], output: Path, gate: dict[str, Any]) -> dict[str, Any]:
@@ -313,6 +335,10 @@ def validate_sidecar(path: Path, repo: Path) -> dict[str, Any]:
         raise ValueError("rescore sidecar schema differs")
     original, gate, rows = sidecar.get("original"), sidecar.get("gate"), sidecar.get("trials")
     compiler = sidecar.get("compiler")
+    jobs, wall = sidecar.get("rescore_jobs"), sidecar.get("rescore_wall_seconds")
+    if (type(jobs) is not int or jobs not in (1, 2) or type(wall) not in (int, float)
+            or (isinstance(wall, float) and not math.isfinite(wall)) or wall < 0):
+        raise ValueError("rescore sidecar has an invalid jobs or wall-time setting")
     if not isinstance(original, dict) or not isinstance(gate, dict) or not isinstance(rows, list) or not isinstance(compiler, dict):
         raise ValueError("rescore sidecar has an invalid top-level inventory")
     original_path, campaign_path, terminal_path = (Path(str(original.get(key, "")))
@@ -450,7 +476,7 @@ def rescore(args: argparse.Namespace) -> dict[str, Any]:
     if any(set(cases.values()) != required_groups for cases in required_cases.values()):
         raise ValueError("qualified reference report group inventory differs from snapshotted gate")
     rows: list[dict[str, Any]] = []
-    for original_row in trials:
+    def score_one(original_row: dict[str, Any]) -> dict[str, Any]:
         arm, number = original_row["arm"], original_row["number"]
         row: dict[str, Any] = {"arm": arm, "number": number, "original_status": original_row.get("status"),
                                "original_acceptance": original_row.get("acceptance"),
@@ -462,7 +488,7 @@ def rescore(args: argparse.Namespace) -> dict[str, Any]:
         expected = original_row.get("candidate_files_sha256")
         if not isinstance(archive, str) or not isinstance(expected, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in expected.items()):
             row["reason"] = "original attempt has no closed archived candidate inventory"
-            rows.append(row); continue
+            return row
         verify_gate_unchanged(repo, output, gate)
         candidate = output / "candidates" / f"{arm}-{number:02d}"
         copied = copy_closed_archive(Path(archive), candidate, expected)
@@ -477,7 +503,7 @@ def rescore(args: argparse.Namespace) -> dict[str, Any]:
             row.update({"rescore_status": "not_accepted", "reason": f"new gate execution failed: {error}",
                         "candidate_files_sha256": copied, "new_acceptance": {"accepted": False, "report": {}},
                         "new_acceptance_wall_seconds": None, "new_report_path": None, "new_report_sha256": None})
-            rows.append(row); continue
+            return row
         verify_gate_unchanged(repo, output, gate)
         if rel_file_inventory(candidate) != copied or rel_file_inventory(Path(archive)) != expected:
             raise ValueError("candidate copy or original archive changed during rescoring")
@@ -493,9 +519,13 @@ def rescore(args: argparse.Namespace) -> dict[str, Any]:
                     "new_acceptance_wall_seconds": result.get("seconds"),
                     "new_report_path": str(report_path) if report is not None else None,
                     "new_report_sha256": digest(report_path) if report is not None else None})
-        rows.append(row)
+        return row
+    rescore_started = time.monotonic()
+    with ThreadPoolExecutor(max_workers=args.jobs) as executor:
+        rows = list(executor.map(score_one, trials))
+    rescore_wall_seconds = round(time.monotonic() - rescore_started, 3)
     verify_gate_unchanged(repo, output, gate)
-    sidecar = {"schema": SCHEMA, "claim": "separate rescoring evidence; original paid results and costs are retained", "original": {"results": str(original_path), "results_sha256": digest(original_path), "campaign": str(campaign_path), "campaign_sha256": digest(campaign_path), "terminal_receipt": str(terminal_path), "terminal_receipt_sha256": digest(terminal_path)}, "gate": gate, "compiler": {"path": str(compiler), "sha256": args.compiler_sha256, "source_sha": args.compiler_source_sha}, "settings": settings, "trials": rows}
+    sidecar = {"schema": SCHEMA, "rescore_jobs": args.jobs, "rescore_wall_seconds": rescore_wall_seconds, "claim": "separate rescoring evidence; original paid results and costs are retained", "original": {"results": str(original_path), "results_sha256": digest(original_path), "campaign": str(campaign_path), "campaign_sha256": digest(campaign_path), "terminal_receipt": str(terminal_path), "terminal_receipt_sha256": digest(terminal_path)}, "gate": gate, "compiler": {"path": str(compiler), "sha256": args.compiler_sha256, "source_sha": args.compiler_source_sha}, "settings": settings, "trials": rows}
     (output / "rescore.json").write_text(json.dumps(sidecar, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return sidecar
 
@@ -507,7 +537,7 @@ def main() -> int:
     parser.add_argument("--semaprax-bin"); parser.add_argument("--compiler-sha256")
     parser.add_argument("--compiler-source-sha"); parser.add_argument("--clarification")
     parser.add_argument("--qualification-receipt"); parser.add_argument("--gate-source")
-    parser.add_argument("--output"); parser.add_argument("--validate-sidecar")
+    parser.add_argument("--output"); parser.add_argument("--jobs", type=int, choices=(1, 2), default=1); parser.add_argument("--validate-sidecar")
     try:
         args = parser.parse_args()
         repo = Path(args.repo).resolve(strict=True)

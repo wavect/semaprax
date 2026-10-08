@@ -62,3 +62,13 @@ transcripts, prompts, or candidate archives. `--validate-sidecar` rechecks the
 original result hash, new gate hashes, clarification hash, and all ten unique
 arm/number identities. This sidecar is new acceptance evidence, not a claim
 that the frozen original gate or paid wall time changed.
+
+Reference qualification and archival rescoring use the same minimal immutable
+runner snapshot: frozen SPEC plus the twelve acceptance runtime files. The
+acceptance CONTRACT prose is stored separately as qualified, hash-bound
+metadata so it cannot change the runner inventory reported by the gate.
+
+Offline rescoring accepts `--jobs 1` (default) or `--jobs 2`, with isolated
+candidate/evidence directories and original trial order retained. Its worker
+count and elapsed rescore time are separate from original agent and scoring
+wall times.

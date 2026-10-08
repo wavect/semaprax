@@ -1,0 +1,75 @@
+{
+  "campaign_start": {
+    "attempt_denominator": 10,
+    "calibration_effort_observed": "medium",
+    "calibration_model_observed": "gpt-6.1-sol",
+    "calibration_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-main3660e0daf-20261008/calibration.json",
+    "calibration_process_exit_code": 0,
+    "calibration_reconciled": true,
+    "calibration_separate_from_trials": true,
+    "calibration_sha256": "89661cedb375fa7025888ed3633d29b53bdbaa3d5bbe59f05bd2b02b3f593753",
+    "calibration_status": "ready",
+    "campaign_created_at_utc": "2026-10-08T03:43:05+00:00",
+    "campaign_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-main3660e0daf-20261008/campaign.json",
+    "campaign_sha256": "58ffbb8f392be2e5779f0423b16839532433077113e8d26a596848625937ed05",
+    "effort": "medium",
+    "model": "gpt-6.1-sol",
+    "qualification_mode": "evidence_gated_scored",
+    "results_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-main3660e0daf-20261008/results.json",
+    "results_present_at_snapshot": false,
+    "scored_result_status": "not_available_at_snapshot",
+    "trial_order": [
+      "semaprax",
+      "typescript",
+      "typescript",
+      "semaprax",
+      "semaprax",
+      "typescript",
+      "typescript",
+      "semaprax",
+      "semaprax",
+      "typescript"
+    ],
+    "trials_per_arm": 5
+  },
+  "claims_scope": "qualification and campaign start evidence only; no live scored result or performance gain claimed",
+  "compiler": {
+    "path": "/Users/kevin/.codex/benchmark-binaries/semaprax-3660e0daf",
+    "sha256": "ba75eec45d71e714a72eaac21f325195f3c3af4f259d9a9835306c1fe4dcbedc"
+  },
+  "harness_source_closure": {
+    "manifest_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-main3660e0daf-20261008/harness-source/manifest.json",
+    "manifest_sha256": "e0ef200745b15a0b39551947c9e2c3fbc035d25c64754eee803a2f381b3c8013",
+    "path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-main3660e0daf-20261008/harness-source",
+    "snapshot_kind": "post-launch-source-closure",
+    "source_commit": "3660e0daf9335dc9d6dc27949a43cd40dff7326c"
+  },
+  "qualification": {
+    "acceptance_cases_passed": 15,
+    "acceptance_cases_total": 15,
+    "acceptance_report_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-main366-qualification-20261008/acceptance-report.json",
+    "acceptance_report_sha256": "6d2edb5c32701c57d8f4b8c2c065c2e0bbd2951c1db88598c2dcda62c88dc1af",
+    "acceptance_status": "passed",
+    "candidate_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-main366-qualification-20261008/candidate",
+    "candidate_test_status": "passed",
+    "evidence_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-main366-qualification-20261008/qualification-evidence-v2.json",
+    "evidence_sha256": "f0e65e686d55894cd95baa2efe4bb6c61cd326e4d65638c2ac52c1144d386003",
+    "named_project_cases": 6,
+    "route": {
+      "command_result_type": "i64",
+      "input_route": "argv-utf8+stdin-stream.v1",
+      "process_status_range": [
+        0,
+        255
+      ],
+      "project_profile": "language-command-io.stream.v2",
+      "project_schema": "semaprax.project.v24"
+    },
+    "test_log_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-main366-qualification-20261008/candidate-test.log",
+    "test_log_sha256": "3ddcf0e184b352ed91033c9327fb55c00ba21e59a3ff2e8b9e4aa2705b2b89d5"
+  },
+  "schema": "semaprax.shiftsim-campaign-start-evidence.v1",
+  "snapshot_time_utc": "2026-10-08T03:44:06+00:00",
+  "snapshot_timing": "post-launch source closure; calibration completed; no trial results file existed at capture",
+  "source_commit": "3660e0daf9335dc9d6dc27949a43cd40dff7326c"
+}

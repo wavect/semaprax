@@ -772,7 +772,7 @@ static GUIDE: &[GuideGroup] = &[
             GuideEntry {
                 id: CommandId::Help,
                 shape: "help shapes [selector]",
-                summary: "One declaration shape",
+                summary: "Catalog; `function` narrows",
             },
         ],
     },
@@ -1147,6 +1147,8 @@ mod tests {
             assert!(help.starts_with(BANNER));
             assert!(help.contains("\n  help all "));
             assert!(help.contains("\n  help language "));
+            assert!(help.contains("help shapes [selector]"));
+            assert!(help.contains("Catalog; `function` narrows"));
             assert!(help.contains("semaprax help diagnostic <code>`\n"));
             assert!(help.contains("\n  new "));
             assert!(help.contains("\n  doctor "), "private={private}");

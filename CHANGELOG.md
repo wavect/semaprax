@@ -4,7 +4,7 @@
   Wasm gates for the bounded owned-String record, loop-match, String-condition
   and String-replacement slices. Preserve frozen-profile refusals and every
   prior hosted distinction. Selected collection and Toolkit evidence remains
-  local; the final Native Map and Project v25 checks are still pending, with no
+  local; the final Native Map and Project v25 focused checks passed, with no
   browser, hosted, public-package or full-profile claim.
 
 - Author typed Map/Set transport, removal and deterministic closed key/value

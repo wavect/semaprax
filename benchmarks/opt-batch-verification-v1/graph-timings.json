@@ -1,0 +1,217 @@
+{
+  "schema": "semaprax.opt602.local-graph-timing.v1",
+  "recorded_utc": "2026-10-07T23:54:50.879342+00:00",
+  "observed_workspace_head": "b58386ab04af2a1f58717f86c0cee0d2e0d526fb",
+  "workspace_dirty": false,
+  "scope": "Existing local CLI graph command; no live-agent throughput or gain measured. Three timed repeats per binary and fixture. Timed graph stdout goes to DEVNULL; one separate unmeasured captured graph validates JSON/revision and hashes stdout.",
+  "fixtures": [
+    {
+      "name": "1000-if",
+      "path": "/Users/kevin/.codex/benchmark-runs/opt-final-verification-20261008/performance/1000-if.spx",
+      "sha256": "de95640185e8c43c8059afa1422fd6808bd242712231f844958749ac83671cec",
+      "bytes": 43078,
+      "if_statement_count": 1000,
+      "string_payload_utf8_bytes": 0,
+      "current_binary_label": "optimized",
+      "graph_revision_identical_between_binaries": false,
+      "graph_stdout_identical_between_binaries": false,
+      "baseline_over_optimized_median_ratio": 1.184765958625222
+    },
+    {
+      "name": "1500-string-if",
+      "path": "/Users/kevin/.codex/benchmark-runs/opt-final-verification-20261008/performance/1500-string-if.spx",
+      "sha256": "102b50f11f7b4b3acc0aa90ba84b1c7b00268212f2633eecf99390fb253f706d",
+      "bytes": 75832,
+      "if_statement_count": 1500,
+      "string_payload_utf8_bytes": 8000,
+      "current_binary_label": "optimized_b583",
+      "graph_revision_identical_between_binaries": false,
+      "graph_stdout_identical_between_binaries": false,
+      "baseline_over_optimized_median_ratio": 1.1186532881580162
+    }
+  ],
+  "binaries": [
+    {
+      "label": "baseline",
+      "path": "/Users/kevin/.codex/benchmark-binaries/semaprax-1e0e98821",
+      "source_commit": "1e0e988218b51ad626881b87c83c553fc7cddf37",
+      "source_commit_evidence": "Baseline filename identifies commit; optimized build commit confirmed by parent agent.",
+      "executable_sha256": "1e5b4b0e5bd1c3e27cd09e72c47e8853ac39d035732c8a087c20ec4d663c183e",
+      "bytes": 154013688,
+      "mtime_ns": 1791390657433698946
+    },
+    {
+      "label": "optimized",
+      "path": "/Users/kevin/.codex/worktrees/opt-main-repair/AI-Lang/target/debug/semaprax",
+      "source_commit": "c1224c4c8aca9deb444b696a1d117382891b1881",
+      "source_commit_evidence": "Parent-confirmed fresh build source commit; may precede subsequent documentation commits.",
+      "executable_sha256": "e7609dd625e8014ea94a07be0ad1fcde65e23ae2f6411ba0e9779dafa2aa3c97",
+      "bytes": 155611840,
+      "mtime_ns": 1791416790390040816
+    },
+    {
+      "label": "optimized_b583",
+      "path": "/Users/kevin/.codex/benchmark-runs/opt-final-verification-20261008/performance/semaprax-b58386ab0",
+      "source_commit": "b58386ab04af2a1f58717f86c0cee0d2e0d526fb",
+      "source_commit_evidence": "Parent-confirmed round10 fresh CLI build; copied to immutable private performance file after detecting target executable drift.",
+      "executable_sha256": "6e7e7f89dc0090de86a4619ffd7fa9be60518dadef5c0d8f794d3675e3ce3e39",
+      "bytes": 155131360,
+      "mtime_ns": 1791417477281674669
+    }
+  ],
+  "results": [
+    {
+      "fixture": "1000-if",
+      "binary": "baseline",
+      "command": [
+        "/Users/kevin/.codex/benchmark-binaries/semaprax-1e0e98821",
+        "graph",
+        "/Users/kevin/.codex/benchmark-runs/opt-final-verification-20261008/performance/1000-if.spx"
+      ],
+      "probe_returncode": 0,
+      "probe_stdout_bytes": 7349647,
+      "probe_stdout_sha256": "08cf1b250eece51ad8b50a3ed475813fa099f4d727ffeae206c7d61c6ef7415c",
+      "probe_stderr": "",
+      "runs": [
+        {
+          "repeat": 1,
+          "wall_seconds": 18.884508666,
+          "returncode": 0,
+          "stderr": ""
+        },
+        {
+          "repeat": 2,
+          "wall_seconds": 19.138389916,
+          "returncode": 0,
+          "stderr": ""
+        },
+        {
+          "repeat": 3,
+          "wall_seconds": 19.048941208,
+          "returncode": 0,
+          "stderr": ""
+        }
+      ],
+      "graph_revision": "sha256:86cd7e9e2abac05e9481c71c65bcd5d5cc56aa74d85efdce5d3f8eec6fe510f4",
+      "graph_schema": "semaprax.graph.v10",
+      "valid": true,
+      "median_wall_seconds": 19.048941208
+    },
+    {
+      "fixture": "1000-if",
+      "binary": "optimized",
+      "command": [
+        "/Users/kevin/.codex/worktrees/opt-main-repair/AI-Lang/target/debug/semaprax",
+        "graph",
+        "/Users/kevin/.codex/benchmark-runs/opt-final-verification-20261008/performance/1000-if.spx"
+      ],
+      "probe_returncode": 0,
+      "probe_stdout_bytes": 7349647,
+      "probe_stdout_sha256": "d20a600f4401bd49cdbeb2e2b4176f1706ee0804519238d9c786d475341ad634",
+      "probe_stderr": "",
+      "runs": [
+        {
+          "repeat": 1,
+          "wall_seconds": 16.003404291,
+          "returncode": 0,
+          "stderr": ""
+        },
+        {
+          "repeat": 2,
+          "wall_seconds": 16.294179042,
+          "returncode": 0,
+          "stderr": ""
+        },
+        {
+          "repeat": 3,
+          "wall_seconds": 16.078231375,
+          "returncode": 0,
+          "stderr": ""
+        }
+      ],
+      "graph_revision": "sha256:58d8d70701900cc2eba54ece9065793354e44c7dd3c5e4705accea54fe5d80da",
+      "graph_schema": "semaprax.graph.v10",
+      "valid": true,
+      "median_wall_seconds": 16.078231375
+    },
+    {
+      "fixture": "1500-string-if",
+      "binary": "baseline",
+      "command": [
+        "/Users/kevin/.codex/benchmark-binaries/semaprax-1e0e98821",
+        "graph",
+        "/Users/kevin/.codex/benchmark-runs/opt-final-verification-20261008/performance/1500-string-if.spx"
+      ],
+      "probe_returncode": 0,
+      "probe_stdout_bytes": 11103153,
+      "probe_stdout_sha256": "307b4001f89d239f36eef50089b2e2faa3c8e33db28f22c36c6b87fe07584f26",
+      "probe_stderr": "",
+      "runs": [
+        {
+          "repeat": 1,
+          "wall_seconds": 44.46245,
+          "returncode": 0,
+          "stderr": ""
+        },
+        {
+          "repeat": 2,
+          "wall_seconds": 44.258400292,
+          "returncode": 0,
+          "stderr": ""
+        },
+        {
+          "repeat": 3,
+          "wall_seconds": 44.274092,
+          "returncode": 0,
+          "stderr": ""
+        }
+      ],
+      "graph_revision": "sha256:e9eda6c0ff659b6d6a3852b99657945020c837577fbb71a7b17f9779dc722e7e",
+      "graph_schema": "semaprax.graph.v10",
+      "valid": true,
+      "median_wall_seconds": 44.274092
+    },
+    {
+      "fixture": "1500-string-if",
+      "binary": "optimized_b583",
+      "command": [
+        "/Users/kevin/.codex/benchmark-runs/opt-final-verification-20261008/performance/semaprax-b58386ab0",
+        "graph",
+        "/Users/kevin/.codex/benchmark-runs/opt-final-verification-20261008/performance/1500-string-if.spx"
+      ],
+      "probe_returncode": 0,
+      "probe_stdout_bytes": 11103153,
+      "probe_stdout_sha256": "cf643e0095ebf948682f19fa6bd9620fd356752a2289bffe226b7176975d192c",
+      "probe_stderr": "",
+      "runs": [
+        {
+          "repeat": 1,
+          "wall_seconds": 39.249173375,
+          "returncode": 0,
+          "stderr": ""
+        },
+        {
+          "repeat": 2,
+          "wall_seconds": 39.57802875,
+          "returncode": 0,
+          "stderr": ""
+        },
+        {
+          "repeat": 3,
+          "wall_seconds": 40.311987875,
+          "returncode": 0,
+          "stderr": ""
+        }
+      ],
+      "graph_revision": "sha256:c1717bd668f492a7b0ca20353017b3525469715d10e1773b6b397ab5cd730f9d",
+      "graph_schema": "semaprax.graph.v10",
+      "valid": true,
+      "median_wall_seconds": 39.57802875
+    }
+  ],
+  "resume_observed_workspace_head": "4e06ef56bf9a676295aeb70bfe7114ef853a9f4e",
+  "executable_drift_note": "Initial runner stopped before second-fixture current measurement because target/debug/semaprax changed from c1224c4c8 to parent-confirmed b58386ab0. First-fixture current timings retain c1224 provenance; second-fixture current runs use a private copy of b58386ab0. No median combines binaries.",
+  "comparison_limitation": "Cross-version local debug CLI graph wall time includes intervening canonical statement-if formatting and other compiler changes. Revision/output hashes differ across versions; this does not isolate revision streaming performance and establishes no isolated #602 or live-agent gain. Current same-formatter unit oracles are the separate preservation gate.",
+  "complete": true,
+  "completed_utc": "2026-10-08T00:03:56.538151+00:00"
+}

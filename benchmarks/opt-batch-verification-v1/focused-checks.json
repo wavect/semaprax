@@ -1,0 +1,218 @@
+{
+  "agent_skill_bundle::tests::committed_bundle_is_pinned_and_regenerates_byte_identical": {
+    "status": "ok",
+    "log": "lib-round8.log"
+  },
+  "cleanup_plan::replay::string_replacement::tests::string_replacement_builder_and_independent_replay_agree": {
+    "status": "ok",
+    "log": "lib-round3.log"
+  },
+  "cleanup_plan::replay::string_replacement::tests::string_replacement_replay_rejects_missing_reservation_transfer_and_alias": {
+    "status": "ok",
+    "log": "lib-round3.log"
+  },
+  "hir::validation::borrowed_bytes_call_tests::collection_borrow_parameters_and_projected_reads_preserve_owner_availability": {
+    "status": "ok",
+    "log": "lib-round6.log"
+  },
+  "hir::validation::iterative_while_admission_tests::resolved_while_admits_closed_map_and_set_operations": {
+    "status": "ok",
+    "log": "lib-round4.log"
+  },
+  "project::tests::stdin_stream_command::text::collections::collection_transport_does_not_widen_v24_or_public_scalar_profiles": {
+    "status": "ok",
+    "log": "lib-round8.log"
+  },
+  "project::tests::stdin_stream_command::text::collections::v25_collections_transport_executes_retained_and_native_routes": {
+    "status": "ok",
+    "log": "lib-round11.log"
+  },
+  "general_loop_match::general_loop_match_native_settlement": {
+    "status": "ok",
+    "log": "language-round4.log"
+  },
+  "general_loop_match::general_loop_match_reference_interpreter": {
+    "status": "ok",
+    "log": "language-round6.log"
+  },
+  "general_loop_match::general_loop_match_wasm_selection_is_explicit_and_closed": {
+    "status": "ok",
+    "log": "language-round3.log"
+  },
+  "general_loop_match::general_loop_match_wasm_settlement": {
+    "status": "ok",
+    "log": "language-round4.log"
+  },
+  "map_collections_v2::map_set_v2_interpreter_values_order_failure_and_private_boundaries": {
+    "status": "ok",
+    "log": "language-round8.log"
+  },
+  "map_collections_v2::map_set_v2_native_balances_all_owners_at_o0_and_o2": {
+    "status": "ok",
+    "log": "language-round11.log"
+  },
+  "map_collections_v2::map_set_v2_source_roundtrip_and_checked_graph": {
+    "status": "ok",
+    "log": "language-round6.log"
+  },
+  "owned_string_records_v1::owned_string_record_refusals_and_hostile_hir_remain_compile_time_errors": {
+    "status": "ok",
+    "log": "language-round4.log"
+  },
+  "owned_string_records_v1::owned_string_records_interpreter_settles_success_and_sticky_failures": {
+    "status": "ok",
+    "log": "language-round4.log"
+  },
+  "owned_string_records_v1::owned_string_records_native_release_every_leaf_after_each_call": {
+    "status": "ok",
+    "log": "language-round4.log"
+  },
+  "owned_string_records_v1::owned_string_records_round_trip_and_authenticate_leaf_projections": {
+    "status": "ok",
+    "log": "language-round6.log"
+  },
+  "owned_string_records_v1::owned_string_records_wasm_release_every_leaf_between_entry_calls": {
+    "status": "ok",
+    "log": "language-round6.log"
+  },
+  "string_collections_v1::core_wasm_emits_string_collections": {
+    "status": "ok",
+    "log": "language-round3.log"
+  },
+  "string_conditions::string_conditions_native_settlement": {
+    "status": "ok",
+    "log": "language-round3.log"
+  },
+  "string_conditions::string_conditions_reference_interpreter": {
+    "status": "ok",
+    "log": "language-round4.log"
+  },
+  "string_replacement::string_replacement_hostile_hir_and_plan_fail_closed": {
+    "status": "ok",
+    "log": "language-round3.log"
+  },
+  "string_replacement::string_replacement_native_settlement": {
+    "status": "ok",
+    "log": "language-round3.log"
+  },
+  "string_replacement::string_replacement_preserves_closed_boundaries": {
+    "status": "ok",
+    "log": "language-round3.log"
+  },
+  "string_replacement::string_replacement_reference_interpreter": {
+    "status": "ok",
+    "log": "language-round4.log"
+  },
+  "string_replacement::string_replacement_source_graph_and_roundtrip": {
+    "status": "ok",
+    "log": "language-round3.log"
+  },
+  "string_replacement::string_replacement_wasm_settlement": {
+    "status": "ok",
+    "log": "language-round3.log"
+  },
+  "wasm_map_collections_v2::wasm_set_and_string_record_fields_settle_together": {
+    "status": "ok",
+    "log": "language-round6.log"
+  },
+  "wasm_map_collections_v2::wasm_typed_map_string_values_and_record_transport_settle_each_invocation": {
+    "status": "ok",
+    "log": "language-round6.log"
+  },
+  "wasm_text_toolkit_v1::general_loop_match_scalar_helpers_admit_i32_f32_f64_without_widening_frozen_selectors": {
+    "status": "ok",
+    "log": "language-round3.log"
+  },
+  "wasm_text_toolkit_v1::standalone_toolkit_condition_temporaries_settle_before_both_bool_outcomes": {
+    "status": "ok",
+    "log": "language-round3.log"
+  },
+  "wasm_text_toolkit_v1::standalone_toolkit_file_text_requires_explicit_provider_and_checks_bytes": {
+    "status": "ok",
+    "log": "language-round3.log"
+  },
+  "wasm_text_toolkit_v1::standalone_toolkit_transports_owned_variants_and_checked_text_with_bounded_settlement": {
+    "status": "ok",
+    "log": "language-round3.log"
+  },
+  "cache_codec::nested_owned_records_tests::iterator_cleanup_cache_retains_exact_version_and_replays_owned_payloads": {
+    "status": "ok",
+    "log": "lib-round4.log"
+  },
+  "webapp::tests::sg_regressions::sg_generated_http_runtime_regressions": {
+    "status": "ok",
+    "log": "lib-round4.log"
+  },
+  "webapp::tests::v3_bad_constraint_and_migration_shapes_fail_closed": {
+    "status": "ok",
+    "log": "lib-round4.log"
+  },
+  "webapp::tests::v3_projects_pairwise_constraints_and_explicit_field_migrations": {
+    "status": "ok",
+    "log": "lib-round4.log"
+  },
+  "webapp::tests::v3_runtime_security_migration_and_cross_row_contracts": {
+    "status": "ok",
+    "log": "lib-round4.log"
+  },
+  "wasm_map_collections_v2::wasm_owned_record_match_extracts_map_set_and_legacy_map_results": {
+    "status": "ok",
+    "log": "language-round8.log"
+  },
+  "aggregate_layout::tests::internal_collection_record_layout_authenticates_owning_leaves_on_both_targets": {
+    "status": "ok",
+    "log": "lib-round6.log"
+  },
+  "aggregate_layout::tests::sg04_record_variant_leaf_layout_authenticates_cases_fields_and_target": {
+    "status": "ok",
+    "log": "lib-round6.log"
+  },
+  "graph::owned_text_record_loans::tests::closed_collection_record_loans_select_v69_without_a_string_sibling": {
+    "status": "ok",
+    "log": "lib-round8.log"
+  },
+  "graph::owned_text_record_loans::tests::exact_text_record_loans_select_v69_and_frozen_graph_refuses_them": {
+    "status": "ok",
+    "log": "lib-round8.log"
+  },
+  "hir::workspace_link::compiler_prelude::tests::frozen_stream_and_record_iterator_preludes_exclude_collection_roots": {
+    "status": "ok",
+    "log": "lib-round6.log"
+  },
+  "wasm::internal_strings::tests::toolkit::toolkit_collection_selector_authenticates_exact_optional_import_tail": {
+    "status": "ok",
+    "log": "lib-round6.log"
+  },
+  "string_ordering::string_ordering_requires_matching_operand_types_and_keeps_arithmetic_closed": {
+    "status": "ok",
+    "log": "language-round6.log"
+  },
+  "string_ordering::utf8_ordering_handles_prefix_nul_and_supplementary_scalars": {
+    "status": "ok",
+    "log": "language-round6.log"
+  },
+  "verifier_hints::conditionally_moved_string_names_the_same_borrow_route": {
+    "status": "ok",
+    "log": "language-round6.log"
+  },
+  "verifier_hints::owned_string_into_a_borrow_str_parameter_names_the_conversion": {
+    "status": "ok",
+    "log": "language-round6.log"
+  },
+  "verifier_hints::reusing_a_moved_string_names_the_borrow_route": {
+    "status": "ok",
+    "log": "language-round6.log"
+  },
+  "wasm_text_toolkit_v1::generated_toolkit_web_collections_copy_order_remove_and_settle_every_status": {
+    "status": "ok",
+    "log": "language-round8.log"
+  },
+  "wasm_text_toolkit_v1::standalone_toolkit_collection_atoms_preserve_every_closed_scalar_value": {
+    "status": "ok",
+    "log": "language-round8.log"
+  },
+  "wasm_text_toolkit_v1::standalone_toolkit_collection_string_quota_refusal_settles_prior_owners": {
+    "status": "ok",
+    "log": "language-round8.log"
+  }
+}

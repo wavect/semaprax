@@ -1,0 +1,161 @@
+{
+  "schema": "semaprax.opt.batch-verification.v1",
+  "source_commit": "5465fe4390255c507524561497c5345c34c33f57",
+  "compiler": {
+    "path": "/Users/kevin/.codex/benchmark-binaries/semaprax-5465fe439",
+    "sha256": "c9847d3602458ed28d56d334e761d162ee45a1bebdf4a0371a663ba9f367e91d",
+    "built_by": "Cargo owning integration harness build; default features; dev debug=0"
+  },
+  "full_quality_gates_run": false,
+  "rust_checks": [
+    {
+      "evidence": "final-lib-workspace-v68",
+      "passed": 1,
+      "log_sha256": "b10bc4b1bbc0e4b664d01a7f86b7017dcec250a06832d8f2a44d43fa9a8f5fb8"
+    },
+    {
+      "evidence": "creation-main",
+      "passed": 1,
+      "log_sha256": "7b4c04bf3645fdd6ca4ada650d3f78a69eb3a20efff28f9419ce51f2badb4e65"
+    },
+    {
+      "evidence": "final-lib-creation-stress",
+      "passed": 1,
+      "log_sha256": "210677487c394debc39240cafd3ce344b74f0c069a4b559c16fa605c92fbab74"
+    },
+    {
+      "evidence": "final-lib-web-v2",
+      "passed": 1,
+      "log_sha256": "243d946d7b6e4938fe91ced33db02336926d6651db21a6b18e7bdf0e617942d4"
+    },
+    {
+      "evidence": "final-lib-bundle-pin",
+      "passed": 1,
+      "log_sha256": "388a162b207def1356e9410ce121d5d1a3e8409a0e840eb0d65d613379c8d2cd"
+    },
+    {
+      "evidence": "final-bin-native-parse",
+      "passed": 1,
+      "log_sha256": "d4c29ef52a20b2e8f83d1e8986d8622de0c9cdbe87ceae3105df70d043b6dcb5"
+    },
+    {
+      "evidence": "final-bin-native-help",
+      "passed": 1,
+      "log_sha256": "40b07514b1ecc6c0eae35735dd90317df998e167082d8c2943950b7db460472a"
+    },
+    {
+      "evidence": "final-bin-language-help",
+      "passed": 1,
+      "log_sha256": "bf99ff8e3144f51fd285d839d22d25fcd8670b27686b36ce5bbe6e6a95b6bd67"
+    },
+    {
+      "evidence": "final-bin-diagnostic-help",
+      "passed": 1,
+      "log_sha256": "d2b78797a7987ca79aa6df65798804c936073b827bcbfb9b5697840c21ec4a23"
+    },
+    {
+      "evidence": "final-library-discovery",
+      "passed": 1,
+      "log_sha256": "28cb07d2dfc3fd5b914323460e23e12338d77be9f18ab3b4b46d1a4a66083216"
+    },
+    {
+      "evidence": "final-project-decimal",
+      "passed": 3,
+      "log_sha256": "24d50fe3323f34e428e861251003d1d3fdf3757a64e539d9bdab59feb2b345ec"
+    },
+    {
+      "evidence": "final-project-source-command-group",
+      "passed": 3,
+      "log_sha256": "1872ce71afad5b331c387dbc27dd131661297d088e25817a814b357c22b77b6c"
+    },
+    {
+      "evidence": "final-project-catalog",
+      "passed": 1,
+      "log_sha256": "a7bec6a9b66e2f7f3b8eb98fcf97f839c2c423647faa5569cd5549475c869a93"
+    },
+    {
+      "evidence": "final-compiler-profile",
+      "passed": 1,
+      "log_sha256": "bbe557f1efb8f9b0a4ff54aa861b961a84ce291c33507109139740732cea74bb"
+    },
+    {
+      "evidence": "final-compiler-no-clobber",
+      "passed": 1,
+      "log_sha256": "ba7365c599968397281b6e4e514586ee070cc18a5c56c15467f071fbd966b45f"
+    },
+    {
+      "evidence": "final-cli-help-scoped",
+      "passed": 1,
+      "log_sha256": "8e40d79fb84784336b6c1ec8a75cea085e9b5792631317ac0836fe4201bda815"
+    }
+  ],
+  "rust_tests_passed": 20,
+  "creation_unsupported_policy_cli": {
+    "passed": true,
+    "diagnostic": "SPX-WA103",
+    "receipt_sha256": "b33fda588cef05aaad21bfb987dfd0032d6fd99ced10e187e788f7e8bcf3065b"
+  },
+  "selected_clippy": {
+    "command": [
+      "cargo",
+      "clippy",
+      "--locked",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--bin",
+      "semaprax",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit_code": 0,
+    "log_sha256": "36d22a710fb87faa5c5972da4c280a9c580a16947ea3e599a1abfdb56d5a4d2e",
+    "scope_note": "Completed after production Rust changes; subsequent Rust edits only repair test fixtures and discovery expectations."
+  },
+  "benchmark_harness_python_checks": {
+    "passed": 16,
+    "log_sha256": "5d15c36632e6a18c9dfb01b2ffe125b8ab7cf445abdb3b94db3a8b59548af1c8"
+  },
+  "web_reference_qualification": {
+    "typescript": 912,
+    "semaprax": 912,
+    "receipt": "benchmarks/webapp-tokens-v2/acceptance/evidence/reference-r5-summary.json",
+    "compiler_source": "3e15d4bcfc1a7732b2afc125360dacd898a046c3",
+    "claim": "local physical API/browser qualification, not live-model savings or hosted support"
+  },
+  "decimal_manual_adoption": {
+    "own_checks": 148,
+    "historical_checks": 33,
+    "independent_boundary_checks": 16,
+    "receipt": "benchmarks/cli-tokens-v1/reports/std-decimal-manual-adoption-20261008.json",
+    "authored_token_proxy_change": {
+      "before": 7020,
+      "after": 6898
+    },
+    "claim": "manual inventory comparison, not live-agent/turn/billing gain"
+  },
+  "integration_repairs": [
+    "relocated renderer parent path",
+    "policy kind move",
+    "owned source test fixture reconstruction",
+    "deep stress fixture stack budget with production CLI witness",
+    "all language-card byte/lexical limits and regenerated diagnostic pin",
+    "24-digit positive fixture",
+    "native checked text contract protocol",
+    "common diagnostic discovery golden",
+    "multiple exact library-name matches with original per-result limits"
+  ],
+  "issues_ready_to_close": [
+    664,
+    665,
+    666,
+    667
+  ],
+  "issues_remaining": [
+    606,
+    610,
+    659,
+    661
+  ]
+}

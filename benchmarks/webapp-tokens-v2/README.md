@@ -11,12 +11,15 @@ spends building it in TypeScript/React and in SEMAPRAX with
 ## Independent full-SPEC qualification
 
 The additive [acceptance contract](acceptance/CONTRACT.md) and external API/Chromium
-gate are being prepared under [OPT #659](https://github.com/wavect/semaprax/issues/659).
+gate are implemented under [OPT #659](https://github.com/wavect/semaprax/issues/659).
 They keep this benchmark's SPEC frozen and derive obligations independently of
 either application schema. Missing or unverified requirements prevent qualification.
+The [reference qualification receipt](acceptance/evidence/reference-r5-summary.json)
+records 912 passing obligations for each reference arm at its pinned source and
+compiler; it does not establish current-head or fresh agent performance.
 The historical self-tests, partial permission scenario, and live token aggregates
-below are not evidence of this full gate passing. Fresh qualification reports and
-matched Codex campaign events must be retained separately before a new headline.
+below are separate evidence. A clean matched Codex campaign with bound qualification
+reports and retained events is still required before a new comparative headline.
 
 ## Arms
 

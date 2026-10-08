@@ -1101,7 +1101,7 @@ Other first-attempt diagnostics and their fixes:
 
 ## Web applications
 
-`semaprax webapp app.spx -o out` turns one module into a full-stack web app:
+`semaprax webapp app.spx -o out [--title "Application name"]` turns one module into a full-stack web app:
 REST API, persistence, browser and server validation, computed fields, and a
 UI (dashboard, searchable/sortable/filterable paginated lists, detail pages,
 forms). No `main` or `@id` is needed. This example is checked by the tests:
@@ -1174,7 +1174,7 @@ fn order_status(paid: bool) -> string
   restriction; unknown row-dependent permissions keep the validated form
   available. The server checks the actual new row. Audit history and CSV
   export are automatic.
-- Run `semaprax fmt app.spx && semaprax webapp app.spx -o out && node
+- Run `semaprax fmt app.spx && semaprax webapp app.spx -o out --title "Shop" && node
   out/server.mjs --self-test`. It reports checks and cleanup;
   `semaprax webapp app.spx --api` lists the API.
 - Cross-row rules: `<entity>_constraint_name(fields, other_<entity>_<field>)
@@ -1184,7 +1184,8 @@ fn order_status(paid: bool) -> string
   The server validates the whole migrated state and saves the previous bytes.
 - API: `GET`/`POST /api/<entity>`, `GET`/`PUT`/`DELETE /api/<entity>/<id>`,
   `GET /api/<entity>/<id>/history`, `?format=csv`, `GET /api/audit`; with
-  accounts `POST /api/session {"login", "password"}` and `DELETE
+  accounts `POST /api/session {"login", "password"}` (or the declared login
+  field name in place of `login`) and `DELETE
   /api/session`. Before **every mutation**, GET `/api/session/csrf`, retain
   its cookie and send its JSON `token` as `X-CSRF-Token` (refresh after sign-in).
   Sign-in is rate limited. `node out/server.mjs [--port N] [--data DIR]

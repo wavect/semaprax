@@ -120,7 +120,7 @@ pub(super) fn api(model: &Model) -> String {
     let mut out = String::new();
     if let Some((entity, login)) = &model.login {
         out.push_str(&format!(
-            "auth: POST /api/session {{\"login\": <{entity}.{login}>, \"password\"}} sets the session cookie; GET /api/session; DELETE /api/session; first run: --setup\n"
+            "auth: POST /api/session {{\"login\": <{entity}.{login}>, \"password\"}} (also accepts \"{login}\" as the login key) sets the session cookie; GET /api/session; DELETE /api/session; first run: --setup\n"
         ));
     }
     out.push_str("routes: GET|POST /api/<entity>[?q=&<enum field>=&format=csv]; GET|PUT|DELETE /api/<entity>/<id>; GET /api/<entity>/<id>/history; GET /api/audit\n");

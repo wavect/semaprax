@@ -28,12 +28,13 @@ fn sg_generated_http_runtime_regressions() {
         "sg-runtime",
         r#"module m;
 variant State { Draft, Approved, Cancelled, }
-record User { login: string, active: bool, admin: bool, }
+record User { email: string, active: bool, admin: bool, }
 record Item { user_id: i64, state: State, text: string, }
 record Number { value: i64, }
+record Decimal { amount: f64, }
 record Keyed { numerator: i64, denominator: i64, }
 record Proto { __proto__: string, constructor: string, toString: string, }
-fn user_account(login: string, active: bool) -> bool { active }
+fn user_account(email: string, active: bool) -> bool { active }
 fn user_can_write() -> bool { true }
 fn item_can_write(user_id: i64, me: i64, my_admin: bool) -> bool { my_admin || user_id == me }
 fn item_state_step(from: State, to: State) -> bool { from == State::Draft {} }

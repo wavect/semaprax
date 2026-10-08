@@ -67,7 +67,10 @@ runtime files implement:
 - **Rollups:** computed over all rows by the server, independent of what the
   viewer may read. A failing rollup (overflow, or an error in the child's
   computed field) marks only the computed fields that read it as errors.
-- **Accounts:** sign-in by login field and password. Passwords are stored
+- **Accounts:** sign-in by login field and password. The canonical request key
+  is `login`; the declared account login field is an equivalent key, so an
+  `email` login field also accepts `{"email": value, "password": value}`.
+  If both keys are present, canonical `login` wins. Passwords are stored
   only as scrypt hashes (N=16384, r=8, p=1, 16-byte salt) in a separate
   `auth.json` (mode 0600) and compared in constant time. An unknown login
   still hashes, so it takes the same time. Sessions use a 32-byte random

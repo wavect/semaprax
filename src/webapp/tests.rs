@@ -105,6 +105,33 @@ fn projects_entities_rules_computed_and_helpers() {
 }
 
 #[test]
+fn explicit_title_metadata_is_bounded_and_deterministic() {
+    let path = write_temp("title", DESK);
+    let options = ProjectionOptions::default()
+        .with_title("TeamDesk Enterprise")
+        .unwrap();
+    let first = generate_with_options(&path, &options).unwrap();
+    let second = generate_with_options(&path, &options).unwrap();
+    assert_eq!(first.files, second.files);
+    assert!(schema(&first)
+        .contains("export const app = { module: \"team.desk\", title: \"TeamDesk Enterprise\" };"));
+
+    for invalid in [
+        "".to_owned(),
+        "x".repeat(MAX_APP_TITLE_BYTES + 1),
+        "bad\ntitle".to_owned(),
+    ] {
+        assert_eq!(
+            ProjectionOptions::default()
+                .with_title(invalid)
+                .unwrap_err()
+                .code,
+            "SPX-WA106"
+        );
+    }
+}
+
+#[test]
 fn unsupported_shapes_fail_closed_with_stable_codes() {
     let field = write_temp(
         "field",
@@ -522,7 +549,7 @@ fn crew_staffed(role: Role, seats: i64) -> bool
 fn api_listing_and_parameter_help_name_exact_options() {
     let projection = generate(&write_temp("api", V2)).unwrap();
     assert!(projection.api.starts_with(
-        "auth: POST /api/session {\"login\": <member.email>, \"password\"} sets the session cookie;"
+        "auth: POST /api/session {\"login\": <member.email>, \"password\"} (also accepts \"email\" as the login key) sets the session cookie;"
     ));
     assert!(projection.api.contains(
         "\njob team_id->team member_id->member code:string stage:Stage hours:int cost:float | unique(team_id,code) workflow(stage) open:bool | read any, write row rule\n"

@@ -1,5 +1,13 @@
 # Changelog
 
+- Tighten generated web protocol boundaries: entity APIs require JSON number
+  tokens for integer, float and reference fields while browser forms retain
+  decimal-text entry; session deletion checks identity before CSRF; sign-in
+  accepts both canonical `login` and the declared login-field key. Add bounded
+  explicit `webapp --title` presentation metadata. Focused generated-server
+  and projection regressions are authored; verification is pending the shared
+  implementation batch.
+
 - Project row-aware write policies into conservative creation previews (OPT
   #666): current-account inputs remain exact, row inputs are unknown, and
   definite restrictions hide New without inventing a blank/default row.

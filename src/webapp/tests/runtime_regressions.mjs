@@ -57,12 +57,26 @@ const hold = async (route, body, auth = cookie) => {
 const item = (state = "Draft", user_id = 1) => ({ user_id, state, text: "retained" });
 try {
   server = await start();
-  const created = await call("POST", "/api/user", { login: "admin", active: true, admin: true, password: "password123" });
+  const created = await call("POST", "/api/user", { email: "admin@example.test", active: true, admin: true, password: "password123" });
   assert.equal(created.status, 201);
-  cookie = (await call("POST", "/api/session", { login: "admin", password: "password123" }, null)).cookie;
+  assert.equal((await fetch(server.url + "/api/session", { method: "DELETE" })).status, 401, "anonymous identity is checked before CSRF on sign-out");
+  cookie = (await call("POST", "/api/session", { email: "admin@example.test", password: "password123" }, null)).cookie;
   assert.ok(cookie);
-  assert.equal((await call("POST", "/api/user", { login: "other", active: true, admin: false, password: "password123" })).status, 201);
-  const otherCookie = (await call("POST", "/api/session", { login: "other", password: "password123" }, null)).cookie;
+  assert.equal((await call("POST", "/api/user", { email: "other@example.test", active: true, admin: false, password: "password123" })).status, 201);
+  const otherCookie = (await call("POST", "/api/session", { login: "other@example.test", password: "password123" }, null)).cookie;
+  // Browser controls retain decimal-string decoding, while the JSON API
+  // admits only number tokens for integer, float, and reference fields.
+  assert.equal(rt.decodeValue({ type: "int" }, {}, "12")[0], 12n);
+  assert.equal(rt.decodeValue({ type: "float" }, {}, "1.25")[0], 1.25);
+  for (const [route, body, field] of [
+    ["/api/number", { value: "12" }, "value"],
+    ["/api/decimal", { amount: "1.25" }, "amount"],
+    ["/api/item", item("Draft", "1"), "user_id"],
+  ]) {
+    const rejected = await call("POST", route, body);
+    assert.equal(rejected.status, 400);
+    assert.equal(rejected.value.errors[0].field, field);
+  }
   // Postcondition values and precondition precedence are observable computed errors.
   for (const [value, expected] of [[7, 7], [0, { error: "postcondition" }], [-1, { error: "precondition" }]]) {
     const r = await call("POST", "/api/number", { value });
@@ -113,15 +127,15 @@ try {
   paused = await hold(row.location, item("Draft", 2), otherCookie);
   assert.equal((await call("DELETE", "/api/session", undefined, otherCookie)).status, 204);
   assert.equal((await paused.release()).status, 401);
-  const again = (await call("POST", "/api/session", { login: "other", password: "password123" }, null)).cookie;
+  const again = (await call("POST", "/api/session", { login: "other@example.test", password: "password123" }, null)).cookie;
   paused = await hold(row.location, item("Draft", 2), again);
-  assert.equal((await call("PUT", "/api/user/2", { login: "other", active: false, admin: false })).status, 200);
+  assert.equal((await call("PUT", "/api/user/2", { email: "other@example.test", active: false, admin: false })).status, 200);
   assert.equal((await paused.release()).status, 401);
   row = await call("POST", "/api/item", item("Draft", 2));
   paused = await hold(row.location, item("Draft", 2));
-  assert.equal((await call("PUT", "/api/user/1", { login: "admin", active: true, admin: false })).status, 200);
+  assert.equal((await call("PUT", "/api/user/1", { email: "admin@example.test", active: true, admin: false })).status, 200);
   assert.equal((await paused.release()).status, 403);
-  assert.equal((await call("PUT", "/api/user/1", { login: "admin", active: true, admin: true })).status, 200);
+  assert.equal((await call("PUT", "/api/user/1", { email: "admin@example.test", active: true, admin: true })).status, 200);
   // Canonical alias cannot admit a second stale writer. Separate directory works.
   const alias = path.join(root, "alias"); fs.symlinkSync(data, alias, "dir");
   await assert.rejects(start(alias), /writer claim/);

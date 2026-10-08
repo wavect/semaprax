@@ -23,7 +23,9 @@ session token; signing in invalidates a pre-login token. Sign-in also returns th
 new token in `X-CSRF-Token`. A server restart invalidates CSRF tokens; clients
 refresh them through the GET route. The generated UI and self-test obtain a fresh
 token before each mutation. Unauthenticated entity requests retain their 401.
-These tokens supplement the existing SameSite cookie and do not grant permissions.
+Routes that require an existing session check identity before CSRF, so anonymous
+sign-out and entity mutations return 401; a signed-in request with a missing or
+mismatched token returns 403. These tokens supplement the existing SameSite cookie and do not grant permissions.
 Existing HTTP clients must adopt this explicit mutation protocol.
 
 ## Pairwise cross-row rules

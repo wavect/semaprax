@@ -26,6 +26,9 @@ export const postcondition = (ok) => { if (!ok) throw new Trap("postcondition");
 
 // ---- codec ----
 class Raw { constructor(source) { this.source = source; } }
+// JSON numeric tokens stay distinguishable from form controls, whose values
+// are decimal strings decoded by the browser before it serializes a request.
+export const isJSONNumber = (value) => value instanceof Raw || typeof value === "number";
 // JSON.parse that keeps number source text (exact big ints) where the engine supports it.
 export const parseJSON = (text) =>
   JSON.parse(text, (k, v, ctx) => (typeof v === "number" && ctx && typeof ctx.source === "string" ? new Raw(ctx.source) : v));

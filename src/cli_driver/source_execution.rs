@@ -808,17 +808,22 @@ fn status_meaning(domain: &str, code: u64) -> &'static str {
     }
 }
 
-/// `webapp <file> [-o|--output dir]`: project a verified module into a
+/// `webapp <file> [-o|--output dir] [--title text]`: project a verified module into a
 /// generated full-stack web application (Web Application Projection v1).
 pub(super) fn webapp_command(args: &[String]) -> Result<(), u8> {
     let mut source = None;
     let mut output = None;
+    let mut title = None;
     let mut api = false;
     let mut index = 0;
     while index < args.len() {
         match args[index].as_str() {
             "-o" | "--output" if output.is_none() && index + 1 < args.len() => {
                 output = Some(PathBuf::from(&args[index + 1]));
+                index += 1;
+            }
+            "--title" if title.is_none() && index + 1 < args.len() => {
+                title = Some(args[index + 1].clone());
                 index += 1;
             }
             "--api" if !api => api = true,
@@ -831,11 +836,17 @@ pub(super) fn webapp_command(args: &[String]) -> Result<(), u8> {
         index += 1;
     }
     let Some(source) = source else {
-        eprintln!("usage: semaprax webapp <file> [-o|--output dir] [--api]");
+        eprintln!("usage: semaprax webapp <file> [-o|--output dir] [--title text] [--api]");
         return Err(2);
     };
-    let projection =
-        semaprax::webapp::generate(&source).map_err(|errors| report(&errors, false))?;
+    let mut options = semaprax::webapp::ProjectionOptions::default();
+    if let Some(title) = title {
+        options = options
+            .with_title(title)
+            .map_err(|error| report(&[error], false))?;
+    }
+    let projection = semaprax::webapp::generate_with_options(&source, &options)
+        .map_err(|errors| report(&errors, false))?;
     if api {
         print!("{}", projection.api);
         return Ok(());

@@ -12,8 +12,12 @@ workflows, rollups, accounts, permissions, an audit history, and CSV export
 on top of this contract; the v1 non-claims below that v2 covers no longer
 apply to a module that uses those conventions.
 
-`semaprax webapp <file> [-o|--output dir] [--api]` projects one verified module into
-a complete, dependency-free full-stack web application. The agent-facing
+`semaprax webapp <file> [-o|--output dir] [--title text] [--api]` projects one verified module into
+a complete, dependency-free full-stack web application. `--title` supplies
+explicit presentation metadata for the browser, sign-in heading, and server
+startup line. It is a nonempty, control-character-free UTF-8 string of at most
+256 bytes; invalid metadata is `SPX-WA106`. Without it, the title remains the
+capitalised final module segment. The agent-facing
 summary is the `web` topic of the [agent quick reference](AGENT-QUICK-REFERENCE.md#web-applications)
 (`semaprax help language web`). The token benchmark that motivated it is
 [benchmarks/webapp-tokens-v1](../benchmarks/webapp-tokens-v1/README.md).
@@ -87,7 +91,10 @@ nothing.
 `node server.mjs [--port N] [--host H] [--data DIR]` serves:
 
 - `GET/POST /api/<entity>` and `GET/PUT/DELETE /api/<entity>/<id>`. Bodies
-  are JSON, at most 1 MiB. `i64` values round-trip exactly.
+  are JSON, at most 1 MiB. JSON `i64`, `f64`, and reference fields require
+  number tokens; quoted numeric strings are rejected. Browser form controls
+  still accept decimal text and encode it as a number token. `i64` values
+  round-trip exactly.
 - 400 with `{"errors":[{field, message}]}` for type errors, failed rules, and
   missing reference targets. 404 for unknown rows. 409 when deleting a row
   that another row references.

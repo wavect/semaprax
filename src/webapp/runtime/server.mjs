@@ -161,6 +161,7 @@ async function session(req, res) {
     return send(res, 200, c.setup ? '{"setup":true}' : out(accT, c.u));
   }
   if (m === "DELETE") {
+    if (!who(req)) return fail(res, 401, "sign in required");
     if (!protection.valid(req)) return fail(res, 403, "invalid CSRF token");
     const tok = sid(req), key = tok && sha(tok), previous = key && auth.sess.get(key);
     if (previous !== undefined && key) {
@@ -177,7 +178,9 @@ async function session(req, res) {
   const text = await readBody(req, res);
   if (text === null) return;
   let b; try { b = JSON.parse(text); } catch { b = null; }
-  const login = b && typeof b === "object" ? b.login : undefined;
+  // `login` is the canonical transport key. The declared account login field
+  // is an equivalent spelling, so an email-backed account accepts `email`.
+  const login = b && typeof b === "object" ? (b.login ?? b[ACCOUNT.login]) : undefined;
   if (!protection.attempt(req.socket.remoteAddress || "", login)) return send(res, 429, '{"error":"sign-in rate limit"}', undefined, { "retry-after": "60" });
   let row = null;
   if (typeof login === "string") for (const r of accT.rows.values()) if (r[ACCOUNT.login] === login) { row = r; break; }
@@ -197,6 +200,13 @@ function validate(t, input, old, c) {
   if (input === null || typeof input !== "object" || Array.isArray(input)) return { errors: [{ field: "", message: "body must be a JSON object" }] };
   const { row, errors, bad } = rt.decodeRow(t.ent, enums, input);
   for (const f of t.ent.fields) {
+    // The shared decoder deliberately accepts decimal strings for browser
+    // form controls. At the HTTP boundary, number fields require JSON number
+    // tokens; parseJSON's Raw wrapper preserves exact i64 source lexemes.
+    if (["int", "float", "ref"].includes(f.type) && !bad.has(f.name) && !rt.isJSONNumber(input[f.name])) {
+      errors.push({ field: f.name, message: f.type === "float" ? "must be a finite JSON number" : "must be a numeric signed 64-bit integer" });
+      delete row[f.name]; bad.add(f.name);
+    }
     if (f.type === "ref" && !bad.has(f.name) && !(tables.get(f.ref) && tables.get(f.ref).rows.has(row[f.name])))
       errors.push({ field: f.name, message: `${f.name} must reference an existing ${f.ref} row (id ${row[f.name]} not found)` });
   }

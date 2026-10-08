@@ -57,3 +57,15 @@ Replace the command array with the executable for the arm under test. The
 runner also checks all four invalid-request cases and requires status 2, empty
 stdout, and exactly one diagnostic line on stderr. It does not compile either
 arm or call a model.
+
+`codex_campaign.py` is the separate Codex adapter for the same frozen task and
+qualification gate. Its plan records `gpt-6.1-sol` at medium effort, the selected
+CLI binary/version, and a dated conditional API price card. Task-owned rollout
+records must reconcile the final CLI usage before acceptance. Calibration is
+reported separately and never subtracted from trials. SPEC changes and writes
+outside `candidate/` invalidate acceptance before archive or cleanup, and the
+worktree is retained for review. Provider/process failures stop subsequent
+attempts while retaining the original denominator and unlaunched order.
+`--max-budget-usd` is refused because this CLI adapter cannot enforce a strict
+monetary cap. Offline tests use synthetic model events and real minimal Git
+worktrees; they are adapter evidence, not a live matched campaign.

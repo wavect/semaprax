@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -45,6 +46,8 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("scored ShiftSim requires at least five trials per arm")
     if not args.qualification_evidence:
         raise ValueError("scored ShiftSim requires --qualification-evidence")
+    if args.max_budget_usd is not None:
+        raise ValueError("Codex does not supply a strict per-attempt monetary cap; --max-budget-usd is unsupported")
     # Reuse ShiftSim's frozen-input and qualification validator, whose legacy
     # model check belongs to the Claude adapter rather than this Codex arm.
     inherited = argparse.Namespace(**vars(args))
@@ -53,16 +56,27 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
     qualification = base["qualification"]
     if qualification.get("scored_trials_allowed") is not True:
         raise ValueError("qualification evidence does not admit scored ShiftSim trials")
+    compiler_commit = shiftsim.resolve_commit(Path(args.repo).resolve(), args.compiler_source_ref)
+    if compiler_commit != qualification["compiler_source_commit"]:
+        raise ValueError("compiler-source-ref differs from the qualified compiler source commit")
     base.update({
         "schema": "semaprax.event-sim-codex-campaign.v1",
         "adapter": "codex-matched-shiftsim-v1",
         "model_requested": MODEL,
         "effort_requested": EFFORT,
-        "compiler_source_commit": shiftsim.resolve_commit(Path(args.repo).resolve(), args.compiler_source_ref),
+        "model": MODEL,
+        "effort": EFFORT,
+        "codex_binary": args.codex_binary,
+        "codex_version": subprocess.run([args.codex_binary, "--version"], capture_output=True,
+                                         text=True, check=True).stdout.strip(),
+        "price_book": {"date": "2026-10-08", "source": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+                       "standard_short_context_usd_per_million": dict(codex.PRICE_USD_PER_MTOK),
+                       "conditional": True, "actual_billed_usd": None},
+        "compiler_source_commit": compiler_commit,
         "source_binary_sha256": shiftsim.common.digest(binary),
         "codex_capabilities": codex.capabilities(args.codex_binary),
         "codex_execution": {
-            "command_configuration": codex.codex_command("<benchmark prompt>")[:-1],
+            "command_configuration": command_for({"codex_binary": args.codex_binary}, "<benchmark prompt>")[:-1],
             "usage": "task-owned rollout request records must reconcile final turn.completed usage",
             "stable_context_tokens": None,
             "calibration": "one separate empty-task request; never subtract from trial usage",
@@ -73,68 +87,189 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
     return base
 
 
+def command_for(settings: dict[str, Any], prompt: str) -> list[str]:
+    command = codex.codex_command(prompt, settings.get("model", MODEL), settings.get("effort", EFFORT))
+    command[0] = settings["codex_binary"]
+    return command
+
+
+def workspace_guard(workspace: Path, settings: dict[str, Any]) -> dict[str, Any]:
+    """Recheck immutable SPEC and the candidate-only write boundary at each phase."""
+    candidate = Path("benchmarks/event-sim-tokens-v1/candidate")
+    public = Path(shiftsim.SPEC_RELATIVE)
+    allowed_dirs = set(public.parents) | set(candidate.parents)
+    expected = settings.get("seed_files_sha256", {}).get(public.as_posix())
+    unexpected = []
+    try:
+        spec_path = workspace / public
+        spec_ok = (expected is not None and not spec_path.is_symlink() and spec_path.is_file()
+                   and shiftsim.common.digest(spec_path) == expected)
+        for path in workspace.rglob("*"):
+            relative = path.relative_to(workspace)
+            if relative.parts[0] == ".git":
+                continue
+            if relative == candidate:
+                if path.is_symlink() or not path.is_dir():
+                    unexpected.append(relative.as_posix())
+            elif candidate in relative.parents:
+                continue
+            elif relative == public:
+                continue
+            elif relative in allowed_dirs and path.is_dir() and not path.is_symlink():
+                continue
+            else:
+                unexpected.append(relative.as_posix())
+        return {"status": "passed" if spec_ok and not unexpected else "failed",
+                "spec_integrity": "passed" if spec_ok else "failed", "outside_candidate_paths": sorted(unexpected)}
+    except OSError as error:
+        return {"status": "failed", "error": str(error)}
+
+
+def cleanup_workspace(seed_repo: Path, workspace: Path, settings: dict[str, Any], row: dict[str, Any]) -> None:
+    guard = workspace_guard(workspace, settings)
+    row["workspace_integrity_before_cleanup"] = guard
+    if guard["status"] != "passed":
+        invalidate(row, "workspace integrity failed before cleanup")
+        return
+    removed = subprocess.run(["git", "worktree", "remove", "--force", str(workspace)],
+                             cwd=seed_repo, capture_output=True, text=True, check=False)
+    row["worktree_removed_after_archive"] = removed.returncode == 0
+    if removed.returncode:
+        row["workspace_retained_for_review"] = True
+        row["worktree_cleanup_error"] = shiftsim.common.bounded_text(removed.stderr)
+
+
+def invalidate(row: dict[str, Any], reason: str) -> None:
+    row.update({"status": "not_accepted", "failure": reason, "workspace_retained_for_review": True,
+                "worktree_removed_after_archive": False})
+    if isinstance(row.get("acceptance"), dict):
+        row["acceptance"]["accepted"] = False
+        row["acceptance"]["invalidated"] = reason
+
+
+def observe(workspace: Path, artifacts: Path, label: str, stream: Path) -> dict[str, Any]:
+    usage = codex.parse_exec_jsonl(stream)
+    copied = codex.copy_task_rollout(usage["thread_ids"], workspace,
+                                     artifacts / "transcripts" / f"{label}.rollout.jsonl")
+    trace = codex.trace_usage(usage, copied) if copied else {"reconciled": False, "model_requests": []}
+    return {"rollout_trace": str(copied) if copied else None,
+            "observed": {**usage, **trace, "stable_context_tokens": None},
+            "list_price": codex.list_price_estimate(trace.get("model_requests", [])),
+            "provider_receipt_actual_usd": None}
+
+
 def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict[str, Any],
                  settings: dict[str, Any], semaprax_bin: Path) -> dict[str, Any]:
-    """ShiftSim callback around shared Codex process/trace accounting helpers."""
-    arm, number = trial["arm"], trial["number"]
-    label, workspace = f"{arm}-{number:02d}", artifacts / "worktrees" / f"{arm}-{number:02d}"
-    error = shiftsim.common.add_seed_worktree(seed_repo, workspace, seed_commit, shiftsim.SEED_FILES)
-    row: dict[str, Any] = {**trial, "workspace": str(workspace), "status": "failed", "failure": error,
+    """Persist one attempt, reconcile exact task telemetry, and recheck each boundary."""
+    label = f"{trial['arm']}-{trial['number']:02d}"
+    workspace = artifacts / "worktrees" / label
+    row: dict[str, Any] = {**trial, "workspace": str(workspace), "status": "failed", "failure": None,
                            "qualification_mode": "evidence_gated_scored"}
-    if error: return row
-    candidate = workspace / "benchmarks/event-sim-tokens-v1/candidate"; candidate.mkdir(parents=True)
-    prompt = shiftsim.prompt_for(arm, candidate, semaprax_bin)
-    (artifacts / "prompts").mkdir(exist_ok=True); (artifacts / "prompts" / f"{label}.txt").write_text(prompt)
-    transcript, stderr = artifacts / "transcripts" / f"{label}.jsonl", artifacts / "transcripts" / f"{label}.stderr.txt"
-    transcript.parent.mkdir(exist_ok=True)
-    row.update(codex.run_codex(codex.codex_command(prompt), workspace, shiftsim.trial_environment(semaprax_bin), transcript, stderr, settings["timeout_seconds"]))
-    row["prompt_sha256"] = shiftsim.sha_text(prompt)
-    usage = codex.parse_exec_jsonl(transcript); trace = codex.copy_task_rollout(usage["thread_ids"], workspace, artifacts / "transcripts" / f"{label}.rollout.jsonl")
-    observed = codex.trace_usage(usage, trace) if trace else {"reconciled": False, "model_observed": None, "effort_observed": None, "model_requests": []}
-    row.update({"transcript": str(transcript), "stderr_path": str(stderr), "rollout_trace": str(trace) if trace else None, "observed": {**usage, **observed, "stable_context_tokens": None},
-                "list_price": codex.list_price_estimate(observed.get("model_requests", [])), "provider_receipt_actual_usd": None})
-    if row["timed_out"]: row["failure"] = "trial hit wall-clock timeout"
-    elif row["process_exit_code"] != 0: row["failure"] = f"Codex exited with {row['process_exit_code']}"
-    elif not observed.get("reconciled"): row["failure"] = "missing or unreconciled task-owned rollout usage"
-    elif observed.get("model_observed") != MODEL or observed.get("effort_observed") != EFFORT: row["failure"] = "observed rollout model or effort differs from pinned request"
-    elif shiftsim.seeded_spec_integrity(workspace, settings)["status"] != "passed": row["failure"] = "trial changed frozen public SPEC"
-    else:
-        row["acceptance"] = shiftsim.check_program(candidate, settings["timeout_seconds"], shiftsim.trial_environment(semaprax_bin), "evidence_gated_scored")
-        row["status"] = "accepted" if row["acceptance"]["accepted"] else "not_accepted"
-        if row["status"] != "accepted": row["failure"] = "candidate failed build or acceptance checks"
-    row["final_candidate_source_metrics"] = shiftsim.common.authored_source_metrics(candidate, settings.get("authored_source_tokenizer"))
-    before_archive = shiftsim.seeded_spec_integrity(workspace, settings); row["seeded_spec_integrity_before_archive"] = before_archive
-    if before_archive["status"] != "passed":
-        row["status"] = "not_accepted"; row["failure"] = "trial changed frozen public SPEC"; row["workspace_retained_for_review"] = True
+    error = shiftsim.common.add_seed_worktree(seed_repo, workspace, seed_commit, shiftsim.SEED_FILES)
+    if error:
+        row.update({"failure": error, "runner_error": True, "workspace_retained_for_review": True})
         return row
-    hashes, omitted = shiftsim.common.archive_candidate(candidate, artifacts / "candidates" / label)
-    row.update({"candidate_archive": str(artifacts / "candidates" / label), "candidate_source_sha256": hashes, "candidate_archive_excluded_paths": omitted})
-    removed = __import__("subprocess").run(["git", "worktree", "remove", "--force", str(workspace)], cwd=seed_repo, capture_output=True, text=True, check=False)
-    row["worktree_removed_after_archive"] = removed.returncode == 0
+    candidate = workspace / "benchmarks/event-sim-tokens-v1/candidate"
+    candidate.mkdir(parents=True)
+    prompt = shiftsim.prompt_for(trial["arm"], candidate, semaprax_bin)
+    (artifacts / "prompts").mkdir(exist_ok=True)
+    (artifacts / "prompts" / f"{label}.txt").write_text(prompt, encoding="utf-8")
+    row["prompt_sha256"] = shiftsim.sha_text(prompt)
+    stream, stderr = (artifacts / "transcripts" / f"{label}.{suffix}" for suffix in ("jsonl", "stderr.txt"))
+    stream.parent.mkdir(exist_ok=True)
+    row.update({"transcript": str(stream), "stderr_path": str(stderr)})
+    try:
+        row.update(codex.run_codex(command_for(settings, prompt), workspace,
+                                   shiftsim.trial_environment(semaprax_bin), stream, stderr, settings["timeout_seconds"]))
+        row.update(observe(workspace, artifacts, label, stream))
+        observed = row["observed"]
+        row["telemetry_valid"] = (observed.get("reconciled") is True
+            and observed.get("model_observed") == MODEL and observed.get("effort_observed") == EFFORT
+            and observed.get("invalid_stream_lines") == 0)
+        guard = workspace_guard(workspace, settings)
+        row["workspace_integrity_before_acceptance"] = guard
+        if row["timed_out"]:
+            row["failure"] = "trial hit wall-clock timeout"
+        elif row["process_exit_code"] != 0:
+            row["failure"] = f"Codex exited with {row['process_exit_code']}"
+        elif not observed.get("reconciled"):
+            row["failure"] = "missing or unreconciled task-owned rollout usage"
+        elif observed.get("model_observed") != MODEL or observed.get("effort_observed") != EFFORT:
+            row["failure"] = "observed rollout model or effort differs from pinned request"
+        elif not row["telemetry_valid"]:
+            row["failure"] = "invalid Codex event stream"
+        elif guard["status"] != "passed":
+            invalidate(row, "workspace integrity failed before acceptance")
+        else:
+            started = time.monotonic()
+            row["acceptance"] = shiftsim.check_program(candidate, settings["timeout_seconds"],
+                shiftsim.trial_environment(semaprax_bin), "evidence_gated_scored")
+            row["acceptance_elapsed_seconds"] = round(time.monotonic() - started, 3)
+            row["status"] = "accepted" if row["acceptance"]["accepted"] else "not_accepted"
+            if row["status"] != "accepted":
+                row["failure"] = "candidate failed build or acceptance checks"
+    except (OSError, RuntimeError, ValueError, UnicodeError) as error:
+        row.update({"failure": str(error), "runner_error": True, "status": "failed"})
+    try:
+        row["final_candidate_source_metrics"] = shiftsim.common.authored_source_metrics(
+            candidate, settings.get("authored_source_tokenizer"))
+    except (OSError, RuntimeError, ValueError, UnicodeError) as error:
+        row["final_candidate_source_metrics"] = {"status": "measurement_failed", "total_tokens": None,
+            "files": [], "tokenizer": settings.get("authored_source_tokenizer"), "error": str(error)}
+    guard = workspace_guard(workspace, settings)
+    row["workspace_integrity_before_archive"] = guard
+    if guard["status"] != "passed":
+        invalidate(row, "workspace integrity failed before archive")
+        return row
+    archive = artifacts / "candidates" / label
+    archive.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        hashes, omitted = shiftsim.common.archive_candidate(candidate, archive)
+        row.update({"candidate_archive": str(archive), "candidate_source_sha256": hashes,
+                    "candidate_archive_excluded_paths": omitted})
+    except (OSError, RuntimeError, ValueError) as error:
+        row.update({"runner_error": True, "workspace_retained_for_review": True,
+                    "failure": f"candidate archive failed: {error}", "status": "failed"})
+        if isinstance(row.get("acceptance"), dict):
+            row["acceptance"]["accepted"] = False
+        return row
+    cleanup_workspace(seed_repo, workspace, settings, row)
     return row
 
 
 def launch_calibration(seed_repo: Path, artifacts: Path, seed_commit: str,
                        settings: dict[str, Any], semaprax_bin: Path) -> dict[str, Any]:
-    """A separate, exact READY request that is never subtracted from trials."""
+    """A separate tool-free READY request, with the same isolation and cleanup."""
     workspace = artifacts / "worktrees" / "calibration"
-    error = shiftsim.common.add_seed_worktree(seed_repo, workspace, seed_commit, shiftsim.SEED_FILES)
-    row: dict[str, Any] = {"status": "failed", "failure": error, "separate_from_trials": True,
+    row: dict[str, Any] = {"status": "failed", "failure": None, "separate_from_trials": True,
                            "subtracted_from_trials": False}
-    if error: return row
-    stream, stderr = artifacts / "calibration.jsonl", artifacts / "calibration.stderr.txt"
-    row.update(codex.run_codex(codex.codex_command(shiftsim.CALIBRATION_PROMPT), workspace,
-                               shiftsim.trial_environment(semaprax_bin), stream, stderr, settings["timeout_seconds"]))
-    usage = codex.parse_exec_jsonl(stream); trace = codex.copy_task_rollout(usage["thread_ids"], workspace, artifacts / "calibration.rollout.jsonl")
-    observed = codex.trace_usage(usage, trace) if trace else {"reconciled": False}
-    row.update({"transcript": str(stream), "stderr_path": str(stderr), "observed": {**usage, **observed, "stable_context_tokens": None},
-                "list_price": codex.list_price_estimate(observed.get("model_requests", [])), "provider_receipt_actual_usd": None})
-    messages = [json.loads(line).get("item", {}) for line in stream.read_text().splitlines() if line]
-    replies = [item.get("text", "").strip() for item in messages if item.get("type") == "agent_message"]
-    tools = usage.get("tool_item_counts", {})
-    row["status"] = "ready" if (row["process_exit_code"] == 0 and observed.get("reconciled")
-                                  and observed.get("model_observed") == MODEL and observed.get("effort_observed") == EFFORT) else "failed"
-    if replies != ["READY"] or any(kind != "agent_message" and count for kind, count in tools.items()): row["status"] = "failed"
+    error = shiftsim.common.add_seed_worktree(seed_repo, workspace, seed_commit, shiftsim.SEED_FILES)
+    if error:
+        row["failure"] = error
+        return row
+    stream, stderr = (artifacts / "transcripts" / f"calibration.{suffix}" for suffix in ("jsonl", "stderr.txt"))
+    stream.parent.mkdir(parents=True, exist_ok=True)
+    row.update({"transcript": str(stream), "stderr_path": str(stderr)})
+    try:
+        row.update(codex.run_codex(command_for(settings, shiftsim.CALIBRATION_PROMPT), workspace,
+                                   shiftsim.trial_environment(semaprax_bin), stream, stderr, settings["timeout_seconds"]))
+        row.update(observe(workspace, artifacts, "calibration", stream))
+        observed = row["observed"]
+        events = [json.loads(line) for line in stream.read_text().splitlines() if line]
+        messages = [event.get("item") for event in events if isinstance(event, dict)]
+        replies = [item.get("text", "").strip() for item in messages
+                   if isinstance(item, dict) and item.get("type") == "agent_message"]
+        tools = observed.get("tool_item_counts", {})
+        row["status"] = "ready" if (not row["timed_out"] and row["process_exit_code"] == 0
+            and observed.get("reconciled") and observed.get("model_observed") == MODEL
+            and observed.get("effort_observed") == EFFORT and replies == ["READY"]
+            and observed.get("invalid_stream_lines") == 0
+            and all(kind == "agent_message" or not count for kind, count in tools.items())) else "failed"
+        if row["status"] == "failed":
+            row["failure"] = "calibration failed tool-free READY, model/effort, or telemetry checks"
+    except (OSError, RuntimeError, ValueError, UnicodeError) as error:
+        row["failure"] = str(error)
+    cleanup_workspace(seed_repo, workspace, settings, row)
     return row
 
 
@@ -156,8 +291,13 @@ def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
             row = launch_trial(artifacts / "seed-repository", artifacts, seed["seed_repository_commit"],
                                {"arm": arm, "number": numbers[arm]}, settings, binary)
             rows.append(row)
+            (artifacts / "attempts").mkdir(exist_ok=True)
+            (artifacts / "attempts" / f"{arm}-{numbers[arm]:02d}.json").write_text(
+                json.dumps(row, indent=2, sort_keys=True) + "\n")
             # A nonzero Codex exit can include quota exhaustion; do not retry or launch later paid attempts.
-            if row.get("process_exit_code") not in (0, None) or row.get("timed_out"):
+            if (row.get("process_exit_code") not in (0, None) or row.get("timed_out")
+                    or row.get("runner_error") or row.get("workspace_retained_for_review")
+                    or row.get("telemetry_valid") is False):
                 break
     report = {"campaign": settings, "calibration": calibration, "trials": rows,
               "attempt_denominator": settings["attempt_denominator"], "recorded_attempts": len(rows),
@@ -189,7 +329,7 @@ def main() -> int:
             if not args.acknowledge_paid_attempts: raise ValueError("run requires --acknowledge-paid-attempts")
             result = run_campaign(args)
         print(json.dumps(result, indent=2, sort_keys=True))
-        return 0 if result.get("status", "ready") in {"ready", "complete"} else 2
+        return 0 if result.get("campaign_status", result.get("status", "ready")) in {"ready", "complete"} else 2
     except (OSError, ValueError, RuntimeError) as error:
         print(f"Codex ShiftSim campaign error: {error}", file=sys.stderr)
         return 2

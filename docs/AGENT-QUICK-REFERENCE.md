@@ -1284,8 +1284,8 @@ combined staged stdout/stderr appends; only native64 is admitted. V26 stays
 frozen at 65,536 bytes for its borrowed view/output contract. See [Project v28](PROJECT-MANIFEST-V28.md).
 
 `semaprax new <dir> --template stdin-stream-data` creates the Project v27
-native stream-data starter; `project-scaffold` accepts the same template and
-selects tables. It keeps the command input bounded and shows one private
+native stream-data starter with `language-command-io.stream-data.v1`;
+`project-scaffold` accepts the same template and selects tables. It keeps the command input bounded and shows one private
 immutable `borrow Vec<i64>` helper; `main` and the selected command remain
 `fn() -> i64`. Web/npm refuse v27; Wasm also refuses it. Native-only applies
 to the selected command and streaming runtime. Pure `main` and test closures

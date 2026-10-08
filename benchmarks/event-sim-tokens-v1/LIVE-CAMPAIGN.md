@@ -33,6 +33,25 @@ counts using the explicitly identified legacy Claude tokenizer proxy. Raw
 provider usage, the historical net-input convention, list-price estimates, and
 provider-reported API-equivalent costs remain separate in result files.
 
+`--round 2` prepares the matched rerun after the compiler OPT batch. It keeps
+the exact round-1 SPEC, all 15 corpus cases, oracle, prompt, seed inventory,
+Sonnet 5.5 model, medium effort, and five-trial minimum. The plan records all
+three frozen input hashes and rejects a different SPEC, corpus, or oracle.
+Round 1 remains the default for historical tooling. Round 2 records the
+2026-10-08 list-price card with cache reads at $0.1 per million tokens; round 1
+retains its dated $0.2 card. Calibration and attempts use their campaign's
+recorded card. Historical result files and their existing cost estimates are
+not rewritten.
+
+A round-2 provider result explicitly reporting an error with status 429 or
+`usage_limit_reached` stops further paid sessions. Results retain the failed
+attempt and the ordered unlaunched arms, with status
+`interrupted_provider_quota`; unlaunched tasks are not fabricated as attempts.
+This is an incomplete sample and supports no comparative headline. Inspect
+account quota before launch, and run one campaign at a time. `plan` dispatches
+no paid session. A new compiler source/binary still requires a new reviewed
+15-case qualification report; historical evidence cannot be relabeled.
+
 To author the native candidate before it can qualify a scored comparison, run
 one SEMAPRAX-only preflight. It uses the campaign's pinned prompt and model,
 performs the usual one-turn calibration, builds/tests the candidate, checks the

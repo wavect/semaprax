@@ -21,7 +21,8 @@ class ShiftSimCampaignTests(unittest.TestCase):
     def _qualification_evidence(self, root: Path):
         repo = root / "pinned-source"
         repo.mkdir()
-        pinned_paths = [live_campaign.SPEC_RELATIVE, live_campaign.CORPUS_RELATIVE]
+        pinned_paths = [live_campaign.SPEC_RELATIVE, live_campaign.CORPUS_RELATIVE,
+                        live_campaign.ORACLE_RELATIVE]
         for relative in pinned_paths:
             destination = repo / relative
             destination.parent.mkdir(parents=True, exist_ok=True)
@@ -145,6 +146,87 @@ class ShiftSimCampaignTests(unittest.TestCase):
             "typescript", "typescript", "semaprax", "semaprax", "typescript",
         ])
 
+    def test_round_two_freezes_all_inputs_and_records_current_prices_without_repricing_history(self):
+        with tempfile.TemporaryDirectory() as directory:
+            args = Namespace(
+                repo=str(live_campaign.REPO), base_ref="HEAD", artifacts=str(Path(directory) / "round"),
+                trials_per_arm=5, model=live_campaign.MODEL, effort=live_campaign.EFFORT,
+                timeout_seconds=1800, max_budget_usd=None,
+            )
+            historical = live_campaign.plan(args)
+            args.round = 2
+            current = live_campaign.plan(args)
+            self.assertEqual(historical["round"], 1)
+            self.assertEqual(current["round"], 2)
+            self.assertEqual(current["benchmark_inputs_sha256"], live_campaign.FROZEN_BENCHMARK_SHA256)
+            self.assertEqual(current["seed_files_sha256"], historical["seed_files_sha256"])
+            self.assertEqual(current["trial_order"], historical["trial_order"])
+            self.assertEqual(current["price_book"]["per_million_tokens"]["cache_read"], 0.1)
+            self.assertEqual(historical["price_book"]["per_million_tokens"]["cache_read"], 0.2)
+            usage = {field: 0 for field in common.ALL_USAGE_FIELDS}
+            usage["cache_read_input_tokens"] = 1_000_000
+            self.assertEqual(common.rate_card_estimate_details(usage)["usd"], 0.2)
+            self.assertEqual(common.rate_card_estimate_details(
+                usage, current["price_book"]["per_million_tokens"],
+            )["usd"], 0.1)
+            for invalid_round in (0, 3, True):
+                args.round = invalid_round
+                with self.assertRaisesRegex(ValueError, "unsupported ShiftSim round"):
+                    live_campaign.plan(args)
+            args.round = 2
+            changed = {**live_campaign.FROZEN_BENCHMARK_SHA256,
+                       live_campaign.ORACLE_RELATIVE: "0" * 64}
+            with patch.object(live_campaign, "FROZEN_BENCHMARK_SHA256", changed):
+                with self.assertRaisesRegex(ValueError, "unchanged frozen"):
+                    live_campaign.plan(args)
+
+    def test_provider_quota_requires_a_structured_failed_result(self):
+        for result in (
+            {"is_error": True, "api_error_status": 429, "api_error": "usage_limit_reached"},
+            {"is_error": True, "api_error": "usage_limit_reached"},
+        ):
+            self.assertEqual(live_campaign.provider_quota_failure({"result_event": result})["source"],
+                             "provider_result_event")
+        for result in (None, {"is_error": False, "api_error_status": 429},
+                       {"is_error": True, "api_error_status": 500},
+                       {"is_error": True, "result": "You've hit your weekly limit"}):
+            self.assertIsNone(live_campaign.provider_quota_failure({"result_event": result}))
+
+    def test_round_two_quota_stop_preserves_the_attempt_and_does_not_launch_later_sessions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            binary = root / "semaprax"
+            binary.write_bytes(b"offline mock")
+            for round_number, expected_launches in ((1, 10), (2, 1)):
+                artifacts = root / f"round-{round_number}"
+                settings = {
+                    "repository_commit": "commit", "artifacts": str(artifacts), "round": round_number,
+                    "model": live_campaign.MODEL, "trials_per_arm": 5,
+                    "qualification": {"scored_trials_allowed": False},
+                    "trial_order": list(live_campaign.ARMS) * 5,
+                }
+                def trial(_seed, _artifacts, _commit, identity, _settings, _binary):
+                    return {**identity, "status": "failed", "provider_quota": {"api_error_status": 429}}
+                with ExitStack() as stack:
+                    stack.enter_context(patch.object(sys, "argv", ["campaign.py", "run", "--base-ref", "HEAD",
+                        "--artifacts", str(artifacts), "--semaprax-bin", str(binary), "--round", str(round_number)]))
+                    stack.enter_context(patch.object(live_campaign, "plan", return_value=settings))
+                    stack.enter_context(patch.object(common, "create_seed_repository",
+                        return_value={"seed_repository_commit": "seed"}))
+                    stack.enter_context(patch.object(live_campaign, "launch_calibration",
+                        return_value={"status": "ready", "observed_model_id": live_campaign.MODEL}))
+                    stack.enter_context(patch.object(subprocess, "run",
+                        return_value=subprocess.CompletedProcess([], 0, stdout="offline", stderr="")))
+                    launched = stack.enter_context(patch.object(live_campaign, "launch_trial", side_effect=trial))
+                    result = live_campaign.main()
+                self.assertEqual(result, 2 if round_number == 2 else 0)
+                self.assertEqual(launched.call_count, expected_launches)
+                report = json.loads((artifacts / "results.json").read_text())
+                self.assertEqual(len(report["trials"]), expected_launches)
+                self.assertEqual(len(report["unlaunched_trial_order"]), 10 - expected_launches)
+                self.assertEqual(report["campaign_status"],
+                    "interrupted_provider_quota" if round_number == 2 else "complete")
+
     def test_single_arm_preflight_is_one_unscored_trial_and_keeps_scored_minimum(self):
         with tempfile.TemporaryDirectory() as directory:
             args = Namespace(
@@ -170,6 +252,9 @@ class ShiftSimCampaignTests(unittest.TestCase):
                 live_campaign.single_arm_preflight_plan(args, "unknown")
 
     def test_both_arm_prompts_pin_the_v2_application_status_contract(self):
+        native = live_campaign.prompt_for("semaprax", Path("/candidate"), Path("/semaprax"))
+        typescript = live_campaign.prompt_for("typescript", Path("/candidate"), Path("/semaprax"))
+        self.assertEqual(native.replace("SEMAPRAX native Project", "TypeScript on Node.js"), typescript)
         for arm in live_campaign.ARMS:
             with self.subTest(arm=arm):
                 prompt = live_campaign.prompt_for(arm, Path("/candidate"), Path("/semaprax"))
@@ -179,6 +264,25 @@ class ShiftSimCampaignTests(unittest.TestCase):
                 self.assertIn("returning `i64` process status in the range 0..255", prompt)
                 self.assertIn("Return 0 for valid requests and 2 for invalid requests", prompt)
                 self.assertIn("same stdin and process", prompt)
+
+    def test_candidate_requires_successful_build_authored_tests_and_independent_acceptance(self):
+        with tempfile.TemporaryDirectory() as directory:
+            candidate = Path(directory)
+            for script in ("build.sh", "test.sh", "run.sh"):
+                (candidate / script).write_text("exit 0\n")
+            for exits, expected_calls, accepted in (
+                ([1], 1, False), ([0, 1], 2, False), ([0, 0, 1], 3, False), ([0, 0, 0], 3, True),
+            ):
+                with patch.object(subprocess, "run", side_effect=[
+                    subprocess.CompletedProcess([], code, stdout=b"", stderr=b"") for code in exits
+                ]) as calls:
+                    result = live_campaign.check_program(candidate, 10, {})
+                self.assertEqual(result["accepted"], accepted)
+                self.assertEqual(calls.call_count, expected_calls)
+                if expected_calls == 3:
+                    command = calls.call_args.args[0]
+                    self.assertIn(str(HERE / "acceptance" / "run.py"), command)
+                    self.assertIn(json.dumps(["/bin/sh", str(candidate / "run.sh")]), command)
 
     def test_pinned_native_evidence_gates_scored_trials_and_keeps_issue_open(self):
         with tempfile.TemporaryDirectory() as directory:

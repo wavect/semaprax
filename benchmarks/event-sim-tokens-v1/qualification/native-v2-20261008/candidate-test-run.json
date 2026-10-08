@@ -1,0 +1,14 @@
+{
+  "compiler_source_commit": "94fadd14cf27d045d22b23a79def640c95131c31",
+  "compiler_binary_sha256": "da3d978118e233acaef18e0b0e48cd8c4741da51d7636d84fefacb19703ba51c",
+  "command": [
+    "/bin/bash",
+    "test.sh"
+  ],
+  "exit_code": 0,
+  "wall_seconds": 32.875389,
+  "source_inventory_sha256": "2093b0e73c0b62b027e7f69b36f0ee6f36cceeaabadd89ec40f3ff3e75299a5e",
+  "candidate_source": "archived accepted round1 semaprax-02, copied unchanged to scratch",
+  "native_binary_sha256": "be382207268a340a575a0d79555a4c1893133ab5e9a5dffa1d6ab2090d7e84f4",
+  "named_project_cases": 6
+}

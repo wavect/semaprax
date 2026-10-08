@@ -47,6 +47,13 @@ NATIVE_PROJECT_ROUTE = {
 }
 SPEC_RELATIVE = "benchmarks/event-sim-tokens-v1/SPEC.md"
 CORPUS_RELATIVE = "benchmarks/event-sim-tokens-v1/acceptance/corpus.json"
+ORACLE_RELATIVE = "benchmarks/event-sim-tokens-v1/oracle.py"
+FROZEN_BENCHMARK_SHA256 = {
+    SPEC_RELATIVE: "5a8631fc59f55d145bfabb62c8edd3f86164114e3d27b69422031b664b529e00",
+    CORPUS_RELATIVE: "3c285999cfcf6a905e885d636ac55ba0ccb0f5999ef5b20ac3a8c17a2e023587",
+    ORACLE_RELATIVE: "bdaeb7910f525271445493f3fe651f09c572ed28b132d01c608de5712d7fba01",
+}
+CURRENT_PRICE_USD_PER_MTOK = {**common.PRICE_USD_PER_MTOK, "cache_read": 0.1}
 
 
 def sha_text(value: str) -> str:
@@ -64,6 +71,27 @@ def blob_at_commit(repo: Path, commit: str, relative: str) -> bytes:
     if result.returncode:
         raise ValueError(f"pinned compiler commit lacks required file: {relative}")
     return result.stdout
+
+
+def round_identity(repo: Path, commit: str, round_number: int) -> dict[str, str]:
+    if isinstance(round_number, bool) or round_number not in (1, 2):
+        raise ValueError(f"unsupported ShiftSim round: {round_number}")
+    hashes = {path: sha_bytes(blob_at_commit(repo, commit, path))
+              for path in FROZEN_BENCHMARK_SHA256}
+    if hashes != FROZEN_BENCHMARK_SHA256:
+        raise ValueError(f"round {round_number} requires the unchanged frozen SPEC, corpus, and oracle")
+    return hashes
+
+
+def provider_quota_failure(observed: dict[str, Any]) -> dict[str, Any] | None:
+    result = observed.get("result_event")
+    if not isinstance(result, dict) or result.get("is_error") is not True:
+        return None
+    if (result.get("api_error_status") != 429
+            and result.get("api_error") != "usage_limit_reached"):
+        return None
+    return {"status": "provider_quota_or_rate_limit", "api_error_status": result.get("api_error_status"),
+            "api_error": result.get("api_error"), "source": "provider_result_event"}
 
 
 def acceptance_case_request(case: dict[str, Any], kind: str) -> bytes:
@@ -246,6 +274,8 @@ is complete.
 def plan(args: argparse.Namespace, semaprax_binary_sha256: str | None = None) -> dict[str, Any]:
     repo = Path(args.repo).resolve(strict=True)
     commit = resolve_commit(repo, args.base_ref)
+    round_number = getattr(args, "round", 1)
+    benchmark_hashes = round_identity(repo, commit, round_number)
     artifacts = Path(args.artifacts).expanduser().resolve()
     try:
         artifacts.relative_to(repo)
@@ -289,6 +319,9 @@ def plan(args: argparse.Namespace, semaprax_binary_sha256: str | None = None) ->
         "schema": "semaprax.event-sim-campaign.v1",
         "created_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "benchmark": "event-sim-tokens-v1",
+        "round": round_number,
+        "benchmark_inputs_sha256": benchmark_hashes,
+        "seed_files_sha256": {SPEC_RELATIVE: benchmark_hashes[SPEC_RELATIVE]},
         "repository_commit": commit,
         "artifacts": str(artifacts),
         "model": args.model,
@@ -303,9 +336,9 @@ def plan(args: argparse.Namespace, semaprax_binary_sha256: str | None = None) ->
         "native_project_route": NATIVE_PROJECT_ROUTE,
         "qualification": qualification,
         "price_book": {
-            "date": PRICE_BOOK_DATE,
+            "date": "2026-10-08" if round_number == 2 else PRICE_BOOK_DATE,
             "source_url": PRICE_BOOK_SOURCE,
-            "per_million_tokens": common.PRICE_USD_PER_MTOK,
+            "per_million_tokens": CURRENT_PRICE_USD_PER_MTOK if round_number == 2 else common.PRICE_USD_PER_MTOK,
             "claim": "list-price estimate; provider result cost is reported separately and is not a billing receipt",
         },
         "calibration": {
@@ -372,7 +405,9 @@ def launch_calibration(seed_repo: Path, artifacts: Path, seed_commit: str,
     row["observed"] = usage
     row["observed_model_id"] = usage["models_observed"][0] if len(usage["models_observed"]) == 1 else None
     row["status"] = "ready" if process["process_exit_code"] == 0 and row["observed_model_id"] else "failed"
-    row["list_price_estimate_usd"] = common.rate_card_estimate_details(usage.get("usage", {}))["usd"]
+    row["list_price_estimate_usd"] = common.rate_card_estimate_details(
+        usage.get("usage", {}), settings.get("price_book", {}).get("per_million_tokens"),
+    )["usd"]
     common.save_json(artifacts / "calibration.json", row)
     return row
 
@@ -466,7 +501,10 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
     }
     row["observed"] = usage
     row["provider_input_plus_cache_tokens_raw"] = common.input_tokens_total(usage["usage"])
-    row["list_price_estimate_usd"] = common.rate_card_estimate_details(usage["usage"])["usd"]
+    row["list_price_estimate_usd"] = common.rate_card_estimate_details(
+        usage["usage"], settings.get("price_book", {}).get("per_million_tokens"),
+    )["usd"]
+    row["provider_quota"] = provider_quota_failure(usage)
     row["provider_reported_api_equivalent_total_cost_usd"] = usage.get("provider_reported_api_equivalent_total_cost_usd")
     row["provider_receipt_actual_usd"] = None
     model_ok = common.observed_model_matches(usage.get("models_observed"), settings.get("observed_model_id"))
@@ -600,6 +638,8 @@ def main() -> int:
         p = sub.add_parser(action)
         p.add_argument("--repo", default=str(REPO))
         p.add_argument("--base-ref", required=True)
+        p.add_argument("--round", type=int, choices=(1, 2), default=1,
+                       help="round 2 repeats the frozen round-1 task after the compiler OPT batch")
         p.add_argument("--artifacts", required=True)
         if action != "preflight":
             p.add_argument("--trials-per-arm", type=int, default=MIN_TRIALS_PER_ARM)
@@ -667,17 +707,25 @@ def main() -> int:
         rows = []
         if calibration.get("status") == "ready":
             numbers = {arm: 0 for arm in ARMS}
-            for arm in settings["trial_order"]:
+            for ordinal, arm in enumerate(settings["trial_order"]):
                 numbers[arm] += 1
                 row = launch_trial(seed_repo, artifacts, seed["seed_repository_commit"],
                                    {"arm": arm, "number": numbers[arm]}, settings, semaprax_bin)
                 rows.append(row)
+                quota_stop = settings["round"] == 2 and row.get("provider_quota") is not None
                 common.save_json(artifacts / "results.json", {
                     "campaign": settings, "calibration": calibration, "trials": rows,
                     "summary": summarize(rows, calibration, settings["qualification"]),
+                    "campaign_status": "interrupted_provider_quota" if quota_stop else (
+                        "complete" if len(rows) == len(settings["trial_order"]) else "in_progress"
+                    ),
+                    "unlaunched_trial_order": settings["trial_order"][ordinal + 1:],
                     "campaign_elapsed_wall_seconds": round(time.monotonic() - campaign_started, 3),
                 })
                 print(f"{arm} {numbers[arm]}/{settings['trials_per_arm']}: {row.get('status', 'failed')}", flush=True)
+                if quota_stop:
+                    print("provider quota/rate limit interrupted the matched campaign; remaining trials were not launched", file=sys.stderr)
+                    return 2
         else:
             common.save_json(artifacts / "results.json", {
                 "campaign": settings, "calibration": calibration, "trials": [],

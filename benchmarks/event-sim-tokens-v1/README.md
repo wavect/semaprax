@@ -15,6 +15,12 @@ normalized per-attempt evidence are documented in
 That campaign did not complete its matched sample and supports no comparative
 headline.
 
+The adapter can prepare a matched `--round 2` rerun with these same frozen
+inputs after the compiler OPT batch. Round 2 records its dated price card and
+stops subsequent sessions on a structured provider quota refusal. Preparation
+does not launch paid sessions or reuse historical compiler qualification as
+current evidence; see `LIVE-CAMPAIGN.md`.
+
 The campaign defaults to preflight-only reporting. A scored run requires a
 reviewed qualification-evidence JSON file that binds the exact SPEC and
 acceptance corpus hashes, compiler source commit and binary hash, native
@@ -34,6 +40,10 @@ Earlier Project v23 / `language-command-io.stream.v1` preflights and evidence
 remain historical and cannot qualify a v2 scored campaign. Qualification
 evidence uses a distinct v2 schema, so a prior v1 route or report is refused.
 The frozen native-v2 candidate qualification is recorded in [`qualification/native-v2-20261007/README.md`](qualification/native-v2-20261007/README.md), with its per-case report and portable evidence envelope. It only gates a future matched campaign; it is not a comparative result.
+The fresh round-2 qualification for compiler `94fadd14c` is recorded in
+[`qualification/native-v2-20261008/README.md`](qualification/native-v2-20261008/README.md).
+Its unchanged archived candidate passed all 15 acceptance cases with the new
+frozen binary; the matched campaign remains unlaunched.
 
 The corpus is invoked through a command adapter that reads one request from
 stdin and writes one report to stdout. Example after an arm has been authored:

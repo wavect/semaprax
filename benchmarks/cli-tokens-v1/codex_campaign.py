@@ -413,7 +413,7 @@ def main() -> int:
             if result["capabilities"]["status"] != "ready":
                 raise ValueError("installed Codex CLI lacks required isolated-execution controls")
             artifacts = Path(result["artifacts"]); artifacts.mkdir(parents=True)
-            seed = legacy.create_seed_repository(Path(args.repo).resolve(), result["repository_commit"], artifacts / "seed-repository", SEED_FILES)
+            seed = legacy.create_seed_repository(Path(args.repo).resolve(), result["repository_commit"], artifacts / "seed-repository")
             result.update(seed); result["semaprax_binary"] = str(Path(args.semaprax_bin).resolve())
             (artifacts / "campaign.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
             calibration = launch_calibration(artifacts / "seed-repository", artifacts, seed["seed_repository_commit"], result, Path(args.semaprax_bin).resolve())

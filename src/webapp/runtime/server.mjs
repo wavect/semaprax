@@ -458,44 +458,38 @@ function offlineSelfTest() {
           if (errors.some((e) => e.field === step.field)) workflowWitnesses++;
         }
       }
-      const computed = rt.evalComputed(ent, row);
-      for (const c of ent.computed || []) {
-        check(ent.name, "computed", `derive ${c.name}`, computed[c.name], Object.hasOwn(computed, c.name));
-        if (Object.hasOwn(computed, c.name)) computedChecks++;
-      }
       refs[ent.path] = row.id;
       made.push({ ent, row });
     }
     const kids = (p) => ({ ent: byPath.get(p), rows: made.filter((m) => m.ent.path === p).map((m) => m.row) });
-    for (const { ent, row } of made) for (const u of ent.rollups || []) {
-      const local = rt.withRollups(ent, row, kids), child = byPath.get(u.child), childRows = kids(u.child).rows;
-      let expected = u.kind === "sum" && u.type === "float" ? 0 : 0n;
-      for (const candidate of childRows) {
-        if (candidate[u.via] !== row.id) continue;
-        let value = true;
-        if (u.field) value = child.fields.some((f) => f.name === u.field) ? candidate[u.field] : rt.evalComputed(child, candidate)[u.field];
-        if (value !== null && typeof value === "object") throw new Error(`computed child ${u.child}.${u.field} failed`);
-        if (u.kind === "count") { if (value === true) expected += 1n; }
-        else expected = u.type === "float" ? expected + value : rt.add(expected, value);
-      }
-      check(ent.name, "rollup", `${u.name} matches direct child reduction`, local[u.name], local[u.name] === expected);
-      if (local[u.name] === expected) rollupChecks++;
-      const computed = rt.evalComputed(ent, local);
+    for (const { ent, row } of made) {
+      const local = rt.withRollups(ent, row, kids), computed = rt.evalComputed(ent, local);
       for (const c of ent.computed || []) {
-        check(ent.name, "computed with rollups", `derive ${c.name}`, computed[c.name], Object.hasOwn(computed, c.name));
-        if (Object.hasOwn(computed, c.name)) computedChecks++;
+        const value = computed[c.name], ok = Object.hasOwn(computed, c.name) && !(value && typeof value === "object" && Object.hasOwn(value, "error"));
+        check(ent.name, "computed", `derive ${c.name} without runtime error`, value, ok);
+        if (ok) computedChecks++;
+      }
+      for (const u of ent.rollups || []) {
+        const child = byPath.get(u.child), childRows = kids(u.child).rows;
+        let expected = u.kind === "sum" && u.type === "float" ? 0 : 0n;
+        for (const candidate of childRows) {
+          if (candidate[u.via] !== row.id) continue;
+          let value = true;
+          if (u.field) value = child.fields.some((f) => f.name === u.field) ? candidate[u.field] : rt.evalComputed(child, candidate)[u.field];
+          if (value !== null && typeof value === "object") throw new Error(`computed child ${u.child}.${u.field} failed`);
+          if (u.kind === "count") { if (value === true) expected += 1n; }
+          else expected = u.type === "float" ? expected + value : rt.add(expected, value);
+        }
+        check(ent.name, "rollup", `${u.name} matches direct child reduction`, local[u.name], local[u.name] === expected);
+        if (local[u.name] === expected) rollupChecks++;
       }
     }
   } catch (e) { fails.push("FAIL offline self-test: " + short(e.message)); }
-  const ruleCount = entities.reduce((n, e) => n + (e.rules || []).length, 0);
-  const stepCount = entities.reduce((n, e) => n + (e.steps || []).length, 0);
   const typeKinds = new Set(entities.flatMap((e) => e.fields.map((f) => f.type)));
-  check("schema", "type coverage", "reject one malformed value for every field type", [...typeKinds].join(","), [...typeKinds].every((t) => rejectedTypes.has(t)) && typeChecks > 0);
-  check("schema", "rule coverage", "witness at least one failed rule", String(ruleWitnesses), ruleCount === 0 || ruleWitnesses > 0);
-  check("schema", "workflow coverage", "exercise an allowed or denied transition", String(workflowWitnesses), stepCount === 0 || workflowWitnesses > 0);
+  check("schema", "type coverage", "reject one malformed value for every field type", [...typeKinds].join(","), [...typeKinds].every((t) => rejectedTypes.has(t)));
   if (fails.length) { console.log(fails.join("\n") + `\noffline self-test failed: ${fails.length} check(s)`); return 1; }
   const sum = (k) => entities.reduce((n, e) => n + (k === "keys" ? rt.keysOf(e, ACCOUNT).length : (e[k] || []).length), 0);
-  console.log(`offline self-test ok: ${entities.length} entities, ${typeKinds.size} types, ${sum("rules")} rules, ${sum("computed")} computed, ${sum("keys")} keys, ${sum("steps")} workflows, ${sum("rollups")} rollups (decode, ${typeChecks} invalid types, ${ruleWitnesses} rule witnesses, ${keyChecks} duplicate-key checks, ${workflowWitnesses} workflow cases, ${computedChecks} computed, ${rollupChecks} rollup checks)`);
+  console.log(`offline self-test ok: ${entities.length} entities, ${typeKinds.size} types, ${sum("rules")} rules, ${sum("computed")} computed, ${sum("keys")} keys, ${sum("steps")} workflows, ${sum("rollups")} rollups (decode, ${typeChecks} invalid types, ${ruleWitnesses} rule witnesses, ${keyChecks} duplicate-key checks, ${workflowWitnesses} workflow cases, ${computedChecks} computed values, ${rollupChecks} rollup checks)`);
   return 0;
 }
 

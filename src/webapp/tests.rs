@@ -281,38 +281,63 @@ fn the_generated_benchmark_app_passes_its_own_self_test() {
     );
 
     let offline_cwd = out.with_file_name("selftest-offline-cwd");
-    let _ = std::fs::remove_dir_all(&offline_cwd);
-    std::fs::create_dir_all(&offline_cwd).unwrap();
-    let mut offline_child = std::process::Command::new("node")
-        .arg(out.join("server.mjs"))
-        .arg("--self-test-offline")
-        .current_dir(&offline_cwd)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .spawn()
-        .unwrap();
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
-    let mut offline_completed = false;
-    while std::time::Instant::now() < deadline {
-        if offline_child.try_wait().unwrap().is_some() {
-            offline_completed = true;
-            break;
+    let offline_guard = out.with_file_name("offline-self-test-guard.mjs");
+    std::fs::write(
+        &offline_guard,
+        r#"import http from 'node:http';
+import net from 'node:net';
+import childProcess from 'node:child_process';
+import fs from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
+const deny = (name) => () => { console.error(`OFFLINE_GUARD_TRIP ${name}`); throw new Error(`offline self-test attempted ${name}`); };
+http.Server.prototype.listen = deny('http listener');
+net.Server.prototype.listen = deny('network listener');
+for (const name of ['spawn','spawnSync','exec','execSync','execFile','execFileSync','fork']) childProcess[name] = deny(`child_process.${name}`);
+for (const name of ['mkdirSync','writeFileSync','appendFileSync','writeSync','writevSync','truncateSync','ftruncateSync','openSync','renameSync','unlinkSync','rmdirSync','rmSync','mkdtempSync','createWriteStream','mkdir','writeFile','appendFile','write','writev','truncate','ftruncate','open','rename','unlink','rmdir','rm','mkdtemp','copyFile','cp','link','symlink']) fs[name] = deny(`fs.${name}`);
+for (const name of ['mkdir','writeFile','appendFile','write','truncate','open','rename','unlink','rmdir','rm','mkdtemp','copyFile','cp','link','symlink']) fs.promises[name] = deny(`fs.promises.${name}`);
+globalThis.fetch = deny('fetch');
+syncBuiltinESMExports();
+"#,
+    )
+    .unwrap();
+    let run_offline = |server: &Path, cwd: &Path| {
+        let _ = std::fs::remove_dir_all(cwd);
+        std::fs::create_dir_all(cwd).unwrap();
+        let mut child = std::process::Command::new("node")
+            .arg("--import")
+            .arg(&offline_guard)
+            .arg(server)
+            .arg("--self-test-offline")
+            .current_dir(cwd)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        let mut completed = false;
+        while std::time::Instant::now() < deadline {
+            if child.try_wait().unwrap().is_some() {
+                completed = true;
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
         }
-        std::thread::sleep(std::time::Duration::from_millis(10));
-    }
-    if !offline_completed {
-        let _ = offline_child.kill();
-    }
-    let offline = offline_child.wait_with_output().unwrap();
+        if !completed {
+            let _ = child.kill();
+        }
+        let output = child.wait_with_output().unwrap();
+        let empty = std::fs::read_dir(cwd).unwrap().next().is_none();
+        let _ = std::fs::remove_dir_all(cwd);
+        (output, completed, empty)
+    };
+    let (offline, offline_completed, offline_empty) = run_offline(&out.join("server.mjs"), &offline_cwd);
     let offline_stdout = String::from_utf8_lossy(&offline.stdout);
-    let offline_empty = std::fs::read_dir(&offline_cwd).unwrap().next().is_none();
-    let _ = std::fs::remove_dir_all(&offline_cwd);
     assert!(
         offline.status.success(),
         "{offline_stdout}{}",
         String::from_utf8_lossy(&offline.stderr)
     );
-    assert!(offline_completed, "offline self-test did not exit without a listener");
+    assert!(offline_completed, "offline self-test did not exit within the bound");
     assert!(
         offline_stdout.starts_with("offline self-test ok: 10 entities,"),
         "{offline_stdout}"
@@ -321,6 +346,34 @@ fn the_generated_benchmark_app_passes_its_own_self_test() {
         !offline_stdout.contains("listening on") && offline_empty,
         "offline self-test started a listener or wrote into its working directory: {offline_stdout}"
     );
+    assert!(
+        !String::from_utf8_lossy(&offline.stderr).contains("OFFLINE_GUARD_TRIP"),
+        "offline self-test attempted a forbidden operation: {}",
+        String::from_utf8_lossy(&offline.stderr)
+    );
+    let empty_source = write_temp("offline-empty-entity", "module offline.empty;\nrecord Empty {}\n");
+    let empty_projection = generate(&empty_source).unwrap();
+    let empty_out = empty_source.with_file_name("offline-empty-out");
+    let _ = std::fs::remove_dir_all(&empty_out);
+    write(&empty_out, &empty_projection).unwrap();
+    let (empty_run, empty_completed, empty_cwd) = run_offline(
+        &empty_out.join("server.mjs"),
+        &empty_out.with_file_name("offline-empty-cwd"),
+    );
+    let empty_stdout = String::from_utf8_lossy(&empty_run.stdout);
+    assert!(
+        empty_run.status.success(),
+        "{empty_stdout}{}",
+        String::from_utf8_lossy(&empty_run.stderr)
+    );
+    assert!(empty_completed && empty_cwd, "empty-entity offline self-test did not remain offline: {empty_stdout}");
+    assert!(empty_stdout.starts_with("offline self-test ok: 1 entities, 0 types,"), "{empty_stdout}");
+    assert!(
+        !String::from_utf8_lossy(&empty_run.stderr).contains("OFFLINE_GUARD_TRIP"),
+        "empty-entity offline self-test attempted a forbidden operation: {}",
+        String::from_utf8_lossy(&empty_run.stderr)
+    );
+    let _ = std::fs::remove_file(offline_guard);
 }
 
 #[test]

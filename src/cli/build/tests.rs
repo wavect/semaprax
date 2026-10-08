@@ -78,6 +78,55 @@ fn strings(values: &[&str]) -> Vec<String> {
 }
 
 #[test]
+fn native_text_build_omits_export_profile_while_web_requires_exports() {
+    let native = parse(&strings(&[
+        "lines.spx",
+        "--target",
+        "native",
+        "--output",
+        "lines",
+    ]))
+    .unwrap();
+    assert_eq!(native.target, "native");
+    assert!(native.profile.is_none());
+    for profile in ["text-toolkit-v1", "internal-strings-v1"] {
+        assert_eq!(
+            parse(&strings(&[
+                "lines.spx",
+                "--target",
+                "native",
+                "--profile",
+                profile
+            ]))
+            .err(),
+            Some(2)
+        );
+        let web = parse(&strings(&[
+            "lines.spx",
+            "--target",
+            "web",
+            "--profile",
+            profile,
+            "--export",
+            "lines.report",
+        ]))
+        .unwrap();
+        assert_eq!(web.profile.as_deref(), Some(profile));
+        assert_eq!(
+            parse(&strings(&[
+                "lines.spx",
+                "--target",
+                "web",
+                "--profile",
+                profile
+            ]))
+            .err(),
+            Some(2)
+        );
+    }
+}
+
+#[test]
 fn repeated_scalar_exports_preserve_caller_order() {
     let options = parse(&strings(&[
         "calculator.spx",

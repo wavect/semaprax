@@ -100,10 +100,15 @@ impl SourceNativeOutput {
                 } else {
                     "SPX-I301"
                 };
+                let recovery = if code == "SPX-I307" {
+                    "; choose a fresh --output path, or explicitly remove the existing output after confirming it is your previous build artifact"
+                } else {
+                    ""
+                };
                 Diagnostic::io(
                     code,
                     format!(
-                        "cannot reserve fresh single-file native destination {}: {error}",
+                        "cannot reserve fresh single-file native destination {}: {error}{recovery}",
                         path.display()
                     ),
                 )
@@ -220,7 +225,7 @@ impl ProjectOutputParent {
                 return Err(parent_error(format!(
                     "cannot inspect explicit Project output parent {}: {error}",
                     parent.display()
-                )))
+                )));
             }
         }
 
@@ -402,7 +407,7 @@ pub(crate) fn absolute_rust_output(path: &Path) -> Result<PathBuf, Diagnostic> {
             Component::ParentDir => {
                 return Err(parent_error(
                     "Project Rust output may not contain parent traversal",
-                ))
+                ));
             }
         }
     }
@@ -562,7 +567,14 @@ pub(crate) fn parse_with_capabilities(
             || !matches!(target.as_str(), "web" | "wasm")
             || !(1..=32).contains(&exports.len())
         {
-            eprintln!("--profile {profile} requires a source file, --target web or wasm, and 1..=32 --export selections");
+            eprintln!(
+                "--profile {profile} requires a source file, --target web or wasm, and 1..=32 --export selections"
+            );
+            if target == "native" && matches!(&input, BuildInput::Source(_)) {
+                eprintln!(
+                    "for a native command, omit --profile: semaprax build <file> --target native --output <fresh-path>; text operations are selected from the source"
+                );
+            }
             return Err(2);
         }
     }

@@ -678,6 +678,13 @@ below the current directory. A checked failure (missing file, out-of-range slice
 and exits with 1.
 Rules: [Text Toolkit v1](TEXT-TOOLKIT-V1.md).
 
+Build a native command with `semaprax build lines.spx --target native --output lines`.
+Omit `--profile`: `text-toolkit-v1` and `internal-strings-v1` are explicit
+Wasm/web export profiles; native text operations are selected from the source.
+Build destinations must be fresh. On `SPX-I307`, choose a new `--output` path,
+or explicitly remove the existing output after confirming it is your previous
+build artifact. The compiler never overwrites it automatically.
+
 For streaming, select Project v23 input
 `argv-utf8+stdin-stream.v1` and profile `language-command-io.stream.v1`.
 Native reuses a 4096-byte buffer; `stdin_read()` stays a snapshot.
@@ -1076,6 +1083,7 @@ Other first-attempt diagnostics and their fixes:
 | `x as i64` | `SPX-P106` | Use named conversions (Scalars and literals); range failures are checked. Otherwise keep one integer type and suffix literals |
 | a Rust or JavaScript closure | `SPX-P201` | `fn(x: i64) -> i64 { x + 1 }` |
 | `use std::io;` | `SPX-G170` | Compiler-owned functions need no import; projects import one declaration with `use function @id("…") from module as name;` |
+| rebuilding into an existing output path | `SPX-I307` | Choose a fresh `--output` path, or explicitly remove the existing output after confirming it is your previous build artifact; the compiler never overwrites it automatically |
 | `f()?` in `main` | `SPX-T218` | Only a function returning `Result` propagates; `match` the result in `main` |
 | `[1, 2, 3]` | `SPX-T262` | Array literals hold bytes (`[1u8, 2u8]`); use a `Vec<i64>` |
 | `fn f()` or `-> ()` | `SPX-P106`, `SPX-P105` | Spell the result type; unit is unsupported |

@@ -14,6 +14,8 @@ from unittest.mock import patch
 
 import codex_campaign as campaign
 import codex_rescore as rescore
+import typescript_bootstrap as bootstrap
+import dependency_bundle as dependencies
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -25,6 +27,138 @@ class WebappCampaignTests(unittest.TestCase):
         # independently exercised with low-space and ENOSPC controls.
         self.enterContext(patch("campaign_resources.snapshot", return_value=[
             {"device": 1, "path": "/fixture", "free_bytes": 10 * 1024**3}]))
+
+    def bootstrap_fixture(self, root):
+        self.enterContext(patch.object(bootstrap, "runtime_identity", return_value={
+            "node_sha256": "node", "node": {"versions": {"node": "24.3.0"},
+                                            "platform": "fixture", "arch": "fixture"},
+            "host_platform": "fixture", "host_machine": "fixture"}))
+        reference = root / "reference"; reference.mkdir()
+        packages = {}
+        for name in bootstrap.CORE_PACKAGES:
+            path = reference / "node_modules" / name / "package.json"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps({"name": name, "version": "1.2.3"}))
+            packages[f"node_modules/{name}"] = {"version": "1.2.3"}
+        executable = reference / "node_modules/typescript/bin/tsc"
+        executable.parent.mkdir(); executable.write_text("#!/bin/sh\nexit 0\n"); executable.chmod(0o555)
+        link = reference / "node_modules/.bin/tsc"; link.parent.mkdir(); link.symlink_to("../typescript/bin/tsc")
+        (reference / "package.json").write_text(json.dumps({"scripts": {"secret": "reference app"}}))
+        (reference / "package-lock.json").write_text(json.dumps({"packages": packages}))
+        (reference / "app.ts").write_text("qualified app must never be supplied")
+        qualification = {"passed": True, "cases": 912, "failures": [], "missingCases": [], "missingGroups": []}
+        report = root / "report.json"
+        report.write_text(json.dumps({"schema": "semaprax.teamdesk.acceptance.v1", "arm": "typescript",
+            "node": "v24.3.0", "spec_sha256": "spec", "qualification": qualification,
+            "candidate_before": [{"name": name, "sha256": dependencies.digest(reference / name)}
+                                 for name in ("package.json", "package-lock.json")]}))
+        summary = root / "summary.json"
+        summary.write_text(json.dumps({"schema": "semaprax.teamdesk.reference.qualification.v1",
+            "qualified": True, "spec_sha256": "spec", "gate_source": "gate", "arms": {
+                "typescript": {"qualification": qualification, "report_file": str(report),
+                               "report_sha256": dependencies.digest(report)}}}))
+        bootstrap.prepare(reference, summary, root / "tooling", "fixture-node")
+        return root / "tooling/receipt.json", reference, summary
+
+    def test_bootstrap_private_writable_copy_has_tools_and_no_app_or_manifest(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); receipt, reference, summary = self.bootstrap_fixture(root)
+            candidate = root / "candidate"
+            setup = bootstrap.provision(receipt, candidate, "fixture-node", spec_sha256="spec",
+                                        summary_sha256=dependencies.digest(summary))
+            self.assertEqual({p.name for p in candidate.iterdir()}, {"node_modules"})
+            private = candidate / "node_modules/typescript/bin/tsc"
+            source = root / "tooling/bundle/node_modules/typescript/bin/tsc"
+            self.assertEqual(private.stat().st_mode & 0o777, 0o755)
+            self.assertNotEqual(private.stat().st_ino, source.stat().st_ino)
+            self.assertEqual(os.readlink(candidate / "node_modules/.bin/tsc"), "../typescript/bin/tsc")
+            private.write_text("candidate can modify its tools")
+            self.assertIn("exit 0", source.read_text())
+            self.assertIn("exit 0", (reference / "node_modules/typescript/bin/tsc").read_text())
+            self.assertFalse(setup["application_source_supplied"])
+            self.assertFalse(setup["package_manifest_supplied"])
+            self.assertEqual(setup["initial_inventory_sha256"], bootstrap.load(receipt)["inventory_sha256"])
+
+    def test_bootstrap_refuses_helper_runtime_platform_and_qualification_drift(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); receipt, _, summary = self.bootstrap_fixture(root)
+            for attribute, replacement in (("module_hashes", {"dependency_bundle.py": "drift"}),
+                                           ("runtime_identity", {"host_platform": "different"})):
+                with patch.object(bootstrap, attribute, return_value=replacement):
+                    with self.assertRaisesRegex(ValueError, "helper, runtime or platform"):
+                        bootstrap.validate(receipt, "fixture-node")
+            with self.assertRaisesRegex(ValueError, "differs from campaign"):
+                bootstrap.validate(receipt, "fixture-node", spec_sha256="different")
+            summary.write_text(summary.read_text() + "\n")
+            with self.assertRaisesRegex(ValueError, "provenance drift"):
+                bootstrap.validate(receipt, "fixture-node")
+
+    def test_bootstrap_refuses_bundle_file_and_reference_dependency_drift(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); receipt, reference, _ = self.bootstrap_fixture(root)
+            executable = root / "tooling/bundle/node_modules/typescript/bin/tsc"
+            original = executable.read_bytes(); executable.write_text("drift")
+            with self.assertRaisesRegex(ValueError, "inventory drift"):
+                bootstrap.validate(receipt, "fixture-node")
+            executable.write_bytes(original)
+            (reference / "node_modules/react/package.json").write_text("{}")
+            with self.assertRaisesRegex(ValueError, "reference dependency drift"):
+                bootstrap.validate(receipt, "fixture-node")
+
+    def test_bootstrap_refuses_external_links_and_candidate_dependency_collision(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); receipt, _, summary = self.bootstrap_fixture(root)
+            candidate = root / "candidate"; (candidate / "node_modules").mkdir(parents=True)
+            with self.assertRaisesRegex(ValueError, "already contains"):
+                bootstrap.provision(receipt, candidate, "fixture-node", spec_sha256="spec",
+                                    summary_sha256=dependencies.digest(summary))
+            escape = root / "tooling/bundle/node_modules/.bin/escape"
+            escape.symlink_to("/private/outside")
+            with self.assertRaisesRegex(ValueError, "external symlink"):
+                bootstrap.validate(receipt, "fixture-node")
+
+    def test_bootstrap_prompt_and_frozen_closure_keep_legacy_rescore_contract(self):
+        self.assertIs(rescore.dependency_inventory, dependencies.dependency_inventory)
+        self.assertIs(rescore.copy_dependency_bundle, dependencies.copy_dependency_bundle)
+        self.assertIn("benchmarks/webapp-tokens-v2/dependency_bundle.py", campaign.HARNESS_SOURCE_FILES)
+        self.assertIn("benchmarks/webapp-tokens-v2/typescript_bootstrap.py", campaign.HARNESS_SOURCE_FILES)
+        candidate, compiler = Path("/candidate"), Path("/compiler")
+        legacy = campaign.prompt_for("typescript", candidate, compiler)
+        self.assertEqual(legacy, campaign.prompt_for("typescript", candidate, compiler, None))
+        tooling = {"packages": {"react": "18.3.1", "typescript": "5.9.3"}}
+        supplied = campaign.prompt_for("typescript", candidate, compiler, tooling)
+        self.assertIn("react 18.3.1", supplied)
+        self.assertIn("Author your own package.json", supplied)
+        self.assertNotIn("node_modules", legacy)
+        self.assertEqual(campaign.prompt_for("semaprax", candidate, compiler),
+                         campaign.prompt_for("semaprax", candidate, compiler, tooling))
+
+    def test_bootstrap_drift_refuses_a_paid_request_before_invocation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); receipt, _, summary = self.bootstrap_fixture(root)
+            settings = {"typescript_bootstrap": {"receipt_path": str(receipt),
+                        "receipt_sha256": dependencies.digest(receipt)},
+                        "qualification": {"spec_sha256": "spec", "receipt_sha256": dependencies.digest(summary)},
+                        "acceptance": {"capabilities": {"node_binary": "fixture-node"}}}
+            receipt.write_text(receipt.read_text() + "\n")
+            with patch.object(campaign, "add_seed_worktree", return_value=None), \
+                    patch.object(campaign, "cleanup_trial"), patch.object(campaign, "run_codex") as paid:
+                row = campaign.launch_trial(root, root / "artifacts", "commit",
+                                            {"arm": "typescript", "number": 1}, settings, root / "compiler")
+            paid.assert_not_called()
+            self.assertFalse(row["paid_request_launched"])
+            self.assertIn("receipt changed after campaign plan", row["failure"])
+
+    def test_new_rescore_retains_hash_of_relocated_dependency_module(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); module = root / "tooling-source/dependency_bundle.py"
+            module.parent.mkdir(); module.write_text("copy implementation")
+            sidecar = root / "rescore.json"
+            sidecar.write_text(json.dumps({"schema": rescore.SCHEMA, "dependency_copy_module": {
+                "snapshot_path": "tooling-source/dependency_bundle.py", "sha256": dependencies.digest(module)}}))
+            module.write_text("drift")
+            with self.assertRaisesRegex(ValueError, "copy module hash drifted"):
+                rescore.validate_sidecar(sidecar, ROOT)
 
     def test_rescore_requires_a_terminal_complete_ten_trial_receipt(self):
         rows = [{"arm": arm, "number": number}

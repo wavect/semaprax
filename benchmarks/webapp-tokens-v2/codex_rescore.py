@@ -15,7 +15,6 @@ import math
 import os
 import re
 import shutil
-import stat
 import subprocess
 import sys
 import time
@@ -27,6 +26,7 @@ REPO = BENCHMARK.parents[1]
 sys.path.insert(0, str(BENCHMARK))
 sys.path.insert(0, str(BENCHMARK.parent))
 import codex_campaign as campaign
+from dependency_bundle import dependency_inventory, copy_dependency_bundle, dependency_fingerprint
 
 SCHEMA = "semaprax.teamdesk.codex-rescore.v1"
 TERMINAL_SCHEMA = "semaprax.codex-campaign-terminal.v1"
@@ -92,90 +92,6 @@ def copy_closed_archive(source: Path, destination: Path, expected: dict[str, str
     if copied != actual:
         raise ValueError("candidate copy inventory differs from archived source")
     return copied
-
-
-def dependency_inventory(bundle: Path, *, allow_other: bool = False) -> dict[str, list[dict[str, Any]]]:
-    """Return the closed, link-preserving dependency bundle inventory."""
-    if bundle.is_symlink() or not bundle.is_dir():
-        raise ValueError("dependency bundle must be a real directory")
-    bundle = bundle.resolve(strict=True)
-    allowed = {"node_modules", ".cache"}
-    children = sorted(bundle.iterdir(), key=lambda path: path.name)
-    top = [path.name for path in children]
-    if not top or (not allow_other and set(top) - allowed):
-        raise ValueError("dependency bundle has an unsupported top-level path")
-    roots = [path for path in children if path.name in allowed]
-    if any(path.is_symlink() or not path.is_dir() for path in roots):
-        raise ValueError("dependency bundle top-level paths must be real directories")
-    def link_target(path: Path) -> str:
-        target = os.readlink(path)
-        if Path(target).is_absolute():
-            raise ValueError("dependency bundle has an external symlink")
-        try:
-            resolved = (path.parent / target).resolve(strict=False)
-            relative = resolved.relative_to(bundle)
-        except ValueError as error:
-            raise ValueError("dependency bundle has an external symlink") from error
-        if resolved == bundle or not relative.parts or relative.parts[0] not in allowed:
-            raise ValueError("dependency bundle has a root symlink")
-        return target
-    files: list[dict[str, Any]] = []
-    links: list[dict[str, Any]] = []
-    for top_root in roots:
-      for current, directories, names in os.walk(top_root, topdown=True, followlinks=False):
-          root = Path(current)
-          retained: list[str] = []
-          for name in sorted(directories):
-              path = root / name
-              relative = path.relative_to(bundle).as_posix()
-              mode = path.lstat().st_mode
-              if path.is_symlink():
-                  target = link_target(path)
-                  links.append({"path": relative, "target": target, "mode": stat.S_IMODE(path.stat().st_mode)})
-              elif stat.S_ISDIR(mode):
-                  retained.append(name)
-              else:
-                  raise ValueError("dependency bundle contains a non-directory path")
-          directories[:] = retained
-          for name in sorted(names):
-              path = root / name
-              relative = path.relative_to(bundle).as_posix()
-              mode = path.lstat().st_mode
-              if path.is_symlink():
-                  target = link_target(path)
-                  links.append({"path": relative, "target": target, "mode": stat.S_IMODE(path.stat().st_mode)})
-              elif stat.S_ISREG(mode):
-                  files.append({"path": relative, "sha256": digest(path), "mode": stat.S_IMODE(mode)})
-              else:
-                  raise ValueError("dependency bundle contains a non-regular file")
-    return {"files": files, "symlinks": links}
-
-
-def copy_dependency_bundle(bundle: Path, destination: Path, expected: dict[str, list[dict[str, Any]]]) -> str:
-    if destination.is_symlink() or not destination.is_dir():
-        raise ValueError("dependency copy destination must be a real candidate directory")
-    before = dependency_inventory(bundle)
-    if before != expected:
-        raise ValueError("dependency bundle inventory or hashes differ from receipt")
-    if any((destination / name).exists() or (destination / name).is_symlink() for name in (".cache", "node_modules")):
-        raise ValueError("candidate already contains a dependency directory")
-    for row in before["files"]:
-        source, target = bundle / row["path"], destination / row["path"]
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, target, follow_symlinks=False)
-        os.chmod(target, row["mode"])
-    for row in before["symlinks"]:
-        target = destination / row["path"]
-        target.parent.mkdir(parents=True, exist_ok=True)
-        os.symlink(row["target"], target)
-    copied = dependency_inventory(destination, allow_other=True)
-    if copied != before or dependency_inventory(bundle) != before:
-        raise ValueError("dependency bundle drifted while copying")
-    return hashlib.sha256(json.dumps(copied, separators=(",", ":"), sort_keys=True).encode()).hexdigest()
-
-
-def dependency_fingerprint(inventory: dict[str, list[dict[str, Any]]]) -> str:
-    return hashlib.sha256(json.dumps(inventory, separators=(",", ":"), sort_keys=True).encode()).hexdigest()
 
 
 def dependency_entries(receipt_path: Path, original_trials: list[dict[str, Any]]) -> tuple[dict[str, Any], str]:
@@ -445,6 +361,14 @@ def validate_sidecar(path: Path, repo: Path) -> dict[str, Any]:
     sidecar = load_json(path)
     if sidecar.get("schema") != SCHEMA:
         raise ValueError("rescore sidecar schema differs")
+    # Older sidecars remain readable under their original receipt contract.
+    # Newly produced sidecars also retain the relocated copy implementation.
+    copy_module = sidecar.get("dependency_copy_module")
+    if copy_module is not None:
+        if (not isinstance(copy_module, dict)
+                or copy_module.get("snapshot_path") != "tooling-source/dependency_bundle.py"
+                or digest(path.parent / copy_module["snapshot_path"]) != copy_module.get("sha256")):
+            raise ValueError("rescore dependency copy module hash drifted")
     original, gate, rows = sidecar.get("original"), sidecar.get("gate"), sidecar.get("trials")
     compiler = sidecar.get("compiler")
     jobs, wall = sidecar.get("rescore_jobs"), sidecar.get("rescore_wall_seconds")
@@ -616,6 +540,13 @@ def rescore(args: argparse.Namespace) -> dict[str, Any]:
             else:
                 raise ValueError("rescore output must be outside original candidate archives")
     output.mkdir(parents=True)
+    copy_module_source = BENCHMARK / "dependency_bundle.py"
+    copy_module = {"snapshot_path": "tooling-source/dependency_bundle.py", "sha256": digest(copy_module_source)}
+    copy_module_target = output / copy_module["snapshot_path"]
+    copy_module_target.parent.mkdir()
+    shutil.copy2(copy_module_source, copy_module_target, follow_symlinks=False)
+    if digest(copy_module_target) != copy_module["sha256"]:
+        raise ValueError("rescore dependency copy module drifted while snapshotting")
     gate = snapshot_gate(repo, output, campaign_row, clarification, qualification_path, args.gate_source)
     validate_gate_inventory(repo, gate, campaign_row, gate["qualification_receipt"]["gate_source_commit"])
     receipt = load_json(qualification_path)
@@ -695,7 +626,9 @@ def rescore(args: argparse.Namespace) -> dict[str, Any]:
         rows = list(executor.map(score_one, trials))
     rescore_wall_seconds = round(time.monotonic() - rescore_started, 3)
     verify_gate_unchanged(repo, output, gate)
-    sidecar = {"schema": SCHEMA, "rescore_jobs": args.jobs, "rescore_wall_seconds": rescore_wall_seconds, "claim": "separate rescoring evidence; original paid results and costs are retained", "original": {"results": str(original_path), "results_sha256": digest(original_path), "campaign": str(campaign_path), "campaign_sha256": digest(campaign_path), "terminal_receipt": str(terminal_path), "terminal_receipt_sha256": digest(terminal_path)}, "dependency_receipt": None if dependency_path is None else {"path": str(dependency_path), "sha256": dependency_receipt_sha}, "gate": gate, "compiler": {"path": str(compiler), "sha256": args.compiler_sha256, "source_sha": args.compiler_source_sha}, "settings": settings, "trials": rows}
+    if digest(copy_module_source) != copy_module["sha256"] or digest(copy_module_target) != copy_module["sha256"]:
+        raise ValueError("rescore dependency copy module drifted during scoring")
+    sidecar = {"schema": SCHEMA, "dependency_copy_module": copy_module, "rescore_jobs": args.jobs, "rescore_wall_seconds": rescore_wall_seconds, "claim": "separate rescoring evidence; original paid results and costs are retained", "original": {"results": str(original_path), "results_sha256": digest(original_path), "campaign": str(campaign_path), "campaign_sha256": digest(campaign_path), "terminal_receipt": str(terminal_path), "terminal_receipt_sha256": digest(terminal_path)}, "dependency_receipt": None if dependency_path is None else {"path": str(dependency_path), "sha256": dependency_receipt_sha}, "gate": gate, "compiler": {"path": str(compiler), "sha256": args.compiler_sha256, "source_sha": args.compiler_source_sha}, "settings": settings, "trials": rows}
     (output / "rescore.json").write_text(json.dumps(sidecar, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return sidecar
 

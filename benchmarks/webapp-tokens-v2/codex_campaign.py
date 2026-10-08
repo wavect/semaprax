@@ -25,6 +25,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import live_campaign_common as common
 import campaign_resources as resources
+import typescript_bootstrap as bootstrap
 
 BENCHMARK = Path(__file__).resolve().parent
 REPO = BENCHMARK.parents[1]
@@ -68,6 +69,8 @@ ACCEPTANCE_SOURCE_FILES = (
 )
 HARNESS_SOURCE_FILES = (
     "benchmarks/webapp-tokens-v2/codex_campaign.py",
+    "benchmarks/webapp-tokens-v2/typescript_bootstrap.py",
+    "benchmarks/webapp-tokens-v2/dependency_bundle.py",
     "benchmarks/live_campaign_common.py",
     "benchmarks/campaign_resources.py",
     QUALIFICATION_RECEIPT,
@@ -463,11 +466,26 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("matched campaign pins gpt-6.1-sol at medium effort")
     if args.trials_per_arm != MIN_TRIALS_PER_ARM or args.timeout_seconds != TIMEOUT_SECONDS:
         raise ValueError("matched campaign requires five trials per arm and a 1800-second timeout")
+    tooling = None
+    bootstrap_path = getattr(args, "typescript_bootstrap_receipt", None)
+    if bootstrap_path:
+        bootstrap_path = Path(bootstrap_path).resolve(strict=True)
+        supplied = bootstrap.validate(bootstrap_path, args.node_binary, spec_sha256=frozen_spec_hash,
+                                      summary_sha256=common.digest(repo / QUALIFICATION_RECEIPT))
+        note = bootstrap.prompt_note(supplied)
+        tooling = {"receipt_path": str(bootstrap_path), "receipt_sha256": common.digest(bootstrap_path),
+                   "inventory_sha256": supplied["inventory_sha256"], "packages": supplied["packages"],
+                   "runtime": supplied["runtime"], "modules_sha256": supplied["modules_sha256"],
+                   "qualification": supplied["qualification"], "supplied_paths": ["node_modules"],
+                   "fixed_prompt_note_sha256": hashlib.sha256(note.encode()).hexdigest(),
+                   "fixed_prompt_note_utf8_bytes": len(note.encode()), "hidden_context_tokens": None,
+                   "application_source_supplied": False, "package_manifest_supplied": False}
     return {
         "adapter": "codex-matched-teamdesk-webapp-v1", "round": round_number, "repository_commit": commit,
         "repository_root": str(repo),
         "compiler_source_commit": compiler_source_commit,
         "seed_files_sha256": hashes, "artifacts": str(artifacts), "model_requested": args.model,
+        "typescript_bootstrap": tooling,
         "harness_source_snapshot": {
             "schema": "semaprax.codex-harness-source-snapshot.v1",
             "path": "harness-source",
@@ -652,10 +670,12 @@ def trial_environment(compiler: Path | None) -> dict[str, str]:
     return env
 
 
-def prompt_for(arm: str, candidate: Path, compiler: Path) -> str:
+def prompt_for(arm: str, candidate: Path, compiler: Path, tooling: dict[str, Any] | None = None) -> str:
     language = "TypeScript/React" if arm == "typescript" else "SEMAPRAX"
     compiler_note = (f"Use the supplied compiler at {compiler} for the webapp projection; do not build or fetch a compiler."
                      if arm == "semaprax" else "Do not use SEMAPRAX or substitute another language.")
+    if arm == "typescript" and tooling is not None:
+        compiler_note += " " + bootstrap.prompt_note(tooling)
     return f"""Build the complete TeamDesk Enterprise web application described by the supplied SPEC.md and acceptance CONTRACT.md.
 
 You are writing the {language} arm. Create the new implementation root {candidate}, then work only inside it. Create build.sh, test.sh, and run.sh at the candidate root. {compiler_note}
@@ -740,10 +760,34 @@ def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any]
         row.update({"failure": error, "workspace_retained_for_review": True})
         return row
     candidate = workspace / "candidate"
-    prompt = prompt_for(arm, candidate, semaprax_bin)
+    tooling = settings.get("typescript_bootstrap") if arm == "typescript" else None
+    if tooling is not None:
+        provision_started = time.monotonic()
+        try:
+            receipt_path = Path(tooling["receipt_path"])
+            if common.digest(receipt_path) != tooling["receipt_sha256"]:
+                raise ValueError("bootstrap receipt changed after campaign plan")
+            row["supplied_tooling"] = bootstrap.provision(
+                receipt_path, candidate, settings["acceptance"]["capabilities"]["node_binary"],
+                spec_sha256=settings["qualification"]["spec_sha256"],
+                summary_sha256=settings["qualification"]["receipt_sha256"])
+            if row["supplied_tooling"]["receipt_sha256"] != tooling["receipt_sha256"]:
+                raise ValueError("bootstrap receipt drifted during private copy")
+            # Re-admit after the copy, before any request, at the same floor
+            # applied to both arms. Copy cost is separately retained tooling.
+            resources.require_headroom([artifacts, Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex")))])
+        except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
+            row.update({"failure": f"bootstrap refused before paid request: {error}",
+                        "runner_error": True, "paid_request_launched": False})
+            cleanup_trial(repo, workspace, settings, row)
+            return row
+        finally:
+            row["tooling_provision_elapsed_seconds"] = round(time.monotonic() - provision_started, 3)
+    prompt = prompt_for(arm, candidate, semaprax_bin, tooling)
     (artifacts / "prompts").mkdir(parents=True, exist_ok=True)
     (artifacts / "prompts" / f"{label}.txt").write_text(prompt, encoding="utf-8")
     row["prompt_sha256"] = hashlib.sha256(prompt.encode()).hexdigest()
+    row["fixed_prompt_utf8_bytes"] = len(prompt.encode())
     transcript, stderr, trace = (artifacts / "transcripts" / f"{label}.{suffix}" for suffix in ("jsonl", "stderr.txt", "rollout.jsonl"))
     transcript.parent.mkdir(parents=True, exist_ok=True)
     row.update({"transcript": str(transcript), "stderr_path": str(stderr),
@@ -943,6 +987,8 @@ def main() -> int:
         current.add_argument("--tokenizer-dir", required=True)
         current.add_argument("--codex-binary", default="codex"); current.add_argument("--model", default=MODEL)
         current.add_argument("--node-binary", default="node")
+        current.add_argument("--typescript-bootstrap-receipt",
+                             help="opt-in pinned dependency-only private tooling for a new campaign")
         current.add_argument("--playwright-root", default=str(BENCHMARK / "acceptance"))
         current.add_argument("--effort", default=EFFORT); current.add_argument("--trials-per-arm", type=int, default=MIN_TRIALS_PER_ARM)
         current.add_argument("--timeout-seconds", type=int, default=TIMEOUT_SECONDS)

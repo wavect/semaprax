@@ -18,6 +18,8 @@
   legacy field-qualified clear option and rejecting unrelated `All` controls
   (OPT #691).
 
+- Recognize unique TeamDesk Create/Edit/Delete links or buttons and scope exact field labels to the active form (OPT #692).
+
 - Repair TeamDesk acceptance readiness and equivalent CSV/audit representations
   (OPT #689), retaining all application obligations and case identities. Frozen
   paid results remain unchanged. Six selected gate regressions and ten hostile

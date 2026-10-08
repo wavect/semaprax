@@ -14,6 +14,12 @@ export function enumFilterSelectors(field) {
           legacyAll:new RegExp(`^\\s*${escaped}:\\s*all\\s*$`,'i')};
 }
 
+export function formFieldLabel(field) {
+  assert.ok(typeof field==='string'&&/^[A-Za-z][A-Za-z0-9_]*$/.test(field),'known form field');
+  const escaped=field.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replaceAll('_','[_ ]');
+  return new RegExp(`^\\s*${escaped}\\s*$`,'i');
+}
+
 // Typed integer editors may use inputmode rather than the browser Number
 // implementation. The physical create/readback checks remain the value oracle.
 export function numericEditor(type, attributes) {

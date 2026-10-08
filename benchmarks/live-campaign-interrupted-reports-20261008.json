@@ -1,0 +1,24 @@
+{
+  "no_paid_calls_or_acceptance_reruns": true,
+  "reports": [
+    {
+      "campaign": "loglens-codex-round6-main366-20261008",
+      "clean_comparison_eligible": false,
+      "path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round6-main366-20261008/report-with-interrupted-recovery.json",
+      "sha256": "8ac231667844f4cba30ce0f6e257a82523f5c639175150e44ab4a51658efdafa"
+    },
+    {
+      "campaign": "shiftsim-codex-main3660e0daf-20261008",
+      "clean_comparison_eligible": false,
+      "path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-main3660e0daf-20261008/report-with-interrupted-recovery.json",
+      "sha256": "72858aae99a5e73bd1581e2fe9d9fbc012ae1ff8bc84286d304877c777724bf0"
+    },
+    {
+      "campaign": "teamdesk-codex-round1-main366-20261008",
+      "clean_comparison_eligible": false,
+      "path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round1-main366-20261008/report-with-interrupted-recovery.json",
+      "sha256": "0b5a65cf55244c41e35559c6d7a777393b15c5cee24858a33fef8297f34f1ae5"
+    }
+  ],
+  "schema": "semaprax.interrupted-campaign-report-inventory.v1"
+}

@@ -47,7 +47,8 @@ def summarize(data: dict, rows: list[dict]) -> dict:
         }
     return {'complete': len(rows) == len(order), 'arms': arms,
             'resource_contaminated_attempts': sum(bool(row.get('resource_assessment', {}).get('contaminated')) for row in rows),
-            'clean_comparison_eligible': len(rows) == len(order) and all(row.get('resource_assessment', {}).get('clean_comparison_eligible') is True for row in rows),
+            'clean_comparison_eligible': len(rows) == len(order) and all(counts[arm] >= campaign.MIN_TRIALS_PER_ARM for arm in campaign.ARMS)
+                and all(row.get('resource_assessment', {}).get('clean_comparison_eligible') is True for row in rows),
             'planned_attempts': len(order), 'recorded_attempts': len(rows),
             'unlaunched_order': order[len(rows):], 'trials': rows}
 

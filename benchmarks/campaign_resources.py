@@ -70,7 +70,11 @@ class Monitor:
             os.fsync(output.fileno())
         self.stop = threading.Event()
         self.thread = threading.Thread(target=self._watch, daemon=True)
-        self.write("prepared")
+        try:
+            self.write("prepared")
+        except BaseException:
+            self.reserve.unlink(missing_ok=True)
+            raise
 
     def write(self, state: str, row: dict | None = None):
         document = {"schema": "semaprax.campaign-resource-receipt.v1", "label": self.label,
@@ -138,12 +142,13 @@ def guarded_attempt(function):
             trial = args[0]
         label = f"{trial['arm']}-{trial['number']:02d}" if trial else "calibration"
         monitor = Monitor(Path(artifacts), label)
-        monitor.thread.start()
         try:
+            monitor.thread.start()
             row = function(repo, artifacts, commit, *args, **kwargs)
-        except OSError as error:
+        except Exception as error:
             monitor.reserve.unlink(missing_ok=True)
-            monitor.incidents.append({"kind": "attempt_io_error", "error": str(error)})
+            monitor.incidents.append({"kind": "attempt_io_error" if isinstance(error, OSError) else "runner_exception",
+                                      "error": str(error), "exception_type": type(error).__name__})
             row = {**(trial or {}), "status": "failed", "runner_error": True,
                    "failure": str(error), "workspace_retained_for_review": True,
                    "provider_receipt_actual_usd": None, "observed": {}, "list_price": {},
@@ -151,7 +156,8 @@ def guarded_attempt(function):
                    "accounting_note": "interrupted attempt: recover retained transcript; missing usage is unknown"}
         except BaseException:
             monitor.stop.set()
-            monitor.thread.join()
+            if monitor.thread.ident is not None:
+                monitor.thread.join()
             monitor.reserve.unlink(missing_ok=True)
             raise
         return monitor.finish(row)

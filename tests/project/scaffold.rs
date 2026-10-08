@@ -792,7 +792,7 @@ fn source_command_file_text_template_selects_native_v26_and_decimal_dependency()
     ] {
         assert!(app.contains(stable_id), "missing `{stable_id}`");
     }
-    assert_eq!(derived.files()[5].bytes(), b"000999999999999999999999\n");
+    assert_eq!(derived.files()[5].bytes(), b"000999999999999999999999");
     let guide = derived.files()[1].utf8();
     assert!(guide.contains("semaprax help library std.int.decimal"));
     assert!(guide.contains("function exceeds 4,096 loan program points"));

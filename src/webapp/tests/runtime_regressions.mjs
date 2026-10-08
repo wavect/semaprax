@@ -89,7 +89,7 @@ try {
   const good = await call("POST", "/api/keyed", { numerator: 1, denominator: 1 });
   assert.equal(good.status, 201);
   assert.equal((await call("POST", "/api/keyed", { numerator: 1, denominator: 1 })).status, 400);
-  for (const body of [{ numerator: 1, denominator: 0 }, { numerator: "-9223372036854775808", denominator: -1 }]) {
+  for (const body of [{ numerator: 1, denominator: 0 }, { numerator: JSON.rawJSON("-9223372036854775808"), denominator: -1 }]) {
     const r = await call("POST", "/api/keyed", body);
     assert.equal(r.status, 400); assert.match(r.value.errors[0].message, /division_by_zero|overflow/);
   }

@@ -107,7 +107,7 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
             "semaprax fmt <file> [--check]\n",
         ),
         (
-            "semaprax project-scaffold --name project-name [--template calculator|library|service|stdin-stream-text] [--layout frozen|tables]\n",
+            "semaprax project-scaffold --name project-name [--template calculator|library|service|stdin-stream-text|source-command-file-text] [--layout frozen|tables]\n",
             "semaprax project-scaffold --name project-name [--template calculator]\n",
         ),
         (
@@ -136,7 +136,7 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
             "semaprax test [semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n",
         ),
         (
-            "semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text]\n",
+            "semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text|source-command-file-text]\n",
             "",
         ),
     ];

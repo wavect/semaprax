@@ -9,6 +9,12 @@ import codex_campaign
 
 
 class CodexCampaignTests(unittest.TestCase):
+    def setUp(self):
+        # These fixtures fake model/acceptance execution; resource admission is
+        # independently exercised with low-space and ENOSPC controls.
+        self.enterContext(patch("campaign_resources.snapshot", return_value=[
+            {"device": 1, "path": "/fixture", "free_bytes": 10 * 1024**3}]))
+
     def test_exec_parser_keeps_cached_as_subset_and_tools_are_not_turns(self):
         events = [
             {"type": "thread.started", "thread_id": "thread-a"},

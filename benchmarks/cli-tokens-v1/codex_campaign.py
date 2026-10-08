@@ -522,7 +522,11 @@ def main() -> int:
                                    {"arm": arm, "number": counters[arm]}, result, Path(args.semaprax_bin).resolve())
                 rows.append(row)
                 (artifacts / "results.json").write_text(json.dumps({"campaign": result, "calibration": calibration, "trials": rows}, indent=2, sort_keys=True) + "\n")
-                if row.get("resource_assessment", {}).get("contaminated"):
+                if (row.get("resource_assessment", {}).get("contaminated")
+                        or row.get("runner_error") or row.get("workspace_retained_for_review")
+                        or (not row.get("timed_out") and (
+                            row.get("process_exit_code") not in (0, None)
+                            or row.get("observed", {}).get("reconciled") is False))):
                     break
             result = {"status": "completed" if len(rows) == len(result["trial_order"]) else "interrupted",
                       "artifacts": str(artifacts), "attempts": len(rows),

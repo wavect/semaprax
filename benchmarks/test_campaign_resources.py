@@ -68,6 +68,29 @@ class CampaignResourceTests(unittest.TestCase):
             self.assertTrue(row["resource_assessment"]["clean_comparison_eligible"])
             self.assertTrue(monitor.receipt.exists())
 
+    def test_post_launch_parse_failure_is_retained_as_unknown_cost(self):
+        @resources.guarded_attempt
+        def launch(repo, artifacts, commit, trial):
+            raise UnicodeDecodeError("utf-8", b"\xff", 0, 1, "damaged transcript")
+        with tempfile.TemporaryDirectory() as directory, patch.object(resources, "snapshot", return_value=self.volumes()):
+            row = launch(None, Path(directory), None, {"arm": "typescript", "number": 2})
+            self.assertEqual(row["status"], "failed")
+            self.assertFalse(row["telemetry_valid"])
+            self.assertEqual(row["list_price"], {})
+            self.assertEqual(json.loads(Path(row["resource_assessment"]["receipt"]).read_text())["row"], row)
+
+    def test_watcher_start_failure_releases_reserve_and_never_invokes_attempt(self):
+        called = []
+        @resources.guarded_attempt
+        def launch(repo, artifacts, commit, trial):
+            called.append(trial)
+        with tempfile.TemporaryDirectory() as directory, patch.object(resources, "snapshot", return_value=self.volumes()), \
+                patch.object(resources.threading.Thread, "start", side_effect=RuntimeError("thread unavailable")):
+            row = launch(None, Path(directory), None, {"arm": "semaprax", "number": 1})
+            self.assertFalse(list((Path(directory) / "resource-receipts").glob("*.reserve")))
+            self.assertTrue(row["runner_error"])
+            self.assertEqual(called, [])
+
 
 if __name__ == "__main__":
     unittest.main()

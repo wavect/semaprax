@@ -12,6 +12,12 @@ import test_campaign_adapter as fixtures
 
 
 class CodexShiftSimTests(unittest.TestCase):
+    def setUp(self):
+        # These fixtures fake model/acceptance execution; resource admission is
+        # independently exercised with low-space and ENOSPC controls.
+        self.enterContext(patch("campaign_resources.snapshot", return_value=[
+            {"device": 1, "path": "/fixture", "free_bytes": 10 * 1024**3}]))
+
     def settings(self, root):
         return {"timeout_seconds": 1800, "model": adapter.MODEL, "effort": adapter.EFFORT,
                 "codex_binary": "/fixture/codex", "authored_source_tokenizer": None,
@@ -205,7 +211,8 @@ class CodexShiftSimTests(unittest.TestCase):
             root = Path(directory).resolve()
             settings = {**self.settings(root), "artifacts": str(root / "artifacts"),
                         "repository_commit": adapter.shiftsim.resolve_commit(adapter.REPO, "HEAD"),
-                        "trial_order": ["semaprax", "typescript"] * 5, "attempt_denominator": 10}
+                        "trial_order": ["semaprax", "typescript"] * 5, "attempt_denominator": 10,
+                        "harness_source_files_sha256": adapter.codex.harness_source_inventory(adapter.REPO, adapter.HARNESS_SOURCE_FILES)}
             stack.enter_context(patch.object(adapter, "plan", return_value=settings))
             # First process is calibration, second refuses. No model is invoked.
             process, sessions = self.process(root)
@@ -219,6 +226,7 @@ class CodexShiftSimTests(unittest.TestCase):
             stack.enter_context(patch.object(adapter.codex, "copy_task_rollout", side_effect=lambda ids, cwd, dest: original(ids, cwd, dest, sessions)))
             report = adapter.run_campaign(Namespace(repo=str(adapter.REPO), semaprax_bin=str(root / "semaprax")))
             self.assertEqual(report["campaign_status"], "interrupted")
+            self.assertEqual(report["campaign"]["harness_source_snapshot"]["files_sha256"], settings["harness_source_files_sha256"])
             self.assertEqual(report["recorded_attempts"], 1)
             self.assertEqual(len(report["unlaunched_trial_order"]), 9)
             self.assertEqual(report["attempt_denominator"], 10)

@@ -924,8 +924,8 @@ pub(crate) fn finish(outcome: Result<(), u8>, recovery_hint: Option<String>) -> 
 }
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::library::library_entry;
+    use super::*;
     const DISPATCHER_INVENTORY: &[&str] = &[
         "compact",
         "check",

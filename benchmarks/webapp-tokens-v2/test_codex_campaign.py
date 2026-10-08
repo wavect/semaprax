@@ -17,6 +17,12 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class WebappCampaignTests(unittest.TestCase):
+    def setUp(self):
+        # These fixtures fake model/acceptance execution; resource admission is
+        # independently exercised with low-space and ENOSPC controls.
+        self.enterContext(patch("campaign_resources.snapshot", return_value=[
+            {"device": 1, "path": "/fixture", "free_bytes": 10 * 1024**3}]))
+
     def test_plan_pins_public_seed_receipt_and_matched_order(self):
         args = type("Args", (), {
             "repo": str(ROOT), "base_ref": "HEAD", "compiler_source_ref": "HEAD",

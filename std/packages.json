@@ -27,6 +27,7 @@
     {"directory": "format", "module": "std.format", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "fs", "module": "std.fs", "tier": "hosted", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "http", "module": "std.http", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
+    {"directory": "int-decimal", "module": "std.int.decimal", "tier": "alloc", "targets": ["interpreter", "native-c11"], "status": "partial"},
     {"directory": "io", "module": "std.io", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "io-lines", "module": "std.io.lines", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "jobs", "module": "std.jobs", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},

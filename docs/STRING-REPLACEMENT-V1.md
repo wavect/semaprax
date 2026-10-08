@@ -1,5 +1,7 @@
 # Whole String Replacement v1
 
+Audience: language users and compiler contributors.
+
 Status: authored additive profile; executable verification pending. This page
 owns whole mutable String replacement, CleanupPlan v16 and Graph v68. It does
 not promote Text Toolkit operations to Core Wasm or widen public String ABIs.

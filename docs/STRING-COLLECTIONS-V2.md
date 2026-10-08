@@ -1,5 +1,7 @@
 # String Collections v2
 
+Audience: language users and compiler contributors.
+
 Status: authored; focused execution checks are deferred until the complete OPT
 implementation batch is integrated. This is an additive compiler collection
 profile, not a public generic host ABI.

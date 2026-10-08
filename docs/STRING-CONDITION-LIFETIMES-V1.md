@@ -1,5 +1,7 @@
 # String Condition Lifetimes v1
 
+Audience: language users and compiler contributors.
+
 Status: authored; consolidated OPT verification is pending.
 
 A Boolean `while` condition can create temporary Strings through literals,

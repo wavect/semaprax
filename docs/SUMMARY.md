@@ -162,6 +162,7 @@ Audience: all documentation readers.
 - [String operations](STRING-OPS-V1.md)
 - [Owned String loops](OWNED-STRING-LOOPS-V1.md)
 - [Owned String loops v2](OWNED-STRING-LOOPS-V2.md)
+- [Owned String records v1](OWNED-STRING-RECORDS-V1.md)
 - [Loop Copy variant construction](LOOP-COPY-VARIANT-CONSTRUCTION-V1.md)
 - [Whole String replacement v1](STRING-REPLACEMENT-V1.md)
 - [String condition lifetimes](STRING-CONDITION-LIFETIMES-V1.md)
@@ -171,6 +172,7 @@ Audience: all documentation readers.
 - [Text Toolkit and command-line programs](TEXT-TOOLKIT-V1.md)
 - [String Collections (string-keyed maps)](STRING-COLLECTIONS-V1.md)
 - [String Collections (string-keyed maps)](STRING-COLLECTIONS-V2.md)
+- [Wasm Text Toolkit v1](WASM-TEXT-TOOLKIT-V1.md)
 - [IO Cursors v1](IO-CURSORS-V1.md)
 - [IO Lines v1](IO-LINES-V1.md)
 - [Base64 v1](BASE64-V1.md)
@@ -233,6 +235,7 @@ Audience: all documentation readers.
 - [Project Manifest v16: Useful Data v2](PROJECT-MANIFEST-V16.md)
 - [Project Manifest v18: Process I/O](PROJECT-MANIFEST-V18.md)
 - [Project Manifest v19: Filesystem I/O v3](PROJECT-MANIFEST-V19.md)
+- [Project Manifest v26: linked native source commands](PROJECT-MANIFEST-V26.md)
 - [Package Manifest v1](PACKAGE-MANIFEST-V1.md)
 - [Package Manifest v2: explicit native law sources](PACKAGE-MANIFEST-V2.md)
 - [Native Law Declarations v1](NATIVE-LAW-DECLARATIONS-V1.md)
@@ -551,6 +554,7 @@ Audience: all documentation readers.
 - [UI dialect schema projection](UI-SCHEMA-V1.md)
 - [Web application projection](WEBAPP-PROJECTION-V1.md)
 - [Web application projection v2](WEBAPP-PROJECTION-V2.md)
+- [Web application projection v3](WEBAPP-PROJECTION-V3.md)
 - [Conformance trace](CONFORMANCE-TRACE-V1.md)
 
 # Internal development documentation

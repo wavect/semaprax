@@ -1,5 +1,9 @@
 # Wasm Text Toolkit v1
 
+Audience: language users and compiler contributors.
+
+Status: additive implementation authored; complete hosted verification pending.
+
 This additive profile owns checked Text Toolkit v1 lowering, borrowed-to-owned
 String conversion, numeric conversions, bytewise String comparison, and Copy
 or owned String variant matching. Existing internal String v1 and Copy Variant

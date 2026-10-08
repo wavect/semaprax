@@ -1,5 +1,7 @@
 # Owned String Records v1
 
+Audience: language users and compiler contributors.
+
 Status: additive internal implementation and focused gates authored. Verification
 is pending until the remaining OPT implementation batch is complete. This is not
 public ABI, hosted release or completed-ticket evidence.

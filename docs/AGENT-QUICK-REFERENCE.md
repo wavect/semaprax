@@ -1162,8 +1162,8 @@ fn order_status(paid: bool) -> string
 - Run `semaprax fmt app.spx && semaprax webapp app.spx -o out && node
   out/server.mjs --self-test`. It reports checks and cleanup;
   `semaprax webapp app.spx --api` lists the API.
-- Cross-row rules: `<entity>_constraint[_name](fields, other_<entity>_<field>)
-  -> bool` checks every distinct row pair; incoming changes also recheck it.
+- Cross-row rules: `<entity>_constraint_name(fields, other_<entity>_<field>)
+  -> bool` (optional `_name` suffix) checks every distinct row pair; incoming changes recheck it.
 - Migration: `<entity>_migrate_<field>(old_<field>: type) -> type` (no
   parameters for a default); restart with `--migrate` after reviewing changes.
   The server validates the whole migrated state and saves the previous bytes.

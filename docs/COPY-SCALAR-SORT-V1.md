@@ -1,5 +1,7 @@
 # Copy Scalar Sort v1
 
+Audience: language users and compiler contributors.
+
 Status: authored; focused verification is pending the complete OPT implementation batch.
 
 `vec_sort<T>(values: own Vec<T>) -> Vec<T>` sorts the eight admitted Copy

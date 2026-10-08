@@ -1,5 +1,7 @@
 # Web Application Projection v3
 
+Audience: language users and compiler contributors.
+
 Status: implementation authored; focused verification pending the complete OPT
 implementation batch. Additive source conventions over v2; the application
 platform completion row remains Partial. No hosted or production evidence.

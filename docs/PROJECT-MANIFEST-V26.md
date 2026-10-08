@@ -1,5 +1,7 @@
 # Project Manifest v26: linked native source commands
 
+Audience: language users and compiler contributors.
+
 Status: bounded native-only profile authored for OPT #667. Owning regression
 `cargo test --locked -p semaprax --test project source_command` is pending
 current-compiler verification. No interpreter, Wasm, Web, npm, Windows or hosted

@@ -100,17 +100,44 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
 ''', encoding="utf-8")
         manifest_hash = live_campaign.sha_bytes(manifest.read_bytes())
         inventory = root / "candidate-source-inventory.json"
-        inventory.write_text(json.dumps({"files": [
-            {"path": "semaprax.toml", "sha256": manifest_hash},
-        ]}), encoding="utf-8")
+        files = [{"path": "semaprax.toml", "bytes": manifest.stat().st_size,
+                  "sha256": manifest_hash}]
+        closed_hash = live_campaign.sha_bytes(json.dumps(
+            files, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode())
+        inventory.write_text(json.dumps({
+            "schema": "semaprax.closed-authored-inventory.v1",
+            "files": files, "sha256": closed_hash,
+        }), encoding="utf-8")
+        inventory_hash = live_campaign.sha_bytes(inventory.read_bytes())
+        native = root / "qualified-native"
+        native.write_bytes(b"qualified native binary")
+        native_hash = live_campaign.sha_bytes(native.read_bytes())
+        subject = {
+            "compiler_source_commit": evidence["compiler_source_commit"],
+            "compiler_binary_sha256": evidence["compiler_binary_sha256"],
+            "closed_authored_inventory_sha256": closed_hash,
+            "candidate_manifest_sha256": manifest_hash,
+            "native_binary_sha256": native_hash,
+        }
+        receipt = root / "qualification-build-receipt.json"
+        receipt.write_text(json.dumps({
+            "schema": live_campaign.QUALIFICATION_BUILD_RECEIPT_SCHEMA,
+            "qualification_subject": subject,
+            "acceptance_report_sha256": evidence["acceptance_report"]["sha256"],
+        }), encoding="utf-8")
         evidence.update({
             "schema": live_campaign.QUALIFICATION_EVIDENCE_SCHEMA_V3,
             "native_project_route": live_campaign.NATIVE_PROJECT_ROUTE_V27,
             "candidate_source": {
                 "inventory": {"path": str(inventory),
-                              "sha256": live_campaign.sha_bytes(inventory.read_bytes())},
+                              "sha256": inventory_hash},
                 "manifest": {"path": str(manifest), "sha256": manifest_hash},
             },
+            "qualification_subject": subject,
+            "qualification_build_receipt": {
+                "path": str(receipt), "sha256": live_campaign.sha_bytes(receipt.read_bytes()),
+            },
+            "qualified_native_binary": {"path": str(native), "sha256": native_hash},
         })
         evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
         return evidence_path, evidence, report_path, repo, inventory, manifest
@@ -234,6 +261,36 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
             self.assertEqual(settings["qualification"]["candidate_manifest_sha256"],
                              live_campaign.sha_bytes(manifest.read_bytes()))
             self.assertEqual(settings["qualification"]["candidate_source_inventory_path"], str(inventory.resolve()))
+            receipt = Path(evidence["qualification_build_receipt"]["path"])
+            receipt_original = receipt.read_bytes()
+            wrong_receipt = json.loads(receipt_original)
+            wrong_receipt["acceptance_report_sha256"] = "c" * 64
+            receipt.write_text(json.dumps(wrong_receipt), encoding="utf-8")
+            changed = json.loads(evidence_path.read_text())
+            changed["qualification_build_receipt"]["sha256"] = live_campaign.sha_bytes(receipt.read_bytes())
+            evidence_path.write_text(json.dumps(changed), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "accepted report"):
+                live_campaign.validate_qualification_evidence(
+                    evidence_path, repo, evidence["compiler_source_commit"], "a" * 64,
+                    live_campaign.AUTHORING_PROFILE_V27)
+            receipt.write_bytes(receipt_original)
+            evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+            wrong_binary = json.loads(evidence_path.read_text())
+            wrong_binary["qualification_subject"]["native_binary_sha256"] = "c" * 64
+            evidence_path.write_text(json.dumps(wrong_binary), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "qualification subject"):
+                live_campaign.validate_qualification_evidence(
+                    evidence_path, repo, evidence["compiler_source_commit"], "a" * 64,
+                    live_campaign.AUTHORING_PROFILE_V27)
+            evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+            native = Path(evidence["qualified_native_binary"]["path"])
+            native_bytes = native.read_bytes()
+            native.write_bytes(b"different binary")
+            with self.assertRaisesRegex(ValueError, "native binary hash"):
+                live_campaign.validate_qualification_evidence(
+                    evidence_path, repo, evidence["compiler_source_commit"], "a" * 64,
+                    live_campaign.AUTHORING_PROFILE_V27)
+            native.write_bytes(native_bytes)
             with self.assertRaisesRegex(ValueError, "schema must be"):
                 live_campaign.validate_qualification_evidence(
                     evidence_path, repo, evidence["compiler_source_commit"], "a" * 64,
@@ -272,6 +329,24 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
                 candidate, "semaprax", live_campaign.AUTHORING_PROFILE_V27)["status"], "failed")
             self.assertEqual(live_campaign.candidate_authoring_admission(
                 candidate, "typescript", live_campaign.AUTHORING_PROFILE_V27)["status"], "not_applicable")
+
+    def test_qualification_artifact_copy_rechecks_source_and_destination_hashes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            artifacts = root / "artifacts"
+            artifacts.mkdir()
+            evidence = root / "evidence.json"
+            evidence.write_bytes(b"reviewed")
+            qualification = {"evidence_path": str(evidence),
+                             "evidence_sha256": live_campaign.sha_bytes(b"reviewed")}
+            original = live_campaign.shutil.copyfile
+            def drift(source, destination):
+                result = original(source, destination)
+                Path(source).write_bytes(b"changed")
+                return result
+            with patch.object(live_campaign.shutil, "copyfile", side_effect=drift):
+                with self.assertRaisesRegex(ValueError, "during copy"):
+                    live_campaign.copy_qualification_artifacts(qualification, artifacts)
     def test_provider_quota_requires_a_structured_failed_result(self):
         for result in (
             {"is_error": True, "api_error_status": 429, "api_error": "usage_limit_reached"},
@@ -375,6 +450,127 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
                     command = calls.call_args.args[0]
                     self.assertIn(str(HERE / "acceptance" / "run.py"), command)
                     self.assertIn(json.dumps(["/bin/sh", str(candidate / "run.sh")]), command)
+
+    def test_v27_check_builds_and_accepts_only_the_harness_native_binary(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            candidate = root / "candidate"
+            candidate.mkdir()
+            for name, text in (("semaprax.toml", "manifest\n"), ("app.spx", "module app;\n"),
+                               ("build.sh", "exit 0\n"), ("test.sh", "exit 0\n"),
+                               ("run.sh", "exit 99\n")):
+                (candidate / name).write_text(text)
+            compiler = root / "semaprax"
+            compiler.write_bytes(b"pinned compiler")
+            output = root / "harness" / "shiftsim"
+            commands = []
+            def execute(command, **_kwargs):
+                commands.append(command)
+                if command[:2] == [str(compiler), "build"]:
+                    output.write_bytes(b"fresh native")
+                return subprocess.CompletedProcess(command, 0, stdout=b"", stderr=b"")
+            with patch.object(subprocess, "run", side_effect=execute):
+                result = live_campaign.check_program(candidate, 10,
+                    {"SEMAPRAX_BIN": str(compiler)}, "evidence_gated_scored",
+                    live_campaign.AUTHORING_PROFILE_V27, output,
+                    live_campaign.sha_bytes(compiler.read_bytes()))
+            self.assertTrue(result["accepted"])
+            self.assertEqual(commands[0][1], "check")
+            self.assertEqual(commands[1][1], "build")
+            accepted = json.loads(commands[-1][commands[-1].index("--command-json") + 1])
+            self.assertEqual(accepted, [str(output)])
+            self.assertNotIn(str(candidate / "run.sh"), accepted)
+            self.assertEqual(result["native_binary"]["sha256"],
+                             live_campaign.sha_bytes(b"fresh native"))
+
+    def test_v3_qualification_builder_binds_the_binary_actually_passed_to_acceptance(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _, _, accepted_report, repo, _, manifest = self._v3_qualification_evidence(root)
+            candidate = manifest.parent
+            (candidate / "app.spx").write_text("module app;\n")
+            compiler = root / "semaprax"
+            compiler.write_bytes(b"compiler")
+            output = root / "generated-qualification"
+            commands = []
+            original_run = subprocess.run
+            def execute(command, **_kwargs):
+                if command[0] == "git":
+                    return original_run(command, **_kwargs)
+                commands.append(command)
+                if command[:2] == [str(compiler.resolve()), "build"]:
+                    Path(command[command.index("--output") + 1]).write_bytes(b"accepted native")
+                if "--report-json" in command:
+                    Path(command[command.index("--report-json") + 1]).write_bytes(
+                        accepted_report.read_bytes())
+                return subprocess.CompletedProcess(command, 0, stdout=b"", stderr=b"")
+            commit = live_campaign.resolve_commit(repo, "HEAD")
+            with patch.object(subprocess, "run", side_effect=execute):
+                result = live_campaign.generate_v3_qualification(
+                    candidate, compiler, repo, commit, output, 10)
+            self.assertEqual(result["status"], "qualified")
+            acceptance = next(command for command in commands if "--report-json" in command)
+            accepted_command = json.loads(acceptance[acceptance.index("--command-json") + 1])
+            self.assertEqual(accepted_command, [str(output / "qualified-native-binary")])
+            evidence = json.loads((output / "qualification-evidence.json").read_text())
+            self.assertEqual(evidence["qualification_subject"]["native_binary_sha256"],
+                             live_campaign.sha_bytes(b"accepted native"))
+            receipt = json.loads((output / "qualification-build-receipt.json").read_text())
+            self.assertEqual(receipt["acceptance_report_sha256"],
+                             live_campaign.sha_bytes(accepted_report.read_bytes()))
+
+    def test_v27_source_mutation_and_retained_symlink_fail_closed_but_node_modules_links_are_ignored(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            candidate = root / "candidate"
+            candidate.mkdir()
+            for name in ("semaprax.toml", "app.spx", "build.sh", "test.sh", "run.sh"):
+                (candidate / name).write_text("source\n")
+            compiler = root / "semaprax"
+            compiler.write_bytes(b"compiler")
+            output = root / "harness" / "shiftsim"
+            def mutate(command, **_kwargs):
+                if command[:2] == [str(compiler), "build"]:
+                    output.write_bytes(b"native")
+                if command[:2] == ["/bin/sh", str(candidate / "build.sh")]:
+                    (candidate / "app.spx").write_text("changed\n")
+                return subprocess.CompletedProcess(command, 0, stdout=b"", stderr=b"")
+            with patch.object(subprocess, "run", side_effect=mutate):
+                result = live_campaign.check_program(candidate, 10,
+                    {"SEMAPRAX_BIN": str(compiler)}, "evidence_gated_scored",
+                    live_campaign.AUTHORING_PROFILE_V27, output,
+                    live_campaign.sha_bytes(compiler.read_bytes()))
+            self.assertFalse(result["accepted"])
+            self.assertEqual(result["build_source_consistency"]["status"], "failed")
+
+            (candidate / "app.spx").write_text("source\n")
+            output2 = root / "harness-2" / "shiftsim"
+            def overwrite_binary(command, **_kwargs):
+                if command[:2] == [str(compiler), "build"]:
+                    output2.write_bytes(b"native")
+                if command[:2] == ["/bin/sh", str(candidate / "test.sh")]:
+                    output2.write_bytes(b"candidate overwrite")
+                return subprocess.CompletedProcess(command, 0, stdout=b"", stderr=b"")
+            with patch.object(subprocess, "run", side_effect=overwrite_binary):
+                changed_binary = live_campaign.check_program(candidate, 10,
+                    {"SEMAPRAX_BIN": str(compiler)}, "evidence_gated_scored",
+                    live_campaign.AUTHORING_PROFILE_V27, output2,
+                    live_campaign.sha_bytes(compiler.read_bytes()))
+            self.assertFalse(changed_binary["accepted"])
+            self.assertEqual(changed_binary["candidate_tests_source_consistency"]["status"], "failed")
+
+            (candidate / "app.spx").unlink()
+            (candidate / "app.spx").symlink_to(root / "outside.spx")
+            with self.assertRaisesRegex(ValueError, "regular"):
+                live_campaign.closed_authored_inventory(candidate)
+            (candidate / "app.spx").unlink()
+            (candidate / "app.spx").write_text("source\n")
+            linked = candidate / "node_modules" / ".bin"
+            linked.mkdir(parents=True)
+            (root / "outside-tool").write_text("tool\n")
+            (linked / "tool").symlink_to(root / "outside-tool")
+            inventory = live_campaign.closed_authored_inventory(candidate)
+            self.assertNotIn("node_modules/.bin/tool", [row["path"] for row in inventory["files"]])
 
     def test_pinned_native_evidence_gates_scored_trials_and_keeps_issue_open(self):
         with tempfile.TemporaryDirectory() as directory:

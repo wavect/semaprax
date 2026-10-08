@@ -10,7 +10,6 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
-import shutil
 import subprocess
 import sys
 import time
@@ -203,6 +202,12 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
             and observed.get("invalid_stream_lines") == 0)
         guard = workspace_guard(workspace, settings)
         row["workspace_integrity_before_acceptance"] = guard
+        if settings.get("authoring_profile") == shiftsim.AUTHORING_PROFILE_V27:
+            try:
+                row["closed_authored_inventory_after_model"] = shiftsim.closed_authored_inventory(candidate)
+            except (OSError, ValueError) as error:
+                invalidate(row, str(error))
+                return row
         if row["timed_out"]:
             row["failure"] = "trial hit wall-clock timeout"
         elif row["process_exit_code"] != 0:
@@ -224,8 +229,16 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
                             "failure": "candidate failed exact authoring-profile admission"})
             else:
                 started = time.monotonic()
-                row["acceptance"] = shiftsim.check_program(candidate, settings["timeout_seconds"],
-                    shiftsim.trial_environment(semaprax_bin), "evidence_gated_scored")
+                if settings.get("authoring_profile") == shiftsim.AUTHORING_PROFILE_V27:
+                    row["acceptance"] = shiftsim.check_program(candidate, settings["timeout_seconds"],
+                        shiftsim.trial_environment(semaprax_bin), "evidence_gated_scored",
+                        shiftsim.AUTHORING_PROFILE_V27,
+                        artifacts / "harness-native" / label / "shiftsim",
+                        settings["qualification"].get("compiler_binary_sha256"),
+                        row.get("closed_authored_inventory_after_model"))
+                else:
+                    row["acceptance"] = shiftsim.check_program(candidate, settings["timeout_seconds"],
+                        shiftsim.trial_environment(semaprax_bin), "evidence_gated_scored")
                 row["acceptance_elapsed_seconds"] = round(time.monotonic() - started, 3)
                 row["status"] = "accepted" if row["acceptance"]["accepted"] else "not_accepted"
                 if row["status"] != "accepted":
@@ -238,6 +251,18 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
     except (OSError, RuntimeError, ValueError, UnicodeError) as error:
         row["final_candidate_source_metrics"] = {"status": "measurement_failed", "total_tokens": None,
             "files": [], "tokenizer": settings.get("authored_source_tokenizer"), "error": str(error)}
+    if settings.get("authoring_profile") == shiftsim.AUTHORING_PROFILE_V27:
+        acceptance = row.get("acceptance", {})
+        native = acceptance.get("native_binary", {})
+        native_path = Path(native["path"]) if native.get("path") else None
+        expected_inventory = acceptance.get(
+            "closed_authored_inventory", row.get("closed_authored_inventory_after_model"))
+        passed, phase_guard = shiftsim._phase_source_and_binary_guard(
+            candidate, expected_inventory, native_path, native.get("sha256"))
+        row["source_consistency_after_metrics"] = phase_guard
+        if not passed:
+            invalidate(row, "candidate source or harness native binary changed")
+            return row
     guard = workspace_guard(workspace, settings)
     row["workspace_integrity_before_archive"] = guard
     if guard["status"] != "passed":
@@ -255,6 +280,27 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
         if isinstance(row.get("acceptance"), dict):
             row["acceptance"]["accepted"] = False
         return row
+    if settings.get("authoring_profile") == shiftsim.AUTHORING_PROFILE_V27:
+        acceptance = row.get("acceptance", {})
+        native = acceptance.get("native_binary", {})
+        native_path = Path(native["path"]) if native.get("path") else None
+        expected_inventory = acceptance.get(
+            "closed_authored_inventory", row.get("closed_authored_inventory_after_model"))
+        passed, phase_guard = shiftsim._phase_source_and_binary_guard(
+            candidate, expected_inventory, native_path, native.get("sha256"))
+        try:
+            archived_inventory = shiftsim.closed_authored_inventory(archive)
+            archive_matches = archived_inventory == expected_inventory
+        except (OSError, ValueError) as error:
+            archived_inventory = {"status": "failed", "error": str(error)}
+            archive_matches = False
+        phase_guard["archived_inventory"] = archived_inventory
+        phase_guard["archive_matches"] = archive_matches
+        passed = passed and archive_matches
+        row["source_consistency_after_archive"] = phase_guard
+        if not passed:
+            invalidate(row, "candidate source or harness native binary changed")
+            return row
     cleanup_workspace(seed_repo, workspace, settings, row)
     return row
 
@@ -305,16 +351,7 @@ def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
         relative_files=HARNESS_SOURCE_FILES, spec_path="benchmarks/event-sim-tokens-v1/SPEC.md")
     settings["harness_source_snapshot"] = snapshot
     qualification = settings["qualification"]
-    for key, artifact_name in (
-        ("evidence_path", "qualification-evidence.json"),
-        ("acceptance_report_path", "qualification-acceptance-report.json"),
-        ("candidate_source_inventory_path", "qualification-candidate-source-inventory.json"),
-        ("candidate_manifest_path", "qualification-candidate-semaprax.toml"),
-    ):
-        if qualification.get(key):
-            copied = artifacts / artifact_name
-            shutil.copyfile(qualification[key], copied)
-            qualification[key.replace("_path", "_artifact")] = str(copied)
+    shiftsim.copy_qualification_artifacts(qualification, artifacts)
     seed = shiftsim.common.create_seed_repository(Path(args.repo).resolve(), settings["repository_commit"],
                                                    artifacts / "seed-repository", shiftsim.SEED_FILES)
     settings.update(seed); settings["semaprax_binary"] = str(binary)

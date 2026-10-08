@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import time
@@ -34,6 +35,7 @@ PRICE_BOOK_DATE = "2026-10-07"
 PRICE_BOOK_SOURCE = "https://platform.claude.com/docs/en/models/sonnet-5-5/overview"
 QUALIFICATION_EVIDENCE_SCHEMA = "semaprax.event-sim-qualification-evidence.v2"
 QUALIFICATION_EVIDENCE_SCHEMA_V3 = "semaprax.event-sim-qualification-evidence.v3"
+QUALIFICATION_BUILD_RECEIPT_SCHEMA = "semaprax.event-sim-qualification-build-receipt.v1"
 ACCEPTANCE_REPORT_SCHEMA = "semaprax.event-sim.acceptance-report.v1"
 NATIVE_PROJECT_SCHEMA = "semaprax.project.v24"
 NATIVE_PROJECT_PROFILE = "language-command-io.stream.v2"
@@ -142,6 +144,13 @@ def _bound_file(reference: Any, evidence_path: Path, label: str) -> tuple[Path, 
     return path, data, digest
 
 
+def _sha256_value(value: Any, label: str) -> str:
+    if (not isinstance(value, str) or len(value) != 64
+            or any(character not in "0123456789abcdef" for character in value)):
+        raise ValueError(f"{label} must be a lowercase SHA-256 digest")
+    return value
+
+
 def _manifest_route(data: bytes) -> dict[str, Any]:
     try:
         manifest = tomllib.loads(data.decode("utf-8"))
@@ -165,6 +174,29 @@ def _manifest_route(data: bytes) -> dict[str, Any]:
             or capabilities != {"required": STREAM_DATA_CAPABILITIES}):
         raise ValueError("candidate manifest does not match the exact v27 stream-data command route")
     return route
+
+
+def _validate_closed_inventory_document(inventory: Any) -> list[dict[str, Any]]:
+    files = inventory.get("files") if isinstance(inventory, dict) else None
+    if (not isinstance(inventory, dict)
+            or inventory.get("schema") != "semaprax.closed-authored-inventory.v1"
+            or not isinstance(files, list)):
+        raise ValueError("candidate source inventory must use the closed authored inventory schema")
+    paths = []
+    for row in files:
+        if (not isinstance(row, dict) or not isinstance(row.get("path"), str) or not row.get("path")
+                or Path(row["path"]).is_absolute() or ".." in Path(row["path"]).parts
+                or isinstance(row.get("bytes"), bool) or not isinstance(row.get("bytes"), int)
+                or row["bytes"] < 0):
+            raise ValueError("candidate source inventory contains an invalid file row")
+        _sha256_value(row.get("sha256"), "candidate source file hash")
+        paths.append(row["path"])
+    if paths != sorted(set(paths)):
+        raise ValueError("candidate source inventory paths must be unique and sorted")
+    encoded = json.dumps(files, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    if inventory.get("sha256") != sha_bytes(encoded):
+        raise ValueError("candidate source inventory closed digest does not match its file rows")
+    return files
 
 
 def candidate_authoring_admission(candidate: Path, arm: str, authoring_profile: str) -> dict[str, Any]:
@@ -318,17 +350,49 @@ def validate_qualification_evidence(
             inventory = json.loads(inventory_bytes.decode("utf-8"))
         except (UnicodeError, json.JSONDecodeError) as error:
             raise ValueError("candidate source inventory is not valid UTF-8 JSON") from error
-        files = inventory.get("files") if isinstance(inventory, dict) else None
+        files = _validate_closed_inventory_document(inventory)
         manifest_rows = [row for row in files or []
                          if isinstance(row, dict) and row.get("path") == "semaprax.toml"]
-        if len(manifest_rows) != 1 or manifest_rows[0].get("sha256") != manifest_hash:
+        if (len(manifest_rows) != 1 or manifest_rows[0].get("sha256") != manifest_hash
+                or manifest_rows[0].get("bytes") != len(manifest_bytes)):
             raise ValueError("candidate source inventory must bind semaprax.toml exactly")
         _manifest_route(manifest_bytes)
+        receipt_path, receipt_bytes, receipt_hash = _bound_file(
+            evidence.get("qualification_build_receipt"), evidence_path,
+            "qualification build receipt")
+        native_path, _native_bytes, native_hash = _bound_file(
+            evidence.get("qualified_native_binary"), evidence_path,
+            "qualified native binary")
+        try:
+            receipt = json.loads(receipt_bytes.decode("utf-8"))
+        except (UnicodeError, json.JSONDecodeError) as error:
+            raise ValueError("qualification build receipt is not valid UTF-8 JSON") from error
+        subject = evidence.get("qualification_subject")
+        expected_subject = {
+            "compiler_source_commit": commit,
+            "compiler_binary_sha256": binary_hash,
+            "closed_authored_inventory_sha256": inventory["sha256"],
+            "candidate_manifest_sha256": manifest_hash,
+            "native_binary_sha256": native_hash,
+        }
+        if subject != expected_subject:
+            raise ValueError("v3 qualification subject does not bind compiler, source, manifest, and native binary")
+        if (not isinstance(receipt, dict)
+                or receipt.get("schema") != QUALIFICATION_BUILD_RECEIPT_SCHEMA
+                or receipt.get("qualification_subject") != expected_subject
+                or receipt.get("acceptance_report_sha256") != report_hash):
+            raise ValueError("qualification build receipt does not bind the accepted report to the same subject")
         source_binding = {
             "candidate_source_inventory_path": str(inventory_path),
             "candidate_source_inventory_sha256": inventory_hash,
+            "closed_authored_inventory_sha256": inventory["sha256"],
             "candidate_manifest_path": str(manifest_path),
             "candidate_manifest_sha256": manifest_hash,
+            "qualification_build_receipt_path": str(receipt_path),
+            "qualification_build_receipt_sha256": receipt_hash,
+            "qualified_native_binary_path": str(native_path),
+            "qualified_native_binary_sha256": native_hash,
+            "qualification_subject": expected_subject,
         }
 
     return {
@@ -356,6 +420,142 @@ def resolve_commit(repo: Path, ref: str) -> str:
     if result.returncode:
         raise ValueError(f"base ref does not resolve to a commit: {ref}")
     return result.stdout.strip()
+
+
+def copy_qualification_artifacts(qualification: dict[str, Any], artifacts: Path) -> None:
+    """Copy validated evidence without allowing plan-to-launch drift."""
+    bindings = (
+        ("evidence_path", "evidence_sha256", "evidence_artifact", "qualification-evidence.json"),
+        ("acceptance_report_path", "acceptance_report_sha256", "acceptance_report_artifact",
+         "qualification-acceptance-report.json"),
+        ("candidate_source_inventory_path", "candidate_source_inventory_sha256",
+         "candidate_source_inventory_artifact", "qualification-candidate-source-inventory.json"),
+        ("candidate_manifest_path", "candidate_manifest_sha256", "candidate_manifest_artifact",
+         "qualification-candidate-semaprax.toml"),
+        ("qualification_build_receipt_path", "qualification_build_receipt_sha256",
+         "qualification_build_receipt_artifact", "qualification-build-receipt.json"),
+        ("qualified_native_binary_path", "qualified_native_binary_sha256",
+         "qualified_native_binary_artifact", "qualification-native-binary"),
+    )
+    for path_key, hash_key, artifact_key, name in bindings:
+        source_value = qualification.get(path_key)
+        if source_value is None:
+            continue
+        source = Path(source_value)
+        expected = qualification.get(hash_key)
+        if expected is None or source.is_symlink() or not source.is_file() or common.digest(source) != expected:
+            raise ValueError(f"qualified artifact drifted before copy: {path_key}")
+        destination = artifacts / name
+        shutil.copyfile(source, destination)
+        if common.digest(source) != expected or common.digest(destination) != expected:
+            raise ValueError(f"qualified artifact drifted during copy: {path_key}")
+        qualification[artifact_key] = str(destination)
+
+
+def generate_v3_qualification(
+    candidate: Path,
+    semaprax_bin: Path,
+    repo: Path,
+    compiler_commit: str,
+    output: Path,
+    timeout: int,
+) -> dict[str, Any]:
+    """Build and accept one immutable v27 subject, then author its v3 envelope."""
+    candidate = candidate.expanduser().resolve(strict=True)
+    semaprax_bin = semaprax_bin.expanduser().resolve(strict=True)
+    repo = repo.expanduser().resolve(strict=True)
+    output = output.expanduser().resolve()
+    if timeout <= 0:
+        raise ValueError("qualification timeout must be positive")
+    if output.exists():
+        raise ValueError(f"qualification output must not already exist: {output}")
+    if not semaprax_bin.is_file() or semaprax_bin.is_symlink():
+        raise ValueError("qualification compiler must be a regular file")
+    for protected in (repo, candidate):
+        try:
+            output.relative_to(protected)
+        except ValueError:
+            continue
+        raise ValueError("qualification output must be outside the repository and candidate")
+    admission = candidate_authoring_admission(candidate, "semaprax", AUTHORING_PROFILE_V27)
+    if admission["status"] != "passed":
+        raise ValueError(admission.get("error", "candidate failed v27 manifest admission"))
+    inventory = closed_authored_inventory(candidate)
+    output.mkdir(parents=True)
+    inventory_path = output / "candidate-source-inventory.json"
+    inventory_path.write_text(json.dumps(inventory, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    manifest_path = output / "candidate-semaprax.toml"
+    shutil.copyfile(candidate / "semaprax.toml", manifest_path)
+    manifest_hash = common.digest(manifest_path)
+    if manifest_hash != admission["sha256"] or closed_authored_inventory(candidate) != inventory:
+        raise ValueError("candidate source changed while qualification artifacts were staged")
+    native_path = output / "qualified-native-binary"
+    env = trial_environment(semaprax_bin)
+    for command in (
+        [str(semaprax_bin), "check", "--manifest-path", str(candidate / "semaprax.toml")],
+        [str(semaprax_bin), "build", "--manifest-path", str(candidate / "semaprax.toml"),
+         "--target", "native", "--output", str(native_path)],
+    ):
+        completed = subprocess.run(command, cwd=candidate, capture_output=True, check=False,
+                                   timeout=timeout, env=env)
+        if completed.returncode:
+            raise ValueError(f"qualification compiler command failed: {common.bounded_text(completed.stderr)}")
+        if closed_authored_inventory(candidate) != inventory:
+            raise ValueError("candidate source changed during qualification build")
+    if native_path.is_symlink() or not native_path.is_file():
+        raise ValueError("qualification build did not produce a regular native binary")
+    native_hash = common.digest(native_path)
+    report_path = output / "acceptance-report.json"
+    runner = BENCHMARK / "acceptance" / "run.py"
+    accepted = subprocess.run(
+        [sys.executable, str(runner), "--command-json", json.dumps([str(native_path)]),
+         "--report-json", str(report_path)],
+        cwd=candidate, capture_output=True, check=False, timeout=timeout, env=env)
+    if accepted.returncode:
+        raise ValueError(f"qualification acceptance failed: {common.bounded_text(accepted.stderr)}")
+    if report_path.is_symlink() or not report_path.is_file():
+        raise ValueError("qualification acceptance did not produce a regular report")
+    if (closed_authored_inventory(candidate) != inventory or native_path.is_symlink()
+            or not native_path.is_file() or common.digest(native_path) != native_hash):
+        raise ValueError("qualification source or native binary changed during acceptance")
+    report_hash = common.digest(report_path)
+    compiler_hash = common.digest(semaprax_bin)
+    subject = {
+        "compiler_source_commit": compiler_commit,
+        "compiler_binary_sha256": compiler_hash,
+        "closed_authored_inventory_sha256": inventory["sha256"],
+        "candidate_manifest_sha256": manifest_hash,
+        "native_binary_sha256": native_hash,
+    }
+    receipt_path = output / "qualification-build-receipt.json"
+    receipt_path.write_text(json.dumps({
+        "schema": QUALIFICATION_BUILD_RECEIPT_SCHEMA,
+        "qualification_subject": subject,
+        "acceptance_report_sha256": report_hash,
+    }, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    evidence_path = output / "qualification-evidence.json"
+    evidence = {
+        "schema": QUALIFICATION_EVIDENCE_SCHEMA_V3,
+        "spec_sha256": sha_bytes(blob_at_commit(repo, compiler_commit, SPEC_RELATIVE)),
+        "acceptance_corpus_sha256": sha_bytes(blob_at_commit(repo, compiler_commit, CORPUS_RELATIVE)),
+        "compiler_source_commit": compiler_commit,
+        "compiler_binary_sha256": compiler_hash,
+        "native_project_route": NATIVE_PROJECT_ROUTE_V27,
+        "acceptance_report": {"path": str(report_path), "sha256": report_hash},
+        "candidate_source": {
+            "inventory": {"path": str(inventory_path), "sha256": common.digest(inventory_path)},
+            "manifest": {"path": str(manifest_path), "sha256": manifest_hash},
+        },
+        "qualification_subject": subject,
+        "qualification_build_receipt": {
+            "path": str(receipt_path), "sha256": common.digest(receipt_path)},
+        "qualified_native_binary": {"path": str(native_path), "sha256": native_hash},
+    }
+    evidence_path.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    validate_qualification_evidence(
+        evidence_path, repo, compiler_commit, compiler_hash, AUTHORING_PROFILE_V27)
+    return {"status": "qualified", "evidence": str(evidence_path),
+            "qualification_subject": subject}
 
 
 def trial_environment(semaprax_bin: Path) -> dict[str, str]:
@@ -565,14 +765,141 @@ def launch_calibration(seed_repo: Path, artifacts: Path, seed_commit: str,
     return row
 
 
+def closed_authored_inventory(candidate: Path) -> dict[str, Any]:
+    """Hash retained authored files without following candidate-controlled links."""
+    if not candidate.exists() and not candidate.is_symlink():
+        files: list[dict[str, Any]] = []
+        encoded = json.dumps(files, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
+        return {"schema": "semaprax.closed-authored-inventory.v1", "files": files,
+                "sha256": sha_bytes(encoded)}
+    if candidate.is_symlink() or not candidate.is_dir():
+        raise ValueError("candidate must be a regular directory")
+    files = []
+    for directory, names, filenames in os.walk(candidate, topdown=True, followlinks=False):
+        root = Path(directory)
+        retained_names = []
+        for name in sorted(names):
+            path = root / name
+            if name in common.AUTHORED_EXCLUDED_DIRS:
+                if path.is_symlink() or not stat.S_ISDIR(path.stat(follow_symlinks=False).st_mode):
+                    raise ValueError(f"excluded candidate directory must not bridge outside: {path.relative_to(candidate)}")
+                continue
+            if path.is_symlink():
+                raise ValueError(f"retained candidate path must not be a symlink: {path.relative_to(candidate)}")
+            if not stat.S_ISDIR(path.stat(follow_symlinks=False).st_mode):
+                raise ValueError(f"retained candidate path must be a directory: {path.relative_to(candidate)}")
+            retained_names.append(name)
+        names[:] = retained_names
+        for name in sorted(filenames):
+            path = root / name
+            relative = path.relative_to(candidate)
+            mode = path.stat(follow_symlinks=False).st_mode
+            if path.is_symlink() or not stat.S_ISREG(mode):
+                raise ValueError(f"retained candidate file must be regular: {relative}")
+            if path.suffix.lower() not in common.AUTHORED_SUFFIXES and name not in common.AUTHORED_SPECIAL_NAMES:
+                continue
+            if path.suffix.lower() in {".c", ".h"}:
+                continue
+            if path.suffix.lower() in {".js", ".mjs", ".cjs"} and any(
+                    path.with_suffix(suffix).is_file() for suffix in (".ts", ".tsx")):
+                continue
+            files.append({"path": relative.as_posix(), "bytes": path.stat().st_size,
+                          "sha256": common.digest(path)})
+    encoded = json.dumps(files, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    return {"schema": "semaprax.closed-authored-inventory.v1", "files": files,
+            "sha256": sha_bytes(encoded)}
+
+
+def _phase_source_and_binary_guard(
+    candidate: Path,
+    expected_inventory: dict[str, Any],
+    native_binary: Path | None,
+    native_binary_sha256: str | None,
+) -> tuple[bool, dict[str, Any]]:
+    try:
+        observed = closed_authored_inventory(candidate)
+        binary_regular = (native_binary is None or (
+            not native_binary.is_symlink() and native_binary.is_file()
+            and stat.S_ISREG(native_binary.stat(follow_symlinks=False).st_mode)))
+        binary_hash = common.digest(native_binary) if native_binary is not None and binary_regular else None
+        passed = observed == expected_inventory and binary_hash == native_binary_sha256
+        return passed, {"status": "passed" if passed else "failed", "inventory": observed,
+                        "native_binary_regular": binary_regular,
+                        "native_binary_sha256": binary_hash}
+    except (OSError, ValueError) as error:
+        return False, {"status": "failed", "error": str(error)}
+
+
 def check_program(
     candidate: Path,
     timeout: int,
     env: dict[str, str],
     qualification_mode: str = "preflight_only",
+    authoring_profile: str = AUTHORING_PROFILE_V24,
+    harness_output: Path | None = None,
+    compiler_binary_sha256: str | None = None,
+    expected_inventory: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     result: dict[str, Any] = {"build": {"status": "missing"}, "candidate_tests": {"status": "not_run"},
                               "independent_acceptance": {"status": "not_run"}, "accepted": False}
+    v27 = authoring_profile == AUTHORING_PROFILE_V27
+    try:
+        observed_inventory = closed_authored_inventory(candidate) if v27 else None
+    except (OSError, ValueError) as error:
+        result["source_consistency"] = {"status": "failed", "error": str(error)}
+        return result
+    if v27:
+        if expected_inventory is not None and observed_inventory != expected_inventory:
+            result["source_consistency"] = {"status": "failed", "inventory": observed_inventory}
+            return result
+        initial_inventory = expected_inventory or observed_inventory
+        result["closed_authored_inventory"] = initial_inventory
+    else:
+        initial_inventory = None
+        candidate_runner = candidate / "run.sh"
+        if candidate_runner.is_symlink() or not candidate_runner.is_file():
+            result["candidate_runner"] = {"status": "missing", "path": str(candidate_runner)}
+            return result
+        result["candidate_runner"] = {"status": "present", "used_for_acceptance": False}
+    native_binary = None
+    native_binary_hash = None
+    if v27 and (candidate / "semaprax.toml").is_file():
+        compiler = Path(env.get("SEMAPRAX_BIN", ""))
+        if (not compiler.is_file() or compiler.is_symlink()
+                or common.digest(compiler) != compiler_binary_sha256):
+            result["pinned_compiler"] = {"status": "failed"}
+            return result
+        if harness_output is None:
+            result["pinned_compiler"] = {"status": "failed", "error": "missing harness output path"}
+            return result
+        harness_output.parent.mkdir(parents=True, exist_ok=False)
+        manifest = candidate / "semaprax.toml"
+        commands = (
+            ("pinned_compiler_check", [str(compiler), "check", "--manifest-path", str(manifest)]),
+            ("pinned_native_build", [str(compiler), "build", "--manifest-path", str(manifest),
+                                     "--target", "native", "--output", str(harness_output)]),
+        )
+        for key, command in commands:
+            started = time.monotonic()
+            try:
+                proc = subprocess.run(command, cwd=candidate, capture_output=True, check=False,
+                                      timeout=timeout, env=env)
+                result[key] = {"status": "passed" if proc.returncode == 0 else "failed",
+                    "exit_code": proc.returncode, "seconds": round(time.monotonic() - started, 3),
+                    "stdout": common.bounded_text(proc.stdout), "stderr": common.bounded_text(proc.stderr)}
+            except subprocess.TimeoutExpired as exc:
+                result[key] = {"status": "timeout", "seconds": round(time.monotonic() - started, 3),
+                    "stdout": common.bounded_text(exc.stdout or b""), "stderr": common.bounded_text(exc.stderr or b"")}
+            passed, guard = _phase_source_and_binary_guard(candidate, initial_inventory, None, None)
+            result[f"{key}_source_consistency"] = guard
+            if result[key]["status"] != "passed" or not passed:
+                return result
+        native_binary = harness_output
+        if native_binary.is_symlink() or not native_binary.is_file():
+            result["pinned_native_build"]["status"] = "failed"
+            result["pinned_native_build"]["error"] = "compiler did not produce a regular native binary"
+            return result
+        native_binary_hash = common.digest(native_binary)
     for key, script in (("build", "build.sh"), ("candidate_tests", "test.sh")):
         path = candidate / script
         if not path.is_file():
@@ -589,10 +916,17 @@ def check_program(
             row = {"status": "timeout", "seconds": round(time.monotonic() - started, 3),
                    "stdout": common.bounded_text(exc.stdout or b""), "stderr": common.bounded_text(exc.stderr or b"")}
         result[key] = row
-        if row["status"] != "passed":
+        if v27:
+            passed, guard = _phase_source_and_binary_guard(
+                candidate, initial_inventory, native_binary, native_binary_hash)
+            result[f"{key}_source_consistency"] = guard
+            if row["status"] != "passed" or not passed:
+                return result
+        elif row["status"] != "passed":
             return result
     runner = BENCHMARK / "acceptance" / "run.py"
-    command = [sys.executable, str(runner), "--command-json", json.dumps(["/bin/sh", str(candidate / "run.sh")])]
+    accepted_command = [str(native_binary)] if v27 and native_binary is not None else ["/bin/sh", str(candidate / "run.sh")]
+    command = [sys.executable, str(runner), "--command-json", json.dumps(accepted_command)]
     started = time.monotonic()
     try:
         proc = subprocess.run(command, cwd=candidate, capture_output=True, check=False, timeout=timeout, env=env)
@@ -603,7 +937,18 @@ def check_program(
         row = {"status": "timeout", "stdout": common.bounded_text(exc.stdout or b""),
                "stderr": common.bounded_text(exc.stderr or b"")}
     result["independent_acceptance"] = row
-    result["accepted"] = row["status"] == "passed"
+    if v27:
+        passed, guard = _phase_source_and_binary_guard(
+            candidate, initial_inventory, native_binary, native_binary_hash)
+        result["acceptance_source_consistency"] = guard
+        result["native_binary"] = {"path": str(native_binary) if native_binary is not None else None,
+                                   "sha256": native_binary_hash,
+                                   "unchanged_after_acceptance": passed}
+    else:
+        passed = True
+    if v27:
+        result["source_consistency"] = {"status": "passed" if passed else "failed"}
+    result["accepted"] = row["status"] == "passed" and passed
     result["qualification_mode"] = qualification_mode
     return result
 
@@ -662,6 +1007,13 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
     model_ok = common.observed_model_matches(usage.get("models_observed"), settings.get("observed_model_id"))
     spec_integrity = seeded_spec_integrity(workspace, settings)
     row["seeded_spec_integrity"] = spec_integrity
+    if settings.get("authoring_profile") == AUTHORING_PROFILE_V27:
+        try:
+            row["closed_authored_inventory_after_model"] = closed_authored_inventory(candidate)
+        except (OSError, ValueError) as error:
+            row.update({"status": "not_accepted", "failure": str(error),
+                        "workspace_retained_for_review": True, "worktree_removed_after_archive": False})
+            return row
     if process["timed_out"]:
         row["failure"] = "trial hit wall-clock timeout"
     elif process["process_exit_code"] != 0:
@@ -679,9 +1031,15 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
             row["failure"] = "candidate failed exact authoring-profile admission"
         else:
             started = time.monotonic()
-            row["acceptance"] = check_program(
-                candidate, settings["timeout_seconds"], trial_environment(semaprax_bin), qualification_mode,
-            )
+            if settings.get("authoring_profile") == AUTHORING_PROFILE_V27:
+                row["acceptance"] = check_program(
+                    candidate, settings["timeout_seconds"], trial_environment(semaprax_bin), qualification_mode,
+                    AUTHORING_PROFILE_V27, artifacts / "harness-native" / label / "shiftsim",
+                    qualification.get("compiler_binary_sha256") or settings.get("semaprax_binary_sha256"),
+                    row.get("closed_authored_inventory_after_model"))
+            else:
+                row["acceptance"] = check_program(
+                    candidate, settings["timeout_seconds"], trial_environment(semaprax_bin), qualification_mode)
             row["acceptance_elapsed_seconds"] = round(time.monotonic() - started, 3)
             row["status"] = "accepted" if row["acceptance"]["accepted"] else "not_accepted"
             if row["status"] != "accepted":
@@ -695,6 +1053,21 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
             "status": "measurement_failed", "total_tokens": None, "files": [],
             "tokenizer": settings.get("authored_source_tokenizer"), "error": str(error),
         }
+    if settings.get("authoring_profile") == AUTHORING_PROFILE_V27:
+        acceptance = row.get("acceptance", {})
+        native = acceptance.get("native_binary", {})
+        native_path = Path(native["path"]) if native.get("path") else None
+        expected_inventory = acceptance.get(
+            "closed_authored_inventory", row.get("closed_authored_inventory_after_model"))
+        passed, guard = _phase_source_and_binary_guard(
+            candidate, expected_inventory, native_path, native.get("sha256"))
+        row["source_consistency_after_metrics"] = guard
+        if not passed:
+            row.update({"status": "not_accepted", "failure": "candidate source or harness native binary changed",
+                        "workspace_retained_for_review": True, "worktree_removed_after_archive": False})
+            if isinstance(row.get("acceptance"), dict):
+                row["acceptance"]["accepted"] = False
+            return row
     archive = artifacts / "candidates" / label
     archive.parent.mkdir(parents=True, exist_ok=True)
     spec_integrity_before_archive = seeded_spec_integrity(workspace, settings)
@@ -710,6 +1083,30 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
     row["candidate_archive"] = str(archive)
     row["candidate_source_sha256"] = hashes
     row["candidate_archive_excluded_paths"] = omitted
+    if settings.get("authoring_profile") == AUTHORING_PROFILE_V27:
+        acceptance = row.get("acceptance", {})
+        native = acceptance.get("native_binary", {})
+        native_path = Path(native["path"]) if native.get("path") else None
+        expected_inventory = acceptance.get(
+            "closed_authored_inventory", row.get("closed_authored_inventory_after_model"))
+        passed, guard = _phase_source_and_binary_guard(
+            candidate, expected_inventory, native_path, native.get("sha256"))
+        try:
+            archived_inventory = closed_authored_inventory(archive)
+            archive_matches = archived_inventory == expected_inventory
+        except (OSError, ValueError) as error:
+            archived_inventory = {"status": "failed", "error": str(error)}
+            archive_matches = False
+        guard["archived_inventory"] = archived_inventory
+        guard["archive_matches"] = archive_matches
+        passed = passed and archive_matches
+        row["source_consistency_after_archive"] = guard
+        if not passed:
+            row.update({"status": "not_accepted", "failure": "candidate source or harness native binary changed",
+                        "workspace_retained_for_review": True, "worktree_removed_after_archive": False})
+            if isinstance(row.get("acceptance"), dict):
+                row["acceptance"]["accepted"] = False
+            return row
     # Preserve the complete authored candidate before deleting its modified worktree.
     removed = subprocess.run(["git", "worktree", "remove", "--force", str(workspace)],
                              cwd=seed_repo, text=True, capture_output=True, check=False)
@@ -794,6 +1191,13 @@ def summarize(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="action", required=True)
+    qualify = sub.add_parser("qualify-v3", help="build and accept one closed v27 qualification subject")
+    qualify.add_argument("--repo", default=str(REPO))
+    qualify.add_argument("--compiler-source-ref", required=True)
+    qualify.add_argument("--candidate", required=True)
+    qualify.add_argument("--semaprax-bin", required=True)
+    qualify.add_argument("--output", required=True)
+    qualify.add_argument("--timeout-seconds", type=int, default=1800)
     for action in ("plan", "run", "preflight"):
         p = sub.add_parser(action)
         p.add_argument("--repo", default=str(REPO))
@@ -822,6 +1226,14 @@ def main() -> int:
                            help="run one exploratory trial for this arm; results are never scored")
     args = parser.parse_args()
     try:
+        if args.action == "qualify-v3":
+            repo = Path(args.repo).resolve(strict=True)
+            result = generate_v3_qualification(
+                Path(args.candidate), Path(args.semaprax_bin), repo,
+                resolve_commit(repo, args.compiler_source_ref), Path(args.output),
+                args.timeout_seconds)
+            print(json.dumps(result, indent=2, sort_keys=True))
+            return 0
         semaprax_bin = None
         binary_hash = None
         if args.action in ("run", "preflight") or args.semaprax_bin is not None:
@@ -847,22 +1259,7 @@ def main() -> int:
         settings["semaprax_binary_sha256"] = binary_hash
         qualification = settings["qualification"]
         if qualification.get("scored_trials_allowed") is True:
-            evidence_path = Path(qualification["evidence_path"])
-            report_path = Path(qualification["acceptance_report_path"])
-            evidence_copy = artifacts / "qualification-evidence.json"
-            report_copy = artifacts / "qualification-acceptance-report.json"
-            shutil.copyfile(evidence_path, evidence_copy)
-            shutil.copyfile(report_path, report_copy)
-            settings["qualification"]["evidence_artifact"] = str(evidence_copy)
-            settings["qualification"]["acceptance_report_artifact"] = str(report_copy)
-            for key, artifact_name in (
-                ("candidate_source_inventory_path", "qualification-candidate-source-inventory.json"),
-                ("candidate_manifest_path", "qualification-candidate-semaprax.toml"),
-            ):
-                if qualification.get(key):
-                    copied = artifacts / artifact_name
-                    shutil.copyfile(qualification[key], copied)
-                    settings["qualification"][key.replace("_path", "_artifact")] = str(copied)
+            copy_qualification_artifacts(qualification, artifacts)
         version = subprocess.run(["claude", "--version"], text=True, capture_output=True, check=False)
         settings["claude_version"] = version.stdout.strip() if version.returncode == 0 else None
         node = subprocess.run(["node", "--version"], text=True, capture_output=True, check=False)

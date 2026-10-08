@@ -135,22 +135,57 @@ Round-3 evidence uses schema
 `semaprax.event-sim-qualification-evidence.v3`, the v27 native route above,
 and adds these fields to the v2 envelope:
 
+Create that closed evidence set with the harness-owned builder. It invokes the
+pinned compiler directly, writes a fresh native binary outside the candidate,
+runs the unchanged hidden acceptance runner against that binary, and emits the
+inventory, copied manifest, report, receipt, binary, and evidence envelope:
+
+```sh
+python3 benchmarks/event-sim-tokens-v1/campaign.py qualify-v3 \
+  --compiler-source-ref <verified-compiler-commit> \
+  --candidate /absolute/path/to/reviewed-v27-candidate \
+  --semaprax-bin /absolute/path/to/semaprax \
+  --output /absolute/path/outside-repository/shiftsim-v27-qualification
+```
+
 ```json
 "candidate_source": {
   "inventory": {"path": "/absolute/path/candidate-source-inventory.json", "sha256": "<sha256>"},
   "manifest": {"path": "/absolute/path/candidate/semaprax.toml", "sha256": "<sha256>"}
+},
+"qualification_subject": {
+  "compiler_source_commit": "<full compiler commit>",
+  "compiler_binary_sha256": "<compiler sha256>",
+  "closed_authored_inventory_sha256": "<canonical inventory rows sha256>",
+  "candidate_manifest_sha256": "<manifest sha256>",
+  "native_binary_sha256": "<accepted native binary sha256>"
+},
+"qualification_build_receipt": {
+  "path": "/absolute/path/qualification-build-receipt.json",
+  "sha256": "<sha256>"
+},
+"qualified_native_binary": {
+  "path": "/absolute/path/qualified-native-binary",
+  "sha256": "<sha256>"
 }
 ```
 
-The inventory must contain exactly one `semaprax.toml` row with the same hash.
+The inventory uses `semaprax.closed-authored-inventory.v1`, contains sorted
+unique regular-file rows and its canonical closed digest, and must contain
+exactly one `semaprax.toml` row with the same hash.
 The manifest must use `semaprax.manifest.v1`, profile
 `language-command-io.stream-data.v1`, input
 `argv-utf8+stdin-stream.v1`, one command function exported through
 `exports.web`, and exactly the sorted capabilities `process.args.read`,
 `process.stderr.write`, `process.stdin.read`, and `process.stdout.write`.
-The evidence, report, inventory, and manifest are copied into the external
-artifact closure. V2 evidence cannot qualify round 3, and V3 evidence cannot
-qualify a historical round.
+The evidence, report, inventory, manifest, receipt, and qualified binary are copied into the external
+artifact closure. The build receipt uses schema
+`semaprax.event-sim-qualification-build-receipt.v1`, repeats the exact
+`qualification_subject`, and records the acceptance-report SHA-256. This binds
+the reviewed compiler, closed authored inventory, manifest, native binary, and
+per-case report as one subject. Every artifact hash is checked before and after
+copy, before calibration. V2 evidence cannot qualify round 3, and V3 evidence
+cannot qualify a historical round.
 
 An ordinary model timeout remains a paid failed attempt. After its candidate
 archive and safe worktree cleanup complete, the adapter continues the planned

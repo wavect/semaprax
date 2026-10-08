@@ -50,10 +50,16 @@ explicitly with `--round 3 --authoring-profile
 semaprax-project-v27-stream-data-v1`; neither flag reinterprets a round-1 or
 round-2 record. Its qualification envelope uses
 `semaprax.event-sim-qualification-evidence.v3` and binds the reviewed candidate
-source inventory plus the exact `semaprax.toml`. The manifest must select
+source inventory plus the exact `semaprax.toml`, native binary, compiler, and
+per-case report through a hashed build receipt. The manifest must select
 `language-command-io.stream-data.v1`, the existing stdin-stream input, the
 closed process capability list, and a single `fn() -> i64` command/export root.
 The frozen SPEC, corpus, oracle, and functional acceptance remain unchanged.
+For every v27 SEMAPRAX attempt the harness invokes the pinned compiler directly,
+builds a fresh native executable outside the candidate, and runs hidden
+acceptance against that executable. Candidate build and test scripts remain
+supplemental. Both round-3 arms must keep their closed authored inventory
+unchanged through scripts, acceptance, measurement, and archive.
 
 The corpus is invoked through a command adapter that reads one request from
 stdin and writes one report to stdout. Example after an arm has been authored:

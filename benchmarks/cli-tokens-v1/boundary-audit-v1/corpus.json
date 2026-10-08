@@ -1,0 +1,398 @@
+{
+  "schema": "semaprax.loglens-boundary-corpus.v1",
+  "spec_sha256": "51bf564cb9f7eadd4b3bd12fac53b7857befa09b3ef757d9c34400a8509fdeae",
+  "expected_source": "declarative valid request facts and explicitly malformed grammar controls; no historical oracle import",
+  "interpretation": [
+    "Timezone syntax is literal + followed by four ASCII digits; negative offsets are malformed under frozen SPEC.",
+    "No new calendar/minute/second/timezone-range validation is inferred beyond the explicit hour bound.",
+    "Path ties use UTF-8 bytes, without normalization; quote/backslash paths are malformed as SPEC states.",
+    "Byte counts have no stated numeric ceiling; aggregation uses arbitrary-precision decimal arithmetic.",
+    "64 KiB means 65536 file bytes; no behavior is required for larger files."
+  ],
+  "cases": [
+    {
+      "name": "utf8-bytewise-tie-order",
+      "reason": "UTF-16 orders U+10000 before U+E000; UTF-8 requires the reverse.",
+      "top": 5,
+      "rows": [
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/𐀀",
+            "hour": "09",
+            "status": 404,
+            "bytes": "1"
+          }
+        },
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/",
+            "hour": "09",
+            "status": 200,
+            "bytes": "1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "decimal-above-js-safe-integer",
+      "reason": "Exact decimal input and sum must not round through IEEE Number.",
+      "top": 5,
+      "rows": [
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/large",
+            "hour": "09",
+            "status": 200,
+            "bytes": "9007199254740993"
+          }
+        },
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/large",
+            "hour": "09",
+            "status": 200,
+            "bytes": "9007199254740995"
+          }
+        },
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/zero",
+            "hour": "09",
+            "status": 200,
+            "bytes": "-"
+          }
+        }
+      ]
+    },
+    {
+      "name": "decimal-sum-beyond-i64",
+      "reason": "The SPEC does not impose an i64 ceiling on byte counts or their sum.",
+      "top": 5,
+      "rows": [
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/sum",
+            "hour": "09",
+            "status": 200,
+            "bytes": "9223372036854775807"
+          }
+        },
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/sum",
+            "hour": "09",
+            "status": 200,
+            "bytes": "9223372036854775807"
+          }
+        }
+      ]
+    },
+    {
+      "name": "decimal-unbounded-token",
+      "reason": "Digit tokens are valid even beyond machine-word precision.",
+      "top": 5,
+      "rows": [
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/decimal",
+            "hour": "09",
+            "status": 200,
+            "bytes": "123456789012345678901234567890123456789"
+          }
+        },
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/decimal",
+            "hour": "09",
+            "status": 200,
+            "bytes": "000000000000000000000000000000000000001"
+          }
+        }
+      ]
+    },
+    {
+      "name": "exactly-64-kib",
+      "reason": "The inclusive file limit and unterminated final line are valid; losing the last byte changes the count.",
+      "top": 5,
+      "recipe": "exactly-65536-bytes",
+      "request": {
+        "ip": "203.0.113.7",
+        "path": "/limit",
+        "hour": "09",
+        "status": 200,
+        "bytes": "123"
+      }
+    },
+    {
+      "name": "literal-plus-timezone",
+      "reason": "The frozen timestamp shape names +ZZZZ; historical +/- oracle acceptance is broader.",
+      "top": 5,
+      "rows": [
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/ok",
+            "hour": "09",
+            "status": 200,
+            "bytes": "1"
+          }
+        },
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/offset",
+            "hour": "09",
+            "status": 200,
+            "bytes": "1",
+            "zone": "+0530"
+          }
+        },
+        {
+          "malformed": "203.0.113.7 - - [10/Oct/2026:09:00:00 -0000] \"GET /ok HTTP/1.1\" 200 1"
+        },
+        {
+          "malformed": "203.0.113.7 - - [10/Oct/2026:09:00:00 -0530] \"GET /ok HTTP/1.1\" 200 1"
+        },
+        {
+          "malformed": "203.0.113.7 - - [10/Oct/2026:09:00:00 +000] \"GET /ok HTTP/1.1\" 200 1"
+        },
+        {
+          "malformed": "203.0.113.7 - - [10/Oct/2026:09:00:00 +00000] \"GET /ok HTTP/1.1\" 200 1"
+        },
+        {
+          "malformed": "203.0.113.7 - - [10/Oct/2026:09:00:00 +abcd] \"GET /ok HTTP/1.1\" 200 1"
+        }
+      ]
+    },
+    {
+      "name": "strict-request-and-path-grammar",
+      "reason": "Exact separators/hour/status/method/digits and quote/backslash path exclusions.",
+      "top": 5,
+      "rows": [
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/ok",
+            "hour": "09",
+            "status": 200,
+            "bytes": "1"
+          }
+        },
+        {
+          "malformed": "203.0.113.7 - - [10/Oct/2026:09:00:00 +0000] \"GET /quo\"te HTTP/1.1\" 200 1"
+        },
+        {
+          "malformed": "203.0.113.7 - - [10/Oct/2026:09:00:00 +0000] \"GET /back\\slash HTTP/1.1\" 200 1"
+        },
+        {
+          "malformed": "203.0.113.7 - - [10/Oct/2026:09:00:00 +0000] \"GET /a b HTTP/1.1\" 200 1"
+        },
+        {
+          "malformed": "203.0.113.7 - - [10/Oct/2026:24:00:00 +0000] \"GET /ok HTTP/1.1\" 200 1"
+        },
+        {
+          "malformed": "203.0.113.7 - - [10/Oct/2026:09:00:00 +0000] \"GET /ok HTTP/1.1\" 099 1"
+        },
+        {
+          "malformed": "203.0.113.7 - - [10/Oct/2026:09:00:00 +0000] \"GET /ok HTTP/1.1\" 600 1"
+        },
+        {
+          "malformed": "203.0.113.7 - - [10/Oct/2026:09:00:00 +0000] \"GET /ok HTTP/1.1\" 2000 1"
+        },
+        {
+          "malformed": "203.0.113.7 - - [10/Oct/2026:09:00:00 +0000] \"Get /ok HTTP/1.1\" 200 1"
+        },
+        {
+          "malformed": "203.0.113.7 - - [10/Oct/2026:09:00:00 +0000] \"GET /ok HTTP/1.1\" 200 1.0"
+        },
+        {
+          "malformed": "203.0.113.7 - - [10/Oct/2026:09:00:00 +0000] \"GET /ok HTTP/1.1\" 200 +1"
+        },
+        {
+          "malformed": "203.0.113.7 - - [10/Oct/2026:09:00:00 +0000] \"GET /ok HTTP/1.1\" 200 1x"
+        },
+        {
+          "malformed": "203.0.113.7 - - [10/Oct/2026:09:00:00 +0000] \"GET /ok HTTP/1.1\" 200 1 trailing"
+        },
+        {
+          "malformed": " 203.0.113.7 - - [10/Oct/2026:09:00:00 +0000] \"GET /ok HTTP/1.1\" 200 1"
+        },
+        {
+          "malformed": "203.0.113.7 - [10/Oct/2026:09:00:00 +0000] \"GET /ok HTTP/1.1\" 200 1"
+        },
+        {
+          "malformed": "203.0.113.7 - - [10/Oct/2026:09:00:00 +0000] \"GET  /ok HTTP/1.1\" 200 1"
+        }
+      ]
+    },
+    {
+      "name": "half-up-and-all-line-terminators",
+      "reason": "One error in sixteen requests is exactly 6.25%, half-up 6.3%; LF/CRLF/CR and final line all count.",
+      "top": 5,
+      "terminators": [
+        "\n",
+        "\r\n",
+        "\r"
+      ],
+      "final_terminated": false,
+      "rows": [
+        {
+          "empty": true
+        },
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/round",
+            "hour": "09",
+            "status": 500,
+            "bytes": "1"
+          }
+        },
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/round",
+            "hour": "10",
+            "status": 200,
+            "bytes": "1"
+          }
+        },
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/round",
+            "hour": "09",
+            "status": 200,
+            "bytes": "1"
+          }
+        },
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/round",
+            "hour": "10",
+            "status": 200,
+            "bytes": "1"
+          }
+        },
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/round",
+            "hour": "09",
+            "status": 200,
+            "bytes": "1"
+          }
+        },
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/round",
+            "hour": "10",
+            "status": 200,
+            "bytes": "1"
+          }
+        },
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/round",
+            "hour": "09",
+            "status": 200,
+            "bytes": "1"
+          }
+        },
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/round",
+            "hour": "10",
+            "status": 200,
+            "bytes": "1"
+          }
+        },
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/round",
+            "hour": "09",
+            "status": 200,
+            "bytes": "1"
+          }
+        },
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/round",
+            "hour": "10",
+            "status": 200,
+            "bytes": "1"
+          }
+        },
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/round",
+            "hour": "09",
+            "status": 200,
+            "bytes": "1"
+          }
+        },
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/round",
+            "hour": "10",
+            "status": 200,
+            "bytes": "1"
+          }
+        },
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/round",
+            "hour": "09",
+            "status": 200,
+            "bytes": "1"
+          }
+        },
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/round",
+            "hour": "10",
+            "status": 200,
+            "bytes": "1"
+          }
+        },
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/round",
+            "hour": "09",
+            "status": 200,
+            "bytes": "1"
+          }
+        },
+        {
+          "request": {
+            "ip": "203.0.113.7",
+            "path": "/round",
+            "hour": "10",
+            "status": 200,
+            "bytes": "1"
+          }
+        }
+      ]
+    }
+  ]
+}

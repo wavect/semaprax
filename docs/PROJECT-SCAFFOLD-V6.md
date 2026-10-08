@@ -38,11 +38,13 @@ semaprax build --manifest-path semaprax.toml --target native --output app
 ./app
 ```
 
-Project v27 refuses interpreter execution with `SPX-F102` and Web, Wasm, and
-npm targets with `SPX-W120`. Derivation checks the full source revision before
-accepting that exact interpreter refusal; native Project v27 gates own
-executable behavior. A `web` export records the closed command identity for
-manifest admission and does not admit a Web artifact.
+Project v27 refuses Web, Wasm, and npm targets with `SPX-W120`. Its selected
+streaming command requires the native runtime. The inherited authority-free
+Project interpreter can evaluate the ordinary pure `main` and test closures,
+without a stdin provider or command adapter; derivation checks the full source
+revision and tests that pure closure. Native Project v27 gates own command
+execution. A `web` export records the closed command identity for manifest
+admission and does not admit a Web artifact. See [Stream Data Command v1](STREAM-DATA-COMMAND-V1.md).
 
 ## Descriptor contract
 

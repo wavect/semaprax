@@ -1,0 +1,46 @@
+{
+  "schema": "semaprax.teamdesk-reference-qualification-summary.v1",
+  "arm": "typescript",
+  "qualification": {
+    "passed": true,
+    "missingCases": [],
+    "missingGroups": [],
+    "failures": [],
+    "cases": 912
+  },
+  "raw_report_sha256": "e2727dedf52d65db71e4e9cf7dbd34ef427b97d1da36eacf5fd63aaa4b969bee",
+  "raw_report_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-full-spec-659-typescript-ui-r5/report.json",
+  "spec_sha256": "7658414ed2bbb53477a93e4a00f36269954c5bc45f3148fe72ddd02f203a50dc",
+  "node": "v24.3.0",
+  "source_reference_commit": "40088afbf",
+  "source_prerequisite": "79ce81bd244b0f6fd101eb3cd17c643862b1d030",
+  "gate_reference_commit": "40088afbf",
+  "evidence_scope": "Physical local API/browser/restart/permission/KDF qualification of the immutable TypeScript reference copy;9 focused own tests and strict build/check passed. SEMAPRAX qualification and live-agent gains are separate and remain unproven. No provider model calls in this qualification.",
+  "password_evidence_verified": true,
+  "precision_cases": [
+    {
+      "id": "Sprint.signed64",
+      "status": "passed"
+    },
+    {
+      "id": "Project.signed64",
+      "status": "passed"
+    },
+    {
+      "id": "Ticket.signed64",
+      "status": "passed"
+    },
+    {
+      "id": "browser.Sprint.signed64",
+      "status": "passed"
+    },
+    {
+      "id": "browser.Project.signed64",
+      "status": "passed"
+    },
+    {
+      "id": "browser.Ticket.signed64",
+      "status": "passed"
+    }
+  ]
+}

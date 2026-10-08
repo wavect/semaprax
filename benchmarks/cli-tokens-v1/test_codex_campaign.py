@@ -63,7 +63,7 @@ class CodexCampaignTests(unittest.TestCase):
         ]
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "rollout.jsonl"
-            path.write_text("\n".join([*(json.dumps(event) for event in events), "{malformed"])
+            path.write_text("\n".join([*(json.dumps(event) for event in events), "{malformed"]))
             observed = codex_campaign.trace_usage({"final_turn_usage": usage}, path)
         self.assertFalse(observed["reconciled"])
         self.assertEqual(observed["rollout_malformed_lines"], 1)

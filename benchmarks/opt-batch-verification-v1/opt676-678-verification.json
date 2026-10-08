@@ -1,0 +1,389 @@
+{
+  "schema": "semaprax.opt.batch-verification.v1",
+  "source_commit_before_receipt": "402900a43f7e92f43c1b009da3b17a9ed70c84ea",
+  "compiler_artifact": {
+    "schema": "semaprax.compiler-build-identity.v1",
+    "compiler_source_commit": "402900a43f7e92f43c1b009da3b17a9ed70c84ea",
+    "binary_sha256": "ab299be88ad21645f862753eb8c07cf7dc0c2231239890714c97fd7f12ff9092",
+    "binary": "/Users/kevin/.codex/benchmark-binaries/semaprax-402900a43",
+    "source_was_clean": true,
+    "cargo_target_was_private": true,
+    "build_log": "/Users/kevin/.codex/benchmark-runs/opt-help-loan-verification-20261008/resource-project.log",
+    "build_command": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "semaprax",
+      "--test",
+      "project",
+      "source_command::"
+    ],
+    "note": "Cargo integration target also builds the CLI binary; only selected project tests executed."
+  },
+  "issues": [
+    676,
+    677,
+    678
+  ],
+  "full_quality_gates_run": false,
+  "checks": [
+    {
+      "name": "exact-diagnostic-help",
+      "command": [
+        "semaprax-0671bc3e8645b5a7",
+        "cli_driver::cli::help::tests::diagnostic_help_is_exact_complete_and_cheaper_than_the_index",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "passed_tests": 1,
+      "executed_source_commit": "ad47e5bd2e77f6bb6e3ba9bd650cc72403aaf735",
+      "log": "/Users/kevin/.codex/benchmark-runs/opt-help-loan-verification-20261008/diagnostic-help-corrected-filter.log",
+      "sha256": "6d762971ffdb0b556dcf780c6b465eb99e64f7e60eec91dd773ce3d61320fa05"
+    },
+    {
+      "name": "bounded-help",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "semaprax",
+        "--bin",
+        "semaprax",
+        "cli_driver::cli::help::tests::language_reference_and_exact_topics_are_bounded_repository_sections",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 105.163,
+      "log": "/Users/kevin/.codex/benchmark-runs/opt-help-loan-verification-20261008/bounded-help.log",
+      "sha256": "3151afae422a87f1e0bf17e154d8e3c73818d547f7f4db1d137b9f3ce4e80b8a",
+      "executed_source_commit": "4e192d2546ace187f477d095eef98ba8eab23f88",
+      "passed_tests": 1
+    },
+    {
+      "name": "indexed-alias",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "semaprax",
+        "--lib",
+        "hir::validation::iterative_while_admission_tests::indexed_read_from_inline_byte_view_points_to_the_view_and_names_the_alias_fix",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 168.368,
+      "log": "/Users/kevin/.codex/benchmark-runs/opt-help-loan-verification-20261008/indexed-alias.log",
+      "sha256": "1ea4f8257cb5c4edae425547c00c59078a1a206f7776d1ffa85460e8175c72df",
+      "executed_source_commit": "4e192d2546ace187f477d095eef98ba8eab23f88",
+      "passed_tests": 1
+    },
+    {
+      "name": "loan-origin",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "semaprax",
+        "--test",
+        "cleanup_backends",
+        "shared_loan_hir::overlapping_shared_loan_replay_uses_existing_move_and_assignment_spans",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 10.817,
+      "log": "/Users/kevin/.codex/benchmark-runs/opt-help-loan-verification-20261008/loan-origin.log",
+      "sha256": "b927146ca879065713c9b78bec5ddbe8a13526335737d005fdf3ab1817b3df9d",
+      "executed_source_commit": "4e192d2546ace187f477d095eef98ba8eab23f88",
+      "passed_tests": 1
+    },
+    {
+      "name": "resource-runtime",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "semaprax",
+        "--lib",
+        "codegen::native_source_resource_command::tests::"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 169.706,
+      "log": "/Users/kevin/.codex/benchmark-runs/opt-help-loan-verification-20261008/resource-runtime.log",
+      "sha256": "da61052f415e012ad477885ba81f7a3a3dd91dd867930e1dcb35ffe7b2cb43b8",
+      "executed_source_commit": "402900a43f7e92f43c1b009da3b17a9ed70c84ea",
+      "passed_tests": 4
+    },
+    {
+      "name": "resource-project",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "semaprax",
+        "--test",
+        "project",
+        "source_command::"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 161.545,
+      "log": "/Users/kevin/.codex/benchmark-runs/opt-help-loan-verification-20261008/resource-project.log",
+      "sha256": "db4c6387568e8e23d1efc3bcb8b38ff0220021059cf873ee4085799a89e13934",
+      "executed_source_commit": "402900a43f7e92f43c1b009da3b17a9ed70c84ea",
+      "passed_tests": 8
+    },
+    {
+      "name": "clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "semaprax",
+        "--lib",
+        "--bin",
+        "semaprax",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 158.23,
+      "log": "/Users/kevin/.codex/benchmark-runs/opt-help-loan-verification-20261008/clippy.log",
+      "sha256": "b1a69440e2dd686c039e059a6623d0bf22d8673e5e17f979eff1ed1d0de67615",
+      "executed_source_commit": "402900a43f7e92f43c1b009da3b17a9ed70c84ea",
+      "passed_tests": null
+    },
+    {
+      "name": "format",
+      "command": [
+        "cargo",
+        "fmt",
+        "-p",
+        "semaprax",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 11.73,
+      "log": "/Users/kevin/.codex/benchmark-runs/opt-help-loan-verification-20261008/format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "executed_source_commit": "402900a43f7e92f43c1b009da3b17a9ed70c84ea",
+      "passed_tests": null
+    },
+    {
+      "name": "diff",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.03,
+      "log": "/Users/kevin/.codex/benchmark-runs/opt-help-loan-verification-20261008/diff.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "executed_source_commit": "402900a43f7e92f43c1b009da3b17a9ed70c84ea",
+      "passed_tests": null
+    }
+  ],
+  "scope": "One final focused source-batch verification with corrections; 16 selected test cases, one lib/bin clippy invocation, formatter and diff checks. No full harness, quality.sh or all-target clippy.",
+  "reused_evidence": "Exact diagnostic, bounded help, alias and loan-origin tests passed before subsequent native-adapter/test-only corrections; their source and diagnostic pins did not change afterward.",
+  "repairs": "Preserved failed logs: dependency ENOSPC; missing import; zero-test filter (excluded from passing evidence); diagnostic stage and root-symbol test fixture corrections; mixed-output exact refusal corrected to its actual earlier T269 source boundary. Final review also removed unused v28 cwd authority before affected checks passed.",
+  "pins": "AGENT-DIAGNOSTIC-HELP.json regenerated and verified against Markdown and exact help test; frozen benchmark SPEC/corpus/profiles unchanged.",
+  "module_budgets": [
+    {
+      "file": "src/cli/help.rs",
+      "lines": 1401,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/codegen.rs",
+      "lines": 1477,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/codegen/native_emit/expression.rs",
+      "lines": 2693,
+      "ceiling": 2697
+    },
+    {
+      "file": "src/codegen/native_emit/expression/host_command.rs",
+      "lines": 580,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/codegen/native_emit/expression/resource_text.rs",
+      "lines": 137,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/codegen/native_emit/mod.rs",
+      "lines": 2461,
+      "ceiling": 2466
+    },
+    {
+      "file": "src/codegen/native_emit/output_profile.rs",
+      "lines": 321,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/codegen/native_emit/owned_strings/tests.rs",
+      "lines": 261,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/codegen/native_emit/resource_strings.rs",
+      "lines": 164,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/codegen/native_emit/text_toolkit.rs",
+      "lines": 206,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/codegen/native_source_command.rs",
+      "lines": 269,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/codegen/native_source_resource_command.rs",
+      "lines": 422,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/command_io_ops.rs",
+      "lines": 1006,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/hir/validation/iterative_while_admission_tests.rs",
+      "lines": 163,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/hir/validation/owned_buffer.rs",
+      "lines": 310,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/interpreter/resolved_case.rs",
+      "lines": 424,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/loan_plan.rs",
+      "lines": 1453,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/project/admission/mod.rs",
+      "lines": 310,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/project/build.rs",
+      "lines": 441,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/project/interface_artifact_facts.rs",
+      "lines": 536,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/project/manifest.rs",
+      "lines": 1492,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/project/manifest/tables.rs",
+      "lines": 1370,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/project/manifest/tables/profiles.rs",
+      "lines": 210,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/project/mod.rs",
+      "lines": 1415,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/project/profile.rs",
+      "lines": 253,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/project/project_lock.rs",
+      "lines": 489,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/project/revision.rs",
+      "lines": 1009,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/project/source_command.rs",
+      "lines": 62,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/source_command.rs",
+      "lines": 131,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/workspace_graph.rs",
+      "lines": 6016,
+      "ceiling": 6018
+    },
+    {
+      "file": "src/workspace_graph/diagnostics.rs",
+      "lines": 167,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/workspace_graph/owned_function_import.rs",
+      "lines": 321,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/workspace_graph/project_render.rs",
+      "lines": 247,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/workspace_graph/retained_validation.rs",
+      "lines": 1497,
+      "ceiling": 1500
+    },
+    {
+      "file": "src/workspace_graph/retained_validation/profile_names.rs",
+      "lines": 34,
+      "ceiling": 1500
+    },
+    {
+      "file": "tests/cleanup_backends/shared_loan_hir.rs",
+      "lines": 490,
+      "ceiling": 1500
+    },
+    {
+      "file": "tests/project/source_command.rs",
+      "lines": 549,
+      "ceiling": 1500
+    }
+  ],
+  "measurement": "Focused local compiler evidence, not live token/turn/cost evidence. Actual provider billing and hidden request composition remain unavailable/null."
+}

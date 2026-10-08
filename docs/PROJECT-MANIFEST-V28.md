@@ -2,8 +2,10 @@
 
 Audience: language users and compiler contributors.
 
-Status: additive native-only profile authored for OPT #678. Focused owner
-verification is required before any execution or completion claim.
+Status: additive native-only profile for OPT #678 with focused LOCAL native
+owner gates passing. Evidence is recorded in
+[`opt676-678-verification.json`](../benchmarks/opt-batch-verification-v1/opt676-678-verification.json);
+no hosted or broader target support is claimed.
 
 `source-command.resource-output.v1` keeps the Project v26 source-command ABI,
 authority, file provider, and native-only target. It changes only the maximum
@@ -43,7 +45,8 @@ arguments and 65,536 aggregate argument bytes. Each `file_read_text` operation
 reads at most 65,536 UTF-8 bytes below the held invocation directory; the
 existing maximum of 64 reservations and 1,048,576 reserved file bytes remains
 exact. Absolute paths, dot components, symlinks, nonregular files, invalid text,
-and source drift retain the v26 refusals.
+and source drift retain the v26 refusals. A v28 command without a reachable
+file-text read does not open the invocation directory.
 
 ## Resource output
 

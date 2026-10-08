@@ -4,8 +4,8 @@
   `source-command.resource-output.v1` (OPT #678): preserve the v26 argv/file
   provider and authority while admitting 1 MiB per-String/authenticated
   borrowed-text views, 1 MiB combined heap-staged output and bounded append.
-  Shared Slice/Bytes limits and every v26 route remain frozen; focused owner
-  verification is pending.
+  Shared Slice/Bytes limits and every v26 route remain frozen; focused LOCAL
+  native owner checks and scoped clippy pass.
 - Give the Project v26 `source-command-file-text` scaffold its own exact held
   publication authority: root `digits`, two source files, and the three common
   root files. Foreign entries still fail closed, and partial cleanup remains

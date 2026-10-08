@@ -679,12 +679,11 @@ Consuming an enclosing owner is `SPX-T252`.
 ## Command-line programs
 
 Permitting `fs.read`, `process.args.read`, or `process.stderr.write`
-(with optional `process.stdout.write`) selects command-line behavior.
-`semaprax run lines.spx -- data.txt` (also `--native` or a binary from
-`build --target native`) passes `data.txt` to `arg_utf8`. `main` returns the
-exit status (`0..=255`, not printed); stdout/stderr appear after it returns. `file_read_text` reads relative paths
-below the current directory. A checked failure (missing file, out-of-range slice) prints one stderr line
-and exits with 1.
+(optionally `process.stdout.write`) selects CLI behavior. `semaprax run
+lines.spx -- data.txt` (also `--native` or a native build) passes `data.txt` to
+`arg_utf8`. `main` returns the exit status (`0..=255`); stdout/stderr appear
+after return. `file_read_text` reads below the current directory. Checked
+failures (missing file, out-of-range slice) print one stderr line and exit 1.
 Rules: [Text Toolkit v1](TEXT-TOOLKIT-V1.md).
 
 For a CLI that imports source libraries, select table-manifest
@@ -692,63 +691,35 @@ For a CLI that imports source libraries, select table-manifest
 main stable ID in `[command]`, `input = "argv-utf8+file-text.v1"`, the
 explicit sorted capability subset, and `[targets] matrix = ["native64"]`.
 Then `semaprax build <project> --target native --output <fresh-path>` links
-ordinary dependencies such as `std.int.decimal`. This native-only Project
-route refuses interpreter/Web/npm/Wasm execution; see [Project v26](PROJECT-MANIFEST-V26.md)
+ordinary dependencies such as `std.int.decimal`. This route is native-only and
+refuses interpreter/Web/npm/Wasm execution. See [Project v26](PROJECT-MANIFEST-V26.md)
 and the [decimal CLI example](../examples/source-command-project/semaprax.toml).
 
-Build a native command with `semaprax build lines.spx --target native --output lines`.
-Omit `--profile`: `text-toolkit-v1` and `internal-strings-v1` are explicit
-Wasm/web export profiles; native text operations are selected from the source.
-Build destinations must be fresh. On `SPX-I307`, choose a new `--output` path,
-or explicitly remove the existing output after confirming it is your previous
-build artifact. The compiler never overwrites it automatically.
+Build with `semaprax build lines.spx --target native --output lines`. Omit
+`--profile`: `text-toolkit-v1` and `internal-strings-v1` are Wasm/web export
+profiles; native text operations come from source. Destinations must be fresh.
+On `SPX-I307`, choose a new `--output` or remove the prior build artifact; the
+compiler never overwrites it.
 
-For streaming, select Project v23 input
+Streaming uses Project v23 input
 `argv-utf8+stdin-stream.v1` and profile `language-command-io.stream.v1`.
-Native reuses a 4096-byte buffer; `stdin_read()` stays a snapshot.
-Open prefills; zero read means EOF; short positive reads are chunks. Process borrowed chunks before owner renewal:
-
-```semaprax
-module app.stream_count;
-
-permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
-
-@id("app.count")
-fn count() -> bool
-    uses { process.stdin.read }
-{
-    let mut reader = stdin_stream_open();
-    let mut total = 0usize;
-    while !stdin_stream_eof(reader) {
-        let ignored = { let chunk = stdin_stream_chunk(reader); total = total + byte_len(chunk); 0 };
-        reader = stdin_stream_next(reader);
-        0
-    }
-    total >= 0usize
-}
-
-@id("app.main")
-fn main() -> i64
-{
-    0
-}
-```
-
-Open/Next require `process.stdin.read`; Eof/Chunk inspect named readers purely.
-Open occurs once per reachable path, never in loops. Reader has no
-constructor or generic/aggregate/public ABI escape. Chunk use after Next is
-`SPX-T265`; the inner block above ends its loan first. Exact acyclic
-`own StdinReader -> StdinReader` helpers may renew that owner.
+Native reuses a 4096-byte buffer; `stdin_read()` remains a snapshot. Open
+prefills; zero bytes means EOF and short positive reads are chunks. Open/Next
+require `process.stdin.read`; Eof/Chunk inspect named readers purely. Open runs
+once per reachable path, never in loops. Readers have no constructor or
+generic, aggregate, or public ABI escape. End a borrowed chunk's scope before
+Next (`SPX-T265`); exact acyclic `own StdinReader -> StdinReader` helpers may
+renew the owner.
 [Streaming contract](BOUNDED-STDIN-STREAM-V1.md): gates and settlement.
 
 Exit codes: `semaprax help language specifications`.
 
-On the pure single-file interpreter route, `run` tries the ordinary
-`semaprax.interpret.v1` profile. On refusal, `run` retries with the
-internal String profile: owned `string` parameters and
-results otherwise refused with `SPX-F102`. If both refuse, report the ordinary
-diagnostic. The retry's JSON `schema` is `semaprax.interpret.internal-strings.v1`.
-Permit-selected command and stdout runners do not use this interpreter fallback.
+On the pure single-file interpreter route, `run` tries
+`semaprax.interpret.v1`, then retries refusals with the internal String profile
+for owned `string` parameters/results otherwise refused by `SPX-F102`. If both
+refuse, report the ordinary diagnostic. Retry JSON `schema` is
+`semaprax.interpret.internal-strings.v1`. Permit-selected command and stdout
+runners skip this fallback.
 See [Internal String Interpreter v1](INTERPRETER-INTERNAL-STRINGS-V1.md) for
 the separate profile contract.
 
@@ -804,15 +775,14 @@ fn main() -> i64
 }
 ```
 
-For a file holding `4`, ` 5 `, `x`, `10` on four lines, `semaprax run
-lines.spx -- nums.txt` prints `lines: 4` and `sum: 19` and exits 0; without an
-argument it prints the usage line to stderr and exits 2. Bind `arg_utf8(i)`
-before passing it on. To compare an argument, copy it into a `string`: `let
-raw = arg_utf8(1usize); let flag = string_from_str(raw);` and then
-`flag == "--top"`. Match `string_to_i64` directly; in a loop the match must
-be exactly `Option::Some { value }` and `Option::None {}`. A function may hold
-many independent `if`s, `&&`/`||` operands, and `match`es. Offsets are byte
-offsets; `string_byte_at(s, i) == 32` tests a space without allocating.
+For lines `4`, ` 5 `, `x`, `10`, running `lines.spx -- nums.txt` prints
+`lines: 4` and `sum: 19` (exit 0); no argument prints usage to stderr (exit 2).
+Bind `arg_utf8(i)` before passing it on. To compare an argument, copy it into a
+`string` (`let raw = arg_utf8(1usize); let flag = string_from_str(raw);`), then
+compare `flag == "--top"`. Match `string_to_i64` directly; in loops use exactly
+`Option::Some { value }` and `Option::None {}`. Functions admit multiple
+independent `if`s, `&&`/`||` operands, and `match`es. Offsets are bytes;
+`string_byte_at(s, i) == 32` tests a space without allocation.
 
 ## String-keyed maps
 

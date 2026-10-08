@@ -366,7 +366,7 @@ syncBuiltinESMExports();
     );
     let empty_source = write_temp(
         "offline-empty-entity",
-        "module offline.empty;\nrecord Empty {}\n",
+        "module offline.empty;\nrecord Empty {}\nfn main() -> i64 { 0 }\n",
     );
     let empty_projection = generate(&empty_source).unwrap();
     let empty_out = empty_source.with_file_name("offline-empty-out");

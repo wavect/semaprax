@@ -38,11 +38,12 @@ const LANGUAGE_TOPICS: &str = concat!(
     "  mistakes-index  Habits from other languages: diagnostic index\n",
     "  web             Web applications\n",
     "  projects        Projects\n",
+    "  json            JSON documents and cursors\n",
     "  specifications  Where the rules live\n",
 );
 const DIAGNOSTIC_CODES: &str = concat!(
     "Common diagnostic codes:\n",
-    "  SPX-P106 SPX-T203 SPX-P201 SPX-T205 SPX-T266 SPX-B104 SPX-G170 SPX-I307 SPX-M105 SPX-O001 SPX-O101 SPX-P003\n",
+    "  SPX-P106 SPX-H006 SPX-T203 SPX-T252 SPX-P201 SPX-T205 SPX-T266 SPX-B104 SPX-G170 SPX-I307 SPX-J100 SPX-M105\n",
     "Fix: semaprax help diagnostic <code>\n",
     "All: semaprax help language mistakes-index\n",
 );
@@ -215,6 +216,15 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     assert_eq!(topics.stdout, LANGUAGE_TOPICS.as_bytes());
     assert!(topics.stdout.len() <= 768);
     std::fs::remove_dir(topics_dir).unwrap();
+    let (json_topic, json_topic_dir) = invoke(&["help", "language", "json"]);
+    assert!(json_topic.status.success());
+    assert!(json_topic.stderr.is_empty());
+    let card_text = std::str::from_utf8(&card).unwrap();
+    let start = card_text.find("## JSON documents and cursors\n").unwrap();
+    let section = &card_text[start..];
+    let end = section.find("\n## ").unwrap_or(section.len());
+    assert_eq!(json_topic.stdout, &section.as_bytes()[..end]);
+    std::fs::remove_dir(json_topic_dir).unwrap();
     let (scalars, scalars_dir) = invoke(&["help", "language", "scalars"]);
     assert!(scalars.status.success());
     assert!(scalars.stderr.is_empty());

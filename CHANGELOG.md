@@ -4,6 +4,11 @@
   publication authority: root `digits`, two source files, and the three common
   root files. Foreign entries still fail closed, and partial cleanup remains
   limited to held identities; focused verification is pending.
+- Add compiler-owned checked `u8_from_i64` and exact `char_from_u8`
+  conversions (OPT #673) across the interpreter, native C11, and scalar and
+  aggregate Core Wasm. Values outside `0..=255` keep the existing checked
+  conversion status; focused cross-backend verification is pending the shared
+  source batch.
 
 - Tighten generated web protocol boundaries: entity APIs require JSON number
   tokens for integer, float and reference fields while browser forms retain

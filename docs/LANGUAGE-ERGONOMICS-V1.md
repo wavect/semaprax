@@ -192,3 +192,8 @@ above.
 [Byte Widening v1](BYTE-WIDENING-V1.md) separately admits exact
 `i64_from_u8(value: u8) -> i64`, including inline Core Wasm lowering. It is
 outside the frozen Conversions v1 catalog and does not change its refusals.
+
+[Byte Conversions v1](BYTE-CONVERSIONS-V1.md) separately admits checked
+`u8_from_i64(value: i64) -> u8` and exact
+`char_from_u8(value: u8) -> char` on the interpreter, native C11, and Core
+Wasm. It also leaves the frozen Conversions v1 catalog unchanged.

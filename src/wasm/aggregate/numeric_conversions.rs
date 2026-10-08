@@ -47,12 +47,27 @@ impl super::Emitter<'_> {
             self.failure_expression = saved;
             result?;
         }
+        if op == StringOp::U8FromI64 {
+            for (bound, comparison) in [(0, 0x53), (255, 0x55)] {
+                self.get_scalar(&value);
+                self.output.push(0x42);
+                write_i64(self.output, bound);
+                self.output.push(comparison); // i64.lt_s / i64.gt_s
+                let saved = self.failure_expression.replace(expression.id.clone());
+                let result = self.fail_if(OUT_OF_RANGE_STATUS);
+                self.failure_expression = saved;
+                result?;
+            }
+        }
         self.get_scalar(&value);
         if matches!(op, StringOp::I64FromU8 | StringOp::UsizeFromU8) {
             self.output.push(0xad);
         }
         if op == StringOp::I64FromI32 {
             self.output.push(0xac);
+        }
+        if op == StringOp::U8FromI64 {
+            self.output.push(0xa7); // i32.wrap_i64, safe after the checked range
         }
         let local = self.plan.expr_scalar(expression)?;
         self.output.push(0x21);

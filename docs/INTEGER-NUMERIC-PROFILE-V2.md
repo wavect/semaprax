@@ -44,3 +44,7 @@ are the existing remainder operation, with no downstream plan repair.
 checked conversion of next_index - 1usize. Their public signatures, contracts,
 stable identities, and subtract-one meaning remain unchanged. Counting loops
 are eliminated; an out-of-range position fails with the conversion status.
+
+[Byte Conversions v1](BYTE-CONVERSIONS-V1.md) is a separate additive profile
+for checked `i64` to `u8` narrowing and exact `u8` to `char` conversion. It
+does not change this v2 operation inventory.

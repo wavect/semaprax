@@ -335,6 +335,10 @@ impl Evaluator<'_> {
             (StringOp::I64FromU8, [Value::Uint8(value)]) => Ok(Value::Int(i64::from(*value))),
             (StringOp::I64FromI32, [Value::Int32(value)]) => Ok(Value::Int(i64::from(*value))),
             (StringOp::UsizeFromU8, [Value::Uint8(value)]) => Ok(Value::Usize(u64::from(*value))),
+            (StringOp::U8FromI64, [Value::Int(value)]) => u8::try_from(*value)
+                .map(Value::Uint8)
+                .map_err(|_| convert_failure(CONVERT_OUT_OF_RANGE_CODE)),
+            (StringOp::CharFromU8, [Value::Uint8(value)]) => Ok(Value::Char(u32::from(*value))),
             // Rust's `as` rounds to nearest, ties to even, like C and Wasm.
             (StringOp::F64FromI64, [Value::Int(value)]) => Ok(Value::Float64(*value as f64)),
             (StringOp::I64FromF64, [Value::Float64(value)]) => {

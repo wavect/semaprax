@@ -101,6 +101,10 @@ with `string_concat`. No `as`; use `f64_from_i64`, `i64_from_f64` (truncates),
 ## Control flow, mutation, contracts, effects
 
 Exact integer widening uses `i64_from_u8`, `i64_from_i32`, or `usize_from_u8`.
+Use `u8_from_i64(value)` for checked byte narrowing and
+`char_from_u8(byte)` for the Unicode scalar with the same value. Byte narrowing
+accepts exactly `0..=255`; `char_from_u8` accepts all 256 byte values and is
+not an ASCII check.
 Scalar conversions fail out of range or on NaN with `semaprax.convert.v1`.
 Exact integer widening and checked integer conversions run on the interpreter,
 native, and Core Wasm; float conversions and `string_from_str` retain
@@ -1084,6 +1088,7 @@ Other first-attempt diagnostics and their fixes:
 | c ? a : b|`SPX-P106`|if c { a } else { b }|
 | break, continue|`SPX-P106`|Put the exit test in while condition|
 | x as i64|`SPX-P106`|Use named conversions (Scalars and literals; range checked), or one integer type with suffixed literals|
+| a 256-arm i64-to-byte or byte-to-char match|—|Use `u8_from_i64(value)` then `char_from_u8(byte)`; narrowing is checked|
 | Rust/JavaScript closure|`SPX-P201`|Use fn(x: i64) -> i64 { x + 1 }|
 | use std::io;|`SPX-G170`|Compiler-owned functions need no import; projects import one declaration: use function @id("…") from module as name;|
 | rebuilding into an existing output path|`SPX-I307`|Choose fresh --output, or remove existing output only after confirming it is your prior build artifact; it never overwrites automatically|

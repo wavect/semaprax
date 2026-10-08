@@ -17,18 +17,22 @@ const SOURCE: &str = r#"module test.integer_profiles;
     let mut counter = 0;
     let mut failures = 0;
     while counter <= 255 {
-        failures = failures + if i64_from_u8(byte) == counter && usize_from_u8(byte) == usize_from_i64(counter) { 0 } else { 1 };
+        failures = failures + if i64_from_u8(byte) == counter && usize_from_u8(byte) == usize_from_i64(counter) && u8_from_i64(counter) == byte { 0 } else { 1 };
         byte = if byte < 255u8 { byte + 1u8 } else { byte };
         counter = counter + 1;
         0
     }
     let signed = i64_from_i32(-2147483648i32) == -2147483648 && i64_from_i32(2147483647i32) == 2147483647 && i64_from_i32(-1i32) == -1 && i64_from_i32(0i32) == 0 && i64_from_i32(1i32) == 1;
     let sizes = i64_from_usize(0usize) == 0 && i64_from_usize(9223372036854775807usize) == 9223372036854775807 && usize_from_i64(9223372036854775807) == 9223372036854775807usize;
+    let bytes = i64_from_u8(u8_from_i64(0)) == 0 && i64_from_u8(u8_from_i64(255)) == 255;
+    let chars = char_from_u8(0u8) == '\0' && char_from_u8(65u8) == 'A' && char_from_u8(255u8) == 'ÿ';
     let remainders = rem32(-7i32, rem32(7i32, 4i32)) == -1i32 && rem8(255u8, 16u8) == 15u8 && rem8(0u8, 1u8) == 0u8 && rem32(2147483647i32, 1i32) == 0i32;
-    failures + if signed && sizes && remainders { 0 } else { 1 }
+    failures + if signed && sizes && bytes && chars && remainders { 0 } else { 1 }
 }
 @id("numeric.negative") fn negative() -> i64 { let invalid = usize_from_i64(-1); 1 }
 @id("numeric.large") fn large() -> i64 { i64_from_usize(9223372036854775808usize) }
+@id("numeric.byte_negative") fn byte_negative() -> i64 { let invalid = u8_from_i64(-1); 1 }
+@id("numeric.byte_large") fn byte_large() -> i64 { let invalid = u8_from_i64(256); 1 }
 @id("numeric.rem32zero") fn rem32zero() -> i64 { let invalid = rem32(3i32, 0i32); 1 }
 @id("numeric.rem32overflow") fn rem32overflow() -> i64 { let invalid = rem32(-2147483648i32, -1i32); 1 }
 @id("numeric.rem8zero") fn rem8zero() -> i64 { let invalid = rem8(3u8, 0u8); 1 }
@@ -40,6 +44,8 @@ const CASES: &[(&str, &str)] = &[
     ("numeric.argument", "ok|255"),
     ("numeric.negative", "semaprax.convert.v1|1"),
     ("numeric.large", "semaprax.convert.v1|1"),
+    ("numeric.byte_negative", "semaprax.convert.v1|1"),
+    ("numeric.byte_large", "semaprax.convert.v1|1"),
     ("numeric.rem32zero", "semaprax.arithmetic.v1|6"),
     ("numeric.rem32overflow", "semaprax.arithmetic.v1|7"),
     ("numeric.rem8zero", "semaprax.arithmetic.v1|6"),
@@ -202,6 +208,13 @@ fn parity(source: &str, public_exports: bool) {
 
 #[test]
 fn integer_profiles_agree_on_scalar_and_aggregate_backends() {
+    let graph = graph::to_json(&checked_program(SOURCE)).unwrap();
+    for callee in ["core.num.u8_from_i64", "core.num.char_from_u8"] {
+        assert!(
+            graph.contains(&format!("\"callee\":\"{callee}\"")),
+            "{callee}"
+        );
+    }
     parity(SOURCE, true);
     let aggregate = SOURCE.replace("module test.integer_profiles;", "module test.integer_profiles;\n@id(\"force.record\") record Force { @id(\"force.record.value\") value: i64, }");
     parity(&aggregate, false);
@@ -255,13 +268,23 @@ fn integer_profile_types_and_forged_results_fail_closed() {
         wasm::emit_module_with_scalar_exports(&internal_usize, &["numeric.publicsize".to_owned()])
             .expect_err("integer profile preserves the public scalar ABI's usize refusal");
     assert_eq!(refused.code, "SPX-W115");
-    for expression in [
-        "i64_from_u8(1)",
-        "i64_from_i32(1u8)",
-        "usize_from_u8(1i32)",
-        "1i32 % 1u8",
-        "1.0 % 2.0",
+    for (expression, code) in [
+        ("i64_from_u8(1)", "SPX-T205"),
+        ("i64_from_i32(1u8)", "SPX-T205"),
+        ("usize_from_u8(1i32)", "SPX-T205"),
+        ("u8_from_i64(1u8)", "SPX-T205"),
+        ("char_from_u8(1)", "SPX-T205"),
+        ("u8_from_i64()", "SPX-T204"),
+        ("char_from_u8(1u8, 2u8)", "SPX-T204"),
     ] {
+        let source = format!("module test.invalid; @id(\"app.main\") fn main() -> i64 {{ let value = {expression}; 0 }}");
+        let program = parse(&source, "invalid.spx").unwrap();
+        assert!(
+            verify::verify(&program).iter().any(|d| d.code == code),
+            "{expression}"
+        );
+    }
+    for expression in ["1i32 % 1u8", "1.0 % 2.0"] {
         let source = format!("module test.invalid; @id(\"app.main\") fn main() -> i64 {{ let value = {expression}; 0 }}");
         let program = parse(&source, "invalid.spx").unwrap();
         assert!(

@@ -13,6 +13,23 @@ pub(super) fn emit_scalar(
     match op {
         StringOp::I64FromU8 | StringOp::UsizeFromU8 => output.push(0xad),
         StringOp::I64FromI32 => output.push(0xac),
+        StringOp::CharFromU8 => {}
+        StringOp::U8FromI64 => {
+            let scratch = layout.wide_scratch[0];
+            local_set(output, scratch);
+            for (bound, comparison) in [(0, 0x53), (255, 0x55)] {
+                local_get(output, scratch);
+                output.push(0x42);
+                write_i64(output, bound);
+                output.push(comparison); // i64.lt_s / i64.gt_s
+                output.extend_bytes(&[0x04, 0x40, 0x41]);
+                write_i64(output, i64::from(OUT_OF_RANGE_STATUS));
+                call_import(output, 6);
+                output.extend_bytes(&[0x00, 0x0b]);
+            }
+            local_get(output, scratch);
+            output.push(0xa7); // i32.wrap_i64, safe after the checked range
+        }
         StringOp::I64FromUsize | StringOp::UsizeFromI64 => {
             let scratch = layout.wide_scratch[0];
             local_set(output, scratch);

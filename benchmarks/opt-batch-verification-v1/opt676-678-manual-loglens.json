@@ -1,0 +1,264 @@
+{
+  "schema": "semaprax.opt.manual-adoption.v1",
+  "scope": "Manual adoption qualification and final-source proxy recount; no live model invocation or live efficiency gain claimed.",
+  "compiler_source_commit": "402900a43f7e92f43c1b009da3b17a9ed70c84ea",
+  "compiler_sha256": "ab299be88ad21645f862753eb8c07cf7dc0c2231239890714c97fd7f12ff9092",
+  "qualification_receipt_id": "348a6c348e73dd788a86e125585a389f873136b3a364d67e944d095888beeea8",
+  "qualification_receipt_sha256": "8c8969a87dda96290d1516562d55134552194a4591f590929b24cdaa76586b49",
+  "candidate_archive_unchanged": true,
+  "candidate_inventory": {
+    ".gitignore": "9cf6fa42bce49a850f5d0b06384b600c83b34af33617127a68de834cbacfc6a5",
+    "README.md": "3f40ef1fd34d6a8852815d79287e4a5205e5bb8e2c041d66af1945ed2fe1bc65",
+    "build.sh": "a22ee17383fd8492d23e3eabd955314123097078ad0b93e3b5a1d6e14e498d2c",
+    "run.sh": "164e055ad047e2003eba3b09d555f542394609ea2eacb4b30f5929b48e2b933c",
+    "semaprax.toml": "bc0a5eafbe510e923e59e94802c2e64f12ef01df57d27a68270f169c31231cf2",
+    "src/app.spx": "c464c748a595cfdc2f84fcc30c12a6af3a603b41436e31f67babf504426eb958",
+    "src/tests.spx": "17931167ead21a462faf52c3d9eb2ca437787673aa888899f2bc1565ca714001",
+    "test.sh": "7c0b894e68d178e8d9460f8883945afca551afc094480356d581463b88ea7716",
+    "tests.js": "0d9713b81c2fb499b8914e1a25a76b4c03e9657ac89ae6d5989dcfdd44f36689"
+  },
+  "unchanged_authored_tests_js_sha256": "0d9713b81c2fb499b8914e1a25a76b4c03e9657ac89ae6d5989dcfdd44f36689",
+  "harness": {
+    "profile": "loglens-historical33-plus-spec-boundaries.v1",
+    "historical_checks": 33,
+    "boundary_checks": 16,
+    "spec_sha256": "51bf564cb9f7eadd4b3bd12fac53b7857befa09b3ef757d9c34400a8509fdeae",
+    "corpus_sha256": "9fd0993142aee8b47e5d3a4256379eeddcd903cadf69419717c40032d769c745",
+    "facts_script_sha256": "97eaa89fbac7dc0311154e5b0bda4e2ccb389518a3aa593639fdc36173e7acf8",
+    "qualification_script_sha256": "d2214ae5922fee6949767ca661cba84fa07aab4ad66d4f446160927f838d6dd5",
+    "case_timeout_seconds": 120,
+    "criterion": "historical build, candidate tests and all33 checks plus all16 independent SPEC boundary checks",
+    "execution_mode": "native or interpreter, as permitted by the unchanged prompt"
+  },
+  "harness_source_commit": "60002439e1b651ebbfbf3a887f12a20c927d720f",
+  "harness_inventory_digest_sha256": "9620ebd4ff1f682211f7b60b3a51e486d0462f9ac03cf962c899cc3d45a0c5b0",
+  "acceptance": {
+    "accepted": true,
+    "authored_tests": "passed",
+    "historical_checks": 33,
+    "boundary_checks": 16
+  },
+  "manual_change": "Explicit Project v28 native resource output replaces multi-process report paging; application logic and authored tests preserved.",
+  "authored_recount": {
+    "schema": "semaprax.manual-adoption-authored-token-recount.v1",
+    "source_campaign": {
+      "name": "LogLens Codex round-7 fresh repeat (round-6 frozen schema)",
+      "results_sha256": "801e51fcc261917131860272fd0f950ea5516ddcb103210e0ea8510d1ec4b013",
+      "repository_commit": "c50c3bd7623354840504687d64260edb8ff3895f",
+      "compiler_source_commit": "60002439e1b651ebbfbf3a887f12a20c927d720f",
+      "source_binary_sha256": "87e1d84bb618218159a3ebaec83dea285f2186486d7113962d08c71945474daa",
+      "original_trial": {
+        "arm": "semaprax",
+        "number": 3,
+        "status": "accepted",
+        "accepted": true,
+        "candidate_archive": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/candidates/semaprax-03"
+      }
+    },
+    "tokenizer": {
+      "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+      "dependency": "tiktoken",
+      "dependency_version": "1.0.22",
+      "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+      "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+      "package": "@anthropic-ai/tokenizer",
+      "runtime": "node",
+      "runtime_version": "v24.3.0",
+      "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+      "version": "0.0.4"
+    },
+    "method": {
+      "implementation": "benchmarks/live_campaign_common.py authored_source_metrics + tokenize_texts",
+      "selection": "same harness authored suffix/special-name allowlist; sorted relative paths; UTF-8 text only",
+      "exclusions": "generated outputs/binaries, acceptance fixtures, dependencies and excluded directories",
+      "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+      "note": "Final-source proxy only. Counts do not measure cumulative authoring, provider output, exact GPT tokenization, billing, or campaign efficiency."
+    },
+    "inventories": {
+      "accepted_sem03": {
+        "candidate_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/candidates/semaprax-03",
+        "source_file_count": 7,
+        "total_tokens": 8154,
+        "source_inventory_sha256": "37c3bf054aa70db39edd4ebdbccce31f5a0c47a19aea5202eccc1da58f063603",
+        "files": [
+          {
+            "path": ".gitignore",
+            "bytes": 9,
+            "sha256": "9cf6fa42bce49a850f5d0b06384b600c83b34af33617127a68de834cbacfc6a5",
+            "tokens": 4
+          },
+          {
+            "path": "README.md",
+            "bytes": 1793,
+            "sha256": "740f4b7a59e2bd2fafd32f5e2a9bde55f477e76156a615cfb34491778ab3f707",
+            "tokens": 414
+          },
+          {
+            "path": "build.sh",
+            "bytes": 230,
+            "sha256": "09bb1561a5ef4a64755c9e603be9cc66ee2c64d81581962d5046df9e82d85d3b",
+            "tokens": 85
+          },
+          {
+            "path": "loglens.spx",
+            "bytes": 12761,
+            "sha256": "384421a0c356be1853e6bafe9af7509e19e2746632cef21f2ea65c06eb9c4afd",
+            "tokens": 4463
+          },
+          {
+            "path": "run.sh",
+            "bytes": 1169,
+            "sha256": "d4d40205d4c50041dae75e42e9b9495be53d10b0761a94d0e726e7da728f5a1e",
+            "tokens": 401
+          },
+          {
+            "path": "test.sh",
+            "bytes": 64,
+            "sha256": "233dc4c98b2082125ae724946de3ceeb5e95e76ff56b97b63e127e650e3169fb",
+            "tokens": 28
+          },
+          {
+            "path": "tests.js",
+            "bytes": 7718,
+            "sha256": "0d9713b81c2fb499b8914e1a25a76b4c03e9657ac89ae6d5989dcfdd44f36689",
+            "tokens": 2759
+          }
+        ],
+        "reproduces_saved_campaign_metrics": true
+      },
+      "manual_v28_candidate": {
+        "candidate_path": "/Users/kevin/.codex/benchmark-runs/loglens-v28-manual-20261008/candidate",
+        "qualification_status": "unqualified; no build or tests run",
+        "source_file_count": 9,
+        "total_tokens": 7801,
+        "source_inventory_sha256": "93218b2d377d163210fb57d92fa7869c1473620b7f489ea0574aeb6e6fe14696",
+        "files": [
+          {
+            "path": ".gitignore",
+            "bytes": 9,
+            "sha256": "9cf6fa42bce49a850f5d0b06384b600c83b34af33617127a68de834cbacfc6a5",
+            "tokens": 4
+          },
+          {
+            "path": "README.md",
+            "bytes": 1112,
+            "sha256": "3f40ef1fd34d6a8852815d79287e4a5205e5bb8e2c041d66af1945ed2fe1bc65",
+            "tokens": 289
+          },
+          {
+            "path": "build.sh",
+            "bytes": 220,
+            "sha256": "a22ee17383fd8492d23e3eabd955314123097078ad0b93e3b5a1d6e14e498d2c",
+            "tokens": 75
+          },
+          {
+            "path": "run.sh",
+            "bytes": 754,
+            "sha256": "164e055ad047e2003eba3b09d555f542394609ea2eacb4b30f5929b48e2b933c",
+            "tokens": 269
+          },
+          {
+            "path": "semaprax.toml",
+            "bytes": 457,
+            "sha256": "bc0a5eafbe510e923e59e94802c2e64f12ef01df57d27a68270f169c31231cf2",
+            "tokens": 177
+          },
+          {
+            "path": "src/app.spx",
+            "bytes": 11789,
+            "sha256": "c464c748a595cfdc2f84fcc30c12a6af3a603b41436e31f67babf504426eb958",
+            "tokens": 4157
+          },
+          {
+            "path": "src/tests.spx",
+            "bytes": 76,
+            "sha256": "17931167ead21a462faf52c3d9eb2ca437787673aa888899f2bc1565ca714001",
+            "tokens": 32
+          },
+          {
+            "path": "test.sh",
+            "bytes": 94,
+            "sha256": "7c0b894e68d178e8d9460f8883945afca551afc094480356d581463b88ea7716",
+            "tokens": 39
+          },
+          {
+            "path": "tests.js",
+            "bytes": 7718,
+            "sha256": "0d9713b81c2fb499b8914e1a25a76b4c03e9657ac89ae6d5989dcfdd44f36689",
+            "tokens": 2759
+          }
+        ],
+        "tests_js_sha256_unchanged": "0d9713b81c2fb499b8914e1a25a76b4c03e9657ac89ae6d5989dcfdd44f36689"
+      }
+    },
+    "comparison": {
+      "token_proxy_delta_manual_minus_accepted_sem03": -353,
+      "interpretation": "Inventory-level final-source proxy difference only; no live efficiency or causal claim."
+    }
+  },
+  "recount_status_note": "The recount was captured before qualification and therefore labels its candidate unqualified at that time; qualification above is the later passing evidence.",
+  "large_output_proof": {
+    "receipt_sha256": "7cf38858cce3696f524b8bf2d5746e891b182209c841a02a28d17a56ceca7264",
+    "fixture": {
+      "path": "/Users/kevin/.codex/benchmark-runs/loglens-v28-manual-20261008/qualification-runs/348a6c348e73dd788a86e125585a389f873136b3a364d67e944d095888beeea8/large-output-proof-v1/large-65536.log",
+      "bytes": 65536,
+      "sha256": "cea5dcce38e4ed94a05b084a1656081f7a6060ccbfd480f488a8a2213c71ddc6",
+      "record_count": 1,
+      "decimal_count_digits": 65452,
+      "timezone": "+0000",
+      "final_newline": false
+    },
+    "runs": [
+      {
+        "form": "text",
+        "command": [
+          "/bin/sh",
+          "/Users/kevin/.codex/benchmark-runs/loglens-v28-manual-20261008/qualification-runs/348a6c348e73dd788a86e125585a389f873136b3a364d67e944d095888beeea8/candidate-work/run.sh",
+          "/Users/kevin/.codex/benchmark-runs/loglens-v28-manual-20261008/qualification-runs/348a6c348e73dd788a86e125585a389f873136b3a364d67e944d095888beeea8/large-output-proof-v1/large-65536.log",
+          "--top",
+          "5"
+        ],
+        "cwd": "/Users/kevin/.codex/benchmark-runs/loglens-v28-manual-20261008/qualification-runs/348a6c348e73dd788a86e125585a389f873136b3a364d67e944d095888beeea8/candidate-work",
+        "timeout_seconds": 180,
+        "timed_out": false,
+        "elapsed_seconds": 4.302,
+        "exit_code": 0,
+        "stdout_path": "/Users/kevin/.codex/benchmark-runs/loglens-v28-manual-20261008/qualification-runs/348a6c348e73dd788a86e125585a389f873136b3a364d67e944d095888beeea8/large-output-proof-v1/actual.text.out",
+        "stdout_bytes": 131090,
+        "stdout_sha256": "b241c3dcd6e634665af376f58e88fe23c519deeb1120fe8468dbffe93530f99e",
+        "stderr_path": "/Users/kevin/.codex/benchmark-runs/loglens-v28-manual-20261008/qualification-runs/348a6c348e73dd788a86e125585a389f873136b3a364d67e944d095888beeea8/large-output-proof-v1/actual.text.stderr",
+        "stderr_bytes": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exact_oracle_match": true,
+        "application_invocations": 1
+      },
+      {
+        "form": "json",
+        "command": [
+          "/bin/sh",
+          "/Users/kevin/.codex/benchmark-runs/loglens-v28-manual-20261008/qualification-runs/348a6c348e73dd788a86e125585a389f873136b3a364d67e944d095888beeea8/candidate-work/run.sh",
+          "/Users/kevin/.codex/benchmark-runs/loglens-v28-manual-20261008/qualification-runs/348a6c348e73dd788a86e125585a389f873136b3a364d67e944d095888beeea8/large-output-proof-v1/large-65536.log",
+          "--top",
+          "5",
+          "--json"
+        ],
+        "cwd": "/Users/kevin/.codex/benchmark-runs/loglens-v28-manual-20261008/qualification-runs/348a6c348e73dd788a86e125585a389f873136b3a364d67e944d095888beeea8/candidate-work",
+        "timeout_seconds": 180,
+        "timed_out": false,
+        "elapsed_seconds": 6.066,
+        "exit_code": 0,
+        "stdout_path": "/Users/kevin/.codex/benchmark-runs/loglens-v28-manual-20261008/qualification-runs/348a6c348e73dd788a86e125585a389f873136b3a364d67e944d095888beeea8/large-output-proof-v1/actual.json.out",
+        "stdout_bytes": 131132,
+        "stdout_sha256": "c4914fb4f5f590b2bc87a3feba345ddf98954311139cf0d1a942320e2d456407",
+        "stderr_path": "/Users/kevin/.codex/benchmark-runs/loglens-v28-manual-20261008/qualification-runs/348a6c348e73dd788a86e125585a389f873136b3a364d67e944d095888beeea8/large-output-proof-v1/actual.json.stderr",
+        "stderr_bytes": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exact_oracle_match": true,
+        "application_invocations": 1
+      }
+    ],
+    "scope": "Two extra manual oracle executions on the already-qualified binary, one per output form; no compiler build, Cargo suite or paid model invocation."
+  },
+  "measurement_limits": "Final authored inventories are legacy-Claude BPE proxies (8154 to 7801), not cumulative authoring or exact GPT/billing tokens. No effect on live turns, net input or billed cost is inferred. Existing 33+16 corpus and frozen paid campaign unchanged.",
+  "qualification_harness_repair": "Initial manual copy lacked the public sample beside unchanged authored tests; added the frozen SHA-bound sample to the run parent and disabled Python bytecode writes in the immutable harness snapshot. The initial failed receipt is preserved."
+}

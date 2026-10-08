@@ -61,8 +61,8 @@ acceptance against that executable. Candidate build and test scripts remain
 supplemental. Both round-3 arms must keep their closed authored inventory
 unchanged through scripts, acceptance, measurement, and archive.
 The explicit arm selects the route: only the SEMAPRAX arm may contain the v27
-manifest or use the native binary, while the TypeScript arm must expose one
-direct `node <candidate-entry>` command through `run.sh`.
+manifest or use the harness native binary. The TypeScript arm keeps the frozen
+candidate `run.sh` interface and is refused if it contains `semaprax.toml`.
 
 The corpus is invoked through a command adapter that reads one request from
 stdin and writes one report to stdout. Example after an arm has been authored:

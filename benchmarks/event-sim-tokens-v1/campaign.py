@@ -8,7 +8,6 @@ from datetime import datetime, timezone
 import hashlib
 import json
 import os
-import shlex
 import shutil
 import stat
 import subprocess
@@ -498,8 +497,14 @@ def generate_v3_qualification(
         [str(semaprax_bin), "build", "--manifest-path", str(candidate / "semaprax.toml"),
          "--target", "native", "--output", str(native_path)],
     ):
-        completed = subprocess.run(command, cwd=candidate, capture_output=True, check=False,
-                                   timeout=timeout, env=env)
+        try:
+            completed = subprocess.run(command, cwd=candidate, capture_output=True, check=False,
+                                       timeout=timeout, env=env)
+        except subprocess.TimeoutExpired as error:
+            if (closed_authored_inventory(candidate) != inventory or semaprax_bin.is_symlink()
+                    or not semaprax_bin.is_file() or common.digest(semaprax_bin) != compiler_hash):
+                raise ValueError("candidate source or pinned compiler changed during timed-out qualification build") from error
+            raise ValueError("qualification compiler command timed out") from error
         if completed.returncode:
             raise ValueError(f"qualification compiler command failed: {common.bounded_text(completed.stderr)}")
         if (closed_authored_inventory(candidate) != inventory or semaprax_bin.is_symlink()
@@ -510,10 +515,18 @@ def generate_v3_qualification(
     native_hash = common.digest(native_path)
     report_path = output / "acceptance-report.json"
     runner = BENCHMARK / "acceptance" / "run.py"
-    accepted = subprocess.run(
-        [sys.executable, str(runner), "--command-json", json.dumps([str(native_path)]),
-         "--report-json", str(report_path)],
-        cwd=candidate, capture_output=True, check=False, timeout=timeout, env=env)
+    try:
+        accepted = subprocess.run(
+            [sys.executable, str(runner), "--command-json", json.dumps([str(native_path)]),
+             "--report-json", str(report_path)],
+            cwd=candidate, capture_output=True, check=False, timeout=timeout, env=env)
+    except subprocess.TimeoutExpired as error:
+        if (closed_authored_inventory(candidate) != inventory or native_path.is_symlink()
+                or not native_path.is_file() or common.digest(native_path) != native_hash
+                or semaprax_bin.is_symlink() or not semaprax_bin.is_file()
+                or common.digest(semaprax_bin) != compiler_hash):
+            raise ValueError("qualification source, compiler, or native binary changed during timed-out acceptance") from error
+        raise ValueError("qualification acceptance timed out") from error
     if accepted.returncode:
         raise ValueError(f"qualification acceptance failed: {common.bounded_text(accepted.stderr)}")
     if report_path.is_symlink() or not report_path.is_file():
@@ -843,36 +856,6 @@ def _phase_source_and_binary_guard(
         return False, {"status": "failed", "error": str(error)}
 
 
-def _typescript_node_command(candidate: Path, env: dict[str, str]) -> list[str]:
-    if (candidate / "semaprax.toml").exists() or (candidate / "semaprax.toml").is_symlink():
-        raise ValueError("v27 TypeScript candidate must not contain a SEMAPRAX manifest")
-    runner = candidate / "run.sh"
-    if runner.is_symlink() or not runner.is_file():
-        raise ValueError("v27 TypeScript candidate must contain a regular run.sh")
-    commands = [line.strip() for line in runner.read_text(encoding="utf-8").splitlines()
-                if line.strip() and not line.lstrip().startswith("#")]
-    if len(commands) != 1:
-        raise ValueError("v27 TypeScript run.sh must contain one direct Node command")
-    try:
-        words = shlex.split(commands[0])
-    except ValueError as error:
-        raise ValueError("v27 TypeScript run.sh is not a valid direct Node command") from error
-    if words and words[0] == "exec":
-        words = words[1:]
-    if len(words) != 2 or words[0] != "node":
-        raise ValueError("v27 TypeScript run.sh must directly execute node with one entry file")
-    node_value = shutil.which("node", path=env.get("PATH"))
-    node = Path(node_value).resolve(strict=True) if node_value else None
-    entry = (candidate / words[1]).resolve(strict=True)
-    try:
-        entry.relative_to(candidate.resolve(strict=True))
-    except ValueError as error:
-        raise ValueError("v27 TypeScript entry must stay inside the candidate") from error
-    if node is None or not node.is_file() or entry.is_symlink() or not entry.is_file():
-        raise ValueError("v27 TypeScript route requires Node and a regular candidate entry file")
-    return [str(node), str(entry)]
-
-
 def check_program(
     candidate: Path,
     timeout: int,
@@ -991,12 +974,10 @@ def check_program(
     if semaprax_v27:
         accepted_command = [str(native_binary)]
     elif v27:
-        try:
-            accepted_command = _typescript_node_command(candidate, env)
-            result["typescript_route"] = {"status": "passed", "command": accepted_command}
-        except (OSError, UnicodeError, ValueError) as error:
-            result["typescript_route"] = {"status": "failed", "error": str(error)}
-            return result
+        accepted_command = ["/bin/sh", str(candidate / "run.sh")]
+        result["typescript_route"] = {
+            "status": "passed", "command": accepted_command,
+            "semaprax_manifest_refused": True}
     else:
         accepted_command = ["/bin/sh", str(candidate / "run.sh")]
     command = [sys.executable, str(runner), "--command-json", json.dumps(accepted_command)]

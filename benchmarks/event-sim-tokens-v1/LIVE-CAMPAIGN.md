@@ -54,9 +54,9 @@ Private helpers may borrow `Vec<T>` for the profile's Copy scalar set, while
 the command and export roots stay closed. Both arms start with no `candidate/`
 leaf so each agent creates its own implementation root.
 The recorded arm is authoritative during acceptance. A round-3 TypeScript
-candidate is refused if it contains `semaprax.toml`; its `run.sh` must consist
-of one direct `node <candidate-entry>` command, which the harness resolves and
-passes to hidden acceptance without a shell/native fallback.
+candidate is refused if it contains `semaprax.toml` and continues through the
+same candidate `run.sh` interface as the frozen historical task. Only the
+SEMAPRAX arm can enter the pinned compiler and harness-native route.
 
 A round-2 provider result explicitly reporting an error with status 429 or
 `usage_limit_reached` stops further paid sessions. Results retain the failed

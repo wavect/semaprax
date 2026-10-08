@@ -486,7 +486,12 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
 
             (candidate / "semaprax.toml").unlink()
             (candidate / "main.mjs").write_text("process.exit(0);\n")
-            (candidate / "run.sh").write_text("exec node main.mjs\n")
+            (candidate / "run.sh").write_text('''#!/bin/sh
+set -eu
+cd "$(dirname "$0")"
+if [ ! -f dist/cli.js ]; then ./build.sh; fi
+exec node dist/cli.js
+''')
             typescript_commands = []
             def execute_typescript(command, **_kwargs):
                 typescript_commands.append(command)
@@ -497,8 +502,8 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
                     live_campaign.AUTHORING_PROFILE_V27, root / "unused" / "shiftsim",
                     None, None, "typescript")
             self.assertTrue(typescript["accepted"])
-            self.assertEqual(Path(typescript["typescript_route"]["command"][0]).name, "node")
-            self.assertEqual(typescript["typescript_route"]["command"][1], str(candidate / "main.mjs"))
+            self.assertEqual(typescript["typescript_route"]["command"],
+                             ["/bin/sh", str(candidate / "run.sh")])
             self.assertFalse(any(command[0] == str(compiler) for command in typescript_commands))
 
     def test_v3_qualification_builder_binds_the_binary_actually_passed_to_acceptance(self):

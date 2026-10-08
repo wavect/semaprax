@@ -4,14 +4,13 @@
   #666): current-account inputs remain exact, row inputs are unknown, and
   definite restrictions hide New without inventing a blank/default row.
   The same admitted AST supplies lazy Boolean, match, helper and contract
-  semantics; the server still checks every actual write. Source and generated
-  callback regressions are authored; focused verification is pending.
+  semantics; the server still checks every actual write. Focused generated
+  callback checks and all 912 independent reference browser/API cases pass.
 - Add native-only Project v26 `source-command.v1` for ordinary source-library
   imports in argv/read-only file CLI programs (OPT #667). Preserve exact
   SourceCommand authority, checked status/cleanup and immutable publication;
   interpreter/Web/npm/Wasm refuse explicitly. Owning native import, malformed
-  entry/authority, canonical projection and source-drift gates are authored
-  pending current-compiler verification.
+  entry/authority, canonical projection and source-drift gates pass locally.
 
 - Fix the TeamDesk v2 TypeScript reference's signed-i64 transport for OPT #662:
   preserve JSON number lexemes, use exact integer schema arithmetic and form
@@ -26,8 +25,9 @@
   divisors. The package lists interpreter/native C11, with no Core Wasm or
   primitive BigInt claim. Admit supported String-replacement graph v68 in
   Semantic Workspace preflight (OPT #664), retaining exact schema refusals.
-  Focused flattened source/interpreter/native checks passed locally; current
-  compiler Project and authored Rust gates remain pending integration.
+  Focused interpreter/native and bundled Project gates pass locally. Manual
+  LogLens adoption passes 148 own, 33 historical and 16 independent checks;
+  its modest authored-token reduction does not establish live-agent savings.
 
 - Fix native String condition cleanup anchors to distinguish dormant inventory
   slots from canonical runtime lifecycle references; mirror the distinction in

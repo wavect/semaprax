@@ -367,7 +367,7 @@ fn main() -> i64 uses { fs.read, process.args.read, process.stderr.write, proces
 }
 
 #[test]
-fn resource_output_refuses_legacy_append_mixtures() {
+fn resource_output_refuses_legacy_append_mixtures_at_source_boundary() {
     let mixed = r#"module decimal.command;
 permit { process.stderr.write, process.stdout.write }
 @id("decimal.command.main")
@@ -392,7 +392,12 @@ fn main() -> i64 uses { process.stderr.write, process.stdout.write }
             snapshot.check()
         })
         .unwrap_err();
-    assert!(errors.iter().any(|error| error.code == "SPX-W114"));
+    assert_eq!(errors.len(), 1, "{errors:?}");
+    assert_eq!(errors[0].code, "SPX-T269");
+    assert_eq!(
+        errors[0].message,
+        "legacy transcript writes and runtime-bounded appends cannot share an executable path"
+    );
 }
 
 #[test]

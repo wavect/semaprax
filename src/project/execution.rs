@@ -172,6 +172,8 @@ pub(super) fn execute(
 ) -> Result<ProjectExecution, Vec<Diagnostic>> {
     // Revalidate public option construction even if a caller assembled the
     // public fields directly.
+    super::source_command::require_interpreter(snapshot.manifest.project_profile())
+        .map_err(|error| vec![error])?;
     interpreter::InterpreterOptions::new(options.max_bytes, options.max_steps)
         .map_err(|error| vec![error])?;
 
@@ -241,6 +243,8 @@ pub(super) fn execute_cancellable(
     options: &ProjectExecutionOptions,
     cancellation: &ProjectExecutionCancellation,
 ) -> Result<CancellableProjectExecution, Vec<Diagnostic>> {
+    super::source_command::require_interpreter(snapshot.manifest.project_profile())
+        .map_err(|error| vec![error])?;
     interpreter::InterpreterOptions::new(options.max_bytes, options.max_steps)
         .map_err(|error| vec![error])?;
 

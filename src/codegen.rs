@@ -187,6 +187,19 @@ pub fn emit_c_with_source_command(program: &Program) -> Result<String, Diagnosti
     emit_hir_c_with_labels(&resolved, &labels, NativeOutputProfile::SourceCommand, None)
 }
 
+/// Emit a linked SourceCommand closure using the checked native process adapter.
+pub fn emit_hir_c_with_source_command(program: &ResolvedProgram) -> Result<String, Diagnostic> {
+    hir::validate(program)?;
+    crate::source_command::validate_authority(program)?;
+    reject_native_rust_for_native(program)?;
+    emit_hir_c_with_labels(
+        program,
+        &HashMap::new(),
+        NativeOutputProfile::SourceCommand,
+        None,
+    )
+}
+
 /// Resolve source and emit the closed native Useful Data Command process.
 ///
 /// The selected stable ID is authenticated by the shared target-neutral command plan before

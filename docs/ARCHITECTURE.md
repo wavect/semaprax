@@ -3643,6 +3643,15 @@ The native emitter `native_emit/indexed_reads.rs` and aggregate Wasm
 Both consume only previously authenticated arguments and preserve canonical
 Option layouts and existing cleanup ordering.
 
+The additive [Project v26 source command](PROJECT-MANIFEST-V26.md) is owned
+by `project/source_command.rs`, closed manifest/profile admission and the
+existing owned representation workspace linker. The linked SourceCommand HIR
+emitter replays HIR and exact four-effect authority before reusing
+`codegen/native_source_command.rs`. Native publication retains held-input
+rechecks and fresh output ownership. This native-only profile acquires runtime
+argv/file authority only in its invocation adapter; representation linking and
+Project graph/lock facts carry no host authority.
+
 The explicit [Stream Text Command v1](STREAM-TEXT-COMMAND-V1.md) selector is
 owned by Project profile/manifest admission, `workspace_link/stdin_stream`, and
 `native_emit/output_profile`. Retained workspace stream admission selects the

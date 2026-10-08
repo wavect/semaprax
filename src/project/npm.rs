@@ -195,6 +195,7 @@ pub(crate) fn prepare(
     project_graph_digest: &str,
     max_bytes: usize,
 ) -> Result<ProjectNpmBuild, Diagnostic> {
+    super::source_command::require_portable(manifest.project_profile())?;
     if manifest.is_v13() {
         return https_command::prepare(
             manifest,

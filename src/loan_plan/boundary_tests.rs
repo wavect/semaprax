@@ -1,21 +1,27 @@
 //! Exact-capacity and first-overflow evidence for Shared Loan Plan v1.
 //!
 //! These fixtures operate on resolved, typed HIR and always retain a real
-//! own-root loan. Padding roots are disconnected Boolean preconditions, so
-//! they change only the CFG/work dimension under test and cannot extend a
-//! loan lifetime or alter cleanup meaning.
+//! own-root loan. Point/edge padding uses disconnected Boolean preconditions.
+//! The checked-work boundary instead places Boolean statements before real
+//! last uses of every loan, so the production planner performs the measured
+//! reachability and live-edge work.
 
 use std::path::Path;
 
 use crate::ast::Span;
 use crate::hir::{
-    FunctionExecutionId, PatternValue, ResolvedExpr, ResolvedExprKind, ResolvedFunction,
-    ResolvedMatchArm, ResolvedMatchMode, ResolvedMatchPattern, ResolvedType,
+    FunctionExecutionId, PatternValue, ResolvedBinding, ResolvedExpr, ResolvedExprKind,
+    ResolvedFunction, ResolvedMatchArm, ResolvedMatchMode, ResolvedMatchPattern, ResolvedStatement,
+    ResolvedType, ValueId,
 };
 
 use super::*;
 
 fn fixture(loan_count: usize) -> (ResolvedProgram, usize) {
+    fixture_with_uses(loan_count, false)
+}
+
+fn fixture_with_uses(loan_count: usize, retain_last_uses: bool) -> (ResolvedProgram, usize) {
     let mut source = String::from(
         "module test.loan_plan_boundaries;\n\
          @id(\"loan.boundary\")\n\
@@ -27,6 +33,13 @@ fn fixture(loan_count: usize) -> (ResolvedProgram, usize) {
             "let boundary_view_{index} = bytes_as_slice(owned);\n"
         ));
     }
+    if retain_last_uses {
+        for index in 0..loan_count {
+            source.push_str(&format!(
+                "let boundary_use_{index} = byte_len(boundary_view_{index});\n"
+            ));
+        }
+    }
     source.push_str("0\n}\n@id(\"app.main\") fn main() -> i64 { 0 }\n");
     let ast = crate::parse(&source, Path::new("loan-plan-boundaries.spx")).unwrap();
     assert!(crate::verify::verify(&ast).is_empty());
@@ -37,6 +50,66 @@ fn fixture(loan_count: usize) -> (ResolvedProgram, usize) {
         .position(|function| function.id.as_str() == "loan.boundary")
         .unwrap();
     (program, index)
+}
+
+fn padding_statement(
+    function: &ResolvedFunction,
+    path: &str,
+    value: ResolvedExpr,
+) -> ResolvedStatement {
+    let execution = FunctionExecutionId::Monomorphic(function.id.clone());
+    ResolvedStatement::Let {
+        binding: ResolvedBinding {
+            id: ValueId::local(&execution, &format!("{path}.binding")),
+            name: format!("__loan_work_{}", path.replace('.', "_")),
+            ownership: OwnershipMode::Value,
+            ty: ResolvedType::Bool,
+            span: Span::default(),
+        },
+        mutable: false,
+        value,
+        span: Span::default(),
+    }
+}
+
+fn add_live_padding(
+    function: &mut ResolvedFunction,
+    loan_count: usize,
+    prefix: &str,
+    leaves: usize,
+    branches: usize,
+    matches: usize,
+) {
+    let mut padding = Vec::new();
+    for index in 0..leaves {
+        let path = format!("{prefix}.leaf.{index}");
+        padding.push(padding_statement(
+            function,
+            &path,
+            bool_leaf(function, &path),
+        ));
+    }
+    for index in 0..branches {
+        let path = format!("{prefix}.branch.{index}");
+        padding.push(padding_statement(
+            function,
+            &path,
+            branch_root(function, &path),
+        ));
+    }
+    for index in 0..matches {
+        let path = format!("{prefix}.match.{index}");
+        padding.push(padding_statement(
+            function,
+            &path,
+            three_arm_match_root(function, &path),
+        ));
+    }
+    let ResolvedExprKind::Block { statements, .. } = &mut function.body.kind else {
+        panic!("boundary fixture body remains a block")
+    };
+    let before_last_uses = 1 + loan_count;
+    statements.splice(before_last_uses..before_last_uses, padding);
 }
 
 fn expression_id(function: &ResolvedFunction, path: &str) -> ExpressionId {
@@ -287,22 +360,30 @@ fn exact_4096_cfg_edges_rebuild_and_edge_4097_fails_before_point_capacity() {
 
 #[test]
 fn exact_million_work_build_replays_and_the_first_extra_unit_is_fail_closed() {
-    let (program, index) = fixture(MAX_LOANS_PER_FUNCTION_V1);
+    let (program, index) = fixture_with_uses(MAX_LOANS_PER_FUNCTION_V1, true);
     let base = program.functions[index].clone();
     let (base_result, base_work) = build_cfg_plan_with_work_limit(&program, &base, usize::MAX);
     base_result.expect("the unpadded boundary fixture builds");
+    let (base_points, base_edges) = cfg_counts(&base);
 
     let measure_delta = |leaves, branches, matches| {
         let mut probe = base.clone();
-        add_padding(&mut probe, "work.probe", leaves, branches, matches);
+        add_live_padding(
+            &mut probe,
+            MAX_LOANS_PER_FUNCTION_V1,
+            "work.probe",
+            leaves,
+            branches,
+            matches,
+        );
         let (result, used) = build_cfg_plan_with_work_limit(&program, &probe, usize::MAX);
         result.expect("a one-shape work probe builds");
-        used - base_work
+        let (points, edges) = cfg_counts(&probe);
+        (used - base_work, points - base_points, edges - base_edges)
     };
-    let leaf_work = measure_delta(1, 0, 0);
-    let branch_work = measure_delta(0, 1, 0);
-    let match_work = measure_delta(0, 0, 1);
-    let (base_points, base_edges) = cfg_counts(&base);
+    let (leaf_work, leaf_points, leaf_edges) = measure_delta(1, 0, 0);
+    let (branch_work, branch_points, branch_edges) = measure_delta(0, 1, 0);
+    let (match_work, match_points, match_edges) = measure_delta(0, 0, 1);
 
     let mut shape = None;
     for matches in 0..=((MAX_LOAN_PLAN_WORK_V1 - base_work) / match_work) {
@@ -313,9 +394,15 @@ fn exact_million_work_build_replays_and_the_first_extra_unit_is_fail_closed() {
                 continue;
             }
             let leaves = remaining / leaf_work;
-            let points = base_points + 10 * matches + 8 * branches + 2 * leaves;
-            let edges = base_edges + 11 * matches + 8 * branches + leaves;
-            if points <= MAX_LOAN_ENDPOINTS_V1 - 2 && edges < MAX_LOAN_EDGES_V1 {
+            let points = base_points
+                + match_points * matches
+                + branch_points * branches
+                + leaf_points * leaves;
+            let edges =
+                base_edges + match_edges * matches + branch_edges * branches + leaf_edges * leaves;
+            if points <= MAX_LOAN_ENDPOINTS_V1 - leaf_points
+                && edges <= MAX_LOAN_EDGES_V1 - leaf_edges
+            {
                 shape = Some((leaves, branches, matches));
                 break;
             }
@@ -326,7 +413,14 @@ fn exact_million_work_build_replays_and_the_first_extra_unit_is_fail_closed() {
     }
     let (leaves, branches, matches) = shape.expect("a one-million-work fixture exists");
     let mut exact = base.clone();
-    add_padding(&mut exact, "work.boundary", leaves, branches, matches);
+    add_live_padding(
+        &mut exact,
+        MAX_LOANS_PER_FUNCTION_V1,
+        "work.boundary",
+        leaves,
+        branches,
+        matches,
+    );
 
     let (plan, used) = build_cfg_plan_with_work_limit(&program, &exact, MAX_LOAN_PLAN_WORK_V1);
     let plan = plan.expect("exactly 1,000,000 work units are admitted");
@@ -345,7 +439,14 @@ fn exact_million_work_build_replays_and_the_first_extra_unit_is_fail_closed() {
         "loan analysis exceeds 1,000,000 checked work"
     );
 
-    add_padding(&mut exact, "work.overflow", 1, 0, 0);
+    add_live_padding(
+        &mut exact,
+        MAX_LOANS_PER_FUNCTION_V1,
+        "work.overflow",
+        1,
+        0,
+        0,
+    );
     let (overflow, used) = build_cfg_plan_with_work_limit(&program, &exact, MAX_LOAN_PLAN_WORK_V1);
     let error = overflow.unwrap_err();
     assert_eq!(used, MAX_LOAN_PLAN_WORK_V1 + 1);

@@ -235,7 +235,7 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
                         shiftsim.AUTHORING_PROFILE_V27,
                         artifacts / "harness-native" / label / "shiftsim",
                         settings["qualification"].get("compiler_binary_sha256"),
-                        row.get("closed_authored_inventory_after_model"))
+                        row.get("closed_authored_inventory_after_model"), trial["arm"])
                 else:
                     row["acceptance"] = shiftsim.check_program(candidate, settings["timeout_seconds"],
                         shiftsim.trial_environment(semaprax_bin), "evidence_gated_scored")
@@ -255,13 +255,16 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
         acceptance = row.get("acceptance", {})
         native = acceptance.get("native_binary", {})
         native_path = Path(native["path"]) if native.get("path") else None
+        pinned = acceptance.get("pinned_compiler", {})
+        compiler_path = Path(pinned["path"]) if pinned.get("path") else None
         expected_inventory = acceptance.get(
             "closed_authored_inventory", row.get("closed_authored_inventory_after_model"))
         passed, phase_guard = shiftsim._phase_source_and_binary_guard(
-            candidate, expected_inventory, native_path, native.get("sha256"))
+            candidate, expected_inventory, native_path, native.get("sha256"),
+            compiler_path, pinned.get("sha256"))
         row["source_consistency_after_metrics"] = phase_guard
         if not passed:
-            invalidate(row, "candidate source or harness native binary changed")
+            invalidate(row, "candidate source, compiler, or harness native binary changed")
             return row
     guard = workspace_guard(workspace, settings)
     row["workspace_integrity_before_archive"] = guard
@@ -284,10 +287,13 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
         acceptance = row.get("acceptance", {})
         native = acceptance.get("native_binary", {})
         native_path = Path(native["path"]) if native.get("path") else None
+        pinned = acceptance.get("pinned_compiler", {})
+        compiler_path = Path(pinned["path"]) if pinned.get("path") else None
         expected_inventory = acceptance.get(
             "closed_authored_inventory", row.get("closed_authored_inventory_after_model"))
         passed, phase_guard = shiftsim._phase_source_and_binary_guard(
-            candidate, expected_inventory, native_path, native.get("sha256"))
+            candidate, expected_inventory, native_path, native.get("sha256"),
+            compiler_path, pinned.get("sha256"))
         try:
             archived_inventory = shiftsim.closed_authored_inventory(archive)
             archive_matches = archived_inventory == expected_inventory
@@ -299,7 +305,7 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
         passed = passed and archive_matches
         row["source_consistency_after_archive"] = phase_guard
         if not passed:
-            invalidate(row, "candidate source or harness native binary changed")
+            invalidate(row, "candidate source, compiler, or harness native binary changed")
             return row
     cleanup_workspace(seed_repo, workspace, settings, row)
     return row

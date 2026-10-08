@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 import hashlib
 import json
 import os
+import shlex
 import shutil
 import stat
 import subprocess
@@ -471,6 +472,7 @@ def generate_v3_qualification(
         raise ValueError(f"qualification output must not already exist: {output}")
     if not semaprax_bin.is_file() or semaprax_bin.is_symlink():
         raise ValueError("qualification compiler must be a regular file")
+    compiler_hash = common.digest(semaprax_bin)
     for protected in (repo, candidate):
         try:
             output.relative_to(protected)
@@ -500,8 +502,9 @@ def generate_v3_qualification(
                                    timeout=timeout, env=env)
         if completed.returncode:
             raise ValueError(f"qualification compiler command failed: {common.bounded_text(completed.stderr)}")
-        if closed_authored_inventory(candidate) != inventory:
-            raise ValueError("candidate source changed during qualification build")
+        if (closed_authored_inventory(candidate) != inventory or semaprax_bin.is_symlink()
+                or not semaprax_bin.is_file() or common.digest(semaprax_bin) != compiler_hash):
+            raise ValueError("candidate source or pinned compiler changed during qualification build")
     if native_path.is_symlink() or not native_path.is_file():
         raise ValueError("qualification build did not produce a regular native binary")
     native_hash = common.digest(native_path)
@@ -516,10 +519,11 @@ def generate_v3_qualification(
     if report_path.is_symlink() or not report_path.is_file():
         raise ValueError("qualification acceptance did not produce a regular report")
     if (closed_authored_inventory(candidate) != inventory or native_path.is_symlink()
-            or not native_path.is_file() or common.digest(native_path) != native_hash):
-        raise ValueError("qualification source or native binary changed during acceptance")
+            or not native_path.is_file() or common.digest(native_path) != native_hash
+            or semaprax_bin.is_symlink() or not semaprax_bin.is_file()
+            or common.digest(semaprax_bin) != compiler_hash):
+        raise ValueError("qualification source, compiler, or native binary changed during acceptance")
     report_hash = common.digest(report_path)
-    compiler_hash = common.digest(semaprax_bin)
     subject = {
         "compiler_source_commit": compiler_commit,
         "compiler_binary_sha256": compiler_hash,
@@ -815,6 +819,8 @@ def _phase_source_and_binary_guard(
     expected_inventory: dict[str, Any],
     native_binary: Path | None,
     native_binary_sha256: str | None,
+    compiler: Path | None = None,
+    compiler_sha256: str | None = None,
 ) -> tuple[bool, dict[str, Any]]:
     try:
         observed = closed_authored_inventory(candidate)
@@ -822,12 +828,49 @@ def _phase_source_and_binary_guard(
             not native_binary.is_symlink() and native_binary.is_file()
             and stat.S_ISREG(native_binary.stat(follow_symlinks=False).st_mode)))
         binary_hash = common.digest(native_binary) if native_binary is not None and binary_regular else None
-        passed = observed == expected_inventory and binary_hash == native_binary_sha256
+        compiler_regular = (compiler is None or (
+            not compiler.is_symlink() and compiler.is_file()
+            and stat.S_ISREG(compiler.stat(follow_symlinks=False).st_mode)))
+        compiler_hash = common.digest(compiler) if compiler is not None and compiler_regular else None
+        passed = (observed == expected_inventory and binary_hash == native_binary_sha256
+                  and compiler_hash == compiler_sha256)
         return passed, {"status": "passed" if passed else "failed", "inventory": observed,
                         "native_binary_regular": binary_regular,
-                        "native_binary_sha256": binary_hash}
+                        "native_binary_sha256": binary_hash,
+                        "compiler_binary_regular": compiler_regular,
+                        "compiler_binary_sha256": compiler_hash}
     except (OSError, ValueError) as error:
         return False, {"status": "failed", "error": str(error)}
+
+
+def _typescript_node_command(candidate: Path, env: dict[str, str]) -> list[str]:
+    if (candidate / "semaprax.toml").exists() or (candidate / "semaprax.toml").is_symlink():
+        raise ValueError("v27 TypeScript candidate must not contain a SEMAPRAX manifest")
+    runner = candidate / "run.sh"
+    if runner.is_symlink() or not runner.is_file():
+        raise ValueError("v27 TypeScript candidate must contain a regular run.sh")
+    commands = [line.strip() for line in runner.read_text(encoding="utf-8").splitlines()
+                if line.strip() and not line.lstrip().startswith("#")]
+    if len(commands) != 1:
+        raise ValueError("v27 TypeScript run.sh must contain one direct Node command")
+    try:
+        words = shlex.split(commands[0])
+    except ValueError as error:
+        raise ValueError("v27 TypeScript run.sh is not a valid direct Node command") from error
+    if words and words[0] == "exec":
+        words = words[1:]
+    if len(words) != 2 or words[0] != "node":
+        raise ValueError("v27 TypeScript run.sh must directly execute node with one entry file")
+    node_value = shutil.which("node", path=env.get("PATH"))
+    node = Path(node_value).resolve(strict=True) if node_value else None
+    entry = (candidate / words[1]).resolve(strict=True)
+    try:
+        entry.relative_to(candidate.resolve(strict=True))
+    except ValueError as error:
+        raise ValueError("v27 TypeScript entry must stay inside the candidate") from error
+    if node is None or not node.is_file() or entry.is_symlink() or not entry.is_file():
+        raise ValueError("v27 TypeScript route requires Node and a regular candidate entry file")
+    return [str(node), str(entry)]
 
 
 def check_program(
@@ -839,10 +882,15 @@ def check_program(
     harness_output: Path | None = None,
     compiler_binary_sha256: str | None = None,
     expected_inventory: dict[str, Any] | None = None,
+    arm: str | None = None,
 ) -> dict[str, Any]:
     result: dict[str, Any] = {"build": {"status": "missing"}, "candidate_tests": {"status": "not_run"},
                               "independent_acceptance": {"status": "not_run"}, "accepted": False}
     v27 = authoring_profile == AUTHORING_PROFILE_V27
+    if v27 and arm not in ARMS:
+        result["route_admission"] = {"status": "failed", "error": "v27 checks require an explicit arm"}
+        return result
+    semaprax_v27 = v27 and arm == "semaprax"
     try:
         observed_inventory = closed_authored_inventory(candidate) if v27 else None
     except (OSError, ValueError) as error:
@@ -854,16 +902,28 @@ def check_program(
             return result
         initial_inventory = expected_inventory or observed_inventory
         result["closed_authored_inventory"] = initial_inventory
+        candidate_runner = candidate / "run.sh"
+        if candidate_runner.is_symlink() or not candidate_runner.is_file():
+            result["candidate_runner"] = {"status": "missing", "path": str(candidate_runner)}
+            return result
+        result["candidate_runner"] = {
+            "status": "present", "used_for_acceptance": arm == "typescript"}
     else:
         initial_inventory = None
         candidate_runner = candidate / "run.sh"
         if candidate_runner.is_symlink() or not candidate_runner.is_file():
             result["candidate_runner"] = {"status": "missing", "path": str(candidate_runner)}
             return result
-        result["candidate_runner"] = {"status": "present", "used_for_acceptance": False}
+        result["candidate_runner"] = {"status": "present", "used_for_acceptance": True}
     native_binary = None
     native_binary_hash = None
-    if v27 and (candidate / "semaprax.toml").is_file():
+    compiler = None
+    if v27 and arm == "typescript" and ((candidate / "semaprax.toml").exists()
+                                         or (candidate / "semaprax.toml").is_symlink()):
+        result["typescript_route"] = {
+            "status": "failed", "error": "v27 TypeScript candidate must not contain a SEMAPRAX manifest"}
+        return result
+    if semaprax_v27:
         compiler = Path(env.get("SEMAPRAX_BIN", ""))
         if (not compiler.is_file() or compiler.is_symlink()
                 or common.digest(compiler) != compiler_binary_sha256):
@@ -890,7 +950,8 @@ def check_program(
             except subprocess.TimeoutExpired as exc:
                 result[key] = {"status": "timeout", "seconds": round(time.monotonic() - started, 3),
                     "stdout": common.bounded_text(exc.stdout or b""), "stderr": common.bounded_text(exc.stderr or b"")}
-            passed, guard = _phase_source_and_binary_guard(candidate, initial_inventory, None, None)
+            passed, guard = _phase_source_and_binary_guard(
+                candidate, initial_inventory, None, None, compiler, compiler_binary_sha256)
             result[f"{key}_source_consistency"] = guard
             if result[key]["status"] != "passed" or not passed:
                 return result
@@ -918,14 +979,26 @@ def check_program(
         result[key] = row
         if v27:
             passed, guard = _phase_source_and_binary_guard(
-                candidate, initial_inventory, native_binary, native_binary_hash)
+                candidate, initial_inventory, native_binary, native_binary_hash,
+                compiler if semaprax_v27 else None,
+                compiler_binary_sha256 if semaprax_v27 else None)
             result[f"{key}_source_consistency"] = guard
             if row["status"] != "passed" or not passed:
                 return result
         elif row["status"] != "passed":
             return result
     runner = BENCHMARK / "acceptance" / "run.py"
-    accepted_command = [str(native_binary)] if v27 and native_binary is not None else ["/bin/sh", str(candidate / "run.sh")]
+    if semaprax_v27:
+        accepted_command = [str(native_binary)]
+    elif v27:
+        try:
+            accepted_command = _typescript_node_command(candidate, env)
+            result["typescript_route"] = {"status": "passed", "command": accepted_command}
+        except (OSError, UnicodeError, ValueError) as error:
+            result["typescript_route"] = {"status": "failed", "error": str(error)}
+            return result
+    else:
+        accepted_command = ["/bin/sh", str(candidate / "run.sh")]
     command = [sys.executable, str(runner), "--command-json", json.dumps(accepted_command)]
     started = time.monotonic()
     try:
@@ -939,11 +1012,17 @@ def check_program(
     result["independent_acceptance"] = row
     if v27:
         passed, guard = _phase_source_and_binary_guard(
-            candidate, initial_inventory, native_binary, native_binary_hash)
+            candidate, initial_inventory, native_binary, native_binary_hash,
+            compiler if semaprax_v27 else None,
+            compiler_binary_sha256 if semaprax_v27 else None)
         result["acceptance_source_consistency"] = guard
         result["native_binary"] = {"path": str(native_binary) if native_binary is not None else None,
                                    "sha256": native_binary_hash,
                                    "unchanged_after_acceptance": passed}
+        if semaprax_v27:
+            result["pinned_compiler"] = {"path": str(compiler),
+                                         "sha256": compiler_binary_sha256,
+                                         "unchanged_after_acceptance": passed}
     else:
         passed = True
     if v27:
@@ -1036,7 +1115,7 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
                     candidate, settings["timeout_seconds"], trial_environment(semaprax_bin), qualification_mode,
                     AUTHORING_PROFILE_V27, artifacts / "harness-native" / label / "shiftsim",
                     qualification.get("compiler_binary_sha256") or settings.get("semaprax_binary_sha256"),
-                    row.get("closed_authored_inventory_after_model"))
+                    row.get("closed_authored_inventory_after_model"), arm)
             else:
                 row["acceptance"] = check_program(
                     candidate, settings["timeout_seconds"], trial_environment(semaprax_bin), qualification_mode)
@@ -1057,13 +1136,16 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
         acceptance = row.get("acceptance", {})
         native = acceptance.get("native_binary", {})
         native_path = Path(native["path"]) if native.get("path") else None
+        pinned = acceptance.get("pinned_compiler", {})
+        compiler_path = Path(pinned["path"]) if pinned.get("path") else None
         expected_inventory = acceptance.get(
             "closed_authored_inventory", row.get("closed_authored_inventory_after_model"))
         passed, guard = _phase_source_and_binary_guard(
-            candidate, expected_inventory, native_path, native.get("sha256"))
+            candidate, expected_inventory, native_path, native.get("sha256"),
+            compiler_path, pinned.get("sha256"))
         row["source_consistency_after_metrics"] = guard
         if not passed:
-            row.update({"status": "not_accepted", "failure": "candidate source or harness native binary changed",
+            row.update({"status": "not_accepted", "failure": "candidate source, compiler, or harness native binary changed",
                         "workspace_retained_for_review": True, "worktree_removed_after_archive": False})
             if isinstance(row.get("acceptance"), dict):
                 row["acceptance"]["accepted"] = False
@@ -1087,10 +1169,13 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
         acceptance = row.get("acceptance", {})
         native = acceptance.get("native_binary", {})
         native_path = Path(native["path"]) if native.get("path") else None
+        pinned = acceptance.get("pinned_compiler", {})
+        compiler_path = Path(pinned["path"]) if pinned.get("path") else None
         expected_inventory = acceptance.get(
             "closed_authored_inventory", row.get("closed_authored_inventory_after_model"))
         passed, guard = _phase_source_and_binary_guard(
-            candidate, expected_inventory, native_path, native.get("sha256"))
+            candidate, expected_inventory, native_path, native.get("sha256"),
+            compiler_path, pinned.get("sha256"))
         try:
             archived_inventory = closed_authored_inventory(archive)
             archive_matches = archived_inventory == expected_inventory
@@ -1102,7 +1187,7 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
         passed = passed and archive_matches
         row["source_consistency_after_archive"] = guard
         if not passed:
-            row.update({"status": "not_accepted", "failure": "candidate source or harness native binary changed",
+            row.update({"status": "not_accepted", "failure": "candidate source, compiler, or harness native binary changed",
                         "workspace_retained_for_review": True, "worktree_removed_after_archive": False})
             if isinstance(row.get("acceptance"), dict):
                 row["acceptance"]["accepted"] = False

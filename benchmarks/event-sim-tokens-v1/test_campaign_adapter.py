@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -473,7 +474,7 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
                 result = live_campaign.check_program(candidate, 10,
                     {"SEMAPRAX_BIN": str(compiler)}, "evidence_gated_scored",
                     live_campaign.AUTHORING_PROFILE_V27, output,
-                    live_campaign.sha_bytes(compiler.read_bytes()))
+                    live_campaign.sha_bytes(compiler.read_bytes()), None, "semaprax")
             self.assertTrue(result["accepted"])
             self.assertEqual(commands[0][1], "check")
             self.assertEqual(commands[1][1], "build")
@@ -482,6 +483,23 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
             self.assertNotIn(str(candidate / "run.sh"), accepted)
             self.assertEqual(result["native_binary"]["sha256"],
                              live_campaign.sha_bytes(b"fresh native"))
+
+            (candidate / "semaprax.toml").unlink()
+            (candidate / "main.mjs").write_text("process.exit(0);\n")
+            (candidate / "run.sh").write_text("exec node main.mjs\n")
+            typescript_commands = []
+            def execute_typescript(command, **_kwargs):
+                typescript_commands.append(command)
+                return subprocess.CompletedProcess(command, 0, stdout=b"", stderr=b"")
+            with patch.object(subprocess, "run", side_effect=execute_typescript):
+                typescript = live_campaign.check_program(candidate, 10,
+                    {"PATH": os.environ.get("PATH", "")}, "evidence_gated_scored",
+                    live_campaign.AUTHORING_PROFILE_V27, root / "unused" / "shiftsim",
+                    None, None, "typescript")
+            self.assertTrue(typescript["accepted"])
+            self.assertEqual(Path(typescript["typescript_route"]["command"][0]).name, "node")
+            self.assertEqual(typescript["typescript_route"]["command"][1], str(candidate / "main.mjs"))
+            self.assertFalse(any(command[0] == str(compiler) for command in typescript_commands))
 
     def test_v3_qualification_builder_binds_the_binary_actually_passed_to_acceptance(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -519,6 +537,17 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
             self.assertEqual(receipt["acceptance_report_sha256"],
                              live_campaign.sha_bytes(accepted_report.read_bytes()))
 
+            drift_output = root / "compiler-drift-qualification"
+            def drift_compiler(command, **_kwargs):
+                if command[:2] == [str(compiler.resolve()), "check"]:
+                    compiler.write_bytes(b"changed compiler")
+                return subprocess.CompletedProcess(command, 0, stdout=b"", stderr=b"")
+            with patch.object(subprocess, "run", side_effect=drift_compiler):
+                with self.assertRaisesRegex(ValueError, "pinned compiler changed"):
+                    live_campaign.generate_v3_qualification(
+                        candidate, compiler, repo, commit, drift_output, 10)
+            compiler.write_bytes(b"compiler")
+
     def test_v27_source_mutation_and_retained_symlink_fail_closed_but_node_modules_links_are_ignored(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -539,7 +568,7 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
                 result = live_campaign.check_program(candidate, 10,
                     {"SEMAPRAX_BIN": str(compiler)}, "evidence_gated_scored",
                     live_campaign.AUTHORING_PROFILE_V27, output,
-                    live_campaign.sha_bytes(compiler.read_bytes()))
+                    live_campaign.sha_bytes(compiler.read_bytes()), None, "semaprax")
             self.assertFalse(result["accepted"])
             self.assertEqual(result["build_source_consistency"]["status"], "failed")
 
@@ -555,9 +584,33 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
                 changed_binary = live_campaign.check_program(candidate, 10,
                     {"SEMAPRAX_BIN": str(compiler)}, "evidence_gated_scored",
                     live_campaign.AUTHORING_PROFILE_V27, output2,
-                    live_campaign.sha_bytes(compiler.read_bytes()))
+                    live_campaign.sha_bytes(compiler.read_bytes()), None, "semaprax")
             self.assertFalse(changed_binary["accepted"])
             self.assertEqual(changed_binary["candidate_tests_source_consistency"]["status"], "failed")
+
+            output3 = root / "harness-3" / "shiftsim"
+            compiler_hash = live_campaign.sha_bytes(compiler.read_bytes())
+            def overwrite_compiler(command, **_kwargs):
+                if command[:2] == [str(compiler), "build"]:
+                    output3.write_bytes(b"native")
+                if command[:2] == ["/bin/sh", str(candidate / "build.sh")]:
+                    compiler.write_bytes(b"compiler changed by candidate")
+                return subprocess.CompletedProcess(command, 0, stdout=b"", stderr=b"")
+            with patch.object(subprocess, "run", side_effect=overwrite_compiler):
+                changed_compiler = live_campaign.check_program(candidate, 10,
+                    {"SEMAPRAX_BIN": str(compiler)}, "evidence_gated_scored",
+                    live_campaign.AUTHORING_PROFILE_V27, output3, compiler_hash, None, "semaprax")
+            self.assertFalse(changed_compiler["accepted"])
+            self.assertEqual(changed_compiler["build_source_consistency"]["status"], "failed")
+            compiler.write_bytes(b"compiler")
+
+            with patch.object(subprocess, "run") as calls:
+                wrong_arm = live_campaign.check_program(candidate, 10, {"PATH": os.environ.get("PATH", "")},
+                    "evidence_gated_scored", live_campaign.AUTHORING_PROFILE_V27,
+                    root / "typescript-harness" / "shiftsim", None, None, "typescript")
+            self.assertFalse(wrong_arm["accepted"])
+            self.assertIn("must not contain", wrong_arm["typescript_route"]["error"])
+            calls.assert_not_called()
 
             (candidate / "app.spx").unlink()
             (candidate / "app.spx").symlink_to(root / "outside.spx")

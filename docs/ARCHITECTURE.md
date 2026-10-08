@@ -766,9 +766,12 @@ the frozen binding is finalized. The interpreter, native O0/O2, and internal
 Core-Wasm execute that same profile locally. Core-Wasm uses the frozen
 `env.spx_bytes_zeroed`/`env.spx_bytes_set` host-arena protocol, mutates the same
 opaque token, emits neither `memory.copy` nor `memory.grow`, and settles before
-re-entry. The public byte adapter rejects the profile with `SPX-W115`; loops,
-growth, wider elements, Project/public layouts, `std.*`, browser/hosted and
-cross-platform support remain outside this boundary.
+re-entry. The additive
+[Same-Owner Byte-Buffer Renewal v1](BYTE-BUFFER-RENEWAL-V1.md) covers only the
+already admitted whole-binding update through CleanupPlan v17 and Graph v70,
+including conditional bounded-loop updates with other live owners. Allocation
+in loops, growth, general owned-loop state, wider elements, Project/public
+layouts, and public byte adapters remain outside this boundary.
 
 `src/loan_plan.rs` owns the additive plan schema, builder, and replay;
 `src/graph_loan.rs` owns its Graph projection. The
@@ -949,8 +952,15 @@ owns this additive profile and its executable gate.
 `src/wasm/aggregate/string_replacement.rs` consume authenticated guarded release
 and publication actions. `src/hir/validation/string_replacement.rs` restores
 only the target's availability after RHS ownership checking.
-`src/graph/string_replacement.rs` composes Graph v67 without dropping preceding
+`src/graph/string_replacement.rs` composes Graph v68 without dropping preceding
 facts. [Whole String Replacement v1](STRING-REPLACEMENT-V1.md) owns the contract.
+
+`src/byte_ops.rs` independently derives the four authenticated same-owner byte
+updates. `src/cleanup_plan/renewal_profile.rs` supplies those exact sites to the
+builder and replay; CleanupPlan v17 restores the binding's reserved history
+without changing v15 or v16 meaning. `src/graph/byte_buffer_renewal.rs` composes
+Graph v70 and projects the exact function, expression, and binding identities.
+[Same-Owner Byte-Buffer Renewal v1](BYTE-BUFFER-RENEWAL-V1.md) owns the boundary.
 
 The additive owned-payload iterator is split across
 `src/interpreter/iterator.rs`, which validates the initialized suffix and uses a

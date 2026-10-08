@@ -554,6 +554,63 @@ pub(crate) fn is_same_owner_set_hir(value: &crate::hir::ResolvedExpr, owner: &Va
     )
 }
 
+/// Exact mutable bindings republished by one authenticated same-owner byte
+/// update. This is derived from retained HIR so CleanupPlan construction,
+/// replay, and graph projection do not trust attached transition metadata.
+pub(crate) fn same_owner_set_bindings(
+    function: &crate::hir::ResolvedFunction,
+) -> std::collections::BTreeMap<crate::hir::ExpressionId, &crate::hir::ResolvedBinding> {
+    use crate::hir::{ResolvedExprKind, ResolvedStatement};
+    use std::collections::{BTreeMap, BTreeSet};
+
+    let mut mutable = BTreeSet::new();
+    let mut updates = Vec::new();
+    let mut pending = vec![&function.body];
+    while let Some(expression) = pending.pop() {
+        if matches!(expression.kind, ResolvedExprKind::Closure { .. }) {
+            continue;
+        }
+        if let ResolvedExprKind::Block { statements, .. } = &expression.kind {
+            for statement in statements {
+                match statement {
+                    ResolvedStatement::Let {
+                        binding,
+                        mutable: true,
+                        ..
+                    } => {
+                        mutable.insert(binding.id.clone());
+                    }
+                    ResolvedStatement::Assign {
+                        binding,
+                        field: None,
+                        value,
+                        ..
+                    } if is_same_owner_set_hir(value, &binding.id) => {
+                        updates.push((value.id.clone(), binding));
+                    }
+                    _ => {}
+                }
+            }
+        }
+        crate::hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
+    }
+    updates
+        .into_iter()
+        .filter(|(_, binding)| mutable.contains(&binding.id))
+        .collect::<BTreeMap<_, _>>()
+}
+
+pub(crate) fn same_owner_set_binding<'a>(
+    function: &'a crate::hir::ResolvedFunction,
+    at: &crate::hir::ExpressionId,
+) -> Option<&'a crate::hir::ResolvedBinding> {
+    same_owner_set_bindings(function).remove(at)
+}
+
+pub(crate) fn requires_same_owner_set(function: &crate::hir::ResolvedFunction) -> bool {
+    !same_owner_set_bindings(function).is_empty()
+}
+
 #[cfg(test)]
 mod tests {
     /// `tests/cleanup_backends.rs` path-includes `src/byte_data_capacity.rs`,

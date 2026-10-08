@@ -6,6 +6,7 @@ pub(crate) fn binding<'a>(
     at: &ExpressionId,
 ) -> Option<&'a ResolvedBinding> {
     crate::string_ops::replacement::binding(function, at)
+        .or_else(|| crate::byte_ops::same_owner_set_binding(function, at))
         .or_else(|| crate::hir::vec_loop_renewal::binding(function, at))
         .or_else(|| crate::hir::iterator_loop::renewal_binding(program, function, at))
 }

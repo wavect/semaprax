@@ -51,6 +51,7 @@ pub(crate) fn selected_schema(
                 function.cleanup_plan.schema,
                 crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V15
                     | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V16
+                    | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V17
             ) && function
                 .cleanup_plan
                 .status_sources

@@ -121,6 +121,11 @@ The admission rules are:
   loop-carried fill. A `bytes_set` in a `while` that is not that assignment's
   right-hand side is still `SPX-T252` or `SPX-T271`.
 
+The additive [Same-Owner Byte-Buffer Renewal v1](BYTE-BUFFER-RENEWAL-V1.md)
+authenticates this existing replacement in cleanup construction and independent
+replay. It preserves the buffer's prior cleanup position across conditional
+branches and bounded loop iterations without widening this source profile.
+
 Reading a frozen buffer uses the existing operations unchanged: `bytes_as_slice`
 for the borrowed view, `byte_len` for the length, `byte_get` for the checked
 `Option<u8>` lookup, and `byte_range` for a sub-view. Deterministic iteration is

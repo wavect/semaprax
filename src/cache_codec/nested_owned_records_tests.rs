@@ -27,6 +27,7 @@ fn iterator_cleanup_cache_retains_exact_version_and_replays_owned_payloads() {
         "semaprax.cleanup-plan.v14",
         "semaprax.cleanup-plan.v15",
         "semaprax.cleanup-plan.v16",
+        "semaprax.cleanup-plan.v17",
     ] {
         let bytes = super::encode(&schema).unwrap();
         assert_eq!(super::decode::<&'static str>(&bytes).unwrap(), schema);
@@ -34,7 +35,7 @@ fn iterator_cleanup_cache_retains_exact_version_and_replays_owned_payloads() {
         let unknown = super::encode(&format!("{schema}+future")).unwrap();
         assert!(super::decode::<&'static str>(&unknown).is_err());
     }
-    assert!(static_token("semaprax.cleanup-plan.v17").is_err());
+    assert!(static_token("semaprax.cleanup-plan.v18").is_err());
     let source = crate::check(
         "module iterator.cache; @id(\"main\") fn main()->i64 {let iterator=vec_into_iter<Bytes>(vec_with_capacity<Bytes>(0usize));let step=iter_next<Bytes>(iterator);match own step {IterStep::Done{}=>1,IterStep::Yield{item,rest}=>0,}}",
         "iterator-cache.spx",
@@ -98,4 +99,23 @@ fn iterator_cleanup_cache_retains_exact_version_and_replays_owned_payloads() {
         string_bytes
     );
     crate::hir::validate(&string_program).unwrap();
+
+    let byte_source = crate::check(
+        "module byte.cache; @id(\"cache.byte.main\") fn main()->i64 {let mut data=bytes_zeroed(1usize);data=bytes_set(data,0usize,1u8);if byte_len(bytes_as_slice(data))==1usize{1}else{0}}",
+        "byte-renewal-cache.spx",
+    )
+    .unwrap();
+    let mut byte_program = crate::hir::resolve(&byte_source).unwrap();
+    let byte_function = &mut byte_program.functions[0];
+    assert_eq!(
+        byte_function.cleanup_plan.schema,
+        "semaprax.cleanup-plan.v17"
+    );
+    let byte_plan = super::encode(&byte_function.cleanup_plan).unwrap();
+    byte_function.cleanup_plan = super::decode(&byte_plan).unwrap();
+    assert_eq!(
+        super::encode(&byte_function.cleanup_plan).unwrap(),
+        byte_plan
+    );
+    crate::hir::validate(&byte_program).unwrap();
 }

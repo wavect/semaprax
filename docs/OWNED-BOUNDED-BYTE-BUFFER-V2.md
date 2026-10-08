@@ -5,8 +5,9 @@ Audience: language users, tool authors, and compiler contributors.
 Status: implementation in progress; execution evidence remains required before
 this profile is accepted. This additive internal profile extends
 [Owned Bounded Byte Buffer v1](OWNED-BOUNDED-BYTE-BUFFER-V1.md) with a fixed
-five-byte write and internal tagged one-or-five and one-or-six-or-forty-eight source reads. It changes no grammar, public ABI, graph schema, allocation
-rule, capacity ceiling, or authority.
+five-byte write and internal tagged one-or-five and one-or-six-or-forty-eight source reads. It changes no grammar, public ABI, allocation rule, capacity
+ceiling, or authority. Its exact same-owner assignment participates in the
+additive cleanup/graph profile described below.
 
 ## Source contract
 
@@ -56,7 +57,9 @@ buffer, so no borrowed view can alias the owner across its commit boundary.
 The source verifier and hostile-HIR validator re-derive the whole-binding,
 capacity, static interval, and ownership facts. Cleanup replay represents one
 ordinary propagated-call status source and one canonical argument transfer;
-there is no new cleanup leaf or graph schema version.
+there is no new cleanup leaf. An exact same-owner assignment selects the
+additive CleanupPlan v17 and Graph v70 contract owned by
+[Same-Owner Byte-Buffer Renewal v1](BYTE-BUFFER-RENEWAL-V1.md).
 
 ## Targets and limits
 

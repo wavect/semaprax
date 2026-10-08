@@ -164,6 +164,7 @@ impl PlanBuilder<'_> {
                 | super::super::CLEANUP_PLAN_SCHEMA_V13
                 | super::super::CLEANUP_PLAN_SCHEMA_V15
                 | super::super::CLEANUP_PLAN_SCHEMA_V16
+                | super::super::CLEANUP_PLAN_SCHEMA_V17
         ) || crate::cleanup_plan::renewal_binding(self.program, self.function, &value.id)
             .is_none()
         {
@@ -176,7 +177,10 @@ impl PlanBuilder<'_> {
         if flags.len() != 1
             || !state.live_order.contains(&flags[0])
             || state.renewals.contains_key(&value.id)
-            || (self.schema != super::super::CLEANUP_PLAN_SCHEMA_V16 && !state.renewals.is_empty())
+            || (!matches!(
+                self.schema,
+                super::super::CLEANUP_PLAN_SCHEMA_V16 | super::super::CLEANUP_PLAN_SCHEMA_V17
+            ) && !state.renewals.is_empty())
         {
             return Err(plan_error(
                 "renewal reservation requires one live unreserved owner leaf",

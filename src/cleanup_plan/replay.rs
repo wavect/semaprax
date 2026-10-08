@@ -9,17 +9,6 @@ use crate::hir::ResolvedTypeDeclarationKind;
 #[cfg(test)]
 use std::cell::Cell;
 
-use crate::ast::{BinaryOp, UnaryOp};
-use crate::cleanup::{CleanupStorageOrigin, FieldLivenessShape, LivenessFlagId};
-use crate::diagnostic::Diagnostic;
-use crate::hir::{
-    DeclarationId, DeclarationKind, ExpressionId, FunctionInstanceId, IdentityOrigin,
-    OwnershipMode, PlaceProjection, ResolvedExpr, ResolvedExprKind, ResolvedFunction,
-    ResolvedMatchArm, ResolvedMatchPattern, ResolvedProgram, ResolvedRecordMatchFieldPattern,
-    ResolvedStatement, ResolvedType,
-};
-use crate::prelude;
-
 use super::{
     BlockId, CleanupPlace, CleanupRegionId, CleanupResultSource, CleanupTerminator,
     CleanupTransition, ConditionalVariantCase, ConditionalVariantEntry, EdgeCondition, EdgeId,
@@ -30,6 +19,16 @@ use super::{
     CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5, CLEANUP_PLAN_SCHEMA_V6,
     CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
 };
+use crate::ast::{BinaryOp, UnaryOp};
+use crate::cleanup::{CleanupStorageOrigin, FieldLivenessShape, LivenessFlagId};
+use crate::diagnostic::Diagnostic;
+use crate::hir::{
+    DeclarationId, DeclarationKind, ExpressionId, FunctionInstanceId, IdentityOrigin,
+    OwnershipMode, PlaceProjection, ResolvedExpr, ResolvedExprKind, ResolvedFunction,
+    ResolvedMatchArm, ResolvedMatchPattern, ResolvedProgram, ResolvedRecordMatchFieldPattern,
+    ResolvedStatement, ResolvedType,
+};
+use crate::prelude;
 mod factored;
 mod leaf_index;
 use leaf_index::Leaves;
@@ -2585,6 +2584,7 @@ fn validate_blocks_and_edges(
                             | CLEANUP_PLAN_SCHEMA_V13
                             | CLEANUP_PLAN_SCHEMA_V15
                             | CLEANUP_PLAN_SCHEMA_V16
+                            | super::CLEANUP_PLAN_SCHEMA_V17
                             | CLEANUP_PLAN_SCHEMA_V14
                     ) && matches!(
                         plan.edges[edge.0 as usize].condition,

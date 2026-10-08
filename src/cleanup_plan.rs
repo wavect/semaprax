@@ -58,6 +58,8 @@ pub const CLEANUP_PLAN_SCHEMA_V14: &str = "semaprax.cleanup-plan.v14";
 pub const CLEANUP_PLAN_SCHEMA_V15: &str = "semaprax.cleanup-plan.v15";
 /// Whole String replacement has a guarded release before successful renewal.
 pub const CLEANUP_PLAN_SCHEMA_V16: &str = "semaprax.cleanup-plan.v16";
+/// Same-owner byte-buffer updates preserve their reserved cleanup position.
+pub const CLEANUP_PLAN_SCHEMA_V17: &str = "semaprax.cleanup-plan.v17";
 
 macro_rules! numeric_id {
     ($name:ident) => {

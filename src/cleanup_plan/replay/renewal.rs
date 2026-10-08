@@ -1,5 +1,6 @@
 //! Replay narrowly authenticated same-owner renewal without changing canonical history.
 use super::*;
+use crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V17;
 
 pub(super) fn validate_binding(
     program: &ResolvedProgram,
@@ -14,13 +15,19 @@ pub(super) fn validate_binding(
             | CLEANUP_PLAN_SCHEMA_V14
             | CLEANUP_PLAN_SCHEMA_V15
             | CLEANUP_PLAN_SCHEMA_V16
+            | CLEANUP_PLAN_SCHEMA_V17
     ) || (crate::hir::vec_loop_renewal::binding(function, at).is_some()
         && !matches!(
             function.cleanup_plan.schema,
-            CLEANUP_PLAN_SCHEMA_V15 | CLEANUP_PLAN_SCHEMA_V16
+            CLEANUP_PLAN_SCHEMA_V15 | CLEANUP_PLAN_SCHEMA_V16 | CLEANUP_PLAN_SCHEMA_V17
         ))
         || (crate::string_ops::replacement::binding(function, at).is_some()
-            && function.cleanup_plan.schema != CLEANUP_PLAN_SCHEMA_V16)
+            && !matches!(
+                function.cleanup_plan.schema,
+                CLEANUP_PLAN_SCHEMA_V16 | CLEANUP_PLAN_SCHEMA_V17
+            ))
+        || (crate::byte_ops::same_owner_set_binding(function, at).is_some()
+            && function.cleanup_plan.schema != CLEANUP_PLAN_SCHEMA_V17)
         || !crate::cleanup_plan::renewal_binding(program, function, at).is_some_and(|binding| {
             *place == CleanupPlace::whole(StorageId::Value(binding.id.clone()))
         })
@@ -62,7 +69,10 @@ pub(super) fn reserve(
     if flags.len() != 1
         || !state.live_order.contains(&flags[0])
         || state.renewals.contains_key(at)
-        || (function.cleanup_plan.schema != CLEANUP_PLAN_SCHEMA_V16 && !state.renewals.is_empty())
+        || (!matches!(
+            function.cleanup_plan.schema,
+            CLEANUP_PLAN_SCHEMA_V16 | CLEANUP_PLAN_SCHEMA_V17
+        ) && !state.renewals.is_empty())
     {
         return Err(replay_error(
             function,
@@ -527,6 +537,83 @@ fn main() -> i64
                 assert!(!crate::hir::vec_loop_renewal::requires(&forged));
             }
 
+            let error = validate_structure(&program, &forged).unwrap_err();
+            assert_eq!(error.code, "SPX-H006", "mode {mode}: {error:?}");
+        }
+    }
+
+    #[test]
+    fn byte_renewal_rejects_missing_forged_downgraded_and_unauthenticated_proofs() {
+        let source = crate::check(
+            r#"module test.byte_renewal;
+@id("app.main") fn main()->i64 {
+ let mut buffer=bytes_zeroed(2usize);
+ let untouched=bytes_zeroed(1usize);
+ let mut index=0usize;
+ while index<2usize {
+  if index==0usize {buffer=bytes_set(buffer,index,65u8);0}else{0}
+  index=index+1usize;
+  0
+ }
+ if byte_len(bytes_as_slice(buffer))==2usize && byte_len(bytes_as_slice(untouched))==1usize {7}else{0}
+}
+"#,
+            "byte-renewal.spx",
+        )
+        .unwrap();
+        let program = crate::hir::resolve(&source).unwrap();
+        let function = &program.functions[0];
+        assert_eq!(function.cleanup_plan.schema, CLEANUP_PLAN_SCHEMA_V17);
+        validate_structure(&program, function).unwrap();
+        for mode in 0..6 {
+            let mut forged = function.clone();
+            for block in &mut forged.cleanup_plan.blocks {
+                if mode == 0 {
+                    block.transitions.retain(|transition| {
+                        !matches!(transition, CleanupTransition::ReserveRenewal { .. })
+                    });
+                }
+                for transition in &mut block.transitions {
+                    match transition {
+                        CleanupTransition::ReserveRenewal { binding, .. } if mode == 1 => {
+                            *binding =
+                                CleanupPlace::whole(StorageId::Value(function.result_id.clone()));
+                        }
+                        CleanupTransition::Renew {
+                            at,
+                            source,
+                            destination,
+                        } if mode == 2 => {
+                            *transition = CleanupTransition::Transfer {
+                                at: at.clone(),
+                                source: source.clone(),
+                                destination: destination.clone(),
+                            };
+                        }
+                        CleanupTransition::Renew {
+                            source,
+                            destination,
+                            ..
+                        } if mode == 3 => {
+                            *destination = source.clone();
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            if mode == 4 {
+                forged.cleanup_plan.schema = CLEANUP_PLAN_SCHEMA_V16;
+            }
+            if mode == 5 {
+                let ResolvedExprKind::Block { statements, .. } = &mut forged.body.kind else {
+                    panic!("function block")
+                };
+                let ResolvedStatement::Let { mutable, .. } = &mut statements[0] else {
+                    panic!("mutable Bytes binding")
+                };
+                *mutable = false;
+                assert!(!crate::byte_ops::requires_same_owner_set(&forged));
+            }
             let error = validate_structure(&program, &forged).unwrap_err();
             assert_eq!(error.code, "SPX-H006", "mode {mode}: {error:?}");
         }

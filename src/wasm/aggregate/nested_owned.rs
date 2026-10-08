@@ -179,6 +179,7 @@ pub(super) fn emit_update_scope_cleanup(
                 | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V14
                 | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V15
                 | "semaprax.cleanup-plan.v16"
+                | "semaprax.cleanup-plan.v17"
         )
     {
         return Err(super::error(

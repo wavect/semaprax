@@ -25,6 +25,7 @@ mod affine;
 mod agent_execution;
 mod agent_instances;
 mod agent_query;
+mod byte_buffer_renewal;
 mod environment;
 mod expression;
 mod filesystem;
@@ -45,12 +46,12 @@ pub(crate) use agent_execution::facts as agent_execution_facts;
 use expression::expr_json;
 mod generic_instances;
 mod generic_mapping;
+use byte_buffer_renewal::graph_json;
 use filesystem::string_array;
 use generic_instances::legacy_graph_json;
 pub(crate) use generic_instances::to_legacy_hir_json;
 pub use generic_instances::{legacy_context_json, to_legacy_json, verify_json};
 pub(crate) use generic_mapping::requires_v35;
-use owned_text_record_loans::graph_json;
 
 #[path = "graph/native_import.rs"]
 mod native_import;
@@ -1221,6 +1222,7 @@ pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diag
             | "semaprax.graph.v67"
             | "semaprax.graph.v68"
             | "semaprax.graph.v69"
+            | "semaprax.graph.v70"
     ) {
         return Err(Diagnostic::io(
             "SPX-G410",

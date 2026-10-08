@@ -730,7 +730,9 @@ impl<'a> PlanBuilder<'a> {
                 conditional_variants: Vec::new(),
             },
             pending_try_residuals: Vec::new(),
-            schema: if crate::string_ops::replacement::requires(function) {
+            schema: if crate::byte_ops::requires_same_owner_set(function) {
+                super::CLEANUP_PLAN_SCHEMA_V17
+            } else if crate::string_ops::replacement::requires(function) {
                 super::CLEANUP_PLAN_SCHEMA_V16
             } else if crate::hir::vec_loop_renewal::requires(function) {
                 super::CLEANUP_PLAN_SCHEMA_V15
@@ -952,7 +954,9 @@ impl<'a> PlanBuilder<'a> {
         Ok(CleanupPlan {
             schema: if matches!(
                 self.schema,
-                super::CLEANUP_PLAN_SCHEMA_V15 | super::CLEANUP_PLAN_SCHEMA_V16
+                super::CLEANUP_PLAN_SCHEMA_V15
+                    | super::CLEANUP_PLAN_SCHEMA_V16
+                    | super::CLEANUP_PLAN_SCHEMA_V17
             ) {
                 self.schema
             } else if self

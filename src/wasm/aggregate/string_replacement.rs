@@ -11,12 +11,14 @@ impl Emitter<'_> {
         else {
             return false;
         };
-        self.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V16
-            && crate::string_ops::replacement::binding(self.function, at).is_some_and(|binding| {
-                destination.projections.is_empty()
-                    && destination.storage
-                        == crate::cleanup_plan::StorageId::Value(binding.id.clone())
-            })
+        matches!(
+            self.cleanup_plan.schema,
+            crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V16
+                | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V17
+        ) && crate::string_ops::replacement::binding(self.function, at).is_some_and(|binding| {
+            destination.projections.is_empty()
+                && destination.storage == crate::cleanup_plan::StorageId::Value(binding.id.clone())
+        })
     }
     pub(super) fn release_replaced_string(
         &mut self,

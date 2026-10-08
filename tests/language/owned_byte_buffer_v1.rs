@@ -1484,5 +1484,7 @@ fn an_out_of_range_computed_index_selects_the_same_failure_on_every_backend() {
     );
 }
 
+#[path = "owned_byte_buffer_v1/cleanup_renewal.rs"]
+mod cleanup_renewal;
 #[path = "owned_byte_buffer_v1/tagged_source.rs"]
 mod tagged_source;

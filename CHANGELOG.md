@@ -13,6 +13,12 @@
   behavior. Focused portable package and ordinary-project verification is
   pending the shared final batch.
 
+- Add source-complete same-owner byte-buffer renewal through CleanupPlan v17 and
+  Graph v70. Exact `bytes_set`, `bytes_set5`, `bytes_set1_or5_from_slice`, and
+  `bytes_set1_or6_or48_from_slice` assignments retain their prior cleanup
+  position across conditional branches and bounded loops while v15/v16 retain
+  their meanings. Focused verification remains pending.
+
 - Add explicit native-only Project v28
   `source-command.resource-output.v1` (OPT #678): preserve the v26 argv/file
   provider and authority while admitting 1 MiB per-String/authenticated

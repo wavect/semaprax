@@ -39,6 +39,18 @@ Any changed guard-condition or other implementation should be measured as a
 new rerun against this frozen baseline; [issue #612](https://github.com/wavect/semaprax/issues/612)
 tracks that fair comparison.
 
+## Round 7: fresh Codex repeat (2026-10-08)
+
+A fresh repeat of the frozen round-6 LogLens campaign recorded five attempts per
+arm, with zero resource-contaminated attempts. SEMAPRAX accepted 1/5 and
+TypeScript 3/5; all six rejected candidates failed the `literal-plus-timezone`
+text and JSON boundary checks. This combined check covers the historical 33
+checks plus 16 boundaries, not the full repository quality gate or output
+continuation. See the [round-seven report](reports/codex-round7-mainc50-20261008.md)
+and [trace-backed recount](reports/codex-round7-mainc50-20261008-recount.json)
+for provenance, per-attempt means, and measurement limits. It is not a causal
+language comparison; actual billing and fixed harness context remain unavailable.
+
 ## Round 1 (baseline, `f106fcebe`)
 
 | | TypeScript (Node, no deps) | SEMAPRAX |

@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
 import time
@@ -71,8 +72,8 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
     if compiler_commit != qualification["compiler_source_commit"]:
         raise ValueError("compiler-source-ref differs from the qualified compiler source commit")
     base.update({
-        "schema": "semaprax.event-sim-codex-campaign.v1",
-        "adapter": "codex-matched-shiftsim-v1",
+        "schema": shiftsim.AUTHORING_PROFILES[base["authoring_profile"]]["codex_campaign_schema"],
+        "adapter": "codex-matched-shiftsim-v2" if base["round"] == 3 else "codex-matched-shiftsim-v1",
         "resource_policy": codex.resources.policy(),
         "harness_source_files_sha256": codex.harness_source_inventory(REPO, HARNESS_SOURCE_FILES),
         "model_requested": MODEL,
@@ -184,8 +185,8 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
         row.update({"failure": error, "runner_error": True, "workspace_retained_for_review": True})
         return row
     candidate = workspace / "benchmarks/event-sim-tokens-v1/candidate"
-    candidate.mkdir(parents=True)
-    prompt = shiftsim.prompt_for(trial["arm"], candidate, semaprax_bin)
+    prompt = shiftsim.prompt_for(trial["arm"], candidate, semaprax_bin,
+                                 settings.get("authoring_profile", shiftsim.AUTHORING_PROFILE_V24))
     (artifacts / "prompts").mkdir(exist_ok=True)
     (artifacts / "prompts" / f"{label}.txt").write_text(prompt, encoding="utf-8")
     row["prompt_sha256"] = shiftsim.sha_text(prompt)
@@ -215,13 +216,20 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
         elif guard["status"] != "passed":
             invalidate(row, "workspace integrity failed before acceptance")
         else:
-            started = time.monotonic()
-            row["acceptance"] = shiftsim.check_program(candidate, settings["timeout_seconds"],
-                shiftsim.trial_environment(semaprax_bin), "evidence_gated_scored")
-            row["acceptance_elapsed_seconds"] = round(time.monotonic() - started, 3)
-            row["status"] = "accepted" if row["acceptance"]["accepted"] else "not_accepted"
-            if row["status"] != "accepted":
-                row["failure"] = "candidate failed build or acceptance checks"
+            admission = shiftsim.candidate_authoring_admission(
+                candidate, trial["arm"], settings.get("authoring_profile", shiftsim.AUTHORING_PROFILE_V24))
+            row["authoring_admission"] = admission
+            if admission["status"] == "failed":
+                row.update({"status": "not_accepted",
+                            "failure": "candidate failed exact authoring-profile admission"})
+            else:
+                started = time.monotonic()
+                row["acceptance"] = shiftsim.check_program(candidate, settings["timeout_seconds"],
+                    shiftsim.trial_environment(semaprax_bin), "evidence_gated_scored")
+                row["acceptance_elapsed_seconds"] = round(time.monotonic() - started, 3)
+                row["status"] = "accepted" if row["acceptance"]["accepted"] else "not_accepted"
+                if row["status"] != "accepted":
+                    row["failure"] = "candidate failed build or acceptance checks"
     except (OSError, RuntimeError, ValueError, UnicodeError) as error:
         row.update({"failure": str(error), "runner_error": True, "status": "failed"})
     try:
@@ -296,6 +304,17 @@ def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
         settings["seed_files_sha256"]["benchmarks/event-sim-tokens-v1/SPEC.md"],
         relative_files=HARNESS_SOURCE_FILES, spec_path="benchmarks/event-sim-tokens-v1/SPEC.md")
     settings["harness_source_snapshot"] = snapshot
+    qualification = settings["qualification"]
+    for key, artifact_name in (
+        ("evidence_path", "qualification-evidence.json"),
+        ("acceptance_report_path", "qualification-acceptance-report.json"),
+        ("candidate_source_inventory_path", "qualification-candidate-source-inventory.json"),
+        ("candidate_manifest_path", "qualification-candidate-semaprax.toml"),
+    ):
+        if qualification.get(key):
+            copied = artifacts / artifact_name
+            shutil.copyfile(qualification[key], copied)
+            qualification[key.replace("_path", "_artifact")] = str(copied)
     seed = shiftsim.common.create_seed_repository(Path(args.repo).resolve(), settings["repository_commit"],
                                                    artifacts / "seed-repository", shiftsim.SEED_FILES)
     settings.update(seed); settings["semaprax_binary"] = str(binary)
@@ -315,9 +334,10 @@ def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
                 json.dumps(row, indent=2, sort_keys=True) + "\n")
             # A nonzero Codex exit can include quota exhaustion; do not retry or launch later paid attempts.
             if (row.get("resource_assessment", {}).get("contaminated")
-                    or row.get("process_exit_code") not in (0, None) or row.get("timed_out")
                     or row.get("runner_error") or row.get("workspace_retained_for_review")
-                    or row.get("telemetry_valid") is False):
+                    or (not row.get("timed_out") and (
+                        row.get("process_exit_code") not in (0, None)
+                        or row.get("telemetry_valid") is False))):
                 break
     report = {"campaign": settings, "calibration": calibration, "trials": rows,
               "attempt_denominator": settings["attempt_denominator"], "recorded_attempts": len(rows),
@@ -337,7 +357,9 @@ def main() -> int:
         p.add_argument("--repo", default=str(REPO)); p.add_argument("--base-ref", required=True)
         p.add_argument("--compiler-source-ref", required=True); p.add_argument("--semaprax-bin", required=True)
         p.add_argument("--qualification-evidence", required=True); p.add_argument("--artifacts", required=True)
-        p.add_argument("--round", type=int, choices=(1, 2), default=2); p.add_argument("--trials-per-arm", type=int, default=5)
+        p.add_argument("--round", type=int, choices=(1, 2, 3), default=2)
+        p.add_argument("--authoring-profile", choices=tuple(shiftsim.AUTHORING_PROFILES), default=None)
+        p.add_argument("--trials-per-arm", type=int, default=5)
         p.add_argument("--model", default=MODEL); p.add_argument("--effort", default=EFFORT)
         p.add_argument("--timeout-seconds", type=int, default=TIMEOUT_SECONDS); p.add_argument("--max-budget-usd", type=float, default=None)
         p.add_argument("--tokenizer-dir", default=None); p.add_argument("--codex-binary", default="codex")

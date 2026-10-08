@@ -82,6 +82,38 @@ class ShiftSimCampaignTests(unittest.TestCase):
         evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
         return evidence_path, evidence, report_path, repo
 
+    def _v3_qualification_evidence(self, root: Path):
+        evidence_path, evidence, report_path, repo = self._qualification_evidence(root)
+        candidate = root / "qualified-candidate"
+        candidate.mkdir()
+        manifest = candidate / "semaprax.toml"
+        manifest.write_text('''schema = "semaprax.manifest.v1"
+capabilities = ["process.args.read", "process.stderr.write", "process.stdin.read", "process.stdout.write"]
+[package]
+profile = "language-command-io.stream-data.v1"
+[command]
+function = "run"
+input = "argv-utf8+stdin-stream.v1"
+[exports]
+web = ["run"]
+''', encoding="utf-8")
+        manifest_hash = live_campaign.sha_bytes(manifest.read_bytes())
+        inventory = root / "candidate-source-inventory.json"
+        inventory.write_text(json.dumps({"files": [
+            {"path": "semaprax.toml", "sha256": manifest_hash},
+        ]}), encoding="utf-8")
+        evidence.update({
+            "schema": live_campaign.QUALIFICATION_EVIDENCE_SCHEMA_V3,
+            "native_project_route": live_campaign.NATIVE_PROJECT_ROUTE_V27,
+            "candidate_source": {
+                "inventory": {"path": str(inventory),
+                              "sha256": live_campaign.sha_bytes(inventory.read_bytes())},
+                "manifest": {"path": str(manifest), "sha256": manifest_hash},
+            },
+        })
+        evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+        return evidence_path, evidence, report_path, repo, inventory, manifest
+
     def _run_trial_with_spec_edit(self, root: Path, edit_stage: str):
         spec_text = "# Frozen public spec\n"
         spec_hash = hashlib.sha256(spec_text.encode()).hexdigest()
@@ -169,7 +201,7 @@ class ShiftSimCampaignTests(unittest.TestCase):
             self.assertEqual(common.rate_card_estimate_details(
                 usage, current["price_book"]["per_million_tokens"],
             )["usd"], 0.1)
-            for invalid_round in (0, 3, True):
+            for invalid_round in (0, 4, True):
                 args.round = invalid_round
                 with self.assertRaisesRegex(ValueError, "unsupported ShiftSim round"):
                     live_campaign.plan(args)
@@ -180,6 +212,65 @@ class ShiftSimCampaignTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "unchanged frozen"):
                     live_campaign.plan(args)
 
+    def test_round_three_requires_explicit_profile_and_v3_source_manifest_binding(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            evidence_path, evidence, _, repo, inventory, manifest = self._v3_qualification_evidence(root)
+            args = Namespace(repo=str(repo), base_ref="HEAD", artifacts=str(root / "artifacts"),
+                round=3, trials_per_arm=5, model=live_campaign.MODEL, effort=live_campaign.EFFORT,
+                timeout_seconds=1800, max_budget_usd=None, semaprax_bin=str(root / "compiler"),
+                qualification_evidence=str(evidence_path), tokenizer_dir=None)
+            with self.assertRaisesRegex(ValueError, "requires --authoring-profile"):
+                live_campaign.plan(args, "a" * 64)
+            args.authoring_profile = live_campaign.AUTHORING_PROFILE_V24
+            with self.assertRaisesRegex(ValueError, "requires authoring profile"):
+                live_campaign.plan(args, "a" * 64)
+            args.authoring_profile = live_campaign.AUTHORING_PROFILE_V27
+            settings = live_campaign.plan(args, "a" * 64)
+            self.assertEqual(settings["schema"], "semaprax.event-sim-campaign.v2")
+            self.assertEqual(settings["prompt_schema"], "semaprax.event-sim-prompt.v2")
+            self.assertEqual(settings["native_project_route"], live_campaign.NATIVE_PROJECT_ROUTE_V27)
+            self.assertEqual(settings["qualification"]["candidate_manifest_sha256"],
+                             live_campaign.sha_bytes(manifest.read_bytes()))
+            self.assertEqual(settings["qualification"]["candidate_source_inventory_path"], str(inventory))
+            with self.assertRaisesRegex(ValueError, "schema must be"):
+                live_campaign.validate_qualification_evidence(
+                    evidence_path, repo, evidence["compiler_source_commit"], "a" * 64,
+                    live_campaign.AUTHORING_PROFILE_V24)
+            manifest_bytes = manifest.read_bytes()
+            manifest.write_text(manifest.read_text().replace("stream-data.v1", "stream.v2"))
+            with self.assertRaisesRegex(ValueError, "manifest hash"):
+                live_campaign.validate_qualification_evidence(
+                    evidence_path, repo, evidence["compiler_source_commit"], "a" * 64,
+                    live_campaign.AUTHORING_PROFILE_V27)
+            manifest.write_bytes(manifest_bytes)
+            inventory.write_text(json.dumps({"files": []}), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "inventory hash"):
+                live_campaign.validate_qualification_evidence(
+                    evidence_path, repo, evidence["compiler_source_commit"], "a" * 64,
+                    live_campaign.AUTHORING_PROFILE_V27)
+
+    def test_v27_prompt_and_candidate_manifest_admission_are_exact(self):
+        historical = live_campaign.prompt_for("typescript", Path("/candidate"), Path("/semaprax"))
+        prompt = live_campaign.prompt_for("typescript", Path("/candidate"), Path("/semaprax"),
+                                          live_campaign.AUTHORING_PROFILE_V27)
+        self.assertIn("native Project v27", prompt)
+        self.assertIn("language-command-io.stream-data.v1", prompt)
+        marker = "The TypeScript arm must use Node from `PATH` and provide the same stdin and process status behavior."
+        self.assertIn(marker, historical)
+        self.assertIn(marker, prompt)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _, _, _, _, _, manifest = self._v3_qualification_evidence(root)
+            candidate = manifest.parent
+            passed = live_campaign.candidate_authoring_admission(
+                candidate, "semaprax", live_campaign.AUTHORING_PROFILE_V27)
+            self.assertEqual(passed["status"], "passed")
+            manifest.write_text(manifest.read_text().replace("process.stdin.read", "network.http"))
+            self.assertEqual(live_campaign.candidate_authoring_admission(
+                candidate, "semaprax", live_campaign.AUTHORING_PROFILE_V27)["status"], "failed")
+            self.assertEqual(live_campaign.candidate_authoring_admission(
+                candidate, "typescript", live_campaign.AUTHORING_PROFILE_V27)["status"], "not_applicable")
     def test_provider_quota_requires_a_structured_failed_result(self):
         for result in (
             {"is_error": True, "api_error_status": 429, "api_error": "usage_limit_reached"},

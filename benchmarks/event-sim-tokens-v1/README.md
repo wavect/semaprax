@@ -45,6 +45,16 @@ The fresh round-2 qualification for compiler `94fadd14c` is recorded in
 Its unchanged archived candidate passed all 15 acceptance cases with the new
 frozen binary; the matched campaign remains unlaunched.
 
+Round 3 is an additive authoring route for Project v27. It must be selected
+explicitly with `--round 3 --authoring-profile
+semaprax-project-v27-stream-data-v1`; neither flag reinterprets a round-1 or
+round-2 record. Its qualification envelope uses
+`semaprax.event-sim-qualification-evidence.v3` and binds the reviewed candidate
+source inventory plus the exact `semaprax.toml`. The manifest must select
+`language-command-io.stream-data.v1`, the existing stdin-stream input, the
+closed process capability list, and a single `fn() -> i64` command/export root.
+The frozen SPEC, corpus, oracle, and functional acceptance remain unchanged.
+
 The corpus is invoked through a command adapter that reads one request from
 stdin and writes one report to stdout. Example after an arm has been authored:
 
@@ -65,7 +75,10 @@ records must reconcile the final CLI usage before acceptance. Calibration is
 reported separately and never subtracted from trials. SPEC changes and writes
 outside `candidate/` invalidate acceptance before archive or cleanup, and the
 worktree is retained for review. Provider/process failures stop subsequent
-attempts while retaining the original denominator and unlaunched order.
+attempts while retaining the original denominator and unlaunched order. An
+ordinary model timeout is retained as a paid failed attempt and the matched
+order continues after the candidate is archived and the worktree is safely
+removed.
 `--max-budget-usd` is refused because this CLI adapter cannot enforce a strict
 monetary cap. Offline tests use synthetic model events and real minimal Git
 worktrees; they are adapter evidence, not a live matched campaign.

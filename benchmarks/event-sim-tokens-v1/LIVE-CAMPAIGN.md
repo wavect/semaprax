@@ -43,6 +43,17 @@ retains its dated $0.2 card. Calibration and attempts use their campaign's
 recorded card. Historical result files and their existing cost estimates are
 not rewritten.
 
+Round 3 preserves those frozen task bytes and uses the successor native-only
+authoring route. It is selected only by the paired arguments `--round 3
+--authoring-profile semaprax-project-v27-stream-data-v1`. The campaign refuses
+a missing or mismatched profile rather than inferring a new meaning for an old
+round. Its Project route is `semaprax.project.v27` /
+`language-command-io.stream-data.v1` with
+`argv-utf8+stdin-stream.v1`; the external command remains `fn() -> i64`.
+Private helpers may borrow `Vec<T>` for the profile's Copy scalar set, while
+the command and export roots stay closed. Both arms start with no `candidate/`
+leaf so each agent creates its own implementation root.
+
 A round-2 provider result explicitly reporting an error with status 429 or
 `usage_limit_reached` stops further paid sessions. Results retain the failed
 attempt and the ordered unlaunched arms, with status
@@ -119,6 +130,33 @@ The campaign checks the report against the pinned corpus, verifies every
 per-case pass result and both actual oversized request lengths, and rechecks the
 compiler binary hash before it dispatches any model session. Evidence is copied
 into the external campaign artifacts for later review.
+
+Round-3 evidence uses schema
+`semaprax.event-sim-qualification-evidence.v3`, the v27 native route above,
+and adds these fields to the v2 envelope:
+
+```json
+"candidate_source": {
+  "inventory": {"path": "/absolute/path/candidate-source-inventory.json", "sha256": "<sha256>"},
+  "manifest": {"path": "/absolute/path/candidate/semaprax.toml", "sha256": "<sha256>"}
+}
+```
+
+The inventory must contain exactly one `semaprax.toml` row with the same hash.
+The manifest must use `semaprax.manifest.v1`, profile
+`language-command-io.stream-data.v1`, input
+`argv-utf8+stdin-stream.v1`, one command function exported through
+`exports.web`, and exactly the sorted capabilities `process.args.read`,
+`process.stderr.write`, `process.stdin.read`, and `process.stdout.write`.
+The evidence, report, inventory, and manifest are copied into the external
+artifact closure. V2 evidence cannot qualify round 3, and V3 evidence cannot
+qualify a historical round.
+
+An ordinary model timeout remains a paid failed attempt. After its candidate
+archive and safe worktree cleanup complete, the adapter continues the planned
+matched order. Runner errors, resource contamination, retained workspaces,
+non-timeout process failures, and invalid non-timeout telemetry still stop
+later paid attempts.
 
 From the compiler checkout, first inspect the frozen inputs and campaign
 settings with `plan`:

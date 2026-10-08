@@ -63,7 +63,9 @@ class CodexShiftSimTests(unittest.TestCase):
                        {"type": "token_usage_record", "payload": {"response_id": "r1", "usage": trace_usage}}]
             (sessions / f"rollout-{thread}.jsonl").write_text("\n".join(json.dumps(r) for r in records) + "\n")
             candidate = workspace / "benchmarks/event-sim-tokens-v1/candidate"
-            if candidate.exists():
+            self.assertFalse(candidate.exists(), "candidate leaf must be absent when the model starts")
+            if workspace.name != "calibration":
+                candidate.mkdir()
                 (candidate / "main.ts").write_text("// authored fixture\n")
             if mutation:
                 mutation(workspace)
@@ -232,6 +234,38 @@ class CodexShiftSimTests(unittest.TestCase):
             self.assertEqual(report["attempt_denominator"], 10)
             self.assertEqual(json.loads((root / "artifacts/results.json").read_text())["recorded_attempts"], 1)
             self.assertEqual(json.loads((root / "artifacts/attempts/semaprax-01.json").read_text())["process_exit_code"], 1)
+
+    def test_ordinary_timeout_is_archived_cleaned_and_does_not_truncate_matched_attempts(self):
+        with tempfile.TemporaryDirectory() as directory, ExitStack() as stack:
+            root = Path(directory).resolve()
+            settings = {**self.settings(root), "artifacts": str(root / "artifacts"),
+                        "repository_commit": adapter.shiftsim.resolve_commit(adapter.REPO, "HEAD"),
+                        "trial_order": ["semaprax", "typescript"] * 5, "attempt_denominator": 10,
+                        "harness_source_files_sha256": adapter.codex.harness_source_inventory(
+                            adapter.REPO, adapter.HARNESS_SOURCE_FILES)}
+            stack.enter_context(patch.object(adapter, "plan", return_value=settings))
+            process, sessions = self.process(root)
+            attempts = [0]
+            def execute(*args):
+                row = process(*args)
+                if "calibration" not in args[1].name:
+                    attempts[0] += 1
+                    if attempts[0] == 1:
+                        row.update({"timed_out": True, "process_exit_code": None})
+                return row
+            stack.enter_context(patch.object(adapter.codex, "run_codex", side_effect=execute))
+            original = adapter.codex.copy_task_rollout
+            stack.enter_context(patch.object(adapter.codex, "copy_task_rollout", side_effect=lambda ids, cwd, dest:
+                original(ids, cwd, dest, sessions)))
+            stack.enter_context(patch.object(adapter.shiftsim, "check_program", return_value={"accepted": True}))
+            report = adapter.run_campaign(Namespace(repo=str(adapter.REPO), semaprax_bin=str(root / "semaprax")))
+            self.assertEqual(report["campaign_status"], "complete")
+            self.assertEqual(report["recorded_attempts"], 10)
+            first = report["trials"][0]
+            self.assertTrue(first["timed_out"])
+            self.assertTrue(first["worktree_removed_after_archive"])
+            self.assertIn("candidate_archive", first)
+            self.assertFalse(Path(first["workspace"]).exists())
 
     def test_main_reports_interrupted_campaign_as_failure(self):
         args = ["codex_campaign.py", "run", "--base-ref", "HEAD", "--compiler-source-ref", "HEAD",

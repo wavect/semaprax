@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import sys
 import time
+import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +33,7 @@ CALIBRATION_PROMPT = "This is a context calibration request. Reply with exactly 
 PRICE_BOOK_DATE = "2026-10-07"
 PRICE_BOOK_SOURCE = "https://platform.claude.com/docs/en/models/sonnet-5-5/overview"
 QUALIFICATION_EVIDENCE_SCHEMA = "semaprax.event-sim-qualification-evidence.v2"
+QUALIFICATION_EVIDENCE_SCHEMA_V3 = "semaprax.event-sim-qualification-evidence.v3"
 ACCEPTANCE_REPORT_SCHEMA = "semaprax.event-sim.acceptance-report.v1"
 NATIVE_PROJECT_SCHEMA = "semaprax.project.v24"
 NATIVE_PROJECT_PROFILE = "language-command-io.stream.v2"
@@ -44,6 +46,32 @@ NATIVE_PROJECT_ROUTE = {
     "input_route": NATIVE_INPUT_ROUTE,
     "command_result_type": NATIVE_COMMAND_RESULT_TYPE,
     "process_status_range": NATIVE_PROCESS_STATUS_RANGE,
+}
+AUTHORING_PROFILE_V24 = "semaprax-project-v24-stream-v2"
+AUTHORING_PROFILE_V27 = "semaprax-project-v27-stream-data-v1"
+STREAM_DATA_CAPABILITIES = [
+    "process.args.read", "process.stderr.write", "process.stdin.read", "process.stdout.write",
+]
+NATIVE_PROJECT_ROUTE_V27 = {
+    "project_schema": "semaprax.project.v27",
+    "project_profile": "language-command-io.stream-data.v1",
+    "input_route": NATIVE_INPUT_ROUTE,
+    "command_result_type": NATIVE_COMMAND_RESULT_TYPE,
+    "process_status_range": NATIVE_PROCESS_STATUS_RANGE,
+}
+AUTHORING_PROFILES = {
+    AUTHORING_PROFILE_V24: {
+        "rounds": (1, 2), "qualification_schema": QUALIFICATION_EVIDENCE_SCHEMA,
+        "campaign_schema": "semaprax.event-sim-campaign.v1",
+        "codex_campaign_schema": "semaprax.event-sim-codex-campaign.v1",
+        "prompt_schema": "semaprax.event-sim-prompt.v1", "route": NATIVE_PROJECT_ROUTE,
+    },
+    AUTHORING_PROFILE_V27: {
+        "rounds": (3,), "qualification_schema": QUALIFICATION_EVIDENCE_SCHEMA_V3,
+        "campaign_schema": "semaprax.event-sim-campaign.v2",
+        "codex_campaign_schema": "semaprax.event-sim-codex-campaign.v2",
+        "prompt_schema": "semaprax.event-sim-prompt.v2", "route": NATIVE_PROJECT_ROUTE_V27,
+    },
 }
 SPEC_RELATIVE = "benchmarks/event-sim-tokens-v1/SPEC.md"
 CORPUS_RELATIVE = "benchmarks/event-sim-tokens-v1/acceptance/corpus.json"
@@ -74,13 +102,82 @@ def blob_at_commit(repo: Path, commit: str, relative: str) -> bytes:
 
 
 def round_identity(repo: Path, commit: str, round_number: int) -> dict[str, str]:
-    if isinstance(round_number, bool) or round_number not in (1, 2):
+    if isinstance(round_number, bool) or round_number not in (1, 2, 3):
         raise ValueError(f"unsupported ShiftSim round: {round_number}")
     hashes = {path: sha_bytes(blob_at_commit(repo, commit, path))
               for path in FROZEN_BENCHMARK_SHA256}
     if hashes != FROZEN_BENCHMARK_SHA256:
         raise ValueError(f"round {round_number} requires the unchanged frozen SPEC, corpus, and oracle")
     return hashes
+
+
+def select_authoring_profile(round_number: int, requested: str | None) -> tuple[str, dict[str, Any]]:
+    expected = AUTHORING_PROFILE_V27 if round_number == 3 else AUTHORING_PROFILE_V24
+    if requested is None:
+        if round_number == 3:
+            raise ValueError(f"round 3 requires --authoring-profile {AUTHORING_PROFILE_V27}")
+        requested = expected
+    if requested not in AUTHORING_PROFILES:
+        raise ValueError(f"unsupported ShiftSim authoring profile: {requested}")
+    if requested != expected or round_number not in AUTHORING_PROFILES[requested]["rounds"]:
+        raise ValueError(f"round {round_number} requires authoring profile {expected}")
+    return requested, AUTHORING_PROFILES[requested]
+
+
+def _bound_file(reference: Any, evidence_path: Path, label: str) -> tuple[Path, bytes, str]:
+    if not isinstance(reference, dict) or not isinstance(reference.get("path"), str):
+        raise ValueError(f"qualification evidence must reference {label}")
+    path = Path(reference["path"])
+    if not path.is_absolute():
+        path = evidence_path.parent / path
+    if path.is_symlink():
+        raise ValueError(f"qualification {label} must not be a symlink")
+    path = path.resolve(strict=True)
+    if not path.is_file():
+        raise ValueError(f"qualification {label} must be a regular file")
+    data = path.read_bytes()
+    digest = sha_bytes(data)
+    if reference.get("sha256") != digest:
+        raise ValueError(f"qualification {label} hash does not match the pinned file")
+    return path, data, digest
+
+
+def _manifest_route(data: bytes) -> dict[str, Any]:
+    try:
+        manifest = tomllib.loads(data.decode("utf-8"))
+    except (UnicodeError, tomllib.TOMLDecodeError) as error:
+        raise ValueError("candidate manifest is not valid UTF-8 TOML") from error
+    package, command, exports = (manifest.get(name) for name in ("package", "command", "exports"))
+    if not all(isinstance(table, dict) for table in (package, command, exports)):
+        raise ValueError("candidate manifest lacks package, command, or exports table")
+    function = command.get("function")
+    route = {
+        "schema": manifest.get("schema"), "profile": package.get("profile"),
+        "input": command.get("input"), "function": function,
+        "exports_web": exports.get("web"), "capabilities": manifest.get("capabilities"),
+    }
+    if (route["schema"] != "semaprax.manifest.v1"
+            or route["profile"] != NATIVE_PROJECT_ROUTE_V27["project_profile"]
+            or route["input"] != NATIVE_PROJECT_ROUTE_V27["input_route"]
+            or not isinstance(function, str) or not function
+            or route["exports_web"] != [function]
+            or route["capabilities"] != STREAM_DATA_CAPABILITIES):
+        raise ValueError("candidate manifest does not match the exact v27 stream-data command route")
+    return route
+
+
+def candidate_authoring_admission(candidate: Path, arm: str, authoring_profile: str) -> dict[str, Any]:
+    if arm != "semaprax" or authoring_profile != AUTHORING_PROFILE_V27:
+        return {"status": "not_applicable", "authoring_profile": authoring_profile}
+    path = candidate / "semaprax.toml"
+    try:
+        if path.is_symlink() or not path.is_file():
+            raise ValueError("v27 SEMAPRAX candidate must contain a regular semaprax.toml")
+        data = path.read_bytes()
+        route = _manifest_route(data)
+        return {"status": "passed", "path": str(path), "sha256": sha_bytes(data), "route": route}
+    except (OSError, ValueError) as error:
+        return {"status": "failed", "path": str(path), "error": str(error)}
 
 
 def provider_quota_failure(observed: dict[str, Any]) -> dict[str, Any] | None:
@@ -103,6 +200,7 @@ def validate_qualification_evidence(
     repo: Path,
     commit: str,
     semaprax_binary_sha256: str | None,
+    authoring_profile: str = AUTHORING_PROFILE_V24,
 ) -> dict[str, Any]:
     """Bind a scored campaign to reviewed native acceptance evidence."""
     evidence_path = evidence_path.expanduser().resolve(strict=True)
@@ -112,8 +210,12 @@ def validate_qualification_evidence(
         evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
     except (UnicodeError, json.JSONDecodeError) as error:
         raise ValueError("qualification evidence is not valid UTF-8 JSON") from error
-    if not isinstance(evidence, dict) or evidence.get("schema") != QUALIFICATION_EVIDENCE_SCHEMA:
-        raise ValueError(f"qualification evidence schema must be {QUALIFICATION_EVIDENCE_SCHEMA}")
+    profile = AUTHORING_PROFILES.get(authoring_profile)
+    if profile is None:
+        raise ValueError(f"unsupported ShiftSim authoring profile: {authoring_profile}")
+    expected_schema = profile["qualification_schema"]
+    if not isinstance(evidence, dict) or evidence.get("schema") != expected_schema:
+        raise ValueError(f"qualification evidence schema must be {expected_schema}")
 
     expected_spec = sha_bytes(blob_at_commit(repo, commit, SPEC_RELATIVE))
     expected_corpus_bytes = blob_at_commit(repo, commit, CORPUS_RELATIVE)
@@ -133,7 +235,7 @@ def validate_qualification_evidence(
     if semaprax_binary_sha256 is not None and binary_hash != semaprax_binary_sha256:
         raise ValueError("qualification evidence compiler binary hash does not match --semaprax-bin")
     route = evidence.get("native_project_route")
-    if route != NATIVE_PROJECT_ROUTE:
+    if route != profile["route"]:
         raise ValueError("qualification evidence must identify the native streaming Project and input routes")
 
     report_ref = evidence.get("acceptance_report")
@@ -202,6 +304,32 @@ def validate_qualification_evidence(
             or compact_max.get("expected_stdout_sha256") != escaped_max.get("expected_stdout_sha256")):
         raise ValueError("qualification evidence must pass escaped and compact maximum-cardinality requests")
 
+    source_binding = {}
+    if authoring_profile == AUTHORING_PROFILE_V27:
+        source = evidence.get("candidate_source")
+        if not isinstance(source, dict):
+            raise ValueError("v3 qualification evidence must bind candidate source inventory and manifest")
+        inventory_path, inventory_bytes, inventory_hash = _bound_file(
+            source.get("inventory"), evidence_path, "candidate source inventory")
+        manifest_path, manifest_bytes, manifest_hash = _bound_file(
+            source.get("manifest"), evidence_path, "candidate manifest")
+        try:
+            inventory = json.loads(inventory_bytes.decode("utf-8"))
+        except (UnicodeError, json.JSONDecodeError) as error:
+            raise ValueError("candidate source inventory is not valid UTF-8 JSON") from error
+        files = inventory.get("files") if isinstance(inventory, dict) else None
+        manifest_rows = [row for row in files or []
+                         if isinstance(row, dict) and row.get("path") == "semaprax.toml"]
+        if len(manifest_rows) != 1 or manifest_rows[0].get("sha256") != manifest_hash:
+            raise ValueError("candidate source inventory must bind semaprax.toml exactly")
+        _manifest_route(manifest_bytes)
+        source_binding = {
+            "candidate_source_inventory_path": str(inventory_path),
+            "candidate_source_inventory_sha256": inventory_hash,
+            "candidate_manifest_path": str(manifest_path),
+            "candidate_manifest_sha256": manifest_hash,
+        }
+
     return {
         "status": "evidence_gate_passed",
         "scored_trials_allowed": True,
@@ -216,6 +344,8 @@ def validate_qualification_evidence(
         "compiler_source_commit": commit,
         "compiler_binary_sha256": binary_hash,
         "native_project_route": route,
+        "authoring_profile": authoring_profile,
+        **source_binding,
     }
 
 
@@ -234,9 +364,10 @@ def trial_environment(semaprax_bin: Path) -> dict[str, str]:
     return env
 
 
-def prompt_for(arm: str, candidate: Path, semaprax_bin: Path) -> str:
+def prompt_for(arm: str, candidate: Path, semaprax_bin: Path,
+               authoring_profile: str = AUTHORING_PROFILE_V24) -> str:
     language = "SEMAPRAX native Project" if arm == "semaprax" else "TypeScript on Node.js"
-    return f"""Implement a complete, idiomatic ShiftSim application in {language} according to
+    prompt = f"""Implement a complete, idiomatic ShiftSim application in {language} according to
 `benchmarks/event-sim-tokens-v1/SPEC.md`. The whole implementation belongs under
 `{candidate}`. Do not change compiler or benchmark files. The checkout contains
 only the public specification; the independent acceptance corpus and oracle are
@@ -269,6 +400,23 @@ Do not access material outside the public specification and your candidate
 directory, except built-in language/compiler/runtime help. Finish by listing files written and stating whether the implementation
 is complete.
 """
+    if authoring_profile == AUTHORING_PROFILE_V24:
+        return prompt
+    if authoring_profile != AUTHORING_PROFILE_V27:
+        raise ValueError(f"unsupported ShiftSim authoring profile: {authoring_profile}")
+    prompt = prompt.replace("native Project v24 manifest", "native Project v27 manifest")
+    prompt = prompt.replace("`language-command-io.stream.v2`", "`language-command-io.stream-data.v1`")
+    prompt = prompt.replace("`$SEMAPRAX_BIN help language`", "`$SEMAPRAX_BIN help language projects`")
+    marker = "The TypeScript arm must use Node from `PATH`"
+    extension = (
+        "For the SEMAPRAX arm, keep the external command ABI exactly `fn() -> i64` and the "
+        "manifest capabilities exactly `process.args.read`, `process.stderr.write`, "
+        "`process.stdin.read`, and `process.stdout.write` in sorted order. Private helpers may "
+        "borrow `Vec<T>` only when T is a Copy scalar (i64, i32, u8, usize, char, f32, f64, or "
+        "bool). Do not expose owned or returned Vec values, borrowed Vec values at public roots, "
+        "or any Vec in the command ABI. "
+    )
+    return prompt.replace(marker, extension + marker)
 
 
 def plan(args: argparse.Namespace, semaprax_binary_sha256: str | None = None) -> dict[str, Any]:
@@ -276,6 +424,8 @@ def plan(args: argparse.Namespace, semaprax_binary_sha256: str | None = None) ->
     commit = resolve_commit(repo, args.base_ref)
     round_number = getattr(args, "round", 1)
     benchmark_hashes = round_identity(repo, commit, round_number)
+    authoring_profile, profile = select_authoring_profile(
+        round_number, getattr(args, "authoring_profile", None))
     artifacts = Path(args.artifacts).expanduser().resolve()
     try:
         artifacts.relative_to(repo)
@@ -303,7 +453,7 @@ def plan(args: argparse.Namespace, semaprax_binary_sha256: str | None = None) ->
                 raise ValueError("semaprax-bin must be a regular file")
             semaprax_binary_sha256 = common.digest(binary_path)
         qualification = validate_qualification_evidence(
-            Path(evidence_argument), repo, commit, semaprax_binary_sha256,
+            Path(evidence_argument), repo, commit, semaprax_binary_sha256, authoring_profile,
         )
     else:
         qualification = {
@@ -316,10 +466,12 @@ def plan(args: argparse.Namespace, semaprax_binary_sha256: str | None = None) ->
     rounds = [arm for i in range(args.trials_per_arm)
               for arm in (ARMS if i % 2 == 0 else tuple(reversed(ARMS)))]
     return {
-        "schema": "semaprax.event-sim-campaign.v1",
+        "schema": profile["campaign_schema"],
         "created_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "benchmark": "event-sim-tokens-v1",
         "round": round_number,
+        "authoring_profile": authoring_profile,
+        "prompt_schema": profile["prompt_schema"],
         "benchmark_inputs_sha256": benchmark_hashes,
         "seed_files_sha256": {SPEC_RELATIVE: benchmark_hashes[SPEC_RELATIVE]},
         "repository_commit": commit,
@@ -333,12 +485,12 @@ def plan(args: argparse.Namespace, semaprax_binary_sha256: str | None = None) ->
         "authored_source_tokenizer": tokenizer,
         "arms": list(ARMS),
         "trial_order": rounds,
-        "native_project_route": NATIVE_PROJECT_ROUTE,
+        "native_project_route": profile["route"],
         "qualification": qualification,
         "price_book": {
-            "date": "2026-10-08" if round_number == 2 else PRICE_BOOK_DATE,
+            "date": "2026-10-08" if round_number >= 2 else PRICE_BOOK_DATE,
             "source_url": PRICE_BOOK_SOURCE,
-            "per_million_tokens": CURRENT_PRICE_USD_PER_MTOK if round_number == 2 else common.PRICE_USD_PER_MTOK,
+            "per_million_tokens": CURRENT_PRICE_USD_PER_MTOK if round_number >= 2 else common.PRICE_USD_PER_MTOK,
             "claim": "list-price estimate; provider result cost is reported separately and is not a billing receipt",
         },
         "calibration": {
@@ -482,8 +634,7 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
     if error:
         return row
     candidate = workspace / "benchmarks" / "event-sim-tokens-v1" / "candidate"
-    candidate.mkdir(parents=True, exist_ok=True)
-    prompt = prompt_for(arm, candidate, semaprax_bin)
+    prompt = prompt_for(arm, candidate, semaprax_bin, settings.get("authoring_profile", AUTHORING_PROFILE_V24))
     prompts = artifacts / "prompts"
     prompts.mkdir(exist_ok=True)
     (prompts / f"{label}.txt").write_text(prompt, encoding="utf-8")
@@ -519,14 +670,21 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
     elif spec_integrity["status"] != "passed":
         row["failure"] = "trial changed the frozen public benchmark specification"
     else:
-        started = time.monotonic()
-        row["acceptance"] = check_program(
-            candidate, settings["timeout_seconds"], trial_environment(semaprax_bin), qualification_mode,
-        )
-        row["acceptance_elapsed_seconds"] = round(time.monotonic() - started, 3)
-        row["status"] = "accepted" if row["acceptance"]["accepted"] else "not_accepted"
-        if row["status"] != "accepted":
-            row["failure"] = "candidate failed build or acceptance checks"
+        admission = candidate_authoring_admission(
+            candidate, arm, settings.get("authoring_profile", AUTHORING_PROFILE_V24))
+        row["authoring_admission"] = admission
+        if admission["status"] == "failed":
+            row["status"] = "not_accepted"
+            row["failure"] = "candidate failed exact authoring-profile admission"
+        else:
+            started = time.monotonic()
+            row["acceptance"] = check_program(
+                candidate, settings["timeout_seconds"], trial_environment(semaprax_bin), qualification_mode,
+            )
+            row["acceptance_elapsed_seconds"] = round(time.monotonic() - started, 3)
+            row["status"] = "accepted" if row["acceptance"]["accepted"] else "not_accepted"
+            if row["status"] != "accepted":
+                row["failure"] = "candidate failed build or acceptance checks"
     try:
         row["final_candidate_source_metrics"] = common.authored_source_metrics(
             candidate, settings.get("authored_source_tokenizer")
@@ -557,6 +715,7 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
     row["worktree_removed_after_archive"] = removed.returncode == 0
     if removed.returncode:
         row["worktree_cleanup_error"] = common.bounded_text(removed.stderr)
+        row["workspace_retained_for_review"] = True
     return row
 
 
@@ -638,8 +797,9 @@ def main() -> int:
         p = sub.add_parser(action)
         p.add_argument("--repo", default=str(REPO))
         p.add_argument("--base-ref", required=True)
-        p.add_argument("--round", type=int, choices=(1, 2), default=1,
-                       help="round 2 repeats the frozen round-1 task after the compiler OPT batch")
+        p.add_argument("--round", type=int, choices=(1, 2, 3), default=1,
+                       help="round 3 qualifies the frozen task for the explicit v27 authoring profile")
+        p.add_argument("--authoring-profile", choices=tuple(AUTHORING_PROFILES), default=None)
         p.add_argument("--artifacts", required=True)
         if action != "preflight":
             p.add_argument("--trials-per-arm", type=int, default=MIN_TRIALS_PER_ARM)
@@ -694,6 +854,14 @@ def main() -> int:
             shutil.copyfile(report_path, report_copy)
             settings["qualification"]["evidence_artifact"] = str(evidence_copy)
             settings["qualification"]["acceptance_report_artifact"] = str(report_copy)
+            for key, artifact_name in (
+                ("candidate_source_inventory_path", "qualification-candidate-source-inventory.json"),
+                ("candidate_manifest_path", "qualification-candidate-semaprax.toml"),
+            ):
+                if qualification.get(key):
+                    copied = artifacts / artifact_name
+                    shutil.copyfile(qualification[key], copied)
+                    settings["qualification"][key.replace("_path", "_artifact")] = str(copied)
         version = subprocess.run(["claude", "--version"], text=True, capture_output=True, check=False)
         settings["claude_version"] = version.stdout.strip() if version.returncode == 0 else None
         node = subprocess.run(["node", "--version"], text=True, capture_output=True, check=False)
@@ -712,7 +880,7 @@ def main() -> int:
                 row = launch_trial(seed_repo, artifacts, seed["seed_repository_commit"],
                                    {"arm": arm, "number": numbers[arm]}, settings, semaprax_bin)
                 rows.append(row)
-                quota_stop = settings["round"] == 2 and row.get("provider_quota") is not None
+                quota_stop = settings["round"] >= 2 and row.get("provider_quota") is not None
                 common.save_json(artifacts / "results.json", {
                     "campaign": settings, "calibration": calibration, "trials": rows,
                     "summary": summarize(rows, calibration, settings["qualification"]),

@@ -113,9 +113,12 @@ fn cli_language_projects_distinguishes_the_private_stream_data_profile() {
     assert!(output.stderr.is_empty());
     let help = String::from_utf8(output.stdout).unwrap();
     for detail in [
-        "The `stdin-stream-text` scaffold remains Project v25.",
+        "The `stdin-stream-text` scaffold remains Project\nv25 for private owned-String helpers.",
         "`language-command-io.stream-data.v1`",
-        "immutable `borrow Vec<T>` parameters for the eight",
+        "immutable `borrow Vec<T>`\nparameters for the eight",
+        "(`i64`, `i32`, `u8`, `usize`, `char`,\n`f32`, `f64`, `bool`)",
+        "Pure `main` and test closures\nmay run in the authority-free Project interpreter",
+        "no stdin\nprovider or command adapter",
         "v24/v25 retain their\nclosed helper boundaries",
         "Web/npm refuse v27",
     ] {

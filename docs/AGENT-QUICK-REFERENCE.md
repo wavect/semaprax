@@ -1287,9 +1287,14 @@ frozen at 65,536 bytes for its borrowed view/output contract. See [Project v28](
 native stream-data starter; `project-scaffold` accepts the same template and
 selects tables. It keeps the command input bounded and shows one private
 immutable `borrow Vec<i64>` helper; `main` and the selected command remain
-`fn() -> i64`. Web, Wasm, npm, and interpreter execution refuse v27. The
-`stdin-stream-text` scaffold remains Project v25 for private owned-String
-helpers.
+`fn() -> i64`. Web/npm refuse v27; Wasm also refuses it. Native-only applies
+to the selected command and streaming runtime. Pure `main` and test closures
+may run in the authority-free Project interpreter, which supplies no stdin
+provider or command adapter. The `stdin-stream-text` scaffold remains Project
+v25 for private owned-String helpers. V27 adds immutable `borrow Vec<T>`
+parameters for the eight Copy scalars (`i64`, `i32`, `u8`, `usize`, `char`,
+`f32`, `f64`, `bool`); v24/v25 retain their
+closed helper boundaries. See [Stream Data Command v1](STREAM-DATA-COMMAND-V1.md).
 
 `semaprax lock semaprax.toml --write` pins identity, source digests, interface,
 targets, and capabilities; `--verify` checks it and `--compare <base.lock>`

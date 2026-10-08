@@ -386,6 +386,29 @@ syncBuiltinESMExports();
         "empty-entity offline self-test attempted a forbidden operation: {}",
         String::from_utf8_lossy(&empty_run.stderr)
     );
+    let bad_source = write_temp("offline-bad-computed", DESK);
+    let bad_projection = generate(&bad_source).unwrap();
+    let bad_out = bad_source.with_file_name("offline-bad-computed-out");
+    let _ = std::fs::remove_dir_all(&bad_out);
+    write(&bad_out, &bad_projection).unwrap();
+    let schema_path = bad_out.join("schema.js");
+    let schema = std::fs::read_to_string(&schema_path).unwrap();
+    let correct_flag = "((r.billable && (r.hours > 8n)) ? \"long\" : \"ok\")";
+    assert_eq!(schema.matches(correct_flag).count(), 1, "computed fixture expression drifted");
+    std::fs::write(&schema_path, schema.replacen(correct_flag, "1n", 1)).unwrap();
+    let (bad_run, bad_completed, bad_cwd) = run_offline(
+        &bad_out.join("server.mjs"),
+        &bad_out.with_file_name("offline-bad-computed-cwd"),
+    );
+    let bad_stdout = String::from_utf8_lossy(&bad_run.stdout);
+    assert!(!bad_run.status.success(), "wrong-type computed fixture unexpectedly passed: {bad_stdout}");
+    assert!(bad_completed && bad_cwd, "wrong-type computed fixture did not remain bounded and offline: {bad_stdout}");
+    assert!(bad_stdout.contains("derive flag with declared type"), "wrong-type computed fixture was not rejected as a type error: {bad_stdout}");
+    assert!(
+        !String::from_utf8_lossy(&bad_run.stderr).contains("OFFLINE_GUARD_TRIP"),
+        "wrong-type computed fixture attempted a forbidden operation: {}",
+        String::from_utf8_lossy(&bad_run.stderr)
+    );
     let _ = std::fs::remove_file(offline_guard);
 }
 

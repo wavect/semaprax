@@ -401,7 +401,7 @@ function offlineSelfTest() {
   entities.forEach((e) => visit(e, []));
   const refs = Object.create(null), made = [], rejectedTypes = new Set();
   const allowRule = ACCOUNT ? { text: "account may sign in", test: (r) => { try { return ACCOUNT.allowed(r) === true; } catch { return false; } } } : null;
-  const invalidValue = (type) => ({ string: 7, int: true, ref: true, float: true, bool: 1, char: "", enum: "__offline_invalid__" })[type];
+  const invalidValue = (type) => ({ string: 7, int: true, ref: true, float: true, bool: 1, char: "", enum: 7 })[type];
   const sameFields = (ent, a, b) => !!b && ent.fields.every((f) => a[f.name] === b[f.name]);
   const alternatives = { string: ["", "a", "ab"], int: [-1n, 0n, 1n, 1000000n], float: [-1, 0, 1e6] };
   let ruleWitnesses = 0, workflowWitnesses = 0, typeChecks = 0, computedChecks = 0, rollupChecks = 0, keyChecks = 0;

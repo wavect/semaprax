@@ -86,8 +86,9 @@ runtime files implement:
   write policies gain a compiler-derived `create(u)` preview with `true`,
   `false`, or `null` for unknown prospective row values. Only definitely false
   hides the New action; unknown permits opening the ordinary validated form,
-  without granting server authority. This preserves nondefault custom-field
-  creation policies. Workflow options intersect the step edges with the checked
+  without granting server authority. A preview exception is also unknown,
+  rather than evidence that no prospective row is writable. This preserves
+  nondefault custom-field creation policies. Workflow options intersect the step edges with the checked
   write policy for each candidate next-state row, so approval states remain
   hidden from restricted accounts while their ordinary transitions remain
   available.

@@ -122,6 +122,42 @@ class WebappCampaignTests(unittest.TestCase):
             self.assertEqual(observed["model_request_count"], 1)
             self.assertEqual(campaign.list_price_estimate(observed["model_requests"])["actual_billed_usd"], None)
 
+    def test_rollout_usage_rejects_malformed_line_when_totals_match(self):
+        usage = {"input_tokens": 20, "cached_input_tokens": 4,
+                 "cache_write_input_tokens": 8, "output_tokens": 3,
+                 "reasoning_output_tokens": 1}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            rollout = root / "rollout.jsonl"
+            rollout.write_text("\n".join([
+                json.dumps({"type": "turn_context", "payload": {"model": campaign.MODEL, "effort": campaign.EFFORT}}),
+                json.dumps({"type": "token_usage_record", "payload": {"response_id": "r1", "usage": usage}}),
+                "{malformed",
+            ]))
+            observed = campaign.trace_usage({"final_turn_usage": usage}, rollout)
+        self.assertFalse(observed["reconciled"])
+        self.assertEqual(observed["rollout_malformed_lines"], 1)
+        self.assertEqual(observed["rollout_orphan_usage_records"], 0)
+        self.assertEqual(observed["model_requests"], [])
+
+    def test_rollout_usage_rejects_orphan_record_when_totals_match(self):
+        usage = {"input_tokens": 20, "cached_input_tokens": 4,
+                 "cache_write_input_tokens": 8, "output_tokens": 3,
+                 "reasoning_output_tokens": 1}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            rollout = root / "rollout.jsonl"
+            rollout.write_text("\n".join([
+                json.dumps({"type": "turn_context", "payload": {"model": campaign.MODEL, "effort": campaign.EFFORT}}),
+                json.dumps({"type": "token_usage_record", "payload": {"response_id": "r1", "usage": usage}}),
+                json.dumps({"type": "token_usage_record", "payload": {"usage": {key: 0 for key in usage}}}),
+            ]) + "\n")
+            observed = campaign.trace_usage({"final_turn_usage": usage}, rollout)
+        self.assertFalse(observed["reconciled"])
+        self.assertEqual(observed["rollout_malformed_lines"], 0)
+        self.assertEqual(observed["rollout_orphan_usage_records"], 1)
+        self.assertEqual(observed["model_requests"], [])
+
     def test_model_task_timeout_keeps_all_ten_matched_attempts(self):
         with tempfile.TemporaryDirectory() as directory:
             artifacts = Path(directory) / "campaign"

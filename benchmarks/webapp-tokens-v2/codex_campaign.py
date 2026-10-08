@@ -300,19 +300,29 @@ def parse_exec_jsonl(path: Path) -> dict[str, Any]:
     }
 
 
-def _rollout_records(path: Path) -> tuple[list[dict[str, Any]], list[str], list[str], int | None]:
+def _rollout_records_with_integrity(
+    path: Path,
+) -> tuple[list[dict[str, Any]], list[str], list[str], int | None, int, int]:
     requests: list[dict[str, Any]] = []
     models: list[str] = []
     efforts: list[str] = []
     context_window: int | None = None
     seen: set[str] = set()
+    malformed_lines = 0
+    orphan_usage_records = 0
     for raw in path.read_text(encoding="utf-8").splitlines():
         try:
             event = json.loads(raw)
         except json.JSONDecodeError:
+            malformed_lines += 1
             continue
-        payload = event.get("payload") if isinstance(event, dict) else None
+        if not isinstance(event, dict):
+            malformed_lines += 1
+            continue
+        payload = event.get("payload")
         if not isinstance(payload, dict):
+            if event.get("type") == "token_usage_record":
+                orphan_usage_records += 1
             continue
         if event.get("type") == "turn_context":
             for value, sink in ((payload.get("model"), models), (payload.get("effort"), efforts)):
@@ -321,25 +331,42 @@ def _rollout_records(path: Path) -> tuple[list[dict[str, Any]], list[str], list[
         if event.get("type") == "token_usage_record":
             usage = _usage(payload.get("usage"))
             identity = payload.get("response_id") or payload.get("turn_id")
+            if not isinstance(identity, str) or not identity.strip():
+                orphan_usage_records += 1
+                continue
             key = json.dumps([identity, usage], sort_keys=True)
-            if identity is not None and key not in seen:
+            if key not in seen:
                 seen.add(key)
                 requests.append({"request_id": identity, "usage": usage})
         if event.get("type") == "event_msg" and payload.get("type") == "token_count":
             info = payload.get("info")
             if isinstance(info, dict) and isinstance(info.get("model_context_window"), int):
                 context_window = info["model_context_window"]
+    return requests, models, efforts, context_window, malformed_lines, orphan_usage_records
+
+
+def _rollout_records(path: Path) -> tuple[list[dict[str, Any]], list[str], list[str], int | None]:
+    """Compatibility projection of rollout records without integrity counters."""
+    requests, models, efforts, context_window, _, _ = _rollout_records_with_integrity(path)
     return requests, models, efforts, context_window
 
 
 def trace_usage(exec_usage: dict[str, Any], rollout: Path) -> dict[str, Any]:
-    requests, models, efforts, context_window = _rollout_records(rollout)
+    requests, models, efforts, context_window, malformed_lines, orphan_usage_records = (
+        _rollout_records_with_integrity(rollout)
+    )
     final = exec_usage.get("final_turn_usage")
     summed: dict[str, int | None] = {}
     for name in _usage({}):
         values = [request["usage"][name] for request in requests]
         summed[name] = sum(values) if values and all(value is not None for value in values) else None
-    reconciled = isinstance(final, dict) and all(value is not None for value in final.values()) and _same_usage(final, summed)
+    reconciled = (
+        isinstance(final, dict)
+        and all(value is not None for value in final.values())
+        and _same_usage(final, summed)
+        and malformed_lines == 0
+        and orphan_usage_records == 0
+    )
     return {
         "model_requests": requests if reconciled else [],
         "model_request_count": len(requests) if reconciled else None,
@@ -353,6 +380,8 @@ def trace_usage(exec_usage: dict[str, Any], rollout: Path) -> dict[str, Any]:
         "request_usage_sum": summed,
         "final_turn_usage": final,
         "reconciled": reconciled,
+        "rollout_malformed_lines": malformed_lines,
+        "rollout_orphan_usage_records": orphan_usage_records,
         "reconciliation_note": "Per-request trace sum must equal final turn.completed usage; tool item counts are separate.",
     }
 

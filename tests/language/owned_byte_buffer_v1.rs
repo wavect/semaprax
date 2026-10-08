@@ -1426,9 +1426,9 @@ fn interpret(source: &str, label: &str) -> String {
     interpretation.envelope
 }
 
-#[path = "owned_byte_buffer_v1/computed_indices.rs"]
-mod computed_indices;
 #[path = "owned_byte_buffer_v1/cleanup_renewal.rs"]
 mod cleanup_renewal;
+#[path = "owned_byte_buffer_v1/computed_indices.rs"]
+mod computed_indices;
 #[path = "owned_byte_buffer_v1/tagged_source.rs"]
 mod tagged_source;

@@ -1,0 +1,4156 @@
+{
+  "authorship_verified": false,
+  "components_and_means": {
+    "LogLens-7/all-arms": {
+      "attempts": 10,
+      "authorship_verified": false,
+      "means_per_attempt": {
+        "authored_source": 6545.9,
+        "dependency_lock": 0.0,
+        "generated_output": 0.0,
+        "legacy_final_inventory_proxy_tokens": 6575.2,
+        "unresolved": 29.3
+      },
+      "original_status_counts": {
+        "accepted": 4,
+        "not_accepted": 6
+      },
+      "ratio_eligible": false,
+      "sums": {
+        "authored_source": 65459,
+        "dependency_lock": 0,
+        "generated_output": 0,
+        "legacy_final_inventory_proxy_tokens": 65752,
+        "unresolved": 293
+      }
+    },
+    "LogLens-7/semaprax": {
+      "attempts": 5,
+      "authorship_verified": false,
+      "means_per_attempt": {
+        "authored_source": 8019.4,
+        "dependency_lock": 0.0,
+        "generated_output": 0.0,
+        "legacy_final_inventory_proxy_tokens": 8019.4,
+        "unresolved": 0.0
+      },
+      "original_status_counts": {
+        "accepted": 1,
+        "not_accepted": 4
+      },
+      "ratio_eligible": false,
+      "sums": {
+        "authored_source": 40097,
+        "dependency_lock": 0,
+        "generated_output": 0,
+        "legacy_final_inventory_proxy_tokens": 40097,
+        "unresolved": 0
+      }
+    },
+    "LogLens-7/typescript": {
+      "attempts": 5,
+      "authorship_verified": false,
+      "means_per_attempt": {
+        "authored_source": 5072.4,
+        "dependency_lock": 0.0,
+        "generated_output": 0.0,
+        "legacy_final_inventory_proxy_tokens": 5131.0,
+        "unresolved": 58.6
+      },
+      "original_status_counts": {
+        "accepted": 3,
+        "not_accepted": 2
+      },
+      "ratio_eligible": false,
+      "sums": {
+        "authored_source": 25362,
+        "dependency_lock": 0,
+        "generated_output": 0,
+        "legacy_final_inventory_proxy_tokens": 25655,
+        "unresolved": 293
+      }
+    },
+    "ShiftSim-3/all-arms": {
+      "attempts": 10,
+      "authorship_verified": false,
+      "means_per_attempt": {
+        "authored_source": 6666.6,
+        "dependency_lock": 0.0,
+        "generated_output": 0.0,
+        "legacy_final_inventory_proxy_tokens": 6666.6,
+        "unresolved": 0.0
+      },
+      "original_status_counts": {
+        "accepted": 10
+      },
+      "ratio_eligible": false,
+      "sums": {
+        "authored_source": 66666,
+        "dependency_lock": 0,
+        "generated_output": 0,
+        "legacy_final_inventory_proxy_tokens": 66666,
+        "unresolved": 0
+      }
+    },
+    "ShiftSim-3/semaprax": {
+      "attempts": 5,
+      "authorship_verified": false,
+      "means_per_attempt": {
+        "authored_source": 8481.6,
+        "dependency_lock": 0.0,
+        "generated_output": 0.0,
+        "legacy_final_inventory_proxy_tokens": 8481.6,
+        "unresolved": 0.0
+      },
+      "original_status_counts": {
+        "accepted": 5
+      },
+      "ratio_eligible": false,
+      "sums": {
+        "authored_source": 42408,
+        "dependency_lock": 0,
+        "generated_output": 0,
+        "legacy_final_inventory_proxy_tokens": 42408,
+        "unresolved": 0
+      }
+    },
+    "ShiftSim-3/typescript": {
+      "attempts": 5,
+      "authorship_verified": false,
+      "means_per_attempt": {
+        "authored_source": 4851.6,
+        "dependency_lock": 0.0,
+        "generated_output": 0.0,
+        "legacy_final_inventory_proxy_tokens": 4851.6,
+        "unresolved": 0.0
+      },
+      "original_status_counts": {
+        "accepted": 5
+      },
+      "ratio_eligible": false,
+      "sums": {
+        "authored_source": 24258,
+        "dependency_lock": 0,
+        "generated_output": 0,
+        "legacy_final_inventory_proxy_tokens": 24258,
+        "unresolved": 0
+      }
+    },
+    "TeamDesk-round4/all-arms": {
+      "attempts": 10,
+      "authorship_verified": false,
+      "means_per_attempt": {
+        "authored_source": 16040.0,
+        "dependency_lock": 1351.7,
+        "generated_output": 29006.5,
+        "legacy_final_inventory_proxy_tokens": 46398.2,
+        "unresolved": 0.0
+      },
+      "original_status_counts": {
+        "accepted": 5,
+        "not_accepted": 5
+      },
+      "ratio_eligible": false,
+      "sums": {
+        "authored_source": 160400,
+        "dependency_lock": 13517,
+        "generated_output": 290065,
+        "legacy_final_inventory_proxy_tokens": 463982,
+        "unresolved": 0
+      }
+    },
+    "TeamDesk-round4/semaprax": {
+      "attempts": 5,
+      "authorship_verified": false,
+      "means_per_attempt": {
+        "authored_source": 9669.2,
+        "dependency_lock": 0.0,
+        "generated_output": 10664.8,
+        "legacy_final_inventory_proxy_tokens": 20334.0,
+        "unresolved": 0.0
+      },
+      "original_status_counts": {
+        "accepted": 5
+      },
+      "ratio_eligible": false,
+      "sums": {
+        "authored_source": 48346,
+        "dependency_lock": 0,
+        "generated_output": 53324,
+        "legacy_final_inventory_proxy_tokens": 101670,
+        "unresolved": 0
+      }
+    },
+    "TeamDesk-round4/typescript": {
+      "attempts": 5,
+      "authorship_verified": false,
+      "means_per_attempt": {
+        "authored_source": 22410.8,
+        "dependency_lock": 2703.4,
+        "generated_output": 47348.2,
+        "legacy_final_inventory_proxy_tokens": 72462.4,
+        "unresolved": 0.0
+      },
+      "original_status_counts": {
+        "not_accepted": 5
+      },
+      "ratio_eligible": false,
+      "sums": {
+        "authored_source": 112054,
+        "dependency_lock": 13517,
+        "generated_output": 236741,
+        "legacy_final_inventory_proxy_tokens": 362312,
+        "unresolved": 0
+      }
+    }
+  },
+  "created_utc": "2026-10-08",
+  "limits": [
+    "Counts use the legacy Claude BPE tokenizer proxy, not provider billing tokens or a verified model-specific tokenizer measurement.",
+    "Classification describes final retained files only. It does not verify who authored them, count cumulative effort, or establish generated content lineage beyond the cited retained recipe and entrypoint hashes.",
+    "authorship_verified and ratio_eligible are false throughout; do not derive authorship or savings ratios from these counts.",
+    "TeamDesk round 4 is contaminated for clean acceptance comparison; reference/replay qualification is separate and pending.",
+    "Original campaign results, costs, source inventories, and accepted statuses remain immutable and are bound by the hashes above."
+  ],
+  "method": {
+    "classification_audit_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+    "classification_audit_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+    "definition": "Counted final retained candidate inventory files are partitioned into authored_source, generated_output, dependency_lock, or unresolved. Full per-file hashes and generated recipe/entrypoint hashes are embedded per attempt.",
+    "helper_git_commit": "84b72ce6d5c66642a3bba5c9ad19ce5c431d5630",
+    "helper_path": "/Users/kevin/.codex/worktrees/opt-main-repair/AI-Lang/benchmarks/authored_source_recount.py",
+    "helper_sha256": "bdce4990deafd85f2c62c08ad10c9395eed4446e5efd687053ce7a9a1b2f02be",
+    "source_report_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/report.json",
+    "source_report_schema": "semaprax.authored-source-component-summary.v1",
+    "source_report_sha256": "c4097fc45dfdbbd1b742686deed906d5863008323a94a108186696503443e529"
+  },
+  "original_campaign_bindings": {
+    "LogLens-7": {
+      "campaign_artifact": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008",
+      "frozen_harness_manifest": {
+        "path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/harness-source/manifest.json",
+        "sha256": "22c4c36af35c81d684aeec96d7a399951bc95f28c57c49e7d870c9083fafa0f1"
+      },
+      "note": "Original outcomes are carried for provenance only; this document does not qualify or compare acceptance.",
+      "original_recount": {
+        "path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/recount-final.json",
+        "sha256": "b1b7204234146559d87c893d69b59a74fc3042c5f0dfc7da993e8b49a791069f"
+      },
+      "original_results": {
+        "path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/results.json",
+        "sha256": "801e51fcc261917131860272fd0f950ea5516ddcb103210e0ea8510d1ec4b013"
+      }
+    },
+    "ShiftSim-3": {
+      "campaign_artifact": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008",
+      "frozen_harness_manifest": {
+        "path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/harness-source/manifest.json",
+        "sha256": "4a0765b30cb1b16b068070d9f3daa0c25825e700005360a90e1ea16921aa7fb2"
+      },
+      "note": "Original outcomes are carried for provenance only; this document does not qualify or compare acceptance.",
+      "original_recount": {
+        "path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/recount.json",
+        "sha256": "bfb85b3fcb09077ddf6f205203cfa9b3ed83883027bac9a3f4f63251bcde6429"
+      },
+      "original_results": {
+        "path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/results.json",
+        "sha256": "e2f7e18aacf41e858099b7c936263b1c8d25d7f68b5f0556b51f9ec034ad127a"
+      }
+    },
+    "TeamDesk-round4": {
+      "campaign_artifact": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008",
+      "frozen_harness_manifest": {
+        "path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/harness-source/manifest.json",
+        "sha256": "3d91fd4d6827f80b56588d7986990ea984e96fbfb92fc894f06d0d9c72ccc96c"
+      },
+      "note": "Original acceptance was 5/5 SEMAPRAX and 0/5 TypeScript; the run has a documented resource-contamination concern and is not a clean comparison. References/replay remain separate and pending.",
+      "original_recount": {
+        "path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/original-recount.json",
+        "sha256": "a996d7d4b38c28dfe5ebd8aa0444f3efe08037f9bfd93607c2a2072fc243b4ef"
+      },
+      "original_results": {
+        "path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/results.json",
+        "sha256": "64cee2f6057bbc78a4547a570f113c03c73ad41956f45612d8508694fb4309a7"
+      }
+    }
+  },
+  "ratio_eligible": false,
+  "schema": "semaprax.authored-source-component-publication.v1",
+  "trials": [
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/semaprax-01",
+        "classification_complete": true,
+        "classification_origin": {
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_results_sha256": "64cee2f6057bbc78a4547a570f113c03c73ad41956f45612d8508694fb4309a7",
+          "source": "TeamDesk authored-classification audit sidecar",
+          "source_origin_statement": "Caller-supplied classification of the exact retained TeamDesk candidate source inventory. Bound to original results SHA-256 64cee2f6057bbc78a4547a570f113c03c73ad41956f45612d8508694fb4309a7. Files were hash-checked against /Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/semaprax-01. Generated output labels cite retained recipe and entrypoint hashes. This classifies counted final files only; it does not assert cumulative author effort or exclude generated files from the immutable original report.",
+          "source_sidecar_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/classification-sidecars/teamdesk-semaprax-01.json",
+          "source_sidecar_sha256": "629b008df3c340cda491f63894f04e36ed679cc8df3a121755d75aec71248aff"
+        },
+        "components": {
+          "authored_source": 12902,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "39abe47071d8491ecb848323d7e4775c9a2e17de5886ea47f78da3a945ca1864",
+            "tokens": 1231
+          },
+          {
+            "classification": "authored_source",
+            "path": "VALIDATION.md",
+            "sha256": "074dfce71917edca6f97ecfd4a8fac2cf72a25fd90835e56ed31c998275145cf",
+            "tokens": 260
+          },
+          {
+            "classification": "authored_source",
+            "path": "app.spx",
+            "sha256": "1cce58ce0da563567b2f9d03fc922e094818e5b55c10d0b9362404a15cbcbdb9",
+            "tokens": 3272
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "393b35a6423757bfaecb8ffbf157a355a506979b9e65761da3a124ec67f3d422",
+            "tokens": 121
+          },
+          {
+            "classification": "authored_source",
+            "path": "launch.mjs",
+            "sha256": "e08524546b3532d77f1dbcc8bc1b1c0eeaf08e87b376c65bcfad3eeecfc62046",
+            "tokens": 845
+          },
+          {
+            "classification": "authored_source",
+            "path": "project-adjustments.mjs",
+            "sha256": "ed56a46e200c0137c62d7f6ae5ba22dc4d7c67ec489faa0c0a84008b6635e472",
+            "tokens": 296
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "ccea28ce50b1c89932f355ec9bc8bee470db38b917efe61deeb5f432231b2b30",
+            "tokens": 27
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "eaddbeba74b13244e57ff31143b738475a866d44a76dfef3ce29e42c897a7091",
+            "tokens": 26
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests/handler-worker.mjs",
+            "sha256": "5a7309a09ab22ac7d2807ba4a48a5e71bfcd53b9ca1be9e10a873028fe6dd552",
+            "tokens": 367
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests/integration.mjs",
+            "sha256": "3da9fbaafd195d53979106b03d3cad6602c6a1d71ea86f9b080161cdd3ad4ae4",
+            "tokens": 5521
+          },
+          {
+            "classification": "authored_source",
+            "path": "theme.css",
+            "sha256": "bef807f20aa5cc0fd8729fe5bebb23c7bb41a795ee0b4793ebe8c0e4521f4bf2",
+            "tokens": 936
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 12902,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "0e83e2c5c6f29aeccdcdcf6bd9ffe8a127319aa8ae3455ba723cbfde9c2b8475",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "8a754ba77008959a361c9f9d1f39658cddf019ba0d698e312a3d0dbc217f4a63",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "semaprax",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/semaprax-01",
+        "classification_complete": true,
+        "classification_input_sha256": "a48f090f4d242892971c69f036f22de6b91bdd72db9f6c6ca2107e99ef915726",
+        "components": {
+          "authored_source": 12902,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "TeamDesk-round4",
+        "label": "semaprax-01",
+        "legacy_total_tokens": 12902,
+        "metrics_input_sha256": "0e83e2c5c6f29aeccdcdcf6bd9ffe8a127319aa8ae3455ba723cbfde9c2b8475",
+        "number": 1,
+        "original_status": "accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/teamdesk_round4-semaprax-01.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/typescript-01",
+        "classification_complete": true,
+        "classification_origin": {
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_results_sha256": "64cee2f6057bbc78a4547a570f113c03c73ad41956f45612d8508694fb4309a7",
+          "source": "TeamDesk authored-classification audit sidecar",
+          "source_origin_statement": "Caller-supplied classification of the exact retained TeamDesk candidate source inventory. Bound to original results SHA-256 64cee2f6057bbc78a4547a570f113c03c73ad41956f45612d8508694fb4309a7. Files were hash-checked against /Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/typescript-01. Generated output labels cite retained recipe and entrypoint hashes. This classifies counted final files only; it does not assert cumulative author effort or exclude generated files from the immutable original report.",
+          "source_sidecar_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/classification-sidecars/teamdesk-typescript-01.json",
+          "source_sidecar_sha256": "b556832fea5a40cf9554cdff1c11b2d1a772dd13e702bab483f811b0ced26680"
+        },
+        "components": {
+          "authored_source": 25056,
+          "dependency_lock": 4385,
+          "generated_output": 235669,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": ".gitignore",
+            "sha256": "2d99266d1835d22d07bbd65c2ca38f84628823aba8d412c3a6311c943f96f18d",
+            "tokens": 15
+          },
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "f00e1f54c066a143d6590c7b8d266454cf70c8629ed06f9f43e4de500a510471",
+            "tokens": 1156
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "086da191f0e8b5065cbee3a3678f4b923fa5b2c17800a1282fbb257ee63c3243",
+            "tokens": 66
+          },
+          {
+            "classification": "dependency_lock",
+            "path": "package-lock.json",
+            "sha256": "e7b39a4b2c31b3af5571c182eb4434b1e53c8e9c8a74aef7e6c4be6ba414f846",
+            "tokens": 4385
+          },
+          {
+            "classification": "authored_source",
+            "path": "package.json",
+            "sha256": "da8d6005e00c0e3bc690ac4736edab56a4eac57ab1a82b2edcf12ed032dddb09",
+            "tokens": 564
+          },
+          {
+            "classification": "generated_output",
+            "entrypoint_path": "src/ui.tsx",
+            "entrypoint_sha256": "b3f8b9651804c8e9938f0208a88bdc348889d730441b43d8dcbbd4d35962f321",
+            "path": "public/app.js",
+            "recipe_path": "scripts/build.mjs",
+            "recipe_sha256": "3bde8a1aa83f82650fa2de5c3639accb539d008d25c58f8d2f46bdd5a1ec67c9",
+            "sha256": "93824435c081f74b203baea50a1a6e42ca13fb3c9e5eb590a8b16932bb1c0440",
+            "tokens": 235669
+          },
+          {
+            "classification": "authored_source",
+            "path": "public/index.html",
+            "sha256": "dca5a185dd8bd9f01a7f72744e5f71089dea175301c433793debfc90905d2ec6",
+            "tokens": 86
+          },
+          {
+            "classification": "authored_source",
+            "path": "public/style.css",
+            "sha256": "faa65bfd200eaf3ce291e3bc807ecc8f8da44ad23f527270fd1871d4be5dfac7",
+            "tokens": 2765
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "0fdf8cde5a7ebb507614ccfcb254f961ebdcb13e458b213307d777eca919dd5c",
+            "tokens": 27
+          },
+          {
+            "classification": "authored_source",
+            "path": "scripts/build.mjs",
+            "sha256": "3bde8a1aa83f82650fa2de5c3639accb539d008d25c58f8d2f46bdd5a1ec67c9",
+            "tokens": 135
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/app.ts",
+            "sha256": "8865a6af9191e8501c3e4aba4d4757aa044faea5599a20278c3457d4d37439e0",
+            "tokens": 3128
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/schema.ts",
+            "sha256": "2b4a361ce5981e3207d42671ac6d021a81a79aa992ef65d97e19006c8e909505",
+            "tokens": 4468
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/server.ts",
+            "sha256": "c51ea90a2c8843f945eeb273e34f52846cf7f81c526aa4837898d7f181fa7721",
+            "tokens": 263
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/ui.tsx",
+            "sha256": "b3f8b9651804c8e9938f0208a88bdc348889d730441b43d8dcbbd4d35962f321",
+            "tokens": 5614
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "773de390ef3f9b2ae023e56fcca110bdc345137750317ad1a4f4224baf455dac",
+            "tokens": 28
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests/application.test.mjs",
+            "sha256": "051f8bae8f094d5a3a85860f383e859f627585ead4db07c993ff970f5de21a0f",
+            "tokens": 6668
+          },
+          {
+            "classification": "authored_source",
+            "path": "tsconfig.json",
+            "sha256": "d51848acbcfa5dd26d54a73cf6d508c0c81f60adc87ee12fd76647d569a09bf0",
+            "tokens": 73
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 265110,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "349032f643d14a2b209a73725cef29f6929cdc8c0497e0a35a9e1618370d29a6",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "3755bf6f8acceb73328e28de42e394e813da52fe8045d4a7648d71eff26c430b",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "typescript",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/typescript-01",
+        "classification_complete": true,
+        "classification_input_sha256": "2bd016d50eb54300be7d30c4e93d768aba2fa5ecfe7d88f535644e2ffd1ce298",
+        "components": {
+          "authored_source": 25056,
+          "dependency_lock": 4385,
+          "generated_output": 235669,
+          "unresolved": 0
+        },
+        "dataset": "TeamDesk-round4",
+        "label": "typescript-01",
+        "legacy_total_tokens": 265110,
+        "metrics_input_sha256": "349032f643d14a2b209a73725cef29f6929cdc8c0497e0a35a9e1618370d29a6",
+        "number": 1,
+        "original_status": "not_accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/teamdesk_round4-typescript-01.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/typescript-02",
+        "classification_complete": true,
+        "classification_origin": {
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_results_sha256": "64cee2f6057bbc78a4547a570f113c03c73ad41956f45612d8508694fb4309a7",
+          "source": "TeamDesk authored-classification audit sidecar",
+          "source_origin_statement": "Caller-supplied classification of the exact retained TeamDesk candidate source inventory. Bound to original results SHA-256 64cee2f6057bbc78a4547a570f113c03c73ad41956f45612d8508694fb4309a7. Files were hash-checked against /Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/typescript-02. Generated output labels cite retained recipe and entrypoint hashes. This classifies counted final files only; it does not assert cumulative author effort or exclude generated files from the immutable original report.",
+          "source_sidecar_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/classification-sidecars/teamdesk-typescript-02.json",
+          "source_sidecar_sha256": "d7235f9854a9bdc6969b11d05b0400dad723466692fe55cf423c866112039dbb"
+        },
+        "components": {
+          "authored_source": 24089,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "38780b8cfe2abf77d31efa5b00ae2cadaac4169c7be4e7f92b7ab00457f50979",
+            "tokens": 965
+          },
+          {
+            "classification": "authored_source",
+            "path": "app.tsx",
+            "sha256": "4a71a01733d58a13eddd17bd65995c3dc2e2ba22f4ce54cec387fc723d4f3175",
+            "tokens": 4717
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.mjs",
+            "sha256": "bbd77b5e8a526ce8db3f69c936b2fdcf31bb5ca030732d0704c123aefd1455a3",
+            "tokens": 227
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "427fe603ba212e46ecc072cf8dadc32f906f8cfef6d25ff4d3a7b3623436dd2e",
+            "tokens": 40
+          },
+          {
+            "classification": "authored_source",
+            "path": "index.html",
+            "sha256": "7232a7a84ea928e75244d84e1a8c386c63291087a9b12e6192f18cd7083fc0aa",
+            "tokens": 86
+          },
+          {
+            "classification": "authored_source",
+            "path": "launch.ts",
+            "sha256": "bfc6d253412c25737051e213bf55012d6c96f07a4b71e8786114dfff9dba3f6d",
+            "tokens": 246
+          },
+          {
+            "classification": "authored_source",
+            "path": "model.ts",
+            "sha256": "7395d4fbe02bbf50c29ec7ea0bad9e8098b30f68371e08da14b7219b34e3654d",
+            "tokens": 4559
+          },
+          {
+            "classification": "authored_source",
+            "path": "package.json",
+            "sha256": "ff45eccb5675badb11872256a0915f26cb919d5266ee1a928b7c50b63ab23708",
+            "tokens": 233
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "0fdf8cde5a7ebb507614ccfcb254f961ebdcb13e458b213307d777eca919dd5c",
+            "tokens": 27
+          },
+          {
+            "classification": "authored_source",
+            "path": "server.ts",
+            "sha256": "9b39cf45c17249b0c2888f309f46230557dbe35e9948b9d1c1091cb65975a11c",
+            "tokens": 3089
+          },
+          {
+            "classification": "authored_source",
+            "path": "style.css",
+            "sha256": "b327780c6803384b164e040f6e69d5c32e81785a9ddda6b490f243fd5746d680",
+            "tokens": 2148
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "6abce786ef6decdb93c22850b28972d03337c6151ae5bd112e0900c00de2ab18",
+            "tokens": 26
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests.mjs",
+            "sha256": "f75e2959bd91a52ca96394a04f2e2c6a322497252b95d95b3d34e80a970f24e5",
+            "tokens": 7249
+          },
+          {
+            "classification": "authored_source",
+            "path": "tsconfig.json",
+            "sha256": "a7f5be52a25d3637d3221f3eb87446ac60234ab0409bbf0266d5836cf437b76b",
+            "tokens": 81
+          },
+          {
+            "classification": "authored_source",
+            "path": "vendor.cjs",
+            "sha256": "082af2be87c64770c4da628ebf95cf0d91c01655e92eb1f2e8af88af15f036da",
+            "tokens": 396
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 24089,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "84f151f04ce5bc0f38b2dc0e1412f8d315c15b6363c4538a7b60a95c47f7c0bf",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "b00169ae3e834fb6532b5fd088dc14a9ad056b608edc4c66a94e26a9d4c79dac",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "typescript",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/typescript-02",
+        "classification_complete": true,
+        "classification_input_sha256": "0e1e56ad17d6e411635ff5b933b085099a2e820f2b386ae178a0f5c801b66680",
+        "components": {
+          "authored_source": 24089,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "TeamDesk-round4",
+        "label": "typescript-02",
+        "legacy_total_tokens": 24089,
+        "metrics_input_sha256": "84f151f04ce5bc0f38b2dc0e1412f8d315c15b6363c4538a7b60a95c47f7c0bf",
+        "number": 2,
+        "original_status": "not_accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/teamdesk_round4-typescript-02.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/semaprax-02",
+        "classification_complete": true,
+        "classification_origin": {
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_results_sha256": "64cee2f6057bbc78a4547a570f113c03c73ad41956f45612d8508694fb4309a7",
+          "source": "TeamDesk authored-classification audit sidecar",
+          "source_origin_statement": "Caller-supplied classification of the exact retained TeamDesk candidate source inventory. Bound to original results SHA-256 64cee2f6057bbc78a4547a570f113c03c73ad41956f45612d8508694fb4309a7. Files were hash-checked against /Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/semaprax-02. Generated output labels cite retained recipe and entrypoint hashes. This classifies counted final files only; it does not assert cumulative author effort or exclude generated files from the immutable original report.",
+          "source_sidecar_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/classification-sidecars/teamdesk-semaprax-02.json",
+          "source_sidecar_sha256": "9670b52dd51a768d0f007b99ba48206b557ecd358cf4b510ceaf111e81129b71"
+        },
+        "components": {
+          "authored_source": 8202,
+          "dependency_lock": 0,
+          "generated_output": 3873,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "9ec13bdaf279c27563e3c44ffa4c7f5ca7ba040f0623004c46d5d01f2921c39c",
+            "tokens": 798
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "51be8308708357ec4449d92a4e62785e151ca5a2e7af8019b8a61cbf9dec90c6",
+            "tokens": 92
+          },
+          {
+            "classification": "authored_source",
+            "path": "generate.py",
+            "sha256": "fe768231444472058e1b1466c58e32593b2bba7b201eb7a35fc285df27f4780a",
+            "tokens": 2602
+          },
+          {
+            "classification": "authored_source",
+            "path": "launch.mjs",
+            "sha256": "c2d4371cb94a7159f1f24cec4562e2f112fb9427d516a1ec1584f39da6bb8853",
+            "tokens": 608
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "ccea28ce50b1c89932f355ec9bc8bee470db38b917efe61deeb5f432231b2b30",
+            "tokens": 27
+          },
+          {
+            "classification": "generated_output",
+            "entrypoint_path": "generate.py",
+            "entrypoint_sha256": "fe768231444472058e1b1466c58e32593b2bba7b201eb7a35fc285df27f4780a",
+            "path": "teamdesk.spx",
+            "recipe_path": "generate.py",
+            "recipe_sha256": "fe768231444472058e1b1466c58e32593b2bba7b201eb7a35fc285df27f4780a",
+            "sha256": "fd89834df1f96b481238da433e573f48b1f6b40587d6569d2145fe0ace478765",
+            "tokens": 3873
+          },
+          {
+            "classification": "authored_source",
+            "path": "test-transport.mjs",
+            "sha256": "9b5aab9529f5074ab508790cface44d98217459aa25f946cf08c2f805a7a66f2",
+            "tokens": 310
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "4b597722ed46caf8971f1690f9705959764c892ee63b99db5fc87bb240444aaa",
+            "tokens": 99
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests.mjs",
+            "sha256": "cb483d1dc341fbbaeb7a59963e875c663eda72a80a1ed819fb6055eb774be45a",
+            "tokens": 3666
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 12075,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "f236a1b5186418a6c5e8854efa049b53871a51cb6aff0162e4274e7a16a7dc52",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "3e85f5292a00265dcf2baee8d7805de4f436410f5f98957dad8b0f868e340095",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "semaprax",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/semaprax-02",
+        "classification_complete": true,
+        "classification_input_sha256": "651f7dd40f72dd5b9aec0a239ff365424a72a301fa1343bd3bbd7eb9d1b5b847",
+        "components": {
+          "authored_source": 8202,
+          "dependency_lock": 0,
+          "generated_output": 3873,
+          "unresolved": 0
+        },
+        "dataset": "TeamDesk-round4",
+        "label": "semaprax-02",
+        "legacy_total_tokens": 12075,
+        "metrics_input_sha256": "f236a1b5186418a6c5e8854efa049b53871a51cb6aff0162e4274e7a16a7dc52",
+        "number": 2,
+        "original_status": "accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/teamdesk_round4-semaprax-02.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/semaprax-03",
+        "classification_complete": true,
+        "classification_origin": {
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_results_sha256": "64cee2f6057bbc78a4547a570f113c03c73ad41956f45612d8508694fb4309a7",
+          "source": "TeamDesk authored-classification audit sidecar",
+          "source_origin_statement": "Caller-supplied classification of the exact retained TeamDesk candidate source inventory. Bound to original results SHA-256 64cee2f6057bbc78a4547a570f113c03c73ad41956f45612d8508694fb4309a7. Files were hash-checked against /Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/semaprax-03. Generated output labels cite retained recipe and entrypoint hashes. This classifies counted final files only; it does not assert cumulative author effort or exclude generated files from the immutable original report. The retained generate.py consumes the frozen SPEC.md (SHA-256 7658414ed2bbb53477a93e4a00f36269954c5bc45f3148fe72ddd02f203a50dc); generated compiler-output files use teamdesk.spx as entrypoint.",
+          "source_sidecar_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/classification-sidecars/teamdesk-semaprax-03.json",
+          "source_sidecar_sha256": "25ca953590a5d9e23a631b0798acdf155dba5c9d3707e74fb56207275ec03f55"
+        },
+        "components": {
+          "authored_source": 8047,
+          "dependency_lock": 0,
+          "generated_output": 45521,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "14b0bcba643811ea95208d0adfc8062f933fafc6047fa1c4bbccd129921a8a06",
+            "tokens": 627
+          },
+          {
+            "classification": "generated_output",
+            "entrypoint_path": "teamdesk.spx",
+            "entrypoint_sha256": "be8686620c78139499f7ad3a21eb7bfc8016a2931eeed0b87289e9a178b78245",
+            "path": "app/app.js",
+            "recipe_path": "build.sh",
+            "recipe_sha256": "2d0844ad73899786a57a0ffde82bb0cb74375c9947195c9109749635cee3bebd",
+            "sha256": "44ec5f938ad7b3978e189184740a5ce8c5d36515a827ada9e4be4856652cc021",
+            "tokens": 6328
+          },
+          {
+            "classification": "generated_output",
+            "entrypoint_path": "teamdesk.spx",
+            "entrypoint_sha256": "be8686620c78139499f7ad3a21eb7bfc8016a2931eeed0b87289e9a178b78245",
+            "path": "app/index.html",
+            "recipe_path": "build.sh",
+            "recipe_sha256": "2d0844ad73899786a57a0ffde82bb0cb74375c9947195c9109749635cee3bebd",
+            "sha256": "6d16a0ffa0fec2c0254f1d5af5557a76cc75f7cde301b5230bbb06ac71809fe4",
+            "tokens": 133
+          },
+          {
+            "classification": "generated_output",
+            "entrypoint_path": "teamdesk.spx",
+            "entrypoint_sha256": "be8686620c78139499f7ad3a21eb7bfc8016a2931eeed0b87289e9a178b78245",
+            "path": "app/runtime.js",
+            "recipe_path": "build.sh",
+            "recipe_sha256": "2d0844ad73899786a57a0ffde82bb0cb74375c9947195c9109749635cee3bebd",
+            "sha256": "f8f954c0438a3d17070384663ccdda09c74fe24f73a7c83d005e7954e266f7d6",
+            "tokens": 4402
+          },
+          {
+            "classification": "generated_output",
+            "entrypoint_path": "teamdesk.spx",
+            "entrypoint_sha256": "be8686620c78139499f7ad3a21eb7bfc8016a2931eeed0b87289e9a178b78245",
+            "path": "app/schema.js",
+            "recipe_path": "build.sh",
+            "recipe_sha256": "2d0844ad73899786a57a0ffde82bb0cb74375c9947195c9109749635cee3bebd",
+            "sha256": "039593be84a7ee6fccaaa2a5ff07d2129749e38fa22b2e2f6f8c72dd3997ab1d",
+            "tokens": 12004
+          },
+          {
+            "classification": "generated_output",
+            "entrypoint_path": "teamdesk.spx",
+            "entrypoint_sha256": "be8686620c78139499f7ad3a21eb7bfc8016a2931eeed0b87289e9a178b78245",
+            "path": "app/security.mjs",
+            "recipe_path": "build.sh",
+            "recipe_sha256": "2d0844ad73899786a57a0ffde82bb0cb74375c9947195c9109749635cee3bebd",
+            "sha256": "7e0404e8f4ef2f5299273ea08bf93a8ebcfa2b384add49121e0fd26e9436d277",
+            "tokens": 553
+          },
+          {
+            "classification": "generated_output",
+            "entrypoint_path": "teamdesk.spx",
+            "entrypoint_sha256": "be8686620c78139499f7ad3a21eb7bfc8016a2931eeed0b87289e9a178b78245",
+            "path": "app/server.mjs",
+            "recipe_path": "build.sh",
+            "recipe_sha256": "2d0844ad73899786a57a0ffde82bb0cb74375c9947195c9109749635cee3bebd",
+            "sha256": "0ee6cb3bd35293db51f7fd2affc74b614f0bb1d0b6c4d96418bd49b1994247ea",
+            "tokens": 15420
+          },
+          {
+            "classification": "generated_output",
+            "entrypoint_path": "teamdesk.spx",
+            "entrypoint_sha256": "be8686620c78139499f7ad3a21eb7bfc8016a2931eeed0b87289e9a178b78245",
+            "path": "app/state.mjs",
+            "recipe_path": "build.sh",
+            "recipe_sha256": "2d0844ad73899786a57a0ffde82bb0cb74375c9947195c9109749635cee3bebd",
+            "sha256": "8b3c06aa05d7e45994e4578c6fd9bb4906d3575433ed71408578cfc1c9414892",
+            "tokens": 1702
+          },
+          {
+            "classification": "generated_output",
+            "entrypoint_path": "teamdesk.spx",
+            "entrypoint_sha256": "be8686620c78139499f7ad3a21eb7bfc8016a2931eeed0b87289e9a178b78245",
+            "path": "app/style.css",
+            "recipe_path": "build.sh",
+            "recipe_sha256": "2d0844ad73899786a57a0ffde82bb0cb74375c9947195c9109749635cee3bebd",
+            "sha256": "36b4fe13dee9ce5e15686dba1a5139475ad0388330eb27dc8460b7f8acc5f24a",
+            "tokens": 1335
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "2d0844ad73899786a57a0ffde82bb0cb74375c9947195c9109749635cee3bebd",
+            "tokens": 102
+          },
+          {
+            "classification": "authored_source",
+            "path": "generate.py",
+            "sha256": "ba6cc512ede12f551be40da812c9999a2ec68b911c6ad0c8c4bf72039f77e279",
+            "tokens": 2598
+          },
+          {
+            "classification": "authored_source",
+            "path": "launch.mjs",
+            "sha256": "0c6e120f4711de4badce877d6583ebef355da352242aaa909c633bb3645bba63",
+            "tokens": 720
+          },
+          {
+            "classification": "authored_source",
+            "path": "network-test.mjs",
+            "sha256": "7a218d1ce8ed79359c98d945bdd0eb97817819c5ffc61a42762cf5fe32c647fd",
+            "tokens": 258
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "ccea28ce50b1c89932f355ec9bc8bee470db38b917efe61deeb5f432231b2b30",
+            "tokens": 27
+          },
+          {
+            "classification": "generated_output",
+            "entrypoint_path": "generate.py",
+            "entrypoint_sha256": "ba6cc512ede12f551be40da812c9999a2ec68b911c6ad0c8c4bf72039f77e279",
+            "path": "teamdesk.spx",
+            "recipe_path": "generate.py",
+            "recipe_sha256": "ba6cc512ede12f551be40da812c9999a2ec68b911c6ad0c8c4bf72039f77e279",
+            "sha256": "be8686620c78139499f7ad3a21eb7bfc8016a2931eeed0b87289e9a178b78245",
+            "tokens": 3644
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "159fff60015e4a3093745a6f84f861f0a248cfc9d5402d2d5eee48a3894858ca",
+            "tokens": 48
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests.mjs",
+            "sha256": "da96be36c5c54c1d99318189654568febac023a97ae1e5d573270866d377f0fe",
+            "tokens": 3667
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 53568,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "e4287a189891c0fd127d31e2f733e962d33aa9534421e0f6f3df8e14a879e8be",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "68280ce52c372e1c59ecaca2c62828f9953dc5f281937c1ed1f21b6e83e6f222",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "semaprax",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/semaprax-03",
+        "classification_complete": true,
+        "classification_input_sha256": "eb24e6a8a2766e77431f26a0d39ef15310fcc753cae79b23035f4a5716533578",
+        "components": {
+          "authored_source": 8047,
+          "dependency_lock": 0,
+          "generated_output": 45521,
+          "unresolved": 0
+        },
+        "dataset": "TeamDesk-round4",
+        "label": "semaprax-03",
+        "legacy_total_tokens": 53568,
+        "metrics_input_sha256": "e4287a189891c0fd127d31e2f733e962d33aa9534421e0f6f3df8e14a879e8be",
+        "number": 3,
+        "original_status": "accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/teamdesk_round4-semaprax-03.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/typescript-03",
+        "classification_complete": true,
+        "classification_origin": {
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_results_sha256": "64cee2f6057bbc78a4547a570f113c03c73ad41956f45612d8508694fb4309a7",
+          "source": "TeamDesk authored-classification audit sidecar",
+          "source_origin_statement": "Caller-supplied classification of the exact retained TeamDesk candidate source inventory. Bound to original results SHA-256 64cee2f6057bbc78a4547a570f113c03c73ad41956f45612d8508694fb4309a7. Files were hash-checked against /Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/typescript-03. Generated output labels cite retained recipe and entrypoint hashes. This classifies counted final files only; it does not assert cumulative author effort or exclude generated files from the immutable original report. Transcript typescript-03.jsonl records the test-output redirection that created test-results.txt.",
+          "source_sidecar_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/classification-sidecars/teamdesk-typescript-03.json",
+          "source_sidecar_sha256": "cd88556dc29f0269b3d8e13d7d8b50d4646bb82fe505e966ccaa055343c940ac"
+        },
+        "components": {
+          "authored_source": 20592,
+          "dependency_lock": 0,
+          "generated_output": 1072,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "5871aebc2e30899787cdfba7e0abe021ede8afac687b3d4273e75fa4adee1802",
+            "tokens": 1104
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.mjs",
+            "sha256": "d4edce668e9ae616c7c829303229f712b6ad2a79618028c0b300f29a4c4d9403",
+            "tokens": 150
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "7041fdd36a11a4ccc6f613eae9d070207cab6d6d4033a8c855342c2d02d31a4a",
+            "tokens": 37
+          },
+          {
+            "classification": "authored_source",
+            "path": "package.json",
+            "sha256": "088151acc958688b72aedda6de685f5c2dc79da2aee27e6c85c0950a3db861fd",
+            "tokens": 150
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "0fdf8cde5a7ebb507614ccfcb254f961ebdcb13e458b213307d777eca919dd5c",
+            "tokens": 27
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/index.html",
+            "sha256": "a0b307a05565edec337d3c582edf802779c1dab9420b8fedc5d386fc5f1bf401",
+            "tokens": 86
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/schema.ts",
+            "sha256": "05be073ea4df780dc422dff285785e9c4d3b60b23829d56a08b74cd8c90aaac7",
+            "tokens": 3952
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/server.ts",
+            "sha256": "1d9c2c24bdb869ab100e153e10af9ef55a701d84e2570f73b204e6d7dfd02789",
+            "tokens": 3444
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/style.css",
+            "sha256": "2d02b491abdd9c769194e0088f7c6f08d44989ab2f1920e869a585e1478a3203",
+            "tokens": 1819
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/ui.tsx",
+            "sha256": "554adc89b1d18bca24f783e7dc905385abfc16fc945506c9f4ae329669810731",
+            "tokens": 4486
+          },
+          {
+            "classification": "generated_output",
+            "entrypoint_path": "test/app.test.mjs",
+            "entrypoint_sha256": "f84d27c52968c106e70939375df62738a8d9843c441d4e91d8e98f3ea58e3508",
+            "path": "test-results.txt",
+            "recipe_path": "test.sh",
+            "recipe_sha256": "9b79ba7bf99cb954eb79e76cee7e9416fab173614650ca45d8e60377f6111cbb",
+            "sha256": "51eff520ac948e8068ac6daeda2d89216d54b7c16fcb5cc62283810c48cae142",
+            "tokens": 1072
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "9b79ba7bf99cb954eb79e76cee7e9416fab173614650ca45d8e60377f6111cbb",
+            "tokens": 28
+          },
+          {
+            "classification": "authored_source",
+            "path": "test/app.test.mjs",
+            "sha256": "f84d27c52968c106e70939375df62738a8d9843c441d4e91d8e98f3ea58e3508",
+            "tokens": 5240
+          },
+          {
+            "classification": "authored_source",
+            "path": "tsconfig.json",
+            "sha256": "8e3b218015664c76f680100457227acee0246186a82e42b5e70f95c80c0f37b5",
+            "tokens": 69
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 21664,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "d0e24549f402b7df7558bdf72c6b636299d60f68fcd98dafc0ee89719777796e",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "3b9b04853edfe83938cc2aab92746545be644293401b18d0e407ad003c82e29f",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "typescript",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/typescript-03",
+        "classification_complete": true,
+        "classification_input_sha256": "03d268125c115c64695a20ca67c6652989f3b9c567b4f78149f68917547ac12f",
+        "components": {
+          "authored_source": 20592,
+          "dependency_lock": 0,
+          "generated_output": 1072,
+          "unresolved": 0
+        },
+        "dataset": "TeamDesk-round4",
+        "label": "typescript-03",
+        "legacy_total_tokens": 21664,
+        "metrics_input_sha256": "d0e24549f402b7df7558bdf72c6b636299d60f68fcd98dafc0ee89719777796e",
+        "number": 3,
+        "original_status": "not_accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/teamdesk_round4-typescript-03.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/typescript-04",
+        "classification_complete": true,
+        "classification_origin": {
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_results_sha256": "64cee2f6057bbc78a4547a570f113c03c73ad41956f45612d8508694fb4309a7",
+          "source": "TeamDesk authored-classification audit sidecar",
+          "source_origin_statement": "Caller-supplied classification of the exact retained TeamDesk candidate source inventory. Bound to original results SHA-256 64cee2f6057bbc78a4547a570f113c03c73ad41956f45612d8508694fb4309a7. Files were hash-checked against /Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/typescript-04. Generated output labels cite retained recipe and entrypoint hashes. This classifies counted final files only; it does not assert cumulative author effort or exclude generated files from the immutable original report.",
+          "source_sidecar_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/classification-sidecars/teamdesk-typescript-04.json",
+          "source_sidecar_sha256": "b8f420776aa69318838dfae7113b9a903b878aeacec9ccedb0f414b8ff2390f7"
+        },
+        "components": {
+          "authored_source": 19870,
+          "dependency_lock": 4512,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": ".gitignore",
+            "sha256": "c8c392ca5d4cc8b52dde509d0881b944aa65ec4b93303bf90ded8d4cfecbaac1",
+            "tokens": 14
+          },
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "984ff7ed7ebff12f1dc7c91ea5cc97de7f4e07864d9e8974b62130d9e28c5fcc",
+            "tokens": 768
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "ff4e0a9f334d8575540bf4c5a1316685b9a3f80a1775304cf2662c77a2a022b2",
+            "tokens": 245
+          },
+          {
+            "classification": "dependency_lock",
+            "path": "package-lock.json",
+            "sha256": "d3978d0609e5245b6c8713a52073a0e70a8a6c1d2fdcefdce41fc0a13eac1a48",
+            "tokens": 4512
+          },
+          {
+            "classification": "authored_source",
+            "path": "package.json",
+            "sha256": "8cc6d9c15e8074f23a7483f98b7e2c38d3e623b1a81cde4ebfd3db1249f22233",
+            "tokens": 647
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "0fdf8cde5a7ebb507614ccfcb254f961ebdcb13e458b213307d777eca919dd5c",
+            "tokens": 27
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/app.tsx",
+            "sha256": "4c29410324ccb26097d6735a7b82e16be764a3f8b3b15219ddb7f79f459196e8",
+            "tokens": 4331
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/model.ts",
+            "sha256": "b9e0ebafa905d0dc0e4eff33fc575ae8e5716d3f39c1eb8ccbf26c44418c6564",
+            "tokens": 3748
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/server.ts",
+            "sha256": "8dceaaa01d8065eb837039ed76e2de8885c0653851205794cad441ec4aa61e7d",
+            "tokens": 332
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/service.ts",
+            "sha256": "f32b49f712e9b70a165a80fe534bc2db2b5fe2835cfb410c37591f4b6b4cad7e",
+            "tokens": 2954
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/style.css",
+            "sha256": "b1ca04afcdcd9438f69040d0431e03420633906c08cbbb504bc19be8b7627e32",
+            "tokens": 1370
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "f8327c9a9970901c5840aa9b88e51900eb59c6433d56a5c559539615a8626dbd",
+            "tokens": 110
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests/integration.mjs",
+            "sha256": "538aca3d58b0b3d4efdb4203ddb21270abf09907d3474281007fa6019efba8b8",
+            "tokens": 5268
+          },
+          {
+            "classification": "authored_source",
+            "path": "tsconfig.json",
+            "sha256": "cd3fdbad5836ce43d196ab74c2a2916c4cfa279344c7d07f598d82f8e0ff381d",
+            "tokens": 56
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 24382,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "9990ccf873f76b34373fc581d71feb5e894341bc72c320956697bc87469214f8",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "d478cf86095ccc92dfb65a4f0b37a02613b6c11e7492db2165bc5f92d7df35cd",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "typescript",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/typescript-04",
+        "classification_complete": true,
+        "classification_input_sha256": "4c37179207c7b9b1f6a6df74865daa23559305ae1e094d5c7befc04b9abf1470",
+        "components": {
+          "authored_source": 19870,
+          "dependency_lock": 4512,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "TeamDesk-round4",
+        "label": "typescript-04",
+        "legacy_total_tokens": 24382,
+        "metrics_input_sha256": "9990ccf873f76b34373fc581d71feb5e894341bc72c320956697bc87469214f8",
+        "number": 4,
+        "original_status": "not_accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/teamdesk_round4-typescript-04.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/semaprax-04",
+        "classification_complete": true,
+        "classification_origin": {
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_results_sha256": "64cee2f6057bbc78a4547a570f113c03c73ad41956f45612d8508694fb4309a7",
+          "source": "TeamDesk authored-classification audit sidecar",
+          "source_origin_statement": "Caller-supplied classification of the exact retained TeamDesk candidate source inventory. Bound to original results SHA-256 64cee2f6057bbc78a4547a570f113c03c73ad41956f45612d8508694fb4309a7. Files were hash-checked against /Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/semaprax-04. Generated output labels cite retained recipe and entrypoint hashes. This classifies counted final files only; it does not assert cumulative author effort or exclude generated files from the immutable original report.",
+          "source_sidecar_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/classification-sidecars/teamdesk-semaprax-04.json",
+          "source_sidecar_sha256": "216b40e37e22dd8d329ece10fcd6b9e6cfe8431496d56fea8ccdcaa25699de71"
+        },
+        "components": {
+          "authored_source": 11072,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": ".gitignore",
+            "sha256": "462e180dfe9915ea3cda27b33607ebb8a347531f91222cd8b062c7404401c858",
+            "tokens": 16
+          },
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "7a504d084b6dbaf8febfb61a43dc502a2bc5fc0716faaf1137c8f57fc9f0bcab",
+            "tokens": 674
+          },
+          {
+            "classification": "authored_source",
+            "path": "app.spx",
+            "sha256": "0e7432af3ee16a1a5e3cfb9db74b8b04e7bb2e1f3d4757117f1e98e50edb4d2c",
+            "tokens": 3258
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "9de14a2fe61bc08a8e19f46dbdae61bb5f42d1668d3294c8b8da28085e2a6730",
+            "tokens": 97
+          },
+          {
+            "classification": "authored_source",
+            "path": "launch.mjs",
+            "sha256": "5164a068c3d78989b58ba846e812e8d54f4a9268945800db32b99cfe360d4292",
+            "tokens": 926
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "c5f1fb562e64502cece067e1b02b71cbaf28542f38c9c5af20b10ab770b492f3",
+            "tokens": 25
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "773de390ef3f9b2ae023e56fcca110bdc345137750317ad1a4f4224baf455dac",
+            "tokens": 28
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests/application.test.mjs",
+            "sha256": "95061c4ee95933cbc0310a6bcf6c62722afdfbd07cc5addd2b84df4c3350a84e",
+            "tokens": 5599
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests/handler-worker.mjs",
+            "sha256": "d5bbafeb05b01d96f4cf395e9b43eb8504f2127e14a750dcfeb46029545b359d",
+            "tokens": 449
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 11072,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "1f95b9873fd83b20b7e75299dc2cba919892d53b2177693bd90527936505ef2a",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "207fcf685ebbdbad03e6827d050224738eff55d02e27ef69a53dc35f09211200",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "semaprax",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/semaprax-04",
+        "classification_complete": true,
+        "classification_input_sha256": "ec4e4ea18c404675f98ed3302b959dc71ba324dce2a99debc25fd653380f489d",
+        "components": {
+          "authored_source": 11072,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "TeamDesk-round4",
+        "label": "semaprax-04",
+        "legacy_total_tokens": 11072,
+        "metrics_input_sha256": "1f95b9873fd83b20b7e75299dc2cba919892d53b2177693bd90527936505ef2a",
+        "number": 4,
+        "original_status": "accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/teamdesk_round4-semaprax-04.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/semaprax-05",
+        "classification_complete": true,
+        "classification_origin": {
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_results_sha256": "64cee2f6057bbc78a4547a570f113c03c73ad41956f45612d8508694fb4309a7",
+          "source": "TeamDesk authored-classification audit sidecar",
+          "source_origin_statement": "Caller-supplied classification of the exact retained TeamDesk candidate source inventory. Bound to original results SHA-256 64cee2f6057bbc78a4547a570f113c03c73ad41956f45612d8508694fb4309a7. Files were hash-checked against /Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/semaprax-05. Generated output labels cite retained recipe and entrypoint hashes. This classifies counted final files only; it does not assert cumulative author effort or exclude generated files from the immutable original report.",
+          "source_sidecar_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/classification-sidecars/teamdesk-semaprax-05.json",
+          "source_sidecar_sha256": "7fd93d58ba12a6055aad921d1d515ec0eef3a5e28f8575192e84176731323e90"
+        },
+        "components": {
+          "authored_source": 8123,
+          "dependency_lock": 0,
+          "generated_output": 3930,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "998b575b0f67bad8737a147be051276cc6c13a9100a207031b1ca39c4d65958b",
+            "tokens": 441
+          },
+          {
+            "classification": "authored_source",
+            "path": "TEST-RESULTS.md",
+            "sha256": "477b742eb1e4a47a4c0fe89b43b903684f7d53985968b53abb5a9faa0d0a0048",
+            "tokens": 208
+          },
+          {
+            "classification": "authored_source",
+            "path": "author.py",
+            "sha256": "f3016d3d50d1b67061f2aa4efd45401175d8b686c1686f9e163851dafb2757b5",
+            "tokens": 2812
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "51be8308708357ec4449d92a4e62785e151ca5a2e7af8019b8a61cbf9dec90c6",
+            "tokens": 92
+          },
+          {
+            "classification": "authored_source",
+            "path": "launch.mjs",
+            "sha256": "43806f7e9253615769c586f9bc24e173ef6b251e4c3b26d0b75d4adbffec9ce4",
+            "tokens": 589
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "ccea28ce50b1c89932f355ec9bc8bee470db38b917efe61deeb5f432231b2b30",
+            "tokens": 27
+          },
+          {
+            "classification": "generated_output",
+            "entrypoint_path": "author.py",
+            "entrypoint_sha256": "f3016d3d50d1b67061f2aa4efd45401175d8b686c1686f9e163851dafb2757b5",
+            "path": "teamdesk.spx",
+            "recipe_path": "author.py",
+            "recipe_sha256": "f3016d3d50d1b67061f2aa4efd45401175d8b686c1686f9e163851dafb2757b5",
+            "sha256": "cd352bf812a99c8b6d7b0fd3e8e6ac7c17f7170711ff6c74d6515535391e9583",
+            "tokens": 3930
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.mjs",
+            "sha256": "c7ad977ce7c84fc97785faacf48da64937adf9579868c11193cd8ec39ba15a84",
+            "tokens": 3930
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "e35d91358944a9ccf17573233fc42afe245f88365f46e3a464d2f82016a2dcae",
+            "tokens": 24
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 12053,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "0e2e6e30ea1fadc3d6243af004a670dd0997dc2412132e04e25bf9935ddf4328",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "56ab3a27e1427cb2daadf098461f4b74dc056ff308462b18615884806bb1187c",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "semaprax",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/semaprax-05",
+        "classification_complete": true,
+        "classification_input_sha256": "6696655df53cb9935001fe47759f3d1cdfbe001ef551bd5103b6fd2d0fafbffc",
+        "components": {
+          "authored_source": 8123,
+          "dependency_lock": 0,
+          "generated_output": 3930,
+          "unresolved": 0
+        },
+        "dataset": "TeamDesk-round4",
+        "label": "semaprax-05",
+        "legacy_total_tokens": 12053,
+        "metrics_input_sha256": "0e2e6e30ea1fadc3d6243af004a670dd0997dc2412132e04e25bf9935ddf4328",
+        "number": 5,
+        "original_status": "accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/teamdesk_round4-semaprax-05.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/typescript-05",
+        "classification_complete": true,
+        "classification_origin": {
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_results_sha256": "64cee2f6057bbc78a4547a570f113c03c73ad41956f45612d8508694fb4309a7",
+          "source": "TeamDesk authored-classification audit sidecar",
+          "source_origin_statement": "Caller-supplied classification of the exact retained TeamDesk candidate source inventory. Bound to original results SHA-256 64cee2f6057bbc78a4547a570f113c03c73ad41956f45612d8508694fb4309a7. Files were hash-checked against /Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/typescript-05. Generated output labels cite retained recipe and entrypoint hashes. This classifies counted final files only; it does not assert cumulative author effort or exclude generated files from the immutable original report.",
+          "source_sidecar_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/classification-sidecars/teamdesk-typescript-05.json",
+          "source_sidecar_sha256": "5734324a4b9e973100d4313f5769076ba6dbfc51caf07cff18f541aa263ee954"
+        },
+        "components": {
+          "authored_source": 22447,
+          "dependency_lock": 4620,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": ".gitignore",
+            "sha256": "cf9b6c0164ece06b854ec27383853f3b3be05efa7bedc82160987bcd8ce99a77",
+            "tokens": 22
+          },
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "79aff9d73617ed7822cb41accb0b2a2b91f5f4b899d89fd33a3a6fd103539dcf",
+            "tokens": 1198
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.mjs",
+            "sha256": "eb90195e98a61aee60c470fca648bfbe7786de8647ccd57f8e0e3edba1640ecd",
+            "tokens": 251
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "aa7b4fed4a4d945462537540dac90e655893f56aa9840f4b7a32f9452b3460e3",
+            "tokens": 24
+          },
+          {
+            "classification": "authored_source",
+            "path": "index.html",
+            "sha256": "69aa2be33b5b88a620d29ebd59d9070ae26bb25afa844c40e4b2d48e133c93a6",
+            "tokens": 82
+          },
+          {
+            "classification": "authored_source",
+            "path": "main.ts",
+            "sha256": "fab2eff5526bbc0c850b001ec308e3b7356817f772d67a406b1940e3116e1125",
+            "tokens": 12
+          },
+          {
+            "classification": "authored_source",
+            "path": "model.ts",
+            "sha256": "37f5b9570fb3a570f0756e2472c0ebbe43fe42727e03191fadf8b7138baf96a1",
+            "tokens": 3594
+          },
+          {
+            "classification": "dependency_lock",
+            "path": "package-lock.json",
+            "sha256": "ea2826913deb38fe509f725e3f017275a0d743de2af8e7b915e1821f21257619",
+            "tokens": 4620
+          },
+          {
+            "classification": "authored_source",
+            "path": "package.json",
+            "sha256": "d45948e4bb88f39170c2a5a6bd8b78019331491f0860ae3efadb99ede9c654d0",
+            "tokens": 509
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "0fdf8cde5a7ebb507614ccfcb254f961ebdcb13e458b213307d777eca919dd5c",
+            "tokens": 27
+          },
+          {
+            "classification": "authored_source",
+            "path": "server.ts",
+            "sha256": "727a4ec6d13d87a862486d8e8c91323d1b6700284a782f049de8a94eb58493de",
+            "tokens": 3214
+          },
+          {
+            "classification": "authored_source",
+            "path": "style.css",
+            "sha256": "153d45ae4a0ac700e84f97983da978d8abbed8ae60b5195fb369cdd2a57ca728",
+            "tokens": 1824
+          },
+          {
+            "classification": "authored_source",
+            "path": "test-browser.sh",
+            "sha256": "6d9e6c85245391293aca69ce5e0f4997544475a97f6925f01dbcc7fcf7f3aa81",
+            "tokens": 34
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.mjs",
+            "sha256": "be23ed48437463ed3d0db4bb1e533b8d59a516fd838b905467a7fe6ae6a79357",
+            "tokens": 6479
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "e35d91358944a9ccf17573233fc42afe245f88365f46e3a464d2f82016a2dcae",
+            "tokens": 24
+          },
+          {
+            "classification": "authored_source",
+            "path": "tsconfig.json",
+            "sha256": "143953d0394fe525914ea46dd7604e996045426ba411629f28574d3f973e531a",
+            "tokens": 80
+          },
+          {
+            "classification": "authored_source",
+            "path": "ui.tsx",
+            "sha256": "15a926cf84da8b8c2b2ac96b2ede43be298a9ada3c78e79e8751435279b348d7",
+            "tokens": 5073
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 27067,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "01f92fec6e7b5e5936532c6169dd842d181f938c9b95d73159e61f0e52f87b1f",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "0dca08f75d0c9f68cb7d24fc4796124334c53eb796f71efe09fa485ac4148521",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "typescript",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/candidates/typescript-05",
+        "classification_complete": true,
+        "classification_input_sha256": "62db57a82a76a8bc2931380cbe3e5d1482446c1933bc5744b278149e8aeb8b1c",
+        "components": {
+          "authored_source": 22447,
+          "dependency_lock": 4620,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "TeamDesk-round4",
+        "label": "typescript-05",
+        "legacy_total_tokens": 27067,
+        "metrics_input_sha256": "01f92fec6e7b5e5936532c6169dd842d181f938c9b95d73159e61f0e52f87b1f",
+        "number": 5,
+        "original_status": "not_accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/teamdesk_round4-typescript-05.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/candidates/semaprax-01",
+        "classification_complete": true,
+        "classification_origin": {
+          "attempt_identity": {
+            "arm": "semaprax",
+            "number": 1
+          },
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_recount_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/recount-final.json",
+          "original_recount_sha256": "b1b7204234146559d87c893d69b59a74fc3042c5f0dfc7da993e8b49a791069f",
+          "original_results_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/results.json",
+          "original_results_sha256": "801e51fcc261917131860272fd0f950ea5516ddcb103210e0ea8510d1ec4b013",
+          "source": "LogLens-7 authored-classification audit index"
+        },
+        "components": {
+          "authored_source": 7826,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "3bd3c035657db447afeb8a4e14698a18d63d9b53d91660b585e350bc18c8791f",
+            "tokens": 396
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "a54456e622275f302850866af4f4b05428fd3b363d492f8a8a9079fda24d46ac",
+            "tokens": 137
+          },
+          {
+            "classification": "authored_source",
+            "path": "loglens.spx",
+            "sha256": "b1810cc98976b069747ce628c2c9fd6afadd9cbbb059d7935b04e68f240a2dbc",
+            "tokens": 4163
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "a7663d49d3474be64b35e76287b1ba30858a09c14bbee8e24536b8800f08d02c",
+            "tokens": 379
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "4f4198a2564fe4c0f9f264629fe2fe3c915a95037f85b50468b66d63c4efd3af",
+            "tokens": 60
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests.py",
+            "sha256": "a2df846325d6c2e18cae83ee1a4cdf926c811e2f41aa6b7cbbe3ce5951bdf521",
+            "tokens": 2691
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 7826,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "ded66b3b3de15c814e8203c54a0f83d1beacc6ba369e8215018d6ca7d18f8b31",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "d77d5e4f7109c3f76654052ae83874d7ce7d03c282f2d4c0c1528be6336b4577",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "semaprax",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/candidates/semaprax-01",
+        "classification_complete": true,
+        "classification_input_sha256": "4a800fad0ae924d7d2d9d5df1b1c851dd0e657245adf125f3dc0bcd9e064fcb9",
+        "components": {
+          "authored_source": 7826,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "LogLens-7",
+        "label": "semaprax-01",
+        "legacy_total_tokens": 7826,
+        "metrics_input_sha256": "ded66b3b3de15c814e8203c54a0f83d1beacc6ba369e8215018d6ca7d18f8b31",
+        "number": 1,
+        "original_status": "not_accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/loglens_7-semaprax-01.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/candidates/typescript-01",
+        "classification_complete": true,
+        "classification_origin": {
+          "attempt_identity": {
+            "arm": "typescript",
+            "number": 1
+          },
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_recount_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/recount-final.json",
+          "original_recount_sha256": "b1b7204234146559d87c893d69b59a74fc3042c5f0dfc7da993e8b49a791069f",
+          "original_results_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/results.json",
+          "original_results_sha256": "801e51fcc261917131860272fd0f950ea5516ddcb103210e0ea8510d1ec4b013",
+          "source": "LogLens-7 authored-classification audit index"
+        },
+        "components": {
+          "authored_source": 4478,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "47cded498e65d6074de4e437efed8441e3fd53765a17a73f20658acd548f9a40",
+            "tokens": 162
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "5bd60e2a8b5131f595f24ae74290fd08f655ad9119feb1dd0544d187142e50d0",
+            "tokens": 36
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "ffca5f2cf1d5dcfc2daa8f1162514b6f3d703e51d2810496b5d695f91ba77ca6",
+            "tokens": 76
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/main.ts",
+            "sha256": "8b9af59ab5818460cfd08e3128595bd8ce23489add8bf273e972b5b3258408e1",
+            "tokens": 1564
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/node.d.ts",
+            "sha256": "66a5aee64bb46ee8c3c2f9457f3c9621845b3a209fd4f65d712b3b1212990195",
+            "tokens": 116
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "45122bac4e9723c71dc78d074bb4546269649ab13376524aca98e04f2ab41815",
+            "tokens": 34
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests.test.cjs",
+            "sha256": "a6766f0e2117c804d6dc2ecfd6af2aac9656624d72b7013e0fb3a07c1430ac2d",
+            "tokens": 2425
+          },
+          {
+            "classification": "authored_source",
+            "path": "tsconfig.json",
+            "sha256": "b21c3af30efeafd9c009ef0b48935e21c6489630fccc89a38b043e41dbb45714",
+            "tokens": 65
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 4478,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "558054bb2bb123deb93ea4895bfe16b1042bcfee37ec8cd2dc68b17a49196815",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "4494f83b06e4c3461a65d84c57ce6e336280c78820075a1122ec6fd67ec5b6e9",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "typescript",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/candidates/typescript-01",
+        "classification_complete": true,
+        "classification_input_sha256": "dfd47e0aa4a68e542545cef0182cadec3929376115ce4712c5cfdbded3e66aa0",
+        "components": {
+          "authored_source": 4478,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "LogLens-7",
+        "label": "typescript-01",
+        "legacy_total_tokens": 4478,
+        "metrics_input_sha256": "558054bb2bb123deb93ea4895bfe16b1042bcfee37ec8cd2dc68b17a49196815",
+        "number": 1,
+        "original_status": "accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/loglens_7-typescript-01.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/candidates/typescript-02",
+        "classification_complete": true,
+        "classification_origin": {
+          "attempt_identity": {
+            "arm": "typescript",
+            "number": 2
+          },
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_recount_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/recount-final.json",
+          "original_recount_sha256": "b1b7204234146559d87c893d69b59a74fc3042c5f0dfc7da993e8b49a791069f",
+          "original_results_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/results.json",
+          "original_results_sha256": "801e51fcc261917131860272fd0f950ea5516ddcb103210e0ea8510d1ec4b013",
+          "source": "LogLens-7 authored-classification audit index"
+        },
+        "components": {
+          "authored_source": 5231,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "6054c7dbd8b98fc88c64f3203314cd19973a12e83f049550bb809c81150d4f54",
+            "tokens": 210
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "c402e0ef43f15656edaf41c6b572b5687dd1d5e2662423e32c97c36b9c456edf",
+            "tokens": 66
+          },
+          {
+            "classification": "authored_source",
+            "path": "loglens.ts",
+            "sha256": "8f851efac1e88d36c700a4447ee7e953bc5c90e9e6349693c8bf8778344f87fb",
+            "tokens": 1772
+          },
+          {
+            "classification": "authored_source",
+            "path": "node.d.ts",
+            "sha256": "b9e16e364328b7ae870ad8999c6295beee5dcb076af509ec367ebd3cfe07818d",
+            "tokens": 90
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "92d6f9d391d20dcd796458b83f72819e18d2fddd92a75288cd0d42ce3dcff18d",
+            "tokens": 108
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "dcb6f9c0e7dfd9065b2f84c48939c8b11dc67b69947d0cdfb6d2d271b0d8f873",
+            "tokens": 32
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests.mjs",
+            "sha256": "c46f2f815ad08b5fbe6c085abcae9384aa9ecdbb53e38a60b5260f345066a90a",
+            "tokens": 2953
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 5231,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "b09aadd99699e27be34f7d72c1d1910659989a488ff06bcb58451aebb7e027ea",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "81d8e9157ca2cc85f7d037cbb5427ebc88b37401253cb1499c53e828ffc07641",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "typescript",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/candidates/typescript-02",
+        "classification_complete": true,
+        "classification_input_sha256": "344090a8ee5e362f2f0c5cc261d2637f3e7de0f8aca36c530e89672a198f437a",
+        "components": {
+          "authored_source": 5231,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "LogLens-7",
+        "label": "typescript-02",
+        "legacy_total_tokens": 5231,
+        "metrics_input_sha256": "b09aadd99699e27be34f7d72c1d1910659989a488ff06bcb58451aebb7e027ea",
+        "number": 2,
+        "original_status": "accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/loglens_7-typescript-02.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/candidates/semaprax-02",
+        "classification_complete": true,
+        "classification_origin": {
+          "attempt_identity": {
+            "arm": "semaprax",
+            "number": 2
+          },
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_recount_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/recount-final.json",
+          "original_recount_sha256": "b1b7204234146559d87c893d69b59a74fc3042c5f0dfc7da993e8b49a791069f",
+          "original_results_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/results.json",
+          "original_results_sha256": "801e51fcc261917131860272fd0f950ea5516ddcb103210e0ea8510d1ec4b013",
+          "source": "LogLens-7 authored-classification audit index"
+        },
+        "components": {
+          "authored_source": 7182,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "0062361865a5457ab63f1d95a31029f54c1672aa122b5a5e1fd3bc3c38248079",
+            "tokens": 268
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "09bb1561a5ef4a64755c9e603be9cc66ee2c64d81581962d5046df9e82d85d3b",
+            "tokens": 85
+          },
+          {
+            "classification": "authored_source",
+            "path": "loglens.spx",
+            "sha256": "b7b5a19730f01db03a598167872a797e288f7bfd20cb9944679c1a9aa26827bc",
+            "tokens": 3830
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "4ca4b3008b57c5f8ec4e65dc4c47df3891c9dbdcaf6aff04fcdf40b1998d0975",
+            "tokens": 212
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "c82fec3ef178c8a924b47798f33a401d0d7d0af9435feb75b2cfee387f813522",
+            "tokens": 30
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests.py",
+            "sha256": "5f15c788c69ecbd409fcc05ea0641de4bfa09353c5c9cd9c4c460e2e690a6571",
+            "tokens": 2757
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 7182,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "683e506c7c41935bab6a72de4149a431ea2f24bb0df83c17eb11a1af09cd9fb1",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "146bcad1f51ee52c890aff485fcf71c266bf256298ca24d52571243e5ef08142",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "semaprax",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/candidates/semaprax-02",
+        "classification_complete": true,
+        "classification_input_sha256": "c4597408de3e0bca024476f773a8b493e9268648ffff3da6a8d40d009544ce2b",
+        "components": {
+          "authored_source": 7182,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "LogLens-7",
+        "label": "semaprax-02",
+        "legacy_total_tokens": 7182,
+        "metrics_input_sha256": "683e506c7c41935bab6a72de4149a431ea2f24bb0df83c17eb11a1af09cd9fb1",
+        "number": 2,
+        "original_status": "not_accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/loglens_7-semaprax-02.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/candidates/semaprax-03",
+        "classification_complete": true,
+        "classification_origin": {
+          "attempt_identity": {
+            "arm": "semaprax",
+            "number": 3
+          },
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_recount_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/recount-final.json",
+          "original_recount_sha256": "b1b7204234146559d87c893d69b59a74fc3042c5f0dfc7da993e8b49a791069f",
+          "original_results_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/results.json",
+          "original_results_sha256": "801e51fcc261917131860272fd0f950ea5516ddcb103210e0ea8510d1ec4b013",
+          "source": "LogLens-7 authored-classification audit index"
+        },
+        "components": {
+          "authored_source": 8154,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": ".gitignore",
+            "sha256": "9cf6fa42bce49a850f5d0b06384b600c83b34af33617127a68de834cbacfc6a5",
+            "tokens": 4
+          },
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "740f4b7a59e2bd2fafd32f5e2a9bde55f477e76156a615cfb34491778ab3f707",
+            "tokens": 414
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "09bb1561a5ef4a64755c9e603be9cc66ee2c64d81581962d5046df9e82d85d3b",
+            "tokens": 85
+          },
+          {
+            "classification": "authored_source",
+            "path": "loglens.spx",
+            "sha256": "384421a0c356be1853e6bafe9af7509e19e2746632cef21f2ea65c06eb9c4afd",
+            "tokens": 4463
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "d4d40205d4c50041dae75e42e9b9495be53d10b0761a94d0e726e7da728f5a1e",
+            "tokens": 401
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "233dc4c98b2082125ae724946de3ceeb5e95e76ff56b97b63e127e650e3169fb",
+            "tokens": 28
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests.js",
+            "sha256": "0d9713b81c2fb499b8914e1a25a76b4c03e9657ac89ae6d5989dcfdd44f36689",
+            "tokens": 2759
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 8154,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "2e36173ac0c67b78c7d5d634b7f69187a1b6efc954a991a64f32c1858be1d227",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "826ba35126b5266b9f786c19cf360db5b3123bec5efc8f97ef06cc24160c4656",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "semaprax",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/candidates/semaprax-03",
+        "classification_complete": true,
+        "classification_input_sha256": "3bb3a294799f68173743bb7565d0bb70e82f6c94e91b74d5804e9bb92f480d58",
+        "components": {
+          "authored_source": 8154,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "LogLens-7",
+        "label": "semaprax-03",
+        "legacy_total_tokens": 8154,
+        "metrics_input_sha256": "2e36173ac0c67b78c7d5d634b7f69187a1b6efc954a991a64f32c1858be1d227",
+        "number": 3,
+        "original_status": "accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/loglens_7-semaprax-03.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/candidates/typescript-03",
+        "classification_complete": true,
+        "classification_origin": {
+          "attempt_identity": {
+            "arm": "typescript",
+            "number": 3
+          },
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_recount_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/recount-final.json",
+          "original_recount_sha256": "b1b7204234146559d87c893d69b59a74fc3042c5f0dfc7da993e8b49a791069f",
+          "original_results_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/results.json",
+          "original_results_sha256": "801e51fcc261917131860272fd0f950ea5516ddcb103210e0ea8510d1ec4b013",
+          "source": "LogLens-7 authored-classification audit index"
+        },
+        "components": {
+          "authored_source": 5487,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "98dd368619074bc84c42a554d7b131e1b5bf6070a77be1157c8d2a7632989bfa",
+            "tokens": 178
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "456e1873568390703758a82b6076f95530e0888621e44a6e327dd149ed77fc9f",
+            "tokens": 37
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "5218f0b174414836975c4796e13a31fe3c6a43f3e94df0349b0071a8e7541d32",
+            "tokens": 79
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/loglens.ts",
+            "sha256": "c6dde7a29cdbbddbb4113ab73e4bc3d2b36d402484ac59c8db30290716fce4bf",
+            "tokens": 1647
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/node.d.ts",
+            "sha256": "66a5aee64bb46ee8c3c2f9457f3c9621845b3a209fd4f65d712b3b1212990195",
+            "tokens": 116
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "c051c7e13b49da5f868d6084716ce0fdb5b28c19bf8836d507d2f8087ad17fae",
+            "tokens": 34
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests/loglens.test.cjs",
+            "sha256": "a272a32969d492a2640d331f8f6b5f88bccccfd2ed4297bd4162116d4ba68135",
+            "tokens": 3315
+          },
+          {
+            "classification": "authored_source",
+            "path": "tsconfig.json",
+            "sha256": "814f976302523aa72ba576e2fb4945385f620e45195f9042ad4e40ba92457df0",
+            "tokens": 81
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 5487,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "2201cfb3e99266929188665dd8d1bf713c8db4d3c525b9af67a7283dc1179015",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "9c6af463a554e3fda432c188a146fdf48d821f663e2b88093d20910c97c234ed",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "typescript",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/candidates/typescript-03",
+        "classification_complete": true,
+        "classification_input_sha256": "6614993d19a7cb9064a7b67c95db18acb77ea45f28e254efc6afa339d59a7169",
+        "components": {
+          "authored_source": 5487,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "LogLens-7",
+        "label": "typescript-03",
+        "legacy_total_tokens": 5487,
+        "metrics_input_sha256": "2201cfb3e99266929188665dd8d1bf713c8db4d3c525b9af67a7283dc1179015",
+        "number": 3,
+        "original_status": "accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/loglens_7-typescript-03.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/candidates/typescript-04",
+        "classification_complete": true,
+        "classification_origin": {
+          "attempt_identity": {
+            "arm": "typescript",
+            "number": 4
+          },
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_recount_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/recount-final.json",
+          "original_recount_sha256": "b1b7204234146559d87c893d69b59a74fc3042c5f0dfc7da993e8b49a791069f",
+          "original_results_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/results.json",
+          "original_results_sha256": "801e51fcc261917131860272fd0f950ea5516ddcb103210e0ea8510d1ec4b013",
+          "source": "LogLens-7 authored-classification audit index"
+        },
+        "components": {
+          "authored_source": 4410,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 293
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "0c2ed55df9a30442ca359fce9b9b24f313d1e55fc659074a0bfaf7d837b270c7",
+            "tokens": 233
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "8008187b9eced9b49b3e210f244302d7791b494e0754a21fc0ffa68ce54f170f",
+            "tokens": 27
+          },
+          {
+            "classification": "authored_source",
+            "path": "loglens.ts",
+            "sha256": "f7d0222b751d7fc26793521d501fa07407768e1b98f9261ab057d8a6a09b4f18",
+            "tokens": 1610
+          },
+          {
+            "classification": "authored_source",
+            "path": "node.d.ts",
+            "sha256": "e6080500c9f0d160eb2ed6b79e3057036e5e42a2aa55a499c494db6ec7155801",
+            "tokens": 55
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "836bfc5f8493950f30a4683248e11afd66b63c6ea3c33bdbe84e0e7f02b7f4eb",
+            "tokens": 46
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "f2ede4e44e5420fc2b4b75990ef6da21983fab9341afa14c3a5cf1457730f59e",
+            "tokens": 37
+          },
+          {
+            "classification": "authored_source",
+            "path": "test/loglens.test.cjs",
+            "sha256": "a12bc6d5457a3fcc4ffba988263efe8fb7c59d0e7518a7632d8eeb7a4e7b4e05",
+            "tokens": 2317
+          },
+          {
+            "classification": "unresolved",
+            "path": "test/public-sample.json",
+            "sha256": "cff5951ee5d7327f5a676d26554d1db15c27a083ad1fcea1b52a8432b3333253",
+            "tokens": 152
+          },
+          {
+            "classification": "unresolved",
+            "path": "test/public-sample.txt",
+            "sha256": "1301d1cf9601261ab146bbda59ae56bc71935454234dd3cc71f9d17f9849fa7b",
+            "tokens": 141
+          },
+          {
+            "classification": "authored_source",
+            "path": "tsconfig.json",
+            "sha256": "dea50d8f34d0a2959b442ef2243834b9cc19ba7f52711ec97c69cca72aa1a402",
+            "tokens": 85
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 4703,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "bcd43b7c90963af0189272d9da1972de3c438ea0988f3fee3a6af343864fdd60",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "0dcb6f5d5106e894789e7b00913d1dee157372585f0dd354a04f8b0171e5e2b0",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "typescript",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/candidates/typescript-04",
+        "classification_complete": true,
+        "classification_input_sha256": "93f24587b4d68dd63e622b90e5490c29f4caa52038fc876a88588ea0af339409",
+        "components": {
+          "authored_source": 4410,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 293
+        },
+        "dataset": "LogLens-7",
+        "label": "typescript-04",
+        "legacy_total_tokens": 4703,
+        "metrics_input_sha256": "bcd43b7c90963af0189272d9da1972de3c438ea0988f3fee3a6af343864fdd60",
+        "number": 4,
+        "original_status": "not_accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/loglens_7-typescript-04.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/candidates/semaprax-04",
+        "classification_complete": true,
+        "classification_origin": {
+          "attempt_identity": {
+            "arm": "semaprax",
+            "number": 4
+          },
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_recount_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/recount-final.json",
+          "original_recount_sha256": "b1b7204234146559d87c893d69b59a74fc3042c5f0dfc7da993e8b49a791069f",
+          "original_results_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/results.json",
+          "original_results_sha256": "801e51fcc261917131860272fd0f950ea5516ddcb103210e0ea8510d1ec4b013",
+          "source": "LogLens-7 authored-classification audit index"
+        },
+        "components": {
+          "authored_source": 9434,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": ".gitignore",
+            "sha256": "99921edb369e12a35a87d768ae481f8c944573626abd4b8f3a1fe78846f30ba7",
+            "tokens": 4
+          },
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "53b57fef53fc73d4434e0077fb65174e7fd1fc15143ab37898e7b018d2038060",
+            "tokens": 385
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "c58ddef4f4a64046033d6c8839208f4c4c70bb3930724d40a8fb4be1fa2e00d4",
+            "tokens": 100
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "4a2d872a42a65351f92d0cc6e0e2683a7ea0c450262f97febe3ef86ddd396646",
+            "tokens": 356
+          },
+          {
+            "classification": "authored_source",
+            "path": "semaprax.toml",
+            "sha256": "ba2dbdca391262fa35949b52f0ae1891cdbb0735d31374f36e2d73fffb044de2",
+            "tokens": 193
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/app.spx",
+            "sha256": "d54b95332959d08c47f4610be3ac999436f4ffe4062191a52ce4d8a6383ae209",
+            "tokens": 4810
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/tests.spx",
+            "sha256": "7abdceea5484ad9ebd7320dbe40acfe506d169d84ddc20164e0ac8d10e813400",
+            "tokens": 79
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "6822f5381aac9be6954818450bdec2f20569d4c667cdf07f3dc1322326d433ad",
+            "tokens": 40
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests.mjs",
+            "sha256": "cf2f343bb82d8273e6bb9c849d3235acf1fd661111434c39f1e211eeb411cec3",
+            "tokens": 3467
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 9434,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "e2591962e51ad7626cbae80ecc202148a7038dafff65c3a6f0ba7aa6e3486808",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "03c5f35a8ecb73dd25e0aecf5dc8915cc5519ce337eda4883fdf2cc2d89275be",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "semaprax",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/candidates/semaprax-04",
+        "classification_complete": true,
+        "classification_input_sha256": "a983a6833a3babce3f7958742eed3648cdd885c7756a0b2bdba36f7f60d97ba1",
+        "components": {
+          "authored_source": 9434,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "LogLens-7",
+        "label": "semaprax-04",
+        "legacy_total_tokens": 9434,
+        "metrics_input_sha256": "e2591962e51ad7626cbae80ecc202148a7038dafff65c3a6f0ba7aa6e3486808",
+        "number": 4,
+        "original_status": "not_accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/loglens_7-semaprax-04.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/candidates/semaprax-05",
+        "classification_complete": true,
+        "classification_origin": {
+          "attempt_identity": {
+            "arm": "semaprax",
+            "number": 5
+          },
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_recount_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/recount-final.json",
+          "original_recount_sha256": "b1b7204234146559d87c893d69b59a74fc3042c5f0dfc7da993e8b49a791069f",
+          "original_results_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/results.json",
+          "original_results_sha256": "801e51fcc261917131860272fd0f950ea5516ddcb103210e0ea8510d1ec4b013",
+          "source": "LogLens-7 authored-classification audit index"
+        },
+        "components": {
+          "authored_source": 7501,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "44caab7dcdfec0d3366200532e57c594b4be0fd464f0264b4503d83308676b5a",
+            "tokens": 413
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "9a63eb5dd294c9677cbe76f961021d0dda3b7f85ce28be161981d2f25780d93b",
+            "tokens": 151
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "8971b06e68aaccf6edbc7e0226b2104893ceb62330207b16ad015b41d774092a",
+            "tokens": 205
+          },
+          {
+            "classification": "authored_source",
+            "path": "semaprax.toml",
+            "sha256": "aa02c7b778ce0ebc2ee417f685fa9b18883d505f26f26a58b85422b34b80f114",
+            "tokens": 193
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/app.spx",
+            "sha256": "ce890f78811ae97e33ab99bcb7a25703d55729a6646c3130b03438abac86eb98",
+            "tokens": 3888
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/tests.spx",
+            "sha256": "17931167ead21a462faf52c3d9eb2ca437787673aa888899f2bc1565ca714001",
+            "tokens": 32
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "c4059e244caeba2ee31feb82d4a73bc5b58874b11c7f9eb158a21960b78c6716",
+            "tokens": 53
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests.py",
+            "sha256": "28d83549cecd9a83fb0044786512c70b8cd15b74119659113767b654808e7899",
+            "tokens": 2566
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 7501,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "0d0564d1c3fe01bc8d765f732ba301ddb8ffd803304f46c9b78d411e3458d19a",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "24b81c4b2918391cf24b492e0712abed9e21210fad1f6316b8ad32b80456564d",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "semaprax",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/candidates/semaprax-05",
+        "classification_complete": true,
+        "classification_input_sha256": "6c45d5cac25f8db935b9dc815f0619173651023d32774005537af04deee46cf7",
+        "components": {
+          "authored_source": 7501,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "LogLens-7",
+        "label": "semaprax-05",
+        "legacy_total_tokens": 7501,
+        "metrics_input_sha256": "0d0564d1c3fe01bc8d765f732ba301ddb8ffd803304f46c9b78d411e3458d19a",
+        "number": 5,
+        "original_status": "not_accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/loglens_7-semaprax-05.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/candidates/typescript-05",
+        "classification_complete": true,
+        "classification_origin": {
+          "attempt_identity": {
+            "arm": "typescript",
+            "number": 5
+          },
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_recount_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/recount-final.json",
+          "original_recount_sha256": "b1b7204234146559d87c893d69b59a74fc3042c5f0dfc7da993e8b49a791069f",
+          "original_results_path": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/results.json",
+          "original_results_sha256": "801e51fcc261917131860272fd0f950ea5516ddcb103210e0ea8510d1ec4b013",
+          "source": "LogLens-7 authored-classification audit index"
+        },
+        "components": {
+          "authored_source": 5756,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "957dce64ece01ebda123e89b41840ea1c356da93892a47b08bb9e7f8cfd63776",
+            "tokens": 315
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "456e1873568390703758a82b6076f95530e0888621e44a6e327dd149ed77fc9f",
+            "tokens": 37
+          },
+          {
+            "classification": "authored_source",
+            "path": "loglens.ts",
+            "sha256": "c39fdc5f82c50c902e052bb0213e90f1b8a54c51c46783ac12dd993fd09e7b49",
+            "tokens": 1745
+          },
+          {
+            "classification": "authored_source",
+            "path": "node.d.ts",
+            "sha256": "02dceafb87072d1c242921d591481463e3b655eea83adb80fa8132fbc42a2031",
+            "tokens": 140
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "2d8cbb96a0253bc0a7f5253fd340b75d41dd6f5f5f0b848aee2e708b37f7ee3f",
+            "tokens": 164
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "dcb6f9c0e7dfd9065b2f84c48939c8b11dc67b69947d0cdfb6d2d271b0d8f873",
+            "tokens": 32
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests.mjs",
+            "sha256": "339f5e7c9c2ba2551549ab14c14b67178d0b8c0f54845e7c24fab4a1c0638afe",
+            "tokens": 3242
+          },
+          {
+            "classification": "authored_source",
+            "path": "tsconfig.json",
+            "sha256": "82793ddde0b2dad571bb4744862752f53bd165891f7e9ff25ba69123e0334d85",
+            "tokens": 81
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 5756,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "f0927e39b84f3a8939b8b1f086372af88befc2b8cb041d3532141ee119a9958b",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "253da13434a063e48a77249586667437f93fc13bbd95c92f1519de6bd34ff819",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "typescript",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/loglens-codex-round7-mainc50-20261008/candidates/typescript-05",
+        "classification_complete": true,
+        "classification_input_sha256": "ae93395f974d796e2a812f1bfb3da1e255da126f58b53de04747f8ec68af7815",
+        "components": {
+          "authored_source": 5756,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "LogLens-7",
+        "label": "typescript-05",
+        "legacy_total_tokens": 5756,
+        "metrics_input_sha256": "f0927e39b84f3a8939b8b1f086372af88befc2b8cb041d3532141ee119a9958b",
+        "number": 5,
+        "original_status": "not_accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/loglens_7-typescript-05.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/candidates/semaprax-01",
+        "classification_complete": true,
+        "classification_origin": {
+          "attempt_identity": {
+            "arm": "semaprax",
+            "number": 1
+          },
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_recount_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/recount.json",
+          "original_recount_sha256": "bfb85b3fcb09077ddf6f205203cfa9b3ed83883027bac9a3f4f63251bcde6429",
+          "original_results_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/results.json",
+          "original_results_sha256": "e2f7e18aacf41e858099b7c936263b1c8d25d7f68b5f0556b51f9ec034ad127a",
+          "source": "ShiftSim-3 authored-classification audit index"
+        },
+        "components": {
+          "authored_source": 9133,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": "AGENTS.md",
+            "sha256": "b8ec8bdfb1d87c79b9170f4650cdcbcd378059b0b120578923efe5c4b9e57e9c",
+            "tokens": 176
+          },
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "bda0cecc6c3de124442a3e536b5b728090e106ef9fe3e07df7970f7789c73ded",
+            "tokens": 548
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "793d3b53eb20169f99cf7e084d5fd0d425896c9063130cab1cdbd52a73bab737",
+            "tokens": 95
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "895c6776dc906b947063dcd47f8dc63403038e5eac0dfb57fe953f4c94d780c6",
+            "tokens": 25
+          },
+          {
+            "classification": "authored_source",
+            "path": "semaprax.toml",
+            "sha256": "d3687236ce9319a609262111f5ceb60e244e0227143d6a3811d75745469e94fd",
+            "tokens": 174
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/app.spx",
+            "sha256": "c365857436d94559fb87c4d39578e05b53f229c1f54ddb489f3c29bf645c19d6",
+            "tokens": 5660
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/tests.spx",
+            "sha256": "d0451eba29494f877f666b4bd3881fd30201bf6909454d17f09dafa2bf87fde5",
+            "tokens": 153
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "0085530e24f4dc2d421047d3796b2464962e6af3e3aa35f25ff349a3275a386d",
+            "tokens": 85
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests.py",
+            "sha256": "63f9902bff83db306fca9f187c1a2b6bcfdd73359221b50309c7e0fcbf1bb962",
+            "tokens": 2217
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 9133,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "a61c884ae621d6d516b8a61c249817b79230b86fafdfda162f629c70bb66048f",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "f433a33cefd05f0b06586965534460226012653699efc9ff09444d34a03455be",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "semaprax",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/candidates/semaprax-01",
+        "classification_complete": true,
+        "classification_input_sha256": "372381e43d183427ee587d751bfe1d03f12885b739fbba070d6780ecece3d42e",
+        "components": {
+          "authored_source": 9133,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "ShiftSim-3",
+        "label": "semaprax-01",
+        "legacy_total_tokens": 9133,
+        "metrics_input_sha256": "a61c884ae621d6d516b8a61c249817b79230b86fafdfda162f629c70bb66048f",
+        "number": 1,
+        "original_status": "accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/shiftsim_3-semaprax-01.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/candidates/typescript-01",
+        "classification_complete": true,
+        "classification_origin": {
+          "attempt_identity": {
+            "arm": "typescript",
+            "number": 1
+          },
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_recount_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/recount.json",
+          "original_recount_sha256": "bfb85b3fcb09077ddf6f205203cfa9b3ed83883027bac9a3f4f63251bcde6429",
+          "original_results_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/results.json",
+          "original_results_sha256": "e2f7e18aacf41e858099b7c936263b1c8d25d7f68b5f0556b51f9ec034ad127a",
+          "source": "ShiftSim-3 authored-classification audit index"
+        },
+        "components": {
+          "authored_source": 5245,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "82597fa629055e9beb8bb43464433557186dda8bb48167759911c0286732ae35",
+            "tokens": 248
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "8008187b9eced9b49b3e210f244302d7791b494e0754a21fc0ffa68ce54f170f",
+            "tokens": 27
+          },
+          {
+            "classification": "authored_source",
+            "path": "package.json",
+            "sha256": "5e9f48fc2fa7024100d0354734ce8be78454a027676780213bb34c2d3356ea68",
+            "tokens": 75
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "657578462d8af59bea5b5a9680063b93815760a7bb02bf0b0f5d9cb88078e239",
+            "tokens": 46
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/json.ts",
+            "sha256": "50eb96e8dc8d321846a03a1c652f9fad38acc0d5ed17f9d2d82feb0af10a4b5f",
+            "tokens": 700
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/main.ts",
+            "sha256": "b8311b563cdc7bc29cf33e46e4bf44cab3abec6f4bbdb01803411618294ffb16",
+            "tokens": 184
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/node.d.ts",
+            "sha256": "896031a506562eac84b39224df3a083918ac2441bad8d068c6f2ca5acf7a9443",
+            "tokens": 74
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/shiftsim.ts",
+            "sha256": "1694a51d27085800662d5bfeae58694997d750e977ac7bd832274ca7e0938a04",
+            "tokens": 1410
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "dfb79c7c5082f16669fbc8222317b58a30bcf3a78e34f0a2891bd05d2045d9b9",
+            "tokens": 30
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests.cjs",
+            "sha256": "097527f9e2b4d405ce139f03b452d6395b4cbf111fe57876b4287a0d978c7510",
+            "tokens": 2348
+          },
+          {
+            "classification": "authored_source",
+            "path": "tsconfig.json",
+            "sha256": "f74fe3f5998fb4f24cba32ea23ee38f372b297d34b73d8bad69bdb29e1310715",
+            "tokens": 103
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 5245,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "d46022b0d820185555d75f2860dd9637f097d5efad9d6aefc9e6648664d2ab8e",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "adc5c093e63421dbfdef2980fe4637d3adb4ba7dd29df4873492417a07992be7",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "typescript",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/candidates/typescript-01",
+        "classification_complete": true,
+        "classification_input_sha256": "9aaa7bfe33d18cf2e02a2b7ef21c2c1460cbe3cd1e7786b64e5fef3695fa0586",
+        "components": {
+          "authored_source": 5245,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "ShiftSim-3",
+        "label": "typescript-01",
+        "legacy_total_tokens": 5245,
+        "metrics_input_sha256": "d46022b0d820185555d75f2860dd9637f097d5efad9d6aefc9e6648664d2ab8e",
+        "number": 1,
+        "original_status": "accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/shiftsim_3-typescript-01.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/candidates/typescript-02",
+        "classification_complete": true,
+        "classification_origin": {
+          "attempt_identity": {
+            "arm": "typescript",
+            "number": 2
+          },
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_recount_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/recount.json",
+          "original_recount_sha256": "bfb85b3fcb09077ddf6f205203cfa9b3ed83883027bac9a3f4f63251bcde6429",
+          "original_results_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/results.json",
+          "original_results_sha256": "e2f7e18aacf41e858099b7c936263b1c8d25d7f68b5f0556b51f9ec034ad127a",
+          "source": "ShiftSim-3 authored-classification audit index"
+        },
+        "components": {
+          "authored_source": 4833,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "048374b85ea7a8255dbe0e0a45e82f2d6417f589896626a0d530d8773dab628e",
+            "tokens": 270
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "ae94c14b18f5af742c31a9a7f53377242fc65350da0f330c9a3d4cf77f31e9c5",
+            "tokens": 51
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "c53e64eb9032e0dcf3263c94118e655c86fb206eb5fa9741e33dc9459f077934",
+            "tokens": 48
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/shiftsim.ts",
+            "sha256": "92aa187e0314bf9a80e6498f42813637997d0248bf835fc02c17bb00e8df1862",
+            "tokens": 2150
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "dfb79c7c5082f16669fbc8222317b58a30bcf3a78e34f0a2891bd05d2045d9b9",
+            "tokens": 30
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests.cjs",
+            "sha256": "09b76795357f8b81a6e21d3666558421fc4485dfaaff2a222039715e4fff1f20",
+            "tokens": 2284
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 4833,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "9b8fe3fd0af0159d485fcfd1add9b96e18e57c5d94993c2994a73a2fb805b16b",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "f1167b6788fee2fb57e7b29b466c6318c0712dcff824152b226faa8bcd7d6e17",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "typescript",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/candidates/typescript-02",
+        "classification_complete": true,
+        "classification_input_sha256": "ee380cd955a46b9fab9dbaf4d00fdffec453fb21e7738df66e482c6fc9d9587d",
+        "components": {
+          "authored_source": 4833,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "ShiftSim-3",
+        "label": "typescript-02",
+        "legacy_total_tokens": 4833,
+        "metrics_input_sha256": "9b8fe3fd0af0159d485fcfd1add9b96e18e57c5d94993c2994a73a2fb805b16b",
+        "number": 2,
+        "original_status": "accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/shiftsim_3-typescript-02.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/candidates/semaprax-02",
+        "classification_complete": true,
+        "classification_origin": {
+          "attempt_identity": {
+            "arm": "semaprax",
+            "number": 2
+          },
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_recount_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/recount.json",
+          "original_recount_sha256": "bfb85b3fcb09077ddf6f205203cfa9b3ed83883027bac9a3f4f63251bcde6429",
+          "original_results_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/results.json",
+          "original_results_sha256": "e2f7e18aacf41e858099b7c936263b1c8d25d7f68b5f0556b51f9ec034ad127a",
+          "source": "ShiftSim-3 authored-classification audit index"
+        },
+        "components": {
+          "authored_source": 9126,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": ".gitignore",
+            "sha256": "eb23201bf8045bae97d6f115436fbeceb52a080b218644bf1b15f92b9da8dd4e",
+            "tokens": 9
+          },
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "657e7b8e2c7404a9b03b9eb2c85ee9aa02ed349db4d383c09aa814662168d3cc",
+            "tokens": 536
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "0f1e01f605caa62897371fd9098288b80b9733336e1dd7abedeb8f37eecad384",
+            "tokens": 101
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "895c6776dc906b947063dcd47f8dc63403038e5eac0dfb57fe953f4c94d780c6",
+            "tokens": 25
+          },
+          {
+            "classification": "authored_source",
+            "path": "semaprax.toml",
+            "sha256": "d3687236ce9319a609262111f5ceb60e244e0227143d6a3811d75745469e94fd",
+            "tokens": 174
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/app.spx",
+            "sha256": "1b13c0453a83113050b6f1e1fa3c72ef15bc14a791839bcce4900e479eed6121",
+            "tokens": 5662
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/tests.spx",
+            "sha256": "e9bc82b657293d6ca97e0ba9e5fc785ceb17d7028186f0ef8aa9c455dad6be49",
+            "tokens": 251
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "5ad96e6196c75df8ca9676cf254e8fb0578dc697ebee63ef30d40c2660eb3888",
+            "tokens": 90
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests.py",
+            "sha256": "713663772d3933c6c7b65e79e31b1c774ad4f454bf6f3b5598b3893865760cc3",
+            "tokens": 2278
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 9126,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "9176a66e80ce3c076d884bc3db250228a48019fbeaf2c0086e2ad4380118b505",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "90b3e9ecb98fe57c9e631ca72a6d291782056f7abb3c2488a881d782d07d8923",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "semaprax",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/candidates/semaprax-02",
+        "classification_complete": true,
+        "classification_input_sha256": "8454561916d6d460de14713380c2a38ad139e8e5b2d2d1a7f24f70df93f06390",
+        "components": {
+          "authored_source": 9126,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "ShiftSim-3",
+        "label": "semaprax-02",
+        "legacy_total_tokens": 9126,
+        "metrics_input_sha256": "9176a66e80ce3c076d884bc3db250228a48019fbeaf2c0086e2ad4380118b505",
+        "number": 2,
+        "original_status": "accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/shiftsim_3-semaprax-02.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/candidates/semaprax-03",
+        "classification_complete": true,
+        "classification_origin": {
+          "attempt_identity": {
+            "arm": "semaprax",
+            "number": 3
+          },
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_recount_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/recount.json",
+          "original_recount_sha256": "bfb85b3fcb09077ddf6f205203cfa9b3ed83883027bac9a3f4f63251bcde6429",
+          "original_results_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/results.json",
+          "original_results_sha256": "e2f7e18aacf41e858099b7c936263b1c8d25d7f68b5f0556b51f9ec034ad127a",
+          "source": "ShiftSim-3 authored-classification audit index"
+        },
+        "components": {
+          "authored_source": 9082,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": "AGENTS.md",
+            "sha256": "ac7ce7f9ccbdbde4d5804d7564db235e85e5c05bb7b34e499c62fea97d818eb2",
+            "tokens": 258
+          },
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "f09c69dceed4ad4b1ad901d96da427d628125980621997646f4aa1e290d8312f",
+            "tokens": 501
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "0f1e01f605caa62897371fd9098288b80b9733336e1dd7abedeb8f37eecad384",
+            "tokens": 101
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "895c6776dc906b947063dcd47f8dc63403038e5eac0dfb57fe953f4c94d780c6",
+            "tokens": 25
+          },
+          {
+            "classification": "authored_source",
+            "path": "semaprax.toml",
+            "sha256": "eafefd87854f8f2557cc80188fc86b60e4143a687e24e1d08bd05f6b5a570414",
+            "tokens": 174
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/app.spx",
+            "sha256": "edc41f12adbeb040f04c3de4afa2623d7c4a02f2a3de3b64c9e54d0aed03f012",
+            "tokens": 5711
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/tests.spx",
+            "sha256": "b549c74a61ac4a3a68cd0528e8f90d970759d31ec5ecd3e0fd41ca8b3cb3d1db",
+            "tokens": 221
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "6e057b976ae7a0160d6212a9ba514684b313f892c9771b1bca7959a924c211ad",
+            "tokens": 75
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests.py",
+            "sha256": "5d2e5ae386c4f2675d04884539e02ab57228e4d8aa921c4562809c9abb7b9181",
+            "tokens": 2016
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 9082,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "309dbe2813922528d55307dcef39003167900ae92b59c10413ef12e4bc8bdeac",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "c2b4c7fc17fbd10bbc1641ac1f7e8306f30234996ac9131ef92e039ad9757488",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "semaprax",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/candidates/semaprax-03",
+        "classification_complete": true,
+        "classification_input_sha256": "ec19daebf7e73574f35458f64e798749dfa7bbe6da38578cc99caa43d938f7b3",
+        "components": {
+          "authored_source": 9082,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "ShiftSim-3",
+        "label": "semaprax-03",
+        "legacy_total_tokens": 9082,
+        "metrics_input_sha256": "309dbe2813922528d55307dcef39003167900ae92b59c10413ef12e4bc8bdeac",
+        "number": 3,
+        "original_status": "accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/shiftsim_3-semaprax-03.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/candidates/typescript-03",
+        "classification_complete": true,
+        "classification_origin": {
+          "attempt_identity": {
+            "arm": "typescript",
+            "number": 3
+          },
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_recount_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/recount.json",
+          "original_recount_sha256": "bfb85b3fcb09077ddf6f205203cfa9b3ed83883027bac9a3f4f63251bcde6429",
+          "original_results_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/results.json",
+          "original_results_sha256": "e2f7e18aacf41e858099b7c936263b1c8d25d7f68b5f0556b51f9ec034ad127a",
+          "source": "ShiftSim-3 authored-classification audit index"
+        },
+        "components": {
+          "authored_source": 4530,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "aa436be302de8b2fda688b9baf8e1a1f6a6d731d604df0bbfb5f0b19dd753d0f",
+            "tokens": 220
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "7208481591e1505a95201f9e6b6faf40983ce6f1bd3db47311ef215dd22a39c4",
+            "tokens": 28
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "657578462d8af59bea5b5a9680063b93815760a7bb02bf0b0f5d9cb88078e239",
+            "tokens": 46
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/main.ts",
+            "sha256": "9c8413146f4ad9b17cbe5ecfaa54f369c37043fa61e43b81c7d13cec4ed22f64",
+            "tokens": 2017
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "1b521e1a1aeb1e352e0d9899c86f1e7bcc44c96a4bd043deb1d51ceffc8ddcf2",
+            "tokens": 32
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests/test.cjs",
+            "sha256": "6c534311defbdb5845464b6302378d82c6e35cdf13049ca2012388feb82c553b",
+            "tokens": 2100
+          },
+          {
+            "classification": "authored_source",
+            "path": "tsconfig.json",
+            "sha256": "540055a16917410f7a6a8aa7547c5057b39a20d6408e41fb8662203fd85b43e2",
+            "tokens": 87
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 4530,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "31bb4820dbd74fec6d9969e0e0636d4dfe60bf0d70311fc7681973b01d364db2",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "11dbaf5639eba64ca9c4a22a55e65d74e1c029020255c2b1706b187e4d8fee31",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "typescript",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/candidates/typescript-03",
+        "classification_complete": true,
+        "classification_input_sha256": "fccd2731f9cc611ee561b8768f732aedc61a44d36bff181930bf5d6c919f7867",
+        "components": {
+          "authored_source": 4530,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "ShiftSim-3",
+        "label": "typescript-03",
+        "legacy_total_tokens": 4530,
+        "metrics_input_sha256": "31bb4820dbd74fec6d9969e0e0636d4dfe60bf0d70311fc7681973b01d364db2",
+        "number": 3,
+        "original_status": "accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/shiftsim_3-typescript-03.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/candidates/typescript-04",
+        "classification_complete": true,
+        "classification_origin": {
+          "attempt_identity": {
+            "arm": "typescript",
+            "number": 4
+          },
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_recount_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/recount.json",
+          "original_recount_sha256": "bfb85b3fcb09077ddf6f205203cfa9b3ed83883027bac9a3f4f63251bcde6429",
+          "original_results_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/results.json",
+          "original_results_sha256": "e2f7e18aacf41e858099b7c936263b1c8d25d7f68b5f0556b51f9ec034ad127a",
+          "source": "ShiftSim-3 authored-classification audit index"
+        },
+        "components": {
+          "authored_source": 4989,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "603edbda44eeb00f7260373313fc49a828c3dc257d7e3e6fde3511b1167ced46",
+            "tokens": 235
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "c7dcbd324e651f65a7eb2709e662915bb4a3d93a53bd48903280cced551ff8d1",
+            "tokens": 37
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "e9914adcf007d7ab1ef7e20bd34cd6c8a95966de25e1e21646bacedb2a0703ca",
+            "tokens": 27
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/shiftsim.ts",
+            "sha256": "9d0db4b21a83f9e639596fefde458664800e8cf4546b063e3e3670725a1758d2",
+            "tokens": 2187
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "1b521e1a1aeb1e352e0d9899c86f1e7bcc44c96a4bd043deb1d51ceffc8ddcf2",
+            "tokens": 32
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests/test.cjs",
+            "sha256": "a50398a096fc4cb990076af801e3d8517a997ee319f7684610bdcc6c5e7a3454",
+            "tokens": 2390
+          },
+          {
+            "classification": "authored_source",
+            "path": "tsconfig.json",
+            "sha256": "71a32dc8216c0105ed4d236041238d9bee71113a4ec1b8f671d88e1ca28759c6",
+            "tokens": 81
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 4989,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "12668d1bbab5346e73159588a5779d6cf2a32ab7c450982a0d8294cf1b9e0ad7",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "7848c8d252d2d0c94e35a5eb2f5f83c7187c49f5546d18ec13fff3b3099f3b09",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "typescript",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/candidates/typescript-04",
+        "classification_complete": true,
+        "classification_input_sha256": "79f0cd5a63a91225a23cd75fa60313838780ba0d65ad8ec4e39f9a49d6ceddde",
+        "components": {
+          "authored_source": 4989,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "ShiftSim-3",
+        "label": "typescript-04",
+        "legacy_total_tokens": 4989,
+        "metrics_input_sha256": "12668d1bbab5346e73159588a5779d6cf2a32ab7c450982a0d8294cf1b9e0ad7",
+        "number": 4,
+        "original_status": "accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/shiftsim_3-typescript-04.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/candidates/semaprax-04",
+        "classification_complete": true,
+        "classification_origin": {
+          "attempt_identity": {
+            "arm": "semaprax",
+            "number": 4
+          },
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_recount_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/recount.json",
+          "original_recount_sha256": "bfb85b3fcb09077ddf6f205203cfa9b3ed83883027bac9a3f4f63251bcde6429",
+          "original_results_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/results.json",
+          "original_results_sha256": "e2f7e18aacf41e858099b7c936263b1c8d25d7f68b5f0556b51f9ec034ad127a",
+          "source": "ShiftSim-3 authored-classification audit index"
+        },
+        "components": {
+          "authored_source": 7882,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "297ab1b7b142ecdbb7feeaa5db6eff24e68bbdc78d5963f76a085a783d481fdd",
+            "tokens": 400
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "0f1e01f605caa62897371fd9098288b80b9733336e1dd7abedeb8f37eecad384",
+            "tokens": 101
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "895c6776dc906b947063dcd47f8dc63403038e5eac0dfb57fe953f4c94d780c6",
+            "tokens": 25
+          },
+          {
+            "classification": "authored_source",
+            "path": "semaprax.toml",
+            "sha256": "d3687236ce9319a609262111f5ceb60e244e0227143d6a3811d75745469e94fd",
+            "tokens": 174
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/app.spx",
+            "sha256": "24912c99f8225b054cd9d710849b6990a6000184671320cc95d4898f9d675b34",
+            "tokens": 4621
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/tests.spx",
+            "sha256": "87ac7819657df5591bc622f5401595e8fee944d20358bafd4166c0a9ada04c99",
+            "tokens": 298
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "cf975ba5e2ada33b41637b6637d07875eb449317ed63981a8a7ebe0d7b5edf02",
+            "tokens": 92
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests/test.py",
+            "sha256": "9e570f3d000ecdf12c067f819de7feb1a6d54e0bf05fdf00b60a580a8081ca15",
+            "tokens": 2171
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 7882,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "319850f7f60a3df21597c6cbb7d0811d76b98d0c04aa1992edda4cf45b698ca5",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "b8af6ce0a3c60235bffbda6245345fed1d94233a074fd3da1d58f88cb5599ad3",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "semaprax",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/candidates/semaprax-04",
+        "classification_complete": true,
+        "classification_input_sha256": "fd83743db67a5b875d5826b986a93f1af9b6f79715d471d5d467f1c364b7877a",
+        "components": {
+          "authored_source": 7882,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "ShiftSim-3",
+        "label": "semaprax-04",
+        "legacy_total_tokens": 7882,
+        "metrics_input_sha256": "319850f7f60a3df21597c6cbb7d0811d76b98d0c04aa1992edda4cf45b698ca5",
+        "number": 4,
+        "original_status": "accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/shiftsim_3-semaprax-04.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/candidates/semaprax-05",
+        "classification_complete": true,
+        "classification_origin": {
+          "attempt_identity": {
+            "arm": "semaprax",
+            "number": 5
+          },
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_recount_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/recount.json",
+          "original_recount_sha256": "bfb85b3fcb09077ddf6f205203cfa9b3ed83883027bac9a3f4f63251bcde6429",
+          "original_results_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/results.json",
+          "original_results_sha256": "e2f7e18aacf41e858099b7c936263b1c8d25d7f68b5f0556b51f9ec034ad127a",
+          "source": "ShiftSim-3 authored-classification audit index"
+        },
+        "components": {
+          "authored_source": 7185,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "3c43cd76c778364a979cbf593512ea1a9873e054e45ee22d46e3076297343c85",
+            "tokens": 367
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "0f1e01f605caa62897371fd9098288b80b9733336e1dd7abedeb8f37eecad384",
+            "tokens": 101
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "895c6776dc906b947063dcd47f8dc63403038e5eac0dfb57fe953f4c94d780c6",
+            "tokens": 25
+          },
+          {
+            "classification": "authored_source",
+            "path": "semaprax.toml",
+            "sha256": "397cedba8d71c3cbbdfb136e389ef2d620f76640185b12419943fdafc1d3de8b",
+            "tokens": 191
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/app.spx",
+            "sha256": "bc2a6c7b710ca0ca862156f8ab8b31b70928d0e3b2e7b8946d48035c6e4d1283",
+            "tokens": 4713
+          },
+          {
+            "classification": "authored_source",
+            "path": "src/tests.spx",
+            "sha256": "0eb84bdcbf8ba8f533c67c8ef0ec5fbd0a3d579d9dae060035734aa279dd1eeb",
+            "tokens": 32
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "57df14580bd63687506c5f9a3ad590e729796f9aa579b70dca562b93f8113903",
+            "tokens": 29
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests.py",
+            "sha256": "fef9a353cce76a5218b8491a45791be177acea4d3a2835ba9e990e72205229b1",
+            "tokens": 1727
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 7185,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "c73fb16925f0a4605b05526273faf5aa4cb200ed7804fa06d284bf163be0f9ed",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "f8bb02f6192aa1dc0a9a05257e586d0fb9f6ab5d2c9b10a7385bf28dae20703e",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "semaprax",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/candidates/semaprax-05",
+        "classification_complete": true,
+        "classification_input_sha256": "e54bd919268949097e84af7d7316a261ce6ffbc4812597341f1038c4b36d05a7",
+        "components": {
+          "authored_source": 7185,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "ShiftSim-3",
+        "label": "semaprax-05",
+        "legacy_total_tokens": 7185,
+        "metrics_input_sha256": "c73fb16925f0a4605b05526273faf5aa4cb200ed7804fa06d284bf163be0f9ed",
+        "number": 5,
+        "original_status": "accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/shiftsim_3-semaprax-05.json"
+      }
+    },
+    {
+      "recount": {
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/candidates/typescript-05",
+        "classification_complete": true,
+        "classification_origin": {
+          "attempt_identity": {
+            "arm": "typescript",
+            "number": 5
+          },
+          "audit_index_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-codex-round4-maine045-20261008/mining/authored-classification-audit.json",
+          "audit_index_sha256": "449434630cf5c91d7a2c88465ed245c82df676dd9593488ca880cfdc6a73902a",
+          "original_recount_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/recount.json",
+          "original_recount_sha256": "bfb85b3fcb09077ddf6f205203cfa9b3ed83883027bac9a3f4f63251bcde6429",
+          "original_results_path": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/results.json",
+          "original_results_sha256": "e2f7e18aacf41e858099b7c936263b1c8d25d7f68b5f0556b51f9ec034ad127a",
+          "source": "ShiftSim-3 authored-classification audit index"
+        },
+        "components": {
+          "authored_source": 4661,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "files": [
+          {
+            "classification": "authored_source",
+            "path": "README.md",
+            "sha256": "d5df1d35a8cdfc8b260b83bb9eb2169272161680a7b1964df52782315d2e672a",
+            "tokens": 220
+          },
+          {
+            "classification": "authored_source",
+            "path": "build.sh",
+            "sha256": "baea4a3dbd9892f677f531f225f95712ead9398166561f41c976181ef014a110",
+            "tokens": 50
+          },
+          {
+            "classification": "authored_source",
+            "path": "run.sh",
+            "sha256": "c53e64eb9032e0dcf3263c94118e655c86fb206eb5fa9741e33dc9459f077934",
+            "tokens": 48
+          },
+          {
+            "classification": "authored_source",
+            "path": "shiftsim.ts",
+            "sha256": "43ae3813fb70388aff9d84af006dbecac0f95f757a4605d854de6a16cbe5c39d",
+            "tokens": 2119
+          },
+          {
+            "classification": "authored_source",
+            "path": "test.sh",
+            "sha256": "dfb79c7c5082f16669fbc8222317b58a30bcf3a78e34f0a2891bd05d2045d9b9",
+            "tokens": 30
+          },
+          {
+            "classification": "authored_source",
+            "path": "tests.cjs",
+            "sha256": "050e1572268adb2928c7169ea303c3463910177be01d6fc781e465f07843000f",
+            "tokens": 2194
+          }
+        ],
+        "legacy_final_inventory_proxy_tokens": 4661,
+        "limits": "final-file proxy only; not cumulative authorship or provider output",
+        "metrics_binding": {
+          "document_sha256": "49f1d358e208b778fb062124f51f9ec79cb0c638ba7327d6abc023c588746d6b",
+          "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
+          "source_inventory_sha256": "56a0eb46909f8ca02cd4df48811366d824de4029447f105dfec3852c140c2df3",
+          "status": "measured_proxy",
+          "tokenizer": {
+            "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+            "dependency": "tiktoken",
+            "dependency_version": "1.0.22",
+            "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+            "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+            "package": "@anthropic-ai/tokenizer",
+            "runtime": "node",
+            "runtime_version": "v24.3.0",
+            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+            "version": "0.0.4"
+          }
+        },
+        "ratio_eligible": false,
+        "schema": "semaprax.authored-source-recount.v1"
+      },
+      "summary": {
+        "arm": "typescript",
+        "authorship_verified": false,
+        "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-codex-round3-maine045-20261008/candidates/typescript-05",
+        "classification_complete": true,
+        "classification_input_sha256": "741bbb2ba7fbcdd45c0dfa0609fff3de097c68c8f4146344e0e94eaaacde9bbb",
+        "components": {
+          "authored_source": 4661,
+          "dependency_lock": 0,
+          "generated_output": 0,
+          "unresolved": 0
+        },
+        "dataset": "ShiftSim-3",
+        "label": "typescript-05",
+        "legacy_total_tokens": 4661,
+        "metrics_input_sha256": "49f1d358e208b778fb062124f51f9ec79cb0c638ba7327d6abc023c588746d6b",
+        "number": 5,
+        "original_status": "accepted",
+        "ratio_eligible": false,
+        "result_path": "/Users/kevin/.codex/benchmark-runs/teamdesk-source-component-recounts-20261008/trials/shiftsim_3-typescript-05.json"
+      }
+    }
+  ]
+}

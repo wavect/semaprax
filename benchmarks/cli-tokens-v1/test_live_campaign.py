@@ -822,6 +822,22 @@ class LiveCampaignTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "round 3 requires its frozen SPEC/sample identity"):
                 live_campaign.plan(args)
 
+    def test_round_five_preserves_spec_and_uses_current_price_book(self):
+        with tempfile.TemporaryDirectory() as directory:
+            args = Namespace(repo=str(live_campaign.REPO), base_ref="HEAD",
+                             artifacts=str(Path(directory) / "round5"), trials_per_arm=5,
+                             timeout_seconds=1800, max_budget_usd=None,
+                             model=live_campaign.MODEL, effort=live_campaign.EFFORT, round=5)
+            settings = live_campaign.plan(args)
+            self.assertEqual(settings["seed_files_sha256"], live_campaign.ROUND_SEED_SHA256[4])
+            self.assertEqual(settings["price_book"]["per_million_tokens"]["cache_read"], 0.1)
+            self.assertEqual(settings["price_book"]["date"], "2026-10-08")
+            usage = {"input_tokens": 0, "cache_read_input_tokens": 1000000,
+                     "cache_creation_input_tokens": 0, "output_tokens": 0}
+            self.assertEqual(live_campaign.rate_card_estimate_details(usage)["usd"], 0.2)
+            self.assertEqual(live_campaign.rate_card_estimate_details(
+                usage, settings["price_book"]["per_million_tokens"])["usd"], 0.1)
+
     def test_newline_scope_tracks_frozen_round_identity(self):
         checks = [{"name": name, "status": "failed"}
                   for name in sorted(live_campaign.NEWLINE_CHECKS)]

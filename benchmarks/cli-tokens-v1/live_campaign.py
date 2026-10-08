@@ -72,6 +72,10 @@ ROUND_SEED_SHA256 = {
         "benchmarks/cli-tokens-v1/sample.log": "b4574c3e627aff7760a934ec5dc10c45abf76ade1f6ae0c20518c56cc6660598",
     },
 }
+# Round 5 reruns the exact round-4 application after the OPT compiler batch.
+ROUND_SEED_SHA256[5] = dict(ROUND_SEED_SHA256[4])
+CURRENT_PRICE_USD_PER_MTOK = {**PRICE_USD_PER_MTOK, "cache_read": 0.1}
+
 NEWLINE_CHECKS = {
     "crlf-line-endings-text",
     "crlf-line-endings-json",
@@ -243,10 +247,10 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
             "usage_convention": "calibration is reported separately as a one-turn diagnostic; no calibration proxy is subtracted from trial usage",
         },
         "price_book": {
-            "date": PRICE_BOOK_DATE,
+            "date": "2026-10-08" if round_number >= 5 else PRICE_BOOK_DATE,
             "currency": "USD",
             "source_url": PRICE_BOOK_SOURCE,
-            "per_million_tokens": PRICE_USD_PER_MTOK,
+            "per_million_tokens": CURRENT_PRICE_USD_PER_MTOK if round_number >= 5 else PRICE_USD_PER_MTOK,
             "claim": "list-price estimate only; provider-reported API-equivalent total is separate and is not a billing receipt",
             "cache_write_fallback": "when provider TTL breakdown is unavailable, price all cache_creation_input_tokens at the 5-minute rate",
         },
@@ -290,8 +294,8 @@ def cache_write_pricing(usage: dict[str, int | None]) -> dict[str, Any]:
     return shared.cache_write_pricing(usage)
 
 
-def rate_card_estimate_details(usage: dict[str, int | None]) -> dict[str, Any]:
-    return shared.rate_card_estimate_details(usage)
+def rate_card_estimate_details(usage: dict[str, int | None], prices: dict[str, float] | None = None) -> dict[str, Any]:
+    return shared.rate_card_estimate_details(usage, prices)
 
 
 def rate_card_estimate(usage: dict[str, int | None]) -> float | None:
@@ -521,7 +525,7 @@ def launch_calibration(
         "One-turn diagnostic only: provider first-turn input plus cache minus this fixed calibration prompt's legacy tokenizer proxy. "
         "It is not task-only or exact net input; trial contexts repeat across turns and grow with task/tool history. No value is subtracted from trial totals."
     )
-    estimate = rate_card_estimate_details(observed.get("usage", {}))
+    estimate = rate_card_estimate_details(observed.get("usage", {}), settings["price_book"]["per_million_tokens"])
     row["list_price_estimate_usd"] = estimate["usd"]
     row["list_price_cache_write_pricing"] = estimate["cache_write_pricing"]
     row["provider_reported_api_equivalent_total_cost_usd"] = observed.get(
@@ -775,7 +779,7 @@ def launch_trial(
         "visible_output_bytes": 0, "result_event": None, "invalid_stream_lines": 0,
     }
     row["observed"] = usage
-    estimate = rate_card_estimate_details(usage["usage"])
+    estimate = rate_card_estimate_details(usage["usage"], settings["price_book"]["per_million_tokens"])
     row["list_price_estimate_usd"] = estimate["usd"]
     row["list_price_cache_write_pricing"] = estimate["cache_write_pricing"]
     row["provider_reported_api_equivalent_total_cost_usd"] = usage.get(
@@ -988,7 +992,7 @@ def summarize(
     }
 
 
-def _recount_usage_row(row: dict[str, Any], transcript: Path | None, label: str) -> None:
+def _recount_usage_row(row: dict[str, Any], transcript: Path | None, label: str, prices: dict[str, float] | None = None) -> None:
     if transcript is None:
         observed = {
             "models_observed": [], "turns_with_usage": 0,
@@ -1007,7 +1011,7 @@ def _recount_usage_row(row: dict[str, Any], transcript: Path | None, label: str)
     else:
         observed = stream_usage(transcript)
         row["accounting_status"] = "recounted"
-    estimate = rate_card_estimate_details(observed["usage"])
+    estimate = rate_card_estimate_details(observed["usage"], prices)
     row["observed"] = observed
     row["list_price_estimate_usd"] = estimate["usd"]
     row["list_price_cache_write_pricing"] = estimate["cache_write_pricing"]
@@ -1045,7 +1049,7 @@ def acceptance_scope_assessment(
     explicit_robustness = ADDITIONAL_ROBUSTNESS_CHECKS
     if round_number == 3 and identity_matches:
         explicit_robustness = ROBUSTNESS_ONLY_CHECKS
-    elif round_number == 4 and identity_matches:
+    elif round_number in (4, 5) and identity_matches:
         explicit_robustness = ADDITIONAL_ROBUSTNESS_CHECKS
     else:
         explicit_robustness = set()
@@ -1129,7 +1133,8 @@ def recount_results(artifacts: Path, expected_round: int | None = None) -> Path:
     calibration_stream, calibration_label = transcript_for(
         calibration.get("transcript"), "transcripts/calibration.jsonl"
     )
-    _recount_usage_row(report_calibration, calibration_stream, calibration_label)
+    prices = campaign_meta.get("price_book", {}).get("per_million_tokens")
+    _recount_usage_row(report_calibration, calibration_stream, calibration_label, prices)
     first = report_calibration["observed"].get("first_turn_usage", {})
     report_calibration["first_turn_provider_input_plus_cache_tokens"] = input_tokens_total(first)
     prompt_proxy = report_calibration.get("calibration_prompt_tokens_legacy_proxy")
@@ -1147,7 +1152,7 @@ def recount_results(artifacts: Path, expected_round: int | None = None) -> Path:
             raise ValueError(f"trial row {index} is not an object")
         fallback = f"transcripts/{row.get('arm', 'unknown')}-{int(row.get('number', index + 1)):02d}.jsonl"
         transcript, label = transcript_for(row.get("transcript"), fallback)
-        _recount_usage_row(row, transcript, label)
+        _recount_usage_row(row, transcript, label, prices)
         observed_models = row.get("observed", {}).get("models_observed", [])
         measurement_evidence.attach_trial(row, artifacts, {
             "campaign_sha256": campaign_hash,

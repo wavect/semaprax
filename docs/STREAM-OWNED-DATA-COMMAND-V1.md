@@ -22,6 +22,11 @@ transferred element retain ordinary affine cleanup and staged-call boundaries.
 The intrinsic/storage contract is owned by
 [Owned Leaf Collections v1](OWNED-LEAF-COLLECTIONS-V1.md).
 
+Bytes-bearing construction or deep copy in loop bodies/conditions remains
+refused with `SPX-T267`, including transitive helper calls. This profile does not
+relax that capacity contract. Stage Bytes allocation and copies outside loops;
+admitted String-bearing loop operations retain their separate checked rules.
+
 Workspace routing constructs the ordinary owned-data closure, then independently
 validates v30's nominal and function signatures, command roots and operation
 profile. Native emission repeats the selected-program validation. Pure entry

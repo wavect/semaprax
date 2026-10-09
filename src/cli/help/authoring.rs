@@ -47,6 +47,7 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
             "Select [package] profile = \"language-command-io.owned-data.v1\" with input argv-utf8+stdin-stream.v1; native64 selected command only.\n",
             "Entry and command remain fn() -> i64 with the same four explicit command grants. Private helpers admit checked owned-leaf Vec/Iter carriers alongside v29's Copy records and codec outcomes.\n",
             "vec_clone_at deep-copies an element; vec_replace, vec_reserve_owned and vec_sort_owned transfer the collection owner. Consuming traversal uses for own and vec_into_iter.\n",
+            "Bytes-bearing allocation/deep copy stays refused in loops, including transitive helpers (SPX-T267). Stage Bytes payloads and clones outside loops; checked String-bearing loops remain distinct.\n",
             "V27 and v29 stay closed to these owned carriers, including unused helpers. No public nominal ABI, ambient grant or Web/Wasm/npm command route is added.\n",
             "Exact admission, cleanup and gates: docs/STREAM-OWNED-DATA-COMMAND-V1.md.\n"
         ).to_owned()),
@@ -239,6 +240,7 @@ mod tests {
         let owned = lookup("author:owned-data").unwrap();
         assert!(owned.contains("language-command-io.owned-data.v1"));
         assert!(owned.contains("including unused helpers"));
+        assert!(owned.contains("SPX-T267"));
         assert!(owned.contains("fn() -> i64"));
         let mut query = "find:std.data.json.:0".to_owned();
         let mut ids = std::collections::BTreeSet::new();

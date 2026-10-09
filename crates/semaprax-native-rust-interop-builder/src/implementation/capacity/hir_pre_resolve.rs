@@ -1034,6 +1034,9 @@ pub(in crate::implementation) fn hir_pre_resolve_capacity<'a>(
         .and_then(|bytes| bytes.checked_add(":expression:".len()))
         .and_then(|bytes| bytes.checked_add(decimal_digits(source_bytes).checked_mul(4)?))
         .and_then(|bytes| bytes.checked_add(8))
+        .and_then(|bytes| {
+            bytes.checked_add(semaprax::hir::ExpressionId::OWNED_ALLOCATION_CARRIER_BYTES)
+        })
         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
     let extra_block_headers = cleanup_structural_nodes
         .checked_mul(2)

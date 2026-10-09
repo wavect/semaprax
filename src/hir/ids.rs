@@ -191,6 +191,11 @@ impl ExpressionId {
     pub(crate) const SHARED_ALLOCATION_CARRIER_BYTES: usize =
         2 * std::mem::size_of::<usize>() + std::mem::size_of::<String>();
 
+    /// Fixed allocation bytes around an expression identity's owned text.
+    /// The value is public so external bounded-accounting code can reserve
+    /// carrier overhead without exposing an allocation pointer.
+    pub const OWNED_ALLOCATION_CARRIER_BYTES: usize = Self::SHARED_ALLOCATION_CARRIER_BYTES;
+
     pub(crate) fn new(function: &FunctionExecutionId, path: &str) -> Self {
         Self::from_owned(scoped_identity(function, "expression", path))
     }

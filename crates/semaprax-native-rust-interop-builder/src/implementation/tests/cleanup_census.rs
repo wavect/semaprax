@@ -695,6 +695,112 @@ fn main() -> i64 { generic_marker<i64>(0) }
 }
 
 #[test]
+fn hir_loan_plan_capacity_counts_single_expression_backing_exactly() {
+    let source = "module capacity.loan_endpoint; @id(\"app.main\") fn main() -> i64 { 0 }";
+    let program = crate::parse(source, Path::new("loan-endpoint-capacity.spx")).unwrap();
+    let resolved = hir::resolve(&program).unwrap();
+    let expression = resolved
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "app.main")
+        .unwrap()
+        .body
+        .id
+        .clone();
+    let backing_bytes = expression
+        .owned_allocation_bytes()
+        .expect("resolved expression identity retains its owned backing");
+    let plan = semaprax::loan_plan::LoanPlan {
+        schema: semaprax::loan_plan::LOAN_PLAN_SCHEMA_V1,
+        loans: Vec::new(),
+        endpoints: vec![semaprax::loan_plan::LoanEndpoint {
+            point: semaprax::loan_plan::LoanProgramPoint {
+                expression,
+                phase: semaprax::loan_plan::LoanPointPhase::Before,
+            },
+            live_before: Vec::new(),
+            starts: Vec::new(),
+            kills: Vec::new(),
+            live_after: Vec::new(),
+        }],
+        edges: Vec::new(),
+    };
+    let expected = plan
+        .endpoints
+        .capacity()
+        .checked_mul(std::mem::size_of::<semaprax::loan_plan::LoanEndpoint>())
+        .and_then(|headers| headers.checked_add(backing_bytes));
+    assert_eq!(capacity::hir_loan_plan_owned_capacity(&plan), expected);
+}
+
+#[test]
+fn hir_expression_capacity_counts_import_and_host_call_backings_exactly() {
+    let (program, _) = fixture();
+    let resolved = hir::resolve(&program).unwrap();
+    let add = resolved
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "interop.add")
+        .unwrap();
+    let tail = match &add.body.kind {
+        hir::ResolvedExprKind::Block { tail, .. } => tail,
+        _ => panic!("function body must remain a block"),
+    };
+    let import_expression = match &tail.kind {
+        hir::ResolvedExprKind::Binary { left, .. } => left.as_ref(),
+        _ => panic!("fixture body must retain the imported call operand"),
+    };
+    let import = match &import_expression.kind {
+        hir::ResolvedExprKind::NativeRustImportCall(call) => call,
+        _ => panic!("fixture operand must be a native Rust import call"),
+    };
+    let import_expected = std::mem::size_of::<hir::ResolvedExpr>()
+        + import_expression
+            .id
+            .owned_allocation_bytes()
+            .expect("resolved HIR expression retains its identity")
+        + import
+            .expression
+            .owned_allocation_bytes()
+            .expect("native import call retains its expression identity")
+        + import.import.as_str().len()
+        + import.args.capacity() * std::mem::size_of::<hir::ResolvedExpr>()
+        + import
+            .args
+            .iter()
+            .map(|argument| capacity::hir_expr_owned_capacity(argument).unwrap())
+            .sum::<usize>();
+    assert_eq!(
+        capacity::hir_expr_owned_capacity(import_expression).unwrap(),
+        import_expected
+    );
+
+    let mut host_expression = import_expression.clone();
+    host_expression.kind = hir::ResolvedExprKind::HostCommandCall(hir::ResolvedHostCommandCall {
+        expression: host_expression.id.clone(),
+        operation: hir::ResolvedHostCommandOperation::ArgsLen,
+        args: Vec::new(),
+    });
+    let host = match &host_expression.kind {
+        hir::ResolvedExprKind::HostCommandCall(call) => call,
+        _ => unreachable!(),
+    };
+    let host_expected = std::mem::size_of::<hir::ResolvedExpr>()
+        + host_expression
+            .id
+            .owned_allocation_bytes()
+            .expect("resolved HIR expression retains its identity")
+        + host
+            .expression
+            .owned_allocation_bytes()
+            .expect("host command call retains its expression identity");
+    assert_eq!(
+        capacity::hir_expr_owned_capacity(&host_expression).unwrap(),
+        host_expected
+    );
+}
+
+#[test]
 fn cleanup_fieldwise_payload_and_vec_floors_are_covered() {
     let source = include_str!("../../../../../tests/fixtures/native_rust_hir_capacity.spx");
     let program = crate::parse(source, Path::new("native-rust-hir-capacity.spx")).unwrap();

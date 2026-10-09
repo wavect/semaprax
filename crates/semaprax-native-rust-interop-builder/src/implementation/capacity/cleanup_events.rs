@@ -361,6 +361,11 @@ pub(super) fn cleanup_plan_variable_identity_bytes(
                     generic_instance_identity_len,
                     path_len,
                 )
+                .and_then(|bytes| {
+                    bytes.checked_add(
+                        semaprax::hir::ExpressionId::OWNED_ALLOCATION_CARRIER_BYTES,
+                    )
+                })
                 .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                 all_expression_bytes = all_expression_bytes
                     .checked_add(identity_bytes)

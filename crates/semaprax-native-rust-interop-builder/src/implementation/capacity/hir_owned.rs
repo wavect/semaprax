@@ -155,7 +155,7 @@ fn hir_record_pattern_field_owned_capacity(
     }
 }
 
-fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnostic> {
+pub(super) fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnostic> {
     let mut total = 0_usize;
     let mut pending = vec![expression];
     while let Some(expression) = pending.pop() {
@@ -258,7 +258,7 @@ fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnosti
             }
             ResolvedExprKind::NativeRustImportCall(call) => {
                 total = total
-                    .checked_add(call.expression.as_str().len())
+                    .checked_add(call.expression.owned_allocation_bytes()?)
                     .and_then(|bytes| bytes.checked_add(call.import.as_str().len()))
                     .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                 add_capacity(
@@ -270,7 +270,7 @@ fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnosti
             }
             ResolvedExprKind::HostCommandCall(call) => {
                 total = total
-                    .checked_add(call.expression.as_str().len())
+                    .checked_add(call.expression.owned_allocation_bytes()?)
                     .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                 add_capacity(
                     &mut total,

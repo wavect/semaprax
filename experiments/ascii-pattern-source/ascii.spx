@@ -1254,6 +1254,31 @@ fn full_match(state: own Matcher, input: borrow Slice<u8>, work_limit: usize) ->
     let mut rewinding = false;
     let mut accepted = false;
     let mut finished = false;
+    // A positive minimum on the final atom requires it to consume the final
+    // input byte in every accepting count vector. Authenticate the complete
+    // table above before using this bounded necessary-condition rejection.
+    if length >= 64usize && atoms != 0usize && !exhausted && !invalid {
+        if affords(work, 2usize, work_limit) {
+            work = work + 2usize;
+            let final_atom = atoms - 1usize;
+            let minimum = load2(matcher, 66usize + final_atom * 8usize);
+            if minimum != 0usize {
+                if affords(work, 3usize, work_limit) {
+                    work = work + 3usize;
+                    let kind = read(matcher, 64usize + final_atom * 8usize);
+                    let value = read(matcher, 65usize + final_atom * 8usize);
+                    let byte = input_byte(input, length - 1usize);
+                    if kind == 2usize {
+                        if affords(work, 1usize, work_limit) {
+                            work = work + 1usize;
+                            let bitmap = read(matcher, 1088usize + value * 32usize + byte / 8usize);
+                            finished = bitmap / bit(byte % 8usize) % 2usize == 0usize;
+                        } else { exhausted = true; reason = 7usize; }
+                    } else { finished = kind == 0usize && byte != value; }
+                } else { exhausted = true; reason = 7usize; }
+            }
+        } else { exhausted = true; reason = 7usize; }
+    }
     while !finished && !exhausted && !invalid {
         if rewinding {
             if atom == 0usize {

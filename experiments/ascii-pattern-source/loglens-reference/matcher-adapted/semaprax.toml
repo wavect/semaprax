@@ -7,7 +7,7 @@ profile = "source-command.resource-output.v1"
 
 [modules]
 entry = "loglens"
-sources = ["loglens.spx", "unit.spx", "ascii.spx"]
+sources = ["ascii.spx", "loglens.spx", "unit.spx"]
 tests = ["loglens.tests"]
 
 [exports]

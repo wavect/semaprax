@@ -51,6 +51,12 @@ and [trace-backed recount](reports/codex-round7-mainc50-20261008-recount.json)
 for provenance, per-attempt means, and measurement limits. It is not a causal
 language comparison; actual billing and fixed harness context remain unavailable.
 
+## Fresh current-compiler repeat after chronological round 7 (2026-10-09; adapter profile round 6)
+
+A distinct, completed campaign used compiler source `398b051e6e7a06ac49ecf77d9292831401430de0` and the pinned binary recorded below. SEMAPRAX accepted 3/5 attempts and TypeScript 4/5; all three rejected attempts failed the same `literal-plus-timezone` text and JSON checks. All ten attempts were resource-clean. This is a descriptive matched campaign, not evidence of a winner, a causal language comparison, or an efficiency advantage. It retains the adapter's `round: 6` metadata; the new plan and artifact namespace are chronologically after the previously published round-seven campaign and do not overwrite or renumber it.
+
+The [full report](reports/codex-current398-20261009.md) includes all per-attempt and per-arm measurements, failed outcomes, resource-receipt hashes, and limits. The [trace-backed recount](reports/codex-current398-20261009-recount.json) retains all ten trials and independently checks usage reconciliation and archive/source hashes. Request input includes cache-read subsets; the separate `legacy_net_input_tokens` value is not task-only input. Final-source tokens are a legacy Claude BPE proxy, not cumulative authorship. Conditional API-equivalent costs are estimates, not actual billing; provider-resolved model identity and fixed harness context remain unavailable. Calibration is separate and not subtracted. See the additive adapter-round-six entry in [results-live.json](results-live.json).
+
 ## Round 1 (baseline, `f106fcebe`)
 
 | | TypeScript (Node, no deps) | SEMAPRAX |

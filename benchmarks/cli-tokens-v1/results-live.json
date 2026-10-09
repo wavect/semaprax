@@ -686,6 +686,163 @@
         "provider_reported_api_equivalent_cost_known_subtotal_usd": 1.04126,
         "failures": []
       }
+    },
+    {
+      "round": 6,
+      "run_label": "fresh current-compiler repeat after published chronological round 7 (2026-10-09)",
+      "status": "complete descriptive campaign; no winner or causal comparison claimed",
+      "adapter_round_note": "The adapter round value remains 6. This is a distinct new plan/artifact namespace and does not replace or renumber any earlier report.",
+      "compiler_source_commit": "398b051e6e7a06ac49ecf77d9292831401430de0",
+      "compiler_binary_sha256": "594980a96bb3d7f74a168dfa6bc71d6355344f2963489f1e3ae854d2f3a01237",
+      "seed_repository_commit": "393432ccb1ec4a8da56284b5670887c4a8fd4b72",
+      "frozen_spec_sha256": "51bf564cb9f7eadd4b3bd12fac53b7857befa09b3ef757d9c34400a8509fdeae",
+      "frozen_sample_sha256": "b4574c3e627aff7760a934ec5dc10c45abf76ade1f6ae0c20518c56cc6660598",
+      "qualification": {
+        "profile": "loglens-historical33-plus-spec-boundaries.v1",
+        "historical_checks": 33,
+        "spec_boundary_checks": 16,
+        "total_checks": 49,
+        "corpus_sha256": "9fd0993142aee8b47e5d3a4256379eeddcd903cadf69419717c40032d769c745",
+        "qualification_script_sha256": "d2214ae5922fee6949767ca661cba84fa07aab4ad66d4f446160927f838d6dd5",
+        "boundary_audit_source_sha256": "97eaa89fbac7dc0311154e5b0bda4e2ccb389518a3aa593639fdc36173e7acf8"
+      },
+      "model_requested": "gpt-6.1-sol",
+      "model_effort": "medium",
+      "provider_resolved_model": null,
+      "codex_cli_version": "codex-cli 0.160.1",
+      "attempts_per_arm": 5,
+      "trial_order": [
+        "SEM01",
+        "TS01",
+        "TS02",
+        "SEM02",
+        "SEM03",
+        "TS03",
+        "TS04",
+        "SEM04",
+        "SEM05",
+        "TS05"
+      ],
+      "one_outer_cli_turn_per_attempt": true,
+      "accepted_tasks": {
+        "semaprax": "3/5",
+        "typescript": "4/5"
+      },
+      "measurements_all_attempts": {
+        "semaprax": {
+          "attempts": 5,
+          "accepted": 3,
+          "rejected": 2,
+          "model_requests": {
+            "mean_per_attempt": 29.2,
+            "median_per_attempt": 30,
+            "total": 146
+          },
+          "raw_input_tokens": {
+            "mean_per_attempt": 1556745,
+            "median_per_attempt": 1611085,
+            "total": 7783725
+          },
+          "cached_input_tokens_subset": {
+            "mean_per_attempt": 1491609.6,
+            "median_per_attempt": 1545728,
+            "total": 7458048
+          },
+          "legacy_net_input_tokens": {
+            "mean_per_attempt": 1159771,
+            "median_per_attempt": 1203235,
+            "total": 5798855
+          },
+          "output_tokens": {
+            "mean_per_attempt": 15284.8,
+            "median_per_attempt": 14774,
+            "total": 76424
+          },
+          "final_source_claude_bpe_proxy": {
+            "mean_per_attempt": 8014.4,
+            "median_per_attempt": 7959,
+            "total": 40072
+          },
+          "agent_wall_seconds": {
+            "mean_per_attempt": 448.4092,
+            "median_per_attempt": 432.276,
+            "total": 2242.0460000000003
+          },
+          "acceptance_wall_seconds": {
+            "mean_per_attempt": 32.219621000000004,
+            "median_per_attempt": 33.775148,
+            "total": 161.098105
+          },
+          "conditional_api_equivalent_usd_all_attempts": 2.1614,
+          "conditional_api_equivalent_usd_per_accepted_task": 0.7204666666666667,
+          "actual_billed_usd_per_accepted_task": null
+        },
+        "typescript": {
+          "attempts": 5,
+          "accepted": 4,
+          "rejected": 1,
+          "model_requests": {
+            "mean_per_attempt": 8.8,
+            "median_per_attempt": 9,
+            "total": 44
+          },
+          "raw_input_tokens": {
+            "mean_per_attempt": 233993.4,
+            "median_per_attempt": 239075,
+            "total": 1169967
+          },
+          "cached_input_tokens_subset": {
+            "mean_per_attempt": 192972.8,
+            "median_per_attempt": 191360,
+            "total": 964864
+          },
+          "legacy_net_input_tokens": {
+            "mean_per_attempt": 114419,
+            "median_per_attempt": 116783,
+            "total": 572095
+          },
+          "output_tokens": {
+            "mean_per_attempt": 8526.8,
+            "median_per_attempt": 7911,
+            "total": 42634
+          },
+          "final_source_claude_bpe_proxy": {
+            "mean_per_attempt": 5332.2,
+            "median_per_attempt": 5222,
+            "total": 26661
+          },
+          "agent_wall_seconds": {
+            "mean_per_attempt": 200.2628,
+            "median_per_attempt": 194.881,
+            "total": 1001.314
+          },
+          "acceptance_wall_seconds": {
+            "mean_per_attempt": 4.0354106,
+            "median_per_attempt": 3.99635,
+            "total": 20.177053
+          },
+          "conditional_api_equivalent_usd_all_attempts": 0.933032,
+          "conditional_api_equivalent_usd_per_accepted_task": 0.233258,
+          "actual_billed_usd_per_accepted_task": null
+        }
+      },
+      "measurement_caveats": [
+        "Model request counts are internal requests inside a single outer Codex CLI turn per attempt.",
+        "Raw input includes cached input; cached input is shown as a subset and not added again.",
+        "Legacy net input is a historical convention, not task-only input.",
+        "Final-source value is the legacy Claude BPE tokenizer proxy, not cumulative authorship or exact GPT tokenization.",
+        "Conditional short-context API-equivalent estimates are not actual billing; provider receipts and resolved model are unavailable.",
+        "Fixed harness context is unknown; separate calibration was not subtracted.",
+        "All ten attempts, including three rejected tasks, remain in totals."
+      ],
+      "resource_contaminated_attempts": 0,
+      "reports": "reports/codex-current398-20261009.md",
+      "trace_backed_recount": "reports/codex-current398-20261009-recount.json",
+      "results_sha256": "fb3cc013fc5990a87417c54d8fb62f1db029cd3489fcf5fff342e38d84c92ce4",
+      "campaign_json_sha256": "79d28a19fa1b7a9ee33edccfb74069fd8b10192997575bc74409b46f5cb0a548",
+      "reviewed_plan_sha256": "21429250472e855378b1e9232b6a20385ac9d1b9ae4706af81ed66debbb84af1",
+      "terminal_receipt_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/loglens-current-source398b051e6-terminal-receipt-20261009.json",
+      "terminal_receipt_sha256": "ba4cacf4645045a46783aac05fff6a045b12a7aaf2ab16691e8989e7ca18fdb1"
     }
   ]
 }

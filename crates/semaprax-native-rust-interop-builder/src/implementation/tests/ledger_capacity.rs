@@ -285,6 +285,13 @@ fn hir_complete_reservation_is_exact_and_one_less_prevents_resolution() {
     let canonical = crate::format::canonical(&program);
     let mut stack = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
     let capacity = hir_pre_resolve_capacity(&program, canonical.len(), &mut stack).unwrap();
+    println!(
+        "HIR_CAPACITY_PIN_CANDIDATE {{\"retained_upper\":{},\"scratch_upper\":{},\"phase_peaks\":{:?},\"complete\":{}}}",
+        capacity.retained_upper,
+        capacity.scratch_upper,
+        capacity.phase_peaks(),
+        capacity.complete().unwrap(),
+    );
     // `retained_upper` and `complete()` moved by exactly 256 bytes when
     // 24c1d166 ("admit a minimal `yield` slice") added `yields:
     // Option<ResolvedYieldsClause>` to `ResolvedFunction`

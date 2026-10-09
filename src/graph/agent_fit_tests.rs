@@ -141,6 +141,10 @@ fn ref10_budget_sweeps_keep_exact_known_answers() {
             .any(|line| line.contains("\"reasons\":[\"max_bytes\"]")));
     }
     assert_eq!(digests, REF10_SWEEP_DIGESTS);
+}
+
+#[test]
+fn ref10_envelope_budget_refusals_keep_exact_versioned_diagnostics() {
     // These frozen corpora can fit their envelopes at the public minimum.
     // Exercise refusal with an admitted identity that makes the envelope
     // itself too large, retaining every sweep byte and known-answer digest.
@@ -150,13 +154,19 @@ fn ref10_budget_sweeps_keep_exact_known_answers() {
     let expected = format!(
         "agent context max_bytes {MIN_AGENT_CONTEXT_BYTES} cannot contain the canonical envelope"
     );
-    let assert_refusal = |errors: Vec<crate::diagnostic::Diagnostic>| {
+    let expected_v2 = format!(
+        "agent context max_bytes {MIN_AGENT_CONTEXT_BYTES} cannot contain the canonical v2 envelope"
+    );
+    let assert_refusal = |errors: Vec<crate::diagnostic::Diagnostic>, expected: &str| {
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0].code, "SPX-G004");
         assert_eq!(errors[0].message, expected);
     };
     let small = AgentContextOptions::new(0, MIN_AGENT_CONTEXT_BYTES, 1, CORE_FILTERS).unwrap();
-    assert_refusal(agent_context_json(&program, &root, &small).unwrap_err());
+    assert_refusal(
+        agent_context_json(&program, &root, &small).unwrap_err(),
+        &expected,
+    );
     let large = AgentContextOptions::new(0, MAX_AGENT_CONTEXT_BYTES, 1, CORE_FILTERS).unwrap();
     assert!(agent_context_json(&program, &root, &large)
         .unwrap()
@@ -165,7 +175,10 @@ fn ref10_budget_sweeps_keep_exact_known_answers() {
         let small =
             AgentContextV2Options::new(0, MIN_AGENT_CONTEXT_BYTES, 1, CORE_FILTERS, direction)
                 .unwrap();
-        assert_refusal(agent_context_v2_json(&program, &root, &small).unwrap_err());
+        assert_refusal(
+            agent_context_v2_json(&program, &root, &small).unwrap_err(),
+            &expected_v2,
+        );
         let large =
             AgentContextV2Options::new(0, MAX_AGENT_CONTEXT_BYTES, 1, CORE_FILTERS, direction)
                 .unwrap();

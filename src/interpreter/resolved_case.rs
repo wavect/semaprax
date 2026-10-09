@@ -62,7 +62,12 @@ impl ResolvedFunctionProfile {
                             .is_some_and(|declaration| {
                                 declaration.identity_origin == hir::IdentityOrigin::Explicit
                             })
-                            && resolved_signature_is_admitted(function, &program.declarations)
+                            && function.effects.is_empty()
+                            && (resolved_signature_is_admitted(function, &program.declarations)
+                                || super::internal_strings::signature_is_admitted(
+                                    function,
+                                    &program.declarations,
+                                ))
                     })
                     .map(|function| (function.id.as_str(), function)),
             );
@@ -401,6 +406,15 @@ mod tests {
             .find(|f| f.id.as_str() == "text.helper")
             .unwrap();
         helper.effects.push("fs.read".into());
+        assert!(!profile.admitted(&hostile).contains_key("text.helper"));
+        hostile = program.clone();
+        hostile
+            .functions
+            .iter_mut()
+            .find(|f| f.id.as_str() == "text.helper")
+            .unwrap()
+            .params[0]
+            .ownership = hir::OwnershipMode::Borrow;
         assert!(!profile.admitted(&hostile).contains_key("text.helper"));
     }
     #[test]

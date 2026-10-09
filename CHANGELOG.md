@@ -3,12 +3,12 @@
 - Explain the native build/invoke route directly in source-command interpreter
   refusal diagnostics (issue #701). Exact G170/F102 help distinguishes source
   formatting, manifest formatting, bundled imports and native-only profiles.
-  Focused regressions are authored; validation is pending.
+  Focused diagnostic/help regressions and scoped clippy pass.
 
 - Add explicit `fmt --manifest <semaprax.toml> [--check]` for canonical table
   layout. The mode shares complete manifest semantic validation, while ordinary
-  `fmt` keeps formatting only selected `.spx` files. Focused regressions are
-  authored; validation is pending.
+  `fmt` keeps formatting only selected `.spx` files. Eight formatter regressions, the CLI snapshot and scoped clippy pass.
+- Restore internal owned-String helper admission for explicit owned-data Project entry/test closures while keeping legacy String refusals and effect/borrow exclusions.
 
 - Add `semaprax help shapes kinds` as a complete exact selector index derived
   from the generated language-shapes companion (issue #699). The bare catalog,

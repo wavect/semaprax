@@ -26,10 +26,13 @@ same signatures as the [ordinary interpreter](INTERPRETER-V1.md). It reuses
 for a returned value, 1 for language/capacity failure, and 2 for usage error.
 The API returns no final LF; the CLI adds one.
 
-The existing `interpret` command/API, source-report verifier, Project entry and
-test execution, prepared Project interpreter, source traces, stdout, command,
-and owned-data evaluators do not opt in. Their admission, wire bytes, and
-diagnostics remain unchanged. In particular, ordinary interpretation still
+The existing `interpret` command/API, source-report verifier, legacy Project entry
+and test execution, source traces, stdout, and command evaluators do not opt in.
+Their admission, wire bytes, and diagnostics remain unchanged. Explicit
+`owned-data-api.v1` Project entry/test closures retain their separately admitted
+internal owned-String helpers, including prepared evaluation, as required by
+[the decimal library](STANDARD-LIBRARY-V1.md#exact-unsigned-decimal-integers).
+This does not add a public owned-String export boundary. In particular, ordinary interpretation still
 rejects an internal String-signature callee with `SPX-F102`.
 
 ## Admission and evaluation

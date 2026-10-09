@@ -1304,20 +1304,19 @@ not select a profile. V28 opt-in `[package] profile =
 1 MiB Strings, borrowed text and staged output; v26 remains frozen. See
 [Project v28](PROJECT-MANIFEST-V28.md) for exact limits and refusal rules.
 
-`stdin-stream-data` creates the native v27 `language-command-io.stream-data.v1`
-starter with private Copy-scalar `Vec<T>` helpers. V29 adds private Copy records,
-`Vec<R>` and codec outcomes; v27 stays scalar-only. Selected commands are
-native-only, while pure tests need no stdin provider. Ask
-`help language author:stream-data-v2`; see [v27](STREAM-DATA-COMMAND-V1.md) and
-[v29](STREAM-DATA-COMMAND-V2.md).
-
-V30 `language-command-io.owned-data.v1` adds private `Vec<string>` and
-flat owned-leaf records. Source uses lowercase `string`; `text: string` consumes
-its argument, while `text: own string` is `SPX-O002`. Push consumes; `for own`
-uses `vec_into_iter`. Bytes allocation/copy and `vec_clone_at` on Bytes-bearing
-records inside bounded `while` are `SPX-T267`. Ask
-`help language author:owned-data`; see [v30](STREAM-OWNED-DATA-COMMAND-V1.md)
-and [collections](OWNED-LEAF-COLLECTIONS-V1.md).
+`stdin-stream-data` creates native v27 `language-command-io.stream-data.v1` with
+private Copy-scalar `Vec<T>` helpers; v29 adds private Copy records, `Vec<R>`
+and codec outcomes. V27 stays scalar-only. V30
+`language-command-io.owned-data.v1` adds private `Vec<string>` and flat
+owned-leaf records. Select v30 only when runtime helpers need those carriers; a
+request-schema `Vec<string>` stays descriptive.
+`text: string` consumes its argument, while `text: own string` is `SPX-O002`.
+Push consumes; `for own` uses `vec_into_iter`. Bytes allocation/copy and
+`vec_clone_at` on Bytes-bearing records inside bounded `while` are `SPX-T267`.
+Ask `help language author:stream-data-v2` or `help language author:owned-data`; see
+[v27](STREAM-DATA-COMMAND-V1.md), [v29](STREAM-DATA-COMMAND-V2.md),
+[v30](STREAM-OWNED-DATA-COMMAND-V1.md) and
+[collections](OWNED-LEAF-COLLECTIONS-V1.md).
 
 `semaprax lock semaprax.toml --write` pins identity, source digests, interface,
 targets, and capabilities; `--verify` checks it and `--compare <base.lock>`
@@ -1347,10 +1346,11 @@ tokens, use `std.data.json.query` and
 `semaprax json-codec` derives checked ordinary source from an authenticated
 Project record. The default scalar shape and opt-in identifier, request and
 stream-request view profiles are source-implemented; qualification is pending.
-Ask `help language author:json-codec` for exact `--profile` spelling, bounds
-and dependencies. Declared `Vec<string>` describes a request schema only; the
-executable view collections contain Copy spans. Stream errors use raw input
-offsets; errors after normalization use offsets in the retained Ready bytes.
+Use `help language author:json-codec` to select a profile by exact source shape;
+it links profile cards for identifier, request and stream-request views.
+Declared `Vec<string>` describes a request schema only; executable collections
+carry Copy views. Stream errors use raw offsets; post-Ready errors use offsets
+in retained Ready bytes. Owning view-composition gates remain pending.
 
 ## Where the rules live
 

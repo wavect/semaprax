@@ -32,6 +32,7 @@ spec.loader.exec_module(codex)
 
 sys.path.insert(0, str(BENCHMARK))
 import campaign as shiftsim
+import compiler_input_capture as compiler_capture
 
 MODEL, EFFORT, TIMEOUT_SECONDS = codex.MODEL, codex.EFFORT, codex.TIMEOUT_SECONDS
 ARMS, MIN_TRIALS_PER_ARM = shiftsim.ARMS, shiftsim.MIN_TRIALS_PER_ARM
@@ -206,20 +207,23 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
                                    "context_tokens": None}
         node_path = Path(shutil.which(tooling["node_binary"]) or tooling["node_binary"]).resolve(strict=True)
         env["PATH"] = os.pathsep.join((str(candidate / "node_modules/.bin"), str(node_path.parent), env.get("PATH", "")))
-    prompt = shiftsim.prompt_for(trial["arm"], candidate, semaprax_bin,
-                                 settings.get("authoring_profile", shiftsim.AUTHORING_PROFILE_V24))
-    if tooling:
-        prompt += "\n\n" + shiftsim.ts_bootstrap.prompt_note(receipt)
-    (artifacts / "prompts").mkdir(exist_ok=True)
-    (artifacts / "prompts" / f"{label}.txt").write_text(prompt, encoding="utf-8")
-    row["prompt_sha256"] = shiftsim.sha_text(prompt)
     stream, stderr = (artifacts / "transcripts" / f"{label}.{suffix}" for suffix in ("jsonl", "stderr.txt"))
     stream.parent.mkdir(exist_ok=True)
     row.update({"transcript": str(stream), "stderr_path": str(stderr)})
     try:
-        shiftsim.common.require_compiler_binding(settings, semaprax_bin)
-        row.update(codex.run_codex(command_for(settings, prompt), workspace,
-                                   env, stream, stderr, settings["timeout_seconds"]))
+        with compiler_capture.authoring_compiler(trial["arm"], candidate, workspace, artifacts,
+                label, settings, semaprax_bin, row) as authoring_binary:
+            prompt = shiftsim.prompt_for(trial["arm"], candidate, authoring_binary,
+                settings.get("authoring_profile", shiftsim.AUTHORING_PROFILE_V24))
+            if tooling:
+                prompt += "\n\n" + shiftsim.ts_bootstrap.prompt_note(receipt)
+            (artifacts / "prompts").mkdir(exist_ok=True)
+            (artifacts / "prompts" / f"{label}.txt").write_text(prompt, encoding="utf-8")
+            row["prompt_sha256"] = shiftsim.sha_text(prompt)
+            authoring_env = {**env, "SEMAPRAX_BIN": str(authoring_binary)} if trial["arm"] == "semaprax" else env
+            shiftsim.common.require_compiler_binding(settings, semaprax_bin)
+            row.update(codex.run_codex(command_for(settings, prompt), workspace,
+                                       authoring_env, stream, stderr, settings["timeout_seconds"]))
         row.update(observe(workspace, artifacts, label, stream))
         observed = row["observed"]
         row["telemetry_valid"] = (observed.get("reconciled") is True

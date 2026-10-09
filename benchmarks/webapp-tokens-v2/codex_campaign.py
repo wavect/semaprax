@@ -26,6 +26,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import live_campaign_common as common
 import campaign_resources as resources
+import compiler_input_capture as compiler_capture
 
 # Direct file loading works for external spec_from_file_location callers and
 # never resolves these trusted siblings through cwd or ambient sys.modules.
@@ -80,6 +81,7 @@ HARNESS_SOURCE_FILES = (
     "benchmarks/webapp-tokens-v2/codex_campaign.py",
     "benchmarks/authored_source_recount.py",
     "benchmarks/compiler_output_provenance.py",
+    "benchmarks/compiler_input_capture.py",
     "benchmarks/webapp-tokens-v2/typescript_bootstrap.py",
     "benchmarks/webapp-tokens-v2/dependency_bundle.py",
     "benchmarks/live_campaign_common.py",
@@ -813,19 +815,21 @@ def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any]
             return row
         finally:
             row["tooling_provision_elapsed_seconds"] = round(time.monotonic() - provision_started, 3)
-    prompt = prompt_for(arm, candidate, semaprax_bin, tooling)
-    (artifacts / "prompts").mkdir(parents=True, exist_ok=True)
-    (artifacts / "prompts" / f"{label}.txt").write_text(prompt, encoding="utf-8")
-    row["prompt_sha256"] = hashlib.sha256(prompt.encode()).hexdigest()
-    row["fixed_prompt_utf8_bytes"] = len(prompt.encode())
     transcript, stderr, trace = (artifacts / "transcripts" / f"{label}.{suffix}" for suffix in ("jsonl", "stderr.txt", "rollout.jsonl"))
     transcript.parent.mkdir(parents=True, exist_ok=True)
     row.update({"transcript": str(transcript), "stderr_path": str(stderr),
                 "provider_receipt_actual_usd": None})
     try:
-        common.require_compiler_binding(settings, semaprax_bin)
-        process = run_codex(_command(settings, prompt), workspace, trial_environment(semaprax_bin),
-                            transcript, stderr, settings["timeout_seconds"])
+        with compiler_capture.authoring_compiler(arm, candidate, workspace, artifacts, label,
+                settings, semaprax_bin, row) as authoring_binary:
+            prompt = prompt_for(arm, candidate, authoring_binary, tooling)
+            (artifacts / "prompts").mkdir(parents=True, exist_ok=True)
+            (artifacts / "prompts" / f"{label}.txt").write_text(prompt, encoding="utf-8")
+            row["prompt_sha256"] = hashlib.sha256(prompt.encode()).hexdigest()
+            row["fixed_prompt_utf8_bytes"] = len(prompt.encode())
+            common.require_compiler_binding(settings, semaprax_bin)
+            process = run_codex(_command(settings, prompt), workspace, trial_environment(authoring_binary),
+                                transcript, stderr, settings["timeout_seconds"])
         row.update(process)
         exec_usage = parse_exec_jsonl(transcript)
         copied = copy_task_rollout(exec_usage["thread_ids"], workspace, trace)

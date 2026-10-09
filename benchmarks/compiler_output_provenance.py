@@ -39,17 +39,30 @@ def _snapshot_read(root_fd: int, relative: str, limit: int) -> bytes:
 
 
 def capture_inputs(candidate: Path, destination: Path, paths: list[str],
-                   max_bytes: int = 8 * 1024 * 1024) -> tuple[Path, str]:
+                   max_bytes: int = 8 * 1024 * 1024, *,
+                   authorized_directory_fd: int | None = None) -> tuple[Path, str]:
     """Retain pre-generation bytes in a new runner-owned evidence directory.
 
     The runner supplies the input closure. This does not establish its
     completeness, compiler execution, generated-file authorship, or billing.
     Run the compiler against the retained snapshot when exact input binding is
     required; a collection of independently read live files is not a lock.
+
+    A runner that has already authorized a directory through no-follow handles
+    may supply its FD instead of reopening a mutable pathname. That caller must
+    establish the handle's authority and keep destination outside its namespace;
+    the FD is not inferred from an untrusted request. Path mode is unchanged.
     """
-    if candidate.is_symlink() or not candidate.is_dir():
-        raise ValueError("candidate must be a real directory")
-    if destination.resolve().is_relative_to(candidate.resolve()):
+    if authorized_directory_fd is None:
+        if candidate.is_symlink() or not candidate.is_dir():
+            raise ValueError("candidate must be a real directory")
+        inside = destination.resolve().is_relative_to(candidate.resolve())
+    else:
+        if (isinstance(authorized_directory_fd, bool) or not isinstance(authorized_directory_fd, int)
+                or not stat.S_ISDIR(os.fstat(authorized_directory_fd).st_mode)):
+            raise ValueError("authorized snapshot handle must name a directory")
+        inside = Path(os.path.abspath(destination)).is_relative_to(Path(os.path.abspath(candidate)))
+    if inside:
         raise ValueError("input snapshot must be outside the candidate")
     if isinstance(max_bytes, bool) or not isinstance(max_bytes, int) or max_bytes < 0:
         raise ValueError("snapshot byte budget must be nonnegative")
@@ -67,10 +80,12 @@ def capture_inputs(candidate: Path, destination: Path, paths: list[str],
         inputs.mkdir()
         rows = []
         total = 0
-        root_fd = os.open(candidate, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        root_fd = (os.open(candidate, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+                   if authorized_directory_fd is None else os.dup(authorized_directory_fd))
         try:
             for relative in sorted(selected):
-                _regular_under(candidate, relative)
+                if authorized_directory_fd is None:
+                    _regular_under(candidate, relative)
                 data = _snapshot_read(root_fd, relative, max_bytes - total)
                 if len(data) > max_bytes - total:
                     raise ValueError("snapshot input selection exceeds byte budget")

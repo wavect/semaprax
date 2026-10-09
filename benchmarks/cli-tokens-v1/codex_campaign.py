@@ -26,6 +26,7 @@ import live_campaign as legacy
 import cli_typescript_bootstrap as ts_bootstrap
 import campaign_resources as resources
 import live_campaign_common as common
+import compiler_input_capture as compiler_capture
 
 BENCHMARK = Path(__file__).resolve().parent
 REPO = BENCHMARK.parents[1]
@@ -47,6 +48,8 @@ HARNESS_SOURCE_FILES = (
     "benchmarks/cli-tokens-v1/qualification.py",
     "benchmarks/live_campaign_common.py",
     "benchmarks/campaign_resources.py",
+    "benchmarks/compiler_input_capture.py",
+    "benchmarks/compiler_output_provenance.py",
 )
 PRICE_USD_PER_MTOK = {
     "input": 2.0, "cache_read": 0.1, "cache_write": 2.5, "output": 10.0,
@@ -475,16 +478,19 @@ def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any]
                                    "context_tokens": None}
         node_path = Path(shutil.which(tooling["node_binary"]) or tooling["node_binary"]).resolve(strict=True)
         env["PATH"] = os.pathsep.join((str(candidate / "node_modules/.bin"), str(node_path.parent), env.get("PATH", "")))
-    prompt = legacy.prompt_for(arm, candidate, semaprax_bin)
-    if tooling:
-        prompt += "\n\n" + ts_bootstrap.prompt_note(receipt)
-    (artifacts / "prompts").mkdir(parents=True, exist_ok=True)
-    (artifacts / "prompts" / f"{label}.txt").write_text(prompt, encoding="utf-8")
-    row["prompt_sha256"] = hashlib.sha256(prompt.encode()).hexdigest()
     transcript, stderr, trace = (artifacts / "transcripts" / f"{label}.{suffix}" for suffix in ("jsonl", "stderr.txt", "rollout.jsonl"))
     transcript.parent.mkdir(parents=True, exist_ok=True)
-    common.require_compiler_binding(settings, semaprax_bin)
-    process = run_codex(_command(settings, prompt), workspace, env, transcript, stderr, settings["timeout_seconds"])
+    with compiler_capture.authoring_compiler(arm, candidate, workspace, artifacts, label,
+                                             settings, semaprax_bin, row) as authoring_binary:
+        prompt = legacy.prompt_for(arm, candidate, authoring_binary)
+        if tooling:
+            prompt += "\n\n" + ts_bootstrap.prompt_note(receipt)
+        (artifacts / "prompts").mkdir(parents=True, exist_ok=True)
+        (artifacts / "prompts" / f"{label}.txt").write_text(prompt, encoding="utf-8")
+        row["prompt_sha256"] = hashlib.sha256(prompt.encode()).hexdigest()
+        authoring_env = {**env, "SEMAPRAX_BIN": str(authoring_binary)} if arm == "semaprax" else env
+        common.require_compiler_binding(settings, semaprax_bin)
+        process = run_codex(_command(settings, prompt), workspace, authoring_env, transcript, stderr, settings["timeout_seconds"])
     row.update(process); row.update({"transcript": str(transcript), "stderr_path": str(stderr)})
     exec_usage = parse_exec_jsonl(transcript)
     copied = copy_task_rollout(exec_usage["thread_ids"], workspace, trace)

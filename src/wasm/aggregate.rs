@@ -653,7 +653,11 @@ impl FunctionPlan {
         if let ResolvedExprKind::Call { callee, type_arguments, .. } = &expr.kind {
             if (matches!(crate::vec_ops::by_id(callee.as_str()), Some(crate::vec_ops::VecOp::CloneAt))
                 || callee.as_str() == crate::iterator_ops::NEXT_ID)
-                && matches!(type_arguments.as_slice(), [element] if crate::hir::owned_leaf_collection::layout(&program.declarations, element).is_some())
+                && matches!(type_arguments.as_slice(), [element]
+                    if crate::hir::owned_leaf_collection::layout(&program.declarations, element).is_some()
+                        && (callee.as_str() != crate::iterator_ops::NEXT_ID
+                            || !crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+                                &program.declarations, element)))
             {
                 let bytes = if callee.as_str() == crate::iterator_ops::NEXT_ID { 88 } else { 64 };
                 self.owned_leaf_scratch.insert(expr.id.clone(), frame.allocate(bytes, 8)?);

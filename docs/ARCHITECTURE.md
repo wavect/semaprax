@@ -1076,12 +1076,16 @@ keeps the shared evaluator and only minimal Project-lane reexports.
 `src/interpreter/retained_call/execution.rs` shares retained-call staging,
 evaluation and harvesting between the existing worker API and the sealed
 `retained_call/owned_handoff.rs` synchronous move-only profile.
-`src/kernel_zero/rung_two_owned_handoff.rs` owns its exact-source/core-term/target
-binding and the production formatter handoff; `rung_two_authority.rs` retains
-Rust byte authority, bounded-output bypass and panic-safe re-entry. This is an
-ordinary checked ownership boundary around unchanged scalar rendering, not an
-extension of the Kernel-0 theorem. [Owned Handoff v1](KERNEL-ZERO-RUNG-TWO-OWNED-HANDOFF-V1.md)
-owns the private contract and its separate target-evidence nonclaims.
+`src/kernel_zero/rung_two_owned_handoff.rs` derives and authenticates its
+exact-source/core-term/target binding once before publishing the immutable
+production boundary through `OnceLock`; each formatter handoff still executes
+the prepared wrapper and checks settlement plus exact output. The test-only
+explicit-delivery path authenticates supplied binding bytes independently.
+`rung_two_authority.rs` retains Rust byte authority, bounded-output bypass and
+panic-safe re-entry. This is an ordinary checked ownership boundary around
+unchanged scalar rendering, not an extension of the Kernel-0 theorem.
+[Owned Handoff v1](KERNEL-ZERO-RUNG-TWO-OWNED-HANDOFF-V1.md) owns the private
+contract and its separate target-evidence nonclaims.
 
 `src/project/prepared_interpreter/` adds an authority-neutral retained Project
 lane over the same evaluator. It caches the exact admitted entry/test closure

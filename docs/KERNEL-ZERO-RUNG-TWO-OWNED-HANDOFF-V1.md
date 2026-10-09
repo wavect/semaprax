@@ -63,12 +63,19 @@ this is not recovery from allocator abort, stack overflow, or fail-stop.
 ## Exact private binding and target evidence
 
 `kernel_zero::rung_two_owned_handoff` owns the adapter and bounded binding.
-Initialization checks the embedded wrapper, entry, five unchanged scalar
-sources, each exact entry and canonical core term, 20-byte maximum, descriptor,
-native C provider bytes, Core-Wasm bytes, and Cargo.lock. It reuses the existing
-canonical term encoder and source/entry inventory without changing bootstrap-v2 bytes. Only
-the tiny wrapper target artifacts are emitted during initialization, not the
-five scalar targets; no target compilation or execution occurs there.
+Initialization derives and authenticates the embedded wrapper, entry, five
+unchanged scalar sources, each exact entry and canonical core term, 20-byte
+maximum, descriptor, native C provider bytes, Core-Wasm bytes, and Cargo.lock.
+The production route publishes that immutable checked boundary once through a
+`OnceLock`; it does not reserialize and reauthenticate the fixed binding for
+each formatter handoff. Every handoff still executes the prepared wrapper and
+requires exact settled-output equality before publication. The test-only
+explicit-delivery path separately authenticates supplied bytes and digest
+against the held expected bytes, preserving the hostile-substitution checks.
+Initialization reuses the existing canonical term encoder and source/entry
+inventory without changing bootstrap-v2 bytes. Only the tiny wrapper target
+artifacts are emitted during initialization, not the five scalar targets; no
+target compilation or execution occurs there.
 
 Descriptor/emitter APIs receive a private standalone-source subject bound to
 source, entry and profile digests: not a managed Project generation or release
@@ -144,7 +151,7 @@ notes without converting earlier executions into later-head results.
 | 9 | Owned `Bytes` boundary: bounded execution (admission caps, 0..=20-byte input, 1..=8 fuel) | **Tested** | `interpreter::retained_call::owned_handoff` + its `tests` module (`owned_handoff` selector, 10 passed). |
 | 10 | Owned `Bytes` boundary: a refused, exhausted, mismatched, or panicking candidate falls back to the authoritative Rust bytes, and a later invocation re-enters without double-applying effects | **Tested** | `tests.rs::owned_handoff_exhaustion_has_no_candidate_and_next_invocation_recovers` (fuel-exhaustion refusal, then a fresh successful call); `tests.rs::reminted_owned_handoff_substitutions_refuse_before_owner_allocation`'s final assertion (re-entry with `b"reentry"` after every mutation refusal); `targets.rs` native/Wasm hostile handle/copy-refusal-then-reentry rows. |
 | 11 | Owned `Bytes` boundary: physical native (`-O0`/`-O2`) and Core-Wasm execution over real allocator/arena lifetimes | **Tested** (prior session; not rerun this slice, per instruction to avoid whole-module reruns) | `targets.rs::owned_handoff_native_and_wasm_settle_refuse_and_reenter`, 13 rows (empty/NUL/non-UTF-8 bytes, `i64::MIN`'s 20-byte output, all five renderer lanes). |
-| 12 | The binding-authentication check in criterion 8 is load-bearing, not incidental | **Demonstrated once, reverted this slice** (negative control) | `deliver` in `rung_two_owned_handoff.rs` was temporarily changed to `let _ = Binding::authenticate(...)` (ignoring the result). Rerunning `kernel_zero::rung_two_owned_handoff::tests::reminted_owned_handoff_substitutions_refuse_before_owner_allocation --exact` under that mutant **failed** immediately on the first mutation case (panicked asserting `"source"`, 0 passed/1 failed) instead of refusing all nine mutation classes as it does normally — proof the check is load-bearing. The mutant was reverted (`git diff` on the file is empty) and the same exact selector was rerun once more, passing cleanly (`1 passed; 0 failed`). Not committed at any point. |
+| 12 | Binding authentication is load-bearing, not incidental | **Demonstrated once, reverted this slice** (negative control) | The test-only explicit `deliver` path authenticates caller-supplied bytes and digest against the immutable expected bytes. Temporarily ignoring that check made `kernel_zero::rung_two_owned_handoff::tests::reminted_owned_handoff_substitutions_refuse_before_owner_allocation --exact` fail immediately on the first mutation case (panicked asserting `"source"`, 0 passed/1 failed) instead of refusing all nine mutation classes. The mutant was reverted and the exact selector passed again. This demonstrates the supplied-binding check; production authenticates its fixed recipe once before `OnceLock` publication and then checks execution settlement and exact output on every handoff. |
 | 13 | Rung-2 promotion / owned-buffer formatter authority transfer | **Reviewed: rung 1 retained** | The 2 October [accepted-profile decision](KERNEL-ZERO-ACCEPTED-REVISION-VALIDATION-V1.md) accepts six focused receipts at `f99c76dc2` and declines rung-2 promotion because Rust still assembles the scalar output and retains formatter authority. |
 | 14 | Hosted acceptance (CI-run Lean gate, hosted differential, release-blocker set) | **Open** | Actions credits exhausted this session (see `docs/DEVELOPMENT.md`/coordinator notes); no hosted claim is made anywhere in this document. |
 | 15 | Whole-compiler self-hosting or formal verification (issue #212) | **Out of scope** | Not imported into this slice; #294 explicitly excludes it. |

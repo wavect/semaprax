@@ -1,5 +1,9 @@
 # Changelog
 
+- Avoid rebuilding and hashing the fixed rung-two handoff binding on every
+  scalar operation. Authenticate it before immutable publication, retaining
+  per-handoff execution and settlement checks and supplied-binding refusals.
+
 - Admit authenticated full-root owned-String byte views in the additive Wasm
   Text Toolkit profile. Keep the default Web and standalone internal-String
   v1 profiles closed; exercise fused and named-view cleanup through the toolkit

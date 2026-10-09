@@ -239,20 +239,10 @@ fn calling_a_function_typed_over_identity_executes_on_the_retained_call_interpre
     );
 }
 
-/// The mirror-image check issue #191's audit asked for: does `SPX-F102`
-/// still trip for `Secret<T>` on this same retained-call seam, and is the
-/// discriminator really "generic" as `auth.spx`'s original (pre-correction)
-/// doc comment claimed? `copy_records::flat_copy_record` requires both
-/// `arguments.is_empty()` at the use site and `record.type_parameters.is_
-/// empty()` at the declaration — `Secret<i64>` fails both, since `Secret<T>`
-/// is declared with a type parameter and used with one argument filled in.
-/// So on *this* seam, unlike the general claim this test's sibling
-/// disproved, "generic" is exactly the right word: a fixture identical in
-/// shape to the one above, but built from a generic `Secret<T>` record
-/// instead of a plain one, is rejected with `SPX-F102` where `Identity`'s
-/// was admitted.
+/// Concrete Copy substitution crosses the retained-call boundary. Generic
+/// record admission does not widen the frozen direct-String call signature.
 #[test]
-fn calling_a_function_typed_over_generic_secret_is_rejected_by_the_retained_call_interpreter() {
+fn calling_a_function_typed_over_generic_secret_executes_and_retains_string_refusal() {
     let module = r#"module test.generic_secret_interpreter_ceiling;
 
 @id("test.secret")
@@ -282,23 +272,47 @@ fn main() -> i64
         .expect("the fixture parses"),
     )
     .expect("the fixture resolves");
-    // Unlike `Identity` above, this fails during preparation (the closure
-    // scan `prepare_retained_call` runs finds `requires_secret` outside the
-    // admitted set), not during evaluation — `evaluate_retained_call` is
-    // never reached.
+    crate::hir::validate(&program).expect("the generic Copy fixture validates");
+    let prepared = crate::interpreter::retained_call::prepare_retained_call(&program, "app.main")
+        .expect("the concrete generic Copy call prepares");
+    let evaluation =
+        crate::interpreter::retained_call::evaluate_retained_call(&program, &prepared, &[], 10_000)
+            .expect("the original generic Secret<i64> call executes");
+    assert_eq!(
+        evaluation.outcome,
+        crate::interpreter::retained_call::RetainedCallOutcome::Returned(
+            crate::interpreter::retained_call::RetainedValue::I64(0)
+        )
+    );
+    // Keep the same generic carrier and call boundary, but a direct String
+    // result remains outside the ordinary retained-call interpreter profile.
+    let refused = module
+        .replace(
+            "-> i64\n{\n    held.value",
+            "-> String\n{\n    \"withheld\"",
+        )
+        .replace(
+            "if requires_secret(held) == 1 { 0 } else { 1 }",
+            "let text = requires_secret(held); string_len(text)",
+        );
+    assert_ne!(refused, module);
+    let refused = crate::hir::resolve(
+        &crate::parse(
+            &refused,
+            std::path::Path::new("generic-secret-frozen-string-boundary.spx"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    crate::hir::validate(&refused).unwrap();
     let diagnostics =
-        crate::interpreter::retained_call::prepare_retained_call(&program, "app.main")
+        crate::interpreter::retained_call::prepare_retained_call(&refused, "app.main")
             .err()
-            .expect(
-                "calling a function typed over Secret<i64> (a generic record) must still fail to \
-             prepare on the retained-call interpreter seam (SPX-F102) — if this starts \
-             succeeding, the copy_records::flat_copy_record generic exclusion has been lifted \
-             and auth.spx's Secret<T> doc comment (point 4) is stale",
-            );
-    assert!(
-        diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.code == "SPX-F102"),
-        "expected SPX-F102 (interpreter admission failed), got {diagnostics:?}"
+            .expect("direct String signatures retain ordinary F102 refusal");
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(diagnostics[0].code, "SPX-F102");
+    assert_eq!(
+        diagnostics[0].message,
+        "interpreter admission failed (unsupported_callee)"
     );
 }

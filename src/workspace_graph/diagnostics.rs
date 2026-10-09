@@ -31,6 +31,35 @@ pub(super) fn use_error(program: &Program, module_use: &ModuleUse, message: &str
     Diagnostic::error("SPX-G172", message, module_use.span).at_path(&program.path)
 }
 
+/// Advisory lookup from the already validated provider inventory; no guessed
+/// replacement, source read, or repair authority. At most 128 bytes of each
+/// label are escaped, beside a portable provider path of at most 240 bytes.
+pub(super) fn unknown_import_error(
+    program: &Program,
+    module_use: &ModuleUse,
+    modules: &std::collections::BTreeMap<&str, &str>,
+) -> Diagnostic {
+    fn preview(value: &str) -> (&str, &str) {
+        let mut end = value.len().min(128);
+        while !value.is_char_boundary(end) {
+            end -= 1;
+        }
+        (&value[..end], if end == value.len() { "" } else { "…" })
+    }
+    let diagnostic = use_error(program, module_use, "persistent target identity is unknown");
+    let Some(provider_path) = modules.get(module_use.target_module.as_str()) else {
+        return diagnostic;
+    };
+    let (identity, identity_suffix) = preview(&module_use.persistent_id);
+    let (module, module_suffix) = preview(&module_use.target_module);
+    // Inventory paths contain only portable alphanumeric/._-/ bytes and
+    // cannot start with an option prefix. Single quotes keep the query operand
+    // literal; debug-escaped labels cannot inject additional help lines.
+    diagnostic.with_help(crate::bounded_output::budgeted_format(format_args!(
+        "imported identity {identity:?}{identity_suffix} was not found in provider module {module:?}{module_suffix}; run `semaprax query '{provider_path}'` to list its declarations, then use the exact explicit @id and declaration kind"
+    )))
+}
+
 pub(super) fn graph_error(code: &'static str, message: impl Into<String>) -> Diagnostic {
     Diagnostic::io(code, message)
 }

@@ -5351,11 +5351,7 @@ fn validate_uses(
             let target = authored
                 .get(module_use.persistent_id.as_str())
                 .ok_or_else(|| {
-                    vec![use_error(
-                        program,
-                        module_use,
-                        "persistent target identity is unknown",
-                    )]
+                    vec![diagnostics::unknown_import_error(program, module_use, modules)]
                 })?;
             let expected = match module_use.kind {
                 ModuleUseKind::Function => AuthoredKind::Function,

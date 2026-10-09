@@ -406,6 +406,12 @@ no type-import authority. A refusal keeps `SPX-G172` and its original import
 span; bounded help names the first missing nominal identity, provider module,
 and exact type-import syntax from authenticated declaration metadata.
 
+An unknown persistent import identity keeps its original `SPX-G172` message,
+path, and import span. Advisory help names bounded, escaped identity/module
+labels and a quoted `semaprax query` command for the provider path already in
+the validated module inventory. It neither guesses a replacement nor adds
+import, source-repair, or filesystem authority.
+
 Non-executable import prototypes for exact one-Bytes-plus-usize owner renewal
 forward their existing owning parameter when the remaining operands are the
 admitted scalar values, borrowed records, or borrowed `Slice<u8>`/`str` views.

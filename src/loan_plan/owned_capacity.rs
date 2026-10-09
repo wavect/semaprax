@@ -93,7 +93,7 @@ fn shared_identity_bytes(plan: &LoanPlan) -> Option<usize> {
         count = count.checked_add(2)?.checked_add(loan.ends.len())?;
     }
     let inventory_bytes = count.checked_mul(std::mem::size_of::<&ExpressionId>())?;
-    if !crate::bounded_output::reserve_active(inventory_bytes) {
+    if !crate::bounded_output::reserve_active_required(inventory_bytes) {
         return None;
     }
     let mut identities = Vec::with_capacity(count);
@@ -101,7 +101,7 @@ fn shared_identity_bytes(plan: &LoanPlan) -> Option<usize> {
         .capacity()
         .checked_sub(count)?
         .checked_mul(std::mem::size_of::<&ExpressionId>())?;
-    if !crate::bounded_output::reserve_active(excess) {
+    if !crate::bounded_output::reserve_active_required(excess) {
         return None;
     }
     for loan in &plan.loans {
@@ -119,11 +119,10 @@ fn shared_identity_bytes(plan: &LoanPlan) -> Option<usize> {
     let mut previous = None;
     let mut bytes = 0usize;
     for identity in identities {
-        if let Some(key) = identity.shared_allocation_key() {
-            if previous != Some(key) {
-                bytes = bytes.checked_add(identity.shared_allocation_bytes()?)?;
-                previous = Some(key);
-            }
+        let key = identity.shared_allocation_key()?;
+        if previous != Some(key) {
+            bytes = bytes.checked_add(identity.shared_allocation_bytes()?)?;
+            previous = Some(key);
         }
     }
     Some(bytes)

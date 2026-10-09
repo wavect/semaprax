@@ -1062,7 +1062,7 @@ Replace a 256-arm i64-to-byte or byte-to-char match with
 
 | You wrote|Code|Fix|
 | ---|---|---|
-| native cleanup lowering refusal after check|`SPX-B104`|Record exact error + repro. String-condition scalar-match region “parent is not canonical” is backend regression; preserve cleanup checks|
+| native cleanup lowering refusal after check|`SPX-B104`|Repro; cleanup checks; “parent is not canonical” String-condition scalar match: backend regression|
 | range `for` loop|`SPX-P106`|Use `while`, mutable counter, discarded tail|
 | assignment-only while body|`SPX-P203`|End with discarded scalar, e.g. 0|
 | call as statement|`SPX-P106`|Use `let _ = f(x)` or tail result|
@@ -1070,7 +1070,7 @@ Replace a 256-arm i64-to-byte or byte-to-char match with
 | Option::Some { value: 1 }|`SPX-T221`|Option<i64>::Some { value: 1 }|
 | `index + 1` when `index: usize`|`SPX-T208`|Integer literals default to `i64`; write `index + 1usize`|
 | unsuffixed `i32` literal|`SPX-T232`|Suffix: 5i32|
-| i64 max + 1 or parenthesized min negation|`SPX-P003`|One literal: -9223372036854775808 or -2147483648i32; spaces are trivia, parens separate. Min negation or division by -1 overflows|
+| i64 max + 1 or parenthesized min negation|`SPX-P003`|One literal: -9223372036854775808 or -2147483648i32; spaces trivia, parens separate; MIN negation or / -1 overflows|
 | "a" + "b"|`SPX-T250`|string_concat("a", "b")|
 | str arg from literal or owned String|`SPX-T205`|Bind String; pass string_as_str(s)|
 | wrong numeric conversion type|`SPX-T205`|Use i64_from_f64(3.0) or usize_from_i64(1)|
@@ -1091,6 +1091,7 @@ Replace a 256-arm i64-to-byte or byte-to-char match with
 | `x as i64`|`SPX-P106`|Use named checked conversion or suffixed literals|
 | Rust/JS closure|`SPX-P201`|Use fn(x: i64) -> i64 { x + 1 }|
 | use std::io;|`SPX-G170`|Built-ins need no import; project imports stable IDs|
+|source-command run|`SPX-F102`|Native build|
 | rebuild to existing output|`SPX-I307`|Fresh --output; remove only after confirming it is your artifact. Never overwrite|
 | f()? in main|`SPX-T218`|Only Result propagates; match in main|
 | array literal|`SPX-T262`|Arrays are bytes; use Vec<i64>|
@@ -1101,9 +1102,9 @@ Replace a 256-arm i64-to-byte or byte-to-char match with
 | str_as_bytes(text) / nested string_as_str|`SPX-T263`, `SPX-T266`|Bind view: let v = string_as_str(text); str_as_bytes(v)|
 | repeated direct output on one path or direct output reachable from a loop|`SPX-T269`|Keep direct writes outside loops and within selected-profile limits. Default combined stdout + stderr cap: 65,536 bytes; Project v28 staged appends: 1 MiB.|
 | string_as_str("literal")|`SPX-T266`|Bind literal first: let s = "literal"; string_as_str(s)|
-| comparing payload/generic variant|`SPX-T207`|Only payload-free, non-generic variants support ==; else match|
+| comparing payload/generic variant|`SPX-T207`|Match; == only payload-free non-generic variants|
 | payload in or-pattern|`SPX-M105`|Payload-free alternatives only; separate payload arms|
-| String/int or unsupported Vec types|`SPX-T001`/`SPX-T281`|Use string/scalars; spell Copy Vec<T> args; projects may import authenticated aliases|
+| String/int or unsupported Vec types|`SPX-T001`/`SPX-T281`|Strings/scalars; explicit Copy Vec<T> args; authenticated Project imports|
 | bad [modules] lists|`SPX-J100`|2–16 sorted sources; one bounded test module ≠ entry. entry="app", sources=["a.spx","b.spx"], tests=["app.tests"]; [Manifest](PACKAGE-MANIFEST-V1.md)|
 | generic call in while body|`SPX-T252`|vec_len<T>; imported generic aliases stay closed; see [While](WHILE-LOOPS-V1.md)|
 | rejected while helper|`SPX-T252`|Borrow exact compiler Vec<T> of Copy scalars; result scalar, flat Copy variant or string|

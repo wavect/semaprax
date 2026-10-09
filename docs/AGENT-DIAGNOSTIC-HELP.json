@@ -10,11 +10,24 @@
       ]
     },
     {
+      "code": "SPX-F102",
+      "rows": [
+        {
+          "wrote": "interpreter run of a `source-command.v1` Project",
+          "fix": "Project interpreter has no argv/file provider. Build with `semaprax build <manifest> --target native -o <fresh-path>`, then run the binary from the Project directory with its arguments"
+        }
+      ]
+    },
+    {
       "code": "SPX-G170",
       "rows": [
         {
-          "fix": "Built-ins need no import; project imports stable IDs",
+          "fix": "Built-in operations need no import. For a std.* source package, declare its Project dependency and import declarations by stable ID",
           "wrote": "use std::io;"
+        },
+        {
+          "wrote": "noncanonical Project source",
+          "fix": "Run `semaprax fmt <manifest>`; if manifest layout itself blocks discovery, first run `semaprax fmt --manifest <manifest>`, then retry"
         }
       ]
     },

@@ -916,7 +916,7 @@ mod carrier_tests {
             .find(|function| function.name == "main")
             .unwrap();
 
-        let (_, retained_expression_bytes) =
+        let (retained_expression_bytes, _) =
             cleanup_plan_variable_identity_bytes(function, &program, 0).unwrap();
         let payload_bytes = scoped_expression_identity_upper(function, 0, "body".len()).unwrap()
             + scoped_expression_identity_upper(function, 0, "body.tail".len()).unwrap();

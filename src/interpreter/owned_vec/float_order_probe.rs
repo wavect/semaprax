@@ -57,7 +57,7 @@ fn inject_argument_bits(bytes: &mut [u8], narrow: bool, bits: &[u64]) {
         if let wasmparser::Payload::CodeSectionEntry(body) = payload.unwrap() {
             let mut reader = body.get_operators_reader().unwrap();
             while !reader.eof() {
-                let offset = reader.original_position();
+                let offset = usize::try_from(reader.original_position()).unwrap();
                 let value = match reader.read().unwrap() {
                     wasmparser::Operator::F32Const { value } if narrow => {
                         f32::from_bits(value.bits()) as f64

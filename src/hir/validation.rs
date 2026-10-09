@@ -6369,15 +6369,16 @@ impl<'a> HirValidator<'a> {
                 {
                     return Err(hir_error("literal format is not admitted in generic or closure bodies"));
                 }
+                let parameters = CallParameters::LiteralFormat(args);
                 for (index, argument) in args.iter().enumerate() {
                     if !crate::literal_format::accepts_hir_type(&argument.ty) {
                         return Err(hir_error("literal format has an unsupported argument type"));
                     }
                     self.validate_expr_recursive_reference(function, argument, scope,
                         &format!("{path}.arg.{}", index + 1), allow_moves, allowed_effects)?;
-                    let parameter = CallParameters::LiteralFormat(args).parameter(index);
+                    let parameter = parameters.parameter(index);
                     self.validate_argument_ownership_view(argument, parameter)?;
-                    let parameter = CallParameters::LiteralFormat(args).parameter(index);
+                    let parameter = parameters.parameter(index);
                     if self.is_owned_resource(parameter.ty, parameter.ownership)? {
                         if !allow_moves {
                             return Err(hir_error("contract cannot transfer ownership to literal format"));

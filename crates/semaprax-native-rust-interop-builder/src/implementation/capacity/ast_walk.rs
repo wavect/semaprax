@@ -587,7 +587,7 @@ fn scoped_monomorphic_identity_upper(
 }
 
 #[cfg(test)]
-fn closure_body_identity_upper(creation_expression_len: usize) -> Option<usize> {
+pub(super) fn closure_body_identity_upper(creation_expression_len: usize) -> Option<usize> {
     let closure_owner_len = "semaprax.closure.v1:".len().checked_add(creation_expression_len)?;
     scoped_monomorphic_identity_upper(
         closure_owner_len,
@@ -596,7 +596,7 @@ fn closure_body_identity_upper(creation_expression_len: usize) -> Option<usize> 
     )
 }
 
-fn closure_body_identity_path_increment() -> usize {
+pub(super) fn closure_body_identity_path_increment() -> usize {
     let closure_owner_prefix_len = "semaprax.closure.v1:".len();
     let monomorphic_body_frame = "declaration:".len()
         + 4 // owner-length, owner, kind, and path-length separators

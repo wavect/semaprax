@@ -199,4 +199,77 @@ module loan_snapshot;
         assert_eq!(crate::cache_codec::encode(&forged).unwrap(), wire);
         assert_eq!(crate::hir::validate(&forged).unwrap_err().code, "SPX-H006");
     }
+
+    #[test]
+    fn tiny_stored_ast_cannot_authorize_large_decoded_hir_or_hide_occurrences() {
+        let tiny_source = "module tiny; @id(\"tiny.main\") fn main() -> i64 { 0 }";
+        let mut entry = super::super::Entry {
+            path: String::from("tiny.spx"),
+            source: String::from(tiny_source),
+            synthetic: crate::parse(tiny_source, "tiny.spx").unwrap(),
+            resolved: fixture(),
+            resolver_bytes: 1,
+            retained_loan_bytes: 1,
+        };
+        assert_eq!(entry.synthetic.functions.len(), 1);
+        let function = entry
+            .resolved
+            .functions
+            .iter_mut()
+            .find(|function| !function.loan_plan.loans.is_empty())
+            .unwrap();
+        let crate::hir::ResolvedExprKind::Block { statements, .. } = &mut function.body.kind else {
+            panic!("fixture must retain its block");
+        };
+        let repeated = statements[0].clone();
+        for _ in 0..crate::loan_plan::MAX_LOAN_ENDPOINTS_V1 / 2 {
+            statements.push(repeated.clone());
+        }
+        // Equal cloned identities are still distinct decoded tree occurrences;
+        // the CFG's duplicate-ID check must never materialize this wide tree.
+        let wire = crate::cache_codec::encode(&entry.resolved).unwrap();
+        let error = reconstruct(&mut entry.resolved).unwrap_err();
+        assert_eq!(error[0].code, "SPX-G256");
+        assert_eq!(
+            error[0].message,
+            "decoded HIR loan traversal exceeds its point bound"
+        );
+        assert_eq!(crate::cache_codec::encode(&entry.resolved).unwrap(), wire);
+    }
+
+    #[test]
+    fn large_decoded_assignment_field_is_refused_before_planner_cloning() {
+        let mut forged = fixture();
+        let function = forged
+            .functions
+            .iter_mut()
+            .find(|function| !function.loan_plan.loans.is_empty())
+            .unwrap();
+        let crate::hir::ResolvedExprKind::Block { statements, .. } = &mut function.body.kind else {
+            panic!("fixture must retain its block");
+        };
+        let crate::hir::ResolvedStatement::Let {
+            binding,
+            value,
+            span,
+            ..
+        } = statements[0].clone()
+        else {
+            panic!("fixture must begin with a let");
+        };
+        statements[0] = crate::hir::ResolvedStatement::Assign {
+            binding,
+            field: Some(crate::hir::DeclarationId::new("field".repeat(209_716))),
+            value,
+            span,
+        };
+        let wire = crate::cache_codec::encode(&forged).unwrap();
+        let error = reconstruct(&mut forged).unwrap_err();
+        assert_eq!(error[0].code, "SPX-G256");
+        assert_eq!(
+            error[0].message,
+            "decoded HIR loan construction bound exceeds its maximum"
+        );
+        assert_eq!(crate::cache_codec::encode(&forged).unwrap(), wire);
+    }
 }

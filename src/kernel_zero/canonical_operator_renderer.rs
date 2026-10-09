@@ -109,7 +109,11 @@ impl Renderer {
         }
     }
 
-    fn bytes(&self, source: &str, opcode: i64) -> Result<Vec<u8>, RendererRefusal> {
+    fn token(
+        &self,
+        source: &str,
+        opcode: i64,
+    ) -> Result<([u8; MAX_RENDERED_BYTES], usize), RendererRefusal> {
         if !(0..=MAX_OPCODE).contains(&opcode) {
             return Err(RendererRefusal::InvalidOpcode);
         }
@@ -128,20 +132,27 @@ impl Renderer {
         if !(MIN_RENDERED_BYTES..=MAX_RENDERED_BYTES).contains(&length) {
             return Err(RendererRefusal::InvalidLength);
         }
-        let mut bytes = Vec::with_capacity(length);
+        let mut bytes = [0; MAX_RENDERED_BYTES];
         for index in 0..length {
             let byte = self.int(
                 program,
                 "format.operator-render-byte",
                 &[Value::Int(opcode), Value::Int(index as i64)],
             )?;
-            bytes.push(u8::try_from(byte).map_err(|_| RendererRefusal::InvalidByte)?);
+            bytes[index] = u8::try_from(byte).map_err(|_| RendererRefusal::InvalidByte)?;
         }
-        Ok(bytes)
+        Ok((bytes, length))
+    }
+
+    #[cfg(test)]
+    fn bytes(&self, source: &str, opcode: i64) -> Result<Vec<u8>, RendererRefusal> {
+        let (bytes, length) = self.token(source, opcode)?;
+        Ok(bytes[..length].to_vec())
     }
 
     fn render(&self, source: &str, opcode: i64) -> Result<&'static str, RendererRefusal> {
-        match self.bytes(source, opcode)?.as_slice() {
+        let (bytes, length) = self.token(source, opcode)?;
+        match &bytes[..length] {
             b"+" => Ok("+"),
             b"-" => Ok("-"),
             b"*" => Ok("*"),

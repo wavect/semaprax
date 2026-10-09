@@ -58,6 +58,14 @@ adds no capability. Bootstrap-v2 target execution and its recovery model stay
 test-only evidence under `rung_two_bootstrap/` and are governed separately by
 [Rung-2 Target and Recovery Evidence v1](KERNEL-ZERO-RUNG-TWO-TARGET-RECOVERY-V1.md).
 
+The integer, character, and string-scalar byte lanes stage their one or two
+Kernel-0 arguments in fixed stack slots. The closed one- or two-byte operator
+lane also assembles its intermediate token in fixed storage; test-only byte
+projection still copies it for the independent oracle. Exact-source replay,
+evaluation, owned handoff, and final Rust-byte comparison remain required on
+every ordinary token. These source changes have no measured speedup claim until
+a bounded before/after run and the focused correctness selectors pass.
+
 ## Required evidence
 
 The authority module tests refusal, mismatch, and oversized candidate recovery

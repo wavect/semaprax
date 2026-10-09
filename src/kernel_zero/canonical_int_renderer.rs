@@ -86,12 +86,14 @@ impl Renderer {
         let entry = program
             .function(&DeclarationId::new(entry))
             .ok_or(RendererRefusal::MissingEntry)?;
-        let arguments = arguments
-            .iter()
-            .copied()
-            .map(Value::Int)
-            .collect::<Vec<_>>();
-        match eval_program(program, entry, &arguments) {
+        if arguments.len() > 2 {
+            return Err(RendererRefusal::Evaluation);
+        }
+        let mut slots = [Value::Int(0); 2];
+        for (slot, argument) in slots.iter_mut().zip(arguments) {
+            *slot = Value::Int(*argument);
+        }
+        match eval_program(program, entry, &slots[..arguments.len()]) {
             Ok(Value::Int(value)) => Ok(value),
             Ok(Value::Bool(_)) | Err(_) => Err(RendererRefusal::Evaluation),
         }

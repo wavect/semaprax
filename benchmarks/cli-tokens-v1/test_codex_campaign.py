@@ -15,6 +15,56 @@ class CodexCampaignTests(unittest.TestCase):
         self.enterContext(patch("campaign_resources.snapshot", return_value=[
             {"device": 1, "path": "/fixture", "free_bytes": 10 * 1024**3}]))
 
+    def test_compiler_drift_refuses_before_worktree_or_paid_dispatch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            binary = root / "semaprax"
+            binary.write_bytes(b"planned compiler")
+            settings = {"source_binary_sha256": codex_campaign.common.digest(binary)}
+            self.assertIsNone(codex_campaign.common.require_compiler_binding(settings, binary))
+            binary.write_bytes(b"changed compiler")
+            calls = [lambda: codex_campaign.launch_calibration(root, root / "artifacts", "a" * 40, settings, binary)]
+            calls.extend(lambda arm=arm: codex_campaign.launch_trial(root, root / "artifacts", "a" * 40,
+                {"arm": arm, "number": 1}, settings, binary) for arm in codex_campaign.ARMS)
+            with patch.object(codex_campaign.legacy, "add_seed_worktree") as worktree, \
+                 patch.object(codex_campaign, "run_codex") as paid:
+                for launch in calls:
+                    with self.assertRaisesRegex(ValueError, "compiler binary differs"):
+                        launch()
+                worktree.assert_not_called()
+                paid.assert_not_called()
+            self.assertFalse((root / "artifacts").exists())
+
+    def test_compiler_binding_rejects_stale_qualification_source_or_binary(self):
+        with tempfile.TemporaryDirectory() as directory:
+            binary = Path(directory) / "semaprax"
+            binary.write_bytes(b"planned compiler")
+            digest = codex_campaign.common.digest(binary)
+            settings = {"source_binary_sha256": digest, "compiler_source_commit": "a" * 40,
+                        "qualification": {"compiler_source_commit": "a" * 40,
+                                          "compiler_binary_sha256": digest}}
+            self.assertIsNone(codex_campaign.common.require_compiler_binding(settings, binary))
+            for field, stale in (("compiler_source_commit", "b" * 40),
+                                 ("compiler_binary_sha256", "b" * 64)):
+                with self.subTest(field=field):
+                    changed = {**settings, "qualification": {**settings["qualification"], field: stale}}
+                    with self.assertRaisesRegex(ValueError, "differs from qualification evidence"):
+                        codex_campaign.common.require_compiler_binding(changed, binary)
+
+    def test_calibration_rechecks_compiler_after_workspace_preparation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            binary = root / "semaprax"
+            binary.write_bytes(b"planned compiler")
+            settings = {"source_binary_sha256": codex_campaign.common.digest(binary)}
+            def mutate_during_preparation(*_):
+                binary.write_bytes(b"changed compiler")
+            with patch.object(codex_campaign.legacy, "add_seed_worktree", side_effect=mutate_during_preparation), \
+                 patch.object(codex_campaign, "run_codex") as paid:
+                with self.assertRaisesRegex(ValueError, "compiler binary differs"):
+                    codex_campaign.launch_calibration(root, root / "artifacts", "a" * 40, settings, binary)
+                paid.assert_not_called()
+
     def test_exec_parser_keeps_cached_as_subset_and_tools_are_not_turns(self):
         events = [
             {"type": "thread.started", "thread_id": "thread-a"},

@@ -25,6 +25,7 @@ from typing import Any
 import live_campaign as legacy
 import cli_typescript_bootstrap as ts_bootstrap
 import campaign_resources as resources
+import live_campaign_common as common
 
 BENCHMARK = Path(__file__).resolve().parent
 REPO = BENCHMARK.parents[1]
@@ -444,6 +445,7 @@ def cleanup_trial(repo: Path, workspace: Path, settings: dict[str, Any], row: di
 @resources.guarded_attempt
 def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any], settings: dict[str, Any], semaprax_bin: Path) -> dict[str, Any]:
     """Run one paid attempt. Every attempted trial remains in the result denominator."""
+    common.require_compiler_binding(settings, semaprax_bin)
     arm, number = trial["arm"], trial["number"]
     legacy.qualification.require_settings(settings)
     label = f"{arm}-{number:02d}"
@@ -481,6 +483,7 @@ def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any]
     row["prompt_sha256"] = hashlib.sha256(prompt.encode()).hexdigest()
     transcript, stderr, trace = (artifacts / "transcripts" / f"{label}.{suffix}" for suffix in ("jsonl", "stderr.txt", "rollout.jsonl"))
     transcript.parent.mkdir(parents=True, exist_ok=True)
+    common.require_compiler_binding(settings, semaprax_bin)
     process = run_codex(_command(settings, prompt), workspace, env, transcript, stderr, settings["timeout_seconds"])
     row.update(process); row.update({"transcript": str(transcript), "stderr_path": str(stderr)})
     exec_usage = parse_exec_jsonl(transcript)
@@ -543,6 +546,7 @@ def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any]
 @resources.guarded_attempt
 def launch_calibration(repo: Path, artifacts: Path, commit: str, settings: dict[str, Any], semaprax_bin: Path) -> dict[str, Any]:
     """One separately reported empty-task request; it is never subtracted from trials."""
+    common.require_compiler_binding(settings, semaprax_bin)
     workspace = artifacts / "worktrees" / "calibration"
     row: dict[str, Any] = {"status": "failed", "separate_from_trials": True, "subtracted_from_trials": False}
     error = legacy.add_seed_worktree(repo, workspace, commit)
@@ -550,6 +554,7 @@ def launch_calibration(repo: Path, artifacts: Path, commit: str, settings: dict[
         row["failure"] = error; return row
     transcript, stderr, trace = (artifacts / "transcripts" / f"calibration.{suffix}" for suffix in ("jsonl", "stderr.txt", "rollout.jsonl"))
     transcript.parent.mkdir(parents=True, exist_ok=True)
+    common.require_compiler_binding(settings, semaprax_bin)
     row.update(run_codex(_command(settings, CALIBRATION_PROMPT), workspace, legacy.trial_environment(semaprax_bin), transcript, stderr, settings["timeout_seconds"]))
     usage = parse_exec_jsonl(transcript); copied = copy_task_rollout(usage["thread_ids"], workspace, trace)
     trace_result = trace_usage(usage, copied) if copied else {"reconciled": False}
@@ -591,6 +596,7 @@ def main() -> int:
         if args.action == "run":
             if not args.acknowledge_paid_attempts:
                 raise ValueError("run requires --acknowledge-paid-attempts")
+            common.require_compiler_binding(result, Path(args.semaprax_bin))
             ts_bootstrap.verify_plan(result.get("typescript_bootstrap"))
             if result["capabilities"]["status"] != "ready":
                 raise ValueError("installed Codex CLI lacks required isolated-execution controls")

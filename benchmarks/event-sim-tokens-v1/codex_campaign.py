@@ -177,6 +177,7 @@ def observe(workspace: Path, artifacts: Path, label: str, stream: Path) -> dict[
 def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict[str, Any],
                  settings: dict[str, Any], semaprax_bin: Path) -> dict[str, Any]:
     """Persist one attempt, reconcile exact task telemetry, and recheck each boundary."""
+    shiftsim.common.require_compiler_binding(settings, semaprax_bin)
     label = f"{trial['arm']}-{trial['number']:02d}"
     workspace = artifacts / "worktrees" / label
     row: dict[str, Any] = {**trial, "workspace": str(workspace), "status": "failed", "failure": None,
@@ -216,6 +217,7 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
     stream.parent.mkdir(exist_ok=True)
     row.update({"transcript": str(stream), "stderr_path": str(stderr)})
     try:
+        shiftsim.common.require_compiler_binding(settings, semaprax_bin)
         row.update(codex.run_codex(command_for(settings, prompt), workspace,
                                    env, stream, stderr, settings["timeout_seconds"]))
         row.update(observe(workspace, artifacts, label, stream))
@@ -370,6 +372,7 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
 def launch_calibration(seed_repo: Path, artifacts: Path, seed_commit: str,
                        settings: dict[str, Any], semaprax_bin: Path) -> dict[str, Any]:
     """A separate tool-free READY request, with the same isolation and cleanup."""
+    shiftsim.common.require_compiler_binding(settings, semaprax_bin)
     workspace = artifacts / "worktrees" / "calibration"
     row: dict[str, Any] = {"status": "failed", "failure": None, "separate_from_trials": True,
                            "subtracted_from_trials": False}
@@ -381,6 +384,7 @@ def launch_calibration(seed_repo: Path, artifacts: Path, seed_commit: str,
     stream.parent.mkdir(parents=True, exist_ok=True)
     row.update({"transcript": str(stream), "stderr_path": str(stderr)})
     try:
+        shiftsim.common.require_compiler_binding(settings, semaprax_bin)
         row.update(codex.run_codex(command_for(settings, shiftsim.CALIBRATION_PROMPT), workspace,
                                    shiftsim.trial_environment(semaprax_bin), stream, stderr, settings["timeout_seconds"]))
         row.update(observe(workspace, artifacts, "calibration", stream))
@@ -405,6 +409,7 @@ def launch_calibration(seed_repo: Path, artifacts: Path, seed_commit: str,
 
 def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
     settings = plan(args)
+    shiftsim.common.require_compiler_binding(settings, Path(args.semaprax_bin))
     shiftsim.ts_bootstrap.verify_plan(settings.get("typescript_bootstrap"))
     artifacts, binary = Path(settings["artifacts"]), Path(args.semaprax_bin).expanduser().resolve()
     artifacts.mkdir(parents=True)

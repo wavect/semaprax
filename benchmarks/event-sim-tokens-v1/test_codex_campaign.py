@@ -19,11 +19,41 @@ class CodexShiftSimTests(unittest.TestCase):
             {"device": 1, "path": "/fixture", "free_bytes": 10 * 1024**3}]))
 
     def settings(self, root):
+        binary = root / "semaprax"
+        if not binary.exists():
+            binary.write_bytes(b"fixture compiler")
         return {"timeout_seconds": 1800, "model": adapter.MODEL, "effort": adapter.EFFORT,
                 "codex_binary": "/fixture/codex", "authored_source_tokenizer": None,
+                "source_binary_sha256": adapter.shiftsim.common.digest(binary),
                 "qualification": {"scored_trials_allowed": True},
                 "seed_files_sha256": {adapter.shiftsim.SPEC_RELATIVE:
                     adapter.shiftsim.common.digest(adapter.BENCHMARK / "SPEC.md")}}
+
+    def test_compiler_or_qualification_drift_refuses_before_worktree_or_paid_dispatch(self):
+        for mutation in ("binary", "qualification_source", "qualification_binary"):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                settings = self.settings(root)
+                settings["compiler_source_commit"] = "a" * 40
+                settings["qualification"].update({"compiler_source_commit": "a" * 40,
+                    "compiler_binary_sha256": settings["source_binary_sha256"]})
+                binary = root / "semaprax"
+                if mutation == "binary":
+                    binary.write_bytes(b"changed compiler")
+                else:
+                    field = "compiler_source_commit" if mutation == "qualification_source" else "compiler_binary_sha256"
+                    settings["qualification"][field] = "b" * (40 if mutation == "qualification_source" else 64)
+                calls = [lambda: adapter.launch_calibration(root, root / "artifacts", "a" * 40, settings, binary)]
+                calls.extend(lambda arm=arm: adapter.launch_trial(root, root / "artifacts", "a" * 40,
+                    {"arm": arm, "number": 1}, settings, binary) for arm in adapter.ARMS)
+                with patch.object(adapter.shiftsim.common, "add_seed_worktree") as worktree, \
+                     patch.object(adapter.codex, "run_codex") as paid:
+                    for launch in calls:
+                        with self.assertRaisesRegex(ValueError, "compiler .* differs"):
+                            launch()
+                    worktree.assert_not_called()
+                    paid.assert_not_called()
+                self.assertFalse((root / "artifacts").exists())
 
     def seed(self, root):
         result = adapter.shiftsim.common.create_seed_repository(

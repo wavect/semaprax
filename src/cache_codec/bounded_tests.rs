@@ -2,6 +2,41 @@
 use super::*;
 
 #[test]
+fn boxed_sequence_keeps_vector_wire_depth_nodes_and_allocation_refusal() {
+    let values = vec![7u16, 2u16, 7u16];
+    let wire = encode(&values).unwrap();
+    let payload = values.len() * std::mem::size_of::<u16>();
+    let decoder = || Decoder {
+        bytes: &wire,
+        offset: 0,
+        nodes: 0,
+        depth: 0,
+        allocation: MAX_ALLOCATION - payload,
+    };
+    let mut vector = decoder();
+    let decoded_vector = Vec::<u16>::decode(&mut vector).unwrap();
+    let mut boxed = decoder();
+    let decoded_box = Box::<[u16]>::decode(&mut boxed).unwrap();
+    assert_eq!(decoded_box.as_ref(), decoded_vector.as_slice());
+    assert_eq!(encode(&decoded_box).unwrap(), wire);
+    assert_eq!(boxed.offset, vector.offset);
+    assert_eq!(boxed.nodes, vector.nodes);
+    assert_eq!(boxed.depth, vector.depth);
+    assert_eq!(boxed.allocation, MAX_ALLOCATION);
+    let mut refused = decoder();
+    refused.allocation += 1;
+    assert_eq!(
+        Box::<[u16]>::decode(&mut refused).unwrap_err()[0].code,
+        "SPX-G305"
+    );
+    assert_eq!(refused.allocation, MAX_ALLOCATION - payload + 1);
+    assert_eq!(
+        refused.offset, 4,
+        "refuse before allocating or decoding items"
+    );
+}
+
+#[test]
 fn bounded_encoding_keeps_legacy_wire_and_exact_utf8_boundary() {
     let value = String::from("é");
     let expected = vec![2, 0, 0, 0, 0xc3, 0xa9];

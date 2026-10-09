@@ -27,6 +27,7 @@ pub enum LoanPointPhase {
 
 #[cfg(test)]
 mod boundary_tests;
+mod compact_ids;
 mod guidance;
 mod native_view;
 pub(crate) mod owned_capacity;
@@ -70,13 +71,13 @@ pub struct LoanEndpoint {
     pub point: LoanProgramPoint,
     /// Union summary over incoming CFG edges. [`LoanEdge::live`] is the
     /// authoritative path-exact carrier at joins.
-    pub live_before: Vec<LoanId>,
-    pub starts: Vec<LoanId>,
+    pub live_before: Box<[LoanId]>,
+    pub starts: Box<[LoanId]>,
     /// Edge-qualified terminations are authoritative in [`Loan::end_edges`];
     /// this is the deterministic node-level union summary.
-    pub kills: Vec<LoanId>,
+    pub kills: Box<[LoanId]>,
     /// Union summary over outgoing CFG edges.
-    pub live_after: Vec<LoanId>,
+    pub live_after: Box<[LoanId]>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -86,7 +87,7 @@ pub struct LoanEdge {
     /// Dense endpoint index of the CFG destination point.
     pub to: u16,
     /// Exact simultaneous loans live on this one control-flow edge.
-    pub live: Vec<LoanId>,
+    pub live: Box<[LoanId]>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1076,44 +1077,38 @@ fn materialize_cfg_plan(
             kills[to as usize].push(loan.id);
         }
     }
-    let endpoints = cfg
-        .points
-        .iter()
-        .enumerate()
-        .map(|(node, point)| {
-            let mut live_before = BTreeSet::new();
-            for edge in cfg.predecessors[node]
-                .iter()
-                .filter_map(|from| cfg.edges.binary_search(&(*from, node as u16)).ok())
-            {
-                live_before.extend(edge_live[edge].iter().copied());
-            }
-            let mut live_after = BTreeSet::new();
-            for edge in cfg.successors[node]
-                .iter()
-                .filter_map(|to| cfg.edges.binary_search(&(node as u16, *to)).ok())
-            {
-                live_after.extend(edge_live[edge].iter().copied());
-            }
-            LoanEndpoint {
-                point: point.clone(),
-                live_before: live_before.into_iter().collect(),
-                starts: starts[node].clone(),
-                kills: kills[node].clone(),
-                live_after: live_after.into_iter().collect(),
-            }
-        })
-        .collect();
-    let edges = cfg
-        .edges
-        .iter()
-        .zip(edge_live)
-        .map(|((from, to), live)| LoanEdge {
+    let mut endpoints = Vec::with_capacity(cfg.points.len());
+    for (node, point) in cfg.points.iter().enumerate() {
+        let mut live_before = BTreeSet::new();
+        for edge in cfg.predecessors[node]
+            .iter()
+            .filter_map(|from| cfg.edges.binary_search(&(*from, node as u16)).ok())
+        {
+            live_before.extend(edge_live[edge].iter().copied());
+        }
+        let mut live_after = BTreeSet::new();
+        for edge in cfg.successors[node]
+            .iter()
+            .filter_map(|to| cfg.edges.binary_search(&(node as u16, *to)).ok())
+        {
+            live_after.extend(edge_live[edge].iter().copied());
+        }
+        endpoints.push(LoanEndpoint {
+            point: point.clone(),
+            live_before: compact_ids::from_vec(live_before.into_iter().collect())?,
+            starts: compact_ids::from_vec(starts[node].clone())?,
+            kills: compact_ids::from_vec(kills[node].clone())?,
+            live_after: compact_ids::from_vec(live_after.into_iter().collect())?,
+        });
+    }
+    let mut edges = Vec::with_capacity(cfg.edges.len());
+    for ((from, to), live) in cfg.edges.iter().zip(edge_live) {
+        edges.push(LoanEdge {
             from: *from,
             to: *to,
-            live,
-        })
-        .collect();
+            live: compact_ids::from_vec(live)?,
+        });
+    }
     Ok(LoanPlan {
         schema: LOAN_PLAN_SCHEMA_V1,
         loans,

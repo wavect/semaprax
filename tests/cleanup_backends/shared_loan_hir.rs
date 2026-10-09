@@ -5,6 +5,12 @@ use semaprax::hir::{ResolvedExprKind, ResolvedStatement};
 use semaprax::loan_plan::{build_plan, LoanId, LoanPointPhase, LoanProgramPoint};
 use semaprax::{parse, verify};
 
+fn push_loan_id(ids: &mut Box<[LoanId]>, id: LoanId) {
+    let mut expanded = ids.to_vec();
+    expanded.push(id);
+    *ids = expanded.into_boxed_slice();
+}
+
 const CFG_SOURCE: &str = r#"
 module test.shared_loan_hir_v1;
 
@@ -371,18 +377,19 @@ fn attached_shared_loan_plan_replays_every_authenticated_surface() {
         }
     });
     reject_mutation("endpoint live before", |function| {
-        function.loan_plan.endpoints[0]
-            .live_before
-            .push(LoanId(255))
+        push_loan_id(
+            &mut function.loan_plan.endpoints[0].live_before,
+            LoanId(255),
+        )
     });
     reject_mutation("endpoint starts", |function| {
-        function.loan_plan.endpoints[0].starts.push(LoanId(255))
+        push_loan_id(&mut function.loan_plan.endpoints[0].starts, LoanId(255))
     });
     reject_mutation("endpoint kills", |function| {
-        function.loan_plan.endpoints[0].kills.push(LoanId(255))
+        push_loan_id(&mut function.loan_plan.endpoints[0].kills, LoanId(255))
     });
     reject_mutation("endpoint live after", |function| {
-        function.loan_plan.endpoints[0].live_after.push(LoanId(255))
+        push_loan_id(&mut function.loan_plan.endpoints[0].live_after, LoanId(255))
     });
     reject_mutation("edge from", |function| {
         function.loan_plan.edges[0].from = function.loan_plan.edges[0].to
@@ -391,7 +398,7 @@ fn attached_shared_loan_plan_replays_every_authenticated_surface() {
         function.loan_plan.edges[0].to = function.loan_plan.edges[0].from
     });
     reject_mutation("edge live", |function| {
-        function.loan_plan.edges[0].live.push(LoanId(255))
+        push_loan_id(&mut function.loan_plan.edges[0].live, LoanId(255))
     });
     reject_mutation("loan order", |function| function.loan_plan.loans.swap(0, 1));
     reject_mutation("endpoint order", |function| {

@@ -578,7 +578,7 @@ pub(in crate::implementation) fn hir_loan_plan_owned_capacity(
             &endpoint.live_after,
         ] {
             total = total.checked_add(
-                ids.capacity()
+                ids.len()
                     .checked_mul(std::mem::size_of::<semaprax::loan_plan::LoanId>())?,
             )?;
         }
@@ -586,7 +586,7 @@ pub(in crate::implementation) fn hir_loan_plan_owned_capacity(
     for edge in &plan.edges {
         total = total.checked_add(
             edge.live
-                .capacity()
+                .len()
                 .checked_mul(std::mem::size_of::<semaprax::loan_plan::LoanId>())?,
         )?;
     }

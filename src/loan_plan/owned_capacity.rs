@@ -81,16 +81,14 @@ pub(crate) fn owned_capacity_bytes_excluding(
         ] {
             add(
                 &mut bytes,
-                ids.capacity().checked_mul(std::mem::size_of::<LoanId>())?,
+                ids.len().checked_mul(std::mem::size_of::<LoanId>())?,
             )?;
         }
     }
     for edge in &plan.edges {
         add(
             &mut bytes,
-            edge.live
-                .capacity()
-                .checked_mul(std::mem::size_of::<LoanId>())?,
+            edge.live.len().checked_mul(std::mem::size_of::<LoanId>())?,
         )?;
     }
     add(&mut bytes, shared_identity_bytes(plan, covered_hir_keys)?)?;

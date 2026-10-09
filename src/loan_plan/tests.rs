@@ -87,19 +87,19 @@ fn every_attached_plan_surface_is_replayed_exactly() {
             .iter_mut()
             .find(|endpoint| !endpoint.starts.is_empty())
             .unwrap()
-            .starts
-            .clear()
+            .starts = Box::default()
     });
     run_mutation("endpoint live", |plan, _| {
-        plan.endpoints[0].live_after.push(LoanId(255))
+        let mut live = plan.endpoints[0].live_after.to_vec();
+        live.push(LoanId(255));
+        plan.endpoints[0].live_after = live.into_boxed_slice();
     });
     run_mutation("edge live", |plan, _| {
         plan.edges
             .iter_mut()
             .find(|edge| !edge.live.is_empty())
             .unwrap()
-            .live
-            .clear()
+            .live = Box::default()
     });
     run_mutation("omission", |plan, _| {
         plan.loans.pop();

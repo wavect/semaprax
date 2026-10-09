@@ -666,7 +666,11 @@ fn main() -> i64 { generic_marker<i64>(0) }
                 .chain(std::iter::once(&loan.start.expression))
                 .chain(loan.ends.iter().map(|point| &point.expression))
         })
-        .chain(plan.endpoints.iter().map(|endpoint| &endpoint.point.expression))
+        .chain(
+            plan.endpoints
+                .iter()
+                .map(|endpoint| &endpoint.point.expression),
+        )
         .map(|expression| {
             expression
                 .owned_allocation_bytes()
@@ -718,10 +722,10 @@ fn hir_loan_plan_capacity_counts_single_expression_backing_exactly() {
                 expression,
                 phase: semaprax::loan_plan::LoanPointPhase::Before,
             },
-            live_before: Vec::new(),
-            starts: Vec::new(),
-            kills: Vec::new(),
-            live_after: Vec::new(),
+            live_before: Box::default(),
+            starts: Box::default(),
+            kills: Box::default(),
+            live_after: Box::default(),
         }],
         edges: Vec::new(),
     };
@@ -731,6 +735,52 @@ fn hir_loan_plan_capacity_counts_single_expression_backing_exactly() {
         .checked_mul(std::mem::size_of::<semaprax::loan_plan::LoanEndpoint>())
         .and_then(|headers| headers.checked_add(backing_bytes));
     assert_eq!(capacity::hir_loan_plan_owned_capacity(&plan), expected);
+}
+
+#[test]
+fn hir_loan_plan_capacity_counts_every_boxed_endpoint_and_edge_payload() {
+    use semaprax::loan_plan::{
+        LoanEdge, LoanEndpoint, LoanId, LoanPlan, LoanPointPhase, LoanProgramPoint,
+    };
+    let source = "module capacity.boxed_loan_lists; @id(\"app.main\") fn main() -> i64 { 0 }";
+    let ast = crate::parse(source, Path::new("boxed-loan-list-capacity.spx")).unwrap();
+    let program = hir::resolve(&ast).unwrap();
+    let expression = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "app.main")
+        .unwrap()
+        .body
+        .id
+        .clone();
+    let backing = expression.owned_allocation_bytes().unwrap();
+    let plan = LoanPlan {
+        schema: semaprax::loan_plan::LOAN_PLAN_SCHEMA_V1,
+        loans: Vec::new(),
+        endpoints: vec![LoanEndpoint {
+            point: LoanProgramPoint {
+                expression,
+                phase: LoanPointPhase::Before,
+            },
+            live_before: vec![LoanId(1)].into_boxed_slice(),
+            starts: vec![LoanId(2); 2].into_boxed_slice(),
+            kills: vec![LoanId(3); 3].into_boxed_slice(),
+            live_after: vec![LoanId(4); 4].into_boxed_slice(),
+        }],
+        edges: vec![LoanEdge {
+            from: 0,
+            to: 0,
+            live: vec![LoanId(5); 2].into_boxed_slice(),
+        }],
+    };
+    let expected = plan.endpoints.capacity() * std::mem::size_of::<LoanEndpoint>()
+        + plan.edges.capacity() * std::mem::size_of::<LoanEdge>()
+        + backing
+        + 12 * std::mem::size_of::<LoanId>();
+    assert_eq!(
+        capacity::hir_loan_plan_owned_capacity(&plan),
+        Some(expected)
+    );
 }
 
 #[test]

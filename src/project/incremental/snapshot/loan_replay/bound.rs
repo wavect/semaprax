@@ -548,10 +548,23 @@ fn function_bytes(inventory: &Inventory) -> Result<usize> {
     // Termination/liveness rows and returned endpoint/edge proof rows. Charge
     // growth on each nested vector, not only its outer carrier.
     add(&mut bytes, vector(loans, size_of::<Loan>())?)?;
-    add(&mut bytes, vector(points, size_of::<LoanEndpoint>())?)?;
+    // The returned endpoint has compact slices, but construction retains
+    // temporary Vec rows and may shrink them while their old storage is live.
+    // Preserve the prior four-Vec carrier allowance for that transient peak.
+    let endpoint_carrier = sum(&[
+        size_of::<LoanProgramPoint>(),
+        product(&[4, size_of::<Vec<LoanId>>()])?,
+    ])?;
     add(
         &mut bytes,
-        vector(edges, size_of::<crate::loan_plan::LoanEdge>())?,
+        vector(points, endpoint_carrier.max(size_of::<LoanEndpoint>()))?,
+    )?;
+    add(
+        &mut bytes,
+        vector(
+            edges,
+            sum(&[size_of::<crate::loan_plan::LoanEdge>(), size_of::<usize>()])?,
+        )?,
     )?;
     add(
         &mut bytes,

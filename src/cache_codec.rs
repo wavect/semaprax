@@ -319,6 +319,32 @@ impl<T: Codec> Codec for Vec<T> {
         })
     }
 }
+// Immutable slices use precisely the existing vector wire and nesting shape.
+impl<T: Codec> Codec for Box<[T]> {
+    fn encode(&self, encoder: &mut Encoder) -> Result<()> {
+        encoder.nested(|encoder| {
+            encoder.length(self.len())?;
+            for item in self {
+                item.encode(encoder)?;
+            }
+            Ok(())
+        })
+    }
+
+    fn decode(decoder: &mut Decoder<'_>) -> Result<Self> {
+        let values = Vec::<T>::decode(decoder)?;
+        if !values.is_empty() && values.capacity() != values.len() {
+            // Shrinking can allocate while the decoded vector is still live.
+            decoder.allocate(
+                values
+                    .len()
+                    .checked_mul(std::mem::size_of::<T>())
+                    .ok_or_else(|| capacity("cache codec slice allocation accounting overflow"))?,
+            )?;
+        }
+        Ok(values.into_boxed_slice())
+    }
+}
 impl<T: Codec> Codec for Option<T> {
     fn encode(&self, encoder: &mut Encoder) -> Result<()> {
         encoder.nested(|encoder| match self {

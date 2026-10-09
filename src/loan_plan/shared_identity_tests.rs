@@ -17,10 +17,10 @@ fn endpoint_plan(expressions: Vec<ExpressionId>) -> LoanPlan {
             .into_iter()
             .map(|expression| LoanEndpoint {
                 point: point(expression),
-                live_before: Vec::new(),
-                starts: Vec::new(),
-                kills: Vec::new(),
-                live_after: Vec::new(),
+                live_before: Box::default(),
+                starts: Box::default(),
+                kills: Box::default(),
+                live_after: Box::default(),
             })
             .collect(),
         edges: Vec::new(),

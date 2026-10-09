@@ -249,11 +249,17 @@ fn run_case(executable: &Path, cwd: &Path, limits: NativeTestLimits) -> CaseResu
     }
     match stdout_reader.join() {
         Ok(Ok(bytes)) => case.stdout = bytes,
-        _ => case.failure = Some("cannot read native test stdout".to_owned()),
+        _ => {
+            case.failure
+                .get_or_insert_with(|| "cannot read native test stdout".to_owned());
+        }
     }
     match stderr_reader.join() {
         Ok(Ok(bytes)) => case.stderr = bytes,
-        _ => case.failure = Some("cannot read native test stderr".to_owned()),
+        _ => {
+            case.failure
+                .get_or_insert_with(|| "cannot read native test stderr".to_owned());
+        }
     }
     if case.stdout.len().saturating_add(case.stderr.len()) > limit {
         case.failure

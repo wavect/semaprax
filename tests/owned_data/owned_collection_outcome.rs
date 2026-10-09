@@ -62,35 +62,154 @@ const SOURCE: &str = r#"module app.outcome;
 }
 "#;
 
+const SOURCE_TWO_VEC_AND_STRING_ONLY: &str = r#"module app.outcome.two;
+@id("app.Entry") record Entry {
+ @id("app.Entry.label") label:string,
+ @id("app.Entry.rank") rank:i64,
+}
+@id("app.Outcome") variant Outcome {
+ @id("app.Outcome.success") Success {
+  @id("app.Outcome.words") words:Vec<string>,
+  @id("app.Outcome.entries") entries:Vec<Entry>,
+ },
+ @id("app.Outcome.error") Error {
+  @id("app.Outcome.code") code:i64,
+  @id("app.Outcome.offset") offset:usize,
+  @id("app.Outcome.field") field:i64,
+ },
+}
+@id("app.decode") fn decode(success:bool)->Outcome {
+ if success {
+  let mut words=vec_with_capacity<string>(2usize);
+  words=vec_push<string>(words,"zeta");
+  words=vec_push<string>(words,"beta");
+  let mut entries=vec_with_capacity<Entry>(2usize);
+  entries=vec_push<Entry>(entries,Entry{label:"beta",rank:20});
+  entries=vec_push<Entry>(entries,Entry{label:"alpha",rank:10});
+  Outcome::Success{words:words,entries:entries}
+ } else { Outcome::Error{code:17,offset:9usize,field:2} }
+}
+@id("app.forward") fn forward(value:own Outcome)->Outcome {value}
+@id("app.inspect") fn inspect(value:borrow Outcome)->i64 {
+ match borrow value {
+  Outcome::Success{words,entries} => i64_from_usize(vec_len<string>(words)+vec_len<Entry>(entries)),
+  Outcome::Error{code,offset,field} => code+i64_from_usize(offset)+field,
+ }
+}
+@id("app.finish") fn finish(value:own Outcome)->i64 {
+ match own value {
+  Outcome::Success{words,entries} => {
+   let ordered_words=vec_sort_owned<string>(words);
+   let first_word=vec_clone_at<string>(ordered_words,0usize);
+   let word_ok=first_word=="beta";
+   let replaced_words=vec_replace<string>(ordered_words,0usize,"alpha");
+   let mut word_bytes=0;
+   for own word in vec_into_iter<string>(replaced_words) {
+    word_bytes=word_bytes+string_len(word); 0
+   }
+
+   let ordered_entries=vec_sort_owned<Entry>(entries);
+   let first_entry=vec_clone_at<Entry>(ordered_entries,0usize);
+   let entry_ok=match own first_entry {
+    Entry{label,rank} => if label=="alpha" && rank==10 {1}else{0},
+   };
+   let replaced_entries=vec_replace<Entry>(ordered_entries,0usize,Entry{label:"gamma",rank:30});
+   let mut total_rank=0;
+   for own entry in vec_into_iter<Entry>(replaced_entries) {
+    match own entry { Entry{label,rank} => {total_rank=total_rank+rank;0}, }
+   }
+   if word_ok && entry_ok==1 {total_rank+word_bytes}else{0}
+  },
+  Outcome::Error{code,offset,field} => code+i64_from_usize(offset)+field,
+ }
+}
+
+@id("app.WordOutcome") variant WordOutcome {
+ @id("app.WordOutcome.success") Success { @id("app.WordOutcome.words") words:Vec<string>, },
+ @id("app.WordOutcome.error") Error {
+  @id("app.WordOutcome.code") code:i64,
+  @id("app.WordOutcome.offset") offset:usize,
+  @id("app.WordOutcome.field") field:i64,
+ },
+}
+@id("app.decode_words") fn decode_words(success:bool)->WordOutcome {
+ if success {
+  let mut words=vec_with_capacity<string>(2usize);
+  words=vec_push<string>(words,"moon");
+  words=vec_push<string>(words,"sun");
+  WordOutcome::Success{words:words}
+ } else { WordOutcome::Error{code:17,offset:9usize,field:2} }
+}
+@id("app.forward_words") fn forward_words(value:own WordOutcome)->WordOutcome {value}
+@id("app.inspect_words") fn inspect_words(value:borrow WordOutcome)->i64 {
+ match borrow value {
+  WordOutcome::Success{words} => i64_from_usize(vec_len<string>(words)),
+  WordOutcome::Error{code,offset,field} => code+i64_from_usize(offset)+field,
+ }
+}
+@id("app.finish_words") fn finish_words(value:own WordOutcome)->i64 {
+ match own value {
+  WordOutcome::Success{words} => {
+   let ordered=vec_sort_owned<string>(words);
+   let first=vec_clone_at<string>(ordered,0usize);
+   let first_ok=first=="moon";
+   let mut total=0;
+   for own word in vec_into_iter<string>(ordered) {total=total+string_len(word);0}
+   if first_ok {total}else{0}
+  },
+  WordOutcome::Error{code,offset,field} => code+i64_from_usize(offset)+field,
+ }
+}
+@id("app.main") fn main()->i64 {
+ let combined=decode(true);
+ let combined_size=inspect(combined);
+ let combined_value=finish(forward(combined));
+ let combined_error=decode(false);
+ let combined_error_value=finish(forward(combined_error));
+ let words=decode_words(true);
+ let words_size=inspect_words(words);
+ let words_value=finish_words(forward_words(words));
+ let words_error=decode_words(false);
+ let words_error_value=finish_words(forward_words(words_error));
+ if combined_size==4 && combined_value==59 && combined_error_value==28
+    && words_size==2 && words_value==7 && words_error_value==28 {42}else{1}
+}
+"#;
+
 #[test]
 fn owned_collection_outcome_return_match_executes_on_interpreter_native_and_strict_wasm() {
-    let sequence = NEXT.fetch_add(1, Ordering::Relaxed);
-    let root = std::env::temp_dir().join(format!(
-        "owned-collection-outcome-{}-{sequence}",
-        std::process::id()
-    ));
-    std::fs::create_dir_all(&root).unwrap();
-    let source_path = root.join("outcome.spx");
-    let ast = semaprax::check(SOURCE, &source_path).expect("source admission");
+    for (label, source) in [
+        ("one-vector", SOURCE),
+        ("two-vectors-and-string-only", SOURCE_TWO_VEC_AND_STRING_ONLY),
+    ] {
+        let sequence = NEXT.fetch_add(1, Ordering::Relaxed);
+        let root = std::env::temp_dir().join(format!(
+            "owned-collection-outcome-{}-{label}-{sequence}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+        let source_path = root.join("outcome.spx");
+        let ast = semaprax::check(source, &source_path).expect("source admission");
 
-    std::fs::write(&source_path, SOURCE).unwrap();
-    for _ in 0..2 {
-        let result = interpreter::interpret(
-            &source_path,
-            "app.main",
-            &[],
-            &interpreter::InterpreterOptions::default(),
-        )
-        .expect("interpreter execution");
-        interpreter::verify_envelope(&result.envelope).unwrap();
-        let envelope: serde_json::Value = serde_json::from_str(&result.envelope).unwrap();
-        assert!(result.returned, "{}", result.envelope);
-        assert_eq!(envelope["payload"]["outcome"]["value"], "42");
+        std::fs::write(&source_path, source).unwrap();
+        for _ in 0..2 {
+            let result = interpreter::interpret(
+                &source_path,
+                "app.main",
+                &[],
+                &interpreter::InterpreterOptions::default(),
+            )
+            .expect("interpreter execution");
+            interpreter::verify_envelope(&result.envelope).unwrap();
+            let envelope: serde_json::Value = serde_json::from_str(&result.envelope).unwrap();
+            assert!(result.returned, "{}", result.envelope);
+            assert_eq!(envelope["payload"]["outcome"]["value"], "42");
+        }
+
+        run_native(&ast, &root);
+        run_strict_wasm(&ast, &root);
+        std::fs::remove_dir_all(root).unwrap();
     }
-
-    run_native(&ast, &root);
-    run_strict_wasm(&ast, &root);
-    std::fs::remove_dir_all(root).unwrap();
 }
 
 fn run_native(ast: &semaprax::ast::Program, root: &std::path::Path) {

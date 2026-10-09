@@ -49,7 +49,12 @@ fn compile_source(pattern: &[u8], input: &[u8], expected: &str) -> String {
     compile_source_with_limit(pattern, input, expected, 8192)
 }
 
-fn compile_source_with_limit(pattern: &[u8], input: &[u8], expected: &str, work_limit: u64) -> String {
+fn compile_source_with_limit(
+    pattern: &[u8],
+    input: &[u8],
+    expected: &str,
+    work_limit: u64,
+) -> String {
     format!("{ENGINE}\n@id(\"experiment.pattern.witness.main\")\nfn main() -> i64\n{{\n{}{}\nlet storage = bytes_zeroed(3072usize);\nlet initial = matcher_from_bytes(storage);\nlet compiled = compile(initial, pattern_view, {work_limit}usize);\nlet ready = status(compiled) == 0usize;\nlet mut matcher = compiled;\nlet mut iteration = 0usize;\nwhile iteration < 1usize {{\nmatcher = full_match(matcher, input_view, {work_limit}usize);\niteration = iteration + 1usize;\n0\n}}\nif ready {{ {expected} }} else {{ -2 }}\n}}\n", bytes("pattern", pattern), bytes("input", input))
 }
 
@@ -200,7 +205,11 @@ fn private_ascii_pattern_fixture_cases_match_independent_exhaustive_oracle() {
         }
         let expected_match = &case["expected"]["match"];
         let status = expected_match["status_code"].as_u64().unwrap();
-        assert!(matches!(status, 1 | 2), "{} is semantic, not a refusal", case["id"]);
+        assert!(
+            matches!(status, 1 | 2),
+            "{} is semantic, not a refusal",
+            case["id"]
+        );
         let spans: Vec<[u64; 2]> = expected_match["spans"]
             .as_array()
             .unwrap()
@@ -217,7 +226,10 @@ fn private_ascii_pattern_fixture_cases_match_independent_exhaustive_oracle() {
         interpret(&source, case["id"].as_str().unwrap());
         count += 1;
     }
-    assert!(count >= 9, "fixture-driven source comparison stays populated");
+    assert!(
+        count >= 9,
+        "fixture-driven source comparison stays populated"
+    );
 }
 
 #[test]

@@ -64,8 +64,7 @@ fn requires_function(function: &ResolvedFunction) -> bool {
         if let ResolvedExprKind::Block { statements, .. } = &expression.kind {
             for statement in statements {
                 if let ResolvedStatement::Let { binding, .. } = statement {
-                    if binding.ty == ResolvedType::String
-                        && binding.ownership == OwnershipMode::Own
+                    if binding.ty == ResolvedType::String && binding.ownership == OwnershipMode::Own
                     {
                         owned_strings.insert(binding.id.clone());
                     }
@@ -162,9 +161,8 @@ pub(super) fn graph_json(
     types: &BTreeSet<DeclarationId>,
     view: &GraphView<'_>,
 ) -> Result<String, Diagnostic> {
-    let mut graph = super::byte_buffer_renewal::graph_json(
-        program, revision, functions, types, view,
-    )?;
+    let mut graph =
+        super::byte_buffer_renewal::graph_json(program, revision, functions, types, view)?;
     if !program
         .declarations
         .byte_slice_provenances()

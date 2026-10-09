@@ -272,8 +272,7 @@ pub(super) fn source_byte_view_place_is_admitted(
             args,
         } = &expression.kind
         {
-            if crate::byte_ops::by_name(name)
-                == Some(crate::byte_ops::ByteOp::StringAsStr)
+            if crate::byte_ops::by_name(name) == Some(crate::byte_ops::ByteOp::StringAsStr)
                 && type_arguments.is_empty()
             {
                 let [owner] = args.as_slice() else {

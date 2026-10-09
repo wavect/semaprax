@@ -306,8 +306,14 @@ fn fused_string_byte_view_has_rooted_graph_fact_and_full_owner_loan() {
     assert_eq!(provenance.root, owner);
     assert_eq!(provenance.projected_type, ResolvedType::String);
     assert!(provenance.projections.is_empty());
-    assert_eq!(provenance.root_length, crate::hir::ByteSliceExtent::ValueLength);
-    let producer = provenance.producer.as_ref().expect("view producer is recorded");
+    assert_eq!(
+        provenance.root_length,
+        crate::hir::ByteSliceExtent::ValueLength
+    );
+    let producer = provenance
+        .producer
+        .as_ref()
+        .expect("view producer is recorded");
     let loan = function
         .loan_plan
         .loans
@@ -430,7 +436,9 @@ module test.fused_string_byte_view_mutation;
     let parsed = crate::parse(source, "fused-string-byte-view-mutation.spx").unwrap();
     let diagnostics = crate::verify::verify(&parsed);
     assert!(
-        diagnostics.iter().any(|diagnostic| diagnostic.code == "SPX-T265"),
+        diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == "SPX-T265"),
         "mutation of the borrowed String must remain rejected: {diagnostics:?}"
     );
 }

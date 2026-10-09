@@ -20,17 +20,17 @@ pub(super) fn program_uses_string_as_str(
     }
     while let Some(expression) = pending.pop() {
         if matches!(&expression.kind,
-            ResolvedExprKind::BorrowPlace { operation, .. }
-                if operation.as_str() == crate::byte_ops::STRING_AS_STR_ID
-                    || operation.as_str() == crate::byte_ops::STR_AS_BYTES_ID
-                        && expression.ty == crate::hir::ResolvedType::SliceU8
-                        && program.declarations.byte_slice_provenances().any(
-                            |(_, provenance)| {
-                                provenance.producer.as_ref() == Some(&expression.id)
-                                    && provenance.root_kind
-                                        == crate::hir::ByteSliceRootKind::OwnedString
-                            }
-                        ))
+        ResolvedExprKind::BorrowPlace { operation, .. }
+            if operation.as_str() == crate::byte_ops::STRING_AS_STR_ID
+                || operation.as_str() == crate::byte_ops::STR_AS_BYTES_ID
+                    && expression.ty == crate::hir::ResolvedType::SliceU8
+                    && program.declarations.byte_slice_provenances().any(
+                        |(_, provenance)| {
+                            provenance.producer.as_ref() == Some(&expression.id)
+                                && provenance.root_kind
+                                    == crate::hir::ByteSliceRootKind::OwnedString
+                        }
+                    ))
         {
             return true;
         }

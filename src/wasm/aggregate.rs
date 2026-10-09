@@ -7051,11 +7051,11 @@ impl Emitter<'_> {
                 let source_type = value_type(&source);
                 if source_type == &ResolvedType::String {
                     if self.standalone_strings
-                        && !self.function_indexes.contains_key(
-                            &FunctionExecutionId::Monomorphic(DeclarationId::new(
+                        && !self
+                            .function_indexes
+                            .contains_key(&FunctionExecutionId::Monomorphic(DeclarationId::new(
                                 crate::string_ops::COMPARE_ID,
-                            )),
-                        )
+                            )))
                     {
                         return Err(error(
                             "standalone internal-String profile does not admit borrowed str views",

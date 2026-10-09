@@ -371,7 +371,9 @@ fn fused_owned_string_byte_view_cannot_escape_as_a_returned_slice() {
     let source = "module habit.slice_string;\n@id(\"habit.escape\")\nfn escape(text: string) -> Slice<u8>\n{\n    str_as_bytes(string_as_str(text))\n}\n@id(\"app.main\")\nfn main() -> i64 { 0 }\n";
     let diagnostics = diagnostics(source);
     assert!(
-        diagnostics.iter().any(|diagnostic| diagnostic.code == "SPX-T264"),
+        diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == "SPX-T264"),
         "the fused view remains non-escaping: {diagnostics:?}"
     );
 }
@@ -571,7 +573,9 @@ fn nested_views_and_missing_effects_name_the_complete_fix() {
         "module habit.view;\n@id(\"view.make\")\nfn make() -> string { \"hi\" }\n@id(\"app.main\")\nfn main() -> i64\n{\n    let b = str_as_bytes(string_as_str(make()));\n    0\n}\n",
     );
     assert!(
-        invalid_temporary.iter().any(|diagnostic| diagnostic.code == "SPX-T266"),
+        invalid_temporary
+            .iter()
+            .any(|diagnostic| diagnostic.code == "SPX-T266"),
         "temporary String results remain outside the fused view profile: {invalid_temporary:?}"
     );
 

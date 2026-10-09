@@ -47,12 +47,12 @@ use expression::expr_json;
 mod generic_instances;
 mod generic_mapping;
 mod owned_string_byte_view;
-use owned_string_byte_view::graph_json;
 use filesystem::string_array;
 use generic_instances::legacy_graph_json;
 pub(crate) use generic_instances::to_legacy_hir_json;
 pub use generic_instances::{legacy_context_json, to_legacy_json, verify_json};
 pub(crate) use generic_mapping::requires_v35;
+use owned_string_byte_view::graph_json;
 
 #[path = "graph/native_import.rs"]
 mod native_import;

@@ -1014,7 +1014,10 @@ impl Resolver<'_> {
                             ResolvedExprKind::BorrowPlace { operation, place }
                                 if op == crate::byte_ops::ByteOp::StrAsBytes
                                     && operation.as_str() == crate::byte_ops::STRING_AS_STR_ID
-                                    && place.projections.is_empty() => place,
+                                    && place.projections.is_empty() =>
+                            {
+                                place
+                            }
                             _ => {
                                 return Err(self.error(
                                     "SPX-T266",

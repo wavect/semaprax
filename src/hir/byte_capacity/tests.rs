@@ -776,3 +776,168 @@ fn every_indexed_fact_equals_the_replaced_whole_program_search() {
         "{instance_bindings} instance bindings"
     );
 }
+
+#[test]
+fn lazy_slot_scalar_calls_and_bindings_need_no_discarded_identity_text() {
+    let program = resolved(
+        "module lazy.scalar; @id(\"scalar.take\") fn take(value:i64)->i64{value} @id(\"scalar.run\") fn run(value:i64)->i64{let local=value; take(local)} @id(\"app.main\") fn main()->i64{0}",
+        "lazy-scalar.spx",
+    );
+    let function = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "scalar.run")
+        .unwrap();
+    let ResolvedExprKind::Block { tail, .. } = &function.body.kind else {
+        panic!("fixture body is a block");
+    };
+    let expected = crate::byte_data_capacity::CapacityFlow::Sequence(vec![
+        crate::byte_data_capacity::CapacityFlow::Empty,
+        crate::byte_data_capacity::CapacityFlow::Sequence(vec![
+            crate::byte_data_capacity::CapacityFlow::Empty,
+            crate::byte_data_capacity::CapacityFlow::Call {
+                site: tail.id.as_str().to_owned(),
+                callee: "scalar.take".to_owned(),
+            },
+        ]),
+    ]);
+    let wire = crate::cache_codec::encode(&program).unwrap();
+    let facts = ValueFactIndex::new(&program);
+    let mut slots = Vec::new();
+    let (flow, overflow, used) = crate::bounded_output::with_limit_usage(0, || {
+        byte_capacity_expression(&facts, &function.body, &mut slots, false)
+    });
+    assert_eq!(flow.unwrap(), expected);
+    assert!(slots.is_empty());
+    assert!(!overflow, "scalar slot labels are never allocated");
+    assert_eq!(used, 0);
+    let (inputs, overflow, used) =
+        crate::bounded_output::with_limit_usage(0, || byte_data_capacity_inputs(&program));
+    let inputs = inputs.unwrap();
+    assert!(inputs.iter().all(|input| input.array_slots.is_empty()));
+    assert_eq!(
+        inputs
+            .iter()
+            .find(|input| input.function == "scalar.run")
+            .unwrap()
+            .execution,
+        crate::byte_data_capacity::CapacityFlow::Sequence(vec![expected])
+    );
+    assert!(
+        !overflow,
+        "scalar parameter/result labels are not allocated"
+    );
+    assert_eq!(used, 0);
+    assert_eq!(crate::cache_codec::encode(&program).unwrap(), wire);
+}
+
+#[test]
+fn lazy_slot_zero_array_and_recursive_nominal_slots_keep_exact_facts() {
+    let source = NESTED.replace(
+        "@id(\"app.main\")",
+        "@id(\"bytes.take\") fn take(value: Outer) -> i64 { 0 }\n@id(\"bytes.stage\") fn stage(value: Outer) -> i64 { let local = value; take(local) }\n@id(\"bytes.empty\") fn empty(value: [u8; 0]) -> i64 { 0 }\n@id(\"bytes.empty.stage\") fn empty_stage() -> i64 { empty([]) }\n@id(\"app.main\")",
+    );
+    let program = resolved(&source, "lazy-array-slots.spx");
+    let inputs = byte_data_capacity_inputs(&program).unwrap();
+    let stage = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "bytes.stage")
+        .unwrap();
+    let ResolvedExprKind::Block { statements, tail } = &stage.body.kind else {
+        panic!("fixture body is a block");
+    };
+    let ResolvedStatement::Let { binding, .. } = &statements[0] else {
+        panic!("fixture starts with a binding");
+    };
+    let input = inputs
+        .iter()
+        .find(|input| input.function == "bytes.stage")
+        .unwrap();
+    assert_eq!(
+        input.array_slots,
+        vec![
+            ArrayStorageSlot {
+                identity: stage.params[0].id.as_str().to_owned(),
+                kind: ArrayStorageKind::Parameter,
+                length: 7
+            },
+            ArrayStorageSlot {
+                identity: binding.id.as_str().to_owned(),
+                kind: ArrayStorageKind::Binding,
+                length: 7
+            },
+            ArrayStorageSlot {
+                identity: std::format!("{}.arg.0", tail.id.as_str()),
+                kind: ArrayStorageKind::CallStaging,
+                length: 7
+            },
+        ]
+    );
+    assert_eq!(
+        input.execution,
+        crate::byte_data_capacity::CapacityFlow::Sequence(vec![
+            crate::byte_data_capacity::CapacityFlow::Sequence(vec![
+                crate::byte_data_capacity::CapacityFlow::Empty,
+                crate::byte_data_capacity::CapacityFlow::Sequence(vec![
+                    crate::byte_data_capacity::CapacityFlow::Empty,
+                    crate::byte_data_capacity::CapacityFlow::Call {
+                        site: tail.id.as_str().to_owned(),
+                        callee: "bytes.take".to_owned()
+                    },
+                ]),
+            ]),
+        ])
+    );
+    let empty = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "bytes.empty.stage")
+        .unwrap();
+    let ResolvedExprKind::Block { tail, .. } = &empty.body.kind else {
+        panic!("fixture body is a block");
+    };
+    let ResolvedExprKind::Call { args, .. } = &tail.kind else {
+        panic!("fixture tail is a call");
+    };
+    let input = inputs
+        .iter()
+        .find(|input| input.function == "bytes.empty.stage")
+        .unwrap();
+    assert_eq!(
+        input.array_slots,
+        vec![
+            ArrayStorageSlot {
+                identity: std::format!("{}.arg.0", tail.id.as_str()),
+                kind: ArrayStorageKind::CallStaging,
+                length: 0
+            },
+            ArrayStorageSlot {
+                identity: args[0].id.as_str().to_owned(),
+                kind: ArrayStorageKind::Temporary,
+                length: 0
+            },
+        ]
+    );
+}
+
+#[test]
+fn lazy_slot_invalid_nominal_type_refuses_before_materializing_identity() {
+    let program = resolved(NESTED, "lazy-invalid-type.spx");
+    let mut slots = Vec::new();
+    let mut materialized = false;
+    let error = push_array_slot_lazy(
+        &program,
+        &mut slots,
+        || {
+            materialized = true;
+            "unused".to_owned()
+        },
+        ArrayStorageKind::CallStaging,
+        &nominal("data.absent"),
+    )
+    .unwrap_err();
+    assert_eq!(error.code, "SPX-H006");
+    assert!(!materialized);
+    assert!(slots.is_empty());
+}

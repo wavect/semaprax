@@ -107,17 +107,28 @@ pub(super) fn inline_array_payload_bytes(
     Ok(total)
 }
 
-pub(super) fn push_array_slot(
+#[cfg(test)]
+fn push_array_slot(
     program: &ResolvedProgram,
     slots: &mut Vec<crate::byte_data_capacity::ArrayStorageSlot>,
     identity: String,
     kind: crate::byte_data_capacity::ArrayStorageKind,
     ty: &ResolvedType,
 ) -> Result<(), Diagnostic> {
+    push_array_slot_lazy(program, slots, || identity, kind, ty)
+}
+
+fn push_array_slot_lazy(
+    program: &ResolvedProgram,
+    slots: &mut Vec<crate::byte_data_capacity::ArrayStorageSlot>,
+    identity: impl FnOnce() -> String,
+    kind: crate::byte_data_capacity::ArrayStorageKind,
+    ty: &ResolvedType,
+) -> Result<(), Diagnostic> {
     let length = inline_array_payload_bytes(program, ty)?;
     if length != 0 || matches!(ty, ResolvedType::ArrayU8(0)) {
         slots.push(crate::byte_data_capacity::ArrayStorageSlot {
-            identity,
+            identity: identity(),
             kind,
             length,
         });
@@ -131,19 +142,19 @@ pub(super) fn push_array_pattern_slots(
     slots: &mut Vec<crate::byte_data_capacity::ArrayStorageSlot>,
 ) -> Result<(), Diagnostic> {
     match pattern {
-        ResolvedMatchPattern::Binding(binding) => push_array_slot(
+        ResolvedMatchPattern::Binding(binding) => push_array_slot_lazy(
             program,
             slots,
-            binding.id.as_str().to_owned(),
+            || crate::bounded_output::budgeted_clone(binding.id.as_str()),
             crate::byte_data_capacity::ArrayStorageKind::Binding,
             &binding.ty,
         ),
         ResolvedMatchPattern::Variant { fields, .. } => {
             for field in fields {
-                push_array_slot(
+                push_array_slot_lazy(
                     program,
                     slots,
-                    field.binding.id.as_str().to_owned(),
+                    || crate::bounded_output::budgeted_clone(field.binding.id.as_str()),
                     crate::byte_data_capacity::ArrayStorageKind::Binding,
                     &field.binding.ty,
                 )?;
@@ -158,10 +169,10 @@ pub(super) fn push_array_pattern_slots(
                 .collect::<Vec<_>>();
             while let Some(pattern) = pending.pop() {
                 match pattern {
-                    ResolvedRecordMatchFieldPattern::Binding(binding) => push_array_slot(
+                    ResolvedRecordMatchFieldPattern::Binding(binding) => push_array_slot_lazy(
                         program,
                         slots,
-                        binding.id.as_str().to_owned(),
+                        || crate::bounded_output::budgeted_clone(binding.id.as_str()),
                         crate::byte_data_capacity::ArrayStorageKind::Binding,
                         &binding.ty,
                     )?,
@@ -583,11 +594,15 @@ pub(super) fn byte_capacity_expression(
     use crate::byte_data_capacity::{ArrayStorageKind, CapacityFlow};
 
     let program = facts.program;
+    enum SlotIdentity<'a> {
+        Binding(&'a str),
+        Argument(&'a str, usize),
+    }
     enum Frame<'a> {
         Visit(&'a ResolvedExpr, bool),
         Argument(
             &'a ResolvedExpr,
-            Option<(String, ArrayStorageKind, ResolvedType)>,
+            Option<(SlotIdentity<'a>, ArrayStorageKind, &'a ResolvedType)>,
             bool,
         ),
         Sequence(usize),
@@ -728,9 +743,9 @@ pub(super) fn byte_capacity_expression(
                             frames.push(Frame::Argument(
                                 argument,
                                 Some((
-                                    format!("{}.arg.{index}", expression.id.as_str()),
+                                    SlotIdentity::Argument(expression.id.as_str(), index),
                                     ArrayStorageKind::CallStaging,
-                                    argument.ty.clone(),
+                                    &argument.ty,
                                 )),
                                 false,
                             ));
@@ -838,9 +853,9 @@ pub(super) fn byte_capacity_expression(
                                     frames.push(Frame::Argument(
                                         value,
                                         Some((
-                                            binding.id.as_str().to_owned(),
+                                            SlotIdentity::Binding(binding.id.as_str()),
                                             ArrayStorageKind::Binding,
-                                            binding.ty.clone(),
+                                            &binding.ty,
                                         )),
                                         true,
                                     ));
@@ -919,7 +934,23 @@ pub(super) fn byte_capacity_expression(
             }
             Frame::Argument(expression, slot, direct_destination) => {
                 if let Some((identity, kind, ty)) = slot {
-                    push_array_slot(program, slots, identity, kind, &ty)?;
+                    // Scalar/view slots retain no identity. Borrow the source
+                    // metadata while queued, then allocate only after the same
+                    // recursive payload check proves a real slot is required.
+                    push_array_slot_lazy(
+                        program,
+                        slots,
+                        || match identity {
+                            SlotIdentity::Binding(binding) => {
+                                crate::bounded_output::budgeted_clone(binding)
+                            }
+                            SlotIdentity::Argument(expression, index) => {
+                                format!("{expression}.arg.{index}")
+                            }
+                        },
+                        kind,
+                        ty,
+                    )?;
                 }
                 frames.push(Frame::Visit(expression, direct_destination));
             }
@@ -1006,18 +1037,18 @@ pub(crate) fn byte_data_capacity_inputs(
         .map(|(identity, function)| {
             let mut slots = Vec::new();
             for parameter in &function.params {
-                push_array_slot(
+                push_array_slot_lazy(
                     program,
                     &mut slots,
-                    parameter.id.as_str().to_owned(),
+                    || crate::bounded_output::budgeted_clone(parameter.id.as_str()),
                     ArrayStorageKind::Parameter,
                     &parameter.ty,
                 )?;
             }
-            push_array_slot(
+            push_array_slot_lazy(
                 program,
                 &mut slots,
-                function.result_id.as_str().to_owned(),
+                || crate::bounded_output::budgeted_clone(function.result_id.as_str()),
                 ArrayStorageKind::ProvisionalResult,
                 &function.return_type,
             )?;

@@ -401,6 +401,7 @@ const listenError = (error) => {
     console.error(`server listen failed (${code ?? "unknown"}): ${error?.message ?? error}`);
   }
   process.exitCode = 1;
+  if (process.connected) process.disconnect();
 };
 server.once("error", listenError);
 server.listen(Number(opt.port), opt.host, () => {

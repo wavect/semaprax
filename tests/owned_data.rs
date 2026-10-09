@@ -97,3 +97,5 @@ mod vec_sort;
 
 #[path = "owned_data/copy_record_vec.rs"]
 mod copy_record_vec;
+#[path = "owned_data/owned_collection_outcome.rs"]
+mod owned_collection_outcome;

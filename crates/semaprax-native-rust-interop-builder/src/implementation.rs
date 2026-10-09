@@ -88,7 +88,8 @@ use capacity::{
 use capacity::{
     cleanup_function_exit_events, cleanup_parameter_finalizer_events, cleanup_source_exit_events,
     declaration_dag_expansion, generic_function_instance_identity_upper,
-    hir_capacity_terms_for_test, validate_native_rust_expression_budget, HirPreResolveCapacity,
+    hir_capacity_terms_for_test, source_functions, validate_native_rust_expression_budget,
+    HirPreResolveCapacity, HIR_VALIDATOR_FRAME_BYTES,
 };
 
 use crate::hir::{

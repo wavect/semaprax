@@ -351,13 +351,11 @@ fn projected() -> i64 {
         .find(|function| function.id.as_str() == "loan.projected")
         .expect("fixture test imports the loan-bearing function");
     assert!(projected.loan_plan.loans.len() >= 4);
-    assert!(
-        projected
-            .loan_plan
-            .loans
-            .iter()
-            .any(|loan| loan.parent.is_some())
-    );
+    assert!(projected
+        .loan_plan
+        .loans
+        .iter()
+        .any(|loan| loan.parent.is_some()));
 
     let receipt = fixture.persist();
     let digest = receipt["entry_digest"].as_str().unwrap();

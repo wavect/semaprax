@@ -3,7 +3,9 @@
 
 use super::*;
 
-pub(super) fn source_functions(program: &Program) -> impl Iterator<Item = &crate::ast::Function> {
+pub(in crate::implementation) fn source_functions(
+    program: &Program,
+) -> impl Iterator<Item = &crate::ast::Function> {
     program
         .functions
         .iter()

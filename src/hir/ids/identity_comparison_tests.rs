@@ -95,8 +95,7 @@ fn identity_validation_preserves_frozen_graph_bytes_and_rejects_forged_hir() {
             .unwrap();
         match role {
             "expression" => {
-                function.body.id =
-                    ExpressionId::from_owned(std::format!("{}:", function.body.id));
+                function.body.id = ExpressionId::from_owned(std::format!("{}:", function.body.id));
             }
             "parameter" => {
                 function.params[0].id = ValueId::new(std::format!("{}:", function.params[0].id))

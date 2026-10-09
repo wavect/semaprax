@@ -25,7 +25,7 @@ test('hostile API missing fields and weakened write responses are observed exter
 
 test('actual sort order and pagination omissions cannot satisfy ordering oracle',()=>{const rows=Array.from({length:27},(_,n)=>({id:String(n+1),value:String(n+1)})),ids=rows.map(row=>row.id);assert.equal(direction(ids,rows,'value','int'),-1);assert.equal(direction(ids.slice().reverse(),rows,'value','int'),1);const wrong=ids.slice();[wrong[24],wrong[25]]=[wrong[25],wrong[24]];assert.throws(()=>direction(wrong,rows,'value','int'),'wrong boundary order');assert.throws(()=>direction(ids.slice(0,25),rows,'value','int'),'dropped page');const duplicate=ids.slice();duplicate[26]=duplicate[25];assert.throws(()=>direction(duplicate,rows,'value','int'),'duplicate row');});
 
-import {actionControl,numericEditor,directPage,enumFilterSelectors,formControl,formFieldLabel,historyValueProof,renderedErrorMessages,searchControl,signInLabel,uniqueControl,visibleErrorMessageCount} from './browser-support.mjs';
+import {actionControl,numericEditor,directPage,entityHeadingPattern,enumFilterSelectors,formControl,formFieldLabel,historyValueProof,renderedErrorMessages,searchControl,signInLabel,uniqueControl,visibleErrorMessageCount} from './browser-support.mjs';
 test('exact numeric editors are accepted without accepting untyped strings',()=>{numericEditor('int',{type:'text',inputmode:'numeric'});numericEditor('int',{type:'number',step:'1'});numericEditor('float',{type:'number',step:'any'});assert.throws(()=>numericEditor('int',{type:'text'}));assert.throws(()=>numericEditor('float',{type:'text',inputmode:'numeric'}));assert.throws(()=>numericEditor('int',{type:'number',step:'0.1'}));});
 test('direct route awaits a fresh document rather than earlier hash networkidle',async()=>{const calls=[],page={goto:async(...args)=>calls.push(args)};await directPage(page,'http://127.0.0.1:1234/#/task/1/edit');assert.deepEqual(calls,[['about:blank'],['http://127.0.0.1:1234/#/task/1/edit',{waitUntil:'networkidle'}]]);});
 
@@ -187,4 +187,17 @@ test('history proof requires distinct old and new values',()=>{
   historyValueProof(`History\nname: ${oldValue} → ${newValue}`,oldValue,newValue);
   assert.throws(()=>historyValueProof(`History\nname: ${newValue}`,oldValue,newValue));
   assert.throws(()=>historyValueProof(`History\nname: ${oldValue}`,oldValue,oldValue));
+});
+
+test('local browser fixture accepts colon destination headings without accepting prefixes',async()=>{
+  const require=createRequire(path.join(process.env.PLAYWRIGHT_PACKAGE_ROOT??path.dirname(new URL(import.meta.url).pathname),'package.json')),{chromium}=require('@playwright/test');
+  const browser=await chromium.launch({headless:true}),page=await browser.newPage(),pattern=entityHeadingPattern('Customer');
+  try {
+    await page.setContent('<h1>Customer: Acme</h1>');
+    assert.equal(await page.getByRole('heading',{name:pattern}).count(),1);
+    await page.setContent('<h1>Customer Acme</h1>');
+    assert.equal(await page.getByRole('heading',{name:pattern}).count(),1);
+    await page.setContent('<h1>CustomerOther</h1><h1 hidden>Customer: Hidden</h1>');
+    assert.equal(await page.getByRole('heading',{name:pattern}).count(),0);
+  } finally {await browser.close();}
 });

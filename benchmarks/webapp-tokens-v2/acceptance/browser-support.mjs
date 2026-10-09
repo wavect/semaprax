@@ -88,11 +88,15 @@ export async function directPage(page, url) {
   await page.goto(url, {waitUntil: 'networkidle'});
 }
 
+export function entityHeadingPattern(entity) {
+  assert.ok(typeof entity==='string'&&/^[A-Za-z][A-Za-z0-9_]*$/.test(entity),'known entity heading');
+  return new RegExp('^'+entity.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?:\\s|:|$)', 'i');
+}
+
 // For actual SPA link clicks, observe the destination heading before checking
 // fields. This does not depend on the candidate's framework or internal state.
 export async function followEntity(page, link, entity, expect) {
   await link.click();
-  const pattern=new RegExp('^'+entity+'(?:\\s|$)', 'i');
-  await expect(page.getByRole('heading',{name:pattern}).first()).toBeVisible();
+  await expect(page.getByRole('heading',{name:entityHeadingPattern(entity)}).first()).toBeVisible();
   await page.waitForLoadState('networkidle');
 }

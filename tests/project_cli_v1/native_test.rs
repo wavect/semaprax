@@ -109,13 +109,28 @@ impl Drop for NativeFixture {
 }
 
 fn json(output: &Output) -> serde_json::Value {
-    serde_json::from_slice(&output.stdout).unwrap_or_else(|error| {
-        panic!(
-            "invalid JSON: {error}; stdout={} stderr={}",
-            stdout(output),
-            stderr(output)
-        )
-    })
+    let envelope: serde_json::Value =
+        serde_json::from_slice(&output.stdout).unwrap_or_else(|error| {
+            panic!(
+                "invalid JSON: {error}; stdout={} stderr={}",
+                stdout(output),
+                stderr(output)
+            )
+        });
+    assert_eq!(
+        envelope["schema"],
+        "semaprax.native-test.v1",
+        "expected native case results; stdout={} stderr={}",
+        stdout(output),
+        stderr(output)
+    );
+    assert!(
+        envelope["cases"].is_array(),
+        "native report has no cases array; stdout={} stderr={}",
+        stdout(output),
+        stderr(output)
+    );
+    envelope
 }
 
 #[test]
@@ -150,8 +165,8 @@ fn native_cli_selects_main_and_named_cases_and_reports_untruncated_result() {
             .collect::<Vec<_>>(),
         [
             "decimal.tests.main",
-            "decimal.tests.test_pass",
-            "decimal.tests.test_fail"
+            "decimal.tests.test_fail",
+            "decimal.tests.test_pass"
         ]
     );
     assert_eq!(
@@ -159,9 +174,9 @@ fn native_cli_selects_main_and_named_cases_and_reports_untruncated_result() {
             .iter()
             .map(|case| case["passed"].as_bool().unwrap())
             .collect::<Vec<_>>(),
-        [true, true, false]
+        [true, false, true]
     );
-    assert_eq!(cases[2]["result"], 256);
+    assert_eq!(cases[1]["result"], 256);
     fixture.scratch_empty();
 }
 
@@ -178,7 +193,7 @@ fn test_file() -> i64 uses { fs.read }
     let path = "digits";
     let view = string_as_str(path);
     let contents = file_read_text(view);
-    if string_len(contents) == 4i64 { 0 } else { 1 }
+    if string_len(contents) == 4 { 0 } else { 1 }
 }
 "#;
     let fixture = NativeFixture::new("io", tests);
@@ -275,10 +290,12 @@ fn main() -> i64 uses { process.stdout.write, process.stderr.write }
 #[test]
 #[cfg_attr(windows, ignore = "native SourceCommand adapter is Unix-only")]
 fn native_cli_stops_large_output_before_timeout() {
+    // Keep both output effects in the linked closure: stdout alone selects
+    // the transcript profile rather than the SourceCommand adapter.
     let tests = r#"module decimal.tests;
 permit { process.stderr.write, process.stdout.write }
 @id("decimal.tests.main")
-fn main() -> i64 uses { process.stdout.write }
+fn main() -> i64 uses { process.stderr.write, process.stdout.write }
 {
     let text = "abcdefgh";
     let view = string_as_str(text);

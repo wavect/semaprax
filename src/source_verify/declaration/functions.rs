@@ -7,7 +7,6 @@ use crate::ast::{
 };
 use crate::diagnostic::Diagnostic;
 use crate::source_verify::binding::{Availability, Binding};
-use crate::source_verify::declared_type::generic_result;
 use crate::source_verify::declared_type::{
     check_declared_type, check_ownership_mode, function_reaches, function_reaches_any,
     generic_function_arguments_are_forwarded, generic_function_contains_nested_owned_record_slot,
@@ -17,6 +16,7 @@ use crate::source_verify::declared_type::{
     generic_function_signature_slot, owned_record_function_substitutions,
     scalar_function_substitutions,
 };
+use crate::source_verify::declared_type::{declared_collection::reject_function, generic_result};
 use crate::source_verify::diagnostics::{
     error, invalid_stable_id, reject_native_unit_value, reject_reserved_host_id, require_bool,
     source_identifier,
@@ -980,12 +980,7 @@ pub(super) fn check_function_bodies<'p>(
     let function_value_targets =
         crate::source_verify::function_value_inventory::function_value_targets(program, functions);
     for template in &program.functions {
-        crate::source_verify::declared_type::declared_collection::reject_function(
-            program,
-            template,
-            types,
-            diagnostics,
-        );
+        reject_function(program, template, types, diagnostics);
         let type_parameters = template
             .type_parameters
             .iter()

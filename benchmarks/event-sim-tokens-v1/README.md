@@ -71,6 +71,34 @@ The explicit arm selects the route: only the SEMAPRAX arm may contain the v27
 manifest or use the harness native binary. The TypeScript arm keeps the frozen
 candidate `run.sh` interface and is refused if it contains `semaprax.toml`.
 
+Round 4 explicitly selects `--round 4 --authoring-profile
+semaprax-project-v30-owned-data-v1`. It uses Project v30's
+`language-command-io.owned-data.v1` private owned-data helpers while retaining
+the exact four grants, stdin route, and external `fn() -> i64` command ABI.
+Rounds 1–3 and their qualification envelopes remain reproducible. Round 4
+requires a fresh `semaprax.event-sim-qualification-evidence.v4` receipt;
+historical v2/v3 receipts cannot admit it. Prepare that receipt with:
+
+```sh
+python3 benchmarks/event-sim-tokens-v1/campaign.py qualify-v4 \
+  --compiler-source-ref <verified-source-commit> --semaprax-bin <verified-compiler> \
+  --candidate <reviewed-v30-candidate> --output <new-external-qualification-directory>
+```
+
+The qualifier checks and builds the exact closed candidate with the pinned
+compiler and accepts its harness-produced native binary against all 15 original
+cases. Before worktree creation and immediately before each paid dispatch,
+round 4 rechecks the compiler bytes and complete qualification binding. Failed
+qualification leaves retained artifacts and grants no paid dispatch eligibility.
+No reference solution or generated codec body is supplied in the authoring seed.
+The TypeScript prompt is byte-identical to round 3 for the same paths/compiler;
+the strong Node bootstrap is unchanged. Only the SEMAPRAX profile/help setup
+changes. The plan discloses that context difference, and each arm retains its
+full prompt bytes/hash separately from authored/generated source. Context-token
+and actual billing fields stay null until independently measured; there is no
+tokenizer subtraction, upper-bound claim, or live savings evidence in this
+source-only configuration change.
+
 The corpus is invoked through a command adapter that reads one request from
 stdin and writes one report to stdout. Example after an arm has been authored:
 

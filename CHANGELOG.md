@@ -1,5 +1,12 @@
 # Changelog
 
+- Add an explicit ShiftSim round-4 Project v30 owned-data authoring condition,
+  fresh source/compiler/native-bound all-15 qualification, and pre-dispatch
+  drift guards. Preserve historical rounds and the strong TypeScript prompt
+  and bootstrap; disclose changed SEM harness context with unknown token/billing
+  fields. Owning mocked checks and actual current-compiler qualification await
+  grouped validation; no new live cost or acceptance result is claimed.
+
 - Author the remaining OPT-723 owned-leaf vector slice: explicit deep clone,
   grouped replacement, bounded reserve, stable scalar/text ordering and
   consuming traversal, with independent source/HIR descriptors and private

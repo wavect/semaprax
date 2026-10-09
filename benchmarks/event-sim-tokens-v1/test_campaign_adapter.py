@@ -83,8 +83,11 @@ class ShiftSimCampaignTests(unittest.TestCase):
         evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
         return evidence_path, evidence, report_path, repo
 
-    def _v3_qualification_evidence(self, root: Path):
+    def _v3_qualification_evidence(self, root: Path, *,
+                                   profile=live_campaign.AUTHORING_PROFILE_V27,
+                                   compiler_hash="a" * 64):
         evidence_path, evidence, report_path, repo = self._qualification_evidence(root)
+        evidence["compiler_binary_sha256"] = compiler_hash
         candidate = root / "qualified-candidate"
         candidate.mkdir()
         manifest = candidate / "semaprax.toml"
@@ -99,6 +102,9 @@ web = ["run"]
 [capabilities]
 required = ["process.args.read", "process.stderr.write", "process.stdin.read", "process.stdout.write"]
 ''', encoding="utf-8")
+        if profile == live_campaign.AUTHORING_PROFILE_V30:
+            manifest.write_text(manifest.read_text().replace(
+                "language-command-io.stream-data.v1", "language-command-io.owned-data.v1"), encoding="utf-8")
         manifest_hash = live_campaign.sha_bytes(manifest.read_bytes())
         inventory = root / "candidate-source-inventory.json"
         files = [{"path": "semaprax.toml", "bytes": manifest.stat().st_size,
@@ -127,8 +133,8 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
             "acceptance_report_sha256": evidence["acceptance_report"]["sha256"],
         }), encoding="utf-8")
         evidence.update({
-            "schema": live_campaign.QUALIFICATION_EVIDENCE_SCHEMA_V3,
-            "native_project_route": live_campaign.NATIVE_PROJECT_ROUTE_V27,
+            "schema": live_campaign.AUTHORING_PROFILES[profile]["qualification_schema"],
+            "native_project_route": live_campaign.AUTHORING_PROFILES[profile]["route"],
             "candidate_source": {
                 "inventory": {"path": str(inventory),
                               "sha256": inventory_hash},
@@ -230,7 +236,7 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
             self.assertEqual(common.rate_card_estimate_details(
                 usage, current["price_book"]["per_million_tokens"],
             )["usd"], 0.1)
-            for invalid_round in (0, 4, True):
+            for invalid_round in (0, 5, True):
                 args.round = invalid_round
                 with self.assertRaisesRegex(ValueError, "unsupported ShiftSim round"):
                     live_campaign.plan(args)
@@ -847,6 +853,158 @@ exec node dist/cli.js
             hashes, excluded = common.archive_candidate(candidate, archive)
         self.assertEqual(set(hashes), {"main.ts"})
         self.assertEqual(excluded, ["node_modules"])
+
+
+    def test_round_four_requires_explicit_fresh_v30_all_fifteen_qualification(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            compiler = root / "compiler"
+            compiler.write_bytes(b"v30 compiler fixture")
+            digest = common.digest(compiler)
+            path, evidence, report, repo, inventory, manifest = self._v3_qualification_evidence(
+                root, profile=live_campaign.AUTHORING_PROFILE_V30, compiler_hash=digest)
+            args = Namespace(repo=str(repo), base_ref="HEAD", artifacts=str(root / "artifacts"),
+                round=4, trials_per_arm=5, model=live_campaign.MODEL, effort=live_campaign.EFFORT,
+                timeout_seconds=1800, max_budget_usd=None, semaprax_bin=str(compiler),
+                qualification_evidence=str(path), tokenizer_dir=None)
+            with self.assertRaisesRegex(ValueError, "requires --authoring-profile"):
+                live_campaign.plan(args, digest)
+            args.authoring_profile = live_campaign.AUTHORING_PROFILE_V27
+            with self.assertRaisesRegex(ValueError, "requires authoring profile"):
+                live_campaign.plan(args, digest)
+            args.authoring_profile = live_campaign.AUTHORING_PROFILE_V30
+            with patch.object(common, "tokenizer_metadata", return_value=None):
+                settings = live_campaign.plan(args, digest)
+            self.assertEqual(settings["schema"], "semaprax.event-sim-campaign.v3")
+            self.assertEqual(settings["qualification"]["acceptance_cases_passed"], 15)
+            self.assertEqual(settings["benchmark_inputs_sha256"], live_campaign.FROZEN_BENCHMARK_SHA256)
+            self.assertEqual(settings["attempt_denominator"], 10)
+            self.assertIsNone(settings["language_setup"]["semaprax"]["fixed_harness_context_tokens"])
+            live_campaign.require_authoring_eligibility(settings, compiler)
+            copies = root / "retained-qualification"
+            copies.mkdir()
+            live_campaign.copy_qualification_artifacts(settings["qualification"], copies)
+            live_campaign.require_authoring_eligibility(settings, compiler)
+            copied_native = Path(settings["qualification"]["qualified_native_binary_artifact"])
+            original = copied_native.read_bytes()
+            copied_native.write_bytes(b"changed retained binary")
+            with self.assertRaisesRegex(ValueError, "retained qualification copy changed"):
+                live_campaign.require_authoring_eligibility(settings, compiler)
+            copied_native.write_bytes(original)
+            for target in (path, inventory, manifest,
+                           Path(evidence["qualified_native_binary"]["path"]), compiler, report):
+                with self.subTest(target=target.name):
+                    original = target.read_bytes()
+                    target.write_bytes(original + b"changed")
+                    with self.assertRaises((ValueError, json.JSONDecodeError)):
+                        live_campaign.require_authoring_eligibility(settings, compiler)
+                    target.write_bytes(original)
+            historical = dict(evidence, schema=live_campaign.QUALIFICATION_EVIDENCE_SCHEMA_V3)
+            path.write_text(json.dumps(historical), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "schema must be"):
+                live_campaign.require_authoring_eligibility(settings, compiler)
+            path.write_text(json.dumps(evidence), encoding="utf-8")
+            # A self-consistent envelope with only fourteen rows still cannot qualify.
+            report_original = report.read_bytes()
+            receipt = Path(evidence["qualification_build_receipt"]["path"])
+            receipt_original = receipt.read_bytes()
+            partial_report = json.loads(report_original)
+            partial_report["cases"].pop()
+            report.write_text(json.dumps(partial_report), encoding="utf-8")
+            partial_evidence = json.loads(json.dumps(evidence))
+            partial_evidence["acceptance_report"]["sha256"] = common.digest(report)
+            partial_receipt = json.loads(receipt_original)
+            partial_receipt["acceptance_report_sha256"] = common.digest(report)
+            receipt.write_text(json.dumps(partial_receipt), encoding="utf-8")
+            partial_evidence["qualification_build_receipt"]["sha256"] = common.digest(receipt)
+            path.write_text(json.dumps(partial_evidence), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "every pinned acceptance case"):
+                live_campaign.require_authoring_eligibility(settings, compiler)
+            report.write_bytes(report_original)
+            receipt.write_bytes(receipt_original)
+            path.write_text(json.dumps(evidence), encoding="utf-8")
+            args.qualification_evidence = None
+            with self.assertRaisesRegex(ValueError, "all-15 qualification"):
+                live_campaign.plan(args, digest)
+
+    def test_v30_context_changes_only_sem_setup_and_preserves_ts_prompt(self):
+        profile = live_campaign.AUTHORING_PROFILE_V30
+        historical = live_campaign.prompt_for("typescript", Path("/candidate"), Path("/compiler"),
+                                              live_campaign.AUTHORING_PROFILE_V27)
+        self.assertEqual(live_campaign.prompt_for("typescript", Path("/candidate"), Path("/compiler"),
+                                                profile), historical)
+        prompt = live_campaign.prompt_for("semaprax", Path("/candidate"), Path("/compiler"), profile)
+        self.assertIn("native Project v30", prompt)
+        self.assertIn("language-command-io.owned-data.v1", prompt)
+        self.assertIn("author:owned-data", prompt)
+        self.assertIn("Bytes allocation/clone loop restrictions", prompt)
+        self.assertNotIn("only when T is a Copy scalar", prompt)
+        self.assertNotIn("vec_sort_owned", prompt)  # Setup is not an authored scheduling solution.
+        row = {}
+        live_campaign.retain_fixed_harness_context(row, {"authoring_profile": profile}, prompt)
+        self.assertEqual(row["fixed_harness_context"]["prompt_utf8_bytes"], len(prompt.encode()))
+        self.assertEqual(row["fixed_harness_context"]["prompt_sha256"], live_campaign.sha_text(prompt))
+        self.assertIsNone(row["fixed_harness_context"]["tokens"])
+        self.assertIsNone(row["fixed_harness_context"]["actual_billed_usd"])
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _, _, _, _, _, manifest = self._v3_qualification_evidence(root, profile=profile)
+            self.assertEqual(live_campaign.candidate_authoring_admission(
+                manifest.parent, "semaprax", profile)["status"], "passed")
+            self.assertEqual(live_campaign.candidate_authoring_admission(
+                manifest.parent, "semaprax", live_campaign.AUTHORING_PROFILE_V27)["status"], "failed")
+            manifest.write_text(manifest.read_text().replace("process.stdin.read", "network.read"))
+            self.assertEqual(live_campaign.candidate_authoring_admission(
+                manifest.parent, "semaprax", profile)["status"], "failed")
+
+    def test_v30_qualification_builder_accepts_only_its_harness_native_subject(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _, _, report, repo, _, manifest = self._v3_qualification_evidence(
+                root, profile=live_campaign.AUTHORING_PROFILE_V30)
+            compiler = root / "compiler"
+            compiler.write_bytes(b"compiler fixture")
+            output = root / "fresh-qualification"
+            commands = []
+            original_run = subprocess.run
+            def execute(command, **kwargs):
+                if command[0] == "git":
+                    return original_run(command, **kwargs)
+                commands.append(command)
+                if command[:2] == [str(compiler.resolve()), "build"]:
+                    Path(command[command.index("--output") + 1]).write_bytes(b"new native fixture")
+                if "--report-json" in command:
+                    Path(command[command.index("--report-json") + 1]).write_bytes(report.read_bytes())
+                return subprocess.CompletedProcess(command, 0, stdout=b"", stderr=b"")
+            commit = live_campaign.resolve_commit(repo, "HEAD")
+            with patch.object(subprocess, "run", side_effect=execute):
+                result = live_campaign.generate_v3_qualification(manifest.parent, compiler, repo,
+                    commit, output, 10, authoring_profile=live_campaign.AUTHORING_PROFILE_V30)
+            self.assertEqual(result["status"], "qualified")
+            acceptance = next(command for command in commands if "--command-json" in command)
+            self.assertEqual(json.loads(acceptance[acceptance.index("--command-json") + 1]),
+                             [str(output / "qualified-native-binary")])
+            evidence = json.loads((output / "qualification-evidence.json").read_text())
+            self.assertEqual(evidence["schema"], live_campaign.QUALIFICATION_EVIDENCE_SCHEMA_V4)
+            self.assertEqual(evidence["native_project_route"]["project_schema"], "semaprax.project.v30")
+            admitted = live_campaign.validate_qualification_evidence(output / "qualification-evidence.json",
+                repo, commit, common.digest(compiler), live_campaign.AUTHORING_PROFILE_V30)
+            self.assertEqual(admitted["acceptance_cases_passed"], 15)
+
+    def test_v30_claude_dispatch_refuses_unqualified_setup_before_worktree_or_paid_call(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = {"round": 4, "authoring_profile": live_campaign.AUTHORING_PROFILE_V30,
+                        "qualification": {"scored_trials_allowed": False}}
+            with patch.object(common, "add_seed_worktree") as worktree, \
+                 patch.object(live_campaign, "run_process") as paid:
+                for launch in (lambda: live_campaign.launch_calibration(root, root / "artifacts", "seed", settings, root / "compiler"),
+                               lambda: live_campaign.launch_trial(root, root / "artifacts", "seed",
+                                   {"arm": "semaprax", "number": 1}, settings, root / "compiler")):
+                    with self.assertRaisesRegex(ValueError, "all-15 qualification"):
+                        launch()
+                worktree.assert_not_called()
+                paid.assert_not_called()
 
 
 if __name__ == "__main__":

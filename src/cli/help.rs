@@ -232,7 +232,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Run, canonical: "run", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax run <file> [--json] [--max-steps N] [--max-bytes N] [--native] [-- <arg>...]", "semaprax run [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]"] },
     CommandSpec { id: CommandId::NetworkRun, canonical: "network-run", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax network-run [<dir>|semaprax.toml|--manifest-path path] --fixture fixture.json [--arg UTF8]... [--stdin path] [--max-steps N]"] },
     CommandSpec { id: CommandId::Test, canonical: "test", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax test [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]"] },
-    CommandSpec { id: CommandId::Fmt, canonical: "fmt", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax fmt <file>|<dir>|semaprax.toml [--check]"] },
+    CommandSpec { id: CommandId::Fmt, canonical: "fmt", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax fmt <file>|<dir>|semaprax.toml [--check]", "semaprax fmt --manifest <semaprax.toml> [--check]"] },
     CommandSpec { id: CommandId::Patch, canonical: "patch", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax patch <file> <patch.spatch>"] },
     CommandSpec { id: CommandId::PatchReceipt, canonical: "patch-receipt", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax patch-receipt <project> render <transaction-json> <candidate-digest>", "semaprax patch-receipt <project> verify <transaction-json> <candidate-digest> <receipt-json>", "semaprax patch-receipt <project> refusal <transaction-json> <requested-candidate-digest>", "semaprax patch-receipt <project> verify-refusal <transaction-json> <requested-candidate-digest> <receipt-json>", "semaprax patch-receipt <project> compare <left-transaction-json> <left-candidate-digest> <left-receipt-json> <right-transaction-json> <right-candidate-digest> <right-receipt-json>", "semaprax patch-receipt <project> evidence-summary <transaction-json> <candidate-digest>", "semaprax patch-receipt <project> evidence-page <transaction-json> <candidate-digest> <evidence-id> <handle> <cursor|->"] },
     CommandSpec { id: CommandId::WorkspaceInit, canonical: "workspace-init", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax workspace-init <root> <path-set.json>"] },
@@ -646,7 +646,7 @@ static GUIDE: &[GuideGroup] = &[
             GuideEntry {
                 id: CommandId::Fmt,
                 shape: "fmt <input> [--check]",
-                summary: "Format; --check reports drift",
+                summary: "Format source; --manifest canonicalizes TOML",
             },
             GuideEntry {
                 id: CommandId::Run,

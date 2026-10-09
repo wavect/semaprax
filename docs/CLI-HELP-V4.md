@@ -13,7 +13,7 @@ V4 makes global help a guided one-screen overview. Use `semaprax help all`
 for the exhaustive command catalog. Existing command catalog entries and
 order, v2 typo behavior, and the v3 recovery hint stay unchanged; scoped help
 adds an explicit full standard-library catalog and bounded language-shape kind
-selectors.
+selectors. The `fmt` catalog also exposes an explicit manifest-layout mode.
 
 ## Why
 
@@ -59,6 +59,22 @@ functions, and Wasm/web exports. Only the Wasm/web form names `--profile`;
 native text support is selected from source. Those shapes also show `--json`
 and the `--output` spelling.
 Do not parse a guided shape as an admission rule.
+
+## Formatter
+
+`semaprax fmt <file>|<dir>|semaprax.toml [--check]` formats source files. A
+directory or manifest selects the `.spx` files listed by that manifest; the
+manifest itself must already be canonical and is never rewritten by this
+shape. `--check` checks only those source files.
+
+`semaprax fmt --manifest <semaprax.toml> [--check]` is the explicit table
+manifest layout formatter. It accepts only `semaprax.toml` paths and applies
+the canonical table/key/spacing order after the shared Project Manifest parser
+has validated the complete manifest. It does not repair missing or invalid
+semantic fields, source cardinality or ordering, test-module declarations,
+profiles, or unknown tables and keys. `--check` reports layout drift without
+writing; write mode changes only that manifest file. Frozen assignment layouts
+retain their existing canonical requirement.
 
 ## Exhaustive catalog
 
@@ -229,9 +245,9 @@ in both measures. The original full-catalog bytes remain unchanged.
 
 Scoped help (`help <command>`, `<command> --help`, `<command> -h`), the
 malformed-position rejection, and the recovery hint are unchanged except for
-the additive `build` grammar, library catalog selector, and shapes kind index
-selector. Help still calls no host hook, reads no path, inspects no environment,
-and grants no authority.
+the additive `build` grammar, library catalog selector, shapes kind index
+selector, and `fmt --manifest` grammar. Help still calls no host hook, reads no
+path, inspects no environment, and grants no authority.
 
 ## Evidence
 

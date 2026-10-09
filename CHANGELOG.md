@@ -1,5 +1,10 @@
 # Changelog
 
+- Add explicit `fmt --manifest <semaprax.toml> [--check]` for canonical table
+  layout. The mode shares complete manifest semantic validation, while ordinary
+  `fmt` keeps formatting only selected `.spx` files. Focused regressions are
+  authored; validation is pending.
+
 - Add `semaprax help shapes kinds` as a complete exact selector index derived
   from the generated language-shapes companion (issue #699). The bare catalog,
   existing lookups, and guide byte limit remain pinned. Four focused CLI

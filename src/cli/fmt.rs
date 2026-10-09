@@ -1,10 +1,8 @@
 //! The `fmt` invocation grammar and its run.
 //!
-//! `semaprax fmt <file>|<dir>|semaprax.toml [--check]`. A single `.spx` file
-//! is formatted on its own; a project directory or manifest formats every
-//! source file the manifest lists, in manifest order, through the same
-//! comment-preserving projection. Every file is parsed before any file is
-//! written, so a parse error in one source leaves the whole project as it was.
+//! `semaprax fmt <file>|<dir>|semaprax.toml [--check]` formats source files.
+//! `semaprax fmt --manifest <semaprax.toml> [--check]` canonicalizes a valid
+//! table manifest's layout without changing its meaning.
 
 use std::path::{Path, PathBuf};
 
@@ -19,6 +17,7 @@ use super::project::{is_project_manifest, resolve_positional};
 pub(crate) enum FmtInput {
     Source(PathBuf),
     Project(PathBuf),
+    Manifest(PathBuf),
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -28,10 +27,23 @@ pub(crate) struct FmtOptions {
 }
 
 pub(crate) fn parse(args: &[String]) -> Result<FmtOptions, u8> {
-    let (path, check) = match args {
-        [path] if !path.starts_with('-') => (path, false),
-        [path, option] if !path.starts_with('-') && option == "--check" => (path, true),
-        [option, path] if option == "--check" && !path.starts_with('-') => (path, true),
+    let (path, check, manifest_only) = match args {
+        [option, path] if option == "--manifest" && !path.starts_with('-') => {
+            (path, false, true)
+        }
+        [option, path, check]
+            if option == "--manifest" && !path.starts_with('-') && check == "--check" =>
+        {
+            (path, true, true)
+        }
+        [check, option, path]
+            if check == "--check" && option == "--manifest" && !path.starts_with('-') =>
+        {
+            (path, true, true)
+        }
+        [path] if !path.starts_with('-') => (path, false, false),
+        [path, option] if !path.starts_with('-') && option == "--check" => (path, true, false),
+        [option, path] if option == "--check" && !path.starts_with('-') => (path, true, false),
         [option] if option == "--check" => {
             eprintln!("fmt --check requires <file>|<dir>|semaprax.toml");
             return Err(2);
@@ -45,6 +57,17 @@ pub(crate) fn parse(args: &[String]) -> Result<FmtOptions, u8> {
             return Err(2);
         }
     };
+    if manifest_only {
+        let path = PathBuf::from(path);
+        if !is_project_manifest(&path) {
+            eprintln!("fmt --manifest requires a path named semaprax.toml");
+            return Err(2);
+        }
+        return Ok(FmtOptions {
+            input: FmtInput::Manifest(super::project::normalize_project_path(path)),
+            check,
+        });
+    }
     let input = match resolve_positional(PathBuf::from(path)) {
         path if is_project_manifest(&path) => FmtInput::Project(path),
         path => FmtInput::Source(path),
@@ -62,9 +85,13 @@ struct Formatted {
 /// Format or check every selected file. Diagnostics are reported through
 /// `report`, which returns the exit status for a failed run.
 pub(crate) fn run(options: FmtOptions, report: impl Fn(&[Diagnostic]) -> u8) -> Result<(), u8> {
-    let paths = match options.input {
+    let FmtOptions { input, check } = options;
+    let paths = match input {
         FmtInput::Source(path) => vec![path],
         FmtInput::Project(manifest_path) => project_sources(&manifest_path, &report)?,
+        FmtInput::Manifest(manifest_path) => {
+            return format_manifest(&manifest_path, check, &report);
+        }
     };
     let mut formatted = Vec::with_capacity(paths.len());
     for path in paths {
@@ -85,7 +112,7 @@ pub(crate) fn run(options: FmtOptions, report: impl Fn(&[Diagnostic]) -> u8) -> 
             canonical,
         });
     }
-    if options.check {
+    if check {
         let mut drifted = false;
         for file in &formatted {
             if file.source != file.canonical {
@@ -108,6 +135,42 @@ pub(crate) fn run(options: FmtOptions, report: impl Fn(&[Diagnostic]) -> u8) -> 
         }
     }
     Ok(())
+}
+
+/// Canonicalize one explicitly selected manifest after the shared parser has
+/// validated every schema and semantic constraint. The path guard mirrors the
+/// source and project formatter because this mode writes its selected file.
+fn format_manifest(
+    path: &Path,
+    check: bool,
+    report: &impl Fn(&[Diagnostic]) -> u8,
+) -> Result<(), u8> {
+    reject_symlink_components(path).map_err(|diagnostic| report(&[diagnostic]))?;
+    let source = std::fs::read_to_string(path).map_err(|error| {
+        report(&[Diagnostic::io(
+            "SPX-J102",
+            format!("cannot read Project v1 manifest {}: {error}", path.display()),
+        )
+        .at_path(path.display().to_string())
+        .with_help(MISSING_MANIFEST_HELP)])
+    })?;
+    let manifest = ProjectManifest::parse_for_format(&source).map_err(|errors| report(&errors))?;
+    let canonical = manifest.to_canonical_toml();
+    if source == canonical {
+        return Ok(());
+    }
+    if check {
+        eprintln!(
+            "{}:{} is not canonically formatted",
+            path.display(),
+            first_differing_line(&source, &canonical)
+        );
+        return Err(1);
+    }
+    std::fs::write(path, canonical).map_err(|error| {
+        eprintln!("cannot write {}: {error}", path.display());
+        1
+    })
 }
 
 /// The one-based line containing the first byte that differs. Comparing bytes
@@ -237,6 +300,19 @@ mod tests {
                 check: true,
             }
         );
+        assert_eq!(
+            parse(&strings(&["--manifest", "fixtures/semaprax.toml", "--check"])).unwrap(),
+            FmtOptions {
+                input: FmtInput::Manifest(super::super::project::normalize_project_path(
+                    PathBuf::from("fixtures/semaprax.toml"),
+                )),
+                check: true,
+            }
+        );
+        assert_eq!(
+            parse(&strings(&["--check", "--manifest", "fixtures/semaprax.toml"])).unwrap(),
+            parse(&strings(&["--manifest", "fixtures/semaprax.toml", "--check"])).unwrap()
+        );
         for malformed in [
             &[][..],
             &["--check"][..],
@@ -244,9 +320,92 @@ mod tests {
             &["source.spx", "extra"][..],
             &["source.spx", "--unknown"][..],
             &["source.spx", "--check", "--check"][..],
+            &["--manifest"][..],
+            &["--manifest", "source.spx"][..],
+            &["--manifest", "fixtures/semaprax.toml", "extra"][..],
         ] {
             assert!(parse(&strings(malformed)).is_err(), "{malformed:?}");
         }
+    }
+
+    fn scratch_manifest(label: &str, source: &str) -> (PathBuf, PathBuf) {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let directory = std::env::temp_dir().join(format!(
+            "semaprax-fmt-manifest-{label}-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir(&directory).unwrap();
+        let path = directory.join("semaprax.toml");
+        std::fs::write(&path, source).unwrap();
+        (directory, path)
+    }
+
+    const CANONICAL_TABLE_MANIFEST: &str = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"fmt-layout\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"fmt.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"fmt.tests\"]\n\n[exports]\nweb = [\"fmt.app.main\"]\n";
+
+    const NONCANONICAL_TABLE_MANIFEST: &str = "schema = \"semaprax.manifest.v1\"\n\n[modules]\ntests = [\"fmt.tests\"]\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nentry = \"fmt.app\"\n\n[package]\nversion = \"0.1.0\"\nname = \"fmt-layout\"\n\n[exports]\nweb = [\"fmt.app.main\"]\n";
+
+    #[test]
+    fn manifest_formatter_checks_without_writing_then_emits_exact_canonical_layout() {
+        let (directory, path) = scratch_manifest("canonicalize", NONCANONICAL_TABLE_MANIFEST);
+        assert_eq!(
+            ProjectManifest::parse(NONCANONICAL_TABLE_MANIFEST)
+                .unwrap_err()[0]
+                .code,
+            "SPX-J100"
+        );
+        let options = parse(&strings(&["--manifest", path.to_str().unwrap(), "--check"])).unwrap();
+        assert_eq!(run(options, |_| 1), Err(1));
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), NONCANONICAL_TABLE_MANIFEST);
+
+        let options = parse(&strings(&["--manifest", path.to_str().unwrap()])).unwrap();
+        run(options, |_| 1).unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), CANONICAL_TABLE_MANIFEST);
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn manifest_formatter_refuses_invalid_semantics_without_writing() {
+        let invalid = NONCANONICAL_TABLE_MANIFEST.replace(
+            "sources = [\"src/app.spx\", \"src/tests.spx\"]",
+            "sources = [\"src/app.spx\"]",
+        );
+        let (directory, path) = scratch_manifest("invalid", &invalid);
+        let options = parse(&strings(&["--manifest", path.to_str().unwrap()])).unwrap();
+        let status = run(options, |diagnostics| {
+            assert!(diagnostics.iter().any(|diagnostic| diagnostic.message.contains("2..=16")));
+            7
+        });
+        assert_eq!(status, Err(7));
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), invalid);
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn ordinary_project_fmt_uses_canonical_manifest_and_preserves_its_bytes() {
+        let (directory, manifest_path) =
+            scratch_manifest("project-preserves", CANONICAL_TABLE_MANIFEST);
+        let source_dir = directory.join("src");
+        std::fs::create_dir(&source_dir).unwrap();
+        std::fs::write(
+            source_dir.join("app.spx"),
+            include_str!("../../examples/calculator-project/src/app.spx"),
+        )
+        .unwrap();
+        std::fs::write(
+            source_dir.join("tests.spx"),
+            include_str!("../../examples/calculator-project/src/tests.spx"),
+        )
+        .unwrap();
+
+        let options = parse(&[manifest_path.to_string_lossy().into_owned()]).unwrap();
+        run(options, |_| 1).unwrap();
+        let options = parse(&[directory.to_string_lossy().into_owned()]).unwrap();
+        run(options, |_| 1).unwrap();
+        assert_eq!(std::fs::read_to_string(&manifest_path).unwrap(), CANONICAL_TABLE_MANIFEST);
+        std::fs::remove_dir_all(directory).unwrap();
     }
 
     #[test]

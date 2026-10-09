@@ -95,6 +95,16 @@ the order of the table above, and the file ends with one LF. There are no
 comments, dotted keys, inline tables, or multi-line arrays. Byte limits are
 those of Project Manifest v1: 64 KiB per manifest and 16 MiB of source.
 
+`semaprax fmt --manifest <semaprax.toml>` canonicalizes table/key/spacing
+layout for a semantically valid table manifest. It uses the same schema and
+profile validation as project commands and cannot repair missing or invalid
+fields, source counts or ordering, test-module declarations, or unknown tables
+and keys. Add
+`--check` to report layout drift without writing. Ordinary
+`semaprax fmt <file>|<dir>|semaprax.toml [--check]` formats only the selected
+source files and never rewrites the manifest. Frozen assignment layouts remain
+strictly canonical.
+
 ### Reserved tables and keys
 
 The following names are reserved for additive revisions of this

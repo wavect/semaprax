@@ -2,6 +2,7 @@ use super::profile::{
     valid_environment_capabilities, valid_process_capabilities, PROJECT_PROFILE_ENVIRONMENT_IO_V1,
     PROJECT_PROFILE_PROCESS_IO_V1,
 };
+mod format;
 mod stream;
 mod tables;
 mod validation;
@@ -122,9 +123,15 @@ pub struct ProjectManifest {
 }
 
 impl ProjectManifest {
-    /// Parse one canonical manifest: a frozen Project v1-v13 layout or the
-    /// extensible Package Manifest v1 table layout.
+    /// Parse one canonical frozen or extensible table manifest.
     pub fn parse(source: &str) -> Result<Self, Vec<Diagnostic>> {
+        Self::parse_mode(source, false)
+    }
+
+    fn parse_mode(
+        source: &str,
+        allow_noncanonical_table_layout: bool,
+    ) -> Result<Self, Vec<Diagnostic>> {
         if source.len() > MAX_MANIFEST_BYTES {
             return Err(capacity("manifest_bytes", MAX_MANIFEST_BYTES));
         }
@@ -918,7 +925,9 @@ impl ProjectManifest {
             target_matrix,
         };
         let canonical = manifest.to_canonical_toml();
-        if canonical != source {
+        if canonical != source
+            && (!allow_noncanonical_table_layout || layout == ManifestLayout::Frozen)
+        {
             return Err(if layout != ManifestLayout::Frozen {
                 tables::canonical_mismatch(source, &canonical)
             } else {
@@ -931,7 +940,6 @@ impl ProjectManifest {
     pub fn name(&self) -> &str {
         &self.name
     }
-
     pub fn schema(&self) -> &'static str {
         self.schema
     }

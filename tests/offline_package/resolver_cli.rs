@@ -44,12 +44,12 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     const NEW_LINE: &str = "semaprax package-resolve <subject.json>... --require <package>:<range> [--require ...] --target <native64|wasm32> [--allow-capability <capability>]... [--max-bytes N]\n";
     // Undo the intentional surface changes made after this ledger was frozen,
     // so every historical witness below still measures the shape it recorded:
-    // `semaprax lock` is new, directory inputs were added to check/build/run
-    // /test, the scaffold gained a library template and later a service
-    // template, `new` became public, and `doc`, `verify`, `agent`, `query`,
-    // `change`, `package`, `add`, `fetch`, `service`, and `review` were added,
-    // and `doctor` became standalone.
-    const RESTORED: [(&str, &str); 45] = [
+    // `semaprax lock` is new; directory inputs were added to check/build/run
+    // /test; the scaffold gained a library template and later a service
+    // template; `new` became public; `fmt --manifest`, `doc`, `verify`,
+    // `agent`, `query`, `change`, `package`, `add`, `fetch`, `service`, and
+    // `review` were added; and `doctor` became standalone.
+    const RESTORED: [(&str, &str); 46] = [
         ("semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n", ""),
         ("semaprax agent run <definition.json> <task.json> <transcript.json> [--evidence|--trace]\n", ""),
         ("semaprax agent replay <definition.json> <task.json> <transcript.json> <evidence.json>\n", ""),
@@ -106,6 +106,7 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
             "semaprax fmt <file>|<dir>|semaprax.toml [--check]\n",
             "semaprax fmt <file> [--check]\n",
         ),
+        ("semaprax fmt --manifest <semaprax.toml> [--check]\n", ""),
         (
             "semaprax project-scaffold --name project-name [--template calculator|library|service|stdin-stream-text|stdin-stream-data|source-command-file-text] [--layout frozen|tables]\n",
             "semaprax project-scaffold --name project-name [--template calculator]\n",

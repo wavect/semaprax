@@ -90,7 +90,27 @@ fn mixed_roots(text: borrow str, data: borrow Slice<u8>) -> usize {
 fn composed_owned_string() -> i64 {
     let text = "hé";
     let bytes = str_as_bytes(string_as_str(text));
-    if byte_len(bytes) == 3usize { 1 } else { 0 }
+    if byte_len(bytes) == 3usize {
+        match byte_get(bytes, 0usize) {
+            Option::Some { value: first } => if first == 104u8 {
+                match byte_get(bytes, 1usize) {
+                    Option::Some { value: second } => if second == 195u8 {
+                        match byte_get(bytes, 2usize) {
+                            Option::Some { value: third } => if third == 169u8 {
+                                match byte_get(bytes, 3usize) {
+                                    Option::None {} => 1,
+                                    Option::Some { value: unexpected } => 0,
+                                }
+                            } else { 0 },
+                            Option::None {} => 0,
+                        }
+                    } else { 0 },
+                    Option::None {} => 0,
+                }
+            } else { 0 },
+            Option::None {} => 0,
+        }
+    } else { 0 }
 }
 
 @id("bytes.reject")
@@ -156,6 +176,8 @@ fn native_arrays_and_owned_bytes_are_exact_at_o0_and_o2() {
         return;
     }
     let program = parse(SOURCE, Path::new("useful-data-native.spx")).unwrap();
+    let expected_composed_utf8 = "hé".as_bytes();
+    assert_eq!(expected_composed_utf8, [0x68, 0xc3, 0xa9]);
     let generated = codegen::emit_c(&program).unwrap();
     assert_eq!(generated, codegen::emit_c(&program).unwrap());
     assert!(!generated.contains("struct spx_array_u8_0"));
@@ -204,6 +226,19 @@ int main(int argc, char **argv) {{
 }}
 "#,
         mixed = symbol("bytes.mixed_roots"),
+    );
+    let composed_probe = format!(
+        r#"
+int main(void) {{
+    struct spx_status_entry entries[UINT32_C(4)];
+    struct spx_context context = {{0}};
+    if (!spx_context_init(&context, UINT64_C(8), entries, UINT32_C(4), NULL, NULL, NULL)) return 10;
+    int64_t result = INT64_C(0);
+    if ({composed}(&context, &result) != SPX_STATUS_SUCCESS) return 11;
+    return result == INT64_C(1) ? 0 : 12;
+}}
+"#,
+        composed = symbol("bytes.composed_owned_string"),
     );
     let failure_runtime = generated
         .replace(
@@ -318,6 +353,40 @@ int main(void) {{
             .success());
         let _ = std::fs::remove_file(probe_source);
         let _ = std::fs::remove_file(probe_executable);
+
+        let composed_source = std::env::temp_dir().join(format!("{stem}-composed.c"));
+        let composed_executable =
+            std::env::temp_dir().join(format!("{stem}-composed{}", std::env::consts::EXE_SUFFIX));
+        std::fs::write(
+            &composed_source,
+            format!("{generated}\n{composed_probe}"),
+        )
+        .unwrap();
+        let compiled = Command::new("clang")
+            .args([
+                "-std=c11",
+                optimization,
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "-DSPX_NO_ENTRY_WRAPPER",
+            ])
+            .arg(&composed_source)
+            .arg("-o")
+            .arg(&composed_executable)
+            .output()
+            .unwrap();
+        assert!(
+            compiled.status.success(),
+            "{}",
+            String::from_utf8_lossy(&compiled.stderr)
+        );
+        assert!(Command::new(&composed_executable)
+            .status()
+            .unwrap()
+            .success());
+        let _ = std::fs::remove_file(composed_source);
+        let _ = std::fs::remove_file(composed_executable);
 
         let failure_source = std::env::temp_dir().join(format!("{stem}-failure.c"));
         let failure_executable =

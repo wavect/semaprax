@@ -256,10 +256,12 @@ permit { process.stdout.write, process.stderr.write }
 @id("decimal.tests.main")
 fn main() -> i64 uses { process.stdout.write, process.stderr.write }
 {
-    let text = "abcdefgh";
-    let view = string_as_str(text);
-    let out = stdout_write(str_as_bytes(view));
-    let err = stderr_write(str_as_bytes(view));
+    let out_text = "abcdefgh";
+    let out_view = string_as_str(out_text);
+    let out = stdout_write(str_as_bytes(out_view));
+    let err_text = "abcdefgh";
+    let err_view = string_as_str(err_text);
+    let err = stderr_write(str_as_bytes(err_view));
     0
 }
 "#;

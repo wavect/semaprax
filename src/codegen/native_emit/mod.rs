@@ -1978,6 +1978,11 @@ fn emit_function(
         emitter.line("}");
         emitter.line("++spx_ctx->borrowed_str_depth;");
     }
+    // Initialize the result before any forward failure jump to the epilogue.
+    emitter.line(&format!(
+        "{} spx_result = {{0}};",
+        c_value_type(program, resource_abi, &function.return_type)?
+    ));
     emitter.line("if (spx_ctx->call_depth >= SPX_MAX_CALL_DEPTH) {");
     emitter.indent += 1;
     emitter.line("spx_status = spx_rt_call_depth_failure(spx_ctx);");
@@ -1988,10 +1993,6 @@ fn emit_function(
     emitter.line("spx_call_entered = true;");
     emitter.semantic_metered = semantic_ordinal.is_some();
     emitter.semantic_charge();
-    emitter.line(&format!(
-        "{} spx_result = {{0}};",
-        c_value_type(program, resource_abi, &function.return_type)?
-    ));
     // An owned-Bytes result moves field by field, and a contract-failure lane
     // leaves even that unreached, so the slot can go unnamed in valid C.
     if owned(&function.return_type) || emitter.record_contains_owned_bytes(&function.return_type)? {

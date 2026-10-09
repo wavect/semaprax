@@ -34,7 +34,8 @@ impl CaseResult {
         if digits.is_empty() || digits.starts_with('+') || digits.trim() != digits {
             return None;
         }
-        digits.parse().ok()
+        let value: i64 = digits.parse().ok()?;
+        (value.to_string() == digits).then_some(value)
     }
 
     fn passed(&self) -> bool {
@@ -222,7 +223,8 @@ fn run_case(executable: &Path, cwd: &Path, limits: NativeTestLimits) -> CaseResu
         _ => case.failure = Some("cannot read native test stderr".to_owned()),
     }
     if case.stdout.len().saturating_add(case.stderr.len()) > limit {
-        case.failure = Some(format!("native test exceeded {limit} output bytes"));
+        case.failure
+            .get_or_insert_with(|| format!("native test exceeded {limit} output bytes"));
     }
     case
 }
@@ -251,6 +253,15 @@ mod tests {
         };
         assert!(case.passed());
         case.stdout = b"0\n1\n".to_vec();
+        assert!(!case.passed());
+        case.stdout = b"00\n".to_vec();
+        assert!(!case.passed());
+        case.stdout = b"-0\n".to_vec();
+        assert!(!case.passed());
+        case.stdout = b"-9223372036854775808\n".to_vec();
+        assert_eq!(case.value(), Some(i64::MIN));
+        case.stdout = b"256\n".to_vec();
+        assert_eq!(case.value(), Some(256));
         assert!(!case.passed());
         case.stdout = b"0\n".to_vec();
         case.failure = Some("output limit".to_owned());

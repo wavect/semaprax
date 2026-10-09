@@ -302,3 +302,71 @@ fn dangling_collision_and_output_symlink_are_preserved() {
     fs::remove_file(root.join("owned/program")).unwrap();
     finish(&root, &["owned"], &[("foreign", b"sentinel")]);
 }
+
+#[test]
+fn test_discard_cleans_absent_partial_and_sealed_outputs() {
+    let root = root();
+    let absent = Scratch::create_in(&root, "program", None, || "absent".into()).unwrap();
+    absent.discard().unwrap();
+    let partial = Scratch::create_in(&root, "program", None, || "partial".into()).unwrap();
+    fs::write(partial.path(), b"compiler failed halfway").unwrap();
+    partial.discard().unwrap();
+    let mut sealed = Scratch::create_in(&root, "program", None, || "sealed".into()).unwrap();
+    fs::write(sealed.path(), b"linked output").unwrap();
+    sealed.seal().unwrap();
+    sealed.discard().unwrap();
+    finish(&root, &[], &[]);
+}
+
+#[test]
+fn test_discard_refuses_foreign_inventory_and_hard_links() {
+    let root = root();
+    let scratch = Scratch::create_in(&root, "program", None, || "foreign".into()).unwrap();
+    fs::write(scratch.directory.join("extra"), b"outside inventory").unwrap();
+    assert!(scratch.discard().is_err());
+    fs::write(root.join("outside"), b"outside data").unwrap();
+    let linked = Scratch::create_in(&root, "program", None, || "linked".into()).unwrap();
+    fs::hard_link(root.join("outside"), linked.path()).unwrap();
+    assert!(linked.discard().is_err());
+    finish(
+        &root,
+        &["foreign", "linked"],
+        &[
+            ("foreign/extra", b"outside inventory"),
+            ("outside", b"outside data"),
+            ("linked/program", b"outside data"),
+        ],
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn test_discard_refuses_symlinks_and_changed_sealed_identity() {
+    use std::os::unix::fs::symlink;
+    let root = root();
+    fs::write(root.join("outside"), b"outside data").unwrap();
+    let scratch = Scratch::create_in(&root, "program", None, || "symlink".into()).unwrap();
+    symlink(root.join("outside"), scratch.path()).unwrap();
+    assert!(scratch.discard().is_err());
+    let mut changed = Scratch::create_in(&root, "program", None, || "changed".into()).unwrap();
+    fs::write(changed.path(), b"original").unwrap();
+    changed.seal().unwrap();
+    fs::rename(changed.path(), root.join("displaced")).unwrap();
+    fs::write(changed.path(), b"replacement").unwrap();
+    assert!(changed.discard().is_err());
+    assert_eq!(fs::read(root.join("outside")).unwrap(), b"outside data");
+    assert_eq!(
+        fs::read_link(root.join("symlink/program")).unwrap(),
+        root.join("outside")
+    );
+    fs::remove_file(root.join("symlink/program")).unwrap();
+    finish(
+        &root,
+        &["symlink", "changed"],
+        &[
+            ("outside", b"outside data"),
+            ("displaced", b"original"),
+            ("changed/program", b"replacement"),
+        ],
+    );
+}

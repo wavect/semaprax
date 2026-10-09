@@ -5,6 +5,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use wasmparser::{ExternalKind, Parser, Payload};
 
+mod native_test;
+
 const PROJECT_FILES: &[&str] = &[
     "semaprax.toml",
     "src/app.spx",

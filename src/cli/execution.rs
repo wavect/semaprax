@@ -550,6 +550,8 @@ mod tests {
             &["--target", "native", "--target", "native"][..],
             &["--target", "wasm"][..],
             &["--target", "native", "--native-timeout-ms", "0"][..],
+            &["--target", "native", "--native-timeout-ms", "600001"][..],
+            &["--target", "native", "--native-max-output-bytes", "1048577"][..],
         ] {
             assert!(parse_test(&strings(arguments)).is_err());
         }

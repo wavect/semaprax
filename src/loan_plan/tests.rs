@@ -376,23 +376,28 @@ fn record_renewal_named_views_replay_origins_and_reject_owner_aliases() {
     // the renewal shape, while independent loan rebuilding rejects its new
     // transitive origin even with the original attached proof untouched.
     let mut aliased = program.clone();
-    let ResolvedExprKind::Block { statements, .. } = &mut aliased.functions[index].body.kind else {
+    {
+        let ResolvedExprKind::Block { statements, .. } = &mut aliased.functions[index].body.kind else {
+            panic!("run block")
+        };
+        let view = statements
+            .iter_mut()
+            .find_map(|statement| match statement {
+                ResolvedStatement::Let { binding, value, .. } if binding.name == "input" => Some(value),
+                _ => None,
+            })
+            .unwrap();
+        let ResolvedExprKind::BorrowPlace { place, .. } = &mut view.kind else {
+            panic!("slice view")
+        };
+        place.root = matcher;
+        place.projections = vec![crate::hir::PlaceProjection::Field(
+            crate::hir::DeclarationId::new("matcher.storage"),
+        )];
+    }
+    let ResolvedExprKind::Block { statements, .. } = &aliased.functions[index].body.kind else {
         panic!("run block")
     };
-    let view = statements
-        .iter_mut()
-        .find_map(|statement| match statement {
-            ResolvedStatement::Let { binding, value, .. } if binding.name == "input" => Some(value),
-            _ => None,
-        })
-        .unwrap();
-    let ResolvedExprKind::BorrowPlace { place, .. } = &mut view.kind else {
-        panic!("slice view")
-    };
-    place.root = matcher;
-    place.projections = vec![crate::hir::PlaceProjection::Field(
-        crate::hir::DeclarationId::new("matcher.storage"),
-    )];
     let loop_body = statements
         .iter()
         .find_map(|statement| match statement {

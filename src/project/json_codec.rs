@@ -1,6 +1,7 @@
 //! Checked, ordinary-source application JSON codecs. Generated names confer no authority.
 
 mod emit;
+mod owned;
 #[cfg(test)]
 mod tests;
 mod views;
@@ -25,6 +26,10 @@ pub enum JsonCodecProfile {
     RequestViews,
     /// Selected streaming grammar; original source must permit stdin.read.
     StreamRequestViews,
+    /// The identifier request policy, materialized into actual owning values.
+    OwnedRequest,
+    /// Original stdin permit plus normalization and owning request decoding.
+    StreamOwnedRequest,
 }
 
 pub(super) fn refusal(message: impl Into<String>) -> Vec<Diagnostic> {
@@ -93,6 +98,8 @@ pub fn derive_json_codec_source_with_profile(
         JsonCodecProfile::StreamRequestViews => {
             views::stream_request_source(&program, declaration)?
         }
+        JsonCodecProfile::OwnedRequest => owned::source(&program, declaration, false)?,
+        JsonCodecProfile::StreamOwnedRequest => owned::source(&program, declaration, true)?,
     };
     if fragment.len() > MAX_GENERATED_BYTES {
         return Err(refusal(
@@ -197,7 +204,9 @@ fn validate_record(record: &TypeDeclaration) -> Result<(), Vec<Diagnostic>> {
             .all(|byte| byte.is_ascii_alphanumeric() || b"._-:".contains(&byte))
         || !identifier(&record.name)
     {
-        return Err(refusal("JSON codec requires a bounded explicitly identified monomorphic record without invariants"));
+        return Err(refusal(
+            "JSON codec requires a bounded explicitly identified monomorphic record without invariants",
+        ));
     }
     for field in fields {
         if !field.explicit_id

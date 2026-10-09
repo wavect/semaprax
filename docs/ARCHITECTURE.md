@@ -755,11 +755,18 @@ composes existing scanner/token operations. `views` owns checked identifier
 spans, array/request carriers and the ordinary incremental `stream.spx` template;
 stream errors use raw offsets while downstream schema errors use their supplied
 normalized input. Every emitted carrier is independently checked by ordinary
-source/HIR/profile rules. `src/cli/json_codec.rs` owns the
+source/HIR/profile rules. `json_codec/owned` layers actual String/record
+materialization and checked encoding over the same identifier request policy;
+the application no longer retains input spans. Its owning outcomes are classified
+independently by the source and HIR `collection_outcome/owned` modules. The
+original Copy-only outcome remains separate, and v30 alone adds the new private
+command closure. Ordinary variant layout, cleanup, native/Wasm runtime selection
+and interpreter validation replay the owning fields. `src/cli/json_codec.rs` owns the
 explicit exclusive-create artifact route and the unchanged Doc dispatch bridge;
 `project::standard_library::application_json` owns its backend gates.
-The [application JSON contract](APPLICATION-JSON-CODECS-V1.md) keeps unsupported
-general owned/nested shapes and the remaining application acceptance explicit.
+The [application JSON contract](APPLICATION-JSON-CODECS-V1.md) keeps the explicit
+identifier-only owned successor, unsupported general nested/Unicode shapes and
+remaining executable/application acceptance gates distinct.
 
 `src/verify.rs`, `src/source_verify.rs`, and `src/hir.rs` own checked meaning.
 The `src/hir/` modules own validation, inspection indexes, declaration lookup,

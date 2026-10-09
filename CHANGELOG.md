@@ -1,5 +1,13 @@
 # Changelog
 
+- Author the owned identifier-request successor for OPT-724: checked derivation
+  now emits actual String and authored-record vectors, deterministic encoding
+  without retained input spans, and the existing whole-stream normalizer under
+  original authority. Add independently authenticated private owning outcomes
+  while preserving Copy-only and older command profiles. Detached input,
+  unrelated catalog, partial materialization, backend and native stream gates
+  are authored; execution, general nested codecs and efficiency remain pending.
+
 - Author a separate Catalog23 application cohort with the unchanged staged
   requirements/corpus/oracle, fresh Project v30 source/compiler/native
   qualification and matched Codex arms. Retain the strong dependency-only

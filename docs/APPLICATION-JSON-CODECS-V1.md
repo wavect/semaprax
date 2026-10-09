@@ -146,6 +146,70 @@ from model-authored source bytes/tokens in any efficiency comparison. No token
 savings, current-head acceptance, broader application profile or cost advantage
 is established before the required fresh matched campaign and full #724 gates.
 
+## Owned identifier request successor
+
+The additive `OwnedRequest` (`owned-request.v1`) and `StreamOwnedRequest`
+(`stream-owned-request.v1`) selectors materialize actual `Vec<string>` and
+`Vec<Row>` values from the identifier request schema below. This is a new source
+tranche with executable qualification pending. It removes the application-side
+span-to-String and field-to-record conversion. It retains the explicit ASCII
+identifier policy, eight/256 array bounds, schema-derived storage bound,
+uniqueness rule and required-server rule; it does not claim arbitrary Unicode
+String fields, recursive records, optional fields or a general owned JSON tree.
+Root/row names and wire field names are arbitrary checked source identifiers.
+The single String field may occur anywhere among the row's scalar fields.
+
+For `Request { servers: Vec<string>, patients: Vec<Patient> }`, the APIs are:
+
+```text
+json_Request_owned_decode(input: borrow Slice<u8>) -> RequestJsonOwnedDecode
+json_Request_owned_encoded_len(words: borrow Vec<string>, rows: borrow Vec<Patient>) -> usize
+json_Request_owned_encode(words: borrow Vec<string>, rows: borrow Vec<Patient>, output_limit: usize)
+    -> PatientJsonViewEncode
+```
+
+Success is an ordinary affine `Decoded` case with the original root field names
+and owning types; errors retain the exact `Error { code, offset, field }` values
+from request-view validation. No owned String or authored row is materialized
+until the complete grammar, shape, values, cardinalities and uniqueness checks
+succeed. The checked view collections are temporary implementation values and
+are settled after materialization. Each String/row construction and push uses
+ordinary left-to-right staging and grouped ownership commit. A later runtime
+allocation failure settles both partial owning collections and their staged
+element under the existing sticky runtime status; it is not malformed JSON.
+The returned owning values retain no offsets or loans into the supplied bytes.
+The caller may settle the input before sorting, updating or encoding them.
+
+The encoder rechecks identifier policy, cardinality and uniqueness on the actual
+owned values. The exact encoded size uses original declaration order and wire
+names. Invalid values return `Refused { required: usize::MAX }`; a short output
+budget returns the exact required size before JSON output construction. Explicit
+`vec_clone_at` is the admitted nonescaping read model, so validation itself can
+allocate temporary deep copies; this is not an allocation-free preflight claim.
+Duplicate checking is bounded pairwise comparison. Its runtime cost remains to
+be measured. Actual String allocator failures retain the existing runtime
+contract, and exhaustive allocator fault injection remains an open #724 gate.
+
+The stream selector also emits the existing `json_Request_stream_normalize`.
+Its original `process.stdin.read` module permit and manifest grant remain
+required. Call `owned_decode` on the Ready slice, then settle Ready's Bytes as
+soon as decoding returns. Raw stream errors and normalized schema errors retain
+their separate documented offset domains; no generated wrapper conflates them.
+The original Project is rebuilt unchanged. Native command composition requires
+v30; v29 and older command profiles refuse this owning runtime closure. The
+original request declaration remains a logical schema, not an admitted runtime
+record containing nested vectors. The direct two-Vec success outcome has its
+own independent source/HIR shape proof and ordinary variant layout/cleanup.
+
+Owning source gates are `project::json_codec::owned::tests::` and
+`project standard_library::application_json::owned::`: deterministic checked
+derivation/replay, input-owner retirement, actual sort/update/encode, exact and
+short output limits, typed malformed cases, an unrelated catalog with a moved
+String field, interpreter/C11 O0/O2/strict Wasm parity, allocation refusal at each
+partial materialization push and encoder clone, plus a v30 native stream above
+65 KiB raw whitespace. These are staged regressions, not executed evidence or
+completion of full ShiftSim, arbitrary nested codecs or agent efficiency.
+
 ## Identifier, request and incremental stream views
 
 The additional closed CLI selectors are `--profile identifier-views.v1`,

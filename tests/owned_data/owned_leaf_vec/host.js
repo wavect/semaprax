@@ -7,6 +7,8 @@ const moduleBytes = fs.readFileSync(process.argv[2]);
 const expectedStatus = Number(process.argv[3]);
 const expectedValue = BigInt(process.argv[4]);
 const refusal = process.argv[5] || '';
+const codecPushFailure = /^codec-push-([1-4])$/.exec(refusal);
+let codecPushAttempts = 0;
 let instance, nextPayload = 1, nextVec = 1n, nextIter = 1n << 62n, copies = 0, drops = 0;
 const payloads = new Map(), vectors = new Map(), iterators = new Map();
 // Fixture authority encoding v2: old mint/move keeps its generation-zero
@@ -350,6 +352,8 @@ const env = {
     catch(error){if(error instanceof RangeError)return 0n;throw error}
     if(BigInt(value.values.length)>=value.capacity)return 0n;
     if(refusal==='push-allocation')return 0n;
+    codecPushAttempts++;
+    if(codecPushFailure&&codecPushAttempts===Number(codecPushFailure[1]))return 0n;
     try{value.values.push(row)}catch(error){if(error instanceof RangeError)return 0n;throw error}
     value.identity=identity;value.shape=shape;
     return move(handle,value);
@@ -510,6 +514,7 @@ const env = {
   }
   ({instance}=await WebAssembly.instantiate(moduleBytes,{env}));
   for(let run=0;run<3;run++){
+    codecPushAttempts=0;
     let selected=0,returned;
     try{returned=instance.exports.semaprax_main()}
     catch(error){if(!error.message.startsWith('status:'))throw error;selected=Number(error.message.slice(7))}
@@ -517,6 +522,8 @@ const env = {
     if(!selected&&returned!==expectedValue)throw Error(`value ${returned}, expected ${expectedValue}`);
     if(vectors.size||iterators.size||payloads.size||copies!==drops)
       throw Error(`leaks vec=${vectors.size} iter=${iterators.size} payload=${payloads.size} copies=${copies} drops=${drops}`);
+    if(codecPushFailure&&codecPushAttempts!==Number(codecPushFailure[1]))
+      throw Error('partial codec allocation failure did not reach its exact owning commit');
   }
   if(refusal==='none'||refusal==='sort-no-allocation'){
     if(AUTHORITY_ENCODING!=='semaprax.test.owned-leaf-authority.v2')throw Error('fixture authority version');

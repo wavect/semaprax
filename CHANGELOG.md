@@ -1,5 +1,10 @@
 # Changelog
 
+- Draft OPT-704 function identity and existing body context for the unchanged
+  loan-analysis work refusal, plus a named-slice repair for loop call diagnostics.
+  Preserve the selected code/message, existing blame, missing provenance and
+  the million-unit guard. Focused verification is pending in the final batch.
+
 - Draft OPT-702 whole-record loop renewal admission for independent named
   `Slice<u8>` and `str` input borrows. Preserve ordinary alias/escape rejection,
   exact owner transfer, and canonical cleanup history. Add source, hostile

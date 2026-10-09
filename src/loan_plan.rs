@@ -27,6 +27,7 @@ pub enum LoanPointPhase {
 
 #[cfg(test)]
 mod boundary_tests;
+mod guidance;
 mod native_view;
 mod work;
 
@@ -117,10 +118,15 @@ pub fn build_plan(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
 ) -> Result<LoanPlan, Diagnostic> {
-    if !has_own_root_candidate(program, function)? {
-        return Ok(LoanPlan::empty_v1());
-    }
-    build_cfg_plan(program, function)
+    has_own_root_candidate(program, function)
+        .and_then(|candidate| {
+            if candidate {
+                build_cfg_plan(program, function)
+            } else {
+                Ok(LoanPlan::empty_v1())
+            }
+        })
+        .map_err(|diagnostic| guidance::work_limit(diagnostic, function))
 }
 
 /// Exact retained heap capacity owned by a nonempty plan. The inline

@@ -591,4 +591,11 @@ fn exact_million_work_build_replays_and_the_first_extra_unit_is_fail_closed() {
         error.message,
         "loan analysis exceeds 1,000,000 checked work"
     );
+    let public_error = build_plan(&program, &exact).unwrap_err();
+    assert_eq!(public_error.code, error.code);
+    assert_eq!(public_error.message, error.message);
+    assert!(public_error
+        .help
+        .unwrap()
+        .contains(&format!("function @id({:?})", exact.id.as_str())));
 }

@@ -111,6 +111,13 @@ control-flow edges, loan relations, and overlap checks. Exceeding any bound
 fails closed before Graph projection or backend admission; the implementation
 may not truncate, merge, sort, or repair the plan.
 
+An `SPX-H006` checked-work refusal identifies the resolved function's persistent
+identity and, when available, its body location. Split a large function into
+smaller helpers and keep borrowed views local to their last use. Splitting files
+alone does not change this per-function bound. Missing source provenance is not
+replaced with a fabricated location; existing diagnostic blame remains intact.
+This recovery guidance does not raise the limit or change admitted loan plans.
+
 Checked work counts actual deterministic traversals. Within each canonical
 build, forward reachability is derived for all loans together: each point
 holds one loan-ID bit per reachable start in one through four 64-bit words.

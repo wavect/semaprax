@@ -399,6 +399,8 @@ impl HirValidator<'_> {
                             let ResolvedExprKind::Place(place) = &argument.kind else {
                                 return Err(hir_error(
                                     "while loop bounded-read call requires named slice aliases",
+                                ).with_help(
+                                    "bind the slice view to a named variable before the call, then pass that name; keep its owner alive through its last use",
                                 ));
                             };
                             if !place.projections.is_empty()

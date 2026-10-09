@@ -38,6 +38,8 @@ The unchanged grammar admits ASCII literals, byte escapes, dot, classes, bounded
 | `capture_count` | Number of matched capture spans; zero for every other status. |
 | `capture_start` / `capture_end` | Numeric endpoints; require matched status and an index below capture count. |
 
+Malformed-pattern detail selects the first offending byte from left to right; a missing byte reports EOF at the pattern length. A dangling backslash therefore has pattern detail 1, while an unsupported first byte can have detail 0. Both use detail domain 1.
+
 Packet observers other than `result_valid` require a valid packet. Numeric capture endpoints grant no ownership or input authority. The consumer remains responsible for applying them to the input of that match. Borrowing a view of the renewed Matcher storage still fails ordinary ownership/loan replay; only independent named views qualify.
 
 The bounded engine may refuse ambiguous searches before deciding a semantic match. Logical work and ordinary interpreter AST fuel are separate limits. No limit is raised here: final qualification must preserve the complete LogLens 49 obligations, independent header/key-value meanings, long valid and nonmatching records, exact work witnesses, hostile carrier controls, and interpreter/native C11/Core-Wasm settlement on these exact source bytes.

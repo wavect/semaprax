@@ -16,7 +16,7 @@ use function @id("std.pattern.work-used") from std.pattern as work_used;
 @id("std.pattern.tests.main")
 fn main() -> i64
 {
-    if test_public_api() == 0 && test_invalid_pattern() == 0 && test_bounded_resource_refusal() == 0 && test_no_match() == 0 && test_empty_capture() == 0 && test_malformed_carrier() == 0 && test_bounded_reentry() == 0 { 0 } else { 1 }
+    if test_public_api() == 0 && test_invalid_pattern() == 0 && test_truncated_escape_offsets() == 0 && test_escaped_byte() == 0 && test_bounded_resource_refusal() == 0 && test_no_match() == 0 && test_empty_capture() == 0 && test_malformed_carrier() == 0 && test_bounded_reentry() == 0 { 0 } else { 1 }
 }
 
 @id("std.pattern.tests.public-api")
@@ -39,7 +39,45 @@ fn test_invalid_pattern() -> i64
     let pattern_text = string_as_str(pattern);
     let pattern_view = str_as_bytes(pattern_text);
     let matcher = compile(make(), pattern_view, 262144usize);
-    if result_valid(matcher) { if status(matcher) == 3usize && reason(matcher) == 1usize && detail(matcher) == 0usize && detail_domain(matcher) == 1usize && capture_count(matcher) == 0usize && work_used(matcher) <= 262144usize { 0 } else { 1 } } else { 1 }
+    if result_valid(matcher) { if status(matcher) == 3usize && reason(matcher) == 1usize && detail(matcher) == 1usize && detail_domain(matcher) == 1usize && capture_count(matcher) == 0usize && work_used(matcher) == 36usize { 0 } else { 1 } } else { 1 }
+}
+
+// Missing hex digits diagnose EOF without another read. An encountered bad
+// byte diagnoses its own offset, including zero for unsupported alternation.
+@id("std.pattern.tests.truncated-escape-offsets")
+fn test_truncated_escape_offsets() -> i64
+{
+    let prefix = "\\x";
+    let prefix_text = string_as_str(prefix);
+    let prefix_view = str_as_bytes(prefix_text);
+    let prefix_matcher = compile(make(), prefix_view, 262144usize);
+    let half = "\\x0";
+    let half_text = string_as_str(half);
+    let half_view = str_as_bytes(half_text);
+    let half_matcher = compile(make(), half_view, 262144usize);
+    let bad = "\\x0G";
+    let bad_text = string_as_str(bad);
+    let bad_view = str_as_bytes(bad_text);
+    let bad_matcher = compile(make(), bad_view, 262144usize);
+    let zero = "|";
+    let zero_text = string_as_str(zero);
+    let zero_view = str_as_bytes(zero_text);
+    let zero_matcher = compile(make(), zero_view, 262144usize);
+    if result_valid(prefix_matcher) && result_valid(half_matcher) && result_valid(bad_matcher) && result_valid(zero_matcher) { if status(prefix_matcher) == 3usize && reason(prefix_matcher) == 1usize && detail(prefix_matcher) == 2usize && detail_domain(prefix_matcher) == 1usize && capture_count(prefix_matcher) == 0usize && work_used(prefix_matcher) == 37usize && status(half_matcher) == 3usize && reason(half_matcher) == 1usize && detail(half_matcher) == 3usize && detail_domain(half_matcher) == 1usize && capture_count(half_matcher) == 0usize && work_used(half_matcher) == 38usize && status(bad_matcher) == 3usize && reason(bad_matcher) == 1usize && detail(bad_matcher) == 3usize && detail_domain(bad_matcher) == 1usize && capture_count(bad_matcher) == 0usize && work_used(bad_matcher) == 39usize && status(zero_matcher) == 3usize && reason(zero_matcher) == 1usize && detail(zero_matcher) == 0usize && detail_domain(zero_matcher) == 1usize && capture_count(zero_matcher) == 0usize && work_used(zero_matcher) == 36usize { 0 } else { 1 } } else { 1 }
+}
+
+@id("std.pattern.tests.escaped-byte")
+fn test_escaped_byte() -> i64
+{
+    let pattern = "\\x41";
+    let pattern_text = string_as_str(pattern);
+    let pattern_view = str_as_bytes(pattern_text);
+    let compiled = compile(make(), pattern_view, 262144usize);
+    let ready = result_valid(compiled) && status(compiled) == 0usize && reason(compiled) == 0usize && detail(compiled) == 0usize && detail_domain(compiled) == 0usize && capture_count(compiled) == 0usize && work_used(compiled) == 111usize;
+    let input = "A";
+    let input_text = string_as_str(input);
+    let input_view = str_as_bytes(input_text);
+    if ready { let matcher = full_match(compiled, input_view, 262144usize); if result_valid(matcher) && status(matcher) == 1usize && reason(matcher) == 0usize && detail(matcher) == 0usize && detail_domain(matcher) == 0usize && capture_count(matcher) == 0usize && work_used(matcher) == 197usize { 0 } else { 1 } } else { 1 }
 }
 
 @id("std.pattern.tests.resource-refusal")

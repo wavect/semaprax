@@ -45,6 +45,7 @@ fn headers() -> i64
 
 // The same numeric detail may denote a pattern offset or a table offset;
 // inspect its domain before using it as a source location.
+// A missing escape byte diagnoses EOF, which is the one-byte pattern length.
 @id("std.pattern.examples.malformed")
 fn malformed() -> i64
 {
@@ -53,7 +54,7 @@ fn malformed() -> i64
     let view = str_as_bytes(text);
     let initial = make();
     let matcher = compile(initial, view, 262144usize);
-    if status(matcher) == 3usize && reason(matcher) == 1usize && detail(matcher) == 0usize && detail_domain(matcher) == 1usize && capture_count(matcher) == 0usize { 0 } else { 1 }
+    if status(matcher) == 3usize && reason(matcher) == 1usize && detail(matcher) == 1usize && detail_domain(matcher) == 1usize && capture_count(matcher) == 0usize && work_used(matcher) == 36usize { 0 } else { 1 }
 }
 
 @id("std.pattern.examples.main")

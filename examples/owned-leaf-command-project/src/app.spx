@@ -1,0 +1,27 @@
+module owned.app;
+
+use function @id("owned.data.verify") from owned.data as verify;
+
+permit {process.args.read,process.stderr.write,process.stdin.read,process.stdout.write}
+
+@id("owned.app.main")
+fn main() -> i64 { verify() }
+
+@id("owned.command")
+fn command() -> i64 uses {process.stdin.read,process.stdout.write} {
+    let mut reader = stdin_stream_open();
+    let mut size = 0;
+    while !stdin_stream_eof(reader) {
+        let n = { let chunk = stdin_stream_chunk(reader); byte_len(chunk) };
+        size = size + i64_from_usize(n);
+        reader = stdin_stream_next(reader);
+        0
+    }
+    let status = verify();
+    if status == 0 {
+        let text = string_from_i64(size);
+        let view = string_as_str(text);
+        let written = stdout_write(str_as_bytes(view));
+        0
+    } else { status }
+}

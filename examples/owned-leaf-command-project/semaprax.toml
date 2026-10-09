@@ -1,0 +1,21 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "owned-leaf-command"
+version = "0.1.0"
+profile = "language-command-io.owned-data.v1"
+
+[modules]
+entry = "owned.app"
+sources = ["src/app.spx", "src/data.spx", "src/tests.spx"]
+tests = ["owned.tests"]
+
+[exports]
+web = ["owned.command"]
+
+[command]
+function = "owned.command"
+input = "argv-utf8+stdin-stream.v1"
+
+[capabilities]
+required = ["process.args.read", "process.stderr.write", "process.stdin.read", "process.stdout.write"]

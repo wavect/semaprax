@@ -81,8 +81,11 @@ pub(super) fn lower_profile(
             ProjectProfile::StdinStreamCommandIoV1
             | ProjectProfile::StdinStreamCommandIoV2
             | ProjectProfile::StdinStreamTextCommandIoV1
-            | ProjectProfile::StdinStreamDataCommandIoV1 => (
-                if profile == ProjectProfile::StdinStreamDataCommandIoV1 {
+            | ProjectProfile::StdinStreamDataCommandIoV1
+            | ProjectProfile::StdinStreamDataCommandIoV2 => (
+                if profile == ProjectProfile::StdinStreamDataCommandIoV2 {
+                    PROJECT_SCHEMA_V29
+                } else if profile == ProjectProfile::StdinStreamDataCommandIoV1 {
                     PROJECT_SCHEMA_V27
                 } else if profile == ProjectProfile::StdinStreamTextCommandIoV1 {
                     PROJECT_SCHEMA_V25
@@ -182,6 +185,9 @@ pub(super) fn profile_by_name(name: &str) -> Option<ProjectProfile> {
         PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2 => ProjectProfile::StdinStreamCommandIoV2,
         PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1 => {
             ProjectProfile::StdinStreamTextCommandIoV1
+        }
+        PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V2 => {
+            ProjectProfile::StdinStreamDataCommandIoV2
         }
         PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V1 => {
             ProjectProfile::StdinStreamDataCommandIoV1

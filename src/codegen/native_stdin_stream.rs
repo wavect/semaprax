@@ -86,6 +86,22 @@ pub fn emit_hir_c_with_stdin_stream_data(
     )
 }
 
+/// Project v29 authenticates Copy-record closure before using the unchanged stream runtime.
+pub fn emit_hir_c_with_stdin_stream_records(
+    program: &ResolvedProgram,
+    command_id: &str,
+) -> Result<String, Diagnostic> {
+    crate::hir::validate_stream_record_program(
+        program,
+        Some(&hir::DeclarationId::new(command_id)),
+    )?;
+    emit_profile(
+        program,
+        command_id,
+        NativeOutputProfile::StdinStreamDataCommandIo,
+    )
+}
+
 fn emit_profile(
     program: &ResolvedProgram,
     command_id: &str,

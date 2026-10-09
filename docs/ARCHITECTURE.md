@@ -112,7 +112,11 @@ bounded flat Copy-record Vec element shape. Native lowering lives under
 `native_emit/expression/vec_ops/copy_record.rs`; Core Wasm lowers the same
 checked field words in `wasm/aggregate/vec_copy_record.rs`. Both retain one
 canonical Vec owner and the existing scalar storage ceiling. Project/profile
-admission remains an independent boundary.
+admission remains an independent boundary. The explicitly selected Project v29
+stream-data successor uses `hir/workspace_link/stream_record.rs` to authenticate
+its retained nominal closure and exact codec outcome shapes after the existing
+owned-data linker reconstructs source-owned declarations. Native and prepared
+interpreter routes recheck that selected profile; v27 remains frozen.
 
 `ast/type_properties.rs` owns primitive type formatting and classification.
 The reserved mutable callable type has independent source and retained-HIR

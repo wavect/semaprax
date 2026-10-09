@@ -75,10 +75,11 @@ rejects nonfinite literal payloads. These gates have not been run by this lane.
 
 Project v27 remains frozen: `stream_data_parameter_admitted` accepts only borrowed
 scalar Vec helpers; `validate_stream_data_program` rejects authored nominal
-closure declarations and record helper results. A separately selected successor
-must reconstruct the admitted record closure, allow private Value record
+closure declarations and record helper results. The authored [Stream Data Command v2](STREAM-DATA-COMMAND-V2.md) successor
+reconstructs the admitted record closure and allows private Value record
 parameters/results and borrowed/owned Vec transport, preserve `fn()->i64` roots,
-provider limits and effects, and reject all other nominal closures. Public ABI,
+provider limits and effects, and rejects other nominal closures. Its focused
+execution and application qualification remain pending. Public ABI,
 foreign/provider payload transport and source/cache authority remain unchanged.
 
 Issue closure also requires the unchanged CLI 49, ShiftSim 15 and TeamDesk 912

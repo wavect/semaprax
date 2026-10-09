@@ -56,11 +56,10 @@ use retained_vectors::{
 use sha2::{Digest, Sha256};
 use shape_identity::{require_retained_shape_fact, top_level_declaration};
 mod type_names;
-use type_names::type_contains_name_from;
-
 use std::cell::Cell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
+use type_names::type_contains_name_from;
 use validation::{expected_declaration_facts, validate_stub_signatures, WorkspaceValidationIndex};
 pub(crate) const MAX_FILES: usize = 32;
 const MAX_TOTAL_SOURCE_BYTES: usize = 16 * 1024 * 1024;
@@ -483,7 +482,6 @@ struct WorkspaceDeclarationFact {
     path: Option<String>,
     module: Option<String>,
 }
-
 fn insert_expected_compiler_declaration(
     facts: &mut BTreeMap<String, WorkspaceDeclarationFact>,
     id: &str,
@@ -492,7 +490,6 @@ fn insert_expected_compiler_declaration(
 ) -> Result<(), Vec<Diagnostic>> {
     validation::insert_expected_compiler_declaration(facts, id, kind, owner)
 }
-
 struct WorkspaceResolvedModule {
     path: String,
     module: String,
@@ -737,7 +734,6 @@ impl WorkspaceSemanticGraph {
         &self.json
     }
 }
-
 impl WorkspaceSemanticGraphEntry {
     pub fn module(&self) -> &str {
         &self.module
@@ -1381,6 +1377,7 @@ impl WorkspaceGraphBuild {
                         | crate::project::ProjectProfile::StdinStreamCommandIoV2
                         | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
                         | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
+                        | crate::project::ProjectProfile::StdinStreamDataCommandIoV2
                         | crate::project::ProjectProfile::LineCommandIoV1
                         | crate::project::ProjectProfile::ProcessIoV1
                 ) || function.effects.is_empty()
@@ -1485,7 +1482,8 @@ impl WorkspaceGraphBuild {
             | crate::project::ProjectProfile::StdinStreamCommandIoV1
             | crate::project::ProjectProfile::StdinStreamCommandIoV2
             | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
-            | crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
+            | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
+            | crate::project::ProjectProfile::StdinStreamDataCommandIoV2 => {
                 // The selected command is retained separately from this pure entry.
                 retained_validation::entry_link(
                     profile,
@@ -1705,7 +1703,8 @@ impl WorkspaceGraphBuild {
             | crate::project::ProjectProfile::StdinStreamCommandIoV1
             | crate::project::ProjectProfile::StdinStreamCommandIoV2
             | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
-            | crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
+            | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
+            | crate::project::ProjectProfile::StdinStreamDataCommandIoV2 => {
                 let [command_id] = additional_roots else {
                     return Err(vec![graph_error(
                         "SPX-G172",
@@ -1815,6 +1814,7 @@ impl WorkspaceGraphBuild {
                 | crate::project::ProjectProfile::StdinStreamCommandIoV2
                 | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
+                | crate::project::ProjectProfile::StdinStreamDataCommandIoV2
                 | crate::project::ProjectProfile::LineCommandIoV1
                 | crate::project::ProjectProfile::ProcessIoV1
         ) {
@@ -1844,7 +1844,8 @@ impl WorkspaceGraphBuild {
             let (return_type, signature) = match web_roots.profile {
                 crate::project::ProjectProfile::StdinStreamCommandIoV2
                 | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
-                | crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
+                | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
+                | crate::project::ProjectProfile::StdinStreamDataCommandIoV2 => {
                     (hir::ResolvedType::I64, "i64")
                 }
                 _ => (hir::ResolvedType::Bool, "bool"),
@@ -2018,6 +2019,8 @@ impl WorkspaceGraphBuild {
                     && retained_validation::text_project_shape(module))
                 || (profile == crate::project::ProjectProfile::StdinStreamDataCommandIoV1
                     && retained_validation::data_project_shape(module))
+                || (profile == crate::project::ProjectProfile::StdinStreamDataCommandIoV2
+                    && retained_validation::record_project_shape(module))
                 || matches!(profile, crate::project::ProjectProfile::ScalarV1)
                 || (module.types.is_empty()
                     && module.interfaces.is_empty()
@@ -2073,6 +2076,7 @@ impl WorkspaceGraphBuild {
             if profile.is_owned_api()
                 || profile == crate::project::ProjectProfile::StdinStreamTextCommandIoV1
                 || profile == crate::project::ProjectProfile::StdinStreamDataCommandIoV1
+                || profile == crate::project::ProjectProfile::StdinStreamDataCommandIoV2
             {
                 continue;
             }
@@ -2091,6 +2095,7 @@ impl WorkspaceGraphBuild {
                     crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => {
                         hir::stream_text_parameter_admitted(parameter)
                     }
+                    crate::project::ProjectProfile::StdinStreamDataCommandIoV2 => false,
                     crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
                         hir::stream_data_parameter_admitted(parameter)
                     }
@@ -2141,6 +2146,7 @@ impl WorkspaceGraphBuild {
                     crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => {
                         hir::stream_text_return_admitted(&function.return_type)
                     }
+                    crate::project::ProjectProfile::StdinStreamDataCommandIoV2 => false,
                     crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
                         hir::stream_text_return_admitted(&function.return_type)
                     }
@@ -5354,7 +5360,9 @@ fn validate_uses(
             let target = authored
                 .get(module_use.persistent_id.as_str())
                 .ok_or_else(|| {
-                    vec![diagnostics::unknown_import_error(program, module_use, modules)]
+                    vec![diagnostics::unknown_import_error(
+                        program, module_use, modules,
+                    )]
                 })?;
             let expected = match module_use.kind {
                 ModuleUseKind::Function => AuthoredKind::Function,

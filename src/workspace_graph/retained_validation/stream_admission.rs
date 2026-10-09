@@ -9,7 +9,8 @@ pub(in crate::workspace_graph) fn owned_stream_entry(
 ) -> Result<Option<hir::ResolvedProgram>, Vec<crate::diagnostic::Diagnostic>> {
     let mut linked = match profile {
         crate::project::ProjectProfile::StdinStreamTextCommandIoV1
-        | crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
+        | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
+        | crate::project::ProjectProfile::StdinStreamDataCommandIoV2 => {
             build.linked_owned_data_api_program_with_roots(entry_module, &[])?
         }
         _ => return Ok(None),
@@ -20,6 +21,9 @@ pub(in crate::workspace_graph) fn owned_stream_entry(
         }
         crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
             hir::validate_stream_data_program(&linked, None)
+        }
+        crate::project::ProjectProfile::StdinStreamDataCommandIoV2 => {
+            hir::validate_stream_record_program(&linked, None)
         }
         _ => unreachable!("non-stream profile returned above"),
     }
@@ -38,6 +42,7 @@ pub(in crate::workspace_graph) fn owned_stream_command(
     let label = match profile {
         crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => "text",
         crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => "data",
+        crate::project::ProjectProfile::StdinStreamDataCommandIoV2 => "records",
         _ => return Ok(None),
     };
     if additional_roots.is_empty() {
@@ -60,6 +65,9 @@ pub(in crate::workspace_graph) fn owned_stream_command(
         crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
             data_command_program(&mut linked, command)
         }
+        crate::project::ProjectProfile::StdinStreamDataCommandIoV2 => {
+            record_command_program(&mut linked, command)
+        }
         _ => unreachable!("non-stream profile returned above"),
     }
     .map_err(|error| vec![error])?;
@@ -76,6 +84,9 @@ pub(in crate::workspace_graph) fn stream_test_program(
         crate::project::ProjectProfile::SourceCommandV1
         | crate::project::ProjectProfile::SourceCommandResourceOutputV1 => {
             build.linked_source_command_test_program(test_module)
+        }
+        crate::project::ProjectProfile::StdinStreamDataCommandIoV2 => {
+            build.linked_stream_record_test_program(test_module)
         }
         crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
             build.linked_stream_data_test_program(test_module)
@@ -108,6 +119,13 @@ pub(in crate::workspace_graph) fn command_link(
     functions: Vec<hir::LinkedScalarFunction>,
 ) -> Result<hir::ResolvedProgram, crate::diagnostic::Diagnostic> {
     let link = match profile {
+        crate::project::ProjectProfile::StdinStreamDataCommandIoV2 => {
+            return Err(super::super::graph_error(
+                "SPX-G172",
+                "stream record linking requires authenticated declaration facts",
+            ))
+        }
+
         crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
             hir::link_stdin_stream_data_command_workspace
         }
@@ -131,6 +149,13 @@ pub(in crate::workspace_graph) fn entry_link(
     functions: Vec<hir::LinkedScalarFunction>,
 ) -> Result<hir::ResolvedProgram, crate::diagnostic::Diagnostic> {
     let link = match profile {
+        crate::project::ProjectProfile::StdinStreamDataCommandIoV2 => {
+            return Err(super::super::graph_error(
+                "SPX-G172",
+                "stream record linking requires authenticated declaration facts",
+            ))
+        }
+
         crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
             hir::link_stdin_stream_data_entry_workspace
         }
@@ -190,6 +215,40 @@ pub(in crate::workspace_graph) fn data_command_program(
 ) -> Result<(), crate::diagnostic::Diagnostic> {
     let command = hir::DeclarationId::new(command);
     hir::validate_stream_data_program(program, Some(&command))?;
+    crate::command_io_ops::validate_operation_profile(
+        program,
+        &command,
+        crate::command_io_ops::CommandOperationProfile::StdinStreamV1,
+    )?;
+    program.permits = crate::project::PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2
+        .iter()
+        .map(|effect| (*effect).to_owned())
+        .collect();
+    hir::validate(program)
+}
+
+/// Reachable types receive exact independent admission after linking; all module types remain source-verified.
+pub(in crate::workspace_graph) fn record_project_shape(
+    module: &super::WorkspaceResolvedModule,
+) -> bool {
+    module.interfaces.is_empty()
+        && module.function_templates.is_empty()
+        && module.function_instances.is_empty()
+        && module.types.iter().all(|ty| {
+            ty.type_parameters.is_empty()
+                && matches!(
+                    ty.kind,
+                    hir::ResolvedTypeDeclarationKind::Record { .. }
+                        | hir::ResolvedTypeDeclarationKind::Variant { .. }
+                )
+        })
+}
+pub(in crate::workspace_graph) fn record_command_program(
+    program: &mut hir::ResolvedProgram,
+    command: &str,
+) -> Result<(), crate::diagnostic::Diagnostic> {
+    let command = hir::DeclarationId::new(command);
+    hir::validate_stream_record_program(program, Some(&command))?;
     crate::command_io_ops::validate_operation_profile(
         program,
         &command,

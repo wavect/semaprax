@@ -352,3 +352,5 @@ fn native_v24_stream_exit_preserves_application_status_and_discards_invalid_resu
 mod stream_data;
 #[path = "stdin_stream_command/text.rs"]
 mod text;
+
+mod stream_records;

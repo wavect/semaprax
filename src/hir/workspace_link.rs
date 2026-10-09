@@ -8,6 +8,7 @@ use super::*;
 mod compiler_prelude;
 mod profile_diagnostics;
 mod stdin_stream;
+mod stream_record;
 pub(crate) use stdin_stream::{
     link_stdin_stream_command_workspace, link_stdin_stream_data_command_workspace,
     link_stdin_stream_data_entry_workspace, link_stdin_stream_exit_command_workspace,
@@ -16,6 +17,7 @@ pub(crate) use stdin_stream::{
     stream_text_parameter_with_index, stream_text_return_admitted, stream_text_return_with_index,
     validate_stream_data_program, validate_stream_text_program,
 };
+pub(crate) use stream_record::{stream_record_signature_admitted, validate_stream_record_program};
 pub(in crate::hir) mod native_owner;
 
 pub(crate) use compiler_prelude::compiler_prelude_declarations;

@@ -16,6 +16,12 @@
 - Borrow retained user-function and static String/Str parameter descriptors
   during HIR validation; preserve owning generic signatures, error identities,
   recursive parity checks, and the iterative frame bound.
+- Author Project v29 `language-command-io.stream-data.v2`: independently
+  authenticated private Copy-record/Vec transport and exact bounded codec
+  outcomes, with unchanged scalar command roots, stream authority and caps.
+  Keep v27 closed; add source/retained/prepared/native and hostile-profile
+  regressions. Execution and benchmark qualification remain pending.
+
 - Author the bounded Copy Record Collections v1 core tranche: nominal scalar
   records in Vec, Copy reads/writes, named-field loops and deterministic field
   ordering across interpreter/native/Wasm. Preserve the 65536-byte scalar

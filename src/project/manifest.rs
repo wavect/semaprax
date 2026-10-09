@@ -7,21 +7,6 @@ mod stream;
 mod tables;
 mod validation;
 use super::profile::{
-    PROJECT_FILESYSTEM_CAPABILITIES_V1, PROJECT_PROFILE_FILESYSTEM_IO_V1,
-    PROJECT_PROFILE_FILESYSTEM_IO_V2, PROJECT_PROFILE_FILESYSTEM_IO_V3,
-};
-use validation::{grammar_with_help, valid_stable_id, V1_SHAPE_HELP};
-
-pub use tables::{
-    ManifestLayout, PackageDependency, PackageDependencySource, RustDependency, MAX_DEPENDENCIES,
-    MAX_DEPENDENCY_SOURCES, MAX_RUST_DEPENDENCIES, PACKAGE_MANIFEST_RESERVED_TABLES,
-    PACKAGE_MANIFEST_SCHEMA, PACKAGE_MANIFEST_SCHEMA_V2, PACKAGE_MANIFEST_TABLES,
-    PACKAGE_RESERVED_KEYS, PACKAGE_TARGET_NATIVE64, PACKAGE_TARGET_WASM32,
-};
-
-use crate::diagnostic::Diagnostic;
-
-use super::profile::{
     ProjectProfile, PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2, PROJECT_COMMAND_INPUT_V1,
     PROJECT_COMMAND_STDOUT_CAPABILITY, PROJECT_HTTPS_COMMAND_CAPABILITIES_V1,
     PROJECT_LANGUAGE_COMMAND_INPUT_V1, PROJECT_NETWORK_COMMAND_CAPABILITIES_V1,
@@ -32,7 +17,18 @@ use super::profile::{
     PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2, PROJECT_PROFILE_USEFUL_DATA_V1,
     PROJECT_PROFILE_USEFUL_DATA_V2, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
 };
-
+use super::profile::{
+    PROJECT_FILESYSTEM_CAPABILITIES_V1, PROJECT_PROFILE_FILESYSTEM_IO_V1,
+    PROJECT_PROFILE_FILESYSTEM_IO_V2, PROJECT_PROFILE_FILESYSTEM_IO_V3,
+};
+use crate::diagnostic::Diagnostic;
+pub use tables::{
+    ManifestLayout, PackageDependency, PackageDependencySource, RustDependency, MAX_DEPENDENCIES,
+    MAX_DEPENDENCY_SOURCES, MAX_RUST_DEPENDENCIES, PACKAGE_MANIFEST_RESERVED_TABLES,
+    PACKAGE_MANIFEST_SCHEMA, PACKAGE_MANIFEST_SCHEMA_V2, PACKAGE_MANIFEST_TABLES,
+    PACKAGE_RESERVED_KEYS, PACKAGE_TARGET_NATIVE64, PACKAGE_TARGET_WASM32,
+};
+use validation::{grammar_with_help, valid_stable_id, V1_SHAPE_HELP};
 /// Frozen scalar Project Manifest v1 schema.
 pub const PROJECT_SCHEMA: &str = "semaprax.project.v1";
 /// Additive Project Manifest v2 schema; v1 parsing and rendering remain byte-for-byte unchanged.
@@ -82,6 +78,7 @@ pub const PROJECT_SCHEMA_V26: &str = "semaprax.project.v26";
 pub const PROJECT_SCHEMA_V27: &str = "semaprax.project.v27";
 /// Additive native large-resource SourceCommand contract.
 pub const PROJECT_SCHEMA_V28: &str = "semaprax.project.v28";
+pub const PROJECT_SCHEMA_V29: &str = "semaprax.project.v29";
 pub const PROJECT_SCHEMA_V24: &str = "semaprax.project.v24";
 pub const PROJECT_SCHEMA_V16: &str = "semaprax.project.v16";
 pub const PROJECT_SCHEMA_V15: &str = "semaprax.project.v15";
@@ -747,6 +744,7 @@ impl ProjectManifest {
             PROJECT_SCHEMA_V26 => "Project v26",
             PROJECT_SCHEMA_V27 => "Project v27",
             PROJECT_SCHEMA_V28 => "Project v28",
+            PROJECT_SCHEMA_V29 => "Project v29",
             PROJECT_SCHEMA_V7 => "Project v7",
             PROJECT_SCHEMA_V8 => "Project v8",
             PROJECT_SCHEMA_V9 => "Project v9",

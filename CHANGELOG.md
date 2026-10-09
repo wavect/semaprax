@@ -1,5 +1,7 @@
 # Changelog
 
+- Restore internal owned-String helper admission for explicit owned-data Project entry/test closures while keeping legacy String refusals and effect/borrow exclusions.
+
 - Add `semaprax help shapes kinds` as a complete exact selector index derived
   from the generated language-shapes companion (issue #699). The bare catalog,
   existing lookups, and guide byte limit remain pinned. Four focused CLI

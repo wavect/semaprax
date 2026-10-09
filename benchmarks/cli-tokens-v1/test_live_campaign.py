@@ -1268,6 +1268,7 @@ sys.stdout.write(json_line(report) if as_json else text(report))
 
 class TypeScriptBootstrapTests(unittest.TestCase):
     def fixture(self, root: Path) -> tuple[Path, Path, str, str]:
+        root = root.resolve()
         setup = root / "setup"
         ts_bootstrap.write_template(setup)
         modules = setup / "node_modules"
@@ -1329,6 +1330,97 @@ class TypeScriptBootstrapTests(unittest.TestCase):
                 ts_bootstrap.SCHEMA, "semaprax.cli-typescript-bootstrap.invalid"))
             with self.assertRaises(ValueError):
                 ts_bootstrap.validate(receipt_path, node, npm)
+
+    def test_live_runner_stages_before_prompt_and_rejects_post_model_dependency_drift(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            setup, receipt_path, node, npm = self.fixture(root)
+            receipt = ts_bootstrap.seal(setup, receipt_path, node, npm)
+            tooling = {"receipt_path": str(receipt_path), "node_binary": node, "npm_binary": npm}
+            spec = b"# Public frozen spec\n"
+            sample = b"public sample input\n"
+            seed_hashes = {
+                "benchmarks/cli-tokens-v1/SPEC.md": hashlib.sha256(spec).hexdigest(),
+                "benchmarks/cli-tokens-v1/sample.log": hashlib.sha256(sample).hexdigest(),
+            }
+            artifacts = root / "artifacts"
+            events = []
+            settings = {
+                "timeout_seconds": 5, "model": live_campaign.MODEL,
+                "observed_model_id": live_campaign.MODEL, "seed_files_sha256": seed_hashes,
+                "authored_source_tokenizer": None, "price_book": {"per_million_tokens": {}},
+                "typescript_bootstrap": tooling,
+            }
+
+            def add_worktree(_seed, workspace, _commit):
+                candidate = workspace / "benchmarks/cli-tokens-v1/candidate"
+                candidate.mkdir(parents=True)
+                (workspace / "benchmarks/cli-tokens-v1/SPEC.md").write_bytes(spec)
+                (workspace / "benchmarks/cli-tokens-v1/sample.log").write_bytes(sample)
+                return None
+
+            def prompt_for(*_args):
+                candidate = artifacts / "worktrees/typescript-01/benchmarks/cli-tokens-v1/candidate"
+                self.assertTrue((candidate / "node_modules/.bin/tsc").is_symlink())
+                events.append("prompt")
+                return "mock prompt"
+
+            def run_model(_command, _workspace, _env, stream, _stderr, _timeout):
+                self.assertEqual(events, ["prompt"])
+                events.append("model")
+                stream.write_text("{}\n", encoding="utf-8")
+                candidate = artifacts / "worktrees/typescript-01/benchmarks/cli-tokens-v1/candidate"
+                (candidate / "node_modules/typescript/bin/tsc").write_text("changed dependency bytes\n")
+                return {"timed_out": False, "process_exit_code": 0, "elapsed_seconds": 0.1, "failure": None}
+
+            with patch.object(live_campaign, "add_seed_worktree", side_effect=add_worktree), \
+                 patch.object(live_campaign.ts_bootstrap, "verify_plan", return_value=receipt), \
+                 patch.object(live_campaign, "prompt_for", side_effect=prompt_for), \
+                 patch.object(live_campaign, "run_claude", side_effect=run_model), \
+                 patch.object(live_campaign, "claude_command", return_value=[]), \
+                 patch.object(live_campaign, "trial_environment", return_value={}), \
+                 patch.object(live_campaign, "stream_usage", return_value={
+                     "models_observed": [live_campaign.MODEL], "usage": {}, "legacy_net_input": {},
+                 }), \
+                 patch.object(live_campaign, "rate_card_estimate_details", return_value={"usd": 0, "cache_write_pricing": {}}), \
+                 patch.object(live_campaign, "trial_workspace_guard", return_value=({"status": "passed"}, None)), \
+                 patch.object(live_campaign, "check_program_for_campaign", return_value={"accepted": True}) as check:
+                row = live_campaign.launch_trial(
+                    root / "seed", artifacts, "seed-commit", {"arm": "typescript", "number": 1},
+                    settings, Path("/bin/true"),
+                )
+
+            self.assertEqual(events, ["prompt", "model"])
+            self.assertTrue(check.called)
+            self.assertEqual(row["status"], "not_accepted")
+            self.assertIn("dependency tree changed", row["failure"])
+            self.assertTrue(row["workspace_retained_for_review"])
+            self.assertEqual(row["dependency_tree_integrity"]["status"], "drift")
+            preserved = row["dependency_tree_integrity"]["preserved"]
+            self.assertTrue(preserved["snapshot"]["copy_consistent"])
+            self.assertTrue((Path(preserved["path"]) / "node_modules/typescript/bin/tsc").is_file())
+            self.assertEqual(row["typescript_setup"]["context_tokens"], None)
+
+    def test_shared_metrics_excludes_only_verified_root_node_modules(self):
+        with tempfile.TemporaryDirectory() as directory:
+            candidate = Path(directory).resolve() / "candidate"
+            (candidate / "node_modules/extra").mkdir(parents=True)
+            (candidate / "node_modules/extra/index.ts").write_text("root dependency\n")
+            (candidate / "nested/node_modules/pkg").mkdir(parents=True)
+            (candidate / "nested/node_modules/pkg/index.ts").write_text("nested dependency\n")
+            (candidate / ".cache/tooling").mkdir(parents=True)
+            (candidate / ".cache/tooling/extra.ts").write_text("extra dependency evidence\n")
+            (candidate / "main.ts").write_text("authored\n")
+            with patch.object(shared, "tokenize_texts", side_effect=lambda files, _metadata: [1] * len(files)):
+                metrics = shared.authored_source_metrics(
+                    candidate, {"version": "test"}, exclude_verified_node_modules=True)
+
+        paths = {row["path"] for row in metrics["files"]}
+        self.assertNotIn("node_modules/extra/index.ts", paths)
+        self.assertIn("nested/node_modules/pkg/index.ts", paths)
+        self.assertIn(".cache/tooling/extra.ts", paths)
+        self.assertIn("main.ts", paths)
+        self.assertIn("node_modules (receipt-verified root only)", metrics["excluded_directories"])
 
 
 if __name__ == "__main__":

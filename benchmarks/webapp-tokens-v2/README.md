@@ -15,11 +15,18 @@ gate are implemented under [OPT #659](https://github.com/wavect/semaprax/issues/
 They keep this benchmark's SPEC frozen and derive obligations independently of
 either application schema. Missing or unverified requirements prevent qualification.
 The [reference qualification receipt](acceptance/evidence/reference-r8-summary.json)
-records 912 passing obligations for each reference arm. The SEMAPRAX reference
-was qualified with compiler source `e045527a611a048515349ab2f970043a5d33b185`
-and binary SHA-256 `31891e0d229e217ebbdf71139f82654349e051eb06fb6b08e2984bea4ce6c8d1`;
-the receipt binds both reports to the frozen SPEC and acceptance gate. It
-qualifies the references only and does not establish fresh agent performance.
+records 912 passing obligations for each reference arm from unpaid qualification
+session 66510 (exit 0), using compiler source
+`398b051e6e7a06ac49ecf77d9292831401430de0`, binary SHA-256
+`594980a96bb3d7f74a168dfa6bc71d6355344f2963489f1e3ae854d2f3a01237`,
+and corrected gate `810afdd907561dcfe6aab52823d43b1ffecd0a0e`.
+The receipt SHA-256 is `4cf4b4dc025eb16de40dd41079fc32b68a86be56fe025c764c7ca209f26dd766`.
+Qualification overlapped an independent Cargo/test job; its 332.544-second wall
+time is not an isolated measurement. The [readiness record](../opt-batch-verification-v1/source398-pre-campaign-readiness.json)
+binds the fresh dependency-only TypeScript bootstrap to this qualification and
+preserves the two interrupted qualification attempts. These receipts qualify
+the references and tooling only; a paid campaign still requires fresh resource
+admission with zero heavy jobs and establishes no performance result in advance.
 The earlier r5, r6, and r7 receipts remain preserved as historical evidence.
 The historical self-tests, partial permission scenario, and live token aggregates
 below are separate evidence. A clean matched Codex campaign with bound qualification

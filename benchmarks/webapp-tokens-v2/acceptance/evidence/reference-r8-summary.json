@@ -24,7 +24,7 @@
         "generated/runtime.js": "2af693cd89d18e61bee78f6bfbf95f901881b0ad79ef37e5f85231b3ae61e8c2",
         "generated/schema.js": "dec2d045884f28a2591d36c39e910e19f673bab70d8089b656c86a8b5c40dd55",
         "generated/security.mjs": "7e0404e8f4ef2f5299273ea08bf93a8ebcfa2b384add49121e0fd26e9436d277",
-        "generated/server.mjs": "efa5e44e171551b65a512235ac8357d0cbc2824d09c1b215786c7806b46e99d3",
+        "generated/server.mjs": "da786da2d572a9fc794d1a8f8b6389eccc6d2e6e8d3e869aeb803447efb975bb",
         "generated/state.mjs": "8b3c06aa05d7e45994e4578c6fd9bb4906d3575433ed71408578cfc1c9414892",
         "generated/style.css": "36b4fe13dee9ce5e15686dba1a5139475ad0388330eb27dc8460b7f8acc5f24a",
         "reference-server.mjs": "8f74ea66fc72815275afaf28f1114d03f0aaba44ef885bf326d05cd3c8a98926",
@@ -32,14 +32,28 @@
         "teamdesk.spx": "93b7c95f058b12d09b4799c15a36a1ebfe1cab38a5a595a2381618c112da4bc9",
         "test.sh": "68297cf16ceb556ae54215c47aeea9bb1d92c9bfab286671bd61eab50066f9de"
       },
-      "candidate_input_inventory_sha256": "349d12e0b92ec65056812b0f7cc0f6e6343a339eecbd765a7a579ca5dae97464",
-      "execution_file": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source878-20261009/semaprax-execution.json",
-      "execution_sha256": "e90ae41213c1b5d2e8f87b85c777df4bb606280e14c0a7ec2e3a495bcca4174d",
+      "candidate_input_inventory_sha256": "5bc81517d711077ddb495dfbd47229e469c499bbece05cfa2ca827fc1916fd75",
+      "candidate_inventory": {
+        "build.sh": "62970c9e0c2e6e454163d5a9f02090a8ced6268ea800d9aeac37b854ea189d91",
+        "generated/app.js": "171888b5f6da073a3e0c063a593c7f327fa9482b390733ddad4eb1bf14389b5f",
+        "generated/index.html": "6d16a0ffa0fec2c0254f1d5af5557a76cc75f7cde301b5230bbb06ac71809fe4",
+        "generated/runtime.js": "2af693cd89d18e61bee78f6bfbf95f901881b0ad79ef37e5f85231b3ae61e8c2",
+        "generated/schema.js": "dec2d045884f28a2591d36c39e910e19f673bab70d8089b656c86a8b5c40dd55",
+        "generated/security.mjs": "7e0404e8f4ef2f5299273ea08bf93a8ebcfa2b384add49121e0fd26e9436d277",
+        "generated/server.mjs": "da786da2d572a9fc794d1a8f8b6389eccc6d2e6e8d3e869aeb803447efb975bb",
+        "generated/state.mjs": "8b3c06aa05d7e45994e4578c6fd9bb4906d3575433ed71408578cfc1c9414892",
+        "generated/style.css": "36b4fe13dee9ce5e15686dba1a5139475ad0388330eb27dc8460b7f8acc5f24a",
+        "reference-server.mjs": "8f74ea66fc72815275afaf28f1114d03f0aaba44ef885bf326d05cd3c8a98926",
+        "run.sh": "7d93c75558a00128beab5b4e381102dce7ed46736ed7b28afd4c0e571df5cf6a",
+        "teamdesk.spx": "93b7c95f058b12d09b4799c15a36a1ebfe1cab38a5a595a2381618c112da4bc9",
+        "test.sh": "68297cf16ceb556ae54215c47aeea9bb1d92c9bfab286671bd61eab50066f9de"
+      },
+      "candidate_inventory_sha256": "5bc81517d711077ddb495dfbd47229e469c499bbece05cfa2ca827fc1916fd75",
+      "execution_file": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source398-20261009-retry3/semaprax-execution.json",
+      "execution_sha256": "e98eb3443d3c0fabc81183040a83ad63a6702c2a11bca206545379b81147c5ee",
       "output_provenance": {
-        "changed_output_paths": [
-          "generated/server.mjs"
-        ],
-        "compiler_output_after": {
+        "added_output_paths": [],
+        "build_output_after": {
           "generated/app.js": "171888b5f6da073a3e0c063a593c7f327fa9482b390733ddad4eb1bf14389b5f",
           "generated/index.html": "6d16a0ffa0fec2c0254f1d5af5557a76cc75f7cde301b5230bbb06ac71809fe4",
           "generated/runtime.js": "2af693cd89d18e61bee78f6bfbf95f901881b0ad79ef37e5f85231b3ae61e8c2",
@@ -49,19 +63,22 @@
           "generated/state.mjs": "8b3c06aa05d7e45994e4578c6fd9bb4906d3575433ed71408578cfc1c9414892",
           "generated/style.css": "36b4fe13dee9ce5e15686dba1a5139475ad0388330eb27dc8460b7f8acc5f24a"
         },
-        "compiler_output_before": {
+        "build_output_before": {
           "generated/app.js": "171888b5f6da073a3e0c063a593c7f327fa9482b390733ddad4eb1bf14389b5f",
           "generated/index.html": "6d16a0ffa0fec2c0254f1d5af5557a76cc75f7cde301b5230bbb06ac71809fe4",
           "generated/runtime.js": "2af693cd89d18e61bee78f6bfbf95f901881b0ad79ef37e5f85231b3ae61e8c2",
           "generated/schema.js": "dec2d045884f28a2591d36c39e910e19f673bab70d8089b656c86a8b5c40dd55",
           "generated/security.mjs": "7e0404e8f4ef2f5299273ea08bf93a8ebcfa2b384add49121e0fd26e9436d277",
-          "generated/server.mjs": "efa5e44e171551b65a512235ac8357d0cbc2824d09c1b215786c7806b46e99d3",
+          "generated/server.mjs": "da786da2d572a9fc794d1a8f8b6389eccc6d2e6e8d3e869aeb803447efb975bb",
           "generated/state.mjs": "8b3c06aa05d7e45994e4578c6fd9bb4906d3575433ed71408578cfc1c9414892",
           "generated/style.css": "36b4fe13dee9ce5e15686dba1a5139475ad0388330eb27dc8460b7f8acc5f24a"
         },
+        "changed_output_paths": [],
         "directory": "generated",
+        "raw_compiler_output_verified": false,
         "recipe_path": "build.sh",
-        "recipe_sha256": "62970c9e0c2e6e454163d5a9f02090a8ced6268ea800d9aeac37b854ea189d91"
+        "recipe_sha256": "62970c9e0c2e6e454163d5a9f02090a8ced6268ea800d9aeac37b854ea189d91",
+        "removed_output_paths": []
       },
       "qualification": {
         "cases": 912,
@@ -70,8 +87,8 @@
         "missingGroups": [],
         "passed": true
       },
-      "report_file": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source878-20261009/evidence/semaprax/report.json",
-      "report_sha256": "b1a17becb25936a31bd46a5cdb2e17d11101430f538e94017588f79ef9c7e74a",
+      "report_file": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source398-20261009-retry3/evidence/semaprax/report.json",
+      "report_sha256": "93f5ce3060b7c4bb42511fd459914eecfbb0fc2161b01e6114e76fb81916bafc",
       "source_projection_inventory": {
         "build.sh": "62970c9e0c2e6e454163d5a9f02090a8ced6268ea800d9aeac37b854ea189d91",
         "reference-server.mjs": "8f74ea66fc72815275afaf28f1114d03f0aaba44ef885bf326d05cd3c8a98926",
@@ -130,8 +147,31 @@
         "vite.config.ts": "04504a1101152fa181213e15926b8a77d886251badc02e81e68b2c63e994039b"
       },
       "candidate_input_inventory_sha256": "e7d8b73b282bdd4340bbfcccd3a11d6388b9acbf120850a05d211613fa664410",
-      "execution_file": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source878-20261009/typescript-execution.json",
-      "execution_sha256": "2773a34387f7abaa91b1c8f3aae3dbadd74268c0601b6f7ad44222aa2994eaad",
+      "candidate_inventory": {
+        ".gitignore": "0ba297cf012790a68b04efd9f50f4994fd581c361c35ec84535a6f60467bab2e",
+        "README.md": "0f5ead9f51bb39a4c8475516cb9a04e33a3da57cd423d8175a98c4d86dd5d6f8",
+        "build.sh": "519f7f2910219b61208efcf9f90c0c1731a16ffdafe6fbcb1037c4e905071477",
+        "index.html": "566b4f0645fe7175c07b162b2fbeb0bd9fc21eabe0382c06061e77cfadc2975a",
+        "package-lock.json": "36cbe83f76147a35acd2a73394144e6969a6b6a8f07d5a5eadc164b215baa711",
+        "package.json": "a8b89aa65fe1b7cdedcb31fa541cb8ace934f15477f7cbc014d2383b527a4935",
+        "reference-server.mjs": "8f74ea66fc72815275afaf28f1114d03f0aaba44ef885bf326d05cd3c8a98926",
+        "run.sh": "7d93c75558a00128beab5b4e381102dce7ed46736ed7b28afd4c0e571df5cf6a",
+        "server/index.ts": "5f5090240fbe44deaf88547e7965f8441a1f91608da3798edb3af844cc7039e7",
+        "shared/json.ts": "a2426cdbcd203693581bc19182bd6cd9fdda2125e60979e881d74e203f92cfc6",
+        "shared/schema.ts": "7b9af4c3454f42f832d008ce99eb16e3745a7fd83bceffb83e781a4e16617af5",
+        "src/api.ts": "79f66c7afe424281c4243390895c8a86a87517cc3e9ca39b75e8c25a70eaddb5",
+        "src/main.tsx": "2f4b7f45a82df5f2a56e8a350a91bbb1f2705cde2f69727bf39632630b6f8a5e",
+        "src/views.tsx": "0a663e0846a644003af60365ba41fea72339795d0d380092c8632482ad554e5f",
+        "test.sh": "6addeae4979950ff369c0ef07e8d9ece9c4a8d32b00b796d6a163f5bf0969d41",
+        "tests/int64.test.ts": "5207652185af5e7a5a9fda2042be7155c600493158284151ae4fae2e46670f7c",
+        "tests/server-int64.test.ts": "d8c8af6e33eb3835a9b53382bcf0491813608f8a86be8a2b64390baab4752b8c",
+        "tests/ui-permissions.test.ts": "47f80847edcd07fd3ac6466ea0322388dc735e2aca11a3e611b1c4bfb416b2c7",
+        "tsconfig.json": "d642f5424183a995f2475e74ac59aa0f2503ca53bad83fa905d45743ffb9e417",
+        "vite.config.ts": "04504a1101152fa181213e15926b8a77d886251badc02e81e68b2c63e994039b"
+      },
+      "candidate_inventory_sha256": "e7d8b73b282bdd4340bbfcccd3a11d6388b9acbf120850a05d211613fa664410",
+      "execution_file": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source398-20261009-retry3/typescript-execution.json",
+      "execution_sha256": "9fd045fd927f974528ac7bd9a2134d5d56b22d3233981cf09e04218c94bd02bd",
       "output_provenance": {
         "added_build_output_paths": {
           "dist/assets/index-DZEsRVNB.js": "0b895b48abe66c8531819a1310fe75dfa25471a70c7d7ee0a8b61c598827b4e4",
@@ -145,8 +185,8 @@
         "missingGroups": [],
         "passed": true
       },
-      "report_file": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source878-20261009/evidence/typescript/report.json",
-      "report_sha256": "bfdd0cc112f1093183237686cd4cad6349dd7fdd4acb79c8156394b65de41f9b",
+      "report_file": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source398-20261009-retry3/evidence/typescript/report.json",
+      "report_sha256": "422d093ff97941348850c419915949d1b8bac90c1fd9d45b808780e27258fc5f",
       "source_projection_inventory": {
         ".gitignore": "0ba297cf012790a68b04efd9f50f4994fd581c361c35ec84535a6f60467bab2e",
         "README.md": "0f5ead9f51bb39a4c8475516cb9a04e33a3da57cd423d8175a98c4d86dd5d6f8",
@@ -172,10 +212,84 @@
       "source_projection_inventory_sha256": "e7d8b73b282bdd4340bbfcccd3a11d6388b9acbf120850a05d211613fa664410"
     }
   },
-  "compiler_binary_sha256": "78a7d91a5085fb45ef2cca28ad28f53ef21065e0eb24dc8523e9b3dce07d8355",
-  "compiler_source_commit": "8785368bfcf984ece85db7f2ce2f55586dfc1775",
+  "compiler_binary_sha256": "594980a96bb3d7f74a168dfa6bc71d6355344f2963489f1e3ae854d2f3a01237",
+  "compiler_build_cache_admission": {
+    "host_isolated": false,
+    "independent_archived_binary_and_log": true,
+    "max_external_heavy_job_roots": 2,
+    "no_active_cargo_or_rustc_jobs": false,
+    "no_active_jobs_using_compiler_cache": true,
+    "process_observation": {
+      "command": [
+        "/bin/ps",
+        "-axo",
+        "pid=,ppid=,comm="
+      ],
+      "external_cargo": [
+        {
+          "argv": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/cargo test --locked -p semaprax --lib ref10_budget_sweeps_keep_exact_known_answers",
+          "executable": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/cargo",
+          "owner_worktree": "/Users/kevin/.codex/worktrees/release-ci-fix/AI-Lang",
+          "pid": 82351,
+          "ppid": 81144
+        }
+      ],
+      "external_heavy_jobs": [
+        {
+          "argv": "/Users/kevin/.codex/worktrees/release-ci-fix/AI-Lang/target/release-ci-verification/debug/deps/semaprax-c9f52fe357f46833 ref10_budget_sweeps_keep_exact_known_answers",
+          "executable": "/Users/kevin/.codex/worktrees/release-ci-fix/AI-Lang/target/release-ci-verification/debug/deps/semaprax-c9f52fe357f46833",
+          "owner_worktree": "/Users/kevin/.codex/worktrees/release-ci-fix/AI-Lang",
+          "pid": 1372,
+          "ppid": 82351
+        },
+        {
+          "argv": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/cargo test --locked -p semaprax --lib ref10_budget_sweeps_keep_exact_known_answers",
+          "executable": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/cargo",
+          "owner_worktree": "/Users/kevin/.codex/worktrees/release-ci-fix/AI-Lang",
+          "pid": 82351,
+          "ppid": 81144
+        }
+      ],
+      "floor_bytes": 5368709120,
+      "free_bytes": 7441612800,
+      "heavy_job_roots": [
+        82351
+      ],
+      "host_isolated": false,
+      "max_heavy_job_roots": 2,
+      "memory_floor_policy": "recorded observation; no invented available-memory threshold",
+      "memory_pressure_command": [
+        "/usr/bin/memory_pressure",
+        "-Q"
+      ],
+      "memory_pressure_output": "The system has 19327352832 (1179648 pages with a page size of 16384).\nSystem-wide memory free percentage: 74%\n",
+      "observed_at_unix": 1791511787.979456,
+      "process_snapshot_sha256": "0da169181c03fb768ff952406b08f98d9fc20060ea1a95a44d7204944c1a84ae"
+    },
+    "scope": "at most two observed release-ci-fix heavy job roots; never paid admission",
+    "state": "deleted_private_target",
+    "target_dir": "/Users/kevin/.codex/worktrees/opt-enum-gate/AI-Lang/target/final-698-699",
+    "unpaid_qualification_only": true
+  },
+  "compiler_source_commit": "398b051e6e7a06ac49ecf77d9292831401430de0",
+  "dependency_provisioning": {
+    "bundle_receipt_sha256": "e7f0380758e79b524a5e49ef34199c608269a70a02c00a991dbb840b1cb007f5",
+    "candidate_source_recipe_changed": false,
+    "dependency_helper_sha256": "58819e8be9a185cd289670c498895e7c9a27ba6baedb5649e709b5df7612c6af",
+    "historical_dependency_byte_identity_verified": false,
+    "inventory_sha256": "1ea4de75c09ece3a31d3db614d50ad9e16d3055290ac4f05e05bc1e02754db35",
+    "mode": "exact private writable dependency tree; narrow npm ci validation shim",
+    "npm_ci_executed": false,
+    "npm_network_used": false,
+    "shim_sha256": "ca54c862acec294d1ad7d3b239bdd12d8eb7eca362b5680a3850cae14ff06839"
+  },
   "gate_source": "810afdd907561dcfe6aab52823d43b1ffecd0a0e",
+  "host_isolated": false,
+  "host_observations_sha256": "16d75feb6338059b465f817b6bb98a725d0393672ac1e706c8911c8a1a74ed5e",
+  "minimum_observed_free_bytes": 7345315840,
+  "nonisolated_qualification_wall_seconds": 332.544,
   "qualified": true,
   "schema": "semaprax.teamdesk.reference.qualification.v1",
-  "spec_sha256": "7658414ed2bbb53477a93e4a00f36269954c5bc45f3148fe72ddd02f203a50dc"
+  "spec_sha256": "7658414ed2bbb53477a93e4a00f36269954c5bc45f3148fe72ddd02f203a50dc",
+  "unpaid_qualification_only": true
 }

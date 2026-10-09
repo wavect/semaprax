@@ -71,10 +71,162 @@
     "qualification_receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source878-finalized-20261009/qualification-receipt.json",
     "qualification_receipt_sha256": "2f53d95006d96ba736dfa17ab0103c2c49f468c8ba82a2ef2e34a947ae606003",
     "source_compiler_qualification": "8785368bfcf984ece85db7f2ce2f55586dfc1775",
-    "application_code_supplied": false
+    "application_code_supplied": false,
+    "historical": true,
+    "dependency_copy_retired": true
   },
-  "host_concurrency_note": "Generator invocation itself ran no Cargo; independent release-ci-fix Cargo/test was live. Bootstrap provisions dependency-only tooling. Neither evidence claims an isolated host or new paid runs.",
+  "host_concurrency_note": "Generation and qualification invoked no Cargo; an independent release-ci-fix Cargo/test overlapped. Actual source398 application qualification passed, with nonisolated wall time. Historical session30985 and its source878 bootstrap remain separately attributed. Paid admission still requires zero heavy jobs.",
   "paid_campaign_launched": false,
   "live_token_cost_gain_measured": false,
-  "source398_reference_qualification": "Running separately; this receipt does not claim a completed qualification."
+  "source398_reference_qualification": {
+    "session_id": 66510,
+    "exit_code": 0,
+    "terminal": true,
+    "qualified": true,
+    "receipt": {
+      "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source398-20261009-retry3/qualification-receipt.json",
+      "sha256": "4cf4b4dc025eb16de40dd41079fc32b68a86be56fe025c764c7ca209f26dd766"
+    },
+    "terminal_receipt": {
+      "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/source398-unpaid-qualification-prep-20261009/qualification-retry3-terminal-receipt.json",
+      "sha256": "d813d96105e2b34418a78986e56656e2d0f178888cc80e1ee1244a2bd5c65106"
+    },
+    "gate_source": "810afdd907561dcfe6aab52823d43b1ffecd0a0e",
+    "compiler_source": "398b051e6e7a06ac49ecf77d9292831401430de0",
+    "compiler_binary_sha256": "594980a96bb3d7f74a168dfa6bc71d6355344f2963489f1e3ae854d2f3a01237",
+    "arms": {
+      "semaprax": {
+        "cases": 912,
+        "passed": true,
+        "report": {
+          "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source398-20261009-retry3/evidence/semaprax/report.json",
+          "sha256": "93f5ce3060b7c4bb42511fd459914eecfbb0fc2161b01e6114e76fb81916bafc"
+        }
+      },
+      "typescript": {
+        "cases": 912,
+        "passed": true,
+        "report": {
+          "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source398-20261009-retry3/evidence/typescript/report.json",
+          "sha256": "422d093ff97941348850c419915949d1b8bac90c1fd9d45b808780e27258fc5f"
+        }
+      }
+    },
+    "host_isolated": false,
+    "nonisolated_wall_seconds": 332.544,
+    "minimum_observed_free_bytes": 7345315840,
+    "unpaid_only": true
+  },
+  "updated_at": "2026-10-09T02:18:24.250982+00:00",
+  "source398_bootstrap_execution": {
+    "session_id": 99700,
+    "exit_code": 0,
+    "receipt": {
+      "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round10-private-bootstrap-qualified398-20261009/receipt.json",
+      "sha256": "6724e4f11b4be1f5371731e9ad611aa713134d8a1c85226bc2f1d21987e552bb"
+    },
+    "inventory_sha256": "1ea4de75c09ece3a31d3db614d50ad9e16d3055290ac4f05e05bc1e02754db35",
+    "modules_sha256": {
+      "dependency_bundle.py": "58819e8be9a185cd289670c498895e7c9a27ba6baedb5649e709b5df7612c6af",
+      "typescript_bootstrap.py": "91f853a18c0a100b7e780cc46e747733426b4d5d273359f37076f6fdaa02d096"
+    },
+    "packages": {
+      "@types/node": "22.20.5",
+      "@types/react": "18.3.31",
+      "@types/react-dom": "18.3.7",
+      "@vitejs/plugin-react": "4.7.0",
+      "react": "18.3.1",
+      "react-dom": "18.3.1",
+      "react-router-dom": "6.30.6",
+      "typescript": "5.9.3",
+      "vite": "5.4.21"
+    },
+    "runtime": {
+      "host_machine": "arm64",
+      "host_platform": "Darwin",
+      "node": {
+        "arch": "arm64",
+        "platform": "darwin",
+        "versions": {
+          "acorn": "8.15.0",
+          "ada": "3.2.4",
+          "amaro": "1.1.0",
+          "ares": "1.34.5",
+          "brotli": "1.1.0",
+          "cjs_module_lexer": "2.1.0",
+          "cldr": "47.0",
+          "icu": "77.1",
+          "llhttp": "9.3.0",
+          "modules": "137",
+          "napi": "10",
+          "nbytes": "0.1.1",
+          "ncrypto": "0.0.1",
+          "nghttp2": "1.66.0",
+          "node": "24.3.0",
+          "openssl": "3.0.16",
+          "simdjson": "3.13.0",
+          "simdutf": "6.4.0",
+          "sqlite": "3.50.1",
+          "tz": "2025b",
+          "undici": "7.10.0",
+          "unicode": "16.0",
+          "uv": "1.51.0",
+          "uvwasi": "0.0.21",
+          "v8": "13.6.233.10-node.18",
+          "zlib": "1.3.1-470d3a2",
+          "zstd": "1.5.7"
+        }
+      },
+      "node_sha256": "afa8bdc2d587911bd6ec58d568e15611571f06e3902716354541775556074abf"
+    },
+    "qualification": {
+      "gate_source_commit": "810afdd907561dcfe6aab52823d43b1ffecd0a0e",
+      "package_files_sha256": {
+        "package-lock.json": "36cbe83f76147a35acd2a73394144e6969a6b6a8f07d5a5eadc164b215baa711",
+        "package.json": "a8b89aa65fe1b7cdedcb31fa541cb8ace934f15477f7cbc014d2383b527a4935"
+      },
+      "qualified_node_version": "v24.3.0",
+      "reference_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source398-20261009-retry3/candidates/typescript",
+      "report_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source398-20261009-retry3/evidence/typescript/report.json",
+      "report_sha256": "422d093ff97941348850c419915949d1b8bac90c1fd9d45b808780e27258fc5f",
+      "spec_sha256": "7658414ed2bbb53477a93e4a00f36269954c5bc45f3148fe72ddd02f203a50dc",
+      "summary_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source398-20261009-retry3/qualification-receipt.json",
+      "summary_sha256": "4cf4b4dc025eb16de40dd41079fc32b68a86be56fe025c764c7ca209f26dd766"
+    },
+    "application_code_supplied": false,
+    "dependency_copy_retired": false
+  },
+  "interrupted_qualification_attempts": [
+    {
+      "session_id": 51758,
+      "terminal": true,
+      "exit_code": 1,
+      "qualified": false,
+      "receipt": {
+        "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/source398-unpaid-qualification-prep-20261009/qualification-terminal-receipt.json",
+        "sha256": "c8047b0cb6a1755fc57c6ff881ea2d2fae1384064a29ae821527e9fbb657a203"
+      }
+    },
+    {
+      "session_id": 58019,
+      "terminal": true,
+      "exit_code": 1,
+      "qualified": false,
+      "receipt": {
+        "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/source398-unpaid-qualification-prep-20261009/qualification-retry2-terminal-receipt.json",
+        "sha256": "dbb81c3fc3e23227582a0aa8d02f43a0fd377936e894bbafdc57fc0f3934c616"
+      }
+    }
+  ],
+  "retired_dependency_copies": [
+    {
+      "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/source398-unpaid-qualification-prep-20261009/interrupted-dependencies-retirement.json",
+      "sha256": "3fe62fd68ff72802f8a9c0ba5c83e107a2d8fbe1b41d02223b618102d064a5e1"
+    },
+    {
+      "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/source398-unpaid-qualification-prep-20261009/retired-bootstrap-receipt.json",
+      "sha256": "fe55fdd086b309ddc6f32209cdeb590a03b33ed875d133df4a0ec75d2b7cd193"
+    }
+  ],
+  "paid_admission_state": "Not admitted: fresh zero-heavy-job/resource snapshot required before any paid launch."
 }

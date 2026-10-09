@@ -75,6 +75,9 @@ def validate(receipt_path: Path, expected_receipt_sha256: str, candidate: Path,
     for row in rows:
         if not isinstance(row,dict) or set(row)!={'raw_path','final_path','sha256'}: raise ValueError("compiler receipt raw output row differs")
         raw=_relative(row['raw_path'],'raw output path'); final=_relative(row['final_path'],'final output path'); sha=_hex(row['sha256'],64,'raw output')
+        # v1 proves whole-file generated outputs, not mixed source projections.
+        # A compiler copying an input into its output cannot erase authorship.
+        if final in seen: raise ValueError("compiler output overlaps authored input closure")
         if raw in raw_seen or final in final_seen: raise ValueError("compiler receipt output mapping is not one-to-one")
         raw_seen.add(raw); final_seen.add(final); target=_regular_under(raw_root, raw)
         try: target.resolve(strict=True).relative_to(raw_root)

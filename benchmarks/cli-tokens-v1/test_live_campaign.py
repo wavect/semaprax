@@ -127,6 +127,18 @@ class LiveCampaignTests(unittest.TestCase):
                     self.assertEqual(authored_recount.main(), 2)
                 self.assertFalse(refused_output.exists())
             original_receipt = receipt.read_text()
+            # A valid trusted receipt still cannot reclassify an authored input
+            # as generated, including an auxiliary input rather than argv[1].
+            for input_path in ("app.spx", "app.js"):
+                changed = json.loads(original_receipt)
+                if input_path == "app.js":
+                    changed["input_files"].append({"path": input_path, "sha256": by_path[input_path]["sha256"]})
+                (raw / "input-copy").write_bytes((candidate / input_path).read_bytes())
+                changed["raw_outputs"] = [{"raw_path": "input-copy", "final_path": input_path, "sha256": by_path[input_path]["sha256"]}]
+                changed["repeat_outputs"] = [{"raw_path": "input-copy", "sha256": by_path[input_path]["sha256"]}]
+                receipt.write_text(json.dumps(changed))
+                with self.assertRaisesRegex(ValueError, "overlaps authored input"):
+                    authored_recount.compiler_provenance.validate(receipt, authored_recount.digest(receipt), candidate, *kwargs["trusted_compiler"])
             for bad_argv in (["webapp", "../app.spx", "-o", "{output}"], ["webapp", "missing.spx", "-o", "{output}"]):
                 changed = {**receipt_data, "argv": bad_argv}; receipt.write_text(json.dumps(changed))
                 with self.assertRaises(ValueError):

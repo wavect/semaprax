@@ -752,6 +752,12 @@ pub(super) fn byte_capacity_expression(
                             ));
                         }
                     }
+                    ResolvedExprKind::LiteralFormat { args, .. } => {
+                        frames.push(Frame::Sequence(args.len()));
+                        for argument in args.iter().rev() {
+                            frames.push(Frame::Visit(argument, false));
+                        }
+                    }
                     ResolvedExprKind::NativeRustImportCall(call) => {
                         frames.push(Frame::Sequence(call.args.len()));
                         for argument in call.args.iter().rev() {
@@ -1092,3 +1098,58 @@ pub(crate) fn analyze_byte_data_capacity(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod literal_format_capacity_tests {
+    use super::*;
+
+    #[test]
+    fn literal_format_capacity_visits_argument_calls_in_authored_order() {
+        let source = r#"
+module test.format_capacity;
+@id("format.left") fn left() -> usize {
+    let bytes = bytes_zeroed(3usize);
+    byte_len(bytes_as_slice(bytes))
+}
+@id("format.right") fn right() -> usize {
+    let bytes = bytes_zeroed(5usize);
+    byte_len(bytes_as_slice(bytes))
+}
+@id("format.render") fn render() -> String {
+    string_format("{}:{}", left(), right())
+}
+@id("format.main") fn main() -> i64 { string_len(render()) }
+"#;
+        let parsed = crate::check(source, "format-capacity.spx").unwrap();
+        let program = crate::hir::resolve(&parsed).unwrap();
+        let function = program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "format.render")
+            .unwrap();
+        let ResolvedExprKind::Block { tail, .. } = &function.body.kind else {
+            panic!("render retains its authored block")
+        };
+        let ResolvedExprKind::LiteralFormat { args, .. } = &tail.kind else {
+            panic!("render retains its checked format operation")
+        };
+        let facts = ValueFactIndex::new(&program);
+        let mut slots = Vec::new();
+        let flow = byte_capacity_expression(&facts, tail, &mut slots, false).unwrap();
+        let expected = args
+            .iter()
+            .map(|argument| {
+                byte_capacity_expression(&facts, argument, &mut Vec::new(), false).unwrap()
+            })
+            .collect();
+        assert_eq!(
+            flow,
+            crate::byte_data_capacity::CapacityFlow::Sequence(expected)
+        );
+        assert!(slots.is_empty(), "String/scalar staging has no inline arrays");
+        let summary = analyze_byte_data_capacity(&program).unwrap();
+        let render = summary.function("format.render").unwrap();
+        assert_eq!(render.bytes_copy_sites, 2);
+        assert_eq!(render.owned_byte_payload_bytes, 8);
+    }
+}

@@ -2,6 +2,24 @@ use super::*;
 use crate::interpreter::retained_call::owned_handoff::staged_count;
 
 #[test]
+fn cached_bound_handoff_matches_explicitly_authenticated_delivery() {
+    let boundary = Boundary::derive().unwrap();
+    for input in [b"".as_slice(), b"matcher"] {
+        let cached = boundary.deliver_bound(input, MAX_FUEL).unwrap();
+        let authenticated = boundary
+            .deliver(
+                &boundary.authenticated_bytes,
+                boundary.digest,
+                input,
+                MAX_FUEL,
+            )
+            .unwrap();
+        assert_eq!(cached, input);
+        assert_eq!(cached, authenticated);
+    }
+}
+
+#[test]
 fn owned_handoff_binding_is_reproducible_and_real_bytes_settle_before_output() {
     let first = Boundary::derive().unwrap();
     let second = Boundary::derive().unwrap();

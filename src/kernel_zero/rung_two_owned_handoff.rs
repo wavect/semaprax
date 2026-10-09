@@ -11,8 +11,11 @@ const ENTRY: &str = "kernel-zero.owned-handoff.move";
 const MAX_BYTES: usize = super::rung_two_authority::MAX_TOKEN_BYTES;
 
 struct Boundary {
+    #[cfg(test)]
     binding: Binding,
+    #[cfg(test)]
     authenticated_bytes: Vec<u8>,
+    #[cfg(test)]
     digest: [u8; 32],
     prepared: PreparedOwnedHandoff,
 }
@@ -29,16 +32,22 @@ impl Boundary {
             let binding = Binding::derive(&program)?;
             let authenticated_bytes = binding.bytes()?;
             let digest = checksum(&authenticated_bytes);
+            let expected_bytes = binding.bytes()?;
+            Binding::authenticate(&authenticated_bytes, digest, &expected_bytes)?;
             let prepared = PreparedOwnedHandoff::new(program, ENTRY).map_err(|_| ())?;
             Ok(Self {
+                #[cfg(test)]
                 binding,
+                #[cfg(test)]
                 authenticated_bytes,
+                #[cfg(test)]
                 digest,
                 prepared,
             })
         })
     }
 
+    #[cfg(test)]
     fn deliver(
         &self,
         bytes: &[u8],
@@ -50,6 +59,19 @@ impl Boundary {
             return Err(());
         }
         Binding::authenticate(bytes, digest, &self.authenticated_bytes)?;
+        self.execute(input, fuel)
+    }
+
+    // This private path is available only from the OnceLock-published
+    // Boundary, after its fixed recipe was authenticated in `derive`.
+    fn deliver_bound(&self, input: &[u8], fuel: usize) -> Result<Vec<u8>, ()> {
+        if input.len() > MAX_BYTES {
+            return Err(());
+        }
+        self.execute(input, fuel)
+    }
+
+    fn execute(&self, input: &[u8], fuel: usize) -> Result<Vec<u8>, ()> {
         let settled = self
             .prepared
             .execute(input, fuel)
@@ -69,10 +91,10 @@ pub(super) fn handoff(candidate: String) -> Result<String, ()> {
         .get_or_init(Boundary::derive)
         .as_ref()
         .map_err(|_| ())?;
-    // Authenticate the held source/entry/core/target/maximum recipe before any
-    // language-owner allocation. This copy is bounded by the private profile.
-    let bytes = boundary.binding.bytes()?;
-    let settled = boundary.deliver(&bytes, boundary.digest, candidate.as_bytes(), MAX_FUEL)?;
+    // Boundary::derive authenticates the fixed recipe once before the private
+    // immutable boundary is published. Each candidate still goes through the
+    // prepared interpreter and exact settled-output comparison.
+    let settled = boundary.deliver_bound(candidate.as_bytes(), MAX_FUEL)?;
     String::from_utf8(settled).map_err(|_| ())
 }
 

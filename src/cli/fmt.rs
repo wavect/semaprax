@@ -28,9 +28,7 @@ pub(crate) struct FmtOptions {
 
 pub(crate) fn parse(args: &[String]) -> Result<FmtOptions, u8> {
     let (path, check, manifest_only) = match args {
-        [option, path] if option == "--manifest" && !path.starts_with('-') => {
-            (path, false, true)
-        }
+        [option, path] if option == "--manifest" && !path.starts_with('-') => (path, false, true),
         [option, path, check]
             if option == "--manifest" && !path.starts_with('-') && check == "--check" =>
         {
@@ -149,7 +147,10 @@ fn format_manifest(
     let source = std::fs::read_to_string(path).map_err(|error| {
         report(&[Diagnostic::io(
             "SPX-J102",
-            format!("cannot read Project v1 manifest {}: {error}", path.display()),
+            format!(
+                "cannot read Project v1 manifest {}: {error}",
+                path.display()
+            ),
         )
         .at_path(path.display().to_string())
         .with_help(MISSING_MANIFEST_HELP)])
@@ -301,7 +302,12 @@ mod tests {
             }
         );
         assert_eq!(
-            parse(&strings(&["--manifest", "fixtures/semaprax.toml", "--check"])).unwrap(),
+            parse(&strings(&[
+                "--manifest",
+                "fixtures/semaprax.toml",
+                "--check"
+            ]))
+            .unwrap(),
             FmtOptions {
                 input: FmtInput::Manifest(super::super::project::normalize_project_path(
                     PathBuf::from("fixtures/semaprax.toml"),
@@ -310,8 +316,18 @@ mod tests {
             }
         );
         assert_eq!(
-            parse(&strings(&["--check", "--manifest", "fixtures/semaprax.toml"])).unwrap(),
-            parse(&strings(&["--manifest", "fixtures/semaprax.toml", "--check"])).unwrap()
+            parse(&strings(&[
+                "--check",
+                "--manifest",
+                "fixtures/semaprax.toml"
+            ]))
+            .unwrap(),
+            parse(&strings(&[
+                "--manifest",
+                "fixtures/semaprax.toml",
+                "--check"
+            ]))
+            .unwrap()
         );
         for malformed in [
             &[][..],
@@ -351,18 +367,22 @@ mod tests {
     fn manifest_formatter_checks_without_writing_then_emits_exact_canonical_layout() {
         let (directory, path) = scratch_manifest("canonicalize", NONCANONICAL_TABLE_MANIFEST);
         assert_eq!(
-            ProjectManifest::parse(NONCANONICAL_TABLE_MANIFEST)
-                .unwrap_err()[0]
-                .code,
+            ProjectManifest::parse(NONCANONICAL_TABLE_MANIFEST).unwrap_err()[0].code,
             "SPX-J100"
         );
         let options = parse(&strings(&["--manifest", path.to_str().unwrap(), "--check"])).unwrap();
         assert_eq!(run(options, |_| 1), Err(1));
-        assert_eq!(std::fs::read_to_string(&path).unwrap(), NONCANONICAL_TABLE_MANIFEST);
+        assert_eq!(
+            std::fs::read_to_string(&path).unwrap(),
+            NONCANONICAL_TABLE_MANIFEST
+        );
 
         let options = parse(&strings(&["--manifest", path.to_str().unwrap()])).unwrap();
         run(options, |_| 1).unwrap();
-        assert_eq!(std::fs::read_to_string(&path).unwrap(), CANONICAL_TABLE_MANIFEST);
+        assert_eq!(
+            std::fs::read_to_string(&path).unwrap(),
+            CANONICAL_TABLE_MANIFEST
+        );
         std::fs::remove_dir_all(directory).unwrap();
     }
 
@@ -375,7 +395,9 @@ mod tests {
         let (directory, path) = scratch_manifest("invalid", &invalid);
         let options = parse(&strings(&["--manifest", path.to_str().unwrap()])).unwrap();
         let status = run(options, |diagnostics| {
-            assert!(diagnostics.iter().any(|diagnostic| diagnostic.message.contains("2..=16")));
+            assert!(diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.message.contains("2..=16")));
             7
         });
         assert_eq!(status, Err(7));
@@ -404,7 +426,10 @@ mod tests {
         run(options, |_| 1).unwrap();
         let options = parse(&[directory.to_string_lossy().into_owned()]).unwrap();
         run(options, |_| 1).unwrap();
-        assert_eq!(std::fs::read_to_string(&manifest_path).unwrap(), CANONICAL_TABLE_MANIFEST);
+        assert_eq!(
+            std::fs::read_to_string(&manifest_path).unwrap(),
+            CANONICAL_TABLE_MANIFEST
+        );
         std::fs::remove_dir_all(directory).unwrap();
     }
 
@@ -423,11 +448,16 @@ mod tests {
 
         let options = parse(&[manifest_path.to_string_lossy().into_owned()]).unwrap();
         let status = run(options, |diagnostics| {
-            assert!(diagnostics.iter().any(|diagnostic| diagnostic.code == "SPX-J100"));
+            assert!(diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.code == "SPX-J100"));
             7
         });
         assert_eq!(status, Err(7));
-        assert_eq!(std::fs::read_to_string(&manifest_path).unwrap(), NONCANONICAL_TABLE_MANIFEST);
+        assert_eq!(
+            std::fs::read_to_string(&manifest_path).unwrap(),
+            NONCANONICAL_TABLE_MANIFEST
+        );
         assert_eq!(std::fs::read_to_string(app_path).unwrap(), app_before);
         assert_eq!(std::fs::read_to_string(tests_path).unwrap(), tests_before);
         std::fs::remove_dir_all(directory).unwrap();
@@ -461,11 +491,16 @@ mod tests {
 
         let options = parse(&strings(&["--manifest", alias.to_str().unwrap()])).unwrap();
         let status = run(options, |diagnostics| {
-            assert!(diagnostics.iter().any(|diagnostic| diagnostic.code == "SPX-J102"));
+            assert!(diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.code == "SPX-J102"));
             7
         });
         assert_eq!(status, Err(7));
-        assert_eq!(std::fs::read_to_string(&target).unwrap(), NONCANONICAL_TABLE_MANIFEST);
+        assert_eq!(
+            std::fs::read_to_string(&target).unwrap(),
+            NONCANONICAL_TABLE_MANIFEST
+        );
         assert!(std::fs::symlink_metadata(&alias)
             .unwrap()
             .file_type()

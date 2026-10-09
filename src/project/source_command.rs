@@ -68,7 +68,10 @@ mod tests {
 
     #[test]
     fn source_command_interpreter_refusal_preserves_code_and_gives_native_command() {
-        for profile in [ProjectProfile::SourceCommandV1, ProjectProfile::SourceCommandResourceOutputV1] {
+        for profile in [
+            ProjectProfile::SourceCommandV1,
+            ProjectProfile::SourceCommandResourceOutputV1,
+        ] {
             let diagnostic = require_interpreter(profile).unwrap_err();
             assert_eq!(diagnostic.code, "SPX-F102");
             assert_eq!(diagnostic.message, "source-command profiles admit only a native invocation; Project interpreter execution has no argv/file authority provider");

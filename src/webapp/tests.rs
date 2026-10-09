@@ -733,7 +733,7 @@ fn row_aware_default_policies_cover_matching_entities_most_specific_first() {
     let schema = schema(&projection);
     // `job` has `member_id`, so the row-aware default wins over `can_write`.
     assert!(schema.contains(
-        "canWrite: { row: true, test: (r, u) => (f_can_write(u.role) || (r.member_id === u.id)) }"
+        "canWrite: { row: true, test: (r, u) => (f_can_write(u.role) || (r.member_id === u.id)), create: (u) => {"
     ));
     assert_eq!(schema.matches("canWrite: { row: false, test:").count(), 2);
     let typo = source.replace(

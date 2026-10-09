@@ -104,6 +104,10 @@ nothing.
   monotonic and never reused. Before publication, write failure returns 500
   and preserves the previous state. After publication, a mirror failure returns
   503 with `committed:true`; restart recovers that mutation and its one audit fact.
+  Staged files are flushed before rename. POSIX also flushes the containing
+  directory; Windows flushes the published file because Node does not expose
+  a directory descriptor there. Flush errors retain the same pre/post-publication
+  failure behavior. This profile does not promise recovery from power loss.
 - The canonical data directory has one exclusive `.writer-lock` claim, acquired
   before loading state. A second writer, including through a symlink alias,
   fails startup. SIGINT/SIGTERM and normal exit release the claim. A crash keeps

@@ -106,6 +106,8 @@ impl PlanBuilder<'_> {
                     (Some(left_flags), Some(right_flags)) if left_flags == right_flags => {
                         left_flags
                     }
+                    (Some(left_flags), Some(right_flags)) if left_flags.is_empty() => right_flags,
+                    (Some(left_flags), Some(right_flags)) if right_flags.is_empty() => left_flags,
                     (Some(_), Some(_)) => {
                         return Err(plan_error(
                             "branch join disagrees on conditional case payload liveness",

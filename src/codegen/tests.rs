@@ -490,7 +490,9 @@ fn main() -> i64 { increment(41) }
     );
     assert_eq!(
         digest,
-        "f8eeafe9d84e6d5fa1fd6e90407838f6fff6f449a9c13dd528da2306cceb9d56"
+        // Restoring only the pre-conversion-help scalar runtime reproduces
+        // the prior baseline byte for byte; all other generated C is unchanged.
+        "ad313242ea1e297cd802e47812285f886fbc3528b903e9210d24fa4d27d35bb3"
     );
 }
 

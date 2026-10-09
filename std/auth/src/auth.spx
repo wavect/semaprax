@@ -52,38 +52,13 @@ module std.auth;
 //    layer (a numeric session/key handle, or an already-decided boolean
 //    like the kind `token_verification_admits`'s `has_valid_signature`
 //    takes).
-// 4. CAPACITY CEILING, checked directly and not worked around: calling any
-//    function whose parameter or return type mentions a user generic
-//    record fails on the interpreter backend with `SPX-F102`
-//    ("interpreter admission failed (unsupported_callee)"), even though
-//    `semaprax check` admits the declarations and the calls statically.
-//    Isolated by direct bisection with throwaway `secret_wrap_i64`/
-//    `secret_expose_i64` functions (since removed — see point 5): a bare
-//    record literal (`Secret<i64> { value: 42 }`) followed by direct field
-//    access (`.value`) executes cleanly on the interpreter; substituting
-//    either step for a call to a function typed over `Secret<i64>`
-//    reproduces `SPX-F102` at that exact call. This is a real
-//    interpreter-backend admission gap for user generic records used
-//    across a function boundary, not specific to secrets or to this
-//    package — `semaprax run`/`semaprax test` hit it identically. Closing
-//    it is `src/interpreter.rs` work outside this change's lease and
-//    outside a single-package change's scope; reported here rather than
-//    silently narrowed around. CONFIRMED by a later tranche's own hostile
-//    test, which first mis-guessed the opposite (that this was NOT
-//    generic-specific) and was caught by its own suite: `Identity`/
-//    `Authorization` below are plain, non-generic records, and a call
-//    across a function boundary typed over either DOES execute — on the
-//    specific interpreter seam that later tranche's test actually exercises
-//    (`crate::interpreter::retained_call`, used by hosted/embedding
-//    multi-argument calls). That seam's `copy_records::flat_copy_record`
-//    extension (`src/interpreter/retained_call/copy_records.rs`)
-//    specifically admits a non-generic record with only closed scalar
-//    leaves across a function boundary, while still excluding a generic one
-//    by its `record.type_parameters.is_empty()` check — so `Secret<i64>`
-//    still hits `SPX-F102` on that same seam. "Generic" was the right word
-//    all along for this shape; see that section's point 4 for the full
-//    story, including which seam was actually tested and how the first,
-//    broader guess was found wrong.
+// 4. Concrete generic Copy records such as Secret<i64> now cross the
+//    retained-call interpreter boundary under checked record composition.
+//    The owning regression executes the actual call and pins Returned(0).
+//    Direct String call signatures still refuse on the ordinary profile
+//    with exact SPX-F102; generic carrier admission does not widen that
+//    frozen boundary. No opaque or constant-time property follows from
+//    ordinary record composition.
 // 5. A second, independent reason no wrap/expose/match function over
 //    `Secret<T>` ships: this package's own conformance-completeness gate
 //    (`tests/project/standard_library.rs`'s
@@ -93,8 +68,8 @@ module std.auth;
 //    function whose signature mentions a record at all (`SPX-G172`,
 //    "function signature leaves the admitted scalar/Copy workspace
 //    domain") — checked directly by adding such functions and watching
-//    both gates in turn, not assumed. Point 4 and point 5 independently
-//    rule out the same shape, so `Secret<T>` values stay call-local here:
+//    the conformance gate, not assumed. This independent import boundary
+//    keeps the shipped `Secret<T>` values call-local here:
 //    constructed and read with a literal and `.value`, exactly like
 //    `secret_self_check` below.
 @id("std.auth.secret")

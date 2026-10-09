@@ -439,7 +439,7 @@ mod ordering_selection_tests {
                 crate::string_ops::COMPARE_ID
             )))
         );
-        let ordering = resolved("string_compare(\"a\\0\", \"a\")");
+        let ordering = resolved("string_compare(\"a\0\", \"a\")");
         assert_eq!(import_count(&ordering), IMPORT_COUNT + 1);
         assert!(program_uses_ordering(&ordering));
         insert_function_indexes(&mut indexes, 31, true);

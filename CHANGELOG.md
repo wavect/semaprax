@@ -2,8 +2,19 @@
 
 - Add `semaprax help shapes kinds` as a complete exact selector index derived
   from the generated language-shapes companion (issue #699). The bare catalog,
-  existing lookups, and guide byte limit remain pinned; required validation is
-  pending.
+  existing lookups, and guide byte limit remain pinned. Four focused CLI
+  regressions and scoped clippy pass.
+
+- Keep constructed variant tag domains complete while carrying cleanup flags
+  only for reachable owned cases, including scalar yields and failed reductions.
+  Match authentication still derives payload inventory from validated HIR.
+
+- Restore the ordinary interpreter direct String signature refusal without
+  excluding admitted nominal owned-data records.
+
+- Flush generated webapp publication files through the Windows file handle
+  and POSIX directories through their directory handle, retaining staged writes,
+  atomic rename, restart validation, and propagated synchronization failures.
 
 - Capture optional raw compiler-output evidence before acceptance builds, with
   fresh reproduction and immutable campaign/trial bindings for source-component

@@ -327,6 +327,8 @@ fn join_conditional_variants(
         for declared in domain {
             let flags = match (left_cases.get(&declared.id), right_cases.get(&declared.id)) {
                 (Some(left), Some(right)) if left == right => (*left).clone(),
+                (Some(left), Some(right)) if left.is_empty() => (*right).clone(),
+                (Some(left), Some(right)) if right.is_empty() => (*left).clone(),
                 (Some(_), Some(_)) => {
                     return Err(replay_error(
                         function,

@@ -47,12 +47,19 @@ process.on("exit", () => {
   try { if (JSON.parse(fs.readFileSync(lockOwner, "utf8")).token === lockToken) { fs.unlinkSync(lockOwner); fs.rmdirSync(lockDir); } } catch { /* retain an uncertain claim */ }
 });
 for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => process.exit(0));
-const syncDir = () => { const fd = fs.openSync(dir, "r"); try { fs.fsyncSync(fd); } finally { fs.closeSync(fd); } };
+// Node cannot open directory descriptors on Windows. Flush the published
+// file there; staged bytes are already flushed before the atomic rename.
+// POSIX also flushes the containing directory. Every flush error propagates.
+const syncPublication = (file) => {
+  const windows = process.platform === "win32";
+  const fd = fs.openSync(windows ? file : dir, windows ? "r+" : "r");
+  try { fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+};
 const stageFile = (file, text, mode) => {
   const fd = fs.openSync(file + ".tmp", "w", mode);
   try { fs.writeFileSync(fd, text); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
 };
-const writeAtomic = (file, text, mode) => { stageFile(file, text, mode); fs.renameSync(file + ".tmp", file); syncDir(); };
+const writeAtomic = (file, text, mode) => { stageFile(file, text, mode); fs.renameSync(file + ".tmp", file); syncPublication(file); };
 // state.json is the publication boundary, including all required audit facts.
 // Legacy files remain readable mirrors; a restart repairs them from this snapshot.
 const stateFile = path.join(dir, "state.json");
@@ -245,9 +252,9 @@ function persistState() {
       stageFile(file, text, mode);
     }
     stageFile(stateFile, JSON.stringify({ version: 1, db, auth: authBytes, audit: auditBytes }) + "\n", 0o600);
-    fs.renameSync(stateFile + ".tmp", stateFile); committed = true; syncDir();
+    fs.renameSync(stateFile + ".tmp", stateFile); committed = true; syncPublication(stateFile);
     for (const [file] of mirrors) fs.renameSync(file + ".tmp", file);
-    syncDir();
+    syncPublication(stateFile);
   } catch (e) { e.committed = committed; throw e; }
   finally { for (const [file] of [...mirrors, [stateFile]]) { try { fs.unlinkSync(file + ".tmp"); } catch { /* no stage remains */ } } }
 }

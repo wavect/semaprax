@@ -3,6 +3,54 @@ use super::*;
 
 const SCHEMA: &str = "semaprax.graph.v71";
 
+fn include_owned_string(binding: &hir::ResolvedBinding, owned_strings: &mut BTreeSet<ValueId>) {
+    if binding.ty == ResolvedType::String && binding.ownership == OwnershipMode::Own {
+        owned_strings.insert(binding.id.clone());
+    }
+}
+
+fn include_record_pattern_strings(
+    fields: &[hir::ResolvedRecordMatchPatternField],
+    owned_strings: &mut BTreeSet<ValueId>,
+) {
+    for field in fields {
+        match &field.pattern {
+            hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
+                include_owned_string(binding, owned_strings);
+            }
+            hir::ResolvedRecordMatchFieldPattern::Record { fields, .. } => {
+                include_record_pattern_strings(fields, owned_strings);
+            }
+            hir::ResolvedRecordMatchFieldPattern::Wildcard => {}
+        }
+    }
+}
+
+fn include_match_pattern_strings(
+    pattern: &hir::ResolvedMatchPattern,
+    owned_strings: &mut BTreeSet<ValueId>,
+) {
+    match pattern {
+        hir::ResolvedMatchPattern::Variant { fields, .. } => {
+            for field in fields {
+                include_owned_string(&field.binding, owned_strings);
+            }
+        }
+        hir::ResolvedMatchPattern::Record { fields, .. } => {
+            include_record_pattern_strings(fields, owned_strings);
+        }
+        hir::ResolvedMatchPattern::Binding(binding) => {
+            include_owned_string(binding, owned_strings);
+        }
+        hir::ResolvedMatchPattern::Or(alternatives) => {
+            for alternative in alternatives {
+                include_match_pattern_strings(alternative, owned_strings);
+            }
+        }
+        hir::ResolvedMatchPattern::Wildcard | hir::ResolvedMatchPattern::Literal(_) => {}
+    }
+}
+
 fn requires_function(function: &ResolvedFunction) -> bool {
     let mut owned_strings = function
         .params
@@ -24,13 +72,22 @@ fn requires_function(function: &ResolvedFunction) -> bool {
                 }
             }
         }
-        if let ResolvedExprKind::Closure { captures, .. } = &expression.kind {
+        if let ResolvedExprKind::Closure {
+            parameters,
+            captures,
+            ..
+        } = &expression.kind
+        {
+            for parameter in parameters {
+                include_owned_string(parameter, &mut owned_strings);
+            }
             for capture in captures {
-                if capture.binding.ty == ResolvedType::String
-                    && capture.binding.ownership == OwnershipMode::Own
-                {
-                    owned_strings.insert(capture.binding.id.clone());
-                }
+                include_owned_string(&capture.binding, &mut owned_strings);
+            }
+        }
+        if let ResolvedExprKind::Match { arms, .. } = &expression.kind {
+            for arm in arms {
+                include_match_pattern_strings(&arm.pattern, &mut owned_strings);
             }
         }
     });

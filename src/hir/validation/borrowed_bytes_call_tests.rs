@@ -364,6 +364,34 @@ module test.existing_borrowed_str_byte_view;
 }
 
 #[test]
+fn fused_string_view_from_owned_record_pattern_selects_graph_v71_from_parts() {
+    let source = r#"
+module test.fused_string_pattern_byte_view;
+@id("carrier.type") record Carrier { @id("carrier.text") text: string, }
+@id("bytes.measure") fn measure(carrier: own Carrier) -> usize {
+  match own carrier {
+    Carrier{text} => byte_len(str_as_bytes(string_as_str(text))),
+  }
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let parsed = crate::parse(source, "fused-string-pattern-byte-view.spx").unwrap();
+    let program = crate::hir::resolve(&parsed).unwrap();
+    crate::hir::validate(&program).unwrap();
+    assert_eq!(
+        crate::graph::graph_schema_from_parts_and_instances(
+            &program.interfaces,
+            &program.types,
+            &program.functions,
+            &program.function_templates,
+            &program.function_instances,
+        )
+        .unwrap(),
+        "semaprax.graph.v71"
+    );
+}
+
+#[test]
 fn fused_string_byte_view_rejects_a_forged_operation_on_the_string_root() {
     let parsed = crate::parse(FUSED_STRING_VIEW, "fused-string-byte-view-hostile.spx").unwrap();
     let mut program = crate::hir::resolve(&parsed).unwrap();

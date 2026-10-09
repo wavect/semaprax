@@ -73,6 +73,26 @@ def digest(path: Path) -> str:
     return value.hexdigest()
 
 
+def require_compiler_binding(settings: dict[str, Any], semaprax_bin: Path) -> None:
+    """Recheck the planned compiler before preparing or dispatching paid work."""
+    expected = settings.get("source_binary_sha256")
+    if (not isinstance(expected, str) or len(expected) != 64
+            or any(character not in "0123456789abcdef" for character in expected)):
+        raise ValueError("campaign plan must bind a lowercase SHA-256 compiler binary hash")
+    binary = semaprax_bin.expanduser().resolve(strict=True)
+    if not binary.is_file() or digest(binary) != expected:
+        raise ValueError("compiler binary differs from the immutable campaign plan")
+    qualification = settings.get("qualification", {})
+    if not isinstance(qualification, dict):
+        raise ValueError("campaign qualification metadata must be an object")
+    if any(key in qualification for key in ("compiler_source_commit", "compiler_binary_sha256")):
+        source = qualification.get("compiler_source_commit")
+        if (not isinstance(source, str) or not source
+                or source != settings.get("compiler_source_commit")
+                or qualification.get("compiler_binary_sha256") != expected):
+            raise ValueError("requested compiler source or binary differs from qualification evidence")
+
+
 def tokenizer_metadata(tokenizer_dir: str | Path | None) -> dict[str, Any] | None:
     if tokenizer_dir is None:
         return None

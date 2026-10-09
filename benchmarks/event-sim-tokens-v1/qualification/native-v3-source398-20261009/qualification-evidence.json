@@ -1,0 +1,46 @@
+{
+  "acceptance_corpus_sha256": "3c285999cfcf6a905e885d636ac55ba0ccb0f5999ef5b20ac3a8c17a2e023587",
+  "acceptance_report": {
+    "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-qualification-source398b051e6-20261009/qualification-v3/acceptance-report.json",
+    "sha256": "6d2edb5c32701c57d8f4b8c2c065c2e0bbd2951c1db88598c2dcda62c88dc1af"
+  },
+  "candidate_source": {
+    "inventory": {
+      "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-qualification-source398b051e6-20261009/qualification-v3/candidate-source-inventory.json",
+      "sha256": "b8a594149b1b12ad12e27519dfd983fa0fd1b14160c482ed2594dafbe5c4a738"
+    },
+    "manifest": {
+      "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-qualification-source398b051e6-20261009/qualification-v3/candidate-semaprax.toml",
+      "sha256": "d3687236ce9319a609262111f5ceb60e244e0227143d6a3811d75745469e94fd"
+    }
+  },
+  "compiler_binary_sha256": "594980a96bb3d7f74a168dfa6bc71d6355344f2963489f1e3ae854d2f3a01237",
+  "compiler_source_commit": "398b051e6e7a06ac49ecf77d9292831401430de0",
+  "native_project_route": {
+    "command_result_type": "i64",
+    "input_route": "argv-utf8+stdin-stream.v1",
+    "process_status_range": [
+      0,
+      255
+    ],
+    "project_profile": "language-command-io.stream-data.v1",
+    "project_schema": "semaprax.project.v27"
+  },
+  "qualification_build_receipt": {
+    "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-qualification-source398b051e6-20261009/qualification-v3/qualification-build-receipt.json",
+    "sha256": "49ee6e7b7691760783ee75353a0850001142a7d28f071368e04f03b1a1d7458f"
+  },
+  "qualification_subject": {
+    "candidate_manifest_sha256": "d3687236ce9319a609262111f5ceb60e244e0227143d6a3811d75745469e94fd",
+    "closed_authored_inventory_sha256": "17d0d9da00dea8378e904436837ee5b3930916d71f58482dc2aa5c0a3ab0eb8f",
+    "compiler_binary_sha256": "594980a96bb3d7f74a168dfa6bc71d6355344f2963489f1e3ae854d2f3a01237",
+    "compiler_source_commit": "398b051e6e7a06ac49ecf77d9292831401430de0",
+    "native_binary_sha256": "dd44f27ad29bfcb60703740a6c7340d99fa43c32771e13ce0a3abe8dbd03e6f7"
+  },
+  "qualified_native_binary": {
+    "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-qualification-source398b051e6-20261009/qualification-v3/qualified-native-binary",
+    "sha256": "dd44f27ad29bfcb60703740a6c7340d99fa43c32771e13ce0a3abe8dbd03e6f7"
+  },
+  "schema": "semaprax.event-sim-qualification-evidence.v3",
+  "spec_sha256": "5a8631fc59f55d145bfabb62c8edd3f86164114e3d27b69422031b664b529e00"
+}

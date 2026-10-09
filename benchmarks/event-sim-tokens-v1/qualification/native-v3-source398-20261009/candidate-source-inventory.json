@@ -1,0 +1,46 @@
+{
+  "files": [
+    {
+      "bytes": 1783,
+      "path": "README.md",
+      "sha256": "9ca7ec5c2c774dbb18dfaefc1561a51f00ef21e0c4f0f74aca20cfb49c4db95e"
+    },
+    {
+      "bytes": 283,
+      "path": "build.sh",
+      "sha256": "8c07e8f5af9fd009864d73dfe920d38fc7dab1e546a3595f331560a275416e52"
+    },
+    {
+      "bytes": 60,
+      "path": "run.sh",
+      "sha256": "895c6776dc906b947063dcd47f8dc63403038e5eac0dfb57fe953f4c94d780c6"
+    },
+    {
+      "bytes": 464,
+      "path": "semaprax.toml",
+      "sha256": "d3687236ce9319a609262111f5ceb60e244e0227143d6a3811d75745469e94fd"
+    },
+    {
+      "bytes": 15950,
+      "path": "src/app.spx",
+      "sha256": "4fb638ef22c721b10a899bbc849b7d47dbddca583b9d9e0939767100d9ecb06d"
+    },
+    {
+      "bytes": 332,
+      "path": "src/tests.spx",
+      "sha256": "1e945de66f176944d9369d2f8608308c88ec572c7a1e3bd6577ae1e06ebd3638"
+    },
+    {
+      "bytes": 190,
+      "path": "test.sh",
+      "sha256": "a254c4ef11151e232eb4ee0b528f47bfaa63950daf79d1eb79b7ad7262a271df"
+    },
+    {
+      "bytes": 6484,
+      "path": "tests.py",
+      "sha256": "b6f488db3ce9395729f5ba743664b10e22937a35ee3647a82882a1feb1cdde26"
+    }
+  ],
+  "schema": "semaprax.closed-authored-inventory.v1",
+  "sha256": "17d0d9da00dea8378e904436837ee5b3930916d71f58482dc2aa5c0a3ab0eb8f"
+}

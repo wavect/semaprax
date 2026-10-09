@@ -55,6 +55,13 @@ per-case report through a hashed build receipt. The manifest must select
 `language-command-io.stream-data.v1`, the existing stdin-stream input, the
 closed process capability list, and a single `fn() -> i64` command/export root.
 The frozen SPEC, corpus, oracle, and functional acceptance remain unchanged.
+The [fresh source 398 native-v3 qualification](qualification/native-v3-source398-20261009/README.md)
+records unpaid session 71437 exiting 0 with all 15 cases passing. It binds the
+archived compiler, retained candidate inventory/manifest, fresh native binary,
+and exact acceptance report. Independent Cargo/test work overlapped its wall
+time. Its publication preserves the original monitor validation false negative
+and the corrected read-only receipt; no application rerun or paid campaign is
+claimed. Historical native-v2 pins and paid measurements remain unchanged.
 For every v27 SEMAPRAX attempt the harness invokes the pinned compiler directly,
 builds a fresh native executable outside the candidate, and runs hidden
 acceptance against that executable. Candidate build and test scripts remain

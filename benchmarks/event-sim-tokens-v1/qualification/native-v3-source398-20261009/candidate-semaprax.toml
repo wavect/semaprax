@@ -1,0 +1,21 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "shiftsim"
+version = "0.1.0"
+profile = "language-command-io.stream-data.v1"
+
+[modules]
+entry = "shiftsim.app"
+sources = ["src/app.spx", "src/tests.spx"]
+tests = ["shiftsim.tests"]
+
+[exports]
+web = ["shiftsim.command"]
+
+[command]
+function = "shiftsim.command"
+input = "argv-utf8+stdin-stream.v1"
+
+[capabilities]
+required = ["process.args.read", "process.stderr.write", "process.stdin.read", "process.stdout.write"]

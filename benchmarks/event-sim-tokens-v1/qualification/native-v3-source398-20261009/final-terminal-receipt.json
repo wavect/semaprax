@@ -1,0 +1,85 @@
+{
+  "bound_inputs": {
+    "acceptance_corpus_sha256": "3c285999cfcf6a905e885d636ac55ba0ccb0f5999ef5b20ac3a8c17a2e023587",
+    "base_ref_for_later_scored_plan": "e045527a611a048515349ab2f970043a5d33b185",
+    "candidate": "/Users/kevin/.codex/benchmark-runs/shiftsim-v27-manual-20261008/candidates/semaprax-01",
+    "candidate_manifest_sha256": "d3687236ce9319a609262111f5ceb60e244e0227143d6a3811d75745469e94fd",
+    "compiler_binary": "/Users/kevin/.codex/benchmark-binaries/semaprax-398b051e6",
+    "compiler_binary_sha256": "594980a96bb3d7f74a168dfa6bc71d6355344f2963489f1e3ae854d2f3a01237",
+    "compiler_identity": "/Users/kevin/.codex/benchmark-binaries/semaprax-398b051e6.identity.json",
+    "compiler_identity_sha256": "7819129f86f391dd049257bd5a6ed09b17f191575d8e5b41e34a6e8ff6f6acdb",
+    "compiler_source_commit": "398b051e6e7a06ac49ecf77d9292831401430de0",
+    "repo": "/Users/kevin/.codex/worktrees/shapes-kind-index/AI-Lang",
+    "spec_sha256": "5a8631fc59f55d145bfabb62c8edd3f86164114e3d27b69422031b664b529e00"
+  },
+  "checks": {
+    "acceptance_report_hash_chain": true,
+    "acceptance_report_passed_15": true,
+    "all_resource_samples_within_policy": true,
+    "build_receipt_hash_chain": true,
+    "compiler_hash_bound": true,
+    "compiler_identity_hash_matches": true,
+    "compiler_source_bound": true,
+    "corpus_hash_bound": true,
+    "inventory_hash_chain": true,
+    "manifest_hash_bound": true,
+    "native_binary_hash_chain": true,
+    "only_known_external_heavy_root": true,
+    "paid_attempts_zero": true,
+    "raw_qualification_exit_zero": true,
+    "raw_result_qualified": true,
+    "repo_head_is_source398": true,
+    "resource_violation_absent": true,
+    "spec_hash_bound": true,
+    "v27_route_bound": true,
+    "v3_evidence_schema": true
+  },
+  "host_observation_count_actual": 8,
+  "host_observations": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-unpaid-source398-qualification-prep-20261009/host-observations.jsonl",
+  "initial_monitor_count_note": "Monitor counter omitted the preflight row; eight JSONL observations are retained and validated.",
+  "initial_monitor_validation_note": "The first post-run validator incorrectly expected native_project_route to be a string. V3 evidence stores the route as a structured object; corrected check validates its profile, schema, input route, result type, and status range. Qualification was not rerun.",
+  "no_retry_no_paid_launch": true,
+  "paid_attempts": 0,
+  "qualification_command_receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-unpaid-source398-qualification-prep-20261009/terminal-receipt.json",
+  "qualification_command_receipt_sha256": "e0a8f72ee0f62edba94d76c8b1824ce8291eaf86ebeeae09e0dfe334848dbd7c",
+  "qualification_outputs": {
+    "acceptance_cases": {
+      "all_passed": true,
+      "invalid": 4,
+      "total": 15,
+      "valid": 11
+    },
+    "acceptance_report_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-qualification-source398b051e6-20261009/qualification-v3/acceptance-report.json",
+    "acceptance_report_sha256": "6d2edb5c32701c57d8f4b8c2c065c2e0bbd2951c1db88598c2dcda62c88dc1af",
+    "candidate_inventory_sha256": "b8a594149b1b12ad12e27519dfd983fa0fd1b14160c482ed2594dafbe5c4a738",
+    "evidence_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-qualification-source398b051e6-20261009/qualification-v3/qualification-evidence.json",
+    "evidence_sha256": "6b41f57873ea94954c121539c99f28ab96663c1fa00ecd5316f5b8bb749f33d8",
+    "output_directory": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-qualification-source398b051e6-20261009/qualification-v3",
+    "qualification_build_receipt_sha256": "49ee6e7b7691760783ee75353a0850001142a7d28f071368e04f03b1a1d7458f",
+    "qualified_native_binary_sha256": "dd44f27ad29bfcb60703740a6c7340d99fa43c32771e13ce0a3abe8dbd03e6f7"
+  },
+  "resource_policy": {
+    "disk_floor_bytes": 5368709120,
+    "known_external_process_group": [
+      81144
+    ],
+    "maximum_heavy_roots": 2,
+    "memory_pressure_exit_codes": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "memory_pressure_sample_count": 8,
+    "observed_maximum_heavy_roots": 2,
+    "observed_minimum_free_bytes": 6757249024,
+    "unexpected_external_roots": 0
+  },
+  "schema": "semaprax.shiftsim.unpaid-qualification-final-terminal-receipt.v1",
+  "status": "qualified_unpaid_evidence_validated",
+  "wrapper_admission_claimed": false
+}

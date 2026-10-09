@@ -111,12 +111,58 @@ fn v25_stream_text_links_owned_string_helpers_and_refuses_web_npm() {
     );
     assert_eq!(file_inventory(&root), before);
     std::fs::write(root.join(MANIFEST_FILE), exit_manifest()).unwrap();
-    assert!(
-        with_authenticated_project(&root.join(MANIFEST_FILE), |_| Ok(()))
-            .unwrap_err()
-            .iter()
-            .any(|d| d.code == "SPX-G174")
+    let before = file_inventory(&root);
+    let missing_dependency =
+        with_authenticated_project(&root.join(MANIFEST_FILE), |_| Ok(())).unwrap_err();
+    assert_eq!(missing_dependency.len(), 1);
+    assert_eq!(missing_dependency[0].code, "SPX-G172");
+    assert_eq!(
+        missing_dependency[0].message,
+        "target module is missing or equals the caller module"
     );
+    assert_eq!(file_inventory(&root), before);
+    // Isolate the same owned String helper boundary from dependency selection:
+    // v24 must still refuse text.cut after its missing JSON imports are removed.
+    std::fs::write(
+        root.join("a/app.spx"),
+        canonical_source(
+            "a/app.spx",
+            r#"module stream.app;
+use function @id("text.cut") from stream.input as cut;
+permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
+@id("stream.command") fn command() -> i64 uses { process.stdin.read, process.stdout.write } {
+    let reader=stdin_stream_open();
+    let empty=stdin_stream_eof(reader);
+    let text=cut("é\u{0}");
+    let raw=string_as_str(text);
+    let written=stdout_write(str_as_bytes(raw));
+    if empty { 0 } else { 1 }
+}
+@id("stream.app.main") fn main()->i64 { let text=cut("abc"); string_len(text)-3 }
+"#,
+        ),
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("b/input.spx"),
+        canonical_source(
+            "b/input.spx",
+            r#"module stream.input;
+@id("text.cut") fn cut(text:string)->string { string_slice(text,0,3) }
+"#,
+        ),
+    )
+    .unwrap();
+    let before = file_inventory(&root);
+    let old_profile =
+        with_authenticated_project(&root.join(MANIFEST_FILE), |_| Ok(())).unwrap_err();
+    assert_eq!(old_profile.len(), 1);
+    assert_eq!(old_profile[0].code, "SPX-G174");
+    assert_eq!(
+        old_profile[0].message,
+        "project function `text.cut` has a signature outside the selected profile"
+    );
+    assert_eq!(file_inventory(&root), before);
     let _ = std::fs::remove_dir_all(root);
 }
 #[test]

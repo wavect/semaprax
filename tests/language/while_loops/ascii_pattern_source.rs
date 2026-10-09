@@ -99,9 +99,7 @@ fn expect_std_packet(
         checks.push(format!(
             "capture_start(matcher, {index}usize) == {start}usize"
         ));
-        checks.push(format!(
-            "capture_end(matcher, {index}usize) == {end}usize"
-        ));
+        checks.push(format!("capture_end(matcher, {index}usize) == {end}usize"));
     }
     format!("if {} {{ 1 }} else {{ -1 }}", checks.join(" && "))
 }
@@ -336,10 +334,17 @@ fn standard_library_ascii_pattern_fixture_cases_match_independent_exhaustive_ora
             &expected,
             262_144,
         );
-        interpret_with_identity(&source, case["id"].as_str().unwrap(), "std.pattern.witness.main");
+        interpret_with_identity(
+            &source,
+            case["id"].as_str().unwrap(),
+            "std.pattern.witness.main",
+        );
         count += 1;
     }
-    assert_eq!(count, 19, "the std implementation uses the same 19 independent cases");
+    assert_eq!(
+        count, 19,
+        "the std implementation uses the same 19 independent cases"
+    );
 }
 
 #[test]

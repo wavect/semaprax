@@ -279,15 +279,19 @@ The complete invocation must also fit compilation, table checks, frames, observe
 renew the returned Matcher across records, including after no-match or resource packets. `full_match` preserves the compiled
 table and overwrites only reached frames and the logical result packet.
 
-On inputs of at least 64 bytes, a required-tail check first reads the final atom's minimum after complete header, atom and
-capture-table authentication. A positive minimum means every accepting full-input count vector consumes the last input byte
+On inputs of at least 64 bytes, or at least 16 bytes with six or more atoms, a required-tail check first reads the final atom's
+minimum after complete header, atom and capture-table authentication. A positive minimum means every accepting full-input count vector consumes the last input byte
 with that atom. A literal or exact class rejecting that byte therefore proves no-match without enumerating prefixes. Any-byte
 atoms cannot reject, and a zero minimum cannot establish this condition. The check costs two actual minimum reads; a positive
 minimum adds two kind/value reads and one input read, then one bitmap read for a class (two, five, or six total). Each stage
 preflights its reads while reserving the 32-write packet. An unavailable stage selects work refusal, never no-match; invalid
 compiled tables retain their earlier malformed-table outcome. This makes long `(.*)z` ending in `y` and required-token suffixes
-with a final space decidable without weakening their semantic expected outcomes. The length guard preserves all existing
-short-input work witnesses. A successful tail check grants no accepting authority and continues ordinary greedy matching.
+with a final space decidable without weakening their semantic expected outcomes. The guard retains the original path for all
+existing exact-work witnesses, whose inputs contain at most eight bytes. In particular, the nine-atom hostile table on eight `a` bytes at limit 4096 still requires its work refusal.
+The many-atom extension instead covers five bounded `a{0,4}` atoms plus a required `b` on twenty `a` bytes followed by `c`: the
+final byte proves no-match before up to 3125 count vectors consume ordinary fuel. Fixed tail reads remain charged, with the
+same staged refusal boundary; no logical-work or ordinary-fuel limit is increased. A successful tail check grants no accepting
+authority and continues ordinary greedy matching.
 
 On inputs of at least 64 bytes, terminal-atom pruning skips reductions when the maximal run cannot cover the remaining input:
 for the fixed earlier prefix, every smaller count also leaves an uncovered suffix. Rewinding resumes at an earlier atom.

@@ -194,3 +194,36 @@ fn builder_bytes_help(maximum: usize) -> String {
         )),
     }
 }
+
+/// Evidence belongs to the final resolved-core attempt, captured before its
+/// budget is restored. Neither earlier retries nor diagnostic rendering replace it.
+pub(super) fn live_builder_refusal(
+    maximum: usize,
+    refusal: Option<crate::bounded_output::ReservationRefusal>,
+) -> Diagnostic {
+    let diagnostic = limit_error("builder_bytes", maximum);
+    let evidence = match refusal {
+        Some(refusal) => crate::bounded_output::budgeted_format(format_args!(
+            "resolved-core phase first sticky ledger refusal: requested {} bytes with {} remaining and {} reserved floor. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown.",
+            refusal.requested, refusal.remaining, refusal.floor,
+        )),
+        None => crate::bounded_output::budgeted_format(format_args!(
+            "resolved-core phase refused; the first reservation and exact inner operation are unknown."
+        )),
+    };
+    if evidence.is_empty() {
+        return diagnostic;
+    }
+    let help = match diagnostic.help.as_deref() {
+        Some(help) => crate::bounded_output::budgeted_format(format_args!("{help} {evidence}")),
+        None => evidence,
+    };
+    if help.is_empty() {
+        diagnostic
+    } else {
+        diagnostic.with_help(help)
+    }
+}
+
+#[cfg(test)]
+mod refusal_tests;

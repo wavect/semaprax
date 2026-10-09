@@ -3,11 +3,20 @@ use std::fmt::{self, Write as _};
 use std::ops::Deref;
 use std::rc::Rc;
 
+/// First sticky refusal in one bounded phase. This is ledger evidence, not RSS.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct ReservationRefusal {
+    pub(crate) requested: usize,
+    pub(crate) remaining: usize,
+    pub(crate) floor: usize,
+}
+
 struct Budget {
     initial: usize,
     remaining: Cell<usize>,
     floor: Cell<usize>,
     overflowed: Cell<bool>,
+    first_refusal: Cell<Option<ReservationRefusal>>,
 }
 
 thread_local! {
@@ -20,6 +29,14 @@ pub(crate) fn with_limit<T>(limit: usize, operation: impl FnOnce() -> T) -> (T, 
 }
 
 pub(crate) fn with_limit_usage<T>(limit: usize, operation: impl FnOnce() -> T) -> (T, bool, usize) {
+    let (value, overflowed, consumed, _) = with_limit_usage_refusal(limit, operation);
+    (value, overflowed, consumed)
+}
+
+pub(crate) fn with_limit_usage_refusal<T>(
+    limit: usize,
+    operation: impl FnOnce() -> T,
+) -> (T, bool, usize, Option<ReservationRefusal>) {
     struct Restore {
         previous: Option<Rc<Budget>>,
         current: Rc<Budget>,
@@ -34,6 +51,7 @@ pub(crate) fn with_limit_usage<T>(limit: usize, operation: impl FnOnce() -> T) -
             });
             if let Some(parent) = previous {
                 if !reserve(Some(&parent), consumed) {
+                    record_refusal(&parent, consumed);
                     // A refused reservation normally means nothing was
                     // written, but here the child already emitted the bytes:
                     // they cannot be un-spent. Charge the parent anyway, so
@@ -55,6 +73,7 @@ pub(crate) fn with_limit_usage<T>(limit: usize, operation: impl FnOnce() -> T) -
         remaining: Cell::new(effective_limit),
         floor: Cell::new(0),
         overflowed: Cell::new(false),
+        first_refusal: Cell::new(None),
     });
     let previous = ACTIVE.with(|active| active.replace(Some(Rc::clone(&budget))));
     let restore = Restore {
@@ -65,12 +84,23 @@ pub(crate) fn with_limit_usage<T>(limit: usize, operation: impl FnOnce() -> T) -
     let value = operation();
     let overflowed = budget.overflowed.get();
     let consumed = effective_limit.saturating_sub(budget.remaining.get());
+    let refusal = budget.first_refusal.get();
     drop(restore);
-    (value, overflowed, consumed)
+    (value, overflowed, consumed, refusal)
 }
 
 fn active() -> Option<Rc<Budget>> {
     ACTIVE.with(|active| active.borrow().clone())
+}
+
+fn record_refusal(budget: &Budget, length: usize) {
+    if budget.first_refusal.get().is_none() {
+        budget.first_refusal.set(Some(ReservationRefusal {
+            requested: length,
+            remaining: budget.remaining.get(),
+            floor: budget.floor.get(),
+        }));
+    }
 }
 
 fn reserve(budget: Option<&Budget>, length: usize) -> bool {
@@ -79,6 +109,7 @@ fn reserve(budget: Option<&Budget>, length: usize) -> bool {
     };
     let remaining = budget.remaining.get();
     if length > remaining {
+        record_refusal(budget, length);
         budget.overflowed.set(true);
         return false;
     }
@@ -104,6 +135,7 @@ pub(crate) fn reserve_active_required(length: usize) -> bool {
     let admitted = reserve(budget.as_deref(), length);
     if !admitted {
         if let Some(budget) = budget {
+            record_refusal(&budget, length);
             budget.overflowed.set(true);
         }
     }
@@ -1031,3 +1063,6 @@ mod tests {
         assert_eq!(used, 3);
     }
 }
+
+#[cfg(test)]
+mod refusal_tests;

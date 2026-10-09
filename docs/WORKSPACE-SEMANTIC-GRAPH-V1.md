@@ -173,6 +173,17 @@ reserved against the same `builder_bytes` budget. Either overflow produces
 `SPX-G171`. A looser estimate rejects earlier and a tighter one later; neither
 removes the retained-memory bound.
 
+A final live resolved-core budget refusal may include additive help with the
+first sticky reservation's requested bytes, remaining bytes, and reserved
+floor, captured from that exact attempt before its budget is restored. Optional
+floor refusals remain non-sticky and are not recorded. Failed earlier retries
+and nested child phases cannot supply the final attempt's evidence. The known
+phase is `resolved-core`; the exact inner operation is explicitly unknown.
+These quantities describe the cumulative reservation ledger, not a retained
+peak forecast, allocator measurement, or process RSS. The SPX-G171 code,
+message, source immutability, and ceiling are unchanged. Missing evidence is
+reported as unknown, never synthesized from the static forecast.
+
 The legacy estimate uses the longest authored identity in the whole workspace.
 If that estimate would exceed the builder limit, an additive fallback repeats
 the same arithmetic with each module's own transitive dependency closure and

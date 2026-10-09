@@ -4122,8 +4122,8 @@ fn build_owned_inner(
                 expected_projection::uncached_peak::uncached_output_layout(&programs, &authored)
             })
             .transpose()?;
-        let (core, overflowed, consumed) =
-            crate::bounded_output::with_limit_usage(active_builder_limit(), || {
+        let (core, overflowed, consumed, refusal) =
+            crate::bounded_output::with_limit_usage_refusal(active_builder_limit(), || {
                 charge_builder_prebound(resolve_builder_bytes)?;
                 build_resolved_core(
                     &programs,
@@ -4144,7 +4144,7 @@ fn build_owned_inner(
         // next phase. Its debit remains in the maximum phase receipt.
         drop(core);
         if fallback_mode >= if allow_uncached_peak { 6 } else { 4 } || !retry_allowed {
-            return Err(vec![limit_error("builder_bytes", active_builder_limit())]);
+            return Err(vec![diagnostics::live_builder_refusal(active_builder_limit(), refusal)]);
         }
         // Mode six is the bounded final retry: mode five's uncached receipt
         // already fits, but its full retained output carrier overflowed. Its

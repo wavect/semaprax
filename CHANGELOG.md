@@ -1,5 +1,9 @@
 # Changelog
 
+- Attach the final resolved-core builder phase's first sticky reservation
+  evidence to SPX-G171 help, preserving the exact message, ledger behavior,
+  independent retry budgets, and unknown inner-operation attribution.
+
 - Reduce validation allocation by borrowing byte-operation signatures and
   retained zero-argument nominal facts, constructing byte-slot labels only
   when retained, and omitting loan census scratch for HIR-covered identities.

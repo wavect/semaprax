@@ -1102,7 +1102,8 @@ fn record_owner_renewal_named_views_execute_and_settle_on_three_backends() {
     semaprax::wasm::build_web(&program, &root).unwrap();
     std::fs::write(root.join("probe.mjs"), r#"import {readFile} from 'node:fs/promises';
 import {instantiateBytes} from './semaprax.js';
-const {instance}=await instantiateBytes(await readFile('./app.wasm'),{maxOwnedByteEntries:2});
+// Matcher.storage, independent source Bytes, and the owned label String share this arena.
+const {instance}=await instantiateBytes(await readFile('./app.wasm'),{maxOwnedByteEntries:3});
 for(let i=0;i<8;i++) { const value=instance.exports.semaprax_main(); if(value!==15n) throw Error(`renewal:${value}`); }
 "#).unwrap();
     let output = Command::new("node")

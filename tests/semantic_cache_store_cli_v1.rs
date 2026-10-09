@@ -8,7 +8,9 @@
         target_os = "redox"
     )
 ))]
-use semaprax::project::{with_authenticated_project, ProjectSemanticImage};
+use semaprax::project::{
+    with_authenticated_project, ProjectFrontendCache, ProjectFrontendSource, ProjectSemanticImage,
+};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::io::Write;
@@ -189,6 +191,23 @@ impl Fixture {
         })
         .unwrap()
     }
+    fn semantic_cache_image(&self) -> ProjectSemanticImage {
+        with_authenticated_project(&self.root.join("semaprax.toml"), |snapshot| {
+            let authenticated = snapshot.retain_revision();
+            let sources = authenticated
+                .sources()
+                .iter()
+                .map(|source| ProjectFrontendSource::new(source.path(), source.source()))
+                .collect::<Result<Vec<_>, _>>()?;
+            // Match the cold CLI's staged semantic-frontend retention route.
+            // An ordinary uncached graph may use a different construction peak.
+            let revision = ProjectFrontendCache::new_with_semantic_cache()
+                .build(authenticated.manifest(), &sources)?
+                .into_revision();
+            ProjectSemanticImage::derive(revision.clone(), revision.project_revision())
+        })
+        .unwrap()
+    }
     fn session(&self, policy: &Value, input: &str) -> Output {
         let policy_path = self.root.join("host.json");
         std::fs::write(&policy_path, policy.to_string()).unwrap();
@@ -319,7 +338,11 @@ fn projected() -> i64 {
     let cold = value(fixture.cold_open());
     assert_eq!(cold["frontend_work"]["work"]["modules_resolved"], 3);
     assert_eq!(cold["frontend_work"]["work"]["checked_HIR_reused"], 0);
-    let cold_image = fixture.image();
+    let cold_image = fixture.semantic_cache_image();
+    assert_eq!(
+        cold_image.revision().project_revision(),
+        cold["project_revision"].as_str().unwrap()
+    );
     let projected = cold_image
         .revision()
         .test_program()

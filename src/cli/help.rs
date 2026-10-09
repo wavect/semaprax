@@ -427,6 +427,9 @@ pub(crate) fn language_topic(query: &str) -> Result<String, String> {
     if query == "all" {
         return Ok(LANGUAGE_REFERENCE.to_owned());
     }
+    if query == "mistakes-index" {
+        return Ok(diagnostic_index::language_summary(DIAGNOSTIC_INDEX));
+    }
     if query == "topics" {
         return Ok(language_topics());
     }
@@ -1451,7 +1454,9 @@ mod tests {
         ] {
             assert_eq!(diagnostic_entry(code).unwrap(), expected);
         }
-        let full_index = language_topic("mistakes-index").unwrap();
+        let marker = "## Habits from other languages: diagnostic index\n";
+        let full_index = LANGUAGE_REFERENCE.split_once(marker).unwrap().1;
+        let full_index = full_index.split("\n## ").next().unwrap();
         assert!(t208.len() * 20 < full_index.len());
         assert!(
             semaprax::agent_economics::lexical_tokens(&t208) * 20

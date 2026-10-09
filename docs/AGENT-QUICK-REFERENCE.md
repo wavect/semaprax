@@ -287,23 +287,22 @@ fn main() -> i64
 - Give every field and case its own `@id`. Cases without payload are
   written `Name,` in the declaration and `Type::Name {}` everywhere else;
   the `{}` may be omitted (`Type::Name`) and `fmt` writes it back.
-- Constructing a generic variant spells the type arguments:
-  `Option<i64>::Some { value: v }`. Matching one does not:
-  `Option::Some { value: v } => …`. Neither side accepts `Some(v)`. Generic
-  functions are called with explicit type arguments: `identity<i64>(4)`.
+- Construct a generic variant as `Option<i64>::Some { value: v }`; match it
+  as `Option::Some { value: v } => …`. `Some(v)` is invalid. Generic calls
+  spell type arguments, as in `identity<i64>(4)`.
 - `record … with { field: value }` is immutable update. Record construction
   must name every field (`SPX-T213`).
-- Monomorphic acyclic records may own String/Bytes and Copy scalar fields,
-  including nested records. Pass with `own` or `borrow`; results own their
-  leaves. Generic, resource/view/class and invariant-bearing String records
-  stay outside the executable profile (`SPX-T309`);
-  [String records](OWNED-STRING-RECORDS-V1.md) owns the exact shapes.
-- A source function import that returns or accepts a named record also needs
-  its exact type identity imported directly, even for a zero-argument factory
-  whose result type is inferred. Import each exposed nested type too. For
-  example, `use type @id("std.pattern.matcher") from std.pattern as Matcher;`
-  accompanies `std.pattern.make`, renewal calls and borrowed observers.
-  `SPX-G172` help names the first missing nominal identity and its import.
+- Monomorphic acyclic records may own String/Bytes, Copy scalars and nested
+  records. Pass with `own` or `borrow`; results own their leaves. Generic,
+  resource/view/class and invariant-bearing String records are `SPX-T309`;
+  see [String records](OWNED-STRING-RECORDS-V1.md).
+- `Vec<R>` admits explicitly identified flat Copy records with 1–8 scalar
+  fields. Ask `help language author:copy-record-vec` for its exact operations;
+  owned String/Bytes record fields remain outside this Copy-vector slice.
+- Import every named type in a function import's signature, including nested
+  types and inferred factory results. For example, import
+  `@id("std.pattern.matcher")` with `std.pattern.make`; `SPX-G172` names a
+  missing type identity.
 - Classes hold fields and `fn name(self: Class, …)` methods, called as
   `value.method(args)`. `class Dog : Animal` inherits; `super.method()`
   dispatches to the parent. Records have no methods.
@@ -354,12 +353,10 @@ fn main() -> i64
 - `A {} | B {} => …` joins payload-free cases of the scrutinee's variant in
   one arm of a plain `match`; each alternative counts for exhaustiveness. No
   guard and no payload case in such an arm (`SPX-T254`, `SPX-M105`).
-- `requires` lines after a record's `}` are invariants over its fields by bare
-  name. Every literal, `with` update, and field assignment re-checks them; a
-  false one is the same contract failure as a function `requires`. Each must
-  be `bool` and effect-free (`SPX-C101`, `SPX-C102`); generic records take
-  none (`SPX-C103`). Executable owned records refuse invariants (`SPX-C104`);
-  direct string fields retain the graph/webapp-only exception.
+- `requires` after a record declares effect-free `bool` field invariants.
+  Literals, `with` updates and assignments re-check them (`SPX-C101`/`C102`).
+  Generic records refuse invariants (`SPX-C103`); executable owned records
+  refuse them (`SPX-C104`). Direct string fields retain the graph/webapp exception.
 
 ## Ownership and resources
 
@@ -468,10 +465,8 @@ fn main() -> i64
 
 ## Strings and bytes
 
-For literal templates such as `"id={}"`, use `string_format` instead of a
-conversion-and-concatenation chain. `semaprax help language builtins` gives
-its closed grammar and fields; [the owning specification](CHECKED-LITERAL-FORMAT-V1.md)
-names the selected backend profiles and gate status.
+Use `string_format` for literal templates such as `"id={}"`. See
+`help language author:literal-format` for fields, scope and pending gates.
 
 `SPX-H006` loan-work refusal names the function: split into helpers, not files
 or higher limits. For loop named-slice refusals, bind the view before the
@@ -566,13 +561,11 @@ fn main() -> i64
 
 - `stdout_write(slice)` needs both `permit { process.stdout.write }` and
   `uses { process.stdout.write }` and returns the `usize` byte count.
-- Single-file `run` evaluates `app.main`, or `fn main` with another `@id`,
-  in the bounded interpreter. Options: `--json`, `--max-steps`, `--max-bytes`;
-  `--native` selects generated C11. Exact `process.stdout.write` authority
-  selects the bounded stdout transcript interpreter: the example prints
-  `banana!0`. Permitting `process.args.read`, `fs.read`, or
-  `process.stderr.write` selects command-line behavior (below). `stdin_read`
-  needs native project profile `useful-data-command.v1`.
+- Single-file `run` evaluates `main` in the bounded interpreter; `--native`
+  selects C11. `--json`, `--max-steps` and `--max-bytes` bound reports and
+  execution. Exact `process.stdout.write` selects transcript output (the
+  example prints `banana!0`). Args, file or stderr effects select the CLI
+  route below; `stdin_read` needs native `useful-data-command.v1`.
 - `net_connect`, `net_send`, `net_recv`, `net_stream_stdout`, `net_wait`, and
   `net_close` are the effect-gated TCP client operations of
   [Bounded Language Network I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md); they
@@ -637,22 +630,15 @@ fn main() -> i64
 | `box_get<T>` | `(value: borrow Box<T>) -> T` Copy read |
 | `box_into_inner<T>` | `(value: own Box<T>) -> T` consumes |
 
-`string_format("id={}, {}", 3, true)` replaces conversion-and-concatenation
-chains in ordinary monomorphic function bodies. The first argument must be a
-literal of at most 65,536 decoded UTF-8 bytes: `{}` consumes the next field,
-while `{{` and `}}` produce literal braces. Fields evaluate left to right;
-String fields are consumed. Formatting does not JSON-escape fields. Runtime
-templates, borrowed text fields and floating-point fields are outside this
-closed operation. See [Checked Literal Format v1](CHECKED-LITERAL-FORMAT-V1.md)
-for the selected backend profiles, failure contract and owning gate status.
+`string_format("id={}", 3)` consumes String without JSON escaping.
+Exact grammar/gates: `help language author:literal-format`.
 
-Redefining reserved `string_len` is `SPX-S113`.
+Reserved `string_len`: `SPX-S113`.
 
 Boxes allocate uniquely; authored `record Box<T>` stays inline. Owned payloads,
-public generic ABI, regions, arenas and shared ownership remain outside
-[Box v1](OWNED-BOUNDED-BOX-V1.md).
+public generic ABI and shared ownership remain outside [Box v1](OWNED-BOUNDED-BOX-V1.md).
 
-To print an integer, render it, borrow the string, and write its bytes:
+Render, borrow and write an integer:
 
 ```semaprax
 module app.print_count;
@@ -671,16 +657,13 @@ fn main() -> i64
 }
 ```
 
-`semaprax run count.spx` prints `42`; signed values use `string_from_i64`.
+`run count.spx` prints `42`; signed values use `string_from_i64`.
 
-[Whole `let mut` String replacement](STRING-REPLACEMENT-V1.md) accepts
-literals, owning names, blocks, helpers and branches; old owners settle after
+[String replacement](STRING-REPLACEMENT-V1.md) settles the old owner after
 RHS success. Owning names move; active views prevent replacement.
 
-Conditions inspect named owners via `string_len`, `string_is_empty`,
-`string_starts_with` and `string_contains`
-([predicates](BORROWED-STRING-PREDICATE-CONDITIONS-V1.md)). They also admit
-computed String temporaries. An append loop:
+Conditions admit String owners, temporaries and checked
+[borrowed predicates](BORROWED-STRING-PREDICATE-CONDITIONS-V1.md). An append loop:
 
 ```semaprax
 module app.join;
@@ -705,10 +688,9 @@ fn main() -> i64
 }
 ```
 
-`semaprax run join.spx` prints `0,1,2,3,4`. `while string_len(text) < 4`
-reads its available owner's byte length without allocation. Condition
-literals, blocks and String helpers settle before either Boolean outcome.
-Consuming an enclosing owner is `SPX-T252`.
+`semaprax run join.spx` prints `0,1,2,3,4`. Loop conditions settle String
+temporaries before either Boolean outcome; consuming the enclosing owner is
+`SPX-T252`.
 
 ## Command-line programs
 
@@ -724,15 +706,11 @@ capacity admission. The default combined stdout + stderr cap is 65,536 bytes;
 Project v28 permits 1 MiB staged appends. See [transcript rules](BOUNDED-STDOUT-TRANSCRIPT-V1.md)
 and [Project v7](PROJECT-MANIFEST-V1.md#additive-project-manifest-v7-line-command-profile).
 
-Source-library CLIs use table-manifest `source-command.v1`, empty web exports,
-the exact `[command]` main ID, `argv-utf8+file-text.v1`, sorted capabilities,
-and `native64`; Web, Wasm, and npm command targets refuse. The ordinary Project
-interpreter has no argv/file provider, while `semaprax test --target native`
-can execute the authenticated test module. [Project v26](PROJECT-MANIFEST-V26.md),
-[Project Native Tests v1](PROJECT-NATIVE-TEST-V1.md).
-V28 `source-command.resource-output.v1` keeps v26 file quotas but raises String,
-authenticated borrowed text, and combined staged append output to 1 MiB.
-[Project v28](PROJECT-MANIFEST-V28.md).
+Project `source-command.v1` requires a native64 table manifest and exact
+`[command]` identity; Web/Wasm/npm refuse it. Interpreter argv/file refusal is
+`SPX-F102`; `test --target native` executes authenticated tests. V28 adds bounded
+1 MiB String/output without changing v26's file quotas. See [v26](PROJECT-MANIFEST-V26.md),
+[v28](PROJECT-MANIFEST-V28.md) and [native tests](PROJECT-NATIVE-TEST-V1.md).
 
 Dependency starter and library card:
 
@@ -748,32 +726,20 @@ semaprax build --manifest-path semaprax.toml --target native --output app
 It pins `std.int.decimal = "=0.1.0"`; import `canonicalize`, `add`, and `divide`
 by IDs from `semaprax help library std.int.decimal`.
 
-For bounded ASCII byte patterns, add `std.pattern = "^0.1.0"` under
-`[dependencies]` in an `owned-data-api.v1` package, then import
-`std.pattern.matcher` and the selected functions by stable ID. Use
-`semaprax help library std.pattern` for imports, escapes, and owner renewal. Allocate one
-`Matcher`, call `compile` before its observers, and reuse the returned owner
-with `full-match` for independent named inputs. Check `result-valid` before
-reading a packet; captures are byte offsets into the corresponding input.
-Patterns and inputs are bounded, and ambiguous searches can return a work-limit
-refusal. This is a partial ASCII byte matcher, not a general regular-expression
-or Unicode character engine. Its optional sorted `api` list in
-`std/packages.json` selects catalogue and direct-import conformance entries;
-it does not hide implementation source or replace normal verifier checks.
+For bounded ASCII byte patterns, declare `std.pattern = "^0.1.0"` in an
+`owned-data-api.v1` package and import by stable ID. `help library std.pattern`
+gives exact calls and limits. Compile before observing a matcher; captures are
+byte offsets. This is not a general Unicode regex engine.
 
 Build `lines.spx` natively to fresh `--output`; omit `--profile` because
 `text-toolkit-v1` and `internal-strings-v1` are Wasm/web export profiles. On
 `SPX-I307`, choose a new output or remove your prior artifact after checking
 ownership; the compiler never overwrites it.
 
-Project v23 streaming uses `argv-utf8+stdin-stream.v1` and
-`language-command-io.stream.v1`; native reuses a 4096-byte buffer; `stdin_read()`
-remains a snapshot. Open prefills; zero bytes is EOF, short positive reads are
-chunks. Open/Next need `process.stdin.read`; Eof/Chunk inspect named readers
-purely. Open runs once per path, never in loops. Readers have no constructor,
-generic, aggregate, or public ABI escape. End each borrowed chunk before Next
-(`SPX-T265`); exact acyclic `own StdinReader -> StdinReader` helpers may renew
-the owner. [Streaming contract](BOUNDED-STDIN-STREAM-V1.md).
+Project v23 streaming uses `argv-utf8+stdin-stream.v1` and a reusable native
+4096-byte buffer. Open/Next need `process.stdin.read`; end each borrowed chunk
+before Next (`SPX-T265`). Readers have no public ABI escape. See the
+[streaming contract](BOUNDED-STDIN-STREAM-V1.md).
 
 Native v27 starter: `semaprax new <dir> --template stdin-stream-data`.
 
@@ -1329,32 +1295,24 @@ Mutators transfer and return the owner; there is no public export or stable
 generic ABI. [Package Manifest v1](PACKAGE-MANIFEST-V1.md) owns table layout;
 [Project Manifest v1](PROJECT-MANIFEST-V1.md) owns the frozen format.
 
-`semaprax new <dir> --template source-command-file-text` creates a v26 tables
-Project; `project-scaffold` uses the same template. It selects `source-command.v1`,
-`argv-utf8+file-text.v1`, and `native64`; Web, Wasm, and npm command targets
-refuse it. The ordinary interpreter `run`/`test` routes retain `SPX-F102`;
-use `semaprax test . --target native` for the native test route.
-`doctor --profile` reports support; it does not select profiles.
-Opt in to v28 by setting `[package] profile =
-"source-command.resource-output.v1"` in the tables manifest; raw-source
-commands still select frozen v26 `source-command.v1`. V28 keeps its ABI:
-16 arguments/65,536 aggregate argument bytes, 65,536 bytes per file read,
-and 64 reservations/1 MiB reserved file bytes. It permits 1 MiB Strings, authenticated borrowed text, and
-combined staged stdout/stderr appends; only native64 is admitted. V26 stays
-frozen at 65,536 bytes for its borrowed view/output contract. See [Project v28](PROJECT-MANIFEST-V28.md).
+`semaprax new <dir> --template source-command-file-text` creates a v26
+`source-command.v1` native64 Project with `argv-utf8+file-text.v1`. Web/Wasm/npm
+refuse it. Ordinary interpreter `run`/`test` retain `SPX-F102`; use
+`semaprax test . --target native`. `doctor --profile` reports support but does
+not select a profile. V28 opt-in `[package] profile =
+"source-command.resource-output.v1"` retains v26's command ABI and adds bounded
+1 MiB Strings, borrowed text and staged output; v26 remains frozen. See
+[Project v28](PROJECT-MANIFEST-V28.md) for exact limits and refusal rules.
 
-`semaprax new <dir> --template stdin-stream-data` creates the Project v27
-native stream-data starter with `language-command-io.stream-data.v1`;
-`project-scaffold` selects tables for the same template. It shows a bounded
-command and one private immutable `borrow Vec<i64>` helper; `main` and the command remain
-`fn() -> i64`. Web/npm refuse v27; Wasm also refuses it. Native-only applies
-to the selected command and streaming runtime. Pure `main` and test closures
-may run in the authority-free Project interpreter, which supplies no stdin
-provider or command adapter. The `stdin-stream-text` scaffold remains Project
-v25 for private owned-String helpers. V27 adds immutable `borrow Vec<T>`
-parameters for the eight Copy scalars (`i64`, `i32`, `u8`, `usize`, `char`,
-`f32`, `f64`, `bool`); v24/v25 retain their
-closed helper boundaries. See [Stream Data Command v1](STREAM-DATA-COMMAND-V1.md).
+`semaprax new <dir> --template stdin-stream-data` creates the native v27
+`language-command-io.stream-data.v1` starter. Its private helpers borrow
+Copy-scalar `Vec<T>`; `main` and the command stay `fn() -> i64`. The v29
+`language-command-io.stream-data.v2` profile adds only the closed private
+Copy-record, `Vec<R>` and codec outcome shapes. It is source-implemented with
+qualification pending. Ask `help language author:stream-data-v2`; v27 stays
+scalar-vector-only. Selected streaming commands remain native-only, while pure
+test functions run without a stdin provider. See [v27](STREAM-DATA-COMMAND-V1.md)
+and [v29](STREAM-DATA-COMMAND-V2.md).
 
 `semaprax lock semaprax.toml --write` pins identity, source digests, interface,
 targets, and capabilities; `--verify` checks it and `--compare <base.lock>`
@@ -1380,6 +1338,14 @@ return scalar offsets or comparisons over the same borrowed byte view.
 [Strict JSON Scan v1](STRICT-JSON-SCAN-V1.md). For standalone decoded string
 tokens, use `std.data.json.query` and
 [JSON String Query v1](JSON-STRING-QUERY-V1.md).
+
+`semaprax json-codec` derives checked ordinary source from an authenticated
+Project record. The default scalar shape and opt-in identifier, request and
+stream-request view profiles are source-implemented; qualification is pending.
+Ask `help language author:json-codec` for exact `--profile` spelling, bounds
+and dependencies. Declared `Vec<string>` describes a request schema only; the
+executable view collections contain Copy spans. Stream errors use raw input
+offsets; errors after normalization use offsets in the retained Ready bytes.
 
 ## Where the rules live
 

@@ -5,6 +5,28 @@ const INDEX_MAX_CODES: usize = 12;
 const INDEX_FOOTER: &str =
     "Fix: semaprax help diagnostic <code>\nAll: semaprax help language mistakes-index\n";
 
+/// The complete code inventory fits one exact topic; verbose attempts and
+/// fixes remain in the pinned full card and in per-code help. Never silently
+/// truncate a growing index to make the language-topic budget pass.
+pub(super) fn language_summary(index: &str) -> String {
+    let catalog: serde_json::Value =
+        serde_json::from_str(index).expect("checked diagnostic-help index must parse");
+    let entries = catalog["entries"].as_array().expect("diagnostic entries");
+    let mut codes = entries
+        .iter()
+        .map(|entry| entry["code"].as_str().expect("diagnostic code"))
+        .collect::<Vec<_>>();
+    codes.sort_unstable();
+    codes.dedup();
+    let mut output = String::from("## Habits from other languages: diagnostic index\n\nComplete code inventory:\n");
+    for code in codes {
+        writeln!(output, "  {code}").expect("writing to a string cannot fail");
+    }
+    output.push_str("Exact attempts/fixes: semaprax help diagnostic <SPX-code>\nComplete table: semaprax help language all\n");
+    assert!(output.len() <= 5_000, "diagnostic topic inventory exceeds its bound");
+    output
+}
+
 pub(super) fn response(query: &str, entries: &[serde_json::Value]) -> Result<String, String> {
     if query == "codes" {
         return Ok(shortlist(entries));
@@ -74,6 +96,20 @@ fn shortlist(entries: &[serde_json::Value]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn language_topic_keeps_every_pinned_code_without_expanding_the_full_table() {
+        let index = super::super::DIAGNOSTIC_INDEX;
+        let output = language_summary(index);
+        let catalog: serde_json::Value = serde_json::from_str(index).unwrap();
+        for entry in catalog["entries"].as_array().unwrap() {
+            let code = entry["code"].as_str().unwrap();
+            assert!(output.lines().any(|line| line.trim() == code), "{code}");
+        }
+        assert!(output.contains("Complete table: semaprax help language all"));
+        assert!(!output.contains("| You wrote"));
+        assert!(output.len() <= 5_000);
+    }
 
     fn entry(code: &str, count: usize) -> serde_json::Value {
         serde_json::json!({

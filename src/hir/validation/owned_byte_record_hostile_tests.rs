@@ -187,7 +187,7 @@ fn validation_admits_nested_records_but_rejects_non_record_and_forbidden_leaves(
     );
     assert_hir_rejects(
         &forbidden,
-        "owned-Bytes record is outside the bounded acyclic nested profile",
+        "field `marker.value` cannot store borrowed `str`",
     );
 }
 

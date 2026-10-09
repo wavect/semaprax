@@ -6,6 +6,7 @@ use sha2::{Digest as _, Sha256};
 const ENGINE: &str = include_str!("../../../experiments/ascii-pattern-source/ascii.spx");
 const COMPILED: &str =
     include_str!("../../../experiments/ascii-pattern-source/compiled-witnesses.json");
+const CASES: &str = include_str!("../../../experiments/ascii-pattern-source/fixtures/cases.json");
 
 fn bytes(name: &str, value: &[u8]) -> String {
     format!(
@@ -45,7 +46,43 @@ fn expect_packet(
 }
 
 fn compile_source(pattern: &[u8], input: &[u8], expected: &str) -> String {
-    format!("{ENGINE}\n@id(\"experiment.pattern.witness.main\")\nfn main() -> i64\n{{\n{}{}\nlet storage = bytes_zeroed(3072usize);\nlet initial = matcher_from_bytes(storage);\nlet compiled = compile(initial, pattern_view, 8192usize);\nlet ready = status(compiled) == 0usize;\nlet mut matcher = compiled;\nlet mut iteration = 0usize;\nwhile iteration < 1usize {{\nmatcher = full_match(matcher, input_view, 8192usize);\niteration = iteration + 1usize;\n0\n}}\nif ready {{ {expected} }} else {{ -2 }}\n}}\n", bytes("pattern", pattern), bytes("input", input))
+    compile_source_with_limit(pattern, input, expected, 8192)
+}
+
+fn compile_source_with_limit(pattern: &[u8], input: &[u8], expected: &str, work_limit: u64) -> String {
+    format!("{ENGINE}\n@id(\"experiment.pattern.witness.main\")\nfn main() -> i64\n{{\n{}{}\nlet storage = bytes_zeroed(3072usize);\nlet initial = matcher_from_bytes(storage);\nlet compiled = compile(initial, pattern_view, {work_limit}usize);\nlet ready = status(compiled) == 0usize;\nlet mut matcher = compiled;\nlet mut iteration = 0usize;\nwhile iteration < 1usize {{\nmatcher = full_match(matcher, input_view, {work_limit}usize);\niteration = iteration + 1usize;\n0\n}}\nif ready {{ {expected} }} else {{ -2 }}\n}}\n", bytes("pattern", pattern), bytes("input", input))
+}
+
+fn fixture_pattern(value: &serde_json::Value) -> Vec<u8> {
+    if let Some(text) = value.as_str() {
+        return text.as_bytes().to_vec();
+    }
+    let repeat = value["repeat"].as_str().expect("pattern repeat text");
+    let count = value["count"].as_u64().expect("pattern repeat count") as usize;
+    let suffix = value["suffix"].as_str().unwrap_or_default();
+    format!("{}{suffix}", repeat.repeat(count)).into_bytes()
+}
+
+fn fixture_input(value: &serde_json::Value) -> Vec<u8> {
+    if let Some(text) = value["ascii"].as_str() {
+        return text.as_bytes().to_vec();
+    }
+    if let Some(text) = value["hex"].as_str() {
+        return (0..text.len())
+            .step_by(2)
+            .map(|index| u8::from_str_radix(&text[index..index + 2], 16).unwrap())
+            .collect();
+    }
+    if let Some(repeat) = value.get("repeat_ascii") {
+        return repeat["text"]
+            .as_str()
+            .unwrap()
+            .repeat(repeat["count"].as_u64().unwrap() as usize)
+            .into_bytes();
+    }
+    let repeat = &value["repeat_hex"];
+    let byte = u8::from_str_radix(repeat["byte"].as_str().unwrap(), 16).unwrap();
+    vec![byte; repeat["count"].as_u64().unwrap() as usize]
 }
 
 fn interpret(source: &str, stem: &str) {
@@ -151,6 +188,36 @@ fn private_ascii_pattern_compile_and_greedy_capture_witnesses() {
         &compile_source(b"[a-c][abc]", b"ab", expected),
         "ascii-class-dedup",
     );
+}
+
+#[test]
+fn private_ascii_pattern_fixture_cases_match_independent_exhaustive_oracle() {
+    let fixtures: serde_json::Value = serde_json::from_str(CASES).unwrap();
+    let mut count = 0usize;
+    for case in fixtures["cases"].as_array().unwrap() {
+        if case["source_differential"] != true {
+            continue;
+        }
+        let expected_match = &case["expected"]["match"];
+        let status = expected_match["status_code"].as_u64().unwrap();
+        assert!(matches!(status, 1 | 2), "{} is semantic, not a refusal", case["id"]);
+        let spans: Vec<[u64; 2]> = expected_match["spans"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|span| [span[0].as_u64().unwrap(), span[1].as_u64().unwrap()])
+            .collect();
+        let expected = expect_packet(status, &spans, None, 0, 0);
+        let source = compile_source_with_limit(
+            &fixture_pattern(&case["pattern"]),
+            &fixture_input(&case["input"]),
+            &expected,
+            1_000_000,
+        );
+        interpret(&source, case["id"].as_str().unwrap());
+        count += 1;
+    }
+    assert!(count >= 9, "fixture-driven source comparison stays populated");
 }
 
 #[test]

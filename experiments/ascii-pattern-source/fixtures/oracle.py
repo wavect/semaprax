@@ -27,6 +27,7 @@ MAX_ATOMS = 128
 MAX_CLASSES = 16
 MAX_CAPTURES = 16
 ORACLE_MAX_VECTORS = 100_000
+RESERVED = set(b".\\[]()?*+{}|^$")
 
 
 class InvalidPattern(Exception):
@@ -62,6 +63,14 @@ def _input_bytes(spec: str | dict[str, Any]) -> bytes:
         raise ValueError("input must be text or one byte descriptor")
     if "ascii" in spec and isinstance(spec["ascii"], str):
         return spec["ascii"].encode("ascii")
+    if "repeat_ascii" in spec:
+        item = spec["repeat_ascii"]
+        if not isinstance(item, dict) or set(item) != {"text", "count"}:
+            raise ValueError("repeat_ascii needs text and count")
+        text, count = item["text"], item["count"]
+        if not isinstance(text, str) or type(count) is not int or count < 0:
+            raise ValueError("invalid repeat_ascii descriptor")
+        return (text * count).encode("ascii")
     if "hex" in spec and isinstance(spec["hex"], str):
         return bytes.fromhex(spec["hex"])
     if "repeat_hex" in spec:
@@ -99,27 +108,47 @@ def _hex_value(pattern: bytes, offset: int) -> tuple[int, int]:
     return int(pattern[offset:offset + 2], 16), offset + 2
 
 
+def _escaped(pattern: bytes, cursor: int) -> tuple[int, int]:
+    """Decode one explicit byte escape; only printable punctuation may quote."""
+    if cursor + 1 >= len(pattern):
+        raise InvalidPattern(len(pattern))
+    following = pattern[cursor + 1]
+    if following == ord("x"):
+        return _hex_value(pattern, cursor + 2)
+    if (33 <= following <= 126
+            and following not in b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"):
+        return following, cursor + 2
+    raise InvalidPattern(cursor)
+
+
 def _class(pattern: bytes, opening: int) -> tuple[set[int], int]:
     cursor = opening + 1
     complement = cursor < len(pattern) and pattern[cursor] == ord("^")
     if complement:
         cursor += 1
-    items: list[int | None] = []
+    items: list[tuple[int, bool, int]] = []
     while cursor < len(pattern) and pattern[cursor] != ord("]"):
+        item_offset = cursor
         byte = pattern[cursor]
         if byte == ord("\\"):
-            if cursor + 1 >= len(pattern) or pattern[cursor + 1] != ord("x"):
-                # Class punctuation escape spelling is explicitly pending in
-                # the draft; do not silently assign it meaning here.
-                raise InvalidPattern(cursor)
-            value, cursor = _hex_value(pattern, cursor + 2)
-            items.append(value)
+            value, cursor = _escaped(pattern, cursor)
+            items.append((value, True, item_offset))
         elif byte == ord("-"):
-            items.append(None)
+            # Raw '-' is literal only at the end of a class, immediately
+            # before its closing bracket. Else it is a range operator.
+            if cursor + 1 < len(pattern) and pattern[cursor + 1] == ord("]"):
+                items.append((byte, True, item_offset))
+                cursor += 1
+            else:
+                items.append((byte, False, item_offset))
+                cursor += 1
+        elif byte == ord("^"):
+            raise InvalidPattern(cursor)
+        elif 32 <= byte <= 126 and byte not in RESERVED:
+            items.append((byte, True, item_offset))
             cursor += 1
         else:
-            items.append(byte)
-            cursor += 1
+            raise InvalidPattern(cursor)
     if cursor >= len(pattern):
         raise InvalidPattern(len(pattern))
     if not items:
@@ -127,17 +156,16 @@ def _class(pattern: bytes, opening: int) -> tuple[set[int], int]:
     values: set[int] = set()
     index = 0
     while index < len(items):
-        if items[index] is None:
-            # Leading/trailing dash treatment is still awaiting explicit
-            # class-boundary spelling, so the oracle refuses to guess it.
-            raise InvalidPattern(opening)
-        start = items[index]
-        if index + 1 < len(items) and items[index + 1] is None:
-            if index + 2 >= len(items) or items[index + 2] is None:
-                raise InvalidPattern(opening)
-            end = items[index + 2]
+        start, start_is_value, start_offset = items[index]
+        if not start_is_value:
+            raise InvalidPattern(start_offset)
+        if index + 1 < len(items) and not items[index + 1][1]:
+            if index + 2 >= len(items) or not items[index + 2][1]:
+                raise InvalidPattern(items[index + 2][2] if index + 2 < len(items)
+                                     else items[index + 1][2])
+            end = items[index + 2][0]
             if end < start:
-                raise InvalidPattern(opening)
+                raise InvalidPattern(items[index + 2][2])
             values.update(range(start, end + 1))
             index += 3
         else:
@@ -162,9 +190,8 @@ def compile_pattern(spec: str | dict[str, Any]) -> dict[str, Any]:
     open_capture: int | None = None
     cursor = 0
     quantified = False
-    # Raw punctuation accepted here is limited to literals used by the
-    # proposal's independent examples; reserved punctuation remains unguessed.
-    raw_literals = set(b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789:_=-")
+    # Raw printable ASCII is a literal except for the syntax punctuation
+    # reserved by the draft. Non-ASCII and controls are rejected bytewise.
     while cursor < len(pattern):
         byte = pattern[cursor]
         if byte == ord("("):
@@ -202,14 +229,12 @@ def compile_pattern(spec: str | dict[str, Any]) -> dict[str, Any]:
             cursor += 1
             atom = {"kind": 1, "value": 0, "min": 1, "max": 1}
         elif byte == ord("\\"):
-            if cursor + 1 >= len(pattern) or pattern[cursor + 1] != ord("x"):
-                return _invalid(cursor)
             try:
-                value, cursor = _hex_value(pattern, cursor + 2)
+                value, cursor = _escaped(pattern, cursor)
             except InvalidPattern as error:
                 return _invalid(error.offset)
             atom = {"kind": 0, "value": value, "min": 1, "max": 1}
-        elif byte in raw_literals:
+        elif 32 <= byte <= 126 and byte not in RESERVED:
             cursor += 1
             atom = {"kind": 0, "value": byte, "min": 1, "max": 1}
         elif byte in b"?*+{":
@@ -243,19 +268,29 @@ def compile_pattern(spec: str | dict[str, Any]) -> dict[str, Any]:
                 else:
                     return _invalid(cursor)
                 if not lower_text.isdigit() or not upper_text.isdigit():
-                    return _invalid(cursor + 1)
+                    invalid = next((cursor + 1 + index for index, digit in enumerate(body)
+                                    if digit not in b"0123456789,"), cursor + 1)
+                    return _invalid(invalid)
                 if ((len(lower_text) > 1 and lower_text.startswith(b"0"))
                         or (len(upper_text) > 1 and upper_text.startswith(b"0"))):
-                    # Canonical-number offset selection wasn't fully fixed by
-                    # the draft, so this malformed case is not claimed by fixtures.
-                    return {"status": "syntax_offset_pending", "status_code": None,
-                            "reason_code": None, "detail_offset": None,
-                            "pending": "noncanonical repetition bound offset"}
+                    bad = cursor + 2 if len(lower_text) > 1 and lower_text.startswith(b"0") else (
+                        cursor + 2 + len(lower_text) + 1)
+                    return _invalid(bad)
                 minimum, maximum = int(lower_text), int(upper_text)
-                if minimum > 255 or maximum > 255 or minimum > maximum:
-                    return {"status": "syntax_offset_pending", "status_code": None,
-                            "reason_code": None, "detail_offset": None,
-                            "pending": "repetition-bound range offset"}
+                def first_overflow(text: bytes, start: int) -> int:
+                    prefix = 0
+                    for index, digit in enumerate(text):
+                        prefix = prefix * 10 + digit - ord("0")
+                        if prefix > 255:
+                            return start + index
+                    return start + len(text) - 1
+
+                if minimum > 255:
+                    return _invalid(first_overflow(lower_text, cursor + 2))
+                if maximum > 255:
+                    return _invalid(first_overflow(upper_text, cursor + 2 + len(lower_text) + 1))
+                if minimum > maximum:
+                    return _invalid(end)
                 atom["min"], atom["max"] = minimum, maximum
                 cursor = end + 1
             if cursor < len(pattern) and pattern[cursor] in b"?*+{":

@@ -6,7 +6,7 @@
     "atom_kinds": {"literal": 0, "any_byte": 1, "class_bitmap": 2},
     "class_bitmap": "32 little-bit-order bytes; bit n is bitmap[n//8] bit (n%8)",
     "capture_boundaries": "half-open atom-index pairs [begin,end), flat and nonoverlapping",
-    "input_descriptors": ["ascii", "hex", "repeat_hex"],
+    "input_descriptors": ["ascii", "hex", "repeat_ascii", "repeat_hex"],
     "pattern_repeat_descriptor": "repeat unit count then optional suffix; expansion is ASCII byte text"
   },
   "status_codes": {"ready": 0, "matched": 1, "no_match": 2, "invalid_pattern": 3, "resource_refusal": 4},
@@ -37,7 +37,7 @@
       "pattern": "([A-Za-z]+):[ \\x09]*([^\\x0D\\x0A]*)",
       "input": {"ascii": "Xtest: value"},
       "expected": {
-        "compile": {"status": "ready", "status_code": 0, "atom_count": 4, "class_count": 3,
+        "compile": {"status": "ready", "status_code": 0, "atom_count": 5, "class_count": 2,
                      "capture_boundaries": [[0, 1], [3, 4]]},
         "match": {"status": "matched", "status_code": 1, "count_vector": [5, 1, 5],
                   "spans": [[0, 5], [7, 12]]}
@@ -129,6 +129,91 @@
         "compile": {"status": "ready", "atom_count": 2, "capture_boundaries": [[0, 1]]},
         "match": {"status": "matched", "status_code": 1, "spans": [[0, 1]]}
       }
+    },
+    {
+      "id": "source-escaped-printable-punctuation",
+      "source_differential": true,
+      "purpose": "A quoted printable punctuation byte is a literal atom.",
+      "pattern": "a\\+b",
+      "input": {"ascii": "a+b"},
+      "expected": {"compile": {"status": "ready", "atom_count": 3},
+                   "match": {"status": "matched", "status_code": 1, "spans": []}}
+    },
+    {
+      "id": "source-class-terminal-hyphen-and-complement",
+      "source_differential": true,
+      "purpose": "The terminal raw hyphen is literal while leading class caret complements.",
+      "pattern": "([^A-C-]+)",
+      "input": {"ascii": "x-y"},
+      "expected": {"compile": {"status": "ready", "atom_count": 1},
+                   "match": {"status": "matched", "status_code": 1, "spans": [[0, 3]]}}
+    },
+    {
+      "id": "source-nonreserved-printable-literal",
+      "source_differential": true,
+      "purpose": "Printable punctuation not reserved by the grammar remains an ordinary literal.",
+      "pattern": "a!b",
+      "input": {"ascii": "a!b"},
+      "expected": {"compile": {"status": "ready", "atom_count": 3},
+                   "match": {"status": "matched", "status_code": 1, "spans": []}}
+    },
+    {
+      "id": "source-long-adjacent-repeats-valid",
+      "source_differential": true,
+      "purpose": "Long adjacent finite repeats select the lexicographically greatest complete vector.",
+      "pattern": "([ab]{0,64})([ab]{0,64})",
+      "input": {"ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+      "engine_work_status": "not_predicted_by_oracle",
+      "expected": {"compile": {"status": "ready", "capture_boundaries": [[0, 1], [1, 2]]},
+                   "match": {"status": "matched", "status_code": 1, "spans": [[0, 64], [64, 64]]}}
+    },
+    {
+      "id": "source-long-adjacent-repeats-no-match",
+      "source_differential": true,
+      "purpose": "Long adjacent repeats still require the trailing literal and the entire input.",
+      "pattern": "(a{0,64})(a{0,64})b",
+      "input": {"ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+      "engine_work_status": "not_predicted_by_oracle",
+      "expected": {"compile": {"status": "ready"},
+                   "match": {"status": "no_match", "status_code": 2, "spans": []}}
+    },
+    {
+      "id": "source-hostile-adjacent-repeats-no-match",
+      "source_differential": true,
+      "purpose": "Several adjacent bounded repeats must reject a complete-input near miss.",
+      "pattern": "a{0,4}a{0,4}a{0,4}a{0,4}a{0,4}b",
+      "input": {"ascii": "aaaaaaaaaaaaaaaaaaaac"},
+      "engine_work_status": "not_predicted_by_oracle",
+      "expected": {"compile": {"status": "ready"},
+                   "match": {"status": "no_match", "status_code": 2, "spans": []}}
+    },
+    {
+      "id": "source-independent-header-capture",
+      "source_differential": true,
+      "purpose": "A header-shaped independent record preserves separate key and value byte spans.",
+      "pattern": "([A-Za-z-]+):[ \\x09]*([^\\x0D\\x0A]*)",
+      "input": {"ascii": "X-Key: value"},
+      "expected": {"compile": {"status": "ready", "atom_count": 5, "class_count": 2,
+                                  "capture_boundaries": [[0, 1], [4, 5]]},
+                   "match": {"status": "matched", "status_code": 1, "spans": [[0, 5], [7, 12]]}}
+    },
+    {
+      "id": "source-independent-key-value-capture",
+      "source_differential": true,
+      "purpose": "A key=value record captures identifier and value independently.",
+      "pattern": "([A-Za-z_][A-Za-z0-9_]*)=([^\\x00\\x0A]*)",
+      "input": {"ascii": "event_id=abc123"},
+      "expected": {"compile": {"status": "ready", "capture_boundaries": [[0, 2], [3, 4]]},
+                   "match": {"status": "matched", "status_code": 1, "spans": [[0, 8], [9, 15]]}}
+    },
+    {
+      "id": "source-utf8-byte-split-capture",
+      "source_differential": true,
+      "purpose": "The matcher consumes and returns byte offsets even inside one UTF-8 scalar.",
+      "pattern": "(.).",
+      "input": {"hex": "c3a9"},
+      "expected": {"compile": {"status": "ready", "capture_boundaries": [[0, 1]]},
+                   "match": {"status": "matched", "status_code": 1, "spans": [[0, 1]]}}
     },
     {
       "id": "pattern-length-limit",
@@ -255,13 +340,60 @@
       "expected": {"compile": {"status": "invalid_pattern", "status_code": 3, "reason_code": 1,
                                  "detail_offset": 1},
                    "match": {"status": "not_attempted", "status_code": 0}}
+    },
+    {
+      "id": "empty-class-closing-offset",
+      "purpose": "An empty class reports its closing bracket as the offending byte.",
+      "pattern": "[]",
+      "input": {"ascii": ""},
+      "expected": {"compile": {"status": "invalid_pattern", "status_code": 3, "reason_code": 1,
+                                 "detail_offset": 1},
+                   "match": {"status": "not_attempted", "status_code": 0}}
+    },
+    {
+      "id": "escaped-hyphen-class-literal",
+      "purpose": "Escaped punctuation denotes a literal class member.",
+      "pattern": "[\\-]",
+      "input": {"ascii": "-"},
+      "expected": {"compile": {"status": "ready", "atom_count": 1},
+                   "match": {"status": "matched", "status_code": 1, "spans": []}}
+    },
+    {
+      "id": "descending-class-range-right-endpoint-offset",
+      "purpose": "A descending range reports the first byte of its right endpoint.",
+      "pattern": "[z-a]",
+      "input": {"ascii": ""},
+      "expected": {"compile": {"status": "invalid_pattern", "status_code": 3, "reason_code": 1,
+                                 "detail_offset": 3},
+                   "match": {"status": "not_attempted", "status_code": 0}}
+    },
+    {
+      "id": "noncanonical-bound-second-digit-offset",
+      "purpose": "Leading zero bounds report the second digit.",
+      "pattern": "a{01}",
+      "input": {"ascii": ""},
+      "expected": {"compile": {"status": "invalid_pattern", "status_code": 3, "reason_code": 1,
+                                 "detail_offset": 3},
+                   "match": {"status": "not_attempted", "status_code": 0}}
+    },
+    {
+      "id": "overflow-bound-offending-digit-offset",
+      "purpose": "A bound above 255 reports the digit that first exceeds the supported maximum.",
+      "pattern": "a{256}",
+      "input": {"ascii": ""},
+      "expected": {"compile": {"status": "invalid_pattern", "status_code": 3, "reason_code": 1,
+                                 "detail_offset": 4},
+                   "match": {"status": "not_attempted", "status_code": 0}}
+    },
+    {
+      "id": "nested-capture-second-open-offset",
+      "purpose": "Nested captures are rejected at the second opening parenthesis.",
+      "pattern": "((a))",
+      "input": {"ascii": ""},
+      "expected": {"compile": {"status": "invalid_pattern", "status_code": 3, "reason_code": 1,
+                                 "detail_offset": 1},
+                   "match": {"status": "not_attempted", "status_code": 0}}
     }
-  ],
-  "pending_cases": [
-    {"id": "empty-class-offending-offset", "pattern": "[]", "pending_reason": "Empty class is invalid, but the draft does not select whether `[` or `]` is the first offending byte."},
-    {"id": "escaped-punctuation-class-offset", "pattern": "[\\-]", "pending_reason": "Class punctuation escaping is declared explicit but its escape set and offending offset are not specified."},
-    {"id": "descending-class-range-offset", "pattern": "[z-a]", "pending_reason": "Descending ranges are invalid, but the draft does not select the offending endpoint offset."},
-    {"id": "noncanonical-bound-offset", "pattern": "a{01}", "pending_reason": "Bounds must be canonical, but the first offending digit offset is not specified."}
   ],
   "work_refusal_note": "A semantic oracle result is only matched/no_match. Resource refusal for work depends on the engine's charged traversal and selected work_limit; the oracle neither predicts nor accepts such refusal."
 }

@@ -4,7 +4,11 @@ use crate::interpreter::retained_call::owned_handoff::staged_count;
 #[test]
 fn cached_bound_handoff_matches_explicitly_authenticated_delivery() {
     let boundary = Boundary::derive().unwrap();
-    for input in [b"".as_slice(), b"matcher"] {
+    let mut exact_limit = [b'x'; MAX_BYTES];
+    exact_limit[0] = 0;
+    exact_limit[1] = 0xc3;
+    exact_limit[2] = 0xa9;
+    for input in [b"".as_slice(), b"matcher", exact_limit.as_slice()] {
         let cached = boundary.deliver_bound(input, MAX_FUEL).unwrap();
         let authenticated = boundary
             .deliver(
@@ -17,6 +21,42 @@ fn cached_bound_handoff_matches_explicitly_authenticated_delivery() {
         assert_eq!(cached, input);
         assert_eq!(cached, authenticated);
     }
+
+    let oversized = [0u8; MAX_BYTES + 1];
+    let before_refusals = staged_count();
+    assert_eq!(boundary.deliver_bound(&oversized, MAX_FUEL), Err(()));
+    assert_eq!(
+        boundary.deliver(
+            &boundary.authenticated_bytes,
+            boundary.digest,
+            &oversized,
+            MAX_FUEL,
+        ),
+        Err(())
+    );
+    assert_eq!(boundary.deliver_bound(b"fuel", 0), Err(()));
+    assert_eq!(
+        boundary.deliver(
+            &boundary.authenticated_bytes,
+            boundary.digest,
+            b"fuel",
+            0,
+        ),
+        Err(())
+    );
+    assert_eq!(staged_count(), before_refusals);
+
+    let recovered = boundary.deliver_bound(b"reentry", MAX_FUEL).unwrap();
+    let authenticated = boundary
+        .deliver(
+            &boundary.authenticated_bytes,
+            boundary.digest,
+            b"reentry",
+            MAX_FUEL,
+        )
+        .unwrap();
+    assert_eq!(recovered, b"reentry");
+    assert_eq!(recovered, authenticated);
 }
 
 #[test]

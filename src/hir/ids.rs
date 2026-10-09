@@ -137,6 +137,34 @@ impl ValueId {
         Self::new(scoped_identity(function, "value:result", ""))
     }
 
+    pub(super) fn matches_parameter(&self, function: &FunctionExecutionId, index: usize) -> bool {
+        self.matches_scoped(function, "value:param", decimal_digits(index), index)
+    }
+
+    pub(super) fn matches_local(&self, function: &FunctionExecutionId, path: &str) -> bool {
+        self.matches_scoped(function, "value:local", path.len(), path)
+    }
+
+    pub(super) fn matches_result(&self, function: &FunctionExecutionId) -> bool {
+        self.matches_scoped(function, "value:result", 0, "")
+    }
+
+    fn matches_scoped(
+        &self,
+        function: &FunctionExecutionId,
+        kind: &str,
+        path_length: usize,
+        path: impl fmt::Display,
+    ) -> bool {
+        // ValueId equality includes its cached hash as well as the exact
+        // bytes. Preserve that check even for privately forged HIR carriers.
+        let fingerprint = self.0.bytes().fold(0xcbf29ce484222325u64, |hash, byte| {
+            (hash ^ u64::from(byte)).wrapping_mul(0x100000001b3)
+        });
+        self.1 == fingerprint
+            && matches_scoped_identity(self.as_str(), function, kind, path_length, path)
+    }
+
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -160,6 +188,10 @@ pub struct ExpressionId(pub(super) String);
 impl ExpressionId {
     pub(crate) fn new(function: &FunctionExecutionId, path: &str) -> Self {
         Self(exact_string(scoped_identity(function, "expression", path)))
+    }
+
+    pub(super) fn matches(&self, function: &FunctionExecutionId, path: &str) -> bool {
+        matches_scoped_identity(self.as_str(), function, "expression", path.len(), path)
     }
 
     pub fn as_str(&self) -> &str {
@@ -220,3 +252,61 @@ impl FunctionInstanceId {
         )))
     }
 }
+
+// Validation compares the canonical spelling directly with the retained bytes.
+// The allocating encoder above remains the construction path and independent
+// reference: no identity is interned, cached, truncated, or accepted by a hash.
+fn matches_scoped_identity(
+    actual: &str,
+    owner: &FunctionExecutionId,
+    kind: &str,
+    path_length: usize,
+    path: impl fmt::Display,
+) -> bool {
+    struct Compare<'a>(&'a [u8]);
+    impl fmt::Write for Compare<'_> {
+        fn write_str(&mut self, value: &str) -> fmt::Result {
+            self.0 = self.0.strip_prefix(value.as_bytes()).ok_or(fmt::Error)?;
+            Ok(())
+        }
+    }
+    let mut output = Compare(actual.as_bytes());
+    let result = match owner {
+        FunctionExecutionId::Monomorphic(owner) => write!(
+            output,
+            "declaration:{}:{}:{kind}:{path_length}:{path}",
+            owner.as_str().len(),
+            owner
+        ),
+        FunctionExecutionId::Generic(owner) => {
+            const PREFIX: &str = "semaprax.function-execution.v1:generic:";
+            let Some(length) = PREFIX
+                .len()
+                .checked_add(decimal_digits(owner.as_str().len()))
+                .and_then(|length| length.checked_add(1))
+                .and_then(|length| length.checked_add(owner.as_str().len()))
+            else {
+                return false;
+            };
+            write!(
+                output,
+                "function-execution:{length}:{PREFIX}{}:{}:{kind}:{path_length}:{path}",
+                owner.as_str().len(),
+                owner
+            )
+        }
+    };
+    result.is_ok() && output.0.is_empty()
+}
+
+fn decimal_digits(value: usize) -> usize {
+    if value == 0 {
+        1
+    } else {
+        value.ilog10() as usize + 1
+    }
+}
+
+#[cfg(test)]
+#[path = "ids/identity_comparison_tests.rs"]
+mod identity_comparison_tests;

@@ -259,6 +259,18 @@ debit is the maximum of all attempts; no enclosing budget is reset or refunded.
 Explicit smaller-limit invocations and nested budgets retain their original
 core-refusal behavior, and a successful earlier attempt retains its receipt.
 
+Canonical HIR identity validation compares the retained bytes directly with the
+length-delimited expression/value identity encoding, without allocating a second
+identity string solely for comparison. It checks every UTF-8 byte, execution
+kind, owner, path and length delimiter, plus the value identity's cached hash.
+The ordinary allocating encoder and the recursive validation reference remain
+independent regression oracles. This removes actual temporary allocations and
+their builder debit; it does not change any pre-bound, cap, canonical source
+revision, identity spelling or source-graph JSON. Workspace/Project usage
+receipts (and digests incorporating those receipts) may decrease accordingly.
+Owned identity construction and all remaining allocations keep their existing
+budget checks, including fail-closed overflow and nested parent debit.
+
 The [shared-loan planner](SHARED-LOAN-PLAN-V1.md) uses bounded transient
 forward-reachability rows and a fixed point queue. Its maximum 74 bytes per
 expression (two points, each with four `u64` words, two `u16` links and one

@@ -27,7 +27,10 @@ impl HirValidator<'_> {
             let ResolvedExprKind::Place(place) = &capture.value.kind else {
                 unreachable!()
             };
-            if capture.value.id != ExpressionId::new(function, &format!("{path}.capture.{index}"))
+            if !capture
+                .value
+                .id
+                .matches(function, &format!("{path}.capture.{index}"))
                 || !self.expression_ids.insert(capture.value.id.clone())
             {
                 return Err(hir_error(

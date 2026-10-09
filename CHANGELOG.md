@@ -1,5 +1,11 @@
 # Changelog
 
+- Compare canonical HIR expression and value identities directly with their
+  retained bytes during validation, removing temporary comparison strings.
+  Preserve exact length-delimited identities, cached-hash checks, forged-HIR
+  rejection, source-graph bytes and every builder limit/pre-charge. Add encoder
+  differential, UTF-8, collision, budget and frozen-graph regressions.
+
 - Avoid rebuilding and hashing the fixed rung-two handoff binding on every
   scalar operation. Authenticate it before immutable publication, retaining
   per-handoff execution and settlement checks and supplied-binding refusals.

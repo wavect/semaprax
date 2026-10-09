@@ -508,7 +508,7 @@ impl<'a> HirValidator<'a> {
             }
             let execution = FunctionExecutionId::Monomorphic(template.id.clone());
             for (index, parameter) in template.params.iter().enumerate() {
-                if parameter.id != ValueId::parameter(&execution, index)
+                if !parameter.id.matches_parameter(&execution, index)
                     || parameter.ownership
                         != template_ownership(self.program, template, &parameter.ty)
                 {
@@ -520,7 +520,7 @@ impl<'a> HirValidator<'a> {
                 self.validate_function_template_type(template, &parameter.ty)?;
             }
             self.validate_function_template_type(template, &template.return_type)?;
-            if template.result_id != ValueId::result(&execution) {
+            if !template.result_id.matches_result(&execution) {
                 return Err(hir_error(format!(
                     "generic template `{}` has invalid result identity",
                     template.id
@@ -1338,7 +1338,7 @@ impl<'a> HirValidator<'a> {
         aggregate_context: (bool, bool),
     ) -> Result<(), Diagnostic> {
         let (_allow_record_reconstruction, allow_aggregate_root) = aggregate_context;
-        if expression.id != ExpressionId::new(execution, path)
+        if !expression.id.matches(execution, path)
             || !self.expression_ids.insert(expression.id.clone())
             || !generic_template::expression_ownership_is_valid(self.program, template, expression)
         {
@@ -1488,7 +1488,7 @@ impl<'a> HirValidator<'a> {
                                 &format!("{statement_path}.value"),
                                 (false, allow_aggregate_root),
                             )?;
-                            if binding.id != ValueId::local(execution, &statement_path)
+                            if !binding.id.matches_local(execution, &statement_path)
                                 || binding.ownership
                                     != template_ownership(self.program, template, &binding.ty)
                                 || binding.ty != value.ty
@@ -1720,8 +1720,7 @@ impl<'a> HirValidator<'a> {
                 ));
             }
             reject_nul_identity("resolved value", param.id.as_str())?;
-            let expected = ValueId::parameter(execution, index);
-            if param.id != expected {
+            if !param.id.matches_parameter(execution, index) {
                 return Err(hir_error(format!(
                     "parameter {} of `{}` has a non-canonical identity",
                     index, function.id
@@ -1780,7 +1779,7 @@ impl<'a> HirValidator<'a> {
             );
         }
         reject_nul_identity("resolved value", function.result_id.as_str())?;
-        if function.result_id != ValueId::result(execution) {
+        if !function.result_id.matches_result(execution) {
             return Err(hir_error(format!(
                 "function `{}` has a non-canonical result identity",
                 function.id
@@ -2057,8 +2056,9 @@ impl<'a> HirValidator<'a> {
                             } else {
                                 OwnershipMode::Value
                             };
-                            if binding.id
-                                != ValueId::local(function, &format!("{field_path}.binding"))
+                            if !binding
+                                .id
+                                .matches_local(function, &format!("{field_path}.binding"))
                                 || binding.ty != field_ty
                                 || binding.ownership != ownership
                             {
@@ -2925,7 +2925,7 @@ impl<'a> HirValidator<'a> {
                     path,
                 } => {
                     reject_nul_identity("resolved expression", expression.id.as_str())?;
-                    if expression.id != ExpressionId::new(function, &path) {
+                    if !expression.id.matches(function, &path) {
                         return Err(hir_error(format!(
                             "expression `{}` has a non-canonical identity",
                             expression.id
@@ -4368,7 +4368,7 @@ impl<'a> HirValidator<'a> {
                         unreachable!("let frame resumes at a let statement")
                     };
                     let statement_path = format!("{path}.s{index}");
-                    if binding.id != ValueId::local(function, &statement_path) {
+                    if !binding.id.matches_local(function, &statement_path) {
                         return Err(hir_error(format!(
                             "local `{}` has a non-canonical identity",
                             binding.id
@@ -5408,13 +5408,10 @@ impl<'a> HirValidator<'a> {
                                         ));
                                     };
                                     if !seen.insert(field.field.clone())
-                                        || field.binding.id
-                                            != ValueId::local(
-                                                function,
-                                                &format!(
-                                                    "{path}.arm.{index}.binding.{field_index}"
-                                                ),
-                                            )
+                                        || !field.binding.id.matches_local(
+                                            function,
+                                            &format!("{path}.arm.{index}.binding.{field_index}"),
+                                        )
                                         || field.binding.ty != binding_ty
                                         || field.binding.ownership != binding_ownership
                                     {
@@ -5651,8 +5648,9 @@ impl<'a> HirValidator<'a> {
                     match &arm.pattern {
                         ResolvedMatchPattern::Wildcard => {}
                         ResolvedMatchPattern::Binding(binding) => {
-                            if binding.id
-                                != ValueId::local(function, &format!("{path}.arm.{index}.binding"))
+                            if !binding
+                                .id
+                                .matches_local(function, &format!("{path}.arm.{index}.binding"))
                                 || binding.ty != scrutinee.ty
                                 || binding.ownership != OwnershipMode::Value
                             {

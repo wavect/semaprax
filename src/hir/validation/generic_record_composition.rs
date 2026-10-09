@@ -220,7 +220,9 @@ impl HirValidator<'_> {
                     } else {
                         OwnershipMode::Value
                     };
-                    if binding.id != ValueId::local(execution, &format!("{field_path}.binding"))
+                    if !binding
+                        .id
+                        .matches_local(execution, &format!("{field_path}.binding"))
                         || binding.ty != ty
                         || binding.ownership != ownership
                     {

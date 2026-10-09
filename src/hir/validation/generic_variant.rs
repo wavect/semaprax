@@ -174,11 +174,10 @@ impl HirValidator<'_> {
                             OwnershipMode::Value
                         };
                         if !seen.insert(field.field.clone())
-                            || field.binding.id
-                                != ValueId::local(
-                                    execution,
-                                    &format!("{path}.arm.{index}.binding.{field_index}"),
-                                )
+                            || !field.binding.id.matches_local(
+                                execution,
+                                &format!("{path}.arm.{index}.binding.{field_index}"),
+                            )
                             || field.binding.ty != ty
                             || field.binding.ownership != ownership
                         {

@@ -779,6 +779,10 @@ in loops, growth, general owned-loop state, wider elements, Project/public
 layouts, and public byte adapters remain outside this boundary.
 
 `src/loan_plan.rs` owns the additive plan schema, builder, and replay;
+`loan_plan/owned_capacity.rs` accounts retained carriers and distinct immutable
+expression-identity backing allocations. Its pointer inventory is temporary,
+charged before allocation, and grants no semantic identity or graph authority;
+byte equality and independent replay remain authoritative.
 `src/graph_loan.rs` owns its Graph projection. The
 [Shared Loan Plan v1](SHARED-LOAN-PLAN-V1.md) is a bounded, target-neutral proof
 plan for synchronous immutable loans. It assigns dense

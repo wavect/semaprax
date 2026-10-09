@@ -1,5 +1,12 @@
 # Changelog
 
+- Share immutable expression-identity backing storage across HIR clones while
+  preserving byte equality, ordering, hashing, cache encoding and graph output.
+  Account retained loan-proof vector capacities and each distinct backing
+  allocation, including headers and the temporary charged inventory. Keep all
+  CFG points, edges, independent replay and builder limits; the current-head
+  executable gate remains pending.
+
 - Avoid allocating unused cross-file edge paths for import-free modules, borrow
   retained HIR expression identities and lazily derive authored type-site IDs.
   Preserve complete edge replay, capability facts, canonical bytes and every

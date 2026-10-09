@@ -5,6 +5,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use wasmparser::{ExternalKind, Parser, Payload};
 
+#[path = "project_cli_v1/native_test.rs"]
 mod native_test;
 
 const PROJECT_FILES: &[&str] = &[

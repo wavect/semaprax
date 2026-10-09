@@ -178,7 +178,7 @@ fn test_file() -> i64 uses { fs.read }
     let path = "digits";
     let view = string_as_str(path);
     let contents = file_read_text(view);
-    if string_len(contents) == 4usize { 0 } else { 1 }
+    if string_len(contents) == 4i64 { 0 } else { 1 }
 }
 "#;
     let fixture = NativeFixture::new("io", tests);

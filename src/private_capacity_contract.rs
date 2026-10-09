@@ -230,6 +230,27 @@ fn cleanup_place_owned_capacity(place: &crate::cleanup_plan::CleanupPlace) -> Op
         )
 }
 
+fn conditional_variant_owned_capacity(
+    entry: &crate::cleanup_plan::ConditionalVariantEntry,
+) -> Option<usize> {
+    let mut bytes = storage_owned_capacity(&entry.storage)?
+        .checked_add(entry.variant.as_str().len())?
+        .checked_add(entry.cases.capacity().checked_mul(std::mem::size_of::<
+            crate::cleanup_plan::ConditionalVariantCase,
+        >())?)?;
+    for case in &entry.cases {
+        bytes = bytes.checked_add(case.case.as_str().len())?.checked_add(
+            case.live_places
+                .capacity()
+                .checked_mul(std::mem::size_of::<crate::cleanup_plan::CleanupPlace>())?,
+        )?;
+        for place in &case.live_places {
+            bytes = bytes.checked_add(cleanup_place_owned_capacity(place)?)?;
+        }
+    }
+    Some(bytes)
+}
+
 fn staged_result_owned_capacity(
     source: &crate::cleanup_plan::StagedCopyResultSource,
 ) -> Option<usize> {
@@ -331,6 +352,17 @@ pub(crate) fn cleanup_plan_owned_capacity(
                 bytes.checked_add(cleanup_place_owned_capacity(place)?)
             })?,
     )?;
+    bytes = bytes.checked_add(
+        plan.entry_state
+            .conditional_owned_parameters
+            .capacity()
+            .checked_mul(std::mem::size_of::<
+                crate::cleanup_plan::ConditionalVariantEntry,
+            >())?,
+    )?;
+    for entry in &plan.entry_state.conditional_owned_parameters {
+        bytes = bytes.checked_add(conditional_variant_owned_capacity(entry)?)?;
+    }
     bytes = bytes.checked_add(plan.slots.iter().try_fold(0usize, |bytes, slot| {
         bytes.checked_add(
             storage_owned_capacity(&slot.storage)?
@@ -476,9 +508,16 @@ pub(crate) fn cleanup_plan_owned_capacity(
         bytes = bytes.checked_add(exit.finalize_in_order.iter().try_fold(
             0usize,
             |bytes, action| {
-                bytes
+                let bytes = bytes
                     .checked_add(cleanup_place_owned_capacity(&action.source)?)?
-                    .checked_add(action.lifecycle_id.as_str().len())
+                    .checked_add(action.lifecycle_id.as_str().len())?;
+                match &action.active_case {
+                    Some(guard) => bytes
+                        .checked_add(storage_owned_capacity(&guard.storage)?)?
+                        .checked_add(guard.variant.as_str().len())?
+                        .checked_add(guard.case.as_str().len()),
+                    None => Some(bytes),
+                }
             },
         )?)?;
         bytes = bytes.checked_add(match &exit.continuation {

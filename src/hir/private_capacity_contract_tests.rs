@@ -384,3 +384,88 @@ fn cleanup_capacity_refuses_missing_backing_in_each_expression_metadata_family()
         None
     );
 }
+
+#[test]
+fn cleanup_capacity_covers_conditional_parameters_and_active_finalize_cases() {
+    use crate::cleanup_plan::*;
+    let id = ExpressionId::from_owned(String::from("conditional.expression"));
+    let backing = id.owned_allocation_bytes().unwrap();
+    let mut plan = CleanupPlan::unresolved();
+    plan.entry_state.conditional_owned_parameters = vec![ConditionalVariantEntry {
+        storage: StorageId::Temporary(id.clone()),
+        variant: DeclarationId::new("variant"),
+        cases: vec![ConditionalVariantCase {
+            case: DeclarationId::new("case"),
+            live_places: vec![CleanupPlace {
+                storage: StorageId::Temporary(id.clone()),
+                projections: vec![DeclarationId::new("field")],
+            }],
+        }],
+    }];
+    plan.exits = vec![ExitTarget {
+        id: ExitTargetId(0),
+        from: BlockId(0),
+        leaves_regions: Vec::new(),
+        finalize_in_order: vec![FinalizeAction {
+            source: CleanupPlace {
+                storage: StorageId::ProvisionalResult,
+                projections: Vec::new(),
+            },
+            lifecycle_id: DeclarationId::new("drop"),
+            guard_flag: crate::cleanup::LivenessFlagId(0),
+            active_case: Some(VariantCaseGuard {
+                storage: StorageId::Temporary(id.clone()),
+                variant: DeclarationId::new("variant"),
+                case: DeclarationId::new("case"),
+            }),
+        }],
+        continuation: ExitContinuation::ReturnUnit,
+    }];
+    let entry = &plan.entry_state.conditional_owned_parameters[0];
+    let headers = plan.entry_state.conditional_owned_parameters.capacity()
+        * std::mem::size_of::<ConditionalVariantEntry>()
+        + entry.cases.capacity() * std::mem::size_of::<ConditionalVariantCase>()
+        + entry.cases[0].live_places.capacity() * std::mem::size_of::<CleanupPlace>()
+        + entry.cases[0].live_places[0].projections.capacity()
+            * std::mem::size_of::<DeclarationId>()
+        + plan.exits.capacity() * std::mem::size_of::<ExitTarget>()
+        + plan.exits[0].finalize_in_order.capacity() * std::mem::size_of::<FinalizeAction>();
+    let census = crate::private_capacity_contract::cleanup_plan_owned_capacity;
+    assert_eq!(
+        census(&plan),
+        Some(
+            headers
+                + 3 * backing
+                + 2 * ("variant".len() + "case".len())
+                + "field".len()
+                + "drop".len()
+        )
+    );
+    let (refused, overflowed, _) = crate::bounded_output::with_limit_usage(0, || {
+        ExpressionId::from_owned(String::from("refused.conditional"))
+    });
+    assert!(overflowed);
+    for location in 0..3 {
+        let mut forged = plan.clone();
+        let storage = match location {
+            0 => &mut forged.entry_state.conditional_owned_parameters[0].storage,
+            1 => {
+                &mut forged.entry_state.conditional_owned_parameters[0].cases[0].live_places[0]
+                    .storage
+            }
+            _ => {
+                &mut forged.exits[0].finalize_in_order[0]
+                    .active_case
+                    .as_mut()
+                    .unwrap()
+                    .storage
+            }
+        };
+        *storage = StorageId::Temporary(refused.clone());
+        assert_eq!(
+            census(&forged),
+            None,
+            "missing conditional backing at {location}"
+        );
+    }
+}

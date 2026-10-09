@@ -6774,7 +6774,42 @@ impl Emitter<'_> {
                 crate::byte_ops::ByteOp::Len | crate::byte_ops::ByteOp::Get
             )
         {
-            return self.emit_internal_copy_byte_op(expr, op, &values);
+            let ResolvedExprKind::Place(place) = &args[0].kind else {
+                return Err(error("standalone byte view lacks a retained place root"));
+            };
+            if !place.projections.is_empty() {
+                return Err(error("standalone byte view has a projected root"));
+            }
+            let provenance = self
+                .program
+                .declarations
+                .byte_slice_provenance(&place.root)
+                .ok_or_else(|| error("standalone byte view lacks authenticated provenance"))?;
+            return match provenance.root_kind {
+                crate::hir::ByteSliceRootKind::FixedArray => {
+                    self.emit_internal_copy_byte_op(expr, op, &values)
+                }
+                crate::hir::ByteSliceRootKind::OwnedString
+                | crate::hir::ByteSliceRootKind::BorrowedStr => {
+                    // The String view carries an arena token, not a guest-memory
+                    // pointer. Its host imports authenticate both token and extent.
+                    if op == crate::byte_ops::ByteOp::Len {
+                        let local = self.plan.expr_scalar(expr)?;
+                        self.get_scalar(&values[0]);
+                        self.output.push(0x10);
+                        write_u32(self.output, internal_strings::BYTE_LEN_IMPORT);
+                        self.output.push(0x21);
+                        write_u32(self.output, local);
+                        Ok(Value::Scalar {
+                            local,
+                            ty: ResolvedType::Usize,
+                        })
+                    } else {
+                        self.emit_indexed_byte_get(expr, &values)
+                    }
+                }
+                _ => Err(error("standalone byte view has an unsupported root")),
+            };
         }
         if op != crate::byte_ops::ByteOp::Zeroed {
             self.validate_byte_slice(&values[0]);

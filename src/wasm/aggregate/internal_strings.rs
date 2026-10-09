@@ -12,6 +12,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 pub(super) const LITERAL_IMPORT: u32 = 0;
 pub(super) const CLONE_IMPORT: u32 = 1;
+pub(super) const BYTE_LEN_IMPORT: u32 = 4;
 pub(super) const EQ_IMPORT: u32 = 6;
 const IMPORT_COUNT: u32 = 10;
 const RESULT_OFFSET: u32 = 65_536;

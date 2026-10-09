@@ -14,13 +14,33 @@ fn toolkit_owned_string_byte_views_require_a_replayed_full_root_loan() {
 @id("app.fused") fn fused() -> i64 {
     let text = "h\u{0}é";
     let bytes = str_as_bytes(string_as_str(text));
-    if byte_len(bytes) == 4usize { 1 } else { 0 }
+    if byte_len(bytes) == 4usize {
+        match byte_get(bytes, 1usize) {
+            Option::Some { value: nul } => if nul == 0u8 {
+                match byte_get(bytes, 2usize) {
+                    Option::Some { value: first } => if first == 195u8 { 1 } else { 0 },
+                    Option::None {} => 0,
+                }
+            } else { 0 },
+            Option::None {} => 0,
+        }
+    } else { 0 }
 }
 @id("app.named") fn named() -> i64 {
     let text = "h\u{0}é";
     let text_view = string_as_str(text);
     let bytes = str_as_bytes(text_view);
-    if byte_len(bytes) == 4usize { 1 } else { 0 }
+    if byte_len(bytes) == 4usize {
+        match byte_get(bytes, 3usize) {
+            Option::Some { value: last } => if last == 169u8 {
+                match byte_get(bytes, 4usize) {
+                    Option::None {} => 1,
+                    Option::Some { value: unexpected } => 0,
+                }
+            } else { 0 },
+            Option::None {} => 0,
+        }
+    } else { 0 }
 }
 @id("app.main") fn main() -> i64 { fused() + named() }
 "#,
@@ -44,7 +64,9 @@ fn toolkit_owned_string_byte_views_require_a_replayed_full_root_loan() {
         imports.last().unwrap(),
         &("env".to_owned(), "spx_bytes_get".to_owned())
     );
-    assert!(artifact.runtime_source().contains("spx_bytes_get(carrier,index)"));
+    assert!(artifact
+        .runtime_source()
+        .contains("spx_bytes_get(carrier,index)"));
     assert!(artifact
         .runtime_source()
         .contains("ENV_IMPORT_NAMES.includes(item.name)?\"env\":\"semaprax.internal-strings.v1\""));
@@ -204,15 +226,21 @@ fn toolkit_collection_selector_authenticates_exact_optional_import_tail() {
             ("env".to_owned(), "spx_bytes_get".to_owned())
         ]
     );
-    assert!(artifact
-        .runtime_source()
-        .contains("\"compare\",\"spx_collection_checked_v2\",\"spx_collection_drop_v2\",\"spx_bytes_get\"]"));
+    assert!(artifact.runtime_source().contains(
+        "\"compare\",\"spx_collection_checked_v2\",\"spx_collection_drop_v2\",\"spx_bytes_get\"]"
+    ));
     assert!(artifact
         .runtime_source()
         .contains("ENV_IMPORT_NAMES.includes(item.name)?\"env\":\"semaprax.internal-strings.v1\""));
-    assert!(artifact.runtime_source().contains("item.name!==IMPORT_NAMES[i]"));
-    assert!(artifact.runtime_source().contains("item.kind!==\"function\""));
-    assert!(artifact.runtime_source().contains("imports.length!==IMPORT_NAMES.length"));
+    assert!(artifact
+        .runtime_source()
+        .contains("item.name!==IMPORT_NAMES[i]"));
+    assert!(artifact
+        .runtime_source()
+        .contains("item.kind!==\"function\""));
+    assert!(artifact
+        .runtime_source()
+        .contains("imports.length!==IMPORT_NAMES.length"));
     assert!(artifact.runtime_source().contains("collections.settle()"));
     assert!(!artifact.runtime_source().contains("collections.clear("));
 }

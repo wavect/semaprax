@@ -1109,6 +1109,7 @@ Replace a 256-arm i64-to-byte or byte-to-char match with
 | generic call in while body|`SPX-T252`|vec_len<T>; imported generic aliases stay closed; see [While](WHILE-LOOPS-V1.md)|
 | rejected while helper|`SPX-T252`|Borrow exact compiler Vec<T> of Copy scalars; result scalar, flat Copy variant or string|
 | outer owned binding changes in while|`SPX-T252`|Keep outer ownership unchanged|
+| one-Bytes-plus-usize owner renewal with input views|`SPX-T252`/`SPX-T265`|Pure nongeneric call; exactly one whole owner returned as the same type; whole named independent Slice/str borrows only; [renewal hook](IO-LINES-V1.md#cursor-transitions), executable gate pending|
 | Vec literal capacity >8192|`SPX-T282`|Reduce vec_with_capacity<T>; Vec-only limit; see [Vec](OWNED-BOUNDED-VEC-V1.md)|
 | lookalike Vec wrapper|`SPX-T283`|Import exact std.collections.vec.* stable ID; no authored substitute; see [Vec](OWNED-BOUNDED-VEC-V1.md)|
 | function exceeds 256 shared loans|`SPX-H006`|Reduce shared loans; never raise limit; see [Loan Plan](SHARED-LOAN-PLAN-V1.md)|

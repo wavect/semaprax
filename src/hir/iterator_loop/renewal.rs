@@ -229,7 +229,9 @@ pub(crate) fn is_record_owner_renewal(
                             OwnershipMode::Own | OwnershipMode::Borrow
                         ) && matches!(&argument.kind, ResolvedExprKind::Place(place)
                                 if place.projections.is_empty())
-                            && is_owner_renewal_record(&program.declarations, &parameter.ty)
+                            && (is_owner_renewal_record(&program.declarations, &parameter.ty)
+                                || (argument.ownership == OwnershipMode::Borrow
+                                    && crate::loop_calls::resolved_renewal_view(&parameter.ty)))
                     }
                     OwnershipMode::Value => argument.ownership == OwnershipMode::Value,
                     OwnershipMode::Shared => false,

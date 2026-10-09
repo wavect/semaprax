@@ -515,6 +515,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             return false;
         };
         type_arguments.is_empty()
+            && target.type_parameters.is_empty()
             && target.effects.is_empty()
             && crate::source_verify::declared_type::owned_record_collection::is_owner_renewal_record(
                 self.types,
@@ -539,13 +540,48 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             && matches!(&argument.kind, ExprKind::Var(name) if name == binding)
                     }
                     ParamMode::Borrow => {
-                        crate::source_verify::declared_type::owned_record_collection::
+                        (crate::source_verify::declared_type::owned_record_collection::
                             is_owner_renewal_record(self.types, &parameter.ty)
+                            || crate::loop_calls::ast_renewal_view(&parameter.ty))
                             && matches!(argument.kind, ExprKind::Var(_))
                     }
                     ParamMode::Value => true,
                     ParamMode::Shared => false,
                 }
             })
+    }
+}
+
+#[test]
+fn record_renewal_named_view_admission_agrees_with_iterative_verifier() {
+    use crate::diagnostic::Diagnostic;
+    use crate::source_verify::oracle::while_oracle::reject_while_disallowed_oracle;
+    use crate::source_verify::type_table::TypeTable;
+    use std::collections::HashMap;
+    let source = include_str!("../../../tests/language/while_loops/record_borrow_renewal.spx");
+    for (setup, arguments) in [
+        ("bytes_as_slice(source)", "matcher, input_alias, text, 1usize"),
+        ("bytes_as_slice(matcher.storage)", "matcher, input_alias, text, 1usize"),
+        ("bytes_as_slice(source)", "matcher, bytes_as_slice(source), text, 1usize"),
+        ("bytes_as_slice(source)", "matcher, input_alias, string_as_str(label), 1usize"),
+    ] {
+        let source = source.replace("bytes_as_slice(source)", setup)
+            .replace("matcher, input_alias, text, 1usize", arguments);
+        let program = crate::parse(&source, std::path::Path::new("renewal-admission.spx")).unwrap();
+        let current = program.functions.iter().find(|f| f.name == "run").unwrap();
+        let functions = program.functions.iter().map(|f| (f.name.as_str(), f)).collect();
+        let types = TypeTable::new(&program);
+        let ExprKind::Block { statements, .. } = &current.body.kind else { panic!("run block") };
+        let body = statements.iter().find_map(|statement| match statement {
+            Statement::While { body, .. } => Some(body.as_ref()), _ => None,
+        }).unwrap();
+        let mut oracle_diagnostics = Vec::new();
+        let expected = reject_while_disallowed_oracle(&program, body, &functions, &types, &mut oracle_diagnostics);
+        let mut actual_diagnostics = Vec::new();
+        let mut verifier = crate::source_verify::IterativeVerifier::new(&program, current, HashMap::new(), &functions, &types, None, true, &mut actual_diagnostics);
+        let actual = verifier.reject_while_disallowed(body);
+        assert_eq!(actual, expected);
+        let key = |diagnostics: Vec<Diagnostic>| diagnostics.into_iter().map(|d| (d.code, d.severity, d.message, d.path, d.span, d.help)).collect::<Vec<_>>();
+        assert_eq!(key(actual_diagnostics), key(oracle_diagnostics));
     }
 }

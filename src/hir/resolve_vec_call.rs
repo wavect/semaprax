@@ -118,6 +118,7 @@ fn record_owner_renewal(
         return false;
     };
     target.effects.is_empty()
+        && target.type_parameters.is_empty()
         && type_arguments.is_empty()
         && resolver
             .resolve_type(&target.return_type, value.span)
@@ -154,10 +155,11 @@ fn record_owner_renewal(
                             OwnershipMode::Own | OwnershipMode::Borrow
                         ) && matches!(&argument.kind, ResolvedExprKind::Place(place)
                                 if place.projections.is_empty())
-                            && crate::hir::iterator_loop::is_owner_renewal_record(
+                            && (crate::hir::iterator_loop::is_owner_renewal_record(
                                 &resolver.declarations,
                                 &argument.ty,
-                            )
+                            ) || (argument.ownership == OwnershipMode::Borrow
+                                && crate::loop_calls::resolved_renewal_view(&argument.ty)))
                     }
                     crate::ast::ParamMode::Value => argument.ownership == OwnershipMode::Value,
                     crate::ast::ParamMode::Shared => false,

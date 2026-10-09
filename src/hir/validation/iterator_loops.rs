@@ -185,8 +185,10 @@ impl HirValidator<'_> {
                                 .program
                                 .resolve_call_target(callee, None)
                                 .ok_or_else(|| hir_error("record renewal target disappeared"))?;
-                            // The consumed owner and exact whole-record borrows
+                            // The consumed owner and exact named record/view borrows
                             // were authenticated by `is_record_owner_renewal`.
+                            // Ordinary loan replay independently checks view roots
+                            // and rejects aliasing the consumed owner.
                             // Copy arguments remain ordinary loop expressions;
                             // replay them so a pure renewal wrapper cannot hide
                             // a disallowed nested/effectful computation.

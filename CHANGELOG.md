@@ -1,5 +1,11 @@
 # Changelog
 
+- Draft OPT-702 whole-record loop renewal admission for independent named
+  `Slice<u8>` and `str` input borrows. Preserve ordinary alias/escape rejection,
+  exact owner transfer, and canonical cleanup history. Add source, hostile
+  replay, graph, and three-backend regression witnesses; execution is deferred
+  until the final shared verification batch.
+
 - Explain the native build/invoke route directly in source-command interpreter
   refusal diagnostics (issue #701). Exact G170/F102 help distinguishes source
   formatting, manifest formatting, bundled imports and native-only profiles.

@@ -443,6 +443,7 @@ impl Resolver<'_> {
             return false;
         };
         type_arguments.is_empty()
+            && target.type_parameters.is_empty()
             && target.effects.is_empty()
             && self
                 .resolve_type(&target.return_type, value.span)
@@ -478,7 +479,7 @@ impl Resolver<'_> {
                                     crate::hir::iterator_loop::is_owner_renewal_record(
                                         &self.declarations,
                                         &ty,
-                                    )
+                                    ) || crate::loop_calls::resolved_renewal_view(&ty)
                                 })
                     }
                     crate::ast::ParamMode::Value => true,

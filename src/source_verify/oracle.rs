@@ -35,7 +35,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 mod calls;
 mod matching;
 mod stdin_stream;
-mod while_oracle;
+pub(super) mod while_oracle;
 
 #[cfg(test)]
 #[allow(clippy::too_many_arguments)]

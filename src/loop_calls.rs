@@ -33,6 +33,17 @@ pub(crate) fn ast_param_admitted(program: &Program, mode: ParamMode, ty: &Type) 
     }
 }
 
+/// The view subset reusable by whole-record owner renewal. Admission here
+/// establishes only the carrier; ordinary ownership and loan replay must still
+/// authenticate its named origin and reject overlap with the renewed owner.
+pub(crate) fn ast_renewal_view(ty: &Type) -> bool {
+    matches!(ty, Type::SliceU8 | Type::Str)
+}
+
+pub(crate) fn resolved_renewal_view(ty: &ResolvedType) -> bool {
+    matches!(ty, ResolvedType::SliceU8 | ResolvedType::Str)
+}
+
 /// User loop calls may repeat only these already-declared read authorities.
 /// The normal effect checker still requires the caller and module to grant
 /// each effect; this predicate does not confer authority.

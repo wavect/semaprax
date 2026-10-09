@@ -1,0 +1,42 @@
+module test.record_borrow_renewal;
+
+@id("matcher.type")
+record Matcher {
+    @id("matcher.storage")
+    storage: Bytes,
+    @id("matcher.position")
+    position: usize,
+}
+
+@id("matcher.feed")
+fn feed(state: own Matcher, input: borrow Slice<u8>, text: borrow str, amount: usize) -> Matcher
+{
+    match own state {
+        Matcher { storage, position } => Matcher { storage: storage, position: position + byte_len(input) + usize_from_i64(str_len_bytes(text)) + amount },
+    }
+}
+
+@id("matcher.run")
+fn run(limit: usize) -> i64
+{
+    let mut matcher = Matcher { storage: bytes_zeroed(1usize), position: 0usize };
+    let source = bytes_zeroed(2usize);
+    let input = bytes_as_slice(source);
+    let input_alias = input;
+    let label = "ab";
+    let text = string_as_str(label);
+    let mut count = 0usize;
+    while count < limit {
+        matcher = feed(matcher, input_alias, text, 1usize);
+        count = count + 1usize;
+        count < limit
+    }
+    let retained = match own matcher { Matcher { storage, position } => { let size = byte_len(bytes_as_slice(storage)); if size == 1usize { i64_from_usize(position) } else { -1 } }, };
+    if byte_len(input_alias) == 2usize && str_len_bytes(text) == 2 { retained } else { -1 }
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    run(3usize) + run(0usize)
+}

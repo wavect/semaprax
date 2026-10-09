@@ -72,8 +72,34 @@ to settle the staged Reader and Writer state. This is a structural
 one-`Bytes`-plus-`usize` record rule with explicit type and field identities;
 it is not a name-based exception for these two spellings.
 
+The additive OPT-702 renewal hook also admits whole named `borrow Slice<u8>`
+and `borrow str` arguments alongside the one consumed owner. Their ultimate
+borrowed storage must be independent of that owner. Named aliases preserve
+ordinary non-escaping loan provenance; temporary views, projected operands,
+a view into the renewed record, a second owned parameter, generic/effectful
+callees, and loop-reachable byte allocation remain refused. The callee returns
+exactly the consumed record type and cannot return or retain its input views.
+
+Admission establishes only the call shape. Ordinary ownership verification
+and independent Shared Loan Plan replay still reject any overlapping root,
+including aliases through several named views. Arguments stage left to right
+and transfer at the existing call boundary; successful publication restores
+the owner's original cleanup position under CleanupPlan v12. No schema,
+backend carrier, or public ABI changes for this hook.
+
+The OPT-702 source change and new regressions await executable verification;
+the hosted-green line-package evidence above does not cover this extension.
+Focused selectors are `while_loops::record_owner_renewal_named_views`
+in the `language` harness and the library selectors
+`record_renewal_named_view_admission_agrees_with_iterative_verifier`,
+`record_renewal_named_views_replay_origins_and_reject_owner_aliases`, and
+`record_renewal_named_views_reject_forged_operands_and_owner_binding`.
+They cover canonical projection and graph replay, cleanup authentication,
+exact alias diagnostics, hostile origins and operands, and repeated
+interpreter/C11/Core-Wasm execution with independent byte and text storage.
+
 General streaming, arbitrary record replacement, borrowed views that survive
-an owning update, and effectful in-loop transitions remain open.
+an overlapping owning update, and effectful in-loop transitions remain open.
 
 ## Boundaries
 

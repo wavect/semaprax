@@ -120,7 +120,7 @@ pub(super) fn check_while_statement(
 /// Collect-all admission scan used by the recursive oracle; mirrors
 /// `IterativeVerifier::reject_while_disallowed` diagnostic for diagnostic.
 #[cfg(test)]
-pub(super) fn reject_while_disallowed_oracle(
+pub(in crate::source_verify) fn reject_while_disallowed_oracle(
     program: &Program,
     expression: &Expr,
     functions: &HashMap<&str, &Function>,
@@ -519,6 +519,7 @@ fn source_record_owner_renewal(
     };
     let types = TypeTable::new(program);
     type_arguments.is_empty()
+        && target.type_parameters.is_empty()
         && target.effects.is_empty()
         && crate::source_verify::declared_type::owned_record_collection::is_owner_renewal_record(
             &types,
@@ -543,8 +544,9 @@ fn source_record_owner_renewal(
                         && matches!(&argument.kind, ExprKind::Var(name) if name == binding)
                 }
                 crate::ast::ParamMode::Borrow => {
-                    crate::source_verify::declared_type::owned_record_collection::
+                    (crate::source_verify::declared_type::owned_record_collection::
                         is_owner_renewal_record(&types, &parameter.ty)
+                        || crate::loop_calls::ast_renewal_view(&parameter.ty))
                         && matches!(argument.kind, ExprKind::Var(_))
                 }
                 crate::ast::ParamMode::Value => true,

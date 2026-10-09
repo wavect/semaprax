@@ -89,6 +89,13 @@ payloads, with ordinary exhaustiveness and guard checks.
 [Loop Copy Variant Construction v1](LOOP-COPY-VARIANT-CONSTRUCTION-V1.md)
 additionally admits concrete Copy-scalar constructors within those loops.
 
+[IO Lines v1](IO-LINES-V1.md#cursor-transitions) owns the additive same-owner
+renewal of an explicitly identified one-`Bytes`-plus-`usize` record. Its
+OPT-702 source extension permits independent whole named `Slice<u8>`/`str`
+borrow operands on an effect-free nongeneric renewal call. Ordinary loans,
+left-to-right staging, and the existing renewal cleanup protocol still apply;
+the extension's executable gate remains pending.
+
 This restriction means admitted loops contribute **zero** new cleanup slots,
 transitions, or finalizers: the CleanupPlan v2/v3 schema set, the plan
 builder, the independent replay gate, and every serialized plan for programs

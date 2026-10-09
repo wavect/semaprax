@@ -1020,3 +1020,79 @@ fn interpreter_fuel_exhaustion_fails_closed_on_nonterminating_loops() {
     assert_eq!(parsed["payload"]["fuel"]["exhausted"], true);
     assert!(!interpretation.returned, "exhausted loops return nothing");
 }
+
+const RECORD_BORROW_RENEWAL: &str = include_str!("while_loops/record_borrow_renewal.spx");
+
+#[test]
+fn record_owner_renewal_named_views_preserve_canonical_projection_and_cleanup() {
+    let program = semaprax::check(RECORD_BORROW_RENEWAL, "record-borrow-renewal.spx").unwrap();
+    let canonical = format::canonical(&program);
+    assert_eq!(format::canonical(&parse(&canonical, "roundtrip.spx").unwrap()), canonical);
+    let resolved = hir::resolve(&program).unwrap();
+    hir::validate(&resolved).unwrap();
+    let run = resolved.functions.iter().find(|f| f.id.as_str() == "matcher.run").unwrap();
+    assert_eq!(run.cleanup_plan.schema, "semaprax.cleanup-plan.v12");
+    for reserve in [true, false] {
+        assert_eq!(run.cleanup_plan.blocks.iter().flat_map(|b| &b.transitions).filter(|t| {
+            if reserve { matches!(t, semaprax::cleanup_plan::CleanupTransition::ReserveRenewal { .. }) }
+            else { matches!(t, semaprax::cleanup_plan::CleanupTransition::Renew { .. }) }
+        }).count(), 1);
+    }
+    let json = graph::to_json(&program).unwrap();
+    assert_eq!(json, graph::to_json(&program).unwrap());
+    graph::verify_json(&program, &json).unwrap();
+    assert!(!run.loan_plan.loans.is_empty());
+    assert!(run.loan_plan.loans.iter().any(|loan| matches!(loan.cause, semaprax::loan_plan::LoanCause::BorrowedCall { .. })));
+    assert_eq!(codegen::emit_c(&program).unwrap(), codegen::emit_c(&program).unwrap());
+    assert_eq!(semaprax::wasm::emit_module(&program).unwrap(), semaprax::wasm::emit_module(&program).unwrap());
+}
+
+#[test]
+fn record_owner_renewal_named_views_execute_and_settle_on_three_backends() {
+    use super::owned_string_loops_v1::support::Fixture;
+    let program = semaprax::check(RECORD_BORROW_RENEWAL, "record-borrow-renewal.spx").unwrap();
+    let mut fixture = Fixture::new(RECORD_BORROW_RENEWAL);
+    let result = interpreter::internal_strings::interpret(&fixture.source, "app.main", &[], &InterpreterOptions::default()).unwrap();
+    let document: serde_json::Value = serde_json::from_str(&result.envelope).unwrap();
+    assert_eq!(document["payload"]["outcome"]["value"], "15");
+    let generated = codegen::emit_c(&program).unwrap();
+    let probe = format!("{}\n{}\n{generated}\n#undef malloc\n#undef free\nint main(void) {{\nREQUIRE(fixture_binary_stdout());\nstruct spx_status_entry entries[32]; struct spx_context context={{0}}; REQUIRE(spx_context_init(&context,19,entries,32,NULL,NULL,NULL));\nfor(unsigned i=0;i<8;++i) {{ int64_t value=INT64_MIN; REQUIRE(spx_decl_{}(&context,&value)==0); REQUIRE(value==15); REQUIRE(fixture_live==0 && fixture_allocations==fixture_frees); }}\nreturn 0; }}\n",
+        include_str!("../support/native_fixture_stdio.c"),
+        include_str!("../native_owned_utf8_settlement_v1/allocations.c"), hex_identity("app.main"));
+    for optimization in ["-O0", "-O2"] { assert_eq!(fixture.native(&probe, optimization), ""); }
+    let root = fixture.root.join("web");
+    semaprax::wasm::build_web(&program, &root).unwrap();
+    std::fs::write(root.join("probe.mjs"), r#"import {readFile} from 'node:fs/promises';
+import {instantiateBytes} from './semaprax.js';
+const {instance}=await instantiateBytes(await readFile('./app.wasm'),{maxOwnedByteEntries:2});
+for(let i=0;i<8;i++) { const value=instance.exports.semaprax_main(); if(value!==15n) throw Error(`renewal:${value}`); }
+"#).unwrap();
+    let output = Command::new("node").arg(root.join("probe.mjs")).current_dir(&root).output().expect("Node is required for record renewal parity");
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert!(output.stdout.is_empty());
+    for name in ["app.wasm", "semaprax.js", "index.html", "package.json", "semaprax.manifest.json", "probe.mjs"] { std::fs::remove_file(root.join(name)).unwrap(); }
+    std::fs::remove_dir(root).unwrap();
+    fixture.cleanup();
+}
+
+#[test]
+fn record_owner_renewal_named_views_refuse_aliases_and_temporary_operands() {
+    for setup in [
+        "let input = bytes_as_slice(matcher.storage); let input_alias = input;",
+        "let input = bytes_as_slice(matcher.storage); let intermediate = input; let input_alias = intermediate;",
+    ] {
+        let source = RECORD_BORROW_RENEWAL.replace("let input = bytes_as_slice(source);\n    let input_alias = input;", setup);
+        let report = verify_diagnostics(&source);
+        assert_eq!(report.iter().map(|d| (d.code, d.message.as_str())).collect::<Vec<_>>(), vec![
+            ("SPX-T265", "move or call transfer would invalidate a lexical byte view"),
+            ("SPX-T265", "assignment would replace storage held by a lexical byte view"),
+            ("SPX-T265", "move or transfer would invalidate an active shared loan"),
+        ], "{report:?}");
+    }
+    for argument in ["bytes_as_slice(source)", "{ input_alias }"] {
+        let source = RECORD_BORROW_RENEWAL.replace("feed(matcher, input_alias, text, 1usize)", &format!("feed(matcher, {argument}, text, 1usize)"));
+        assert!(verify_diagnostics(&source).iter().any(|d| d.code == "SPX-T252"));
+    }
+    let allocating = RECORD_BORROW_RENEWAL.replace("storage: storage, position: position +", "storage: bytes_copy(input), position: position +");
+    assert!(verify_diagnostics(&allocating).iter().any(|d| d.code == "SPX-T267"));
+}

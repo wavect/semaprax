@@ -468,6 +468,46 @@ fn main() -> i64
     }
 
     #[test]
+    fn record_renewal_named_views_reject_forged_operands_and_owner_binding() {
+        let source = crate::check(
+            include_str!("../../../tests/language/while_loops/record_borrow_renewal.spx"),
+            "record-renewal-views.spx",
+        ).unwrap();
+        let program = crate::hir::resolve(&source).unwrap();
+        let function = program.functions.iter().find(|f| f.id.as_str() == "matcher.run").unwrap();
+        validate_structure(&program, function).unwrap();
+        for mode in 0..4 {
+            let mut forged = function.clone();
+            let ResolvedExprKind::Block { statements, .. } = &mut forged.body.kind else { panic!("run block") };
+            let other = statements.iter().find_map(|statement| match statement {
+                ResolvedStatement::Let { binding, .. } if binding.name == "source" => Some(binding.id.clone()), _ => None,
+            }).unwrap();
+            let body = statements.iter_mut().find_map(|statement| match statement {
+                ResolvedStatement::While { body, .. } => Some(body), _ => None,
+            }).unwrap();
+            let ResolvedExprKind::Block { statements, .. } = &mut body.kind else { panic!("loop block") };
+            let call = statements.iter_mut().find_map(|statement| match statement {
+                ResolvedStatement::Assign { value, .. } => Some(value), _ => None,
+            }).unwrap();
+            let ResolvedExprKind::Call { args, .. } = &mut call.kind else { panic!("renewal call") };
+            match mode {
+                0 => {
+                    let ResolvedExprKind::Place(place) = &mut args[1].kind else { panic!("view place") };
+                    place.projections.push(crate::hir::PlaceProjection::Field(DeclarationId::new("matcher.storage")));
+                }
+                1 => args[1].kind = ResolvedExprKind::Block { statements: Vec::new(), tail: Box::new(args[1].clone()) },
+                2 => args[1].ownership = OwnershipMode::Own,
+                3 => {
+                    let ResolvedExprKind::Place(place) = &mut args[0].kind else { panic!("owner place") };
+                    place.root = other;
+                }
+                _ => unreachable!(),
+            }
+            assert!(validate_structure(&program, &forged).is_err(), "forged renewal mode {mode}");
+        }
+    }
+
+    #[test]
     fn ordinary_vec_renewal_rejects_missing_forged_and_downgraded_proofs() {
         let source = crate::check(
             r#"module test.ordinary_vec_renewal;

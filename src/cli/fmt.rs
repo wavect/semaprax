@@ -409,6 +409,71 @@ mod tests {
     }
 
     #[test]
+    fn ordinary_project_fmt_refuses_noncanonical_manifest_before_writing_sources() {
+        let (directory, manifest_path) =
+            scratch_manifest("project-rejects-layout", NONCANONICAL_TABLE_MANIFEST);
+        let source_dir = directory.join("src");
+        std::fs::create_dir(&source_dir).unwrap();
+        let app_path = source_dir.join("app.spx");
+        let tests_path = source_dir.join("tests.spx");
+        let app_before = include_str!("../../examples/calculator-project/src/app.spx");
+        let tests_before = include_str!("../../examples/calculator-project/src/tests.spx");
+        std::fs::write(&app_path, app_before).unwrap();
+        std::fs::write(&tests_path, tests_before).unwrap();
+
+        let options = parse(&[manifest_path.to_string_lossy().into_owned()]).unwrap();
+        let status = run(options, |diagnostics| {
+            assert!(diagnostics.iter().any(|diagnostic| diagnostic.code == "SPX-J100"));
+            7
+        });
+        assert_eq!(status, Err(7));
+        assert_eq!(std::fs::read_to_string(&manifest_path).unwrap(), NONCANONICAL_TABLE_MANIFEST);
+        assert_eq!(std::fs::read_to_string(app_path).unwrap(), app_before);
+        assert_eq!(std::fs::read_to_string(tests_path).unwrap(), tests_before);
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[cfg(unix)]
+    fn create_file_symlink(target: &Path, link: &Path) -> std::io::Result<()> {
+        std::os::unix::fs::symlink(target, link)
+    }
+
+    #[cfg(windows)]
+    fn create_file_symlink(target: &Path, link: &Path) -> std::io::Result<()> {
+        std::os::windows::fs::symlink_file(target, link)
+    }
+
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn manifest_formatter_rejects_symlink_path_without_writing() {
+        let (directory, target) = scratch_manifest("symlink-target", NONCANONICAL_TABLE_MANIFEST);
+        let alias_dir = directory.join("alias");
+        std::fs::create_dir(&alias_dir).unwrap();
+        let alias = alias_dir.join("semaprax.toml");
+        if let Err(error) = create_file_symlink(&target, &alias) {
+            #[cfg(windows)]
+            if error.kind() == std::io::ErrorKind::PermissionDenied {
+                std::fs::remove_dir_all(directory).unwrap();
+                return;
+            }
+            panic!("cannot create test manifest symlink: {error}");
+        }
+
+        let options = parse(&strings(&["--manifest", alias.to_str().unwrap()])).unwrap();
+        let status = run(options, |diagnostics| {
+            assert!(diagnostics.iter().any(|diagnostic| diagnostic.code == "SPX-J102"));
+            7
+        });
+        assert_eq!(status, Err(7));
+        assert_eq!(std::fs::read_to_string(&target).unwrap(), NONCANONICAL_TABLE_MANIFEST);
+        assert!(std::fs::symlink_metadata(&alias)
+            .unwrap()
+            .file_type()
+            .is_symlink());
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
     fn differing_line_includes_content_and_eof_drift() {
         assert_eq!(first_differing_line("same\nold\n", "same\nnew\n"), 2);
         assert_eq!(first_differing_line("same\n", "same"), 1);

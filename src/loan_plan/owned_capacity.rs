@@ -97,6 +97,13 @@ fn shared_identity_bytes(plan: &LoanPlan) -> Option<usize> {
         return None;
     }
     let mut identities = Vec::with_capacity(count);
+    let excess = identities
+        .capacity()
+        .checked_sub(count)?
+        .checked_mul(std::mem::size_of::<&ExpressionId>())?;
+    if !crate::bounded_output::reserve_active(excess) {
+        return None;
+    }
     for loan in &plan.loans {
         identities.push(&loan.site);
         identities.push(&loan.start.expression);

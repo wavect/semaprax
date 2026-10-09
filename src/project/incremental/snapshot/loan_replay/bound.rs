@@ -3,8 +3,8 @@ use std::mem::size_of;
 
 use crate::hir::{
     OwnershipMode, Place, PlaceProjection, ResolvedBinding, ResolvedExpr, ResolvedExprKind,
-    ResolvedMatchMode, ResolvedMatchPattern, ResolvedProgram, ResolvedRecordMatchFieldPattern,
-    ResolvedType, ValueId,
+    ResolvedMatchMode, ResolvedMatchPattern, ResolvedParam, ResolvedProgram,
+    ResolvedRecordMatchFieldPattern, ResolvedType, ValueId,
 };
 use crate::loan_plan::{
     Loan, LoanEndpoint, LoanId, LoanPlan, LoanProgramPoint, MAX_LOANS_PER_FUNCTION_V1,
@@ -82,6 +82,14 @@ impl Inventory {
     fn binding(&mut self, binding: &ResolvedBinding) -> Result<()> {
         add(&mut self.bindings, 1)?;
         self.root_bytes = self.root_bytes.max(binding.id.as_str().len());
+        Ok(())
+    }
+
+    fn parameter(&mut self, parameter: &ResolvedParam) -> Result<()> {
+        // Ownership maps clone the parameter root; its name/type/ownership
+        // are read directly and retain no additional payload allocation.
+        add(&mut self.bindings, 1)?;
+        self.root_bytes = self.root_bytes.max(parameter.id.as_str().len());
         Ok(())
     }
 
@@ -450,7 +458,7 @@ pub(super) fn construction_bytes(program: &ResolvedProgram) -> Result<usize> {
         add(&mut inventory.diagnostic_bytes, function.id.as_str().len())?;
         add(&mut inventory.diagnostic_bytes, function.name.len())?;
         for parameter in &function.params {
-            inventory.binding(parameter)?;
+            inventory.parameter(parameter)?;
         }
         for expression in function
             .requires

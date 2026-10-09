@@ -133,6 +133,7 @@ pub(super) fn default_expr_expanded_cost(
             // Ordinary Var HIR carries the expression/value/type identities;
             // signature nominal identities are charged by the caller already.
             identity_slots: 3,
+            identity_carriers: 3,
         });
     }
     super::defaults::default_expr_expanded_cost(

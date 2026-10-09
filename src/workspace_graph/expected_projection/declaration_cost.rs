@@ -111,6 +111,7 @@ pub(super) fn ast_expr_cost(
     cost: &mut StructuralCost,
 ) -> Result<(), Vec<Diagnostic>> {
     cost.value(expression)?;
+    cost.add_identity_carriers(3)?;
     cost.account_scalar_identity(&expression.kind)?;
     match &expression.kind {
         ExprKind::Closure {
@@ -157,6 +158,12 @@ pub(super) fn ast_expr_cost(
                     cost.inline_expr_parent(statement)?;
                 } else {
                     cost.value(statement)?;
+                }
+                if matches!(
+                    statement,
+                    crate::ast::Statement::For { .. } | crate::ast::Statement::ForOwn { .. }
+                ) {
+                    cost.add_identity_carriers(16)?;
                 }
                 // Charge the string every statement actually carries. Unsafe
                 // boundaries carry their verbatim audit summary, `while`

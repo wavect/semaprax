@@ -31,6 +31,7 @@ pub(super) fn default_expr_expanded_cost(
                     + std::mem::size_of_val(arguments),
                 string_bytes: name.len(),
                 identity_slots: 9 + arguments.len(),
+                identity_carriers: 6,
             })
         }
         Type::I64
@@ -46,6 +47,7 @@ pub(super) fn default_expr_expanded_cost(
             bytes: std::mem::size_of::<Expr>(),
             string_bytes: 0,
             identity_slots: 0,
+            identity_carriers: 3,
         }),
         Type::SliceU8 | Type::StringMap => Err(vec![graph_error(
             "SPX-G173",
@@ -55,6 +57,7 @@ pub(super) fn default_expr_expanded_cost(
             bytes: 2 * std::mem::size_of::<Expr>() + crate::byte_ops::ZEROED_NAME.len(),
             string_bytes: crate::byte_ops::ZEROED_NAME.len(),
             identity_slots: 7,
+            identity_carriers: 6,
         }),
         Type::ArrayU8(_)
         | Type::Bytes
@@ -106,6 +109,7 @@ pub(super) fn default_expr_expanded_cost(
                     )]
                 })?;
             let mut cost = StructuralCost::structure(std::mem::size_of::<Expr>());
+            cost.add_identity_carriers(3)?;
             let mut identity_slots = 1usize;
             cost.string(alias)?;
             match &declaration.kind {
@@ -124,6 +128,7 @@ pub(super) fn default_expr_expanded_cost(
                             allow_owned,
                         )?;
                         cost.add_split(nested.bytes, nested.string_bytes)?;
+                        cost.add_identity_carriers(nested.identity_carriers)?;
                         identity_slots = checked_builder_sum(
                             identity_slots,
                             nested.identity_slots.checked_add(1).ok_or_else(|| {
@@ -147,6 +152,7 @@ pub(super) fn default_expr_expanded_cost(
                             allow_owned,
                         )?;
                         cost.add_split(nested.bytes, nested.string_bytes)?;
+                        cost.add_identity_carriers(nested.identity_carriers)?;
                         identity_slots = checked_builder_sum(
                             identity_slots,
                             nested.identity_slots.checked_add(1).ok_or_else(|| {
@@ -175,6 +181,7 @@ pub(super) fn default_expr_expanded_cost(
                             allow_owned,
                         )?;
                         cost.add_split(nested.bytes, nested.string_bytes)?;
+                        cost.add_identity_carriers(nested.identity_carriers)?;
                         identity_slots = checked_builder_sum(
                             identity_slots,
                             nested.identity_slots.checked_add(1).ok_or_else(|| {
@@ -195,6 +202,7 @@ pub(super) fn default_expr_expanded_cost(
                 bytes: cost.total,
                 string_bytes: cost.string_bytes,
                 identity_slots,
+                identity_carriers: cost.identity_carriers,
             };
             memo[usize::from(allow_owned)].insert(target_id, expanded);
             Ok(expanded)

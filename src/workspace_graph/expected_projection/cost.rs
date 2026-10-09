@@ -1,22 +1,13 @@
 //! Private structural-cost accumulators for the expected projection.
 //!
-//! The fixed expression bundle includes sixteen shared ExpressionId heap
-//! carriers in addition to every inline HIR/cleanup footprint. Ordinary
-//! expression lowering creates one backing; argument/field/arm children and
-//! closure bodies have separately charged complete expression footprints.
-//! Capture backings correspond to charged variable occurrences in the closure
-//! body. The largest fixed
-//! statement expansion, borrowed `for`, constructs sixteen extra identities
-//! (including its places and literals); consuming `for own` constructs fifteen.
-//! Their authored statement carrier is charged independently of its children.
-//! Clones in indexes, cleanup, loan proofs, and retained output reuse backing;
-//! generic materializations are charged as additional complete function trees.
-//! Thus the existing AST structural multiplier must cover the heap carriers
-//! too: the compile-time HIR_EXPR_FIXED_BUNDLE assertion includes them, rather
-//! than relying on ExpressionId's smaller inline layout. Literal discounts
-//! remove only absent owned storage and retain all sixteen identity carriers.
-//! Identity payload buffers remain covered by the unchanged identity-byte
-//! multiplier; the new heap counters/String carriers are structural bytes.
+//! Fixed inline HIR/cleanup footprints retain their original structural proof.
+//! Shared ExpressionId heap carriers have a separate checked prebound: three
+//! per visited expression cover ordinary, native/host and intrinsic lowering;
+//! sixteen per authored traversal statement cover `for` (16) and `for own`
+//! (15), independently of their source/body children. Cloned identities share
+//! backing. Defaults, imported wrappers and generic materializations propagate
+//! their own counts before resolution. Payload buffers retain the independent
+//! identity/string bounds; heap carriers never spend bookkeeping allowance.
 
 use crate::diagnostic::Diagnostic;
 
@@ -27,6 +18,7 @@ pub(super) struct ExpandedDefaultCost {
     pub(super) bytes: usize,
     pub(super) string_bytes: usize,
     pub(super) identity_slots: usize,
+    pub(super) identity_carriers: usize,
 }
 
 #[derive(Clone, Copy)]
@@ -34,6 +26,7 @@ pub(super) struct GenericInstanceCost {
     pub(super) bytes: usize,
     pub(super) string_bytes: usize,
     pub(super) identity_slots: usize,
+    pub(super) identity_carriers: usize,
 }
 
 /// Bytes the resolver clones from one source tree, split into the fixed node
@@ -46,6 +39,7 @@ pub(in crate::workspace_graph) struct StructuralCost {
     inline_values: bool,
     pub(super) scalar_identity_discount: usize,
     pub(super) literal_fixed_discount: usize,
+    pub(super) identity_carriers: usize,
 }
 
 impl StructuralCost {
@@ -57,6 +51,7 @@ impl StructuralCost {
             inline_values: false,
             scalar_identity_discount: 0,
             literal_fixed_discount: 0,
+            identity_carriers: 0,
         }
     }
 
@@ -79,6 +74,16 @@ impl StructuralCost {
     pub(super) fn with_inline_values(mut self, enabled: bool) -> Self {
         self.inline_values = enabled;
         self
+    }
+
+    pub(super) fn add_identity_carriers(&mut self, count: usize) -> Result<(), Vec<Diagnostic>> {
+        self.identity_carriers = checked_usage(
+            self.identity_carriers,
+            count,
+            "builder_bytes",
+            active_builder_limit(),
+        )?;
+        Ok(())
     }
 
     pub(super) fn account_scalar_identity(
@@ -185,6 +190,7 @@ impl StructuralCost {
             inline_values: false,
             scalar_identity_discount: 0,
             literal_fixed_discount: 0,
+            identity_carriers: 0,
         }
     }
 
@@ -469,7 +475,7 @@ mod tests {
 
 // Both traversal forms retain their full authored Statement carrier before
 // visiting source/body children. Its fixed allowance covers the expression
-// bundle, including sixteen independently allocated identity heap carriers.
+// inline bundle. Traversal heap carriers are separately precharged.
 const _: () = assert!(
     std::mem::size_of::<crate::ast::Statement>() >= std::mem::size_of::<crate::ast::Expr>()
 );
@@ -556,5 +562,53 @@ fn identity_prebound_literal_bundle_excludes_every_nonliteral_root() {
         },
     ] {
         assert_eq!(literal_fixed_discount(&kind), 0);
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn identity_prebound_carriers_include_traversal_statements_and_every_child() {
+    for traversal in ["for item in values", "for own item in values"] {
+        let source = std::format!(
+            "module carrier.fixture; @id(\"carrier.main\") fn main() -> i64 {{ {traversal} {{ 0 }} 0 }}"
+        );
+        let program = crate::parse(&source, std::path::Path::new("carrier.spx")).unwrap();
+        let mut cost = StructuralCost::new();
+        super::declaration_cost::ast_expr_cost(&program.functions[0].body, &mut cost).unwrap();
+        // Enclosing block, source variable, body block, body tail, outer tail;
+        // the sixteen synthesized traversal identities are additional.
+        assert_eq!(cost.identity_carriers, 5 * 3 + 16);
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn identity_prebound_carriers_propagate_defaults_and_generic_materializations() {
+    let source = "module carrier.defaults; @id(\"carrier.generic\") fn marker<T>(value: T) -> i64 { 0 } @id(\"carrier.main\") fn main() -> i64 { marker<i64>(1) }";
+    let program = crate::parse(source, std::path::Path::new("carrier.spx")).unwrap();
+    let mut template = StructuralCost::new();
+    super::declaration_cost::ast_function_cost(&program.functions[0], &mut template).unwrap();
+    let generic = super::generic_instance_source_cost(&program).unwrap();
+    assert_eq!(generic.identity_carriers, template.identity_carriers);
+    assert!(generic.identity_carriers > 0);
+    for (ty, owned, expected) in [
+        (crate::ast::Type::I64, false, 3),
+        (crate::ast::Type::Bytes, true, 6),
+    ] {
+        let default = super::defaults::default_expr_expanded_cost(
+            &ty,
+            "carrier.defaults",
+            &program,
+            &std::collections::BTreeMap::new(),
+            &[],
+            &mut [
+                std::collections::BTreeMap::new(),
+                std::collections::BTreeMap::new(),
+            ],
+            &mut std::collections::BTreeSet::new(),
+            owned,
+        )
+        .unwrap();
+        assert_eq!(default.identity_carriers, expected);
     }
 }

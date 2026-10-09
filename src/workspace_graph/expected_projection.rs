@@ -151,6 +151,7 @@ pub(super) fn synthetic_builder_bytes_scoped(
                 super::owned_function_import::admitted(program, target, authored, programs),
             )?;
             runtime.add_split(cost.bytes, cost.string_bytes)?;
+            runtime.add_identity_carriers(cost.identity_carriers)?;
             identity_slots = checked_builder_sum(identity_slots, cost.identity_slots)?;
         } else {
             let declaration = target.ty.expect("validated type target");
@@ -175,6 +176,7 @@ pub(super) fn synthetic_builder_bytes_scoped(
     {
         let synthetic_main = synthetic_main_runtime_cost(&program.module)?;
         runtime.add_split(synthetic_main.total, synthetic_main.string_bytes)?;
+        runtime.add_identity_carriers(synthetic_main.identity_carriers)?;
     }
     if layout_mode >= 2 {
         identity_slots = identity_slots
@@ -230,8 +232,16 @@ pub(super) fn synthetic_builder_bytes_scoped(
         .checked_mul(maximum_identity_bytes)
         .and_then(|bytes| bytes.checked_mul(HIR_IDENTITY_COPY_FACTOR))
         .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
+    // Heap carriers are prebound independently of inline layouts and shared clones.
+    let identity_carriers = checked_builder_sum(raw.identity_carriers, runtime.identity_carriers)?;
+    let identity_carriers =
+        checked_builder_sum(identity_carriers, generic_instances.identity_carriers)?;
+    let identity_carrier_bytes = identity_carriers
+        .checked_mul(hir::ExpressionId::SHARED_ALLOCATION_CARRIER_BYTES)
+        .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
     let hir_upper = fixed_hir_upper
-        .checked_add(identity_occurrence_upper)
+        .checked_add(identity_carrier_bytes)
+        .and_then(|bytes| bytes.checked_add(identity_occurrence_upper))
         .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
     let retained_clone_and_hir = checked_usage(
         raw.total,
@@ -458,6 +468,7 @@ fn generic_instance_source_cost(program: &Program) -> Result<GenericInstanceCost
                 bytes: cost.total,
                 string_bytes: cost.string_bytes,
                 identity_slots: ast_function_identity_slots(function)?,
+                identity_carriers: cost.identity_carriers,
             },
         ));
     }
@@ -466,6 +477,7 @@ fn generic_instance_source_cost(program: &Program) -> Result<GenericInstanceCost
         bytes: 0,
         string_bytes: 0,
         identity_slots: 0,
+        identity_carriers: 0,
     };
     for function in program
         .functions
@@ -484,7 +496,12 @@ fn generic_instance_source_cost(program: &Program) -> Result<GenericInstanceCost
                     return;
                 }
                 if let Ok(index) = templates.binary_search_by_key(&name, |(name, _)| *name) {
-                    if let (Some(bytes), Some(string_bytes), Some(identity_slots)) = (
+                    if let (
+                        Some(bytes),
+                        Some(string_bytes),
+                        Some(identity_slots),
+                        Some(identity_carriers),
+                    ) = (
                         total.bytes.checked_add(templates[index].1.bytes),
                         total
                             .string_bytes
@@ -492,11 +509,15 @@ fn generic_instance_source_cost(program: &Program) -> Result<GenericInstanceCost
                         total
                             .identity_slots
                             .checked_add(templates[index].1.identity_slots),
+                        total
+                            .identity_carriers
+                            .checked_add(templates[index].1.identity_carriers),
                     ) {
                         total = GenericInstanceCost {
                             bytes,
                             string_bytes,
                             identity_slots,
+                            identity_carriers,
                         };
                     } else {
                         overflowed = true;
@@ -562,6 +583,7 @@ fn synthetic_main_runtime_cost(module: &str) -> Result<StructuralCost, Vec<Diagn
     let mut cost = StructuralCost::new();
     cost.add(std::mem::size_of::<Function>())?;
     cost.add(std::mem::size_of::<Expr>())?;
+    cost.add_identity_carriers(3)?;
     cost.string("main")?;
     cost.add_split(
         "workspace.synthetic.main.".len(),

@@ -18,6 +18,18 @@ module cache.closure;
 "#;
 
 #[test]
+fn expression_id_cache_wire_matches_string_and_round_trips_escaped_utf8() {
+    let text = String::from("expression\0café.λ");
+    let identity = ExpressionId::from_owned(text.clone());
+    let wire = cache_codec::encode(&identity).unwrap();
+
+    assert_eq!(wire, cache_codec::encode(&text).unwrap());
+    let decoded: ExpressionId = cache_codec::decode(&wire).unwrap();
+    assert_eq!(decoded.as_str(), text);
+    assert_eq!(cache_codec::encode(&decoded).unwrap(), wire);
+}
+
+#[test]
 fn closure_ast_tag_25_and_hir_tag_31_round_trip_with_graph_and_interpreter() {
     let ast = crate::check(SOURCE, "cache-closure.spx").unwrap();
     let ast_wire = cache_codec::encode(&ast).unwrap();

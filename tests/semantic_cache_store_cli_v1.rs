@@ -54,9 +54,13 @@ impl Fixture {
             "semaprax.toml",
             "src/app.spx",
             "src/core.spx",
+            "src/frame.spx",
             "src/tests.spx",
         ] {
-            std::fs::copy(example.join(path), root.join(path)).unwrap();
+            let source = example.join(path);
+            if source.exists() {
+                std::fs::copy(source, root.join(path)).unwrap();
+            }
         }
         let store = root.join(".semaprax-semantic-cache");
         std::fs::create_dir(&store).unwrap();
@@ -266,6 +270,83 @@ fn task_service_project_persists_and_restarts_with_checked_hir_reuse() {
     assert!(restarted["work"]["checked_HIR_reused"].as_u64().unwrap() >= 3);
     assert_eq!(restarted["work"]["full_cross_file_checks"], true);
     assert_eq!(restarted["work"]["full_link_and_profile_admission"], true);
+}
+
+#[test]
+fn persisted_nonempty_loan_plan_replays_with_exact_zero_resolution_warm_accounting() {
+    let fixture = Fixture::from_example("frame-payload-project");
+    let frame_path = fixture.root.join("src/frame.spx");
+    let frame = std::fs::read_to_string(&frame_path).unwrap()
+        + r#"
+@id("loan.consume-bytes")
+fn consume_bytes(value: own Bytes) -> i64 { 7 }
+@id("loan.projected")
+fn projected() -> i64 {
+    let source = [7u8, 8u8, 9u8];
+    let owned = bytes_copy(array_as_slice(source));
+    let parent = bytes_as_slice(owned);
+    let child = byte_range(parent, 1usize, byte_len(parent));
+    let sibling = bytes_as_slice(owned);
+    let byte_observed = if byte_len(child) + byte_len(sibling) > 0usize { 1 } else { 0 };
+    consume_bytes(owned) + byte_observed
+}
+"#;
+    let frame_ast = semaprax::parse(&frame, "src/frame.spx").unwrap();
+    std::fs::write(&frame_path, semaprax::format::canonical(&frame_ast)).unwrap();
+
+    let tests_path = fixture.root.join("src/tests.spx");
+    let tests = std::fs::read_to_string(&tests_path).unwrap();
+    assert_eq!(tests.matches("if valid_ok && mismatch_ok").count(), 1);
+    let tests = tests
+        .replace(
+            "module frame_payload.tests;",
+            "module frame_payload.tests;\nuse function @id(\"loan.projected\") from frame_payload.frame as loan_projected;",
+        )
+        .replace(
+            "if valid_ok && mismatch_ok",
+            "if valid_ok && mismatch_ok && loan_projected() == 8",
+        );
+    let tests_ast = semaprax::parse(&tests, "src/tests.spx").unwrap();
+    std::fs::write(&tests_path, semaprax::format::canonical(&tests_ast)).unwrap();
+
+    assert_eq!(fixture.initialize()["source_authority"], false);
+    let cold = value(fixture.cold_open());
+    assert_eq!(cold["frontend_work"]["work"]["modules_resolved"], 3);
+    assert_eq!(cold["frontend_work"]["work"]["checked_HIR_reused"], 0);
+    let cold_image = fixture.image();
+    let projected = cold_image
+        .revision()
+        .test_program()
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "loan.projected")
+        .expect("fixture test imports the loan-bearing function");
+    assert!(projected.loan_plan.loans.len() >= 4);
+    assert!(
+        projected
+            .loan_plan
+            .loans
+            .iter()
+            .any(|loan| loan.parent.is_some())
+    );
+
+    let receipt = fixture.persist();
+    let digest = receipt["entry_digest"].as_str().unwrap();
+    let loaded = value(fixture.load(digest));
+    warm(&loaded);
+    let warm_report = value(fixture.warm_open(digest));
+    assert_eq!(
+        warm_report["schema"],
+        "semaprax.semantic-cache-warm-open.v1"
+    );
+    assert_eq!(warm_report["store_effect"], "entry_read_only");
+    warm(&warm_report["frontend_work"]);
+    assert_eq!(cold["project_revision"], warm_report["project_revision"]);
+    assert_eq!(cold["image_revision"], warm_report["image_revision"]);
+    assert_eq!(
+        cold_image.image_digest(),
+        warm_report["image_revision"].as_str().unwrap()
+    );
 }
 
 #[test]

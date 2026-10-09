@@ -56,7 +56,24 @@ pub(super) fn require_portable(profile: ProjectProfile) -> Result<(), Diagnostic
 
 pub(super) fn require_interpreter(profile: ProjectProfile) -> Result<(), Diagnostic> {
     if profile.is_source_command() {
-        return Err(Diagnostic::io("SPX-F102", "source-command profiles admit only a native invocation; Project interpreter execution has no argv/file authority provider"));
+        return Err(Diagnostic::io("SPX-F102", "source-command profiles admit only a native invocation; Project interpreter execution has no argv/file authority provider")
+            .with_help("build with `semaprax build semaprax.toml --target native -o app`, then invoke `./app <args>`"));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn source_command_interpreter_refusal_preserves_code_and_gives_native_command() {
+        for profile in [ProjectProfile::SourceCommandV1, ProjectProfile::SourceCommandResourceOutputV1] {
+            let diagnostic = require_interpreter(profile).unwrap_err();
+            assert_eq!(diagnostic.code, "SPX-F102");
+            assert_eq!(diagnostic.message, "source-command profiles admit only a native invocation; Project interpreter execution has no argv/file authority provider");
+            assert_eq!(diagnostic.help.as_deref(), Some("build with `semaprax build semaprax.toml --target native -o app`, then invoke `./app <args>`"));
+        }
+        assert!(require_interpreter(ProjectProfile::ScalarV1).is_ok());
+    }
 }

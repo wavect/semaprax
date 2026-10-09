@@ -638,17 +638,28 @@ class WebappCampaignTests(unittest.TestCase):
             with patch.object(campaign, "add_seed_worktree") as worktree, \
                     patch.object(campaign, "create_seed_repository") as seed, \
                     patch.object(campaign, "run_codex") as paid:
-                with self.assertRaisesRegex(ValueError, "compiler binary differs from the immutable campaign plan"):
-                    campaign.launch_trial(root, root / "artifacts", "seed",
-                                          {"arm": "semaprax", "number": 1}, settings, compiler)
-                with self.assertRaisesRegex(ValueError, "compiler binary differs from the immutable campaign plan"):
-                    campaign.launch_calibration(root, root / "artifacts", "seed", settings, compiler)
+                # The main guard runs before the resource-monitor wrapper and
+                # therefore refuses before creating any campaign artifacts.
                 with patch.object(sys, "argv", argv), patch.object(campaign, "plan", return_value=settings), \
                         contextlib.redirect_stderr(io.StringIO()) as error:
                     self.assertEqual(campaign.main(), 2)
                 self.assertIn("compiler", error.getvalue().lower())
-                worktree.assert_not_called(); seed.assert_not_called(); paid.assert_not_called()
                 self.assertFalse((root / "artifacts").exists())
+                # Individual attempt wrappers retain their failure audit
+                # receipts while preventing worktrees and paid dispatch.
+                rows = [campaign.launch_trial(root, root / "artifacts", "seed",
+                                              {"arm": "semaprax", "number": 1}, settings, compiler),
+                        campaign.launch_calibration(root, root / "artifacts", "seed", settings, compiler)]
+                for row in rows:
+                    self.assertEqual(row["status"], "failed")
+                    self.assertTrue(row["runner_error"])
+                    self.assertIn("compiler binary differs from the immutable campaign plan", row["failure"])
+                    receipt = Path(row["resource_assessment"]["receipt"])
+                    document = json.loads(receipt.read_text())
+                    self.assertEqual(document["state"], "finished")
+                    self.assertEqual(document["row"]["failure"], row["failure"])
+                worktree.assert_not_called(); seed.assert_not_called(); paid.assert_not_called()
+                self.assertFalse((root / "artifacts" / "worktrees").exists())
 
     def test_compiler_changed_during_preparation_refuses_model_dispatch(self):
         for kind in ("calibration", "trial"):

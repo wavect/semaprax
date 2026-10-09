@@ -242,3 +242,82 @@ fn byte_signature_views_preserve_owned_bytes_identity_and_borrow_authority_failu
     assert_eq!(actual.message, "borrowed Bytes call root is out of scope");
     assert_eq!(actual.span, argument.span);
 }
+
+#[test]
+fn ownership_view_borrows_nominal_facts_and_preserves_byte_and_missing_fact_diagnostics() {
+    let source = r#"
+module test.nominal_signature_view;
+@id("payload.type") record Payload { @id("payload.bytes") bytes: Bytes, }
+@id("payload.identity") fn identity(input: own Payload) -> Payload { input }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let ast = crate::parse(source, std::path::Path::new("nominal-signature-view.spx")).unwrap();
+    let program = crate::hir::resolve(&ast).unwrap();
+    let wire = crate::cache_codec::encode(&program).unwrap();
+    let function = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "payload.identity")
+        .unwrap();
+    let ResolvedExprKind::Block { tail, .. } = &function.body.kind else {
+        unreachable!()
+    };
+    let parameter = &function.params[0];
+    assert_eq!(parameter.ownership, OwnershipMode::Own);
+    assert_eq!(tail.ownership, OwnershipMode::Own);
+    let validator = HirValidator::new(&program).unwrap();
+    let facts = validator
+        .borrowed_type_facts(&parameter.ty)
+        .unwrap()
+        .unwrap();
+    assert!(matches!(facts, std::borrow::Cow::Borrowed(_)));
+    let expected_facts = program.declarations.type_facts(&parameter.ty).unwrap();
+    assert!(!expected_facts.copy);
+    let ((), overflow, used) = crate::bounded_output::with_limit_usage(0, || {
+        for _ in 0..64 {
+            validator
+                .validate_argument_ownership_view(tail, ParameterView::owned(parameter))
+                .unwrap();
+        }
+    });
+    assert!(!overflow, "ownership view rebuilt a charged nominal key");
+    assert_eq!(used, 0);
+
+    let mut argument = tail.as_ref().clone();
+    argument.ty = ResolvedType::Bytes;
+    let bytes = CallParameters::Byte(ByteOp::Set);
+    validator
+        .validate_argument_ownership_view(&argument, bytes.parameter(0))
+        .unwrap();
+    argument.ownership = OwnershipMode::Borrow;
+    let error = validator
+        .validate_argument_ownership_view(&argument, bytes.parameter(0))
+        .unwrap_err();
+    assert_eq!(error.code, "SPX-H006");
+    assert_eq!(
+        error.message,
+        "argument ownership is incompatible with parameter `core.bytes.set.param.0`"
+    );
+    assert_eq!(error.span, argument.span);
+    assert!(error.path.is_none());
+    assert!(error.help.is_none());
+
+    let mut missing = parameter.clone();
+    missing.ty = ResolvedType::Nominal {
+        declaration: DeclarationId::new("payload.missing"),
+        arguments: Vec::new(),
+    };
+    assert!(program.declarations.type_facts(&missing.ty).is_none());
+    let error = validator
+        .validate_argument_ownership_view(tail, ParameterView::owned(&missing))
+        .unwrap_err();
+    assert_eq!(error.code, "SPX-H006");
+    assert_eq!(
+        error.message,
+        "type `nominal:15:payload.missing:0:` has no semantic facts"
+    );
+    assert_eq!(error.span, tail.span);
+    assert!(error.path.is_none());
+    assert!(error.help.is_none());
+    assert_eq!(crate::cache_codec::encode(&program).unwrap(), wire);
+}

@@ -577,11 +577,11 @@ mod agent_quick_reference {
     #[test]
     #[ignore = "regenerates the pinned agent diagnostic help projection"]
     fn regenerate_diagnostic_help() {
-        std::fs::write(
-            Path::new(env!("CARGO_MANIFEST_DIR")).join(DIAGNOSTIC_HELP),
-            diagnostic_help_json(),
-        )
-        .unwrap();
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(DIAGNOSTIC_HELP);
+        let generated = diagnostic_help_json();
+        if std::fs::read(&path).ok().as_deref() != Some(generated.as_bytes()) {
+            std::fs::write(path, generated).unwrap();
+        }
     }
 
     #[test]

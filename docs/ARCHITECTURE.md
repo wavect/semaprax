@@ -3572,6 +3572,11 @@ recursive heap charges before allocation; declaration maps reserve each entry
 before insertion. The remaining forecast covers retained HIR, and earlier
 fallback profiles retain their existing forecast calculations.
 
+`workspace_graph/retained_validation` owns exact cross-module replay;
+its `edge_projection` helper borrows immutable edge and identity bytes for
+temporary comparisons, charges the reference carriers, and preserves the
+complete occurrence multiset and edge-count limit.
+
 Only that final uncached profile resolves modules in descending temporary-HIR
 overhead with a path tie-break, using a fixed-size stack index. Its forecast uses
 the identical schedule, and retained modules return to canonical path order

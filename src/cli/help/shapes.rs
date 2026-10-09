@@ -55,10 +55,7 @@ mod tests {
 
         let index = kind_index();
         assert_eq!(index, kind_index());
-        assert!(index.starts_with(&format!(
-            "Language shape kinds ({}):\n",
-            expected.len()
-        )));
+        assert!(index.starts_with(&format!("Language shape kinds ({}):\n", expected.len())));
         let listed: Vec<_> = index
             .lines()
             .filter_map(|line| line.strip_prefix("  "))

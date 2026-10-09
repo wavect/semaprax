@@ -1,4 +1,22 @@
 //! Private structural-cost accumulators for the expected projection.
+//!
+//! The fixed expression bundle includes sixteen shared ExpressionId heap
+//! carriers in addition to every inline HIR/cleanup footprint. Ordinary
+//! expression lowering creates one backing; argument/field/arm children and
+//! closure bodies have separately charged complete expression footprints.
+//! Capture backings correspond to charged variable occurrences in the closure
+//! body. The largest fixed
+//! statement expansion, borrowed `for`, constructs sixteen extra identities
+//! (including its places and literals); consuming `for own` constructs fifteen.
+//! Their authored statement carrier is charged independently of its children.
+//! Clones in indexes, cleanup, loan proofs, and retained output reuse backing;
+//! generic materializations are charged as additional complete function trees.
+//! Thus the existing AST structural multiplier must cover the heap carriers
+//! too: the compile-time HIR_EXPR_FIXED_BUNDLE assertion includes them, rather
+//! than relying on ExpressionId's smaller inline layout. Literal discounts
+//! remove only absent owned storage and retain all sixteen identity carriers.
+//! Identity payload buffers remain covered by the unchanged identity-byte
+//! multiplier; the new heap counters/String carriers are structural bytes.
 
 use crate::diagnostic::Diagnostic;
 
@@ -448,6 +466,13 @@ mod tests {
         );
     }
 }
+
+// Both traversal forms retain their full authored Statement carrier before
+// visiting source/body children. Its fixed allowance covers the expression
+// bundle, including sixteen independently allocated identity heap carriers.
+const _: () = assert!(
+    std::mem::size_of::<crate::ast::Statement>() >= std::mem::size_of::<crate::ast::Expr>()
+);
 
 // Raw-AST fallback preserves these complete, independently charged children.
 // The remaining Function carrier alone still covers its entire fixed HIR bundle.

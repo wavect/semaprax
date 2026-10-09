@@ -154,7 +154,8 @@ const HIR_EXPR_FIXED_BUNDLE: usize = std::mem::size_of::<hir::ResolvedExpr>()
     + std::mem::size_of::<crate::cleanup_plan::CleanupBlock>()
     + std::mem::size_of::<crate::cleanup_plan::CleanupEdge>()
     + std::mem::size_of::<crate::cleanup_plan::CleanupRegion>()
-    + crate::loan_plan::REACHABILITY_BYTES_PER_EXPRESSION;
+    + crate::loan_plan::REACHABILITY_BYTES_PER_EXPRESSION
+    + HIR_IDENTITY_COPY_FACTOR * hir::ExpressionId::SHARED_ALLOCATION_CARRIER_BYTES;
 const HIR_FUNCTION_FIXED_BUNDLE: usize = std::mem::size_of::<hir::ResolvedFunction>()
     + std::mem::size_of::<hir::ResolvedFunctionTemplate>()
     + std::mem::size_of::<hir::ResolvedFunctionInstance>()

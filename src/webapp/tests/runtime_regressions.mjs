@@ -14,7 +14,7 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), "semaprax-sg-http-"));
 const data = path.join(root, "data");
 const children = new Set();
 const start = (dir = data, preload = null) => new Promise((resolve, reject) => {
-  const child = spawn(process.execPath, [...(preload ? ["--import", preload] : []), path.join(app, "server.mjs"), "--port", "0", "--data", dir, "--setup"], { stdio: ["ignore", "pipe", "pipe"] });
+  const child = spawn(process.execPath, [...(preload ? ["--import", pathToFileURL(preload).href] : []), path.join(app, "server.mjs"), "--port", "0", "--data", dir, "--setup"], { stdio: ["ignore", "pipe", "pipe"] });
   children.add(child); let output = "", errors = "";
   const timer = setTimeout(() => { child.kill(); reject(new Error("server startup timeout: " + errors)); }, 10000);
   child.stderr.on("data", (s) => errors += s);
@@ -70,7 +70,7 @@ if (!process.argv.includes("--self-test")) net.Server.prototype.listen = functio
 `);
   return await new Promise((resolve, reject) => {
     const script = path.join(app, "server.mjs");
-    const args = selfTestParent ? [script, "--self-test", "--data", dir] : ["--import", preload, script, "--data", dir];
+    const args = selfTestParent ? [script, "--self-test", "--data", dir] : ["--import", pathToFileURL(preload).href, script, "--data", dir];
     const options = { stdio: ["ignore", "pipe", "pipe"] };
     if (selfTestParent) options.env = {
       ...process.env,

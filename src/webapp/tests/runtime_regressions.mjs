@@ -244,10 +244,10 @@ fs.openSync = function(file, ...args) {
   if (fs.existsSync(file) && fs.statSync(file).isDirectory()) throw new Error("directory descriptors unavailable");
   return open.call(this, file, ...args);
 };`);
-  server = await start(data, pathToFileURL(windowsPublication).href);
+  server = await start(data, windowsPublication);
   const windowsWrite = await call("POST", "/api/number", { value: 12 });
   assert.equal(windowsWrite.status, 201);
-  await stop(server); server = await start(data, pathToFileURL(windowsPublication).href);
+  await stop(server); server = await start(data, windowsPublication);
   assert.equal((await call("GET", windowsWrite.location)).value.value, 12);
   assert.equal((await call("GET", windowsWrite.location + "/history")).value.length, 1);
   // Inject a filesystem failure after the publication pivot, without changing
@@ -261,7 +261,7 @@ fs.renameSync = function(from, to) {
   if (armed && String(to).endsWith("audit.jsonl")) { armed = false; throw new Error("injected post-publication mirror failure"); }
   return original.call(this, from, to);
 };`);
-  server = await start(data, pathToFileURL(injection).href);
+  server = await start(data, injection);
   const uncertain = await call("POST", "/api/number", { value: 11 });
   assert.equal(uncertain.status, 503); assert.equal(uncertain.value.committed, true);
   await stop(server); server = await start();

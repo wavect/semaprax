@@ -1,0 +1,17 @@
+module loglens.tests;
+use function @id("loglens.add") from loglens as add;
+use function @id("loglens.divide") from loglens as divide;
+
+@id("loglens.tests.main")
+fn main() -> i64
+{
+    0
+}
+
+@id("loglens.tests.decimal")
+fn test_decimal() -> i64
+{
+    let sum = add("999999999999999999999", "1");
+    let avg = divide("1000000000000000000000", 3);
+    if string_compare(sum, "1000000000000000000000") == 0 && string_compare(avg, "333333333333333333333") == 0 { 0 } else { 1 }
+}

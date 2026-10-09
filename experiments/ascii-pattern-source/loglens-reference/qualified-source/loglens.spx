@@ -1,0 +1,203 @@
+module loglens;
+
+permit { fs.read, process.args.read, process.stderr.write, process.stdout.write }
+
+@id("loglens.digits")
+fn digits(s: string, start: i64, end: i64) -> bool
+{
+    let mut ok = end > start;
+    let mut i = start;
+    while i < end {
+        let b = string_byte_at(s, i);
+        ok = ok && b >= 48 && b <= 57;
+        i = i + 1;
+        0
+    }
+    ok
+}
+
+@id("loglens.token")
+fn token(s: string, start: i64, end: i64) -> bool
+{
+    let mut ok = end > start;
+    let mut i = start;
+    while i < end {
+        let b = string_byte_at(s, i);
+        ok = ok && b > 32 && b != 127;
+        i = i + 1;
+        0
+    }
+    ok
+}
+
+@id("loglens.ascii")
+fn ascii(s: string, start: i64, end: i64) -> bool
+{
+    let mut i = start;
+    let mut ok = true;
+    while i < end {
+        ok = ok && string_byte_at(s, i) < 128;
+        i = i + 1;
+        0
+    }
+    ok
+}
+
+// Returns the timestamp offset, or -1 for a malformed request.
+@id("loglens.parse")
+fn parse(s: string) -> i64
+{
+    let n = string_len(s);
+    let p = string_find(s, " - - [", 0);
+    if p < 1 || n < p + 47 || !ascii(string_slice(s, 0, n), p + 6, p + 35) { -1 } else { let t = p + 6; let mut ok = token(string_slice(s, 0, p), 0, p); ok = ok && digits(string_slice(s, t, t + 2), 0, 2) && string_byte_at(s, t + 2) == 47 && string_byte_at(s, t + 6) == 47 && digits(string_slice(s, t + 7, t + 11), 0, 4) && string_byte_at(s, t + 11) == 58 && digits(string_slice(s, t + 12, t + 14), 0, 2) && string_byte_at(s, t + 14) == 58 && digits(string_slice(s, t + 15, t + 17), 0, 2) && string_byte_at(s, t + 17) == 58 && digits(string_slice(s, t + 18, t + 20), 0, 2) && string_compare(string_slice(s, t + 12, t + 14), "23") <= 0; let mut m = t + 3; while m < t + 6 { let b = string_byte_at(s, m); ok = ok && (b >= 65 && b <= 90 || b >= 97 && b <= 122); m = m + 1; 0 } ok = ok && string_compare(string_slice(s, t + 20, t + 22), " +") == 0 && digits(string_slice(s, t + 22, t + 26), 0, 4) && string_compare(string_slice(s, t + 26, t + 29), "] \"") == 0; let a = t + 29; let b = string_find(s, " ", a); let c = if b < 0 { -1 } else { string_find(s, " ", b + 1) }; let d = if c < 0 { -1 } else { string_find(s, "\" ", c + 1) }; if b <= a || c <= b + 1 || d <= c + 1 || d + 6 >= n || !ascii(string_slice(s, 0, n), d + 2, n) { -1 } else { let mut j = a; while j < b { let ch = string_byte_at(s, j); ok = ok && ch >= 65 && ch <= 90; j = j + 1; 0 } let path = string_slice(s, b + 1, c); ok = ok && string_byte_at(s, b + 1) == 47 && token(string_slice(s, b + 1, c), 0, c - b - 1) && !string_contains(path, "\"") && !string_contains(path, "\\") && token(string_slice(s, c + 1, d), 0, d - c - 1) && digits(string_slice(s, d + 2, d + 5), 0, 3) && string_byte_at(s, d + 2) >= 49 && string_byte_at(s, d + 2) <= 53 && string_byte_at(s, d + 5) == 32; let value = string_slice(s, d + 6, n); ok = ok && (string_compare(value, "-") == 0 || digits(string_slice(s, d + 6, n), 0, n - d - 6)); if ok { t } else { -1 } } }
+}
+
+// Decimal arithmetic keeps byte totals exact even beyond machine integers.
+@id("loglens.add")
+fn add(a: string, b: string) -> string
+{
+    let mut i = string_len(a) - 1;
+    let mut j = string_len(b) - 1;
+    let mut carry = 0;
+    let mut out = "";
+    while i >= 0 || j >= 0 || carry > 0 {
+        let x = if i >= 0 { string_byte_at(a, i) - 48 } else { 0 };
+        let y = if j >= 0 { string_byte_at(b, j) - 48 } else { 0 };
+        let sum = x + y + carry;
+        out = string_concat(string_from_i64(sum % 10), out);
+        carry = sum / 10;
+        i = i - 1;
+        j = j - 1;
+        0
+    }
+    let mut first = 0;
+    while first + 1 < string_len(out) && string_byte_at(out, first) == 48 {
+        first = first + 1;
+        0
+    }
+    string_slice(out, first, string_len(out))
+}
+
+@id("loglens.divide")
+fn divide(a: string, divisor: i64) -> string
+{
+    if divisor == 0 { "0" } else { let mut rem = 0; let mut i = 0; let mut out = ""; while i < string_len(a) { rem = rem * 10 + string_byte_at(a, i) - 48; let digit = rem / divisor; if digit != 0 || string_len(out) > 0 { out = string_concat(out, string_from_i64(digit)); } rem = rem % divisor; i = i + 1; 0 } if string_len(out) == 0 { "0" } else { out } }
+}
+
+@id("loglens.usage")
+fn usage() -> i64
+    uses { process.stderr.write }
+{
+    let message = "usage: loglens <file> [--top N] [--json]\n";
+    let v = string_as_str(message);
+    let written = stderr_write(str_as_bytes(v));
+    2
+}
+
+@id("loglens.report")
+fn report(top: i64, json: bool) -> i64
+    uses { fs.read, process.args.read, process.stdout.write }
+{
+    let file = arg_utf8(0usize);
+    let input = file_read_text(file);
+    let mut lines = 0;
+    let mut requests = 0;
+    let mut s2 = 0;
+    let mut s3 = 0;
+    let mut s4 = 0;
+    let mut s5 = 0;
+    let mut total = "0";
+    let mut ips = map_new(65536usize);
+    let mut paths = map_new(65536usize);
+    let mut hours = map_new(24usize);
+    let mut pos = 0;
+    while pos < string_len(input) {
+        let mut end = pos;
+        while end < string_len(input) && string_byte_at(input, end) != 10 && string_byte_at(input, end) != 13 {
+            end = end + 1;
+            0
+        }
+        if end > pos { lines = lines + 1; let line = string_slice(input, pos, end); let t = parse(string_slice(input, pos, end)); if t >= 0 { requests = requests + 1; ips = map_set(ips, string_slice(line, 0, t - 6), 1); let a = string_find(line, " ", t + 29); let b = string_find(line, " ", a + 1); let d = string_find(line, "\" ", b + 1); paths = map_add(paths, string_slice(line, a + 1, b), 1); hours = map_add(hours, string_slice(line, t + 12, t + 14), 1); let status = string_byte_at(line, d + 2); if status == 50 { s2 = s2 + 1; } if status == 51 { s3 = s3 + 1; } if status == 52 { s4 = s4 + 1; } if status == 53 { s5 = s5 + 1; } let bytes = string_slice(line, d + 6, string_len(line)); if string_compare(bytes, "-") != 0 { total = add(total, bytes); } } }
+        pos = end;
+        if pos < string_len(input) { let terminator = string_byte_at(input, pos); pos = pos + 1; if terminator == 13 && pos < string_len(input) && string_byte_at(input, pos) == 10 { pos = pos + 1; } }
+        0
+    }
+    let rate = if requests == 0 { 0 } else { ((s4 + s5) * 2000 + requests) / (requests * 2) };
+    let percent = string_concat(string_concat(string_from_i64(rate / 10), "."), string_from_i64(rate % 10));
+    let average = divide(string_slice(total, 0, string_len(total)), requests);
+    let mut out = if json { "{\"lines\":" } else { "lines: " };
+    out = string_concat(out, string_from_i64(lines));
+    out = string_concat(out, if json { ",\"requests\":" } else { "\nrequests: " });
+    out = string_concat(out, string_from_i64(requests));
+    out = string_concat(out, if json { ",\"malformed\":" } else { "\nmalformed: " });
+    out = string_concat(out, string_from_i64(lines - requests));
+    out = string_concat(out, if json { ",\"unique_ips\":" } else { "\nunique_ips: " });
+    out = string_concat(out, string_from_usize(map_len(ips)));
+    out = string_concat(out, if json { ",\"status\":{\"2xx\":" } else { "\nstatus: 2xx=" });
+    out = string_concat(out, string_from_i64(s2));
+    out = string_concat(out, if json { ",\"3xx\":" } else { " 3xx=" });
+    out = string_concat(out, string_from_i64(s3));
+    out = string_concat(out, if json { ",\"4xx\":" } else { " 4xx=" });
+    out = string_concat(out, string_from_i64(s4));
+    out = string_concat(out, if json { ",\"5xx\":" } else { " 5xx=" });
+    out = string_concat(out, string_from_i64(s5));
+    out = string_concat(out, if json { "},\"error_rate\":" } else { "\nerror_rate: " });
+    out = string_concat(out, percent);
+    out = string_concat(out, if json { ",\"bytes\":" } else { "%\nbytes: " });
+    out = string_concat(out, total);
+    out = string_concat(out, if json { ",\"avg_bytes\":" } else { "\navg_bytes: " });
+    out = string_concat(out, average);
+    out = string_concat(out, if json { ",\"top_paths\":[" } else { "\ntop_paths:\n" });
+    let mut rank = 0;
+    while rank < top && rank < i64_from_usize(map_len(paths)) {
+        let mut best = 0usize;
+        let mut index = 0usize;
+        while index < map_len(paths) {
+            if map_value_at(paths, index) > map_value_at(paths, best) { best = index; }
+            index = index + 1usize;
+            0
+        }
+        let key = map_key_at(paths, best);
+        let count = map_value_at(paths, best);
+        if json { if rank > 0 { out = string_concat(out, ","); } out = string_concat(out, "{\"path\":\""); out = string_concat(out, string_slice(key, 0, string_len(key))); out = string_concat(out, "\",\"count\":"); out = string_concat(out, string_from_i64(count)); out = string_concat(out, "}"); } else { out = string_concat(out, "  "); out = string_concat(out, string_from_i64(rank + 1)); out = string_concat(out, ". "); out = string_concat(out, string_slice(key, 0, string_len(key))); out = string_concat(out, " "); out = string_concat(out, string_from_i64(count)); out = string_concat(out, "\n"); }
+        paths = map_set(paths, key, -1);
+        rank = rank + 1;
+        0
+    }
+    out = string_concat(out, if json { "],\"hours\":{" } else { "hours:\n" });
+    let mut h = 0usize;
+    let mut busiest = "-";
+    let mut peak = 0;
+    while h < map_len(hours) {
+        let hour = map_key_at(hours, h);
+        let count = map_value_at(hours, h);
+        if count > peak { busiest = string_slice(hour, 0, string_len(hour)); peak = count; }
+        if json { if h > 0usize { out = string_concat(out, ","); } out = string_concat(out, "\""); out = string_concat(out, hour); out = string_concat(out, "\":"); out = string_concat(out, string_from_i64(count)); } else { out = string_concat(out, "  "); out = string_concat(out, hour); out = string_concat(out, " "); out = string_concat(out, string_from_i64(count)); out = string_concat(out, "\n"); }
+        h = h + 1usize;
+        0
+    }
+    out = string_concat(out, if json { "},\"busiest_hour\":\"" } else { "busiest_hour: " });
+    out = string_concat(out, busiest);
+    out = string_concat(out, if json { "\"}\n" } else { "\n" });
+    let view = string_as_str(out);
+    let written = stdout_write(str_as_bytes(view));
+    0
+}
+
+@id("loglens.main")
+fn main() -> i64
+    uses { fs.read, process.args.read, process.stderr.write, process.stdout.write }
+{
+    let mut valid = args_len() > 0usize;
+    let mut top = 5;
+    let mut json = false;
+    let mut i = 1usize;
+    while i < args_len() {
+        let arg = arg_utf8(i);
+        let flag = string_from_str(arg);
+        if string_compare(flag, "--json") == 0 { json = true; } else { if string_compare(flag, "--top") == 0 && i + 1usize < args_len() { i = i + 1usize; let value = arg_utf8(i); let number = string_from_str(value); let n = match string_to_i64(number) { Option::Some { value: v } => v, Option::None {} => 0, }; if n >= 1 && n <= 50 { top = n; } else { valid = false; } } else { valid = false; } }
+        i = i + 1usize;
+        0
+    }
+    if valid { report(top, json) } else { usage() }
+}

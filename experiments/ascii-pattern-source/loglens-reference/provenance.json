@@ -1,0 +1,62 @@
+{
+  "adapted_files_are_unverified_source": true,
+  "copied_files": [
+    "README.md",
+    "build.sh",
+    "run.sh",
+    "test.sh",
+    "tests.mjs",
+    "semaprax.toml",
+    "loglens.spx",
+    "unit.spx"
+  ],
+  "excluded_build_artifacts": [
+    "compiled loglens binary",
+    "acceptance-fixtures directory"
+  ],
+  "matcher_adapted_files_sha256": {
+    "README.md": "b5aba2bb5a173c4562945e7eff939a5543011855c64586a527fc4b9a6d184a20",
+    "ascii.spx": "f6bf78b5956a55bfe80e45098477d11f7b80c2a60de3c30864e8707f69ea7108",
+    "build.sh": "4472886bf4c8e098be277256c99028880df329e539a145b69183f7815ad94ffc",
+    "loglens.spx": "ff383b83f05f0ae1d2a09c645c06eec7d7aae7b2aa73de45a30de6f0a13dcd15",
+    "run.sh": "2225e59a4c08a79f56d08e905c6b0c949929a20e3fd1d7c6e532651dab565431",
+    "semaprax.toml": "ad616239c71a68315a95ad1b1e42b05a98c9701c044532c15c351c01b9b1c4a2",
+    "test.sh": "aa027be53ae6792f56cbabd126386269ce90fbc0f17ec8c75924e6fd25ed570f",
+    "tests.mjs": "dfe55d51ff79cb39e8d392605bdc2f5e35c154037ae5729698d125a67d5bea53",
+    "unit.spx": "02f0d43cfac00a54e85119a737f07dfeab03d361f435b16c9d7d7d5e000e4c82"
+  },
+  "matcher_source_revision": "c18b5b0a13c84de07cf2c0a9d69aed4032e5c354",
+  "matcher_source_sha256": "f6bf78b5956a55bfe80e45098477d11f7b80c2a60de3c30864e8707f69ea7108",
+  "qualified_source_files_sha256": {
+    "README.md": "b5aba2bb5a173c4562945e7eff939a5543011855c64586a527fc4b9a6d184a20",
+    "build.sh": "4472886bf4c8e098be277256c99028880df329e539a145b69183f7815ad94ffc",
+    "loglens.spx": "4b6943ce1a11a126d3de07b1856c5ad6c86f3535d6c6ea73f0223a4692336444",
+    "run.sh": "2225e59a4c08a79f56d08e905c6b0c949929a20e3fd1d7c6e532651dab565431",
+    "semaprax.toml": "a35d6886d811a697d729a6a2dd5c55c8a83ed3c6c2bc7f8f2a86ac95238c5877",
+    "test.sh": "aa027be53ae6792f56cbabd126386269ce90fbc0f17ec8c75924e6fd25ed570f",
+    "tests.mjs": "dfe55d51ff79cb39e8d392605bdc2f5e35c154037ae5729698d125a67d5bea53",
+    "unit.spx": "02f0d43cfac00a54e85119a737f07dfeab03d361f435b16c9d7d7d5e000e4c82"
+  },
+  "reference_only": true,
+  "results_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/loglens-current-source398b051e6-base393432ccb-20261009/results.json",
+  "results_sha256": "fb3cc013fc5990a87417c54d8fb62f1db029cd3489fcf5fff342e38d84c92ce4",
+  "run_root": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/loglens-current-source398b051e6-base393432ccb-20261009",
+  "schema": "semaprax.loglens-qualified-source-provenance.v1",
+  "trial": {
+    "accepted": true,
+    "all_checks_passed": true,
+    "arm": "semaprax",
+    "boundary_check_count": 16,
+    "candidate_archive": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/loglens-current-source398b051e6-base393432ccb-20261009/candidates/semaprax-02",
+    "historical_check_count": 33,
+    "inventory_count": 25,
+    "inventory_sha256": "4a11d3007eb50a472277a8c8ab74d4f991da1ca2671587b1700860b68f2a220a",
+    "number": 2,
+    "sem_source_hashes": {
+      "loglens.spx": "4b6943ce1a11a126d3de07b1856c5ad6c86f3535d6c6ea73f0223a4692336444",
+      "unit.spx": "02f0d43cfac00a54e85119a737f07dfeab03d361f435b16c9d7d7d5e000e4c82"
+    },
+    "status": "accepted",
+    "trial_row_sha256": "8ff5e9b0ed5a677333c93277f948af819d87627a8c9be88859e61d35b8a94bec"
+  }
+}

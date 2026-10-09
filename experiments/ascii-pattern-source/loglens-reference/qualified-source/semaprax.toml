@@ -1,0 +1,24 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "loglens"
+version = "0.1.0"
+profile = "source-command.resource-output.v1"
+
+[modules]
+entry = "loglens"
+sources = ["loglens.spx", "unit.spx"]
+tests = ["loglens.tests"]
+
+[exports]
+web = []
+
+[command]
+function = "loglens.main"
+input = "argv-utf8+file-text.v1"
+
+[capabilities]
+required = ["fs.read", "process.args.read", "process.stderr.write", "process.stdout.write"]
+
+[targets]
+matrix = ["native64"]

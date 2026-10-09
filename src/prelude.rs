@@ -73,13 +73,7 @@ pub(crate) fn declarations() -> &'static [TypeDeclaration] {
 pub(crate) fn declarations_for_program(
     program: &crate::ast::Program,
 ) -> &'static [TypeDeclaration] {
-    if owned_leaf::program_uses(program) {
-        (
-            SCHEMA_V14,
-            owned_leaf::contract_bytes(),
-            owned_leaf::digest_text(),
-        )
-    } else if crate::map_ops::program_uses(program) {
+    if crate::map_ops::program_uses(program) {
         declarations()
     } else if crate::stdin_stream_ops::program_uses(program)
         || crate::source_verify::program_uses_record_iterator(program)

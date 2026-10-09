@@ -8,7 +8,7 @@ use crate::hir::{
     ResolvedType,
 };
 
-use super::{VecOp, resolved_vec};
+use super::{resolved_vec, VecOp};
 
 pub(crate) const MODULE: &str = "std.collections";
 
@@ -310,5 +310,9 @@ pub(crate) fn template_ownership(
             | VecOp::Clear
             | VecOp::Sort => OwnershipMode::Own,
             VecOp::Len | VecOp::Capacity | VecOp::Get => OwnershipMode::Borrow,
+            // These intrinsic operations have no transparent std.collections wrapper.
+            VecOp::CloneAt | VecOp::Replace | VecOp::ReserveOwned | VecOp::SortOwned => {
+                return None;
+            }
         })
 }

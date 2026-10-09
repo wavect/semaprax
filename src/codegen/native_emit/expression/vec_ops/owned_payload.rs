@@ -34,8 +34,16 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             String::new()
         };
         match op {
+            crate::vec_ops::VecOp::CloneAt
+            | crate::vec_ops::VecOp::Replace
+            | crate::vec_ops::VecOp::ReserveOwned
+            | crate::vec_ops::VecOp::SortOwned => {
+                return Err(backend_error(
+                    "additive owned operation reached frozen Vec lowering",
+                ));
+            }
             crate::vec_ops::VecOp::Sort => {
-                return Err(backend_error("owned Vec payload sorting is not admitted"))
+                return Err(backend_error("owned Vec payload sorting is not admitted"));
             }
             crate::vec_ops::VecOp::WithCapacity => {
                 self.require_type(&values[0].ty, &ResolvedType::Usize, "Vec capacity")?;
@@ -54,7 +62,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 self.require_type(&values[1].ty, &ResolvedType::Bytes, "Vec push element")?;
                 let (source, source_flag, _) = plan.call_argument(&expr.id, 0)?;
                 let (value, value_flag, _) = plan.call_argument(&expr.id, 1)?;
-                self.line(&format!("spx_status = spx_vec_bytes_push(spx_ctx, &{source}, &{value}, &{destination});"));
+                self.line(&format!(
+                    "spx_status = spx_vec_bytes_push(spx_ctx, &{source}, &{value}, &{destination});"
+                ));
                 self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
                 self.line(&format!("{source_flag} = false;"));
                 self.line(&format!("{value_flag} = false;"));

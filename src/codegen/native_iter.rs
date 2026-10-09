@@ -5,6 +5,7 @@ mod owned;
 
 pub(super) fn program_uses_owned_runtime(program: &crate::hir::ResolvedProgram) -> bool {
     crate::iterator_ops::resolved_program_uses_owned_iterator(program)
+        || super::native_vec::program_uses_owned_leaf(program)
         || crate::iterator_ops::resolved_program_uses_record_iterator(program)
 }
 
@@ -19,7 +20,7 @@ pub(super) fn emit_runtime(
     if record && !program_uses_scalar_iterator(program) {
         omit_scalar_next(&mut scalar_runtime);
     }
-    let runtime = if program_uses_owned_runtime(program) {
+    let mut runtime = if program_uses_owned_runtime(program) {
         scalar_runtime
             .replace("spx_iter_move(", "spx_iter_scalar_move(")
             .replace("spx_iter_drop(", "spx_iter_scalar_drop(")
@@ -27,6 +28,26 @@ pub(super) fn emit_runtime(
     } else {
         scalar_runtime
     };
+    if super::native_vec::program_uses_owned_leaf(program) {
+        for (before, after) in [
+            (
+                "static __attribute__((unused)) spx_iter_v1 spx_iter_move(struct spx_context *c, spx_iter_v1 *s) {",
+                "static struct spx_vec_authority_entry *spx_leaf_iter_check(struct spx_context *, const spx_iter_v1 *, const spx_leaf_layout_v1 *);\nstatic void spx_leaf_iter_drop(struct spx_context *, spx_iter_v1 *);\nstatic __attribute__((unused)) spx_iter_v1 spx_iter_move(struct spx_context *c, spx_iter_v1 *s) {\n    if(s && s->vec.type_tag == UINT32_C(13)) { (void)spx_leaf_iter_check(c, s, NULL); spx_iter_v1 r = *s; *s = (spx_iter_v1){0}; return r; }",
+            ),
+            (
+                "static __attribute__((unused)) void spx_iter_drop(struct spx_context *c, spx_iter_v1 *s) {",
+                "static __attribute__((unused)) void spx_iter_drop(struct spx_context *c, spx_iter_v1 *s) {\n    if(s && s->vec.type_tag == UINT32_C(13)) { spx_leaf_iter_drop(c, s); return; }",
+            ),
+        ] {
+            assert_eq!(
+                runtime.matches(before).count(),
+                1,
+                "owned leaf iterator anchor changed"
+            );
+            runtime = runtime.replacen(before, after, 1);
+        }
+        runtime.push_str(include_str!("native_iter/owned_leaf.c"));
+    }
     output.push_str(
         &runtime
             .replace(

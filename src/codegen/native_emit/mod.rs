@@ -39,8 +39,8 @@ mod generic_variant;
 mod guarded_variant;
 mod http_io;
 mod indexed_reads;
-mod literals;
 mod literal_format;
+mod literals;
 mod map_collections;
 mod narrow_remainder;
 mod native_list;
@@ -519,7 +519,7 @@ fn emit_native_prelude_inner(
         // reachability-gated so programs without usize preserve exact bytes.
         output.push_str(NATIVE_USIZE_RUNTIME_C);
     }
-    if program_uses_strings(program, strings.include_instances) {
+    if owned_carrier::needs_string_runtime(program, strings.include_instances) {
         output.push_str(if strings.resource_strings {
             resource_strings::LENGTH_DELIMITED_RUNTIME_C
         } else if strings.length_delimited {

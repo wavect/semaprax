@@ -102,6 +102,19 @@ pub fn emit_hir_c_with_stdin_stream_records(
     )
 }
 
+/// Project v30 authenticates the complete owned-leaf runtime closure.
+pub fn emit_hir_c_with_stdin_stream_owned_data(
+    program: &ResolvedProgram,
+    command_id: &str,
+) -> Result<String, Diagnostic> {
+    crate::hir::validate_stream_owned_program(program, Some(&hir::DeclarationId::new(command_id)))?;
+    emit_profile(
+        program,
+        command_id,
+        NativeOutputProfile::StdinStreamDataCommandIo,
+    )
+}
+
 fn emit_profile(
     program: &ResolvedProgram,
     command_id: &str,

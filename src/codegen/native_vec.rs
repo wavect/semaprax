@@ -1,6 +1,7 @@
 //! Reachability-gated C11 runtime for the internal Owned Bounded Vec v1 lane.
 
 mod copy_record;
+pub(super) mod owned_leaf;
 mod owned_payload;
 mod sort;
 
@@ -8,10 +9,15 @@ pub(super) fn emit_runtime(
     output: &mut impl super::COutput,
     program: &crate::hir::ResolvedProgram,
 ) {
-    if crate::vec_ops::resolved_program_uses_owned_payload(program)
+    let owned_leaf = program_uses_owned_leaf(program);
+    if owned_leaf
+        || crate::vec_ops::resolved_program_uses_owned_payload(program)
         || crate::hir::owned_record_collection::program_uses_profile(program)
     {
-        owned_payload::emit_runtime(output);
+        owned_payload::emit_runtime_for_owned_leaf(output, owned_leaf);
+        if owned_leaf {
+            owned_leaf::emit_runtime(output, program);
+        }
         if crate::vec_ops::resolved_program_uses_sort(program) {
             sort::emit_runtime(output);
         }
@@ -33,8 +39,59 @@ pub(super) fn emit_runtime(
     }
 }
 
+/// New carriers or additive operations select this runtime; frozen legacy
+/// constructors and signatures alone preserve the original emitted bytes.
+pub(super) fn program_uses_owned_leaf(program: &crate::hir::ResolvedProgram) -> bool {
+    use crate::hir::ResolvedType;
+    let new_element = |element: &ResolvedType| {
+        crate::hir::owned_leaf_collection::layout(&program.declarations, element).is_some()
+            && !crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+                &program.declarations,
+                element,
+            )
+    };
+    let new_vec = |ty: &ResolvedType| {
+        matches!(ty, ResolvedType::Nominal { declaration, arguments }
+        if declaration.as_str() == crate::prelude::VEC_ID
+        && matches!(arguments.as_slice(), [element] if new_element(element)))
+    };
+    program
+        .functions
+        .iter()
+        .chain(program.function_instances.iter().map(|i| &i.function))
+        .any(|f| {
+            if new_vec(&f.return_type) || f.params.iter().any(|p| new_vec(&p.ty)) {
+                return true;
+            }
+            std::iter::once(&f.body)
+                .chain(f.requires.iter())
+                .chain(f.ensures.iter())
+                .any(|root| {
+                    let mut found = false;
+                    crate::hir::visit_resolved_calls(root, &mut |callee, instance, arguments| {
+                        if instance.is_none() {
+                            if let (Some(op), [element]) =
+                                (crate::vec_ops::by_id(callee.as_str()), arguments)
+                            {
+                                found |= new_element(element)
+                                    || matches!(
+                                        op,
+                                        crate::vec_ops::VecOp::CloneAt
+                                            | crate::vec_ops::VecOp::Replace
+                                            | crate::vec_ops::VecOp::ReserveOwned
+                                            | crate::vec_ops::VecOp::SortOwned
+                                    );
+                            }
+                        }
+                    });
+                    found
+                })
+        })
+}
+
 pub(super) fn program_uses_vec(program: &crate::hir::ResolvedProgram) -> bool {
-    crate::hir::copy_record_collection::program_uses(program)
+    program_uses_owned_leaf(program)
+        || crate::hir::copy_record_collection::program_uses(program)
         || program
             .functions
             .iter()

@@ -3,7 +3,8 @@
 use crate::diagnostic::Diagnostic;
 use crate::hir::{ResolvedExpr, ResolvedType};
 
-use super::super::{backend_error, CEmitter, COutput, CValue};
+use super::super::{CEmitter, COutput, CValue, backend_error};
+mod owned_leaf;
 
 impl<'a, O: COutput> CEmitter<'a, O> {
     pub(super) fn emit_iterator_op(
@@ -24,6 +25,14 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             return Err(backend_error(
                 "iterator operation has invalid resolved shape",
             ));
+        }
+        if crate::hir::owned_leaf_collection::layout(&self.program.declarations, element).is_some()
+            && !crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+                &self.program.declarations,
+                element,
+            )
+        {
+            return self.emit_owned_leaf_iterator(expr, op, element, args);
         }
         let tag = match element {
             ResolvedType::I64 => 1,

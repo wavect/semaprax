@@ -13,6 +13,36 @@ pub(super) fn emit_runtime(output: &mut impl super::super::COutput) {
     output.push_str(OWNED_PAYLOAD_RUNTIME_C);
 }
 
+pub(super) fn emit_runtime_for_owned_leaf(output: &mut impl super::super::COutput, enabled: bool) {
+    if !enabled {
+        return emit_runtime(output);
+    }
+    let mut runtime = OWNED_PAYLOAD_RUNTIME_C.to_owned();
+    for (before, after) in [
+        (
+            "} spx_vec_v1;",
+            "} spx_vec_v1;\nstatic void spx_leaf_drop_storage(spx_vec_v1 *value);",
+        ),
+        ("tag > UINT32_C(10)", "tag > UINT32_C(12)"),
+        (
+            "|| ((value->capacity == UINT64_C(0)) != (value->ptr == NULL))",
+            "|| (tag == UINT32_C(12) ? value->ptr == NULL : ((value->capacity == UINT64_C(0)) != (value->ptr == NULL)))",
+        ),
+        (
+            "    free(value->ptr); *entry",
+            "    if (value->type_tag == UINT32_C(12)) spx_leaf_drop_storage(value); else free(value->ptr); *entry",
+        ),
+    ] {
+        assert_eq!(
+            runtime.matches(before).count(),
+            1,
+            "owned leaf runtime anchor changed"
+        );
+        runtime = runtime.replacen(before, after, 1);
+    }
+    output.push_str(&runtime);
+}
+
 /// The record element's capacity ceiling is the shared owned-payload budget
 /// divided by this profile's single per-element charge, not a second bound
 /// invented for the native lane. The literal in the emitted C is pinned to

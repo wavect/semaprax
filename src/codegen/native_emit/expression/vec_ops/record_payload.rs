@@ -52,8 +52,16 @@ impl<O: COutput> CEmitter<'_, O> {
             String::new()
         };
         match op {
+            crate::vec_ops::VecOp::CloneAt
+            | crate::vec_ops::VecOp::Replace
+            | crate::vec_ops::VecOp::ReserveOwned
+            | crate::vec_ops::VecOp::SortOwned => {
+                return Err(backend_error(
+                    "additive owned operation reached frozen Vec lowering",
+                ));
+            }
             crate::vec_ops::VecOp::Sort => {
-                return Err(backend_error("owned Vec payload sorting is not admitted"))
+                return Err(backend_error("owned Vec payload sorting is not admitted"));
             }
             crate::vec_ops::VecOp::WithCapacity => {
                 self.require_type(&values[0].ty, &ResolvedType::Usize, "Vec capacity")?;
@@ -105,7 +113,7 @@ impl<O: COutput> CEmitter<'_, O> {
             | crate::vec_ops::VecOp::ReserveExact => {
                 return Err(backend_error(
                     "owned record Vec operation is outside the admitted profile",
-                ))
+                ));
             }
         }
         for line in plan.apply_at(&expr.id)?.lines() {

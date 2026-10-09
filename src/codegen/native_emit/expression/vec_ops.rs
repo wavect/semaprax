@@ -1,6 +1,7 @@
 //! Native expression lowering for compiler-owned bounded Vec operations.
 
 mod copy_record;
+mod owned_leaf;
 mod owned_payload;
 mod record_payload;
 
@@ -26,6 +27,23 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         };
         if crate::hir::copy_record_collection::admitted(&self.program.declarations, element) {
             return self.emit_copy_record_vec(expr, op, element, args);
+        }
+        if crate::hir::owned_leaf_collection::admits_operation(
+            &self.program.declarations,
+            op,
+            element,
+        ) && (!crate::hir::owned_record_collection::admits_vec_operation_element(
+            &self.program.declarations,
+            op,
+            element,
+        ) || matches!(
+            op,
+            crate::vec_ops::VecOp::CloneAt
+                | crate::vec_ops::VecOp::Replace
+                | crate::vec_ops::VecOp::ReserveOwned
+                | crate::vec_ops::VecOp::SortOwned
+        )) {
+            return self.emit_owned_leaf_vec(expr, op, element, args);
         }
         let admitted_record = crate::hir::owned_record_collection::admits_vec_operation_element(
             &self.program.declarations,
@@ -64,6 +82,12 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         self.require_type(&expr.ty, &return_type, "bounded Vec operation result")?;
         let plan = self.bytes_plan;
         match op {
+            crate::vec_ops::VecOp::CloneAt
+            | crate::vec_ops::VecOp::Replace
+            | crate::vec_ops::VecOp::ReserveOwned
+            | crate::vec_ops::VecOp::SortOwned => {
+                return Err(backend_error("owned operation reached scalar Vec lowering"));
+            }
             crate::vec_ops::VecOp::WithCapacity => {
                 self.require_type(&values[0].ty, &ResolvedType::Usize, "Vec capacity")?;
                 let plan =
@@ -192,7 +216,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 } else {
                     "spx_vec_clear"
                 };
-                self.line(&format!("spx_status = {operation}(spx_ctx, UINT32_C({tag}), &{source}, &{destination});"));
+                self.line(&format!(
+                    "spx_status = {operation}(spx_ctx, UINT32_C({tag}), &{source}, &{destination});"
+                ));
                 self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
                 self.line(&format!("{source_flag} = false;"));
                 for line in plan.apply_at(&expr.id)?.lines() {
@@ -268,7 +294,7 @@ fn vec_element_tag(ty: &ResolvedType) -> Result<i32, Diagnostic> {
         _ => {
             return Err(backend_error(
                 "bounded Vec operation reached an element type this backend does not execute",
-            ))
+            ));
         }
     })
 }
@@ -281,7 +307,7 @@ fn vec_scalar_to_bits(value: &CValue) -> String {
     }
 }
 
-fn vec_bits_to_scalar(bits: &str, ty: &ResolvedType) -> Result<String, Diagnostic> {
+pub(super) fn vec_bits_to_scalar(bits: &str, ty: &ResolvedType) -> Result<String, Diagnostic> {
     Ok(match ty {
         ResolvedType::I64 => format!("((int64_t){bits})"),
         ResolvedType::I32 => format!("((int32_t){bits})"),
@@ -296,7 +322,7 @@ fn vec_bits_to_scalar(bits: &str, ty: &ResolvedType) -> Result<String, Diagnosti
         _ => {
             return Err(backend_error(
                 "bounded Vec operation reached an element type this backend does not execute",
-            ))
+            ));
         }
     })
 }

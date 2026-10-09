@@ -650,7 +650,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         self.line(&format!("spx_slice_u8_require_valid({temporary});"));
                     }
                     crate::byte_ops::ByteOp::StrAsBytes => {
-                        self.emit_str_as_bytes_view(temporary, source, expr)?;
+                        self.emit_str_as_bytes_view(&temporary, &source, expr)?;
                     }
                     crate::byte_ops::ByteOp::StringAsStr => {
                         self.require_type(

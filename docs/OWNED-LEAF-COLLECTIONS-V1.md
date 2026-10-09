@@ -19,6 +19,33 @@ generic, resource, class, third-owned-leaf and borrowed-field elements are
 outside this tranche. Existing record invariants remain checked at ordinary
 construction. Copy-out duplicates an already checked value exactly.
 
+## Authoring forms and current limits
+
+Write the source type as lowercase `string`. A by-value String parameter is
+written `text: string`; it already transfers ownership, so `text: own string`
+is refused (`SPX-O002`). Give user-declared records and every field explicit
+stable IDs. For example:
+
+```semaprax
+@id("example.user")
+record User {
+    @id("example.user.name") name: string,
+    @id("example.user.visits") visits: i64,
+}
+```
+
+`Vec<string>` is an owning collection. `vec_push<string>(words, text)` consumes
+`text`, and `vec_into_iter<string>(words)` transfers its elements to `for own`.
+Use the v30 Project profile and `vec_clone_at` when a fresh deep copy is
+intended. A `Vec<string>` declaration inside a JSON request schema remains a
+schema description unless it is also an admitted executable source carrier.
+
+Bytes construction or copying inside a bounded `while` remains refused with
+`SPX-T267`; this collection tranche does not relax loop allocation rules.
+Construct or copy the Bytes value before the loop and pass or move the existing
+owner through the admitted operation. In particular, do not put
+`bytes_zeroed` or `bytes_copy` inside the loop.
+
 Source and HIR reconstruct this shape independently from authenticated
 declarations. String, the record, and their Vec/iterator carriers remain affine;
 no owned leaf becomes Copy. The old two-Bytes-plus-one-scalar record collection,

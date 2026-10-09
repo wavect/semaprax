@@ -22,6 +22,13 @@ transferred element retain ordinary affine cleanup and staged-call boundaries.
 The intrinsic/storage contract is owned by
 [Owned Leaf Collections v1](OWNED-LEAF-COLLECTIONS-V1.md).
 
+For source syntax, use `help language author:owned-data`. Spell String as
+lowercase `string`; by-value String parameters such as `text: string` already
+consume their argument, and `text: own string` is refused. User-declared record
+and field declarations each need an explicit stable `@id`. `Vec<string>` is an
+owning carrier: pushing a String consumes it, while `vec_into_iter` transfers
+the elements to `for own`.
+
 Bytes-bearing construction or deep copy in loop bodies/conditions remains
 refused with `SPX-T267`, including transitive helper calls. This profile does not
 relax that capacity contract. Stage Bytes allocation and copies outside loops;

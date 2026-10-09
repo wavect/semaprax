@@ -296,9 +296,13 @@ fn main() -> i64
   records. Pass with `own` or `borrow`; results own their leaves. Generic,
   resource/view/class and invariant-bearing String records are `SPX-T309`;
   see [String records](OWNED-STRING-RECORDS-V1.md).
-- `Vec<R>` admits explicitly identified flat Copy records with 1–8 scalar
-  fields. Ask `help language author:copy-record-vec` for its exact operations;
-  owned String/Bytes record fields remain outside this Copy-vector slice.
+- The Copy-record Vec profile admits explicitly identified flat Copy records
+  with 1–8 scalar fields; ask `help language author:copy-record-vec` for its
+  operations. Project v30 additionally admits `Vec<string>` and flat records
+  with one or two direct owned String/Bytes fields; ask
+  `help language author:owned-data` and see
+  [Owned Leaf Collections v1](OWNED-LEAF-COLLECTIONS-V1.md). In both profiles,
+  every user-declared record field needs its own stable `@id`.
 - Import every named type in a function import's signature, including nested
   types and inferred factory results. For example, import
   `@id("std.pattern.matcher")` with `std.pattern.make`; `SPX-G172` names a
@@ -1313,6 +1317,16 @@ qualification pending. Ask `help language author:stream-data-v2`; v27 stays
 scalar-vector-only. Selected streaming commands remain native-only, while pure
 test functions run without a stdin provider. See [v27](STREAM-DATA-COMMAND-V1.md)
 and [v29](STREAM-DATA-COMMAND-V2.md).
+
+The Project v30 `language-command-io.owned-data.v1` profile adds private
+`Vec<string>` and flat owned-leaf record carriers. Source spells the type
+`string`; `text: string` is already an owning parameter, while `text: own
+string` is refused (`SPX-O002`). `vec_push<string>` consumes its String value,
+and consuming traversal uses `for own` over `vec_into_iter`. Bytes construction
+or copying in a bounded `while` remains `SPX-T267`. Ask
+`help language author:owned-data`; see
+[v30](STREAM-OWNED-DATA-COMMAND-V1.md) and
+[its collection contract](OWNED-LEAF-COLLECTIONS-V1.md).
 
 `semaprax lock semaprax.toml --write` pins identity, source digests, interface,
 targets, and capabilities; `--verify` checks it and `--compare <base.lock>`

@@ -45,9 +45,13 @@ export function auditChangeValues(change) {
   return [change.old, change.new];
 }
 export function isHarmlessAuditNoop(entry) {
-  return Boolean(entry && typeof entry === 'object' && !Array.isArray(entry)
-    && entry.action === 'update' && entry.changes && typeof entry.changes === 'object'
-    && !Array.isArray(entry.changes) && Object.keys(entry.changes).length === 0);
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry) || entry.action !== 'update') return false;
+  const changes=entry.changes;
+  if (!changes || typeof changes !== 'object' || Array.isArray(changes)) return false;
+  try { return Object.values(changes).every(change => {
+    const [oldValue,newValue]=auditChangeValues(change);
+    return isDeepStrictEqual(oldValue,newValue);
+  }); } catch { return false; }
 }
 export function auditEventKind(entry, entity, fields) {
   assert.ok(entry && typeof entry === 'object' && !Array.isArray(entry), 'audit event object');
@@ -65,7 +69,8 @@ export function auditEventKind(entry, entity, fields) {
   const remove=allRequired&&required.every(name=>pairs[name][0]!==null&&pairs[name][1]===null)
     &&changed.every(([,values])=>values[0]!==null&&values[1]===null);
   const update=!create&&!remove&&changed.every(([,values])=>values[0]!==null&&values[1]!==null);
-  const inferred=create?'create':remove?'delete':update?'update':null;
+  const explicitUpdate=entry.action==='update'&&!create&&!remove;
+  const inferred=create?'create':remove?'delete':explicitUpdate||update?'update':null;
   assert.ok(inferred,'audit event kind is unambiguous from changed fields');
   if(Object.hasOwn(entry,'action'))assert.ok(['create','update','delete'].includes(entry.action)&&entry.action===inferred,'explicit audit action matches changed fields');
   return inferred;

@@ -51,6 +51,7 @@ test('audit event kind accepts representation freedom only when old/new evidence
   assert.equal(auditEventKind(event({name:[null,'Vendor'],email:[null,'vendor@example.test']}),'Vendor',fields),'create');
   assert.equal(auditEventKind(event({name:['Vendor',null],email:['vendor@example.test',null]}),'Vendor',fields),'delete');
   assert.equal(auditEventKind(event({name:['Vendor','Renamed'],email:['vendor@example.test','next@example.test']},'update'),'Vendor',fields),'update');
+  assert.equal(auditEventKind(event({name:[null,'Renamed']},'update'),'Vendor',fields),'update');
   assert.equal(auditEventKind(event({name:['Vendor','Renamed'],email:['vendor@example.test','vendor@example.test']}),'Vendor',fields),'update');
   for(const hostile of [
     event({}),
@@ -65,6 +66,7 @@ test('audit mutation selection skips only explicit empty update no-ops',()=>{
   const fields={name:'string',email:'string'};
   const entries=[
     {action:'update',changes:{}},
+    {action:'update',changes:{name:['Vendor','Vendor'],email:['vendor@example.test','vendor@example.test']}},
     {action:'create',changes:{name:[null,'Vendor'],email:[null,'vendor@example.test']}},
     {action:'update',changes:{name:['Vendor','Renamed']}},
     {action:'delete',changes:{name:['Renamed',null],email:['vendor@example.test',null]}},
@@ -74,7 +76,7 @@ test('audit mutation selection skips only explicit empty update no-ops',()=>{
     {action:'create',changes:{}},
     {changes:{}},
     {action:'update',changes:null},
-    {action:'update',changes:{name:['Vendor','Vendor']}},
+    {action:'create',changes:{name:['Vendor','Vendor'],email:['vendor@example.test','next@example.test']}},
   ]) {
     assert.equal(isHarmlessAuditNoop(hostile),false);
     assert.throws(()=>auditEventKind(hostile,'Vendor',fields));

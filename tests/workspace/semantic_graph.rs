@@ -377,7 +377,8 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
             include_str!("../../src/workspace_graph/retained_validation/edge_projection.rs"),
             include_str!("../../src/workspace_graph/retained_validation/profile_names.rs"),
             include_str!("../../src/workspace_graph/retained_validation/stream_admission.rs"),
-            include_str!("../../src/workspace_graph/retained_validation/type_reference.rs")
+            include_str!("../../src/workspace_graph/retained_validation/type_reference.rs"),
+            include_str!("../../src/workspace_graph/retained_validation/type_projection.rs")
         ),
         include_str!("../../src/workspace_graph/retained_validation/dependency_closure.rs"),
         include_str!("../../src/workspace_graph/retained_validation/scalar_link.rs"),

@@ -17,12 +17,12 @@ struct ForOwnProjection<'a> {
 /// `for own` expansion. The synthetic `iter_next<T>` calls, `IterStep<T>`
 /// constructors, and inferred item binding repeat `T` in HIR without adding
 /// an explicit source reference.
-pub(super) fn collect_authored_for_own(
-    owner: &hir::DeclarationId,
-    statement: &ResolvedStatement,
+pub(super) fn collect_authored_for_own<'a>(
+    owner: &'a hir::DeclarationId,
+    statement: &'a ResolvedStatement,
     path: &str,
     imported: &BTreeSet<&str>,
-    out: &mut Vec<(String, String, String, String)>,
+    out: &mut Vec<super::type_projection::TypeSite<'a>>,
 ) -> Result<bool, Vec<Diagnostic>> {
     let Some(projection) = authenticate_for_own(owner, statement, path) else {
         return Ok(false);
@@ -30,14 +30,16 @@ pub(super) fn collect_authored_for_own(
     super::collect_resolved_expression_type_sites(
         owner,
         projection.source,
-        &format!("{path}.value.s0.value.arg.0"),
+        &crate::bounded_output::budgeted_format(format_args!("{path}.value.s0.value.arg.0")),
         imported,
         out,
     )?;
     super::collect_resolved_expression_type_sites(
         owner,
         projection.body,
-        &format!("{path}.value.s1.body.s0.value.arm.1.value.s0.value"),
+        &crate::bounded_output::budgeted_format(format_args!(
+            "{path}.value.s1.body.s0.value.arm.1.value.s0.value"
+        )),
         imported,
         out,
     )?;
@@ -85,12 +87,17 @@ fn authenticate_for_own<'a>(
     let ([element], [source]) = (type_arguments.as_slice(), args.as_slice()) else {
         return None;
     };
-    let execution = FunctionExecutionId::Monomorphic(owner.clone());
-    let value_path = format!("{path}.value");
-    let step_path = format!("{value_path}.s0");
-    let source_path = format!("{step_path}.value.arg.0");
-    let while_path = format!("{value_path}.s1");
-    let authored_body_path = format!("{value_path}.s1.body.s0.value.arm.1.value.s0.value");
+    let execution = FunctionExecutionId::Monomorphic(hir::DeclarationId::new(
+        crate::bounded_output::budgeted_clone(owner.as_str()),
+    ));
+    let value_path = crate::bounded_output::budgeted_format(format_args!("{path}.value"));
+    let step_path = crate::bounded_output::budgeted_format(format_args!("{value_path}.s0"));
+    let source_path =
+        crate::bounded_output::budgeted_format(format_args!("{step_path}.value.arg.0"));
+    let while_path = crate::bounded_output::budgeted_format(format_args!("{value_path}.s1"));
+    let authored_body_path = crate::bounded_output::budgeted_format(format_args!(
+        "{value_path}.s1.body.s0.value.arm.1.value.s0.value"
+    ));
     (wrapper.name == "#for-own"
         && wrapper.id == ValueId::local(&execution, path)
         && wrapper.ty == ResolvedType::I64
@@ -98,7 +105,11 @@ fn authenticate_for_own<'a>(
         && value.id == ExpressionId::new(&execution, &value_path)
         && value.ty == ResolvedType::I64
         && value.ownership == OwnershipMode::Value
-        && tail.id == ExpressionId::new(&execution, &format!("{value_path}.tail"))
+        && tail.id
+            == ExpressionId::new(
+                &execution,
+                &crate::bounded_output::budgeted_format(format_args!("{value_path}.tail")),
+            )
         && tail.ty == ResolvedType::I64
         && tail.ownership == OwnershipMode::Value
         && matches!(tail.kind, ResolvedExprKind::Int(0))
@@ -107,10 +118,22 @@ fn authenticate_for_own<'a>(
         && step.ty == seed.ty
         && step.ownership == OwnershipMode::Own
         && protocol.step == step
-        && condition.id == ExpressionId::new(&execution, &format!("{while_path}.condition"))
-        && body.id == ExpressionId::new(&execution, &format!("{while_path}.body"))
+        && condition.id
+            == ExpressionId::new(
+                &execution,
+                &crate::bounded_output::budgeted_format(format_args!("{while_path}.condition")),
+            )
+        && body.id
+            == ExpressionId::new(
+                &execution,
+                &crate::bounded_output::budgeted_format(format_args!("{while_path}.body")),
+            )
         && callee.as_str() == crate::iterator_ops::NEXT_ID
-        && seed.id == ExpressionId::new(&execution, &format!("{step_path}.value"))
+        && seed.id
+            == ExpressionId::new(
+                &execution,
+                &crate::bounded_output::budgeted_format(format_args!("{step_path}.value")),
+            )
         && seed.ty == crate::iterator_ops::resolved_iter_step(element.clone())
         && seed.ownership == OwnershipMode::Own
         && source.id == ExpressionId::new(&execution, &source_path)

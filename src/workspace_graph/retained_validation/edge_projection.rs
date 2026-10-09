@@ -19,17 +19,6 @@ pub(super) fn push_edge_reference<'a>(
     Ok(())
 }
 
-pub(super) fn type_site(
-    (caller, expression, path, target): &(String, String, String, String),
-) -> (&str, &str, &str, &str) {
-    (
-        caller.as_str(),
-        expression.as_str(),
-        path.as_str(),
-        target.as_str(),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use crate::workspace_graph::{build_owned, retained_validation, WorkspaceSource};
@@ -57,12 +46,24 @@ mod tests {
         };
         validate(&built.edges).unwrap();
         assert_eq!(
-            built.edges.iter().filter(|edge| edge.kind == "call").count(),
+            built
+                .edges
+                .iter()
+                .filter(|edge| edge.kind == "call")
+                .count(),
             2
         );
         for field in [
-            "caller_path", "caller", "target_path", "target", "site", "expression", "ast_path",
-            "alias", "ordinal", "duplicate",
+            "caller_path",
+            "caller",
+            "target_path",
+            "target",
+            "site",
+            "expression",
+            "ast_path",
+            "alias",
+            "ordinal",
+            "duplicate",
         ] {
             let mut edges = built.edges.clone();
             let index = edges.iter().position(|edge| edge.kind == "call").unwrap();

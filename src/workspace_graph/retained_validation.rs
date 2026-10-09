@@ -14,6 +14,7 @@ mod edge_projection;
 mod profile_names;
 mod scalar_link;
 mod stream_admission;
+mod type_projection;
 mod type_reference;
 pub(super) use profile_names::project_linker_name;
 pub(super) use stream_admission::{
@@ -26,9 +27,8 @@ pub(super) use dependency_closure::{
 };
 
 use super::{
-    graph_error, limit_error, push_edge, reserve_builder_structure,
-    visit_ast_call_sites, CallOccurrenceKey, WorkspaceDeclarationFact, WorkspaceEdge,
-    WorkspaceResolvedModule, MAX_CALLS,
+    graph_error, limit_error, push_edge, reserve_builder_structure, visit_ast_call_sites,
+    CallOccurrenceKey, WorkspaceDeclarationFact, WorkspaceEdge, WorkspaceResolvedModule, MAX_CALLS,
 };
 use edge_projection::push_edge_reference;
 
@@ -156,9 +156,9 @@ pub(super) fn validate_retained_facts(
     }
     expected_type_sites.sort();
     actual_type_sites.sort();
-    if !expected_type_sites
-        .into_iter()
-        .eq(actual_type_sites.iter().map(edge_projection::type_site))
+    if !expected_type_sites.into_iter().eq(actual_type_sites
+        .iter()
+        .map(type_projection::TypeSite::projection))
     {
         return Err(vec![graph_error(
             "SPX-G173",
@@ -303,7 +303,11 @@ fn validate_retained_call_projection(
     let mut expected = Vec::new();
     for edge in authenticated_calls {
         reserve_builder_structure(std::mem::size_of::<(&str, &str, &str)>())?;
-        expected.push((edge.caller.as_str(), edge.expression.as_str(), edge.target.as_str()));
+        expected.push((
+            edge.caller.as_str(),
+            edge.expression.as_str(),
+            edge.target.as_str(),
+        ));
     }
     expected.sort();
     actual.sort();
@@ -680,7 +684,10 @@ fn validate_effect_and_capability_edges_against_calls<'a>(
     }
     expected_capabilities.sort();
     actual_capabilities.sort();
-    if !actual_capabilities.into_iter().eq(expected_capabilities.iter()) {
+    if !actual_capabilities
+        .into_iter()
+        .eq(expected_capabilities.iter())
+    {
         return Err(vec![graph_error(
             "SPX-G173",
             "workspace capability-authority edges disagree with retained module permits",
@@ -689,12 +696,12 @@ fn validate_effect_and_capability_edges_against_calls<'a>(
     Ok(())
 }
 
-fn collect_resolved_signature_sites(
-    owner: &hir::DeclarationId,
-    params: &[hir::ResolvedParam],
-    result: &hir::ResolvedType,
+fn collect_resolved_signature_sites<'a>(
+    owner: &'a hir::DeclarationId,
+    params: &'a [hir::ResolvedParam],
+    result: &'a hir::ResolvedType,
     imported: &BTreeSet<&str>,
-    out: &mut Vec<(String, String, String, String)>,
+    out: &mut Vec<type_projection::TypeSite<'a>>,
 ) -> Result<(), Vec<Diagnostic>> {
     for (index, param) in params.iter().enumerate() {
         let path =
@@ -706,13 +713,13 @@ fn collect_resolved_signature_sites(
     Ok(())
 }
 
-fn collect_resolved_type_sites(
-    owner: &str,
-    ty: &hir::ResolvedType,
+fn collect_resolved_type_sites<'a>(
+    owner: &'a str,
+    ty: &'a hir::ResolvedType,
     path: &str,
-    expression: Option<&str>,
+    expression: Option<&'a str>,
     imported: &BTreeSet<&str>,
-    out: &mut Vec<(String, String, String, String)>,
+    out: &mut Vec<type_projection::TypeSite<'a>>,
 ) -> Result<(), Vec<Diagnostic>> {
     let hir::ResolvedType::Nominal {
         declaration,
@@ -722,13 +729,7 @@ fn collect_resolved_type_sites(
         return Ok(());
     };
     if imported.contains(declaration.as_str()) {
-        reserve_builder_structure(std::mem::size_of::<(String, String, String, String)>())?;
-        out.push((
-            crate::bounded_output::budgeted_clone(owner),
-            crate::bounded_output::budgeted_clone(expression.unwrap_or(path)),
-            crate::bounded_output::budgeted_clone(path),
-            crate::bounded_output::budgeted_clone(declaration.as_str()),
-        ));
+        type_projection::TypeSite::push(out, owner, expression, path, declaration.as_str())?;
     }
     for (index, argument) in arguments.iter().enumerate() {
         collect_resolved_type_sites(
@@ -743,13 +744,13 @@ fn collect_resolved_type_sites(
     Ok(())
 }
 
-fn collect_resolved_function_type_sites(
-    owner: &hir::DeclarationId,
-    requires: &[hir::ResolvedExpr],
-    body: &hir::ResolvedExpr,
-    ensures: &[hir::ResolvedExpr],
+fn collect_resolved_function_type_sites<'a>(
+    owner: &'a hir::DeclarationId,
+    requires: &'a [hir::ResolvedExpr],
+    body: &'a hir::ResolvedExpr,
+    ensures: &'a [hir::ResolvedExpr],
     imported: &BTreeSet<&str>,
-    out: &mut Vec<(String, String, String, String)>,
+    out: &mut Vec<type_projection::TypeSite<'a>>,
 ) -> Result<(), Vec<Diagnostic>> {
     for (root, expression) in requires
         .iter()
@@ -776,12 +777,12 @@ fn collect_resolved_function_type_sites(
     Ok(())
 }
 
-fn collect_resolved_expression_type_sites(
-    owner: &hir::DeclarationId,
-    expression: &hir::ResolvedExpr,
+fn collect_resolved_expression_type_sites<'a>(
+    owner: &'a hir::DeclarationId,
+    expression: &'a hir::ResolvedExpr,
     path: &str,
     imported: &BTreeSet<&str>,
-    out: &mut Vec<(String, String, String, String)>,
+    out: &mut Vec<type_projection::TypeSite<'a>>,
 ) -> Result<(), Vec<Diagnostic>> {
     let expression_id = expression.id.as_str();
     match &expression.kind {
@@ -792,7 +793,9 @@ fn collect_resolved_expression_type_sites(
                 collect_resolved_type_sites(
                     owner.as_str(),
                     &parameter.ty,
-                    &format!("{path}.closure.param.{index}"),
+                    &crate::bounded_output::budgeted_format(format_args!(
+                        "{path}.closure.param.{index}"
+                    )),
                     Some(expression_id),
                     imported,
                     out,
@@ -802,7 +805,7 @@ fn collect_resolved_expression_type_sites(
                 collect_resolved_type_sites(
                     owner.as_str(),
                     result,
-                    &format!("{path}.closure.result"),
+                    &crate::bounded_output::budgeted_format(format_args!("{path}.closure.result")),
                     Some(expression_id),
                     imported,
                     out,
@@ -811,7 +814,7 @@ fn collect_resolved_expression_type_sites(
             collect_resolved_expression_type_sites(
                 owner,
                 body,
-                &format!("{path}.closure.body"),
+                &crate::bounded_output::budgeted_format(format_args!("{path}.closure.body")),
                 imported,
                 out,
             )?;
@@ -822,21 +825,21 @@ fn collect_resolved_expression_type_sites(
             collect_resolved_expression_type_sites(
                 owner,
                 source,
-                &format!("{path}.source"),
+                &crate::bounded_output::budgeted_format(format_args!("{path}.source")),
                 imported,
                 out,
             )?;
             collect_resolved_expression_type_sites(
                 owner,
                 start,
-                &format!("{path}.start"),
+                &crate::bounded_output::budgeted_format(format_args!("{path}.start")),
                 imported,
                 out,
             )?;
             collect_resolved_expression_type_sites(
                 owner,
                 end,
-                &format!("{path}.end"),
+                &crate::bounded_output::budgeted_format(format_args!("{path}.end")),
                 imported,
                 out,
             )?;
@@ -942,7 +945,8 @@ fn collect_resolved_expression_type_sites(
         }
         hir::ResolvedExprKind::Block { statements, tail } => {
             for (index, statement) in statements.iter().enumerate() {
-                let statement_path = format!("{path}.s{index}");
+                let statement_path =
+                    crate::bounded_output::budgeted_format(format_args!("{path}.s{index}"));
                 if type_reference::collect_authored_for_own(
                     owner,
                     statement,
@@ -1127,35 +1131,35 @@ fn collect_resolved_expression_type_sites(
     Ok(())
 }
 
-fn collect_resolved_pattern_type_sites(
-    owner: &str,
-    pattern: &hir::ResolvedMatchPattern,
+fn collect_resolved_pattern_type_sites<'a>(
+    owner: &'a str,
+    pattern: &'a hir::ResolvedMatchPattern,
     path: &str,
-    expression: &str,
+    expression: &'a str,
     imported: &BTreeSet<&str>,
-    out: &mut Vec<(String, String, String, String)>,
+    out: &mut Vec<type_projection::TypeSite<'a>>,
 ) -> Result<(), Vec<Diagnostic>> {
     match pattern {
         hir::ResolvedMatchPattern::Variant { variant, .. } => {
             if imported.contains(variant.as_str()) {
-                reserve_builder_structure(std::mem::size_of::<(String, String, String, String)>())?;
-                out.push((
-                    crate::bounded_output::budgeted_clone(owner),
-                    crate::bounded_output::budgeted_clone(expression),
-                    crate::bounded_output::budgeted_clone(path),
-                    crate::bounded_output::budgeted_clone(variant.as_str()),
-                ));
+                type_projection::TypeSite::push(
+                    out,
+                    owner,
+                    Some(expression),
+                    path,
+                    variant.as_str(),
+                )?;
             }
         }
         hir::ResolvedMatchPattern::Record { record, fields, .. } => {
             if imported.contains(record.as_str()) {
-                reserve_builder_structure(std::mem::size_of::<(String, String, String, String)>())?;
-                out.push((
-                    crate::bounded_output::budgeted_clone(owner),
-                    crate::bounded_output::budgeted_clone(expression),
-                    crate::bounded_output::budgeted_clone(path),
-                    crate::bounded_output::budgeted_clone(record.as_str()),
-                ));
+                type_projection::TypeSite::push(
+                    out,
+                    owner,
+                    Some(expression),
+                    path,
+                    record.as_str(),
+                )?;
             }
             for (index, field) in fields.iter().enumerate() {
                 collect_resolved_record_pattern_type_sites(
@@ -1191,25 +1195,19 @@ fn collect_resolved_pattern_type_sites(
     Ok(())
 }
 
-fn collect_resolved_record_pattern_type_sites(
-    owner: &str,
-    pattern: &hir::ResolvedRecordMatchFieldPattern,
+fn collect_resolved_record_pattern_type_sites<'a>(
+    owner: &'a str,
+    pattern: &'a hir::ResolvedRecordMatchFieldPattern,
     path: &str,
-    expression: &str,
+    expression: &'a str,
     imported: &BTreeSet<&str>,
-    out: &mut Vec<(String, String, String, String)>,
+    out: &mut Vec<type_projection::TypeSite<'a>>,
 ) -> Result<(), Vec<Diagnostic>> {
     let hir::ResolvedRecordMatchFieldPattern::Record { record, fields, .. } = pattern else {
         return Ok(());
     };
     if imported.contains(record.as_str()) {
-        reserve_builder_structure(std::mem::size_of::<(String, String, String, String)>())?;
-        out.push((
-            crate::bounded_output::budgeted_clone(owner),
-            crate::bounded_output::budgeted_clone(expression),
-            crate::bounded_output::budgeted_clone(path),
-            crate::bounded_output::budgeted_clone(record.as_str()),
-        ));
+        type_projection::TypeSite::push(out, owner, Some(expression), path, record.as_str())?;
     }
     for (index, field) in fields.iter().enumerate() {
         collect_resolved_record_pattern_type_sites(

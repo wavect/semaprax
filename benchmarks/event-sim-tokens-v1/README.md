@@ -111,6 +111,13 @@ and [trace-backed recount](reports/codex-current-source398b051e6-base398b051e6-2
 This is a separate fresh run; historical reports remain unchanged, and no
 language-advantage or savings claim is made.
 
+The report's request totals are reconciled internal model requests, separate
+from outer CLI turns and tool calls. Fixed harness context is unavailable and
+no context amount is subtracted. Its conditional estimate includes all
+attempts and is divided by accepted tasks; actual provider billing is null.
+Final-source counts are legacy Claude BPE proxies over candidate inventories,
+not verified authored tokens or cumulative edits.
+
 Future matched runs can opt into the pinned dependency-only TypeScript setup
 with `--typescript-bootstrap-receipt`. See [LIVE-CAMPAIGN.md](LIVE-CAMPAIGN.md)
 for setup instructions and the unknown-context reporting limit.

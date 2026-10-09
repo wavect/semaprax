@@ -2,6 +2,8 @@
 //!
 //! This file is path-included by the unpublished builder so the opaque HIR
 //! declaration-index allowance cannot drift from the root-side proof.
+//! Shared expression backing is counted in full per retained occurrence;
+//! sharing may overcount, while missing backing always refuses the census.
 
 pub(crate) const PRELUDE_CAPACITY_IDENTITIES: [&str; 10] = [
     "core.option",
@@ -149,7 +151,7 @@ pub(crate) fn cleanup_inventory_owned_capacity(
                 value.as_str().len()
             }
             crate::cleanup::CleanupStorageOrigin::Temporary { expression } => {
-                expression.as_str().len()
+                expression.owned_allocation_bytes()?
             }
             _ => return None,
         };
@@ -198,15 +200,16 @@ pub(crate) fn cleanup_inventory_owned_capacity(
 fn storage_owned_capacity(storage: &crate::cleanup_plan::StorageId) -> Option<usize> {
     match storage {
         crate::cleanup_plan::StorageId::Value(value) => Some(value.as_str().len()),
-        crate::cleanup_plan::StorageId::Temporary(expression) => Some(expression.as_str().len()),
+        crate::cleanup_plan::StorageId::Temporary(expression) => {
+            expression.owned_allocation_bytes()
+        }
         crate::cleanup_plan::StorageId::CallArgument {
             call,
             value_expression,
             ..
         } => call
-            .as_str()
-            .len()
-            .checked_add(value_expression.as_str().len()),
+            .owned_allocation_bytes()?
+            .checked_add(value_expression.owned_allocation_bytes()?),
         crate::cleanup_plan::StorageId::ProvisionalResult => Some(0),
     }
 }
@@ -236,8 +239,7 @@ fn staged_result_owned_capacity(
             expression,
             instance,
         } => expression
-            .as_str()
-            .len()
+            .owned_allocation_bytes()?
             .checked_add(resolved_type_owned_capacity(instance)?),
         StagedCopyResultSource::TryResidual {
             expression,
@@ -250,8 +252,8 @@ fn staged_result_owned_capacity(
             err_case,
             err_field,
         } => [
-            expression.as_str().len(),
-            operand.as_str().len(),
+            expression.owned_allocation_bytes()?,
+            operand.owned_allocation_bytes()?,
             result.as_str().len(),
             ok_case.as_str().len(),
             ok_field.as_str().len(),
@@ -272,8 +274,8 @@ fn staged_result_owned_capacity(
             some_field,
             none_case,
         } => [
-            expression.as_str().len(),
-            operand.as_str().len(),
+            expression.owned_allocation_bytes()?,
+            operand.owned_allocation_bytes()?,
             option.as_str().len(),
             some_case.as_str().len(),
             some_field.as_str().len(),
@@ -293,7 +295,8 @@ pub(crate) fn cleanup_plan_owned_capacity(
         CleanupResultSource, CleanupTerminator, CleanupTransition, EdgeCondition, ExitContinuation,
         StatusProducer,
     };
-    let status_id = |id: &crate::cleanup_plan::StatusSourceId| id.expression.as_str().len();
+    let status_id =
+        |id: &crate::cleanup_plan::StatusSourceId| id.expression.owned_allocation_bytes();
     let mut bytes = [
         plan.entry_state
             .live_owned_parameters
@@ -336,7 +339,7 @@ pub(crate) fn cleanup_plan_owned_capacity(
         )
     })?)?;
     for status in &plan.status_sources {
-        bytes = bytes.checked_add(status_id(&status.id))?;
+        bytes = bytes.checked_add(status_id(&status.id)?)?;
         bytes = bytes.checked_add(match &status.producer {
             StatusProducer::PropagatedCall { callee } => callee.as_str().len(),
             StatusProducer::CheckedArithmetic {
@@ -356,30 +359,28 @@ pub(crate) fn cleanup_plan_owned_capacity(
         )?;
         for transition in &block.transitions {
             let transition_bytes = match transition {
-                CleanupTransition::ReserveRenewal { at, binding } => at
-                    .as_str()
-                    .len()
-                    .checked_add(cleanup_place_owned_capacity(binding)?)?,
+                CleanupTransition::ReserveRenewal { at, binding } => {
+                    at.owned_allocation_bytes()?
+                        .checked_add(cleanup_place_owned_capacity(binding)?)?
+                }
                 CleanupTransition::Renew {
                     at,
                     source,
                     destination,
                 } => at
-                    .as_str()
-                    .len()
+                    .owned_allocation_bytes()?
                     .checked_add(cleanup_place_owned_capacity(source)?)?
                     .checked_add(cleanup_place_owned_capacity(destination)?)?,
-                CleanupTransition::Initialize { at, destination } => at
-                    .as_str()
-                    .len()
-                    .checked_add(cleanup_place_owned_capacity(destination)?)?,
+                CleanupTransition::Initialize { at, destination } => {
+                    at.owned_allocation_bytes()?
+                        .checked_add(cleanup_place_owned_capacity(destination)?)?
+                }
                 CleanupTransition::InitializeVariant {
                     at,
                     destination,
                     variant,
                 } => at
-                    .as_str()
-                    .len()
+                    .owned_allocation_bytes()?
                     .checked_add(cleanup_place_owned_capacity(destination)?)?
                     .checked_add(variant.as_str().len())?,
                 CleanupTransition::Transfer {
@@ -387,8 +388,7 @@ pub(crate) fn cleanup_plan_owned_capacity(
                     source,
                     destination,
                 } => at
-                    .as_str()
-                    .len()
+                    .owned_allocation_bytes()?
                     .checked_add(cleanup_place_owned_capacity(source)?)?
                     .checked_add(cleanup_place_owned_capacity(destination)?)?,
                 CleanupTransition::AuthenticateVariantCase {
@@ -397,8 +397,7 @@ pub(crate) fn cleanup_plan_owned_capacity(
                     variant,
                     case,
                 } => at
-                    .as_str()
-                    .len()
+                    .owned_allocation_bytes()?
                     .checked_add(cleanup_place_owned_capacity(source)?)?
                     .checked_add(variant.as_str().len())?
                     .checked_add(case.as_str().len())?,
@@ -408,24 +407,21 @@ pub(crate) fn cleanup_plan_owned_capacity(
                     destination,
                     variant,
                 } => at
-                    .as_str()
-                    .len()
+                    .owned_allocation_bytes()?
                     .checked_add(cleanup_place_owned_capacity(source)?)?
                     .checked_add(cleanup_place_owned_capacity(destination)?)?
                     .checked_add(variant.as_str().len())?,
                 CleanupTransition::CallCommit { call, arguments } => call
-                    .as_str()
-                    .len()
+                    .owned_allocation_bytes()?
                     .checked_add(arguments.capacity().checked_mul(std::mem::size_of::<
                         crate::cleanup_plan::CallArgumentTransfer,
                     >())?)?
                     .checked_add(arguments.iter().try_fold(0usize, |bytes, argument| {
                         bytes.checked_add(cleanup_place_owned_capacity(&argument.source)?)
                     })?)?,
-                CleanupTransition::SelectFailure { source } => status_id(source),
-                // Staged-copy metadata identities/types are also represented
-                // in the owning HIR expression; charge its full inline value
-                // plus one source-derived identity payload here.
+                CleanupTransition::SelectFailure { source } => status_id(source)?,
+                // Count each retained identity occurrence conservatively,
+                // even when its immutable backing is shared with the HIR.
                 CleanupTransition::StageCopyResult { source } => {
                     staged_result_owned_capacity(source)?
                 }
@@ -443,13 +439,15 @@ pub(crate) fn cleanup_plan_owned_capacity(
     for edge in &plan.edges {
         bytes = bytes.checked_add(match &edge.condition {
             EdgeCondition::Always => 0,
-            EdgeCondition::BooleanResult(expression, _) => expression.as_str().len(),
+            EdgeCondition::BooleanResult(expression, _) => expression.owned_allocation_bytes()?,
             EdgeCondition::VariantCase {
                 scrutinee, case, ..
-            } => scrutinee.as_str().len().checked_add(case.as_str().len())?,
-            EdgeCondition::ArmSelected { scrutinee, .. } => scrutinee.as_str().len(),
+            } => scrutinee
+                .owned_allocation_bytes()?
+                .checked_add(case.as_str().len())?,
+            EdgeCondition::ArmSelected { scrutinee, .. } => scrutinee.owned_allocation_bytes()?,
             EdgeCondition::StatusZero(source) | EdgeCondition::StatusNonzero(source) => {
-                status_id(source)
+                status_id(source)?
             }
         })?;
     }
@@ -486,10 +484,12 @@ pub(crate) fn cleanup_plan_owned_capacity(
         bytes = bytes.checked_add(match &exit.continuation {
             ExitContinuation::Continue(_) | ExitContinuation::ReturnUnit => 0,
             ExitContinuation::CommitResult { source } => match source {
-                CleanupResultSource::Scalar { expression } => expression.as_str().len(),
+                CleanupResultSource::Scalar { expression } => {
+                    expression.owned_allocation_bytes()?
+                }
                 CleanupResultSource::Owned { storage } => cleanup_place_owned_capacity(storage)?,
             },
-            ExitContinuation::ReturnFailure { source } => status_id(source),
+            ExitContinuation::ReturnFailure { source } => status_id(source)?,
         })?;
     }
     Some(bytes)

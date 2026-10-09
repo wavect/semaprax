@@ -248,3 +248,139 @@ fn opaque_declaration_index_is_bounded_by_shared_private_contract() {
     let error = resolve(&program).unwrap_err();
     assert!(error.iter().any(|diagnostic| diagnostic.code == "SPX-T220"));
 }
+
+fn expression_backing_cleanup_plan(ids: &[ExpressionId]) -> crate::cleanup_plan::CleanupPlan {
+    use crate::cleanup_plan::*;
+    let mut plan = CleanupPlan::unresolved();
+    plan.entry_state.live_owned_parameters = vec![CleanupPlace {
+        storage: StorageId::CallArgument {
+            call: ids[0].clone(),
+            parameter_index: 0,
+            value_expression: ids[1].clone(),
+        },
+        projections: Vec::new(),
+    }];
+    plan.status_sources = vec![StatusSource {
+        id: StatusSourceId {
+            expression: ids[2].clone(),
+            lane: StatusLane::ContractFalse,
+        },
+        producer: StatusProducer::ContractFalse {
+            phase: ContractPhase::Requires,
+            ordinal: 0,
+        },
+    }];
+    plan.blocks = vec![CleanupBlock {
+        id: BlockId(0),
+        region: CleanupRegionId(0),
+        transitions: vec![
+            CleanupTransition::Initialize {
+                at: ids[3].clone(),
+                destination: CleanupPlace {
+                    storage: StorageId::Temporary(ids[4].clone()),
+                    projections: Vec::new(),
+                },
+            },
+            CleanupTransition::StageCopyResult {
+                source: StagedCopyResultSource::Body {
+                    expression: ids[5].clone(),
+                    instance: ResolvedType::I64,
+                },
+            },
+        ],
+        terminator: CleanupTerminator::Exit(ExitTargetId(0)),
+    }];
+    plan.edges = vec![CleanupEdge {
+        id: EdgeId(0),
+        from: BlockId(0),
+        to: BlockId(0),
+        condition: EdgeCondition::BooleanResult(ids[6].clone(), true),
+    }];
+    plan.exits = vec![ExitTarget {
+        id: ExitTargetId(0),
+        from: BlockId(0),
+        leaves_regions: Vec::new(),
+        finalize_in_order: Vec::new(),
+        continuation: ExitContinuation::CommitResult {
+            source: CleanupResultSource::Scalar {
+                expression: ids[7].clone(),
+            },
+        },
+    }];
+    plan
+}
+
+#[test]
+fn cleanup_capacity_counts_full_expression_backing_per_retained_occurrence() {
+    use crate::cleanup::*;
+    let id = ExpressionId::from_owned(String::from("capacity.expression"));
+    let backing = id.owned_allocation_bytes().unwrap();
+    assert!(backing > id.as_str().len());
+    let shared_ids: [ExpressionId; 8] = std::array::from_fn(|_| id.clone());
+    let independent_ids: [ExpressionId; 8] =
+        std::array::from_fn(|_| ExpressionId::from_owned(id.as_str().to_owned()));
+    let shared = expression_backing_cleanup_plan(&shared_ids);
+    let independent = expression_backing_cleanup_plan(&independent_ids);
+    let headers = shared.entry_state.live_owned_parameters.capacity()
+        * std::mem::size_of::<crate::cleanup_plan::CleanupPlace>()
+        + shared.status_sources.capacity()
+            * std::mem::size_of::<crate::cleanup_plan::StatusSource>()
+        + shared.blocks.capacity() * std::mem::size_of::<crate::cleanup_plan::CleanupBlock>()
+        + shared.blocks[0].transitions.capacity()
+            * std::mem::size_of::<crate::cleanup_plan::CleanupTransition>()
+        + shared.edges.capacity() * std::mem::size_of::<crate::cleanup_plan::CleanupEdge>()
+        + shared.exits.capacity() * std::mem::size_of::<crate::cleanup_plan::ExitTarget>();
+    let census = crate::private_capacity_contract::cleanup_plan_owned_capacity;
+    assert_eq!(census(&shared), Some(headers + 8 * backing));
+    assert_eq!(census(&independent), census(&shared));
+    let mut inventory = CleanupInventory::unresolved();
+    inventory.slots = (0..2)
+        .map(|index| CleanupStorageSlot {
+            id: CleanupStorageId(index),
+            discovery_index: index,
+            origin: CleanupStorageOrigin::Temporary {
+                expression: id.clone(),
+            },
+            ty: ResolvedType::I64,
+            shape: FieldLivenessShape::NoDrop,
+        })
+        .collect();
+    assert_eq!(
+        crate::private_capacity_contract::cleanup_inventory_owned_capacity(&inventory),
+        Some(inventory.slots.capacity() * std::mem::size_of::<CleanupStorageSlot>() + 2 * backing)
+    );
+}
+
+#[test]
+fn cleanup_capacity_refuses_missing_backing_in_each_expression_metadata_family() {
+    let (refused, overflowed, _) = crate::bounded_output::with_limit_usage(0, || {
+        ExpressionId::from_owned(String::from("refused.expression"))
+    });
+    assert!(overflowed);
+    assert_eq!(refused.owned_allocation_bytes(), None);
+    let id = ExpressionId::from_owned(String::from("capacity.expression"));
+    for position in 0..8 {
+        let mut ids: [ExpressionId; 8] = std::array::from_fn(|_| id.clone());
+        ids[position] = refused.clone();
+        let plan = expression_backing_cleanup_plan(&ids);
+        assert_eq!(
+            crate::private_capacity_contract::cleanup_plan_owned_capacity(&plan),
+            None,
+            "refused backing at metadata position {position}"
+        );
+    }
+    let mut inventory = crate::cleanup::CleanupInventory::unresolved();
+    inventory.slots = vec![crate::cleanup::CleanupStorageSlot {
+        id: crate::cleanup::CleanupStorageId(0),
+        discovery_index: 0,
+        origin: crate::cleanup::CleanupStorageOrigin::Temporary {
+            expression: refused,
+        },
+        ty: ResolvedType::I64,
+        shape: crate::cleanup::FieldLivenessShape::NoDrop,
+    }];
+    assert_eq!(
+        crate::private_capacity_contract::cleanup_inventory_owned_capacity(&inventory),
+        None
+    );
+}

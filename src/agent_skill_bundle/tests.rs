@@ -152,7 +152,9 @@ fn committed_bundle_is_pinned_and_regenerates_byte_identical() {
 fn regenerate_committed_bundle() {
     let generated = generate_agent_skill_bundle().expect("bundle generates");
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/AGENT-SKILL-BUNDLE-V1.json");
-    std::fs::write(path, generated).expect("bundle writes");
+    if std::fs::read(&path).ok().as_deref() != Some(generated.as_bytes()) {
+        std::fs::write(path, generated).expect("bundle writes");
+    }
 }
 
 /// Extract the exact `payload` substring the same way

@@ -1395,8 +1395,7 @@ fn committed_catalogs_match_the_sources() {
 #[ignore = "writes the generated catalogs; run explicitly after changing std/"]
 fn regenerate_catalogs() {
     let (human, agent) = render_catalogs();
-    std::fs::write(root().join(HUMAN_CATALOG), human).unwrap();
-    std::fs::write(root().join(AGENT_CATALOG), agent).unwrap();
+    catalog::write_catalogs_if_changed(&human, &agent);
 }
 
 #[test]

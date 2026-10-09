@@ -100,3 +100,12 @@ pub(super) fn render_catalogs() -> (String, String) {
         format!("{}\n", serde_json::to_string_pretty(&agent).unwrap()),
     )
 }
+
+pub(super) fn write_catalogs_if_changed(human: &str, agent: &str) {
+    for (name, contents) in [(HUMAN_CATALOG, human), (AGENT_CATALOG, agent)] {
+        let path = root().join(name);
+        if std::fs::read(&path).ok().as_deref() != Some(contents.as_bytes()) {
+            std::fs::write(path, contents).unwrap();
+        }
+    }
+}

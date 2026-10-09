@@ -266,6 +266,26 @@ fn main() -> i64 uses { process.stdout.write, process.stderr.write }
 }
 "#;
     let fixture = NativeFixture::new("output", tests);
+    let at_limit = fixture.cli(&[
+        "test",
+        "--target",
+        "native",
+        "--native-max-output-bytes",
+        "16",
+        "--json",
+    ]);
+    assert!(
+        at_limit.status.success(),
+        "stdout={} stderr={}",
+        stdout(&at_limit),
+        stderr(&at_limit)
+    );
+    let accepted = json(&at_limit);
+    assert_eq!(accepted["passed"], true);
+    assert_eq!(accepted["cases"][0]["result"], 0);
+    assert_eq!(accepted["cases"][0]["stdout"], "abcdefgh");
+    assert_eq!(accepted["cases"][0]["stderr"], "abcdefgh");
+    fixture.scratch_empty();
     let output = fixture.cli(&[
         "test",
         "--target",

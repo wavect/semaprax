@@ -80,14 +80,33 @@ fn physical_union_inventory_admits_exact_bytes_and_refuses_one_short() {
         Ok(())
     })
     .unwrap_or_else(|_| panic!("fixture identity inventory"));
-    let proof_count = function.loan_plan.endpoints.len()
-        + function
-            .loan_plan
-            .loans
-            .iter()
-            .map(|loan| 2 + loan.ends.len())
-            .sum::<usize>();
-    let metadata = (hir_count + proof_count) * std::mem::size_of::<usize>();
+    let hir = hir_keys(&function);
+    let keys = hir.keys().copied().collect::<Vec<_>>();
+    let mut proof_count = 0usize;
+    let mut unmatched = 0usize;
+    let mut count = |identity: &ExpressionId| {
+        proof_count += 1;
+        unmatched += usize::from(!hir.contains_key(&identity.shared_allocation_key().unwrap()));
+    };
+    for loan in &function.loan_plan.loans {
+        count(&loan.site);
+        count(&loan.start.expression);
+        for point in &loan.ends {
+            count(&point.expression);
+        }
+    }
+    for endpoint in &function.loan_plan.endpoints {
+        count(&endpoint.point.expression);
+    }
+    assert!(proof_count > 0);
+    assert_eq!(unmatched, 0);
+    let (covered, overflow, used) = bounded_output::with_limit_usage(0, || {
+        crate::loan_plan::owned_capacity::owned_capacity_bytes_excluding(&function.loan_plan, &keys)
+    });
+    assert!(covered.is_some());
+    assert!(!overflow);
+    assert_eq!(used, 0, "covered proof needs no heap scratch inventory");
+    let metadata = hir_count * std::mem::size_of::<usize>();
     let expected = retained_function_loan_bytes(&function).unwrap();
     let (result, overflow, used) =
         bounded_output::with_limit_usage(metadata, || retained_function_loan_bytes(&function));
@@ -99,6 +118,56 @@ fn physical_union_inventory_admits_exact_bytes_and_refuses_one_short() {
         bounded_output::with_limit_usage(metadata - 1, || retained_function_loan_bytes(&function));
     assert_eq!(result.unwrap_err()[0].code, "SPX-G171");
     assert!(overflow);
+    assert_eq!(
+        crate::cache_codec::encode(&function.loan_plan).unwrap(),
+        wire
+    );
+}
+
+#[test]
+fn physical_union_unmatched_inventory_counts_references_and_debits_unique_storage() {
+    let mut function = function();
+    let before = retained_function_loan_bytes(&function).unwrap();
+    let original = function.loan_plan.loans[0].site.clone();
+    let independent = ExpressionId::from_owned(original.as_str().to_owned());
+    assert_eq!(independent, original);
+    assert_ne!(
+        independent.shared_allocation_key(),
+        original.shared_allocation_key()
+    );
+    let extra = independent.shared_allocation_bytes().unwrap();
+    function.loan_plan.loans[0].site = independent.clone();
+    let endpoint = function
+        .loan_plan
+        .endpoints
+        .iter_mut()
+        .find(|endpoint| endpoint.point.expression == original)
+        .unwrap();
+    endpoint.point.expression = independent;
+    let hir = hir_keys(&function);
+    let keys = hir.keys().copied().collect::<Vec<_>>();
+    let full = crate::loan_plan::owned_capacity::owned_capacity_bytes_excluding(
+        &function.loan_plan,
+        &keys,
+    )
+    .unwrap();
+    assert_eq!(full + std::mem::size_of::<LoanPlan>(), before + extra);
+    // Two unmatched references share one allocation, but both references need
+    // scratch entries for the independently sorted physical-storage census.
+    let metadata = 2 * std::mem::size_of::<&ExpressionId>();
+    let wire = crate::cache_codec::encode(&function.loan_plan).unwrap();
+    let (result, overflow, used) = bounded_output::with_limit_usage(metadata, || {
+        crate::loan_plan::owned_capacity::owned_capacity_bytes_excluding(&function.loan_plan, &keys)
+    });
+    assert_eq!(result, Some(full));
+    assert!(!overflow);
+    assert_eq!(used, metadata);
+    let (result, overflow, used) = bounded_output::with_limit_usage(metadata - 1, || {
+        crate::loan_plan::owned_capacity::owned_capacity_bytes_excluding(&function.loan_plan, &keys)
+    });
+    assert_eq!(result, None);
+    assert!(overflow);
+    assert_eq!(used, 0, "unmatched inventory refuses before allocation");
     assert_eq!(
         crate::cache_codec::encode(&function.loan_plan).unwrap(),
         wire
@@ -150,6 +219,13 @@ fn physical_union_refuses_missing_hir_or_loan_backing() {
     );
     let mut proof = function();
     proof.loan_plan.endpoints[0].point.expression = missing();
+    let keys = hir_keys(&proof).keys().copied().collect::<Vec<_>>();
+    let (invalid, overflow, used) = bounded_output::with_limit_usage(0, || {
+        crate::loan_plan::owned_capacity::owned_capacity_bytes_excluding(&proof.loan_plan, &keys)
+    });
+    assert_eq!(invalid, None);
+    assert!(!overflow);
+    assert_eq!(used, 0, "missing backing refuses before scratch allocation");
     assert_eq!(
         retained_function_loan_bytes(&proof).unwrap_err()[0].code,
         "SPX-G171"

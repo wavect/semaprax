@@ -101,9 +101,19 @@ pub(crate) fn owned_capacity_bytes_excluding(
 /// moved String carrier. Separate allocations with equal bytes remain distinct.
 /// The temporary inventory is charged before allocation and is not refunded.
 fn shared_identity_bytes(plan: &LoanPlan, covered_hir_keys: &[usize]) -> Option<usize> {
-    let mut count = plan.endpoints.len();
-    for loan in &plan.loans {
-        count = count.checked_add(2)?.checked_add(loan.ends.len())?;
+    let mut count = 0usize;
+    // Validate every physical backing before allocating scratch. The caller
+    // already owns and charged its sorted HIR keys; covered references need
+    // neither a second physical debit nor an inventory entry here.
+    for identity in proof_identities(plan) {
+        let key = identity.shared_allocation_key()?;
+        identity.shared_allocation_bytes()?;
+        if covered_hir_keys.binary_search(&key).is_err() {
+            count = count.checked_add(1)?;
+        }
+    }
+    if count == 0 {
+        return Some(0);
     }
     let inventory_bytes = count.checked_mul(std::mem::size_of::<&ExpressionId>())?;
     if !crate::bounded_output::reserve_active_required(inventory_bytes) {
@@ -117,16 +127,14 @@ fn shared_identity_bytes(plan: &LoanPlan, covered_hir_keys: &[usize]) -> Option<
     if !crate::bounded_output::reserve_active_required(excess) {
         return None;
     }
-    for loan in &plan.loans {
-        identities.push(&loan.site);
-        identities.push(&loan.start.expression);
-        identities.extend(loan.ends.iter().map(|point| &point.expression));
+    for identity in proof_identities(plan) {
+        if covered_hir_keys
+            .binary_search(&identity.shared_allocation_key()?)
+            .is_err()
+        {
+            identities.push(identity);
+        }
     }
-    identities.extend(
-        plan.endpoints
-            .iter()
-            .map(|endpoint| &endpoint.point.expression),
-    );
     debug_assert_eq!(identities.len(), count);
     identities.sort_unstable_by_key(|identity| identity.shared_allocation_key());
     let mut previous = None;
@@ -134,14 +142,25 @@ fn shared_identity_bytes(plan: &LoanPlan, covered_hir_keys: &[usize]) -> Option<
     for identity in identities {
         let key = identity.shared_allocation_key()?;
         if previous != Some(key) {
-            // Validate backing even when its physical allocation is shared
-            // with charged HIR. Unmatched equal text still owns separate bytes.
-            let owned = identity.shared_allocation_bytes()?;
-            if covered_hir_keys.binary_search(&key).is_err() {
-                bytes = bytes.checked_add(owned)?;
-            }
+            // Equal bytes in independent allocations still own separate bytes.
+            bytes = bytes.checked_add(identity.shared_allocation_bytes()?)?;
             previous = Some(key);
         }
     }
     Some(bytes)
+}
+
+fn proof_identities(plan: &LoanPlan) -> impl Iterator<Item = &ExpressionId> {
+    plan.loans
+        .iter()
+        .flat_map(|loan| {
+            [&loan.site, &loan.start.expression]
+                .into_iter()
+                .chain(loan.ends.iter().map(|point| &point.expression))
+        })
+        .chain(
+            plan.endpoints
+                .iter()
+                .map(|endpoint| &endpoint.point.expression),
+        )
 }

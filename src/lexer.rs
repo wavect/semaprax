@@ -300,11 +300,13 @@ impl Lexer<'_> {
                     return self.usize_token(start, line, column);
                 }
                 if self.peek().is_some_and(is_ident_start) {
-                    return Err(self.error(
-                        "SPX-P003",
-                        "integer literals accept only an `i32`, `u8`, or `usize` suffix",
-                        self.span_from(start, line, column),
-                    ));
+                    return Err(self
+                        .error(
+                            "SPX-P003",
+                            "integer literals accept only an `i32`, `u8`, or `usize` suffix",
+                            self.span_from(start, line, column),
+                        )
+                        .with_help("an unsuffixed integer is `i64`: write `4` instead of `4i64`; explicit integer suffixes are `i32`, `u8`, and `usize`"));
                 }
                 let text = &self.source[start..self.offset];
                 match text.parse::<i64>() {

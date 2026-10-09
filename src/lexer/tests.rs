@@ -326,6 +326,32 @@ fn glued_and_unknown_integer_suffixes_report_their_stable_codes() {
 }
 
 #[test]
+fn unsupported_i64_suffix_points_to_unsuffixed_i64() {
+    let source = "module test.integer_suffix; @id(\"app.main\") fn main() -> i64 { 4i64 }";
+    let path = std::path::Path::new(PATH);
+    let diagnostic = crate::parse(source, path).unwrap_err();
+    assert_eq!(diagnostic.code, "SPX-P003");
+    assert_eq!(
+        diagnostic.message,
+        "integer literals accept only an `i32`, `u8`, or `usize` suffix"
+    );
+    assert_eq!(
+        diagnostic.help.as_deref(),
+        Some("an unsuffixed integer is `i64`: write `4` instead of `4i64`; explicit integer suffixes are `i32`, `u8`, and `usize`")
+    );
+
+    let parsed = crate::parse(&source.replace("4i64", "4"), path).unwrap();
+    let resolved = crate::hir::resolve(&parsed).unwrap();
+    let main = resolved
+        .functions
+        .iter()
+        .find(|function| function.id == resolved.entrypoint)
+        .unwrap();
+    assert_eq!(main.body.ty, crate::hir::ResolvedType::I64);
+    assert_eq!(only("4").kind, TokenKind::Int(4));
+}
+
+#[test]
 fn float_literals_record_their_declared_precision() {
     assert_eq!(
         only("1.5").kind,

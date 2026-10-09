@@ -1097,6 +1097,7 @@ Replace a 256-arm i64-to-byte or byte-to-char match with
 | native cleanup refusal postcheck|`SPX-B104`|Repro/check cleanup; String-condition scalar match “parent is not canonical”: backend regression|
 | for range|`SPX-P106`|while; mutable counter; discard tail|
 | assignment loop|`SPX-P203`|Scalar tail discard, e.g. 0|
+| local named result|`SPX-S109`, `SPX-T201`|Rename binding and uses to outcome; result names the return value only in ensures|
 | statement call|`SPX-P106`|let _ = f(x) or tail result|
 | tuple|`SPX-P106`|No tuples; declare a record|
 | Option::Some { value: 1 }|`SPX-T221`|Option<i64>::Some { value: 1 }|

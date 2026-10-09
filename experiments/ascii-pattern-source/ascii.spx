@@ -79,21 +79,36 @@ fn bit(index: usize) -> usize
 fn load2(state: borrow Matcher, offset: usize) -> usize
     requires carrier_valid(state) && offset <= 3070usize
 {
-    read(state, offset) * 1usize + read(state, offset + 1usize) * 256usize
+    match borrow state {
+        Matcher { storage, position } => {
+            let view = bytes_as_slice(storage);
+            (match byte_get(view, offset) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 1usize + (match byte_get(view, offset + 1usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 256usize
+        },
+    }
 }
 
 @id("experiment.pattern.load-4")
 fn load4(state: borrow Matcher, offset: usize) -> usize
     requires carrier_valid(state) && offset <= 3068usize
 {
-    read(state, offset) * 1usize + read(state, offset + 1usize) * 256usize + read(state, offset + 2usize) * 65536usize + read(state, offset + 3usize) * 16777216usize
+    match borrow state {
+        Matcher { storage, position } => {
+            let view = bytes_as_slice(storage);
+            (match byte_get(view, offset) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 1usize + (match byte_get(view, offset + 1usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 256usize + (match byte_get(view, offset + 2usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 65536usize + (match byte_get(view, offset + 3usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 16777216usize
+        },
+    }
 }
 
 @id("experiment.pattern.load-8")
 fn load8(state: borrow Matcher, offset: usize) -> usize
     requires carrier_valid(state) && offset <= 3064usize
 {
-    read(state, offset) * 1usize + read(state, offset + 1usize) * 256usize + read(state, offset + 2usize) * 65536usize + read(state, offset + 3usize) * 16777216usize + read(state, offset + 4usize) * 4294967296usize + read(state, offset + 5usize) * 1099511627776usize + read(state, offset + 6usize) * 281474976710656usize + read(state, offset + 7usize) * 72057594037927936usize
+    match borrow state {
+        Matcher { storage, position } => {
+            let view = bytes_as_slice(storage);
+            (match byte_get(view, offset) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 1usize + (match byte_get(view, offset + 1usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 256usize + (match byte_get(view, offset + 2usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 65536usize + (match byte_get(view, offset + 3usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 16777216usize + (match byte_get(view, offset + 4usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 4294967296usize + (match byte_get(view, offset + 5usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 1099511627776usize + (match byte_get(view, offset + 6usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 281474976710656usize + (match byte_get(view, offset + 7usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 72057594037927936usize
+        },
+    }
 }
 
 @id("experiment.pattern.store-1")
@@ -146,11 +161,7 @@ fn store8(state: own Matcher, offset: usize, value: usize) -> Matcher
     match own state {
         Matcher { storage, position } => {
             let mut next = storage;
-            next = bytes_set(next, offset, u8_from_i64(i64_from_usize(value % 256usize)));
-            next = bytes_set(next, offset + 1usize, u8_from_i64(i64_from_usize(value / 256usize % 256usize)));
-            next = bytes_set(next, offset + 2usize, u8_from_i64(i64_from_usize(value / 65536usize % 256usize)));
-            next = bytes_set(next, offset + 3usize, u8_from_i64(i64_from_usize(value / 16777216usize % 256usize)));
-            next = bytes_set(next, offset + 4usize, u8_from_i64(i64_from_usize(value / 4294967296usize % 256usize)));
+            next = bytes_set5(next, offset, u8_from_i64(i64_from_usize(value % 256usize)), u8_from_i64(i64_from_usize(value / 256usize % 256usize)), u8_from_i64(i64_from_usize(value / 65536usize % 256usize)), u8_from_i64(i64_from_usize(value / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(value / 4294967296usize % 256usize)));
             next = bytes_set(next, offset + 5usize, u8_from_i64(i64_from_usize(value / 1099511627776usize % 256usize)));
             next = bytes_set(next, offset + 6usize, u8_from_i64(i64_from_usize(value / 281474976710656usize % 256usize)));
             next = bytes_set(next, offset + 7usize, u8_from_i64(i64_from_usize(value / 72057594037927936usize % 256usize)));
@@ -162,9 +173,18 @@ fn store8(state: own Matcher, offset: usize, value: usize) -> Matcher
 @id("experiment.pattern.frame")
 fn frame(state: own Matcher, atom: usize, start: usize, count: usize) -> Matcher
     requires atom <= 128usize && start <= 65536usize && count <= 65536usize
+    requires carrier_valid(state)
 {
-    let with_start = store4(state, 1664usize + atom * 8usize, start);
-    store4(with_start, 1668usize + atom * 8usize, count)
+    match own state {
+        Matcher { storage, position } => {
+            let mut next = storage;
+            next = bytes_set5(next, 1664usize + atom * 8usize, u8_from_i64(i64_from_usize(start % 256usize)), u8_from_i64(i64_from_usize(start / 256usize % 256usize)), u8_from_i64(i64_from_usize(start / 65536usize % 256usize)), u8_from_i64(i64_from_usize(start / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(count % 256usize)));
+            next = bytes_set(next, (1664usize + atom * 8usize) + 5usize, u8_from_i64(i64_from_usize(count / 256usize % 256usize)));
+            next = bytes_set(next, (1664usize + atom * 8usize) + 6usize, u8_from_i64(i64_from_usize(count / 65536usize % 256usize)));
+            next = bytes_set(next, (1664usize + atom * 8usize) + 7usize, u8_from_i64(i64_from_usize(count / 16777216usize % 256usize)));
+            Matcher { storage: next, position: position }
+        },
+    }
 }
 
 // Exactly 32 writes. The caller includes those stores in work_used before
@@ -173,26 +193,39 @@ fn frame(state: own Matcher, atom: usize, start: usize, count: usize) -> Matcher
 fn packet(state: own Matcher, status: usize, captures: usize, reason: usize, length: usize, work: usize, detail: usize) -> Matcher
     requires status <= 4usize && captures <= 16usize && reason <= 7usize
     requires work <= 262144usize
+    requires carrier_valid(state)
 {
-    let magic0 = store1(state, 2696usize, 83usize);
-    let magic1 = store1(magic0, 2697usize, 80usize);
-    let magic2 = store1(magic1, 2698usize, 65usize);
-    let magic3 = store1(magic2, 2699usize, 84usize);
-    let version = store1(magic3, 2700usize, 1usize);
-    let code = store1(version, 2701usize, status);
-    let count = store1(code, 2702usize, captures);
-    let why = store1(count, 2703usize, reason);
-    let input_length = store8(why, 2704usize, length);
-    let used = store8(input_length, 2712usize, work);
-    store8(used, 2720usize, detail)
+    match own state {
+        Matcher { storage, position } => {
+            let mut next = storage;
+            next = bytes_set5(next, 2696usize, 83u8, 80u8, 65u8, 84u8, 1u8);
+            next = bytes_set5(next, 2701usize, u8_from_i64(i64_from_usize(status)), u8_from_i64(i64_from_usize(captures)), u8_from_i64(i64_from_usize(reason)), u8_from_i64(i64_from_usize(length % 256usize)), u8_from_i64(i64_from_usize(length / 256usize % 256usize)));
+            next = bytes_set5(next, 2706usize, u8_from_i64(i64_from_usize(length / 65536usize % 256usize)), u8_from_i64(i64_from_usize(length / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(length / 4294967296usize % 256usize)), u8_from_i64(i64_from_usize(length / 1099511627776usize % 256usize)), u8_from_i64(i64_from_usize(length / 281474976710656usize % 256usize)));
+            next = bytes_set5(next, 2711usize, u8_from_i64(i64_from_usize(length / 72057594037927936usize % 256usize)), u8_from_i64(i64_from_usize(work % 256usize)), u8_from_i64(i64_from_usize(work / 256usize % 256usize)), u8_from_i64(i64_from_usize(work / 65536usize % 256usize)), u8_from_i64(i64_from_usize(work / 16777216usize % 256usize)));
+            next = bytes_set5(next, 2716usize, u8_from_i64(i64_from_usize(work / 4294967296usize % 256usize)), u8_from_i64(i64_from_usize(work / 1099511627776usize % 256usize)), u8_from_i64(i64_from_usize(work / 281474976710656usize % 256usize)), u8_from_i64(i64_from_usize(work / 72057594037927936usize % 256usize)), u8_from_i64(i64_from_usize(detail % 256usize)));
+            next = bytes_set5(next, 2721usize, u8_from_i64(i64_from_usize(detail / 256usize % 256usize)), u8_from_i64(i64_from_usize(detail / 65536usize % 256usize)), u8_from_i64(i64_from_usize(detail / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(detail / 4294967296usize % 256usize)), u8_from_i64(i64_from_usize(detail / 1099511627776usize % 256usize)));
+            next = bytes_set(next, 2726usize, u8_from_i64(i64_from_usize(detail / 281474976710656usize % 256usize)));
+            next = bytes_set(next, 2727usize, u8_from_i64(i64_from_usize(detail / 72057594037927936usize % 256usize)));
+            Matcher { storage: next, position: position }
+        },
+    }
 }
 
 @id("experiment.pattern.capture-result")
 fn capture_result(state: own Matcher, capture: usize, start: usize, end: usize) -> Matcher
     requires capture < 16usize && start <= end && end <= 65536usize
+    requires carrier_valid(state)
 {
-    let first = store8(state, 2728usize + capture * 16usize, start);
-    store8(first, 2736usize + capture * 16usize, end)
+    match own state {
+        Matcher { storage, position } => {
+            let mut next = storage;
+            next = bytes_set5(next, 2728usize + capture * 16usize, u8_from_i64(i64_from_usize(start % 256usize)), u8_from_i64(i64_from_usize(start / 256usize % 256usize)), u8_from_i64(i64_from_usize(start / 65536usize % 256usize)), u8_from_i64(i64_from_usize(start / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(start / 4294967296usize % 256usize)));
+            next = bytes_set5(next, (2728usize + capture * 16usize) + 5usize, u8_from_i64(i64_from_usize(start / 1099511627776usize % 256usize)), u8_from_i64(i64_from_usize(start / 281474976710656usize % 256usize)), u8_from_i64(i64_from_usize(start / 72057594037927936usize % 256usize)), u8_from_i64(i64_from_usize(end % 256usize)), u8_from_i64(i64_from_usize(end / 256usize % 256usize)));
+            next = bytes_set5(next, (2728usize + capture * 16usize) + 10usize, u8_from_i64(i64_from_usize(end / 65536usize % 256usize)), u8_from_i64(i64_from_usize(end / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(end / 4294967296usize % 256usize)), u8_from_i64(i64_from_usize(end / 1099511627776usize % 256usize)), u8_from_i64(i64_from_usize(end / 281474976710656usize % 256usize)));
+            next = bytes_set(next, (2728usize + capture * 16usize) + 15usize, u8_from_i64(i64_from_usize(end / 72057594037927936usize % 256usize)));
+            Matcher { storage: next, position: position }
+        },
+    }
 }
 
 // Budget comparison subtracts the already reserved refusal header first.
@@ -394,51 +427,35 @@ fn read_quantifier(pattern: borrow Slice<u8>, offset: usize, available: usize) -
 fn store_atom(state: own Matcher, atom: usize, kind: usize, value: usize, minimum: usize, maximum: usize) -> Matcher
     requires atom < 128usize && kind <= 2usize && value <= 255usize
     requires minimum <= 255usize && (maximum == 4294967295usize || minimum <= maximum && maximum <= 255usize)
-{
-    let first = store1(state, 64usize + atom * 8usize, kind);
-    let second = store1(first, 65usize + atom * 8usize, value);
-    let low = store2(second, 66usize + atom * 8usize, minimum);
-    store4(low, 68usize + atom * 8usize, maximum)
-}
-
-@id("experiment.pattern.clear-candidate")
-fn clear_candidate(state: own Matcher) -> Matcher
+    requires carrier_valid(state)
 {
     match own state {
         Matcher { storage, position } => {
             let mut next = storage;
-            next = bytes_set(next, 2984usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 2985usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 2986usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 2987usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 2988usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 2989usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 2990usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 2991usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 2992usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 2993usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 2994usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 2995usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 2996usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 2997usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 2998usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 2999usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 3000usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 3001usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 3002usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 3003usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 3004usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 3005usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 3006usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 3007usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 3008usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 3009usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 3010usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 3011usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 3012usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 3013usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 3014usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 3015usize, u8_from_i64(i64_from_usize(0usize)));
+            next = bytes_set5(next, 64usize + atom * 8usize, u8_from_i64(i64_from_usize(kind)), u8_from_i64(i64_from_usize(value)), u8_from_i64(i64_from_usize(minimum % 256usize)), u8_from_i64(i64_from_usize(minimum / 256usize % 256usize)), u8_from_i64(i64_from_usize(maximum % 256usize)));
+            next = bytes_set(next, (64usize + atom * 8usize) + 5usize, u8_from_i64(i64_from_usize(maximum / 256usize % 256usize)));
+            next = bytes_set(next, (64usize + atom * 8usize) + 6usize, u8_from_i64(i64_from_usize(maximum / 65536usize % 256usize)));
+            next = bytes_set(next, (64usize + atom * 8usize) + 7usize, u8_from_i64(i64_from_usize(maximum / 16777216usize % 256usize)));
+            Matcher { storage: next, position: position }
+        },
+    }
+}
+
+@id("experiment.pattern.clear-candidate")
+fn clear_candidate(state: own Matcher) -> Matcher
+    requires carrier_valid(state)
+{
+    match own state {
+        Matcher { storage, position } => {
+            let mut next = storage;
+            next = bytes_set5(next, 2984usize, 0u8, 0u8, 0u8, 0u8, 0u8);
+            next = bytes_set5(next, 2989usize, 0u8, 0u8, 0u8, 0u8, 0u8);
+            next = bytes_set5(next, 2994usize, 0u8, 0u8, 0u8, 0u8, 0u8);
+            next = bytes_set5(next, 2999usize, 0u8, 0u8, 0u8, 0u8, 0u8);
+            next = bytes_set5(next, 3004usize, 0u8, 0u8, 0u8, 0u8, 0u8);
+            next = bytes_set5(next, 3009usize, 0u8, 0u8, 0u8, 0u8, 0u8);
+            next = bytes_set(next, 3014usize, 0u8);
+            next = bytes_set(next, 3015usize, 0u8);
             Matcher { storage: next, position: position }
         },
     }
@@ -447,74 +464,27 @@ fn clear_candidate(state: own Matcher) -> Matcher
 @id("experiment.pattern.compiled-header")
 fn compiled_header(state: own Matcher, atoms: usize, classes: usize, captures: usize) -> Matcher
     requires atoms <= 128usize && classes <= 16usize && captures <= 16usize
+    requires carrier_valid(state)
 {
     match own state {
         Matcher { storage, position } => {
             let mut next = storage;
-            next = bytes_set(next, 0usize, u8_from_i64(i64_from_usize(83usize)));
-            next = bytes_set(next, 1usize, u8_from_i64(i64_from_usize(80usize)));
-            next = bytes_set(next, 2usize, u8_from_i64(i64_from_usize(65usize)));
-            next = bytes_set(next, 3usize, u8_from_i64(i64_from_usize(67usize)));
-            next = bytes_set(next, 4usize, u8_from_i64(i64_from_usize(1usize)));
-            next = bytes_set(next, 5usize, u8_from_i64(i64_from_usize(1usize)));
-            next = bytes_set(next, 6usize, u8_from_i64(i64_from_usize(atoms)));
-            next = bytes_set(next, 7usize, u8_from_i64(i64_from_usize(classes)));
-            next = bytes_set(next, 8usize, u8_from_i64(i64_from_usize(captures)));
-            next = bytes_set(next, 9usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 10usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 11usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 12usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 13usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 14usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 15usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 16usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 17usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 18usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 19usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 20usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 21usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 22usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 23usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 24usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 25usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 26usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 27usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 28usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 29usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 30usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 31usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 32usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 33usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 34usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 35usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 36usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 37usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 38usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 39usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 40usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 41usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 42usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 43usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 44usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 45usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 46usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 47usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 48usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 49usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 50usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 51usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 52usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 53usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 54usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 55usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 56usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 57usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 58usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 59usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 60usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 61usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 62usize, u8_from_i64(i64_from_usize(0usize)));
-            next = bytes_set(next, 63usize, u8_from_i64(i64_from_usize(0usize)));
+            next = bytes_set5(next, 0usize, 83u8, 80u8, 65u8, 67u8, 1u8);
+            next = bytes_set5(next, 5usize, 1u8, u8_from_i64(i64_from_usize(atoms)), u8_from_i64(i64_from_usize(classes)), u8_from_i64(i64_from_usize(captures)), 0u8);
+            next = bytes_set5(next, 10usize, 0u8, 0u8, 0u8, 0u8, 0u8);
+            next = bytes_set5(next, 15usize, 0u8, 0u8, 0u8, 0u8, 0u8);
+            next = bytes_set5(next, 20usize, 0u8, 0u8, 0u8, 0u8, 0u8);
+            next = bytes_set5(next, 25usize, 0u8, 0u8, 0u8, 0u8, 0u8);
+            next = bytes_set5(next, 30usize, 0u8, 0u8, 0u8, 0u8, 0u8);
+            next = bytes_set5(next, 35usize, 0u8, 0u8, 0u8, 0u8, 0u8);
+            next = bytes_set5(next, 40usize, 0u8, 0u8, 0u8, 0u8, 0u8);
+            next = bytes_set5(next, 45usize, 0u8, 0u8, 0u8, 0u8, 0u8);
+            next = bytes_set5(next, 50usize, 0u8, 0u8, 0u8, 0u8, 0u8);
+            next = bytes_set5(next, 55usize, 0u8, 0u8, 0u8, 0u8, 0u8);
+            next = bytes_set(next, 60usize, 0u8);
+            next = bytes_set(next, 61usize, 0u8);
+            next = bytes_set(next, 62usize, 0u8);
+            next = bytes_set(next, 63usize, 0u8);
             Matcher { storage: next, position: position }
         },
     }
@@ -786,6 +756,380 @@ fn compile(state: own Matcher, pattern: borrow Slice<u8>, work_limit: usize) -> 
     }
 }
 
+// Long-run scans retain no loan and return only direct Copy scalar payloads.
+// Work is actual input reads plus entered scan-loop iterations. The caller
+// passes its remaining work after reserving the refusal packet.
+@id("experiment.pattern.scan")
+variant Scan {
+    @id("experiment.pattern.scan.done")
+    Done {
+        @id("experiment.pattern.scan.done.count") count: usize,
+        @id("experiment.pattern.scan.done.work") work: usize,
+        @id("experiment.pattern.scan.done.exhausted") exhausted: usize,
+    },
+}
+
+// Fixed scalar work; no byte event or loop. Return 64 unless the word is
+// exactly one set bit. Checked unsigned division keeps every intermediate bounded.
+@id("experiment.pattern.single-bit-index")
+fn single_bit_index(word: usize) -> usize
+{
+    let mut candidate = word;
+    let mut index = 0usize;
+    let mut valid = true;
+    if candidate >= 4294967296usize {
+        valid = valid && candidate % 4294967296usize == 0usize;
+        candidate = candidate / 4294967296usize;
+        index = index + 32usize;
+    }
+    if candidate >= 65536usize {
+        valid = valid && candidate % 65536usize == 0usize;
+        candidate = candidate / 65536usize;
+        index = index + 16usize;
+    }
+    if candidate >= 256usize {
+        valid = valid && candidate % 256usize == 0usize;
+        candidate = candidate / 256usize;
+        index = index + 8usize;
+    }
+    if candidate >= 16usize {
+        valid = valid && candidate % 16usize == 0usize;
+        candidate = candidate / 16usize;
+        index = index + 4usize;
+    }
+    if candidate >= 4usize {
+        valid = valid && candidate % 4usize == 0usize;
+        candidate = candidate / 4usize;
+        index = index + 2usize;
+    }
+    if candidate >= 2usize {
+        valid = valid && candidate % 2usize == 0usize;
+        candidate = candidate / 2usize;
+        index = index + 1usize;
+    }
+    if valid && candidate == 1usize { index } else { 64usize }
+}
+
+// Four loads authenticate every membership bit. No class name or source
+// spelling selects this optimization, and no stored cache grants authority.
+// Cost: 32 reads. Modes: 0 generic, 1 CR/LF exclusion, 2 NUL/LF
+// exclusion, 3 all bytes, 4 token, 5 path, 256+byte excludes one,
+// 512+byte includes one. Token excludes 0..32 and 127; path also 34/92.
+@id("experiment.pattern.class-scan-mode")
+fn class_scan_mode(state: borrow Matcher, value: usize) -> usize
+    requires carrier_valid(state) && value < 16usize
+{
+    let offset = 1088usize + value * 32usize;
+    let first = load8(state, offset);
+    let second = load8(state, offset + 8usize);
+    let third = load8(state, offset + 16usize);
+    let fourth = load8(state, offset + 24usize);
+    let full = 18446744073709551615usize;
+    let mut mode = 0usize;
+    if second == full && third == full && fourth == full {
+        if first == 18446744073709542399usize { mode = 1usize; } else {
+            if first == 18446744073709550590usize { mode = 2usize; } else {
+                if first == full { mode = 3usize; }
+            }
+        }
+    }
+    if mode == 0usize && third == full && fourth == full {
+        if first == 18446744065119617024usize && second == 9223372036854775807usize { mode = 4usize; } else {
+            if first == 18446744047939747840usize && second == 9223372036586340351usize { mode = 5usize; }
+        }
+    }
+    if mode == 0usize {
+        let mut block = 4usize;
+        let mut singleton = 0usize;
+        let mut excluded = false;
+        if second == 0usize && third == 0usize && fourth == 0usize { block = 0usize; singleton = first; } else {
+            if first == 0usize && third == 0usize && fourth == 0usize { block = 1usize; singleton = second; } else {
+                if first == 0usize && second == 0usize && fourth == 0usize { block = 2usize; singleton = third; } else {
+                    if first == 0usize && second == 0usize && third == 0usize { block = 3usize; singleton = fourth; }
+                }
+            }
+        }
+        if block == 4usize {
+            excluded = true;
+            if second == full && third == full && fourth == full { block = 0usize; singleton = full - first; } else {
+                if first == full && third == full && fourth == full { block = 1usize; singleton = full - second; } else {
+                    if first == full && second == full && fourth == full { block = 2usize; singleton = full - third; } else {
+                        if first == full && second == full && third == full { block = 3usize; singleton = full - fourth; }
+                    }
+                }
+            }
+        }
+        if block < 4usize {
+            let index = single_bit_index(singleton);
+            if index < 64usize { mode = (if excluded { 256usize } else { 512usize }) + block * 64usize + index; }
+        }
+    }
+    mode
+}
+
+// At most 48 direct total reads, stopping at the first rejected byte.
+@id("experiment.pattern.span48-cr-lf")
+fn span48_cr_lf(input: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(input) && 48usize <= byte_len(input) - start
+{
+    if match byte_get(input, start) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 1usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 2usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 3usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 4usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 5usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 6usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 7usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 8usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 9usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 10usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 11usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 12usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 13usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 14usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 15usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 16usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 17usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 18usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 19usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 20usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 21usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 22usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 23usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 24usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 25usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 26usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 27usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 28usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 29usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 30usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 31usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 32usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 33usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 34usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 35usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 36usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 37usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 38usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 39usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 40usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 41usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 42usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 43usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 44usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 45usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 46usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 47usize) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, } { 48usize } else { 47usize } } else { 46usize } } else { 45usize } } else { 44usize } } else { 43usize } } else { 42usize } } else { 41usize } } else { 40usize } } else { 39usize } } else { 38usize } } else { 37usize } } else { 36usize } } else { 35usize } } else { 34usize } } else { 33usize } } else { 32usize } } else { 31usize } } else { 30usize } } else { 29usize } } else { 28usize } } else { 27usize } } else { 26usize } } else { 25usize } } else { 24usize } } else { 23usize } } else { 22usize } } else { 21usize } } else { 20usize } } else { 19usize } } else { 18usize } } else { 17usize } } else { 16usize } } else { 15usize } } else { 14usize } } else { 13usize } } else { 12usize } } else { 11usize } } else { 10usize } } else { 9usize } } else { 8usize } } else { 7usize } } else { 6usize } } else { 5usize } } else { 4usize } } else { 3usize } } else { 2usize } } else { 1usize } } else { 0usize }
+}
+
+@id("experiment.pattern.scan-cr-lf")
+fn scan_cr_lf(input: borrow Slice<u8>, start: usize, bound: usize, available: usize) -> Scan
+    requires start <= byte_len(input) && bound <= byte_len(input) - start
+    requires bound <= 65536usize && available <= 262112usize
+{
+    let mut count = 0usize;
+    let mut work = 0usize;
+    let mut scanning = true;
+    let mut exhausted = false;
+    while count < bound && scanning && !exhausted {
+        if 48usize <= bound - count {
+            if 49usize <= available - work {
+                let width = span48_cr_lf(input, start + count);
+                work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize };
+                count = count + width;
+                scanning = width == 48usize;
+            } else { exhausted = true; }
+        } else {
+            if 2usize <= available - work {
+                let matched = match byte_get(input, start + count) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, };
+                work = work + 2usize;
+                if matched { count = count + 1usize; } else { scanning = false; }
+            } else { exhausted = true; }
+        }
+        0
+    }
+    Scan::Done { count: count, work: work, exhausted: if exhausted { 1usize } else { 0usize } }
+}
+
+// At most 48 direct total reads, stopping at the first rejected byte.
+@id("experiment.pattern.span48-nul-lf")
+fn span48_nul_lf(input: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(input) && 48usize <= byte_len(input) - start
+{
+    if match byte_get(input, start) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 1usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 2usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 3usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 4usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 5usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 6usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 7usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 8usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 9usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 10usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 11usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 12usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 13usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 14usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 15usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 16usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 17usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 18usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 19usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 20usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 21usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 22usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 23usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 24usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 25usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 26usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 27usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 28usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 29usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 30usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 31usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 32usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 33usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 34usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 35usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 36usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 37usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 38usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 39usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 40usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 41usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 42usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 43usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 44usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 45usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 46usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 47usize) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, } { 48usize } else { 47usize } } else { 46usize } } else { 45usize } } else { 44usize } } else { 43usize } } else { 42usize } } else { 41usize } } else { 40usize } } else { 39usize } } else { 38usize } } else { 37usize } } else { 36usize } } else { 35usize } } else { 34usize } } else { 33usize } } else { 32usize } } else { 31usize } } else { 30usize } } else { 29usize } } else { 28usize } } else { 27usize } } else { 26usize } } else { 25usize } } else { 24usize } } else { 23usize } } else { 22usize } } else { 21usize } } else { 20usize } } else { 19usize } } else { 18usize } } else { 17usize } } else { 16usize } } else { 15usize } } else { 14usize } } else { 13usize } } else { 12usize } } else { 11usize } } else { 10usize } } else { 9usize } } else { 8usize } } else { 7usize } } else { 6usize } } else { 5usize } } else { 4usize } } else { 3usize } } else { 2usize } } else { 1usize } } else { 0usize }
+}
+
+@id("experiment.pattern.scan-nul-lf")
+fn scan_nul_lf(input: borrow Slice<u8>, start: usize, bound: usize, available: usize) -> Scan
+    requires start <= byte_len(input) && bound <= byte_len(input) - start
+    requires bound <= 65536usize && available <= 262112usize
+{
+    let mut count = 0usize;
+    let mut work = 0usize;
+    let mut scanning = true;
+    let mut exhausted = false;
+    while count < bound && scanning && !exhausted {
+        if 48usize <= bound - count {
+            if 49usize <= available - work {
+                let width = span48_nul_lf(input, start + count);
+                work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize };
+                count = count + width;
+                scanning = width == 48usize;
+            } else { exhausted = true; }
+        } else {
+            if 2usize <= available - work {
+                let matched = match byte_get(input, start + count) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, };
+                work = work + 2usize;
+                if matched { count = count + 1usize; } else { scanning = false; }
+            } else { exhausted = true; }
+        }
+        0
+    }
+    Scan::Done { count: count, work: work, exhausted: if exhausted { 1usize } else { 0usize } }
+}
+
+// At most 48 direct total reads, stopping at the first rejected byte.
+@id("experiment.pattern.span48-literal")
+fn span48_literal(input: borrow Slice<u8>, start: usize, expected: u8) -> usize
+    requires start <= byte_len(input) && 48usize <= byte_len(input) - start
+{
+    if match byte_get(input, start) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 1usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 2usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 3usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 4usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 5usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 6usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 7usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 8usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 9usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 10usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 11usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 12usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 13usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 14usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 15usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 16usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 17usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 18usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 19usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 20usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 21usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 22usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 23usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 24usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 25usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 26usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 27usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 28usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 29usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 30usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 31usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 32usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 33usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 34usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 35usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 36usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 37usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 38usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 39usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 40usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 41usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 42usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 43usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 44usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 45usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 46usize) { Option::Some { value } => value == expected, Option::None {} => false, } { if match byte_get(input, start + 47usize) { Option::Some { value } => value == expected, Option::None {} => false, } { 48usize } else { 47usize } } else { 46usize } } else { 45usize } } else { 44usize } } else { 43usize } } else { 42usize } } else { 41usize } } else { 40usize } } else { 39usize } } else { 38usize } } else { 37usize } } else { 36usize } } else { 35usize } } else { 34usize } } else { 33usize } } else { 32usize } } else { 31usize } } else { 30usize } } else { 29usize } } else { 28usize } } else { 27usize } } else { 26usize } } else { 25usize } } else { 24usize } } else { 23usize } } else { 22usize } } else { 21usize } } else { 20usize } } else { 19usize } } else { 18usize } } else { 17usize } } else { 16usize } } else { 15usize } } else { 14usize } } else { 13usize } } else { 12usize } } else { 11usize } } else { 10usize } } else { 9usize } } else { 8usize } } else { 7usize } } else { 6usize } } else { 5usize } } else { 4usize } } else { 3usize } } else { 2usize } } else { 1usize } } else { 0usize }
+}
+
+@id("experiment.pattern.scan-literal")
+fn scan_literal(input: borrow Slice<u8>, start: usize, bound: usize, available: usize, expected: u8) -> Scan
+    requires start <= byte_len(input) && bound <= byte_len(input) - start
+    requires bound <= 65536usize && available <= 262112usize
+{
+    let mut count = 0usize;
+    let mut work = 0usize;
+    let mut scanning = true;
+    let mut exhausted = false;
+    while count < bound && scanning && !exhausted {
+        if 48usize <= bound - count {
+            if 49usize <= available - work {
+                let width = span48_literal(input, start + count, expected);
+                work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize };
+                count = count + width;
+                scanning = width == 48usize;
+            } else { exhausted = true; }
+        } else {
+            if 2usize <= available - work {
+                let matched = match byte_get(input, start + count) { Option::Some { value } => value == expected, Option::None {} => false, };
+                work = work + 2usize;
+                if matched { count = count + 1usize; } else { scanning = false; }
+            } else { exhausted = true; }
+        }
+        0
+    }
+    Scan::Done { count: count, work: work, exhausted: if exhausted { 1usize } else { 0usize } }
+}
+
+// At most 48 direct total reads, stopping at the first rejected byte.
+@id("experiment.pattern.span48-excluding")
+fn span48_excluding(input: borrow Slice<u8>, start: usize, expected: u8) -> usize
+    requires start <= byte_len(input) && 48usize <= byte_len(input) - start
+{
+    if match byte_get(input, start) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 1usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 2usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 3usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 4usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 5usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 6usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 7usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 8usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 9usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 10usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 11usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 12usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 13usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 14usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 15usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 16usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 17usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 18usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 19usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 20usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 21usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 22usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 23usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 24usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 25usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 26usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 27usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 28usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 29usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 30usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 31usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 32usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 33usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 34usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 35usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 36usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 37usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 38usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 39usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 40usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 41usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 42usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 43usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 44usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 45usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 46usize) { Option::Some { value } => value != expected, Option::None {} => false, } { if match byte_get(input, start + 47usize) { Option::Some { value } => value != expected, Option::None {} => false, } { 48usize } else { 47usize } } else { 46usize } } else { 45usize } } else { 44usize } } else { 43usize } } else { 42usize } } else { 41usize } } else { 40usize } } else { 39usize } } else { 38usize } } else { 37usize } } else { 36usize } } else { 35usize } } else { 34usize } } else { 33usize } } else { 32usize } } else { 31usize } } else { 30usize } } else { 29usize } } else { 28usize } } else { 27usize } } else { 26usize } } else { 25usize } } else { 24usize } } else { 23usize } } else { 22usize } } else { 21usize } } else { 20usize } } else { 19usize } } else { 18usize } } else { 17usize } } else { 16usize } } else { 15usize } } else { 14usize } } else { 13usize } } else { 12usize } } else { 11usize } } else { 10usize } } else { 9usize } } else { 8usize } } else { 7usize } } else { 6usize } } else { 5usize } } else { 4usize } } else { 3usize } } else { 2usize } } else { 1usize } } else { 0usize }
+}
+
+@id("experiment.pattern.scan-excluding")
+fn scan_excluding(input: borrow Slice<u8>, start: usize, bound: usize, available: usize, expected: u8) -> Scan
+    requires start <= byte_len(input) && bound <= byte_len(input) - start
+    requires bound <= 65536usize && available <= 262112usize
+{
+    let mut count = 0usize;
+    let mut work = 0usize;
+    let mut scanning = true;
+    let mut exhausted = false;
+    while count < bound && scanning && !exhausted {
+        if 48usize <= bound - count {
+            if 49usize <= available - work {
+                let width = span48_excluding(input, start + count, expected);
+                work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize };
+                count = count + width;
+                scanning = width == 48usize;
+            } else { exhausted = true; }
+        } else {
+            if 2usize <= available - work {
+                let matched = match byte_get(input, start + count) { Option::Some { value } => value != expected, Option::None {} => false, };
+                work = work + 2usize;
+                if matched { count = count + 1usize; } else { scanning = false; }
+            } else { exhausted = true; }
+        }
+        0
+    }
+    Scan::Done { count: count, work: work, exhausted: if exhausted { 1usize } else { 0usize } }
+}
+
+// At most 48 direct total reads, stopping at the first rejected byte.
+@id("experiment.pattern.span48-token")
+fn span48_token(input: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(input) && 48usize <= byte_len(input) - start
+{
+    if match byte_get(input, start) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 1usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 2usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 3usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 4usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 5usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 6usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 7usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 8usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 9usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 10usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 11usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 12usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 13usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 14usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 15usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 16usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 17usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 18usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 19usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 20usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 21usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 22usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 23usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 24usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 25usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 26usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 27usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 28usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 29usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 30usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 31usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 32usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 33usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 34usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 35usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 36usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 37usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 38usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 39usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 40usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 41usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 42usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 43usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 44usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 45usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 46usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 47usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { 48usize } else { 47usize } } else { 46usize } } else { 45usize } } else { 44usize } } else { 43usize } } else { 42usize } } else { 41usize } } else { 40usize } } else { 39usize } } else { 38usize } } else { 37usize } } else { 36usize } } else { 35usize } } else { 34usize } } else { 33usize } } else { 32usize } } else { 31usize } } else { 30usize } } else { 29usize } } else { 28usize } } else { 27usize } } else { 26usize } } else { 25usize } } else { 24usize } } else { 23usize } } else { 22usize } } else { 21usize } } else { 20usize } } else { 19usize } } else { 18usize } } else { 17usize } } else { 16usize } } else { 15usize } } else { 14usize } } else { 13usize } } else { 12usize } } else { 11usize } } else { 10usize } } else { 9usize } } else { 8usize } } else { 7usize } } else { 6usize } } else { 5usize } } else { 4usize } } else { 3usize } } else { 2usize } } else { 1usize } } else { 0usize }
+}
+
+@id("experiment.pattern.scan-token")
+fn scan_token(input: borrow Slice<u8>, start: usize, bound: usize, available: usize) -> Scan
+    requires start <= byte_len(input) && bound <= byte_len(input) - start
+    requires bound <= 65536usize && available <= 262112usize
+{
+    let mut count = 0usize;
+    let mut work = 0usize;
+    let mut scanning = true;
+    let mut exhausted = false;
+    while count < bound && scanning && !exhausted {
+        if 48usize <= bound - count {
+            if 49usize <= available - work {
+                let width = span48_token(input, start + count);
+                work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize };
+                count = count + width;
+                scanning = width == 48usize;
+            } else { exhausted = true; }
+        } else {
+            if 2usize <= available - work {
+                let matched = match byte_get(input, start + count) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, };
+                work = work + 2usize;
+                if matched { count = count + 1usize; } else { scanning = false; }
+            } else { exhausted = true; }
+        }
+        0
+    }
+    Scan::Done { count: count, work: work, exhausted: if exhausted { 1usize } else { 0usize } }
+}
+
+// At most 48 direct total reads, stopping at the first rejected byte.
+@id("experiment.pattern.span48-path")
+fn span48_path(input: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(input) && 48usize <= byte_len(input) - start
+{
+    if match byte_get(input, start) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 1usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 2usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 3usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 4usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 5usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 6usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 7usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 8usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 9usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 10usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 11usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 12usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 13usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 14usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 15usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 16usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 17usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 18usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 19usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 20usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 21usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 22usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 23usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 24usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 25usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 26usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 27usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 28usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 29usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 30usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 31usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 32usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 33usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 34usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 35usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 36usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 37usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 38usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 39usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 40usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 41usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 42usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 43usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 44usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 45usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 46usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { if match byte_get(input, start + 47usize) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, } { 48usize } else { 47usize } } else { 46usize } } else { 45usize } } else { 44usize } } else { 43usize } } else { 42usize } } else { 41usize } } else { 40usize } } else { 39usize } } else { 38usize } } else { 37usize } } else { 36usize } } else { 35usize } } else { 34usize } } else { 33usize } } else { 32usize } } else { 31usize } } else { 30usize } } else { 29usize } } else { 28usize } } else { 27usize } } else { 26usize } } else { 25usize } } else { 24usize } } else { 23usize } } else { 22usize } } else { 21usize } } else { 20usize } } else { 19usize } } else { 18usize } } else { 17usize } } else { 16usize } } else { 15usize } } else { 14usize } } else { 13usize } } else { 12usize } } else { 11usize } } else { 10usize } } else { 9usize } } else { 8usize } } else { 7usize } } else { 6usize } } else { 5usize } } else { 4usize } } else { 3usize } } else { 2usize } } else { 1usize } } else { 0usize }
+}
+
+@id("experiment.pattern.scan-path")
+fn scan_path(input: borrow Slice<u8>, start: usize, bound: usize, available: usize) -> Scan
+    requires start <= byte_len(input) && bound <= byte_len(input) - start
+    requires bound <= 65536usize && available <= 262112usize
+{
+    let mut count = 0usize;
+    let mut work = 0usize;
+    let mut scanning = true;
+    let mut exhausted = false;
+    while count < bound && scanning && !exhausted {
+        if 48usize <= bound - count {
+            if 49usize <= available - work {
+                let width = span48_path(input, start + count);
+                work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize };
+                count = count + width;
+                scanning = width == 48usize;
+            } else { exhausted = true; }
+        } else {
+            if 2usize <= available - work {
+                let matched = match byte_get(input, start + count) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, };
+                work = work + 2usize;
+                if matched { count = count + 1usize; } else { scanning = false; }
+            } else { exhausted = true; }
+        }
+        0
+    }
+    Scan::Done { count: count, work: work, exhausted: if exhausted { 1usize } else { 0usize } }
+}
+
+// A required disjoint follower cannot consume a byte removed from this run.
+// This proof reads six metadata bytes and at most one bitmap byte. No input
+// byte is inspected and no accept-capable count vector is skipped.
+@id("experiment.pattern.disjoint")
+variant Disjoint {
+    @id("experiment.pattern.disjoint.checked")
+    Checked {
+        @id("experiment.pattern.disjoint.checked.value") value: usize,
+        @id("experiment.pattern.disjoint.checked.work") work: usize,
+    },
+}
+
+@id("experiment.pattern.disjoint-follower")
+fn disjoint_follower(state: borrow Matcher, atom: usize) -> Disjoint
+    requires carrier_valid(state) && atom < 127usize
+{
+    let current_kind = read(state, 64usize + atom * 8usize);
+    let current_value = read(state, 65usize + atom * 8usize);
+    let next_kind = read(state, 72usize + atom * 8usize);
+    let next_value = read(state, 73usize + atom * 8usize);
+    let next_minimum = load2(state, 74usize + atom * 8usize);
+    let mut work = 6usize;
+    let mut separated = false;
+    if next_minimum != 0usize {
+        if current_kind == 0usize && next_kind == 0usize { separated = current_value != next_value; } else {
+            if current_kind == 2usize && next_kind == 0usize {
+                let bitmap = read(state, 1088usize + current_value * 32usize + next_value / 8usize);
+                work = 7usize;
+                separated = bitmap / bit(next_value % 8usize) % 2usize == 0usize;
+            } else {
+                if current_kind == 0usize && next_kind == 2usize {
+                    let bitmap = read(state, 1088usize + next_value * 32usize + current_value / 8usize);
+                    work = 7usize;
+                    separated = bitmap / bit(current_value % 8usize) % 2usize == 0usize;
+                }
+            }
+        }
+    }
+    Disjoint::Checked { value: if separated { 1usize } else { 0usize }, work: work }
+}
+
 // Provisional compiled header: SPAC, version 1, ready=1, atom/class/capture
 // counts, then zeros through byte 63. Each used atom occupies eight bytes:
 // kind (0 literal, 1 any, 2 class), value, u16 minimum, u32 maximum.
@@ -931,18 +1275,25 @@ fn full_match(state: own Matcher, input: borrow Slice<u8>, work_limit: usize) ->
                     let start = load4(matcher, 1664usize + atom * 8usize);
                     let count = load4(matcher, 1668usize + atom * 8usize);
                     if count > minimum {
-                        if affords(work, 4usize, work_limit) {
-                            work = work + 4usize;
-                            matcher = store4(matcher, 1668usize + atom * 8usize, count - 1usize);
-                            position = start + count - 1usize;
-                            atom = atom + 1usize;
-                            rewinding = false;
-                            0
-                        } else {
-                            exhausted = true;
-                            reason = 7usize;
-                            0
+                        let mut separated = false;
+                        if length >= 64usize && atom + 1usize < atoms && affords(work, 7usize, work_limit) {
+                            let checked = match disjoint_follower(matcher, atom) { Disjoint::Checked { value: proof, work: used } => { separated = proof != 0usize; work = work + used; 0 }, };
                         }
+                        if !separated {
+                            if affords(work, 4usize, work_limit) {
+                                work = work + 4usize;
+                                matcher = store4(matcher, 1668usize + atom * 8usize, count - 1usize);
+                                position = start + count - 1usize;
+                                atom = atom + 1usize;
+                                rewinding = false;
+                                0
+                            } else {
+                                exhausted = true;
+                                reason = 7usize;
+                                0
+                            }
+                            0
+                        } else { 0 }
                         0
                     } else { 0 }
                     0
@@ -980,6 +1331,30 @@ fn full_match(state: own Matcher, input: borrow Slice<u8>, work_limit: usize) ->
                     let bound = if maximum < remaining { maximum } else { remaining };
                     let mut count = 0usize;
                     let mut scanning = true;
+                    if bound >= 64usize {
+                        if kind == 1usize {
+                            // Any-byte membership follows from the checked input
+                            // extent. There are no input reads or scan iterations.
+                            count = bound;
+                            scanning = false;
+                        } else {
+                            let mut mode = 0usize;
+                            if kind == 2usize && affords(work, 32usize, work_limit) {
+                                work = work + 32usize;
+                                mode = class_scan_mode(matcher, value);
+                            }
+                            if mode == 3usize {
+                                count = bound;
+                                scanning = false;
+                            } else {
+                                if kind == 0usize || mode != 0usize {
+                                    let scanned = if kind == 0usize || mode >= 512usize { scan_literal(input, position, bound, work_limit - 32usize - work, u8_from_i64(i64_from_usize(if kind == 0usize { value } else { mode - 512usize }))) } else { if mode >= 256usize { scan_excluding(input, position, bound, work_limit - 32usize - work, u8_from_i64(i64_from_usize(mode - 256usize))) } else { if mode == 4usize { scan_token(input, position, bound, work_limit - 32usize - work) } else { if mode == 5usize { scan_path(input, position, bound, work_limit - 32usize - work) } else { if mode == 1usize { scan_cr_lf(input, position, bound, work_limit - 32usize - work) } else { scan_nul_lf(input, position, bound, work_limit - 32usize - work) } } } } };
+                                    let consumed = match scanned { Scan::Done { count: found, work: used, exhausted: stopped } => { count = found; work = work + used; exhausted = stopped != 0usize; if exhausted { reason = 7usize; } 0 }, };
+                                    scanning = false;
+                                }
+                            }
+                        }
+                    }
                     while count < bound && scanning && !exhausted {
                         let cost = if kind == 2usize { 3usize } else { 2usize };
                         if affords(work, cost, work_limit) {
@@ -1005,8 +1380,13 @@ fn full_match(state: own Matcher, input: borrow Slice<u8>, work_limit: usize) ->
                             work = work + 8usize;
                             matcher = frame(matcher, atom, position, count);
                             if count < minimum { rewinding = true; } else {
-                                position = position + count;
-                                atom = atom + 1usize;
+                                // With a fixed prefix, reducing the terminal
+                                // atom can never cover an already uncovered
+                                // input suffix. Skip only those dead alternatives.
+                                if length >= 64usize && atom + 1usize == atoms && count < remaining { rewinding = true; } else {
+                                    position = position + count;
+                                    atom = atom + 1usize;
+                                }
                             }
                             0
                         } else {
@@ -1120,14 +1500,33 @@ fn work_used(state: borrow Matcher) -> usize
 
 @id("experiment.pattern.capture-start")
 fn capture_start(state: borrow Matcher, capture: usize) -> usize
-    requires result_valid(state) && status(state) == 1usize && capture < capture_count(state)
+    requires result_valid(state) && read(state, 2701usize) == 1usize && capture < read(state, 2702usize)
 {
     load8(state, 2728usize + capture * 16usize)
 }
 
 @id("experiment.pattern.capture-end")
 fn capture_end(state: borrow Matcher, capture: usize) -> usize
-    requires result_valid(state) && status(state) == 1usize && capture < capture_count(state)
+    requires result_valid(state) && read(state, 2701usize) == 1usize && capture < read(state, 2702usize)
 {
     load8(state, 2736usize + capture * 16usize)
+}
+
+
+// A pair observer validates the complete packet once and returns only Copy
+// offsets. Its result carries no authority or borrowed input lifetime.
+@id("experiment.pattern.capture")
+variant Capture {
+    @id("experiment.pattern.capture.span")
+    Span {
+        @id("experiment.pattern.capture.span.start") start: usize,
+        @id("experiment.pattern.capture.span.end") end: usize,
+    },
+}
+
+@id("experiment.pattern.capture-bounds")
+fn capture_bounds(state: borrow Matcher, capture: usize) -> Capture
+    requires result_valid(state) && read(state, 2701usize) == 1usize && capture < read(state, 2702usize)
+{
+    Capture::Span { start: load8(state, 2728usize + capture * 16usize), end: load8(state, 2736usize + capture * 16usize) }
 }

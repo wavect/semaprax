@@ -1,11 +1,12 @@
 # Bounded ASCII patterns with capture offsets — draft
 
-Status: private source experiment, unchecked. No package registration, execution evidence, completion change, public ABI,
-or performance claim. Source is [ascii.spx](ascii.spx), based on the OPT-702 named-input-borrow branch `bc5f56c87`.
+Status: private source experiment. The OPT-702–704 baseline had four passing private witnesses; the OPT-706 source
+revision is unchecked and has no package registration, completion change, public ABI, or performance claim.
+Source is [ascii.spx](ascii.spx), based on `origin/main` at `ac3f3bfaa`.
 The independent semantic oracle and corpus are in [fixtures](fixtures/README.md); exact compiled-table/work witnesses are in
-[compiled-witnesses.json](compiled-witnesses.json). All execution and formatting remain deferred until the source batch is
-complete and the paid campaign is terminal. The earlier design proposal remains a proposal; this copy records the private
-source choices without changing its product status.
+[compiled-witnesses.json](compiled-witnesses.json). Execution and formatting for the new source revision remain deferred until
+the complete shared source batch is ready. The earlier design proposal remains a proposal; this copy records the private source
+choices without changing its product status.
 
 ## Problem and existing facilities
 
@@ -71,8 +72,9 @@ is needed.
 
 Allocate one 3,072-byte buffer outside the caller's loop. Construct Matcher from it; compile consumes/returns the whole Matcher;
 full-match consumes/returns that Matcher for each record. No input copy, new allocation site, growth or owner duplication occurs
-in compile/full-match. Exact loop admission relies on OPT-702's narrow independent named borrowed-input extension. That compiler
-change and this source batch have not been executed; it grants no package admission claim.
+in compile/full-match. Exact loop admission relies on OPT-702's narrow independent named borrowed-input extension. The compiler
+hook and earlier private witnesses passed their focused baseline; the new source revision still needs its own gate and grants
+no package admission claim.
 
 The complete proposed layout is:
 
@@ -110,6 +112,7 @@ result_valid(borrow Matcher) -> bool
 status(borrow Matcher) -> usize
 capture_count(borrow Matcher) -> usize
 capture_start/end(borrow Matcher, usize capture) -> usize
+capture_bounds(borrow Matcher, usize capture) -> Capture::Span { usize start, usize end }
 work_used(borrow Matcher) -> usize
 ```
 
@@ -223,7 +226,8 @@ broader Wasm command claim follows from this draft.
 packet finalization, and borrow-only packet observers. It has no manifest and uses the private `experiment.pattern` identities.
 The existing language harness owns four new private witnesses: grammar/capture examples, exact malformed offsets and failed
 compile invalidation, handwritten compiled tables with exact work boundaries, and a single independent header witness for
-interpreter/C11 O0/O2/Core-Wasm settlement. All are unexecuted. Handwritten table fixtures pin every byte by zero initialization,
+interpreter/C11 O0/O2/Core-Wasm settlement. The earlier four witnesses passed on their baseline; none has executed this source
+revision. Handwritten table fixtures pin every byte by zero initialization,
 ordered segments, and SHA-256; unused frame/result bytes start zero but remain outside compiled validation meaning.
 
 The important remaining uncertainty is ordinary source cost. Per-byte helpers perform checked calls, contracts, matches,
@@ -231,3 +235,74 @@ conversion, and record reconstruction; their logical byte costs are exact, but e
 The 65 KiB ceiling can require roughly 196608 input-predicate work units for one class scan alone. That does not establish that
 such a record fits the unchanged 1000000-step ordinary default fuel. The complete unchanged 49-obligation corpus, long records,
 nonmatches, and ambiguous accepted suffixes remain required before any useful-package claim.
+
+## OPT-706 source cost and greedy pruning candidate
+
+This revision retains every grammar rule, limit, table byte, packet field, status/reason domain, and public observer signature.
+It adds no allocation site. Fixed-width loads destructure a borrowed Matcher once and use direct total `byte_get` reads.
+Stores use one owning Matcher destructure/reconstruction, combining contiguous groups with the existing `bytes_set5` operation.
+Both write widths retain exact byte-write charges; `frame` still costs 8, `packet` 32, `capture_result` 16, compiled header 64,
+and successful capture finalization remains `F(c)=32+29*c`. Every fused writer checks the carrier before accessing it.
+The reference interpreter's unique owner transfer remains the basis for expecting no payload COW copy, not a measured heap claim.
+
+The old scan path remains for bounds below 64 bytes, preserving the handwritten small-input work boundaries. On a long run,
+any-byte atoms advance through their checked bound without reading the input. A class receives a 32-read inspection of all four
+u64 bitmap words. Exact bitsets select an optimized mode only when they are all bytes, one included byte, one excluded byte,
+all except CR/LF, all except NUL/LF, token bytes excluding 0..32 and 127, or path bytes excluding those plus
+34 (quote) and 92 (backslash). The token/path modes accept every byte from 128 through 255. Their scalar
+literal-or patterns preserve the bitmap predicate exactly; the current interpreter does not debit a separate AST step for
+each pattern alternative. Generated target comparisons still have a fixed per-byte cost, so this is no CPU speed claim.
+The one-bit test is six fixed unsigned scalar stages, with no hidden scan or loop.
+The inspection never trusts a class spelling or stores authority in a cache. All other bitsets use the original predicate.
+
+A selected literal or exclusion scan returns the flat Copy `Scan::Done { count, work, exhausted }`. It has no stored view,
+owned field, or escaping loan. Each 48-byte helper performs direct total reads in increasing order and stops at the first
+rejected byte. A complete chunk costs 49 logical units: one committed scan iteration plus 48 reads. A chunk rejecting its
+zero-based byte `j` costs `j+2`; no later byte is read. A scalar tail costs two units per attempted byte. The caller reserves its
+32-write refusal packet before passing the remaining work; each chunk/tail preflights its complete worst-case cost. Budget
+bookkeeping and a refused preflight perform no predicate event. Thus a successful selected run of `n` bytes costs
+`49*floor(n/48)+2*(n%48)`, or 66,917 for 65,536 bytes, plus class inspection, table validation, frames, and finalization.
+The logical meter records performed work, not reserved chunk width. Source interpreter fuel remains separate.
+
+A manual conservative ordinary-fuel estimate allocates 660 steps per complete exclusion chunk: roughly 595 for the called
+48-byte helper including requires and arguments, and the remaining allowance for scan guard/body, scalar updates and implicit
+statement tails. The direct `byte_get` extra operation charge, match scrutinees, selected arm values, true blocks, and
+requires-clause charge are included. A 65,536-byte successful scan has 1,365 complete chunks and a 16-byte tail, putting the
+scanner below approximately 904,000 steps on that estimate. Literal and singleton-exclusion helpers differ only by fixed scalar
+argument/condition work. This is a source estimate pending exact retained-HIR counting and execution, not a measured fuel result.
+The complete invocation must also fit compilation, table checks, frames, observers, and caller work under the unchanged
+1,000,000 default. Repeated compile per record wastes that remaining margin; fixed-pattern applications should compile once and
+renew the returned Matcher across records, including after no-match or resource packets. `full_match` preserves the compiled
+table and overwrites only reached frames and the logical result packet.
+
+On inputs of at least 64 bytes, terminal-atom pruning skips reductions when the maximal run cannot cover the remaining input:
+for the fixed earlier prefix, every smaller count also leaves an uncovered suffix. Rewinding resumes at an earlier atom.
+Required-follower pruning also skips reductions when the immediate following atom has a positive minimum and disjoint byte
+membership. It supports literal/literal and literal/class in either order, inspecting six metadata bytes and at most one bitmap
+byte (charged six or seven units). Each removed byte belongs to the current atom and cannot start the required follower, so
+none of those count vectors can accept. The LogLens token/path modes therefore stop at their exact required
+space/quote delimiter and avoid retreating across the same long field after a later suffix failure. Nullable followers, any-byte
+intersections, class/class pairs and all other cases keep
+the ordinary greedy rewind. The first accepting vector and capture boundaries therefore remain unchanged; no input is skipped
+and every no-match conclusion still follows exhausted accepting alternatives. Every later greedy entry overwrites its own
+frame before reading it.
+
+The exact token bitmap words are `[18446744065119617024, 9223372036854775807, 18446744073709551615,
+18446744073709551615]`; the path words are `[18446744047939747840, 9223372036586340351,
+18446744073709551615, 18446744073709551615]`, in little-endian class-word order. These are checked against all
+32 bytes at each long class entry; forged or differently spelled classes only select the mode when all bits agree.
+
+The bounded engine still has a major proof obstacle: arbitrary long classes can exceed ordinary fuel, and intersecting adjacent
+repeats can exhaust logical work before deciding a match. This source revision does not claim a linear matcher or all-pattern
+65 KiB acceptance. The unchanged 49 LogLens obligations, independent header/KV meanings, long valid and nonmatching records,
+accepted ambiguous suffixes, exact work boundaries, forged bitmaps, and interpreter/C11/Wasm settlement are required on the final
+source. Package admission remains contingent on those results and the owning Standard Library/Project contracts. No manifest,
+closed dependency inventory, catalog or package status is changed here.
+
+The existing start/end observers now validate the complete packet once before directly checking its status/count header bytes;
+they retain the same predicate and contract-failure boundary without recursively revalidating through `status` and `capture_count`.
+The additive private `capture_bounds` observer performs that same complete validation once and returns flat Copy
+`Capture::Span { start: usize, end: usize }`. It still rejects malformed sibling spans, non-matched packets and out-of-range indices.
+No borrowed input escapes and neither observer path debits the logical engine meter. Callers extracting both endpoints can match
+this Copy result once; existing start/end signatures remain available. These exact flat payloads use the same owning loop classifier
+as Token/Quantifier/Scan, rather than assuming arbitrary Copy aggregates are scalar-call results.

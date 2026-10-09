@@ -98,7 +98,10 @@ mod tests {
         let closure = hir::closure::inventory(&program)[0];
         let owner = hir::closure::closure_id(&closure.id);
         let targets = BTreeSet::from(["lib.imported"]);
-        let bytes = 2 * (std::mem::size_of::<(String, &str, &str)>() + owner.as_str().len());
+        // The visitor constructs one temporary closure owner before copying
+        // the two selected owners. Its formatted text remains charged too.
+        let bytes = owner.as_str().len()
+            + 2 * (std::mem::size_of::<(String, &str, &str)>() + owner.as_str().len());
         let (sites, overflow, consumed) =
             bounded_output::with_limit_usage(bytes, || imported_call_sites(&program, &targets));
         let sites = sites.unwrap();
@@ -159,10 +162,19 @@ mod tests {
             )
         );
         assert!(overflow);
+        // A refusal also formats a bounded diagnostic. Measure that output
+        // independently with exactly the bytes remaining after the first site;
+        // even a discarded partial diagnostic keeps its allocation debit.
+        let (_, _, diagnostic_bytes) = bounded_output::with_limit_usage(bytes / 2 - 1, || {
+            crate::workspace_graph::diagnostics::limit_error(
+                "builder_bytes",
+                super::super::super::active_builder_limit(),
+            )
+        });
         assert_eq!(
             consumed,
-            bytes / 2,
-            "the refused second site is never debited or copied"
+            bytes / 2 + diagnostic_bytes,
+            "only the first site and bounded refusal diagnostic are debited"
         );
     }
 }

@@ -240,7 +240,7 @@ mod tests {
         });
         assert_eq!(error.unwrap_err()[0].code, "SPX-G171");
         assert!(overflow);
-        assert_eq!(consumed, 0);
+        assert_eq!(consumed, refusal_diagnostic_bytes(bytes - 1));
         assert!(refused.is_empty());
     }
 
@@ -267,7 +267,20 @@ mod tests {
         });
         assert_eq!(error.unwrap_err()[0].code, "SPX-G171");
         assert!(overflow);
-        assert_eq!(consumed, 0);
+        assert_eq!(consumed, refusal_diagnostic_bytes(bytes - 1));
         assert!(refused.is_empty());
+    }
+
+    fn refusal_diagnostic_bytes(remaining: usize) -> usize {
+        // Refusing the site does not copy its path/owner, but reporting the
+        // refusal still charges every diagnostic append, including discarded
+        // partial text. Keep that distinct from the refused site allocation.
+        let (_, _, bytes) = bounded_output::with_limit_usage(remaining, || {
+            crate::workspace_graph::diagnostics::limit_error(
+                "builder_bytes",
+                crate::workspace_graph::active_builder_limit(),
+            )
+        });
+        bytes
     }
 }

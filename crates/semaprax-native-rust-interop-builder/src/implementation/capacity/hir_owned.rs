@@ -155,7 +155,9 @@ fn hir_record_pattern_field_owned_capacity(
     }
 }
 
-pub(super) fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnostic> {
+pub(in crate::implementation) fn hir_expr_owned_capacity(
+    expression: &ResolvedExpr,
+) -> Result<usize, Diagnostic> {
     let mut total = 0_usize;
     let mut pending = vec![expression];
     while let Some(expression) = pending.pop() {

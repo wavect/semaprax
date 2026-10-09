@@ -19,7 +19,8 @@ consuming iteration. Ordinary source/HIR derive the element shapes from exact
 declarations and field types; names, generated IDs, schema-only declarations and
 source provenance grant no runtime authority. The collection owner and each
 transferred element retain ordinary affine cleanup and staged-call boundaries.
-The intrinsic/storage contract is owned by the collection specification.
+The intrinsic/storage contract is owned by
+[Owned Leaf Collections v1](OWNED-LEAF-COLLECTIONS-V1.md).
 
 Workspace routing constructs the ordinary owned-data closure, then independently
 validates v30's nominal and function signatures, command roots and operation

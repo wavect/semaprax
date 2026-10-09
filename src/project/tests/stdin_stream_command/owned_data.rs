@@ -146,6 +146,17 @@ fn v30_owned_collections_execute_project_tests_prepared_and_native_stream_comman
 
 #[test]
 fn v30_selection_does_not_widen_frozen_stream_profiles_or_root_abi() {
+    let valid = manifest(PROJECT_PROFILE_STDIN_STREAM_OWNED_DATA_COMMAND_IO_V1);
+    assert_eq!(
+        ProjectManifest::parse(&valid).unwrap().schema(),
+        PROJECT_SCHEMA_V30
+    );
+    for input in [
+        valid.replace(PROJECT_LANGUAGE_COMMAND_STREAM_INPUT_V1, "argv-utf8.v1"),
+        valid.replace("process.stdin.read", "process.network.read"),
+    ] {
+        assert!(ProjectManifest::parse(&input).is_err());
+    }
     let root = fixture();
     for profile in [
         PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V1,

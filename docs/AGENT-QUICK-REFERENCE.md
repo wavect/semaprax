@@ -592,6 +592,7 @@ fn main() -> i64
 | `string_len`, `string_len_chars` | `(s: string) -> i64` bytes / scalars |
 | `string_is_empty` | `(s: string) -> bool` |
 | `string_concat` | `(a: string, b: string) -> string` consumes both |
+| `string_format` | `(literal, fields...) -> string`; literal-only template, up to 32 `i64`, `u8`, `usize`, `bool`, or owned String fields |
 | `string_starts_with`, `string_contains` | `(s: string, other: string) -> bool` |
 | `string_from_char` | `(c: char) -> string` |
 | `string_from_i64` | `(value: i64) -> string` canonical decimal |
@@ -630,6 +631,15 @@ fn main() -> i64
 | `box_new<T>` | `(value: T) -> Box<T>` for an explicit admitted Copy scalar |
 | `box_get<T>` | `(value: borrow Box<T>) -> T` Copy read |
 | `box_into_inner<T>` | `(value: own Box<T>) -> T` consumes |
+
+`string_format("id={}, {}", 3, true)` replaces conversion-and-concatenation
+chains in ordinary monomorphic function bodies. The first argument must be a
+literal of at most 65,536 decoded UTF-8 bytes: `{}` consumes the next field,
+while `{{` and `}}` produce literal braces. Fields evaluate left to right;
+String fields are consumed. Formatting does not JSON-escape fields. Runtime
+templates, borrowed text fields and floating-point fields are outside this
+closed operation. See [Checked Literal Format v1](CHECKED-LITERAL-FORMAT-V1.md)
+for the selected backend profiles, failure contract and owning gate status.
 
 Redefining reserved `string_len` is `SPX-S113`.
 

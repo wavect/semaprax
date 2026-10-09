@@ -28,6 +28,10 @@ preserves the two interrupted qualification attempts. These receipts qualify
 the references and tooling only; a paid campaign still requires fresh resource
 admission with zero heavy jobs and establishes no performance result in advance.
 The earlier r5, r6, and r7 receipts remain preserved as historical evidence.
+New Codex plans require the reference receipt's compiler source and binary
+SHA-256 to match `--compiler-source-ref` and `--semaprax-bin`. A matching gate
+and SPEC alone do not admit a receipt from an earlier compiler: run fresh
+reference qualification and derive the TypeScript bootstrap from that summary.
 The historical self-tests, partial permission scenario, and live token aggregates
 below are separate evidence. A clean matched Codex campaign with bound qualification
 reports and retained events is still required before a new comparative headline.

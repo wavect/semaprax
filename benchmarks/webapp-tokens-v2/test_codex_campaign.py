@@ -388,6 +388,18 @@ class WebappCampaignTests(unittest.TestCase):
             "model": campaign.MODEL, "effort": campaign.EFFORT, "trials_per_arm": 5,
             "timeout_seconds": campaign.TIMEOUT_SECONDS,
         })
+        receipt_path = ROOT / campaign.QUALIFICATION_RECEIPT
+        receipt = json.loads(receipt_path.read_text())
+        receipt["compiler_source_commit"] = campaign.resolve_commit(ROOT, "HEAD")
+        receipt["compiler_binary_sha256"] = campaign.common.digest(Path(args.semaprax_bin).resolve())
+        original_read_text = Path.read_text
+
+        def read_current_receipt(path, *read_args, **read_kwargs):
+            if path == receipt_path:
+                return json.dumps(receipt)
+            return original_read_text(path, *read_args, **read_kwargs)
+
+        self.enterContext(patch.object(Path, "read_text", read_current_receipt))
         settings = campaign.plan(args)
         self.assertEqual(settings["attempt_denominator"], 10)
         self.assertEqual(settings["trial_order"], ["semaprax", "typescript", "typescript", "semaprax",
@@ -404,6 +416,44 @@ class WebappCampaignTests(unittest.TestCase):
         args.round = 0
         with self.assertRaisesRegex(ValueError, "positive integer"):
             campaign.plan(args)
+
+    def test_qualification_rejects_stale_compiler_with_the_same_gate_and_spec(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for relative in campaign.ACCEPTANCE_SOURCE_FILES:
+                source = root / relative
+                source.parent.mkdir(parents=True, exist_ok=True)
+                source.write_text(f"fixture {relative}\n")
+            spec_sha = campaign.common.digest(root / campaign.FROZEN_SPEC)
+            compiler_source = "a" * 40
+            compiler_binary = "b" * 64
+            qualification = {"passed": True, "cases": 912, "missingCases": [],
+                             "missingGroups": [], "failures": []}
+            receipt = {"schema": "semaprax.teamdesk.reference.qualification.v1",
+                       "qualified": True, "spec_sha256": spec_sha, "gate_source": "gate",
+                       "compiler_source_commit": compiler_source,
+                       "compiler_binary_sha256": compiler_binary,
+                       "arms": {arm: {"qualification": qualification} for arm in campaign.ARMS}}
+            with patch.object(campaign, "resolve_commit", return_value="c" * 40), \
+                    patch.object(campaign, "_git_file",
+                                 side_effect=lambda repo, commit, relative: (repo / relative).read_bytes()):
+                self.assertEqual(campaign.validate_qualification_receipt(
+                    root, receipt, spec_sha, compiler_source_commit=compiler_source,
+                    compiler_binary_sha256=compiler_binary), "c" * 40)
+                for field, stale in (("compiler_source_commit", "d" * 40),
+                                     ("compiler_binary_sha256", "e" * 64),
+                                     ("compiler_source_commit", None),
+                                     ("compiler_binary_sha256", None)):
+                    with self.subTest(field=field, stale=stale):
+                        changed = {**receipt, field: stale}
+                        with self.assertRaisesRegex(ValueError, "fresh reference qualification"):
+                            campaign.validate_qualification_receipt(
+                                root, changed, spec_sha, compiler_source_commit=compiler_source,
+                                compiler_binary_sha256=compiler_binary)
+                        # Historical rescore still authenticates its own gate/SPEC
+                        # without relabelling its compiler as the current one.
+                        self.assertEqual(campaign.validate_qualification_receipt(
+                            root, changed, spec_sha), "c" * 40)
 
     def test_cli_rejects_non_positive_round_before_planning(self):
         with patch.object(sys, "argv", ["campaign", "plan", "--round", "0"]), \

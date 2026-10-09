@@ -10,7 +10,8 @@ pub(super) fn is_admitted_owned_byte_record(
     declarations: &hir::DeclarationIndex,
     ty: &ResolvedType,
 ) -> bool {
-    classify_record(declarations, ty).is_some_and(|profile| profile.has_bytes)
+    matches!(ty, ResolvedType::Nominal { .. })
+        && classify_record(declarations, ty).is_some_and(|profile| profile.has_bytes)
 }
 
 /// One bounded acyclic record or class carrier the evaluator can build.

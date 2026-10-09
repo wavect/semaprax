@@ -1,6 +1,6 @@
 # Private ASCII-pattern source experiment
 
-This branch contains unchecked source, independent review fixtures, and future language-harness witnesses. It has no package manifest, catalog entry, target admission, performance result, or completion claim. The engine is [ascii.spx](ascii.spx); [DRAFT.md](DRAFT.md) records its exact grammar, carrier layout, and reason/offset domains. The separate [oracle](fixtures/README.md) enumerates count vectors and does not imitate engine traversal or predict its work meter.
+This private experiment contains source, independent review fixtures, and four passing language-harness witnesses. It has no package manifest, catalog entry, target admission, performance result, or completion claim. The engine is [ascii.spx](ascii.spx); [DRAFT.md](DRAFT.md) records its exact grammar, carrier layout, and reason/offset domains. The separate [oracle](fixtures/README.md) enumerates count vectors and does not imitate engine traversal or predict its work meter.
 
 The source carrier needs only OPT-702: one `Bytes` field, one `usize` field, and an independent whole named borrowed input on exact whole-record renewal. Its buffer stays exactly 3,072 bytes; `position` stays zero. Pattern/input views never enter the carrier. The parser uses flat Copy variants and scalar local counters; classes use a temporary bitmap in bytes 2984–3015. Every renewing source call is pure and nongeneric. No new language, regex runtime, nominal ABI, stored loan, or source allocation site is proposed inside compile/match.
 
@@ -45,12 +45,12 @@ The minimal remaining sequence is:
 3. Pin exact helper AST costs and run the unchanged 49-obligation corpus, long valid/nonmatching records, hostile adjacent repeats, and ambiguous accepted suffixes under ordinary fuel and declared work limits.
 4. Consider package admission only if the useful corpus succeeds with exact interpreter/C11/Wasm parity and settlement. If ordinary fuel fails, report the exact helper/profile obstacle before proposing a separately reviewed change.
 
-Deferred selectors, not executed:
+Focused selectors used in the combined OPT-702–704 batch:
 
 ```sh
 python3 experiments/ascii-pattern-source/fixtures/oracle.py
 cargo test --locked -p semaprax --test language private_ascii_pattern_
-cargo clippy --locked -p semaprax --lib --test language -- -D warnings
+cargo clippy --locked -p semaprax --lib --bin semaprax -- -D warnings
 ```
 
-[Compiled witnesses](compiled-witnesses.json) pin full carrier bytes by zero-fill plus ordered segments and SHA-256. In particular, `(a*)(a*)` on `aa` matches with work 293 at limit 293; limit 292 refuses before capture publication and reports work 235. Empty-match and zero-repeat witnesses pin sentinel handling; hostile adjacent repeats require a work refusal. These are authored expectations; no execution result is claimed.
+[Compiled witnesses](compiled-witnesses.json) pin full carrier bytes by zero-fill plus ordered segments and SHA-256. In particular, `(a*)(a*)` on `aa` matches with work 293 at limit 293; limit 292 refuses before capture publication and reports work 235. Empty-match and zero-repeat witnesses pin sentinel handling; hostile adjacent repeats require a work refusal. The four focused witnesses and independent oracle passed. This does not establish the unchanged 49-obligation corpus, long-record fuel, or package admission. Verification and fixture repairs are recorded in [the batch receipt](../../benchmarks/opt-batch-verification-v1/opt702-704-minimal-verification.json).

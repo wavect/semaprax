@@ -1,0 +1,92 @@
+{
+  "schema": "semaprax.focused-batch-verification.v1",
+  "source_commit": "9d5b3af73e8e88b81c6803e8c7ead4c3ebfd39db",
+  "issues": [
+    702,
+    703,
+    704
+  ],
+  "rust_tests_passed": 15,
+  "python_tests_passed": 5,
+  "python_receipt": {
+    "schema": "semaprax.focused-check-receipt.v1",
+    "source_commit_before_rustfmt": "cbefce9ee",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest test_live_campaign.TypeScriptBootstrapTests",
+    "cwd": "/Users/kevin/.codex/worktrees/opt-enum-gate/AI-Lang/benchmarks/cli-tokens-v1",
+    "exit_code": 0,
+    "tests": 5,
+    "test_runtime_seconds": 1.073,
+    "exec_session": 54297,
+    "scope": "only the new TypeScript bootstrap class; no other tests or apps",
+    "sha256": {
+      "benchmarks/cli_typescript_bootstrap.py": "86c68a6804a8adf3216dd4bf3f58bbcd76cb299be794c16b8225a13b58815dbe",
+      "benchmarks/live_campaign_common.py": "274ecad7303e1e6f65757c7171e195b815996772026f25f207495deaa4400e05",
+      "benchmarks/cli-tokens-v1/test_live_campaign.py": "20eec6674020fd614193094e96e70b030d62251b6b847e6a861bc70192ec4853"
+    },
+    "rust_tests": "pending",
+    "clippy": "pending",
+    "pushed": false
+  },
+  "independent_oracle": {
+    "command": "python3 experiments/ascii-pattern-source/fixtures/oracle.py",
+    "exit_code": 0,
+    "status": "passed",
+    "failures": [],
+    "logical_work_meter": "not modeled"
+  },
+  "clippy": {
+    "command": "cargo clippy --locked -p semaprax --lib --bin semaprax -- -D warnings",
+    "exit_code": 0
+  },
+  "verification": "focused selectors only; no full gates; reran failed tests only after repairs",
+  "repairs": [
+    "End mutable fixture borrow before immutable classification",
+    "Track calloc with existing live-pointer/foreign-free assertions",
+    "Use distinct matcher bindings in invalidation witness",
+    "Set renewal Wasm fixture to exact three live Bytes/String owners; retain eight reentries"
+  ],
+  "logs": {
+    "retry1-focused-1.log": {
+      "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/source-batch-next-20261009/retry1-focused-1.log",
+      "sha256": "24896031d06e4c45fd4f4c5ee4af174bde41edebe15bc39ede5a5f5248e4fb19"
+    },
+    "retry1-focused-2.log": {
+      "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/source-batch-next-20261009/retry1-focused-2.log",
+      "sha256": "5ac22ac13c8f79f47ad1dcd2b4576af2d55fbe90f73ce15df0c8f68cf4f59285"
+    },
+    "retry1-focused-3.log": {
+      "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/source-batch-next-20261009/retry1-focused-3.log",
+      "sha256": "1e6907407a51c3d3345b3e6ecf4b88a317edcc4ec710f6c6da176e74f9aa013e"
+    },
+    "retry1-focused-4.log": {
+      "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/source-batch-next-20261009/retry1-focused-4.log",
+      "sha256": "5c79e85d52be62a92507ff477ae6a766e6dd81b81ac44923582dbddb0a025abf"
+    },
+    "private-pattern-first.log": {
+      "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/source-batch-next-20261009/private-pattern-first.log",
+      "sha256": "fd1805eb83406d57b5208bf46cadf4be8ee15ecef90097866913124ac53d10aa"
+    },
+    "pattern-repair-1.log": {
+      "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/source-batch-next-20261009/pattern-repair-1.log",
+      "sha256": "526099f95dd0d484370fe32c74acd07e9dad2d25ff4218346b4efabf2acf5689"
+    },
+    "pattern-repair-2.log": {
+      "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/source-batch-next-20261009/pattern-repair-2.log",
+      "sha256": "f332c4b2b3ebdc63c9fe81d783122b0a1c66913a9a3eae775922e3b6f05c2bf8"
+    },
+    "renewal-final.log": {
+      "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/source-batch-next-20261009/renewal-final.log",
+      "sha256": "b0f02b1fd3f0abb7ce33e91353ff0856fa2716ab084ec1a2663bb8fb5def5a40"
+    },
+    "scoped-clippy.log": {
+      "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/source-batch-next-20261009/scoped-clippy.log",
+      "sha256": "dc5b6b4484956ec909e5182c02f4f2fa8cc3422c4dc147a071563ce0fd38c3f6"
+    }
+  },
+  "provenance": "First six unit checks and four passing renewal checks used6c6980d01; private passing engine checks used6c6980d01 and89c13d504. Later differences were report/docs and the recorded fixture-only repairs. Final renewal selector used the stated source commit. Scoped clippy excluded test targets.",
+  "compiler_archive": {
+    "path": "/Users/kevin/.codex/benchmark-binaries/semaprax-9d5b3af73",
+    "sha256": "bc99d36304741bd509d6769e9c08789725008676b92dd0471dd4a56f35e696f6",
+    "cargo_source_commit": "9d5b3af73e8e88b81c6803e8c7ead4c3ebfd39db"
+  }
+}

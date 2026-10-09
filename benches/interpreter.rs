@@ -76,10 +76,10 @@ fn sha256_hex(bytes: &[u8]) -> String {
         .collect()
 }
 
-/// Focused microbenchmark for the formatter boundary exercised by the first
-/// admitted private ASCII matcher witness. This measures canonical rendering,
-/// not end-to-end interpreter execution; checking the source is reported in a
-/// separate group and excluded from the formatter timer.
+/// Three separate stages of the exact first admitted private ASCII matcher
+/// witness: source checking, canonical rendering, and retained-call evaluation.
+/// The evaluator group excludes source/check/format/HIR preparation; retained
+/// binding checks and worker creation remain in its timed invocation.
 fn bench_private_ascii_pattern_boundary(c: &mut Criterion) {
     let source = private_ascii_pattern_witness::first_witness_source();
     let source_path = "private-ascii-pattern-first-witness.spx";
@@ -116,6 +116,45 @@ fn bench_private_ascii_pattern_boundary(c: &mut Criterion) {
         b.iter(|| std::hint::black_box(semaprax::format::canonical(std::hint::black_box(&program))))
     });
     render_group.finish();
+
+    // Use the ordinary admitted retained-call API, with the same checked AST.
+    // This isolates execution from cold source/report preparation; it does not
+    // claim to isolate the kernel formatter boundary or remove authentication.
+    use interpreter::retained_call::{
+        evaluate_retained_call, prepare_retained_call, RetainedCallOutcome, RetainedValue,
+    };
+    let resolved = semaprax::hir::resolve(&program).expect("matcher witness HIR resolves");
+    let prepared = prepare_retained_call(&resolved, "experiment.pattern.witness.main")
+        .expect("exact matcher witness is admitted by retained-call execution");
+    let max_steps = interpreter::DEFAULT_MAX_STEPS;
+    let expected = evaluate_retained_call(&resolved, &prepared, &[], max_steps)
+        .expect("retained matcher witness executes");
+    assert_eq!(
+        expected.outcome,
+        RetainedCallOutcome::Returned(RetainedValue::I64(1)),
+        "the shared greedy-capture witness keeps its exact independent oracle"
+    );
+    assert!(expected.steps_used > 0 && expected.steps_used <= max_steps);
+    eprintln!(
+        "private-ascii-pattern-retained-call-microbenchmark source_sha256={} profile=retained-call setup=excluded binding_recheck=included worker_creation=included max_steps={} expected_steps_used={} expected_i64=1",
+        sha256_hex(source.as_bytes()), max_steps, expected.steps_used,
+    );
+    let mut evaluator_group = c.benchmark_group("ascii-pattern-retained-call-evaluator");
+    evaluator_group.sample_size(10);
+    evaluator_group.warm_up_time(std::time::Duration::from_secs(1));
+    evaluator_group.measurement_time(std::time::Duration::from_secs(2));
+    evaluator_group.throughput(Throughput::Elements(expected.steps_used as u64));
+    evaluator_group.bench_function("first-greedy-capture-witness", |b| {
+        b.iter(|| {
+            let evaluated =
+                evaluate_retained_call(std::hint::black_box(&resolved), &prepared, &[], max_steps)
+                    .expect("retained matcher witness executes");
+            assert_eq!(evaluated.outcome, expected.outcome);
+            assert_eq!(evaluated.steps_used, expected.steps_used);
+            std::hint::black_box(evaluated)
+        })
+    });
+    evaluator_group.finish();
 }
 
 /// A scratch directory owned by this process, removed when it is dropped.

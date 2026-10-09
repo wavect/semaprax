@@ -1300,13 +1300,7 @@ mod tests {
         assert!(LANGUAGE_REFERENCE.starts_with("# Agent quick reference\n"));
         assert!(LANGUAGE_REFERENCE.contains("```semaprax\n"));
         assert!(LANGUAGE_REFERENCE.ends_with('\n'));
-        assert_eq!(AUTHORING_GUIDE, include_str!("../../docs/AGENT-AUTHORING-GUIDE.md"));
-        assert!(AUTHORING_GUIDE.len() <= 2_048);
-        assert!(semaprax::agent_economics::lexical_tokens(AUTHORING_GUIDE) <= 400);
-        assert!(AUTHORING_GUIDE.contains("internal-strings-v1` or `text-toolkit-v1`"));
-        assert!(AUTHORING_GUIDE.contains("Project profiles are distinct"));
-        assert!(AUTHORING_GUIDE.contains("source-command.v1"));
-        assert!(AUTHORING_GUIDE.contains("help language all"));
+        authoring::assert_guide_contract();
         assert_eq!(language_topic("all").unwrap(), LANGUAGE_REFERENCE);
         let reference_units = semaprax::agent_economics::lexical_tokens(LANGUAGE_REFERENCE);
         assert_eq!(LANGUAGE_TOPICS.len(), 17);

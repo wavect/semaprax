@@ -4,6 +4,21 @@ use std::fmt::Write as _;
 const MAX_BYTES: usize = 2_048;
 const ROUTES: &str = "Authoring routes (complete):\n  author:stdin-json  bounded streaming native data command\n  author:file-text   native UTF-8 file command\n  author:source-web  single-source web build\nLibrary discovery: help language find:<word>:0\nExact syntax: help language topics\n";
 
+#[cfg(test)]
+pub(super) fn assert_guide_contract() {
+    let guide = super::AUTHORING_GUIDE;
+    assert_eq!(
+        guide,
+        include_str!("../../../docs/AGENT-AUTHORING-GUIDE.md")
+    );
+    assert!(guide.len() <= 2_048);
+    assert!(semaprax::agent_economics::lexical_tokens(guide) <= 400);
+    assert!(guide.contains("internal-strings-v1` or `text-toolkit-v1`"));
+    assert!(guide.contains("Project profiles are distinct"));
+    assert!(guide.contains("source-command.v1"));
+    assert!(guide.contains("help language all"));
+}
+
 pub(super) fn lookup(query: &str) -> Result<String, String> {
     match query {
         "author:routes" => Ok(ROUTES.to_owned()),

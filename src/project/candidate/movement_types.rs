@@ -999,3 +999,49 @@ impl<'a> Nodes<'a> {
         Ok(node)
     }
 }
+
+#[cfg(test)]
+mod literal_format_movement_tests {
+    use super::*;
+
+    fn scalar(index: usize) -> hir::ResolvedExpr {
+        hir::ResolvedExpr {
+            id: hir::ExpressionId::from_owned(format!("arg.{index}")),
+            ty: ResolvedType::I64,
+            ownership: OwnershipMode::Value,
+            kind: hir::ResolvedExprKind::Int(index as i64),
+            span: Span {
+                start: index,
+                end: index + 1,
+                line: 1,
+                column: index + 1,
+            },
+        }
+    }
+
+    fn formatted(template: &str) -> hir::ResolvedExpr {
+        hir::ResolvedExpr {
+            id: hir::ExpressionId::from_owned("format".to_owned()),
+            ty: ResolvedType::String,
+            ownership: OwnershipMode::Own,
+            kind: hir::ResolvedExprKind::LiteralFormat {
+                template: template.to_owned(),
+                args: vec![scalar(0), scalar(1)],
+            },
+            span: Span::default(),
+        }
+    }
+
+    #[test]
+    fn template_is_semantic_identity_and_children_are_dynamic_arguments_only() {
+        let before = formatted("{}:{}");
+        let same = formatted("{}:{}");
+        let changed = formatted("{}-{}");
+        assert!(Node::Expression(&before).same_identity(Node::Expression(&same)));
+        assert!(!Node::Expression(&before).same_identity(Node::Expression(&changed)));
+        let node = Node::Expression(&before);
+        assert!(matches!(node.child(0), Some(Node::Expression(arg)) if arg.span.start == 0));
+        assert!(matches!(node.child(1), Some(Node::Expression(arg)) if arg.span.start == 1));
+        assert!(node.child(2).is_none());
+    }
+}

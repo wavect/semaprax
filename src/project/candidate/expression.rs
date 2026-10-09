@@ -1254,6 +1254,79 @@ fn audited(value: i64) -> i64 {
     @audit("keep this audit owner") unsafe { value + 1 }
     value
 }
+
+#[cfg(test)]
+mod literal_format_join_tests {
+    use super::*;
+
+    #[test]
+    fn literal_format_joins_only_its_authored_template_and_ordered_dynamic_arguments() {
+        let source = r#"module audit.test;
+@id("format.render") fn render(n:i64)->string {string_format("{}:{}",n,1)}
+"#;
+        let program = crate::parse(source, std::path::Path::new("format.spx")).unwrap();
+        let ast = ast_facts(&program.functions[0]).unwrap();
+        let authored = ast
+            .iter()
+            .find(|fact| {
+                source
+                    .get(fact.expression.span.start..fact.expression.span.end)
+                    .is_some_and(|text| text.starts_with("string_format("))
+            })
+            .unwrap();
+        let ExprKind::Call {
+            args: source_args, ..
+        } = &authored.expression.kind
+        else {
+            panic!("expected authored call");
+        };
+        let dynamic = source_args[1..]
+            .iter()
+            .enumerate()
+            .map(|(index, source_arg)| ResolvedExpr {
+                id: hir::ExpressionId::from_owned(format!("arg.{index}")),
+                ty: hir::ResolvedType::I64,
+                ownership: OwnershipMode::Value,
+                kind: ResolvedExprKind::Int(index as i64),
+                span: source_arg.span,
+            })
+            .collect();
+        let mut resolved = ResolvedExpr {
+            id: hir::ExpressionId::from_owned("format".to_owned()),
+            ty: hir::ResolvedType::String,
+            ownership: OwnershipMode::Own,
+            kind: ResolvedExprKind::LiteralFormat {
+                template: "{}:{}".to_owned(),
+                args: dynamic,
+            },
+            span: authored.expression.span,
+        };
+        let joined = |expression: &ResolvedExpr| {
+            let fact = Fact {
+                expression,
+                phase: authored.phase,
+                scope: Scope::new(),
+            };
+            let spans = hir_span_counts(std::slice::from_ref(&fact));
+            join(&fact, &ast, &spans, source).is_some()
+        };
+        assert!(joined(&resolved));
+        if let ResolvedExprKind::LiteralFormat { template, .. } = &mut resolved.kind {
+            *template = "{}:{}!".to_owned();
+        }
+        assert!(!joined(&resolved));
+        if let ResolvedExprKind::LiteralFormat { template, args } = &mut resolved.kind {
+            *template = "{}:{}".to_owned();
+            args.swap(0, 1);
+        }
+        assert!(!joined(&resolved));
+        if let ResolvedExprKind::LiteralFormat { args, .. } = &mut resolved.kind {
+            args.swap(0, 1);
+            args.pop();
+        }
+        assert!(!joined(&resolved));
+    }
+}
 "#;
         let program = crate::parse(source, std::path::Path::new("audit.spx")).unwrap();
         let function = &program.functions[0];

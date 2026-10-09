@@ -48,10 +48,10 @@ const DIAGNOSTIC_CODES: &str = concat!(
     "All: semaprax help language mistakes-index\n",
 );
 const DIAGNOSTIC_T208: &str = concat!(
-                "SPX-T208\n",
-                "wrote: index + 1 when index: usize\n",
-                "fix: Literals default to i64; use index + 1usize\n",
-            );
+    "SPX-T208\n",
+    "wrote: index + 1 when index: usize\n",
+    "fix: Literals default to i64; use index + 1usize\n",
+);
 
 fn guide_commands(guide: &str) -> Vec<&str> {
     guide
@@ -229,14 +229,18 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     assert!(scalars.status.success());
     assert!(scalars.stderr.is_empty());
     assert!(scalars.stdout.starts_with(b"## Scalars and literals\n"));
-    assert!(scalars
-        .stdout
-        .windows(b"- `u8`:".len())
-        .any(|window| window == b"- `u8`:"));
-    assert!(!scalars
-        .stdout
-        .windows(b"## Control flow".len())
-        .any(|window| window == b"## Control flow"));
+    assert!(
+        scalars
+            .stdout
+            .windows(b"- `u8`:".len())
+            .any(|window| window == b"- `u8`:")
+    );
+    assert!(
+        !scalars
+            .stdout
+            .windows(b"## Control flow".len())
+            .any(|window| window == b"## Control flow")
+    );
     assert!(scalars.stdout.len() <= 1_024);
     assert!(scalars.stdout.len() * 20 < card.len());
     let scalar_units =
@@ -379,9 +383,11 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     let (representative, representative_dir) = invoke(&["help", "shapes", "record"]);
     assert!(representative.status.success());
     assert!(representative.stderr.is_empty());
-    assert!(representative
-        .stdout
-        .starts_with(b"representative record\nsource "));
+    assert!(
+        representative
+            .stdout
+            .starts_with(b"representative record\nsource ")
+    );
     assert!(representative.stdout.len() <= 512);
     assert!(representative.stdout.len() * 40 < shapes_catalog.len());
     assert!(
@@ -394,9 +400,11 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
         invoke(&["help", "shapes", "examples/calculator.spx#app.main"]);
     assert!(disambiguated.status.success());
     assert!(disambiguated.stderr.is_empty());
-    assert!(disambiguated
-        .stdout
-        .starts_with(b"function app.main\nsource examples/calculator.spx\n"));
+    assert!(
+        disambiguated
+            .stdout
+            .starts_with(b"function app.main\nsource examples/calculator.spx\n")
+    );
     std::fs::remove_dir(disambiguated_dir).unwrap();
     let (missing_shape, missing_shape_dir) = invoke(&["help", "shapes", "not_a_shape"]);
     assert_eq!(missing_shape.status.code(), Some(2));

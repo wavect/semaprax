@@ -380,10 +380,7 @@ fn owned_string_roots(function: &ResolvedFunction) -> BTreeSet<ValueId> {
                 include_owned_pattern_strings(&arm.pattern, &mut roots);
             }
         }
-        crate::interpreter::push_resolved_expression_children_in_authored_order(
-            expression,
-            &mut pending,
-        );
+        crate::hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
     }
     roots
 }

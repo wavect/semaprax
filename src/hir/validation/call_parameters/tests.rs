@@ -194,7 +194,7 @@ fn byte_signature_views_preserve_owned_bytes_identity_and_borrow_authority_failu
         actual.message,
         "argument ownership is incompatible with parameter `core.bytes.set.param.0`"
     );
-    assert_eq!(actual.span, argument.span);
+    assert_eq!(actual.span, Some(argument.span));
 
     let function = program
         .functions
@@ -240,7 +240,7 @@ fn byte_signature_views_preserve_owned_bytes_identity_and_borrow_authority_failu
         .unwrap_err();
     same_diagnostic(&actual, &expected);
     assert_eq!(actual.message, "borrowed Bytes call root is out of scope");
-    assert_eq!(actual.span, argument.span);
+    assert_eq!(actual.span, Some(argument.span));
 }
 
 #[test]
@@ -298,7 +298,7 @@ module test.nominal_signature_view;
         error.message,
         "argument ownership is incompatible with parameter `core.bytes.set.param.0`"
     );
-    assert_eq!(error.span, argument.span);
+    assert_eq!(error.span, Some(argument.span));
     assert!(error.path.is_none());
     assert!(error.help.is_none());
 
@@ -316,7 +316,7 @@ module test.nominal_signature_view;
         error.message,
         "type `nominal:15:payload.missing:0:` has no semantic facts"
     );
-    assert_eq!(error.span, tail.span);
+    assert_eq!(error.span, Some(tail.span));
     assert!(error.path.is_none());
     assert!(error.help.is_none());
     assert_eq!(crate::cache_codec::encode(&program).unwrap(), wire);

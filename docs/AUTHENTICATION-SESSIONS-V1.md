@@ -133,8 +133,8 @@ container:
    `std.auth`, and `use function` cannot import a function whose signature
    mentions a record at all (`SPX-G172`, "function signature leaves the
    admitted scalar/Copy workspace domain") — checked directly by adding such
-   functions and watching both gates fail in turn (the
-   conformance-completeness gate, naming the missing import by exact `@id`).
+   functions and observing the conformance-completeness gate name the
+   missing import by exact `@id`.
    This import boundary remains distinct from internal interpreter admission.
    The shipped `secret_self_check` constructs `Secret<i64>`/`Secret<bool>`
    literals and reads `.value` call-locally.

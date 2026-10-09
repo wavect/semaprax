@@ -29,6 +29,86 @@ fn shared_owned_leaf_fixture_settles_at_o0_and_o2() {
 }
 
 #[test]
+fn iterator_only_headers_next_and_empty_step_select_owning_native_runtime() {
+    for source in [
+        r#"module owned.leaf;
+@id("discard") fn discard(value:own Iter<string>)->i64 {0}
+@id("discard-step") fn discard_step(value:own IterStep<string>)->i64 {0}
+@id("owned.leaf.main") fn main()->i64 {0}
+"#
+        .to_owned(),
+        format!(
+            r#"module owned.leaf;
+@id("owned.leaf.entry") record Entry {{{FIELDS}}}
+@id("discard") fn discard(value:own Iter<Entry>)->i64 {{0}}
+@id("advance") fn advance(value:own Iter<Entry>)->IterStep<Entry> {{iter_next<Entry>(value)}}
+@id("owned.leaf.main") fn main()->i64 {{
+ let step=IterStep<Entry>::Done{{}};
+ match own step {{IterStep::Done{{}}=>0,IterStep::Yield{{item,rest}}=>1,}}
+}}
+"#
+        ),
+        r#"module owned.leaf;
+@id("owned.leaf.main") fn main()->i64 {
+ let step=IterStep<string>::Done{};
+ match own step {IterStep::Done{}=>0,IterStep::Yield{item,rest}=>1,}
+}
+"#
+        .to_owned(),
+    ] {
+        assert!(!source.contains("vec_with_capacity"));
+        let ast = semaprax::check(&source, "iterator-only.spx").unwrap();
+        let emitted = codegen::emit_c(&ast).unwrap();
+        assert!(emitted.contains("spx_leaf_iter_check"));
+        assert!(emitted.contains("spx_leaf_iter_drop"));
+        assert!(emitted.contains("spx_leaf_storage_v1"));
+        native::run(&source, 0, 0, native::Failure::None);
+    }
+}
+
+#[test]
+fn frozen_direct_native_stream_entries_refuse_body_only_owned_vectors() {
+    fn checked(body: &str, result: &str) -> hir::ResolvedProgram {
+        let source = format!(
+            r#"module profile.body;
+permit {{process.args.read,process.stderr.write,process.stdin.read,process.stdout.write}}
+@id("command") fn command()->{result} {{{body}}}
+@id("main") fn main()->i64 {{0}}
+"#
+        );
+        hir::resolve(&semaprax::check(&source, "profile-body.spx").unwrap()).unwrap()
+    }
+    let ordinary = checked("0", "i64");
+    for result in [
+        codegen::emit_hir_c_with_stdin_stream_exit_status(&ordinary, "command"),
+        codegen::emit_hir_c_with_stdin_stream_text(&ordinary, "command"),
+        codegen::emit_hir_c_with_stdin_stream_data(&ordinary, "command"),
+        codegen::emit_hir_c_with_stdin_stream_records(&ordinary, "command"),
+    ] {
+        result.expect("exact permit inventory and scalar command root remain admitted");
+    }
+    let selected = checked("let rows=vec_with_capacity<string>(0usize);0", "i64");
+    codegen::emit_hir_c_with_stdin_stream_owned_data(&selected, "command")
+        .expect("v30 admits the same ordinary checked body");
+    for result in [
+        codegen::emit_hir_c_with_stdin_stream_exit_status(&selected, "command"),
+        codegen::emit_hir_c_with_stdin_stream_text(&selected, "command"),
+        codegen::emit_hir_c_with_stdin_stream_data(&selected, "command"),
+        codegen::emit_hir_c_with_stdin_stream_records(&selected, "command"),
+    ] {
+        let error = result.expect_err("frozen profile must not inherit v30 body admission");
+        assert!(error.message.contains("owned"), "{error:?}");
+    }
+    let old_bool = checked("true", "bool");
+    codegen::emit_hir_c_with_stdin_stream(&old_bool, "command")
+        .expect("v23 retains its boolean command root");
+    let new_bool = checked("let rows=vec_with_capacity<string>(0usize);true", "bool");
+    let error = codegen::emit_hir_c_with_stdin_stream(&new_bool, "command")
+        .expect_err("v23 must not inherit new body admission");
+    assert!(error.message.contains("owned"), "{error:?}");
+}
+
+#[test]
 fn cloned_record_remains_independent_after_clear_and_replacement() {
     let body = format!(
         r#"

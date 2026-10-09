@@ -1294,7 +1294,10 @@ def summarize(
         )
         usage_rows = [row.get("observed", {}).get("usage", {}) for row in selected]
         raw_usage_totals = {
-            field: sum(usage.get(field) for usage in usage_rows if isinstance(usage.get(field), int))
+            field: (
+                sum(usage.get(field) for usage in usage_rows if isinstance(usage.get(field), int))
+                if usage_rows else None
+            )
             for field in common.ALL_USAGE_FIELDS
         }
         raw_usage_incomplete = {
@@ -1306,7 +1309,13 @@ def summarize(
             "accepted_trials": accepted,
             "accepted_per_attempt": accepted,
             "all_attempt_wall_seconds": [row.get("elapsed_seconds") for row in selected],
-            "aggregate_attempt_wall_seconds": sum(row.get("elapsed_seconds", 0) or 0 for row in selected),
+            "aggregate_attempt_wall_seconds": (
+                sum(row["elapsed_seconds"] for row in selected)
+                if selected and all(
+                    isinstance(row.get("elapsed_seconds"), (int, float)) for row in selected
+                )
+                else None
+            ),
             "list_price_estimate_usd_per_attempt": [row.get("list_price_estimate_usd") for row in selected],
             "list_price_estimate_total_usd_including_failures": complete_cost_total,
             "list_price_estimate_usd_per_accepted_task_including_failures": (
@@ -1320,7 +1329,10 @@ def summarize(
             "raw_usage_per_attempt": [row.get("observed", {}).get("usage") for row in selected],
             "raw_usage_known_subtotal_by_bucket": raw_usage_totals,
             "raw_usage_attempts_missing_bucket": raw_usage_incomplete,
-            "turns": sum(row.get("observed", {}).get("turns_with_usage", 0) for row in selected),
+            "turns": (
+                sum(row.get("observed", {}).get("turns_with_usage", 0) for row in selected)
+                if selected else None
+            ),
             "turns_with_usage_per_attempt": [
                 row.get("observed", {}).get("turns_with_usage", 0) for row in selected
             ],

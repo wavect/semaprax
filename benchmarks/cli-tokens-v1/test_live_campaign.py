@@ -588,6 +588,16 @@ class LiveCampaignTests(unittest.TestCase):
         self.assertEqual(summary["estimated_cost_per_accepted_task_usd"], 0.3)
         self.assertTrue(summary["list_price_estimate_complete"])
 
+    def test_summary_keeps_unlaunched_attempt_totals_unknown(self):
+        summary = live_campaign.summarize([])
+        arm = next(row for row in summary["arms"] if row["arm"] == "semaprax")
+        self.assertEqual(arm["attempts"], 0)
+        self.assertFalse(arm["list_price_estimate_complete"])
+        self.assertIsNone(arm["list_price_estimate_total_usd"])
+        self.assertIsNone(arm["estimated_cost_per_accepted_task_usd"])
+        self.assertIsNone(arm["turns"])
+        self.assertIsNone(arm["aggregate_model_session_wall_seconds"])
+
     def _measurement_binding(self, root):
         campaign = root / "campaign.json"
         results = root / "results.json"

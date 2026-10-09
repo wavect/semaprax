@@ -114,6 +114,7 @@ fn cli_and_editor_surfaces_route_changed_with_their_own_gates_in_fixed_order() {
     let repository = Repository::new();
     repository.write("src/cli/help.rs", "pub fn help() { /* changed */ }\n");
     repository.write("src/cli/help/library.rs", "pub fn library() {}\n");
+    repository.write("src/cli/help/shapes.rs", "pub fn shapes() {}\n");
     repository.write(
         "src/cli/help/diagnostic_index.rs",
         "pub fn response() { /* changed */ }\n",
@@ -132,6 +133,9 @@ fn cli_and_editor_surfaces_route_changed_with_their_own_gates_in_fixed_order() {
     assert!(plan.contains("path\tsrc/cli/help/diagnostic_index.rs\tcli-surface\tcli-harnesses,documentation,rustdoc\n"));
     assert!(plan.contains(
         "path\tsrc/cli/help/library.rs\tcli-surface\tcli-harnesses,documentation,rustdoc\n"
+    ));
+    assert!(plan.contains(
+        "path\tsrc/cli/help/shapes.rs\tcli-surface\tcli-harnesses,documentation,rustdoc\n"
     ));
     assert!(plan.contains(
         "path\tsrc/cli_driver/report_options.rs\tcli-surface\tcli-harnesses,documentation,rustdoc\n"

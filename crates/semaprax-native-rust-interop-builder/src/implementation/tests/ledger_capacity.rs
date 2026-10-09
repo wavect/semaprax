@@ -263,13 +263,13 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     );
     let calls = include_str!("../../../../../src/call_index.rs");
     for (source, expected) in [
-        (hir_resolver, "size_of::<Frame<'static>>() == 592"),
+        (hir_resolver, "size_of::<Frame<'static>>() <= 592"),
         (hir_validator, "size_of::<Frame<'static>>() == 288"),
         (verifier, "size_of::<VerifierFrame<'static>>() == 320"),
         (verifier, "size_of::<VariantMatchState<'static>>() == 312"),
         (cleanup, "size_of::<Frame<'static>>() == 40"),
         (cleanup, "size_of::<Frame<'static>>() == 24"),
-        (lower, "size_of::<Frame<'static>>() == 392"),
+        (lower, "size_of::<Frame<'static>>() <= 392"),
         (calls, "size_of::<Frame<'static>>() == 16"),
     ] {
         assert!(

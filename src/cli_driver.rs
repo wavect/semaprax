@@ -43,15 +43,12 @@ mod supply_chain;
 #[cfg(test)]
 #[path = "cli/native_output_tests.rs"]
 mod native_output_tests;
-
 use options::*;
 use report_options::*;
 use source_execution::*;
-
 #[cfg(test)]
 #[path = "cli/native_scratch_tests.rs"]
 mod native_scratch_tests;
-
 /// Explicit private-host hooks supplied only by the unpublished toolchain.
 /// Creates a project and returns the destination as spelled plus the
 /// template it published.

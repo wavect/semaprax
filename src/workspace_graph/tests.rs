@@ -4,6 +4,8 @@ use checked_value_retention::{retain_checked_nominal_type, retain_checked_value_
 mod builder_limits;
 #[path = "tests/static_protocol.rs"]
 mod static_protocol;
+#[path = "tests/source_repair.rs"]
+mod source_repair;
 fn checked_value_fixture() -> hir::ResolvedProgram {
     let program = crate::parse(r#"module values;
 @id("values.config") record Config { @id("values.config.value") value: i64, }
@@ -137,34 +139,6 @@ fn canonical_source(path: &str, source: &str) -> WorkspaceSource {
         path: path.to_owned(),
         source: format::canonical(&program),
     }
-}
-#[test]
-fn noncanonical_workspace_source_reports_project_format_repair() {
-    let app = canonical_source(
-        "app.spx",
-        "module app;\n@id(\"app.main\")\nfn main() -> i64 { 0 }\n",
-    );
-    let library = canonical_source(
-        "library.spx",
-        "module library;\n@id(\"library.value\")\nfn value() -> i64 { 1 }\n",
-    );
-    assert!(build_owned(vec![app.clone(), library.clone()]).is_ok());
-
-    let error = build_owned(vec![
-        source("app.spx", &format!("\n{}", app.source)),
-        library,
-    ])
-    .unwrap_err();
-    assert_eq!(error[0].code, "SPX-G170");
-    assert!(error[0]
-        .message
-        .contains("workspace semantic source `app.spx` is not canonical"));
-    assert_eq!(
-        error[0].help.as_deref(),
-        Some(
-            "Run `semaprax fmt <project-directory-or-manifest>` to canonicalize project source, then retry."
-        )
-    );
 }
 #[test]
 fn scalar_linker_uses_real_provider_bodies_for_two_closures() {

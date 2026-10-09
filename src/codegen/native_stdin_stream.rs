@@ -44,6 +44,7 @@ pub fn emit_hir_c_with_stdin_stream(
     program: &ResolvedProgram,
     command_id: &str,
 ) -> Result<String, Diagnostic> {
+    reject_owned_leaf_in_frozen_profile(program)?;
     emit_profile(
         program,
         command_id,
@@ -55,6 +56,7 @@ pub fn emit_hir_c_with_stdin_stream_exit_status(
     program: &ResolvedProgram,
     command_id: &str,
 ) -> Result<String, Diagnostic> {
+    reject_owned_leaf_in_frozen_profile(program)?;
     emit_profile(
         program,
         command_id,
@@ -67,6 +69,7 @@ pub fn emit_hir_c_with_stdin_stream_text(
     program: &ResolvedProgram,
     command_id: &str,
 ) -> Result<String, Diagnostic> {
+    reject_owned_leaf_in_frozen_profile(program)?;
     emit_profile(
         program,
         command_id,
@@ -79,6 +82,7 @@ pub fn emit_hir_c_with_stdin_stream_data(
     program: &ResolvedProgram,
     command_id: &str,
 ) -> Result<String, Diagnostic> {
+    reject_owned_leaf_in_frozen_profile(program)?;
     emit_profile(
         program,
         command_id,
@@ -113,6 +117,20 @@ pub fn emit_hir_c_with_stdin_stream_owned_data(
         command_id,
         NativeOutputProfile::StdinStreamDataCommandIo,
     )
+}
+
+fn reject_owned_leaf_in_frozen_profile(program: &ResolvedProgram) -> Result<(), Diagnostic> {
+    if program
+        .functions
+        .iter()
+        .chain(program.function_instances.iter().map(|i| &i.function))
+        .any(|f| hir::owned_leaf_collection::function_requires_profile(program, f))
+    {
+        return Err(backend_error(
+            "owned leaf collections require the explicitly selected v30 native stream profile",
+        ));
+    }
+    Ok(())
 }
 
 fn emit_profile(

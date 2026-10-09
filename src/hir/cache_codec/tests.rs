@@ -68,6 +68,35 @@ fn closure_ast_tag_25_and_hir_tag_31_round_trip_with_graph_and_interpreter() {
 }
 
 #[test]
+fn owned_string_byte_slice_provenance_round_trips_through_hir_cache_codec() {
+    let source = r#"
+module cache.owned_string_byte_view;
+@id("cache.measure") fn measure(text: string) -> usize {
+    let bytes = str_as_bytes(string_as_str(text));
+    byte_len(bytes)
+}
+@id("cache.main") fn main() -> i64 { 0 }
+"#;
+    let ast = crate::check(source, "cache-owned-string-byte-view.spx").unwrap();
+    let program = crate::hir::resolve(&ast).unwrap();
+    crate::hir::validate(&program).unwrap();
+    let wire = cache_codec::encode(&program).unwrap();
+    let restored: ResolvedProgram = cache_codec::decode(&wire).unwrap();
+    crate::hir::validate(&restored).unwrap();
+    assert_eq!(cache_codec::encode(&restored).unwrap(), wire);
+    assert!(restored
+        .declarations
+        .byte_slice_provenances()
+        .any(|(_, provenance)| {
+            provenance.root_kind == crate::hir::ByteSliceRootKind::OwnedString
+        }));
+    assert_eq!(
+        crate::graph::graph_schema(&restored).unwrap(),
+        "semaprax.graph.v71"
+    );
+}
+
+#[test]
 fn generic_closure_cache_preserves_distinct_concrete_private_bodies() {
     let source = r#"
 module cache.generic_closure;

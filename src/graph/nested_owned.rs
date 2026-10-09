@@ -1,4 +1,4 @@
-pub(crate) use super::byte_buffer_renewal::{graph_schema, graph_schema_from_parts_and_instances};
+pub(crate) use super::byte_buffer_renewal::graph_schema;
 use crate::cleanup::FieldLivenessShape;
 use crate::cleanup_plan::{
     StorageId, CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V11, CLEANUP_PLAN_SCHEMA_V12,

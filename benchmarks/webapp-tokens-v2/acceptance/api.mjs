@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { isDeepStrictEqual } from 'node:util';
 import { Client, rowShape, route, mutations } from './client.mjs';
 import { ENTITIES, ENUMS, KEYS, WORKFLOWS, COMPUTED, PASSWORD, INVALID, integer, equalId, seed, computed, canRead, canWrite, AGENT_WRITES } from './contract.mjs';
 export const deniedWriteStatuses = readable => readable ? [403] : [403,404];
@@ -50,12 +51,15 @@ export function auditEventKind(entry, entity, fields) {
   assert.ok(changes && typeof changes === 'object' && !Array.isArray(changes), 'nonempty audit changes');
   const names=Object.keys(changes);assert.ok(names.length,'nonempty audit changes');
   const pairs=Object.fromEntries(names.map(name=>[name,auditChangeValues(changes[name])]));
-  for(const [name,[oldValue,newValue]] of Object.entries(pairs)) assert.notDeepEqual(oldValue,newValue,`audit ${name} actually changed`);
+  const changed=Object.entries(pairs).filter(([,values])=>!isDeepStrictEqual(values[0],values[1]));
+  assert.ok(changed.length,'audit changes include a real transition');
   const required=Object.keys(fields);
   const allRequired=required.every(name=>Object.hasOwn(pairs,name));
-  const create=allRequired&&required.every(name=>pairs[name][0]===null&&pairs[name][1]!==null);
-  const remove=allRequired&&required.every(name=>pairs[name][0]!==null&&pairs[name][1]===null);
-  const update=!create&&!remove&&Object.values(pairs).every(([oldValue,newValue])=>oldValue!==null&&newValue!==null);
+  const create=allRequired&&required.every(name=>pairs[name][0]===null&&pairs[name][1]!==null)
+    &&changed.every(([,values])=>values[0]===null&&values[1]!==null);
+  const remove=allRequired&&required.every(name=>pairs[name][0]!==null&&pairs[name][1]===null)
+    &&changed.every(([,values])=>values[0]!==null&&values[1]===null);
+  const update=!create&&!remove&&changed.every(([,values])=>values[0]!==null&&values[1]!==null);
   const inferred=create?'create':remove?'delete':update?'update':null;
   assert.ok(inferred,'audit event kind is unambiguous from changed fields');
   if(Object.hasOwn(entry,'action'))assert.ok(['create','update','delete'].includes(entry.action)&&entry.action===inferred,'explicit audit action matches changed fields');

@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
+import { createRequire } from 'node:module';
 import { Client,rowShape,lossless } from './client.mjs';
 import { ENTITIES,ENUMS,COVERAGE,SPEC_SHA256,integer,seed,canRead,canWrite,computed } from './contract.mjs';
 import { sha256,requiredCases,qualify,passwordChecks } from './qualification.mjs';
@@ -24,7 +25,7 @@ test('hostile API missing fields and weakened write responses are observed exter
 
 test('actual sort order and pagination omissions cannot satisfy ordering oracle',()=>{const rows=Array.from({length:27},(_,n)=>({id:String(n+1),value:String(n+1)})),ids=rows.map(row=>row.id);assert.equal(direction(ids,rows,'value','int'),-1);assert.equal(direction(ids.slice().reverse(),rows,'value','int'),1);const wrong=ids.slice();[wrong[24],wrong[25]]=[wrong[25],wrong[24]];assert.throws(()=>direction(wrong,rows,'value','int'),'wrong boundary order');assert.throws(()=>direction(ids.slice(0,25),rows,'value','int'),'dropped page');const duplicate=ids.slice();duplicate[26]=duplicate[25];assert.throws(()=>direction(duplicate,rows,'value','int'),'duplicate row');});
 
-import {actionControl,numericEditor,directPage,enumFilterSelectors,formControl,formFieldLabel,searchControl,signInLabel,uniqueControl,visibleErrorMessageCount} from './browser-support.mjs';
+import {actionControl,numericEditor,directPage,enumFilterSelectors,formControl,formFieldLabel,historyValueProof,renderedErrorMessages,searchControl,signInLabel,uniqueControl,visibleErrorMessageCount} from './browser-support.mjs';
 test('exact numeric editors are accepted without accepting untyped strings',()=>{numericEditor('int',{type:'text',inputmode:'numeric'});numericEditor('int',{type:'number',step:'1'});numericEditor('float',{type:'number',step:'any'});assert.throws(()=>numericEditor('int',{type:'text'}));assert.throws(()=>numericEditor('float',{type:'text',inputmode:'numeric'}));assert.throws(()=>numericEditor('int',{type:'number',step:'0.1'}));});
 test('direct route awaits a fresh document rather than earlier hash networkidle',async()=>{const calls=[],page={goto:async(...args)=>calls.push(args)};await directPage(page,'http://127.0.0.1:1234/#/task/1/edit');assert.deepEqual(calls,[['about:blank'],['http://127.0.0.1:1234/#/task/1/edit',{waitUntil:'networkidle'}]]);});
 
@@ -50,12 +51,13 @@ test('audit event kind accepts representation freedom only when old/new evidence
   assert.equal(auditEventKind(event({name:[null,'Vendor'],email:[null,'vendor@example.test']}),'Vendor',fields),'create');
   assert.equal(auditEventKind(event({name:['Vendor',null],email:['vendor@example.test',null]}),'Vendor',fields),'delete');
   assert.equal(auditEventKind(event({name:['Vendor','Renamed'],email:['vendor@example.test','next@example.test']},'update'),'Vendor',fields),'update');
+  assert.equal(auditEventKind(event({name:['Vendor','Renamed'],email:['vendor@example.test','vendor@example.test']}),'Vendor',fields),'update');
   for(const hostile of [
     event({}),
     event({name:[null,'Vendor']}),
     event({name:[null,'Vendor'],email:['vendor@example.test','next@example.test']}),
     event({name:['Vendor','Renamed'],email:['vendor@example.test','next@example.test']},'create'),
-    event({name:['Vendor','Vendor'],email:['vendor@example.test','next@example.test']},'update'),
+    event({name:['Vendor','Vendor'],email:['vendor@example.test','vendor@example.test']},'update'),
     event({name:['Vendor','Renamed'],email:['vendor@example.test','next@example.test']},'merge'),
   ]) assert.throws(()=>auditEventKind(hostile,'Vendor',fields));
 });
@@ -159,4 +161,30 @@ test('visible error messages count distinct nonempty lines without splitting col
   assert.equal(visibleErrorMessageCount(['Required name\r\nInvalid email','Required name','Invalid email']),2);
   assert.equal(visibleErrorMessageCount(['Required name Invalid email']),1);
   assert.throws(()=>visibleErrorMessageCount(['Required name',null]));
+});
+
+test('local browser fixture counts only rendered error leaves and exact Search controls',async()=>{
+  const require=createRequire(path.join(process.env.PLAYWRIGHT_PACKAGE_ROOT??path.dirname(new URL(import.meta.url).pathname),'package.json')),{chromium}=require('@playwright/test');
+  const browser=await chromium.launch({headless:true}),page=await browser.newPage();
+  try {
+    await page.setContent(`<label>Search<input type="text" aria-label="Search" placeholder="Search"></label>
+      <div class="err"><span>Required name</span><span hidden>Hidden error</span></div>
+      <div role="alert" style="white-space:normal">Collapsed one
+Collapsed two</div>
+      <div role="alert" style="white-space:pre-wrap">Invalid email
+Bad phone</div>
+      <div class="err"><div role="alert">Duplicate wrapper</div></div>`);
+    const search=await uniqueControl(searchControl(page),'Search');
+    assert.equal(await search.getAttribute('aria-label'),'Search');
+    assert.equal(visibleErrorMessageCount(await renderedErrorMessages(page)),5);
+    await page.setContent('<input aria-label="Search"><input aria-label="Search">');
+    await assert.rejects(()=>uniqueControl(searchControl(page),'Search'),/one Search control/);
+  } finally {await browser.close();}
+});
+
+test('history proof requires distinct old and new values',()=>{
+  const oldValue='audit-old-marker-659',newValue='audit-new-marker-659';
+  historyValueProof(`History\nname: ${oldValue} → ${newValue}`,oldValue,newValue);
+  assert.throws(()=>historyValueProof(`History\nname: ${newValue}`,oldValue,newValue));
+  assert.throws(()=>historyValueProof(`History\nname: ${oldValue}`,oldValue,oldValue));
 });

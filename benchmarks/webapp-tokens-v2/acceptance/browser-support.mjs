@@ -33,12 +33,30 @@ export function searchControl(page) {
     page.getByRole('textbox',{name}).and(page.locator('input:visible')));
 }
 
+export async function renderedErrorMessages(page) {
+  return page.locator('.err:visible, [role="alert"]:visible, form ul li:visible').evaluateAll(nodes=>nodes.flatMap(node=>{
+    const descendants=[...node.querySelectorAll('div,li,[role=alert]')]
+      .filter(child=>child.innerText.trim()&&![...child.children].some(kid=>kid.innerText.trim()));
+    return (descendants.length?descendants:[node]).map(leaf=>leaf.innerText);
+  }));
+}
+
 export function visibleErrorMessageCount(messages) {
   assert.ok(Array.isArray(messages),'visible error messages');
   return new Set(messages.flatMap(message=>{
     assert.equal(typeof message,'string','visible error text');
     return message.split(/\r\n?|\n/).map(line=>line.trim()).filter(Boolean);
   })).size;
+}
+
+export function historyValueProof(text, oldValue, newValue) {
+  assert.equal(typeof text,'string','history text');
+  assert.equal(typeof oldValue,'string','history old value');
+  assert.equal(typeof newValue,'string','history new value');
+  assert.notEqual(oldValue,newValue,'history values differ');
+  assert.equal(oldValue.includes(newValue)||newValue.includes(oldValue),false,'history values do not overlap');
+  assert.ok(text.includes(oldValue),'history displays actual old value');
+  assert.ok(text.includes(newValue),'history displays actual new value');
 }
 
 export function actionControl(page,name,entity) {

@@ -998,9 +998,17 @@ mod carrier_tests {
             increment,
         );
 
-        let mut path_len = "x".repeat(128).len();
-        for boundary in [9, 99, 999, 9_999] {
-            path_len = path_len.max(boundary);
+        for mut path_len in [
+            8,
+            9,
+            98,
+            99,
+            998,
+            999,
+            9_998,
+            9_999,
+            "λ-prefix-".repeat(64).len(),
+        ] {
             for _ in 0..3 {
                 let creation_len = scoped_expression_identity_upper(
                     function,

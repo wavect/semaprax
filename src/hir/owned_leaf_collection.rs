@@ -213,6 +213,21 @@ pub(crate) fn function_requires_profile(
     super::workspace_link::stream_owned_function_requires_profile(program, f)
 }
 
+/// Independent old-profile replay also checks scalar-signature bodies and
+/// materialized callees; a Project source guard is not backend authority.
+pub(crate) fn program_requires_profile(program: &super::ResolvedProgram) -> bool {
+    program
+        .functions
+        .iter()
+        .chain(
+            program
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function),
+        )
+        .any(|function| function_requires_profile(program, function))
+}
+
 /// Retained source modules do not hold a DeclarationIndex. Re-derive the
 /// negative old-profile guard from their authenticated declarations instead.
 /// Unknown nominal elements fail closed, including imported declarations

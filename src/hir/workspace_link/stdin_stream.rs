@@ -226,6 +226,7 @@ pub(crate) fn validate_stream_text_program(
     program: &ResolvedProgram,
     command: Option<&DeclarationId>,
 ) -> Result<(), Diagnostic> {
+    reject_owned_collection_runtime(program)?;
     if !program.interfaces.is_empty() {
         return Err(link_error(
             "stream text transport does not admit foreign interfaces",
@@ -290,6 +291,7 @@ pub(crate) fn validate_stream_data_program(
     program: &ResolvedProgram,
     command: Option<&DeclarationId>,
 ) -> Result<(), Diagnostic> {
+    reject_owned_collection_runtime(program)?;
     if !program.interfaces.is_empty() {
         return Err(link_error(
             "stream data transport does not admit foreign interfaces",
@@ -331,6 +333,15 @@ pub(crate) fn validate_stream_data_program(
                 "stream data reader result is outside forwarding profile",
             ));
         }
+    }
+    Ok(())
+}
+
+pub(super) fn reject_owned_collection_runtime(program: &ResolvedProgram) -> Result<(), Diagnostic> {
+    if super::super::owned_leaf_collection::program_requires_profile(program) {
+        return Err(link_error(
+            "owned-leaf vector operations require the owned-data command profile",
+        ));
     }
     Ok(())
 }

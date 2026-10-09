@@ -942,6 +942,9 @@ fn link_useful_data_workspace_profile(
         | WorkspaceIoProfile::NetworkEntry
         | WorkspaceIoProfile::HttpsEntry => {}
     }
+    if profile.is_stream() {
+        stdin_stream::reject_owned_collection_runtime(&linked)?;
+    }
     analyze_byte_data_capacity(&linked)?;
     rebuild_cleanup_metadata(&mut linked)?;
     validate(&linked)?;

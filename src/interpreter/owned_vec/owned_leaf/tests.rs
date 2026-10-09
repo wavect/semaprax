@@ -73,3 +73,61 @@ fn clone_out_returns_independent_bytes_before_original_carrier_is_cleared() {
     let summary = summaries.function(bytes.id.as_str()).unwrap();
     assert_eq!(summary.bytes_copy_sites, 2);
 }
+
+#[test]
+fn empty_and_nonempty_byte_clones_receive_distinct_fresh_owner_identities() {
+    let source = r#"module leaf.clone_identity;
+@id("row") record Row { @id("row.a") a:Bytes, @id("row.b") b:Bytes, }
+@id("clone") fn clone()->Row {
+ let input=[9u8];
+ let row=Row{a:bytes_copy(array_as_slice(input)),b:bytes_zeroed(0usize)};
+ let rows=vec_push<Row>(vec_with_capacity<Row>(1usize),row);
+ vec_clone_at<Row>(rows,0usize)
+}
+@id("entry") fn main()->i64 {0}
+"#;
+    let ast = crate::check(source, "clone-identity.spx").unwrap();
+    let program = crate::hir::resolve(&ast).unwrap();
+    let entry = program
+        .functions
+        .iter()
+        .find(|f| f.id.as_str() == "clone")
+        .unwrap();
+    let admitted = program
+        .functions
+        .iter()
+        .map(|f| (f.id.as_str(), f))
+        .collect();
+    let (outcome, _, _, _) = evaluate_resolved_entry_with_utf8_budget(
+        entry,
+        &[],
+        &admitted,
+        &program,
+        1_000_000,
+        false,
+        Utf8MaterializationBudget::fixed(),
+    );
+    let Ok(Value::Record(row)) = outcome else {
+        panic!("{outcome:?}");
+    };
+    let Value::Bytes(first) = &row.fields[&hir::DeclarationId::new("row.a")] else {
+        panic!("first leaf")
+    };
+    let Value::Bytes(second) = &row.fields[&hir::DeclarationId::new("row.b")] else {
+        panic!("second leaf")
+    };
+    assert_eq!(first.allocation, 3);
+    assert_eq!(
+        second.allocation, 4,
+        "empty Bytes still has a fresh logical owner"
+    );
+    assert_eq!(first.bytes.as_ref(), &[9]);
+    assert!(second.bytes.is_empty());
+    let capacities = hir::analyze_byte_data_capacity(&program).unwrap();
+    let summary = capacities.function("clone").unwrap();
+    assert_eq!(summary.bytes_copy_sites, 4);
+    assert_eq!(
+        summary.owned_byte_payload_bytes,
+        3 * crate::byte_ops::MAX_OWNED_BYTE_VALUE_BYTES
+    );
+}

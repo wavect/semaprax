@@ -145,6 +145,52 @@ fn unused_new_operation_is_rejected_by_old_profile_before_reachability() {
 }
 
 #[test]
+fn scalar_root_cannot_replay_new_owned_vectors_under_old_stream_profiles() {
+    for body in [
+        "let rows=vec_with_capacity<string>(0usize);0",
+        "let rows=vec_with_capacity<string>(0usize);let sorted=vec_sort_owned<string>(rows);0",
+    ] {
+        let source = format!("module t; @id(\"entry\") fn main()->i64 {{{body}}}");
+        let program = checked(&source);
+        let main = &program.functions[0];
+        assert!(hir::authored_nominal_declarations(main).is_empty());
+        assert!(program_requires_profile(&program));
+        assert!(hir::validate_stream_text_program(&program, None).is_err());
+        assert!(hir::validate_stream_data_program(&program, None).is_err());
+        assert!(hir::validate_stream_record_program(&program, None).is_err());
+        hir::validate_stream_owned_program(&program, None).unwrap();
+    }
+    let legacy = checked(
+        "module t; @id(\"entry\") fn main()->i64 {let rows=vec_with_capacity<i64>(0usize);0}",
+    );
+    assert!(!program_requires_profile(&legacy));
+    hir::validate_stream_text_program(&legacy, None).unwrap();
+    hir::validate_stream_data_program(&legacy, None).unwrap();
+    hir::validate_stream_record_program(&legacy, None).unwrap();
+}
+
+#[test]
+fn owned_byte_clone_retains_the_existing_no_allocation_in_loops_boundary() {
+    let source = r#"module leaf.byte_loop;
+@id("row") record Row { @id("row.payload") payload:Bytes, }
+@id("entry") fn main()->i64 {
+ let row=Row{payload:bytes_zeroed(0usize)};
+ let rows=vec_push<Row>(vec_with_capacity<Row>(1usize),row);
+ let mut i=0usize;
+ while i<1usize { let clone=vec_clone_at<Row>(rows,0usize); i=i+1usize; 0 }
+ 0
+}
+"#;
+    let diagnostics = crate::check(source, "clone-loop.spx").unwrap_err();
+    assert!(
+        diagnostics.iter().any(|d| d.code == "SPX-T267"
+            && d.message.contains("bytes_copy")
+            && d.message.contains("while")),
+        "{diagnostics:?}"
+    );
+}
+
+#[test]
 fn owned_leaf_string_vectors_can_clone_and_replace_in_bounded_loops() {
     let source = "module t; @id(\"t.main\") fn main()->i64 {let mut v=vec_with_capacity<string>(2usize);v=vec_push<string>(v,\"a\");v=vec_push<string>(v,\"b\");let mut index=0usize;while index<vec_len<string>(v){let item=vec_clone_at<string>(v,index);v=vec_replace<string>(v,index,string_concat(item,\"x\"));index=index+1usize;0}let a=vec_clone_at<string>(v,0usize);let b=vec_clone_at<string>(v,1usize);if a==\"ax\"&&b==\"bx\"{0}else{1}}";
     let program = checked(source);

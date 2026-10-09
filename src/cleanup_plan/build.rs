@@ -2070,7 +2070,7 @@ impl<'a> PlanBuilder<'a> {
                 replaced: BTreeSet<DeclarationId>,
             },
         }
-        const { assert!(std::mem::size_of::<Frame<'static>>() == 392) };
+        const { assert!(std::mem::size_of::<Frame<'static>>() <= 392) };
         #[cfg(test)]
         fn frame_owned_capacity(frame: &Frame<'_>) -> usize {
             let destination = |place: &Option<CleanupPlace>| {

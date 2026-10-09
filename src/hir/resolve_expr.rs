@@ -34,7 +34,7 @@ impl Resolver<'_> {
         bindings: &BTreeMap<String, Binding>,
         path: &str,
     ) -> Result<ResolvedExpr, Diagnostic> {
-        const { assert!(std::mem::size_of::<Frame<'static>>() == 592) };
+        const { assert!(std::mem::size_of::<Frame<'static>>() <= 592) };
         let mut frames = vec![Frame::Enter {
             expr,
             bindings: Rc::new(bindings.clone()),

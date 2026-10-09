@@ -139,6 +139,34 @@ impl Scratch {
         fs::remove_dir(&self.directory)
     }
 
+    /// Remove a test executable on success or failure. The compiler may have
+    /// failed before creating it; only the authenticated empty/one-file scratch
+    /// inventory is eligible for removal.
+    pub(super) fn discard(mut self) -> io::Result<()> {
+        self.bind_directory()?;
+        match fs::symlink_metadata(&self.file) {
+            Ok(_) => {
+                self.inventory(true)?;
+                plain(&self.file, false)?;
+                let handle = Handle::from_path(&self.file)?;
+                if let Some(expected) = &self.file_identity {
+                    if handle != *expected {
+                        return Err(changed("native scratch file identity changed"));
+                    }
+                }
+                single_link(handle.as_file())?;
+                self.bind_directory()?;
+                fs::remove_file(&self.file)?;
+                drop(self.file_identity.take());
+            }
+            Err(error) if error.kind() == io::ErrorKind::NotFound => self.inventory(false)?,
+            Err(error) => return Err(error),
+        }
+        self.bind_directory()?;
+        self.inventory(false)?;
+        fs::remove_dir(&self.directory)
+    }
+
     fn bind_directory(&self) -> io::Result<()> {
         bind(&self.parent, &self.parent_identity, true)?;
         bind(&self.directory, &self.directory_identity, true)

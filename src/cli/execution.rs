@@ -17,9 +17,16 @@ pub(crate) struct ExecutionOptions {
     pub(crate) max_steps: Option<usize>,
     pub(crate) max_bytes: Option<usize>,
     pub(crate) native: bool,
+    pub(crate) native_test: Option<NativeTestLimits>,
     /// Program arguments after `--`, passed to a single-file command-line
     /// program (`docs/TEXT-TOOLKIT-V1.md`).
     pub(crate) arguments: Vec<String>,
+}
+
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub(crate) struct NativeTestLimits {
+    pub(crate) timeout_ms: u64,
+    pub(crate) max_output_bytes: usize,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -137,6 +144,9 @@ fn parse(args: &[String], command: &str, allow_source: bool) -> Result<Execution
     let mut max_steps = None;
     let mut max_bytes = None;
     let mut native = false;
+    let mut target = None;
+    let mut native_timeout_ms = None;
+    let mut native_max_output_bytes = None;
     let mut arguments = Vec::new();
     let mut index = 0;
     while index < args.len() {
@@ -185,6 +195,33 @@ fn parse(args: &[String], command: &str, allow_source: bool) -> Result<Execution
             "--max-bytes" => {
                 eprintln!("{command} option `--max-bytes` may not be repeated");
                 return Err(2);
+            }
+            "--target" if command == "test" && target.is_none() => {
+                let value = option_value(args, index, command, argument)?;
+                if !matches!(value, "native" | "interpreter") {
+                    eprintln!("test option `--target` requires native or interpreter");
+                    return Err(2);
+                }
+                target = Some(value.to_owned());
+                index += 2;
+            }
+            "--native-timeout-ms" if command == "test" && native_timeout_ms.is_none() => {
+                native_timeout_ms = Some(positive_number(
+                    command,
+                    argument,
+                    number_option_value(args, index, command, argument)?,
+                )? as u64);
+                index += 2;
+            }
+            "--native-max-output-bytes"
+                if command == "test" && native_max_output_bytes.is_none() =>
+            {
+                native_max_output_bytes = Some(positive_number(
+                    command,
+                    argument,
+                    number_option_value(args, index, command, argument)?,
+                )?);
+                index += 2;
             }
             "--native" if allow_source && !native => {
                 native = true;
@@ -242,12 +279,35 @@ fn parse(args: &[String], command: &str, allow_source: bool) -> Result<Execution
         );
         return Err(2);
     }
+    let native_test = if target.as_deref() == Some("native") {
+        if max_steps.is_some() || max_bytes.is_some() {
+            eprintln!("native test cannot use interpreter --max-steps or --max-bytes");
+            return Err(2);
+        }
+        let timeout_ms = native_timeout_ms.unwrap_or(10_000);
+        let max_output_bytes = native_max_output_bytes.unwrap_or(65_536);
+        if timeout_ms > 600_000 || max_output_bytes > 1_048_576 {
+            eprintln!("native test limits exceed 600000 ms or 1048576 output bytes");
+            return Err(2);
+        }
+        Some(NativeTestLimits {
+            timeout_ms,
+            max_output_bytes,
+        })
+    } else {
+        if native_timeout_ms.is_some() || native_max_output_bytes.is_some() {
+            eprintln!("native test limits require `--target native`");
+            return Err(2);
+        }
+        None
+    };
     Ok(ExecutionOptions {
         input,
         json,
         max_steps,
         max_bytes,
         native,
+        native_test,
         arguments,
     })
 }
@@ -320,6 +380,7 @@ mod tests {
                 max_steps: None,
                 max_bytes: None,
                 native: false,
+                native_test: None,
                 arguments: Vec::new(),
             }
         );
@@ -331,6 +392,7 @@ mod tests {
                 max_steps: None,
                 max_bytes: None,
                 native: false,
+                native_test: None,
                 arguments: Vec::new(),
             }
         );
@@ -353,6 +415,7 @@ mod tests {
                 max_steps: Some(4096),
                 max_bytes: Some(65536),
                 native: false,
+                native_test: None,
                 arguments: Vec::new(),
             }
         );
@@ -372,6 +435,7 @@ mod tests {
                 max_steps: Some(4096),
                 max_bytes: Some(65536),
                 native: false,
+                native_test: None,
                 arguments: Vec::new(),
             }
         );
@@ -410,6 +474,7 @@ mod tests {
                 json: false,
                 max_steps: Some(1),
                 native: false,
+                native_test: None,
                 max_bytes: None,
                 arguments: Vec::new(),
             }
@@ -449,5 +514,45 @@ mod tests {
             "fixtures/semaprax.toml",
         ]))
         .is_err());
+    }
+
+    #[test]
+    fn native_test_selection_has_bounded_host_limits_and_no_interpreter_fuel() {
+        let options = parse_test(&strings(&[
+            "--target",
+            "native",
+            "--native-timeout-ms",
+            "25",
+            "--native-max-output-bytes",
+            "1024",
+        ]))
+        .unwrap();
+        assert_eq!(
+            options.native_test,
+            Some(NativeTestLimits {
+                timeout_ms: 25,
+                max_output_bytes: 1024,
+            })
+        );
+        assert_eq!(
+            parse_test(&strings(&["--target", "native"]))
+                .unwrap()
+                .native_test,
+            Some(NativeTestLimits {
+                timeout_ms: 10_000,
+                max_output_bytes: 65_536
+            })
+        );
+        for arguments in [
+            &["--target", "native", "--max-steps", "10"][..],
+            &["--target", "native", "--max-bytes", "10"][..],
+            &["--native-timeout-ms", "10"][..],
+            &["--target", "native", "--target", "native"][..],
+            &["--target", "wasm"][..],
+            &["--target", "native", "--native-timeout-ms", "0"][..],
+        ] {
+            assert!(parse_test(&strings(arguments)).is_err());
+        }
+        assert!(parse_run(&strings(&["--target", "native"])).is_err());
     }
 }

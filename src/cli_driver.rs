@@ -27,6 +27,8 @@ mod hot_reload;
 mod native_scratch;
 #[path = "cli_driver/options.rs"]
 mod options;
+#[path = "cli_driver/native_test.rs"]
+mod native_test;
 #[path = "cli_driver/persistence_dispatch.rs"]
 mod persistence_dispatch;
 #[path = "cli_driver/project_scaffold_options.rs"]
@@ -763,7 +765,11 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             let cli::execution::ExecutionInput::Project(manifest_path) = &options.input else {
                 unreachable!("project test parser rejects source inputs")
             };
-            cli::project_runtime::execute_held("test", manifest_path, &options)
+            if let Some(limits) = options.native_test {
+                native_test::execute(manifest_path, limits, options.json)
+            } else {
+                cli::project_runtime::execute_held("test", manifest_path, &options)
+            }
         }
         CommandId::Fmt => {
             let options = cli::fmt::parse(&args[1..])?;

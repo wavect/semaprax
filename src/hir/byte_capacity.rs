@@ -1120,7 +1120,7 @@ module test.format_capacity;
     let bytes = bytes_zeroed(5usize);
     byte_len(bytes_as_slice(bytes))
 }
-@id("format.render") fn render() -> String {
+@id("format.render") fn render() -> string {
     string_format("{}:{}", left(), right())
 }
 @id("format.main") fn main() -> i64 { string_len(render()) }

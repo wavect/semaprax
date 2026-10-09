@@ -113,7 +113,7 @@ fn std_compile_source_with_limit(
     work_limit: u64,
 ) -> String {
     format!(
-        "{STD_ENGINE}\n@id(\"std.pattern.witness.main\")\nfn main() -> i64\n{{\n{}{}\nlet mut matcher = compile(make(), pattern_view, {work_limit}usize);\nlet compile_ready = result_valid(matcher) && status(matcher) == 0usize;\nif compile_ready {{\nmatcher = full_match(matcher, input_view, {work_limit}usize);\nif result_valid(matcher) {{ {expected} }} else {{ -1 }}\n}} else {{ -2 }}\n}}\n",
+        "{STD_ENGINE}\n@id(\"std.pattern.witness.main\")\nfn main() -> i64\n{{\n{}{}\nlet compiled = compile(make(), pattern_view, {work_limit}usize);\nlet compile_ready = result_valid(compiled) && status(compiled) == 0usize;\nif compile_ready {{\nlet matcher = full_match(compiled, input_view, {work_limit}usize);\nif result_valid(matcher) {{ {expected} }} else {{ -1 }}\n}} else {{ -2 }}\n}}\n",
         bytes("pattern", pattern),
         input_source(input)
     )

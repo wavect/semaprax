@@ -27,9 +27,9 @@ fn test_public_api() -> i64
     let pattern = "([A-Z]+)";
     let pattern_text = string_as_str(pattern);
     let pattern_view = str_as_bytes(pattern_text);
-    let mut matcher: Matcher = compile(fresh, pattern_view, 262144usize);
-    let compile_packet = result_valid(matcher);
-    if compile_packet { let compile_status = status(matcher); let compile_reason = reason(matcher); let compile_detail = detail(matcher); let compile_domain = detail_domain(matcher); let compile_captures = capture_count(matcher); let compile_work = work_used(matcher); let input = "ABC"; let input_text = string_as_str(input); let input_view = str_as_bytes(input_text); if fresh_is_unpublished && compile_status == 0usize && compile_reason == 0usize && compile_detail == 0usize && compile_domain == 0usize && compile_captures == 0usize && compile_work <= 262144usize { matcher = full_match(matcher, input_view, 262144usize); if result_valid(matcher) { if status(matcher) == 1usize && reason(matcher) == 0usize && detail(matcher) == 0usize && detail_domain(matcher) == 0usize && work_used(matcher) <= 262144usize && capture_count(matcher) == 1usize && capture_start(matcher, 0usize) == 0usize && capture_end(matcher, 0usize) == 3usize { 0 } else { 1 } } else { 1 } } else { 1 } } else { 1 }
+    let compiled: Matcher = compile(fresh, pattern_view, 262144usize);
+    let compile_packet = result_valid(compiled);
+    if compile_packet { let compile_status = status(compiled); let compile_reason = reason(compiled); let compile_detail = detail(compiled); let compile_domain = detail_domain(compiled); let compile_captures = capture_count(compiled); let compile_work = work_used(compiled); let input = "ABC"; let input_text = string_as_str(input); let input_view = str_as_bytes(input_text); if fresh_is_unpublished && compile_status == 0usize && compile_reason == 0usize && compile_detail == 0usize && compile_domain == 0usize && compile_captures == 0usize && compile_work <= 262144usize { let matcher = full_match(compiled, input_view, 262144usize); if result_valid(matcher) { if status(matcher) == 1usize && reason(matcher) == 0usize && detail(matcher) == 0usize && detail_domain(matcher) == 0usize && work_used(matcher) <= 262144usize && capture_count(matcher) == 1usize && capture_start(matcher, 0usize) == 0usize && capture_end(matcher, 0usize) == 3usize { 0 } else { 1 } } else { 1 } } else { 1 } } else { 1 }
 }
 
 @id("std.pattern.tests.invalid-pattern")
@@ -58,12 +58,12 @@ fn test_no_match() -> i64
     let pattern = "a";
     let pattern_text = string_as_str(pattern);
     let pattern_view = str_as_bytes(pattern_text);
-    let mut matcher = compile(make(), pattern_view, 262144usize);
-    let compiled = result_valid(matcher) && status(matcher) == 0usize;
+    let compiled = compile(make(), pattern_view, 262144usize);
+    let ready = result_valid(compiled) && status(compiled) == 0usize;
     let input = "b";
     let input_text = string_as_str(input);
     let input_view = str_as_bytes(input_text);
-    if compiled { matcher = full_match(matcher, input_view, 262144usize); if result_valid(matcher) && status(matcher) == 2usize && reason(matcher) == 0usize && detail(matcher) == 0usize && detail_domain(matcher) == 0usize && capture_count(matcher) == 0usize && work_used(matcher) <= 262144usize { 0 } else { 1 } } else { 1 }
+    if ready { let matcher = full_match(compiled, input_view, 262144usize); if result_valid(matcher) && status(matcher) == 2usize && reason(matcher) == 0usize && detail(matcher) == 0usize && detail_domain(matcher) == 0usize && capture_count(matcher) == 0usize && work_used(matcher) <= 262144usize { 0 } else { 1 } } else { 1 }
 }
 
 @id("std.pattern.tests.empty-capture")
@@ -72,12 +72,12 @@ fn test_empty_capture() -> i64
     let pattern = "()";
     let pattern_text = string_as_str(pattern);
     let pattern_view = str_as_bytes(pattern_text);
-    let mut matcher = compile(make(), pattern_view, 262144usize);
-    let compiled = result_valid(matcher) && status(matcher) == 0usize;
+    let compiled = compile(make(), pattern_view, 262144usize);
+    let ready = result_valid(compiled) && status(compiled) == 0usize;
     let input = "";
     let input_text = string_as_str(input);
     let input_view = str_as_bytes(input_text);
-    if compiled { matcher = full_match(matcher, input_view, 262144usize); if result_valid(matcher) && status(matcher) == 1usize && reason(matcher) == 0usize && detail(matcher) == 0usize && detail_domain(matcher) == 0usize && capture_count(matcher) == 1usize && capture_start(matcher, 0usize) == 0usize && capture_end(matcher, 0usize) == 0usize && work_used(matcher) <= 262144usize { 0 } else { 1 } } else { 1 }
+    if ready { let matcher = full_match(compiled, input_view, 262144usize); if result_valid(matcher) && status(matcher) == 1usize && reason(matcher) == 0usize && detail(matcher) == 0usize && detail_domain(matcher) == 0usize && capture_count(matcher) == 1usize && capture_start(matcher, 0usize) == 0usize && capture_end(matcher, 0usize) == 0usize && work_used(matcher) <= 262144usize { 0 } else { 1 } } else { 1 }
 }
 
 @id("std.pattern.tests.malformed-carrier")

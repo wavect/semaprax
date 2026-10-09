@@ -94,7 +94,9 @@ renewal of an explicitly identified one-`Bytes`-plus-`usize` record. Its
 OPT-702 source extension permits independent whole named `Slice<u8>`/`str`
 borrow operands on an effect-free nongeneric renewal call. Ordinary loans,
 left-to-right staging, and the existing renewal cleanup protocol still apply;
-the extension's executable gate remains pending.
+the extension's executable gate remains pending. This is a loop-only renewal
+profile: an ordinary one-pass owned pipeline uses a fresh binding for the
+returned owner instead of assigning it back to the consumed binding.
 
 This restriction means admitted loops contribute **zero** new cleanup slots,
 transitions, or finalizers: the CleanupPlan v2/v3 schema set, the plan

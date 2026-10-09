@@ -1024,6 +1024,47 @@ fn interpreter_fuel_exhaustion_fails_closed_on_nonterminating_loops() {
 const RECORD_BORROW_RENEWAL: &str = include_str!("while_loops/record_borrow_renewal.spx");
 
 #[test]
+fn record_owner_one_pass_pipeline_uses_a_fresh_binding_outside_while() {
+    let source = r#"module test.record_owner_pipeline;
+@id("pipeline.matcher")
+record Matcher {
+    @id("pipeline.matcher.storage") storage: Bytes,
+    @id("pipeline.matcher.position") position: usize,
+}
+@id("pipeline.advance")
+fn advance(state: own Matcher, input: borrow Slice<u8>) -> Matcher {
+    match own state { Matcher { storage, position } => Matcher { storage: storage, position: position + byte_len(input) }, }
+}
+@id("pipeline.observe")
+fn observe(state: borrow Matcher) -> usize { state.position }
+@id("pipeline.valid")
+fn valid() -> usize {
+    let input = [1u8];
+    let view = array_as_slice(input);
+    let current = Matcher { storage: bytes_zeroed(1usize), position: 0usize };
+    let next = advance(current, view);
+    observe(next)
+}
+@id("pipeline.invalid")
+fn invalid() -> usize {
+    let input = [1u8];
+    let view = array_as_slice(input);
+    let mut current = Matcher { storage: bytes_zeroed(1usize), position: 0usize };
+    current = advance(current, view);
+    observe(current)
+}
+"#;
+    let diagnostics = semaprax::check(source, "record-owner-pipeline.spx").unwrap_err();
+    assert_eq!(
+        diagnostics
+            .iter()
+            .map(|diagnostic| diagnostic.code)
+            .collect::<Vec<_>>(),
+        vec!["SPX-U105", "SPX-O101"]
+    );
+}
+
+#[test]
 fn record_owner_renewal_named_views_preserve_canonical_projection_and_cleanup() {
     let program = semaprax::check(RECORD_BORROW_RENEWAL, "record-borrow-renewal.spx").unwrap();
     let canonical = format::canonical(&program);

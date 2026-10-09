@@ -48,6 +48,7 @@ fn constructor_charges_the_exact_arc_carrier_and_fails_closed_before_allocating(
     assert_eq!(accepted.as_str(), "budgeted-expression");
     assert!(accepted.shared_allocation_key().is_some());
     assert_eq!(accepted.shared_allocation_bytes(), Some(retained_bytes));
+    assert_eq!(accepted.owned_allocation_bytes(), Some(retained_bytes));
 
     let rejected_value = String::from("budgeted-expression");
     let (refused, overflowed, used) =
@@ -59,6 +60,7 @@ fn constructor_charges_the_exact_arc_carrier_and_fails_closed_before_allocating(
     assert_eq!(refused.as_str(), "");
     assert_eq!(refused.shared_allocation_key(), None);
     assert_eq!(refused.shared_allocation_bytes(), None);
+    assert_eq!(refused.owned_allocation_bytes(), None);
 }
 
 #[test]
@@ -90,6 +92,7 @@ fn active_floor_refusal_stays_invalid_through_cache_encode_and_decode() {
     assert_eq!(used, 0);
     assert_eq!(refused.shared_allocation_key(), None);
     assert_eq!(refused.shared_allocation_bytes(), None);
+    assert_eq!(refused.owned_allocation_bytes(), None);
 
     // A child refusal with no debit leaves the enclosing encoder's budget
     // clean; the invalid identity itself must still be rejected by the codec.

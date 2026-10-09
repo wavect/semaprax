@@ -212,6 +212,16 @@ impl ExpressionId {
         self.0.as_deref().map_or("", String::as_str)
     }
 
+    /// Returns the owned backing allocation size retained by this identity.
+    ///
+    /// The count includes the shared carrier and the exact-capacity string
+    /// buffer. A missing value means construction was refused by the active
+    /// allocation budget; callers that account retained memory must fail
+    /// closed in that case.
+    pub fn owned_allocation_bytes(&self) -> Option<usize> {
+        self.shared_allocation_bytes()
+    }
+
     pub(super) fn cached_text(&self) -> Option<&String> {
         self.0.as_deref()
     }

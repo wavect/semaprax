@@ -161,7 +161,7 @@ fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnosti
     while let Some(expression) = pending.pop() {
         total = total
             .checked_add(std::mem::size_of::<ResolvedExpr>())
-            .and_then(|bytes| bytes.checked_add(expression.id.as_str().len()))
+            .and_then(|bytes| bytes.checked_add(expression.id.owned_allocation_bytes()?))
             .and_then(|bytes| bytes.checked_add(hir_type_owned_capacity(&expression.ty)?))
             .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
         match &expression.kind {
@@ -505,8 +505,10 @@ fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnosti
     Ok(total)
 }
 
-fn hir_loan_program_point_owned_capacity(point: &semaprax::loan_plan::LoanProgramPoint) -> usize {
-    point.expression.as_str().len()
+fn hir_loan_program_point_owned_capacity(
+    point: &semaprax::loan_plan::LoanProgramPoint,
+) -> Option<usize> {
+    point.expression.owned_allocation_bytes()
 }
 
 fn hir_loan_place_owned_capacity(place: &crate::hir::Place) -> Option<usize> {
@@ -548,9 +550,9 @@ pub(in crate::implementation) fn hir_loan_plan_owned_capacity(
         )?;
     for loan in &plan.loans {
         total = total
-            .checked_add(loan.site.as_str().len())?
+            .checked_add(loan.site.owned_allocation_bytes()?)?
             .checked_add(hir_loan_place_owned_capacity(&loan.origin)?)?
-            .checked_add(hir_loan_program_point_owned_capacity(&loan.start))?
+            .checked_add(hir_loan_program_point_owned_capacity(&loan.start)?)?
             .checked_add(
                 loan.ends
                     .capacity()
@@ -562,11 +564,11 @@ pub(in crate::implementation) fn hir_loan_plan_owned_capacity(
                     .checked_mul(std::mem::size_of::<u16>())?,
             )?;
         for end in &loan.ends {
-            total = total.checked_add(hir_loan_program_point_owned_capacity(end))?;
+            total = total.checked_add(hir_loan_program_point_owned_capacity(end)?)?;
         }
     }
     for endpoint in &plan.endpoints {
-        total = total.checked_add(hir_loan_program_point_owned_capacity(&endpoint.point))?;
+        total = total.checked_add(hir_loan_program_point_owned_capacity(&endpoint.point)?)?;
         for ids in [
             &endpoint.live_before,
             &endpoint.starts,

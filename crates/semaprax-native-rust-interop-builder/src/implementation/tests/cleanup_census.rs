@@ -658,6 +658,25 @@ fn main() -> i64 { generic_marker<i64>(0) }
     assert!(plan.edges.iter().any(|edge| !edge.live.is_empty()));
 
     let plan_capacity = capacity::hir_loan_plan_owned_capacity(plan).unwrap();
+    let expression_backing_bytes = plan
+        .loans
+        .iter()
+        .flat_map(|loan| {
+            std::iter::once(&loan.site)
+                .chain(std::iter::once(&loan.start.expression))
+                .chain(loan.ends.iter().map(|point| &point.expression))
+        })
+        .chain(plan.endpoints.iter().map(|endpoint| &endpoint.point.expression))
+        .map(|expression| {
+            expression
+                .owned_allocation_bytes()
+                .expect("resolved loan identity retains its owned backing")
+        })
+        .sum::<usize>();
+    assert!(
+        plan_capacity >= expression_backing_bytes,
+        "the external census must include each expression identity's full backing allocation"
+    );
     assert!(
         plan_capacity > plan.loans.capacity() * std::mem::size_of::<semaprax::loan_plan::Loan>(),
         "nested identities and CFG vectors must be charged in addition to loan headers"

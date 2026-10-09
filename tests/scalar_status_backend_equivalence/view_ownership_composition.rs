@@ -856,6 +856,86 @@ fn ownership_route_agrees_across_interpreter_and_native() {
     let _ = fs::remove_dir_all(root);
 }
 
+const FUSED_OWNED_STRING_VIEW_SOURCE: &str = r#"
+module test.fused_owned_string_view_runtime;
+
+@id("voc.fused_owned_string_byte_view")
+fn fused_owned_string_byte_view() -> i64
+{
+    let text = "hé";
+    let bytes = str_as_bytes(string_as_str(text));
+    let first = match byte_get(bytes, 0usize) { Option::Some { value } => value, Option::None {} => 0u8, };
+    let second = match byte_get(bytes, 1usize) { Option::Some { value } => value, Option::None {} => 0u8, };
+    let third = match byte_get(bytes, 2usize) { Option::Some { value } => value, Option::None {} => 0u8, };
+    let no_fourth = match byte_get(bytes, 3usize) { Option::Some { value: unexpected } => false, Option::None {} => true, };
+    if byte_len(bytes) == 3usize && first == 104u8 && second == 195u8 && third == 169u8 && no_fourth { 1 } else { 0 }
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    fused_owned_string_byte_view() + fused_owned_string_byte_view()
+}
+"#;
+
+const FUSED_OWNED_STRING_VIEW_CASES: [(&str, i64); 2] = [
+    ("voc.fused_owned_string_byte_view", 1),
+    ("app.main", 2),
+];
+
+#[test]
+fn fused_owned_string_byte_view_agrees_across_interpreter_native_and_core_wasm() {
+    if !require_tools_or_skip() {
+        return;
+    }
+
+    let program = parse(
+        FUSED_OWNED_STRING_VIEW_SOURCE,
+        Path::new("fused-owned-string-view-runtime.spx"),
+    )
+    .unwrap();
+    let diagnostics = verify::verify(&program);
+    assert!(
+        diagnostics.iter().all(|diagnostic| !diagnostic.severity.is_error()),
+        "fused String byte-view fixture failed verification: {diagnostics:?}"
+    );
+    let generated = codegen::emit_c(&program).unwrap();
+    let root = temporary_root("fused-owned-string-view");
+    fs::create_dir(&root).unwrap();
+
+    let native_o0 = run_native(
+        &generated,
+        &root,
+        "-O0",
+        &FUSED_OWNED_STRING_VIEW_CASES,
+    );
+    let native_o2 = run_native(
+        &generated,
+        &root,
+        "-O2",
+        &FUSED_OWNED_STRING_VIEW_CASES,
+    );
+    let wasm_main = run_core_wasm_aggregate(&program, &root);
+    let interpreter_path = root.join("interpret-fused-owned-string-view.spx");
+    fs::write(&interpreter_path, FUSED_OWNED_STRING_VIEW_SOURCE).unwrap();
+    let interpreter_values = run_interpreter(&interpreter_path, &FUSED_OWNED_STRING_VIEW_CASES);
+
+    assert_eq!(native_o0.len(), FUSED_OWNED_STRING_VIEW_CASES.len());
+    assert_eq!(native_o2.len(), FUSED_OWNED_STRING_VIEW_CASES.len());
+    assert_eq!(interpreter_values.len(), FUSED_OWNED_STRING_VIEW_CASES.len());
+    assert_eq!(wasm_main, 2, "Core Wasm must run both fused-view scopes");
+    for (index, (case_id, expected)) in FUSED_OWNED_STRING_VIEW_CASES.iter().enumerate() {
+        assert_eq!(native_o0[index].0, *case_id);
+        assert_eq!(native_o2[index].0, *case_id);
+        assert_eq!(interpreter_values[index].0, *case_id);
+        assert_eq!(interpreter_values[index].1, *expected, "{case_id}");
+        assert_eq!(native_o0[index].1, *expected, "native O0: {case_id}");
+        assert_eq!(native_o2[index].1, *expected, "native O2: {case_id}");
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
 /// The native/interpreter ownership-transfer row is intentionally not counted
 /// as Core-Wasm execution support.  The Public Scalar Export Profile rejects
 /// the same admitted source before code generation because its helper takes

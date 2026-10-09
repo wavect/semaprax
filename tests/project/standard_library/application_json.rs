@@ -237,7 +237,7 @@ fn typed_application_json_success_errors_and_exact_capacity_agree_on_three_backe
         let c = codegen::emit_hir_c(snapshot.entry_program()).map_err(|error| vec![error])?;
         for optimization in ["-O0", "-O2"] { super::compile_and_run_c(&c, &root, optimization, "439"); }
         let bytes = wasm::emit_resolved_module(snapshot.entry_program()).map_err(|error| vec![error])?;
-        let digest = format!("{:x}", Sha256::digest(&bytes));
+        let digest = format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(&bytes)));
         std::fs::write(root.join("app.wasm"), bytes).unwrap();
         let runtime = include_str!("../../../src/wasm/browser_runtime.js")
             .replace("__SEMAPRAX_OWNED_EXPORTS__", "{}")

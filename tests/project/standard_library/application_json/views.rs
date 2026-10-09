@@ -93,7 +93,7 @@ fn request_identifier_views_revalidate_spans_and_encode_exact_arrays_on_three_ba
         let c=codegen::emit_hir_c(snapshot.entry_program()).map_err(|error|vec![error])?;
         for optimization in ["-O0","-O2"] { super::super::compile_and_run_c(&c,&root,optimization,"725"); }
         let bytes=wasm::emit_resolved_module(snapshot.entry_program()).map_err(|error|vec![error])?;
-        let digest=format!("{:x}",Sha256::digest(&bytes));
+        let digest=format!("{:x}",semaprax::digest_hex::LowerHex(Sha256::digest(&bytes)));
         std::fs::write(root.join("app.wasm"),bytes).unwrap();
         let runtime=include_str!("../../../../src/wasm/browser_runtime.js").replace("__SEMAPRAX_OWNED_EXPORTS__","{}").replace("__SEMAPRAX_WASM_SHA256__",&digest);
         std::fs::write(root.join("runtime.mjs"),runtime).unwrap();

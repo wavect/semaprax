@@ -22,7 +22,9 @@ pub(super) fn build_observed_provider(root: &std::path::Path) -> std::path::Path
                             format!(
                                 "{}={:x}",
                                 source.path(),
-                                Sha256::digest(source.source().as_bytes())
+                                semaprax::digest_hex::LowerHex(Sha256::digest(
+                                    source.source().as_bytes()
+                                ))
                             )
                         })
                         .collect::<Vec<_>>()
@@ -45,7 +47,7 @@ pub(super) fn build_observed_provider(root: &std::path::Path) -> std::path::Path
         read,
         &format!("{read}\n    fprintf(stderr, \"provider-chunk:%zu\\n\", count);"),
     );
-    eprintln!("provider-boundary-audit project={subject} sources_sha256={sources} hir_graph={hir_graph} original_c_sha256={:x} observed_c_sha256={:x}", Sha256::digest(c.as_bytes()), Sha256::digest(observed.as_bytes()));
+    eprintln!("provider-boundary-audit project={subject} sources_sha256={sources} hir_graph={hir_graph} original_c_sha256={:x} observed_c_sha256={:x}", semaprax::digest_hex::LowerHex(Sha256::digest(c.as_bytes())), semaprax::digest_hex::LowerHex(Sha256::digest(observed.as_bytes())));
     let source = root.join("observed-provider.c");
     let binary = root.join("observed-provider");
     std::fs::write(&source, observed).unwrap();

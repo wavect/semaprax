@@ -80,6 +80,8 @@ impl CallParameters<'_> {
         }
     }
 
+    // This is the test-only iterative watermark's original owned census.
+    #[cfg(test)]
     pub(super) fn owned_capacity(&self) -> usize {
         match self {
             Self::Owned(parameters) => {

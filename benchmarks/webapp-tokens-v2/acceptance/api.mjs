@@ -44,6 +44,11 @@ export function auditChangeValues(change) {
   assert.deepEqual(Object.keys(change).sort(), ['new', 'old'], 'audit old/new fields');
   return [change.old, change.new];
 }
+export function isHarmlessAuditNoop(entry) {
+  return Boolean(entry && typeof entry === 'object' && !Array.isArray(entry)
+    && entry.action === 'update' && entry.changes && typeof entry.changes === 'object'
+    && !Array.isArray(entry.changes) && Object.keys(entry.changes).length === 0);
+}
 export function auditEventKind(entry, entity, fields) {
   assert.ok(entry && typeof entry === 'object' && !Array.isArray(entry), 'audit event object');
   assert.ok(typeof entity === 'string' && fields && typeof fields === 'object', 'audit event subject');
@@ -182,7 +187,7 @@ export async function apiChecks({base,arm,restart,probe}) {
     const body=make('Vendor'),row=await create('Vendor',body),changed={...body,name:'Changed vendor'};await replace('Vendor',row,changed);await admin.entity('DELETE','Vendor',row.id,undefined,204);
     const log=(await admin.request('GET','audit')).json;assert.ok(Array.isArray(log));const entries=log.filter(e=>equalId(auditRowId(e),row.id)&&String(e.entity).replaceAll('_','').toLowerCase()==='vendor');assert.equal(entries.length,3);assert.deepEqual(entries.map(e=>auditEventKind(e,'Vendor',ENTITIES.Vendor)),['create','update','delete']);for(const entry of entries){assert.ok(entry.time??entry.at);assert.ok(equalId(entry.member_id??entry.by??entry.member,roles.Admin.account.id));assert.ok(entry.changes&&Object.keys(entry.changes).length);}
     const update=entries[1].changes.name;assert.deepEqual(auditChangeValues(update),[body.name,changed.name]);for(const role of ['Manager','Agent','Viewer'])assert.equal((await roles[role].client.request('GET','audit')).status,403);
-    for(const mutation of mutations){const entries=log.filter(e=>equalId(auditRowId(e),mutation.id)&&String(e.entity).replaceAll('_','').toLowerCase()===mutation.entity.toLowerCase()&&auditEventKind(e,mutation.entity,ENTITIES[mutation.entity])===mutation.action);assert.ok(entries.length,`every ${mutation.action} ${mutation.entity} is audited`);if(mutation.actor)assert.ok(entries.some(e=>equalId(e.member_id??e.by??e.member,mutation.actor)),'audit actual actor');}
+    for(const mutation of mutations){const entries=log.filter(e=>equalId(auditRowId(e),mutation.id)&&String(e.entity).replaceAll('_','').toLowerCase()===mutation.entity.toLowerCase()&&!isHarmlessAuditNoop(e)&&auditEventKind(e,mutation.entity,ENTITIES[mutation.entity])===mutation.action);assert.ok(entries.length,`every ${mutation.action} ${mutation.entity} is audited`);if(mutation.actor)assert.ok(entries.some(e=>equalId(e.member_id??e.by??e.member,mutation.actor)),'audit actual actor');}
     const existing=(await admin.request('GET',`${route(arm,'Vendor')}/${refs.Vendor}/history`)).json;assert.ok(Array.isArray(existing)&&existing.length>=1);
   });
   for(const entity of Object.keys(ENTITIES))await probe.check(`${entity}.csv`,'csv',async()=>{

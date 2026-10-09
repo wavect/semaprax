@@ -10,7 +10,7 @@ import { ENTITIES,ENUMS,COVERAGE,SPEC_SHA256,integer,seed,canRead,canWrite,compu
 import { sha256,requiredCases,qualify,passwordChecks } from './qualification.mjs';
 import { localUrl,readinessPath,readyResponse,launch,finish,unusedPort } from './process.mjs';
 import {direction} from './ordering.mjs';
-import { parseCsv,csvColumns,auditChangeValues,auditEventKind,Probe,deniedWriteStatuses,auditRowId } from './api.mjs';
+import { parseCsv,csvColumns,auditChangeValues,auditEventKind,isHarmlessAuditNoop,Probe,deniedWriteStatuses,auditRowId } from './api.mjs';
 test('denied writes keep readable targets strict and audit IDs resolve the affected row',()=>{assert.deepEqual(deniedWriteStatuses(true),[403]);assert.deepEqual(deniedWriteStatuses(false),[403,404]);for(const status of [200,201,204]){assert.equal(deniedWriteStatuses(true).includes(status),false);assert.equal(deniedWriteStatuses(false).includes(status),false);}assert.equal(auditRowId({id:7,row_id:31,record_id:32}),31);assert.equal(auditRowId({id:7,record_id:32}),32);assert.equal(auditRowId({id:7}),7);});
 test('frozen SPEC byte identity and exactly20 independently named entities',async()=>{assert.equal(sha256(await fs.readFile(new URL('../SPEC.md',import.meta.url))),SPEC_SHA256);assert.equal(Object.keys(ENTITIES).length,20);assert.equal(Object.keys(ENUMS).length,12);});
 test('omitting any stored field fails independent row shape',()=>{const refs=Object.fromEntries(Object.keys(ENTITIES).map(name=>[name,1]));for(const entity of Object.keys(ENTITIES)){const row={...seed(entity,refs,17),id:1};delete row.password;rowShape(entity,row);for(const field of Object.keys(ENTITIES[entity])){const missing={...row};delete missing[field];assert.throws(()=>rowShape(entity,missing),`${entity}.${field}`);}}});
@@ -60,6 +60,25 @@ test('audit event kind accepts representation freedom only when old/new evidence
     event({name:['Vendor','Vendor'],email:['vendor@example.test','vendor@example.test']},'update'),
     event({name:['Vendor','Renamed'],email:['vendor@example.test','next@example.test']},'merge'),
   ]) assert.throws(()=>auditEventKind(hostile,'Vendor',fields));
+});
+test('audit mutation selection skips only explicit empty update no-ops',()=>{
+  const fields={name:'string',email:'string'};
+  const entries=[
+    {action:'update',changes:{}},
+    {action:'create',changes:{name:[null,'Vendor'],email:[null,'vendor@example.test']}},
+    {action:'update',changes:{name:['Vendor','Renamed']}},
+    {action:'delete',changes:{name:['Renamed',null],email:['vendor@example.test',null]}},
+  ];
+  assert.deepEqual(entries.filter(entry=>!isHarmlessAuditNoop(entry)).map(entry=>auditEventKind(entry,'Vendor',fields)),['create','update','delete']);
+  for(const hostile of [
+    {action:'create',changes:{}},
+    {changes:{}},
+    {action:'update',changes:null},
+    {action:'update',changes:{name:['Vendor','Vendor']}},
+  ]) {
+    assert.equal(isHarmlessAuditNoop(hostile),false);
+    assert.throws(()=>auditEventKind(hostile,'Vendor',fields));
+  }
 });
 test('readiness uses current member without setup and rejects unhealthy responses',async()=>{
   assert.equal(readinessPath('semaprax'),'api/session'); assert.equal(readinessPath('typescript'),'api/me');

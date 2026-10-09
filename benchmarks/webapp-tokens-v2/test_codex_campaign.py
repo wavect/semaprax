@@ -384,10 +384,20 @@ class WebappCampaignTests(unittest.TestCase):
             self.assertFalse(rescore.gate_inventory_shapes(hostile))
 
     def test_plan_pins_public_seed_receipt_and_matched_order(self):
+        directory = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        tokenizer_dir = directory / "tokenizer"
+        tokenizer_dir.mkdir()
+        tokenizer_fixture = tokenizer_dir / "fixture.json"
+        tokenizer_fixture.write_bytes(b'{"fixture":"offline tokenizer metadata"}\n')
+        tokenizer = {"package": campaign.common.TOKENIZER_PACKAGE,
+                     "version": campaign.common.TOKENIZER_VERSION,
+                     "tokenizer_dir": str(tokenizer_dir),
+                     "fingerprint_sha256": campaign.common.digest(tokenizer_fixture)}
+        metadata = self.enterContext(patch.object(campaign.common, "tokenizer_metadata", return_value=tokenizer))
         args = type("Args", (), {
             "repo": str(ROOT), "base_ref": "HEAD", "compiler_source_ref": "HEAD",
-            "artifacts": "/private/tmp/teamdesk-offline-plan-test", "semaprax_bin": "/bin/sh",
-            "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer", "codex_binary": "/usr/bin/true",
+            "artifacts": str(directory / "artifacts"), "semaprax_bin": "/bin/sh",
+            "tokenizer_dir": str(tokenizer_dir), "codex_binary": "/usr/bin/true",
             "node_binary": "node", "playwright_root": str(ROOT / "benchmarks/webapp-tokens-v2/acceptance"),
             "model": campaign.MODEL, "effort": campaign.EFFORT, "trials_per_arm": 5,
             "timeout_seconds": campaign.TIMEOUT_SECONDS,
@@ -405,6 +415,8 @@ class WebappCampaignTests(unittest.TestCase):
 
         self.enterContext(patch.object(Path, "read_text", read_current_receipt))
         settings = campaign.plan(args)
+        metadata.assert_called_once_with(str(tokenizer_dir))
+        self.assertEqual(settings["authored_source_tokenizer"], tokenizer)
         self.assertEqual(settings["attempt_denominator"], 10)
         self.assertEqual(settings["trial_order"], ["semaprax", "typescript", "typescript", "semaprax",
                                                       "semaprax", "typescript", "typescript", "semaprax",
@@ -587,7 +599,9 @@ class WebappCampaignTests(unittest.TestCase):
             order = ["semaprax", "typescript", "typescript", "semaprax", "semaprax",
                      "typescript", "typescript", "semaprax", "semaprax", "typescript"]
             snapshot = {"files_sha256": {}}
-            settings = {"capabilities": {"status": "ready"},
+            settings = {"round": 1, "model_requested": campaign.MODEL, "effort_requested": campaign.EFFORT,
+                "timeout_seconds": campaign.TIMEOUT_SECONDS, "attempt_denominator": 10,
+                "capabilities": {"status": "ready"},
                 "acceptance": {"capabilities": {"status": "ready"}},
                 "artifacts": str(artifacts), "harness_source_snapshot": snapshot,
                 "compiler_source_commit": "a" * 40,
@@ -613,6 +627,9 @@ class WebappCampaignTests(unittest.TestCase):
                     contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(campaign.main(), 0)
             result = json.loads((artifacts / "results.json").read_text())
+            self.assertEqual(result["campaign"]["round"], 1)
+            self.assertEqual(result["campaign"]["model_requested"], campaign.MODEL)
+            self.assertEqual(result["campaign"]["effort_requested"], campaign.EFFORT)
             self.assertEqual([row["arm"] for row in attempts], order)
             self.assertEqual(result["campaign_status"], "complete")
             self.assertEqual(result["summary"]["failed_or_rejected_attempts"], 1)

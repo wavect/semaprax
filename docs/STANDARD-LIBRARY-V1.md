@@ -1,7 +1,8 @@
 # Standard Library v1
 
-- Status: versioned reference; 36 packages are present under `std/`: nine
-  `core`, eighteen `portable`, three `alloc`, three `hosted`, one `agent`, and two `test`. Every package remains
+- Status: versioned reference; 51 packages are listed in `std/packages.json`:
+  eleven `core`, twenty-nine `portable`, five `alloc`, three `hosted`, one
+  `agent`, and two `test`. Every package remains
   Partial until its complete required scope and promotion evidence exist; every
   other module in the required set is Missing.
 - Audience: standard-library authors, compiler contributors, and agents
@@ -129,6 +130,18 @@ requirement even though its bounded conformance package is executable.
 `std/packages.json` lists every package directory with its module, tier,
 targets, and status. The gate fails when the list and the directories under
 `std/` disagree.
+
+The additive `std.pattern` package is Partial and alloc-tier. Its ordinary
+source implements a bounded ASCII byte-pattern matcher over one reusable
+3,072-byte `Matcher` carrier. It supports literals, byte escapes, dot,
+character classes, bounded and greedy repetition, and flat captures; it does
+not provide general regular expressions or Unicode character matching. Its
+optional `api` field on its `std/packages.json` registry row lists a nonempty,
+strictly sorted set of stable IDs used to select catalogue entries and the
+package's direct-import conformance surface. That registry field does not hide
+source or weaken identity, effect, ownership, type, or verifier checks:
+internal declarations remain ordinary checked source, and imports still pass
+the usual semantic admission.
 
 ### Consuming a package
 

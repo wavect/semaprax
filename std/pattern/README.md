@@ -1,8 +1,27 @@
 # Bounded ASCII byte patterns
 
-Source candidate; package registration, formatting and conformance are pending. This directory adds no public host ABI or completed-module claim.
+Partial alloc-tier standard-library package. Its optional `api` selection in
+`std/packages.json` exposes the supported catalogue and direct-import
+conformance surface; it is metadata, not a source privacy boundary. The
+package adds no public host ABI or completed-module claim.
 
-Once registered, a consumer uses the existing `owned-data-api.v1` Project profile and `[dependencies] std.pattern = "^0.1.0"`. Import `std.pattern.matcher` as a type and the selected functions by stable identity from `std.pattern`. The compiler supplies the immutable bundled implementation; the application does not copy its source. [examples.spx](src/examples.spx) compiles once and renews one Matcher across independent named inputs.
+A consumer uses the existing `owned-data-api.v1` Project profile and
+`[dependencies] std.pattern = "^0.1.0"`. Import `std.pattern.matcher` as a
+type and the selected functions by stable identity from `std.pattern`. The
+compiler supplies the immutable bundled implementation; the application does
+not copy its source. [examples.spx](src/examples.spx) compiles once and renews
+one Matcher across independent named inputs.
+
+The selected API consists of these stable IDs, in canonical sorted order:
+`std.pattern.capture-count`,
+`std.pattern.capture-end`, `std.pattern.capture-start`,
+`std.pattern.compile`, `std.pattern.detail`, `std.pattern.detail-domain`,
+`std.pattern.full-match`, `std.pattern.make`, `std.pattern.matcher`,
+`std.pattern.reason`,
+`std.pattern.result-valid`, `std.pattern.status`, and
+`std.pattern.work-used`. Internal helpers
+are deliberately absent from that catalogue selection; they remain present
+and checked in the ordinary source module.
 
 `make()` allocates exactly one 3,072-byte carrier. Its fresh bytes have no result packet: call `compile` before the packet observers. Compile takes one whole owner, a named borrowed pattern view and a logical-work limit from 33 through 262,144. `full_match` takes that whole owner, an independent named borrowed input and a limit from 32 through 262,144. Both return the owner. Compile invalidates the prior ready byte before parsing; matching preserves the compiled table after every packet. No input view enters the carrier, and neither operation allocates or grows it.
 

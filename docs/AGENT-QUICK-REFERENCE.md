@@ -729,6 +729,18 @@ semaprax build --manifest-path semaprax.toml --target native --output app
 It pins `std.int.decimal = "=0.1.0"`; import `canonicalize`, `add`, and `divide`
 by IDs from `semaprax help library std.int.decimal`.
 
+For bounded ASCII byte patterns, add `std.pattern = "^0.1.0"` under
+`[dependencies]` in an `owned-data-api.v1` package, then import
+`std.pattern.matcher` and the selected functions by stable ID. Allocate one
+`Matcher`, call `compile` before its observers, and reuse the returned owner
+with `full-match` for independent named inputs. Check `result-valid` before
+reading a packet; captures are byte offsets into the corresponding input.
+Patterns and inputs are bounded, and ambiguous searches can return a work-limit
+refusal. This is a partial ASCII byte matcher, not a general regular-expression
+or Unicode character engine. Its optional sorted `api` list in
+`std/packages.json` selects catalogue and direct-import conformance entries;
+it does not hide implementation source or replace normal verifier checks.
+
 Build `lines.spx` natively to fresh `--output`; omit `--profile` because
 `text-toolkit-v1` and `internal-strings-v1` are Wasm/web export profiles. On
 `SPX-I307`, choose a new output or remove your prior artifact after checking

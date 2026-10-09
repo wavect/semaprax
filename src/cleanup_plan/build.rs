@@ -1220,8 +1220,9 @@ impl<'a> PlanBuilder<'a> {
         state.conditional_variants.push(ConditionalFlowVariant {
             root: destination.clone(),
             variant: variant.clone(),
-            // Every tag edge of a later owning match needs the closed domain,
-            // including payload-free cases. Runtime inactive leaves stay dead.
+            // Keep every tag for a later exhaustive match, but only the
+            // constructed case has a reachable cleanup obligation. A match
+            // edge derives its selected payload inventory when authenticated.
             cases: self
                 .program
                 .declarations
@@ -1230,7 +1231,12 @@ impl<'a> PlanBuilder<'a> {
                 .iter()
                 .map(|candidate| {
                     let prefix = destination.projected(candidate.id.clone());
-                    (candidate.id.clone(), self.flags_under(&prefix))
+                    let flags = if candidate.id == *case {
+                        self.flags_under(&prefix)
+                    } else {
+                        Vec::new()
+                    };
+                    (candidate.id.clone(), flags)
                 })
                 .collect(),
         });
@@ -5822,6 +5828,11 @@ impl<'a> PlanBuilder<'a> {
                 .into_iter()
                 .find_map(|(candidate, flags)| (candidate == *case).then_some(flags))
                 .ok_or_else(|| plan_error("conditional variant state omits selected case"))?;
+            let selected = if selected.is_empty() {
+                self.flags_under(&source.projected(case.clone()))
+            } else {
+                selected
+            };
             state.append_distinct(selected);
         } else {
             let selected_prefix = source

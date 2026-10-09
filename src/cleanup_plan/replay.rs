@@ -6797,6 +6797,11 @@ fn execute_replay_transition(
                     .ok_or_else(|| {
                         replay_error(function, "conditional state omits authenticated case")
                     })?;
+                let flags = if flags.is_empty() {
+                    validate_place(function, &source.projected(case.clone()), storage, leaves)?
+                } else {
+                    flags
+                };
                 // A valid selected case may carry only Copy fields. Its authenticated case state is consumed even though there are no cleanup flags to
                 // materialize.
                 if !flags.is_empty() {
@@ -7073,8 +7078,9 @@ fn materialize_constructed_variant(
     state.conditional_variants.push(ReplayConditionalVariant {
         root: source.clone(),
         variant: variant.clone(),
-        // Rebuild the closed tag domain only after checking the constructed
-        // case's complete payload and every inactive runtime flag above.
+        // Rebuild every tag, but retain cleanup obligations only for the
+        // authenticated constructor. Match edges derive their own exact
+        // payload inventories after tag authentication.
         cases: program
             .declarations
             .variant_cases(variant)
@@ -7086,7 +7092,10 @@ fn materialize_constructed_variant(
                     candidate.id.clone(),
                     all_flags
                         .iter()
-                        .filter(|flag| leaves[flag].place.projections.starts_with(&prefix))
+                        .filter(|flag| {
+                            candidate.id == *case
+                                && leaves[flag].place.projections.starts_with(&prefix)
+                        })
                         .copied()
                         .collect(),
                 )

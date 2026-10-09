@@ -103,6 +103,12 @@ or direct constructor feeds an exhaustive owned match. Each arm's tag edge
 authenticates its case before materializing payload ownership; retaining the
 closed domain does not initialize inactive runtime flags. Independent replay
 rebuilds that domain from HIR and rejects missing or forged case authentication.
+The closed tag domain is distinct from reachable cleanup obligations: a direct
+constructor contributes only its selected case's owned leaves, and branch
+joins retain the union of cases actually constructed. An authenticated match
+edge independently derives that case's complete payload inventory from HIR.
+Thus exhaustive match checking retains every declared case without adding an
+unconstructed case to a postcondition-failure or yield cleanup vector.
 
 Exact owned postfix `?` evaluates its operand once. The `Ok` edge authenticates
 `core.result.ok` and moves only `Ok.value` into the owned expression result.

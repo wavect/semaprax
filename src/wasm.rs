@@ -4235,7 +4235,7 @@ fn emit_expr(
                 "aggregate expressions require WebAssembly aggregate lowering",
             ));
         }
-        ResolvedExprKind::ConstructRecord { .. }
+        ResolvedExprKind::LiteralFormat { .. } | ResolvedExprKind::ConstructRecord { .. }
         | ResolvedExprKind::ArrayU8(_)
         | ResolvedExprKind::RepeatArrayU8 { .. }
         | ResolvedExprKind::BorrowPlace { .. }

@@ -4706,7 +4706,8 @@ impl<'a> CheckedValueNode<'a> {
                     .get(index)
                     .copied()
                     .map(Self::Expression),
-                E::Call { args, .. } => args.get(index).map(Self::Expression),
+                E::Call { args, .. }
+                | E::LiteralFormat { args, .. } => args.get(index).map(Self::Expression),
                 E::Invoke { callable, args } => {
                     if index == 0 {
                         Some(Self::Expression(callable))

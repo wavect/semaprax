@@ -125,7 +125,7 @@ fn walk(
                 child(argument)?;
             }
         }
-        E::Call { args, .. } => {
+        E::Call { args, .. } | E::LiteralFormat { args, .. } => {
             for argument in args {
                 child(argument)?;
             }

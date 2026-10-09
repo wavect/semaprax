@@ -760,6 +760,10 @@ impl<'a> Node<'a> {
                         a == b
                     }
                     (
+                        E::LiteralFormat { template: a, .. },
+                        E::LiteralFormat { template: b, .. },
+                    ) => a == b,
+                    (
                         E::Call {
                             callee: a,
                             type_arguments: aa,
@@ -868,7 +872,9 @@ impl<'a> Node<'a> {
                     .chain(args.iter())
                     .nth(index)
                     .map(Self::Expression),
-                E::Call { args, .. } => args.get(index).map(Self::Expression),
+                E::Call { args, .. } | E::LiteralFormat { args, .. } => {
+                    args.get(index).map(Self::Expression)
+                }
                 E::NativeRustImportCall(c) => c.args.get(index).map(Self::Expression),
                 E::HostCommandCall(c) => c.args.get(index).map(Self::Expression),
                 E::Unary { value, .. }

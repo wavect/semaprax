@@ -675,6 +675,26 @@ fn join<'a, 'b>(
     if authored != resolved && !(authored == "project" && resolved == "place") {
         return None;
     }
+    if let ResolvedExprKind::LiteralFormat { template, args } = &fact.expression.kind {
+        let ExprKind::Call {
+            name,
+            type_arguments,
+            args: source_args,
+        } = &node.expression.kind else {
+            return None;
+        };
+        if name != "string_format"
+            || !type_arguments.is_empty()
+            || source_args.len() != args.len() + 1
+            || !matches!(&source_args[0].kind, ExprKind::String(source) if source == template)
+            || !source_args[1..]
+                .iter()
+                .zip(args)
+                .all(|(source, resolved)| source.span == resolved.span)
+        {
+            return None;
+        }
+    }
     Some(node)
 }
 
@@ -1119,7 +1139,7 @@ fn hir_kind(kind: &ResolvedExprKind) -> &'static str {
         ResolvedExprKind::Place(_) => "place",
         ResolvedExprKind::FunctionReference { .. } => "function_reference",
         ResolvedExprKind::Invoke { .. } => "invoke",
-        ResolvedExprKind::Call { .. } => "call",
+        ResolvedExprKind::Call { .. } | ResolvedExprKind::LiteralFormat { .. } => "call",
         ResolvedExprKind::BorrowPlace { .. } => "borrow_place",
         ResolvedExprKind::ByteRange { .. } => "byte_range",
         ResolvedExprKind::NativeRustImportCall(_) => "native_import_call",

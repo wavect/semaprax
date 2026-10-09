@@ -5,12 +5,28 @@ Partial alloc-tier standard-library package. Its optional `api` selection in
 conformance surface; it is metadata, not a source privacy boundary. The
 package adds no public host ABI or completed-module claim.
 
-A consumer uses the existing `owned-data-api.v1` Project profile and
+A library consumer can use the existing `owned-data-api.v1` Project profile and
 `[dependencies] std.pattern = "^0.1.0"`. Import `std.pattern.matcher` as a
 type and the selected functions by stable identity from `std.pattern`. The
 compiler supplies the immutable bundled implementation; the application does
 not copy its source. [examples.spx](src/examples.spx) compiles once and renews
 one Matcher across independent named inputs.
+
+Start from that example's stable-ID imports. For instance, the type, factory,
+and `compile` imports are:
+
+```spx
+use type @id("std.pattern.matcher") from std.pattern as Matcher;
+use function @id("std.pattern.make") from std.pattern as make;
+use function @id("std.pattern.compile") from std.pattern as compile;
+```
+
+The names after `as` are local aliases. Calls use those aliases; dependency
+selection belongs in the manifest's `[dependencies]` table, not in the source
+file. The standalone library consumer uses `[package]` profile
+`owned-data-api.v1`; the private [LogLens package adapter](../../experiments/ascii-pattern-source/loglens-reference/matcher-package-adapted/semaprax.toml)
+shows the explicit `source-command.resource-output.v1` command profile and
+its capabilities. Each profile keeps its existing semantic admission.
 
 The selected API consists of these stable IDs, in canonical sorted order:
 `std.pattern.capture-count`,
@@ -27,6 +43,23 @@ and checked in the ordinary source module.
 
 The unchanged grammar admits ASCII literals, byte escapes, dot, classes, bounded/greedy repetitions and flat capture groups. It limits patterns to 1,024 bytes, inputs to 65,536 bytes, atoms to 128, distinct classes to 16 and captures to 16. Captures are byte offsets, including possible UTF-8 byte boundaries. General alternation, Unicode character semantics and unrestricted regular expressions are outside this API.
 
+`full_match` already anchors the complete input. Raw `^` and `$` outside a
+class are invalid; use escaped punctuation when those bytes are literals.
+Use byte classes such as `[0-9]` and `[ \x09]` for digit and space/tab matching.
+Parenthesized captures are flat and numbered from zero in opening order;
+repetition applies to one byte atom, not to a captured group.
+
+The pattern parser receives bytes after the SEMAPRAX string parser has
+decoded the source literal. Double each pattern backslash in `.spx` source:
+
+| Pattern bytes | SEMAPRAX string literal | Meaning |
+| --- | --- | --- |
+| `\x41` | `"\\x41"` | One byte `A`. |
+| `[ \x09]+` | `"[ \\x09]+"` | One or more spaces or tabs. |
+
+The exact class, escape, and greedy rules are in the owning
+[pattern specification](../../experiments/ascii-pattern-source/DRAFT.md#pattern-meaning).
+
 | Observer | Meaning |
 | --- | --- |
 | `result_valid` | Checks the complete logical packet, including every reported capture span; fresh or malformed carriers return false. |
@@ -41,6 +74,21 @@ The unchanged grammar admits ASCII literals, byte escapes, dot, classes, bounded
 Malformed-pattern detail selects the first offending byte from left to right; a missing byte reports EOF at the pattern length. A dangling backslash therefore has pattern detail 1, while an unsupported first byte can have detail 0. Both use detail domain 1.
 
 Packet observers other than `result_valid` require a valid packet. Numeric capture endpoints grant no ownership or input authority. The consumer remains responsible for applying them to the input of that match. Borrowing a view of the renewed Matcher storage still fails ordinary ownership/loan replay; only independent named views qualify.
+
+For a reusable parser, keep the owner returned by `compile`, require a valid
+packet with status 0, then pass that whole owner to each `full_match` and keep
+its returned owner. Name the pattern and input views independently, as the
+example does with `string_as_str`, `str_as_bytes`, and `array_as_slice`.
+Decode capture endpoints only for status 1 with an index below
+`capture_count`. Status 2 means semantic no-match; statuses 3 and 4 require
+separate invalid/resource handling. The named
+[EOF and escaped-byte regressions](src/tests.spx) also show exact detail and
+work witnesses without confusing zero offset with success.
+
+Capture endpoints are relative to the exact input view passed to that match.
+For a line cut from a larger file, apply them to that line; conversion to an
+enclosing-file offset must add the line's start. Applying them through
+`string_slice` retains its ordinary bounds and UTF-8 boundary checks.
 
 The bounded engine may refuse ambiguous searches before deciding a semantic match. Logical work and ordinary interpreter AST fuel are separate limits. No limit is raised here: final qualification must preserve the complete LogLens 49 obligations, independent header/key-value meanings, long valid and nonmatching records, exact work witnesses, hostile carrier controls, and interpreter/native C11/Core-Wasm settlement on these exact source bytes.
 

@@ -21,6 +21,17 @@ arithmetic, and rendering live in `loglens.spx`. This private adapter variant
 imports the public `std.pattern` matcher API declared by its package dependency;
 it does not carry a copy of the matcher implementation.
 
+The [pattern API guide](../../../../std/pattern/README.md) documents the
+stable-ID imports, source-string escapes, and whole-owner renewal used here.
+`report` compiles its fixed pattern once, keeps the returned `Matcher`, and
+renews it against each independent line view. Its six captures are offsets
+into that line, so extraction applies them to `line`, not the enclosing file.
+The existing token/path/hour/decimal checks still decide the captured values'
+application meaning. Invalid or resource-refused matcher packets take the
+terminal error path; they are distinct from status 2 semantic no-match.
+This integration description adds no qualification evidence and changes none
+of the complete 49 acceptance obligations.
+
 The resource-output project profile supports reports larger than 64 KiB.
 Byte counts use exact decimal arithmetic, including totals beyond i64.
 `unit.spx` provides a compiler-checked decimal test declaration; the native

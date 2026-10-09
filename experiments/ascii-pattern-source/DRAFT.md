@@ -1,5 +1,10 @@
 # Bounded ASCII patterns with capture offsets — draft
 
+For the current bundled `std.pattern` package, stable-ID imports, owner renewal,
+and source-string escaping, start with the [package API guide](../../std/pattern/README.md).
+The historical proposal and private source evidence below retain their own
+names and qualification status; they are not an alternative package inventory.
+
 Status: private source experiment. The OPT-702–704 baseline had four passing private witnesses; the OPT-706 source
 revision is unchecked and has no package registration, completion change, public ABI, or performance claim.
 Source is [ascii.spx](ascii.spx), based on `origin/main` at `ac3f3bfaa`.

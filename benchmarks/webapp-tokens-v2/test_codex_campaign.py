@@ -167,15 +167,19 @@ class WebappCampaignTests(unittest.TestCase):
     def test_bootstrap_drift_refuses_a_paid_request_before_invocation(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory); receipt, _, summary = self.bootstrap_fixture(root)
+            compiler = root / "compiler"
+            compiler.write_text("#!/bin/sh\nexit 0\n"); compiler.chmod(0o755)
             settings = {"typescript_bootstrap": {"receipt_path": str(receipt),
                         "receipt_sha256": dependencies.digest(receipt)},
                         "qualification": {"spec_sha256": "spec", "receipt_sha256": dependencies.digest(summary)},
-                        "acceptance": {"capabilities": {"node_binary": "fixture-node"}}}
+                        "acceptance": {"capabilities": {"node_binary": "fixture-node"}},
+                        "compiler_source_commit": "a" * 40,
+                        "source_binary_sha256": campaign.common.digest(compiler)}
             receipt.write_text(receipt.read_text() + "\n")
             with patch.object(campaign, "add_seed_worktree", return_value=None), \
                     patch.object(campaign, "cleanup_trial"), patch.object(campaign, "run_codex") as paid:
                 row = campaign.launch_trial(root, root / "artifacts", "commit",
-                                            {"arm": "typescript", "number": 1}, settings, root / "compiler")
+                                            {"arm": "typescript", "number": 1}, settings, compiler)
             paid.assert_not_called()
             self.assertFalse(row["paid_request_launched"])
             self.assertIn("receipt changed after campaign plan", row["failure"])
@@ -586,6 +590,8 @@ class WebappCampaignTests(unittest.TestCase):
             settings = {"capabilities": {"status": "ready"},
                 "acceptance": {"capabilities": {"status": "ready"}},
                 "artifacts": str(artifacts), "harness_source_snapshot": snapshot,
+                "compiler_source_commit": "a" * 40,
+                "source_binary_sha256": campaign.common.digest(Path("/bin/sh").resolve()),
                 "repository_commit": "seed", "seed_files_sha256": {campaign.FROZEN_SPEC: "hash"},
                 "trial_order": order}
             attempts = []
@@ -612,15 +618,79 @@ class WebappCampaignTests(unittest.TestCase):
             self.assertEqual(result["summary"]["failed_or_rejected_attempts"], 1)
             self.assertIsNone(result["summary"]["list_price_estimate_per_accepted_task_usd"])
 
+    def test_changed_compiler_refuses_dispatch_before_artifacts_worktrees_or_model(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            compiler = root / "compiler"
+            compiler.write_text("#!/bin/sh\nexit 0\n"); compiler.chmod(0o755)
+            wanted = campaign.common.digest(compiler)
+            settings = {"compiler_source_commit": "a" * 40, "source_binary_sha256": wanted,
+                        "qualification": {"compiler_source_commit": "a" * 40,
+                                          "compiler_binary_sha256": wanted},
+                        "artifacts": str(root / "artifacts"),
+                        "capabilities": {"status": "ready"},
+                        "acceptance": {"capabilities": {"status": "ready"}}}
+            compiler.write_text("#!/bin/sh\nexit 1\n")
+            argv = ["campaign", "run", "--repo", str(ROOT), "--base-ref", "HEAD",
+                    "--compiler-source-ref", "HEAD", "--artifacts", settings["artifacts"],
+                    "--semaprax-bin", str(compiler), "--tokenizer-dir", "/tmp/tokenizer",
+                    "--acknowledge-paid-attempts"]
+            with patch.object(campaign, "add_seed_worktree") as worktree, \
+                    patch.object(campaign, "create_seed_repository") as seed, \
+                    patch.object(campaign, "run_codex") as paid:
+                with self.assertRaisesRegex(ValueError, "compiler binary differs from the immutable campaign plan"):
+                    campaign.launch_trial(root, root / "artifacts", "seed",
+                                          {"arm": "semaprax", "number": 1}, settings, compiler)
+                with self.assertRaisesRegex(ValueError, "compiler binary differs from the immutable campaign plan"):
+                    campaign.launch_calibration(root, root / "artifacts", "seed", settings, compiler)
+                with patch.object(sys, "argv", argv), patch.object(campaign, "plan", return_value=settings), \
+                        contextlib.redirect_stderr(io.StringIO()) as error:
+                    self.assertEqual(campaign.main(), 2)
+                self.assertIn("compiler", error.getvalue().lower())
+                worktree.assert_not_called(); seed.assert_not_called(); paid.assert_not_called()
+                self.assertFalse((root / "artifacts").exists())
+
+    def test_compiler_changed_during_preparation_refuses_model_dispatch(self):
+        for kind in ("calibration", "trial"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                compiler = root / "compiler"
+                compiler.write_text("#!/bin/sh\nexit 0\n"); compiler.chmod(0o755)
+                settings = {"compiler_source_commit": "a" * 40,
+                            "source_binary_sha256": campaign.common.digest(compiler)}
+
+                def prepare(_repo, _workspace, _commit):
+                    compiler.write_text("#!/bin/sh\nexit 1\n")
+                    return None
+
+                with patch.object(campaign, "add_seed_worktree", side_effect=prepare), \
+                        patch.object(campaign, "run_codex") as paid, \
+                        patch.object(campaign, "prompt_for", return_value="task"), \
+                        patch.object(campaign, "cleanup_trial"), \
+                        patch.object(campaign, "workspace_guard", return_value={"status": "failed"}), \
+                        patch.object(campaign.common, "authored_source_metrics", return_value={}):
+                    if kind == "calibration":
+                        row = campaign.launch_calibration(root, root / "artifacts", "seed", settings, compiler)
+                    else:
+                        row = campaign.launch_trial(root, root / "artifacts", "seed",
+                                                    {"arm": "semaprax", "number": 1}, settings, compiler)
+                    self.assertEqual(row["status"], "failed" if kind == "calibration" else "not_accepted")
+                    self.assertTrue(row["runner_error"])
+                    paid.assert_not_called()
+
     def test_paid_acceptance_timeout_returns_a_persistable_failed_row(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             artifacts = root / "artifacts"; artifacts.mkdir()
             seed = root / "seed"; seed.mkdir()
             spec_bytes, contract_bytes = b"spec\n", b"contract\n"
+            compiler = root / "semaprax"
+            compiler.write_text("#!/bin/sh\nexit 0\n"); compiler.chmod(0o755)
             settings = {
                 "codex_binary": "codex", "timeout_seconds": 1800,
                 "acceptance_timeout_seconds": 2700, "authored_source_tokenizer": None,
+                "compiler_source_commit": "a" * 40,
+                "source_binary_sha256": campaign.common.digest(compiler),
                 "seed_files_sha256": {
                     campaign.FROZEN_SPEC: hashlib.sha256(spec_bytes).hexdigest(),
                     "benchmarks/webapp-tokens-v2/acceptance/CONTRACT.md": hashlib.sha256(contract_bytes).hexdigest(),
@@ -655,7 +725,7 @@ class WebappCampaignTests(unittest.TestCase):
                                  side_effect=subprocess.TimeoutExpired(["node", "run.mjs"], 2700)), \
                     patch.object(campaign, "cleanup_trial"):
                 row = campaign.launch_trial(seed, artifacts, "seed-commit",
-                                            {"arm": "typescript", "number": 1}, settings, root / "semaprax")
+                                            {"arm": "typescript", "number": 1}, settings, compiler)
             self.assertEqual(row["status"], "failed")
             self.assertTrue(row["runner_error"])
             self.assertGreaterEqual(row["acceptance_elapsed_seconds"], 0)

@@ -57,7 +57,7 @@ wasm-encoder = { version = "=0.259.0", default-features = false, features = ["st
 criterion = { version = "0.8", features = ["html_reports"] }
 regex_alias = { package = "regex", version = "=1.13.1" }
 socket2 = "=0.6.5"
-tokio = { version = "=1.53.1", features = ["rt", "net", "time", "sync"] }
+tokio = { version = "=1.53.2", features = ["rt", "net", "time", "sync"] }
 
 [[bench]]
 name = "compiler"

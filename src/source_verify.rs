@@ -59,6 +59,10 @@ use scope::{VariantMatchState, VerifierFrame, VerifierScope};
 use type_table::{resolve_class_method, TypeTable};
 
 pub(crate) use declaration::verify;
+pub(crate) use declared_type::copy_record_collection::{
+    resolved_source_admitted as copy_record_resolved_source_admitted,
+    source_admitted as copy_record_source_admitted,
+};
 pub(crate) use diagnostics::is_scalar_source_type;
 
 pub(crate) fn program_uses_record_iterator(program: &Program) -> bool {

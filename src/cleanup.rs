@@ -157,7 +157,6 @@ pub(crate) fn is_owned_bounded_vec_type(ty: &ResolvedType) -> bool {
             if declaration.as_str() == crate::prelude::VEC_ID
                 && arguments.len() == 1
                 && crate::vec_ops::resolved_vec_element_is_admitted(&arguments[0])
-                        || crate::hir::copy_record_collection::admitted(&program.declarations, &arguments[0])
     )
 }
 

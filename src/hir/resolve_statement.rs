@@ -265,7 +265,7 @@ impl Resolver<'_> {
                     if let Some(operation) = vec_operation {
                         if !operation.admitted_in_while()
                             || type_arguments.len() != 1
-                            || !(crate::vec_ops::ast_element_is_admitted(&type_arguments[0]) || crate::source_verify::declared_type::copy_record_collection::source_admitted(self.program, &type_arguments[0]) || generic.is_some_and(|f| matches!(&type_arguments[0], Type::Named { name, arguments } if arguments.is_empty() && f.type_parameters.iter().any(|parameter| parameter.name == *name))))
+                            || !(crate::vec_ops::ast_element_is_admitted(&type_arguments[0]) || crate::source_verify::copy_record_source_admitted(self.program, &type_arguments[0]) || generic.is_some_and(|f| matches!(&type_arguments[0], Type::Named { name, arguments } if arguments.is_empty() && f.type_parameters.iter().any(|parameter| parameter.name == *name))))
                             || args.len() != operation.arity()
                         {
                             return Err(self.error(
@@ -356,7 +356,7 @@ impl Resolver<'_> {
                         name: type_name.clone(),
                         arguments: type_arguments.clone(),
                     };
-                    if !crate::source_verify::declared_type::copy_record_collection::source_admitted(
+                    if !crate::source_verify::copy_record_source_admitted(
                         self.program,
                         &ty,
                     ) {

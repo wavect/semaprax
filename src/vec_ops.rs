@@ -577,7 +577,7 @@ pub(crate) fn is_same_owner_reassignment_hir_source(
         })
     };
     op.is_some_and(|op| args.len() == op.arity())
-        && matches!(type_arguments.as_slice(), [argument] if resolved_vec_element_is_admitted(argument) || crate::source_verify::declared_type::copy_record_collection::resolved_source_admitted(program, argument))
+        && matches!(type_arguments.as_slice(), [argument] if resolved_vec_element_is_admitted(argument) || crate::source_verify::copy_record_resolved_source_admitted(program, argument))
         && matches!(&args[0].kind, ResolvedExprKind::Place(place)
             if &place.root == owner && place.projections.is_empty())
 }

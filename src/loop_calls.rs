@@ -22,7 +22,7 @@ pub(crate) fn ast_param_admitted(program: &Program, mode: ParamMode, ty: &Type) 
     match mode {
         ParamMode::Value => {
             ast_copy_variant(program, ty)
-                || crate::source_verify::declared_type::copy_record_collection::source_admitted(
+                || crate::source_verify::copy_record_source_admitted(
                     program, ty,
                 )
                 || is_scalar_source_type(ty)
@@ -33,7 +33,7 @@ pub(crate) fn ast_param_admitted(program: &Program, mode: ParamMode, ty: &Type) 
             matches!(ty, Type::SliceU8 | Type::Str)
                 || crate::map_ops::ast_collection(ty)
                 || crate::vec_ops::ast_copy_vec(ty)
-                || matches!(ty, Type::Named { name, arguments } if name == "Vec" && matches!(arguments.as_slice(), [element] if crate::source_verify::declared_type::copy_record_collection::source_admitted(program, element)))
+                || matches!(ty, Type::Named { name, arguments } if name == "Vec" && matches!(arguments.as_slice(), [element] if crate::source_verify::copy_record_source_admitted(program, element)))
         }
         ParamMode::Shared => false,
     }
@@ -69,7 +69,7 @@ pub(crate) fn ast_result_admitted(program: &Program, ty: &Type) -> bool {
     is_scalar_source_type(ty)
         || *ty == Type::String
         || ast_copy_variant(program, ty)
-        || crate::source_verify::declared_type::copy_record_collection::source_admitted(program, ty)
+        || crate::source_verify::copy_record_source_admitted(program, ty)
         || crate::map_ops::ast_collection(ty)
 }
 
@@ -173,7 +173,7 @@ pub(crate) fn ast_copy_variant(program: &Program, ty: &Type) -> bool {
     cases.iter().all(|case| {
         case.fields.iter().all(|field| {
             if is_scalar_source_type(&field.ty)
-                || crate::source_verify::declared_type::copy_record_collection::source_admitted(
+                || crate::source_verify::copy_record_source_admitted(
                     program, &field.ty,
                 )
             {

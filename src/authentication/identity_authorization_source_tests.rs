@@ -289,7 +289,7 @@ fn main() -> i64
     let refused = module
         .replace(
             "-> i64\n{\n    held.value",
-            "-> String\n{\n    \"withheld\"",
+            "-> string\n{\n    \"withheld\"",
         )
         .replace(
             "if requires_secret(held) == 1 { 0 } else { 1 }",
@@ -313,6 +313,6 @@ fn main() -> i64
     assert_eq!(diagnostics[0].code, "SPX-F102");
     assert_eq!(
         diagnostics[0].message,
-        "interpreter admission failed (unsupported_callee)"
+        "interpreter admission failed (unsupported_callee): expression `declaration:8:app.main:expression:13:body.s1.value`"
     );
 }

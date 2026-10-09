@@ -325,6 +325,7 @@ fn fused_string_byte_view_has_rooted_graph_fact_and_full_owner_loan() {
     assert_eq!(slice, &binding.id);
 
     let graph = crate::graph::to_json(&parsed).unwrap();
+    crate::graph::verify_json(&parsed, &graph).unwrap();
     let graph_value: serde_json::Value = serde_json::from_str(&graph).unwrap();
     assert_eq!(graph_value["schema"], "semaprax.graph.v71");
     assert_eq!(

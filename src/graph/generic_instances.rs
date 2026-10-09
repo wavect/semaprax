@@ -124,6 +124,10 @@ pub(super) fn pre_filesystem_graph_json(
         && !generic_mapping::requires_v35(&program.function_templates)
         && !hir::function_value::requires_function_values(program)
         && !super::owned_text_record_loans::requires(program)
+        && !program
+            .declarations
+            .byte_slice_provenances()
+            .any(|(_, provenance)| provenance.root_kind == ByteSliceRootKind::OwnedString)
     {
         if super::filesystem::requires(program)
             || super::environment::requires(program)

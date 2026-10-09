@@ -19,7 +19,11 @@ use semaprax::project::{
     self, PreparedProjectExecutionOptions, PreparedProjectInterpreterOptions,
     ProjectExecutionCancellation, ProjectExecutionOptions,
 };
+use sha2::{Digest as _, Sha256};
 use std::path::{Path, PathBuf};
+
+#[path = "../tests/support/private_ascii_pattern_witness.rs"]
+mod private_ascii_pattern_witness;
 
 const LOOP_ITERATIONS: u64 = 10_000;
 
@@ -63,6 +67,55 @@ fn bench_interpreter_verify(c: &mut Criterion) {
         });
     }
     group.finish();
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    Sha256::digest(bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
+}
+
+/// Focused microbenchmark for the formatter boundary exercised by the first
+/// admitted private ASCII matcher witness. This measures canonical rendering,
+/// not end-to-end interpreter execution; checking the source is reported in a
+/// separate group and excluded from the formatter timer.
+fn bench_private_ascii_pattern_boundary(c: &mut Criterion) {
+    let source = private_ascii_pattern_witness::first_witness_source();
+    let source_path = "private-ascii-pattern-first-witness.spx";
+    let program = semaprax::check(&source, source_path).expect("matcher witness source checks");
+    let expected_canonical = semaprax::format::canonical(&program);
+    let round_trip = semaprax::check(&expected_canonical, source_path)
+        .expect("canonical matcher witness source checks");
+    assert_eq!(
+        semaprax::format::canonical(&round_trip),
+        expected_canonical,
+        "canonical matcher witness bytes must be stable"
+    );
+    eprintln!(
+        "private-ascii-pattern-canonical-microbenchmark source_bytes={} source_sha256={} expected_canonical_bytes={} expected_canonical_sha256={}",
+        source.len(),
+        sha256_hex(source.as_bytes()),
+        expected_canonical.len(),
+        sha256_hex(expected_canonical.as_bytes())
+    );
+
+    let mut check_group = c.benchmark_group("ascii-pattern-source-check-setup-microbenchmark");
+    check_group.bench_function("first-greedy-capture-witness", |b| {
+        b.iter(|| {
+            std::hint::black_box(
+                semaprax::check(std::hint::black_box(source.as_str()), source_path)
+                    .expect("matcher witness source checks"),
+            )
+        })
+    });
+    check_group.finish();
+
+    let mut render_group = c.benchmark_group("ascii-pattern-canonical-format-microbenchmark");
+    render_group.bench_function("first-greedy-capture-witness", |b| {
+        b.iter(|| std::hint::black_box(semaprax::format::canonical(std::hint::black_box(&program))))
+    });
+    render_group.finish();
 }
 
 /// A scratch directory owned by this process, removed when it is dropped.
@@ -250,6 +303,7 @@ criterion_group!(
     bench_interpreter_parse,
     bench_interpreter_verify,
     bench_interpreter_cold_end_to_end,
-    bench_interpreter_prepared
+    bench_interpreter_prepared,
+    bench_private_ascii_pattern_boundary
 );
 criterion_main!(benches);

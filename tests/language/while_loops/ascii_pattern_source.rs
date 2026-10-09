@@ -3,6 +3,9 @@ use semaprax::interpreter::InterpreterOptions;
 use semaprax::{format, graph, hir, interpreter, parse};
 use sha2::{Digest as _, Sha256};
 
+#[path = "../../support/private_ascii_pattern_witness.rs"]
+mod shared_witness;
+
 const ENGINE: &str = include_str!("../../../experiments/ascii-pattern-source/ascii.spx");
 const STD_ENGINE: &str = include_str!("../../../std/pattern/src/pattern.spx");
 const COMPILED: &str =
@@ -232,10 +235,11 @@ fn private_ascii_pattern_compile_and_greedy_capture_witnesses() {
     .enumerate()
     {
         let expected = expect_packet(1, &spans, None, 0, 0);
-        interpret(
-            &compile_source(pattern.as_bytes(), input.as_bytes(), &expected),
-            &format!("ascii-capture-{index}"),
-        );
+        let source = compile_source(pattern.as_bytes(), input.as_bytes(), &expected);
+        if index == 0 {
+            assert_eq!(source, shared_witness::first_witness_source());
+        }
+        interpret(&source, &format!("ascii-capture-{index}"));
     }
     let expected = expect_packet(2, &[], None, 0, 0);
     for (index, (pattern, input)) in [

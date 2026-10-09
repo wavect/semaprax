@@ -941,3 +941,7 @@ pub(super) fn oracle_match(
     }
     result
 }
+
+pub(super) fn in_loop_scope() -> bool {
+    LOOP_DEPTH.with(|depth| depth.get() != 0)
+}

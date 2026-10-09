@@ -28,6 +28,10 @@ The additive [Copy Scalar Sort v1](COPY-SCALAR-SORT-V1.md) authors
 `vec_sort<T>` over this scalar representation, with separate pending
 verification and an optional Wasm host import.
 
+The additive [Copy Record Collections v1](COPY-RECORD-COLLECTIONS-V1.md) defines
+a separate bounded nominal element profile with pending qualification; the
+scalar-only v1 shape and public/profile boundaries above remain frozen.
+
 The compiler-owned operations are:
 
 | Source | Stable identity | Signature |

@@ -12,6 +12,11 @@
 - Borrow retained user-function and static String/Str parameter descriptors
   during HIR validation; preserve owning generic signatures, error identities,
   recursive parity checks, and the iterative frame bound.
+- Author the bounded Copy Record Collections v1 core tranche: nominal scalar
+  records in Vec, Copy reads/writes, named-field loops and deterministic field
+  ordering across interpreter/native/Wasm. Preserve the 65536-byte scalar
+  storage ceiling and existing public/Project profiles. Focused execution and
+  matched application benchmark qualification remain pending.
 
 - Attach the final resolved-core builder phase's first sticky reservation
   evidence to SPX-G171 help, preserving the exact message, ledger behavior,

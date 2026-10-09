@@ -361,6 +361,7 @@ pub(super) fn resolved_data_parameter_is_admitted(
         (ty, hir::OwnershipMode::Own | hir::OwnershipMode::Borrow)
             if crate::map_ops::is_collection(ty)
                 || owned_vec::is_collection_type(ty)
+                || crate::hir::copy_record_collection::is_vec(declarations, ty)
                 || is_admitted_owned_byte_record(declarations, ty)
                 || is_admitted_owned_variant(declarations, ty) =>
         {
@@ -387,6 +388,7 @@ pub(super) fn resolved_data_result_is_admitted(
         )
         || crate::map_ops::is_collection(ty)
         || owned_vec::is_collection_type(ty)
+        || crate::hir::copy_record_collection::is_vec(declarations, ty)
         || is_admitted_owned_byte_record(declarations, ty)
         || is_admitted_owned_variant(declarations, ty)
         || super::variant_admission::is_admitted_copy_scalar_variant(declarations, ty)

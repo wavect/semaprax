@@ -63,7 +63,7 @@ impl PlanBuilder<'_> {
                         "cleanup bounded Vec call has incorrect type arity",
                     ));
                 };
-                crate::vec_ops::resolved_params(op, element)
+                crate::vec_ops::resolved_params_in(&self.program.declarations, op, element)
             } else if let Some(op) = crate::box_ops::by_id(callee.as_str()) {
                 let [element] = type_arguments else {
                     return Err(plan_error(

@@ -3512,7 +3512,7 @@ fn expression_skeleton(
                                     "bounded Vec skeleton call has incorrect type arity",
                                 ));
                             };
-                            crate::vec_ops::resolved_params(op, element)
+                            crate::vec_ops::resolved_params_in(&program.declarations, op, element)
                         } else if let Some(op) = box_intrinsic {
                             let [element] = type_arguments.as_slice() else {
                                 return Err(replay_error(

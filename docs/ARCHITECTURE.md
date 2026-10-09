@@ -107,6 +107,13 @@ Entry, ordinary/named tests, cancellable execution and prepared-origin closure
 maps use that same selector. Legacy interpreter and Project profiles retain
 their existing closed maps; this selection grants no host effects or authority.
 
+`hir/copy_record_collection.rs` and the independent source classifier own the
+bounded flat Copy-record Vec element shape. Native lowering lives under
+`native_emit/expression/vec_ops/copy_record.rs`; Core Wasm lowers the same
+checked field words in `wasm/aggregate/vec_copy_record.rs`. Both retain one
+canonical Vec owner and the existing scalar storage ceiling. Project/profile
+admission remains an independent boundary.
+
 `ast/type_properties.rs` owns primitive type formatting and classification.
 The reserved mutable callable type has independent source and retained-HIR
 admission guards in `source_verify/declared_type.rs`, `source_verify/closure.rs`

@@ -610,6 +610,19 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             return Ok(());
         };
         reject_native_unit_value(self.program, base, &base_value, self.diagnostics);
+        if self.loop_depth != 0
+            && !crate::source_verify::declared_type::copy_record_collection::admitted(
+                self.types,
+                &base_value.ty,
+            )
+        {
+            self.diagnostics.push(error(
+                self.program,
+                "SPX-T252",
+                "record field projection is not yet admitted in while bodies",
+                expression.span,
+            ));
+        }
         let Some(fields) = effective_record_fields(self.types, &base_value.ty) else {
             self.diagnostics.push(error(
                 self.program,

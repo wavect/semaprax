@@ -224,7 +224,8 @@ pub(in crate::source_verify) fn reject_while_disallowed_oracle(
             if let Some(operation) = vec_operation {
                 if !operation.admitted_in_while()
                     || type_arguments.len() != 1
-                    || !crate::vec_ops::ast_element_is_admitted(&type_arguments[0])
+                    || !(crate::vec_ops::ast_element_is_admitted(&type_arguments[0])
+                                || crate::source_verify::declared_type::copy_record_collection::source_admitted(program, &type_arguments[0]))
                     || args.len() != operation.arity()
                 {
                     diagnostics.push(error(
@@ -323,23 +324,44 @@ pub(in crate::source_verify) fn reject_while_disallowed_oracle(
             ));
             Err(())
         }
-        ExprKind::Project { .. } => {
-            diagnostics.push(error(
-                program,
-                "SPX-T252",
-                "record field projection is not yet admitted in while bodies",
-                expression.span,
-            ));
-            Err(())
+        ExprKind::Project { base, .. } => {
+            reject_while_disallowed_oracle(program, base, functions, types, diagnostics)
         }
-        ExprKind::ConstructRecord { .. } => {
-            diagnostics.push(error(
-                program,
-                "SPX-T252",
-                "record construction is not yet admitted in while bodies",
-                expression.span,
-            ));
-            Err(())
+        ExprKind::ConstructRecord {
+            type_name,
+            type_arguments,
+            fields,
+            ..
+        } => {
+            let ty = Type::Named {
+                name: type_name.clone(),
+                arguments: type_arguments.clone(),
+            };
+            if crate::source_verify::declared_type::copy_record_collection::admitted(types, &ty) {
+                let mut result = Ok(());
+                for field in fields {
+                    if reject_while_disallowed_oracle(
+                        program,
+                        &field.value,
+                        functions,
+                        types,
+                        diagnostics,
+                    )
+                    .is_err()
+                    {
+                        result = Err(());
+                    }
+                }
+                result
+            } else {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T252",
+                    "record construction is not yet admitted in while bodies",
+                    expression.span,
+                ));
+                Err(())
+            }
         }
         ExprKind::ConstructVariant {
             type_name,

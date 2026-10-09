@@ -88,10 +88,10 @@ pub(super) fn element_value_matches_type(
     };
     if !arguments.is_empty()
         || record.record != *declaration
-        || !crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+        || !(crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
             declarations,
             ty,
-        )
+        ) || crate::hir::copy_record_collection::admitted(declarations, ty))
     {
         return false;
     }
@@ -165,6 +165,7 @@ impl Evaluator<'_> {
             .filter(|element| {
                 type_arguments.len() == 1
                     && (crate::vec_ops::resolved_operation_element_is_admitted(op, element)
+                        || crate::hir::copy_record_collection::admitted(declarations, element)
                         // SPX-AI-019's owned-record element keeps its own
                         // narrow admission predicate rather than widening the
                         // shared scalar-or-`Bytes` one the native and Wasm
@@ -215,7 +216,9 @@ impl Evaluator<'_> {
                 let capacity = usize::try_from(*capacity).map_err(|_| {
                     Flow::Failure(normalize_vec(crate::vec_ops::ALLOCATION_FAILURE_CODE))
                 })?;
-                if capacity > crate::vec_ops::MAX_CAPACITY as usize {
+                if capacity
+                    > crate::hir::copy_record_collection::capacity(declarations, &element) as usize
+                {
                     return Err(Flow::Failure(normalize_vec(
                         crate::vec_ops::ALLOCATION_FAILURE_CODE,
                     )));
@@ -286,7 +289,10 @@ impl Evaluator<'_> {
                     .ok()
                     .and_then(|len| len.checked_add(additional))
                     .map(|required| required.max(vector.capacity as u64))
-                    .filter(|target| *target <= crate::vec_ops::MAX_CAPACITY)
+                    .filter(|target| {
+                        *target
+                            <= crate::hir::copy_record_collection::capacity(declarations, &element)
+                    })
                     .and_then(|target| usize::try_from(target).ok())
                     .ok_or_else(|| {
                         Flow::Failure(normalize_vec(crate::vec_ops::ALLOCATION_FAILURE_CODE))
@@ -331,7 +337,9 @@ impl Evaluator<'_> {
                         "ill-typed compiler-owned bounded Vec operation",
                     ));
                 };
-                if vector.element != element || !scalar_value_matches_type(&value, &element) {
+                if vector.element != element
+                    || !element_value_matches_type(declarations, &value, &element)
+                {
                     return Err(Flow::Guard("forged bounded Vec element type"));
                 }
                 let index = usize::try_from(index)
@@ -358,27 +366,33 @@ impl Evaluator<'_> {
                     return Err(Flow::Guard("invalid Vec sort carrier"));
                 };
                 if vector.element != element
-                    || !crate::vec_ops::resolved_element_is_admitted(&element)
+                    || !(crate::vec_ops::resolved_element_is_admitted(&element)
+                        || crate::hir::copy_record_collection::admitted(declarations, &element))
                     || vector
                         .values
                         .iter()
-                        .any(|v| !scalar_value_matches_type(v, &element))
+                        .any(|v| !element_value_matches_type(declarations, v, &element))
                 {
                     return Err(Flow::Guard("forged Vec sort element type"));
                 }
                 let mut vector =
                     Arc::try_unwrap(vector).map_err(|_| Flow::Guard("aliased Vec sort owner"))?;
-                vector.values.sort_unstable_by(|a, b| match (a, b) {
-                    (Value::Int(a), Value::Int(b)) => a.cmp(b),
-                    (Value::Int32(a), Value::Int32(b)) => a.cmp(b),
-                    (Value::Uint8(a), Value::Uint8(b)) => a.cmp(b),
-                    (Value::Usize(a), Value::Usize(b)) => a.cmp(b),
-                    (Value::Char(a), Value::Char(b)) => a.cmp(b),
-                    (Value::Float32(a), Value::Float32(b)) => a.total_cmp(b),
-                    (Value::Float64(a), Value::Float64(b)) => a.total_cmp(b),
-                    (Value::Bool(a), Value::Bool(b)) => a.cmp(b),
-                    _ => std::cmp::Ordering::Equal, // exact element validation above
-                });
+                if let Some(fields) =
+                    crate::hir::copy_record_collection::fields(declarations, &element)
+                {
+                    vector.values.sort_by(|a, b| {
+                        let (Value::Record(a), Value::Record(b)) = (a, b) else {
+                            unreachable!("record values authenticated above")
+                        };
+                        fields
+                            .iter()
+                            .map(|field| compare_scalar(&a.fields[&field.id], &b.fields[&field.id]))
+                            .find(|order| !order.is_eq())
+                            .unwrap_or(std::cmp::Ordering::Equal)
+                    });
+                } else {
+                    vector.values.sort_unstable_by(compare_scalar);
+                }
                 vector.generation = vector
                     .generation
                     .checked_add(1)
@@ -444,5 +458,19 @@ impl Evaluator<'_> {
                 )),
             },
         }
+    }
+}
+
+fn compare_scalar(a: &Value, b: &Value) -> std::cmp::Ordering {
+    match (a, b) {
+        (Value::Int(a), Value::Int(b)) => a.cmp(b),
+        (Value::Int32(a), Value::Int32(b)) => a.cmp(b),
+        (Value::Uint8(a), Value::Uint8(b)) => a.cmp(b),
+        (Value::Usize(a), Value::Usize(b)) => a.cmp(b),
+        (Value::Char(a), Value::Char(b)) => a.cmp(b),
+        (Value::Float32(a), Value::Float32(b)) => a.total_cmp(b),
+        (Value::Float64(a), Value::Float64(b)) => a.total_cmp(b),
+        (Value::Bool(a), Value::Bool(b)) => a.cmp(b),
+        _ => std::cmp::Ordering::Equal, // only authenticated scalar leaves reach this helper
     }
 }

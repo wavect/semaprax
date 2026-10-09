@@ -1,5 +1,6 @@
 //! Native expression lowering for compiler-owned bounded Vec operations.
 
+mod copy_record;
 mod owned_payload;
 mod record_payload;
 
@@ -23,6 +24,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 "bounded Vec operation has incorrect type arity",
             ));
         };
+        if crate::hir::copy_record_collection::admitted(&self.program.declarations, element) {
+            return self.emit_copy_record_vec(expr, op, element, args);
+        }
         let admitted_record = crate::hir::owned_record_collection::admits_vec_operation_element(
             &self.program.declarations,
             op,

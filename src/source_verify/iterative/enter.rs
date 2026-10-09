@@ -365,6 +365,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 )
                                 && !crate::source_verify::declared_type::owned_record_collection::
                                     admits_vec_operation_element(self.types, op, ty)
+                                && !crate::source_verify::declared_type::copy_record_collection::admitted(self.types, ty)
                         })
                     {
                         self.diagnostics.push(error(
@@ -928,6 +929,22 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 });
             }
             ExprKind::Project { base, field, .. } => {
+                if self.loop_depth != 0
+                    && source_place(base, &self.scopes[scope].bindings, self.types).is_some_and(
+                        |place| {
+                            !crate::source_verify::declared_type::copy_record_collection::admitted(
+                                self.types, &place.ty,
+                            )
+                        },
+                    )
+                {
+                    self.diagnostics.push(error(
+                        self.program,
+                        "SPX-T252",
+                        "record field projection is not yet admitted in while bodies",
+                        expression.span,
+                    ));
+                }
                 if let Some(place) =
                     source_place(expression, &self.scopes[scope].bindings, self.types)
                 {

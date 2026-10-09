@@ -61,7 +61,10 @@ impl HirValidator<'_> {
                     // Owned String Loops v2: a whole Copy-payload variant
                     // place may be a match scrutinee; moving an outer one
                     // still fails the loop-entry state equality.
-                    let whole_string = (matches!(
+                    let whole_string = (crate::hir::copy_record_collection::admitted(
+                        &self.program.declarations,
+                        &expression.ty,
+                    ) || matches!(
                         expression.ty,
                         ResolvedType::String | ResolvedType::StringMap
                     ) || crate::map_ops::is_collection(&expression.ty)
@@ -238,7 +241,11 @@ impl HirValidator<'_> {
                     if let Some(operation) = vec_operation {
                         if !operation.admitted_in_while()
                             || type_arguments.len() != 1
-                            || !crate::vec_ops::resolved_element_is_admitted(&type_arguments[0])
+                            || !(crate::vec_ops::resolved_element_is_admitted(&type_arguments[0])
+                                || crate::hir::copy_record_collection::admitted(
+                                    &self.program.declarations,
+                                    &type_arguments[0],
+                                ))
                             || args.len() != operation.arity()
                             || args.iter().enumerate().any(|(index, argument)| {
                                 !operation.accepts_resolved(index, &argument.ty, &type_arguments[0])
@@ -434,7 +441,11 @@ impl HirValidator<'_> {
                                 ));
                             }
                         } else if parameter.ownership == OwnershipMode::Borrow
-                            && crate::vec_ops::resolved_copy_vec(&parameter.ty)
+                            && (crate::vec_ops::resolved_copy_vec(&parameter.ty)
+                                || crate::hir::copy_record_collection::is_vec(
+                                    &self.program.declarations,
+                                    &parameter.ty,
+                                ))
                         {
                             if parameter.ty != argument.ty
                                 || !matches!(&argument.kind, ResolvedExprKind::Place(place)
@@ -464,11 +475,23 @@ impl HirValidator<'_> {
                 ResolvedExprKind::Upcast { .. } => {
                     return Err(hir_error("while loops cannot contain inheritance upcasts"));
                 }
-                ResolvedExprKind::Project { .. } => {
-                    return Err(hir_error("while loops cannot project record fields"));
+                ResolvedExprKind::Project { base, .. } => {
+                    if !crate::hir::copy_record_collection::admitted(
+                        &self.program.declarations,
+                        &base.ty,
+                    ) {
+                        return Err(hir_error("while loops cannot project record fields"));
+                    }
+                    pending.push(base);
                 }
-                ResolvedExprKind::ConstructRecord { .. } => {
-                    return Err(hir_error("while loops cannot construct records"));
+                ResolvedExprKind::ConstructRecord { fields, .. } => {
+                    if !crate::hir::copy_record_collection::admitted(
+                        &self.program.declarations,
+                        &expression.ty,
+                    ) {
+                        return Err(hir_error("while loops cannot construct records"));
+                    }
+                    pending.extend(fields.iter().rev().map(|field| &field.value));
                 }
                 ResolvedExprKind::ConstructVariant { fields, .. } => {
                     if expression.ownership != OwnershipMode::Value

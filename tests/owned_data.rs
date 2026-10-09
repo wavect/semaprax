@@ -92,3 +92,6 @@ mod vec_loop_renewal;
 
 #[path = "owned_data/vec_sort.rs"]
 mod vec_sort;
+
+#[path = "owned_data/copy_record_vec.rs"]
+mod copy_record_vec;

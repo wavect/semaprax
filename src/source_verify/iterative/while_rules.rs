@@ -321,7 +321,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     if let Some(operation) = vec_operation {
                         if !operation.admitted_in_while()
                             || type_arguments.len() != 1
-                            || !crate::vec_ops::ast_element_is_admitted(&type_arguments[0])
+                            || !(crate::vec_ops::ast_element_is_admitted(&type_arguments[0])
+                                || crate::source_verify::declared_type::copy_record_collection::source_admitted(self.program, &type_arguments[0]))
                             || args.len() != operation.arity()
                         {
                             self.diagnostics.push(error(
@@ -424,23 +425,30 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     ));
                     results.push(Err(()));
                 }
-                ExprKind::Project { .. } => {
-                    self.diagnostics.push(error(
-                        self.program,
-                        "SPX-T252",
-                        "record field projection is not yet admitted in while bodies",
-                        expression.span,
-                    ));
-                    results.push(Err(()));
-                }
-                ExprKind::ConstructRecord { .. } => {
-                    self.diagnostics.push(error(
-                        self.program,
-                        "SPX-T252",
-                        "record construction is not yet admitted in while bodies",
-                        expression.span,
-                    ));
-                    results.push(Err(()));
+                ExprKind::Project { base, .. } => frames.push(Frame::Expression(base)),
+                ExprKind::ConstructRecord {
+                    type_name,
+                    type_arguments,
+                    fields,
+                    ..
+                } => {
+                    let ty = Type::Named {
+                        name: type_name.clone(),
+                        arguments: type_arguments.clone(),
+                    };
+                    if crate::source_verify::declared_type::copy_record_collection::admitted(
+                        self.types, &ty,
+                    ) {
+                        frames.push(Frame::FieldsNext { fields, next: 0 });
+                    } else {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T252",
+                            "record construction is not yet admitted in while bodies",
+                            expression.span,
+                        ));
+                        results.push(Err(()));
+                    }
                 }
                 ExprKind::ConstructVariant {
                     type_name,

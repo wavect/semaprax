@@ -157,6 +157,7 @@ pub(crate) fn is_owned_bounded_vec_type(ty: &ResolvedType) -> bool {
             if declaration.as_str() == crate::prelude::VEC_ID
                 && arguments.len() == 1
                 && crate::vec_ops::resolved_vec_element_is_admitted(&arguments[0])
+                        || crate::hir::copy_record_collection::admitted(&program.declarations, &arguments[0])
     )
 }
 
@@ -493,6 +494,7 @@ pub(crate) fn type_needs_resource_cleanup(
                 if declaration.as_str() == crate::prelude::VEC_ID
                     && arguments.len() == 1
                     && (crate::vec_ops::resolved_vec_element_is_admitted(&arguments[0])
+                        || crate::hir::copy_record_collection::admitted(&program.declarations, &arguments[0])
                         || crate::hir::owned_record_collection::
                             is_admitted_owned_record_collection_element(
                                 &program.declarations,
@@ -850,6 +852,10 @@ impl InventoryBuilder<'_> {
                     }
                     if is_owned_bounded_vec_type(ty)
                         || crate::hir::owned_record_collection::is_owned_record_vec_type(
+                            &self.program.declarations,
+                            ty,
+                        )
+                        || crate::hir::copy_record_collection::is_vec(
                             &self.program.declarations,
                             ty,
                         )

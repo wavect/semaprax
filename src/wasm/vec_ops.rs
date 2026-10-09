@@ -15,6 +15,7 @@ use crate::hir::{ResolvedProgram, ResolvedType};
 /// would silently change both lanes at once.
 pub(crate) fn is_wasm_owned_vec_type(program: &ResolvedProgram, ty: &ResolvedType) -> bool {
     crate::cleanup::is_owned_bounded_vec_type(ty)
+        || crate::hir::copy_record_collection::is_vec(&program.declarations, ty)
         || crate::hir::owned_record_collection::is_owned_record_vec_type(&program.declarations, ty)
 }
 
@@ -92,37 +93,38 @@ pub(crate) fn program_uses_record_vec(program: &ResolvedProgram) -> bool {
 }
 
 pub(crate) fn program_uses_extended_vec(program: &ResolvedProgram) -> bool {
-    program
-        .functions
-        .iter()
-        .chain(
-            program
-                .function_instances
-                .iter()
-                .map(|instance| &instance.function),
-        )
-        .any(|function| {
-            std::iter::once(&function.body)
-                .chain(function.requires.iter())
-                .chain(function.ensures.iter())
-                .any(|expression| {
-                    let mut found = false;
-                    crate::hir::visit_resolved_calls(
-                        expression,
-                        &mut |callee, instance, type_arguments| {
-                            found |= instance.is_none()
-                                && type_arguments.len() == 1
-                                && matches!(
-                                    crate::vec_ops::by_id(callee.as_str()),
-                                    Some(
-                                        crate::vec_ops::VecOp::ReserveExact
-                                            | crate::vec_ops::VecOp::Set
-                                            | crate::vec_ops::VecOp::Clear
-                                    )
-                                );
-                        },
-                    );
-                    found
-                })
-        })
+    crate::hir::copy_record_collection::program_uses(program)
+        || program
+            .functions
+            .iter()
+            .chain(
+                program
+                    .function_instances
+                    .iter()
+                    .map(|instance| &instance.function),
+            )
+            .any(|function| {
+                std::iter::once(&function.body)
+                    .chain(function.requires.iter())
+                    .chain(function.ensures.iter())
+                    .any(|expression| {
+                        let mut found = false;
+                        crate::hir::visit_resolved_calls(
+                            expression,
+                            &mut |callee, instance, type_arguments| {
+                                found |= instance.is_none()
+                                    && type_arguments.len() == 1
+                                    && matches!(
+                                        crate::vec_ops::by_id(callee.as_str()),
+                                        Some(
+                                            crate::vec_ops::VecOp::ReserveExact
+                                                | crate::vec_ops::VecOp::Set
+                                                | crate::vec_ops::VecOp::Clear
+                                        )
+                                    );
+                            },
+                        );
+                        found
+                    })
+            })
 }

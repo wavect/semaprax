@@ -75,6 +75,7 @@ mod box_ops;
 mod scalar_shape;
 pub(super) mod string_runtime;
 mod variant_equality;
+mod vec_copy_record;
 mod vec_owned_payload;
 mod vec_record_payload;
 use crate::wasm::vec_ops::is_wasm_owned_vec_type as owned_vec;
@@ -253,6 +254,7 @@ struct FunctionPlan {
     function_arguments: HashMap<ExpressionId, u32>,
     range_descriptors: HashMap<ExpressionId, u32>,
     range_scratch: Option<RangeScratch>,
+    copy_record_scratch: Option<[u32; 14]>,
     cleanup_flags: std::collections::BTreeMap<crate::cleanup::LivenessFlagId, u32>,
     cleanup_place_flags: std::collections::BTreeMap<crate::cleanup_plan::CleanupPlace, u32>,
     runtime_cleanup_storage: std::collections::BTreeSet<crate::cleanup_plan::StorageId>,
@@ -406,6 +408,15 @@ impl FunctionPlan {
                 })
             })
             .transpose()?;
+        let copy_record_scratch = crate::hir::copy_record_collection::program_uses(program)
+            .then(|| {
+                let mut locals = [0; 14];
+                for local in &mut locals {
+                    *local = add_local(I64)?;
+                }
+                Ok::<_, Diagnostic>(locals)
+            })
+            .transpose()?;
         let has_try = expressions::expression_has_try(&function.body);
         let result_staged = if has_try { Some(add_local(I32)?) } else { None };
         let mut cleanup_flags = std::collections::BTreeMap::new();
@@ -507,6 +518,7 @@ impl FunctionPlan {
             function_arguments: HashMap::new(),
             range_descriptors: HashMap::new(),
             range_scratch,
+            copy_record_scratch,
             cleanup_flags,
             cleanup_place_flags,
             runtime_cleanup_storage: cleanup::runtime_storages(&function.cleanup_plan),
@@ -6370,6 +6382,9 @@ impl Emitter<'_> {
         let [element] = type_arguments else {
             return Err(error("Vec operation requires one exact type argument"));
         };
+        if crate::hir::copy_record_collection::admitted(&self.program.declarations, element) {
+            return self.emit_copy_record_vec(expr, op, element, args);
+        }
         if crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
             &self.program.declarations,
             element,

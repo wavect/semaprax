@@ -17,6 +17,7 @@ pub(in crate::codegen) fn is_native_owned_vec_type(
     ty: &ResolvedType,
 ) -> bool {
     crate::cleanup::is_owned_bounded_vec_type(ty)
+        || crate::hir::copy_record_collection::is_vec(&program.declarations, ty)
         || crate::hir::owned_record_collection::is_owned_record_vec_type(&program.declarations, ty)
 }
 

@@ -186,6 +186,7 @@ pub(super) fn schedule<'expr>(
     }
     let element = resolve_element(resolver, function, op, &type_arguments[0], span)?;
     if !crate::vec_ops::resolved_operation_element_is_admitted(op, &element)
+        && !crate::hir::copy_record_collection::admitted(&resolver.declarations, &element)
         && !crate::vec_ops::resolved_parameter_is_admitted(function, op, &element)
         && !super::generic_collection::source_parameter(resolver.program, function, &element)
         && !super::owned_record_collection::admits_vec_operation_element(
@@ -286,6 +287,7 @@ pub(super) fn resolve_reference(
     }
     let element = resolve_element(resolver, function, op, &type_arguments[0], span)?;
     if !crate::vec_ops::resolved_operation_element_is_admitted(op, &element)
+        && !crate::hir::copy_record_collection::admitted(&resolver.declarations, &element)
         && !crate::vec_ops::resolved_parameter_is_admitted(function, op, &element)
         && !super::generic_collection::source_parameter(resolver.program, function, &element)
         && !super::owned_record_collection::admits_vec_operation_element(

@@ -354,7 +354,11 @@ pub(super) fn resolved_call_params(
                     "cleanup bounded Vec call has incorrect type arity",
                 ));
             };
-            return Ok(crate::vec_ops::resolved_params(op, element));
+            return Ok(crate::vec_ops::resolved_params_in(
+                &program.declarations,
+                op,
+                element,
+            ));
         }
         if let Some(op) = crate::box_ops::by_id(callee.as_str()) {
             let [element] = type_arguments else {

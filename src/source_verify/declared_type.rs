@@ -272,6 +272,10 @@ pub(super) fn check_declared_type(
         let admitted_vec = name == "Vec"
             && arguments.len() == 1
             && (crate::vec_ops::ast_vec_element_is_admitted(&arguments[0])
+                || crate::source_verify::declared_type::copy_record_collection::admitted(
+                    types,
+                    &arguments[0],
+                )
                 || owned_record_collection::is_admitted_owned_record_collection_element(
                     types,
                     &arguments[0],
@@ -1383,6 +1387,7 @@ pub(super) mod generic_result;
 pub(super) mod generic_variant;
 pub(super) mod string_record;
 
+pub(crate) mod copy_record_collection;
 pub(super) mod owned_record_collection;
 
 /// Ordinary resource-free record algebra may return a Copy value or transfer

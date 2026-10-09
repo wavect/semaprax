@@ -265,7 +265,7 @@ impl Resolver<'_> {
                     if let Some(operation) = vec_operation {
                         if !operation.admitted_in_while()
                             || type_arguments.len() != 1
-                            || !(crate::vec_ops::ast_element_is_admitted(&type_arguments[0]) || generic.is_some_and(|f| matches!(&type_arguments[0], Type::Named { name, arguments } if arguments.is_empty() && f.type_parameters.iter().any(|parameter| parameter.name == *name))))
+                            || !(crate::vec_ops::ast_element_is_admitted(&type_arguments[0]) || crate::source_verify::declared_type::copy_record_collection::source_admitted(self.program, &type_arguments[0]) || generic.is_some_and(|f| matches!(&type_arguments[0], Type::Named { name, arguments } if arguments.is_empty() && f.type_parameters.iter().any(|parameter| parameter.name == *name))))
                             || args.len() != operation.arity()
                         {
                             return Err(self.error(
@@ -345,19 +345,33 @@ impl Resolver<'_> {
                         expression.span,
                     ));
                 }
-                ExprKind::Project { .. } => {
-                    return Err(self.error(
-                        "SPX-T252",
-                        "record field projection is not yet admitted in while bodies",
-                        expression.span,
-                    ));
-                }
-                ExprKind::ConstructRecord { .. } => {
-                    return Err(self.error(
-                        "SPX-T252",
-                        "record construction is not yet admitted in while bodies",
-                        expression.span,
-                    ));
+                ExprKind::Project { base, .. } => pending.push(Item::Expression(base)),
+                ExprKind::ConstructRecord {
+                    type_name,
+                    type_arguments,
+                    fields,
+                    ..
+                } => {
+                    let ty = Type::Named {
+                        name: type_name.clone(),
+                        arguments: type_arguments.clone(),
+                    };
+                    if !crate::source_verify::declared_type::copy_record_collection::source_admitted(
+                        self.program,
+                        &ty,
+                    ) {
+                        return Err(self.error(
+                            "SPX-T252",
+                            "record construction is not yet admitted in while bodies",
+                            expression.span,
+                        ));
+                    }
+                    pending.extend(
+                        fields
+                            .iter()
+                            .rev()
+                            .map(|field| Item::Expression(&field.value)),
+                    );
                 }
                 ExprKind::ConstructVariant {
                     type_name,

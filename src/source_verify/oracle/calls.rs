@@ -221,6 +221,7 @@ pub(super) fn oracle_call(
                     && !crate::vec_ops::source_parameter_is_admitted(program, current, op, ty)
                     && !crate::source_verify::declared_type::owned_record_collection::
                         admits_vec_operation_element(types, op, ty)
+                                && !crate::source_verify::declared_type::copy_record_collection::admitted(types, ty)
             })
         {
             diagnostics.push(error(

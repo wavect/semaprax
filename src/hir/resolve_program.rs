@@ -1098,6 +1098,7 @@ impl Resolver<'_> {
                         let admitted_vec = declaration.as_str() == crate::prelude::VEC_ID
                             && matches!(resolved.as_slice(), [argument]
                             if crate::vec_ops::resolved_vec_element_is_admitted(argument)
+                                || crate::hir::copy_record_collection::admitted(&self.declarations, argument)
                                 || crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
                                     &self.declarations,
                                     argument,
@@ -1239,6 +1240,7 @@ impl Resolver<'_> {
             || (!crate::iterator_ops::is_iter(&instance)
                 && !crate::iterator_ops::is_step(&instance)
                 && !owned_record_vec
+                && !super::copy_record_collection::is_vec(&self.declarations, &instance)
                 && !transparent_vec
                 && !specialized_vec_wrapper
                 && !transparent_box

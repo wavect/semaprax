@@ -64,6 +64,7 @@ pub(super) fn is_type(
     declaration.as_str() == crate::prelude::VEC_ID
         && arguments.len() == 1
         && (crate::vec_ops::resolved_vec_element_is_admitted(&arguments[0])
+            || crate::hir::copy_record_collection::admitted(declarations, &arguments[0])
             || crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
                 declarations,
                 &arguments[0],
@@ -75,6 +76,7 @@ pub(super) fn is_type(
 /// executes.
 pub(super) fn is_owned_vec_carrier(program: &ResolvedProgram, ty: &ResolvedType) -> bool {
     crate::cleanup::is_owned_bounded_vec_type(ty)
+        || crate::hir::copy_record_collection::is_vec(&program.declarations, ty)
         || crate::hir::owned_record_collection::is_owned_record_vec_type(&program.declarations, ty)
 }
 
@@ -95,6 +97,7 @@ pub(super) fn signature(
     if instance.is_some()
         || type_arguments.len() != 1
         || !(crate::vec_ops::resolved_operation_element_is_admitted(op, &type_arguments[0])
+            || crate::hir::copy_record_collection::admitted(declarations, &type_arguments[0])
             || crate::hir::owned_record_collection::admits_vec_operation_element(
                 declarations,
                 op,
@@ -105,7 +108,7 @@ pub(super) fn signature(
         return Err(hir_error("invalid vector operation call shape"));
     }
     Ok(Some((
-        crate::vec_ops::resolved_params(op, &type_arguments[0]),
+        crate::vec_ops::resolved_params_in(declarations, op, &type_arguments[0]),
         op.resolved_return_type(&type_arguments[0]),
     )))
 }

@@ -386,6 +386,21 @@ pub(crate) fn resolved_params(op: VecOp, element: &ResolvedType) -> Vec<Resolved
         .collect()
 }
 
+/// Resolve the nominal element mode from authenticated declaration facts.
+pub(crate) fn resolved_params_in(
+    declarations: &crate::hir::DeclarationIndex,
+    op: VecOp,
+    element: &ResolvedType,
+) -> Vec<ResolvedParam> {
+    let mut params = resolved_params(op, element);
+    if crate::hir::copy_record_collection::admitted(declarations, element) {
+        for (index, parameter) in params.iter_mut().enumerate() {
+            parameter.ownership = op.param_ownership(index);
+        }
+    }
+    params
+}
+
 /// True when the source requests the owning Bytes Vec profile. An authored
 /// `Vec` declaration remains ordinary source meaning.
 pub(crate) fn program_uses_owned_payload(program: &crate::ast::Program) -> bool {
@@ -526,7 +541,7 @@ pub(crate) fn is_same_owner_reassignment_hir(
         })
     };
     op.is_some_and(|op| args.len() == op.arity())
-        && matches!(type_arguments.as_slice(), [argument] if resolved_vec_element_is_admitted(argument))
+        && matches!(type_arguments.as_slice(), [argument] if resolved_vec_element_is_admitted(argument) || crate::hir::copy_record_collection::admitted(&program.declarations, argument))
         && matches!(&args[0].kind, ResolvedExprKind::Place(place)
             if &place.root == owner && place.projections.is_empty())
 }
@@ -562,7 +577,7 @@ pub(crate) fn is_same_owner_reassignment_hir_source(
         })
     };
     op.is_some_and(|op| args.len() == op.arity())
-        && matches!(type_arguments.as_slice(), [argument] if resolved_vec_element_is_admitted(argument))
+        && matches!(type_arguments.as_slice(), [argument] if resolved_vec_element_is_admitted(argument) || crate::source_verify::declared_type::copy_record_collection::resolved_source_admitted(program, argument))
         && matches!(&args[0].kind, ResolvedExprKind::Place(place)
             if &place.root == owner && place.projections.is_empty())
 }

@@ -21,13 +21,19 @@ use crate::source_verify::is_scalar_source_type;
 pub(crate) fn ast_param_admitted(program: &Program, mode: ParamMode, ty: &Type) -> bool {
     match mode {
         ParamMode::Value => {
-            ast_copy_variant(program, ty) || is_scalar_source_type(ty) || *ty == Type::String
+            ast_copy_variant(program, ty)
+                || crate::source_verify::declared_type::copy_record_collection::source_admitted(
+                    program, ty,
+                )
+                || is_scalar_source_type(ty)
+                || *ty == Type::String
         }
         ParamMode::Own => *ty == Type::String || crate::map_ops::ast_collection(ty),
         ParamMode::Borrow => {
             matches!(ty, Type::SliceU8 | Type::Str)
                 || crate::map_ops::ast_collection(ty)
                 || crate::vec_ops::ast_copy_vec(ty)
+                || matches!(ty, Type::Named { name, arguments } if name == "Vec" && matches!(arguments.as_slice(), [element] if crate::source_verify::declared_type::copy_record_collection::source_admitted(program, element)))
         }
         ParamMode::Shared => false,
     }
@@ -63,6 +69,7 @@ pub(crate) fn ast_result_admitted(program: &Program, ty: &Type) -> bool {
     is_scalar_source_type(ty)
         || *ty == Type::String
         || ast_copy_variant(program, ty)
+        || crate::source_verify::declared_type::copy_record_collection::source_admitted(program, ty)
         || crate::map_ops::ast_collection(ty)
 }
 
@@ -77,12 +84,14 @@ pub(crate) fn resolved_param_admitted(
             crate::hir::is_scalar_resolved_type(ty)
                 || *ty == ResolvedType::String
                 || resolved_match_scrutinee_admitted(declarations, ty)
+                || crate::hir::copy_record_collection::admitted(declarations, ty)
         }
         OwnershipMode::Own => *ty == ResolvedType::String || crate::map_ops::is_collection(ty),
         OwnershipMode::Borrow => {
             matches!(ty, ResolvedType::SliceU8 | ResolvedType::Str)
                 || crate::map_ops::is_collection(ty)
                 || crate::vec_ops::resolved_copy_vec(ty)
+                || crate::hir::copy_record_collection::is_vec(declarations, ty)
         }
         OwnershipMode::Shared => false,
     }
@@ -96,6 +105,7 @@ pub(crate) fn resolved_result_admitted(
     crate::hir::is_scalar_resolved_type(ty)
         || *ty == ResolvedType::String
         || resolved_match_scrutinee_admitted(declarations, ty)
+        || crate::hir::copy_record_collection::admitted(declarations, ty)
         || crate::map_ops::is_collection(ty)
 }
 

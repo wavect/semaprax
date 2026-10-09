@@ -101,6 +101,7 @@ fn derive(
                         &program.declarations,
                         &ty,
                     )
+                    || crate::hir::copy_record_collection::is_vec(&program.declarations, &ty)
                 {
                     charge_leaf(function, budget)?;
                     shapes.push(FieldLivenessShape::Leaf {

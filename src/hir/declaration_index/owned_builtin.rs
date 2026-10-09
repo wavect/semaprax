@@ -17,6 +17,7 @@ pub(super) fn owned_builtin_facts(
     let prefix = match declaration.as_str() {
         crate::prelude::VEC_ID
             if crate::vec_ops::resolved_vec_element_is_admitted(element)
+                || crate::hir::copy_record_collection::admitted(declarations, element)
                 || crate::hir::owned_record_collection::
                     is_admitted_owned_record_collection_element(declarations, element) =>
         {

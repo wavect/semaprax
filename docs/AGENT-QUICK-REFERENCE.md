@@ -710,7 +710,10 @@ and [Project v7](PROJECT-MANIFEST-V1.md#additive-project-manifest-v7-line-comman
 
 Source-library CLIs use table-manifest `source-command.v1`, empty web exports,
 the exact `[command]` main ID, `argv-utf8+file-text.v1`, sorted capabilities,
-and `native64`; other targets refuse. [Project v26](PROJECT-MANIFEST-V26.md).
+and `native64`; Web, Wasm, and npm command targets refuse. The ordinary Project
+interpreter has no argv/file provider, while `semaprax test --target native`
+can execute the authenticated test module. [Project v26](PROJECT-MANIFEST-V26.md),
+[Project Native Tests v1](PROJECT-NATIVE-TEST-V1.md).
 V28 `source-command.resource-output.v1` keeps v26 file quotas but raises String,
 authenticated borrowed text, and combined staged append output to 1 MiB.
 [Project v28](PROJECT-MANIFEST-V28.md).
@@ -1122,7 +1125,7 @@ Replace a 256-arm i64-to-byte or byte-to-char match with
 | use std::io;|`SPX-G170`|Built-in operations need no import. For a std.* source package, declare its Project dependency and import declarations by stable ID|
 | factory/record function import without its exact type import|`SPX-G172`|Add the direct `use type @id("…") from module as Type;` shown in help, including exposed nested types; inferred result types do not grant import authority|
 | noncanonical Project source|`SPX-G170`|Run `semaprax fmt <manifest>`; if manifest layout itself blocks discovery, first run `semaprax fmt --manifest <manifest>`, then retry|
-| interpreter run of a `source-command.v1` Project|`SPX-F102`|Project interpreter has no argv/file provider. Build with `semaprax build <manifest> --target native -o <fresh-path>`, then run the binary from the Project directory with its arguments|
+| interpreter run/test of a `source-command.v1` or `source-command.resource-output.v1` Project|`SPX-F102`|The ordinary Project interpreter has no argv/file provider. Build the command with `semaprax build <manifest> --target native -o <fresh-path>` and run it from the Project directory; run declared native test roots with `semaprax test <project> --target native`. See [Project Native Tests v1](PROJECT-NATIVE-TEST-V1.md)|
 | rebuild to existing output|`SPX-I307`|Fresh --output; remove only after confirming it is your artifact. Never overwrite|
 | f()? in main|`SPX-T218`|Only Result propagates; match in main|
 | array literal|`SPX-T262`|Arrays are bytes; use Vec<i64>|
@@ -1289,7 +1292,12 @@ require their specific HIR or cleanup fix, not raised limits.
 
 A test module's `main` returns 0 on success. Each `@id`'d `fn test_<name>() ->
 i64` runs independently. Failures report stable ID and outcome; contract
-failures include clause and argument values. See [Project Test Cases v1](PROJECT-TEST-CASES-V1.md).
+failures include clause and argument values. The ordinary Project route uses
+the interpreter. For Project v26/v28 source-command profiles, opt into
+authenticated native test roots with `semaprax test <project> --target native`;
+native timeout and combined-output bounds are documented in
+[Project Native Tests v1](PROJECT-NATIVE-TEST-V1.md). See also
+[Project Test Cases v1](PROJECT-TEST-CASES-V1.md).
 
 Use `semaprax help library` to list modules, `semaprax help library all` for
 the offline [catalog](STANDARD-LIBRARY-CATALOG.md), or
@@ -1304,8 +1312,10 @@ generic ABI. [Package Manifest v1](PACKAGE-MANIFEST-V1.md) owns table layout;
 
 `semaprax new <dir> --template source-command-file-text` creates a v26 tables
 Project; `project-scaffold` uses the same template. It selects `source-command.v1`,
-`argv-utf8+file-text.v1`, and `native64`; interpreter, Web, Wasm, and npm
-refuse it. `doctor --profile` reports support; it does not select profiles.
+`argv-utf8+file-text.v1`, and `native64`; Web, Wasm, and npm command targets
+refuse it. The ordinary interpreter `run`/`test` routes retain `SPX-F102`;
+use `semaprax test . --target native` for the native test route.
+`doctor --profile` reports support; it does not select profiles.
 Opt in to v28 by setting `[package] profile =
 "source-command.resource-output.v1"` in the tables manifest; raw-source
 commands still select frozen v26 `source-command.v1`. V28 keeps its ABI:

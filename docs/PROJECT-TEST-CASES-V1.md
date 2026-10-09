@@ -11,8 +11,10 @@ contributors.
 
 This reference defines two additions to the reference interpreter's project
 runner: named cases in the manifest-declared test module, and contract-failure
-details accompanying a language failure. It extends
-the `run`/`test` contract in [Project Manifest v1](PROJECT-MANIFEST-V1.md)
+details accompanying a language failure. The separate opt-in native route for
+source-command Projects is defined by
+[Project Native Tests v1](PROJECT-NATIVE-TEST-V1.md). This reference extends the
+`run`/`test` contract in [Project Manifest v1](PROJECT-MANIFEST-V1.md)
 without changing the envelope schema string, the normalized status object,
 the entry closure, or the test module's `main`.
 

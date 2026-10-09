@@ -182,6 +182,22 @@ semaprax build semaprax.toml --target web -o dist/web
 semaprax lock semaprax.toml
 ```
 
+For the native-only Project v26 and v28 source-command profiles, the ordinary
+interpreter test route retains `SPX-F102`. Use the explicit native target to
+compile and run the authenticated test module's `main` and selected named
+cases:
+
+```sh
+semaprax test semaprax.toml --target native
+semaprax test semaprax.toml --target native --json \
+  --native-timeout-ms 30000 --native-max-output-bytes 131072
+```
+
+Native tests default to a 10,000 ms timeout and a 65,536-byte combined
+stdout/stderr limit per root. The configurable maxima are 600,000 ms and
+1,048,576 bytes. Native tests do not accept interpreter `--max-steps` or
+`--max-bytes`; see [Project Native Tests v1](PROJECT-NATIVE-TEST-V1.md).
+
 A directory operand selects its `semaprax.toml`, so `semaprax run .` works.
 Only `--manifest-path` is taken literally.
 

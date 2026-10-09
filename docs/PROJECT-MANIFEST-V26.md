@@ -95,8 +95,10 @@ invocation authority. Public Wasm or owned-data descriptors are not constructed.
 
 `native64` is the only target matrix. Other matrices fail manifest admission;
 CLI target selection retains `SPX-J122`. Direct Web/npm/test-Wasm routes refuse
-with `SPX-W120`, and Project interpreter entry/test/cancellable execution refuses
-with `SPX-F102`: those routes have no v26 invocation-owned argv/file provider.
+with `SPX-W120`, and Project interpreter entry/test/cancellable execution retains
+`SPX-F102`: those routes have no v26 invocation-owned argv/file provider.
+The opt-in native test route is separately specified by
+[Project Native Tests v1](PROJECT-NATIVE-TEST-V1.md).
 The old four-effect single-file selector and `owned-data-api.v1` remain unchanged.
 
 Source authentication, full workspace validation, immutable Project generations,

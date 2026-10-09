@@ -57,7 +57,8 @@ and project `build` shapes so their targets do not imply unsupported input
 capabilities. Source build shapes separately show native commands, native-callable
 functions, and Wasm/web exports. Only the Wasm/web form names `--profile`;
 native text support is selected from source. Those shapes also show `--json`
-and the `--output` spelling.
+and the `--output` spelling. Scoped `test` help separates interpreter limits
+from the native Project route and its per-process timeout and output limits.
 Do not parse a guided shape as an admission rule.
 
 ## Formatter

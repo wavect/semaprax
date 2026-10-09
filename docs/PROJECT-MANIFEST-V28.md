@@ -82,7 +82,9 @@ heap-allocation quota.
 ## Targets and preservation
 
 Only `native64` is admitted. Interpreter execution retains `SPX-F102`; Web,
-Wasm, and npm retain `SPX-W120` before artifacts. The manifest, lock, semantic
+Wasm, and npm retain `SPX-W120` before artifacts. The opt-in native Project
+test route is separately specified by
+[Project Native Tests v1](PROJECT-NATIVE-TEST-V1.md). The manifest, lock, semantic
 graph, Project digest, held-source checks, and fresh native publication bind
 the v28 profile and schema exactly. The project graph's
 `source_command_resource_output` object records the 1 MiB String, authenticated

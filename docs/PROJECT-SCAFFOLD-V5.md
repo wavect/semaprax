@@ -42,7 +42,10 @@ semaprax build --manifest-path semaprax.toml --target native --output app
 Project v26 deliberately refuses interpreter test/run with `SPX-F102` and
 Web, Wasm, and npm targets with `SPX-W120`. Scaffold derivation performs the
 full project check before accepting that exact interpreter refusal; the native
-Project v26 gate owns executable behavior.
+Project v26 gate owns executable behavior. Use
+`semaprax test . --target native` for the declared test module; plain
+`semaprax test .` still selects the interpreter route. See
+[Project Native Tests v1](PROJECT-NATIVE-TEST-V1.md).
 
 ## Descriptor contract
 

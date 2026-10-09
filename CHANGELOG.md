@@ -6,6 +6,11 @@
   rejection, source-graph bytes and every builder limit/pre-charge. Add encoder
   differential, UTF-8, collision, budget and frozen-graph regressions.
 
+- Add an opt-in bounded native target for Project v26/v28 source-command
+  tests. The route compiles the authenticated test-module roots, enforces
+  per-root timeout and combined-output bounds, and reports
+  `semaprax.native-test.v1`; the current-head executable gate remains pending.
+
 - Avoid rebuilding and hashing the fixed rung-two handoff binding on every
   scalar operation. Authenticate it before immutable publication, retaining
   per-handoff execution and settlement checks and supplied-binding refusals.

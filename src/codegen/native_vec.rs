@@ -34,21 +34,23 @@ pub(super) fn emit_runtime(
 }
 
 pub(super) fn program_uses_vec(program: &crate::hir::ResolvedProgram) -> bool {
-    program
-        .functions
-        .iter()
-        .chain(
-            program
-                .function_instances
-                .iter()
-                .map(|instance| &instance.function),
-        )
-        .any(|function| {
-            crate::codegen::native_emit::is_native_owned_vec_type(program, &function.return_type)
-                || function.params.iter().any(|param| {
+    crate::hir::copy_record_collection::program_uses(program)
+        || program
+            .functions
+            .iter()
+            .chain(
+                program
+                    .function_instances
+                    .iter()
+                    .map(|instance| &instance.function),
+            )
+            .any(|function| {
+                crate::codegen::native_emit::is_native_owned_vec_type(
+                    program,
+                    &function.return_type,
+                ) || function.params.iter().any(|param| {
                     crate::codegen::native_emit::is_native_owned_vec_type(program, &param.ty)
-                })
-                || std::iter::once(&function.body)
+                }) || std::iter::once(&function.body)
                     .chain(function.requires.iter())
                     .chain(function.ensures.iter())
                     .any(|root| {
@@ -63,7 +65,7 @@ pub(super) fn program_uses_vec(program: &crate::hir::ResolvedProgram) -> bool {
                         );
                         found
                     })
-        })
+            })
 }
 
 fn program_uses_extended_ops(program: &crate::hir::ResolvedProgram) -> bool {

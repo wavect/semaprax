@@ -638,6 +638,10 @@ pub(super) fn check_declared_fields<'p>(
                     let is_copy_aggregate = parameters.is_empty()
                         && types.is_admitted_copy_aggregate_variant_field(&field.ty);
                     if !owned_byte_variant
+                        && !super::super::declared_type::collection_outcome::declaration_admitted(
+                            types,
+                            declaration,
+                        )
                         && !owned_string_variant
                         && !owned_byte_record_copy_field_is_admitted(&field.ty)
                         && !is_parameter

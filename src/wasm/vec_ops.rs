@@ -43,44 +43,46 @@ pub(crate) const RECORD_ELEMENT_MAX_CAPACITY: u64 = crate::vec_ops::MAX_OWNED_PA
 const _: () = assert!(RECORD_ELEMENT_MAX_CAPACITY == 4_096);
 
 pub(crate) fn program_uses_vec(program: &ResolvedProgram) -> bool {
-    program
-        .functions
-        .iter()
-        .chain(
-            program
-                .function_instances
-                .iter()
-                .map(|instance| &instance.function),
-        )
-        .any(|function| {
-            is_wasm_owned_vec_type(program, &function.return_type)
-                || crate::iterator_ops::is_iter(&function.return_type)
-                || crate::iterator_ops::is_step(&function.return_type)
-                || function.params.iter().any(|param| {
-                    is_wasm_owned_vec_type(program, &param.ty)
-                        || crate::iterator_ops::is_iter(&param.ty)
-                        || crate::iterator_ops::is_step(&param.ty)
-                })
-                || std::iter::once(&function.body)
-                    .chain(function.requires.iter())
-                    .chain(function.ensures.iter())
-                    .any(|expression| {
-                        if crate::iterator_ops::resolved_expression_uses_iterator(expression) {
-                            return true;
-                        }
-                        let mut found = false;
-                        crate::hir::visit_resolved_calls(
-                            expression,
-                            &mut |callee, instance, type_arguments| {
-                                found |= instance.is_none()
-                                    && type_arguments.len() == 1
-                                    && (crate::vec_ops::by_id(callee.as_str()).is_some()
-                                        || crate::iterator_ops::by_id(callee.as_str()).is_some());
-                            },
-                        );
-                        found
+    crate::hir::copy_record_collection::program_uses(program)
+        || program
+            .functions
+            .iter()
+            .chain(
+                program
+                    .function_instances
+                    .iter()
+                    .map(|instance| &instance.function),
+            )
+            .any(|function| {
+                is_wasm_owned_vec_type(program, &function.return_type)
+                    || crate::iterator_ops::is_iter(&function.return_type)
+                    || crate::iterator_ops::is_step(&function.return_type)
+                    || function.params.iter().any(|param| {
+                        is_wasm_owned_vec_type(program, &param.ty)
+                            || crate::iterator_ops::is_iter(&param.ty)
+                            || crate::iterator_ops::is_step(&param.ty)
                     })
-        })
+                    || std::iter::once(&function.body)
+                        .chain(function.requires.iter())
+                        .chain(function.ensures.iter())
+                        .any(|expression| {
+                            if crate::iterator_ops::resolved_expression_uses_iterator(expression) {
+                                return true;
+                            }
+                            let mut found = false;
+                            crate::hir::visit_resolved_calls(
+                                expression,
+                                &mut |callee, instance, type_arguments| {
+                                    found |= instance.is_none()
+                                        && type_arguments.len() == 1
+                                        && (crate::vec_ops::by_id(callee.as_str()).is_some()
+                                            || crate::iterator_ops::by_id(callee.as_str())
+                                                .is_some());
+                                },
+                            );
+                            found
+                        })
+            })
 }
 
 /// `true` when the program names the SPX-AI-019 owned-record element profile,

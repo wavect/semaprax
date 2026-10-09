@@ -2306,6 +2306,7 @@ fn variant_constructor_is_admitted(
                 == if *declared_ty == ResolvedType::Bytes
                     || *declared_ty == ResolvedType::String
                     || crate::iterator_ops::is_iter(declared_ty)
+                    || hir::copy_record_collection::is_vec(declarations, declared_ty)
                 {
                     hir::OwnershipMode::Own
                 } else {
@@ -2405,6 +2406,7 @@ fn variant_pattern_is_admitted(
                 let expected_ownership = if *declared_ty == ResolvedType::Bytes
                     || *declared_ty == ResolvedType::String
                     || crate::iterator_ops::is_iter(declared_ty)
+                    || hir::copy_record_collection::is_vec(declarations, declared_ty)
                     || (record_iterator_step
                         && hir::owned_record_collection::is_admitted_owned_record_collection_element(
                             declarations,

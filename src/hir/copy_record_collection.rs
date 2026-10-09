@@ -52,16 +52,31 @@ pub(crate) fn capacity(index: &DeclarationIndex, ty: &ResolvedType) -> u64 {
 }
 
 pub(crate) fn program_uses(program: &super::ResolvedProgram) -> bool {
-    program.functions.iter().chain(program.function_instances.iter().map(|instance| &instance.function)).any(|function| {
-        function.params.iter().any(|param| is_vec(&program.declarations, &param.ty))
-            || is_vec(&program.declarations, &function.return_type)
-            || std::iter::once(&function.body).chain(function.requires.iter()).chain(function.ensures.iter()).any(|root| {
-                let mut found = false;
-                super::visit_resolved_calls(root, &mut |callee, instance, types| {
-                    found |= instance.is_none() && crate::vec_ops::by_id(callee.as_str()).is_some()
-                        && matches!(types, [element] if admitted(&program.declarations, element));
-                });
-                found
-            })
-    })
+    let uses = |ty: &ResolvedType| {
+        is_vec(&program.declarations, ty)
+            || super::collection_outcome::admitted(&program.declarations, ty)
+    };
+    program
+        .functions
+        .iter()
+        .chain(program.function_instances.iter().map(|i| &i.function))
+        .any(|f| {
+            if f.params.iter().any(|p| uses(&p.ty)) || uses(&f.return_type) {
+                return true;
+            }
+            let mut pending = std::iter::once(&f.body)
+                .chain(f.requires.iter())
+                .chain(f.ensures.iter())
+                .collect::<Vec<_>>();
+            while let Some(expression) = pending.pop() {
+                if uses(&expression.ty) {
+                    return true;
+                }
+                super::push_resolved_expression_children_in_authored_order(
+                    expression,
+                    &mut pending,
+                );
+            }
+            false
+        })
 }

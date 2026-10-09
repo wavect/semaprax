@@ -262,7 +262,9 @@ pub(super) fn emit_owned_variant_shell(
             if field.size == 0
                 || matches!(
                     field.value_kind,
-                    VariantFieldValueKind::OwnedBytes | VariantFieldValueKind::OwnedString
+                    VariantFieldValueKind::OwnedBytes
+                        | VariantFieldValueKind::OwnedString
+                        | VariantFieldValueKind::OwnedVec
                 )
             {
                 continue;

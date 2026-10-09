@@ -265,7 +265,7 @@ pub(super) fn check_declared_type(
         let admitted_owned_record_template =
             types.is_nested_owned_byte_record_template(&instance, parameters);
         let admitted_owned_variant = (types.is_flat_owned_byte_variant(&instance)
-            || types.is_flat_owned_string_variant(&instance))
+            || types.is_direct_owned_variant(&instance))
             || generic_variant::parameter_slot(&instance, parameters, types);
         let admitted_result_template = name == "Result"
             && matches!(arguments.as_slice(), [Type::Bytes, Type::Named { name, arguments }] | [Type::Named { name, arguments }, Type::Bytes] if arguments.is_empty() && parameters.len() == 1 && parameters.contains(name.as_str()));
@@ -1073,7 +1073,7 @@ pub(super) fn check_ownership_mode(
         }
         return;
     }
-    if types.is_flat_owned_string_variant(&param.ty) {
+    if types.is_direct_owned_variant(&param.ty) {
         if !matches!(param.mode, ParamMode::Own | ParamMode::Borrow) {
             diagnostics.push(
                 error(
@@ -1387,6 +1387,7 @@ pub(super) mod generic_result;
 pub(super) mod generic_variant;
 pub(super) mod string_record;
 
+pub(crate) mod collection_outcome;
 pub(crate) mod copy_record_collection;
 pub(super) mod owned_record_collection;
 

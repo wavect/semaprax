@@ -12,9 +12,8 @@ use super::expr_nodes::{
 use super::ids::{DeclarationId, FunctionExecutionId, ValueId};
 use super::monomorphize::substitute_type;
 use super::nodes::{
-    resolver_admits_flat_owned_byte_variant, resolver_admits_flat_owned_string_variant,
-    DeclarationKind, OwnershipMode, ResolvedBinding, ResolvedFieldDeclaration, ResolvedMatchMode,
-    ResolvedType,
+    resolver_admits_direct_owned_variant, resolver_admits_flat_owned_byte_variant, DeclarationKind,
+    OwnershipMode, ResolvedBinding, ResolvedFieldDeclaration, ResolvedMatchMode, ResolvedType,
 };
 use super::{Binding, Resolver};
 
@@ -49,14 +48,14 @@ impl Resolver<'_> {
             (DeclarationKind::Variant, ResolvedMatchMode::Own) => {
                 (template_variant
                     || resolver_admits_flat_owned_byte_variant(&self.declarations, &scrutinee.ty)
-                    || resolver_admits_flat_owned_string_variant(&self.declarations, &scrutinee.ty))
+                    || resolver_admits_direct_owned_variant(&self.declarations, &scrutinee.ty))
                     && owned
                     && scrutinee.ownership == OwnershipMode::Own
             }
             (DeclarationKind::Variant, ResolvedMatchMode::Borrow) => {
                 (template_variant
                     || resolver_admits_flat_owned_byte_variant(&self.declarations, &scrutinee.ty)
-                    || resolver_admits_flat_owned_string_variant(&self.declarations, &scrutinee.ty)
+                    || resolver_admits_direct_owned_variant(&self.declarations, &scrutinee.ty)
                     || super::workspace_link::native_owner::resolver_ri06_regex_result(
                         self.program,
                         &scrutinee.ty,

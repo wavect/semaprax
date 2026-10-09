@@ -163,10 +163,8 @@ impl HirValidator<'_> {
                     } else if crate::hir::owned_text_record::admitted(
                         param.ty,
                         &self.program.declarations,
-                    ) || resolved_type_is_flat_owned_string_variant(
-                        self.program,
-                        param.ty,
-                    ) {
+                    ) || resolved_type_is_direct_owned_variant(self.program, param.ty)
+                    {
                         matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow)
                             && matches!(
                                 &argument.kind,

@@ -800,6 +800,11 @@ impl<'a> TypeTable<'a> {
     /// Direct, monomorphic owned-string variant profile. `string` is a
     /// uniquely owned leaf, so it is deliberately separate from Bytes and
     /// cannot be selected by a generic instantiation.
+    pub(super) fn is_direct_owned_variant(&self, ty: &Type) -> bool {
+        self.is_flat_owned_string_variant(ty)
+            || super::declared_type::collection_outcome::admitted(self, ty)
+    }
+
     pub(super) fn is_flat_owned_string_variant(&self, ty: &Type) -> bool {
         if let Some(kind) = crate::ast::ImportResult::container_for_type(ty) {
             let index = match kind {

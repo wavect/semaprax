@@ -16,6 +16,8 @@
 - Borrow retained user-function and static String/Str parameter descriptors
   during HIR validation; preserve owning generic signatures, error identities,
   recursive parity checks, and the iterative frame bound.
+- Extend OPT-723’s unqualified collection tranche with independently checked two-case results owning up to two flat Copy-record vectors, private layout/cleanup carriers, and Copy-record variant loop calls. Actual-cardinality, hostile replay and exact floating-payload gates are authored; execution and application/agent qualification remain pending.
+
 - Author Project v29 `language-command-io.stream-data.v2`: independently
   authenticated private Copy-record/Vec transport and exact bounded codec
   outcomes, with unchanged scalar command roots, stream authority and caps.

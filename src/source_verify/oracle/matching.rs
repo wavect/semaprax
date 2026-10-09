@@ -552,7 +552,7 @@ pub(super) fn oracle_match(
             MatchMode::Own
                 if !variant_needs_drop
                     || !(types.is_flat_owned_byte_variant(&scrutinee_value.ty)
-                        || types.is_flat_owned_string_variant(&scrutinee_value.ty))
+                        || types.is_direct_owned_variant(&scrutinee_value.ty))
                     || scrutinee_value.mode != ParamMode::Own =>
             {
                 diagnostics.push(error(
@@ -574,7 +574,7 @@ pub(super) fn oracle_match(
             MatchMode::Borrow
                 if !variant_needs_drop
                     || !(types.is_flat_owned_byte_variant(&scrutinee_value.ty)
-                        || types.is_flat_owned_string_variant(&scrutinee_value.ty)
+                        || types.is_direct_owned_variant(&scrutinee_value.ty)
                         || crate::native_rust_binding::admitted_regex_result(
                             program,
                             &scrutinee_value.ty,

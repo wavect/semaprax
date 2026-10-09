@@ -135,7 +135,10 @@ pub(crate) fn resolved_match_scrutinee_admitted(
             ResolvedType::TypeParameter { index, .. } => arguments
                 .get(*index as usize)
                 .is_some_and(crate::hir::is_scalar_resolved_type),
-            other => crate::hir::is_scalar_resolved_type(other),
+            other => {
+                crate::hir::is_scalar_resolved_type(other)
+                    || crate::hir::copy_record_collection::admitted(declarations, other)
+            }
         })
     })
 }
@@ -169,7 +172,11 @@ pub(crate) fn ast_copy_variant(program: &Program, ty: &Type) -> bool {
     }
     cases.iter().all(|case| {
         case.fields.iter().all(|field| {
-            if is_scalar_source_type(&field.ty) {
+            if is_scalar_source_type(&field.ty)
+                || crate::source_verify::declared_type::copy_record_collection::source_admitted(
+                    program, &field.ty,
+                )
+            {
                 return true;
             }
             let Type::Named {

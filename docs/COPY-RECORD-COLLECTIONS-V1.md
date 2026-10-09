@@ -61,6 +61,35 @@ later failure therefore cleans up the current generation, and only the final
 ordinary group commit transfers the owner to the returned value. Providers
 retain their existing authority/handle validation and capacity limits.
 
+## Private collection results
+
+An explicit monomorphic two-case variant may carry one or two direct
+`Vec<R>` fields across its declaration, with 1–8 fields per case and only
+admitted direct scalars beside those vector fields. This direct outcome owns
+its vectors; `own` transfers and `borrow` inspection use ordinary variant
+patterns, authenticated conditional cleanup leaves and grouped call commits.
+No recursive, generic, String/Bytes-bearing, third-vector, scalar-vector or
+nested-record carrier is added by this profile. The independent source and HIR
+classifiers live in `declared_type/collection_outcome.rs` and
+`hir/collection_outcome.rs`.
+
+Its private native field is the existing 40-byte Vec carrier; Core Wasm stores
+one existing 8-byte host handle. The variant layout distinguishes the owned
+Vec leaf from Copy fields and checks ordinary deterministic layout replay.
+Source syntax, public ABIs, cleanup/graph schemas, host tags and limits remain
+unchanged. The runtime never treats the outcome or vector field as Copy.
+Copy variants containing a flat Copy record can also cross a private loop call
+and be matched in that loop; this adds no owned loop-return or renewal rule.
+
+The `copy_record_vec::outcome` gate fills the actual cardinalities of 256
+six-field records and eight two-field identifier spans, then borrows, forwards,
+consumes and drops both success and error results. It tests bounds failure
+with both fields live, refusal of the second allocation, exact graph/source
+round trips and forged ownership. Library `collection_outcome` gates separately
+mutate declaration origin, source-versus-index field type and cached type facts,
+and retain v27 refusal. These are authored qualification gates, not evidence of
+a completed application or measured agent efficiency.
+
 ## Qualification and remaining application boundary
 
 The authored `owned_data::copy_record_vec` gates cover a six-field scheduling

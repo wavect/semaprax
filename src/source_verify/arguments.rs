@@ -128,7 +128,7 @@ pub(super) fn check_argument_ownership(
             if param.ty != Type::Bytes
                 && (types.is_nested_owned_byte_record(&param.ty)
                     || types.is_flat_owned_byte_variant(&param.ty)
-                    || types.is_flat_owned_string_variant(&param.ty)) =>
+                    || types.is_direct_owned_variant(&param.ty)) =>
         {
             if !matches!(actual.mode, ParamMode::Own | ParamMode::Borrow)
                 || !source_place(arg, variables, types)

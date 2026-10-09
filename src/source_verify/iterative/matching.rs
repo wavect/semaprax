@@ -469,7 +469,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 MatchMode::Own
                     if !variant_needs_drop
                         || !(self.types.is_flat_owned_byte_variant(&scrutinee_value.ty)
-                            || self.types.is_flat_owned_string_variant(&scrutinee_value.ty))
+                            || self.types.is_direct_owned_variant(&scrutinee_value.ty))
                         || scrutinee_value.mode != ParamMode::Own =>
                 {
                     self.diagnostics.push(error(
@@ -495,7 +495,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 MatchMode::Borrow
                     if !variant_needs_drop
                         || !(self.types.is_flat_owned_byte_variant(&scrutinee_value.ty)
-                            || self.types.is_flat_owned_string_variant(&scrutinee_value.ty)
+                            || self.types.is_direct_owned_variant(&scrutinee_value.ty)
                             || crate::native_rust_binding::admitted_regex_result(
                                 self.program,
                                 &scrutinee_value.ty,

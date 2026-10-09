@@ -29,11 +29,16 @@ Authenticated private helpers additionally admit:
   fields in declaration order.
 - An explicit monomorphic two-case owned codec outcome whose success case has
   exactly one `string` and whose refusal case has exactly one `usize`.
+- The direct collection outcome in [Copy Record Collections v1](COPY-RECORD-COLLECTIONS-V1.md):
+  exactly two cases, 1–8 fields per case, one or two direct `Vec<R>` fields
+  across the declaration, and direct scalar siblings. This supports the real
+  decoder result with patient and identifier-span collections. Its private
+  parameters use Own or Borrow, and its result is owned.
 
 Either case order is admitted. Names and a generator's provenance confer no
 special authority; types, field order, ownership and persistent declarations
 are independently checked. Codec outcomes use Value and Own boundaries
-respectively. No generic, arbitrary nested-record, arbitrary variant, or
+respectively; direct collection outcomes are affine. No generic, arbitrary nested-record, arbitrary variant, or
 owned-record collection profile is implied. Record invariants whose synthesized
 helper closure falls outside explicit authored functions remain refused here.
 

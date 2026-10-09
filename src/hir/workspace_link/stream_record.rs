@@ -3,6 +3,9 @@ use super::*;
 
 /// Codec outcomes have no name-based privilege: only these exact closed shapes qualify.
 fn codec_mode(index: &DeclarationIndex, ty: &ResolvedType) -> Option<OwnershipMode> {
+    if super::super::collection_outcome::admitted(index, ty) {
+        return Some(OwnershipMode::Own);
+    }
     let ResolvedType::Nominal {
         declaration,
         arguments,
@@ -47,6 +50,8 @@ pub(crate) fn stream_record_parameter_admitted(
 ) -> bool {
     super::stdin_stream::stream_data_parameter_admitted(p)
         || codec_mode(index, &p.ty) == Some(p.ownership)
+        || (p.ownership == OwnershipMode::Borrow
+            && super::super::collection_outcome::admitted(index, &p.ty))
         || (p.ownership == OwnershipMode::Value
             && super::super::copy_record_collection::admitted(index, &p.ty))
         || (matches!(p.ownership, OwnershipMode::Own | OwnershipMode::Borrow)

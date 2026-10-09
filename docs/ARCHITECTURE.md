@@ -108,7 +108,11 @@ maps use that same selector. Legacy interpreter and Project profiles retain
 their existing closed maps; this selection grants no host effects or authority.
 
 `hir/copy_record_collection.rs` and the independent source classifier own the
-bounded flat Copy-record Vec element shape. Native lowering lives under
+bounded flat Copy-record Vec element shape. `hir/collection_outcome.rs` and
+`source_verify/declared_type/collection_outcome.rs` independently classify direct
+two-case results with one or two of these owned vectors; ordinary variant
+layout and conditional cleanup own transport, without new graph authority.
+Native lowering lives under
 `native_emit/expression/vec_ops/copy_record.rs`; Core Wasm lowers the same
 checked field words in `wasm/aggregate/vec_copy_record.rs`. Both retain one
 canonical Vec owner and the existing scalar storage ceiling. Project/profile

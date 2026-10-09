@@ -48,6 +48,7 @@ pub(crate) enum VariantFieldValueKind {
     OwnedString,
     OwnedIterator,
     OwnedRecord,
+    OwnedVec,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -391,6 +392,25 @@ fn layout_case(
         } else if concrete_ty == ResolvedType::Bytes {
             let (size, align) = owned_bytes_size_align(target);
             (size, align, VariantFieldValueKind::OwnedBytes)
+        } else if crate::hir::collection_outcome::admitted(
+            &program.declarations,
+            &ResolvedType::Nominal {
+                declaration: variant.clone(),
+                arguments: arguments.to_vec(),
+            },
+        ) && crate::hir::copy_record_collection::is_vec(
+            &program.declarations,
+            &concrete_ty,
+        ) {
+            (
+                if target == VariantTarget::Native64 {
+                    40
+                } else {
+                    8
+                },
+                8,
+                VariantFieldValueKind::OwnedVec,
+            )
         } else if concrete_ty == ResolvedType::String {
             (8, 8, VariantFieldValueKind::OwnedString)
         } else if crate::iterator_ops::is_iter(&concrete_ty) {

@@ -288,9 +288,10 @@ pub(super) fn resolved_type_is_flat_owned_byte_variant(
     )
 }
 
-pub(super) fn resolved_type_is_flat_owned_string_variant(
+pub(super) fn resolved_type_is_direct_owned_variant(
     program: &ResolvedProgram,
     ty: &ResolvedType,
 ) -> bool {
     crate::hir::is_admitted_owned_string_variant(&program.declarations, ty)
+        || crate::hir::collection_outcome::admitted(&program.declarations, ty)
 }

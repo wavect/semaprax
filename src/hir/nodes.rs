@@ -460,13 +460,21 @@ pub(super) fn resolver_admits_flat_owned_string_variant(
     super::type_reachability::is_admitted_owned_string_variant(declarations, ty)
 }
 
+pub(super) fn resolver_admits_direct_owned_variant(
+    declarations: &DeclarationIndex,
+    ty: &ResolvedType,
+) -> bool {
+    resolver_admits_flat_owned_string_variant(declarations, ty)
+        || super::collection_outcome::admitted(declarations, ty)
+}
+
 #[allow(dead_code)]
 pub(super) fn resolver_admits_owned_variant(
     declarations: &DeclarationIndex,
     ty: &ResolvedType,
 ) -> bool {
     resolver_admits_flat_owned_byte_variant(declarations, ty)
-        || resolver_admits_flat_owned_string_variant(declarations, ty)
+        || resolver_admits_direct_owned_variant(declarations, ty)
 }
 
 impl From<ParamMode> for OwnershipMode {

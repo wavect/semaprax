@@ -32,6 +32,23 @@ impl Evaluator<'_> {
             | (Value::Bytes(_), ResolvedType::Bytes)
             | (Value::Map(_), ResolvedType::StringMap)
             | (Value::String(_), ResolvedType::String) => true,
+            (Value::Vec(carrier), expected) => {
+                hir::copy_record_collection::is_vec(self.declarations, expected)
+                    && matches!(expected, ResolvedType::Nominal{arguments,..} if arguments.as_slice()==[carrier.element.clone()])
+                    && carrier.values.len() <= carrier.capacity
+                    && carrier.capacity
+                        <= hir::copy_record_collection::capacity(
+                            self.declarations,
+                            &carrier.element,
+                        ) as usize
+                    && carrier.values.iter().all(|value| {
+                        owned_vec::element_value_matches_type(
+                            self.declarations,
+                            value,
+                            &carrier.element,
+                        )
+                    })
+            }
             (Value::Collection(carrier), expected) => {
                 crate::map_ops::is_collection(expected) && &carrier.ty == expected
             }

@@ -31,8 +31,8 @@ use borrowed_argument::{hir_diagnostic_at_span, hir_error_at_span};
 use call_parameters::CallParameters;
 pub(crate) use type_profiles::resolved_type_contains_owned_bytes;
 use type_profiles::{
-    generic_instance_arguments_are_admitted, resolved_type_is_flat_owned_byte_variant,
-    resolved_type_is_flat_owned_string_variant, template_contains_nested_owned_record_type,
+    generic_instance_arguments_are_admitted, resolved_type_is_direct_owned_variant,
+    resolved_type_is_flat_owned_byte_variant, template_contains_nested_owned_record_type,
     template_has_owned_record_slot, template_ownership, validate_nested_update_base_shape,
 };
 use unsafe_scan::contains_unsafe_boundary;
@@ -944,6 +944,13 @@ impl<'a> HirValidator<'a> {
                 }
             }
             if let ResolvedTypeDeclarationKind::Variant { cases } = &declaration.kind {
+                let collection_outcome = super::collection_outcome::admitted(
+                    &self.program.declarations,
+                    &ResolvedType::Nominal {
+                        declaration: declaration.id.clone(),
+                        arguments: Vec::new(),
+                    },
+                );
                 let owned_byte_variant = declaration.type_parameters.is_empty()
                     && cases
                         .iter()
@@ -1033,6 +1040,7 @@ impl<'a> HirValidator<'a> {
                             ) || matches!(field.ty, ResolvedType::TypeParameter { .. })
                                 || (owned_byte_variant && field.ty == ResolvedType::Bytes)
                                 || (owned_string_variant && field.ty == ResolvedType::String)
+                                || (collection_outcome && super::copy_record_collection::is_vec(&self.program.declarations,&field.ty))
                                 || (declaration.type_parameters.is_empty()
                                     && super::type_reachability::is_admitted_copy_aggregate_variant_field(
                                         &self.program.declarations,
@@ -1072,6 +1080,7 @@ impl<'a> HirValidator<'a> {
                             }
                         }
                         if owned_byte_variant
+                            || collection_outcome
                             || owned_string_variant
                             || crate::iterator_ops::is_step_rest_field(
                                 &declaration.id,
@@ -1146,7 +1155,7 @@ impl<'a> HirValidator<'a> {
                     let cached = self.program.declarations.type_facts(&variant_ty);
                     let recomputed = self.program.declarations.recompute_type_facts(&variant_ty);
                     let valid_facts = cached.as_ref().is_some_and(|facts| {
-                        if owned_byte_variant || owned_string_variant {
+                        if owned_byte_variant || owned_string_variant || collection_outcome {
                             !facts.copy
                                 && !facts.contains_resource
                                 && facts.needs_drop
@@ -5203,7 +5212,7 @@ impl<'a> HirValidator<'a> {
                                 if (resolved_type_is_flat_owned_byte_variant(
                                     self.program,
                                     &scrutinee.ty,
-                                ) || resolved_type_is_flat_owned_string_variant(
+                                ) || resolved_type_is_direct_owned_variant(
                                     self.program,
                                     &scrutinee.ty,
                                 )) && facts.needs_drop
@@ -5216,7 +5225,7 @@ impl<'a> HirValidator<'a> {
                                 if (resolved_type_is_flat_owned_byte_variant(
                                     self.program,
                                     &scrutinee.ty,
-                                ) || resolved_type_is_flat_owned_string_variant(
+                                ) || resolved_type_is_direct_owned_variant(
                                     self.program,
                                     &scrutinee.ty,
                                 ) || regex_result(self.program, &scrutinee.ty))
@@ -7574,7 +7583,7 @@ impl<'a> HirValidator<'a> {
                         if (resolved_type_is_flat_owned_byte_variant(
                             self.program,
                             &scrutinee.ty,
-                        ) || resolved_type_is_flat_owned_string_variant(
+                        ) || resolved_type_is_direct_owned_variant(
                             self.program,
                             &scrutinee.ty,
                         )) && facts.needs_drop
@@ -7587,7 +7596,7 @@ impl<'a> HirValidator<'a> {
                         if (resolved_type_is_flat_owned_byte_variant(
                             self.program,
                             &scrutinee.ty,
-                        ) || resolved_type_is_flat_owned_string_variant(
+                        ) || resolved_type_is_direct_owned_variant(
                             self.program,
                             &scrutinee.ty,
                         ) || regex_result(self.program, &scrutinee.ty))

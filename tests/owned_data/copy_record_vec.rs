@@ -1,6 +1,7 @@
 //! OPT-723: named application records, ordering and settlement on every engine.
 use semaprax::{codegen, graph, hir, interpreter};
 use std::process::Command;
+mod outcome;
 mod runtime;
 
 const DECL: &str = r#"module copy.records;

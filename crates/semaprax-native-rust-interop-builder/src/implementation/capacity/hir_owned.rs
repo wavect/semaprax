@@ -257,8 +257,8 @@ pub(super) fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize
                 pending.extend(args);
             }
             ResolvedExprKind::NativeRustImportCall(call) => {
-                total = total
-                    .checked_add(call.expression.owned_allocation_bytes()?)
+                total = Some(total)
+                    .and_then(|bytes| bytes.checked_add(call.expression.owned_allocation_bytes()?))
                     .and_then(|bytes| bytes.checked_add(call.import.as_str().len()))
                     .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                 add_capacity(
@@ -269,8 +269,8 @@ pub(super) fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize
                 pending.extend(&call.args);
             }
             ResolvedExprKind::HostCommandCall(call) => {
-                total = total
-                    .checked_add(call.expression.owned_allocation_bytes()?)
+                total = Some(total)
+                    .and_then(|bytes| bytes.checked_add(call.expression.owned_allocation_bytes()?))
                     .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                 add_capacity(
                     &mut total,

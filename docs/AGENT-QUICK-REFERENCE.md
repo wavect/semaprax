@@ -1101,6 +1101,7 @@ Replace a 256-arm i64-to-byte or byte-to-char match with
 | Option::Some { value: 1 }|`SPX-T221`|Option<i64>::Some { value: 1 }|
 | index + 1 when index: usize|`SPX-T208`|Literals default to i64; use index + 1usize|
 | unsuffixed i32|`SPX-T232`|Suffix: 5i32|
+| 4i64|`SPX-P003`|Write 4; unsuffixed integers are i64. Explicit suffixes: i32, u8, usize|
 | i64 max+1 / parenthesized MIN negation|`SPX-P003`|One literal: -9223372036854775808/-2147483648i32; spaces trivia, parens separate; -MIN/MIN÷-1 overflow|
 | "a" + "b"|`SPX-T250`|string_concat("a", "b")|
 | literal/String as str arg|`SPX-T205`|Bind String; pass string_as_str(s)|

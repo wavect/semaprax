@@ -143,7 +143,7 @@ pub(super) fn contract_failure(
 /// stable-identity order: zero-parameter `i64` functions with explicit
 /// identities. A `test_` function
 /// of another shape is not a case.
-pub(super) fn case_selection<'a>(
+pub(in crate::project) fn case_selection<'a>(
     snapshot: &'a ProjectRevision,
     program: &'a hir::ResolvedProgram,
     module: &'a str,

@@ -5,7 +5,7 @@
 //! spawns, or invokes a backend. The enclosing authenticated-project operation
 //! retains ownership of the final held-input recheck.
 
-mod cases;
+pub(super) mod cases;
 mod report;
 
 use crate::conformance::NormalizedStatus;

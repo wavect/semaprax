@@ -119,6 +119,14 @@ fn main() -> i64 uses { fs.read, process.args.read, process.stderr.write, proces
 struct Fixture(PathBuf);
 impl Fixture {
     fn new(app: &str, manifest: &str) -> Self {
+        Self::with_tests(
+            app,
+            manifest,
+            "module decimal.tests;\n@id(\"decimal.tests.main\")\nfn main() -> i64 { 0 }\n",
+        )
+    }
+
+    fn with_tests(app: &str, manifest: &str, tests: &str) -> Self {
         static SERIAL: AtomicU64 = AtomicU64::new(0);
         let root = std::env::temp_dir().join(format!(
             "semaprax-source-command-{}-{}",
@@ -128,19 +136,124 @@ impl Fixture {
         std::fs::create_dir(&root).unwrap();
         let root = root.canonicalize().unwrap();
         std::fs::write(root.join("semaprax.toml"), manifest).unwrap();
-        for (path, source) in [
-            ("app.spx", app),
-            (
-                "tests.spx",
-                "module decimal.tests;\n@id(\"decimal.tests.main\")\nfn main() -> i64 { 0 }\n",
-            ),
-        ] {
+        for (path, source) in [("app.spx", app), ("tests.spx", tests)] {
             let path = root.join(path);
             let program = semaprax::parse(source, &path).unwrap();
             std::fs::write(path, semaprax::format::canonical(&program)).unwrap();
         }
         Self(root)
     }
+}
+
+#[test]
+#[cfg_attr(windows, ignore = "native SourceCommand adapter is Unix-only")]
+fn source_command_native_tests_compile_only_declared_test_roots() {
+    let tests = r#"module decimal.tests;
+@id("decimal.tests.main")
+fn main() -> i64 { 0 }
+
+@id("decimal.tests.test_pass")
+fn test_pass() -> i64 { 0 }
+
+@id("decimal.tests.test_fail")
+fn test_fail() -> i64 { 7 }
+
+@id("decimal.tests.test_helper")
+fn test_helper(value: i64) -> i64 { value }
+"#;
+    for manifest in [MANIFEST, RESOURCE_MANIFEST] {
+        let fixture = Fixture::with_tests(APP, manifest, tests);
+        let manifest_path = fixture.0.join("semaprax.toml");
+        project::with_authenticated_project(&manifest_path, |snapshot| {
+            let roots = snapshot.native_test_roots()?;
+            assert_eq!(
+                roots
+                    .iter()
+                    .map(|root| (root.stable_id(), root.is_main()))
+                    .collect::<Vec<_>>(),
+                [
+                    ("decimal.tests.main", true),
+                    ("decimal.tests.test_pass", false),
+                    ("decimal.tests.test_fail", false),
+                ]
+            );
+            assert_eq!(
+                snapshot
+                    .build_native_test("decimal.tests.test_helper", &fixture.0.join("excluded"))
+                    .unwrap_err()[0]
+                    .code,
+                "SPX-G172"
+            );
+            assert!(!fixture.0.join("excluded").exists());
+            for (index, root) in roots.iter().enumerate() {
+                let binary = fixture.0.join(format!("native-test-{index}"));
+                snapshot.build_native_test(root.stable_id(), &binary)?;
+                let result = Command::new(&binary).output().unwrap();
+                assert!(result.status.success(), "{}", root.stable_id());
+                let expected = if root.stable_id() == "decimal.tests.test_fail" {
+                    b"7\n"
+                } else {
+                    b"0\n"
+                };
+                assert_eq!(result.stdout, expected, "{}", root.stable_id());
+                assert!(result.stderr.is_empty());
+                std::fs::remove_file(binary).unwrap();
+            }
+            assert_eq!(
+                snapshot
+                    .execute_test(&ProjectExecutionOptions::default())
+                    .unwrap_err()[0]
+                    .code,
+                "SPX-F102"
+            );
+            Ok(())
+        })
+        .unwrap();
+    }
+}
+
+#[test]
+#[cfg_attr(windows, ignore = "native SourceCommand adapter is Unix-only")]
+fn source_command_native_tests_use_manifest_bounded_argv_and_file_provider() {
+    let tests = r#"module decimal.tests;
+permit { fs.read, process.args.read }
+
+@id("decimal.tests.main")
+fn main() -> i64 uses { process.args.read }
+{
+    if args_len() == 0usize { 0 } else { 1 }
+}
+
+@id("decimal.tests.test_file")
+fn test_file() -> i64 uses { fs.read }
+{
+    let path = "digits";
+    let view = string_as_str(path);
+    let contents = file_read_text(view);
+    if string_len(contents) == 4usize { 0 } else { 1 }
+}
+"#;
+    let fixture = Fixture::with_tests(APP, MANIFEST, tests);
+    std::fs::write(fixture.0.join("digits"), "1234").unwrap();
+    project::with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+        let roots = snapshot.native_test_roots()?;
+        assert_eq!(roots.len(), 2);
+        assert!(roots.iter().all(|root| root.result_is_exit_status()));
+        for (index, root) in roots.iter().enumerate() {
+            let output = fixture.0.join(format!("effectful-native-test-{index}"));
+            snapshot.build_native_test(root.stable_id(), &output)?;
+            let result = Command::new(&output)
+                .current_dir(&fixture.0)
+                .output()
+                .unwrap();
+            assert_eq!(result.status.code(), Some(0), "{}", root.stable_id());
+            assert!(result.stdout.is_empty());
+            assert!(result.stderr.is_empty());
+            std::fs::remove_file(output).unwrap();
+        }
+        Ok(())
+    })
+    .unwrap();
 }
 impl Drop for Fixture {
     fn drop(&mut self) {

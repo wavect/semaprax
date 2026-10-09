@@ -59,6 +59,8 @@ pub use indexed_rust::{with_authenticated_indexed_rust_project, ProjectIndexedRu
 mod interface_artifact_facts;
 mod manifest;
 mod native_publication;
+mod native_test;
+pub use native_test::ProjectNativeTestRoot;
 mod native_sdk;
 mod nested_owned_record;
 mod next_construct_query;

@@ -1,0 +1,57 @@
+{
+  "schema": "semaprax.minimal-batch-verification.v1",
+  "recorded_at_utc": "2026-10-09T06:05:50.778962+00:00",
+  "compiler_source_commit": "340862f8781a1c18e103229c59bbb7ffec77c554",
+  "source_clean_at_verification": true,
+  "build_checkout": "/Users/kevin/.codex/worktrees/opt-enum-gate/AI-Lang",
+  "private_target_dir": "/Users/kevin/.codex/worktrees/opt-enum-gate/AI-Lang/target/batch-700-701",
+  "compiler_archive": "/Users/kevin/.codex/benchmark-binaries/semaprax-340862f87",
+  "compiler_binary_sha256": "e5eb2ed47be1b6418dcc2ac555c5c4b92874179e2d63ac3587b6dd5adeff060b",
+  "checks": {
+    "formatter-tests-fixture-fix.log": {
+      "sha256": "3e11a56eabad255d629726947afc81732f4ed4a5291d8ef8ac13f255fca0ae3e",
+      "passed": 8
+    },
+    "diagnostic-help.log": {
+      "sha256": "a5362a336e2373217d0348c11cbc8a5991b729eee0887ab2439f7e1c66657fef",
+      "passed": 1
+    },
+    "language-help.log": {
+      "sha256": "b0b3ddf31af57c32e5e70ea0ad3ba5b48c68ed29da3fc779ebfd7213a75ab819",
+      "passed": 1
+    },
+    "guide-help.log": {
+      "sha256": "a8d0bf2a0de6520b06273746df1c6d6b20c1b0001481ab72959d96f5fa466282",
+      "passed": 1
+    },
+    "source-command-help.log": {
+      "sha256": "c0dd8db5f0b009e0036f331686f15fa0585ebf60552fae8a370233cd5b21b90a",
+      "passed": 1
+    },
+    "cli-help-snapshot.log": {
+      "sha256": "51dbad2e56ce4259554fb21a6f178055900a99a72f5774b01e87864260f8d2b3",
+      "passed": 1
+    },
+    "scoped-clippy.log": {
+      "sha256": "fd495472052fdc1ae0fe48c45a6fd60e2b2073eb82bfdc2bbd61521bf116fb41",
+      "scope": "--lib --bin semaprax -- -D warnings"
+    }
+  },
+  "full_quality_gates_run": false,
+  "maximum_heavy_cargo_jobs": 1,
+  "initial_fixture_failure_log": {
+    "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/source-batch-700-701-20261009/formatter-tests.log",
+    "sha256": "e0cde7856ae7bfa95da59e7ad388a069e2ec8560c13b9f0e7002cc96388c9d8b",
+    "reason": "macOS temporary directory has symlink ancestor; fixture uses canonical private real path; production guards unchanged"
+  },
+  "issues": [
+    700,
+    701
+  ],
+  "paid_campaign_overlap": false,
+  "publication_head": "14dc9a7aab789c07efadc96263004cac5fa5549b",
+  "merged_remote_main": "5c67f2fc47bb998ef32e42aedde2b945d79b8540",
+  "scope_note": "Own source batch tested at compiler_source_commit before preserving the independently published main changes; no full quality gates or repeated unrelated tests.",
+  "private_target_removed": true,
+  "private_target_cleanup_receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/source-batch-700-701-20261009/private-target-cleanup.json"
+}

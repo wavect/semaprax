@@ -19,6 +19,9 @@ use crate::ast::{BinaryOp, Expr, ExprKind, MatchPattern, Statement, TypeDeclarat
 use crate::diagnostic::Diagnostic;
 use std::collections::BTreeMap;
 
+mod literal_format;
+mod projection;
+
 impl Resolver<'_> {
     #[cfg(test)]
     #[allow(dead_code)]
@@ -207,34 +210,15 @@ impl Resolver<'_> {
                     });
                 }
                 if name == crate::literal_format::NAME {
-                    if !type_arguments.is_empty() || function.instance().is_some()
-                        || function.monomorphic_declaration().is_none_or(|id| self.declarations.declaration(id).is_none())
-                    {
-                        return Err(self.error("SPX-H006", "string_format is admitted only in monomorphic ordinary function bodies", expr.span));
-                    }
-                    let Some(Expr { kind: ExprKind::String(template), .. }) = args.first() else {
-                        return Err(self.error("SPX-H006", "string_format requires a compile-time string literal", expr.span));
-                    };
-                    let pieces = crate::literal_format::scan(template)
-                        .map_err(|reason| self.error("SPX-H006", reason.message(), expr.span))?;
-                    if args.len() - 1 != crate::literal_format::field_count(&pieces) {
-                        return Err(self.error("SPX-H006", "string_format literal field count does not match arguments", expr.span));
-                    }
-                    let resolved = args.iter().enumerate().skip(1)
-                        .map(|(index, argument)| self.resolve_expr_recursive_reference(
-                            function, argument, bindings, &format!("{path}.arg.{}", index - 1),
-                        ))
-                        .collect::<Result<Vec<_>, _>>()?;
-                    if resolved.iter().any(|arg| !crate::literal_format::accepts_hir_type(&arg.ty)
-                        || (arg.ty == ResolvedType::String && arg.ownership != OwnershipMode::Own)) {
-                        return Err(self.error("SPX-H006", "string_format values must be i64, u8, usize, bool, or own string", expr.span));
-                    }
-                    return Ok(ResolvedExpr {
-                        id, ty: ResolvedType::String,
-                        ownership: self.expression_ownership(&ResolvedType::String, OwnershipMode::Own, expr.span)?,
-                        kind: ResolvedExprKind::LiteralFormat { template: template.clone(), args: resolved },
-                        span: expr.span,
-                    });
+                    return self.resolve_literal_format_reference(
+                        function,
+                        expr,
+                        bindings,
+                        path,
+                        type_arguments,
+                        args,
+                        id,
+                    );
                 }
                 if let Some(op) = crate::string_ops::by_name(name)
                     .filter(|_| crate::map_ops::by_generic_name(name, type_arguments).is_none())
@@ -1805,74 +1789,7 @@ impl Resolver<'_> {
                 ));
             }
             ExprKind::Project { base, field, .. } => {
-                let base = self.resolve_expr_recursive_reference(
-                    function,
-                    base,
-                    bindings,
-                    &format!("{path}.base"),
-                )?;
-                let ResolvedType::Nominal {
-                    declaration: record,
-                    arguments,
-                } = &base.ty
-                else {
-                    return Err(self.error(
-                        "SPX-H001",
-                        format!("cannot resolve field `{field}` on a non-record value"),
-                        expr.span,
-                    ));
-                };
-                if self
-                    .declarations
-                    .declaration(record)
-                    .is_none_or(|item| item.kind != DeclarationKind::Record)
-                {
-                    return Err(self.error(
-                        "SPX-H001",
-                        format!("cannot resolve field `{field}` on a non-record value"),
-                        expr.span,
-                    ));
-                }
-                let instance_arguments = arguments.clone();
-                let field_id = self
-                    .declarations
-                    .field_id(record, field)
-                    .cloned()
-                    .ok_or_else(|| {
-                        self.error(
-                            "SPX-H001",
-                            format!("unresolved field `{field}` on record `{record}`"),
-                            expr.span,
-                        )
-                    })?;
-                let field_ty = self
-                    .declarations
-                    .record_fields(record)
-                    .and_then(|fields| fields.iter().find(|item| item.id == field_id))
-                    .map(|field| field.ty.clone())
-                    .ok_or_else(|| {
-                        self.error(
-                            "SPX-H001",
-                            format!("field `{field_id}` has no resolved type"),
-                            expr.span,
-                        )
-                    })?;
-                let field_ty = substitute_type(&field_ty, record, &instance_arguments)?;
-                let ownership = self.expression_ownership(&field_ty, base.ownership, expr.span)?;
-                let kind = match &base.kind {
-                    ResolvedExprKind::Place(place) => {
-                        let mut place = place.clone();
-                        place
-                            .projections
-                            .push(PlaceProjection::Field(field_id.clone()));
-                        ResolvedExprKind::Place(place)
-                    }
-                    _ => ResolvedExprKind::Project {
-                        base: Box::new(base),
-                        field: field_id,
-                    },
-                };
-                (kind, field_ty, ownership)
+                self.resolve_projection_reference(function, expr, base, field, bindings, path)?
             }
         };
         Ok(ResolvedExpr {

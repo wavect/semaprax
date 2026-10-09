@@ -23,7 +23,12 @@ def _snapshot_read(root_fd: int, relative: str, limit: int) -> bytes:
             os.close(parent_fd)
             parent_fd = next_fd
         fd = os.open(parts[-1], os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent_fd)
-        with os.fdopen(fd, "rb") as stream:
+        try:
+            stream = os.fdopen(fd, "rb")
+        except BaseException:
+            os.close(fd)
+            raise
+        with stream:
             if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
                 raise ValueError("snapshot input is not a regular file")
             return stream.read(limit + 1)
@@ -91,7 +96,12 @@ def capture_inputs(candidate: Path, destination: Path, paths: list[str],
 
 
 def validate_input_snapshot(receipt: Path, expected_sha256: str) -> list[dict[str, Any]]:
-    """Validate historical input bytes independently of the final candidate."""
+    """Validate historical bytes in isolated, runner-owned retained evidence.
+
+    The expected digest must come from immutable runner provenance outside the
+    candidate. This validator assumes the evidence directory is isolated from
+    concurrent writers; it does not grant a lock or freeze a mutable directory.
+    """
     if receipt.is_symlink() or not receipt.is_file():
         raise ValueError("input snapshot receipt must be a regular file")
     with receipt.open("rb") as stream:

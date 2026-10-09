@@ -263,7 +263,9 @@ def resolve_commit(repo: Path, ref: str) -> str:
 
 
 def validate_qualification_receipt(repo: Path, receipt: dict[str, Any],
-                                   frozen_spec_sha256: str) -> str:
+                                   frozen_spec_sha256: str, *,
+                                   compiler_source_commit: str | None = None,
+                                   compiler_binary_sha256: str | None = None) -> str:
     """Bind the 912/912 references to the exact gate and frozen SPEC bytes."""
     if (receipt.get("schema") != "semaprax.teamdesk.reference.qualification.v1"
             or receipt.get("qualified") is not True
@@ -276,6 +278,14 @@ def validate_qualification_receipt(repo: Path, receipt: dict[str, Any],
                 or qualification.get("missingCases") != [] or qualification.get("missingGroups") != []
                 or qualification.get("failures") != []):
             raise ValueError(f"{arm} reference lacks independent 912/912 qualification")
+    if (compiler_source_commit is not None
+            and receipt.get("compiler_source_commit") != compiler_source_commit):
+        raise ValueError("TeamDesk reference qualification compiler source differs from --compiler-source-ref; "
+                         "run fresh reference qualification with the selected compiler before planning")
+    if (compiler_binary_sha256 is not None
+            and receipt.get("compiler_binary_sha256") != compiler_binary_sha256):
+        raise ValueError("TeamDesk reference qualification compiler binary differs from --semaprax-bin; "
+                         "run fresh reference qualification with the selected compiler before planning")
     gate_commit = resolve_commit(repo, str(receipt.get("gate_source", "")))
     for relative in ACCEPTANCE_SOURCE_FILES:
         current = (repo / relative).read_bytes()
@@ -461,8 +471,11 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
     compiler_source_commit = resolve_commit(repo, args.compiler_source_ref)
     hashes = pinned_seed_hashes(repo, commit)
     frozen_spec_hash = hashes[FROZEN_SPEC]
+    compiler_binary_sha256 = common.digest(Path(args.semaprax_bin).resolve(strict=True))
     receipt = json.loads((repo / QUALIFICATION_RECEIPT).read_text())
-    gate_commit = validate_qualification_receipt(repo, receipt, frozen_spec_hash)
+    gate_commit = validate_qualification_receipt(
+        repo, receipt, frozen_spec_hash, compiler_source_commit=compiler_source_commit,
+        compiler_binary_sha256=compiler_binary_sha256)
     harness_sources = harness_source_inventory(repo, frozen_spec_hash)
     artifacts = Path(args.artifacts).expanduser().resolve()
     try:
@@ -520,7 +533,7 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
         "price_book": {"date": "2026-10-08", "source": "https://developers.openai.com/api/docs/models/gpt-6.1-sol", "standard_short_context_usd_per_million": PRICE_USD_PER_MTOK, "conditional": True},
         "attempt_denominator": args.trials_per_arm * len(ARMS),
         "resource_policy": resources.policy(),
-        "source_binary_sha256": common.digest(Path(args.semaprax_bin).resolve(strict=True)),
+        "source_binary_sha256": compiler_binary_sha256,
         "calibration": {"prompt": CALIBRATION_PROMPT, "separate": True, "subtracted_from_trials": False},
         "measurement": {"stable_context_tokens": None, "legacy_net_input_tokens": None,
                         "model_request_count": "trace-backed only; never inferred from item counts"},

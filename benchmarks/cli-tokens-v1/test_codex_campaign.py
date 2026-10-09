@@ -27,13 +27,15 @@ class CodexCampaignTests(unittest.TestCase):
             calls.extend(lambda arm=arm: codex_campaign.launch_trial(root, root / "artifacts", "a" * 40,
                 {"arm": arm, "number": 1}, settings, binary) for arm in codex_campaign.ARMS)
             with patch.object(codex_campaign.legacy, "add_seed_worktree") as worktree, \
-                 patch.object(codex_campaign, "run_codex") as paid:
+                patch.object(codex_campaign, "run_codex") as paid:
                 for launch in calls:
-                    with self.assertRaisesRegex(ValueError, "compiler binary differs"):
-                        launch()
+                    row = launch()
+                    self.assertEqual(row["status"], "failed")
+                    self.assertTrue(row["runner_error"])
+                    self.assertIn("compiler binary differs", row["failure"])
                 worktree.assert_not_called()
                 paid.assert_not_called()
-            self.assertFalse((root / "artifacts").exists())
+            self.assertEqual({path.name for path in (root / "artifacts").iterdir()}, {"resource-receipts"})
 
     def test_compiler_binding_rejects_stale_qualification_source_or_binary(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -61,8 +63,10 @@ class CodexCampaignTests(unittest.TestCase):
                 binary.write_bytes(b"changed compiler")
             with patch.object(codex_campaign.legacy, "add_seed_worktree", side_effect=mutate_during_preparation), \
                  patch.object(codex_campaign, "run_codex") as paid:
-                with self.assertRaisesRegex(ValueError, "compiler binary differs"):
-                    codex_campaign.launch_calibration(root, root / "artifacts", "a" * 40, settings, binary)
+                row = codex_campaign.launch_calibration(root, root / "artifacts", "a" * 40, settings, binary)
+                self.assertEqual(row["status"], "failed")
+                self.assertTrue(row["runner_error"])
+                self.assertIn("compiler binary differs", row["failure"])
                 paid.assert_not_called()
 
     def test_exec_parser_keeps_cached_as_subset_and_tools_are_not_turns(self):

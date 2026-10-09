@@ -981,7 +981,9 @@ def summarize(
         ]
         legacy_subtracted = [row.get("legacy_net_baseline_tokens_subtracted") for row in selected]
         authored = [row.get("final_candidate_source_metrics", {}).get("total_tokens") for row in selected]
-        complete_cost = len(per_trial_costs) == len(selected) and all(value is not None for value in per_trial_costs)
+        complete_cost = bool(selected) and len(per_trial_costs) == len(selected) and all(
+            value is not None for value in per_trial_costs
+        )
         calibration_tokens = (
             calibration_result.get("one_turn_context_input_tokens_proxy")
             if calibration_result else None
@@ -1028,9 +1030,14 @@ def summarize(
             ),
             "final_candidate_source_token_proxy_incomplete_trials": sum(value is None for value in authored),
             "authored_source_token_claim": "legacy-Claude tokenizer proxy over final candidate source inventory only; excludes rewritten/deleted text and is not cumulative authored generation, provider output, current-model tokens, or billing tokens",
-            "turns": sum(row.get("observed", {}).get("turns_with_usage", 0) for row in selected),
+            "turns": (
+                sum(row.get("observed", {}).get("turns_with_usage", 0) for row in selected)
+                if selected else None
+            ),
             "per_trial_model_session_wall_seconds": elapsed,
-            "aggregate_model_session_wall_seconds": round(sum(elapsed), 3),
+            "aggregate_model_session_wall_seconds": (
+                round(sum(elapsed), 3) if selected and len(elapsed) == len(selected) else None
+            ),
             "mean_model_session_wall_seconds": round(mean(elapsed), 3) if elapsed else None,
             "median_model_session_wall_seconds": round(median(elapsed), 3) if elapsed else None,
             "list_price_estimate_per_attempt_usd": per_trial_costs,

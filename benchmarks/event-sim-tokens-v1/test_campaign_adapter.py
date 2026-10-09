@@ -801,6 +801,16 @@ exec node dist/cli.js
         self.assertEqual(summary["arms"]["semaprax"]["turns"], 3)
         self.assertEqual(summary["arms"]["semaprax"]["turns_with_usage_per_attempt"], [2, 1])
 
+    def test_summary_keeps_unlaunched_attempt_totals_unknown(self):
+        summary = live_campaign.summarize([])
+        arm = summary["arms"]["semaprax"]
+        self.assertEqual(arm["attempts"], 0)
+        self.assertIsNone(arm["list_price_estimate_total_usd_including_failures"])
+        self.assertIsNone(arm["list_price_estimate_usd_per_accepted_task_including_failures"])
+        self.assertTrue(all(value is None for value in arm["raw_usage_known_subtotal_by_bucket"].values()))
+        self.assertIsNone(arm["aggregate_attempt_wall_seconds"])
+        self.assertIsNone(arm["turns"])
+
     def test_spec_drift_before_acceptance_is_rejected_and_workspace_preserved(self):
         with tempfile.TemporaryDirectory() as directory:
             row, acceptance, archive, workspace = self._run_trial_with_spec_edit(

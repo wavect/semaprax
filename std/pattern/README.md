@@ -42,4 +42,4 @@ Packet observers other than `result_valid` require a valid packet. Numeric captu
 
 The bounded engine may refuse ambiguous searches before deciding a semantic match. Logical work and ordinary interpreter AST fuel are separate limits. No limit is raised here: final qualification must preserve the complete LogLens 49 obligations, independent header/key-value meanings, long valid and nonmatching records, exact work witnesses, hostile carrier controls, and interpreter/native C11/Core-Wasm settlement on these exact source bytes.
 
-`std.pattern.internal.*` declarations remain explicit, checked implementation source. API inventory selection controls supported interface documentation; it is not source privacy and conveys no capability. Public nominal host descriptors and opaque host handles are separately scoped and remain unselected.
+`std.pattern.internal.*` declarations remain explicit, checked implementation source. API inventory selection controls supported interface documentation; it is not source privacy and conveys no capability.

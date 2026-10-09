@@ -1,0 +1,267 @@
+{
+  "schema": "semaprax.ascii-pattern-source-fixtures.v1",
+  "semantics": "docs/proposals/ASCII-PATTERN-CAPTURES-DRAFT.md; proposed only",
+  "representation": {
+    "atom_fields": ["kind", "value", "min", "max"],
+    "atom_kinds": {"literal": 0, "any_byte": 1, "class_bitmap": 2},
+    "class_bitmap": "32 little-bit-order bytes; bit n is bitmap[n//8] bit (n%8)",
+    "capture_boundaries": "half-open atom-index pairs [begin,end), flat and nonoverlapping",
+    "input_descriptors": ["ascii", "hex", "repeat_hex"],
+    "pattern_repeat_descriptor": "repeat unit count then optional suffix; expansion is ASCII byte text"
+  },
+  "status_codes": {"ready": 0, "matched": 1, "no_match": 2, "invalid_pattern": 3, "resource_refusal": 4},
+  "limits": {"pattern_bytes": 1024, "input_bytes": 65536, "atoms": 128, "distinct_classes": 16, "captures": 16},
+  "oracle_scope": "semantic parser and whole-input matcher only; no engine work-meter prediction",
+  "cases": [
+    {
+      "id": "literal-plus-timezone",
+      "purpose": "The timezone separator is literal plus, not either sign.",
+      "pattern": "([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2})\\x2B([0-9]{2}):([0-9]{2})",
+      "input": {"ascii": "2026-10-09T07:00:00+02:00"},
+      "expected": {
+        "compile": {"status": "ready", "status_code": 0, "atom_count": 15, "class_count": 1,
+                     "capture_boundaries": [[0, 11], [12, 13], [14, 15]]},
+        "match": {"status": "matched", "status_code": 1, "spans": [[0, 19], [20, 22], [23, 25]]}
+      }
+    },
+    {
+      "id": "literal-plus-timezone-rejects-minus",
+      "purpose": "A leading minus is a valid nonmatch, not timezone normalization.",
+      "pattern": "([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2})\\x2B([0-9]{2}):([0-9]{2})",
+      "input": {"ascii": "2026-10-09T07:00:00-02:00"},
+      "expected": {"compile": {"status": "ready"}, "match": {"status": "no_match", "status_code": 2, "spans": []}}
+    },
+    {
+      "id": "independent-header-record",
+      "purpose": "An unrelated header-shaped record preserves key and value byte spans.",
+      "pattern": "([A-Za-z]+):[ \\x09]*([^\\x0D\\x0A]*)",
+      "input": {"ascii": "Xtest: value"},
+      "expected": {
+        "compile": {"status": "ready", "status_code": 0, "atom_count": 4, "class_count": 3,
+                     "capture_boundaries": [[0, 1], [3, 4]]},
+        "match": {"status": "matched", "status_code": 1, "count_vector": [5, 1, 5],
+                  "spans": [[0, 5], [7, 12]]}
+      }
+    },
+    {
+      "id": "independent-key-value-record",
+      "purpose": "An unrelated key=value record captures the identifier and value independently.",
+      "pattern": "([A-Za-z_][A-Za-z0-9_]*)=([^\\x00\\x0A]*)",
+      "input": {"ascii": "event_id=abc123"},
+      "expected": {
+        "compile": {"status": "ready", "status_code": 0, "atom_count": 4, "class_count": 3,
+                     "capture_boundaries": [[0, 2], [3, 4]]},
+        "match": {"status": "matched", "status_code": 1, "count_vector": [7, 6],
+                  "spans": [[0, 8], [9, 15]]}
+      }
+    },
+    {
+      "id": "greedy-repeat-required-suffix",
+      "purpose": "A required final digit forces the greedy capture to backtrack one byte.",
+      "pattern": "([0-9]+)[0-9]",
+      "input": {"ascii": "123"},
+      "expected": {
+        "compile": {"status": "ready", "status_code": 0, "atom_count": 2, "class_count": 1,
+                     "capture_boundaries": [[0, 1]]},
+        "match": {"status": "matched", "status_code": 1, "count_vector": [2], "spans": [[0, 2]]}
+      }
+    },
+    {
+      "id": "adjacent-repeats-lexicographic-greed",
+      "purpose": "For equal complete paths, the first repetition count is preferred lexicographically.",
+      "pattern": "(a*)(a*)",
+      "input": {"ascii": "aa"},
+      "expected": {
+        "compile": {"status": "ready", "status_code": 0, "atom_count": 2, "class_count": 0,
+                     "capture_boundaries": [[0, 1], [1, 2]]},
+        "match": {"status": "matched", "status_code": 1, "count_vector": [2, 0],
+                  "spans": [[0, 2], [2, 2]]}
+      }
+    },
+    {
+      "id": "adjacent-repeats-fallback-to-required-suffix",
+      "purpose": "A later required atom rejects the maximal first count and selects the next complete vector.",
+      "pattern": "(a+)(a)",
+      "input": {"ascii": "aa"},
+      "expected": {
+        "compile": {"status": "ready", "status_code": 0, "atom_count": 2, "class_count": 0,
+                     "capture_boundaries": [[0, 1], [1, 2]]},
+        "match": {"status": "matched", "status_code": 1, "count_vector": [1],
+                  "spans": [[0, 1], [1, 2]]}
+      }
+    },
+    {
+      "id": "empty-captures-are-present",
+      "purpose": "Empty capture spans remain explicit and ordered.",
+      "pattern": "()(a*)()",
+      "input": {"ascii": "a"},
+      "expected": {
+        "compile": {"status": "ready", "status_code": 0, "atom_count": 1, "class_count": 0,
+                     "capture_boundaries": [[0, 0], [0, 1], [1, 1]]},
+        "match": {"status": "matched", "status_code": 1, "count_vector": [1],
+                  "spans": [[0, 0], [0, 1], [1, 1]]}
+      }
+    },
+    {
+      "id": "bounded-adjacent-repeat-no-match",
+      "purpose": "Semantic no-match remains distinct from any work-meter refusal.",
+      "pattern": "a*a*a*a*a*b",
+      "input": {"ascii": "aaaaaa"},
+      "engine_work_status": "not_predicted_by_oracle",
+      "expected": {
+        "compile": {"status": "ready"},
+        "match": {"status": "no_match", "status_code": 2, "spans": []}
+      }
+    },
+    {
+      "id": "all-byte-values",
+      "purpose": "Dot and repetition operate on all 256 byte values, including NUL and 0xFF.",
+      "pattern": ".*",
+      "input": {"hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"},
+      "expected": {"compile": {"status": "ready", "atom_count": 1}, "match": {"status": "matched", "status_code": 1, "spans": []}}
+    },
+    {
+      "id": "capture-may-split-utf8",
+      "purpose": "Offsets are bytes; a successful capture may end inside a UTF-8 sequence.",
+      "pattern": "(.).",
+      "input": {"hex": "c3a9"},
+      "expected": {
+        "compile": {"status": "ready", "atom_count": 2, "capture_boundaries": [[0, 1]]},
+        "match": {"status": "matched", "status_code": 1, "spans": [[0, 1]]}
+      }
+    },
+    {
+      "id": "pattern-length-limit",
+      "purpose": "A valid 1024-byte pattern is admitted before other pattern limits; it cannot match this short input.",
+      "pattern": {"repeat": "a{255,255}", "count": 102, "suffix": "\\x61"},
+      "input": {"ascii": ""},
+      "expected": {
+        "compile": {"status": "ready", "status_code": 0, "atom_count": 103},
+        "match": {"status": "no_match", "status_code": 2, "spans": []}
+      }
+    },
+    {
+      "id": "pattern-length-limit-plus-one",
+      "purpose": "Pattern extent +1 is a resource refusal, not syntax failure or truncation.",
+      "pattern": {"repeat": "a{255,255}", "count": 102, "suffix": "\\x61a"},
+      "input": {"ascii": ""},
+      "expected": {
+        "compile": {"status": "resource_refusal", "status_code": 4, "reason_code": 1,
+                     "resource": "pattern_extent"},
+        "match": {"status": "not_attempted", "status_code": 0}
+      }
+    },
+    {
+      "id": "input-length-limit",
+      "purpose": "The exact 65536-byte input bound is semantically matchable.",
+      "pattern": ".*",
+      "input": {"repeat_hex": {"byte": "00", "count": 65536}},
+      "expected": {"compile": {"status": "ready"}, "match": {"status": "matched", "status_code": 1, "spans": []}}
+    },
+    {
+      "id": "input-length-limit-plus-one",
+      "purpose": "Input extent +1 is a resource refusal, not a valid nonmatch.",
+      "pattern": ".*",
+      "input": {"repeat_hex": {"byte": "00", "count": 65537}},
+      "expected": {
+        "compile": {"status": "ready"},
+        "match": {"status": "resource_refusal", "status_code": 4, "reason_code": 2,
+                   "resource": "input_extent"}
+      }
+    },
+    {
+      "id": "atom-count-limit",
+      "purpose": "Exactly 128 atoms are admitted and match empty through zero repeats.",
+      "pattern": {"repeat": "a*", "count": 128},
+      "input": {"ascii": ""},
+      "expected": {"compile": {"status": "ready", "status_code": 0, "atom_count": 128},
+                   "match": {"status": "matched", "status_code": 1, "spans": []}}
+    },
+    {
+      "id": "atom-count-limit-plus-one",
+      "purpose": "Atom count +1 is a resource refusal.",
+      "pattern": {"repeat": "a*", "count": 129},
+      "input": {"ascii": ""},
+      "expected": {"compile": {"status": "resource_refusal", "status_code": 4, "reason_code": 3,
+                                 "resource": "atom_count"},
+                   "match": {"status": "not_attempted", "status_code": 0}}
+    },
+    {
+      "id": "distinct-class-limit",
+      "purpose": "Exactly 16 distinct class bitmaps are admitted.",
+      "pattern": "[a][b][c][d][e][f][g][h][i][j][k][l][m][n][o][p]",
+      "input": {"ascii": "abcdefghijklmnop"},
+      "expected": {"compile": {"status": "ready", "status_code": 0, "atom_count": 16, "class_count": 16},
+                   "match": {"status": "matched", "status_code": 1, "spans": []}}
+    },
+    {
+      "id": "distinct-class-limit-plus-one",
+      "purpose": "The seventeenth distinct class bitmap is a resource refusal.",
+      "pattern": "[a][b][c][d][e][f][g][h][i][j][k][l][m][n][o][p][q]",
+      "input": {"ascii": "abcdefghijklmnopq"},
+      "expected": {"compile": {"status": "resource_refusal", "status_code": 4, "reason_code": 4,
+                                 "resource": "class_count"},
+                   "match": {"status": "not_attempted", "status_code": 0}}
+    },
+    {
+      "id": "capture-count-limit",
+      "purpose": "Exactly 16 empty captures remain present.",
+      "pattern": {"repeat": "()", "count": 16},
+      "input": {"ascii": ""},
+      "expected": {"compile": {"status": "ready", "status_code": 0, "capture_boundaries": [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]]},
+                   "match": {"status": "matched", "status_code": 1, "spans": [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]]}}
+    },
+    {
+      "id": "capture-count-limit-plus-one",
+      "purpose": "Capture count +1 is a resource refusal.",
+      "pattern": {"repeat": "()", "count": 17},
+      "input": {"ascii": ""},
+      "expected": {"compile": {"status": "resource_refusal", "status_code": 4, "reason_code": 5,
+                                 "resource": "capture_count"},
+                   "match": {"status": "not_attempted", "status_code": 0}}
+    },
+    {
+      "id": "malformed-hex-offset",
+      "purpose": "The first non-hex byte in an explicit byte escape is the offending byte.",
+      "pattern": "\\x4G",
+      "input": {"ascii": ""},
+      "expected": {"compile": {"status": "invalid_pattern", "status_code": 3, "reason_code": 1,
+                                 "detail_offset": 3},
+                   "match": {"status": "not_attempted", "status_code": 0}}
+    },
+    {
+      "id": "truncated-hex-eof-offset",
+      "purpose": "A missing second hex digit reports EOF at pattern length.",
+      "pattern": "\\x4",
+      "input": {"ascii": ""},
+      "expected": {"compile": {"status": "invalid_pattern", "status_code": 3, "reason_code": 1,
+                                 "detail_offset": 3},
+                   "match": {"status": "not_attempted", "status_code": 0}}
+    },
+    {
+      "id": "stacked-quantifier-offset",
+      "purpose": "Quantifiers cannot be stacked; the second suffix is the first offending byte.",
+      "pattern": "a**",
+      "input": {"ascii": ""},
+      "expected": {"compile": {"status": "invalid_pattern", "status_code": 3, "reason_code": 1,
+                                 "detail_offset": 2},
+                   "match": {"status": "not_attempted", "status_code": 0}}
+    },
+    {
+      "id": "alternation-offset",
+      "purpose": "Unsupported alternation is invalid syntax rather than a literal fallback.",
+      "pattern": "a|b",
+      "input": {"ascii": "a|b"},
+      "expected": {"compile": {"status": "invalid_pattern", "status_code": 3, "reason_code": 1,
+                                 "detail_offset": 1},
+                   "match": {"status": "not_attempted", "status_code": 0}}
+    }
+  ],
+  "pending_cases": [
+    {"id": "empty-class-offending-offset", "pattern": "[]", "pending_reason": "Empty class is invalid, but the draft does not select whether `[` or `]` is the first offending byte."},
+    {"id": "escaped-punctuation-class-offset", "pattern": "[\\-]", "pending_reason": "Class punctuation escaping is declared explicit but its escape set and offending offset are not specified."},
+    {"id": "descending-class-range-offset", "pattern": "[z-a]", "pending_reason": "Descending ranges are invalid, but the draft does not select the offending endpoint offset."},
+    {"id": "noncanonical-bound-offset", "pattern": "a{01}", "pending_reason": "Bounds must be canonical, but the first offending digit offset is not specified."}
+  ],
+  "work_refusal_note": "A semantic oracle result is only matched/no_match. Resource refusal for work depends on the engine's charged traversal and selected work_limit; the oracle neither predicts nor accepts such refusal."
+}

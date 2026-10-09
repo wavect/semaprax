@@ -2,10 +2,93 @@
 from __future__ import annotations
 import hashlib
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
 SCHEMA = "semaprax.compiler-output-provenance.v1"
+INPUT_SNAPSHOT_SCHEMA = "semaprax.compiler-input-snapshot.v1"
+
+
+def capture_inputs(candidate: Path, destination: Path, paths: list[str],
+                   max_bytes: int = 8 * 1024 * 1024) -> tuple[Path, str]:
+    """Retain pre-generation bytes in a new runner-owned evidence directory.
+
+    The runner supplies the input closure. This does not establish its
+    completeness, compiler execution, generated-file authorship, or billing.
+    Run the compiler against the retained snapshot when exact input binding is
+    required; a collection of independently read live files is not a lock.
+    """
+    if candidate.is_symlink() or not candidate.is_dir():
+        raise ValueError("candidate must be a real directory")
+    if destination.resolve().is_relative_to(candidate.resolve()):
+        raise ValueError("input snapshot must be outside the candidate")
+    if isinstance(max_bytes, bool) or not isinstance(max_bytes, int) or max_bytes < 0:
+        raise ValueError("snapshot byte budget must be nonnegative")
+    if not isinstance(paths, list) or not paths:
+        raise ValueError("snapshot input selection must be nonempty")
+    selected = [_relative(path, "snapshot input path") for path in paths]
+    if len(set(selected)) != len(selected):
+        raise ValueError("snapshot input selection has duplicate paths")
+    # Exclusive creation protects earlier retained evidence from replacement.
+    destination.mkdir()
+    try:
+        inputs = destination / "inputs"
+        inputs.mkdir()
+        rows = []
+        total = 0
+        for relative in sorted(selected):
+            source = _regular_under(candidate, relative)
+            with source.open("rb") as stream:
+                data = stream.read(max_bytes - total + 1)
+            if len(data) > max_bytes - total:
+                raise ValueError("snapshot input selection exceeds byte budget")
+            target = inputs / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with target.open("xb") as stream:
+                stream.write(data)
+            total += len(data)
+            rows.append({"path": relative, "sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data)})
+        receipt = destination / "snapshot.json"
+        receipt.write_text(json.dumps({"schema": INPUT_SNAPSHOT_SCHEMA,
+            "input_root": "inputs", "input_files": rows, "total_bytes": total},
+            sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
+        return receipt, digest(receipt)
+    except BaseException:
+        shutil.rmtree(destination)
+        raise
+
+
+def validate_input_snapshot(receipt: Path, expected_sha256: str) -> list[dict[str, Any]]:
+    """Validate historical input bytes independently of the final candidate."""
+    if digest(receipt) != _hex(expected_sha256, 64, "expected input snapshot"):
+        raise ValueError("input snapshot differs from immutable runner provenance")
+    value = json.loads(receipt.read_text(encoding="utf-8"))
+    if (not isinstance(value, dict) or set(value) != {"schema", "input_root", "input_files", "total_bytes"}
+            or value["schema"] != INPUT_SNAPSHOT_SCHEMA or value["input_root"] != "inputs"):
+        raise ValueError("input snapshot schema differs")
+    rows = value["input_files"]
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("input snapshot selection differs")
+    seen = set()
+    total = 0
+    for row in rows:
+        if not isinstance(row, dict) or set(row) != {"path", "sha256", "bytes"}:
+            raise ValueError("input snapshot row differs")
+        relative = _relative(row["path"], "snapshot input path")
+        if relative in seen:
+            raise ValueError("input snapshot duplicates an input path")
+        seen.add(relative)
+        count = row["bytes"]
+        target = _regular_under(receipt.parent, "inputs/" + relative)
+        if (isinstance(count, bool) or not isinstance(count, int) or count < 0
+                or target.stat().st_size != count or digest(target) != _hex(row["sha256"], 64, "snapshot input")):
+            raise ValueError("input snapshot bytes differ from retained evidence")
+        total += count
+    if (isinstance(value["total_bytes"], bool) or not isinstance(value["total_bytes"], int)
+            or value["total_bytes"] != total):
+        raise ValueError("input snapshot total differs")
+    return rows
 
 def digest(path: Path) -> str:
     if path.is_symlink() or not path.is_file(): raise ValueError(f"expected regular file: {path}")

@@ -19,6 +19,49 @@ import cli_typescript_bootstrap as ts_bootstrap
 
 
 class LiveCampaignTests(unittest.TestCase):
+    def test_compiler_input_snapshot_preserves_authored_schema_after_replacement(self):
+        proof = authored_recount.compiler_provenance
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            candidate = root / "candidate"
+            (candidate / "src").mkdir(parents=True)
+            schema = candidate / "src/schema.spx"
+            schema.write_text("module schema;\n", encoding="utf-8")
+            (candidate / "semaprax.toml").write_text("source = 'src/schema.spx'\n")
+            paths = ["src/schema.spx", "semaprax.toml"]
+            expected = schema.read_bytes()
+            total = len(expected) + (candidate / "semaprax.toml").stat().st_size
+            receipt, receipt_sha = proof.capture_inputs(candidate, root / "evidence", paths, total)
+            schema.write_text("compiler output with original schema and helpers")
+            rows = proof.validate_input_snapshot(receipt, receipt_sha)
+            self.assertEqual([row["path"] for row in rows], sorted(paths))
+            self.assertEqual((receipt.parent / "inputs/src/schema.spx").read_bytes(), expected)
+            with self.assertRaises(FileExistsError):
+                proof.capture_inputs(candidate, receipt.parent, paths)
+            (receipt.parent / "inputs/src/schema.spx").write_text("mutated snapshot")
+            with self.assertRaisesRegex(ValueError, "snapshot bytes differ"):
+                proof.validate_input_snapshot(receipt, receipt_sha)
+
+    def test_compiler_input_snapshot_refuses_unsafe_selection_and_cleans_partial_evidence(self):
+        proof = authored_recount.compiler_provenance
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            candidate = root / "candidate"
+            candidate.mkdir()
+            (candidate / "a.spx").write_bytes(b"abc")
+            destination = root / "evidence"
+            for paths, limit in [(["a.spx"], 2), (["a.spx", "missing.spx"], 100),
+                                 (["../outside"], 100), (["a.spx", "a.spx"], 100)]:
+                with self.assertRaises((ValueError, FileNotFoundError)):
+                    proof.capture_inputs(candidate, destination, paths, limit)
+                self.assertFalse(destination.exists())
+            (candidate / "link.spx").symlink_to(candidate / "a.spx")
+            with self.assertRaisesRegex(ValueError, "symlink"):
+                proof.capture_inputs(candidate, destination, ["link.spx"])
+            self.assertFalse(destination.exists())
+            with self.assertRaisesRegex(ValueError, "outside the candidate"):
+                proof.capture_inputs(candidate, candidate / "evidence", ["a.spx"])
+
     def test_hash_bound_authored_recount_separates_generated_and_lock_files(self):
         with tempfile.TemporaryDirectory() as directory:
             candidate = Path(directory); (candidate / "src").mkdir(); (candidate / "public").mkdir()

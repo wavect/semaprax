@@ -609,8 +609,8 @@ for (let r = 0; r < 4; ++r) {{ assert.equal(linked.instance.exports.semaprax_mai
             ] {
                 let cursor_case = json_cursors::is_cursor_case(&manifest);
                 // Each fixture must balance its declared live Bytes bound.
-                let arena = role == "tests" && (cursor_case || matches!(package.module.as_str(), "std.data.json.dec" | "std.data.csv" | "std.encoding.base64" | "std.io" | "std.io.lines" | "std.path.value" | "std.path.normalize" | "std.pattern" | "std.log.redact" | "std.email" | "std.webhook" | "std.tracing" | "std.metrics" | "std.http") || (package.module == "std.format" && formatting::uses_byte_arena(&manifest)) || (package.module == "std.log" && logging::uses_byte_writes(&manifest)));
-                if role == "tests" {
+                let arena = package.module == "std.pattern" || role == "tests" && (cursor_case || matches!(package.module.as_str(), "std.data.json.dec" | "std.data.csv" | "std.encoding.base64" | "std.io" | "std.io.lines" | "std.path.value" | "std.path.normalize" | "std.pattern" | "std.log.redact" | "std.email" | "std.webhook" | "std.tracing" | "std.metrics" | "std.http") || (package.module == "std.format" && formatting::uses_byte_arena(&manifest)) || (package.module == "std.log" && logging::uses_byte_writes(&manifest)));
+                if role == "tests" || package.module == "std.pattern" {
                     for name in ["spx_bytes_zeroed", "spx_bytes_set"] {
                         let present = module_bytes.windows(name.len()).any(|w| w == name.as_bytes());
                         // Individual typed-Path observation cases allocate via copy
@@ -620,7 +620,7 @@ for (let r = 0; r < 4; ++r) {{ assert.equal(linked.instance.exports.semaprax_mai
                         }
                     }
                 }
-                let live_entry_bound = if role == "examples" { 4096 } else if package.module == "std.log" { logging::live_byte_bound(&manifest) } else if package.module == "std.io.lines" { io_lines::live_byte_bound(&manifest) } else if package.module == "std.path.normalize" { path_normalize::live_byte_bound(&manifest) } else if cursor_case || matches!(package.module.as_str(), "std.format" | "std.data.csv") { 2 } else if package.module == "std.path.value" || package.module == "std.encoding.base64" { 3 } else if arena { 1 } else { 4096 };
+                let live_entry_bound = if package.module == "std.pattern" { 1 } else if role == "examples" { 4096 } else if package.module == "std.log" { logging::live_byte_bound(&manifest) } else if package.module == "std.io.lines" { io_lines::live_byte_bound(&manifest) } else if package.module == "std.path.normalize" { path_normalize::live_byte_bound(&manifest) } else if cursor_case || matches!(package.module.as_str(), "std.format" | "std.data.csv") { 2 } else if package.module == "std.path.value" || package.module == "std.encoding.base64" { 3 } else if arena { 1 } else { 4096 };
                 // Issue #102: the value Core Wasm must reproduce is the
                 // interpreter's actual computed value for this same role,
                 // not an independent `0` sentinel.

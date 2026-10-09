@@ -108,12 +108,24 @@ impl Emitter<'_> {
                                     &self.program.declarations,
                                     element,
                                 )
+                            || crate::hir::owned_leaf_collection::layout(
+                                &self.program.declarations, element).is_some()
                     }) {
                         self.emit_pointer(Pointer {
                             offset: pointer.offset + iterator_ops::ITER_CURSOR_OFFSET,
                             ..*pointer
                         });
                         self.load_scalar(&ResolvedType::Usize);
+                    }
+                    if let Some(element) = crate::iterator_ops::element(ty).filter(|element| {
+                        crate::hir::owned_leaf_collection::layout(&self.program.declarations, element)
+                            .is_some()
+                            && !crate::hir::owned_record_collection::
+                                is_admitted_owned_record_collection_element(&self.program.declarations, element)
+                    }) {
+                        let descriptor = vec_owned_leaf::descriptor(self.program, element)?;
+                        self.output.push(0x42); write_i64(self.output, descriptor.identity);
+                        self.output.push(0x42); write_i64(self.output, descriptor.shape);
                     }
                 } else {
                     self.get_scalar(&value);
@@ -138,6 +150,15 @@ impl Emitter<'_> {
                         })
                     {
                         iterator_ops::record_import_base(self.program) + 2
+                    } else if iter_leaf
+                        && crate::iterator_ops::element(value_type(&value)).is_some_and(|element| {
+                            crate::hir::owned_leaf_collection::layout(&self.program.declarations, element)
+                                .is_some()
+                                && !crate::hir::owned_record_collection::
+                                    is_admitted_owned_record_collection_element(&self.program.declarations, element)
+                        })
+                    {
+                        vec_owned_leaf::import_base(self.program) + vec_owned_leaf::ITER_DROP
                     } else if iter_leaf
                         && *value_type(&value)
                             == crate::iterator_ops::resolved_iter(ResolvedType::Bytes)

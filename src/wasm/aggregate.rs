@@ -81,6 +81,7 @@ mod variant_equality;
 mod vec_copy_record;
 mod vec_owned_payload;
 mod vec_record_payload;
+mod vec_owned_leaf;
 use crate::wasm::vec_ops::is_wasm_owned_vec_type as owned_vec;
 use scalar_shape::{scalar_local, scalar_size_align, scalar_wasm_type, vec_element_tag};
 
@@ -261,6 +262,7 @@ struct FunctionPlan {
     literal_format_args: HashMap<ExpressionId, Vec<Option<u32>>>,
     range_scratch: Option<RangeScratch>,
     copy_record_scratch: Option<[u32; 14]>,
+    owned_leaf_scratch: HashMap<ExpressionId, u32>,
     cleanup_flags: std::collections::BTreeMap<crate::cleanup::LivenessFlagId, u32>,
     cleanup_place_flags: std::collections::BTreeMap<crate::cleanup_plan::CleanupPlace, u32>,
     runtime_cleanup_storage: std::collections::BTreeSet<crate::cleanup_plan::StorageId>,
@@ -527,6 +529,7 @@ impl FunctionPlan {
             literal_format_args: HashMap::new(),
             range_scratch,
             copy_record_scratch,
+            owned_leaf_scratch: HashMap::new(),
             cleanup_flags,
             cleanup_place_flags,
             runtime_cleanup_storage: cleanup::runtime_storages(&function.cleanup_plan),
@@ -645,6 +648,15 @@ impl FunctionPlan {
                     "duplicate byte-range descriptor identity `{}`",
                     expr.id
                 )));
+            }
+        }
+        if let ResolvedExprKind::Call { callee, type_arguments, .. } = &expr.kind {
+            if (matches!(crate::vec_ops::by_id(callee.as_str()), Some(crate::vec_ops::VecOp::CloneAt))
+                || callee.as_str() == crate::iterator_ops::NEXT_ID)
+                && matches!(type_arguments.as_slice(), [element] if crate::hir::owned_leaf_collection::layout(&program.declarations, element).is_some())
+            {
+                let bytes = if callee.as_str() == crate::iterator_ops::NEXT_ID { 88 } else { 64 };
+                self.owned_leaf_scratch.insert(expr.id.clone(), frame.allocate(bytes, 8)?);
             }
         }
 
@@ -1128,7 +1140,8 @@ fn aggregate_size_align(
             crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
                 &program.declarations,
                 element,
-            )
+            ) || crate::hir::owned_leaf_collection::layout(&program.declarations, element)
+                .is_some()
         }) {
             let layout = variant_layout(variant_layouts, ty)?;
             return Ok((layout.size, layout.align));
@@ -2221,12 +2234,14 @@ fn emit_profile_with_scalar_exports(
     let uses_byte_data = super::program_uses_byte_data(program)
         || super::program_uses_strings(program)
         || uses_record_iterator
-        || uses_maps;
+        || uses_maps
+        || super::vec_ops::program_uses_owned_leaf_vec(program);
     let uses_owned_buffer = program_uses_owned_buffer(program);
     let uses_vec = super::program_uses_vec(program);
     let uses_extended_vec = super::vec_ops::program_uses_extended_vec(program);
     let uses_vec_sort = crate::vec_ops::resolved_program_uses_sort(program);
     let uses_vec_record = super::vec_ops::program_uses_record_vec(program);
+    let uses_owned_leaf_vec = super::vec_ops::program_uses_owned_leaf_vec(program);
     let uses_owned_iterator = crate::iterator_ops::resolved_program_uses_owned_iterator(program);
     let uses_box = super::program_uses_box(program);
     let uses_list = crate::list_ops::resolved_program_uses_list(program);
@@ -2397,6 +2412,7 @@ fn emit_profile_with_scalar_exports(
             &mut type_indexes,
         )
     });
+    let owned_leaf_types = vec_owned_leaf::import_types(uses_owned_leaf_vec, &mut types, &mut type_indexes);
     let (iter_into, iter_next, iter_drop, record_iter_next) = iterator_ops::intern_import_types(
         uses_owned_iterator,
         uses_record_iterator,
@@ -2546,6 +2562,7 @@ fn emit_profile_with_scalar_exports(
                         0
                     }
                     + map_count
+                    + if uses_owned_leaf_vec { vec_owned_leaf::IMPORT_COUNT } else { 0 }
                     + u32::try_from(index).unwrap_or(u32::MAX),
             )
         })
@@ -2595,7 +2612,8 @@ fn emit_profile_with_scalar_exports(
             } else {
                 0
             }
-            + map_count,
+            + map_count
+            + if uses_owned_leaf_vec { vec_owned_leaf::IMPORT_COUNT } else { 0 },
     );
     for name in ["spx_add", "spx_sub", "spx_mul", "spx_div", "spx_rem"] {
         function_import(&mut imports, "env", name, binary_checked);
@@ -2760,6 +2778,9 @@ fn emit_profile_with_scalar_exports(
         map_collections::emit_imports(&mut imports, types);
         map_collections::insert_indexes(&mut function_indexes, base);
     }
+    if let Some(types) = owned_leaf_types {
+        vec_owned_leaf::emit_imports(&mut imports, types);
+    }
     section(&mut module, 2, imports);
 
     let mut function_section = Vec::new();
@@ -2912,6 +2933,7 @@ fn emit_profile_with_scalar_exports(
             })
         })
         .and_then(|value| value.checked_add(map_count))
+        .and_then(|value| value.checked_add(if uses_owned_leaf_vec { vec_owned_leaf::IMPORT_COUNT } else { 0 }))
         .ok_or_else(|| error("aggregate wrapper import count overflows u32"))?
         .checked_add(
             u32::try_from(executable_functions.len()).map_err(|_| error("too many functions"))?,
@@ -6317,8 +6339,11 @@ impl Emitter<'_> {
         if crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
             &self.program.declarations,
             element,
-        ) {
+        ) && !op.owned_leaf_only() {
             return self.emit_vec_record_payload(expr, op, element, args);
+        }
+        if crate::hir::owned_leaf_collection::layout(&self.program.declarations, element).is_some() {
+            return self.emit_owned_leaf_vec(expr, op, element, args);
         }
         if !crate::vec_ops::resolved_operation_element_is_admitted(op, element)
             || args.len() != op.arity()
@@ -6602,6 +6627,10 @@ impl Emitter<'_> {
                 self.store_vec_element_bits(&result, element)?;
                 Ok(result)
             }
+            crate::vec_ops::VecOp::CloneAt
+            | crate::vec_ops::VecOp::Replace
+            | crate::vec_ops::VecOp::ReserveOwned
+            | crate::vec_ops::VecOp::SortOwned => Err(error("owned-leaf Vec operation has no admitted element")),
         }
     }
 

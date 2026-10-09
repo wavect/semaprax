@@ -184,7 +184,8 @@ impl Emitter<'_> {
                 write_u32(self.output, scalar_local(&result)?);
                 Ok(result)
             }
-            VecOp::Get | VecOp::Set | VecOp::ReserveExact => Err(error(
+            VecOp::Get | VecOp::Set | VecOp::ReserveExact
+            | VecOp::CloneAt | VecOp::Replace | VecOp::ReserveOwned | VecOp::SortOwned => Err(error(
                 "owned record Vec operation is outside the admitted profile",
             )),
         }

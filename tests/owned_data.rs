@@ -69,6 +69,8 @@ mod owned_bounded_box_runtime;
 mod owned_bounded_vec_runtime;
 #[path = "owned_data/owned_record_vec_runtime.rs"]
 mod owned_record_vec_runtime;
+#[path = "owned_data/owned_leaf_vec.rs"]
+mod owned_leaf_vec;
 #[path = "owned_data/projected_bytes_borrowed_call_native.rs"]
 mod projected_bytes_borrowed_call_native;
 #[path = "owned_data/public_utf8_api.rs"]

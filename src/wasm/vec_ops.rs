@@ -17,6 +17,42 @@ pub(crate) fn is_wasm_owned_vec_type(program: &ResolvedProgram, ty: &ResolvedTyp
     crate::cleanup::is_owned_bounded_vec_type(ty)
         || crate::hir::copy_record_collection::is_vec(&program.declarations, ty)
         || crate::hir::owned_record_collection::is_owned_record_vec_type(&program.declarations, ty)
+        || crate::hir::owned_leaf_collection::is_vec(&program.declarations, ty)
+}
+
+/// Select the additive private boundary only for an operation that needs it.
+/// The frozen two-Bytes record continues to use its old imports unless one of
+/// the four new operations is present.
+pub(crate) fn program_uses_owned_leaf_vec(program: &ResolvedProgram) -> bool {
+    program.functions.iter().chain(program.function_instances.iter().map(|i| &i.function))
+        .any(|function| std::iter::once(&function.body).chain(&function.requires).chain(&function.ensures)
+            .any(|root| {
+                let mut pending = vec![root];
+                while let Some(expr) = pending.pop() {
+                    if let crate::hir::ResolvedExprKind::Call { callee, type_arguments, .. } = &expr.kind {
+                        if let [element] = type_arguments.as_slice() {
+                            if crate::hir::owned_leaf_collection::layout(&program.declarations, element).is_some()
+                                && crate::vec_ops::by_id(callee.as_str()).is_some_and(|op|
+                                    op.owned_leaf_only()
+                                        || !crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+                                            &program.declarations, element))
+                            {
+                                return true;
+                            }
+                            if crate::iterator_ops::by_id(callee.as_str()).is_some()
+                                && crate::hir::owned_leaf_collection::layout(
+                                    &program.declarations, element).is_some()
+                                && !crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+                                    &program.declarations, element)
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                    crate::hir::push_resolved_expression_children_in_authored_order(expr, &mut pending);
+                }
+                false
+            }))
 }
 
 /// The host element tag the SPX-AI-019 owned-record element carries.

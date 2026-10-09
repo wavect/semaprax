@@ -406,6 +406,8 @@ pub(super) fn hex_execution_identity(id: &FunctionExecutionId) -> String {
 pub(in crate::wasm) fn vec_import_base(program: &ResolvedProgram) -> u32 {
     super::SCALAR_IMPORT_COUNT
         + if super::super::program_uses_byte_data(program)
+            || super::super::program_uses_strings(program)
+            || super::super::vec_ops::program_uses_owned_leaf_vec(program)
             || crate::iterator_ops::resolved_program_uses_record_iterator(program)
             || super::map_collections::uses(program)
         {

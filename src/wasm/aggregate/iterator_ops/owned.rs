@@ -47,6 +47,130 @@ pub(super) fn record_import_base(program: &ResolvedProgram) -> u32 {
 }
 
 impl Emitter<'_> {
+    pub(super) fn emit_owned_leaf_vec_into_iter(
+        &mut self, expr: &ResolvedExpr, element: &ResolvedType, args: &[ResolvedExpr],
+    ) -> Result<Value, Diagnostic> {
+        let descriptor = super::super::vec_owned_leaf::descriptor(self.program, element)?;
+        let _ = self.emit_expr(&args[0])?;
+        let epoch = crate::cleanup_plan::StorageId::CallArgument {
+            call: expr.id.clone(), parameter_index: 0, value_expression: args[0].id.clone(),
+        };
+        let source = Value::Scalar {
+            local: *self.plan.cleanup_call_argument_carriers.get(&epoch)
+                .ok_or_else(|| error("owned-leaf iterator has no staged Vec"))?,
+            ty: crate::vec_ops::resolved_vec(element.clone()),
+        };
+        let pointer = self.plan.expr_pointer(expr)?;
+        self.poison_iterator_frame(pointer);
+        self.get_scalar(&source);
+        self.output.push(0x42); write_i64(self.output, descriptor.identity);
+        self.output.push(0x42); write_i64(self.output, descriptor.shape);
+        self.emit_pointer(pointer);
+        self.output.push(0x10);
+        write_u32(self.output, super::super::vec_owned_leaf::import_base(self.program)
+            + super::super::vec_owned_leaf::INTO_ITER);
+        self.emit_owned_iterator_status(expr)?;
+        self.validate_iterator_frame(pointer);
+        self.apply_call_commit(&expr.id)?;
+        self.clear_scalar(&source)?;
+        Ok(Value::Aggregate { pointer, ty: expr.ty.clone() })
+    }
+
+    pub(super) fn emit_owned_leaf_iter_next(
+        &mut self, expr: &ResolvedExpr, element: &ResolvedType, args: &[ResolvedExpr],
+    ) -> Result<Value, Diagnostic> {
+        let descriptor = super::super::vec_owned_leaf::descriptor(self.program, element)?;
+        let source = self.iterator_argument(expr, element, args)?;
+        let Value::Aggregate { pointer: source, .. } = source else {
+            return Err(error("owned-leaf iterator owner is not aggregate"));
+        };
+        let result_pointer = self.plan.expr_pointer(expr)?;
+        let variant = variant_layout(self.variant_layouts, &expr.ty)?;
+        let yielded = variant.cases.iter().find(|case| case.case.as_str() == crate::iterator_ops::YIELD_ID)
+            .ok_or_else(|| error("owned-leaf Step Yield case is missing"))?;
+        let item = yielded.field(&DeclarationId::new(crate::iterator_ops::ITEM_ID))
+            .ok_or_else(|| error("owned-leaf Step item is missing"))?;
+        let rest = yielded.field(&DeclarationId::new(crate::iterator_ops::REST_ID))
+            .ok_or_else(|| error("owned-leaf Step rest is missing"))?;
+        let item_pointer = Pointer {
+            local: result_pointer.local,
+            offset: result_pointer.offset.checked_add(variant.payload_offset)
+                .and_then(|n| n.checked_add(item.offset))
+                .ok_or_else(|| error("owned-leaf Step item offset overflows"))?,
+        };
+        let rest_pointer = Pointer {
+            local: result_pointer.local,
+            offset: result_pointer.offset.checked_add(variant.payload_offset)
+                .and_then(|n| n.checked_add(rest.offset))
+                .ok_or_else(|| error("owned-leaf Step rest offset overflows"))?,
+        };
+        let scratch = Pointer { local: self.plan.frame_base,
+            offset: *self.plan.owned_leaf_scratch.get(&expr.id)
+                .ok_or_else(|| error("owned-leaf iterator scratch is absent"))? };
+        self.poison_frame(scratch, 88);
+        self.emit_pointer(Pointer { offset: source.offset + ITER_HANDLE_OFFSET, ..source });
+        self.load_scalar(&ResolvedType::I64);
+        self.emit_pointer(Pointer { offset: source.offset + ITER_CURSOR_OFFSET, ..source });
+        self.load_scalar(&ResolvedType::Usize);
+        self.output.push(0x42); write_i64(self.output, descriptor.identity);
+        self.output.push(0x42); write_i64(self.output, descriptor.shape);
+        self.emit_pointer(scratch);
+        self.output.push(0x10);
+        write_u32(self.output, super::super::vec_owned_leaf::import_base(self.program)
+            + super::super::vec_owned_leaf::ITER_NEXT);
+        self.emit_owned_iterator_status(expr)?;
+        self.emit_pointer(scratch);
+        self.load_scalar(&ResolvedType::I64);
+        self.output.push(0x42); write_i64(self.output, 1);
+        self.output.push(0x56); // tag > Yield
+        self.trap_if();
+        self.emit_pointer(result_pointer);
+        self.output.push(0x41); write_i64(self.output, 0);
+        self.output.push(0x41); write_i64(self.output, i64::from(variant.size));
+        self.output.extend([0xfc, 0x0b, 0x00]);
+        self.emit_pointer(scratch);
+        self.load_scalar(&ResolvedType::I64);
+        self.output.push(0x50); // Done?
+        self.output.extend([0x04, 0x40]);
+        for offset in (8..88).step_by(8) {
+            self.emit_pointer(Pointer { offset: scratch.offset + offset, ..scratch });
+            self.load_scalar(&ResolvedType::I64);
+            self.output.push(0x50); self.output.push(0x45); self.trap_if();
+        }
+        self.output.push(0x05); // Yield
+        let row = Pointer { offset: scratch.offset + 8, ..scratch };
+        self.leaf_validate_words(row, &descriptor)?;
+        self.emit_pointer(Pointer { offset: scratch.offset + 72, ..scratch });
+        self.load_scalar(&ResolvedType::I64);
+        self.output.push(0x50); self.trap_if();
+        self.emit_pointer(Pointer { offset: scratch.offset + 72, ..scratch });
+        self.load_scalar(&ResolvedType::I64);
+        self.emit_pointer(Pointer { offset: source.offset + ITER_HANDLE_OFFSET, ..source });
+        self.load_scalar(&ResolvedType::I64);
+        self.output.push(0x51); self.trap_if();
+        self.emit_pointer(Pointer { offset: scratch.offset + 80, ..scratch });
+        self.load_scalar(&ResolvedType::Usize);
+        self.emit_pointer(Pointer { offset: source.offset + ITER_CURSOR_OFFSET, ..source });
+        self.load_scalar(&ResolvedType::Usize);
+        self.output.extend([0x42, 0x01, 0x7c, 0x52]); self.trap_if();
+        self.emit_pointer(result_pointer); self.output.push(0x41); write_i64(self.output, 1);
+        self.output.extend([0x36, 0x02, 0x00]); // Step::Yield discriminant
+        let item_value = value_at(item_pointer, element.clone(), self.program)?;
+        self.leaf_store_words(&item_value, row, &descriptor)?;
+        for (offset, ty) in [(72, ResolvedType::I64), (80, ResolvedType::Usize)] {
+            self.emit_pointer(Pointer { offset: rest_pointer.offset + (offset - 72), ..rest_pointer });
+            self.emit_pointer(Pointer { offset: scratch.offset + offset, ..scratch });
+            self.load_scalar(&ty);
+            self.store_scalar(&ty);
+        }
+        self.output.push(0x0b);
+        self.apply_call_commit(&expr.id)?;
+        self.clear_iterator(&Value::Aggregate {
+            pointer: source, ty: crate::iterator_ops::resolved_iter(element.clone()),
+        })?;
+        Ok(Value::Aggregate { pointer: result_pointer, ty: expr.ty.clone() })
+    }
+
     pub(super) fn emit_record_vec_into_iter(
         &mut self,
         expr: &ResolvedExpr,
@@ -529,7 +653,7 @@ impl Emitter<'_> {
         Ok(())
     }
 
-    fn validate_record_scalar_bits(
+    pub(in crate::wasm::aggregate) fn validate_record_scalar_bits(
         &mut self,
         pointer: Pointer,
         ty: &ResolvedType,

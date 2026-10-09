@@ -535,10 +535,15 @@ fn owned_record_factories_and_named_view_renewal_preserve_real_checked_providers
             .err().expect("a forwarded prototype cannot hide an overlapping input loan");
         assert!(errors.iter().any(|error| error.code == "SPX-T265"), "{errors:?}");
     }
-    let moved_input = FACTORY_APP.replace(
-        "let view = array_as_slice(input);\n    let alias = view;",
-        "let view = bytes_as_slice(data); let alias = view; let moved = bytes_set(data, 0usize, 1u8);",
-    );
+    let moved_input = FACTORY_APP
+        .replace(
+            "@id(\"factory.app.main\") fn main() -> i64 {",
+            "@id(\"factory.app.hold_bytes\") fn hold_bytes(value: own Bytes) -> Bytes { value }\n@id(\"factory.app.main\") fn main() -> i64 {",
+        )
+        .replace(
+            "let view = array_as_slice(input);\n    let alias = view;",
+            "let view = bytes_as_slice(data); let alias = view; let moved = hold_bytes(data);",
+        );
     let errors = build_owned(sources(&moved_input, FACTORY_PROVIDER))
         .err().expect("independent input storage cannot move while its named view is live");
     assert!(errors.iter().any(|error| error.code == "SPX-T265"), "{errors:?}");

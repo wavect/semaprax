@@ -1045,6 +1045,8 @@ fn valid() -> usize {
     let next = advance(current, view);
     observe(next)
 }
+@id("main")
+fn main() -> i64 { if valid() == 1usize { 1 } else { 0 } }
 @id("pipeline.invalid")
 fn invalid() -> usize {
     let input = [1u8];

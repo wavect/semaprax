@@ -1,5 +1,13 @@
 # Changelog
 
+- Author a separate Catalog23 application cohort with the unchanged staged
+  requirements/corpus/oracle, fresh Project v30 source/compiler/native
+  qualification and matched Codex arms. Retain the strong dependency-only
+  TypeScript bootstrap, independently compile its authored source with pinned
+  tsc/Node and preserve complete runtime module bytes. Qualification, owning
+  mocked checks and live measurements are pending; existing cohorts and
+  historical evidence remain unchanged.
+
 - Add an explicit ShiftSim round-4 Project v30 owned-data authoring condition,
   fresh source/compiler/native-bound all-15 qualification, and pre-dispatch
   drift guards. Preserve historical rounds and the strong TypeScript prompt

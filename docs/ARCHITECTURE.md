@@ -2804,7 +2804,9 @@ Read-only commands live in focused modules such as
 `src/webapp/runtime/server.mjs` publishes one atomic `state.json` snapshot
 containing DB rows, authentication state and audit entries; the legacy files
 are recoverable mirrors. A canonical data-directory `.writer-lock` admits one
-writer and leaves crash recovery under explicit operator control.
+writer and leaves crash recovery under explicit operator control. The self-test
+parent creates a private Node IPC channel for graceful child shutdown, including
+on Windows; forced termination still retains the writer claim.
 
 `src/doc.rs` projects checked declarations and comments—identity, signature,
 ownership, effects, contracts, members, descriptions—to Markdown or one-line

@@ -14,7 +14,7 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), "semaprax-sg-http-"));
 const data = path.join(root, "data");
 const children = new Set();
 const start = (dir = data, preload = null) => new Promise((resolve, reject) => {
-  const child = spawn(process.execPath, [...(preload ? ["--import", preload] : []), path.join(app, "server.mjs"), "--port", "0", "--data", dir, "--setup"], { stdio: ["ignore", "pipe", "pipe"] });
+  const child = spawn(process.execPath, [...(preload ? ["--import", pathToFileURL(preload).href] : []), path.join(app, "server.mjs"), "--port", "0", "--data", dir, "--setup"], { stdio: ["ignore", "pipe", "pipe", "ipc"] });
   children.add(child); let output = "", errors = "";
   const timer = setTimeout(() => { child.kill(); reject(new Error("server startup timeout: " + errors)); }, 10000);
   child.stderr.on("data", (s) => errors += s);
@@ -27,7 +27,7 @@ const start = (dir = data, preload = null) => new Promise((resolve, reject) => {
 });
 const stop = async (server) => {
   if (server.child.exitCode !== null) return;
-  await new Promise((resolve) => { server.child.once("exit", resolve); server.child.kill("SIGTERM"); });
+  await new Promise((resolve) => { server.child.once("exit", resolve); server.child.send("semaprax.webapp.stop.v1"); });
 };
 let server, cookie;
 const mutationHeaders = async (auth) => {
@@ -70,7 +70,7 @@ if (!process.argv.includes("--self-test")) net.Server.prototype.listen = functio
 `);
   return await new Promise((resolve, reject) => {
     const script = path.join(app, "server.mjs");
-    const args = selfTestParent ? [script, "--self-test", "--data", dir] : ["--import", preload, script, "--data", dir];
+    const args = selfTestParent ? [script, "--self-test", "--data", dir] : ["--import", pathToFileURL(preload).href, script, "--data", dir];
     const options = { stdio: ["ignore", "pipe", "pipe"] };
     if (selfTestParent) options.env = {
       ...process.env,
@@ -224,7 +224,10 @@ try {
   assert.equal(persisted.status, 201);
   const history = (await call("GET", persisted.location + "/history")).value;
   assert.equal(history.length, 1);
+  const normalOwner = JSON.parse(fs.readFileSync(path.join(data, ".writer-lock/owner.json"), "utf8"));
+  assert.equal(normalOwner.pid, server.child.pid);
   await stop(server);
+  assert.equal(fs.existsSync(path.join(data, ".writer-lock")), false, "graceful parent shutdown releases its writer claim");
   // Publication snapshot repairs missing mirrors without replaying a mutation twice.
   for (const file of ["db.json", "auth.json", "audit.jsonl"]) fs.unlinkSync(path.join(data, file));
   server = await start();
@@ -244,10 +247,10 @@ fs.openSync = function(file, ...args) {
   if (fs.existsSync(file) && fs.statSync(file).isDirectory()) throw new Error("directory descriptors unavailable");
   return open.call(this, file, ...args);
 };`);
-  server = await start(data, pathToFileURL(windowsPublication).href);
+  server = await start(data, windowsPublication);
   const windowsWrite = await call("POST", "/api/number", { value: 12 });
   assert.equal(windowsWrite.status, 201);
-  await stop(server); server = await start(data, pathToFileURL(windowsPublication).href);
+  await stop(server); server = await start(data, windowsPublication);
   assert.equal((await call("GET", windowsWrite.location)).value.value, 12);
   assert.equal((await call("GET", windowsWrite.location + "/history")).value.length, 1);
   // Inject a filesystem failure after the publication pivot, without changing
@@ -261,7 +264,7 @@ fs.renameSync = function(from, to) {
   if (armed && String(to).endsWith("audit.jsonl")) { armed = false; throw new Error("injected post-publication mirror failure"); }
   return original.call(this, from, to);
 };`);
-  server = await start(data, pathToFileURL(injection).href);
+  server = await start(data, injection);
   const uncertain = await call("POST", "/api/number", { value: 11 });
   assert.equal(uncertain.status, 503); assert.equal(uncertain.value.committed, true);
   await stop(server); server = await start();

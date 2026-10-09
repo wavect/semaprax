@@ -47,6 +47,11 @@ process.on("exit", () => {
   try { if (JSON.parse(fs.readFileSync(lockOwner, "utf8")).token === lockToken) { fs.unlinkSync(lockOwner); fs.rmdirSync(lockDir); } } catch { /* retain an uncertain claim */ }
 });
 for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => process.exit(0));
+// Only a spawning parent with an explicit private IPC channel can request this.
+// Windows kill(SIGTERM) is forced termination and cannot run exit cleanup.
+if (process.connected) process.on("message", (message) => {
+  if (message === "semaprax.webapp.stop.v1") process.exit(0);
+});
 // Node cannot open directory descriptors on Windows. Flush the published
 // file there; staged bytes are already flushed before the atomic rename.
 // POSIX also flushes the containing directory. Every flush error propagates.
@@ -396,6 +401,7 @@ const listenError = (error) => {
     console.error(`server listen failed (${code ?? "unknown"}): ${error?.message ?? error}`);
   }
   process.exitCode = 1;
+  if (process.connected) process.disconnect();
 };
 server.once("error", listenError);
 server.listen(Number(opt.port), opt.host, () => {
@@ -533,14 +539,14 @@ async function selfTest() {
   const check = (ent, what, want, got, ok) => { if (!ok) fails.push(`FAIL ${ent} ${what}: ${want} got ${short(got)}`); return ok; };
   let child = null;
   const start = () => new Promise((resolve, reject) => {
-    child = spawn(process.execPath, [fileURLToPath(import.meta.url), "--port", "0", "--data", dir, "--setup"], { stdio: ["ignore", "pipe", "pipe"] });
+    child = spawn(process.execPath, [fileURLToPath(import.meta.url), "--port", "0", "--data", dir, "--setup"], { stdio: ["ignore", "pipe", "pipe", "ipc"] });
     let buf = "";
     const timer = setTimeout(() => reject(new Error("server did not start: " + buf)), 10000);
     child.stderr.on("data", (c) => { buf += c; });
     child.stdout.on("data", (c) => { buf += c; const m = /listening on (http:\/\/\S+?)\/ /.exec(buf); if (m) { clearTimeout(timer); resolve(m[1] + "/api/"); } });
     child.on("exit", () => { clearTimeout(timer); reject(new Error("server exited: " + buf)); });
   });
-  const stop = () => new Promise((resolve) => { if (!child || child.exitCode !== null) return resolve(); child.removeAllListeners("exit"); child.on("exit", resolve); child.kill("SIGTERM"); });
+  const stop = () => new Promise((resolve) => { if (!child || child.exitCode !== null) return resolve(); child.removeAllListeners("exit"); child.on("exit", resolve); child.send("semaprax.webapp.stop.v1"); });
   let base;
   const call = async (method, p, body, cookie) => {
     try {

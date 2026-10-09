@@ -110,7 +110,10 @@ nothing.
   failure behavior. This profile does not promise recovery from power loss.
 - The canonical data directory has one exclusive `.writer-lock` claim, acquired
   before loading state. A second writer, including through a symlink alias,
-  fails startup. SIGINT/SIGTERM and normal exit release the claim. A crash keeps
+  fails startup. Delivered SIGINT/SIGTERM and normal exit release the claim.
+  Self-test parents use an explicitly created private Node IPC channel to
+  request normal child exit, because Windows process termination cannot run
+  signal cleanup. Forced termination keeps the claim. A crash keeps
   it: inspect `owner.json`, confirm its PID is no longer running, and only then
   remove `.writer-lock` before restarting. Automatic stale-claim takeover is
   deliberately unsupported.

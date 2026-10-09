@@ -939,6 +939,22 @@ mod carrier_tests {
         let crate::ast::ExprKind::Block { statements, .. } = &function.body.kind else {
             panic!("function body should remain a block");
         };
+        assert_eq!(
+            ast_child_identity_path_increment(&function.body, 0, &program),
+            ".s0.values".len(),
+        );
+        assert_eq!(
+            ast_child_identity_path_increment(&function.body, 1, &program),
+            ".s0.value.s2.body.s1.value".len(),
+        );
+        assert_eq!(
+            ast_child_identity_path_increment(&function.body, 2, &program),
+            ".s1.value.s0.value.arg.0".len(),
+        );
+        assert_eq!(
+            ast_child_identity_path_increment(&function.body, 3, &program),
+            ".s1.value.s1.body.s0.value.arm.1.value.s0.value".len(),
+        );
         let actual = desugared_statement_identity_upper(function, 0, "body".len(), statements)
             .unwrap();
         let for_path = "body.s0.value.s2.body.s0.value.arg.1".len();

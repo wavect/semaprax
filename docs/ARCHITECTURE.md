@@ -3576,6 +3576,14 @@ fallback profiles retain their existing forecast calculations.
 its `edge_projection` helper borrows immutable edge and identity bytes for
 temporary comparisons, charges the reference carriers, and preserves the
 complete occurrence multiset and edge-count limit.
+`expected_projection/call_sites` selects imported calls before copying owners
+and borrows their HIR expression and target identities through the fallible
+inspection visitor. `retained_validation/type_projection` owns full four-field
+type-site comparisons with borrowed identities and one retained generated path;
+`retained_validation/capability_projection` owns full ten-field permit replay
+with borrowed module authority and one generated permit path. These transient
+views preserve independent reconstruction and reserve their storage before
+allocation; they are not retained graph authority or a measurement of peak RSS.
 
 Only that final uncached profile resolves modules in descending temporary-HIR
 overhead with a path tie-break, using a fixed-size stack index. Its forecast uses

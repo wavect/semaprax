@@ -1,0 +1,15 @@
+module pattern.conformance_tests;
+
+use function @id("pattern.conformance.main") from pattern.conformance as conformance_main;
+
+@id("pattern.conformance_tests.main")
+fn main() -> i64
+{
+    conformance_main()
+}
+
+@id("pattern.conformance_tests.public-api")
+fn test_public_api() -> i64
+{
+    conformance_main()
+}

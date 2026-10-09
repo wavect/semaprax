@@ -1,0 +1,52 @@
+module pattern.conformance;
+
+use type @id("std.pattern.matcher") from std.pattern as Matcher;
+use function @id("std.pattern.make") from std.pattern as pattern_make;
+use function @id("std.pattern.compile") from std.pattern as pattern_compile;
+use function @id("std.pattern.full-match") from std.pattern as pattern_full_match;
+use function @id("std.pattern.result-valid") from std.pattern as pattern_result_valid;
+use function @id("std.pattern.status") from std.pattern as pattern_status;
+use function @id("std.pattern.reason") from std.pattern as pattern_reason;
+use function @id("std.pattern.detail") from std.pattern as pattern_detail;
+use function @id("std.pattern.detail-domain") from std.pattern as pattern_detail_domain;
+use function @id("std.pattern.capture-count") from std.pattern as pattern_capture_count;
+use function @id("std.pattern.work-used") from std.pattern as pattern_work_used;
+use function @id("std.pattern.capture-start") from std.pattern as pattern_capture_start;
+use function @id("std.pattern.capture-end") from std.pattern as pattern_capture_end;
+
+@id("pattern.conformance.main")
+fn main() -> i64
+{
+    let pattern = "([A-Z]+)";
+    let pattern_view = string_as_str(pattern);
+    let pattern_bytes = str_as_bytes(pattern_view);
+    let mut matcher: Matcher = pattern_compile(pattern_make(), pattern_bytes, 262144usize);
+    let compiled_packet_valid = pattern_result_valid(matcher);
+    let compiled_status = pattern_status(matcher);
+    let compiled_reason = pattern_reason(matcher);
+    let compiled_detail = pattern_detail(matcher);
+    let compiled_detail_domain = pattern_detail_domain(matcher);
+    let input = "ABC";
+    let input_view = string_as_str(input);
+    let input_bytes = str_as_bytes(input_view);
+    if compiled_status == 0usize {
+        matcher = pattern_full_match(matcher, input_bytes, 262144usize);
+    }
+    let result_packet_valid = pattern_result_valid(matcher);
+    let status = pattern_status(matcher);
+    let reason = pattern_reason(matcher);
+    let detail = pattern_detail(matcher);
+    let detail_domain = pattern_detail_domain(matcher);
+    let work = pattern_work_used(matcher);
+    let captures = pattern_capture_count(matcher);
+    let capture_bounds_valid = if status == 1usize && captures > 0usize {
+        pattern_capture_start(matcher, 0usize) == 0usize
+            && pattern_capture_end(matcher, 0usize) == 3usize
+    } else { false };
+    if compiled_packet_valid && compiled_status == 0usize && compiled_reason == 0usize
+        && compiled_detail == 0usize && compiled_detail_domain == 0usize
+        && result_packet_valid && status == 1usize && reason == 0usize
+        && detail == 0usize && detail_domain == 0usize && work >= 32usize
+        && captures == 1usize && capture_bounds_valid
+    { 0 } else { 1 }
+}

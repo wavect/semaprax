@@ -776,6 +776,20 @@ signatures carry typed aliases to canonical owned leaves, and Wasm retains the
 existing owned-byte arena carrier. [Owned String Records v1](OWNED-STRING-RECORDS-V1.md)
 owns the proposed executable profile and its focused gates.
 
+`hir/owned_leaf_collection.rs` owns the target-neutral descriptor for the
+additive flat owned-leaf collection slice. It derives ordered field identities,
+typed String/Bytes positions and independent scalar/carrier charges from
+authenticated declaration facts. `source_verify/declared_type/owned_leaf_collection.rs`
+reconstructs source admission independently; neither classifier changes the
+frozen two-Bytes-plus-scalar predicate. `vec_ops.rs` owns the distinct clone,
+replace, reserve and order operations. Ordinary source/HIR loan and cleanup
+replay still owns their call-local borrows, grouped transfer and result leaves.
+`interpreter/owned_vec/owned_leaf.rs` owns deep cloning with fresh Bytes identities
+and stable whole-carrier ordering; source and HIR capacity walks charge each
+Bytes clone without weakening the existing allocation/loop limits.
+[Owned Leaf Collections v1](OWNED-LEAF-COLLECTIONS-V1.md) defines this source
+batch's boundary. Its executable and application gates remain pending.
+
 ### Cleanup meaning
 
 `src/cleanup.rs` inventories structurally owned leaves.
@@ -1334,6 +1348,21 @@ This adds no Agent operation binding or scheduler.
 
 ### Native bootstrap backend
 
+The owned-leaf source batch is isolated in `codegen/native_vec/owned_leaf.rs`
+and `.c`, `native_emit/expression/vec_ops/owned_leaf.rs`, and
+`native_iter/owned_leaf.c`. Compiler-emitted immutable descriptors bind the
+nominal/ordered-field identity, field kinds, offsets and capacity. The private
+native runtime uses vector tag 12 and iterator tag 13; legacy record vector tag
+10 and iterator tag 11 keep their existing meaning. A descriptor pointer stored
+with the allocation is checked together with the invocation's vector authority
+entry and generation. These tags and offsets are internal carriers, not a
+public ABI. Push/replacement preflight retains the canonical staged owners;
+the successful group commit transfers all leaves together. Clone results use
+ordinary aggregate temporaries and projected cleanup-plan initialization.
+Partial-clone allocation failure selects Vec/3 before settling the completed
+prefix. `cleanup_backends::owned_leaf_collections` owns the authored C11 O0/O2
+pointer-inventory, failure-injection and replay regressions; execution is pending.
+
 `src/https_client.rs` owns a separate explicit native-host HTTP service. Its
 reusable Reqwest client disables ambient proxy discovery, applies bounded
 redirect/body/pool policy, and reports HTTP/1.1 or HTTP/2 through a typed
@@ -1425,6 +1454,17 @@ owned, and command-I/O paths remain separately admitted. The owned-byte variant
 path uses active-case field moves and hard traps for malformed carriers; legacy
 Copy-variant status behavior remains unchanged. The default product
 is not a general WebAssembly Component Model runtime.
+
+`wasm/aggregate/vec_owned_leaf.rs` owns the additive owned-leaf lowering,
+private imports, declaration/ordered-field descriptor encoding and typed
+reconstruction of the existing `Step<T>` result. `wasm/vec_ops.rs` owns runtime
+selection. The
+authoritative owning test host in `tests/owned_data/owned_leaf_vec/host.js`
+authenticates descriptor, shape, handle and generation together; its private
+vector tag 11 is independent of native tags. It is an explicit host boundary,
+not a Wasm integer becoming an owning source value or ambient host authority.
+Canonical cleanup order and grouped transfer stay compiler-owned. The authored
+strict Core-Wasm, hostile-host and settlement gates are not execution evidence.
 
 The separately selected `wasm::internal_strings` API authors a standalone
 String-settling profile. `internal_strings/admission.rs` owns selection and
@@ -2071,6 +2111,20 @@ compiler-report schemas; generated clients perform no I/O or execution. See
 is included in the v0.4.0 hosted-green regression corpus; no complete-workflow or current-head promotion follows.
 
 ### Project profile and daemon
+
+The additive Project v30 `language-command-io.owned-data.v1` route is owned by
+the ordinary manifest/admission, workspace graph, retained validation and
+Project revision paths. `hir/workspace_link/stream_owned.rs` independently
+replays its exact private helper/carrier closure; command roots remain
+`fn () -> i64` and use the existing explicit process grants and provider caps.
+`workspace_graph/retained_validation/stream_admission.rs` checks every selected
+source module for new owned-collection use before old-profile reachability
+cropping. HIR and native entry replay also reject body-only new carriers under
+frozen stream profiles. Neither an unused logical schema, a cached descriptor,
+generated codec name nor successful private lowering grants public runtime
+authority. `project::tests::stdin_stream_command::owned_data` owns the authored
+manifest, retained/prepared, native-command and hostile-profile gates; v30
+remains unqualified until those gates and full application acceptance execute.
 
 `project/incremental.rs` owns an opt-in, invocation-local cache of exact-source
 canonical ASTs. It can avoid parsing/canonicalization for eligible retained

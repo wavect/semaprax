@@ -1,5 +1,14 @@
 # Changelog
 
+- Author the remaining OPT-723 owned-leaf vector slice: explicit deep clone,
+  grouped replacement, bounded reserve, stable scalar/text ordering and
+  consuming traversal, with independent source/HIR descriptors and private
+  interpreter/native/Wasm projections. Add Project v30 while retaining frozen
+  stream/public boundaries, Bytes capacity charges and ordinary cleanup replay.
+  Pointer-inventory, partial-clone failure, stale authority and profile gates
+  are authored; grouped execution, application acceptance and efficiency
+  qualification remain pending.
+
 - Bound default language help and application-route discovery, preserve the full
   reference under `help language all`, and page exact checked library signatures
   with explicit prerequisites and deterministic continuations. Correct the

@@ -196,7 +196,7 @@ impl ExpressionId {
     }
 
     pub(crate) fn from_owned(value: String) -> Self {
-        if !crate::bounded_output::reserve_active(Self::SHARED_ALLOCATION_CARRIER_BYTES) {
+        if !crate::bounded_output::reserve_active_required(Self::SHARED_ALLOCATION_CARRIER_BYTES) {
             // The caller's existing overflow flag rejects the enclosing work.
             // Do not allocate even an empty shared carrier after refusal.
             return Self(None);

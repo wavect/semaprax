@@ -18,7 +18,9 @@ impl Codec for ExpressionId {
     fn encode(&self, encoder: &mut Encoder) -> crate::cache_codec::Result<()> {
         encoder.nested(|encoder| match self.cached_text() {
             Some(text) => text.encode(encoder),
-            None => String::new().encode(encoder),
+            None => Err(crate::cache_codec::capacity(
+                "cache codec expression identity backing allocation was refused",
+            )),
         })
     }
 
@@ -26,7 +28,13 @@ impl Codec for ExpressionId {
         decoder.nested(|decoder| {
             let value = String::decode(decoder)?;
             decoder.allocate(Self::SHARED_ALLOCATION_CARRIER_BYTES)?;
-            Ok(Self::from_owned(value))
+            let identity = Self::from_owned(value);
+            if identity.cached_text().is_none() {
+                return Err(crate::cache_codec::capacity(
+                    "cache codec expression identity backing allocation was refused",
+                ));
+            }
+            Ok(identity)
         })
     }
 }

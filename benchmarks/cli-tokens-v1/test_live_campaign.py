@@ -62,6 +62,46 @@ class LiveCampaignTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "outside the candidate"):
                 proof.capture_inputs(candidate, candidate / "evidence", ["a.spx"])
 
+    def test_compiler_input_snapshot_refuses_file_and_ancestor_symlink_races(self):
+        proof = authored_recount.compiler_provenance
+        for ancestor in (False, True):
+            with self.subTest(ancestor=ancestor), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                candidate = root / "candidate"
+                (candidate / "src").mkdir(parents=True)
+                local = candidate / "src/a.spx"
+                local.write_bytes(b"local")
+                outside = root / "outside"
+                outside.mkdir()
+                secret = outside / "a.spx"
+                secret.write_bytes(b"outside bytes must not be retained")
+                check = proof._regular_under
+
+                def swap_after_check(base, relative):
+                    target = check(base, relative)
+                    if ancestor:
+                        (candidate / "src").rename(candidate / "old-src")
+                        (candidate / "src").symlink_to(outside, target_is_directory=True)
+                    else:
+                        local.unlink()
+                        local.symlink_to(secret)
+                    return target
+
+                with patch.object(proof, "_regular_under", side_effect=swap_after_check):
+                    with self.assertRaisesRegex(ValueError, "without following symlinks"):
+                        proof.capture_inputs(candidate, root / "evidence", ["src/a.spx"])
+                self.assertFalse((root / "evidence").exists())
+                self.assertEqual(secret.read_bytes(), b"outside bytes must not be retained")
+
+    def test_compiler_input_snapshot_bounds_receipt_reads_before_hashing(self):
+        proof = authored_recount.compiler_provenance
+        with tempfile.TemporaryDirectory() as directory:
+            receipt = Path(directory) / "snapshot.json"
+            with receipt.open("wb") as stream:
+                stream.truncate(proof.MAX_INPUT_RECEIPT_BYTES + 1)
+            with self.assertRaisesRegex(ValueError, "receipt exceeds byte budget"):
+                proof.validate_input_snapshot(receipt, "0" * 64)
+
     def test_hash_bound_authored_recount_separates_generated_and_lock_files(self):
         with tempfile.TemporaryDirectory() as directory:
             candidate = Path(directory); (candidate / "src").mkdir(); (candidate / "public").mkdir()

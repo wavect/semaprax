@@ -2,12 +2,35 @@
 from __future__ import annotations
 import hashlib
 import json
+import os
 import shutil
+import stat
 from pathlib import Path
 from typing import Any
 
 SCHEMA = "semaprax.compiler-output-provenance.v1"
 INPUT_SNAPSHOT_SCHEMA = "semaprax.compiler-input-snapshot.v1"
+MAX_INPUT_RECEIPT_BYTES = 1024 * 1024
+
+
+def _snapshot_read(root_fd: int, relative: str, limit: int) -> bytes:
+    """Read only a regular file through no-follow, directory-relative handles."""
+    parent_fd = os.dup(root_fd)
+    try:
+        parts = Path(relative).parts
+        for component in parts[:-1]:
+            next_fd = os.open(component, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent_fd)
+            os.close(parent_fd)
+            parent_fd = next_fd
+        fd = os.open(parts[-1], os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent_fd)
+        with os.fdopen(fd, "rb") as stream:
+            if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                raise ValueError("snapshot input is not a regular file")
+            return stream.read(limit + 1)
+    except OSError as error:
+        raise ValueError("snapshot input cannot be opened without following symlinks") from error
+    finally:
+        os.close(parent_fd)
 
 
 def capture_inputs(candidate: Path, destination: Path, paths: list[str],
@@ -30,6 +53,8 @@ def capture_inputs(candidate: Path, destination: Path, paths: list[str],
     selected = [_relative(path, "snapshot input path") for path in paths]
     if len(set(selected)) != len(selected):
         raise ValueError("snapshot input selection has duplicate paths")
+    if not all(hasattr(os, flag) for flag in ("O_DIRECTORY", "O_NOFOLLOW", "O_NONBLOCK")):
+        raise ValueError("safe input snapshot capture requires no-follow directory handles")
     # Exclusive creation protects earlier retained evidence from replacement.
     destination.mkdir()
     try:
@@ -37,22 +62,28 @@ def capture_inputs(candidate: Path, destination: Path, paths: list[str],
         inputs.mkdir()
         rows = []
         total = 0
-        for relative in sorted(selected):
-            source = _regular_under(candidate, relative)
-            with source.open("rb") as stream:
-                data = stream.read(max_bytes - total + 1)
-            if len(data) > max_bytes - total:
-                raise ValueError("snapshot input selection exceeds byte budget")
-            target = inputs / relative
-            target.parent.mkdir(parents=True, exist_ok=True)
-            with target.open("xb") as stream:
-                stream.write(data)
-            total += len(data)
-            rows.append({"path": relative, "sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data)})
+        root_fd = os.open(candidate, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        try:
+            for relative in sorted(selected):
+                _regular_under(candidate, relative)
+                data = _snapshot_read(root_fd, relative, max_bytes - total)
+                if len(data) > max_bytes - total:
+                    raise ValueError("snapshot input selection exceeds byte budget")
+                target = inputs / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with target.open("xb") as stream:
+                    stream.write(data)
+                total += len(data)
+                rows.append({"path": relative, "sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data)})
+        finally:
+            os.close(root_fd)
         receipt = destination / "snapshot.json"
-        receipt.write_text(json.dumps({"schema": INPUT_SNAPSHOT_SCHEMA,
+        encoded = (json.dumps({"schema": INPUT_SNAPSHOT_SCHEMA,
             "input_root": "inputs", "input_files": rows, "total_bytes": total},
-            sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
+            sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+        if len(encoded) > MAX_INPUT_RECEIPT_BYTES:
+            raise ValueError("input snapshot receipt exceeds byte budget")
+        receipt.write_bytes(encoded)
         return receipt, digest(receipt)
     except BaseException:
         shutil.rmtree(destination)
@@ -61,9 +92,17 @@ def capture_inputs(candidate: Path, destination: Path, paths: list[str],
 
 def validate_input_snapshot(receipt: Path, expected_sha256: str) -> list[dict[str, Any]]:
     """Validate historical input bytes independently of the final candidate."""
-    if digest(receipt) != _hex(expected_sha256, 64, "expected input snapshot"):
+    if receipt.is_symlink() or not receipt.is_file():
+        raise ValueError("input snapshot receipt must be a regular file")
+    with receipt.open("rb") as stream:
+        encoded = stream.read(MAX_INPUT_RECEIPT_BYTES + 1)
+    if len(encoded) > MAX_INPUT_RECEIPT_BYTES:
+        raise ValueError("input snapshot receipt exceeds byte budget")
+    if hashlib.sha256(encoded).hexdigest() != _hex(expected_sha256, 64, "expected input snapshot"):
         raise ValueError("input snapshot differs from immutable runner provenance")
-    value = json.loads(receipt.read_text(encoding="utf-8"))
+    value = json.loads(encoded)
+    if encoded != (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8"):
+        raise ValueError("input snapshot receipt is not canonical")
     if (not isinstance(value, dict) or set(value) != {"schema", "input_root", "input_files", "total_bytes"}
             or value["schema"] != INPUT_SNAPSHOT_SCHEMA or value["input_root"] != "inputs"):
         raise ValueError("input snapshot schema differs")
@@ -72,12 +111,16 @@ def validate_input_snapshot(receipt: Path, expected_sha256: str) -> list[dict[st
         raise ValueError("input snapshot selection differs")
     seen = set()
     total = 0
+    previous = ""
     for row in rows:
         if not isinstance(row, dict) or set(row) != {"path", "sha256", "bytes"}:
             raise ValueError("input snapshot row differs")
         relative = _relative(row["path"], "snapshot input path")
         if relative in seen:
             raise ValueError("input snapshot duplicates an input path")
+        if relative < previous:
+            raise ValueError("input snapshot input order is not canonical")
+        previous = relative
         seen.add(relative)
         count = row["bytes"]
         target = _regular_under(receipt.parent, "inputs/" + relative)
@@ -92,7 +135,11 @@ def validate_input_snapshot(receipt: Path, expected_sha256: str) -> list[dict[st
 
 def digest(path: Path) -> str:
     if path.is_symlink() or not path.is_file(): raise ValueError(f"expected regular file: {path}")
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    value = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(65536), b""):
+            value.update(chunk)
+    return value.hexdigest()
 
 def _relative(value: Any, label: str) -> str:
     if not isinstance(value,str) or not value: raise ValueError(f"{label} must be a nonempty relative path")

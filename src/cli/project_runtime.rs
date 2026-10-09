@@ -28,6 +28,7 @@ pub(crate) fn execute_held(
                         | project::ProjectProfile::StdinStreamTextCommandIoV1
                         | project::ProjectProfile::StdinStreamDataCommandIoV1
                         | project::ProjectProfile::StdinStreamDataCommandIoV2
+                        | project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
                         | project::ProjectProfile::LineCommandIoV1
                         | project::ProjectProfile::NetworkCommandIoV1
                         | project::ProjectProfile::HttpsCommandIoV1

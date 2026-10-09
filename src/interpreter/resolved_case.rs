@@ -29,9 +29,13 @@ pub(crate) enum ResolvedFunctionProfile {
     OwnedData,
     StreamText,
     StreamRecords,
+    StreamOwned,
 }
 impl ResolvedFunctionProfile {
     pub(crate) fn for_project(profile: crate::project::ProjectProfile) -> Self {
+        if profile == crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1 {
+            return Self::StreamOwned;
+        }
         if profile == crate::project::ProjectProfile::StdinStreamDataCommandIoV2 {
             return Self::StreamRecords;
         }
@@ -76,14 +80,19 @@ impl ResolvedFunctionProfile {
                     .map(|function| (function.id.as_str(), function)),
             );
         }
-        if matches!(self, Self::StreamRecords) {
+        if matches!(self, Self::StreamRecords | Self::StreamOwned) {
             admitted.extend(
                 program
                     .functions
                     .iter()
                     .filter(|f| {
                         f.effects.is_empty()
-                            && hir::stream_record_signature_admitted(program, f)
+                            && match self {
+                                Self::StreamOwned => {
+                                    hir::stream_owned_signature_admitted(program, f)
+                                }
+                                _ => hir::stream_record_signature_admitted(program, f),
+                            }
                             && program
                                 .declarations
                                 .declaration(&f.id)

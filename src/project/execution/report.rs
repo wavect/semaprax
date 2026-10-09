@@ -19,8 +19,8 @@ use crate::project::{
     MAX_MODULE_BYTES, MAX_NAME_BYTES, MAX_STABLE_ID_BYTES, PROJECT_SCHEMA, PROJECT_SCHEMA_V10,
     PROJECT_SCHEMA_V11, PROJECT_SCHEMA_V12, PROJECT_SCHEMA_V13, PROJECT_SCHEMA_V16,
     PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V27, PROJECT_SCHEMA_V29, PROJECT_SCHEMA_V3,
-    PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8,
-    PROJECT_SCHEMA_V9,
+    PROJECT_SCHEMA_V30, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7,
+    PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
 };
 
 pub const PROJECT_EXECUTION_SCHEMA: &str = "semaprax.project-execution.v1";
@@ -283,6 +283,7 @@ pub fn verify_execution_envelope(envelope: &str) -> Result<(), Diagnostic> {
             | PROJECT_SCHEMA_V13
             | PROJECT_SCHEMA_V27
             | PROJECT_SCHEMA_V29
+            | PROJECT_SCHEMA_V30
     ) {
         return Err(verification_error(
             "project_schema must name an admitted Project execution schema".to_owned(),
@@ -745,6 +746,7 @@ mod tests {
             PROJECT_SCHEMA_V10,
             PROJECT_SCHEMA_V27,
             PROJECT_SCHEMA_V29,
+            PROJECT_SCHEMA_V30,
         ] {
             let envelope = render(
                 schema,

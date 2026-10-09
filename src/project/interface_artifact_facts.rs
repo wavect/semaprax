@@ -338,6 +338,7 @@ fn derive_source_interface(
         | ProjectProfile::StdinStreamTextCommandIoV1
         | ProjectProfile::StdinStreamDataCommandIoV1
         | ProjectProfile::StdinStreamDataCommandIoV2
+        | ProjectProfile::StdinStreamOwnedDataCommandIoV1
         | ProjectProfile::LineCommandIoV1
         | ProjectProfile::NetworkCommandIoV1
         | ProjectProfile::HttpsCommandIoV1

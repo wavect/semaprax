@@ -79,6 +79,7 @@ pub const PROJECT_SCHEMA_V27: &str = "semaprax.project.v27";
 /// Additive native large-resource SourceCommand contract.
 pub const PROJECT_SCHEMA_V28: &str = "semaprax.project.v28";
 pub const PROJECT_SCHEMA_V29: &str = "semaprax.project.v29";
+pub const PROJECT_SCHEMA_V30: &str = "semaprax.project.v30";
 pub const PROJECT_SCHEMA_V24: &str = "semaprax.project.v24";
 pub const PROJECT_SCHEMA_V16: &str = "semaprax.project.v16";
 pub const PROJECT_SCHEMA_V15: &str = "semaprax.project.v15";
@@ -745,6 +746,7 @@ impl ProjectManifest {
             PROJECT_SCHEMA_V27 => "Project v27",
             PROJECT_SCHEMA_V28 => "Project v28",
             PROJECT_SCHEMA_V29 => "Project v29",
+            PROJECT_SCHEMA_V30 => "Project v30",
             PROJECT_SCHEMA_V7 => "Project v7",
             PROJECT_SCHEMA_V8 => "Project v8",
             PROJECT_SCHEMA_V9 => "Project v9",

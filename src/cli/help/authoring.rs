@@ -2,7 +2,7 @@
 use std::fmt::Write as _;
 
 const MAX_BYTES: usize = 2_048;
-const ROUTES: &str = "Authoring routes (complete):\n  author:stdin-json       v27 bounded native stream command\n  author:stream-data-v2   v29 private record/Vec stream command\n  author:file-text        native UTF-8 file command\n  author:source-web       single-source web build\n  author:literal-format   checked literal String rendering\n  author:copy-record-vec  flat Copy-record vectors\n  author:json-codec       checked source JSON codec derivation\nLibrary-only search: help language find:<word>:0\nExact card sections: help language topics\n";
+const ROUTES: &str = "Authoring routes (complete):\n  author:stdin-json       v27 bounded native stream command\n  author:stream-data-v2   v29 private record/Vec stream command\n  author:owned-data       v30 private owned-leaf collections\n  author:file-text        native UTF-8 file command\n  author:source-web       single-source web build\n  author:literal-format   checked literal String rendering\n  author:copy-record-vec  flat Copy-record vectors\n  author:json-codec       checked source JSON codec derivation\nLibrary-only search: help language find:<word>:0\nExact card sections: help language topics\n";
 
 #[cfg(test)]
 pub(super) fn assert_guide_contract() {
@@ -41,6 +41,14 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
             "The v27 profile stays scalar-vector-only. No public record ABI, generic collection helper, or provider grant is added.\n",
             "Generate checked request views with help language author:json-codec; use source-owned codec helpers and keep Ready bytes live through decoding.\n",
             "Exact shapes and target boundary: docs/STREAM-DATA-COMMAND-V2.md; Copy Vec: help language author:copy-record-vec.\n"
+        ).to_owned()),
+        "author:owned-data" => Ok(concat!(
+            "Project v30 source implementation; focused current-head qualification pending.\n",
+            "Select [package] profile = \"language-command-io.owned-data.v1\" with input argv-utf8+stdin-stream.v1; native64 selected command only.\n",
+            "Entry and command remain fn() -> i64 with the same four explicit command grants. Private helpers admit checked owned-leaf Vec/Iter carriers alongside v29's Copy records and codec outcomes.\n",
+            "vec_clone_at deep-copies an element; vec_replace, vec_reserve_owned and vec_sort_owned transfer the collection owner. Consuming traversal uses for own and vec_into_iter.\n",
+            "V27 and v29 stay closed to these owned carriers, including unused helpers. No public nominal ABI, ambient grant or Web/Wasm/npm command route is added.\n",
+            "Exact admission, cleanup and gates: docs/STREAM-OWNED-DATA-COMMAND-V1.md.\n"
         ).to_owned()),
         "author:literal-format" => Ok(concat!(
             "Checked literal format source implementation; current-head executable qualification pending.\n",
@@ -197,6 +205,7 @@ mod tests {
             "author:routes",
             "author:stdin-json",
             "author:stream-data-v2",
+            "author:owned-data",
             "author:file-text",
             "author:source-web",
             "author:literal-format",
@@ -220,12 +229,17 @@ mod tests {
             assert!(lookup(bad).is_err(), "{bad}");
         }
         let codec = lookup("author:json-codec").unwrap();
-        assert!(codec.contains("--profile identifier-views.v1|request-views.v1|stream-request-views.v1"));
+        assert!(codec
+            .contains("--profile identifier-views.v1|request-views.v1|stream-request-views.v1"));
         assert!(codec.contains("Declared Vec<string> in a request schema is description only"));
         assert!(codec.contains("post-Ready request/schema errors use normalized-input offsets"));
         let stream = lookup("author:stream-data-v2").unwrap();
         assert!(stream.contains("language-command-io.stream-data.v2"));
         assert!(stream.contains("v27 profile stays scalar-vector-only"));
+        let owned = lookup("author:owned-data").unwrap();
+        assert!(owned.contains("language-command-io.owned-data.v1"));
+        assert!(owned.contains("including unused helpers"));
+        assert!(owned.contains("fn() -> i64"));
         let mut query = "find:std.data.json.:0".to_owned();
         let mut ids = std::collections::BTreeSet::new();
         loop {

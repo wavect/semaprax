@@ -55,6 +55,8 @@ pub const PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V1: &str =
     "language-command-io.stream-data.v1";
 pub const PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V2: &str =
     "language-command-io.stream-data.v2";
+pub const PROJECT_PROFILE_STDIN_STREAM_OWNED_DATA_COMMAND_IO_V1: &str =
+    "language-command-io.owned-data.v1";
 pub const PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2: &str = "language-command-io.stream.v2";
 pub const PROJECT_PROFILE_LINE_COMMAND_IO_V1: &str = "line-command-io.v1";
 pub const PROJECT_PROFILE_NETWORK_COMMAND_IO_V1: &str = "network-command-io.v1";
@@ -138,6 +140,7 @@ pub enum ProjectProfile {
     StdinStreamTextCommandIoV1,
     StdinStreamDataCommandIoV1,
     StdinStreamDataCommandIoV2,
+    StdinStreamOwnedDataCommandIoV1,
     LineCommandIoV1,
     NetworkCommandIoV1,
     HttpsCommandIoV1,
@@ -166,6 +169,7 @@ impl ProjectProfile {
                 | Self::StdinStreamTextCommandIoV1
                 | Self::StdinStreamDataCommandIoV1
                 | Self::StdinStreamDataCommandIoV2
+                | Self::StdinStreamOwnedDataCommandIoV1
         )
     }
     pub(crate) const fn is_filesystem(self) -> bool {
@@ -231,6 +235,9 @@ impl ProjectProfile {
             }
             Self::StdinStreamDataCommandIoV2 => {
                 Some(PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V2)
+            }
+            Self::StdinStreamOwnedDataCommandIoV1 => {
+                Some(PROJECT_PROFILE_STDIN_STREAM_OWNED_DATA_COMMAND_IO_V1)
             }
             Self::LineCommandIoV1 => Some(PROJECT_PROFILE_LINE_COMMAND_IO_V1),
             Self::NetworkCommandIoV1 => Some(PROJECT_PROFILE_NETWORK_COMMAND_IO_V1),

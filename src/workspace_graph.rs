@@ -1371,17 +1371,8 @@ impl WorkspaceGraphBuild {
                 }
                 // Keep pure main and the selected command as distinct roots;
                 // the command linker independently retains its exact closure.
-                if !matches!(
-                    profile,
-                    crate::project::ProjectProfile::LanguageCommandIoV1
-                        | crate::project::ProjectProfile::StdinStreamCommandIoV1
-                        | crate::project::ProjectProfile::StdinStreamCommandIoV2
-                        | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
-                        | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
-                        | crate::project::ProjectProfile::StdinStreamDataCommandIoV2
-                        | crate::project::ProjectProfile::LineCommandIoV1
-                        | crate::project::ProjectProfile::ProcessIoV1
-                ) || function.effects.is_empty()
+                if !retained_validation::has_separate_command_root(profile)
+                    || function.effects.is_empty()
                 {
                     functions.push(hir::LinkedScalarFunction {
                         function: function.clone(),
@@ -1484,7 +1475,8 @@ impl WorkspaceGraphBuild {
             | crate::project::ProjectProfile::StdinStreamCommandIoV2
             | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
             | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
-            | crate::project::ProjectProfile::StdinStreamDataCommandIoV2 => {
+            | crate::project::ProjectProfile::StdinStreamDataCommandIoV2
+            | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1 => {
                 // The selected command is retained separately from this pure entry.
                 retained_validation::entry_link(
                     profile,
@@ -1705,7 +1697,8 @@ impl WorkspaceGraphBuild {
             | crate::project::ProjectProfile::StdinStreamCommandIoV2
             | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
             | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
-            | crate::project::ProjectProfile::StdinStreamDataCommandIoV2 => {
+            | crate::project::ProjectProfile::StdinStreamDataCommandIoV2
+            | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1 => {
                 let [command_id] = additional_roots else {
                     return Err(vec![graph_error(
                         "SPX-G172",
@@ -1808,17 +1801,7 @@ impl WorkspaceGraphBuild {
             web_roots.profile,
             web_roots.dependency_anchors,
         )?;
-        if matches!(
-            web_roots.profile,
-            crate::project::ProjectProfile::LanguageCommandIoV1
-                | crate::project::ProjectProfile::StdinStreamCommandIoV1
-                | crate::project::ProjectProfile::StdinStreamCommandIoV2
-                | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
-                | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
-                | crate::project::ProjectProfile::StdinStreamDataCommandIoV2
-                | crate::project::ProjectProfile::LineCommandIoV1
-                | crate::project::ProjectProfile::ProcessIoV1
-        ) {
+        if retained_validation::has_separate_command_root(web_roots.profile) {
             let [command_id] = web_roots.stable_ids else {
                 return Err(vec![graph_error(
                     "SPX-G172",
@@ -1846,7 +1829,8 @@ impl WorkspaceGraphBuild {
                 crate::project::ProjectProfile::StdinStreamCommandIoV2
                 | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
-                | crate::project::ProjectProfile::StdinStreamDataCommandIoV2 => {
+                | crate::project::ProjectProfile::StdinStreamDataCommandIoV2
+                | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1 => {
                     (hir::ResolvedType::I64, "i64")
                 }
                 _ => (hir::ResolvedType::Bool, "bool"),
@@ -2002,6 +1986,7 @@ impl WorkspaceGraphBuild {
     ) -> Result<(), Vec<Diagnostic>> {
         validate_entry_module(entry_module)?;
         validate_entry_module(test_module)?;
+        retained_validation::reject_unselected_owned_collections(profile, &self.hir.modules)?;
         let roots = BTreeSet::from([entry_module, test_module]);
         let natives = retained_validation::scalar_native_imports(
             profile,
@@ -2020,8 +2005,11 @@ impl WorkspaceGraphBuild {
                     && retained_validation::text_project_shape(module))
                 || (profile == crate::project::ProjectProfile::StdinStreamDataCommandIoV1
                     && retained_validation::data_project_shape(module))
-                || (profile == crate::project::ProjectProfile::StdinStreamDataCommandIoV2
-                    && retained_validation::record_project_shape(module))
+                || (matches!(
+                    profile,
+                    crate::project::ProjectProfile::StdinStreamDataCommandIoV2
+                        | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
+                ) && retained_validation::record_project_shape(module))
                 || matches!(profile, crate::project::ProjectProfile::ScalarV1)
                 || (module.types.is_empty()
                     && module.interfaces.is_empty()
@@ -2078,6 +2066,7 @@ impl WorkspaceGraphBuild {
                 || profile == crate::project::ProjectProfile::StdinStreamTextCommandIoV1
                 || profile == crate::project::ProjectProfile::StdinStreamDataCommandIoV1
                 || profile == crate::project::ProjectProfile::StdinStreamDataCommandIoV2
+                || profile == crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
             {
                 continue;
             }
@@ -2096,7 +2085,8 @@ impl WorkspaceGraphBuild {
                     crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => {
                         hir::stream_text_parameter_admitted(parameter)
                     }
-                    crate::project::ProjectProfile::StdinStreamDataCommandIoV2 => false,
+                    crate::project::ProjectProfile::StdinStreamDataCommandIoV2
+                    | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1 => false,
                     crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
                         hir::stream_data_parameter_admitted(parameter)
                     }
@@ -2147,7 +2137,8 @@ impl WorkspaceGraphBuild {
                     crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => {
                         hir::stream_text_return_admitted(&function.return_type)
                     }
-                    crate::project::ProjectProfile::StdinStreamDataCommandIoV2 => false,
+                    crate::project::ProjectProfile::StdinStreamDataCommandIoV2
+                    | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1 => false,
                     crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
                         hir::stream_text_return_admitted(&function.return_type)
                     }

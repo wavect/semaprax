@@ -812,6 +812,34 @@ impl super::WorkspaceGraphBuild {
         Ok(linked)
     }
 
+    pub(super) fn linked_stream_owned_test_program(
+        &self,
+        test_module: &str,
+    ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
+        let roots = self
+            .hir
+            .modules
+            .iter()
+            .filter(|module| module.module == test_module)
+            .flat_map(|module| &module.functions)
+            .filter(|function| {
+                function.name.starts_with(crate::project::TEST_CASE_PREFIX)
+                    && function.params.is_empty()
+                    && function.return_type == hir::ResolvedType::I64
+                    && self
+                        .hir
+                        .declarations
+                        .get(function.id.as_str())
+                        .is_some_and(|fact| fact.origin == hir::IdentityOrigin::Explicit)
+            })
+            .map(|function| function.id.as_str().to_owned())
+            .collect::<Vec<_>>();
+        let mut linked = self.linked_owned_data_api_program_with_roots(test_module, &roots)?;
+        hir::validate_stream_owned_program(&linked, None).map_err(|error| vec![error])?;
+        self.attach_project_agents(&mut linked)?;
+        Ok(linked)
+    }
+
     pub(super) fn linked_owned_data_api_program_with_roots(
         &self,
         entry_module: &str,

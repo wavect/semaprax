@@ -431,8 +431,8 @@ pub use manifest::{
     PROJECT_SCHEMA_V18, PROJECT_SCHEMA_V19, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V20,
     PROJECT_SCHEMA_V21, PROJECT_SCHEMA_V22, PROJECT_SCHEMA_V23, PROJECT_SCHEMA_V24,
     PROJECT_SCHEMA_V25, PROJECT_SCHEMA_V26, PROJECT_SCHEMA_V27, PROJECT_SCHEMA_V28,
-    PROJECT_SCHEMA_V29, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6,
-    PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
+    PROJECT_SCHEMA_V29, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V30, PROJECT_SCHEMA_V4,
+    PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
 };
 pub use native_sdk::{
     with_native_owned_data_sdk_subject, ProjectNativeRustPackage, ProjectNativeRustPackageMode,
@@ -596,6 +596,7 @@ pub use profile::{
     PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_V1, PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V1,
     PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2, PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V1,
     PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V2,
+    PROJECT_PROFILE_STDIN_STREAM_OWNED_DATA_COMMAND_IO_V1,
     PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1,
     PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2, PROJECT_PROFILE_USEFUL_DATA_V1,
     PROJECT_PROFILE_USEFUL_DATA_V2, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
@@ -1202,6 +1203,12 @@ impl ProjectSnapshot {
                     self.manifest.command().unwrap_or(""),
                 )
             }
+            ProjectProfile::StdinStreamOwnedDataCommandIoV1 => {
+                crate::codegen::emit_hir_c_with_stdin_stream_owned_data(
+                    &self.public_api_program,
+                    self.manifest.command().unwrap_or(""),
+                )
+            }
             ProjectProfile::LineCommandIoV1 => crate::codegen::emit_hir_c_with_line_command_io(
                 &self.public_api_program,
                 self.manifest.command().unwrap_or(""),
@@ -1227,6 +1234,7 @@ impl ProjectSnapshot {
                 | ProjectProfile::StdinStreamTextCommandIoV1
                 | ProjectProfile::StdinStreamDataCommandIoV1
                 | ProjectProfile::StdinStreamDataCommandIoV2
+                | ProjectProfile::StdinStreamOwnedDataCommandIoV1
                 | ProjectProfile::LineCommandIoV1
                 | ProjectProfile::NetworkCommandIoV1
                 | ProjectProfile::HttpsCommandIoV1

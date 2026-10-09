@@ -19,9 +19,9 @@ mod type_projection;
 mod type_reference;
 pub(super) use profile_names::project_linker_name;
 pub(super) use stream_admission::{
-    command_link, data_project_shape, entry_link, owned_stream_command, owned_stream_entry,
-    record_project_shape, stream_parameter_admitted, stream_return_admitted, stream_test_program,
-    text_project_shape,
+    command_link, data_project_shape, entry_link, has_separate_command_root, owned_stream_command,
+    owned_stream_entry, record_project_shape, reject_unselected_owned_collections,
+    stream_parameter_admitted, stream_return_admitted, stream_test_program, text_project_shape,
 };
 
 pub(super) use dependency_closure::{
@@ -375,7 +375,9 @@ fn visit_resolved_calls<'a>(
             }
         }
         hir::ResolvedExprKind::LiteralFormat { args, .. } => {
-            for argument in args { visit_resolved_calls(argument, visit); }
+            for argument in args {
+                visit_resolved_calls(argument, visit);
+            }
         }
         hir::ResolvedExprKind::Invoke { callable, args } => {
             visit_resolved_calls(callable, visit);
@@ -845,9 +847,14 @@ fn collect_resolved_expression_type_sites<'a>(
         hir::ResolvedExprKind::LiteralFormat { args, .. } => {
             for (index, argument) in args.iter().enumerate() {
                 collect_resolved_expression_type_sites(
-                    owner, argument,
-                    &crate::bounded_output::budgeted_format(format_args!("{path}.arg.{}", index + 1)),
-                    imported, out,
+                    owner,
+                    argument,
+                    &crate::bounded_output::budgeted_format(format_args!(
+                        "{path}.arg.{}",
+                        index + 1
+                    )),
+                    imported,
+                    out,
                 )?;
             }
         }
@@ -1290,6 +1297,7 @@ pub(super) fn project_effects_admitted(
                 | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamDataCommandIoV2
+                | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
                 | crate::project::ProjectProfile::LineCommandIoV1
         ) && effects.iter().all(|effect| {
             matches!(
@@ -1358,6 +1366,7 @@ pub(super) fn permits_admitted(
                 | crate::project::ProjectProfile::StdinStreamTextCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamDataCommandIoV2
+                | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
                 | crate::project::ProjectProfile::LineCommandIoV1
         ) && module.module == entry_module
             && module.permits

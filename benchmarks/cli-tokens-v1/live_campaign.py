@@ -23,6 +23,7 @@ from oracle import json_line as oracle_json_line
 from oracle import text as oracle_text
 
 import live_campaign_common as shared
+import cli_typescript_bootstrap as ts_bootstrap
 import measurement_evidence
 import qualification
 
@@ -106,8 +107,8 @@ def digest(path: Path) -> str:
     return shared.digest(path)
 
 
-def archive_candidate(candidate: Path, archive: Path) -> tuple[dict[str, str], list[str]]:
-    return shared.archive_candidate(candidate, archive)
+def archive_candidate(candidate: Path, archive: Path, *, exclude_verified_node_modules: bool = False) -> tuple[dict[str, str], list[str]]:
+    return shared.archive_candidate(candidate, archive, exclude_verified_node_modules=exclude_verified_node_modules)
 
 
 def tokenizer_metadata(tokenizer_dir: str | Path | None) -> dict[str, Any] | None:
@@ -121,8 +122,10 @@ def tokenize_texts(texts: list[dict[str, str]], metadata: dict[str, Any]) -> lis
     return shared.tokenize_texts(texts, metadata)
 
 
-def authored_source_metrics(candidate: Path, metadata: dict[str, Any] | None) -> dict[str, Any]:
-    return shared.authored_source_metrics(candidate, metadata)
+def authored_source_metrics(candidate: Path, metadata: dict[str, Any] | None, *,
+                            exclude_verified_node_modules: bool = False) -> dict[str, Any]:
+    return shared.authored_source_metrics(candidate, metadata,
+                                          exclude_verified_node_modules=exclude_verified_node_modules)
 
 
 def resolve_commit(repo: Path, ref: str) -> str:
@@ -227,6 +230,26 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
     if args.effort != EFFORT:
         raise ValueError(f"this matched campaign pins --effort {EFFORT}")
     tokenizer = tokenizer_metadata(getattr(args, "tokenizer_dir", None))
+    typescript_tooling = None
+    receipt_arg = getattr(args, "typescript_bootstrap_receipt", None)
+    if receipt_arg:
+        receipt_path = Path(receipt_arg).expanduser()
+        if receipt_path.is_symlink():
+            raise ValueError("TypeScript bootstrap receipt must not be a symlink")
+        resolved_receipt = receipt_path.resolve(strict=True)
+        if receipt_path.absolute() != resolved_receipt:
+            raise ValueError("TypeScript bootstrap receipt path must not traverse symlinked parents")
+        receipt_path = resolved_receipt
+        receipt = ts_bootstrap.validate(receipt_path, getattr(args, "node_binary", "node"),
+                                        getattr(args, "npm_binary", "npm"))
+        typescript_tooling = {"receipt_path": str(receipt_path), "receipt_sha256": digest(receipt_path),
+                              "inventory_sha256": receipt["inventory_sha256"], "runtime": receipt["runtime"],
+                              "package_json_sha256": receipt["package_json_sha256"],
+                              "package_lock_sha256": receipt["package_lock_sha256"],
+                              "packages": receipt["packages"], "helper_sha256": receipt["helper_sha256"],
+                              "dependency_helper_sha256": receipt["dependency_helper_sha256"],
+                              "node_binary": getattr(args, "node_binary", "node"),
+                              "npm_binary": getattr(args, "npm_binary", "npm")}
     return {
         "schema": "semaprax.cli-tokens.campaign.v1",
         "created_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -243,6 +266,8 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
         "timeout_seconds": args.timeout_seconds,
         "max_budget_usd": args.max_budget_usd,
         "authored_source_tokenizer": tokenizer,
+        "typescript_bootstrap": typescript_tooling,
+        "typescript_setup_context_tokens": None,
         "calibration": {
             "mode": "matched empty-task calibration session before trials",
             "prompt_sha256": sha_text(CALIBRATION_PROMPT),
@@ -449,10 +474,12 @@ def trial_workspace_guard(workspace: Path, settings: dict[str, Any]) -> tuple[di
     return result, "; ".join(reasons) if reasons else None
 
 
-def preserve_candidate_source(row: dict[str, Any], artifacts: Path, candidate: Path, label: str) -> None:
+def preserve_candidate_source(row: dict[str, Any], artifacts: Path, candidate: Path, label: str, *,
+                             exclude_verified_node_modules: bool = False) -> None:
     archive = artifacts / "candidates" / label
     archive.parent.mkdir(parents=True, exist_ok=True)
-    archived_files, excluded_paths = archive_candidate(candidate, archive)
+    archived_files, excluded_paths = archive_candidate(
+        candidate, archive, exclude_verified_node_modules=exclude_verified_node_modules)
     save_json(archive.parent / f"{label}.manifest.json", {
         "trial": label,
         "archive_kind": "rebuildable candidate archive with dependency/cache directories excluded",
@@ -781,7 +808,27 @@ def launch_trial(
 
     candidate = workspace / "benchmarks" / "cli-tokens-v1" / "candidate"
     candidate.mkdir(parents=True, exist_ok=True)
+    tooling = settings.get("typescript_bootstrap") if arm == "typescript" else None
+    env = trial_environment(semaprax_bin)
+    if tooling:
+        setup_started = time.monotonic()
+        try:
+            receipt = ts_bootstrap.verify_plan(tooling)
+            row["supplied_tooling"] = ts_bootstrap.stage(Path(tooling["receipt_path"]), candidate,
+                                                          tooling["node_binary"], tooling["npm_binary"])
+        except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
+            row.update({"failure": f"TypeScript bootstrap refused before prompt: {error}",
+                        "typescript_setup": {"status": "failed", "elapsed_seconds": round(time.monotonic() - setup_started, 3),
+                                              "context_tokens": None},
+                        "workspace_retained_for_review": True})
+            return row
+        row["typescript_setup"] = {"status": "ready", "elapsed_seconds": round(time.monotonic() - setup_started, 3),
+                                   "context_tokens": None}
+        node_path = Path(shutil.which(tooling["node_binary"]) or tooling["node_binary"]).resolve(strict=True)
+        env["PATH"] = os.pathsep.join((str(candidate / "node_modules/.bin"), str(node_path.parent), env.get("PATH", "")))
     prompt = prompt_for(arm, candidate, semaprax_bin)
+    if tooling:
+        prompt += "\n\n" + ts_bootstrap.prompt_note(receipt)
     prompt_path = artifacts / "prompts" / f"{label}.txt"
     prompt_path.parent.mkdir(parents=True, exist_ok=True)
     prompt_path.write_text(prompt, encoding="utf-8")
@@ -789,7 +836,6 @@ def launch_trial(
     stream_path = artifacts / "transcripts" / f"{label}.jsonl"
     stderr_path = artifacts / "transcripts" / f"{label}.stderr.txt"
     stream_path.parent.mkdir(parents=True, exist_ok=True)
-    env = trial_environment(semaprax_bin)
     process = run_claude(
         claude_command(settings, prompt), workspace, env,
         stream_path, stderr_path, settings["timeout_seconds"],
@@ -831,10 +877,21 @@ def launch_trial(
             if row["status"] != "accepted":
                 row["failure"] = "candidate failed independent build or acceptance checks"
     try:
+        if tooling:
+            intact, evidence = ts_bootstrap.verify_staged(
+                candidate, receipt["inventory"], evidence_path=artifacts / "dependency-evidence" / label)
+            row["dependency_tree_integrity"] = evidence
+            if not intact:
+                row.update({"status": "not_accepted", "failure": "staged TypeScript dependency tree changed",
+                            "final_candidate_source_metrics": {"status": "measurement_failed", "total_tokens": None,
+                                "files": [], "tokenizer": settings.get("authored_source_tokenizer")},
+                            "workspace_retained_for_review": True})
+                return row
         row["final_candidate_source_metrics"] = authored_source_metrics(
-            candidate, settings.get("authored_source_tokenizer")
+            candidate, settings.get("authored_source_tokenizer"),
+            exclude_verified_node_modules=bool(tooling),
         )
-    except (OSError, RuntimeError, UnicodeError, json.JSONDecodeError) as error:
+    except (OSError, RuntimeError, ValueError, UnicodeError, json.JSONDecodeError) as error:
         row["final_candidate_source_metrics"] = {
             "status": "measurement_failed", "total_tokens": None,
             "files": [], "tokenizer": settings.get("authored_source_tokenizer"),
@@ -858,13 +915,24 @@ def launch_trial(
     row["workspace_integrity_before_archive"] = guard
     if guard_failure:
         invalidate_trial_acceptance(row, guard_failure)
+    if tooling:
+        intact, evidence = ts_bootstrap.verify_staged(
+            candidate, receipt["inventory"], evidence_path=artifacts / "dependency-evidence" / f"{label}-before-archive")
+        row["dependency_tree_integrity_before_archive"] = evidence
+        if not intact:
+            row.update({"status": "not_accepted", "failure": "staged TypeScript dependency tree changed before archive",
+                        "final_candidate_source_metrics": {"status": "measurement_failed", "total_tokens": None,
+                            "files": [], "tokenizer": settings.get("authored_source_tokenizer")},
+                        "workspace_retained_for_review": True})
+            return row
     if row.get("acceptance_invalidated"):
         try:
             preserve_candidate_source(row, artifacts, candidate, label)
         except (OSError, shutil.Error) as error:
             row["candidate_archive_error"] = str(error)
         return row
-    preserve_candidate_source(row, artifacts, candidate, label)
+    preserve_candidate_source(row, artifacts, candidate, label,
+                              exclude_verified_node_modules=bool(tooling))
     # Archiving may take time; bind cleanup to one last check of the frozen
     # inputs and the disposable checkout. Keep both the archive and checkout if
     # anything outside candidate/ changed at any point during the trial.
@@ -1292,6 +1360,10 @@ def add_common_arguments(parser: argparse.ArgumentParser) -> None:
         default=None,
         help="offline npm prefix containing @anthropic-ai/tokenizer; enables final-source and calibration-prompt proxy counts",
     )
+    parser.add_argument("--typescript-bootstrap-receipt", default=None,
+                        help="optional pinned dependency-only setup receipt for the TypeScript arm")
+    parser.add_argument("--node-binary", default="node")
+    parser.add_argument("--npm-binary", default="npm")
 
 
 def main() -> int:
@@ -1317,6 +1389,7 @@ def main() -> int:
         if args.action == "plan":
             print(json.dumps(settings, indent=2))
             return 0
+        ts_bootstrap.verify_plan(settings.get("typescript_bootstrap"))
         semaprax_bin = Path(args.semaprax_bin).expanduser().resolve(strict=True)
         if not semaprax_bin.is_file():
             raise ValueError("semaprax-bin must be a regular executable file")

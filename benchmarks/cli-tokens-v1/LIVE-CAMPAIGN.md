@@ -178,3 +178,18 @@ Build time and logs are stored separately from the model transcript. The exact
 compiler binary is supplied to every trial through `SEMAPRAX_BIN` and its
 digest is recorded; TypeScript uses the same Node installation on `PATH` in
 every trial.
+
+For an explicitly opted-in TypeScript baseline, generate a dependency-only setup
+directory with `python3 benchmarks/cli_typescript_bootstrap.py template
+--destination /absolute/path/outside/repository/ts-setup`, run
+`npm ci --ignore-scripts --no-audit --no-fund` there, then seal it with
+`python3 benchmarks/cli_typescript_bootstrap.py seal --root
+/absolute/path/outside/repository/ts-setup --receipt
+/absolute/path/outside/repository/ts-receipt.json`. Pass
+`--typescript-bootstrap-receipt /absolute/path/outside/repository/ts-receipt.json`
+to either LogLens `plan` or `run` command. The helper pins TypeScript 5.9.3,
+`@types/node` 22.20.5, and `undici-types` 6.21.0 from the qualified web lock.
+It stages only a verified `node_modules` tree before the prompt; the candidate
+must author its manifest, configuration, scripts, tests, and application.
+Setup context is reported as unknown. The dependency tree is hash-checked before
+source accounting and archiving, so changed dependency bytes fail closed.

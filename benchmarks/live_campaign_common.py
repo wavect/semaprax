@@ -125,13 +125,17 @@ def tokenize_texts(texts: list[dict[str, str]], metadata: dict[str, Any]) -> lis
     return values
 
 
-def authored_source_metrics(candidate: Path, metadata: dict[str, Any] | None) -> dict[str, Any]:
+def authored_source_metrics(candidate: Path, metadata: dict[str, Any] | None, *,
+                            exclude_verified_node_modules: bool = False) -> dict[str, Any]:
     if metadata is None:
         return {"status": "unmeasured", "total_tokens": None, "files": [], "tokenizer": None}
     files = []
     for path in sorted(candidate.rglob("*")):
         relative = path.relative_to(candidate)
-        if not path.is_file() or path.is_symlink() or any(part in AUTHORED_EXCLUDED_DIRS for part in relative.parts[:-1]):
+        excluded = AUTHORED_EXCLUDED_DIRS - ({"node_modules", ".cache"} if exclude_verified_node_modules else set())
+        if (not path.is_file() or path.is_symlink()
+                or any(part in excluded for part in relative.parts[:-1])
+                or (exclude_verified_node_modules and relative.parts[0] == "node_modules")):
             continue
         if path.suffix.lower() not in AUTHORED_SUFFIXES and path.name not in AUTHORED_SPECIAL_NAMES:
             continue
@@ -148,14 +152,18 @@ def authored_source_metrics(candidate: Path, metadata: dict[str, Any] | None) ->
     counts = tokenize_texts(texts, metadata)
     for row, count in zip(files, counts):
         row["tokens"] = count
+    excluded_directories = AUTHORED_EXCLUDED_DIRS - ({"node_modules", ".cache"} if exclude_verified_node_modules else set())
+    if exclude_verified_node_modules:
+        excluded_directories = set(excluded_directories) | {"node_modules (receipt-verified root only)"}
     return {
         "status": "measured_proxy", "scope": "final_candidate_source_inventory_only; not cumulative authored edits or provider output",
-        "total_tokens": sum(counts), "files": files, "excluded_directories": sorted(AUTHORED_EXCLUDED_DIRS),
+        "total_tokens": sum(counts), "files": files, "excluded_directories": sorted(excluded_directories),
         "excluded_generated_extensions": [".c", ".h", "non-text/binary files"], "tokenizer": metadata,
     }
 
 
-def archive_candidate(candidate: Path, archive: Path) -> tuple[dict[str, str], list[str]]:
+def archive_candidate(candidate: Path, archive: Path, *,
+                      exclude_verified_node_modules: bool = False) -> tuple[dict[str, str], list[str]]:
     """Copy authored candidate files, excluding only dependency/cache directories."""
     excluded_paths: list[str] = []
 
@@ -163,7 +171,10 @@ def archive_candidate(candidate: Path, archive: Path) -> tuple[dict[str, str], l
         ignored = set()
         for name in names:
             path = Path(directory) / name
-            if name in ARCHIVE_EXCLUDED_DIRS and (path.is_dir() or path.is_symlink()):
+            relative = path.relative_to(candidate).as_posix()
+            excluded = ARCHIVE_EXCLUDED_DIRS - ({"node_modules", ".cache"} if exclude_verified_node_modules else set())
+            if ((name in excluded or (exclude_verified_node_modules and relative == "node_modules"))
+                    and (path.is_dir() or path.is_symlink())):
                 excluded_paths.append(path.relative_to(candidate).as_posix())
                 ignored.add(name)
         return ignored

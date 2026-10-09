@@ -15,6 +15,7 @@ import authored_source_recount as authored_recount
 import live_campaign
 import live_campaign_common as shared
 import measurement_evidence
+import cli_typescript_bootstrap as ts_bootstrap
 
 
 class LiveCampaignTests(unittest.TestCase):
@@ -1263,6 +1264,71 @@ sys.stdout.write(json_line(report) if as_json else text(report))
         self.assertTrue(row["workspace_integrity_before_cleanup"]["status"] == "passed")
         self.assertTrue(archive.called)
         self.assertTrue(cleanup.called)
+
+
+class TypeScriptBootstrapTests(unittest.TestCase):
+    def fixture(self, root: Path) -> tuple[Path, Path, str, str]:
+        setup = root / "setup"
+        ts_bootstrap.write_template(setup)
+        modules = setup / "node_modules"
+        (modules / ".bin").mkdir(parents=True)
+        (modules / ".package-lock.json").write_text("{}\n")
+        for name, (version, _) in ts_bootstrap.PACKAGES.items():
+            package = modules / name
+            package.mkdir(parents=True)
+            (package / "package.json").write_text(json.dumps({"name": name, "version": version}))
+        tsc = modules / "typescript/bin/tsc"
+        tsc.parent.mkdir(parents=True)
+        tsc.write_text("#!/bin/sh\necho 'Version 5.9.3'\n")
+        tsc.chmod(0o755)
+        tsserver = modules / "typescript/bin/tsserver"
+        tsserver.write_text("#!/bin/sh\nexit 0\n")
+        tsserver.chmod(0o755)
+        (modules / ".bin/tsc").symlink_to("../typescript/bin/tsc")
+        (modules / ".bin/tsserver").symlink_to("../typescript/bin/tsserver")
+        node = root / "node"
+        node.write_text("#!/bin/sh\ncase \"$1\" in --version) echo v22.0.0;; *typescript/bin/tsc*) echo 'Version 5.9.3';; */npm) echo 10.0.0;; *) exit 1;; esac\n")
+        node.chmod(0o755)
+        npm = root / "npm"
+        npm.write_text("#!/bin/sh\necho 10.0.0\n")
+        npm.chmod(0o755)
+        return setup, root / "receipt.json", str(node), str(npm)
+
+    def test_verified_tree_stages_only_node_modules(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            setup, receipt_path, node, npm = self.fixture(root)
+            receipt = ts_bootstrap.seal(setup, receipt_path, node, npm)
+            self.assertEqual(ts_bootstrap.validate(receipt_path, node, npm), receipt)
+            candidate = root / "candidate"
+            candidate.mkdir()
+            staged = ts_bootstrap.stage(receipt_path, candidate, node, npm)
+            self.assertEqual(staged["inventory_sha256"], receipt["inventory_sha256"])
+            self.assertTrue((candidate / "node_modules/.bin/tsc").is_symlink())
+            self.assertFalse((candidate / "package.json").exists())
+            self.assertFalse((candidate / "package-lock.json").exists())
+
+    def test_receipt_rejects_dependency_drift_and_external_links(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            setup, receipt_path, node, npm = self.fixture(root)
+            ts_bootstrap.seal(setup, receipt_path, node, npm)
+            (setup / "node_modules/typescript/bin/tsc").write_text("changed")
+            with self.assertRaisesRegex(ValueError, "inventory or hash drift"):
+                ts_bootstrap.validate(receipt_path, node, npm)
+            (setup / "node_modules/.bin/escape").symlink_to("/tmp/outside")
+            with self.assertRaises(ValueError):
+                ts_bootstrap.inventory(setup)
+
+    def test_receipt_hash_or_manifest_drift_fails_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            setup, receipt_path, node, npm = self.fixture(root)
+            ts_bootstrap.seal(setup, receipt_path, node, npm)
+            receipt_path.write_text(receipt_path.read_text().replace(
+                ts_bootstrap.SCHEMA, "semaprax.cli-typescript-bootstrap.invalid"))
+            with self.assertRaises(ValueError):
+                ts_bootstrap.validate(receipt_path, node, npm)
 
 
 if __name__ == "__main__":

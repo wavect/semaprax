@@ -10,6 +10,8 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import os
+import shutil
 import subprocess
 import sys
 import time
@@ -184,8 +186,29 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
         row.update({"failure": error, "runner_error": True, "workspace_retained_for_review": True})
         return row
     candidate = workspace / "benchmarks/event-sim-tokens-v1/candidate"
+    tooling = settings.get("typescript_bootstrap") if trial["arm"] == "typescript" else None
+    env = shiftsim.trial_environment(semaprax_bin)
+    receipt = None
+    if tooling:
+        setup_started = time.monotonic()
+        try:
+            receipt = shiftsim.ts_bootstrap.verify_plan(tooling)
+            row["supplied_tooling"] = shiftsim.ts_bootstrap.stage(Path(tooling["receipt_path"]), candidate,
+                                                                  tooling["node_binary"], tooling["npm_binary"])
+        except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
+            row.update({"failure": f"TypeScript bootstrap refused before prompt: {error}",
+                        "typescript_setup": {"status": "failed", "elapsed_seconds": round(time.monotonic() - setup_started, 3),
+                                              "context_tokens": None},
+                        "workspace_retained_for_review": True})
+            return row
+        row["typescript_setup"] = {"status": "ready", "elapsed_seconds": round(time.monotonic() - setup_started, 3),
+                                   "context_tokens": None}
+        node_path = Path(shutil.which(tooling["node_binary"]) or tooling["node_binary"]).resolve(strict=True)
+        env["PATH"] = os.pathsep.join((str(candidate / "node_modules/.bin"), str(node_path.parent), env.get("PATH", "")))
     prompt = shiftsim.prompt_for(trial["arm"], candidate, semaprax_bin,
                                  settings.get("authoring_profile", shiftsim.AUTHORING_PROFILE_V24))
+    if tooling:
+        prompt += "\n\n" + shiftsim.ts_bootstrap.prompt_note(receipt)
     (artifacts / "prompts").mkdir(exist_ok=True)
     (artifacts / "prompts" / f"{label}.txt").write_text(prompt, encoding="utf-8")
     row["prompt_sha256"] = shiftsim.sha_text(prompt)
@@ -194,7 +217,7 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
     row.update({"transcript": str(stream), "stderr_path": str(stderr)})
     try:
         row.update(codex.run_codex(command_for(settings, prompt), workspace,
-                                   shiftsim.trial_environment(semaprax_bin), stream, stderr, settings["timeout_seconds"]))
+                                   env, stream, stderr, settings["timeout_seconds"]))
         row.update(observe(workspace, artifacts, label, stream))
         observed = row["observed"]
         row["telemetry_valid"] = (observed.get("reconciled") is True
@@ -202,9 +225,20 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
             and observed.get("invalid_stream_lines") == 0)
         guard = workspace_guard(workspace, settings)
         row["workspace_integrity_before_acceptance"] = guard
+        if tooling:
+            intact, evidence = shiftsim.ts_bootstrap.verify_staged(
+                candidate, receipt["inventory"], evidence_path=artifacts / "dependency-evidence" / label)
+            row["dependency_tree_integrity"] = evidence
+            if not intact:
+                invalidate(row, "staged TypeScript dependency tree changed")
+                row["dependency_tree_integrity"] = evidence
+                row["final_candidate_source_metrics"] = {"status": "measurement_failed", "total_tokens": None,
+                    "files": [], "tokenizer": settings.get("authored_source_tokenizer")}
+                return row
         if settings.get("authoring_profile") == shiftsim.AUTHORING_PROFILE_V27:
             try:
-                row["closed_authored_inventory_after_model"] = shiftsim.closed_authored_inventory(candidate)
+                row["closed_authored_inventory_after_model"] = shiftsim.closed_authored_inventory(
+                    candidate, exclude_verified_node_modules=bool(tooling))
             except (OSError, ValueError) as error:
                 invalidate(row, str(error))
                 return row
@@ -231,14 +265,15 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
                 started = time.monotonic()
                 if settings.get("authoring_profile") == shiftsim.AUTHORING_PROFILE_V27:
                     row["acceptance"] = shiftsim.check_program(candidate, settings["timeout_seconds"],
-                        shiftsim.trial_environment(semaprax_bin), "evidence_gated_scored",
+                        env, "evidence_gated_scored",
                         shiftsim.AUTHORING_PROFILE_V27,
                         artifacts / "harness-native" / label / "shiftsim",
                         settings["qualification"].get("compiler_binary_sha256"),
-                        row.get("closed_authored_inventory_after_model"), trial["arm"])
+                        row.get("closed_authored_inventory_after_model"), trial["arm"],
+                        exclude_verified_node_modules=bool(tooling))
                 else:
                     row["acceptance"] = shiftsim.check_program(candidate, settings["timeout_seconds"],
-                        shiftsim.trial_environment(semaprax_bin), "evidence_gated_scored")
+                        env, "evidence_gated_scored", exclude_verified_node_modules=bool(tooling))
                 row["acceptance_elapsed_seconds"] = round(time.monotonic() - started, 3)
                 row["status"] = "accepted" if row["acceptance"]["accepted"] else "not_accepted"
                 if row["status"] != "accepted":
@@ -246,8 +281,17 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
     except (OSError, RuntimeError, ValueError, UnicodeError) as error:
         row.update({"failure": str(error), "runner_error": True, "status": "failed"})
     try:
+        if tooling:
+            intact, evidence = shiftsim.ts_bootstrap.verify_staged(
+                candidate, receipt["inventory"], evidence_path=artifacts / "dependency-evidence" / f"{label}-before-metrics")
+            row["dependency_tree_integrity_before_metrics"] = evidence
+            if not intact:
+                invalidate(row, "staged TypeScript dependency tree changed before source measurement")
+                row["dependency_tree_integrity_before_metrics"] = evidence
+                return row
         row["final_candidate_source_metrics"] = shiftsim.common.authored_source_metrics(
-            candidate, settings.get("authored_source_tokenizer"))
+            candidate, settings.get("authored_source_tokenizer"),
+            exclude_verified_node_modules=bool(tooling))
     except (OSError, RuntimeError, ValueError, UnicodeError) as error:
         row["final_candidate_source_metrics"] = {"status": "measurement_failed", "total_tokens": None,
             "files": [], "tokenizer": settings.get("authored_source_tokenizer"), "error": str(error)}
@@ -261,7 +305,7 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
             "closed_authored_inventory", row.get("closed_authored_inventory_after_model"))
         passed, phase_guard = shiftsim._phase_source_and_binary_guard(
             candidate, expected_inventory, native_path, native.get("sha256"),
-            compiler_path, pinned.get("sha256"))
+            compiler_path, pinned.get("sha256"), exclude_verified_node_modules=bool(tooling))
         row["source_consistency_after_metrics"] = phase_guard
         if not passed:
             invalidate(row, "candidate source, compiler, or harness native binary changed")
@@ -271,10 +315,21 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
     if guard["status"] != "passed":
         invalidate(row, "workspace integrity failed before archive")
         return row
+    if tooling:
+        intact, evidence = shiftsim.ts_bootstrap.verify_staged(
+            candidate, receipt["inventory"], evidence_path=artifacts / "dependency-evidence" / f"{label}-before-archive")
+        row["dependency_tree_integrity_before_archive"] = evidence
+        if not intact:
+            invalidate(row, "staged TypeScript dependency tree changed before archive")
+            row["dependency_tree_integrity_before_archive"] = evidence
+            row["final_candidate_source_metrics"] = {"status": "measurement_failed", "total_tokens": None,
+                "files": [], "tokenizer": settings.get("authored_source_tokenizer")}
+            return row
     archive = artifacts / "candidates" / label
     archive.parent.mkdir(parents=True, exist_ok=True)
     try:
-        hashes, omitted = shiftsim.common.archive_candidate(candidate, archive)
+        hashes, omitted = shiftsim.common.archive_candidate(
+            candidate, archive, exclude_verified_node_modules=bool(tooling))
         row.update({"candidate_archive": str(archive), "candidate_source_sha256": hashes,
                     "candidate_archive_excluded_paths": omitted})
     except (OSError, RuntimeError, ValueError) as error:
@@ -293,7 +348,7 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
             "closed_authored_inventory", row.get("closed_authored_inventory_after_model"))
         passed, phase_guard = shiftsim._phase_source_and_binary_guard(
             candidate, expected_inventory, native_path, native.get("sha256"),
-            compiler_path, pinned.get("sha256"))
+            compiler_path, pinned.get("sha256"), exclude_verified_node_modules=bool(tooling))
         try:
             archived_inventory = shiftsim.closed_authored_inventory(archive)
             archive_matches = archived_inventory == expected_inventory
@@ -350,6 +405,7 @@ def launch_calibration(seed_repo: Path, artifacts: Path, seed_commit: str,
 
 def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
     settings = plan(args)
+    shiftsim.ts_bootstrap.verify_plan(settings.get("typescript_bootstrap"))
     artifacts, binary = Path(settings["artifacts"]), Path(args.semaprax_bin).expanduser().resolve()
     artifacts.mkdir(parents=True)
     snapshot = codex.snapshot_harness_sources(REPO, artifacts, settings["harness_source_files_sha256"],
@@ -406,6 +462,8 @@ def main() -> int:
         p.add_argument("--model", default=MODEL); p.add_argument("--effort", default=EFFORT)
         p.add_argument("--timeout-seconds", type=int, default=TIMEOUT_SECONDS); p.add_argument("--max-budget-usd", type=float, default=None)
         p.add_argument("--tokenizer-dir", default=None); p.add_argument("--codex-binary", default="codex")
+        p.add_argument("--typescript-bootstrap-receipt", default=None)
+        p.add_argument("--node-binary", default="node"); p.add_argument("--npm-binary", default="npm")
         if action == "run": p.add_argument("--acknowledge-paid-attempts", action="store_true")
     args = parser.parse_args()
     try:

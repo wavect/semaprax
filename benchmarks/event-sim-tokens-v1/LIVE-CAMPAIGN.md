@@ -243,3 +243,12 @@ python3 benchmarks/event-sim-tokens-v1/campaign.py run \
 `plan` and the offline tests make no model calls. `run` dispatches the
 calibration and trial sessions; retain its campaign, results, transcripts,
 candidate archives, and seed hashes together for review.
+
+The optional TypeScript setup follows the dependency-only CLI bootstrap
+described in `benchmarks/cli-tokens-v1/LIVE-CAMPAIGN.md`. Generate and seal the
+setup outside the repository, then pass
+`--typescript-bootstrap-receipt /absolute/path/outside/repository/ts-receipt.json`
+to ShiftSim `plan` or `run` (including `codex_campaign.py`). The plan binds the
+receipt, exact dependency tree, package lock, and observed Node/npm/TypeScript
+versions. Setup context remains unknown; the trial receives only `node_modules`
+before its prompt and must author all application files itself.

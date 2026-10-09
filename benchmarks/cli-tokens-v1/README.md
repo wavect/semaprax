@@ -145,3 +145,7 @@ input is not task-only input. Fixed harness context and actual billing remain
 unavailable. Empty-task calibration is reported separately and never subtracted.
 The report does not requalify runtime behavior: it checks the saved acceptance,
 public-input guards, trace reconciliation, source hashes, and recorded evidence.
+
+Future matched runs may opt into a pinned dependency-only TypeScript toolchain
+with `--typescript-bootstrap-receipt`; setup instructions and provenance limits
+are in [LIVE-CAMPAIGN.md](LIVE-CAMPAIGN.md). Historical trials remain unchanged.

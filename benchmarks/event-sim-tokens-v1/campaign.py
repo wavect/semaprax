@@ -19,6 +19,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import live_campaign_common as common
+import cli_typescript_bootstrap as ts_bootstrap
 
 BENCHMARK = Path(__file__).resolve().parent
 sys.path.insert(0, str(BENCHMARK))
@@ -660,6 +661,26 @@ def plan(args: argparse.Namespace, semaprax_binary_sha256: str | None = None) ->
     if args.model != MODEL or args.effort != EFFORT:
         raise ValueError(f"matched ShiftSim pins --model {MODEL} and --effort {EFFORT}")
     tokenizer = common.tokenizer_metadata(getattr(args, "tokenizer_dir", None))
+    typescript_tooling = None
+    receipt_arg = getattr(args, "typescript_bootstrap_receipt", None)
+    if receipt_arg:
+        receipt_path = Path(receipt_arg).expanduser()
+        if receipt_path.is_symlink():
+            raise ValueError("TypeScript bootstrap receipt must not be a symlink")
+        resolved_receipt = receipt_path.resolve(strict=True)
+        if receipt_path.absolute() != resolved_receipt:
+            raise ValueError("TypeScript bootstrap receipt path must not traverse symlinked parents")
+        receipt_path = resolved_receipt
+        receipt = ts_bootstrap.validate(receipt_path, getattr(args, "node_binary", "node"),
+                                        getattr(args, "npm_binary", "npm"))
+        typescript_tooling = {"receipt_path": str(receipt_path), "receipt_sha256": common.digest(receipt_path),
+                              "inventory_sha256": receipt["inventory_sha256"], "runtime": receipt["runtime"],
+                              "package_json_sha256": receipt["package_json_sha256"],
+                              "package_lock_sha256": receipt["package_lock_sha256"],
+                              "packages": receipt["packages"], "helper_sha256": receipt["helper_sha256"],
+                              "dependency_helper_sha256": receipt["dependency_helper_sha256"],
+                              "node_binary": getattr(args, "node_binary", "node"),
+                              "npm_binary": getattr(args, "npm_binary", "npm")}
     evidence_argument = getattr(args, "qualification_evidence", None)
     if evidence_argument is not None:
         if semaprax_binary_sha256 is None:
@@ -701,6 +722,8 @@ def plan(args: argparse.Namespace, semaprax_binary_sha256: str | None = None) ->
         "timeout_seconds": args.timeout_seconds,
         "max_budget_usd": args.max_budget_usd,
         "authored_source_tokenizer": tokenizer,
+        "typescript_bootstrap": typescript_tooling,
+        "typescript_setup_context_tokens": None,
         "arms": list(ARMS),
         "trial_order": rounds,
         "native_project_route": profile["route"],
@@ -782,7 +805,7 @@ def launch_calibration(seed_repo: Path, artifacts: Path, seed_commit: str,
     return row
 
 
-def closed_authored_inventory(candidate: Path) -> dict[str, Any]:
+def closed_authored_inventory(candidate: Path, *, exclude_verified_node_modules: bool = False) -> dict[str, Any]:
     """Hash retained authored files without following candidate-controlled links."""
     if not candidate.exists() and not candidate.is_symlink():
         files: list[dict[str, Any]] = []
@@ -797,7 +820,12 @@ def closed_authored_inventory(candidate: Path) -> dict[str, Any]:
         retained_names = []
         for name in sorted(names):
             path = root / name
-            if name in common.AUTHORED_EXCLUDED_DIRS:
+            relative = path.relative_to(candidate)
+            excluded_names = common.AUTHORED_EXCLUDED_DIRS - (
+                {"node_modules", ".cache"} if exclude_verified_node_modules else set())
+            if (name in excluded_names
+                    or (name == "node_modules" and exclude_verified_node_modules
+                        and relative.as_posix() == "node_modules")):
                 if path.is_symlink() or not stat.S_ISDIR(path.stat(follow_symlinks=False).st_mode):
                     raise ValueError(f"excluded candidate directory must not bridge outside: {path.relative_to(candidate)}")
                 continue
@@ -835,9 +863,10 @@ def _phase_source_and_binary_guard(
     native_binary_sha256: str | None,
     compiler: Path | None = None,
     compiler_sha256: str | None = None,
+    *, exclude_verified_node_modules: bool = False,
 ) -> tuple[bool, dict[str, Any]]:
     try:
-        observed = closed_authored_inventory(candidate)
+        observed = closed_authored_inventory(candidate, exclude_verified_node_modules=exclude_verified_node_modules)
         binary_regular = (native_binary is None or (
             not native_binary.is_symlink() and native_binary.is_file()
             and stat.S_ISREG(native_binary.stat(follow_symlinks=False).st_mode)))
@@ -867,6 +896,7 @@ def check_program(
     compiler_binary_sha256: str | None = None,
     expected_inventory: dict[str, Any] | None = None,
     arm: str | None = None,
+    *, exclude_verified_node_modules: bool = False,
 ) -> dict[str, Any]:
     result: dict[str, Any] = {"build": {"status": "missing"}, "candidate_tests": {"status": "not_run"},
                               "independent_acceptance": {"status": "not_run"}, "accepted": False}
@@ -876,7 +906,7 @@ def check_program(
         return result
     semaprax_v27 = v27 and arm == "semaprax"
     try:
-        observed_inventory = closed_authored_inventory(candidate) if v27 else None
+        observed_inventory = closed_authored_inventory(candidate, exclude_verified_node_modules=exclude_verified_node_modules) if v27 else None
     except (OSError, ValueError) as error:
         result["source_consistency"] = {"status": "failed", "error": str(error)}
         return result
@@ -935,7 +965,8 @@ def check_program(
                 result[key] = {"status": "timeout", "seconds": round(time.monotonic() - started, 3),
                     "stdout": common.bounded_text(exc.stdout or b""), "stderr": common.bounded_text(exc.stderr or b"")}
             passed, guard = _phase_source_and_binary_guard(
-                candidate, initial_inventory, None, None, compiler, compiler_binary_sha256)
+                candidate, initial_inventory, None, None, compiler, compiler_binary_sha256,
+                exclude_verified_node_modules=exclude_verified_node_modules)
             result[f"{key}_source_consistency"] = guard
             if result[key]["status"] != "passed" or not passed:
                 return result
@@ -965,7 +996,8 @@ def check_program(
             passed, guard = _phase_source_and_binary_guard(
                 candidate, initial_inventory, native_binary, native_binary_hash,
                 compiler if semaprax_v27 else None,
-                compiler_binary_sha256 if semaprax_v27 else None)
+                compiler_binary_sha256 if semaprax_v27 else None,
+                exclude_verified_node_modules=exclude_verified_node_modules)
             result[f"{key}_source_consistency"] = guard
             if row["status"] != "passed" or not passed:
                 return result
@@ -996,7 +1028,8 @@ def check_program(
         passed, guard = _phase_source_and_binary_guard(
             candidate, initial_inventory, native_binary, native_binary_hash,
             compiler if semaprax_v27 else None,
-            compiler_binary_sha256 if semaprax_v27 else None)
+                compiler_binary_sha256 if semaprax_v27 else None,
+                exclude_verified_node_modules=exclude_verified_node_modules)
         result["acceptance_source_consistency"] = guard
         result["native_binary"] = {"path": str(native_binary) if native_binary is not None else None,
                                    "sha256": native_binary_hash,
@@ -1041,7 +1074,27 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
     if error:
         return row
     candidate = workspace / "benchmarks" / "event-sim-tokens-v1" / "candidate"
-    prompt = prompt_for(arm, candidate, semaprax_bin, settings.get("authoring_profile", AUTHORING_PROFILE_V24))
+    tooling = settings.get("typescript_bootstrap") if arm == "typescript" else None
+    env = trial_environment(semaprax_bin)
+    if tooling:
+        setup_started = time.monotonic()
+        try:
+            receipt = ts_bootstrap.verify_plan(tooling)
+            row["supplied_tooling"] = ts_bootstrap.stage(Path(tooling["receipt_path"]), candidate,
+                                                          tooling["node_binary"], tooling["npm_binary"])
+        except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
+            row.update({"failure": f"TypeScript bootstrap refused before prompt: {error}",
+                        "typescript_setup": {"status": "failed", "elapsed_seconds": round(time.monotonic() - setup_started, 3),
+                                              "context_tokens": None},
+                        "workspace_retained_for_review": True, "worktree_removed_after_archive": False})
+            return row
+        row["typescript_setup"] = {"status": "ready", "elapsed_seconds": round(time.monotonic() - setup_started, 3),
+                                   "context_tokens": None}
+        node_path = Path(shutil.which(tooling["node_binary"]) or tooling["node_binary"]).resolve(strict=True)
+        env["PATH"] = os.pathsep.join((str(candidate / "node_modules/.bin"), str(node_path.parent), env.get("PATH", "")))
+    prompt = prompt_for(arm, candidate, semapax_bin, settings.get("authoring_profile", AUTHORING_PROFILE_V24))
+    if tooling:
+        prompt += "\n\n" + ts_bootstrap.prompt_note(receipt)
     prompts = artifacts / "prompts"
     prompts.mkdir(exist_ok=True)
     (prompts / f"{label}.txt").write_text(prompt, encoding="utf-8")
@@ -1050,7 +1103,7 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
     transcripts.mkdir(exist_ok=True)
     stream, stderr = transcripts / f"{label}.jsonl", transcripts / f"{label}.stderr.txt"
     process = run_process(common.claude_command(settings, prompt), workspace,
-                          trial_environment(semaprax_bin), stream, stderr, settings["timeout_seconds"])
+                          env, stream, stderr, settings["timeout_seconds"])
     row.update(process)
     row["transcript"], row["stderr_path"] = str(stream), str(stderr)
     usage = common.stream_usage(stream, settings["model"]) if stream.exists() else {
@@ -1068,9 +1121,20 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
     model_ok = common.observed_model_matches(usage.get("models_observed"), settings.get("observed_model_id"))
     spec_integrity = seeded_spec_integrity(workspace, settings)
     row["seeded_spec_integrity"] = spec_integrity
+    if tooling:
+        intact, evidence = ts_bootstrap.verify_staged(
+            candidate, receipt["inventory"], evidence_path=artifacts / "dependency-evidence" / label)
+        row["dependency_tree_integrity"] = evidence
+        if not intact:
+            row.update({"status": "not_accepted", "failure": "staged TypeScript dependency tree changed",
+                        "final_candidate_source_metrics": {"status": "measurement_failed", "total_tokens": None,
+                            "files": [], "tokenizer": settings.get("authored_source_tokenizer")},
+                        "workspace_retained_for_review": True, "worktree_removed_after_archive": False})
+            return row
     if settings.get("authoring_profile") == AUTHORING_PROFILE_V27:
         try:
-            row["closed_authored_inventory_after_model"] = closed_authored_inventory(candidate)
+            row["closed_authored_inventory_after_model"] = closed_authored_inventory(
+                candidate, exclude_verified_node_modules=bool(tooling))
         except (OSError, ValueError) as error:
             row.update({"status": "not_accepted", "failure": str(error),
                         "workspace_retained_for_review": True, "worktree_removed_after_archive": False})
@@ -1094,20 +1158,33 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
             started = time.monotonic()
             if settings.get("authoring_profile") == AUTHORING_PROFILE_V27:
                 row["acceptance"] = check_program(
-                    candidate, settings["timeout_seconds"], trial_environment(semaprax_bin), qualification_mode,
+                    candidate, settings["timeout_seconds"], env, qualification_mode,
                     AUTHORING_PROFILE_V27, artifacts / "harness-native" / label / "shiftsim",
                     qualification.get("compiler_binary_sha256") or settings.get("semaprax_binary_sha256"),
-                    row.get("closed_authored_inventory_after_model"), arm)
+                    row.get("closed_authored_inventory_after_model"), arm,
+                    exclude_verified_node_modules=bool(tooling))
             else:
                 row["acceptance"] = check_program(
-                    candidate, settings["timeout_seconds"], trial_environment(semaprax_bin), qualification_mode)
+                    candidate, settings["timeout_seconds"], env, qualification_mode,
+                    exclude_verified_node_modules=bool(tooling))
             row["acceptance_elapsed_seconds"] = round(time.monotonic() - started, 3)
             row["status"] = "accepted" if row["acceptance"]["accepted"] else "not_accepted"
             if row["status"] != "accepted":
                 row["failure"] = "candidate failed build or acceptance checks"
     try:
+        if tooling:
+            intact, evidence = ts_bootstrap.verify_staged(
+                candidate, receipt["inventory"], evidence_path=artifacts / "dependency-evidence" / f"{label}-before-metrics")
+            row["dependency_tree_integrity_before_metrics"] = evidence
+            if not intact:
+                row.update({"status": "not_accepted", "failure": "staged TypeScript dependency tree changed before source measurement",
+                            "final_candidate_source_metrics": {"status": "measurement_failed", "total_tokens": None,
+                                "files": [], "tokenizer": settings.get("authored_source_tokenizer")},
+                            "workspace_retained_for_review": True, "worktree_removed_after_archive": False})
+                return row
         row["final_candidate_source_metrics"] = common.authored_source_metrics(
-            candidate, settings.get("authored_source_tokenizer")
+            candidate, settings.get("authored_source_tokenizer"),
+            exclude_verified_node_modules=bool(tooling)
         )
     except (OSError, RuntimeError, UnicodeError, json.JSONDecodeError) as error:
         row["final_candidate_source_metrics"] = {
@@ -1124,7 +1201,7 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
             "closed_authored_inventory", row.get("closed_authored_inventory_after_model"))
         passed, guard = _phase_source_and_binary_guard(
             candidate, expected_inventory, native_path, native.get("sha256"),
-            compiler_path, pinned.get("sha256"))
+            compiler_path, pinned.get("sha256"), exclude_verified_node_modules=bool(tooling))
         row["source_consistency_after_metrics"] = guard
         if not passed:
             row.update({"status": "not_accepted", "failure": "candidate source, compiler, or harness native binary changed",
@@ -1143,7 +1220,18 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
         row["workspace_retained_for_review"] = True
         row["worktree_removed_after_archive"] = False
         return row
-    hashes, omitted = common.archive_candidate(candidate, archive)
+    if tooling:
+        intact, evidence = ts_bootstrap.verify_staged(
+            candidate, receipt["inventory"], evidence_path=artifacts / "dependency-evidence" / f"{label}-before-archive")
+        row["dependency_tree_integrity_before_archive"] = evidence
+        if not intact:
+            row.update({"status": "not_accepted", "failure": "staged TypeScript dependency tree changed before archive",
+                        "final_candidate_source_metrics": {"status": "measurement_failed", "total_tokens": None,
+                            "files": [], "tokenizer": settings.get("authored_source_tokenizer")},
+                        "workspace_retained_for_review": True, "worktree_removed_after_archive": False})
+            return row
+    hashes, omitted = common.archive_candidate(candidate, archive,
+                                               exclude_verified_node_modules=bool(tooling))
     row["candidate_archive"] = str(archive)
     row["candidate_source_sha256"] = hashes
     row["candidate_archive_excluded_paths"] = omitted
@@ -1157,7 +1245,7 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
             "closed_authored_inventory", row.get("closed_authored_inventory_after_model"))
         passed, guard = _phase_source_and_binary_guard(
             candidate, expected_inventory, native_path, native.get("sha256"),
-            compiler_path, pinned.get("sha256"))
+            compiler_path, pinned.get("sha256"), exclude_verified_node_modules=bool(tooling))
         try:
             archived_inventory = closed_authored_inventory(archive)
             archive_matches = archived_inventory == expected_inventory
@@ -1280,6 +1368,8 @@ def main() -> int:
         p.add_argument("--timeout-seconds", type=int, default=1800)
         p.add_argument("--max-budget-usd", type=float, default=None)
         p.add_argument("--tokenizer-dir", default=None)
+        p.add_argument("--typescript-bootstrap-receipt", default=None)
+        p.add_argument("--node-binary", default="node"); p.add_argument("--npm-binary", default="npm")
         if action in ("plan", "run"):
             p.add_argument("--qualification-evidence", default=None,
                            help="pinned native streaming acceptance evidence; enables scored trials only when valid")
@@ -1315,6 +1405,7 @@ def main() -> int:
         if args.action == "plan":
             print(json.dumps(settings, indent=2))
             return 0
+        ts_bootstrap.verify_plan(settings.get("typescript_bootstrap"))
         assert semaprax_bin is not None
         artifacts = Path(settings["artifacts"])
         artifacts.mkdir(parents=True)

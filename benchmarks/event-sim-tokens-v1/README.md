@@ -103,3 +103,7 @@ Once a run has produced `results.json`, regenerate its read-only Codex report
 with `python3 codex_report.py /path/to/results.json`. It derives model-request
 usage and conditional cost only from reconciled rollout traces; missing traces
 and incomplete arms remain explicit in the JSON report.
+
+Future matched runs can opt into the pinned dependency-only TypeScript setup
+with `--typescript-bootstrap-receipt`. See [LIVE-CAMPAIGN.md](LIVE-CAMPAIGN.md)
+for setup instructions and the unknown-context reporting limit.

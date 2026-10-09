@@ -9,6 +9,27 @@ const expectedValue = BigInt(process.argv[4]);
 const refusal = process.argv[5] || '';
 let instance, nextPayload = 1, nextVec = 1n, nextIter = 1n << 62n, copies = 0, drops = 0;
 const payloads = new Map(), vectors = new Map(), iterators = new Map();
+// Fixture authority encoding v2: old mint/move keeps its generation-zero
+// low-word handle. Additive sort renews the existing authority slot in place.
+// Import signatures, legacy tags and generated legacy modules are unchanged.
+const AUTHORITY_ENCODING = 'semaprax.test.owned-leaf-authority.v2';
+const EMPTY_BYTES = new Uint8Array(0);
+let sorting = false;
+const allocationOutsideSort = name => {
+  if(sorting)throw Error(`infallible sort reached allocating/settling helper: ${name}`);
+};
+// Test-only guards make a future slice/sort/map or authority re-mint fail the
+// same executable corpus, rather than quietly reintroducing a failure lane.
+for(const name of ['slice','sort','map','filter']){
+  const original=Array.prototype[name];
+  Array.prototype[name]=function(...args){
+    allocationOutsideSort(name);return Reflect.apply(original,this,args);
+  };
+}
+const authoritySet=vectors.set;
+vectors.set=function(key,value){
+  allocationOutsideSort('authority insertion');return authoritySet.call(this,key,value);
+};
 const utf8 = new TextDecoder('utf-8',{fatal:true});
 const memory = () => instance.exports.__spx_byte_memory || instance.exports.memory;
 const view = (address, length) => {
@@ -21,6 +42,7 @@ const split = carrier => {
   return {length: Number(word & 0xffffffffn), origin: Number(word >> 32n)};
 };
 const read = carrier => {
+  allocationOutsideSort('payload view');
   const {length, origin} = split(carrier);
   if (origin & 0x80000000) {
     const bytes = payloads.get(origin & 0x7fffffff);
@@ -31,6 +53,7 @@ const read = carrier => {
   return new Uint8Array(memory().buffer, origin, length);
 };
 const alloc = carrier => {
+  allocationOutsideSort('payload clone');
   const bytes = new Uint8Array(read(carrier));
   const id = nextPayload++;
   payloads.set(id, bytes);
@@ -38,12 +61,14 @@ const alloc = carrier => {
   return BigInt.asIntN(64, ((0x80000000n | BigInt(id)) << 32n) | BigInt(bytes.length));
 };
 const ownBytes = bytes => {
+  allocationOutsideSort('owned payload');
   const id = nextPayload++;
   payloads.set(id, new Uint8Array(bytes));
   copies++;
   return BigInt.asIntN(64, ((0x80000000n | BigInt(id)) << 32n) | BigInt(bytes.length));
 };
 const drop = carrier => {
+  allocationOutsideSort('payload drop');
   if (carrier === 0n) return;
   read(carrier);
   const {origin} = split(carrier);
@@ -52,6 +77,7 @@ const drop = carrier => {
   drops++;
 };
 const fields = shape => {
+  allocationOutsideSort('descriptor array');
   const raw = BigInt.asUintN(64, shape), result = [];
   for (let i = 0; i < 8; i++) {
     const byte = Number((raw >> BigInt(i * 8)) & 255n);
@@ -104,13 +130,23 @@ const rowFromDeclared = (shape, values) => {
 const dropRow = (row, shape) => {
   for (const field of fields(shape)) if (field.code >= 9) drop(row[field.slot]);
 };
+const vectorValue = handle => {
+  const raw=BigInt.asUintN(64,handle),slot=raw&0xffffffffn;
+  const value=vectors.get(slot);
+  return value&&value.generation===(raw>>32n)?value:undefined;
+};
+const releaseVector = handle => {
+  allocationOutsideSort('authority release');
+  const value=vectorValue(handle);
+  if(!value||!vectors.delete(value.authority_slot))throw Error('stale Vec release');
+};
 const vec = (handle, tag) => {
-  const value = vectors.get(handle);
+  const value = vectorValue(handle);
   if (!value || value.tag !== tag) throw Error('stale or mistyped Vec');
   return value;
 };
 const bind = (handle, identity, shape) => {
-  const value = vectors.get(handle);
+  const value = vectorValue(handle);
   if (!value || (value.tag !== 10 && value.tag !== 11)) throw Error('stale owned Vec');
   const spec = fields(shape);
   if (value.tag === 10 && !(spec.length === 3 &&
@@ -123,12 +159,19 @@ const bind = (handle, identity, shape) => {
   return value;
 };
 const mint = value => {
+  allocationOutsideSort('authority mint');
+  if(nextVec>0xffffffffn)throw Error('Vec authority identity exhausted');
   const handle = nextVec++;
+  value.authority_slot=handle;value.generation=0n;
+  // Predeclare even an unbound legacy record's descriptor fields. Its first
+  // additive sort only writes existing metadata; no owner object is grown.
+  if(value.identity===undefined)value.identity=undefined;
+  if(value.shape===undefined)value.shape=undefined;
   vectors.set(handle, value);
   return handle;
 };
 const move = (handle, value) => {
-  vectors.delete(handle);
+  releaseVector(handle);
   return mint(value);
 };
 const iterator = (handle, cursor, identity, shape) => {
@@ -152,15 +195,52 @@ const compareBytes = (left, right) => {
   for (let i = 0; i < bound; i++) if (a[i] !== b[i]) return a[i] - b[i];
   return a.length - b.length;
 };
+const ownedSortBytes = word => {
+  if(word===0n)return EMPTY_BYTES;
+  const raw=BigInt.asUintN(64,word),origin=Number(raw>>32n),length=Number(raw&0xffffffffn);
+  if(!(origin&0x80000000))throw Error('borrowed payload in owned sort');
+  const bytes=payloads.get(origin&0x7fffffff);
+  if(!bytes||bytes.length!==length)throw Error('stale sort payload');
+  return bytes;
+};
+const compareOwnedBytes = (a,b) => {
+  const left=ownedSortBytes(a),right=ownedSortBytes(b),bound=Math.min(left.length,right.length);
+  for(let i=0;i<bound;i++)if(left[i]!==right[i])return left[i]-right[i];
+  return left.length-right.length;
+};
 const compareRows = (left, right, shape) => {
-  for (const field of fields(shape)) {
-    const a = left[field.slot], b = right[field.slot];
-    const cmp = field.code >= 9 ? compareBytes(a, b) :
-      (totalKey(a, field.code) < totalKey(b, field.code) ? -1 :
-       totalKey(a, field.code) > totalKey(b, field.code) ? 1 : 0);
+  // Read the packed descriptor without building arrays, decoded strings or
+  // borrowed views. Both String and Bytes compare their retained owned bytes.
+  for(let raw=BigInt.asUintN(64,shape);raw;raw>>=8n) {
+    const field=Number(raw&255n),code=field>>4,slot=field&15;
+    const a=left[slot],b=right[slot];
+    const cmp=code>=9?compareOwnedBytes(a,b):
+      (totalKey(a,code)<totalKey(b,code)?-1:totalKey(a,code)>totalKey(b,code)?1:0);
     if (cmp) return cmp;
   }
   return 0;
+};
+const bindSort = (handle,identity,shape) => {
+  const value=vectorValue(handle);
+  if(!value||(value.tag!==10&&value.tag!==11))throw Error('stale owned sort vector');
+  let count=0,owned=0,seen=0,bytes=0,scalars=0;
+  for(let raw=BigInt.asUintN(64,shape);raw;raw>>=8n) {
+    const field=Number(raw&255n),code=field>>4,slot=field&15;
+    if(!field||code<1||code>10||slot>=8||(seen&(1<<slot)))throw Error('invalid sort shape');
+    count++;seen|=1<<slot;
+    if(code>=9)owned++;
+    if(value.tag===10){
+      if(code===9&&slot<=1)bytes++;
+      else if(code<=8&&slot===2)scalars++;
+      else throw Error('legacy sort shape mismatch');
+    }
+  }
+  if(!count||owned<1||owned>2||seen!==((1<<count)-1))throw Error('invalid owned sort shape');
+  if(value.tag===10&&(count!==3||bytes!==2||scalars!==1))throw Error('legacy sort shape mismatch');
+  if(value.shape!==undefined&&(value.shape!==shape||value.identity!==identity))
+    throw Error('sort declaration identity or shape mismatch');
+  if(value.generation===0xffffffffn)throw Error('Vec generation exhausted');
+  return value;
 };
 const env = {
   spx_add:(a,b)=>a+b, spx_sub:(a,b)=>a-b, spx_mul:(a,b)=>a*b,
@@ -222,11 +302,11 @@ const env = {
     return value.values[Number(index)];
   },
   spx_vec_drop_v2:handle=>{
-    const value=vectors.get(handle);if(!value)throw Error('stale Vec drop');
+    const value=vectorValue(handle);if(!value)throw Error('stale Vec drop');
     if(value.tag===9)for(const word of value.values)drop(word);
     else if(value.shape===undefined&&value.tag===10){for(const row of value.values){drop(row[0]);drop(row[1])}}
     else if(value.shape!==undefined)for(const row of value.values)dropRow(row,value.shape);
-    vectors.delete(handle);
+    releaseVector(handle);
   },
   spx_vec_reserve_exact_v2:(handle,tag,additional)=>{
     const value=vec(handle,tag),target=BigInt(value.values.length)+additional;
@@ -329,15 +409,21 @@ const env = {
     return move(handle,value);
   },
   spx_vec_leaf_sort_v1:(handle,identity,shape)=>{
-    const value=bind(handle,identity,shape);
-    if(value.values.length<2){value.identity=identity;value.shape=shape;return move(handle,value)}
-    if(refusal==='sort-allocation')return 0n;
-    let replacement;
-    try{replacement=value.values.slice().sort((a,b)=>compareRows(a,b,shape))}
-    catch(error){if(error instanceof RangeError)return 0n;throw error}
-    value.values=replacement;
-    value.identity=identity;value.shape=shape;
-    return move(handle,value);
+    if(sorting)throw Error('reentrant owned sort');
+    sorting=true;
+    try {
+      const value=bindSort(handle,identity,shape),rows=value.values;
+      const copied=copies,dropped=drops,authorities=vectors.size;
+      for(let i=1;i<rows.length;i++){
+        const row=rows[i];let j=i;
+        while(j>0&&compareRows(rows[j-1],row,shape)>0){rows[j]=rows[j-1];j--}
+        rows[j]=row;
+      }
+      value.identity=identity;value.shape=shape;value.generation++;
+      if(copies!==copied||drops!==dropped||value.values!==rows||vectors.size!==authorities)
+        throw Error('sort allocated, copied or settled an owner');
+      return BigInt.asIntN(64,(value.generation<<32n)|value.authority_slot);
+    } finally {sorting=false}
   },
   spx_vec_leaf_into_iter_v1:(handle,identity,shape,out)=>{
     const value=bind(handle,identity,shape),target=view(out,16);
@@ -345,7 +431,7 @@ const env = {
     const next=nextIter++;
     try{iterators.set(next,{identity,shape,rows:value.values,cursor:0n})}
     catch(error){if(error instanceof RangeError)return 3;throw error}
-    vectors.delete(handle);
+    releaseVector(handle);
     target.setBigUint64(0,next,true);target.setBigUint64(8,0n,true);
     return 0;
   },
@@ -372,7 +458,7 @@ const env = {
   },
   spx_iter_record_into_v3:(handle,out)=>{
     const value=vec(handle,10),target=view(out,16),next=nextIter++;
-    vectors.delete(handle);
+    releaseVector(handle);
     iterators.set(next,{legacy:true,rows:value.values,cursor:0n,shape:value.shape});
     target.setBigUint64(0,next,true);target.setBigUint64(8,0n,true);
     return 0;
@@ -408,6 +494,20 @@ const env = {
   try{await WebAssembly.instantiate(moduleBytes,{env:missing})}
   catch(error){if(!(error instanceof WebAssembly.LinkError))throw error;refused=true}
   if(!refused)throw Error('private boundary linked without clone import');
+  if(refusal==='sort-null'){
+    let calls=0,trapped=false;
+    const hostile={...env,spx_vec_leaf_sort_v1:()=>{calls++;return 0n}};
+    ({instance}=await WebAssembly.instantiate(moduleBytes,{env:hostile}));
+    try{instance.exports.semaprax_main()}
+    catch(error){if(!(error instanceof WebAssembly.RuntimeError))throw error;trapped=true}
+    if(!trapped||calls!==1)throw Error('null infallible sort result was not a host invariant trap');
+    // A corrupted host is fail-stop, not a recoverable source failure. Release
+    // the host's retained authority explicitly after checking the trap type.
+    for(const owner of vectors.values())
+      env.spx_vec_drop_v2(BigInt.asIntN(64,(owner.generation<<32n)|owner.authority_slot));
+    if(payloads.size||vectors.size||iterators.size||copies!==drops)throw Error('host trap teardown leaked');
+    return;
+  }
   ({instance}=await WebAssembly.instantiate(moduleBytes,{env}));
   for(let run=0;run<3;run++){
     let selected=0,returned;
@@ -418,7 +518,8 @@ const env = {
     if(vectors.size||iterators.size||payloads.size||copies!==drops)
       throw Error(`leaks vec=${vectors.size} iter=${iterators.size} payload=${payloads.size} copies=${copies} drops=${drops}`);
   }
-  if(refusal==='none'){
+  if(refusal==='none'||refusal==='sort-no-allocation'){
+    if(AUTHORITY_ENCODING!=='semaprax.test.owned-leaf-authority.v2')throw Error('fixture authority version');
     const old=env.spx_vec_leaf_new_v1(11n,0xa0n,0n);
     if(!old)throw Error('empty private vector allocation refused');
     for(const [identity,shape] of [[12n,0xa0n],[11n,0x90n]]){
@@ -446,6 +547,18 @@ const env = {
     catch(error){badBool=true}
     if(!badBool)throw Error('noncanonical Bool entered owned-leaf row');
     drop(text);env.spx_vec_drop_v2(typed);
+    let tied=env.spx_vec_leaf_new_v1(17n,0xa0n,2n);
+    const a=ownBytes(new TextEncoder().encode('same'));
+    const b=ownBytes(new TextEncoder().encode('same'));
+    tied=env.spx_vec_leaf_push_v1(tied,17n,0xa0n,a,0n,0n,0n,0n,0n,0n,0n);
+    tied=env.spx_vec_leaf_push_v1(tied,17n,0xa0n,b,0n,0n,0n,0n,0n,0n,0n);
+    const owner=vectorValue(tied),rows=owner.values,first=rows[0],second=rows[1];
+    const after=env.spx_vec_leaf_sort_v1(tied,17n,0xa0n);
+    const again=env.spx_vec_leaf_sort_v1(after,17n,0xa0n);
+    if(vectorValue(tied)||vectorValue(after)||vectorValue(again)!==owner||owner.values!==rows
+       ||rows[0]!==first||rows[1]!==second||first[0]!==a||second[0]!==b)
+      throw Error('stable sort changed row identity or retained a stale epoch');
+    env.spx_vec_drop_v2(again);
     if(vectors.size||iterators.size||payloads.size)throw Error('host self-check leaked an owner');
   }
 })().catch(error=>{console.error(error);process.exitCode=2});

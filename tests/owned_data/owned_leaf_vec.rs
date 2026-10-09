@@ -281,20 +281,26 @@ fn replacement_bounds_and_reserve_overflow_settle_staged_owners() {
 }
 
 #[test]
-fn sort_and_replacement_allocation_failures_keep_old_generation_live_for_cleanup() {
+fn owned_sort_succeeds_without_payload_row_or_authority_allocation() {
     run_wasm(
         r#"@id("app.main") fn main()->i64 {
  let a=vec_with_capacity<string>(2usize);
  let b=vec_push<string>(a,"b");
  let c=vec_push<string>(b,"a");
  let sorted=vec_sort_owned<string>(c);
- if vec_len<string>(sorted)==2usize {29}else{0}
+ let first=vec_clone_at<string>(sorted,0usize);
+ let last=vec_clone_at<string>(sorted,1usize);
+ if first=="a" && last=="b" {29}else{0}
 }
 "#,
-        15,
         0,
-        "sort-allocation",
+        29,
+        "sort-no-allocation",
     );
+}
+
+#[test]
+fn replacement_allocation_failure_keeps_old_generation_live_for_cleanup() {
     run_wasm(
         r#"@id("app.main") fn main()->i64 {
  let a=vec_with_capacity<string>(1usize);
@@ -306,6 +312,43 @@ fn sort_and_replacement_allocation_failures_keep_old_generation_live_for_cleanup
         15,
         0,
         "replacement-allocation",
+    );
+}
+
+#[test]
+fn additive_sort_of_legacy_record_carriers_is_also_allocation_free() {
+    run_wasm(
+        r#"@id("legacy") record Legacy {
+ @id("legacy.a") a:Bytes,@id("legacy.key") key:i64,@id("legacy.b") b:Bytes,
+}
+@id("app.main") fn main()->i64 {
+ let rows=vec_with_capacity<Legacy>(2usize);
+ let one=vec_push<Legacy>(rows,Legacy{a:bytes_zeroed(1usize),key:3,b:bytes_zeroed(1usize)});
+ let two=vec_push<Legacy>(one,Legacy{a:bytes_zeroed(1usize),key:-7,b:bytes_zeroed(1usize)});
+ let sorted=vec_sort_owned<Legacy>(two);
+ let first=vec_clone_at<Legacy>(sorted,0usize);
+ match own first {Legacy{a,key,b}=>if key == -7 {29}else{0},}
+}
+"#,
+        0,
+        29,
+        "sort-no-allocation",
+    );
+}
+
+#[test]
+fn null_infallible_sort_result_is_a_host_invariant_trap() {
+    run_wasm(
+        r#"@id("app.main") fn main()->i64 {
+ let rows=vec_with_capacity<string>(1usize);
+ let one=vec_push<string>(rows,"owned");
+ let sorted=vec_sort_owned<string>(one);
+ if vec_len<string>(sorted)==1usize {29}else{0}
+}
+"#,
+        0,
+        0,
+        "sort-null",
     );
 }
 

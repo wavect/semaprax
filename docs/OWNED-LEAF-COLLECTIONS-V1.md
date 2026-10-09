@@ -113,6 +113,13 @@ carriers and never clones, drops, calls user comparison code, or obtains effects
 while comparing. The private representation must keep the leaf's exact owner
 identity and current generation. No untyped scalar handle is an owning value.
 
+Sort is infallible after ordinary argument evaluation and authentication. It
+uses the existing row storage and authority entry; it does not allocate a
+replacement row array, clone payloads or mint another owner. Core-Wasm host
+allocation refusal is therefore not a sort result. A zero result violates the
+private host contract and traps instead of selecting a source Vec/3 failure.
+The staged source owner transfers once at the canonical infallible call commit.
+
 A scheduler can declare priority, arrival, id, service, deadline in that order
 and sort its actual patients. The independently checked codec still binds JSON
 wire field names. A report can declare negative count followed by path for
@@ -128,6 +135,17 @@ and host fixture. Interpreter values retain owned Strings/Bytes and named record
 Every backend uses the same logical capacity, ordered comparison, failure
 selection, call commit and cleanup contract. Target allocation layout is not
 source or cache authority.
+
+The owning Node fixture versions its opaque handle representation as
+`semaprax.test.owned-leaf-authority.v2`. Legacy constructors and move operations
+keep generation-zero low-word handles and unchanged import signatures/tags;
+additive sort renews a preallocated authority slot with an encoded generation.
+Lookup/drop authenticate both forms and reject every consumed generation.
+This applies equally to new tag-11 vectors and additive sorting of legacy
+tag-10 rows. The fixture sorts whole rows stably in place, compares retained
+unsigned String/Bytes payloads without decoded strings or per-comparison
+arrays, and guards payload/row/authority allocation and drops during sort.
+It is a private host protocol, not a public collection ABI or new source right.
 
 New Project v30 (`language-command-io.owned-data.v1`) may transport owned/borrowed vectors and
 owned/borrowed record values through private helpers. Public command roots remain

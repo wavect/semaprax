@@ -394,8 +394,11 @@ impl Emitter<'_> {
                 write_u32(self.output, scalar_local(&result)?);
                 self.get_scalar(&result);
                 self.output.push(0x50);
-                if op == VecOp::Clear { self.trap_if(); }
-                else { self.emit_vec_failure_if(expr, STATUS_VEC_ALLOCATION_FAILURE)?; }
+                // Clear and sort are infallible after authenticated staging.
+                // A null host result violates the private ABI; it is not an
+                // allocation failure lane in the canonical cleanup plan.
+                if op == VecOp::ReserveOwned { self.emit_vec_failure_if(expr, STATUS_VEC_ALLOCATION_FAILURE)?; }
+                else { self.trap_if(); }
                 self.apply_call_commit(&expr.id)?;
                 self.clear_scalar(&owner)?;
             }

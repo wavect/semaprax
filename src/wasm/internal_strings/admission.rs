@@ -3,8 +3,8 @@
 use super::{error, Export, PreparedSelection};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
-    self, DeclarationId, IdentityOrigin, OwnershipMode, ResolvedExprKind, ResolvedProgram,
-    ResolvedFunction, ResolvedStatement, ResolvedType, ValueId,
+    self, DeclarationId, IdentityOrigin, OwnershipMode, ResolvedExprKind, ResolvedFunction,
+    ResolvedProgram, ResolvedStatement, ResolvedType, ValueId,
 };
 use std::collections::BTreeSet;
 

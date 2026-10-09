@@ -33,9 +33,7 @@ fn toolkit_owned_string_byte_views_require_a_replayed_full_root_loan() {
     let producer = forged
         .declarations
         .byte_slice_provenances()
-        .find(|(_, provenance)| {
-            provenance.root_kind == crate::hir::ByteSliceRootKind::OwnedString
-        })
+        .find(|(_, provenance)| provenance.root_kind == crate::hir::ByteSliceRootKind::OwnedString)
         .and_then(|(_, provenance)| provenance.producer.clone())
         .unwrap();
     let main = forged
@@ -47,9 +45,7 @@ fn toolkit_owned_string_byte_views_require_a_replayed_full_root_loan() {
         .loan_plan
         .loans
         .iter_mut()
-        .find(|loan| {
-            loan.site == producer && loan.cause == crate::loan_plan::LoanCause::SliceView
-        })
+        .find(|loan| loan.site == producer && loan.cause == crate::loan_plan::LoanCause::SliceView)
         .unwrap();
     loan.origin.root = crate::hir::ValueId::intrinsic_parameter("forged.byte.root", 0);
     assert!(admission::prepare_toolkit(&forged, &ids).is_err());

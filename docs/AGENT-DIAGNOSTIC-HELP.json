@@ -332,7 +332,7 @@
           "wrote": "outer owned binding changes in while"
         },
         {
-          "fix": "Pure nongeneric call; exactly one whole owner returned as the same type; whole named independent Slice/str borrows only; [renewal hook](IO-LINES-V1.md#cursor-transitions), executable gate pending",
+          "fix": "Pure nongeneric call; exactly one whole owner returned as the same type; whole named independent Slice/str borrows only; [renewal hook](IO-LINES-V1.md#cursor-transitions)",
           "wrote": "one-Bytes-plus-usize owner renewal with input views"
         }
       ]
@@ -350,8 +350,8 @@
       "code": "SPX-T263",
       "rows": [
         {
-          "fix": "Bind view: let v = string_as_str(text); str_as_bytes(v)",
-          "wrote": "str_as_bytes(text) / nested string_as_str"
+          "fix": "For a named String use `str_as_bytes(string_as_str(text))`; bind a loop-carried Slice before the loop, or use named local views within one loop iteration",
+          "wrote": "str_as_bytes(text) / invalid nested string_as_str"
         }
       ]
     },
@@ -359,7 +359,7 @@
       "code": "SPX-T265",
       "rows": [
         {
-          "fix": "Pure nongeneric call; exactly one whole owner returned as the same type; whole named independent Slice/str borrows only; [renewal hook](IO-LINES-V1.md#cursor-transitions), executable gate pending",
+          "fix": "Pure nongeneric call; exactly one whole owner returned as the same type; whole named independent Slice/str borrows only; [renewal hook](IO-LINES-V1.md#cursor-transitions)",
           "wrote": "one-Bytes-plus-usize owner renewal with input views"
         }
       ]
@@ -368,8 +368,8 @@
       "code": "SPX-T266",
       "rows": [
         {
-          "fix": "Bind view: let v = string_as_str(text); str_as_bytes(v)",
-          "wrote": "str_as_bytes(text) / nested string_as_str"
+          "fix": "For a named String use `str_as_bytes(string_as_str(text))`; bind a loop-carried Slice before the loop, or use named local views within one loop iteration",
+          "wrote": "str_as_bytes(text) / invalid nested string_as_str"
         },
         {
           "fix": "Bind literal first: let s = \"literal\"; string_as_str(s)",

@@ -1398,7 +1398,7 @@ mod tests {
                     "fix: Keep outer ownership unchanged\n",
                     "\n",
                     "wrote: one-Bytes-plus-usize owner renewal with input views\n",
-                    "fix: Pure nongeneric call; exactly one whole owner returned as the same type; whole named independent Slice/str borrows only; [renewal hook](IO-LINES-V1.md#cursor-transitions), executable gate pending\n",
+                    "fix: Pure nongeneric call; exactly one whole owner returned as the same type; whole named independent Slice/str borrows only; [renewal hook](IO-LINES-V1.md#cursor-transitions)\n",
                 ),
             ),
             (

@@ -87,7 +87,8 @@ and transfer at the existing call boundary; successful publication restores
 the owner's original cleanup position under CleanupPlan v12. No schema,
 backend carrier, or public ABI changes for this hook.
 
-The OPT-702 source change and new regressions await executable verification;
+The OPT-702 focused source, HIR, native, and Wasm regressions passed
+([receipt](../benchmarks/opt-batch-verification-v1/opt702-704-minimal-verification.json));
 the hosted-green line-package evidence above does not cover this extension.
 Focused selectors are `while_loops::record_owner_renewal_named_views`
 in the `language` harness and the library selectors

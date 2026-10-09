@@ -78,3 +78,50 @@ fn cloning_an_identity_does_not_allocate_or_charge_again() {
         original.shared_allocation_bytes()
     );
 }
+
+#[test]
+fn active_floor_refusal_stays_invalid_through_cache_encode_and_decode() {
+    let carrier = ExpressionId::SHARED_ALLOCATION_CARRIER_BYTES;
+    let (refused, overflowed, used) = crate::bounded_output::with_limit_usage(carrier, || {
+        assert!(crate::bounded_output::set_active_floor(carrier));
+        ExpressionId::from_owned(String::from("floor-refused"))
+    });
+    assert!(overflowed);
+    assert_eq!(used, 0);
+    assert_eq!(refused.shared_allocation_key(), None);
+    assert_eq!(refused.shared_allocation_bytes(), None);
+
+    // A child refusal with no debit leaves the enclosing encoder's budget
+    // clean; the invalid identity itself must still be rejected by the codec.
+    let (encoded, overflowed, used) = crate::bounded_output::with_limit_usage(1024, || {
+        let (invalid, child_overflowed, child_used) =
+            crate::bounded_output::with_limit_usage(0, || {
+                ExpressionId::from_owned(String::from("codec-refused"))
+            });
+        assert!(child_overflowed);
+        assert_eq!(child_used, 0);
+        crate::cache_codec::encode(&invalid)
+    });
+    assert!(!overflowed);
+    assert_eq!(used, 0);
+    let error = encoded.expect_err("an invalid identity cannot encode as empty text");
+    assert_eq!(error[0].code, "SPX-G305");
+    assert_eq!(
+        error[0].message,
+        "cache codec expression identity backing allocation was refused"
+    );
+
+    let wire = crate::cache_codec::encode(&String::from("decoded-under-floor")).unwrap();
+    let (decoded, overflowed, used) = crate::bounded_output::with_limit_usage(carrier, || {
+        assert!(crate::bounded_output::set_active_floor(carrier));
+        crate::cache_codec::decode::<ExpressionId>(&wire)
+    });
+    assert!(overflowed);
+    assert_eq!(used, 0);
+    let error = decoded.expect_err("decoder must reject a refused identity carrier");
+    assert_eq!(error[0].code, "SPX-G305");
+    assert_eq!(
+        error[0].message,
+        "cache codec expression identity backing allocation was refused"
+    );
+}

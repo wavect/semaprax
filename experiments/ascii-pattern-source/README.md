@@ -4,6 +4,13 @@ This branch contains unchecked source, independent review fixtures, and future l
 
 The source carrier needs only OPT-702: one `Bytes` field, one `usize` field, and an independent whole named borrowed input on exact whole-record renewal. Its buffer stays exactly 3,072 bytes; `position` stays zero. Pattern/input views never enter the carrier. The parser uses flat Copy variants and scalar local counters; classes use a temporary bitmap in bytes 2984–3015. Every renewing source call is pure and nongeneric. No new language, regex runtime, nominal ABI, stored loan, or source allocation site is proposed inside compile/match.
 
+Static caller-profile review uses the exact classifiers: `loop_calls::ast_copy_variant` and `resolved_match_scrutinee_admitted`
+inspect every direct case field. `Token` and `Quantifier` have only `usize` payloads and no type arguments; the source oracle,
+resolver, and HIR loop validator therefore admit their result and match shapes. This does not admit arbitrary Copy aggregates.
+Each renewing helper takes one whole owned `Matcher`, returns that same explicit nongeneric record, and declares no effects.
+The fixture's initial `bytes_zeroed` is the existing controlled allocation builtin outside the loop; no invented `alloc` effect
+is declared.
+
 The following costs are pinned by unrolled source helpers, not runtime measurements:
 
 | Operation | Logical work |

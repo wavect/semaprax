@@ -25,7 +25,7 @@ fn expect_packet(status: u64, spans: &[[u64; 2]], work: Option<u64>, reason: u64
 }
 
 fn compile_source(pattern: &[u8], input: &[u8], expected: &str) -> String {
-    format!("{ENGINE}\n@id(\"experiment.pattern.witness.main\")\nfn main() -> i64\nuses {{ alloc }}\n{{\n{}{}\nlet storage = bytes_zeroed(3072usize);\nlet initial = matcher_from_bytes(storage);\nlet compiled = compile(initial, pattern_view, 8192usize);\nlet ready = status(compiled) == 0usize;\nlet mut matcher = compiled;\nlet mut iteration = 0usize;\nwhile iteration < 1usize {{\nmatcher = full_match(matcher, input_view, 8192usize);\niteration = iteration + 1usize;\n0\n}}\nif ready {{ {expected} }} else {{ -2 }}\n}}\n", bytes("pattern", pattern), bytes("input", input))
+    format!("{ENGINE}\n@id(\"experiment.pattern.witness.main\")\nfn main() -> i64\n{{\n{}{}\nlet storage = bytes_zeroed(3072usize);\nlet initial = matcher_from_bytes(storage);\nlet compiled = compile(initial, pattern_view, 8192usize);\nlet ready = status(compiled) == 0usize;\nlet mut matcher = compiled;\nlet mut iteration = 0usize;\nwhile iteration < 1usize {{\nmatcher = full_match(matcher, input_view, 8192usize);\niteration = iteration + 1usize;\n0\n}}\nif ready {{ {expected} }} else {{ -2 }}\n}}\n", bytes("pattern", pattern), bytes("input", input))
 }
 
 fn interpret(source: &str, stem: &str) {
@@ -79,10 +79,10 @@ fn private_ascii_pattern_malformed_offsets_and_compile_invalidation() {
     for (index, (pattern, offset)) in [(b"\\xG0".as_slice(), 2), (b"a{01}".as_slice(), 3),
         (b"[z-a]".as_slice(), 3), (b"[]".as_slice(), 1), (b"a|b".as_slice(), 1),
         (b"(a".as_slice(), 2), (b"(a)*".as_slice(), 3), (b"a**".as_slice(), 2)].into_iter().enumerate() {
-        let source = format!("{ENGINE}\n@id(\"experiment.pattern.witness.main\")\nfn main() -> i64 uses {{ alloc }}\n{{\n{}\nlet storage = bytes_zeroed(3072usize);\nlet initial = matcher_from_bytes(storage);\nlet matcher = compile(initial, pattern_view, 8192usize);\n{}\n}}", bytes("pattern", pattern), expect_packet(3, &[], None, 1, offset));
+        let source = format!("{ENGINE}\n@id(\"experiment.pattern.witness.main\")\nfn main() -> i64\n{{\n{}\nlet storage = bytes_zeroed(3072usize);\nlet initial = matcher_from_bytes(storage);\nlet matcher = compile(initial, pattern_view, 8192usize);\n{}\n}}", bytes("pattern", pattern), expect_packet(3, &[], None, 1, offset));
         interpret(&source, &format!("ascii-invalid-{index}"));
     }
-    let source = format!("{ENGINE}\n@id(\"experiment.pattern.witness.main\")\nfn main() -> i64 uses {{ alloc }}\n{{\n{}{}{}\nlet storage = bytes_zeroed(3072usize);\nlet initial = matcher_from_bytes(storage);\nlet good = compile(initial, good_view, 8192usize);\nlet bad = compile(good, bad_view, 33usize);\nlet refused = status(bad) == 4usize && work_used(bad) == 33usize && read(bad, 5usize) == 0usize;\nlet matcher = full_match(bad, input_view, 8192usize);\nif refused {{ {} }} else {{ -2 }}\n}}", bytes("good", b"a"), bytes("bad", b"b"), bytes("input", b"a"), expect_packet(3, &[], Some(44), 2, 5));
+    let source = format!("{ENGINE}\n@id(\"experiment.pattern.witness.main\")\nfn main() -> i64\n{{\n{}{}{}\nlet storage = bytes_zeroed(3072usize);\nlet initial = matcher_from_bytes(storage);\nlet good = compile(initial, good_view, 8192usize);\nlet bad = compile(good, bad_view, 33usize);\nlet refused = status(bad) == 4usize && work_used(bad) == 33usize && read(bad, 5usize) == 0usize;\nlet matcher = full_match(bad, input_view, 8192usize);\nif refused {{ {} }} else {{ -2 }}\n}}", bytes("good", b"a"), bytes("bad", b"b"), bytes("input", b"a"), expect_packet(3, &[], Some(44), 2, 5));
     interpret(&source, "ascii-compile-invalidates");
 }
 
@@ -113,7 +113,7 @@ fn private_ascii_pattern_precompiled_table_and_exact_work_witnesses() {
         let limit = case["work_limit"].as_u64().unwrap();
         let packet = expect_packet(expected["status"].as_u64().unwrap(), &spans, expected["work_used"].as_u64(), expected["reason"].as_u64().unwrap(), expected["detail"].as_u64().unwrap());
         let bounded = format!("if work_used(matcher) <= {limit}usize {{ {packet} }} else {{ -3 }}");
-        let source = format!("{ENGINE}\n@id(\"experiment.pattern.witness.main\")\nfn main() -> i64 uses {{ alloc }}\n{{\n{}\nlet storage = bytes_zeroed(3072usize);\nlet initial = matcher_from_bytes(storage);\n{seed}let matcher = full_match({last}, input_view, {limit}usize);\n{bounded}\n}}", bytes("input", case["input_ascii"].as_str().unwrap().as_bytes()));
+        let source = format!("{ENGINE}\n@id(\"experiment.pattern.witness.main\")\nfn main() -> i64\n{{\n{}\nlet storage = bytes_zeroed(3072usize);\nlet initial = matcher_from_bytes(storage);\n{seed}let matcher = full_match({last}, input_view, {limit}usize);\n{bounded}\n}}", bytes("input", case["input_ascii"].as_str().unwrap().as_bytes()));
         interpret(&source, case["id"].as_str().unwrap());
     }
 }

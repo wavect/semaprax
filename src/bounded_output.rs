@@ -97,6 +97,19 @@ pub(crate) fn reserve_active(length: usize) -> bool {
     reserve(budget.as_deref(), length)
 }
 
+/// Required work cannot turn a reserved-floor refusal into successful output.
+/// Preserve the ordinary reservation debit while making every refusal sticky.
+pub(crate) fn reserve_active_required(length: usize) -> bool {
+    let budget = active();
+    let admitted = reserve(budget.as_deref(), length);
+    if !admitted {
+        if let Some(budget) = budget {
+            budget.overflowed.set(true);
+        }
+    }
+    admitted
+}
+
 pub(crate) fn reserve_active_preserving(length: usize, floor: usize) -> bool {
     let budget = active();
     let Some(budget) = budget.as_deref() else {
@@ -369,8 +382,8 @@ mod tests {
 
     use super::{
         active_limit, active_remaining, budgeted_clone, budgeted_format, budgeted_join,
-        clear_active_floor, reserve_active, reserve_active_preserving, set_active_floor,
-        with_limit, with_limit_usage, BudgetedJoin as _, CappedString, CappedVec,
+        clear_active_floor, reserve_active, reserve_active_preserving, reserve_active_required,
+        set_active_floor, with_limit, with_limit_usage, BudgetedJoin as _, CappedString, CappedVec,
     };
 
     /// Emits `first` on its first invocation and `later` on every other one,
@@ -680,6 +693,35 @@ mod tests {
             assert_eq!(active_remaining(), Some(0));
         });
         assert!(!overflowed);
+    }
+
+    #[test]
+    fn required_reservations_admit_exact_bytes_and_refuse_one_short() {
+        let (admitted, overflowed, used) = with_limit_usage(4, || reserve_active_required(4));
+        assert!(admitted);
+        assert!(!overflowed);
+        assert_eq!(used, 4);
+
+        let (admitted, overflowed, used) = with_limit_usage(3, || reserve_active_required(4));
+        assert!(!admitted);
+        assert!(overflowed);
+        assert_eq!(used, 0);
+        assert!(reserve_active_required(usize::MAX));
+    }
+
+    #[test]
+    fn required_floor_refusal_stays_failed_after_the_trailer_is_written() {
+        let (_, overflowed, used) = with_limit_usage(10, || {
+            assert!(set_active_floor(6));
+            assert!(reserve_active_required(4));
+            assert_eq!(active_remaining(), Some(6));
+            assert!(!reserve_active_required(1));
+            assert_eq!(active_remaining(), Some(6));
+            clear_active_floor();
+            assert!(reserve_active(6));
+        });
+        assert!(overflowed);
+        assert_eq!(used, 10);
     }
 
     #[test]

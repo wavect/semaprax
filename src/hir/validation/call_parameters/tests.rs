@@ -431,3 +431,204 @@ fn borrowed_user_signatures_keep_recursive_calls_and_hostile_argument_refusals_e
         "call to `payload.identity` has 0 arguments but expects 1"
     );
 }
+
+fn assert_static_signature(view: CallParameters<'_>, owned: &[ResolvedParam]) {
+    let ((), overflow, used) = crate::bounded_output::with_limit_usage(0, || {
+        assert_eq!(view.owned_capacity(), 0);
+        for (index, expected) in owned.iter().enumerate() {
+            let actual = view.parameter(index);
+            assert_eq!(actual.ty, &expected.ty);
+            assert_eq!(actual.ownership, expected.ownership);
+        }
+    });
+    assert!(
+        !overflow,
+        "static signature materialized a charged identity"
+    );
+    assert_eq!(used, 0);
+    for (index, expected) in owned.iter().enumerate() {
+        assert_eq!(
+            format!("{}", view.parameter(index).identity),
+            expected.id.as_str()
+        );
+    }
+}
+
+#[test]
+fn string_signature_views_match_all_materialized_descriptors_at_zero_identity_budget() {
+    use crate::string_ops::StringOp;
+    let additions = [
+        StringOp::MapRemove,
+        StringOp::I64FromU8,
+        StringOp::I64FromI32,
+        StringOp::UsizeFromU8,
+        StringOp::U8FromI64,
+        StringOp::CharFromU8,
+    ];
+    let mut count = 0;
+    for operation in StringOp::ALL
+        .into_iter()
+        .chain(StringOp::TEXT_TOOLKIT)
+        .chain(StringOp::COLLECTIONS)
+        .chain(StringOp::CONVERSIONS)
+        .chain(additions)
+    {
+        let owned = crate::string_ops::resolved_params(operation);
+        assert_static_signature(CallParameters::String(operation), &owned);
+        count += 1;
+    }
+    assert_eq!(count, 35);
+    use crate::str_ops::StrOp;
+    for operation in [
+        StrOp::LenBytes,
+        StrOp::IsEmpty,
+        StrOp::StartsWith,
+        StrOp::Contains,
+        StrOp::ByteAt,
+    ] {
+        let owned = crate::str_ops::resolved_params(operation);
+        assert_static_signature(CallParameters::Str(operation), &owned);
+    }
+}
+
+fn string_program() -> ResolvedProgram {
+    let source = r#"
+module test.string_signature_views;
+@id("string.read") fn read(value: string) -> i64 { string_len(value) }
+@id("string.concat") fn concat(left: string, right: string) -> string {
+    string_concat(left, right)
+}
+@id("string.scalar") fn scalar() -> string { string_from_i64(4) }
+@id("str.read") fn view(value: string) -> i64 {
+    let input = string_as_str(value);
+    str_len_bytes(input)
+}
+@id("str.compare") fn compare(value: string) -> bool {
+    let input = string_as_str(value);
+    str_starts_with(input, input)
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let ast = crate::parse(source, std::path::Path::new("string-signature-views.spx")).unwrap();
+    crate::hir::resolve(&ast).unwrap()
+}
+
+#[test]
+fn string_signature_views_keep_recursive_order_and_call_shape_refusals_exact() {
+    let program = string_program();
+    let wire = crate::cache_codec::encode(&program).unwrap();
+    for identity in [
+        "string.read",
+        "string.concat",
+        "string.scalar",
+        "str.read",
+        "str.compare",
+    ] {
+        let function = program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == identity)
+            .unwrap();
+        compare_expression(&program, function, &function.body).unwrap();
+    }
+    for (identity, message) in [
+        (
+            "string.read",
+            "string operation `string_len` expects 1 arguments but received 0",
+        ),
+        (
+            "str.read",
+            "borrowed string operation `str_len_bytes` expects 1 arguments but received 0",
+        ),
+    ] {
+        let function = program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == identity)
+            .unwrap();
+        let mut hostile = function.body.clone();
+        let ResolvedExprKind::Block { tail, .. } = &mut hostile.kind else {
+            unreachable!()
+        };
+        let ResolvedExprKind::Call { args, .. } = &mut tail.kind else {
+            unreachable!()
+        };
+        args.clear();
+        let error = compare_expression(&program, function, &hostile).unwrap_err();
+        assert_eq!(error.code, "SPX-H006");
+        assert_eq!(error.message, message);
+    }
+    // Both implementations must retain the same left-to-right move refusal;
+    // borrowing signature metadata does not admit a second use of the owner.
+    let function = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "string.concat")
+        .unwrap();
+    let mut hostile = function.body.clone();
+    let ResolvedExprKind::Block { tail, .. } = &mut hostile.kind else {
+        unreachable!()
+    };
+    let ResolvedExprKind::Call { args, .. } = &mut tail.kind else {
+        unreachable!()
+    };
+    args[1] = args[0].clone();
+    let error = compare_expression(&program, function, &hostile).unwrap_err();
+    assert_eq!(error.code, "SPX-H006");
+    assert!(
+        error.message.contains("used after it was moved"),
+        "{error:?}"
+    );
+    assert_eq!(crate::cache_codec::encode(&program).unwrap(), wire);
+}
+
+#[test]
+fn string_signature_views_preserve_exact_owned_and_scalar_parameter_error_identities() {
+    let program = string_program();
+    let function = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "string.concat")
+        .unwrap();
+    let ResolvedExprKind::Block { tail, .. } = &function.body.kind else {
+        unreachable!()
+    };
+    let ResolvedExprKind::Call { args, .. } = &tail.kind else {
+        unreachable!()
+    };
+    let validator = HirValidator::new(&program).unwrap();
+    let mut argument = args[0].clone();
+    argument.ownership = OwnershipMode::Borrow;
+    let owned = crate::string_ops::resolved_params(crate::string_ops::StringOp::Concat);
+    let view = CallParameters::String(crate::string_ops::StringOp::Concat);
+    let expected = validator
+        .validate_argument_ownership(&argument, &owned[0])
+        .unwrap_err();
+    let actual = validator
+        .validate_argument_ownership_view(&argument, view.parameter(0))
+        .unwrap_err();
+    same_diagnostic(&actual, &expected);
+    assert_eq!(actual.code, "SPX-H006");
+    assert_eq!(actual.span, Some(argument.span));
+    assert_eq!(
+        actual.message,
+        "argument ownership is incompatible with parameter `core.string.concat.param.0`"
+    );
+
+    argument.ty = ResolvedType::Usize;
+    let owned = crate::str_ops::resolved_params(crate::str_ops::StrOp::ByteAt);
+    let view = CallParameters::Str(crate::str_ops::StrOp::ByteAt);
+    let expected = validator
+        .validate_argument_ownership(&argument, &owned[1])
+        .unwrap_err();
+    let actual = validator
+        .validate_argument_ownership_view(&argument, view.parameter(1))
+        .unwrap_err();
+    same_diagnostic(&actual, &expected);
+    assert_eq!(actual.code, "SPX-H006");
+    assert_eq!(actual.span, Some(argument.span));
+    assert_eq!(
+        actual.message,
+        "argument ownership is incompatible with parameter `core.str.byte_at.param.1`"
+    );
+}

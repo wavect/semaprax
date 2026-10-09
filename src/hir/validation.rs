@@ -3176,7 +3176,7 @@ impl<'a> HirValidator<'a> {
                                     "resolved call has a generic type argument outside the direct-scalar or owned-record relay profile",
                                 ));
                             }
-                            let mut byte_operation = None;
+                            let mut intrinsic_parameters = None;
                             let mut borrowed_parameters = None;
                             let retained_program = self.program;
                             let (params, return_type) = if let Some(signature) =
@@ -3202,7 +3202,8 @@ impl<'a> HirValidator<'a> {
                                             args.len()
                                         )));
                                 }
-                                (crate::string_ops::resolved_params(op), op.return_type())
+                                intrinsic_parameters = Some(CallParameters::String(op));
+                                (Vec::new(), op.return_type())
                             } else if let Some(op) = crate::str_ops::by_id(callee.as_str()) {
                                 if instance.is_some() || !type_arguments.is_empty() {
                                     return Err(hir_error(
@@ -3217,7 +3218,8 @@ impl<'a> HirValidator<'a> {
                                         args.len()
                                     )));
                                 }
-                                (crate::str_ops::resolved_params(op), op.return_type())
+                                intrinsic_parameters = Some(CallParameters::Str(op));
+                                (Vec::new(), op.return_type())
                             } else if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
                                 if instance.is_some() || !type_arguments.is_empty() {
                                     return Err(hir_error(
@@ -3237,7 +3239,7 @@ impl<'a> HirValidator<'a> {
                                     args,
                                     self.buffer_reopen_sites.contains(&expression.id),
                                 )?;
-                                byte_operation = Some(op);
+                                intrinsic_parameters = Some(CallParameters::Byte(op));
                                 (Vec::new(), op.return_type())
                             } else if let Some(op) = crate::host_io_ops::by_id(callee.as_str()) {
                                 if instance.is_some() || !type_arguments.is_empty() {
@@ -3317,10 +3319,7 @@ impl<'a> HirValidator<'a> {
                             let params = if let Some(parameters) = borrowed_parameters {
                                 CallParameters::Borrowed(parameters)
                             } else {
-                                match byte_operation {
-                                    Some(operation) => CallParameters::Byte(operation),
-                                    None => CallParameters::Owned(params),
-                                }
+                                intrinsic_parameters.unwrap_or(CallParameters::Owned(params))
                             };
                             let return_ownership =
                                 self.expected_ownership(&return_type, OwnershipMode::Own)?;

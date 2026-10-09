@@ -1,8 +1,8 @@
-//! Validation-only views of retained user and compiler-owned byte signatures.
+//! Validation-only views of retained user and compiler-owned signatures.
 //!
 //! Retained user signatures are borrowed from the immutable Program. Owned
-//! signatures retain their original storage and capacity census. Byte
-//! signatures borrow static type metadata; their synthetic identities are
+//! signatures retain their original storage and capacity census. Intrinsic
+//! views borrow static type metadata; their synthetic identities are
 //! formatted only if an existing ownership diagnostic needs the exact text.
 use super::*;
 use crate::byte_ops::ByteOp;
@@ -12,6 +12,8 @@ pub(super) enum CallParameters<'a> {
     Owned(Vec<ResolvedParam>),
     Borrowed(&'a [ResolvedParam]),
     Byte(ByteOp),
+    String(crate::string_ops::StringOp),
+    Str(crate::str_ops::StrOp),
 }
 
 pub(super) struct ParameterView<'a> {
@@ -23,6 +25,8 @@ pub(super) struct ParameterView<'a> {
 enum ParameterIdentity<'a> {
     Owned(&'a ValueId),
     Byte(ByteOp, usize),
+    String(crate::string_ops::StringOp, usize),
+    Str(crate::str_ops::StrOp, usize),
 }
 
 impl fmt::Display for ParameterIdentity<'_> {
@@ -30,6 +34,8 @@ impl fmt::Display for ParameterIdentity<'_> {
         match self {
             Self::Owned(identity) => fmt::Display::fmt(identity, output),
             Self::Byte(operation, index) => write!(output, "{}.param.{index}", operation.id()),
+            Self::String(operation, index) => write!(output, "{}.param.{index}", operation.id()),
+            Self::Str(operation, index) => write!(output, "{}.param.{index}", operation.id()),
         }
     }
 }
@@ -54,6 +60,23 @@ impl CallParameters<'_> {
                 ownership: operation.param_ownership(index),
                 identity: ParameterIdentity::Byte(*operation, index),
             },
+            Self::String(operation) => ParameterView {
+                ty: &operation.param_types()[index],
+                ownership: operation.param_ownership(index),
+                identity: ParameterIdentity::String(*operation, index),
+            },
+            Self::Str(operation) => {
+                let ty = &operation.param_types()[index];
+                ParameterView {
+                    ty,
+                    ownership: if *ty == ResolvedType::Str {
+                        OwnershipMode::Borrow
+                    } else {
+                        OwnershipMode::Value
+                    },
+                    identity: ParameterIdentity::Str(*operation, index),
+                }
+            }
         }
     }
 
@@ -72,7 +95,7 @@ impl CallParameters<'_> {
             }
             // The enum and descriptor are inline in the charged frame; every
             // referenced type is immutable static data, with no heap payload.
-            Self::Byte(_) => 0,
+            Self::Byte(_) | Self::String(_) | Self::Str(_) => 0,
             // Program retention already owns and accounts for this immutable
             // signature. The call frame adds only its inline slice descriptor.
             Self::Borrowed(_) => 0,

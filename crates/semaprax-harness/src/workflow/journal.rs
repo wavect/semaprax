@@ -742,9 +742,17 @@ mod tests {
         // Truncation to empty: no admission, and not "forgotten".
         std::fs::write(&path, b"").unwrap();
         assert_eq!(fails(&cache), Some("SPX-HPD070"));
-        // Replacement by a different file of the same length.
-        std::fs::remove_file(&path).unwrap();
-        std::fs::write(&path, &good).unwrap();
+        // Create the replacement while the original inode is still live:
+        // unlinking first permits Linux to reuse that inode immediately.
+        let replacement = d.join("replacement.journal.jsonl");
+        std::fs::write(&replacement, &good).unwrap();
+        #[cfg(unix)]
+        assert_ne!(
+            file_id(&std::fs::metadata(&path).unwrap()),
+            file_id(&std::fs::metadata(&replacement).unwrap()),
+            "replacement fixture must have a distinct file identity"
+        );
+        std::fs::rename(&replacement, &path).unwrap();
         assert_eq!(fails(&cache), Some("SPX-HPD070"), "new inode");
         // Missing file.
         std::fs::remove_file(&path).unwrap();

@@ -460,13 +460,12 @@ fn main() -> i64
 
 ## Strings and bytes
 
-`SPX-H006` loan-analysis work refusal names the function: split large functions
-into smaller helpers, rather than only splitting files or raising the limit.
-For a loop's named-slice refusal, bind the view before calling the helper and
-pass that name; its owner must remain alive through the view's last use.
+`SPX-H006` loan-work refusal names the function: split into helpers, not files
+or higher limits. For loop named-slice refusals, bind the view before the
+helper call and pass its name; keep its owner alive through last use.
 
-`text: string` already transfers ownership. Do not write `own string`
-(`SPX-O002`). A helper that only reads text takes `text: borrow str`; pass
+`text: string` transfers ownership. Do not write `own string`
+(`SPX-O002`). A read-only helper takes `text: borrow str`; pass
 `string_as_str(text)` before any consuming call.
 
 ```semaprax

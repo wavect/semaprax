@@ -283,7 +283,12 @@ const env = {
       for(const field of spec){
         let word=row[field.slot];
         if(field.code>=9&&word!==0n){
-          if(refusal==='second-clone'&&clones.length===1)throw Error('injected clone allocation');
+          if(refusal==='string-clone-allocation'&&field.code===10)
+            throw new RangeError('injected String clone allocation');
+          if(refusal==='bytes-clone-allocation'&&field.code===9)
+            throw new RangeError('injected Bytes clone allocation');
+          if(refusal==='second-clone'&&clones.length===1)
+            throw new RangeError('injected second clone allocation');
           word=alloc(word);clones.push(word);
         }
         words.push(word);
@@ -293,7 +298,7 @@ const env = {
       return 0;
     } catch(error) {
       for(const word of clones)drop(word);
-      if(error.message==='injected clone allocation'||error instanceof RangeError)return 1;
+      if(error instanceof RangeError)return 1;
       throw error;
     }
   },

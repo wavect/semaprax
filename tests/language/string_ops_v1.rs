@@ -134,6 +134,8 @@ fn hir_children(expression: &hir::ResolvedExpr) -> Vec<&hir::ResolvedExpr> {
             then_branch.as_ref(),
             else_branch.as_ref(),
         ],
+        hir::ResolvedExprKind::Call { args, .. }
+        | hir::ResolvedExprKind::LiteralFormat { args, .. } => args.iter().collect(),
         _ => Vec::new(),
     }
 }

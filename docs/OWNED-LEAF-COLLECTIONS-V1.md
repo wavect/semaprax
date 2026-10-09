@@ -7,10 +7,12 @@ and declaration-only logical JSON schemas do not complete #723.
 
 ## Element and storage boundary
 
-The new element is either primitive `String` or an explicitly identified,
+The new element is either primitive `string` or an explicitly identified,
 monomorphic flat record with one through eight fields, of which one or two are
-direct owned `String`/`Bytes` leaves and the rest are direct Copy scalars. Every
+direct owned `string`/`Bytes` leaves and the rest are direct Copy scalars. Every
 record field has an explicit identity.
+SEMAPRAX source spells the text type `string`; `String` below names the
+owned runtime representation, not source syntax.
 The scalar set is `i64`, `i32`, `u8`, `usize`, `char`, `f32`, `f64`, and `bool`.
 Field names and declaration order do not determine admission. Nested, recursive,
 generic, resource, class, third-owned-leaf and borrowed-field elements are
@@ -26,7 +28,7 @@ Each owned leaf charges the existing 16-byte owned-carrier rate against the
 existing 131072-byte carrier envelope. Each Copy field charges one eight-byte
 word against the existing 8192-word scalar envelope. Logical capacity is the
 minimum of 8192, `floor(8192 / scalar_count)` when nonzero, and
-`floor(131072 / (16 * owned_count))`. This gives 8192 for `Vec<String>`, 2048 for
+`floor(131072 / (16 * owned_count))`. This gives 8192 for `Vec<string>`, 2048 for
 a String-plus-four-scalar record, and 4096 for two owned leaves plus one scalar.
 These are carrier-storage charges, not a new bound on the sum of leaf contents.
 Ordinary String/Bytes payload, live-owner, runtime allocation and builder limits

@@ -18,6 +18,42 @@ pub(crate) const PRELUDE_CAPACITY_IDENTITIES: [&str; 10] = [
     "core.vec",
 ];
 
+// The sole currently non-generic compiler-owned type. Reserve it even when
+// this program does not select the corresponding prelude slice. The root-side
+// contract test compares this inventory with all compiler prelude declarations.
+pub(crate) const ZERO_ARGUMENT_FACT_PRELUDE_IDS: [&str; 1] = ["core.stdin-stream.reader"];
+
+pub(crate) fn nominal_facts_lookup_upper(program: &crate::ast::Program) -> Option<usize> {
+    let (count, maximum_identity) = program
+        .types
+        .iter()
+        .filter(|declaration| declaration.type_parameters.is_empty())
+        .map(|declaration| declaration.stable_id.as_str())
+        .chain(ZERO_ARGUMENT_FACT_PRELUDE_IDS)
+        .try_fold((0usize, 0usize), |(count, maximum), identity| {
+            Some((count.checked_add(1)?, maximum.max(identity.len())))
+        })?;
+    if count == 0 {
+        return Some(0);
+    }
+    // Sorted metadata borrows both identities and facts. The factor four
+    // conservatively covers Vec capacity excess; it owns no fact/key payload.
+    let metadata = count
+        .checked_mul(std::mem::size_of::<(
+            &crate::hir::DeclarationId,
+            &crate::hir::TypeFacts,
+        )>())?
+        .checked_mul(4)?
+        .checked_add(crate::hir::ExpressionId::OWNED_ALLOCATION_CARRIER_BYTES)?;
+    let digits = maximum_identity.checked_ilog10().unwrap_or(0) as usize + 1;
+    // Preparation materializes one exact nominal:<length>:<identity>:0: key
+    // at a time while the metadata backing is live. No per-query key remains.
+    let key = maximum_identity.checked_add(digits)?.checked_add(11)?;
+    // Match the private builder's pinned Rust 1.97.1 String-capacity upper,
+    // including allocator/growth excess rather than only logical key bytes.
+    metadata.checked_add(key.checked_mul(2)?.max(8))
+}
+
 pub(crate) fn declaration_index_upper(
     canonical_source_bytes: usize,
     type_count: usize,

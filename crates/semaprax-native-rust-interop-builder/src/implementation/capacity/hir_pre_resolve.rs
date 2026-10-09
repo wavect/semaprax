@@ -384,10 +384,17 @@ pub(in crate::implementation) fn hir_pre_resolve_capacity<'a>(
         })
         .and_then(|bytes| bytes.checked_add(branch_scope_copies.checked_mul(scope_payload_bytes)?))
         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+    // Compiler validation owns this lazy metadata alongside its frames and
+    // any ordinary fallback facts computation. The private builder's scratch
+    // authority is separate from the compiler's mandatory allocation ledger.
+    let nominal_facts_lookup =
+        crate::private_capacity_contract::nominal_facts_lookup_upper(program)
+            .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
     let validator_phase = stats
         .max_depth
         .checked_mul(HIR_VALIDATOR_FRAME_BYTES)
         .and_then(|bytes| bytes.checked_add(branch_scope_copies.checked_mul(scope_payload_bytes)?))
+        .and_then(|bytes| bytes.checked_add(nominal_facts_lookup))
         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
     let inventory_phase = maximum_resource_leaves
         .checked_mul(
@@ -563,6 +570,7 @@ pub(in crate::implementation) fn hir_pre_resolve_capacity<'a>(
     let type_facts_scratch = type_expansion
         .maximum_type_occurrences
         .checked_mul(type_facts_frame_bytes)
+        .and_then(|bytes| bytes.checked_add(nominal_facts_lookup))
         .and_then(|bytes| bytes.checked_add(type_fact_layout_upper.checked_mul(2)?))
         .and_then(|bytes| {
             bytes.checked_add(

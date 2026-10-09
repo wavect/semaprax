@@ -18,6 +18,7 @@ mod generic_record_composition;
 mod generic_template;
 mod host_command;
 mod native_borrow;
+mod nominal_facts;
 mod owned_buffer;
 mod owned_result_try;
 mod owner_renewal;
@@ -46,6 +47,7 @@ pub(crate) fn validate_core(program: &ResolvedProgram) -> Result<(), Diagnostic>
 #[derive(Clone)]
 pub(super) struct HirValidator<'a> {
     program: &'a ResolvedProgram,
+    nominal_facts: nominal_facts::Lookup<'a>,
     functions: BTreeMap<DeclarationId, &'a ResolvedFunction>,
     expression_ids: BTreeSet<ExpressionId>,
     value_ids: BTreeSet<ValueId>,
@@ -217,6 +219,7 @@ impl<'a> HirValidator<'a> {
         }
         Ok(Self {
             program,
+            nominal_facts: nominal_facts::Lookup::default(),
             functions,
             expression_ids: BTreeSet::new(),
             value_ids: BTreeSet::new(),
@@ -2827,6 +2830,7 @@ impl<'a> HirValidator<'a> {
                     + validation_scope_owned_capacity(&publication.published)
                     + frames.iter().map(frame_owned_capacity).sum::<usize>()
                     + frame_owned_capacity(&frame)
+                    + self.nominal_facts.owned_capacity()
                     + self.expression_ids.len()
                         * (std::mem::size_of::<ExpressionId>()
                             + std::mem::size_of::<BTreeSet<ExpressionId>>())
@@ -8271,9 +8275,7 @@ impl<'a> HirValidator<'a> {
         ty: &ResolvedType,
         ownership: OwnershipMode,
     ) -> Result<bool, Diagnostic> {
-        self.program
-            .declarations
-            .type_facts(ty)
+        self.borrowed_type_facts(ty)?
             .map(|facts| !facts.copy && ownership == OwnershipMode::Own)
             .ok_or_else(|| {
                 hir_error(format!(
@@ -8562,9 +8564,7 @@ impl<'a> HirValidator<'a> {
         ty: &ResolvedType,
         non_copy: OwnershipMode,
     ) -> Result<OwnershipMode, Diagnostic> {
-        self.program
-            .declarations
-            .type_facts(ty)
+        self.borrowed_type_facts(ty)?
             .map(|facts| {
                 if facts.copy {
                     OwnershipMode::Value

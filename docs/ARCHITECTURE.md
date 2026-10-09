@@ -3396,6 +3396,14 @@ child and exercises the package across the three execution lanes.
 
 ## Repository map
 
+`hir/validation/nominal_facts.rs` owns a lazy, validation-local sorted reference
+index for retained zero-argument nominal TypeFacts. Its metadata is charged
+before allocation and shared immutably by prepared validator clones; identities
+and fact payloads remain borrowed from the retained Program. Generic or missing
+entries retain the original owning lookup/recomputation path. Declaration facts
+still undergo the independent cached-versus-recomputed audit, and cache encoding
+is unchanged. This index supplies no new type, source, or cache authority.
+
 | Area | Primary owners |
 | --- | --- |
 | Source projection | `src/ast.rs`, `src/lexer.rs`, `src/parser.rs`, `src/format.rs` |

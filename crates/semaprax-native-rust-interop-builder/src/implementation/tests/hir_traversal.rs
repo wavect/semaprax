@@ -484,3 +484,61 @@ fn fingerprint_type_identity_exact_writer_matches_hir_and_named_topology() {
         "SPX-B109"
     );
 }
+
+#[test]
+fn nominal_facts_lookup_forecast_coexists_with_validator_and_fallback_scratch() {
+    let source = "module capacity.nominalfacts; @id(\"app.main\") fn main() -> i64 { 0 }";
+    let program = crate::parse(source, Path::new("nominal-facts.spx")).unwrap();
+    let canonical = crate::format::canonical(&program);
+    let mut stack = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
+    let stats = scan_ast_capacity(
+        source_functions(&program).map(|function| &function.body),
+        &program,
+        false,
+        &mut stack,
+    )
+    .unwrap();
+    assert_eq!(stats.local_bindings, 0);
+    assert_eq!(stats.pattern_bindings, 0);
+    assert_eq!(stats.binding_name_bytes, 0);
+    assert_eq!(stats.depth_arm_product_sum, 0);
+    let lookup = crate::private_capacity_contract::nominal_facts_lookup_upper(&program).unwrap();
+    assert!(lookup >= semaprax::hir::ExpressionId::OWNED_ALLOCATION_CARRIER_BYTES);
+    let capacity = hir_pre_resolve_capacity(&program, canonical.len(), &mut stack).unwrap();
+    let declaration_overlap = std::mem::size_of::<crate::hir::ResolvedTypeDeclaration>()
+        + std::mem::size_of::<crate::hir::ResolvedFieldDeclaration>()
+        + std::mem::size_of::<crate::hir::ResolvedVariantCaseDeclaration>();
+    let ordinary_validator = stats.max_depth
+        * (HIR_VALIDATOR_FRAME_BYTES
+            + std::mem::size_of::<(crate::hir::ValueId, ResolvedType, OwnershipMode)>());
+    assert_eq!(
+        capacity.phase_peaks()[2],
+        ordinary_validator + lookup + declaration_overlap,
+        "lookup metadata/key peak must coexist with validator frames and declarations"
+    );
+    let expansion = declaration_dag_expansion(&program, 0).unwrap();
+    let layout = crate::private_capacity_contract::type_facts_layout_upper(
+        canonical.len(),
+        program.types.len(),
+        expansion.maximum_type_occurrences,
+    )
+    .unwrap();
+    let ordinary_facts = expansion.maximum_type_occurrences
+        * std::mem::size_of::<(
+            ResolvedType,
+            String,
+            DeclarationId,
+            crate::hir::DeclarationKind,
+            usize,
+        )>()
+        + layout * 2;
+    assert_eq!(
+        capacity.phase_peaks()[7],
+        ordinary_facts + lookup,
+        "generic/missing-entry fallback scratch must retain the existing lookup metadata"
+    );
+    assert_eq!(
+        capacity.scratch_upper,
+        capacity.phase_peaks().into_iter().max().unwrap()
+    );
+}

@@ -289,7 +289,7 @@ fn main() -> i64
     let refused = module
         .replace(
             "-> i64\n{\n    held.value",
-            "-> String\n{\n    \"withheld\"",
+            "-> string\n{\n    \"withheld\"",
         )
         .replace(
             "if requires_secret(held) == 1 { 0 } else { 1 }",

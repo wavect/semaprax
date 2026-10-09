@@ -645,6 +645,7 @@ for(let repeat=0;repeat<8;repeat++){
         "index.html",
         "app.js",
         "probe.mjs",
+        "forged-runtime.mjs",
     ] {
         std::fs::remove_file(output.join(file)).unwrap();
     }

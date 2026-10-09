@@ -446,7 +446,7 @@ const FACTORY_PROVIDER: &str = r#"
 module factory.provider;
 @id("factory.reader") record Reader { @id("factory.data") data: Bytes, @id("factory.cursor") cursor: usize, }
 @id("factory.new") fn new() -> Reader { Reader { data: bytes_zeroed(1usize), cursor: 0usize } }
-@id("factory.make") fn make(size: usize) -> Reader { Reader { data: bytes_zeroed(size), cursor: 0usize } }
+@id("factory.make") fn make(size: usize) -> Reader { Reader { data: bytes_zeroed(1usize), cursor: size - size } }
 @id("factory.advance") fn advance(value: own Reader, view: borrow Slice<u8>, step: usize) -> Reader {
     match own value { Reader { data, cursor } => Reader { data: data, cursor: cursor + byte_len(view) + step }, }
 }

@@ -98,7 +98,7 @@ renamore = { version = "=0.3.2", default-features = false, features = ["always-s
 winapi-util = "=0.1.11"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-objc2 = { version = "=0.6.4", optional = true }
+objc2 = { version = "=0.6.5", optional = true }
 objc2-foundation = { version = "=0.3.2", optional = true }
 objc2-metal = { version = "=0.3.2", optional = true }
 

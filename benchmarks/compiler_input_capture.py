@@ -34,7 +34,8 @@ MAX_REQUESTS = 128
 MAX_RETAINED_BYTES = 64 * 1024 * 1024
 MAX_SELECTION_BYTES = 8 * 1024 * 1024
 WAIT_SECONDS = 30
-PROFILES = {"identifier-views.v1", "request-views.v1", "stream-request-views.v1"}
+PROFILES = {"identifier-views.v1", "request-views.v1", "stream-request-views.v1",
+            "owned-request.v1", "stream-owned-request.v1"}
 
 
 def _json(path: Path, document: dict[str, Any], limit: int = MAX_MESSAGE_BYTES) -> None:

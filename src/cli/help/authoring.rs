@@ -2,7 +2,7 @@
 use std::fmt::Write as _;
 
 const MAX_BYTES: usize = 2_048;
-const ROUTES: &str = "Authoring routes (complete):\n  author:stdin-json               v27 bounded native stream command\n  author:stream-data-v2           v29 private record/Vec stream command\n  author:owned-data               v30 private owned-leaf collections\n  author:file-text                native UTF-8 file command\n  author:source-web               single-source web build\n  author:literal-format           checked literal String rendering\n  author:copy-record-vec          flat Copy-record vectors\n  author:json-codec               checked source JSON codec derivation\n  author:json-identifier-views    one identifier as a token view\n  author:json-request-views       bounded identifier and record arrays\n  author:json-stream-request-views bounded native stream request view\nLibrary-only search: help language find:<word>:0\nExact card sections: help language topics\n";
+const ROUTES: &str = "Authoring routes (complete):\n  author:stdin-json               v27 bounded native stream command\n  author:stream-data-v2           v29 private record/Vec stream command\n  author:owned-data               v30 private owned-leaf collections\n  author:file-text                native UTF-8 file command\n  author:source-web               single-source web build\n  author:literal-format           checked literal String rendering\n  author:copy-record-vec          flat Copy-record vectors\n  author:json-codec               checked source JSON codec derivation\n  author:json-identifier-views    one identifier as a token view\n  author:json-request-views       bounded identifier and record arrays\n  author:json-stream-request-views bounded native stream request view\n  author:json-owned-request      bounded owning request collections\nLibrary-only search: help language find:<word>:0\nExact card sections: help language topics\n";
 
 #[cfg(test)]
 pub(super) fn assert_guide_contract() {
@@ -70,7 +70,7 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
             "semaprax json-codec <project> --source <module-path> --type <record-id> --output <new-file> [--profile identifier-views.v1|request-views.v1|stream-request-views.v1]\n",
             "Omit --profile for the default flat scalar record (1..8 i64/u8/usize/bool fields). Choose by source shape: help language author:json-identifier-views, author:json-request-views or author:json-stream-request-views.\n",
             "Declare std.data.json.scan/token/digits/write. Output is a new complete module, never an overwrite. Generated helpers are ordinary checked source.\n",
-            "Declared Vec<string> in a request schema is description only: runtime carries Copy views and Vec<View>, not owned String collections. This is not a generic JSON codec.\n",
+            "Declared Vec<string> in a request-view schema is description only: runtime carries Copy views and Vec<View>, not owned String collections. For owning requests: help language author:json-owned-request. This is not a generic JSON codec.\n",
             "View implementations exist; owning combined gates are pending. Stream errors use raw input offsets; post-Ready request/schema errors use normalized-input offsets. Exact profiles, limits and gates: docs/APPLICATION-JSON-CODECS-V1.md.\n"
         ).to_owned()),
         "author:json-identifier-views" => Ok(concat!(
@@ -86,6 +86,15 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
         "author:json-stream-request-views" => Ok(concat!(
             "Select --profile stream-request-views.v1 for request views used by a native v29 streaming command. The original schema module must already declare process.stdin.read; derivation grants no capability.\n",
             "The source implementation exists; owning composition gates remain pending. The current composition fixture rejects extra chunks. Exact requirements: docs/APPLICATION-JSON-CODECS-V1.md.\n"
+        ).to_owned()),
+        "author:json-owned-request" => Ok(concat!(
+            "Owned request source implementation; focused cross-backend and application qualification pending.\n",
+            "Select --profile owned-request.v1, or stream-owned-request.v1 with the original schema's process.stdin.read permit and the manifest grant. Derivation grants no capability.\n",
+            "Request fields are Vec<string> then Vec<Row>; Row has one string identifier and up to six i64/u8/usize/bool fields with explicit record/field IDs. Names are authored, order is declaration order.\n",
+            "Bounds: 0..8 first-array identifiers, 0..256 rows, unique identifiers of 1..16 ASCII letters/digits/underscore/hyphen; a nonempty second array needs a nonempty first array. Arbitrary Unicode, recursion and nullable values are outside this policy.\n",
+            "Actual runtime collections own independent Strings and Rows. Select private owned-data-api.v1 or native v30 language-command-io.owned-data.v1; v29 stays closed to owned carriers.\n",
+            "json_<Request>_owned_decode takes borrow Slice<u8> and returns an owning Decoded or Error{code,offset,field}; malformed input is an application outcome. Stream normalization is separate: decode Ready's normalized slice, then release its Bytes after decode.\n",
+            "json_<Request>_owned_encoded_len and _owned_encode borrow both Vecs; encode also takes output_limit. Exact source, cleanup, limits and ordinary failure contracts: docs/APPLICATION-JSON-CODECS-V1.md.\n"
         ).to_owned()),
         "author:file-text" => Ok(concat!(
             "Native file text route (complete guidance; exact library lookup follows):\n",
@@ -231,6 +240,7 @@ mod tests {
             "author:json-identifier-views",
             "author:json-request-views",
             "author:json-stream-request-views",
+            "author:json-owned-request",
         ] {
             let output = lookup(route).unwrap();
             assert!(output.len() <= MAX_BYTES);
@@ -253,7 +263,7 @@ mod tests {
             .contains("--profile identifier-views.v1|request-views.v1|stream-request-views.v1"));
         assert!(codec.contains("Omit --profile for the default flat scalar record"));
         assert!(codec.contains("author:json-identifier-views"));
-        assert!(codec.contains("Declared Vec<string> in a request schema is description only"));
+        assert!(codec.contains("Declared Vec<string> in a request-view schema is description only"));
         assert!(codec.contains("post-Ready request/schema errors use normalized-input offsets"));
         let identifier_views = lookup("author:json-identifier-views").unwrap();
         assert!(identifier_views.contains("exactly one string identifier"));
@@ -264,6 +274,21 @@ mod tests {
         let stream_request_views = lookup("author:json-stream-request-views").unwrap();
         assert!(stream_request_views.contains("process.stdin.read"));
         assert!(stream_request_views.contains("composition fixture rejects extra chunks"));
+        let owned_request = lookup("author:json-owned-request").unwrap();
+        for fact in [
+            "owned-request.v1",
+            "stream-owned-request.v1",
+            "0..256 rows",
+            "1..16 ASCII",
+            "v29 stays closed",
+            "normalized slice",
+            "qualification pending",
+        ] {
+            assert!(
+                owned_request.contains(fact),
+                "owned request guidance omits {fact}"
+            );
+        }
         let stream = lookup("author:stream-data-v2").unwrap();
         assert!(stream.contains("language-command-io.stream-data.v2"));
         assert!(stream.contains("v27 profile stays scalar-vector-only"));
@@ -278,6 +303,7 @@ mod tests {
             "author:json-identifier-views",
             "author:json-request-views",
             "author:json-stream-request-views",
+            "author:json-owned-request",
         ] {
             assert!(routes.contains(selector), "route list omits {selector}");
         }

@@ -41,44 +41,47 @@ class LiveCampaignTests(unittest.TestCase):
         return candidate, compiler, broker, config, args
 
     def test_authoring_proxy_retains_schema_and_mixed_output_without_authorship_subtraction(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            candidate, compiler, broker, config, args = self._codec_capture_fixture(root)
-            authored = (candidate / "src/schema.spx").read_bytes()
-            mixed = authored + b"compiler-authored helpers\n"
+        for profile in (None, *sorted(compiler_capture.PROFILES)):
+            with self.subTest(profile=profile):
+                with tempfile.TemporaryDirectory() as directory:
+                    root = Path(directory)
+                    candidate, compiler, broker, config, args = self._codec_capture_fixture(root)
+                    if profile is not None:
+                        args.extend(["--profile", profile])
+                    authored = (candidate / "src/schema.spx").read_bytes()
+                    mixed = authored + b"compiler-authored helpers\n"
 
-            def notification(configuration, document):
-                identifier = f"{len(broker.seen) + 1:032x}"
-                response = broker.handle(identifier, document)
-                self.assertNotIn("capture_error", response)
-                return identifier
+                    def notification(configuration, document):
+                        identifier = f"{len(broker.seen) + 1:032x}"
+                        response = broker.handle(identifier, document)
+                        self.assertNotIn("capture_error", response)
+                        return identifier
 
-            def compile_after_snapshot(command, **kwargs):
-                retained = root / "evidence" / ("0" * 31 + "1") / "before/inputs/src/schema.spx"
-                self.assertEqual(retained.read_bytes(), authored)
-                self.assertEqual(command, [str(compiler), *args])
-                self.assertEqual(kwargs, {"check": False})  # inherited streams, environment and group
-                (candidate / "derived.spx").write_bytes(mixed)
-                (candidate / "src/schema.spx").write_bytes(mixed)
-                return subprocess.CompletedProcess(command, 0)
+                    def compile_after_snapshot(command, **kwargs):
+                        retained = root / "evidence" / ("0" * 31 + "1") / "before/inputs/src/schema.spx"
+                        self.assertEqual(retained.read_bytes(), authored)
+                        self.assertEqual(command, [str(compiler), *args])
+                        self.assertEqual(kwargs, {"check": False})  # inherited streams, environment and group
+                        (candidate / "derived.spx").write_bytes(mixed)
+                        (candidate / "src/schema.spx").write_bytes(mixed)
+                        return subprocess.CompletedProcess(command, 0)
 
-            with patch.object(compiler_capture.os, "getcwd", return_value=str(candidate)), \
-                 patch.object(compiler_capture, "_request", side_effect=notification), \
-                 patch.object(compiler_capture.subprocess, "run", side_effect=compile_after_snapshot) as launch:
-                self.assertEqual(compiler_capture.proxy_main(config, args), 0)
-                launch.assert_called_once()
-            before = json.loads((root / "evidence" / ("0" * 31 + "1") / "receipt.json").read_text())
-            after = json.loads((root / "evidence" / ("0" * 31 + "2") / "receipt.json").read_text())
-            self.assertEqual(before["compiler"], config["compiler"])
-            self.assertFalse(before["input_closure_complete"])
-            self.assertFalse(before["exact_compiler_input_binding"])
-            self.assertIsNone(before["generated_source_classification"])
-            self.assertIsNone(before["authored_token_subtraction"])
-            self.assertIsNone(before["repeat_output_sha256"])
-            self.assertFalse(after["compiler_status_independently_observed"])
-            self.assertEqual(after["exit_code_proxy_reported"], 0)
-            self.assertEqual(after["declared_output_bytes"]["files"][0]["sha256"], hashlib.sha256(mixed).hexdigest())
-
+                    with patch.object(compiler_capture.os, "getcwd", return_value=str(candidate)), \
+                         patch.object(compiler_capture, "_request", side_effect=notification), \
+                         patch.object(compiler_capture.subprocess, "run", side_effect=compile_after_snapshot) as launch:
+                        self.assertEqual(compiler_capture.proxy_main(config, args), 0)
+                        launch.assert_called_once()
+                    before = json.loads((root / "evidence" / ("0" * 31 + "1") / "receipt.json").read_text())
+                    after = json.loads((root / "evidence" / ("0" * 31 + "2") / "receipt.json").read_text())
+                    self.assertEqual(before["compiler"], config["compiler"])
+                    self.assertFalse(before["input_closure_complete"])
+                    self.assertFalse(before["exact_compiler_input_binding"])
+                    self.assertIsNone(before["generated_source_classification"])
+                    self.assertIsNone(before["authored_token_subtraction"])
+                    self.assertIsNone(before["repeat_output_sha256"])
+                    self.assertFalse(after["compiler_status_independently_observed"])
+                    self.assertEqual(after["exit_code_proxy_reported"], 0)
+                    self.assertEqual(after["declared_output_bytes"]["files"][0]["sha256"], hashlib.sha256(mixed).hexdigest())
     def test_authoring_proxy_keeps_compiler_failure_and_capture_refusal_separate(self):
         for limit in (compiler_capture.MAX_SELECTION_BYTES, 1):
             with self.subTest(limit=limit), tempfile.TemporaryDirectory() as directory:

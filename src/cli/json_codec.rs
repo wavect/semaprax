@@ -9,8 +9,8 @@ use semaprax::diagnostic::Diagnostic;
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
 const USAGE: &str =
-    "json-codec <project> --source <module-path> --type <record-id> --output <new-file> [--profile identifier-views.v1|request-views.v1|stream-request-views.v1]";
-pub(crate) const HELP: &str = "Derives checked ordinary source for explicit scalar records; opt-in identifier-views.v1, request-views.v1 and stream-request-views.v1 add bounded identifier/array views.\nRequires declared std.data.json scan/token/digits/write dependencies. Publishes a new complete module replacement; never overwrites source.\nContract and typed failure codes: docs/APPLICATION-JSON-CODECS-V1.md\n";
+    "json-codec <project> --source <module-path> --type <record-id> --output <new-file> [--profile identifier-views.v1|request-views.v1|stream-request-views.v1|owned-request.v1|stream-owned-request.v1]";
+pub(crate) const HELP: &str = "Derives checked ordinary source for explicit scalar records; opt-in identifier-views.v1, request-views.v1 and stream-request-views.v1 add bounded identifier/array views; owned-request.v1 and stream-owned-request.v1 materialize bounded identifier String/record collections under an owning runtime profile.\nRequires declared std.data.json scan/token/digits/write dependencies. Publishes a new complete module replacement; never overwrites source.\nContract and typed failure codes: docs/APPLICATION-JSON-CODECS-V1.md\n";
 
 pub(crate) struct Options {
     project: PathBuf,
@@ -46,6 +46,10 @@ pub(crate) fn parse(args: &[String]) -> Result<Options, u8> {
                     "request-views.v1" => semaprax::project::JsonCodecProfile::RequestViews,
                     "stream-request-views.v1" => {
                         semaprax::project::JsonCodecProfile::StreamRequestViews
+                    }
+                    "owned-request.v1" => semaprax::project::JsonCodecProfile::OwnedRequest,
+                    "stream-owned-request.v1" => {
+                        semaprax::project::JsonCodecProfile::StreamOwnedRequest
                     }
                     _ => return Err(fail()),
                 })
@@ -152,6 +156,8 @@ mod tests {
             "identifier-views.v1",
             "request-views.v1",
             "stream-request-views.v1",
+            "owned-request.v1",
+            "stream-owned-request.v1",
         ] {
             let mut args = strings(&good);
             args.extend(["--profile".to_owned(), profile.to_owned()]);

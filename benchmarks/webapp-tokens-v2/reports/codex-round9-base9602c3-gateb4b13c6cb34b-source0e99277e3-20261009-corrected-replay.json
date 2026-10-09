@@ -1,0 +1,726 @@
+{
+  "attempts": [
+    {
+      "arm": "semaprax",
+      "attempt": "semaprax-01",
+      "candidate_files_sha256": {
+        "README.md": "0189531733654c994d85b0605166c3f46684e918332a25dc677f27158a44349f",
+        "build.sh": "ae9244a80e914a050fbbf8db7e9fee718b2c98639f598e757a7986b413f9df3d",
+        "launch.mjs": "2cad833692db21c330f810e044ee2300aa1d59a3007176af851f098834d61fa6",
+        "package.json": "1e581bd0f7b2eed1cefeb881359dfd335a2512ed6c8cb46010479a4ee0e87912",
+        "run.sh": "ccea28ce50b1c89932f355ec9bc8bee470db38b917efe61deeb5f432231b2b30",
+        "teamdesk.spx": "f262aef3283ab4e213786cbbc2ef09376dabd84f9c4e656b5bbb5b8823073a32",
+        "test.sh": "66a4c20bfa381b187fc02623c762b9ababde7e27242a9f64f0bd3cc4aec25139",
+        "tests/integration.test.mjs": "a9ed9c89a07435cc9e0cde3c250c71ddcc3ae03aecc93127a7e2be9848b22815",
+        "tests/transport.mjs": "1034e215de30928b698bdfab4c4de4622311585516fa80e319bfc1eca3cef7b2"
+      },
+      "corrected_gate_replay": {
+        "cases": 912,
+        "exit_code": 0,
+        "failed_ids": [],
+        "passed": 912,
+        "report_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/round9-corrected-810afdd90-replay-20261009/acceptance/semaprax-01/report.json",
+        "report_sha256": "1bc6ccc36f7fd6ad30426c709cde27224b6edc6f5f79962323f32521d51b81e4",
+        "runner_error": null,
+        "status": "accepted",
+        "wall_seconds": 317.985
+      },
+      "original_paid_record": {
+        "actual_billed_usd": null,
+        "agent_wall_seconds": 274.519,
+        "conditional_estimate_usd": 0.367487,
+        "resource_assessment": {
+          "acceptance_unchanged": true,
+          "clean_comparison_eligible": true,
+          "contaminated": false,
+          "cost_retained": true,
+          "incidents": [],
+          "minimum_free_bytes_by_device": {
+            "16777233": 11672842240
+          },
+          "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round9-base9602c3-gateb4b13c6cb34b-source0e99277e3-20261008/resource-receipts/semaprax-01.json"
+        },
+        "status": "accepted"
+      },
+      "typescript_dependency_recovery": null
+    },
+    {
+      "arm": "typescript",
+      "attempt": "typescript-01",
+      "candidate_files_sha256": {
+        "README.md": "d18389cab42befd3961b97f4709b43f6f39d53edb0fe74add0d7a44488a3aabd",
+        "build.mjs": "1da5f79f1a601fe8bd6bca2700a3388c04e1eebeb4db5845b43dabd31f9151c1",
+        "build.sh": "427fe603ba212e46ecc072cf8dadc32f906f8cfef6d25ff4d3a7b3623436dd2e",
+        "package.json": "e561a60f8172908c58cc5311e699c98b4ec4f51bc604b6677ad20169cd003c91",
+        "public/app.js": "3e14660b23e3ddcadcab7a7ddd44dfd6c65dadb7b481526ac6065c0bf6355e1d",
+        "public/index.html": "a0b307a05565edec337d3c582edf802779c1dab9420b8fedc5d386fc5f1bf401",
+        "public/style.css": "d8454a02800e09ad55f309713195a91c6e0cd3aba1a5348a4bf740811a7f9fd5",
+        "run.sh": "0fdf8cde5a7ebb507614ccfcb254f961ebdcb13e458b213307d777eca919dd5c",
+        "src/app.tsx": "4e5aceec5a8dad253bab5907607ecb93de08da72cb9ce29de02b32e13c55515e",
+        "src/main.ts": "da967525c38c86b9770a9bbd3d582f69ad2d8c3d2346da49e6fed234b599ae3c",
+        "src/model.ts": "a7877755fec9102ae68d7ec1d92ee5126ce6662201090d9e3b38a1e60b83b29a",
+        "src/server.ts": "39cff7f768f857bd133cf4096defff5f75b364b80ac4852bb206cbac6df2327a",
+        "test.sh": "d6d062097e020282a1e42cad60a81ad0ca12460903919d40d133f8091ab6aa1d",
+        "tests.mjs": "a389c350ff4fdbf91a55e6f0bf5ade9b3fbc268a240ceeb442be7f0af48f15a2",
+        "tsconfig.json": "b288fbe54eb61ef4af628d42b8efffdde5fb9fd750062ca800ab377a9827d0ac"
+      },
+      "corrected_gate_replay": {
+        "cases": 1,
+        "exit_code": 1,
+        "failed_ids": [],
+        "passed": null,
+        "report_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/round9-corrected-810afdd90-replay-20261009/acceptance/typescript-01/report.json",
+        "report_sha256": "bdcbf380182729899170833a92215ce919d8f82bdbe05c4a963133c54d505182",
+        "runner_error": "acceptance contract failed: gate exit status, qualification status, 912-case inventory, missing cases, missing groups, failed cases, case statuses, case identities",
+        "status": "not_accepted",
+        "wall_seconds": 35.789
+      },
+      "original_paid_record": {
+        "actual_billed_usd": null,
+        "agent_wall_seconds": 696.052,
+        "conditional_estimate_usd": 0.605536,
+        "resource_assessment": {
+          "acceptance_unchanged": true,
+          "clean_comparison_eligible": true,
+          "contaminated": false,
+          "cost_retained": true,
+          "incidents": [],
+          "minimum_free_bytes_by_device": {
+            "16777233": 9622249472
+          },
+          "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round9-base9602c3-gateb4b13c6cb34b-source0e99277e3-20261008/resource-receipts/typescript-01.json"
+        },
+        "status": "not_accepted"
+      },
+      "typescript_dependency_recovery": {
+        "bundle_inventory_sha256": "387efc6319c2c985debaabbcb7f246ace375161d3f92ebcefbf19a7a83d4af94",
+        "bundle_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/round9-corrected-gate-replay-dependency-bundle-20261009",
+        "copy_sha256": "387efc6319c2c985debaabbcb7f246ace375161d3f92ebcefbf19a7a83d4af94",
+        "entry": "typescript-01",
+        "receipt_sha256": "7c9970036153e26a050bf7cd13cb2225c1c1966ff5eb3666faa52cfff439f462"
+      }
+    },
+    {
+      "arm": "typescript",
+      "attempt": "typescript-02",
+      "candidate_files_sha256": {
+        ".gitignore": "780d7eba84961c7dbe117b07326cbaccb1da1c8705354121a743c68f86cf7d66",
+        "README.md": "643b622c5124b792267552f4b06bf5d39a0ee6391f8aaf7185a21a4a455d32a5",
+        "build.mjs": "75057df089de0eaf7e938ba88896c84467260c9f59e89b1358cf6dfd4b15ba19",
+        "build.sh": "7041fdd36a11a4ccc6f613eae9d070207cab6d6d4033a8c855342c2d02d31a4a",
+        "package-lock.json": "9df8ac1185991de1cacee5079447dcbe27277d2ff5caad5a45a41faa73610648",
+        "package.json": "cebd6fcecd304eb7be4c9dcd98ebe15bf52f38970ef329f82bc91354b2187029",
+        "public/index.html": "cf2b5cefb3994c43d9867b9d46d99704d45af9f701415fe3c2f32cc58464cd13",
+        "run.sh": "0fdf8cde5a7ebb507614ccfcb254f961ebdcb13e458b213307d777eca919dd5c",
+        "src/schema.ts": "917af75ea20b4159b8bc8752efad93b2ff5e3863b31ac5c5a59f10d95dfabba3",
+        "src/server.ts": "fa3d6bf6aa5b2ad42bb49232600f980731dd183f9b4d308c48977f60485ee094",
+        "src/ui.css": "2eecde8b6667f58cccbda77136cbc238ffcce49beed50d56aecaeb7e3a6f5531",
+        "src/ui.tsx": "84e81e6cab2f8c3686ce772d087a8be28b0f7e71ea38498c462264c664c54c67",
+        "test.sh": "6abce786ef6decdb93c22850b28972d03337c6151ae5bd112e0900c00de2ab18",
+        "tests.mjs": "91576a6037a36502e8256db241a5322c95609ea131f3f270a1b637c35b2608b3",
+        "tsconfig.json": "0e26a1dd05acb3581b97378c3d9c77a235b34bf146f74c338d45869aa5d8dc68"
+      },
+      "corrected_gate_replay": {
+        "cases": 1,
+        "exit_code": 1,
+        "failed_ids": [],
+        "passed": null,
+        "report_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/round9-corrected-810afdd90-replay-20261009/acceptance/typescript-02/report.json",
+        "report_sha256": "2b4a2e46b3bd064a67a493e27c8d3a9d52347082372e2f763117d25039e99d90",
+        "runner_error": "acceptance contract failed: gate exit status, qualification status, 912-case inventory, missing cases, missing groups, failed cases, case statuses, case identities",
+        "status": "not_accepted",
+        "wall_seconds": 3.332
+      },
+      "original_paid_record": {
+        "actual_billed_usd": null,
+        "agent_wall_seconds": 804.855,
+        "conditional_estimate_usd": 0.609844,
+        "resource_assessment": {
+          "acceptance_unchanged": true,
+          "clean_comparison_eligible": true,
+          "contaminated": false,
+          "cost_retained": true,
+          "incidents": [],
+          "minimum_free_bytes_by_device": {
+            "16777233": 8559091712
+          },
+          "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round9-base9602c3-gateb4b13c6cb34b-source0e99277e3-20261008/resource-receipts/typescript-02.json"
+        },
+        "status": "not_accepted"
+      },
+      "typescript_dependency_recovery": {
+        "bundle_inventory_sha256": "387efc6319c2c985debaabbcb7f246ace375161d3f92ebcefbf19a7a83d4af94",
+        "bundle_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/round9-corrected-gate-replay-dependency-bundle-20261009",
+        "copy_sha256": "387efc6319c2c985debaabbcb7f246ace375161d3f92ebcefbf19a7a83d4af94",
+        "entry": "typescript-02",
+        "receipt_sha256": "7c9970036153e26a050bf7cd13cb2225c1c1966ff5eb3666faa52cfff439f462"
+      }
+    },
+    {
+      "arm": "semaprax",
+      "attempt": "semaprax-02",
+      "candidate_files_sha256": {
+        "README.md": "28bf5fb070d5a9a281ce05709511c565067fbb52351784d2bfb0bf7f4e9784e2",
+        "build.sh": "040380626312ba49b8775154be7cfcd430ce85c93c504393cb1bda050c52f8d6",
+        "generate.py": "a2ed7e957e0a32a9ca18b3d7bda40b7ba73bfde798c534678e86cf6c42c5a0eb",
+        "launch.mjs": "86975aa767c885b164c4f7243f418b1c7d1c53b8e74894cdc6ffec0b3529f04d",
+        "project-assets.mjs": "78f7529f53bd3b1852c5403041734351f1a2d71c16152388939e3d11c82095fa",
+        "run.sh": "c5f1fb562e64502cece067e1b02b71cbaf28542f38c9c5af20b10ab770b492f3",
+        "teamdesk.spx": "b01338c2d8ff2322784a9202170dcf2fdc5f3af5bc54a75847df3f0370e2636f",
+        "test.sh": "61afbf66397d070a702f4b57d8e99536198b55a30cd8003df47cc579a6ecfd41",
+        "tests/integration.test.mjs": "da2c0ce5887fa691eb0ff6472e4490d1396fcc8d41f17fbc2a074f0c603f3018"
+      },
+      "corrected_gate_replay": {
+        "cases": 912,
+        "exit_code": 0,
+        "failed_ids": [],
+        "passed": 912,
+        "report_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/round9-corrected-810afdd90-replay-20261009/acceptance/semaprax-02/report.json",
+        "report_sha256": "3170d4a33ebb3bb4862bbbb7ca943dece55a82823e12a89ce6bf35e75b097478",
+        "runner_error": null,
+        "status": "accepted",
+        "wall_seconds": 316.382
+      },
+      "original_paid_record": {
+        "actual_billed_usd": null,
+        "agent_wall_seconds": 279.421,
+        "conditional_estimate_usd": 0.383805,
+        "resource_assessment": {
+          "acceptance_unchanged": true,
+          "clean_comparison_eligible": true,
+          "contaminated": false,
+          "cost_retained": true,
+          "incidents": [],
+          "minimum_free_bytes_by_device": {
+            "16777233": 9458053120
+          },
+          "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round9-base9602c3-gateb4b13c6cb34b-source0e99277e3-20261008/resource-receipts/semaprax-02.json"
+        },
+        "status": "accepted"
+      },
+      "typescript_dependency_recovery": null
+    },
+    {
+      "arm": "semaprax",
+      "attempt": "semaprax-03",
+      "candidate_files_sha256": {
+        "README.md": "0d10fa0d917785030c1706490d40ef554f6e198f62387c46160894d60b160ea9",
+        "api-check.mjs": "0ce81eff7dc0a72e403b7ee752f6161dc510559f001cd94dac69b99c4472b377",
+        "app.spx": "1b8502e5e1589e83f3c4d9980068a620e766783275cd3d7dc787a41d2530bc04",
+        "build.sh": "31c9aa1b0a9fd1b34f43994b339eb087f58a1d3dcf5fde57af50c80e161abe0d",
+        "launch.mjs": "e82d3551ad0d0f9b0cb63383ce76a95425915f52d5b89b2fc2c82db0e11bacd7",
+        "run.sh": "ccea28ce50b1c89932f355ec9bc8bee470db38b917efe61deeb5f432231b2b30",
+        "test.sh": "14675ba269d574c64077a939b29f562e5255a379c6185548fbb2becafe6d984b",
+        "tests.mjs": "acdd7d907bf5620f68d9e82ccba5ed47073e9ea697cbd13044cb00f99a412bf3"
+      },
+      "corrected_gate_replay": {
+        "cases": 912,
+        "exit_code": 0,
+        "failed_ids": [],
+        "passed": 912,
+        "report_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/round9-corrected-810afdd90-replay-20261009/acceptance/semaprax-03/report.json",
+        "report_sha256": "6dd0e9ad40878ac072e41c6767e46a28d44cabf0003dbf83796cc142c9d75a8b",
+        "runner_error": null,
+        "status": "accepted",
+        "wall_seconds": 313.63
+      },
+      "original_paid_record": {
+        "actual_billed_usd": null,
+        "agent_wall_seconds": 234.776,
+        "conditional_estimate_usd": 0.310078,
+        "resource_assessment": {
+          "acceptance_unchanged": true,
+          "clean_comparison_eligible": true,
+          "contaminated": false,
+          "cost_retained": true,
+          "incidents": [],
+          "minimum_free_bytes_by_device": {
+            "16777233": 10079219712
+          },
+          "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round9-base9602c3-gateb4b13c6cb34b-source0e99277e3-20261008/resource-receipts/semaprax-03.json"
+        },
+        "status": "accepted"
+      },
+      "typescript_dependency_recovery": null
+    },
+    {
+      "arm": "typescript",
+      "attempt": "typescript-03",
+      "candidate_files_sha256": {
+        "README.md": "c9354edda4b73272fbefd801147a6aadf1185acc403576f0174b5e983913d0f7",
+        "app.tsx": "4acb26c3dc8894d59d67138db57b887e7debb06046f98cf52ba0be85c8fd6d24",
+        "application.ts": "e9fe28abbef3a1f9501a75944fb8038a3ff4da07b75fa974ed66c87982e895af",
+        "build.mjs": "8ac2fc2e75afd91d610b453848e0b4503d000bd75622205564783cf68efb9b3d",
+        "build.sh": "427fe603ba212e46ecc072cf8dadc32f906f8cfef6d25ff4d3a7b3623436dd2e",
+        "package.json": "5ef80c39eb1a1ecdec514b74161fed93b28aaa62e60acd88a2e7e0f1b6446d93",
+        "public/index.html": "dca5a185dd8bd9f01a7f72744e5f71089dea175301c433793debfc90905d2ec6",
+        "public/style.css": "d43fd5bbf4c0b07ecf5e0a0fc5bfd9b3bbf1ba7ccedbd5f8c4f01e31f6072dd5",
+        "run.sh": "d9dc1209e8187a60c5376e496b162443f49bf3ab1000d018ade1d604b7651636",
+        "schema.ts": "476e9f0fae3c3b23f7017e993676ab27d791a299873464fdc927d9505f7faa65",
+        "server.ts": "3be5ff627d7c41c23396a33e8018e672870766d1ad418aa8916a3d6f32ae9de3",
+        "test.mjs": "a42a22427635447619f1e2fdf5723fb216489ef46630e5a42af09eb963772f11",
+        "test.sh": "7e402cf9232e82c285c709115323b46a835074b06caee14067bd1f291e18b076",
+        "tsconfig.json": "ca3dfa9f2512959b4058bce5bd5bcc081480297aa4c10a41f573948221119442"
+      },
+      "corrected_gate_replay": {
+        "cases": 912,
+        "exit_code": 1,
+        "failed_ids": [
+          "Invoice.csv",
+          "Payment.csv",
+          "Expense.csv",
+          "csv-quotation-and-row-hiding",
+          "browser.Team.list-search-sort-pagination-filter-csv",
+          "browser.Member.list-search-sort-pagination-filter-csv",
+          "browser.Customer.list-search-sort-pagination-filter-csv",
+          "browser.Contact.list-search-sort-pagination-filter-csv",
+          "browser.Project.list-search-sort-pagination-filter-csv",
+          "browser.Milestone.list-search-sort-pagination-filter-csv",
+          "browser.Sprint.list-search-sort-pagination-filter-csv",
+          "browser.Task.list-search-sort-pagination-filter-csv",
+          "browser.Comment.list-search-sort-pagination-filter-csv",
+          "browser.TimeEntry.list-search-sort-pagination-filter-csv",
+          "browser.Ticket.list-search-sort-pagination-filter-csv",
+          "browser.TicketReply.list-search-sort-pagination-filter-csv",
+          "browser.Invoice.list-search-sort-pagination-filter-csv",
+          "browser.Payment.list-search-sort-pagination-filter-csv",
+          "browser.Vendor.list-search-sort-pagination-filter-csv",
+          "browser.Expense.list-search-sort-pagination-filter-csv",
+          "browser.Asset.list-search-sort-pagination-filter-csv",
+          "browser.Leave.list-search-sort-pagination-filter-csv",
+          "browser.Document.list-search-sort-pagination-filter-csv",
+          "browser.Release.list-search-sort-pagination-filter-csv",
+          "browser.Member.team_id.links-backrefs",
+          "browser.Contact.customer_id.links-backrefs",
+          "browser.Project.team_id.links-backrefs",
+          "browser.Project.customer_id.links-backrefs",
+          "browser.Milestone.project_id.links-backrefs",
+          "browser.Sprint.project_id.links-backrefs",
+          "browser.Task.project_id.links-backrefs",
+          "browser.Task.milestone_id.links-backrefs",
+          "browser.Task.sprint_id.links-backrefs",
+          "browser.Task.member_id.links-backrefs",
+          "browser.Comment.task_id.links-backrefs",
+          "browser.Comment.member_id.links-backrefs",
+          "browser.TimeEntry.task_id.links-backrefs",
+          "browser.TimeEntry.member_id.links-backrefs",
+          "browser.Ticket.customer_id.links-backrefs",
+          "browser.Ticket.member_id.links-backrefs",
+          "browser.TicketReply.ticket_id.links-backrefs",
+          "browser.TicketReply.member_id.links-backrefs",
+          "browser.Invoice.customer_id.links-backrefs",
+          "browser.Payment.invoice_id.links-backrefs",
+          "browser.Expense.project_id.links-backrefs",
+          "browser.Expense.vendor_id.links-backrefs",
+          "browser.Expense.member_id.links-backrefs",
+          "browser.Asset.team_id.links-backrefs",
+          "browser.Leave.member_id.links-backrefs",
+          "browser.Document.project_id.links-backrefs",
+          "browser.Release.project_id.links-backrefs",
+          "browser.csv-all-twenty-entities"
+        ],
+        "passed": 860,
+        "report_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/round9-corrected-810afdd90-replay-20261009/acceptance/typescript-03/report.json",
+        "report_sha256": "09e563cca5c5d79ee30d9cec4f9d746e97d38d16945ec6dafa3d892b748b7195",
+        "runner_error": "acceptance contract failed: gate exit status, qualification status, failed cases, case statuses",
+        "status": "not_accepted",
+        "wall_seconds": 274.964
+      },
+      "original_paid_record": {
+        "actual_billed_usd": null,
+        "agent_wall_seconds": 748.477,
+        "conditional_estimate_usd": 0.558166,
+        "resource_assessment": {
+          "acceptance_unchanged": true,
+          "clean_comparison_eligible": true,
+          "contaminated": false,
+          "cost_retained": true,
+          "incidents": [],
+          "minimum_free_bytes_by_device": {
+            "16777233": 8977469440
+          },
+          "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round9-base9602c3-gateb4b13c6cb34b-source0e99277e3-20261008/resource-receipts/typescript-03.json"
+        },
+        "status": "not_accepted"
+      },
+      "typescript_dependency_recovery": {
+        "bundle_inventory_sha256": "387efc6319c2c985debaabbcb7f246ace375161d3f92ebcefbf19a7a83d4af94",
+        "bundle_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/round9-corrected-gate-replay-dependency-bundle-20261009",
+        "copy_sha256": "387efc6319c2c985debaabbcb7f246ace375161d3f92ebcefbf19a7a83d4af94",
+        "entry": "typescript-03",
+        "receipt_sha256": "7c9970036153e26a050bf7cd13cb2225c1c1966ff5eb3666faa52cfff439f462"
+      }
+    },
+    {
+      "arm": "typescript",
+      "attempt": "typescript-04",
+      "candidate_files_sha256": {
+        "README.md": "107877629fa7731b9f7c097a8f13fb84d8dd5cd0d0775f3121c453fb1ac18bc9",
+        "build.mjs": "e2463dbbe080f63bb4b324d4be6048a22c6d32dee188b58d6421f7a4e2afc034",
+        "build.sh": "427fe603ba212e46ecc072cf8dadc32f906f8cfef6d25ff4d3a7b3623436dd2e",
+        "package.json": "b78143e0a07fe90cebb69b507e5efe3890e3495b036ff32b1a8bb0b103dde448",
+        "public/app.js": "5be4c1909290af8f7310876f304b7c5ad7448e25e2531aab5283df9a5602f193",
+        "public/index.html": "e76358eb5c821938a56199b79609047922cc2a064963578ee59d4cce5d724a4e",
+        "public/style.css": "7986eb5f2d585ef205780d0a9a61e0c9e1149b9d7ca0d6fda4ba8e7821dc0f0f",
+        "run.sh": "0fdf8cde5a7ebb507614ccfcb254f961ebdcb13e458b213307d777eca919dd5c",
+        "src/app.tsx": "682b3b1ded2f6c8a730bee9110e8acfd54602cd583a141200a5256e2541fa854",
+        "src/model.ts": "819fd56a285efcec0dd431e6fe6e140a48db64b8de140f76dee368fc2bb6bfb0",
+        "src/server.ts": "8b4bd6618df72954e52d8416fab4ff95842c3ca3ae27a42de2d319d29cd01add",
+        "test.sh": "b8a1028f85c44a75bad975743ed4567882366f43c30fa048cf2e38c9965f22ed",
+        "tests.test.mjs": "0ffec7b9b322c1d6eb8f40ed066d96c146e8b11a5a3ade8e8d4221611fee020a",
+        "tsconfig.json": "e83ad70d49710e47b2834b30e9e9a126c0f5163c3a0bf259d454e86c7ade1d21"
+      },
+      "corrected_gate_replay": {
+        "cases": 912,
+        "exit_code": 1,
+        "failed_ids": [
+          "audit-create-update-delete",
+          "browser.Team.list-search-sort-pagination-filter-csv",
+          "browser.Member.list-search-sort-pagination-filter-csv",
+          "browser.Customer.list-search-sort-pagination-filter-csv",
+          "browser.Contact.list-search-sort-pagination-filter-csv",
+          "browser.Project.list-search-sort-pagination-filter-csv",
+          "browser.Milestone.list-search-sort-pagination-filter-csv",
+          "browser.Sprint.list-search-sort-pagination-filter-csv",
+          "browser.Comment.list-search-sort-pagination-filter-csv",
+          "browser.TimeEntry.list-search-sort-pagination-filter-csv",
+          "browser.Ticket.list-search-sort-pagination-filter-csv",
+          "browser.TicketReply.list-search-sort-pagination-filter-csv",
+          "browser.Invoice.list-search-sort-pagination-filter-csv",
+          "browser.Payment.list-search-sort-pagination-filter-csv",
+          "browser.Vendor.list-search-sort-pagination-filter-csv",
+          "browser.Expense.list-search-sort-pagination-filter-csv",
+          "browser.Asset.list-search-sort-pagination-filter-csv",
+          "browser.Leave.list-search-sort-pagination-filter-csv",
+          "browser.Document.list-search-sort-pagination-filter-csv",
+          "browser.Release.list-search-sort-pagination-filter-csv",
+          "browser.csv-all-twenty-entities"
+        ],
+        "passed": 891,
+        "report_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/round9-corrected-810afdd90-replay-20261009/acceptance/typescript-04/report.json",
+        "report_sha256": "247a0e1f65fb08627d468714faff6fbc71f7ba793cf0130f92b09ee1e74f4ab3",
+        "runner_error": "acceptance contract failed: gate exit status, qualification status, failed cases, case statuses",
+        "status": "not_accepted",
+        "wall_seconds": 279.95
+      },
+      "original_paid_record": {
+        "actual_billed_usd": null,
+        "agent_wall_seconds": 714.17,
+        "conditional_estimate_usd": 0.443452,
+        "resource_assessment": {
+          "acceptance_unchanged": true,
+          "clean_comparison_eligible": true,
+          "contaminated": false,
+          "cost_retained": true,
+          "incidents": [],
+          "minimum_free_bytes_by_device": {
+            "16777233": 9406906368
+          },
+          "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round9-base9602c3-gateb4b13c6cb34b-source0e99277e3-20261008/resource-receipts/typescript-04.json"
+        },
+        "status": "not_accepted"
+      },
+      "typescript_dependency_recovery": {
+        "bundle_inventory_sha256": "387efc6319c2c985debaabbcb7f246ace375161d3f92ebcefbf19a7a83d4af94",
+        "bundle_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/round9-corrected-gate-replay-dependency-bundle-20261009",
+        "copy_sha256": "387efc6319c2c985debaabbcb7f246ace375161d3f92ebcefbf19a7a83d4af94",
+        "entry": "typescript-04",
+        "receipt_sha256": "7c9970036153e26a050bf7cd13cb2225c1c1966ff5eb3666faa52cfff439f462"
+      }
+    },
+    {
+      "arm": "semaprax",
+      "attempt": "semaprax-04",
+      "candidate_files_sha256": {
+        "README.md": "c9bc44eaf3407c03a78777f896910f295fc4efe4708bc6a612b089bc0bb73bb1",
+        "app/app.js": "171888b5f6da073a3e0c063a593c7f327fa9482b390733ddad4eb1bf14389b5f",
+        "app/index.html": "6d16a0ffa0fec2c0254f1d5af5557a76cc75f7cde301b5230bbb06ac71809fe4",
+        "app/runtime.js": "2af693cd89d18e61bee78f6bfbf95f901881b0ad79ef37e5f85231b3ae61e8c2",
+        "app/schema.js": "3846dc18a9b2c3909d2cd5c565fde73bdb37df8a9b1f7d74d53ed18e8afe21ae",
+        "app/security.mjs": "7e0404e8f4ef2f5299273ea08bf93a8ebcfa2b384add49121e0fd26e9436d277",
+        "app/server.mjs": "efa5e44e171551b65a512235ac8357d0cbc2824d09c1b215786c7806b46e99d3",
+        "app/state.mjs": "8b3c06aa05d7e45994e4578c6fd9bb4906d3575433ed71408578cfc1c9414892",
+        "app/style.css": "36b4fe13dee9ce5e15686dba1a5139475ad0388330eb27dc8460b7f8acc5f24a",
+        "build.sh": "3cf6161da6d3beb1aaa1d7bdb8ddb251e7f51bd63a16c3495131b2d1c99a8b35",
+        "integration-test.mjs": "ef4cc345c112b0ba6ab7e744f7b64411956198a11faadb949d34ddfe007522df",
+        "launch.mjs": "c40bb5bb7b4e34d17f3392d78d32a062c707bc8f2640cf72bb3a8720d15cb981",
+        "run.sh": "ccea28ce50b1c89932f355ec9bc8bee470db38b917efe61deeb5f432231b2b30",
+        "teamdesk.spx": "82bdd5741d19973e0a5e3547e1f3a9bf06952222ee3d2f1918ddf85d33b6add8",
+        "test.sh": "54f4499f8feef51405e1f520e5ef8ad88431bf023f427011f3a63b17c3ac987d"
+      },
+      "corrected_gate_replay": {
+        "cases": 912,
+        "exit_code": 0,
+        "failed_ids": [],
+        "passed": 912,
+        "report_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/round9-corrected-810afdd90-replay-20261009/acceptance/semaprax-04/report.json",
+        "report_sha256": "25a52b251526fb0b108ba48544c73c732a8a08c5c1f8e4681791e915d679bba9",
+        "runner_error": null,
+        "status": "accepted",
+        "wall_seconds": 314.765
+      },
+      "original_paid_record": {
+        "actual_billed_usd": null,
+        "agent_wall_seconds": 195.65,
+        "conditional_estimate_usd": 0.289686,
+        "resource_assessment": {
+          "acceptance_unchanged": true,
+          "clean_comparison_eligible": true,
+          "contaminated": false,
+          "cost_retained": true,
+          "incidents": [],
+          "minimum_free_bytes_by_device": {
+            "16777233": 10821992448
+          },
+          "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round9-base9602c3-gateb4b13c6cb34b-source0e99277e3-20261008/resource-receipts/semaprax-04.json"
+        },
+        "status": "accepted"
+      },
+      "typescript_dependency_recovery": null
+    },
+    {
+      "arm": "semaprax",
+      "attempt": "semaprax-05",
+      "candidate_files_sha256": {
+        ".gitignore": "4f83ae347b52554ae58d78b7ed59d2766cdce30d61dd500907b41ce0b5010778",
+        "README.md": "f0a1f3d9e73995f014e19b594839700a3db54f86d5baaa1b2f3f931e52cc8855",
+        "build.sh": "5c8b605a00abbf6be300681a0440360247d4a6035fcc46fcdc117721bf276148",
+        "launch.mjs": "b1873c97727e9a3f5b02974eb6840663786c79224db7b7532e826c0e358ad18f",
+        "postbuild.mjs": "9e2f3f14807bbc039561b99c5ab99563992d9be9672a5f329bb79385e880708f",
+        "run.sh": "ccea28ce50b1c89932f355ec9bc8bee470db38b917efe61deeb5f432231b2b30",
+        "setup.mjs": "26260dea0c49e0d2a1e98c237098eca5f19d9f685898b38b6e07863586f13874",
+        "teamdesk.spx": "ab610e0b0ecbae8e5d45537c51df1fa8c75e3e43e6e3c6e29d6365bb941a3845",
+        "test.sh": "c55cfd740df2d8ccf7925ad0bc8828033e59d2b0d8c86121424789653ad573b7",
+        "tests.mjs": "2b35b8d69aee019975e0d0a514a33bdf01dd667525ec0b207cd439805475ab4f",
+        "theme.css": "5e0ae04d81cc59691691764f3033727abe4598e699301a43341dad19703916c3"
+      },
+      "corrected_gate_replay": {
+        "cases": 912,
+        "exit_code": 0,
+        "failed_ids": [],
+        "passed": 912,
+        "report_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/round9-corrected-810afdd90-replay-20261009/acceptance/semaprax-05/report.json",
+        "report_sha256": "c4ed233e9a1ec5ce84ba5cb485e76a6e8b5d18e4b046beac897580f9ebf031cb",
+        "runner_error": null,
+        "status": "accepted",
+        "wall_seconds": 319.742
+      },
+      "original_paid_record": {
+        "actual_billed_usd": null,
+        "agent_wall_seconds": 283.913,
+        "conditional_estimate_usd": 0.416498,
+        "resource_assessment": {
+          "acceptance_unchanged": true,
+          "clean_comparison_eligible": true,
+          "contaminated": false,
+          "cost_retained": true,
+          "incidents": [],
+          "minimum_free_bytes_by_device": {
+            "16777233": 10226610176
+          },
+          "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round9-base9602c3-gateb4b13c6cb34b-source0e99277e3-20261008/resource-receipts/semaprax-05.json"
+        },
+        "status": "accepted"
+      },
+      "typescript_dependency_recovery": null
+    },
+    {
+      "arm": "typescript",
+      "attempt": "typescript-05",
+      "candidate_files_sha256": {
+        "README.md": "c266050537ff8bae373ca785da2173ccd629b1f8e12d14370ddedb34a15c31b0",
+        "app.tsx": "77ce95a3eb59d024f1237b4b20268a9ffb8d3f30c13d314d5cd9cff2df80def9",
+        "build.sh": "ec3cd1e80fc0d8e1a9d8e0f0f3ae2ff5e94a55a518e8f3e8f538cee635d13b96",
+        "package.json": "07ee1f56776b7dc7bfd7c5c357471b708f6785febcabbfff81b862fbf2559fbb",
+        "public/index.html": "7232a7a84ea928e75244d84e1a8c386c63291087a9b12e6192f18cd7083fc0aa",
+        "public/style.css": "78a6bf4481f34c88a5a1f7ed60caef250dd680269b7459c3a4d24306bb773365",
+        "run.sh": "d9dc1209e8187a60c5376e496b162443f49bf3ab1000d018ade1d604b7651636",
+        "selftest.mjs": "3688f975fc8f7452cc05a48bc05494d60afa69a94aabf807b08312f99248a1e8",
+        "server.ts": "2848e1374895ab2c81a573c5a465c4f8a87ba2581a67bd9880718f4efceae7ba",
+        "shared.ts": "7e2ba87d75f7c6f0345460789f972a972d01f4011152c73e323c3228951bd1ef",
+        "test.sh": "c6e9dceeec38523dd32eb4fc24a48a7135f24a95de9cdc78f594b0f466cf8afe"
+      },
+      "corrected_gate_replay": {
+        "cases": 912,
+        "exit_code": 1,
+        "failed_ids": [
+          "Invoice.csv",
+          "Payment.csv",
+          "Expense.csv",
+          "csv-quotation-and-row-hiding",
+          "browser.Team.list-search-sort-pagination-filter-csv",
+          "browser.Member.list-search-sort-pagination-filter-csv",
+          "browser.Customer.list-search-sort-pagination-filter-csv",
+          "browser.Contact.list-search-sort-pagination-filter-csv",
+          "browser.Project.list-search-sort-pagination-filter-csv",
+          "browser.Milestone.list-search-sort-pagination-filter-csv",
+          "browser.Sprint.list-search-sort-pagination-filter-csv",
+          "browser.Task.list-search-sort-pagination-filter-csv",
+          "browser.Comment.list-search-sort-pagination-filter-csv",
+          "browser.TimeEntry.list-search-sort-pagination-filter-csv",
+          "browser.Ticket.list-search-sort-pagination-filter-csv",
+          "browser.TicketReply.list-search-sort-pagination-filter-csv",
+          "browser.Invoice.list-search-sort-pagination-filter-csv",
+          "browser.Payment.list-search-sort-pagination-filter-csv",
+          "browser.Vendor.list-search-sort-pagination-filter-csv",
+          "browser.Expense.list-search-sort-pagination-filter-csv",
+          "browser.Asset.list-search-sort-pagination-filter-csv",
+          "browser.Leave.list-search-sort-pagination-filter-csv",
+          "browser.Document.list-search-sort-pagination-filter-csv",
+          "browser.Release.list-search-sort-pagination-filter-csv",
+          "browser.csv-all-twenty-entities"
+        ],
+        "passed": 887,
+        "report_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/round9-corrected-810afdd90-replay-20261009/acceptance/typescript-05/report.json",
+        "report_sha256": "c93a2f6c8bbb40fbeb1902e63107d9fedd5f4541e0df55c1b1cf42853926ea53",
+        "runner_error": "acceptance contract failed: gate exit status, qualification status, failed cases, case statuses",
+        "status": "not_accepted",
+        "wall_seconds": 279.674
+      },
+      "original_paid_record": {
+        "actual_billed_usd": null,
+        "agent_wall_seconds": 741.151,
+        "conditional_estimate_usd": 0.585328,
+        "resource_assessment": {
+          "acceptance_unchanged": true,
+          "clean_comparison_eligible": true,
+          "contaminated": false,
+          "cost_retained": true,
+          "incidents": [],
+          "minimum_free_bytes_by_device": {
+            "16777233": 8881422336
+          },
+          "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round9-base9602c3-gateb4b13c6cb34b-source0e99277e3-20261008/resource-receipts/typescript-05.json"
+        },
+        "status": "not_accepted"
+      },
+      "typescript_dependency_recovery": {
+        "bundle_inventory_sha256": "387efc6319c2c985debaabbcb7f246ace375161d3f92ebcefbf19a7a83d4af94",
+        "bundle_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/round9-corrected-gate-replay-dependency-bundle-20261009",
+        "copy_sha256": "387efc6319c2c985debaabbcb7f246ace375161d3f92ebcefbf19a7a83d4af94",
+        "entry": "typescript-05",
+        "receipt_sha256": "7c9970036153e26a050bf7cd13cb2225c1c1966ff5eb3666faa52cfff439f462"
+      }
+    }
+  ],
+  "claim": "Offline rescore of all ten retained round9 candidates under a corrected acceptance gate. Original paid records and costs are preserved separately.",
+  "compiler": {
+    "binary_sha256": "3839f57b3d4bb502f2c852e696f04347dfd45d5e0c9de82db0d20418c4200a0d",
+    "source_commit": "0e99277e3397bc9a878c015bf2bcb0c843903ce3"
+  },
+  "gate": {
+    "qualification_receipt_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source0e-20261009/qualification-receipt.json",
+    "qualification_receipt_sha256": "37739888638688846824833d50068aad2ecc3a43a64fd0440a2d6611f274f7eb",
+    "required_cases": 912,
+    "source_commit": "810afdd907561dcfe6aab52823d43b1ffecd0a0e"
+  },
+  "host_concurrency": {
+    "note": "One independent release-ci-fix Cargo/test job overlapped replay; own scoped verification also ran with one Cargo job. This is not an isolated host timing result.",
+    "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/round9-corrected-810afdd90-replay-concurrency-observation.json",
+    "replay_wall_time_isolated": false,
+    "sha256": "54d97743e76cb82450b833248d49369a89a134ffc0e0ec1279290b9b66042745"
+  },
+  "interpretation": {
+    "limitations": [
+      "The TypeScript dependency receipt records recovered dependency bytes but historical byte identity is false.",
+      "Original final-file token counts remain an unverified proxy and do not establish authored-source totals.",
+      "Actual billed provider amounts, resolved model identity, and fixed context tokens are unavailable.",
+      "The replay ran concurrently with independent Cargo work; wall times are not isolated.",
+      "No causal language/compiler advantage or upper-bound claim is supported."
+    ],
+    "typescript_01_02": "Runner-fatal own test/build steps; no 912-case browser qualification was completed for these attempts.",
+    "typescript_04": "891/912. Audit event without an action was a candidate defect: it recorded a successful no-op update with an empty changed-field map, which does not unambiguously identify the operation under the contract. The other twenty failures were entity list/CSV checks."
+  },
+  "original_campaign": {
+    "paid_cost_wall_time_resource_records_unchanged": true,
+    "recount_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round9-base9602c3-gateb4b13c6cb34b-source0e99277e3-recount.json",
+    "recount_sha256": "c287854aea2a175fc50ad6a99d5771486541e61eb026c28cdb106a45ccc2aa3d",
+    "replay_added_paid_requests": false,
+    "results_sha256": "6eabba2789ffbc8c28163abee722b17d9d0e756acd625b64d92d2f249cd42c3b",
+    "terminal_receipt_sha256": "8b19c01c4d86397d0b98b75b3b2935df18f6fb0e868538969b8ea0a828dbe454"
+  },
+  "post_replay_cleanup": {
+    "note": "The completed verification target (3,926,020,096 allocated bytes) and completed test executables were removed after verification to recover disk headroom. This cleanup did not remove archived compiler binaries, dependencies, or campaign evidence.",
+    "receipts": [
+      {
+        "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/cleanup-completed-699-test-executables-20261009.json",
+        "sha256": "4bdce0f9115b8cc73c8b5a7fda4a86d62a59aa9914bc034ae4466285a9340ea5",
+        "summary": {
+          "archived_verified_binary_unchanged": true,
+          "captured_at": "2026-10-09T01:29:52.679864+00:00",
+          "only_completed_test_executables_removed": true,
+          "private_dependency_cache_retained": true,
+          "removed": [
+            {
+              "bytes": 106271680,
+              "path": "/Users/kevin/.codex/worktrees/opt-enum-gate/AI-Lang/target/final-698-699/debug/deps/semaprax-0671bc3e8645b5a7"
+            },
+            {
+              "bytes": 2112192,
+              "path": "/Users/kevin/.codex/worktrees/opt-enum-gate/AI-Lang/target/final-698-699/debug/deps/cli_help_surface_v1-1657c8d359f793aa"
+            },
+            {
+              "bytes": 48739888,
+              "path": "/Users/kevin/.codex/worktrees/opt-enum-gate/AI-Lang/target/final-698-699/debug/deps/cli_help_surface_v1-c50598e500b21dc7"
+            }
+          ]
+        }
+      },
+      {
+        "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/cleanup-completed-final-698-699-cache-20261009.json",
+        "sha256": "ae6b049fb097e0cf7c9a3591be3bdeb584428a7ba5cc2627c686201ea4b4c830",
+        "summary": {
+          "allocated_bytes": 3926020096,
+          "captured_at": "2026-10-09T01:33:12.879565+00:00",
+          "no_active_job_used_this_target": true,
+          "reason": "Completed verification cache removed after disk dropped to about 5GiB to restore headroom for model campaigns. Archived verified binary, raw execution logs and receipts retained.",
+          "removed_private_target": "/Users/kevin/.codex/worktrees/opt-enum-gate/AI-Lang/target/final-698-699"
+        }
+      }
+    ]
+  },
+  "raw_rescore": {
+    "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/round9-corrected-810afdd90-replay-20261009/rescore.json",
+    "sha256": "eaf0179073fd53d4b8f861d2adaef33712282f4da79bade600896b7d916dd7c3"
+  },
+  "schema": "semaprax.teamdesk.round9.corrected-replay-publication.v1",
+  "settings": {
+    "acceptance_timeout_seconds": 2700,
+    "actual_billed_usd": "null in original records",
+    "authoring_tokenizer": "legacy Claude BPE proxy; not exact current-model tokenization",
+    "fixed_context_tokens": "unavailable",
+    "requested_effort": "medium",
+    "requested_model": "gpt-6.1-sol",
+    "requested_round_profile": 9,
+    "rescore_jobs": 2,
+    "rescore_wall_seconds": 1233.922,
+    "resolved_model": "unavailable",
+    "typescript_dependency_historical_byte_identity_verified": false
+  },
+  "summary": {
+    "accepted_by_arm": {
+      "semaprax": 5,
+      "typescript": 0
+    },
+    "attempts": 10,
+    "no_language_advantage_claim": true,
+    "required_cases_per_full_report": 912,
+    "typescript_candidate_gate_reports": 3,
+    "typescript_candidate_passed_checks": [
+      860,
+      891,
+      887
+    ],
+    "typescript_runner_fatal": 2
+  },
+  "terminal": {
+    "exit_code": 0,
+    "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/round9-corrected-810afdd90-replay-terminal-20261009.json",
+    "replay_session_id": 46087,
+    "sha256": "088eeeffe9529f461f72a1853cc5c9b0b803eda7bfea7ef8be62096051232c0c",
+    "trial_count": 10,
+    "validated_raw_sidecar_sha256": "eaf0179073fd53d4b8f861d2adaef33712282f4da79bade600896b7d916dd7c3",
+    "validation_exit_code": 0,
+    "validation_session_id": 7894
+  }
+}

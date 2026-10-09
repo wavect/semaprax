@@ -1,6 +1,68 @@
 {
   "arms": {
     "semaprax": {
+      "candidate_after_inventory": {
+        "build.sh": "62970c9e0c2e6e454163d5a9f02090a8ced6268ea800d9aeac37b854ea189d91",
+        "generated/app.js": "171888b5f6da073a3e0c063a593c7f327fa9482b390733ddad4eb1bf14389b5f",
+        "generated/index.html": "6d16a0ffa0fec2c0254f1d5af5557a76cc75f7cde301b5230bbb06ac71809fe4",
+        "generated/runtime.js": "2af693cd89d18e61bee78f6bfbf95f901881b0ad79ef37e5f85231b3ae61e8c2",
+        "generated/schema.js": "dec2d045884f28a2591d36c39e910e19f673bab70d8089b656c86a8b5c40dd55",
+        "generated/security.mjs": "7e0404e8f4ef2f5299273ea08bf93a8ebcfa2b384add49121e0fd26e9436d277",
+        "generated/server.mjs": "da786da2d572a9fc794d1a8f8b6389eccc6d2e6e8d3e869aeb803447efb975bb",
+        "generated/state.mjs": "8b3c06aa05d7e45994e4578c6fd9bb4906d3575433ed71408578cfc1c9414892",
+        "generated/style.css": "36b4fe13dee9ce5e15686dba1a5139475ad0388330eb27dc8460b7f8acc5f24a",
+        "reference-server.mjs": "8f74ea66fc72815275afaf28f1114d03f0aaba44ef885bf326d05cd3c8a98926",
+        "run.sh": "7d93c75558a00128beab5b4e381102dce7ed46736ed7b28afd4c0e571df5cf6a",
+        "teamdesk.spx": "93b7c95f058b12d09b4799c15a36a1ebfe1cab38a5a595a2381618c112da4bc9",
+        "test.sh": "68297cf16ceb556ae54215c47aeea9bb1d92c9bfab286671bd61eab50066f9de"
+      },
+      "candidate_after_inventory_sha256": "5bc81517d711077ddb495dfbd47229e469c499bbece05cfa2ca827fc1916fd75",
+      "candidate_input_inventory": {
+        "build.sh": "62970c9e0c2e6e454163d5a9f02090a8ced6268ea800d9aeac37b854ea189d91",
+        "generated/app.js": "171888b5f6da073a3e0c063a593c7f327fa9482b390733ddad4eb1bf14389b5f",
+        "generated/index.html": "6d16a0ffa0fec2c0254f1d5af5557a76cc75f7cde301b5230bbb06ac71809fe4",
+        "generated/runtime.js": "2af693cd89d18e61bee78f6bfbf95f901881b0ad79ef37e5f85231b3ae61e8c2",
+        "generated/schema.js": "dec2d045884f28a2591d36c39e910e19f673bab70d8089b656c86a8b5c40dd55",
+        "generated/security.mjs": "7e0404e8f4ef2f5299273ea08bf93a8ebcfa2b384add49121e0fd26e9436d277",
+        "generated/server.mjs": "efa5e44e171551b65a512235ac8357d0cbc2824d09c1b215786c7806b46e99d3",
+        "generated/state.mjs": "8b3c06aa05d7e45994e4578c6fd9bb4906d3575433ed71408578cfc1c9414892",
+        "generated/style.css": "36b4fe13dee9ce5e15686dba1a5139475ad0388330eb27dc8460b7f8acc5f24a",
+        "reference-server.mjs": "8f74ea66fc72815275afaf28f1114d03f0aaba44ef885bf326d05cd3c8a98926",
+        "run.sh": "7d93c75558a00128beab5b4e381102dce7ed46736ed7b28afd4c0e571df5cf6a",
+        "teamdesk.spx": "93b7c95f058b12d09b4799c15a36a1ebfe1cab38a5a595a2381618c112da4bc9",
+        "test.sh": "68297cf16ceb556ae54215c47aeea9bb1d92c9bfab286671bd61eab50066f9de"
+      },
+      "candidate_input_inventory_sha256": "349d12e0b92ec65056812b0f7cc0f6e6343a339eecbd765a7a579ca5dae97464",
+      "execution_file": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source878-20261009/semaprax-execution.json",
+      "execution_sha256": "e90ae41213c1b5d2e8f87b85c777df4bb606280e14c0a7ec2e3a495bcca4174d",
+      "output_provenance": {
+        "changed_output_paths": [
+          "generated/server.mjs"
+        ],
+        "compiler_output_after": {
+          "generated/app.js": "171888b5f6da073a3e0c063a593c7f327fa9482b390733ddad4eb1bf14389b5f",
+          "generated/index.html": "6d16a0ffa0fec2c0254f1d5af5557a76cc75f7cde301b5230bbb06ac71809fe4",
+          "generated/runtime.js": "2af693cd89d18e61bee78f6bfbf95f901881b0ad79ef37e5f85231b3ae61e8c2",
+          "generated/schema.js": "dec2d045884f28a2591d36c39e910e19f673bab70d8089b656c86a8b5c40dd55",
+          "generated/security.mjs": "7e0404e8f4ef2f5299273ea08bf93a8ebcfa2b384add49121e0fd26e9436d277",
+          "generated/server.mjs": "da786da2d572a9fc794d1a8f8b6389eccc6d2e6e8d3e869aeb803447efb975bb",
+          "generated/state.mjs": "8b3c06aa05d7e45994e4578c6fd9bb4906d3575433ed71408578cfc1c9414892",
+          "generated/style.css": "36b4fe13dee9ce5e15686dba1a5139475ad0388330eb27dc8460b7f8acc5f24a"
+        },
+        "compiler_output_before": {
+          "generated/app.js": "171888b5f6da073a3e0c063a593c7f327fa9482b390733ddad4eb1bf14389b5f",
+          "generated/index.html": "6d16a0ffa0fec2c0254f1d5af5557a76cc75f7cde301b5230bbb06ac71809fe4",
+          "generated/runtime.js": "2af693cd89d18e61bee78f6bfbf95f901881b0ad79ef37e5f85231b3ae61e8c2",
+          "generated/schema.js": "dec2d045884f28a2591d36c39e910e19f673bab70d8089b656c86a8b5c40dd55",
+          "generated/security.mjs": "7e0404e8f4ef2f5299273ea08bf93a8ebcfa2b384add49121e0fd26e9436d277",
+          "generated/server.mjs": "efa5e44e171551b65a512235ac8357d0cbc2824d09c1b215786c7806b46e99d3",
+          "generated/state.mjs": "8b3c06aa05d7e45994e4578c6fd9bb4906d3575433ed71408578cfc1c9414892",
+          "generated/style.css": "36b4fe13dee9ce5e15686dba1a5139475ad0388330eb27dc8460b7f8acc5f24a"
+        },
+        "directory": "generated",
+        "recipe_path": "build.sh",
+        "recipe_sha256": "62970c9e0c2e6e454163d5a9f02090a8ced6268ea800d9aeac37b854ea189d91"
+      },
       "qualification": {
         "cases": 912,
         "failures": [],
@@ -8,10 +70,74 @@
         "missingGroups": [],
         "passed": true
       },
-      "report_file": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-requalification-b4b13c6cb34b-0e99277e3-round9-20261008/evidence/semaprax/report.json",
-      "report_sha256": "a3a067f7aaa112fc01368384afcd9d794059a602a04d31d197ad5582ccf33062"
+      "report_file": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source878-20261009/evidence/semaprax/report.json",
+      "report_sha256": "b1a17becb25936a31bd46a5cdb2e17d11101430f538e94017588f79ef9c7e74a",
+      "source_projection_inventory": {
+        "build.sh": "62970c9e0c2e6e454163d5a9f02090a8ced6268ea800d9aeac37b854ea189d91",
+        "reference-server.mjs": "8f74ea66fc72815275afaf28f1114d03f0aaba44ef885bf326d05cd3c8a98926",
+        "run.sh": "7d93c75558a00128beab5b4e381102dce7ed46736ed7b28afd4c0e571df5cf6a",
+        "teamdesk.spx": "93b7c95f058b12d09b4799c15a36a1ebfe1cab38a5a595a2381618c112da4bc9",
+        "test.sh": "68297cf16ceb556ae54215c47aeea9bb1d92c9bfab286671bd61eab50066f9de"
+      },
+      "source_projection_inventory_sha256": "1b2c872d7e5fa5d3b1300a5dbab3456b6cd42d24873c77e513997f46048832ef"
     },
     "typescript": {
+      "candidate_after_inventory": {
+        ".gitignore": "0ba297cf012790a68b04efd9f50f4994fd581c361c35ec84535a6f60467bab2e",
+        "README.md": "0f5ead9f51bb39a4c8475516cb9a04e33a3da57cd423d8175a98c4d86dd5d6f8",
+        "build.sh": "519f7f2910219b61208efcf9f90c0c1731a16ffdafe6fbcb1037c4e905071477",
+        "dist/assets/index-DZEsRVNB.js": "0b895b48abe66c8531819a1310fe75dfa25471a70c7d7ee0a8b61c598827b4e4",
+        "dist/index.html": "df2e2db0fb05ac3f928891a16dd6bc2cfb4c6ac78e831b53e36f7282bbf388b8",
+        "index.html": "566b4f0645fe7175c07b162b2fbeb0bd9fc21eabe0382c06061e77cfadc2975a",
+        "package-lock.json": "36cbe83f76147a35acd2a73394144e6969a6b6a8f07d5a5eadc164b215baa711",
+        "package.json": "a8b89aa65fe1b7cdedcb31fa541cb8ace934f15477f7cbc014d2383b527a4935",
+        "reference-server.mjs": "8f74ea66fc72815275afaf28f1114d03f0aaba44ef885bf326d05cd3c8a98926",
+        "run.sh": "7d93c75558a00128beab5b4e381102dce7ed46736ed7b28afd4c0e571df5cf6a",
+        "server/index.ts": "5f5090240fbe44deaf88547e7965f8441a1f91608da3798edb3af844cc7039e7",
+        "shared/json.ts": "a2426cdbcd203693581bc19182bd6cd9fdda2125e60979e881d74e203f92cfc6",
+        "shared/schema.ts": "7b9af4c3454f42f832d008ce99eb16e3745a7fd83bceffb83e781a4e16617af5",
+        "src/api.ts": "79f66c7afe424281c4243390895c8a86a87517cc3e9ca39b75e8c25a70eaddb5",
+        "src/main.tsx": "2f4b7f45a82df5f2a56e8a350a91bbb1f2705cde2f69727bf39632630b6f8a5e",
+        "src/views.tsx": "0a663e0846a644003af60365ba41fea72339795d0d380092c8632482ad554e5f",
+        "test.sh": "6addeae4979950ff369c0ef07e8d9ece9c4a8d32b00b796d6a163f5bf0969d41",
+        "tests/int64.test.ts": "5207652185af5e7a5a9fda2042be7155c600493158284151ae4fae2e46670f7c",
+        "tests/server-int64.test.ts": "d8c8af6e33eb3835a9b53382bcf0491813608f8a86be8a2b64390baab4752b8c",
+        "tests/ui-permissions.test.ts": "47f80847edcd07fd3ac6466ea0322388dc735e2aca11a3e611b1c4bfb416b2c7",
+        "tsconfig.json": "d642f5424183a995f2475e74ac59aa0f2503ca53bad83fa905d45743ffb9e417",
+        "vite.config.ts": "04504a1101152fa181213e15926b8a77d886251badc02e81e68b2c63e994039b"
+      },
+      "candidate_after_inventory_sha256": "5aefbdf7cafc43aeb4db1f0a2c5baf3ee080df28a779c1f18aba455fb20a9573",
+      "candidate_input_inventory": {
+        ".gitignore": "0ba297cf012790a68b04efd9f50f4994fd581c361c35ec84535a6f60467bab2e",
+        "README.md": "0f5ead9f51bb39a4c8475516cb9a04e33a3da57cd423d8175a98c4d86dd5d6f8",
+        "build.sh": "519f7f2910219b61208efcf9f90c0c1731a16ffdafe6fbcb1037c4e905071477",
+        "index.html": "566b4f0645fe7175c07b162b2fbeb0bd9fc21eabe0382c06061e77cfadc2975a",
+        "package-lock.json": "36cbe83f76147a35acd2a73394144e6969a6b6a8f07d5a5eadc164b215baa711",
+        "package.json": "a8b89aa65fe1b7cdedcb31fa541cb8ace934f15477f7cbc014d2383b527a4935",
+        "reference-server.mjs": "8f74ea66fc72815275afaf28f1114d03f0aaba44ef885bf326d05cd3c8a98926",
+        "run.sh": "7d93c75558a00128beab5b4e381102dce7ed46736ed7b28afd4c0e571df5cf6a",
+        "server/index.ts": "5f5090240fbe44deaf88547e7965f8441a1f91608da3798edb3af844cc7039e7",
+        "shared/json.ts": "a2426cdbcd203693581bc19182bd6cd9fdda2125e60979e881d74e203f92cfc6",
+        "shared/schema.ts": "7b9af4c3454f42f832d008ce99eb16e3745a7fd83bceffb83e781a4e16617af5",
+        "src/api.ts": "79f66c7afe424281c4243390895c8a86a87517cc3e9ca39b75e8c25a70eaddb5",
+        "src/main.tsx": "2f4b7f45a82df5f2a56e8a350a91bbb1f2705cde2f69727bf39632630b6f8a5e",
+        "src/views.tsx": "0a663e0846a644003af60365ba41fea72339795d0d380092c8632482ad554e5f",
+        "test.sh": "6addeae4979950ff369c0ef07e8d9ece9c4a8d32b00b796d6a163f5bf0969d41",
+        "tests/int64.test.ts": "5207652185af5e7a5a9fda2042be7155c600493158284151ae4fae2e46670f7c",
+        "tests/server-int64.test.ts": "d8c8af6e33eb3835a9b53382bcf0491813608f8a86be8a2b64390baab4752b8c",
+        "tests/ui-permissions.test.ts": "47f80847edcd07fd3ac6466ea0322388dc735e2aca11a3e611b1c4bfb416b2c7",
+        "tsconfig.json": "d642f5424183a995f2475e74ac59aa0f2503ca53bad83fa905d45743ffb9e417",
+        "vite.config.ts": "04504a1101152fa181213e15926b8a77d886251badc02e81e68b2c63e994039b"
+      },
+      "candidate_input_inventory_sha256": "e7d8b73b282bdd4340bbfcccd3a11d6388b9acbf120850a05d211613fa664410",
+      "execution_file": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source878-20261009/typescript-execution.json",
+      "execution_sha256": "2773a34387f7abaa91b1c8f3aae3dbadd74268c0601b6f7ad44222aa2994eaad",
+      "output_provenance": {
+        "added_build_output_paths": {
+          "dist/assets/index-DZEsRVNB.js": "0b895b48abe66c8531819a1310fe75dfa25471a70c7d7ee0a8b61c598827b4e4",
+          "dist/index.html": "df2e2db0fb05ac3f928891a16dd6bc2cfb4c6ac78e831b53e36f7282bbf388b8"
+        }
+      },
       "qualification": {
         "cases": 912,
         "failures": [],
@@ -19,13 +145,36 @@
         "missingGroups": [],
         "passed": true
       },
-      "report_file": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-requalification-b4b13c6cb34b-0e99277e3-round9-20261008/evidence/typescript/report.json",
-      "report_sha256": "aca1032f2a5779650fb22a98741ad5080da95f6e2f1a2e372e34d4a108541b89"
+      "report_file": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source878-20261009/evidence/typescript/report.json",
+      "report_sha256": "bfdd0cc112f1093183237686cd4cad6349dd7fdd4acb79c8156394b65de41f9b",
+      "source_projection_inventory": {
+        ".gitignore": "0ba297cf012790a68b04efd9f50f4994fd581c361c35ec84535a6f60467bab2e",
+        "README.md": "0f5ead9f51bb39a4c8475516cb9a04e33a3da57cd423d8175a98c4d86dd5d6f8",
+        "build.sh": "519f7f2910219b61208efcf9f90c0c1731a16ffdafe6fbcb1037c4e905071477",
+        "index.html": "566b4f0645fe7175c07b162b2fbeb0bd9fc21eabe0382c06061e77cfadc2975a",
+        "package-lock.json": "36cbe83f76147a35acd2a73394144e6969a6b6a8f07d5a5eadc164b215baa711",
+        "package.json": "a8b89aa65fe1b7cdedcb31fa541cb8ace934f15477f7cbc014d2383b527a4935",
+        "reference-server.mjs": "8f74ea66fc72815275afaf28f1114d03f0aaba44ef885bf326d05cd3c8a98926",
+        "run.sh": "7d93c75558a00128beab5b4e381102dce7ed46736ed7b28afd4c0e571df5cf6a",
+        "server/index.ts": "5f5090240fbe44deaf88547e7965f8441a1f91608da3798edb3af844cc7039e7",
+        "shared/json.ts": "a2426cdbcd203693581bc19182bd6cd9fdda2125e60979e881d74e203f92cfc6",
+        "shared/schema.ts": "7b9af4c3454f42f832d008ce99eb16e3745a7fd83bceffb83e781a4e16617af5",
+        "src/api.ts": "79f66c7afe424281c4243390895c8a86a87517cc3e9ca39b75e8c25a70eaddb5",
+        "src/main.tsx": "2f4b7f45a82df5f2a56e8a350a91bbb1f2705cde2f69727bf39632630b6f8a5e",
+        "src/views.tsx": "0a663e0846a644003af60365ba41fea72339795d0d380092c8632482ad554e5f",
+        "test.sh": "6addeae4979950ff369c0ef07e8d9ece9c4a8d32b00b796d6a163f5bf0969d41",
+        "tests/int64.test.ts": "5207652185af5e7a5a9fda2042be7155c600493158284151ae4fae2e46670f7c",
+        "tests/server-int64.test.ts": "d8c8af6e33eb3835a9b53382bcf0491813608f8a86be8a2b64390baab4752b8c",
+        "tests/ui-permissions.test.ts": "47f80847edcd07fd3ac6466ea0322388dc735e2aca11a3e611b1c4bfb416b2c7",
+        "tsconfig.json": "d642f5424183a995f2475e74ac59aa0f2503ca53bad83fa905d45743ffb9e417",
+        "vite.config.ts": "04504a1101152fa181213e15926b8a77d886251badc02e81e68b2c63e994039b"
+      },
+      "source_projection_inventory_sha256": "e7d8b73b282bdd4340bbfcccd3a11d6388b9acbf120850a05d211613fa664410"
     }
   },
-  "compiler_binary_sha256": "3839f57b3d4bb502f2c852e696f04347dfd45d5e0c9de82db0d20418c4200a0d",
-  "compiler_source_commit": "0e99277e3397bc9a878c015bf2bcb0c843903ce3",
-  "gate_source": "b4b13c6cb34bcd2165a9d5aec06800e85324ee24",
+  "compiler_binary_sha256": "78a7d91a5085fb45ef2cca28ad28f53ef21065e0eb24dc8523e9b3dce07d8355",
+  "compiler_source_commit": "8785368bfcf984ece85db7f2ce2f55586dfc1775",
+  "gate_source": "810afdd907561dcfe6aab52823d43b1ffecd0a0e",
   "qualified": true,
   "schema": "semaprax.teamdesk.reference.qualification.v1",
   "spec_sha256": "7658414ed2bbb53477a93e4a00f36269954c5bc45f3148fe72ddd02f203a50dc"

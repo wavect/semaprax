@@ -24,6 +24,23 @@ export function formControl(page,field) {
   return page.getByLabel(formFieldLabel(field)).and(page.locator('input,select,textarea'));
 }
 
+export function searchControl(page) {
+  const name=/^\s*search\s*$/i;
+  // Keep legacy CSS witnesses while admitting an ordinary native input whose
+  // exact accessible name is Search. `or` is a locator union, then the caller
+  // rejects zero or ambiguous visible controls.
+  return page.locator('input[type="search"]:visible,input[placeholder="Search"]:visible').or(
+    page.getByRole('textbox',{name}).and(page.locator('input:visible')));
+}
+
+export function visibleErrorMessageCount(messages) {
+  assert.ok(Array.isArray(messages),'visible error messages');
+  return new Set(messages.flatMap(message=>{
+    assert.equal(typeof message,'string','visible error text');
+    return message.split(/\r\n?|\n/).map(line=>line.trim()).filter(Boolean);
+  })).size;
+}
+
 export function actionControl(page,name,entity) {
   const escaped=value=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
   const label=entity?new RegExp(`^(?:\\+ )?${escaped(name)} ${escaped(entity)}$`,'i'):new RegExp(`^${escaped(name)}$`,'i');

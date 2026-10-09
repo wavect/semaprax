@@ -9,7 +9,7 @@ import { ENTITIES,ENUMS,COVERAGE,SPEC_SHA256,integer,seed,canRead,canWrite,compu
 import { sha256,requiredCases,qualify,passwordChecks } from './qualification.mjs';
 import { localUrl,readinessPath,readyResponse,launch,finish,unusedPort } from './process.mjs';
 import {direction} from './ordering.mjs';
-import { parseCsv,csvColumns,auditChangeValues,Probe,deniedWriteStatuses,auditRowId } from './api.mjs';
+import { parseCsv,csvColumns,auditChangeValues,auditEventKind,Probe,deniedWriteStatuses,auditRowId } from './api.mjs';
 test('denied writes keep readable targets strict and audit IDs resolve the affected row',()=>{assert.deepEqual(deniedWriteStatuses(true),[403]);assert.deepEqual(deniedWriteStatuses(false),[403,404]);for(const status of [200,201,204]){assert.equal(deniedWriteStatuses(true).includes(status),false);assert.equal(deniedWriteStatuses(false).includes(status),false);}assert.equal(auditRowId({id:7,row_id:31,record_id:32}),31);assert.equal(auditRowId({id:7,record_id:32}),32);assert.equal(auditRowId({id:7}),7);});
 test('frozen SPEC byte identity and exactly20 independently named entities',async()=>{assert.equal(sha256(await fs.readFile(new URL('../SPEC.md',import.meta.url))),SPEC_SHA256);assert.equal(Object.keys(ENTITIES).length,20);assert.equal(Object.keys(ENUMS).length,12);});
 test('omitting any stored field fails independent row shape',()=>{const refs=Object.fromEntries(Object.keys(ENTITIES).map(name=>[name,1]));for(const entity of Object.keys(ENTITIES)){const row={...seed(entity,refs,17),id:1};delete row.password;rowShape(entity,row);for(const field of Object.keys(ENTITIES[entity])){const missing={...row};delete missing[field];assert.throws(()=>rowShape(entity,missing),`${entity}.${field}`);}}});
@@ -24,7 +24,7 @@ test('hostile API missing fields and weakened write responses are observed exter
 
 test('actual sort order and pagination omissions cannot satisfy ordering oracle',()=>{const rows=Array.from({length:27},(_,n)=>({id:String(n+1),value:String(n+1)})),ids=rows.map(row=>row.id);assert.equal(direction(ids,rows,'value','int'),-1);assert.equal(direction(ids.slice().reverse(),rows,'value','int'),1);const wrong=ids.slice();[wrong[24],wrong[25]]=[wrong[25],wrong[24]];assert.throws(()=>direction(wrong,rows,'value','int'),'wrong boundary order');assert.throws(()=>direction(ids.slice(0,25),rows,'value','int'),'dropped page');const duplicate=ids.slice();duplicate[26]=duplicate[25];assert.throws(()=>direction(duplicate,rows,'value','int'),'duplicate row');});
 
-import {actionControl,numericEditor,directPage,enumFilterSelectors,formControl,formFieldLabel,signInLabel,uniqueControl} from './browser-support.mjs';
+import {actionControl,numericEditor,directPage,enumFilterSelectors,formControl,formFieldLabel,searchControl,signInLabel,uniqueControl,visibleErrorMessageCount} from './browser-support.mjs';
 test('exact numeric editors are accepted without accepting untyped strings',()=>{numericEditor('int',{type:'text',inputmode:'numeric'});numericEditor('int',{type:'number',step:'1'});numericEditor('float',{type:'number',step:'any'});assert.throws(()=>numericEditor('int',{type:'text'}));assert.throws(()=>numericEditor('float',{type:'text',inputmode:'numeric'}));assert.throws(()=>numericEditor('int',{type:'number',step:'0.1'}));});
 test('direct route awaits a fresh document rather than earlier hash networkidle',async()=>{const calls=[],page={goto:async(...args)=>calls.push(args)};await directPage(page,'http://127.0.0.1:1234/#/task/1/edit');assert.deepEqual(calls,[['about:blank'],['http://127.0.0.1:1234/#/task/1/edit',{waitUntil:'networkidle'}]]);});
 
@@ -43,6 +43,21 @@ test('audit old/new representations preserve exact values and reject wrong chang
     assert.throws(()=>auditChangeValues(change));
   for (const change of [['after','before'],{old:'after',new:'before'},{old:'before',new:'wrong'}])
     assert.throws(()=>assert.deepEqual(auditChangeValues(change),['before','after']));
+});
+test('audit event kind accepts representation freedom only when old/new evidence is complete',()=>{
+  const fields={name:'string',email:'string'};
+  const event=(changes,action)=>action===undefined?{changes}:{changes,action};
+  assert.equal(auditEventKind(event({name:[null,'Vendor'],email:[null,'vendor@example.test']}),'Vendor',fields),'create');
+  assert.equal(auditEventKind(event({name:['Vendor',null],email:['vendor@example.test',null]}),'Vendor',fields),'delete');
+  assert.equal(auditEventKind(event({name:['Vendor','Renamed'],email:['vendor@example.test','next@example.test']},'update'),'Vendor',fields),'update');
+  for(const hostile of [
+    event({}),
+    event({name:[null,'Vendor']}),
+    event({name:[null,'Vendor'],email:['vendor@example.test','next@example.test']}),
+    event({name:['Vendor','Renamed'],email:['vendor@example.test','next@example.test']},'create'),
+    event({name:['Vendor','Vendor'],email:['vendor@example.test','next@example.test']},'update'),
+    event({name:['Vendor','Renamed'],email:['vendor@example.test','next@example.test']},'merge'),
+  ]) assert.throws(()=>auditEventKind(hostile,'Vendor',fields));
 });
 test('readiness uses current member without setup and rejects unhealthy responses',async()=>{
   assert.equal(readinessPath('semaprax'),'api/session'); assert.equal(readinessPath('typescript'),'api/me');
@@ -122,4 +137,26 @@ test('actions union exact links and buttons while native form controls exclude n
   assert.equal(calls.filter(call=>call[0]==='role'&&call[1]==='button').length,2);
   assert.deepEqual(calls.find(call=>call[0]==='and'),['and','input,select,textarea']);
   await assert.rejects(()=>uniqueControl({count:async()=>2},'Edit'),/one Edit control/);
+});
+test('search controls accept exact accessible Search inputs while refusing ambiguity',async()=>{
+  const calls=[];
+  const legacy={kind:'legacy',or(other){calls.push(['or',other.kind]);return {count:async()=>1};}};
+  const textbox={kind:'textbox',and(other){calls.push(['and',other.selector]);return {kind:'native-input'};}};
+  const page={
+    locator(selector){return selector==='input[type="search"]:visible,input[placeholder="Search"]:visible'?legacy:{selector};},
+    getByRole(role,options){calls.push(['role',role,options.name]);return textbox;},
+  };
+  await uniqueControl(searchControl(page),'Search');
+  const name=calls.find(call=>call[0]==='role')[2];
+  for(const label of ['Search',' search ','SEARCH'])assert.equal(name.test(label),true);
+  for(const label of ['Search records','New Search'])assert.equal(name.test(label),false);
+  assert.deepEqual(calls.find(call=>call[0]==='and'),['and','input:visible']);
+  await assert.rejects(()=>uniqueControl({count:async()=>2},'Search'),/one Search control/);
+});
+
+test('visible error messages count distinct nonempty lines without splitting collapsed text',()=>{
+  assert.equal(visibleErrorMessageCount(['Required name\nInvalid email','Invalid email','  ']),2);
+  assert.equal(visibleErrorMessageCount(['Required name\r\nInvalid email','Required name','Invalid email']),2);
+  assert.equal(visibleErrorMessageCount(['Required name Invalid email']),1);
+  assert.throws(()=>visibleErrorMessageCount(['Required name',null]));
 });

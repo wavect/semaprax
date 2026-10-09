@@ -53,8 +53,11 @@ These paths add no migration, deployment, or other application feature.
 Readiness probes use the documented current-member route, accepting a JSON
 object with 200 or unauthenticated 401; setup endpoints are not health probes.
 Audit changed-field values may be a two-item `[old,new]` pair or an object
-with exactly `old` and `new` fields. Their values and every audit obligation
-remain independently checked. CSV headers are decoded as CSV, including
+with exactly `old` and `new` fields. An audit event may state a valid `action`
+(`create`, `update`, or `delete`), or omit it when complete, unambiguous
+old/new required-field changes identify that operation; an explicit action must
+match those changes. Their values and every audit obligation remain independently
+checked. CSV headers are decoded as CSV, including
 quoted columns and an optional leading UTF-8 BOM. Records must have consistent
 width and required columns, and quoted fields preserve commas, quotes and
 newlines. These representation normalizations apply identically to both arms.
@@ -81,7 +84,10 @@ a screenshot. Browser authoring witnesses use values expressible through the per
 single-line string editor, including quotes and UTF-8; arbitrary multiline
 string preservation is independently checked through API and CSV.
 Client validation is checked by observing **zero entity
-mutations** before the displayed error, rather than reading client code.
+mutations** before the displayed error, rather than reading client code. Every
+violated rule is displayed next to the form as either its own visible error node
+or a distinct nonempty visible line in one error container; a node per message
+is not required.
 
 ## Password evidence limits
 

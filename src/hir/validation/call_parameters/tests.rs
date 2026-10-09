@@ -321,3 +321,113 @@ module test.nominal_signature_view;
     assert!(error.help.is_none());
     assert_eq!(crate::cache_codec::encode(&program).unwrap(), wire);
 }
+
+const USER_CALL_SOURCE: &str = r#"
+module test.borrowed_user_signatures;
+@id("payload.type") record Payload { @id("payload.bytes") bytes: Bytes, }
+@id("scalar.identity") fn scalar(value: i64) -> i64 { value }
+@id("payload.identity") fn identity(input: own Payload) -> Payload { input }
+@id("payload.relay") fn relay(input: own Payload) -> Payload { identity(input) }
+@id("scalar.combine") fn combine(value: i64) -> i64 { scalar(value) + scalar(1) }
+@id("bytes.borrowed") fn borrowed(input: borrow Slice<u8>) -> usize { byte_len(input) }
+@id("bytes.relay") fn byte_relay(input: borrow Slice<u8>) -> usize { borrowed(input) }
+@id("app.main") fn main() -> i64 { combine(1) }
+"#;
+
+fn user_call_program() -> ResolvedProgram {
+    let source = crate::parse(
+        USER_CALL_SOURCE,
+        std::path::Path::new("borrowed-user-signatures.spx"),
+    )
+    .unwrap();
+    crate::hir::resolve(&source).unwrap()
+}
+
+#[test]
+fn borrowed_user_signatures_keep_exact_descriptors_and_original_owned_census() {
+    let program = user_call_program();
+    let wire = crate::cache_codec::encode(&program).unwrap();
+    for function in &program.functions {
+        let owned_parameters = function.params.clone();
+        let expected_capacity = owned_parameters.capacity() * std::mem::size_of::<ResolvedParam>()
+            + owned_parameters
+                .iter()
+                .map(|parameter| {
+                    parameter.id.as_str().len()
+                        + parameter.name.capacity()
+                        + resolved_type_owned_capacity(&parameter.ty)
+                })
+                .sum::<usize>();
+        let owned = CallParameters::Owned(owned_parameters);
+        assert_eq!(owned.owned_capacity(), expected_capacity);
+        let ((), overflow, used) = crate::bounded_output::with_limit_usage(0, || {
+            let borrowed = CallParameters::Borrowed(&function.params);
+            assert_eq!(borrowed.owned_capacity(), 0);
+            for (index, expected) in function.params.iter().enumerate() {
+                let actual = borrowed.parameter(index);
+                assert!(std::ptr::eq(actual.ty, &expected.ty));
+                assert_eq!(actual.ownership, expected.ownership);
+                let ParameterIdentity::Owned(identity) = actual.identity else {
+                    unreachable!()
+                };
+                assert!(std::ptr::eq(identity, &expected.id));
+            }
+        });
+        assert!(!overflow);
+        assert_eq!(used, 0);
+    }
+    assert_eq!(crate::cache_codec::encode(&program).unwrap(), wire);
+}
+
+#[test]
+fn borrowed_user_signatures_keep_recursive_calls_and_hostile_argument_refusals_exact() {
+    let program = user_call_program();
+    for identity in ["payload.relay", "scalar.combine", "bytes.relay", "app.main"] {
+        let function = program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == identity)
+            .unwrap();
+        compare_expression(&program, function, &function.body).unwrap();
+    }
+    let function = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "payload.relay")
+        .unwrap();
+    let mut hostile = function.body.clone();
+    let ResolvedExprKind::Block { tail, .. } = &mut hostile.kind else {
+        unreachable!()
+    };
+    let ResolvedExprKind::Call { args, .. } = &mut tail.kind else {
+        unreachable!()
+    };
+    args[0].ownership = OwnershipMode::Borrow;
+    let error = compare_expression(&program, function, &hostile).unwrap_err();
+    assert_eq!(error.code, "SPX-H006");
+    let target = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "payload.identity")
+        .unwrap();
+    assert_eq!(
+        error.message,
+        format!(
+            "argument ownership is incompatible with parameter `{}`",
+            target.params[0].id
+        )
+    );
+    let ResolvedExprKind::Block { tail, .. } = &mut hostile.kind else {
+        unreachable!()
+    };
+    let ResolvedExprKind::Call { args, .. } = &mut tail.kind else {
+        unreachable!()
+    };
+    args.clear();
+    let error = compare_expression(&program, function, &hostile).unwrap_err();
+    assert_eq!(error.code, "SPX-H006");
+    assert_eq!(
+        error.message,
+        "call to `payload.identity` has 0 arguments but expects 1"
+    );
+}

@@ -2295,7 +2295,7 @@ impl<'a> HirValidator<'a> {
             CallNext {
                 expression: &'e ResolvedExpr,
                 args: &'e [ResolvedExpr],
-                params: CallParameters,
+                params: CallParameters<'e>,
                 return_type: ResolvedType,
                 return_ownership: OwnershipMode,
                 index: usize,
@@ -2305,7 +2305,7 @@ impl<'a> HirValidator<'a> {
             CallAfterArg {
                 expression: &'e ResolvedExpr,
                 args: &'e [ResolvedExpr],
-                params: CallParameters,
+                params: CallParameters<'e>,
                 return_type: ResolvedType,
                 return_ownership: OwnershipMode,
                 index: usize,
@@ -3177,6 +3177,8 @@ impl<'a> HirValidator<'a> {
                                 ));
                             }
                             let mut byte_operation = None;
+                            let mut borrowed_parameters = None;
+                            let retained_program = self.program;
                             let (params, return_type) = if let Some(signature) =
                                 self.intrinsic_signature(callee, type_arguments, instance, args)?
                             {
@@ -3266,10 +3268,11 @@ impl<'a> HirValidator<'a> {
                                 (crate::host_io_ops::resolved_params(op), op.return_type())
                             } else {
                                 let (params, return_type, target_effects) = if let Some(target) =
-                                    self.program.resolve_call_target(callee, instance.as_ref())
+                                    retained_program.resolve_call_target(callee, instance.as_ref())
                                 {
+                                    borrowed_parameters = Some(target.params.as_slice());
                                     (
-                                        target.params.clone(),
+                                        Vec::new(),
                                         target.return_type.clone(),
                                         target.effects.clone(),
                                     )
@@ -3285,11 +3288,13 @@ impl<'a> HirValidator<'a> {
                                         "resolved callee `{callee}` is not indexed"
                                     )));
                                 };
-                                if args.len() != params.len() {
+                                let parameter_count = borrowed_parameters
+                                    .map_or(params.len(), |parameters| parameters.len());
+                                if args.len() != parameter_count {
                                     return Err(hir_error(format!(
                                         "call to `{callee}` has {} arguments but expects {}",
                                         args.len(),
-                                        params.len()
+                                        parameter_count
                                     )));
                                 }
                                 match allowed_effects {
@@ -3309,9 +3314,13 @@ impl<'a> HirValidator<'a> {
                                 }
                                 (params, return_type)
                             };
-                            let params = match byte_operation {
-                                Some(operation) => CallParameters::Byte(operation),
-                                None => CallParameters::Owned(params),
+                            let params = if let Some(parameters) = borrowed_parameters {
+                                CallParameters::Borrowed(parameters)
+                            } else {
+                                match byte_operation {
+                                    Some(operation) => CallParameters::Byte(operation),
+                                    None => CallParameters::Owned(params),
+                                }
                             };
                             let return_ownership =
                                 self.expected_ownership(&return_type, OwnershipMode::Own)?;

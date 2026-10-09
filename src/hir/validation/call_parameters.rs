@@ -1,14 +1,16 @@
-//! Validation-only views of compiler-owned byte-operation signatures.
+//! Validation-only views of retained user and compiler-owned byte signatures.
 //!
-//! Owned signatures retain their original storage and capacity census. Byte
+//! Retained user signatures are borrowed from the immutable Program. Owned
+//! signatures retain their original storage and capacity census. Byte
 //! signatures borrow static type metadata; their synthetic identities are
 //! formatted only if an existing ownership diagnostic needs the exact text.
 use super::*;
 use crate::byte_ops::ByteOp;
 use std::fmt;
 
-pub(super) enum CallParameters {
+pub(super) enum CallParameters<'a> {
     Owned(Vec<ResolvedParam>),
+    Borrowed(&'a [ResolvedParam]),
     Byte(ByteOp),
 }
 
@@ -42,10 +44,11 @@ impl<'a> ParameterView<'a> {
     }
 }
 
-impl CallParameters {
+impl CallParameters<'_> {
     pub(super) fn parameter(&self, index: usize) -> ParameterView<'_> {
         match self {
             Self::Owned(parameters) => ParameterView::owned(&parameters[index]),
+            Self::Borrowed(parameters) => ParameterView::owned(&parameters[index]),
             Self::Byte(operation) => ParameterView {
                 ty: &operation.param_types()[index],
                 ownership: operation.param_ownership(index),
@@ -70,6 +73,9 @@ impl CallParameters {
             // The enum and descriptor are inline in the charged frame; every
             // referenced type is immutable static data, with no heap payload.
             Self::Byte(_) => 0,
+            // Program retention already owns and accounts for this immutable
+            // signature. The call frame adds only its inline slice descriptor.
+            Self::Borrowed(_) => 0,
         }
     }
 }

@@ -9,14 +9,15 @@ use semaprax::diagnostic::Diagnostic;
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
 const USAGE: &str =
-    "json-codec <project> --source <module-path> --type <record-id> --output <new-file>";
-pub(crate) const HELP: &str = "Derives checked ordinary source for an explicit flat i64/u8/usize/bool record.\nRequires declared std.data.json scan/token/digits/write dependencies. Publishes a new complete module replacement; never overwrites source.\nContract and typed failure codes: docs/APPLICATION-JSON-CODECS-V1.md\n";
+    "json-codec <project> --source <module-path> --type <record-id> --output <new-file> [--profile identifier-views.v1|request-views.v1|stream-request-views.v1]";
+pub(crate) const HELP: &str = "Derives checked ordinary source for explicit scalar records; opt-in identifier-views.v1, request-views.v1 and stream-request-views.v1 add bounded identifier/array views.\nRequires declared std.data.json scan/token/digits/write dependencies. Publishes a new complete module replacement; never overwrites source.\nContract and typed failure codes: docs/APPLICATION-JSON-CODECS-V1.md\n";
 
 pub(crate) struct Options {
     project: PathBuf,
     source: String,
     record: String,
     output: PathBuf,
+    profile: semaprax::project::JsonCodecProfile,
 }
 
 pub(crate) fn parse(args: &[String]) -> Result<Options, u8> {
@@ -24,12 +25,13 @@ pub(crate) fn parse(args: &[String]) -> Result<Options, u8> {
         eprintln!("{USAGE}");
         2
     };
-    if args.len() != 7 || args[0].is_empty() || args[0].starts_with('-') {
+    if !matches!(args.len(), 7 | 9) || args[0].is_empty() || args[0].starts_with('-') {
         return Err(fail());
     }
     let mut source = None;
     let mut record = None;
     let mut output = None;
+    let mut profile = None;
     for pair in args[1..].chunks_exact(2) {
         if pair[1].starts_with('-') || pair[1].is_empty() {
             return Err(fail());
@@ -38,6 +40,16 @@ pub(crate) fn parse(args: &[String]) -> Result<Options, u8> {
             "--source" if source.is_none() => source = Some(pair[1].clone()),
             "--type" if record.is_none() => record = Some(pair[1].clone()),
             "--output" if output.is_none() => output = Some(PathBuf::from(&pair[1])),
+            "--profile" if profile.is_none() => {
+                profile = Some(match pair[1].as_str() {
+                    "identifier-views.v1" => semaprax::project::JsonCodecProfile::IdentifierViews,
+                    "request-views.v1" => semaprax::project::JsonCodecProfile::RequestViews,
+                    "stream-request-views.v1" => {
+                        semaprax::project::JsonCodecProfile::StreamRequestViews
+                    }
+                    _ => return Err(fail()),
+                })
+            }
             _ => return Err(fail()),
         }
     }
@@ -46,6 +58,7 @@ pub(crate) fn parse(args: &[String]) -> Result<Options, u8> {
         source: source.ok_or_else(fail)?,
         record: record.ok_or_else(fail)?,
         output: output.ok_or_else(fail)?,
+        profile: profile.unwrap_or(semaprax::project::JsonCodecProfile::FlatScalars),
     })
 }
 
@@ -65,10 +78,11 @@ fn run_codec(options: Options, report: impl Fn(&[Diagnostic]) -> u8) -> Result<(
     // with_authenticated_project performs its final held-input recheck before
     // returning. Only a complete verified source artifact reaches publication.
     let source = semaprax::project::with_authenticated_project(&project, |snapshot| {
-        semaprax::project::derive_json_codec_source(
+        semaprax::project::derive_json_codec_source_with_profile(
             &snapshot.retain_revision(),
             &options.source,
             &options.record,
+            options.profile,
         )
     })
     .map_err(|errors| report(&errors))?;
@@ -134,6 +148,18 @@ mod tests {
                 .collect::<Vec<_>>()
         };
         assert!(parse(&strings(&good)).is_ok());
+        for profile in [
+            "identifier-views.v1",
+            "request-views.v1",
+            "stream-request-views.v1",
+        ] {
+            let mut args = strings(&good);
+            args.extend(["--profile".to_owned(), profile.to_owned()]);
+            assert!(parse(&args).is_ok());
+        }
+        let mut unknown = strings(&good);
+        unknown.extend(["--profile".to_owned(), "open-json".to_owned()]);
+        assert!(parse(&unknown).is_err());
         assert!(parse(&strings(&good[..6])).is_err());
         assert!(parse(&strings(&[
             "p", "--type", "x", "--type", "y", "--output", "z"

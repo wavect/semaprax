@@ -751,11 +751,15 @@ path readers.
 `src/project/json_codec` owns checked-source application codec derivation and
 exact regeneration replay. It emits ordinary source and rebuilds the original
 Project/profile; generated names have no HIR authority. Its `emit` module
-composes existing scanner/token operations. `src/cli/json_codec.rs` owns the
+composes existing scanner/token operations. `views` owns checked identifier
+spans, array/request carriers and the ordinary incremental `stream.spx` template;
+stream errors use raw offsets while downstream schema errors use their supplied
+normalized input. Every emitted carrier is independently checked by ordinary
+source/HIR/profile rules. `src/cli/json_codec.rs` owns the
 explicit exclusive-create artifact route and the unchanged Doc dispatch bridge;
 `project::standard_library::application_json` owns its backend gates.
 The [application JSON contract](APPLICATION-JSON-CODECS-V1.md) keeps unsupported
-owned/nested/collection and streaming command shapes explicit.
+general owned/nested shapes and the remaining application acceptance explicit.
 
 `src/verify.rs`, `src/source_verify.rs`, and `src/hir.rs` own checked meaning.
 The `src/hir/` modules own validation, inspection indexes, declaration lookup,

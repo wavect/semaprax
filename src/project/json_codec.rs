@@ -3,6 +3,7 @@
 mod emit;
 #[cfg(test)]
 mod tests;
+mod views;
 
 use crate::ast::{Type, TypeDeclaration, TypeDeclarationKind};
 use crate::diagnostic::Diagnostic;
@@ -14,9 +15,21 @@ const MAX_SCHEMA_BYTES: usize = 65_536;
 const MAX_GENERATED_BYTES: usize = 131_072;
 const MAX_FIELDS: usize = 8;
 
+/// Explicit wire policy; it is not authority to install generated HIR.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum JsonCodecProfile {
+    FlatScalars,
+    /// One String identifier becomes a source-relative checked ASCII view.
+    IdentifierViews,
+    /// Two bounded arrays: String identifiers and identifier-view records.
+    RequestViews,
+    /// Selected streaming grammar; original source must permit stdin.read.
+    StreamRequestViews,
+}
+
 pub(super) fn refusal(message: impl Into<String>) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-J180", message).with_help(
-        "JSON codec v1 derives private flat records with explicit identities, 1..8 i64/u8/usize/bool fields and no invariants; declare std.data.json.scan, std.data.json.token, std.data.json.digits and std.data.json.write dependencies",
+        "Select a closed JSON codec profile with explicit schema identities and no invariants; declare scan/token/digits/write dependencies; identifier views use the authenticated query dependency in scan's bundled closure. See docs/APPLICATION-JSON-CODECS-V1.md for shape, capacity and original-permit requirements",
     )]
 }
 
@@ -30,6 +43,20 @@ pub fn derive_json_codec_source(
     revision: &ProjectRevision,
     source_path: &str,
     record_id: &str,
+) -> Result<String, Vec<Diagnostic>> {
+    derive_json_codec_source_with_profile(
+        revision,
+        source_path,
+        record_id,
+        JsonCodecProfile::FlatScalars,
+    )
+}
+
+pub fn derive_json_codec_source_with_profile(
+    revision: &ProjectRevision,
+    source_path: &str,
+    record_id: &str,
+    profile: JsonCodecProfile,
 ) -> Result<String, Vec<Diagnostic>> {
     revision.check()?;
     let source = revision
@@ -56,8 +83,17 @@ pub fn derive_json_codec_source(
         .ok_or_else(|| {
             refusal("JSON codec record identity was not found in the selected source")
         })?;
-    validate_record(declaration)?;
-    let fragment = emit::source(&program, declaration);
+    let fragment = match profile {
+        JsonCodecProfile::FlatScalars => {
+            validate_record(declaration)?;
+            emit::source(&program, declaration)
+        }
+        JsonCodecProfile::IdentifierViews => views::source(&program, declaration)?,
+        JsonCodecProfile::RequestViews => views::request_source(&program, declaration)?,
+        JsonCodecProfile::StreamRequestViews => {
+            views::stream_request_source(&program, declaration)?
+        }
+    };
     if fragment.len() > MAX_GENERATED_BYTES {
         return Err(refusal(
             "JSON codec generated source exceeds its fixed 131072-byte bound",
@@ -117,8 +153,25 @@ pub fn verify_json_codec_source(
     record_id: &str,
     candidate: &str,
 ) -> Result<(), Vec<Diagnostic>> {
+    verify_json_codec_source_with_profile(
+        revision,
+        source_path,
+        record_id,
+        candidate,
+        JsonCodecProfile::FlatScalars,
+    )
+}
+
+pub fn verify_json_codec_source_with_profile(
+    revision: &ProjectRevision,
+    source_path: &str,
+    record_id: &str,
+    candidate: &str,
+    profile: JsonCodecProfile,
+) -> Result<(), Vec<Diagnostic>> {
     if candidate.len() > MAX_SCHEMA_BYTES + MAX_GENERATED_BYTES
-        || derive_json_codec_source(revision, source_path, record_id)? != candidate
+        || derive_json_codec_source_with_profile(revision, source_path, record_id, profile)?
+            != candidate
     {
         return Err(refusal(
             "JSON codec source differs from its checked-source derivation",

@@ -5,6 +5,12 @@
   with explicit prerequisites and deterministic continuations. Correct the
   starter command grammar; current-head help gates and live measurements await
   the grouped batch.
+- Add closed checked-source identifier/request-view codec profiles and incremental
+  stdin JSON normalization for #724, with bounded Copy-view collections, source
+  span revalidation, raw-versus-normalized diagnostics and provider-observed
+  boundary fixtures. Source implementation only; combined execution gates and
+  full application acceptance remain pending.
+
 - Add checked-source derivation of ordinary application JSON codecs for private
   flat scalar records, typed invalid-input outcomes, exact output preflight and
   exclusive-create CLI publication. Preserve original profile admission and

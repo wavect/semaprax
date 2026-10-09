@@ -6,6 +6,8 @@ use semaprax::{codegen, format, parse, project, wasm};
 use sha2::{Digest, Sha256};
 
 mod stream;
+mod stream_native;
+mod views;
 
 const MANIFEST: &str = r#"schema = "semaprax.manifest.v1"
 
@@ -27,6 +29,7 @@ std.data.json.scan = "=0.1.0"
 std.data.json.token = "=0.1.0"
 std.data.json.digits = "=0.1.0"
 std.data.json.write = "=0.1.0"
+std.data.json.query = "=0.1.0"
 "#;
 
 const SCHEMA: &str = r#"module consumer.schema;

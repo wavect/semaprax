@@ -43,8 +43,10 @@ by the sum. These are compiler artifact bounds, not raw JSON input limits.
 Record invariants refuse derivation: this generator cannot replace explicit
 application validation with an unchecked schema claim. Classes, resources,
 generic records, nested fields, floats, chars, owned strings, nullable/optional
-fields and arrays are outside v1. #723's flat Copy record Vec carrier is a
-separate composition step; this generator does not broaden collection ownership.
+fields and arrays are outside the default scalar profile. Additional closed view
+profiles below admit bounded identifier/array schemas without constructing owned
+String records. #723's flat Copy record Vec carrier is a
+separate composition step; collection ownership remains independently checked by the compiler.
 
 Declare the exact bundled dependencies `std.data.json.scan`,
 `std.data.json.token`, `std.data.json.digits` and `std.data.json.write`.
@@ -62,7 +64,7 @@ bounded stdin chunk, decodes a record, stores and reads it through `Vec<Patient>
 computes a decision, and writes the encoded result to stdout. Malformed inputs
 return status 2 without partial output. This composition gate is pending; the
 command fixture refuses additional chunks rather than claiming an incremental
-whole-stream codec. In particular, this slice
+whole-stream codec. That original fixture alone
 does not establish ShiftSim's raw input above 65,536 bytes, nested requests,
 owned string patients or its complete fifteen-obligation acceptance contract.
 
@@ -82,8 +84,9 @@ json_Patient_encode(value: Patient, output_limit: usize)
 `PatientJsonDecode` is Copy: `Decoded { value: Patient }` or
 `Error { code: i64, offset: usize, field: i64 }`. No Patient is constructed before
 complete grammar and schema validation. Required fields have no defaults.
-Failure offset is an absolute byte offset in the immutable input; EOF equals
-input length. Global errors use field zero. The codes are:
+Failure offset is an absolute byte offset in the immutable input; a selected
+structural EOF equals input length. Truncated literals retain the strict
+scanner's token-start selection. Global errors use field zero. The codes are:
 
 | Code | Meaning and selection |
 | --- | --- |
@@ -142,3 +145,86 @@ Generated source bytes are compiler output. They must be reported separately
 from model-authored source bytes/tokens in any efficiency comparison. No token
 savings, current-head acceptance, broader application profile or cost advantage
 is established before the required fresh matched campaign and full #724 gates.
+
+## Identifier, request and incremental stream views
+
+The additional closed CLI selectors are `--profile identifier-views.v1`,
+`--profile request-views.v1` and `--profile stream-request-views.v1`. These are
+source implementations with their owning combined gates pending. View profiles
+use `std.data.json.query` from the declared scanner's authenticated bundled
+dependency closure; an explicit query dependency is also accepted. They do not
+change the default scalar codec. A selected identifier record has exactly one
+`String` field and up to six scalar fields; its runtime view replaces that
+String with two `usize` token bounds. Request views derive from an explicit
+record whose first field is `Vec<String>` and whose second is `Vec<IdentifierRecord>`.
+The faithful logical schema is checked by ordinary declaration-only collection
+rules; those String collections cannot be constructed or used at runtime.
+The generated runtime carriers are flat Copy views, `Vec<View>` and an ordinary
+owned two-collection outcome. No schema or helper identity grants an exemption.
+
+The request decoder admits zero through eight server identifiers and zero
+through 256 records. Identifiers decode to 1 through 16 ASCII letters, digits,
+underscore or hyphen; escaped-equivalent spellings compare as the same value.
+Identifiers are unique within each array. A nonempty record array requires at
+least one server. Extra fields, duplicate fields, missing fields and wrong
+field types use the existing codes. Code 8 rejects the first array item beyond
+its cardinality bound; code 10 rejects the second decoded-equivalent identifier;
+code 11 rejects the nonempty-record/no-server combination at EOF. Array errors
+identify the original item token offset and the root field ordinal; scalar
+record errors identify the nested field ordinal. Numeric representations retain
+the full scalar range. Application ranges, such as ShiftSim service 1..100000,
+remain explicit application checks rather than silently narrowing `i64`.
+
+The functions `json_Patient_view_decode`, `json_Patient_view_array_decode`,
+`json_Request_request_decode` and corresponding encode/encoded-length helpers
+are ordinary source. The request success carries the two owned view collections;
+encoders borrow them and the immutable caller-supplied byte source. Bounds are
+plain values carrying no authority: encoding rechecks each token's bounds,
+complete string token, decoded length and ASCII policy against that supplied
+source before constructing output. Request/array preflight also rejects
+decoded-equivalent duplicate identifiers and nonempty patients without servers.
+Callers retain the source for every view use.
+Invalid spans return `Refused { required: usize::MAX }`; exact and one-short
+output budgets preserve preflight before allocation. Canonical output decodes
+escapes and emits compact ASCII identifiers in declaration order.
+
+The stream selector additionally emits `json_Request_stream_normalize`, using
+only the original schema module's explicit `process.stdin.read` permit. It
+returns ordinary `Ready { bytes: Bytes, length: usize }` or
+`Error { code: i64, offset: usize, field: i64 }`. It reads the entire provider
+stream, carries lexical and structural state across chunks, validates raw UTF-8
+and escapes, and removes whitespace only outside strings. It uses the existing
+32-container stack and 131072-byte owned buffer. A checked, schema-derived bound
+covers every admissible escaped key, identifier, scalar and maximum array
+cardinality; schemas exceeding that physical bound refuse derivation. Raw
+whitespace has no additional byte cap. A pending buffer refusal does not stop
+validation: a later structural error wins, otherwise the earlier escape/UTF-8
+fault wins, and only a grammatically valid oversized normalized document returns
+code 9. Incomplete literals identify their token start, matching the strict
+scanner; structural EOF uses the raw input length. Existing execution fuel,
+provider failures, ownership and sticky allocation failure remain authoritative.
+
+Offsets deliberately have two domains. `StreamInput::Error.offset` identifies
+raw provider input. A request/schema error after `Ready` identifies the immutable
+normalized bytes supplied to that decoder. For raw `  {"unknown":0}`, normalization
+succeeds and request decoding returns code 4 at normalized offset 1, not raw
+offset 3. Direct-input decoders continue reporting their supplied input's absolute
+byte offsets. A wrapper must label these domains accurately. The Ready byte
+owner remains live through view decoding, domain checks and encoding.
+
+`standard_library::application_json::views::` owns same-source view codecs on
+interpreter, native C11 O0/O2 and strict Core Wasm, exact/one-short output and
+forged spans. `standard_library::application_json::stream_native::` owns a real
+v29 stdin request pipeline, all lexical split positions, more than 65 KiB raw
+whitespace, 256 records plus eight servers with escaped keys/identifiers, and
+late grammar precedence after storage overflow. Its boundary probe emits C from
+the same retained HIR and observes exactly one provider read site without
+changing returned bytes/counts/status; assertions check actual read lengths.
+That explicitly instrumented test executable is distinct from the unchanged
+native acceptance executable. Source/HIR-graph/C hashes bind the probe.
+
+General nested objects, nullable values and runtime materialization of owned
+String records remain outside these profiles. Full ShiftSim scheduling and all
+fifteen unchanged obligations, another complete application and physical
+allocation-failure coverage are still required before closing #724. These
+source tranches establish no executed current-head acceptance or token gain.

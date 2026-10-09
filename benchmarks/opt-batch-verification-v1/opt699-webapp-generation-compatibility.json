@@ -1,0 +1,160 @@
+{
+  "actual_generated_outputs": {
+    "generated/app.js": "171888b5f6da073a3e0c063a593c7f327fa9482b390733ddad4eb1bf14389b5f",
+    "generated/index.html": "6d16a0ffa0fec2c0254f1d5af5557a76cc75f7cde301b5230bbb06ac71809fe4",
+    "generated/runtime.js": "2af693cd89d18e61bee78f6bfbf95f901881b0ad79ef37e5f85231b3ae61e8c2",
+    "generated/schema.js": "dec2d045884f28a2591d36c39e910e19f673bab70d8089b656c86a8b5c40dd55",
+    "generated/security.mjs": "7e0404e8f4ef2f5299273ea08bf93a8ebcfa2b384add49121e0fd26e9436d277",
+    "generated/server.mjs": "da786da2d572a9fc794d1a8f8b6389eccc6d2e6e8d3e869aeb803447efb975bb",
+    "generated/state.mjs": "8b3c06aa05d7e45994e4578c6fd9bb4906d3575433ed71408578cfc1c9414892",
+    "generated/style.css": "36b4fe13dee9ce5e15686dba1a5139475ad0388330eb27dc8460b7f8acc5f24a"
+  },
+  "all_output_bytes_equal": true,
+  "application_reexecuted": false,
+  "argv": [
+    "/bin/sh",
+    "build.sh"
+  ],
+  "baseline_generated_outputs": {
+    "generated/app.js": "171888b5f6da073a3e0c063a593c7f327fa9482b390733ddad4eb1bf14389b5f",
+    "generated/index.html": "6d16a0ffa0fec2c0254f1d5af5557a76cc75f7cde301b5230bbb06ac71809fe4",
+    "generated/runtime.js": "2af693cd89d18e61bee78f6bfbf95f901881b0ad79ef37e5f85231b3ae61e8c2",
+    "generated/schema.js": "dec2d045884f28a2591d36c39e910e19f673bab70d8089b656c86a8b5c40dd55",
+    "generated/security.mjs": "7e0404e8f4ef2f5299273ea08bf93a8ebcfa2b384add49121e0fd26e9436d277",
+    "generated/server.mjs": "da786da2d572a9fc794d1a8f8b6389eccc6d2e6e8d3e869aeb803447efb975bb",
+    "generated/state.mjs": "8b3c06aa05d7e45994e4578c6fd9bb4906d3575433ed71408578cfc1c9414892",
+    "generated/style.css": "36b4fe13dee9ce5e15686dba1a5139475ad0388330eb27dc8460b7f8acc5f24a"
+  },
+  "compiler_binary": "/Users/kevin/.codex/benchmark-binaries/semaprax-398b051e6",
+  "compiler_binary_sha256": "594980a96bb3d7f74a168dfa6bc71d6355344f2963489f1e3ae854d2f3a01237",
+  "compiler_source_commit": "398b051e6e7a06ac49ecf77d9292831401430de0",
+  "cwd": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/source398-teamdesk-generation-compatibility-20261009/candidate",
+  "environment_inputs": {
+    "HOME": "/Users/kevin",
+    "PATH": "/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/Users/kevin/.kimi-code/bin:/Users/kevin/.nvm/versions/node/v24.3.0/bin:/Users/kevin/.bun/bin:/Users/kevin/Library/Android/sdk/platform-tools:/Users/kevin/Library/Android/sdk/tools:/Users/kevin/.elan/bin:/Library/Frameworks/Python.framework/Versions/3.14/bin:/Users/kevin/.nvm/versions/node/v24.3.0/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/Users/kevin/.codex/tmp/arg0/codex-arg0flPvTc:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/Users/kevin/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/Users/kevin/.kimi-code/bin:/Users/kevin/.nvm/versions/node/v24.3.0/bin:/Users/kevin/.local/bin:/Users/kevin/Library/pnpm:/Users/kevin/.bun/bin:/Users/kevin/Library/Android/sdk/platform-tools:/Users/kevin/Library/Android/sdk/tools:/Users/kevin/.elan/bin:/Library/Frameworks/Python.framework/Versions/3.14/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/kevin/.foundry/bin:/opt/homebrew/share/google-cloud-sdk/bin:/Users/kevin/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/Applications/ChatGPT.app/Contents/Resources:/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS:/opt/homebrew/share/google-cloud-sdk/bin:/Users/kevin/.foundry/bin",
+    "SEMAPRAX_BIN": "/Users/kevin/.codex/benchmark-binaries/semaprax-398b051e6"
+  },
+  "expanded_generator_argv": [
+    "/Users/kevin/.codex/benchmark-binaries/semaprax-398b051e6",
+    "webapp",
+    "teamdesk.spx",
+    "--output",
+    "generated"
+  ],
+  "finished_at_utc": "2026-10-09T01:44:40.419974+00:00",
+  "fresh_candidate": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/source398-teamdesk-generation-compatibility-20261009/candidate",
+  "host_cargo_run": false,
+  "lineage_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source878-finalized-20261009/finalization-lineage.json",
+  "lineage_sha256": "4dc7d657e00a2f9f89dbda1811aa1a00c438d872a367985807f72aa6e0f947d4",
+  "original_candidate": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source878-20261009/candidates/semaprax",
+  "original_generated_after": {
+    "generated/app.js": "171888b5f6da073a3e0c063a593c7f327fa9482b390733ddad4eb1bf14389b5f",
+    "generated/index.html": "6d16a0ffa0fec2c0254f1d5af5557a76cc75f7cde301b5230bbb06ac71809fe4",
+    "generated/runtime.js": "2af693cd89d18e61bee78f6bfbf95f901881b0ad79ef37e5f85231b3ae61e8c2",
+    "generated/schema.js": "dec2d045884f28a2591d36c39e910e19f673bab70d8089b656c86a8b5c40dd55",
+    "generated/security.mjs": "7e0404e8f4ef2f5299273ea08bf93a8ebcfa2b384add49121e0fd26e9436d277",
+    "generated/server.mjs": "da786da2d572a9fc794d1a8f8b6389eccc6d2e6e8d3e869aeb803447efb975bb",
+    "generated/state.mjs": "8b3c06aa05d7e45994e4578c6fd9bb4906d3575433ed71408578cfc1c9414892",
+    "generated/style.css": "36b4fe13dee9ce5e15686dba1a5139475ad0388330eb27dc8460b7f8acc5f24a"
+  },
+  "original_source_after": {
+    "build.sh": "62970c9e0c2e6e454163d5a9f02090a8ced6268ea800d9aeac37b854ea189d91",
+    "reference-server.mjs": "8f74ea66fc72815275afaf28f1114d03f0aaba44ef885bf326d05cd3c8a98926",
+    "run.sh": "7d93c75558a00128beab5b4e381102dce7ed46736ed7b28afd4c0e571df5cf6a",
+    "teamdesk.spx": "93b7c95f058b12d09b4799c15a36a1ebfe1cab38a5a595a2381618c112da4bc9",
+    "test.sh": "68297cf16ceb556ae54215c47aeea9bb1d92c9bfab286671bd61eab50066f9de"
+  },
+  "output_paths_exact": true,
+  "paid_or_launch_claim": false,
+  "per_file_comparison": {
+    "generated/app.js": {
+      "actual_bytes": 17491,
+      "actual_sha256": "171888b5f6da073a3e0c063a593c7f327fa9482b390733ddad4eb1bf14389b5f",
+      "equal": true,
+      "expected_bytes": 17491,
+      "expected_sha256": "171888b5f6da073a3e0c063a593c7f327fa9482b390733ddad4eb1bf14389b5f"
+    },
+    "generated/index.html": {
+      "actual_bytes": 367,
+      "actual_sha256": "6d16a0ffa0fec2c0254f1d5af5557a76cc75f7cde301b5230bbb06ac71809fe4",
+      "equal": true,
+      "expected_bytes": 367,
+      "expected_sha256": "6d16a0ffa0fec2c0254f1d5af5557a76cc75f7cde301b5230bbb06ac71809fe4"
+    },
+    "generated/runtime.js": {
+      "actual_bytes": 14135,
+      "actual_sha256": "2af693cd89d18e61bee78f6bfbf95f901881b0ad79ef37e5f85231b3ae61e8c2",
+      "equal": true,
+      "expected_bytes": 14135,
+      "expected_sha256": "2af693cd89d18e61bee78f6bfbf95f901881b0ad79ef37e5f85231b3ae61e8c2"
+    },
+    "generated/schema.js": {
+      "actual_bytes": 34118,
+      "actual_sha256": "dec2d045884f28a2591d36c39e910e19f673bab70d8089b656c86a8b5c40dd55",
+      "equal": true,
+      "expected_bytes": 34118,
+      "expected_sha256": "dec2d045884f28a2591d36c39e910e19f673bab70d8089b656c86a8b5c40dd55"
+    },
+    "generated/security.mjs": {
+      "actual_bytes": 1747,
+      "actual_sha256": "7e0404e8f4ef2f5299273ea08bf93a8ebcfa2b384add49121e0fd26e9436d277",
+      "equal": true,
+      "expected_bytes": 1747,
+      "expected_sha256": "7e0404e8f4ef2f5299273ea08bf93a8ebcfa2b384add49121e0fd26e9436d277"
+    },
+    "generated/server.mjs": {
+      "actual_bytes": 55950,
+      "actual_sha256": "da786da2d572a9fc794d1a8f8b6389eccc6d2e6e8d3e869aeb803447efb975bb",
+      "equal": true,
+      "expected_bytes": 55950,
+      "expected_sha256": "da786da2d572a9fc794d1a8f8b6389eccc6d2e6e8d3e869aeb803447efb975bb"
+    },
+    "generated/state.mjs": {
+      "actual_bytes": 6185,
+      "actual_sha256": "8b3c06aa05d7e45994e4578c6fd9bb4906d3575433ed71408578cfc1c9414892",
+      "equal": true,
+      "expected_bytes": 6185,
+      "expected_sha256": "8b3c06aa05d7e45994e4578c6fd9bb4906d3575433ed71408578cfc1c9414892"
+    },
+    "generated/style.css": {
+      "actual_bytes": 3516,
+      "actual_sha256": "36b4fe13dee9ce5e15686dba1a5139475ad0388330eb27dc8460b7f8acc5f24a",
+      "equal": true,
+      "expected_bytes": 3516,
+      "expected_sha256": "36b4fe13dee9ce5e15686dba1a5139475ad0388330eb27dc8460b7f8acc5f24a"
+    }
+  },
+  "qualification_reused_from_source878": false,
+  "receipt_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source878-finalized-20261009/qualification-receipt.json",
+  "receipt_sha256": "2f53d95006d96ba736dfa17ab0103c2c49f468c8ba82a2ef2e34a947ae606003",
+  "recipe_path": "build.sh",
+  "recipe_sha256": "62970c9e0c2e6e454163d5a9f02090a8ced6268ea800d9aeac37b854ea189d91",
+  "recipe_text": "#!/bin/sh\nset -eu\ntest -n \"$SEMAPRAX_BIN\"\n\"$SEMAPRAX_BIN\" webapp teamdesk.spx --output generated\n",
+  "schema": "semaprax.teamdesk.generation-compatibility.v1",
+  "scope": "retained compiler generator compatibility only; no application execution, tests, qualification, or admission claim",
+  "shell_exit_code": 0,
+  "source398_identity_path": "/Users/kevin/.codex/benchmark-binaries/semaprax-398b051e6.identity.json",
+  "source398_identity_sha256": "7819129f86f391dd049257bd5a6ed09b17f191575d8e5b41e34a6e8ff6f6acdb",
+  "source_projection_after": {
+    "build.sh": "62970c9e0c2e6e454163d5a9f02090a8ced6268ea800d9aeac37b854ea189d91",
+    "reference-server.mjs": "8f74ea66fc72815275afaf28f1114d03f0aaba44ef885bf326d05cd3c8a98926",
+    "run.sh": "7d93c75558a00128beab5b4e381102dce7ed46736ed7b28afd4c0e571df5cf6a",
+    "teamdesk.spx": "93b7c95f058b12d09b4799c15a36a1ebfe1cab38a5a595a2381618c112da4bc9",
+    "test.sh": "68297cf16ceb556ae54215c47aeea9bb1d92c9bfab286671bd61eab50066f9de"
+  },
+  "source_projection_before": {
+    "build.sh": "62970c9e0c2e6e454163d5a9f02090a8ced6268ea800d9aeac37b854ea189d91",
+    "reference-server.mjs": "8f74ea66fc72815275afaf28f1114d03f0aaba44ef885bf326d05cd3c8a98926",
+    "run.sh": "7d93c75558a00128beab5b4e381102dce7ed46736ed7b28afd4c0e571df5cf6a",
+    "teamdesk.spx": "93b7c95f058b12d09b4799c15a36a1ebfe1cab38a5a595a2381618c112da4bc9",
+    "test.sh": "68297cf16ceb556ae54215c47aeea9bb1d92c9bfab286671bd61eab50066f9de"
+  },
+  "started_at_utc": "2026-10-09T01:44:37.951875+00:00",
+  "stderr_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/source398-teamdesk-generation-compatibility-20261009/stderr.log",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderr_utf8": "",
+  "stdout_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/source398-teamdesk-generation-compatibility-20261009/stdout.log",
+  "stdout_sha256": "86cdf2c280c9f57d4300d4c0ed30505c10f7908952f386228815fdbf31656afb",
+  "stdout_utf8": "webapp teamdesk.spx -> generated: 20 entities, 12 enums, 47 rules, 24 computed, 7 keys, 5 workflows, 9 rollups, 23 permissions, accounts\nrun: node generated/server.mjs\n",
+  "tests_run": false
+}

@@ -1,0 +1,80 @@
+{
+  "schema": "semaprax.teamdesk.pre-campaign.readiness.v1",
+  "captured_at": "2026-10-09T01:52:57.705716+00:00",
+  "compiler_source": "398b051e6e7a06ac49ecf77d9292831401430de0",
+  "compiler_binary_sha256": "594980a96bb3d7f74a168dfa6bc71d6355344f2963489f1e3ae854d2f3a01237",
+  "generation_compatibility_report": {
+    "path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/source398-teamdesk-generation-compatibility-20261009/generation-compatibility-report.json",
+    "sha256": "50955d87d5ba91d54ae329f408de973cd946be1e7153d626b9c3eb0a04c63115",
+    "only_generation_compatibility": true,
+    "application_qualification_reused": false
+  },
+  "bootstrap_execution": {
+    "session_id": 30985,
+    "exit_code": 0,
+    "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-round10-private-bootstrap-qualified878-20261009/receipt.json",
+    "receipt_sha256": "29893d7f2ab35663dbfe0c978146712f8889e1ef05e69df525b5264b0b887bf5",
+    "inventory_sha256": "1ea4de75c09ece3a31d3db614d50ad9e16d3055290ac4f05e05bc1e02754db35",
+    "modules_sha256": {
+      "dependency_bundle.py": "58819e8be9a185cd289670c498895e7c9a27ba6baedb5649e709b5df7612c6af",
+      "typescript_bootstrap.py": "91f853a18c0a100b7e780cc46e747733426b4d5d273359f37076f6fdaa02d096"
+    },
+    "packages": {
+      "@types/node": "22.20.5",
+      "@types/react": "18.3.31",
+      "@types/react-dom": "18.3.7",
+      "@vitejs/plugin-react": "4.7.0",
+      "react": "18.3.1",
+      "react-dom": "18.3.1",
+      "react-router-dom": "6.30.6",
+      "typescript": "5.9.3",
+      "vite": "5.4.21"
+    },
+    "runtime": {
+      "host_machine": "arm64",
+      "host_platform": "Darwin",
+      "node": {
+        "arch": "arm64",
+        "platform": "darwin",
+        "versions": {
+          "acorn": "8.15.0",
+          "ada": "3.2.4",
+          "amaro": "1.1.0",
+          "ares": "1.34.5",
+          "brotli": "1.1.0",
+          "cjs_module_lexer": "2.1.0",
+          "cldr": "47.0",
+          "icu": "77.1",
+          "llhttp": "9.3.0",
+          "modules": "137",
+          "napi": "10",
+          "nbytes": "0.1.1",
+          "ncrypto": "0.0.1",
+          "nghttp2": "1.66.0",
+          "node": "24.3.0",
+          "openssl": "3.0.16",
+          "simdjson": "3.13.0",
+          "simdutf": "6.4.0",
+          "sqlite": "3.50.1",
+          "tz": "2025b",
+          "undici": "7.10.0",
+          "unicode": "16.0",
+          "uv": "1.51.0",
+          "uvwasi": "0.0.21",
+          "v8": "13.6.233.10-node.18",
+          "zlib": "1.3.1-470d3a2",
+          "zstd": "1.5.7"
+        }
+      },
+      "node_sha256": "afa8bdc2d587911bd6ec58d568e15611571f06e3902716354541775556074abf"
+    },
+    "qualification_receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/teamdesk-reference-corrected-810afdd90-source878-finalized-20261009/qualification-receipt.json",
+    "qualification_receipt_sha256": "2f53d95006d96ba736dfa17ab0103c2c49f468c8ba82a2ef2e34a947ae606003",
+    "source_compiler_qualification": "8785368bfcf984ece85db7f2ce2f55586dfc1775",
+    "application_code_supplied": false
+  },
+  "host_concurrency_note": "Generator invocation itself ran no Cargo; independent release-ci-fix Cargo/test was live. Bootstrap provisions dependency-only tooling. Neither evidence claims an isolated host or new paid runs.",
+  "paid_campaign_launched": false,
+  "live_token_cost_gain_measured": false,
+  "source398_reference_qualification": "Running separately; this receipt does not claim a completed qualification."
+}

@@ -23,6 +23,7 @@ pub(super) fn owned_builtin_facts(
         {
             "vec"
         }
+        crate::prelude::VEC_ID if super::super::declared_collection::text_element(declarations,element) => "declared-vector-only",
         crate::prelude::BOX_ID if crate::box_ops::resolved_box_element_is_admitted(element) => {
             "box"
         }

@@ -29,6 +29,9 @@ Authenticated private helpers additionally admit:
   fields in declaration order.
 - An explicit monomorphic two-case owned codec outcome whose success case has
   exactly one `string` and whose refusal case has exactly one `usize`.
+- An explicit monomorphic two-case stream-input outcome with exactly
+  `(Bytes, usize)` in its ready case and `(i64, usize, i64)` in its error case,
+  retaining ordinary affine Bytes ownership. This shape adds no input grant.
 - The direct collection outcome in [Copy Record Collections v1](COPY-RECORD-COLLECTIONS-V1.md):
   exactly two cases, 1–8 fields per case, one or two direct `Vec<R>` fields
   across the declaration, and direct scalar siblings. This supports the real
@@ -41,6 +44,11 @@ are independently checked. Codec outcomes use Value and Own boundaries
 respectively; direct collection outcomes are affine. No generic, arbitrary nested-record, arbitrary variant, or
 owned-record collection profile is implied. Record invariants whose synthesized
 helper closure falls outside explicit authored functions remain refused here.
+
+Ordinary [Declared Text Collections v1](DECLARED-TEXT-COLLECTIONS-V1.md) can
+describe a faithful logical input schema. Those types never enter this runtime
+closure; every executable use, including an uncalled function, is refused before
+selection. Generated views still require ordinary verification.
 
 ## Source, cache and cleanup authority
 

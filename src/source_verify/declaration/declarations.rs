@@ -578,6 +578,7 @@ pub(super) fn check_declared_fields<'p>(
                                 Some(TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. })
                             )
                 ) && !crate::map_ops::ast_collection(&field.ty)
+                    && !super::super::declared_type::declared_collection::vector(types, &field.ty)
                     && !(types.contains_owned_bytes(&field.ty)
                         && matches!(
                             classify_nested_owned_byte_record(types, &field.ty),

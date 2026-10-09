@@ -34,6 +34,12 @@ fn codec_mode(index: &DeclarationIndex, ty: &ResolvedType) -> Option<OwnershipMo
     {
         return Some(OwnershipMode::Value);
     }
+    let buffered = |fields: &[ResolvedFieldDeclaration]| matches!(fields,[bytes,length] if bytes.ty==ResolvedType::Bytes && length.ty==ResolvedType::Usize);
+    if (buffered(&cases[0].fields) && error(&cases[1].fields))
+        || (buffered(&cases[1].fields) && error(&cases[0].fields))
+    {
+        return Some(OwnershipMode::Own);
+    }
     let text = |fields: &[ResolvedFieldDeclaration]| matches!(fields,[field] if field.ty==ResolvedType::String);
     let refused = |fields: &[ResolvedFieldDeclaration]| matches!(fields,[field] if field.ty==ResolvedType::Usize);
     if (text(&cases[0].fields) && refused(&cases[1].fields))
@@ -192,5 +198,27 @@ mod tests {
             .unwrap();
         fields[0].ty = ResolvedType::String;
         assert!(validate_stream_record_program(&program, None).is_err());
+    }
+    #[test]
+    fn stream_record_profile_authenticates_owned_buffer_length_outcome() {
+        let source = r#"module stream.input;
+@id("input") variant Input {
+ @id("input.ok") Ready { @id("input.bytes") bytes:Bytes, @id("input.length") length:usize, },
+ @id("input.no") Error { @id("input.code") code:i64, @id("input.offset") offset:usize, @id("input.field") field:i64, },
+}
+@id("app.main") fn main()->i64 {0}
+"#;
+        let checked = resolved(source);
+        assert_eq!(
+            codec_mode(&checked.declarations, &nominal("input")),
+            Some(OwnershipMode::Own)
+        );
+        for changed in [
+            source.replace("length:usize", "length:i64"),
+            source.replace("offset:usize", "offset:i64"),
+        ] {
+            let checked = resolved(&changed);
+            assert_eq!(codec_mode(&checked.declarations, &nominal("input")), None);
+        }
     }
 }

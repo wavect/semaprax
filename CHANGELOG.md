@@ -20,6 +20,8 @@
 - Borrow retained user-function and static String/Str parameter descriptors
   during HIR validation; preserve owning generic signatures, error identities,
   recursive parity checks, and the iterative frame bound.
+- Author ordinary logical text-collection declarations for faithful application schemas, with independent source/HIR structural facts and unconditional transitive runtime-use refusal. Add exact v29 stream-input Bytes/length outcomes without changing grants. Declaration, graph/cache and hostile gates are authored; runtime String-vector support is not claimed.
+
 - Extend OPT-723’s unqualified collection tranche with independently checked two-case results owning up to two flat Copy-record vectors, private layout/cleanup carriers, and Copy-record variant loop calls. Actual-cardinality, hostile replay and exact floating-payload gates are authored; execution and application/agent qualification remain pending.
 
 - Author Project v29 `language-command-io.stream-data.v2`: independently

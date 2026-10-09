@@ -664,6 +664,7 @@ mod record_tests;
 
 pub(crate) mod collection_outcome;
 pub(crate) mod copy_record_collection;
+pub(crate) mod declared_collection;
 pub(crate) mod generic_collection;
 mod generic_inference;
 pub(crate) mod generic_result;

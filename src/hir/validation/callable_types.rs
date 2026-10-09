@@ -117,6 +117,7 @@ impl HirValidator<'_> {
                                 && !admitted_owned_record
                                 && !admitted_nested_owned_record
                                 && !admitted_owned_variant
+                                && !super::super::declared_collection::vector(&self.program.declarations,ty)
                                 && !admitted_owned_generic
                                 && (arguments.as_slice() != [ResolvedType::U8]
                                     || declaration.as_str() != crate::prelude::OPTION_ID)

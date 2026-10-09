@@ -269,18 +269,19 @@ pub(super) fn check_declared_type(
             || generic_variant::parameter_slot(&instance, parameters, types);
         let admitted_result_template = name == "Result"
             && matches!(arguments.as_slice(), [Type::Bytes, Type::Named { name, arguments }] | [Type::Named { name, arguments }, Type::Bytes] if arguments.is_empty() && parameters.len() == 1 && parameters.contains(name.as_str()));
-        let admitted_vec = name == "Vec"
-            && arguments.len() == 1
-            && (crate::vec_ops::ast_vec_element_is_admitted(&arguments[0])
-                || crate::source_verify::declared_type::copy_record_collection::admitted(
-                    types,
-                    &arguments[0],
-                )
-                || owned_record_collection::is_admitted_owned_record_collection_element(
-                    types,
-                    &arguments[0],
-                )
-                || matches!(&arguments[0], Type::Named { name, arguments }
+        let admitted_vec = declared_collection::vector(types, &instance)
+            || name == "Vec"
+                && arguments.len() == 1
+                && (crate::vec_ops::ast_vec_element_is_admitted(&arguments[0])
+                    || crate::source_verify::declared_type::copy_record_collection::admitted(
+                        types,
+                        &arguments[0],
+                    )
+                    || owned_record_collection::is_admitted_owned_record_collection_element(
+                        types,
+                        &arguments[0],
+                    )
+                    || matches!(&arguments[0], Type::Named { name, arguments }
                     if arguments.is_empty() && parameters.contains(name.as_str())));
         let admitted_box = declaration.stable_id == crate::prelude::BOX_ID
             && name == "Box"
@@ -1389,6 +1390,7 @@ pub(super) mod string_record;
 
 pub(crate) mod collection_outcome;
 pub(crate) mod copy_record_collection;
+pub(crate) mod declared_collection;
 pub(super) mod owned_record_collection;
 
 /// Ordinary resource-free record algebra may return a Copy value or transfer

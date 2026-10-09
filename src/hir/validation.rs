@@ -868,6 +868,10 @@ impl<'a> HirValidator<'a> {
                         {
                             if !arguments.is_empty()
                                 && !crate::map_ops::is_collection(&field.ty)
+                                && !super::declared_collection::vector(
+                                    &self.program.declarations,
+                                    &field.ty,
+                                )
                                 && self
                                     .program
                                     .declarations
@@ -1637,6 +1641,7 @@ impl<'a> HirValidator<'a> {
         function: &ResolvedFunction,
         execution: &FunctionExecutionId,
     ) -> Result<(), Diagnostic> {
+        super::declared_collection::validate_function(&self.program.declarations, function)?;
         crate::hir::iterator_loop::validate_function(function)?;
         owner_renewal::validate_function(self.program, function)?;
         super::yield_aggregate::check_bytes_request_site_count(

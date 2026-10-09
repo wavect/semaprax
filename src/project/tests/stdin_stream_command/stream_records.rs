@@ -25,6 +25,16 @@ use function @id("job.identity") from stream.jobs as identity;
 "#;
 const PURE: &str =
     "let values=order(make(4)); let job=identity(first(values)); if job.id==4 {0}else{1}";
+const LOGICAL_SCHEMA: &str = r#"
+@id("schema.patient") record PatientSchema {
+ @id("schema.id") id:string, @id("schema.arrival") arrival:i64,
+ @id("schema.service") service:i64, @id("schema.priority") priority:i64,
+ @id("schema.deadline") deadline:i64,
+}
+@id("schema.request") record RequestSchema {
+ @id("schema.servers") servers:Vec<string>, @id("schema.patients") patients:Vec<PatientSchema>,
+}
+"#;
 fn manifest() -> String {
     format!("schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"stream-records\"\nversion = \"0.1.0\"\nprofile = \"{PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V2}\"\n\n[modules]\nentry = \"stream.app\"\nsources = [\"a/app.spx\", \"b/jobs.spx\", \"c/tests.spx\"]\ntests = [\"stream.tests\"]\n\n[exports]\nweb = [\"stream.command\"]\n\n[command]\nfunction = \"stream.command\"\ninput = \"{PROJECT_LANGUAGE_COMMAND_STREAM_INPUT_V1}\"\n\n[capabilities]\nrequired = [\"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]\n")
 }
@@ -182,5 +192,55 @@ fn v29_records_keep_v27_and_other_backends_closed() {
     )
     .unwrap();
     assert!(with_authenticated_project(&root.join(MANIFEST_FILE), |_| Ok(())).is_err());
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn stream_record_logical_schema_is_source_bound_and_cannot_hide_unused_runtime_uses() {
+    let root = fixture();
+    let path = root.join("b/jobs.spx");
+    std::fs::write(
+        &path,
+        canonical_source("b/jobs.spx", &format!("{HELPERS}{LOGICAL_SCHEMA}")),
+    )
+    .unwrap();
+    let output = root.with_extension("logical-schema-native");
+    let graph = with_authenticated_project(&root.join(MANIFEST_FILE), |snapshot| {
+        assert!(snapshot
+            .execute_entry(&ProjectExecutionOptions::default())?
+            .command_succeeded());
+        assert!(!snapshot
+            .public_api_program()
+            .types
+            .iter()
+            .any(|t| t.id.as_str() == "schema.request"));
+        snapshot.build_native(&output)?;
+        Ok(snapshot.semantic_graph().to_owned())
+    })
+    .unwrap();
+    std::fs::write(
+        &path,
+        canonical_source(
+            "b/jobs.spx",
+            &format!(
+                "{HELPERS}{}",
+                LOGICAL_SCHEMA.replace("priority:i64", "priority:i32")
+            ),
+        ),
+    )
+    .unwrap();
+    with_authenticated_project(&root.join(MANIFEST_FILE), |snapshot| {
+        assert_ne!(snapshot.semantic_graph(), graph);
+        Ok(())
+    })
+    .unwrap();
+    // Prior valid graph/cache data cannot authorize this uncalled source use.
+    let invalid=format!("{HELPERS}{LOGICAL_SCHEMA}@id(\"unused.schema\") fn unused_schema(value:own RequestSchema)->i64 {{0}}");
+    let invalid = crate::format::canonical(&crate::parse(&invalid, "b/jobs.spx").unwrap());
+    std::fs::write(&path, &invalid).unwrap();
+    let errors = with_authenticated_project(&root.join(MANIFEST_FILE), |_| Ok(())).unwrap_err();
+    assert!(errors.iter().any(|d| d.code == "SPX-T281"), "{errors:?}");
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), invalid);
+    let _ = std::fs::remove_file(output);
     let _ = std::fs::remove_dir_all(root);
 }

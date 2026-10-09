@@ -128,6 +128,10 @@ stream-data successor uses `hir/workspace_link/stream_record.rs` to authenticate
 its retained nominal closure and exact codec outcome shapes after the existing
 owned-data linker reconstructs source-owned declarations. Native and prepared
 interpreter routes recheck that selected profile; v27 remains frozen.
+`hir/declared_collection.rs` and its source twin separately own logical text
+collection declarations with no runtime carrier authority. Both reject every
+transitive executable use, including uncalled functions; [Declared Text
+Collections v1](DECLARED-TEXT-COLLECTIONS-V1.md) owns that explicit boundary.
 
 `ast/type_properties.rs` owns primitive type formatting and classification.
 The reserved mutable callable type has independent source and retained-HIR

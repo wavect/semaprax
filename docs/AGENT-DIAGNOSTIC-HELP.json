@@ -4,7 +4,7 @@
       "code": "SPX-B104",
       "rows": [
         {
-          "fix": "Record exact error + repro. String-condition scalar-match region “parent is not canonical” is backend regression; preserve cleanup checks",
+          "fix": "Repro; cleanup checks; “parent is not canonical” String-condition scalar match: backend regression",
           "wrote": "native cleanup lowering refusal after check"
         }
       ]
@@ -13,8 +13,8 @@
       "code": "SPX-F102",
       "rows": [
         {
-          "wrote": "interpreter run of a `source-command.v1` Project",
-          "fix": "Project interpreter has no argv/file provider. Build with `semaprax build <manifest> --target native -o <fresh-path>`, then run the binary from the Project directory with its arguments"
+          "fix": "Project interpreter has no argv/file provider. Build with `semaprax build <manifest> --target native -o <fresh-path>`, then run the binary from the Project directory with its arguments",
+          "wrote": "interpreter run of a `source-command.v1` Project"
         }
       ]
     },
@@ -26,8 +26,8 @@
           "wrote": "use std::io;"
         },
         {
-          "wrote": "noncanonical Project source",
-          "fix": "Run `semaprax fmt <manifest>`; if manifest layout itself blocks discovery, first run `semaprax fmt --manifest <manifest>`, then retry"
+          "fix": "Run `semaprax fmt <manifest>`; if manifest layout itself blocks discovery, first run `semaprax fmt --manifest <manifest>`, then retry",
+          "wrote": "noncanonical Project source"
         }
       ]
     },
@@ -101,7 +101,7 @@
       "code": "SPX-P003",
       "rows": [
         {
-          "fix": "One literal: -9223372036854775808 or -2147483648i32; spaces are trivia, parens separate. Min negation or division by -1 overflows",
+          "fix": "One literal: -9223372036854775808 or -2147483648i32; spaces trivia, parens separate; MIN negation or / -1 overflows",
           "wrote": "i64 max + 1 or parenthesized min negation"
         }
       ]
@@ -191,7 +191,7 @@
       "code": "SPX-T001",
       "rows": [
         {
-          "fix": "Use string/scalars; spell Copy Vec<T> args; projects may import authenticated aliases",
+          "fix": "Strings/scalars; explicit Copy Vec<T> args; authenticated Project imports",
           "wrote": "String/int or unsupported Vec types"
         }
       ]
@@ -257,7 +257,7 @@
       "code": "SPX-T207",
       "rows": [
         {
-          "fix": "Only payload-free, non-generic variants support ==; else match",
+          "fix": "Match; == only payload-free non-generic variants",
           "wrote": "comparing payload/generic variant"
         }
       ]
@@ -330,6 +330,10 @@
         {
           "fix": "Keep outer ownership unchanged",
           "wrote": "outer owned binding changes in while"
+        },
+        {
+          "fix": "Pure nongeneric call; exactly one whole owner returned as the same type; whole named independent Slice/str borrows only; [renewal hook](IO-LINES-V1.md#cursor-transitions), executable gate pending",
+          "wrote": "one-Bytes-plus-usize owner renewal with input views"
         }
       ]
     },
@@ -348,6 +352,15 @@
         {
           "fix": "Bind view: let v = string_as_str(text); str_as_bytes(v)",
           "wrote": "str_as_bytes(text) / nested string_as_str"
+        }
+      ]
+    },
+    {
+      "code": "SPX-T265",
+      "rows": [
+        {
+          "fix": "Pure nongeneric call; exactly one whole owner returned as the same type; whole named independent Slice/str borrows only; [renewal hook](IO-LINES-V1.md#cursor-transitions), executable gate pending",
+          "wrote": "one-Bytes-plus-usize owner renewal with input views"
         }
       ]
     },
@@ -386,7 +399,7 @@
       "code": "SPX-T281",
       "rows": [
         {
-          "fix": "Use string/scalars; spell Copy Vec<T> args; projects may import authenticated aliases",
+          "fix": "Strings/scalars; explicit Copy Vec<T> args; authenticated Project imports",
           "wrote": "String/int or unsupported Vec types"
         }
       ]

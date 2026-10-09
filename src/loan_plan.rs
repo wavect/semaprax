@@ -29,6 +29,9 @@ pub enum LoanPointPhase {
 mod boundary_tests;
 mod guidance;
 mod native_view;
+mod owned_capacity;
+#[cfg(test)]
+mod shared_identity_tests;
 mod work;
 
 pub(crate) use work::{REACHABILITY_BYTES_PER_EXPRESSION, REACHABILITY_FIXED_BYTES};
@@ -133,93 +136,7 @@ pub fn build_plan(
 /// `LoanPlan` carrier is intentionally excluded so callers can account it in
 /// the layout domain that owns the containing function.
 pub(crate) fn owned_capacity_bytes(plan: &LoanPlan) -> Option<usize> {
-    fn add(total: &mut usize, bytes: usize) -> Option<()> {
-        *total = total.checked_add(bytes)?;
-        Some(())
-    }
-    fn point_bytes(point: &LoanProgramPoint) -> usize {
-        point.expression.as_str().len()
-    }
-    fn place_bytes(place: &Place) -> Option<usize> {
-        let mut bytes = place.root.as_str().len();
-        add(
-            &mut bytes,
-            place
-                .projections
-                .capacity()
-                .checked_mul(std::mem::size_of::<PlaceProjection>())?,
-        )?;
-        for projection in &place.projections {
-            match projection {
-                PlaceProjection::Field(field) => add(&mut bytes, field.as_str().len())?,
-                PlaceProjection::VariantField { case, field } => {
-                    add(&mut bytes, case.as_str().len())?;
-                    add(&mut bytes, field.as_str().len())?;
-                }
-            }
-        }
-        Some(bytes)
-    }
-
-    let mut bytes = plan
-        .loans
-        .capacity()
-        .checked_mul(std::mem::size_of::<Loan>())?;
-    add(
-        &mut bytes,
-        plan.endpoints
-            .capacity()
-            .checked_mul(std::mem::size_of::<LoanEndpoint>())?,
-    )?;
-    add(
-        &mut bytes,
-        plan.edges
-            .capacity()
-            .checked_mul(std::mem::size_of::<LoanEdge>())?,
-    )?;
-    for loan in &plan.loans {
-        add(&mut bytes, loan.site.as_str().len())?;
-        add(&mut bytes, place_bytes(&loan.origin)?)?;
-        add(&mut bytes, point_bytes(&loan.start))?;
-        add(
-            &mut bytes,
-            loan.ends
-                .capacity()
-                .checked_mul(std::mem::size_of::<LoanProgramPoint>())?,
-        )?;
-        for end in &loan.ends {
-            add(&mut bytes, point_bytes(end))?;
-        }
-        add(
-            &mut bytes,
-            loan.end_edges
-                .capacity()
-                .checked_mul(std::mem::size_of::<u16>())?,
-        )?;
-    }
-    for endpoint in &plan.endpoints {
-        add(&mut bytes, point_bytes(&endpoint.point))?;
-        for ids in [
-            &endpoint.live_before,
-            &endpoint.starts,
-            &endpoint.kills,
-            &endpoint.live_after,
-        ] {
-            add(
-                &mut bytes,
-                ids.capacity().checked_mul(std::mem::size_of::<LoanId>())?,
-            )?;
-        }
-    }
-    for edge in &plan.edges {
-        add(
-            &mut bytes,
-            edge.live
-                .capacity()
-                .checked_mul(std::mem::size_of::<LoanId>())?,
-        )?;
-    }
-    Some(bytes)
+    owned_capacity::owned_capacity_bytes(plan)
 }
 
 #[derive(Clone)]

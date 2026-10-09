@@ -1,5 +1,12 @@
 # Changelog
 
+- Store immutable loan endpoint and edge identity lists as exact boxed slices,
+  retaining list order and cache encoding while charging shrinking overlap.
+  Preserve conservative construction prebounds and exact retained payload census.
+- Borrow retained user-function and static String/Str parameter descriptors
+  during HIR validation; preserve owning generic signatures, error identities,
+  recursive parity checks, and the iterative frame bound.
+
 - Attach the final resolved-core builder phase's first sticky reservation
   evidence to SPX-G171 help, preserving the exact message, ledger behavior,
   independent retry budgets, and unknown inner-operation attribution.

@@ -4144,7 +4144,10 @@ fn build_owned_inner(
         // next phase. Its debit remains in the maximum phase receipt.
         drop(core);
         if fallback_mode >= if allow_uncached_peak { 6 } else { 4 } || !retry_allowed {
-            return Err(vec![diagnostics::live_builder_refusal(active_builder_limit(), refusal)]);
+            return Err(vec![diagnostics::live_builder_refusal(
+                active_builder_limit(),
+                refusal,
+            )]);
         }
         // Mode six is the bounded final retry: mode five's uncached receipt
         // already fits, but its full retained output carrier overflowed. Its

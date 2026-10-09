@@ -194,7 +194,8 @@ class CodexShiftSimTests(unittest.TestCase):
                     artifacts.mkdir()
                     mutation = lambda workspace: (workspace / path).write_text("changed\n")
                     self.patches(stack, root, mutation=mutation if phase == "model" else None)
-                    def check(candidate, *_):
+                    def check(candidate, *_, exclude_verified_node_modules=False):
+                        self.assertFalse(exclude_verified_node_modules)
                         mutation(candidate.parents[2])
                         return {"accepted": True}
                     acceptance = stack.enter_context(patch.object(adapter.shiftsim, "check_program", side_effect=check))

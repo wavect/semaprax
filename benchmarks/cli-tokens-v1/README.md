@@ -57,6 +57,12 @@ A distinct, completed campaign used compiler source `398b051e6e7a06ac49ecf77d929
 
 The [full report](reports/codex-current398-20261009.md) includes all per-attempt and per-arm measurements, failed outcomes, resource-receipt hashes, and limits. The [trace-backed recount](reports/codex-current398-20261009-recount.json) retains all ten trials and independently checks usage reconciliation and archive/source hashes. Request input includes cache-read subsets; uncached input is exactly raw input minus that subset but is still not task-only input because fixed context is unknown. The separate `legacy_net_input_tokens` value is also not task-only input. Final-source tokens are a legacy Claude BPE proxy, not cumulative authorship. Here “current-compiler” means the source398 binary pinned at launch; later source batch `700701` (`687cbed33`) is not represented. Conditional API-equivalent costs are estimates, not actual billing; provider-resolved model identity and fixed harness context remain unavailable. Calibration is separate and not subtracted. See the additive adapter-round-six entry in [results-live.json](results-live.json).
 
+The report counts reconciled internal model requests separately from each outer
+CLI turn and tool calls. Its conditional cost totals include all five attempts
+per arm and are divided by accepted tasks only; actual billed cost and fixed
+harness context remain null. “Final-source tokens” means a legacy Claude BPE
+count of each final candidate inventory, including tests, docs, and scripts.
+
 ## Round 1 (baseline, `f106fcebe`)
 
 | | TypeScript (Node, no deps) | SEMAPRAX |
@@ -65,7 +71,7 @@ The [full report](reports/codex-current398-20261009.md) includes all per-attempt
 | Turns | 6 | 76 |
 | Legacy net input tokens | 104,540 | 4,363,904 |
 | Estimated cost (lower bound) | $0.20 | $1.94 |
-| Authored tokens | 1,540 | (a 749-byte stub) |
+| Final-source token proxy (historical report label: authored) | 1,540 | (a 749-byte stub) |
 
 SEMAPRAX could not express the program. The web benchmarks never needed text
 processing in the language itself, because the projection generates it.
@@ -95,7 +101,7 @@ linked round-three report.
 | Turns | 6 | 19 | 27 |
 | Legacy net input tokens | 104,540 | 839,703 | 1,360,111 |
 | Estimated cost | $0.20 | $0.65 | $0.88 |
-| Authored tokens | 1,540 | 4,252 | 4,307 |
+| Final-source token proxy (historical report label: authored) | 1,540 | 4,252 | 4,307 |
 
 SEMAPRAX can now write the whole program, and both goldens and every exit
 status pass. It still costs 3–4 times as much as TypeScript. The agents'

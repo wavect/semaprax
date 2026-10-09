@@ -6,6 +6,7 @@
 
 use super::binding::{Binding, CheckedValue};
 use super::diagnostics::{error, source_identifier};
+use super::hints;
 use super::scope::VerifierFrame;
 use super::type_table::TypeTable;
 use super::IterativeVerifier;

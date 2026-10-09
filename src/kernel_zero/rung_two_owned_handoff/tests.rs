@@ -36,12 +36,7 @@ fn cached_bound_handoff_matches_explicitly_authenticated_delivery() {
     );
     assert_eq!(boundary.deliver_bound(b"fuel", 0), Err(()));
     assert_eq!(
-        boundary.deliver(
-            &boundary.authenticated_bytes,
-            boundary.digest,
-            b"fuel",
-            0,
-        ),
+        boundary.deliver(&boundary.authenticated_bytes, boundary.digest, b"fuel", 0,),
         Err(())
     );
     assert_eq!(staged_count(), before_refusals);

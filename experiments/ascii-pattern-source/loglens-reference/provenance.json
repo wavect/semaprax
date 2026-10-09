@@ -16,7 +16,7 @@
   ],
   "matcher_adapted_files_sha256": {
     "README.md": "b5aba2bb5a173c4562945e7eff939a5543011855c64586a527fc4b9a6d184a20",
-    "ascii.spx": "21d753b38d75f2bb0f13ac5d4bfec462267de759493c949d067ed5ead307b655",
+    "ascii.spx": "811758cb937938ef39c00b5fbee4d6f3bfa843360ba65e5f65de3a0e99b94d79",
     "build.sh": "4472886bf4c8e098be277256c99028880df329e539a145b69183f7815ad94ffc",
     "loglens.spx": "440736b14dfee07dc60e1d0b5b506bd372205804e877c558b2971c30ef780482",
     "run.sh": "2225e59a4c08a79f56d08e905c6b0c949929a20e3fd1d7c6e532651dab565431",
@@ -25,8 +25,8 @@
     "tests.mjs": "dfe55d51ff79cb39e8d392605bdc2f5e35c154037ae5729698d125a67d5bea53",
     "unit.spx": "02f0d43cfac00a54e85119a737f07dfeab03d361f435b16c9d7d7d5e000e4c82"
   },
-  "matcher_source_revision": "59a301f80 span binding repair applied to 73696c8aa engine",
-  "matcher_source_sha256": "21d753b38d75f2bb0f13ac5d4bfec462267de759493c949d067ed5ead307b655",
+  "matcher_source_revision": "75d9df106",
+  "matcher_source_sha256": "811758cb937938ef39c00b5fbee4d6f3bfa843360ba65e5f65de3a0e99b94d79",
   "qualified_source_files_sha256": {
     "README.md": "b5aba2bb5a173c4562945e7eff939a5543011855c64586a527fc4b9a6d184a20",
     "build.sh": "4472886bf4c8e098be277256c99028880df329e539a145b69183f7815ad94ffc",

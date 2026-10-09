@@ -1395,7 +1395,9 @@ fn full_match(state: own Matcher, input: borrow Slice<u8>, work_limit: usize) ->
     // A positive minimum on the final atom requires it to consume the final
     // input byte in every accepting count vector. Authenticate the complete
     // table above before using this bounded necessary-condition rejection.
-    if length >= 64usize && atoms != 0usize && !exhausted && !invalid {
+    // Also check many-atom records spanning at least two eight-byte windows;
+    // smaller records retain the exact short-input work path.
+    if (length >= 64usize || (length >= 16usize && atoms >= 6usize)) && atoms != 0usize && !exhausted && !invalid {
         if affords(work, 2usize, work_limit) {
             work = work + 2usize;
             let final_atom = atoms - 1usize;

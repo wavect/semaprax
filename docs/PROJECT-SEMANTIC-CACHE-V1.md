@@ -87,6 +87,13 @@ nonempty-loan regression now executes this path, including a range and sibling
 views of owned bytes in a module that also carries owned-variant cleanup. Its
 Graph v32 cold/warm bytes and accounting remain exact instead of relying only
 on empty scalar loan plans.
+In-process expression-identity clones now share immutable backing. Authenticated
+snapshot restoration independently reconstructs nonempty loan plans and requires
+complete value equality before restoring that sharing; wire bytes, full validation
+and zero source-resolution requirements remain unchanged. Its separately bounded
+physical-storage replay is specified in [Semantic Cache Store v1](SEMANTIC-CACHE-STORE-V1.md).
+The shared-backing repair's current-source gate is pending; the preceding hosted
+evidence does not establish that gate.
 This charge is construction accounting, not a measurement
 of allocator use or peak process memory. Cold and warm routes still rebuild
 the Project's linked representation and graph; neither promises constant-time

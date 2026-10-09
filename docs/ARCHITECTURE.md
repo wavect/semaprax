@@ -1923,7 +1923,14 @@ root, exact compiler-file binding and immutable publication. They authenticate
 the complete envelope before the private `cache_codec` and `hir/cache_codec`
 construct cached AST/HIR. `project/incremental/snapshot.rs` reparses canonical
 sources, requires exact synthetic-input reuse, and repeats complete Project
-admission and graph comparison before returning an opaque cache. HIR validation
+admission and graph comparison before returning an opaque cache.
+`snapshot/loan_replay.rs` independently reconstructs nonempty loan proof storage;
+its `bound.rs` preflights actual decoded HIR before planner allocation, separately
+charging old/new proof coexistence and construction under the unchanged cache
+ceiling. Complete proof equality precedes replacement with immutable body-ID
+backing clones; wire values, zero source resolutions and full replay stay required.
+The current-source executable gate for this storage repair remains pending.
+HIR validation
 alone does not prove source correspondence: the host must protect the signing
 key and keep its static compiler installation immutable from exec. Host-policy
 v5 can select one entry before live source authentication; no RPC gains storage

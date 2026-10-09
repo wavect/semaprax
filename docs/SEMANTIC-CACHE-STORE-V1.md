@@ -79,6 +79,27 @@ must independently read and authenticate current source before deciding whether
 any restored entry is reusable. A source/dependency/context mismatch cannot be
 converted into a cache hit merely because a MAC verified.
 
+Serialized expression identities carry exact text per occurrence; decoding does
+not preserve the immutable backing shared by in-process clones. Before checked
+entries are installed, nonempty loan proofs are independently reconstructed from
+immutable decoded HIR. Complete ordered proof equality must pass before the
+reconstructed plan replaces decoded storage with clones of body identity backing.
+This changes storage only: missing or malformed empty proofs remain untouched for
+ordinary full validation, and pointers grant no identity or proof authority.
+
+The restore phase preflights actual HIR contracts, bodies, concrete function
+instances, bindings, places and identity lengths before invoking the planner.
+It reserves original proof capacities together with the conservative construction
+allowance, including temporary/returned vectors, map nodes, liveness and allocation
+overlap. Charges are monotonic; replacement refunds nothing. This phase uses the
+unchanged 64 MiB checked-module construction ceiling, separately from the codec's
+128 MiB allocation ceiling and the ordinary graph replay receipt. The private wire
+format, complete checked-module reuse, zero source resolutions, and exact retained
+graph/revision comparison remain required.
+
+The shared-backing restore repair is source-only; its current-source executable
+gate remains pending. Earlier hosted evidence above retains its original scope.
+
 `evict` removes exactly one digest-selected completed entry under an exclusive
 store lock. It authenticates the held root, complete inventory and selected
 file identity before the handle-relative unlink, syncs the directory, then

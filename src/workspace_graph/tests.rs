@@ -2,10 +2,10 @@ use super::*;
 use checked_value_retention::{retain_checked_nominal_type, retain_checked_value_types};
 #[path = "tests/builder_limits.rs"]
 mod builder_limits;
-#[path = "tests/static_protocol.rs"]
-mod static_protocol;
 #[path = "tests/source_repair.rs"]
 mod source_repair;
+#[path = "tests/static_protocol.rs"]
+mod static_protocol;
 fn checked_value_fixture() -> hir::ResolvedProgram {
     let program = crate::parse(r#"module values;
 @id("values.config") record Config { @id("values.config.value") value: i64, }

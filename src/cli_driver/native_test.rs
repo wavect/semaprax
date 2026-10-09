@@ -172,7 +172,11 @@ fn read_bounded<R: Read>(
             return Ok(bytes);
         }
         bytes.extend_from_slice(&chunk[..count]);
-        if total.fetch_add(count, Ordering::Relaxed).saturating_add(count) > max {
+        if total
+            .fetch_add(count, Ordering::Relaxed)
+            .saturating_add(count)
+            > max
+        {
             let _ = overflow.send(());
             return Ok(bytes);
         }
@@ -215,12 +219,10 @@ fn run_case(executable: &Path, cwd: &Path, limits: NativeTestLimits) -> CaseResu
     let (overflow_tx, overflow_rx) = mpsc::channel();
     let stdout_total = Arc::clone(&total);
     let stdout_overflow = overflow_tx.clone();
-    let stdout_reader = std::thread::spawn(move || {
-        read_bounded(stdout, limit, &stdout_total, &stdout_overflow)
-    });
-    let stderr_reader = std::thread::spawn(move || {
-        read_bounded(stderr, limit, &total, &overflow_tx)
-    });
+    let stdout_reader =
+        std::thread::spawn(move || read_bounded(stdout, limit, &stdout_total, &stdout_overflow));
+    let stderr_reader =
+        std::thread::spawn(move || read_bounded(stderr, limit, &total, &overflow_tx));
     let started = Instant::now();
     let timeout = Duration::from_millis(limits.timeout_ms);
     loop {

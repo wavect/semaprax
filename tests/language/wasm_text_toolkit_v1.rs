@@ -280,12 +280,25 @@ fn owned_string_byte_views_use_the_toolkit_runtime_and_settle_on_reentry() {
         }
     } else { 0 }
 }
-@id("app.main") fn main() -> i64 { fused() + named() }
+@id("byte-choice") variant ByteChoice {
+    @id("byte-choice.empty") Empty,
+    @id("byte-choice.text") Text { @id("byte-choice.text.value") value: string, },
+}
+@id("app.variant") fn variant_bytes(value: own ByteChoice) -> i64 {
+    match own value {
+        ByteChoice::Text { value: text } => {
+            let bytes = str_as_bytes(string_as_str(text));
+            if byte_len(bytes) == 4usize { 1 } else { 0 }
+        },
+        ByteChoice::Empty {} => 0,
+    }
+}
+@id("app.main") fn main() -> i64 { fused() + named() + variant_bytes(ByteChoice::Text { value: "h\u{0}é" }) }
 "#;
     standalone_case(
         source,
         &["app.main"],
-        "for(let i=0;i<8;i++){const result=runtime.call('app.main');if(result.kind!=='success'||result.value!==2n)throw Error('owned String byte view or cleanup changed')}\n",
+        "for(let i=0;i<8;i++){const result=runtime.call('app.main');if(result.kind!=='success'||result.value!==3n)throw Error('owned String byte view or cleanup changed')}\n",
     );
 }
 

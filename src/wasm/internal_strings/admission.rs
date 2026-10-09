@@ -375,12 +375,63 @@ fn owned_string_roots(function: &ResolvedFunction) -> BTreeSet<ValueId> {
                 }
             }
         }
+        if let ResolvedExprKind::Match { arms, .. } = &expression.kind {
+            for arm in arms {
+                include_owned_pattern_strings(&arm.pattern, &mut roots);
+            }
+        }
         crate::interpreter::push_resolved_expression_children_in_authored_order(
             expression,
             &mut pending,
         );
     }
     roots
+}
+
+fn include_owned_string(binding: &hir::ResolvedBinding, roots: &mut BTreeSet<ValueId>) {
+    if binding.ty == ResolvedType::String && binding.ownership == OwnershipMode::Own {
+        roots.insert(binding.id.clone());
+    }
+}
+
+fn include_owned_record_pattern_strings(
+    fields: &[hir::ResolvedRecordMatchPatternField],
+    roots: &mut BTreeSet<ValueId>,
+) {
+    for field in fields {
+        match &field.pattern {
+            hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
+                include_owned_string(binding, roots);
+            }
+            hir::ResolvedRecordMatchFieldPattern::Record { fields, .. } => {
+                include_owned_record_pattern_strings(fields, roots);
+            }
+            hir::ResolvedRecordMatchFieldPattern::Wildcard => {}
+        }
+    }
+}
+
+fn include_owned_pattern_strings(
+    pattern: &hir::ResolvedMatchPattern,
+    roots: &mut BTreeSet<ValueId>,
+) {
+    match pattern {
+        hir::ResolvedMatchPattern::Variant { fields, .. } => {
+            for field in fields {
+                include_owned_string(&field.binding, roots);
+            }
+        }
+        hir::ResolvedMatchPattern::Record { fields, .. } => {
+            include_owned_record_pattern_strings(fields, roots);
+        }
+        hir::ResolvedMatchPattern::Binding(binding) => include_owned_string(binding, roots),
+        hir::ResolvedMatchPattern::Or(alternatives) => {
+            for alternative in alternatives {
+                include_owned_pattern_strings(alternative, roots);
+            }
+        }
+        hir::ResolvedMatchPattern::Wildcard | hir::ResolvedMatchPattern::Literal(_) => {}
+    }
 }
 
 fn admits_owned_string_byte_view(

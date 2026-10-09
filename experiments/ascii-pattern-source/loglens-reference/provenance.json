@@ -18,7 +18,7 @@
     "README.md": "b5aba2bb5a173c4562945e7eff939a5543011855c64586a527fc4b9a6d184a20",
     "ascii.spx": "c1e0924c27ec74e77849c800ec305c8443f94d9335cc1114bcc842794b8a49aa",
     "build.sh": "4472886bf4c8e098be277256c99028880df329e539a145b69183f7815ad94ffc",
-    "loglens.spx": "11cb4622b50497c149ac1cf4d0d8c07cbe23975626c601cef4e69e78e33a0a6c",
+    "loglens.spx": "163ac1420d187c03f1835bba06c7b7522788b10a3de13a8f07f4f4ef04ed1535",
     "run.sh": "2225e59a4c08a79f56d08e905c6b0c949929a20e3fd1d7c6e532651dab565431",
     "semaprax.toml": "632cd50c9b6c33191d875dfc5053415fc1864baacde5034dfb83a934435dfa3e",
     "test.sh": "aa027be53ae6792f56cbabd126386269ce90fbc0f17ec8c75924e6fd25ed570f",
@@ -90,5 +90,20 @@
     },
     "source_verification_prior_to_format": "49b66571d",
     "semantics_changed": false
+  },
+  "borrowed_factory_import_derivation": {
+    "source_revision": "81a423e4de923829646168d0f7ec582f4346a0f1",
+    "change": "Add required direct Matcher nominal import, then compiler canonical formatting; current adapter remains unqualified.",
+    "output_files_sha256": {
+      "README.md": "b5aba2bb5a173c4562945e7eff939a5543011855c64586a527fc4b9a6d184a20",
+      "ascii.spx": "c1e0924c27ec74e77849c800ec305c8443f94d9335cc1114bcc842794b8a49aa",
+      "build.sh": "4472886bf4c8e098be277256c99028880df329e539a145b69183f7815ad94ffc",
+      "loglens.spx": "163ac1420d187c03f1835bba06c7b7522788b10a3de13a8f07f4f4ef04ed1535",
+      "run.sh": "2225e59a4c08a79f56d08e905c6b0c949929a20e3fd1d7c6e532651dab565431",
+      "semaprax.toml": "632cd50c9b6c33191d875dfc5053415fc1864baacde5034dfb83a934435dfa3e",
+      "test.sh": "aa027be53ae6792f56cbabd126386269ce90fbc0f17ec8c75924e6fd25ed570f",
+      "tests.mjs": "dfe55d51ff79cb39e8d392605bdc2f5e35c154037ae5729698d125a67d5bea53",
+      "unit.spx": "02f0d43cfac00a54e85119a737f07dfeab03d361f435b16c9d7d7d5e000e4c82"
+    }
   }
 }

@@ -3,7 +3,7 @@ schema = "semaprax.manifest.v1"
 [package]
 name = "ascii-pattern-api-conformance"
 version = "0.1.0"
-profile = "source-command.resource-output.v1"
+profile = "owned-data-api.v1"
 
 [modules]
 entry = "pattern.conformance"
@@ -12,12 +12,6 @@ tests = ["pattern.conformance_tests"]
 
 [exports]
 web = []
-
-[command]
-function = "pattern.conformance.main"
-
-[capabilities]
-required = []
 
 [dependencies]
 std.pattern = "^0.1.0"

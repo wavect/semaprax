@@ -1,5 +1,4 @@
 module pattern.conformance_tests;
-
 use function @id("pattern.conformance.main") from pattern.conformance as conformance_main;
 
 @id("pattern.conformance_tests.main")

@@ -1,5 +1,4 @@
 module loglens;
-
 use type @id("std.pattern.matcher") from std.pattern as Matcher;
 use function @id("std.pattern.capture-count") from std.pattern as matcher_capture_count;
 use function @id("std.pattern.capture-end") from std.pattern as matcher_capture_end;
@@ -123,43 +122,7 @@ fn report(top: i64, json: bool) -> i64
             end = end + 1;
             0
         }
-        if end > pos {
-            lines = lines + 1;
-            if !matcher_failed {
-                let line = string_slice(input, pos, end);
-                let line_view = string_as_str(line);
-                let line_bytes = str_as_bytes(line_view);
-                parser = matcher_full_match(parser, line_bytes, 262144usize);
-                let result_status = matcher_status(parser);
-                if result_status == 4usize || result_status == 3usize { matcher_failed = true; } else {
-                    if result_status == 1usize {
-                        if matcher_capture_count(parser) != 6usize { matcher_failed = true; } else {
-                            let ip = string_slice(line, i64_from_usize(matcher_capture_start(parser, 0usize)), i64_from_usize(matcher_capture_end(parser, 0usize)));
-                            let hour = string_slice(line, i64_from_usize(matcher_capture_start(parser, 1usize)), i64_from_usize(matcher_capture_end(parser, 1usize)));
-                            let path = string_slice(line, i64_from_usize(matcher_capture_start(parser, 3usize)), i64_from_usize(matcher_capture_end(parser, 3usize)));
-                            let status = string_slice(line, i64_from_usize(matcher_capture_start(parser, 4usize)), i64_from_usize(matcher_capture_end(parser, 4usize)));
-                            let bytes = string_slice(line, i64_from_usize(matcher_capture_start(parser, 5usize)), i64_from_usize(matcher_capture_end(parser, 5usize)));
-                            let ip_valid = token(ip, 0, string_len(ip));
-                            let path_valid = token(path, 0, string_len(path)) && !string_contains(path, "\"") && !string_contains(path, "\\");
-                            let hour_valid = string_compare(hour, "23") <= 0;
-                            let bytes_valid = string_compare(bytes, "-") == 0 || digits(bytes, 0, string_len(bytes));
-                            if ip_valid && path_valid && hour_valid && bytes_valid {
-                                requests = requests + 1;
-                                ips = map_set(ips, ip, 1);
-                                paths = map_add(paths, path, 1);
-                                hours = map_add(hours, hour, 1);
-                                let status_code = string_byte_at(status, 0);
-                                if status_code == 50 { s2 = s2 + 1; }
-                                if status_code == 51 { s3 = s3 + 1; }
-                                if status_code == 52 { s4 = s4 + 1; }
-                                if status_code == 53 { s5 = s5 + 1; }
-                                if string_compare(bytes, "-") != 0 { total = add(total, bytes); }
-                            }
-                        }
-                    } else { if result_status != 2usize { matcher_failed = true; } }
-                }
-            }
-        }
+        if end > pos { lines = lines + 1; if !matcher_failed { let line = string_slice(input, pos, end); let line_view = string_as_str(line); let line_bytes = str_as_bytes(line_view); parser = matcher_full_match(parser, line_bytes, 262144usize); let result_status = matcher_status(parser); if result_status == 4usize || result_status == 3usize { matcher_failed = true; } else { if result_status == 1usize { if matcher_capture_count(parser) != 6usize { matcher_failed = true; } else { let ip = string_slice(line, i64_from_usize(matcher_capture_start(parser, 0usize)), i64_from_usize(matcher_capture_end(parser, 0usize))); let hour = string_slice(line, i64_from_usize(matcher_capture_start(parser, 1usize)), i64_from_usize(matcher_capture_end(parser, 1usize))); let path = string_slice(line, i64_from_usize(matcher_capture_start(parser, 3usize)), i64_from_usize(matcher_capture_end(parser, 3usize))); let status = string_slice(line, i64_from_usize(matcher_capture_start(parser, 4usize)), i64_from_usize(matcher_capture_end(parser, 4usize))); let bytes = string_slice(line, i64_from_usize(matcher_capture_start(parser, 5usize)), i64_from_usize(matcher_capture_end(parser, 5usize))); let ip_valid = token(ip, 0, string_len(ip)); let path_valid = token(path, 0, string_len(path)) && !string_contains(path, "\"") && !string_contains(path, "\\"); let hour_valid = string_compare(hour, "23") <= 0; let bytes_valid = string_compare(bytes, "-") == 0 || digits(bytes, 0, string_len(bytes)); if ip_valid && path_valid && hour_valid && bytes_valid { requests = requests + 1; ips = map_set(ips, ip, 1); paths = map_add(paths, path, 1); hours = map_add(hours, hour, 1); let status_code = string_byte_at(status, 0); if status_code == 50 { s2 = s2 + 1; } if status_code == 51 { s3 = s3 + 1; } if status_code == 52 { s4 = s4 + 1; } if status_code == 53 { s5 = s5 + 1; } if string_compare(bytes, "-") != 0 { total = add(total, bytes); } } } } else { if result_status != 2usize { matcher_failed = true; } } } } }
         pos = end;
         if pos < string_len(input) { let terminator = string_byte_at(input, pos); pos = pos + 1; if terminator == 13 && pos < string_len(input) && string_byte_at(input, pos) == 10 { pos = pos + 1; } }
         0

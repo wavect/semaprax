@@ -162,7 +162,8 @@ fn toolkit_collection_selector_authenticates_exact_optional_import_tail() {
     let ast = program(
         r#"module test.toolkit_map_proof;
 @id("count") fn count(value: borrow Map<i64,i64>) -> i64 { i64_from_usize(map_len<i64,i64>(value)) }
-@id("app.main") fn main() -> i64 { let value=map_new<i64,i64>(1usize);count(value) }
+@id("byte-view") fn byte_view() -> i64 { let text="h\u{0}é"; let view=str_as_bytes(string_as_str(text)); match byte_get(view,1usize) { Option::Some { value: zero } => if zero==0u8 { 1 } else { 0 }, Option::None {} => 0, } }
+@id("app.main") fn main() -> i64 { let value=map_new<i64,i64>(1usize);count(value)+byte_view() }
 "#,
     );
     let resolved = crate::hir::resolve(&ast).unwrap();
@@ -194,20 +195,24 @@ fn toolkit_collection_selector_authenticates_exact_optional_import_tail() {
             }
         }
     }
-    assert_eq!(imports.len(), 15);
+    assert_eq!(imports.len(), 16);
     assert_eq!(
         &imports[13..],
         &[
             ("env".to_owned(), "spx_collection_checked_v2".to_owned()),
-            ("env".to_owned(), "spx_collection_drop_v2".to_owned())
+            ("env".to_owned(), "spx_collection_drop_v2".to_owned()),
+            ("env".to_owned(), "spx_bytes_get".to_owned())
         ]
     );
     assert!(artifact
         .runtime_source()
-        .contains("\"compare\",\"spx_collection_checked_v2\",\"spx_collection_drop_v2\"]"));
+        .contains("\"compare\",\"spx_collection_checked_v2\",\"spx_collection_drop_v2\",\"spx_bytes_get\"]"));
     assert!(artifact
         .runtime_source()
-        .contains("i<IMPORT_NAMES.length-2?\"semaprax.internal-strings.v1\":\"env\""));
+        .contains("ENV_IMPORT_NAMES.includes(item.name)?\"env\":\"semaprax.internal-strings.v1\""));
+    assert!(artifact.runtime_source().contains("item.name!==IMPORT_NAMES[i]"));
+    assert!(artifact.runtime_source().contains("item.kind!==\"function\""));
+    assert!(artifact.runtime_source().contains("imports.length!==IMPORT_NAMES.length"));
     assert!(artifact.runtime_source().contains("collections.settle()"));
     assert!(!artifact.runtime_source().contains("collections.clear("));
 }

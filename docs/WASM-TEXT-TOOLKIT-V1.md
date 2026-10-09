@@ -55,8 +55,15 @@ The standalone ten-import arena prefix is unchanged. The additive profile
 appends numeric text constructors and a comparator, followed by only the text
 operations selected by the exact checked function closure, in catalog order.
 When that closure uses collections, two exact `env` imports follow the Toolkit
-imports: `spx_collection_checked_v2` and `spx_collection_drop_v2`. A closure
-without collections gains neither import nor a collection arena.
+imports: `spx_collection_checked_v2` and `spx_collection_drop_v2`. If the
+closure reads an authenticated owned-String byte view or uses `file_read_text`,
+the final import is `env.spx_bytes_get`; it authenticates the existing String
+token and returns the indexed byte or the established `-1` out-of-range
+sentinel. A closure receives only the imports its selected operations need.
+The runtime validates import count, order, module, name, and kind exactly. The
+byte getter is private runtime transport and does not add a public String or
+Slice ABI. A closure without collections gains neither collection import nor
+a collection arena.
 The aggregate profile appends its selected checked text imports after the
 existing optional String group; later host groups use that dynamic count.
 
@@ -96,7 +103,7 @@ String views retain the compiler-proved owner's token. Aggregate carriers use
 the separate tagged owned byte arena. The representations are never exchanged.
 For the toolkit's owned-String byte view, the existing String carrier is
 borrowed through the compiler-authenticated full-root `SliceView` loan and
-passed to the same byte-slice runtime operation used by other admitted views.
+passed to the authenticated byte-read operation used by other admitted views.
 The slice remains non-owning and the String finalizer remains governed by the
 canonical cleanup plan.
 The existing derived owner/stack limits, expression/function/literal/module

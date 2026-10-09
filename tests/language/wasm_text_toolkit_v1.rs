@@ -550,6 +550,7 @@ const TOOLKIT_COLLECTIONS: &str = r#"module test.generated_toolkit_collections;
 @id("app.text_failure") fn text_failure() -> i64 { let values0=set_new<i64>(1usize);let values1=set_insert<i64>(values0,2);string_len(string_slice("é",1,2)) }
 @id("app.owner_quota") fn owner_quota() -> i64 { let first=map_new<i64,i64>(1usize);let second=set_new<i64>(1usize);i64_from_usize(map_len<i64,i64>(first)) }
 @id("app.byte_quota") fn byte_quota() -> i64 { let values0=map_new<i64,string>(1usize);let values1=map_set<i64,string>(values0,1,"oversized");0 }
+@id("app.byte_view") fn byte_view() -> i64 { let text="h\u{0}é";let view=str_as_bytes(string_as_str(text));if byte_len(view)==4usize { match byte_get(view,1usize) { Option::Some { value: zero } => if zero==0u8 { 1 } else { 0 }, Option::None {} => 0, } } else { 0 } }
 @id("app.main") fn main() -> i64 { 0 }
 "#;
 
@@ -580,6 +581,7 @@ fn generated_toolkit_web_collections_copy_order_remove_and_settle_every_status()
         "app.text_failure",
         "app.owner_quota",
         "app.byte_quota",
+        "app.byte_view",
     ];
     let ids = selected
         .iter()
@@ -601,12 +603,16 @@ fn generated_toolkit_web_collections_copy_order_remove_and_settle_every_status()
     let runtime = std::fs::read_to_string(output.join("semaprax.js")).unwrap();
     assert!(runtime.contains("collections.settle()"));
     assert!(!runtime.contains("collections.clear("));
-    std::fs::write(output.join("probe.mjs"),r#"import {readFile} from 'node:fs/promises';
+    std::fs::write(output.join("probe.mjs"),r#"import {readFile,writeFile} from 'node:fs/promises';
 import {webcrypto} from 'node:crypto';if(globalThis.crypto===undefined)Object.defineProperty(globalThis,'crypto',{value:webcrypto});
 import {instantiate} from './semaprax.js';
 const bytes=new Uint8Array(await readFile('./app.wasm'));
 const module=await WebAssembly.compile(bytes),imports=WebAssembly.Module.imports(module);
-const tail=imports.slice(-2);if(tail[0].module!=='env'||tail[0].name!=='spx_collection_checked_v2'||tail[1].module!=='env'||tail[1].name!=='spx_collection_drop_v2')throw Error('collection import tail changed');
+const tail=imports.slice(-3);if(tail[0].module!=='env'||tail[0].name!=='spx_collection_checked_v2'||tail[1].module!=='env'||tail[1].name!=='spx_collection_drop_v2'||tail[2].module!=='env'||tail[2].name!=='spx_bytes_get')throw Error('collection and byte-read import tail changed');
+function findSequence(haystack,needle,before=haystack.length){for(let i=0;i+needle.length<=before;i++){let found=true;for(let j=0;j<needle.length;j++)if(haystack[i+j]!==needle[j]){found=false;break}if(found)return i}return -1}
+async function expectImportRejected(mutated,label){const hash=new Uint8Array(await webcrypto.subtle.digest('SHA-256',mutated));const digest=Array.from(hash,b=>b.toString(16).padStart(2,'0')).join('');const runtime=(await readFile('./semaprax.js','utf8')).replace(/const EXPECTED_SHA256="[0-9a-f]+";/,`const EXPECTED_SHA256="${digest}";`);await writeFile('./forged-runtime.mjs',runtime);const forged=await import(`./forged-runtime.mjs?${label}`);let rejected=false;try{await forged.instantiate(mutated)}catch{rejected=true}if(!rejected)throw Error('forged '+label+' import accepted')}
+const unknownModule=new Uint8Array(bytes),nameBytes=new TextEncoder().encode('spx_bytes_get'),nameAt=findSequence(unknownModule,nameBytes);const envAt=nameAt<0?-1:(()=>{let found=-1;const marker=[3,101,110,118];for(let i=0;i+marker.length<=nameAt;i++)if(marker.every((byte,j)=>unknownModule[i+j]===byte))found=i;return found})();if(envAt<0)throw Error('byte-read import module not found');unknownModule.set([98,97,100],envAt+1);await expectImportRejected(unknownModule,'unknown-module');
+const unknownName=new Uint8Array(bytes),getAt=findSequence(unknownName,nameBytes);if(getAt<0)throw Error('byte-read import name not found');unknownName.set([119,97,116],getAt+10);await expectImportRejected(unknownName,'unknown-name');
 const runtime=await instantiate(bytes,{maxOwnedCollections:1,maxOwnedCollectionBytes:8});
 for(let repeat=0;repeat<8;repeat++){
  for(const [id,value] of [['app.typed',9n],['app.legacy',11n],['app.set',12n]]){const result=runtime.call(id);if(result.kind!=='success'||result.value!==value)throw Error('collection result '+id)}
@@ -614,6 +620,7 @@ for(let repeat=0;repeat<8;repeat++){
   const result=runtime.call('app.'+prefix+'_'+suffix);if(result.kind!=='failure'||result.domain!==(prefix==='legacy'?'semaprax.map.v1':'semaprax.map.v2')||result.code!==code)throw Error('collection status '+prefix+' '+suffix);
  }
  const text=runtime.call('app.text_failure');if(text.kind!=='failure'||text.domain!=='semaprax.text.v1'||text.code!==2)throw Error('selected Text failure changed');
+ const bytes=runtime.call('app.byte_view');if(bytes.kind!=='success'||bytes.value!==1n)throw Error('authenticated String byte view or NUL read changed');
  for(const [id,cause] of [['app.owner_quota','collection_owners'],['app.byte_quota','collection_bytes']]){const result=runtime.call(id);if(result.kind!=='capacity'||result.cause!==cause)throw Error('collection quota did not settle '+id)}
 }
 "#).unwrap();

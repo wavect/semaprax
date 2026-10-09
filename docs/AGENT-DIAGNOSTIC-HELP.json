@@ -13,8 +13,8 @@
       "code": "SPX-F102",
       "rows": [
         {
-          "fix": "Interpreter lacks argv/file provider; build: semaprax build <manifest> --target native -o <fresh-path>, run in Project directory with arguments",
-          "wrote": "interpreter: source-command.v1 Project"
+          "fix": "Interpreter lacks argv/file provider; build: semaprax build <manifest> --target native -o <fresh-path>, run in Project directory. Declared tests: semaprax test <project> --target native [Native Tests](PROJECT-NATIVE-TEST-V1.md)",
+          "wrote": "interpreter: source-command.v1/v28 Project"
         }
       ]
     },
@@ -28,6 +28,15 @@
         {
           "fix": "semaprax fmt <manifest>; if manifest layout blocks discovery, first semaprax fmt --manifest <manifest>, then retry",
           "wrote": "noncanonical Project source"
+        }
+      ]
+    },
+    {
+      "code": "SPX-G172",
+      "rows": [
+        {
+          "fix": "Add the direct use type @id(\"…\") from module as Type shown in help, including nested exposed types; inferred results grant no import authority",
+          "wrote": "factory import lacks exact type"
         }
       ]
     },
@@ -100,6 +109,10 @@
     {
       "code": "SPX-P003",
       "rows": [
+        {
+          "fix": "Write 4; unsuffixed integers are i64. Explicit suffixes: i32, u8, usize",
+          "wrote": "4i64"
+        },
         {
           "fix": "One literal: -9223372036854775808/-2147483648i32; spaces trivia, parens separate; -MIN/MIN÷-1 overflow",
           "wrote": "i64 max+1 / parenthesized MIN negation"
@@ -188,6 +201,15 @@
       ]
     },
     {
+      "code": "SPX-S109",
+      "rows": [
+        {
+          "fix": "Rename binding and uses to outcome; result names the return value only in ensures",
+          "wrote": "local named result"
+        }
+      ]
+    },
+    {
       "code": "SPX-T001",
       "rows": [
         {
@@ -202,6 +224,15 @@
         {
           "fix": "i64 result; CLI 0 succeeds",
           "wrote": "bool main"
+        }
+      ]
+    },
+    {
+      "code": "SPX-T201",
+      "rows": [
+        {
+          "fix": "Rename binding and uses to outcome; result names the return value only in ensures",
+          "wrote": "local named result"
         }
       ]
     },
@@ -350,7 +381,7 @@
       "code": "SPX-T263",
       "rows": [
         {
-          "fix": "let v = string_as_str(text); str_as_bytes(v)",
+          "fix": "For named String: str_as_bytes(string_as_str(text)); name loop-carried slices before loops",
           "wrote": "str_as_bytes/nested string_as_str"
         }
       ]
@@ -368,7 +399,7 @@
       "code": "SPX-T266",
       "rows": [
         {
-          "fix": "let v = string_as_str(text); str_as_bytes(v)",
+          "fix": "For named String: str_as_bytes(string_as_str(text)); name loop-carried slices before loops",
           "wrote": "str_as_bytes/nested string_as_str"
         },
         {

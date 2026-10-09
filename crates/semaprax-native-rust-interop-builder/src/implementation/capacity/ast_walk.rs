@@ -601,7 +601,6 @@ pub(super) fn closure_body_identity_path_increment() -> usize {
     let monomorphic_body_frame = "declaration:".len()
         + 4 // owner-length, owner, kind, and path-length separators
         + "expression".len()
-        + decimal_digits("body".len())
         + "body".len();
     closure_owner_prefix_len
         + monomorphic_body_frame

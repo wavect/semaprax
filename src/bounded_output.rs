@@ -9,6 +9,30 @@ pub(crate) struct ReservationRefusal {
     pub(crate) requested: usize,
     pub(crate) remaining: usize,
     pub(crate) floor: usize,
+    pub(crate) stage: Option<ReservationStage>,
+}
+
+/// Compiler-owned labels for the operation enclosing a required reservation.
+/// They never derive from source or from a forecast.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ReservationStage {
+    CorePrebound,
+    SyntheticModule,
+    CachedValidation,
+    FreshResolution,
+    RetainedModule,
+}
+
+impl ReservationStage {
+    pub(crate) fn label(self) -> &'static str {
+        match self {
+            Self::CorePrebound => "resolved-core prebound",
+            Self::SyntheticModule => "synthetic module construction",
+            Self::CachedValidation => "cached HIR validation",
+            Self::FreshResolution => "fresh HIR resolution",
+            Self::RetainedModule => "resolved module retention",
+        }
+    }
 }
 
 struct Budget {
@@ -17,6 +41,7 @@ struct Budget {
     floor: Cell<usize>,
     overflowed: Cell<bool>,
     first_refusal: Cell<Option<ReservationRefusal>>,
+    stage: Cell<Option<ReservationStage>>,
 }
 
 thread_local! {
@@ -74,6 +99,7 @@ pub(crate) fn with_limit_usage_refusal<T>(
         floor: Cell::new(0),
         overflowed: Cell::new(false),
         first_refusal: Cell::new(None),
+        stage: Cell::new(None),
     });
     let previous = ACTIVE.with(|active| active.replace(Some(Rc::clone(&budget))));
     let restore = Restore {
@@ -99,9 +125,43 @@ fn record_refusal(budget: &Budget, length: usize) {
             requested: length,
             remaining: budget.remaining.get(),
             floor: budget.floor.get(),
+            stage: budget.stage.get(),
         }));
     }
 }
+
+/// A stage belongs to the current budget only. Nested budgets start unlabelled,
+/// and unwind restores the previous stage before the next reservation.
+pub(crate) fn with_reservation_stage<T>(
+    stage: ReservationStage,
+    operation: impl FnOnce() -> T,
+) -> T {
+    struct Restore(Option<(Rc<Budget>, Option<ReservationStage>)>);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            if let Some((budget, previous)) = self.0.take() {
+                budget.stage.set(previous);
+            }
+        }
+    }
+    let restore = Restore(active().map(|budget| {
+        let previous = budget.stage.replace(Some(stage));
+        (budget, previous)
+    }));
+    let value = operation();
+    drop(restore);
+    value
+}
+
+macro_rules! staged {
+    ($stage:ident, $operation:expr) => {
+        $crate::bounded_output::with_reservation_stage(
+            $crate::bounded_output::ReservationStage::$stage,
+            || $operation,
+        )
+    };
+}
+pub(crate) use staged;
 
 fn reserve(budget: Option<&Budget>, length: usize) -> bool {
     let Some(budget) = budget else {

@@ -18,10 +18,25 @@ fn live_builder_evidence_preserves_message_and_names_only_the_known_phase() {
     assert!(diagnostic.span.is_none());
     let help = diagnostic.help.unwrap();
     assert!(help.contains("resolved-core phase first sticky ledger refusal: requested 4 bytes with 3 remaining and 0 reserved floor."));
+    assert!(help.contains("Authenticated internal stage: unknown."));
     assert!(help
         .contains("cumulative reservation bytes, not a retained-memory forecast or process RSS"));
     assert!(help.contains("exact inner operation is unknown"));
     assert!(help.len() < 4096);
     let unknown = live_builder_refusal(5, None).help.unwrap();
     assert!(unknown.contains("first reservation and exact inner operation are unknown"));
+}
+
+#[test]
+fn live_builder_help_names_only_a_scoped_compiler_stage() {
+    let (_, overflowed, _, refusal) = crate::bounded_output::with_limit_usage_refusal(5, || {
+        crate::bounded_output::with_reservation_stage(
+            crate::bounded_output::ReservationStage::FreshResolution,
+            || assert!(!crate::bounded_output::reserve_active_required(6)),
+        );
+    });
+    assert!(overflowed);
+    let help = live_builder_refusal(5, refusal).help.unwrap();
+    assert!(help.contains("Authenticated internal stage: fresh HIR resolution."));
+    assert!(help.contains("exact inner operation is unknown"));
 }

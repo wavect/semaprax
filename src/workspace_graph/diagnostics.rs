@@ -204,8 +204,8 @@ pub(super) fn live_builder_refusal(
     let diagnostic = limit_error("builder_bytes", maximum);
     let evidence = match refusal {
         Some(refusal) => crate::bounded_output::budgeted_format(format_args!(
-            "resolved-core phase first sticky ledger refusal: requested {} bytes with {} remaining and {} reserved floor. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown.",
-            refusal.requested, refusal.remaining, refusal.floor,
+            "resolved-core phase first sticky ledger refusal: requested {} bytes with {} remaining and {} reserved floor. Authenticated internal stage: {}. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown.",
+            refusal.requested, refusal.remaining, refusal.floor, refusal.stage.map_or("unknown", |stage| stage.label()),
         )),
         None => crate::bounded_output::budgeted_format(format_args!(
             "resolved-core phase refused; the first reservation and exact inner operation are unknown."

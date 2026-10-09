@@ -177,8 +177,11 @@ A final live resolved-core budget refusal may include additive help with the
 first sticky reservation's requested bytes, remaining bytes, and reserved
 floor, captured from that exact attempt before its budget is restored. Optional
 floor refusals remain non-sticky and are not recorded. Failed earlier retries
-and nested child phases cannot supply the final attempt's evidence. The known
-phase is `resolved-core`; the exact inner operation is explicitly unknown.
+and nested child phases cannot supply the final attempt's evidence. A scoped,
+compiler-owned internal stage may identify the enclosing prebound, synthetic
+module construction, cached HIR validation, fresh HIR resolution, or resolved
+module retention operation. An unlabelled reservation reports stage `unknown`;
+the stage never comes from source and does not identify the exact inner call.
 These quantities describe the cumulative reservation ledger, not a retained
 peak forecast, allocator measurement, or process RSS. The SPX-G171 code,
 message, source immutability, and ceiling are unchanged. Missing evidence is

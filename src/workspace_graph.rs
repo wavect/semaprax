@@ -36,6 +36,7 @@ use crate::ast::{
     Expr, ExprKind, Function, ModuleUse, ModuleUseKind, ParamMode, Program, Span, Type,
     TypeDeclaration, TypeDeclarationKind,
 };
+use crate::bounded_output::staged;
 use crate::diagnostic::Diagnostic;
 use crate::{format, graph, hir, prelude, project::ProjectProfile as P, workspace};
 use diagnostics::{graph_error, limit_error, project_function_error, use_error};
@@ -4107,8 +4108,7 @@ fn build_owned_inner(
     if let Some(cache) = frontend.as_deref() {
         cache.checked_retention_prebound(checked_retention_prebound)?;
     }
-    // Each attempt is an isolated sequential builder phase. Nested budgets
-    // retain their parent's monotonic charge and cannot retry an overflow.
+    // Each isolated attempt keeps the parent's monotonic debit.
     let mut retry_allowed = active_builder_limit() == MAX_BUILDER_BYTES
         && crate::bounded_output::active_remaining().is_none();
     let mut checkpoint = if retry_allowed {
@@ -4131,7 +4131,7 @@ fn build_owned_inner(
             .transpose()?;
         let (core, overflowed, consumed, refusal) =
             crate::bounded_output::with_limit_usage_refusal(active_builder_limit(), || {
-                charge_builder_prebound(resolve_builder_bytes)?;
+                staged!(CorePrebound, charge_builder_prebound(resolve_builder_bytes))?;
                 build_resolved_core(
                     &programs,
                     &module_paths,
@@ -4147,8 +4147,7 @@ fn build_owned_inner(
         if !overflowed {
             break core;
         }
-        // Drop every partial checked tree before computing or allocating the
-        // next phase. Its debit remains in the maximum phase receipt.
+        // Drop partial trees; retain their debit in the maximum phase receipt.
         drop(core);
         if fallback_mode >= if allow_uncached_peak { 6 } else { 4 } || !retry_allowed {
             return Err(vec![diagnostics::live_builder_refusal(
@@ -4156,11 +4155,8 @@ fn build_owned_inner(
                 refusal,
             )]);
         }
-        // Mode six is the bounded final retry: mode five's uncached receipt
-        // already fits, but its full retained output carrier overflowed. Its
-        // existing final profile replaces the all-HIR receipt with the exact
-        // sequential filtered-output/index plus one-full-HIR peak; no frontend
-        // may reach it, so no cached source lifetime is elided.
+        // Mode six replaces an overflowing all-HIR carrier with the bounded
+        // sequential filtered-output/index plus one-full-HIR peak.
         if fallback_mode == 5 {
             let (tighter, _) =
                 expected_projection::uncached_output_peak_prebound(&programs, &authored)?;
@@ -4309,10 +4305,8 @@ fn build_resolved_core(
             .checked_mul(std::mem::size_of::<String>() + GRAPH_ACCOUNTED_RESOLVED_PROGRAM_BYTES)
             .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?,
     )?;
-    // Legacy receipts retain the complete synthetic HIR vector until all
-    // cross-module checks finish.  The final uncached output-carrier attempt
-    // instead keeps this compact evidence index and filters one module before
-    // resolving the next, so its live peak matches its sequential receipt.
+    // The final uncached attempt uses a compact index and sequential HIR
+    // filtering; earlier receipts retain the complete synthetic HIR vector.
     let mut validation = retained_output_only
         .then(|| WorkspaceValidationIndex::new(programs))
         .transpose()?;
@@ -4338,7 +4332,10 @@ fn build_resolved_core(
                 &mut synthetic_ast_peak,
             )?;
         }
-        let synthetic = synthetic_program(program, authored, programs)?;
+        let synthetic = staged!(
+            SyntheticModule,
+            synthetic_program(program, authored, programs)
+        )?;
         // Exact stubs/spans and the unconditional prebound govern hits.
         let cached = frontend
             .as_deref_mut()
@@ -4346,7 +4343,7 @@ fn build_resolved_core(
         let resolved = if let Some((resolved, resolver_bytes, original_loan_bytes)) = cached {
             let before = crate::bounded_output::active_remaining()
                 .expect("resolved core has a builder budget");
-            hir::validate(&resolved).map_err(|error| vec![error])?;
+            staged!(CachedValidation, hir::validate(&resolved)).map_err(|error| vec![error])?;
             let validation_bytes = before.saturating_sub(
                 crate::bounded_output::active_remaining()
                     .expect("resolved core has a builder budget"),
@@ -4359,13 +4356,9 @@ fn build_resolved_core(
                         "checked module replay accounting exceeds its original resolver work",
                     )]
                 })?;
-            // Revalidation already charged its real cost. Charge only the
-            // remainder of the original resolver cost to preserve cold graph
-            // evidence and admission limits without double-charging validation.
+            // Charge only the residual resolver cost after real revalidation.
             charge_builder_prebound(residual)?;
-            // Rust Clone may shrink owned proof-vector/string capacities. The
-            // filters below charge the cloned proof's real capacity; preserve
-            // the original cold charge by accounting only the lost capacity.
+            // Charge cloned proof capacity and retain any cold-capacity residual.
             let loan_residual = original_loan_bytes
                 .checked_sub(resolved_loan_bytes(&resolved)?)
                 .ok_or_else(|| {
@@ -4388,7 +4381,8 @@ fn build_resolved_core(
                         if let Some(selective) = selective {
                             selective.map(|resolved| resolved.into_parts())
                         } else {
-                            hir::resolve(&synthetic).map(|resolved| (resolved, BTreeMap::new(), 0))
+                            staged!(FreshResolution, hir::resolve(&synthetic))
+                                .map(|resolved| (resolved, BTreeMap::new(), 0))
                         }
                     })
                 })?;
@@ -4412,13 +4406,16 @@ fn build_resolved_core(
         verify_resolved_call_edges(program, &resolved, authored)?;
         if let Some(validation) = validation.as_mut() {
             validation.record_module(&program.module, &resolved, programs)?;
-            let (module, imported_instances) = retain_workspace_module(
-                program,
-                crate::bounded_output::budgeted_clone(&program.module),
-                resolved,
-                programs,
-                authored,
-                true,
+            let (module, imported_instances) = staged!(
+                RetainedModule,
+                retain_workspace_module(
+                    program,
+                    crate::bounded_output::budgeted_clone(&program.module),
+                    resolved,
+                    programs,
+                    authored,
+                    true,
+                )
             )?;
             owned_generics::merge_imported_vec_instances(
                 &mut imported_vec_instances,
@@ -4451,8 +4448,10 @@ fn build_resolved_core(
             let program = programs_by_module
                 .get(module.as_str())
                 .expect("every resolved module has authenticated source");
-            let (module, imported_instances) =
-                retain_workspace_module(program, module, resolved, programs, authored, false)?;
+            let (module, imported_instances) = staged!(
+                RetainedModule,
+                retain_workspace_module(program, module, resolved, programs, authored, false)
+            )?;
             owned_generics::merge_imported_vec_instances(
                 &mut imported_vec_instances,
                 imported_instances,
@@ -4706,8 +4705,9 @@ impl<'a> CheckedValueNode<'a> {
                     .get(index)
                     .copied()
                     .map(Self::Expression),
-                E::Call { args, .. }
-                | E::LiteralFormat { args, .. } => args.get(index).map(Self::Expression),
+                E::Call { args, .. } | E::LiteralFormat { args, .. } => {
+                    args.get(index).map(Self::Expression)
+                }
                 E::Invoke { callable, args } => {
                     if index == 0 {
                         Some(Self::Expression(callable))

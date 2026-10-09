@@ -15,7 +15,8 @@ fn refusal_evidence_keeps_first_sticky_request_and_exact_debits() {
         Some(ReservationRefusal {
             requested: 8,
             remaining: 7,
-            floor: 0
+            floor: 0,
+            stage: None,
         })
     );
     let (admitted, overflowed, used, refusal) =
@@ -43,7 +44,8 @@ fn refusal_evidence_distinguishes_optional_floor_and_sticky_required_floor() {
         Some(ReservationRefusal {
             requested: 7,
             remaining: 10,
-            floor: 4
+            floor: 4,
+            stage: None,
         })
     );
 }
@@ -67,7 +69,8 @@ fn refusal_evidence_is_phase_local_and_nested_restore_keeps_parent_identity() {
         Some(ReservationRefusal {
             requested: 3,
             remaining: 2,
-            floor: 0
+            floor: 0,
+            stage: None,
         })
     );
     assert!(overflowed);
@@ -77,7 +80,8 @@ fn refusal_evidence_is_phase_local_and_nested_restore_keeps_parent_identity() {
         Some(ReservationRefusal {
             requested: 8,
             remaining: 7,
-            floor: 0
+            floor: 0,
+            stage: None,
         })
     );
     assert!(active().is_none());
@@ -105,7 +109,57 @@ fn refusal_evidence_records_parent_floor_restoration_not_child_evidence() {
         Some(ReservationRefusal {
             requested: 4,
             remaining: 10,
-            floor: 7
+            floor: 7,
+            stage: None,
         })
+    );
+}
+
+#[test]
+fn reservation_stage_is_first_failure_only_and_nested_budget_is_unlabelled() {
+    let (child, overflowed, used, refusal) = with_limit_usage_refusal(10, || {
+        with_reservation_stage(ReservationStage::SyntheticModule, || {
+            assert!(reserve_active_required(2));
+            let child = with_limit_usage_refusal(1, || {
+                assert!(!reserve_active_required(2));
+            });
+            assert!(!reserve_active_required(9));
+            child
+        })
+    });
+    assert!(child.1);
+    assert_eq!(child.3.unwrap().stage, None);
+    assert!(overflowed);
+    assert_eq!(used, 2);
+    assert_eq!(
+        refusal.unwrap(),
+        ReservationRefusal {
+            requested: 9,
+            remaining: 8,
+            floor: 0,
+            stage: Some(ReservationStage::SyntheticModule),
+        }
+    );
+    let (_, _, _, unlabelled) = with_limit_usage_refusal(1, || {
+        assert!(!reserve_active_required(2));
+    });
+    assert_eq!(unlabelled.unwrap().stage, None);
+}
+
+#[test]
+fn utf8_append_refusal_reports_whole_scalar_bytes_without_false_stage() {
+    let (text, overflowed, used, refusal) =
+        with_limit_usage_refusal(1, || budgeted_format(format_args!("é")));
+    assert_eq!(text, "");
+    assert!(overflowed);
+    assert_eq!(used, 0);
+    assert_eq!(
+        refusal.unwrap(),
+        ReservationRefusal {
+            requested: 2,
+            remaining: 1,
+            floor: 0,
+            stage: None,
+        }
     );
 }

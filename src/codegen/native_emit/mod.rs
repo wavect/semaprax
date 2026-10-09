@@ -491,7 +491,7 @@ fn emit_native_prelude_inner(
         || program_uses_borrowed_str(program, strings.include_instances);
     native_runtime::emit_status_runtime_for_profile(
         output,
-        needs_borrowed_str || program_uses_byte_data(program) || strings.provider_carriers,
+        needs_borrowed_str || owned_carrier::uses_bytes(program) || strings.provider_carriers,
         native_vec::program_uses_vec(program) || native_iter::program_uses_iterator(program),
         native_box::program_uses_box(program),
         native_iter::program_uses_owned_runtime(program),
@@ -576,7 +576,7 @@ fn emit_native_prelude_inner(
             string_views::TERMINATED_RUNTIME_C
         });
     }
-    if program_uses_byte_data(program) || strings.provider_carriers || strings.command_carriers {
+    if owned_carrier::uses_bytes(program) || strings.provider_carriers || strings.command_carriers {
         if strings.stream_epochs {
             native_byte_data::emit_stream_epoch_runtime(output);
         } else if strings.reserved_bytes {

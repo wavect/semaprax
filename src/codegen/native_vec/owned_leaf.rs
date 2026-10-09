@@ -119,6 +119,6 @@ pub(super) fn emit_runtime(output: &mut impl super::super::COutput, program: &Re
             .collect::<Vec<_>>()
             .join(", ");
         let identity = super::super::native_emit::c_string(&l.identity);
-        output.push_str(&format!("static const spx_leaf_layout_v1 {} = {{ .count = {}, .stride = {}, .capacity = {}, .tag = {}, .kinds = {{ {kinds} }}, .offsets = {{ {offsets} }}, .identity = \"{identity}\" }};\n", l.symbol, l.kinds.len(), l.stride, l.capacity, l.tag));
+        output.push_str(&format!("static __attribute__((unused)) const spx_leaf_layout_v1 {} = {{ .count = {}, .stride = {}, .capacity = {}, .tag = {}, .kinds = {{ {kinds} }}, .offsets = {{ {offsets} }}, .identity = \"{identity}\" }};\n", l.symbol, l.kinds.len(), l.stride, l.capacity, l.tag));
     }
 }

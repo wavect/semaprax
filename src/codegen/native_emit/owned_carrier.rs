@@ -8,6 +8,11 @@ pub(super) fn needs_string_runtime(program: &ResolvedProgram, include_instances:
         || crate::codegen::native_vec::program_uses_owned_leaf(program)
 }
 
+pub(super) fn uses_bytes(program: &ResolvedProgram) -> bool {
+    super::program_uses_byte_data(program)
+        || crate::codegen::native_vec::program_uses_owned_leaf(program)
+}
+
 /// The compiler-owned bounded `Vec<T>` carriers the native lane lowers.
 ///
 /// `crate::cleanup::is_owned_bounded_vec_type` answers the target-neutral

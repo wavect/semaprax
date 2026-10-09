@@ -3,6 +3,45 @@
 
 use super::*;
 
+const FOR_GENERATED_EXPRESSION_COUNT: usize = 16;
+const FOR_OWN_GENERATED_EXPRESSION_COUNT: usize = 15;
+
+fn desugared_statement_identity_upper(
+    function: &crate::ast::Function,
+    generic_instance_identity_len: usize,
+    block_path_len: usize,
+    statements: &[crate::ast::Statement],
+) -> Option<usize> {
+    statements
+        .iter()
+        .enumerate()
+        .try_fold(0usize, |bytes, (index, statement)| {
+            let (count, suffix) = match statement {
+                crate::ast::Statement::For { .. } => (
+                    FOR_GENERATED_EXPRESSION_COUNT,
+                    ".value.s2.body.s0.value.arg.1",
+                ),
+                crate::ast::Statement::ForOwn { .. } => (
+                    FOR_OWN_GENERATED_EXPRESSION_COUNT,
+                    ".value.s1.body.s0.value.arm.1.value.tail.arg.0",
+                ),
+                _ => return Some(bytes),
+            };
+            let generated_path_len = block_path_len
+                .checked_add(".s".len())?
+                .checked_add(decimal_digits(index))?
+                .checked_add(suffix.len())?;
+            let generated_expression_bytes = scoped_expression_identity_upper(
+                function,
+                generic_instance_identity_len,
+                generated_path_len,
+            )?
+            .checked_add(semaprax::hir::ExpressionId::OWNED_ALLOCATION_CARRIER_BYTES)?
+            .checked_mul(count)?;
+            bytes.checked_add(generated_expression_bytes)
+        })
+}
+
 #[derive(Clone, Copy)]
 pub(super) enum CleanupTypeKey {
     Scalar,
@@ -362,13 +401,32 @@ pub(super) fn cleanup_plan_variable_identity_bytes(
                     path_len,
                 )
                 .and_then(|bytes| {
+                    // A retained source expression can own up to three
+                    // identity carriers in resolved HIR (for example, a
+                    // native import call or inherited method projection).
+                    // Keep the authored identity payload bound, but reserve
+                    // all three carrier headers per source node.
                     bytes.checked_add(
-                        semaprax::hir::ExpressionId::OWNED_ALLOCATION_CARRIER_BYTES,
+                        semaprax::hir::ExpressionId::OWNED_ALLOCATION_CARRIER_BYTES
+                            .checked_mul(3)?,
                     )
                 })
                 .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+                let desugared_statement_bytes = match &expression.kind {
+                    crate::ast::ExprKind::Block { statements, .. } => {
+                        desugared_statement_identity_upper(
+                            function,
+                            generic_instance_identity_len,
+                            path_len,
+                            statements,
+                        )
+                        .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?
+                    }
+                    _ => 0,
+                };
                 all_expression_bytes = all_expression_bytes
                     .checked_add(identity_bytes)
+                    .and_then(|bytes| bytes.checked_add(desugared_statement_bytes))
                     .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                 bytes = bytes
                     .checked_add(
@@ -841,4 +899,58 @@ pub(super) fn cleanup_parent_local_remaining_finalizer_events<'a>(
     events
         .checked_add(1)
         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))
+}
+
+#[cfg(test)]
+mod carrier_tests {
+    use super::*;
+
+    #[test]
+    fn hir_capacity_identity_carriers_reserve_three_headers_per_expression() {
+        let source = "module capacity.expression_carriers; @id(\"app.main\") fn main() -> i64 { 0 }";
+        let program = crate::parse(source, std::path::Path::new("expression-carriers.spx"))
+            .unwrap();
+        let function = program
+            .functions
+            .iter()
+            .find(|function| function.name == "main")
+            .unwrap();
+
+        let (_, retained_expression_bytes) =
+            cleanup_plan_variable_identity_bytes(function, &program, 0).unwrap();
+        let payload_bytes = scoped_expression_identity_upper(function, 0, "body".len()).unwrap()
+            + scoped_expression_identity_upper(function, 0, "body.tail".len()).unwrap();
+        assert_eq!(
+            retained_expression_bytes,
+            payload_bytes
+                + 2 * 3 * semaprax::hir::ExpressionId::OWNED_ALLOCATION_CARRIER_BYTES,
+        );
+    }
+
+    #[test]
+    fn loop_desugaring_identity_upper_covers_all_generated_paths() {
+        let source = "module capacity.loop_carriers; @id(\"app.main\") fn main(values: i64) -> i64 { for item in values { item } for own item in values { item } 0 }";
+        let program = crate::parse(source, std::path::Path::new("loop-carriers.spx")).unwrap();
+        let function = program
+            .functions
+            .iter()
+            .find(|function| function.name == "main")
+            .unwrap();
+        let crate::ast::ExprKind::Block { statements, .. } = &function.body.kind else {
+            panic!("function body should remain a block");
+        };
+        let actual = desugared_statement_identity_upper(function, 0, "body".len(), statements)
+            .unwrap();
+        let for_path = "body.s0.value.s2.body.s0.value.arg.1".len();
+        let for_own_path = "body.s1.value.s1.body.s0.value.arm.1.value.tail.arg.0".len();
+        let expected = scoped_expression_identity_upper(function, 0, for_path).unwrap()
+            .checked_add(semaprax::hir::ExpressionId::OWNED_ALLOCATION_CARRIER_BYTES)
+            .unwrap()
+            * FOR_GENERATED_EXPRESSION_COUNT
+            + scoped_expression_identity_upper(function, 0, for_own_path).unwrap()
+                .checked_add(semaprax::hir::ExpressionId::OWNED_ALLOCATION_CARRIER_BYTES)
+                .unwrap()
+                * FOR_OWN_GENERATED_EXPRESSION_COUNT;
+        assert_eq!(actual, expected);
+    }
 }

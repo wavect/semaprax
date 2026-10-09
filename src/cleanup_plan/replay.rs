@@ -2921,7 +2921,7 @@ fn hir_skeleton_paths(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Vec<SkeletonPath>, Diagnostic> {
-    let mut work = SkeletonWork::new(function, budget);
+    let mut work = SkeletonWork::new(program, function, budget);
     let mut paths = work.singleton_path(empty_expr_path(), "HIR root path")?;
     for contract in &function.requires {
         paths = sequence_expression(program, function, paths, contract, &mut work)?;
@@ -3305,13 +3305,12 @@ fn expression_skeleton(
         match frame {
             Frame::RenewalPrefix(expression) => {
                 let mut paths = produced.take().expect("renewal RHS paths retained");
-                renewal::prepend_reservation(program, function, expression, &mut paths, work)?;
+                renewal::prepend_reservation(function, expression, &mut paths, work)?;
                 produced = Some(paths);
             }
             Frame::Eval(expression) => {
                 debug_assert!(produced.is_none());
-                if crate::cleanup_plan::renewal_binding(program, function, &expression.id).is_some()
-                {
+                if work.renewal_binding(&expression.id).is_some() {
                     push_frame!(frames, Frame::RenewalPrefix(expression));
                 }
                 if strings::owns_clone(expression)

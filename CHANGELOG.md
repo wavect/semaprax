@@ -1,5 +1,10 @@
 # Changelog
 
+- Add `semaprax help shapes kinds` as a complete exact selector index derived
+  from the generated language-shapes companion (issue #699). The bare catalog,
+  existing lookups, and guide byte limit remain pinned; required validation is
+  pending.
+
 - Capture optional raw compiler-output evidence before acceptance builds, with
   fresh reproduction and immutable campaign/trial bindings for source-component
   recounting (OPT #696). Matching file contents remain a final-file proxy, not

@@ -324,6 +324,44 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     assert_eq!(shapes.stdout, shapes_catalog);
     assert!(shapes.stdout.starts_with(b"# Language shapes catalog\n"));
     std::fs::remove_dir(shapes_dir).unwrap();
+    let expected_kinds = concat!(
+        "Language shape kinds (8):\n",
+        "  class\n",
+        "  function\n",
+        "  interface\n",
+        "  method\n",
+        "  record\n",
+        "  resource\n",
+        "  session_protocol\n",
+        "  variant\n",
+        "Exact exemplar: semaprax help shapes <kind>\n",
+        "Full catalog: semaprax help shapes\n",
+    );
+    let (kinds, kinds_dir) = invoke(&["help", "shapes", "kinds"]);
+    assert!(kinds.status.success());
+    assert!(kinds.stderr.is_empty());
+    assert_eq!(kinds.stdout, expected_kinds.as_bytes());
+    assert!(kinds.stdout.len() <= 2_048);
+    assert!(semaprax::agent_economics::lexical_tokens(expected_kinds) <= 256);
+    std::fs::remove_dir(kinds_dir).unwrap();
+    for selector in ["Kinds", "kin"] {
+        let (output, directory) = invoke(&["help", "shapes", selector]);
+        assert_eq!(output.status.code(), Some(2), "{selector}");
+        assert!(output.stdout.is_empty(), "{selector}");
+        assert_eq!(
+            output.stderr,
+            format!("language shapes catalog has no exact match for `{selector}`\n").as_bytes()
+        );
+        std::fs::remove_dir(directory).unwrap();
+    }
+    let (kinds_extra, kinds_extra_dir) = invoke(&["help", "shapes", "kinds", "extra"]);
+    assert_eq!(kinds_extra.status.code(), Some(2));
+    assert!(kinds_extra.stdout.is_empty());
+    assert_eq!(
+        kinds_extra.stderr,
+        b"help accepts exactly one operand; unexpected extra operand `extra`\n"
+    );
+    std::fs::remove_dir(kinds_extra_dir).unwrap();
     let expected_add = b"function calculator.add\nsource examples/calculator.spx\n@id(\"calculator.add\")\nfn add(left: i64, right: i64) -> i64\n";
     let (shape, shape_dir) = invoke(&["help", "shapes", "calculator.add"]);
     assert!(shape.status.success());
@@ -480,6 +518,7 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
                 "  semaprax help library all\n",
                 "  semaprax help library <module|name|stable-id>\n",
                 "  semaprax help shapes\n",
+                "  semaprax help shapes kinds\n",
                 "  semaprax help shapes <kind|stable-id|path#stable-id>\n"
             )
             .as_bytes()

@@ -3,6 +3,7 @@ use std::process::ExitCode;
 
 mod diagnostic_index;
 mod library;
+mod shapes;
 
 use library::library_help;
 
@@ -301,7 +302,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Version, canonical: "version", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax version [--json]"] },
     CommandSpec { id: CommandId::VersionFlag, canonical: "--version", aliases: &["-V"], availability: Availability::Public, global: true, usages: &["semaprax --version"] },
     CommandSpec { id: CommandId::Harness, canonical: "harness", aliases: &[], availability: Availability::Private, global: true, usages: &["semaprax-full harness <verb> [args]  (status explain resolve adopt trust revoke inspect run context exec recover decide endpoints skills bridge report conformance bench)"] },
-    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all", "semaprax help diagnostic <SPX-code|codes>", "semaprax help language", "semaprax help language <topic|topics>", "semaprax help library", "semaprax help library all", "semaprax help library <module|name|stable-id>", "semaprax help shapes", "semaprax help shapes <kind|stable-id|path#stable-id>"] },
+    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all", "semaprax help diagnostic <SPX-code|codes>", "semaprax help language", "semaprax help language <topic|topics>", "semaprax help library", "semaprax help library all", "semaprax help library <module|name|stable-id>", "semaprax help shapes", "semaprax help shapes kinds", "semaprax help shapes <kind|stable-id|path#stable-id>"] },
 ];
 fn available(spec: &CommandSpec, private: bool) -> bool {
     spec.availability == Availability::Public || private
@@ -581,6 +582,7 @@ pub(crate) fn dispatch(args: &[String], private: bool) -> Option<Result<(), u8>>
             "diagnostic" => diagnostic_entry(&args[2]),
             "language" => language_topic(&args[2]),
             "library" => library_help(Some(&args[2])),
+            "shapes" if args[2] == "kinds" => Ok(shapes::kind_index()),
             "shapes" => shape_entry(&args[2]),
             _ => unreachable!("closed scoped help catalog"),
         };
@@ -772,7 +774,7 @@ static GUIDE: &[GuideGroup] = &[
             GuideEntry {
                 id: CommandId::Help,
                 shape: "help shapes [selector]",
-                summary: "Catalog; `function` narrows",
+                summary: "Catalog; `kinds` lists exact selectors",
             },
         ],
     },
@@ -1148,7 +1150,7 @@ mod tests {
             assert!(help.contains("\n  help all "));
             assert!(help.contains("\n  help language "));
             assert!(help.contains("help shapes [selector]"));
-            assert!(help.contains("Catalog; `function` narrows"));
+            assert!(help.contains("Catalog; `kinds` lists exact selectors"));
             assert!(help.contains("semaprax help diagnostic <code>`\n"));
             assert!(help.contains("\n  new "));
             assert!(help.contains("\n  doctor "), "private={private}");

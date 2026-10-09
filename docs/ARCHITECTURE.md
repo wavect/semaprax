@@ -175,6 +175,11 @@ The registry compiler and unpublished toolchain share one compiler library and
 bounded source, Project, and prepared Rust API context routes;
 `options.rs` parses bounded command options, `report_options.rs` parses report/analysis options, and
 `source_execution.rs` owns single-file build, run, and diagnostics.
+`cli_driver/native_test.rs` owns explicit bounded execution of Project v26/v28
+native test artifacts; `project/native_test.rs` selects only authenticated test
+roots and reuses the existing native source-command emitters and publication
+checks. `native_scratch.rs` owns identity-bound scratch cleanup. The route adds
+no interpreter argv/file provider or manifest capability.
 The standalone binary supplies no private-host hooks.
 The private `source_live_cli` host supplies the versioned durable source CLI,
 held-directory checkpoint store and restart-stable clock. It derives bindings

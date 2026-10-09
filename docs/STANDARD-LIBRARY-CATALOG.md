@@ -6445,6 +6445,135 @@ fn path_join(base: borrow Path, child: borrow Path, buffer: own Bytes) -> Path
     requires path_valid(base) && path_valid(child) && path_join_length(base, child) <= byte_len(bytes_as_slice(buffer))
 ```
 
+## `std.pattern`
+
+Package `std/pattern`, tier `alloc`, status partial. Required project profile: `owned-data-api.v1`. Dependency: `std.pattern = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.pattern.matcher`
+
+```semaprax
+record Matcher {
+    storage: Bytes,
+    position: usize,
+}
+```
+
+### `std.pattern.make`
+
+Allocate once before a renewal loop. A fresh carrier has no result packet;
+compile initializes the packet and invalidates any previous compiled table.
+
+```semaprax
+fn make() -> Matcher
+    ensures result.position == 0usize
+```
+
+### `std.pattern.compile`
+
+Compile invalidates byte5 first, even on an extent or work refusal. Its
+minimum budget is therefore33: one invalidating store plus32 packet stores.
+
+```semaprax
+fn compile(state: own Matcher, pattern: borrow Slice<u8>, work_limit: usize) -> Matcher
+    requires carrier_valid(state)
+    requires 33usize <= work_limit && work_limit <= 262144usize
+    ensures result.position <= 3072usize
+```
+
+### `std.pattern.full-match`
+
+Provisional compiled header: SPAC, version 1, ready=1, atom/class/capture
+counts, then zeros through byte 63. Each used atom occupies eight bytes:
+kind (0 literal, 1 any, 2 class), value, u16 minimum, u32 maximum.
+0xffffffff denotes an unbounded maximum. No unused frame is ever loaded.
+
+```semaprax
+fn full_match(state: own Matcher, input: borrow Slice<u8>, work_limit: usize) -> Matcher
+    requires carrier_valid(state)
+    requires 32usize <= work_limit && work_limit <= 262144usize
+    ensures result.position <= 3072usize
+```
+
+### `std.pattern.result-valid`
+
+Result observers inspect only the logical packet, never program or scratch
+bytes. Field loads remain usize throughout; there is no narrowing cast.
+
+```semaprax
+fn result_valid(state: borrow Matcher) -> bool
+    ensures !result || carrier_valid(state)
+```
+
+### `std.pattern.status`
+
+```semaprax
+fn status(state: borrow Matcher) -> usize
+    requires result_valid(state)
+    ensures result <= 4usize
+```
+
+### `std.pattern.reason`
+
+Reason 0 means no refusal. Invalid reason 1 is a pattern offset and 2 is
+a compiled-table offset. Resource reasons 1..5 or 7 retain their own domains.
+
+```semaprax
+fn reason(state: borrow Matcher) -> usize
+    requires result_valid(state)
+    ensures result <= 7usize && result != 6usize
+```
+
+### `std.pattern.detail`
+
+```semaprax
+fn detail(state: borrow Matcher) -> usize
+    requires result_valid(state)
+    ensures read(state, 2701usize) >= 3usize || result == 0usize
+```
+
+### `std.pattern.detail-domain`
+
+Domain 0: none, 1: pattern-byte offset, 2: compiled-table-byte offset,
+3: pattern-byte length, 4: input-byte length. Offsets are zero based.
+
+```semaprax
+fn detail_domain(state: borrow Matcher) -> usize
+    requires result_valid(state)
+    ensures result <= 4usize
+```
+
+### `std.pattern.capture-count`
+
+```semaprax
+fn capture_count(state: borrow Matcher) -> usize
+    requires result_valid(state)
+    ensures result <= 16usize
+```
+
+### `std.pattern.work-used`
+
+```semaprax
+fn work_used(state: borrow Matcher) -> usize
+    requires result_valid(state)
+    ensures 32usize <= result && result <= 262144usize
+```
+
+### `std.pattern.capture-start`
+
+```semaprax
+fn capture_start(state: borrow Matcher, capture: usize) -> usize
+    requires result_valid(state) && read(state, 2701usize) == 1usize && capture < read(state, 2702usize)
+    ensures result <= 65536usize
+```
+
+### `std.pattern.capture-end`
+
+```semaprax
+fn capture_end(state: borrow Matcher, capture: usize) -> usize
+    requires result_valid(state) && read(state, 2701usize) == 1usize && capture < read(state, 2702usize)
+    ensures result <= 65536usize
+```
+
 ## `std.process`
 
 Package `std/process`, tier `hosted`, status partial. Required project profile: `process-io.v1`. Dependency: `std.process = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

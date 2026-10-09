@@ -11170,6 +11170,224 @@
           "effects": [],
           "ensures": 0,
           "head": [
+            "record Matcher {",
+            "    storage: Bytes,",
+            "    position: usize,",
+            "}"
+          ],
+          "id": "std.pattern.matcher",
+          "kind": "record",
+          "name": "Matcher",
+          "requires": 0
+        },
+        {
+          "description": [
+            "Allocate once before a renewal loop. A fresh carrier has no result packet;",
+            "compile initializes the packet and invalidates any previous compiled table."
+          ],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn make() -> Matcher",
+            "    ensures result.position == 0usize"
+          ],
+          "id": "std.pattern.make",
+          "kind": "function",
+          "name": "make",
+          "requires": 0
+        },
+        {
+          "description": [
+            "Compile invalidates byte5 first, even on an extent or work refusal. Its",
+            "minimum budget is therefore33: one invalidating store plus32 packet stores."
+          ],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn compile(state: own Matcher, pattern: borrow Slice<u8>, work_limit: usize) -> Matcher",
+            "    requires carrier_valid(state)",
+            "    requires 33usize <= work_limit && work_limit <= 262144usize",
+            "    ensures result.position <= 3072usize"
+          ],
+          "id": "std.pattern.compile",
+          "kind": "function",
+          "name": "compile",
+          "requires": 2
+        },
+        {
+          "description": [
+            "Provisional compiled header: SPAC, version 1, ready=1, atom/class/capture",
+            "counts, then zeros through byte 63. Each used atom occupies eight bytes:",
+            "kind (0 literal, 1 any, 2 class), value, u16 minimum, u32 maximum.",
+            "0xffffffff denotes an unbounded maximum. No unused frame is ever loaded."
+          ],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn full_match(state: own Matcher, input: borrow Slice<u8>, work_limit: usize) -> Matcher",
+            "    requires carrier_valid(state)",
+            "    requires 32usize <= work_limit && work_limit <= 262144usize",
+            "    ensures result.position <= 3072usize"
+          ],
+          "id": "std.pattern.full-match",
+          "kind": "function",
+          "name": "full_match",
+          "requires": 2
+        },
+        {
+          "description": [
+            "Result observers inspect only the logical packet, never program or scratch",
+            "bytes. Field loads remain usize throughout; there is no narrowing cast."
+          ],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn result_valid(state: borrow Matcher) -> bool",
+            "    ensures !result || carrier_valid(state)"
+          ],
+          "id": "std.pattern.result-valid",
+          "kind": "function",
+          "name": "result_valid",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn status(state: borrow Matcher) -> usize",
+            "    requires result_valid(state)",
+            "    ensures result <= 4usize"
+          ],
+          "id": "std.pattern.status",
+          "kind": "function",
+          "name": "status",
+          "requires": 1
+        },
+        {
+          "description": [
+            "Reason 0 means no refusal. Invalid reason 1 is a pattern offset and 2 is",
+            "a compiled-table offset. Resource reasons 1..5 or 7 retain their own domains."
+          ],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn reason(state: borrow Matcher) -> usize",
+            "    requires result_valid(state)",
+            "    ensures result <= 7usize && result != 6usize"
+          ],
+          "id": "std.pattern.reason",
+          "kind": "function",
+          "name": "reason",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn detail(state: borrow Matcher) -> usize",
+            "    requires result_valid(state)",
+            "    ensures read(state, 2701usize) >= 3usize || result == 0usize"
+          ],
+          "id": "std.pattern.detail",
+          "kind": "function",
+          "name": "detail",
+          "requires": 1
+        },
+        {
+          "description": [
+            "Domain 0: none, 1: pattern-byte offset, 2: compiled-table-byte offset,",
+            "3: pattern-byte length, 4: input-byte length. Offsets are zero based."
+          ],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn detail_domain(state: borrow Matcher) -> usize",
+            "    requires result_valid(state)",
+            "    ensures result <= 4usize"
+          ],
+          "id": "std.pattern.detail-domain",
+          "kind": "function",
+          "name": "detail_domain",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn capture_count(state: borrow Matcher) -> usize",
+            "    requires result_valid(state)",
+            "    ensures result <= 16usize"
+          ],
+          "id": "std.pattern.capture-count",
+          "kind": "function",
+          "name": "capture_count",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn work_used(state: borrow Matcher) -> usize",
+            "    requires result_valid(state)",
+            "    ensures 32usize <= result && result <= 262144usize"
+          ],
+          "id": "std.pattern.work-used",
+          "kind": "function",
+          "name": "work_used",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn capture_start(state: borrow Matcher, capture: usize) -> usize",
+            "    requires result_valid(state) && read(state, 2701usize) == 1usize && capture < read(state, 2702usize)",
+            "    ensures result <= 65536usize"
+          ],
+          "id": "std.pattern.capture-start",
+          "kind": "function",
+          "name": "capture_start",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn capture_end(state: borrow Matcher, capture: usize) -> usize",
+            "    requires result_valid(state) && read(state, 2701usize) == 1usize && capture < read(state, 2702usize)",
+            "    ensures result <= 65536usize"
+          ],
+          "id": "std.pattern.capture-end",
+          "kind": "function",
+          "name": "capture_end",
+          "requires": 1
+        }
+      ],
+      "dependency": "std.pattern = \"^0.1.0\"",
+      "module": "std.pattern",
+      "package": "std/pattern",
+      "required_profile": "owned-data-api.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "alloc"
+    },
+    {
+      "declarations": [
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
             "record Argv {",
             "    data: Bytes,",
             "    count: usize,",

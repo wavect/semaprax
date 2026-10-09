@@ -16,7 +16,8 @@ fn noncanonical_workspace_source_reports_project_format_repair() {
         source("app.spx", &format!("\n{}", app.source)),
         library,
     ])
-    .unwrap_err();
+    .err()
+    .expect("noncanonical Project source must be refused");
     assert_eq!(error[0].code, "SPX-G170");
     assert!(error[0]
         .message

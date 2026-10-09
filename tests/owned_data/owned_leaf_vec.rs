@@ -344,6 +344,18 @@ fn iterator_host_refusals_preserve_uncommitted_vector_and_suffix() {
 }
 
 #[test]
+fn header_only_owned_iterator_selects_private_drop_import() {
+    run_wasm(
+        r#"@id("app.discard") fn discard(it: own Iter<string>)->i64 {0}
+@id("app.main") fn main()->i64 {29}
+"#,
+        0,
+        29,
+        "none",
+    );
+}
+
+#[test]
 fn legacy_record_new_ops_preserve_old_physical_carrier() {
     let legacy = DECLARATION.replace("title:string,", "title:Bytes,");
     let body = r#"@id("app.main") fn main()->i64 {

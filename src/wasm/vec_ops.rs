@@ -20,15 +20,29 @@ pub(crate) fn is_wasm_owned_vec_type(program: &ResolvedProgram, ty: &ResolvedTyp
         || crate::hir::owned_leaf_collection::is_vec(&program.declarations, ty)
 }
 
-/// Select the additive private boundary only for an operation that needs it.
-/// The frozen two-Bytes record continues to use its old imports unless one of
-/// the four new operations is present.
+/// Select the additive private boundary for its operations and for owned
+/// iterator carriers whose cleanup uses its drop import. The frozen two-Bytes
+/// record keeps its old imports unless a new operation is present.
 pub(crate) fn program_uses_owned_leaf_vec(program: &ResolvedProgram) -> bool {
+    let private_iterator = |ty: &ResolvedType| {
+        crate::iterator_ops::element(ty).is_some_and(|element| {
+            crate::hir::owned_leaf_collection::layout(&program.declarations, element).is_some()
+                && !crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+                    &program.declarations,
+                    element,
+                )
+        })
+    };
     program.functions.iter().chain(program.function_instances.iter().map(|i| &i.function))
-        .any(|function| std::iter::once(&function.body).chain(&function.requires).chain(&function.ensures)
+        .any(|function| private_iterator(&function.return_type)
+            || function.params.iter().any(|param| private_iterator(&param.ty))
+            || std::iter::once(&function.body).chain(&function.requires).chain(&function.ensures)
             .any(|root| {
                 let mut pending = vec![root];
                 while let Some(expr) = pending.pop() {
+                    if private_iterator(&expr.ty) {
+                        return true;
+                    }
                     if let crate::hir::ResolvedExprKind::Call { callee, type_arguments, .. } = &expr.kind {
                         if let [element] = type_arguments.as_slice() {
                             if crate::hir::owned_leaf_collection::layout(&program.declarations, element).is_some()

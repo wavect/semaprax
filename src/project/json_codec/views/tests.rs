@@ -12,6 +12,7 @@ const SCHEMA: &str = r#"module schema;
  @id("app.request.servers") servers:Vec<String>,
  @id("app.request.patients") patients:Vec<Patient>,
 }
+@id("app.schema.anchor") fn schema_anchor()->i64 {0}
 "#;
 
 #[test]

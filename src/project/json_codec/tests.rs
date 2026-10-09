@@ -1,7 +1,12 @@
 use super::*;
 
 fn record(source: &str) -> TypeDeclaration {
-    crate::parse(source, "schema.spx").unwrap().types.remove(0)
+    parse_schema(source).types.remove(0)
+}
+
+fn parse_schema(source: &str) -> crate::ast::Program {
+    let source = format!("{source}\n@id(\"app.schema.anchor\") fn schema_anchor()->i64 {{0}}\n");
+    crate::parse(&source, "schema.spx").unwrap()
 }
 
 #[test]
@@ -40,7 +45,7 @@ fn codec_shape_requires_authored_ids_and_refuses_unenforced_invariants() {
 
 #[test]
 fn codec_source_is_deterministic_ordinary_ast_and_has_no_authority_escape() {
-    let program = crate::parse("module schema; @id(\"app.row\") record Row { @id(\"a\") n: i64, @id(\"b\") count: usize, @id(\"c\") byte: u8, @id(\"d\") ok: bool, }", "schema.spx").unwrap();
+    let program = parse_schema("module schema; @id(\"app.row\") record Row { @id(\"a\") n: i64, @id(\"b\") count: usize, @id(\"c\") byte: u8, @id(\"d\") ok: bool, }");
     let source = emit::source(&program, &program.types[0]);
     assert_eq!(source, emit::source(&program, &program.types[0]));
     let parsed = crate::parse(&source, "codec.spx").unwrap();

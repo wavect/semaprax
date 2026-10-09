@@ -5,8 +5,11 @@ use std::process::Command;
 use semaprax::{codegen, format, parse, project, wasm};
 use sha2::{Digest, Sha256};
 
+#[path = "application_json/stream.rs"]
 mod stream;
+#[path = "application_json/stream_native.rs"]
 mod stream_native;
+#[path = "application_json/views.rs"]
 mod views;
 
 const MANIFEST: &str = r#"schema = "semaprax.manifest.v1"
@@ -39,6 +42,7 @@ const SCHEMA: &str = r#"module consumer.schema;
     @id("application.patient.byte") byte: u8,
     @id("application.patient.ok") ok: bool,
 }
+@id("consumer.schema.anchor") fn schema_anchor()->i64 {0}
 "#;
 
 fn canonical(source: &str) -> String {

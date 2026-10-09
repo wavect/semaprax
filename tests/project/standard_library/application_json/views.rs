@@ -14,6 +14,7 @@ pub(super) const SCHEMA: &str = r#"module consumer.schema;
  @id("application.request.servers") servers:Vec<String>,
  @id("application.request.patients") patients:Vec<Patient>,
 }
+@id("consumer.schema.anchor") fn schema_anchor()->i64 {0}
 "#;
 
 fn app() -> String {

@@ -377,13 +377,16 @@ fn record_renewal_named_views_replay_origins_and_reject_owner_aliases() {
     // transitive origin even with the original attached proof untouched.
     let mut aliased = program.clone();
     {
-        let ResolvedExprKind::Block { statements, .. } = &mut aliased.functions[index].body.kind else {
+        let ResolvedExprKind::Block { statements, .. } = &mut aliased.functions[index].body.kind
+        else {
             panic!("run block")
         };
         let view = statements
             .iter_mut()
             .find_map(|statement| match statement {
-                ResolvedStatement::Let { binding, value, .. } if binding.name == "input" => Some(value),
+                ResolvedStatement::Let { binding, value, .. } if binding.name == "input" => {
+                    Some(value)
+                }
                 _ => None,
             })
             .unwrap();

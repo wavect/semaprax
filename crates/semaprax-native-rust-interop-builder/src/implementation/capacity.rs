@@ -31,7 +31,7 @@ pub(super) use hir_pre_resolve::*;
 pub(super) use source_budget::*;
 
 const HIR_RESOLVER_FRAME_BYTES: usize = 552;
-const HIR_VALIDATOR_FRAME_BYTES: usize = 288;
+pub(super) const HIR_VALIDATOR_FRAME_BYTES: usize = 288;
 const SOURCE_VERIFIER_FRAME_BYTES: usize = 320;
 const SOURCE_VARIANT_MATCH_STATE_BYTES: usize = 312;
 const CLEANUP_INVENTORY_SHAPE_FRAME_BYTES: usize = 40;

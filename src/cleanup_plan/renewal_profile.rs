@@ -1,7 +1,5 @@
 //! Renewal site identity is derived from HIR, independently of attached transitions.
-use crate::hir::{
-    ExpressionId, ResolvedBinding, ResolvedFunction, ResolvedProgram,
-};
+use crate::hir::{ExpressionId, ResolvedBinding, ResolvedFunction, ResolvedProgram};
 use std::collections::BTreeMap;
 
 pub(crate) fn binding<'a>(
@@ -136,9 +134,8 @@ mod tests {
             .collect::<std::collections::BTreeSet<_>>();
         candidate_ids.extend(crate::byte_ops::same_owner_set_bindings(function).into_keys());
         candidate_ids.extend(crate::hir::vec_loop_renewal::bindings(function).into_keys());
-        candidate_ids.extend(
-            crate::hir::iterator_loop::renewal_bindings(&program, function).into_keys(),
-        );
+        candidate_ids
+            .extend(crate::hir::iterator_loop::renewal_bindings(&program, function).into_keys());
         for at in candidate_ids {
             assert_eq!(
                 index.get(&at).map(|binding| &binding.id),

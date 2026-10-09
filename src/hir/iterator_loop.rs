@@ -4,7 +4,7 @@ mod renewal;
 pub(crate) use renewal::{
     function_has_record_renewal_outside_loop, function_may_require_record_renewal,
     function_requires_record_renewal, function_requires_renewal, is_owner_renewal_record,
-    is_record_owner_renewal, renewal_binding, template_requires_renewal,
+    is_record_owner_renewal, renewal_binding, renewal_bindings, template_requires_renewal,
 };
 
 pub(crate) struct IteratorLoop<'a> {

@@ -277,7 +277,8 @@ const env = {
   spx_vec_leaf_clone_at_v1:(handle,identity,shape,index,out)=>{
     const value=bind(handle,identity,shape),spec=fields(shape);
     if(index<0n||index>=BigInt(value.values.length))return 2;
-    const target=view(out,64),row=value.values[Number(index)],clones=[];
+    const target=view(out,64),row=value.values[Number(index)],clones=[0n,0n];
+    let cloneCount=0;
     try {
       const words=[];
       for(const field of spec){
@@ -287,9 +288,9 @@ const env = {
             throw new RangeError('injected String clone allocation');
           if(refusal==='bytes-clone-allocation'&&field.code===9)
             throw new RangeError('injected Bytes clone allocation');
-          if(refusal==='second-clone'&&clones.length===1)
+          if(refusal==='second-clone'&&cloneCount===1)
             throw new RangeError('injected second clone allocation');
-          word=alloc(word);clones.push(word);
+          word=alloc(word);clones[cloneCount++]=word;
         }
         words.push(word);
       }
@@ -297,7 +298,7 @@ const env = {
       value.identity=identity;value.shape=shape;
       return 0;
     } catch(error) {
-      for(const word of clones)drop(word);
+      for(let i=0;i<cloneCount;i++)drop(clones[i]);
       if(error instanceof RangeError)return 1;
       throw error;
     }

@@ -2,6 +2,8 @@
 use super::*;
 use std::io::Read;
 use std::process::{Child, ExitStatus, Stdio};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{mpsc, Arc};
 use std::time::{Duration, Instant};
 
 use cli::execution::NativeTestLimits;
@@ -151,12 +153,30 @@ pub(super) fn execute(manifest: &Path, limits: NativeTestLimits, json: bool) -> 
     }
 }
 
-fn read_bounded<R: Read>(reader: R, max: usize) -> std::io::Result<Vec<u8>> {
+fn read_bounded<R: Read>(
+    mut reader: R,
+    max: usize,
+    total: &AtomicUsize,
+    overflow: &mpsc::Sender<()>,
+) -> std::io::Result<Vec<u8>> {
     let mut bytes = Vec::new();
-    reader
-        .take((max as u64).saturating_add(1))
-        .read_to_end(&mut bytes)?;
-    Ok(bytes)
+    let mut chunk = [0u8; 8192];
+    loop {
+        let remaining = max.saturating_add(1).saturating_sub(bytes.len());
+        if remaining == 0 {
+            return Ok(bytes);
+        }
+        let take = remaining.min(chunk.len());
+        let count = reader.read(&mut chunk[..take])?;
+        if count == 0 {
+            return Ok(bytes);
+        }
+        bytes.extend_from_slice(&chunk[..count]);
+        if total.fetch_add(count, Ordering::Relaxed).saturating_add(count) > max {
+            let _ = overflow.send(());
+            return Ok(bytes);
+        }
+    }
 }
 
 fn stop(child: &mut Child) {
@@ -191,11 +211,24 @@ fn run_case(executable: &Path, cwd: &Path, limits: NativeTestLimits) -> CaseResu
     let stdout = child.stdout.take().expect("piped stdout");
     let stderr = child.stderr.take().expect("piped stderr");
     let limit = limits.max_output_bytes;
-    let stdout_reader = std::thread::spawn(move || read_bounded(stdout, limit));
-    let stderr_reader = std::thread::spawn(move || read_bounded(stderr, limit));
+    let total = Arc::new(AtomicUsize::new(0));
+    let (overflow_tx, overflow_rx) = mpsc::channel();
+    let stdout_total = Arc::clone(&total);
+    let stdout_overflow = overflow_tx.clone();
+    let stdout_reader = std::thread::spawn(move || {
+        read_bounded(stdout, limit, &stdout_total, &stdout_overflow)
+    });
+    let stderr_reader = std::thread::spawn(move || {
+        read_bounded(stderr, limit, &total, &overflow_tx)
+    });
     let started = Instant::now();
     let timeout = Duration::from_millis(limits.timeout_ms);
     loop {
+        if overflow_rx.try_recv().is_ok() {
+            case.failure = Some(format!("native test exceeded {limit} output bytes"));
+            stop(&mut child);
+            break;
+        }
         match child.try_wait() {
             Ok(Some(status)) => {
                 case.status = Some(status);
@@ -235,8 +268,11 @@ mod tests {
 
     #[test]
     fn bounded_reader_never_accumulates_unbounded_output() {
-        let output = read_bounded(&b"abcdefgh"[..], 3).unwrap();
+        let total = AtomicUsize::new(0);
+        let (overflow, detected) = mpsc::channel();
+        let output = read_bounded(&b"abcdefgh"[..], 3, &total, &overflow).unwrap();
         assert_eq!(output, b"abcd");
+        assert!(detected.try_recv().is_ok());
     }
 
     #[test]

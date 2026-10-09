@@ -271,3 +271,48 @@ fn main() -> i64 uses { process.stdout.write, process.stderr.write }
         .contains("exceeded 12 output bytes"));
     fixture.scratch_empty();
 }
+
+#[test]
+#[cfg_attr(windows, ignore = "native SourceCommand adapter is Unix-only")]
+fn native_cli_stops_large_output_before_timeout() {
+    let tests = r#"module decimal.tests;
+permit { process.stderr.write, process.stdout.write }
+@id("decimal.tests.main")
+fn main() -> i64 uses { process.stdout.write }
+{
+    let text = "abcdefgh";
+    let view = string_as_str(text);
+    let bytes = str_as_bytes(view);
+    let mut index = 0usize;
+    while index < 20000usize {
+        let written = stdout_append(bytes);
+        index = index + 1usize;
+        index < 20000usize
+    }
+    0
+}
+"#;
+    let fixture = NativeFixture::new("large-output", tests);
+    std::fs::write(
+        fixture.root.join("semaprax.toml"),
+        MANIFEST.replace("source-command.v1", "source-command.resource-output.v1"),
+    )
+    .unwrap();
+    let output = fixture.cli(&[
+        "test",
+        "--target",
+        "native",
+        "--native-timeout-ms",
+        "2000",
+        "--native-max-output-bytes",
+        "1024",
+        "--json",
+    ]);
+    assert_eq!(output.status.code(), Some(1), "{}", stderr(&output));
+    let envelope = json(&output);
+    assert!(envelope["cases"][0]["outcome"]
+        .as_str()
+        .unwrap()
+        .contains("exceeded 1024 output bytes"));
+    fixture.scratch_empty();
+}

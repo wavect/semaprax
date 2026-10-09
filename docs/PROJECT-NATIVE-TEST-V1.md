@@ -44,16 +44,20 @@ The route adds no manifest fields, capability grants, or input-shape changes.
 ## Results
 
 Every root passes only when its observed `i64` result is zero. A pure native
-root (one whose test closure has no module permits) must exit successfully and
-write one UTF-8 line parseable as an `i64`, followed by one line feed. A leading
+root (one whose linked test closure retains no permits) must exit successfully
+and write one UTF-8 line parseable as an `i64`, followed by one line feed. A leading
 `+`, surrounding whitespace, missing line feed, multiple lines, invalid UTF-8,
 or an unparseable value fails the root. The decimal form must be canonical:
 leading zeroes and negative zero fail the root.
 
-When the test module declares one or more permits, each executable uses the
-SourceCommand adapter's process status as its result, even if that particular
-root does not call an effect. A successful source result in `0..=255` is
-returned as the process status. A language status failure and an out-of-range
+When the linked test closure retains one or more permits and satisfies the
+existing SourceCommand authority admission, each executable uses the adapter's
+process status as its result, even if that particular root does not call an
+effect. Closure permits come from retained function effect declarations;
+unused module permits do not add them. As with existing SourceCommand admission,
+a closure whose only permit is `process.stdout.write` is refused. A successful
+source result in `0..=255` is returned as the process status. A language status
+failure and an out-of-range
 result, including `256`, exit nonzero. The CLI treats status zero as a pass and
 every nonzero status as a failed check. A native runtime trap also fails the
 root.
@@ -94,3 +98,10 @@ effectful results, interpreter-route `SPX-F102` preservation, timeout and
 output bounds, and scratch cleanup on ordinary outcomes. Until that executable
 gate passes on the current head, this route remains pending in the completion
 matrix.
+
+The focused integration selectors are:
+
+```sh
+cargo test --locked -p semaprax --test project source_command::source_command_native_tests_
+cargo test --locked -p semaprax --test project_cli_v1 native_test::
+```

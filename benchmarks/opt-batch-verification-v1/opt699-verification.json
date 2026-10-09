@@ -1,0 +1,42 @@
+{
+  "schema": "semaprax.opt699.verification.v1",
+  "source": "398b051e6e7a06ac49ecf77d9292831401430de0",
+  "execution_session_id": 63902,
+  "execution_exit_code": 0,
+  "binary": "/Users/kevin/.codex/benchmark-binaries/semaprax-398b051e6",
+  "binary_sha256": "594980a96bb3d7f74a168dfa6bc71d6355344f2963489f1e3ae854d2f3a01237",
+  "verification_log": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/final-698-699-rust-398b051e6.log",
+  "verification_log_sha256": "a6b7a7106857ffc9246ef2f1ec7f825273d645190a129a8e98f17a0692ee7cd3",
+  "tests": [
+    {
+      "command": "cargo test --locked -p semaprax --bin semaprax cli_driver::cli::help::shapes::tests::exact_kind_index_is_complete_collision_free_and_bounded -- --exact",
+      "passed": 1,
+      "failed": 0
+    },
+    {
+      "command": "cargo test --locked -p semaprax --bin semaprax cli_driver::cli::help::tests::guide_names_only_catalog_commands_and_stays_one_screen -- --exact",
+      "passed": 1,
+      "failed": 0
+    },
+    {
+      "command": "cargo test --locked -p semaprax --test cli_help_surface_v1 standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert -- --exact",
+      "passed": 1,
+      "failed": 0
+    },
+    {
+      "command": "cargo test --locked -p semaprax-toolchain --test cli_help_surface_v1 full_scoped_help_is_exhaustive_exact_capability_aware_and_inert -- --exact",
+      "passed": 1,
+      "failed": 0
+    }
+  ],
+  "clippy": {
+    "command": "cargo clippy --locked -p semaprax --lib --bin semaprax -- -D warnings",
+    "exit_code": 0
+  },
+  "build": {
+    "command": "cargo build --locked -p semaprax --lib --bin semaprax",
+    "exit_code": 0
+  },
+  "full_quality_gates_run": false,
+  "benchmark_gain_measured": false
+}

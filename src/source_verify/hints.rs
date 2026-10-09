@@ -346,7 +346,7 @@ pub(super) fn argument_view_help(name: &str, expected: &Type, actual: &Type) -> 
         ),
         (Type::SliceU8, Type::String) => format!(
             "`{name}` takes `borrow Slice<u8>`; bind a literal first, then both views: \
-             `let view = string_as_str(text); let bytes = str_as_bytes(view); {name}(bytes)`"
+             `let bytes = str_as_bytes(string_as_str(text)); {name}(bytes)`"
         ),
         (Type::SliceU8, Type::Str | Type::Bytes | Type::ArrayU8(_)) => format!(
             "`{name}` takes `borrow Slice<u8>`; produce one with `str_as_bytes(view)`, \
@@ -511,7 +511,7 @@ pub(super) fn view_place_help(operation: &str, argument: &Expr) -> String {
     let (source, binding) = match (operation, &argument.kind) {
         ("str_as_bytes", ExprKind::String(_)) | ("string_as_str", ExprKind::String(_)) => (
             "a string literal",
-            "`let text = \"…\"; let view = string_as_str(text); str_as_bytes(view)`",
+            "`let text = \"…\"; str_as_bytes(string_as_str(text))`",
         ),
         ("array_as_slice", ExprKind::ArrayU8(_) | ExprKind::RepeatArrayU8 { .. }) => (
             "an array literal",
@@ -519,7 +519,7 @@ pub(super) fn view_place_help(operation: &str, argument: &Expr) -> String {
         ),
         ("str_as_bytes", ExprKind::Call { name, .. }) if name == "string_as_str" => (
             "a nested view",
-            "`let view = string_as_str(text); str_as_bytes(view)`",
+            "`let text = …; str_as_bytes(string_as_str(text))`",
         ),
         (_, ExprKind::Call { .. } | ExprKind::MethodCall { .. }) => {
             ("a call result", "`let owner = …; <view>(owner)`")

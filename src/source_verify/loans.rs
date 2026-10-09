@@ -83,7 +83,24 @@ pub(super) fn local_borrow_origin(
                 let origin = variables.get(source)?.borrow_origin.clone()?;
                 (origin.root, origin.projections, Some(origin.loan))
             } else {
-                let place = source_place(source, variables, types)?;
+                let place = if operation == crate::byte_ops::ByteOp::StrAsBytes {
+                    if let ExprKind::Call { name, args, .. } = &source.kind {
+                        if crate::byte_ops::by_name(name)
+                            == Some(crate::byte_ops::ByteOp::StringAsStr)
+                        {
+                            let [owner] = args.as_slice() else {
+                                return None;
+                            };
+                            source_place(owner, variables, types)?
+                        } else {
+                            source_place(source, variables, types)?
+                        }
+                    } else {
+                        source_place(source, variables, types)?
+                    }
+                } else {
+                    source_place(source, variables, types)?
+                };
                 if place.projections.is_empty() {
                     let parent = variables.get(&place.root)?.borrow_origin.clone();
                     parent.map_or_else(

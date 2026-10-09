@@ -160,6 +160,20 @@ or JavaScript object twice. Borrowed `str` and `Slice<u8>` parameters share
 one counter: one invocation admits at most 65,536 cumulative external root
 bytes across both carrier kinds.
 
+The exact source composition
+`str_as_bytes(string_as_str(owner))` is also admitted when `owner` is one
+available, unprojected named owning `string`. Resolution fuses this pair into
+one compiler-authenticated `core.str.as-bytes` view rooted at that String;
+its provenance kind is `owned_string`, and its root length is the String's
+UTF-8 byte length. This fused HIR shape is accepted only for that operation,
+that root type, and an empty projection. Direct `str_as_bytes(owner)`, a
+literal, a call result, a projected String, or any other composed borrow
+remains rejected. The resulting `Slice<u8>` is immutable and non-escaping,
+and its ordinary SliceView loan keeps the String owner unavailable for move
+or mutation until the slice's last use. View construction remains outside
+loops; bind the resulting slice before a loop that reads it. The source
+signature of `str_as_bytes` and all byte-operation identities are unchanged.
+
 Borrowing is shared and immutable. A live `Slice<u8>` derived from `Bytes`
 prevents that owner from being moved or dropped. V1 uses conservative lexical
 lifetimes: the restriction lasts until the end of the block that owns the

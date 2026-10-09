@@ -86,6 +86,13 @@ fn mixed_roots(text: borrow str, data: borrow Slice<u8>) -> usize {
     byte_len(str_as_bytes(text)) + byte_len(data)
 }
 
+@id("bytes.composed_owned_string")
+fn composed_owned_string() -> i64 {
+    let text = "hé";
+    let bytes = str_as_bytes(string_as_str(text));
+    if byte_len(bytes) == 3usize { 1 } else { 0 }
+}
+
 @id("bytes.reject")
 fn reject(value: own Bytes) -> i64 requires false { 0 }
 
@@ -127,7 +134,7 @@ fn main() -> i64 {
     let repeated = [9u8; 4];
     let repeated_view = array_as_slice(repeated);
     if byte_len(repeated_view) == 4usize {
-        inspect() + empty() + branch() + zero_record() + zero_array_round_trip() + all_zero_record()
+        inspect() + empty() + branch() + zero_record() + zero_array_round_trip() + all_zero_record() + composed_owned_string()
     } else {
         0
     }
@@ -278,7 +285,7 @@ int main(void) {{
             executed.status.success(),
             "native probe failed: {executed:?}"
         );
-        assert_eq!(executed.stdout, b"46\n");
+        assert_eq!(executed.stdout, b"47\n");
 
         let probe_source = std::env::temp_dir().join(format!("{stem}-mixed.c"));
         let probe_executable =

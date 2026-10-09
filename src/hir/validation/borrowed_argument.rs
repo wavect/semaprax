@@ -42,7 +42,14 @@ impl<'a> HirValidator<'a> {
             .resolve_place(place, binding)
             .map_err(|diagnostic| hir_diagnostic_at_span(diagnostic, span))?;
         if place.projections.is_empty() {
-            if !operation.accepts_resolved(0, &place_ty) {
+            // The source verifier admits this one fused HIR shape only for
+            // `str_as_bytes(string_as_str(named_owner))`. Keep the owner root
+            // explicit so loan replay and backends retain its identity.
+            let composed_owned_string = operation == crate::byte_ops::ByteOp::StrAsBytes
+                && place_ty == ResolvedType::String
+                && place_ownership == OwnershipMode::Own
+                && binding.ownership == OwnershipMode::Own;
+            if !composed_owned_string && !operation.accepts_resolved(0, &place_ty) {
                 return Err(hir_error_at_span(
                     span,
                     "borrowed view root has the wrong storage type",

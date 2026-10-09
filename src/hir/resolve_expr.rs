@@ -1009,15 +1009,22 @@ impl Resolver<'_> {
                         continue;
                     }
                     if op.is_view() {
-                        let ResolvedExprKind::Place(place) = &args[0].kind else {
-                            return Err(self.error(
-                                "SPX-T266",
-                                format!(
-                                    "borrowed view `{}` requires an exact named storage root",
-                                    op.name()
-                                ),
-                                args[0].span,
-                            ));
+                        let place = match &args[0].kind {
+                            ResolvedExprKind::Place(place) => place,
+                            ResolvedExprKind::BorrowPlace { operation, place }
+                                if op == crate::byte_ops::ByteOp::StrAsBytes
+                                    && operation.as_str() == crate::byte_ops::STRING_AS_STR_ID
+                                    && place.projections.is_empty() => place,
+                            _ => {
+                                return Err(self.error(
+                                    "SPX-T266",
+                                    format!(
+                                        "borrowed view `{}` requires an exact named storage root",
+                                        op.name()
+                                    ),
+                                    args[0].span,
+                                ));
+                            }
                         };
                         results.push(ResolvedExpr {
                             id: ExpressionId::new(function, &path),

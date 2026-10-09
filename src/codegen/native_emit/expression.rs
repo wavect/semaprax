@@ -650,18 +650,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         self.line(&format!("spx_slice_u8_require_valid({temporary});"));
                     }
                     crate::byte_ops::ByteOp::StrAsBytes => {
-                        self.require_type(
-                            &source.ty,
-                            &ResolvedType::Str,
-                            "borrowed UTF-8 byte view source",
-                        )?;
-                        self.line(&format!("spx_str_require_valid({});", source.code));
-                        self.line(&format!(
-                            "{temporary} = (spx_slice_u8_v1) {{ .ptr = ({}).len == UINT64_C(0) ? NULL : (const uint8_t *)({}).data, .len = ({}).len }};",
-                            source.code, source.code, source.code
-                        ));
-                        let validator = self.resource_text_validator(expr);
-                        self.line(&format!("{validator}({temporary});"));
+                        self.emit_str_as_bytes_view(temporary, source, expr)?;
                     }
                     crate::byte_ops::ByteOp::StringAsStr => {
                         self.require_type(

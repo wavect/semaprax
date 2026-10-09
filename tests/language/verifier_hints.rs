@@ -348,7 +348,7 @@ fn owned_string_into_a_slice_parameter_names_both_borrowed_views() {
     );
     let hint = help(&diagnostic);
     assert!(
-        hint.contains("let view = string_as_str(text); let bytes = str_as_bytes(view); f(bytes)"),
+        hint.contains("let bytes = str_as_bytes(string_as_str(text)); f(bytes)"),
         "{diagnostic}"
     );
     assert!(hint.len() <= 256, "hint is {} bytes: {hint}", hint.len());
@@ -358,6 +358,22 @@ fn owned_string_into_a_slice_parameter_names_both_borrowed_views() {
 fn named_string_views_are_admitted_for_a_slice_parameter() {
     let source = "module habit.slice_string;\n@id(\"habit.f\")\nfn f(v: borrow Slice<u8>) -> usize\n{\n    byte_len(v)\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    let text = \"abc\";\n    let view = string_as_str(text);\n    let bytes = str_as_bytes(view);\n    let n = f(bytes);\n    0\n}\n";
     assert!(diagnostics(source).is_empty());
+}
+
+#[test]
+fn fused_owned_string_byte_view_is_admitted_for_a_named_owner() {
+    let source = "module habit.slice_string;\n@id(\"habit.f\")\nfn f(v: borrow Slice<u8>) -> usize\n{\n    byte_len(v)\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    let text = \"abc\";\n    let bytes = str_as_bytes(string_as_str(text));\n    let count = f(bytes);\n    if count == 3usize { 0 } else { 1 }\n}\n";
+    assert!(diagnostics(source).is_empty());
+}
+
+#[test]
+fn fused_owned_string_byte_view_cannot_escape_as_a_returned_slice() {
+    let source = "module habit.slice_string;\n@id(\"habit.escape\")\nfn escape(text: string) -> Slice<u8>\n{\n    str_as_bytes(string_as_str(text))\n}\n@id(\"app.main\")\nfn main() -> i64 { 0 }\n";
+    let diagnostics = diagnostics(source);
+    assert!(
+        diagnostics.iter().any(|diagnostic| diagnostic.code == "SPX-T264"),
+        "the fused view remains non-escaping: {diagnostics:?}"
+    );
 }
 
 #[test]
@@ -497,7 +513,7 @@ fn borrowed_view_of_a_literal_names_the_binding_step() {
         "borrowed view `str_as_bytes` requires an exact admitted storage place"
     );
     assert!(
-        help(&diagnostic).contains("let view = string_as_str(text); str_as_bytes(view)"),
+        help(&diagnostic).contains("let text = \"…\"; str_as_bytes(string_as_str(text))"),
         "{diagnostic}"
     );
 }
@@ -551,13 +567,12 @@ fn rust_and_python_habits_in_bodies_name_the_admitted_form() {
 
 #[test]
 fn nested_views_and_missing_effects_name_the_complete_fix() {
-    let nested = only(
-        "module habit.view;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let text = \"hi\";\n    let b = str_as_bytes(string_as_str(text));\n    0\n}\n",
-        "SPX-T266",
+    let invalid_temporary = diagnostics(
+        "module habit.view;\n@id(\"view.make\")\nfn make() -> string { \"hi\" }\n@id(\"app.main\")\nfn main() -> i64\n{\n    let b = str_as_bytes(string_as_str(make()));\n    0\n}\n",
     );
     assert!(
-        help(&nested).contains("let view = string_as_str(text); str_as_bytes(view)"),
-        "{nested}"
+        invalid_temporary.iter().any(|diagnostic| diagnostic.code == "SPX-T266"),
+        "temporary String results remain outside the fused view profile: {invalid_temporary:?}"
     );
 
     let unpermitted = only(

@@ -3660,6 +3660,7 @@ fn byte_slice_fact_json(
     let root_kind = match provenance.root_kind {
         ByteSliceRootKind::FunctionParameter => "function_parameter",
         ByteSliceRootKind::OwnedBytes => "owned_bytes",
+        ByteSliceRootKind::OwnedString => "owned_string",
         ByteSliceRootKind::FixedArray => "fixed_array",
         ByteSliceRootKind::BorrowedStr => "borrowed_str",
         ByteSliceRootKind::CommandArguments => "command_arguments",

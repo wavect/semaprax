@@ -272,6 +272,100 @@ fn borrowed_bytes_call_shape_uses_call_span_and_keeps_missing_span_locationless(
     assert_eq!(diagnostic.span, None);
 }
 
+const FUSED_STRING_VIEW: &str = r#"
+module test.fused_string_byte_view;
+@id("bytes.measure") fn measure(text: string) -> usize {
+  let bytes = str_as_bytes(string_as_str(text));
+  byte_len(bytes)
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+
+#[test]
+fn fused_string_byte_view_has_rooted_graph_fact_and_full_owner_loan() {
+    let parsed = crate::parse(FUSED_STRING_VIEW, "fused-string-byte-view.spx").unwrap();
+    let program = crate::hir::resolve(&parsed).unwrap();
+    crate::hir::validate(&program).unwrap();
+    let function = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "bytes.measure")
+        .unwrap();
+    let owner = function.params[0].id.clone();
+    let ResolvedExprKind::Block { statements, .. } = &function.body.kind else {
+        panic!("function body is a block")
+    };
+    let ResolvedStatement::Let { binding, .. } = &statements[0] else {
+        panic!("first statement binds the fused view")
+    };
+    let (slice, provenance) = program
+        .declarations
+        .byte_slice_provenances()
+        .find(|(_, provenance)| provenance.root_kind == crate::hir::ByteSliceRootKind::OwnedString)
+        .expect("fused view retains an owned-String provenance root");
+    assert_eq!(provenance.root, owner);
+    assert_eq!(provenance.projected_type, ResolvedType::String);
+    assert!(provenance.projections.is_empty());
+    assert_eq!(provenance.root_length, crate::hir::ByteSliceExtent::ValueLength);
+    let producer = provenance.producer.as_ref().expect("view producer is recorded");
+    let loan = function
+        .loan_plan
+        .loans
+        .iter()
+        .find(|loan| loan.site == *producer && loan.cause == LoanCause::SliceView)
+        .expect("SliceView loan protects the owner");
+    assert_eq!(loan.origin.root, owner);
+    assert!(!loan.end_edges.is_empty());
+    assert_eq!(slice, &binding.id);
+
+    let graph = crate::graph::to_json(&parsed).unwrap();
+    assert!(graph.contains("\"root_kind\":\"owned_string\""));
+}
+
+#[test]
+fn fused_string_byte_view_rejects_a_forged_operation_on_the_string_root() {
+    let parsed = crate::parse(FUSED_STRING_VIEW, "fused-string-byte-view-hostile.spx").unwrap();
+    let mut program = crate::hir::resolve(&parsed).unwrap();
+    let function = program
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "bytes.measure")
+        .unwrap();
+    let ResolvedExprKind::Block { statements, .. } = &mut function.body.kind else {
+        panic!("fused view is a local initializer")
+    };
+    let ResolvedStatement::Let { value, .. } = &mut statements[0] else {
+        panic!("first statement binds the fused view")
+    };
+    let ResolvedExprKind::BorrowPlace { operation, .. } = &mut value.kind else {
+        panic!("fused view resolves to authenticated BorrowPlace HIR")
+    };
+    *operation = DeclarationId::new(crate::byte_ops::BYTES_AS_SLICE_ID);
+    let diagnostic = crate::hir::validate(&program)
+        .expect_err("a different operation cannot borrow from a String root");
+    assert_eq!(diagnostic.code, "SPX-H006");
+}
+
+#[test]
+fn fused_string_byte_view_keeps_the_string_owner_borrowed_until_last_use() {
+    let source = r#"
+module test.fused_string_byte_view_mutation;
+@id("bytes.measure") fn measure() -> usize {
+  let mut text = "before";
+  let bytes = str_as_bytes(string_as_str(text));
+  text = "after";
+  byte_len(bytes)
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let parsed = crate::parse(source, "fused-string-byte-view-mutation.spx").unwrap();
+    let diagnostics = crate::verify::verify(&parsed);
+    assert!(
+        diagnostics.iter().any(|diagnostic| diagnostic.code == "SPX-T265"),
+        "mutation of the borrowed String must remain rejected: {diagnostics:?}"
+    );
+}
+
 #[test]
 fn borrowed_view_place_uses_expression_span_and_keeps_missing_span_locationless() {
     let program = fixture();

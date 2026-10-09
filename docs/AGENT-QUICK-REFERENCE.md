@@ -1056,9 +1056,11 @@ fn main() -> i64
 }
 ```
 
-`str_as_bytes` takes a `str` view, not an owned `string`, and `string_as_str`
-takes a binding, not a literal (`SPX-T266`):
-`let view = string_as_str(text); stdout_write(str_as_bytes(view))`.
+`str_as_bytes` accepts a borrowed `str` view. For a named owned `string`, the
+view may be composed directly as `str_as_bytes(string_as_str(text))`; bind the
+result to a `Slice<u8>` before using it as a loop-carried view. `string_as_str`
+still takes a named binding, not a literal, and temporary or projected String
+roots remain rejected (`SPX-T266`).
 
 Replace a 256-arm i64-to-byte or byte-to-char match with
 `u8_from_i64(value)` then `char_from_u8(byte)`; narrowing is checked.
@@ -1104,7 +1106,7 @@ Replace a 256-arm i64-to-byte or byte-to-char match with
 | `a[0]`|`SPX-P106`|`byte_get(array_as_slice(a), 0usize)` (`Option<u8>`)|
 | Some(1), None|`SPX-T203`, `SPX-T202`|Option<i64>::Some { value: 1 }, Option<i64>::None {}|
 | s.len() on string|`SPX-T203`|Use string_len(s); only classes have methods|
-| str_as_bytes(text) / nested string_as_str|`SPX-T263`, `SPX-T266`|Bind view: let v = string_as_str(text); str_as_bytes(v)|
+| str_as_bytes(text) / invalid nested string_as_str|`SPX-T263`, `SPX-T266`|For a named String use `str_as_bytes(string_as_str(text))`; bind its Slice result before a loop|
 | repeated direct output on one path or direct output reachable from a loop|`SPX-T269`|Keep direct writes outside loops and within selected-profile limits. Default combined stdout + stderr cap: 65,536 bytes; Project v28 staged appends: 1 MiB.|
 | string_as_str("literal")|`SPX-T266`|Bind literal first: let s = "literal"; string_as_str(s)|
 | comparing payload/generic variant|`SPX-T207`|Match; == only payload-free non-generic variants|

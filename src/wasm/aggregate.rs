@@ -7048,7 +7048,22 @@ impl Emitter<'_> {
                 crate::byte_ops::STR_AS_BYTES_ID,
                 Value::Scalar { .. } | Value::ScalarMemory { .. },
             ) => {
-                require_type(value_type(&source), &ResolvedType::Str, "borrowed str root")?;
+                let source_type = value_type(&source);
+                if source_type == &ResolvedType::String {
+                    if self.standalone_strings
+                        && !self.function_indexes.contains_key(
+                            &FunctionExecutionId::Monomorphic(DeclarationId::new(
+                                crate::string_ops::COMPARE_ID,
+                            )),
+                        )
+                    {
+                        return Err(error(
+                            "standalone internal-String profile does not admit borrowed str views",
+                        ));
+                    }
+                } else {
+                    require_type(source_type, &ResolvedType::Str, "borrowed str root")?;
+                }
                 self.get_scalar(&source);
                 self.output.push(0x10);
                 write_u32(self.output, BYTE_AS_SLICE_IMPORT);

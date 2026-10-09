@@ -791,6 +791,9 @@ fn program_uses_numeric_text(program: &ResolvedProgram, include_instances: bool)
 /// Whether any resolved function body or contract calls a compiler-owned
 /// borrowed-text operation intrinsic.
 fn program_uses_borrowed_str(program: &ResolvedProgram, include_instances: bool) -> bool {
+    if string_views::program_has_owned_string_byte_view(program) {
+        return true;
+    }
     let mut pending: Vec<&ResolvedExpr> = Vec::new();
     for function in string_runtime_functions(program, include_instances) {
         if matches!(function.return_type, ResolvedType::Str)

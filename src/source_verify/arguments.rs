@@ -265,6 +265,29 @@ pub(super) fn source_byte_view_place_is_admitted(
     variables: &HashMap<String, Binding>,
     types: &TypeTable<'_>,
 ) -> bool {
+    if operation == crate::byte_ops::ByteOp::StrAsBytes {
+        if let ExprKind::Call {
+            name,
+            type_arguments,
+            args,
+        } = &expression.kind
+        {
+            if crate::byte_ops::by_name(name)
+                == Some(crate::byte_ops::ByteOp::StringAsStr)
+                && type_arguments.is_empty()
+            {
+                let [owner] = args.as_slice() else {
+                    return false;
+                };
+                return source_place(owner, variables, types).is_some_and(|place| {
+                    place.projections.is_empty()
+                        && place.ty == Type::String
+                        && place.mode == ParamMode::Own
+                        && matches!(owner.kind, ExprKind::Var(_))
+                });
+            }
+        }
+    }
     let Some(place) = source_place(expression, variables, types) else {
         return false;
     };

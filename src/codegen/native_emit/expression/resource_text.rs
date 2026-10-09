@@ -2,9 +2,37 @@
 
 use crate::hir::{self, ResolvedExpr, ResolvedExprKind, ResolvedType};
 
-use super::super::{CEmitter, COutput, NativeOutputProfile};
+use super::super::{CEmitter, COutput, CValue, NativeOutputProfile};
 
 impl<O: COutput> CEmitter<'_, O> {
+    pub(super) fn emit_str_as_bytes_view(
+        &mut self,
+        destination: &str,
+        source: &CValue,
+        expression: &ResolvedExpr,
+    ) -> Result<(), crate::diagnostic::Diagnostic> {
+        let source_code = if source.ty == ResolvedType::String {
+            let text = self.temporary(&ResolvedType::Str)?;
+            self.line(&format!("{text} = spx_string_as_str({});", source.code));
+            text
+        } else {
+            if source.ty != ResolvedType::Str {
+                return Err(super::super::backend_error(
+                    "borrowed UTF-8 byte view source has the wrong type",
+                ));
+            }
+            source.code.clone()
+        };
+        self.line(&format!("spx_str_require_valid({source_code});"));
+        self.line(&format!(
+            "{destination} = (spx_slice_u8_v1) {{ .ptr = ({}).len == UINT64_C(0) ? NULL : (const uint8_t *)({}).data, .len = ({}).len }};",
+            source_code, source_code, source_code
+        ));
+        let validator = self.resource_text_validator(expression);
+        self.line(&format!("{validator}({destination});"));
+        Ok(())
+    }
+
     /// Select widened helpers only for retained HIR provenance produced from
     /// an immutable borrowed `str`. Carrier shape cannot upgrade Slice/Bytes.
     pub(super) fn is_resource_text_slice(&self, expression: &ResolvedExpr) -> bool {
@@ -42,9 +70,12 @@ impl<O: COutput> CEmitter<'_, O> {
             _ => None,
         };
         provenance.is_some_and(|provenance| {
-            provenance.root_kind == hir::ByteSliceRootKind::BorrowedStr
-                && provenance.projected_type == ResolvedType::Str
-                && provenance.projections.is_empty()
+            provenance.projections.is_empty()
+                && matches!(
+                    (provenance.root_kind, &provenance.projected_type),
+                    (hir::ByteSliceRootKind::BorrowedStr, ResolvedType::Str)
+                        | (hir::ByteSliceRootKind::OwnedString, ResolvedType::String)
+                )
         })
     }
 

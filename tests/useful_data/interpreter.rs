@@ -65,6 +65,13 @@ fn mixed_roots(text: borrow str, bytes: borrow Slice<u8>) -> usize {
     byte_len(text_view) + byte_len(bytes)
 }
 
+@id("bytes.composed-owned-string")
+fn composed_owned_string() -> usize {
+    let text = "hé";
+    let bytes = str_as_bytes(string_as_str(text));
+    byte_len(bytes)
+}
+
 @id("app.main")
 fn main() -> i64 {
     if array_length([9u8; 4]) == 4usize {
@@ -121,6 +128,22 @@ fn str_as_bytes_preserves_utf8_bytes_including_embedded_nul() {
     .unwrap();
     assert!(result.returned);
     assert_eq!(returned_value(&result.envelope), "90u8");
+    interpreter::verify_envelope(&result.envelope).unwrap();
+    std::fs::remove_file(path).unwrap();
+}
+
+#[test]
+fn fused_owned_string_byte_view_executes_with_utf8_byte_length() {
+    let path = source_file();
+    let result = interpreter::interpret(
+        &path,
+        "bytes.composed-owned-string",
+        &[],
+        &InterpreterOptions::default(),
+    )
+    .unwrap();
+    assert!(result.returned);
+    assert_eq!(returned_value(&result.envelope), "3usize");
     interpreter::verify_envelope(&result.envelope).unwrap();
     std::fs::remove_file(path).unwrap();
 }

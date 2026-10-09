@@ -21,6 +21,15 @@ same owner root and prevents overlapping moves for its lifetime. Canonical
 source uses the reserved spelling `string_as_str`; the semantic graph exposes
 `core.string.as-str` and the rooted borrow relationship.
 
+For a byte-only consumer, the exact source composition
+`str_as_bytes(string_as_str(owner))` may be fused to a `Slice<u8>` view when
+`owner` is one available, unprojected named owning String. Its HIR operation
+remains `core.str.as-bytes`, with an `owned_string` provenance root and the
+owner's `ValueId`; the SliceView loan protects that owner through the slice's
+last use. This does not admit direct `str_as_bytes(owner)`, temporary or
+projected owners, a borrowed view returned from a function, or mutable access.
+The underlying String remains the only cleanup root.
+
 This view is not the only authenticated root of an immutable borrowed-`str`
 local. `arg_utf8(index)`, owned by [Bounded Language Command
 I/O v1](BOUNDED-LANGUAGE-COMMAND-IO-V1.md), roots such a local on the single

@@ -213,6 +213,7 @@ pub(super) fn byte_slice_transcript_source(
                             }
                             ByteSliceRootKind::FunctionParameter
                             | ByteSliceRootKind::OwnedBytes
+                            | ByteSliceRootKind::OwnedString
                             | ByteSliceRootKind::BorrowedStr
                             | ByteSliceRootKind::StdinStreamReader => TranscriptSource::Unknown,
                         });

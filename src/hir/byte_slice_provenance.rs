@@ -514,6 +514,16 @@ pub(super) fn derive_byte_slice_provenance(
                         ByteSliceExtent::ValueLength,
                         ResolvedType::Bytes,
                     ),
+                    ResolvedType::String
+                        if operation.as_str() == crate::byte_ops::STR_AS_BYTES_ID
+                            && place.projections.is_empty() =>
+                    {
+                        (
+                            ByteSliceRootKind::OwnedString,
+                            ByteSliceExtent::ValueLength,
+                            ResolvedType::String,
+                        )
+                    }
                     ResolvedType::ArrayU8(length) => (
                         ByteSliceRootKind::FixedArray,
                         ByteSliceExtent::Constant(u64::from(*length)),
@@ -561,6 +571,7 @@ pub(super) fn derive_byte_slice_provenance(
                         crate::stdin_stream_ops::CHUNK_ID
                     }
                     ResolvedType::Bytes => crate::byte_ops::BYTES_AS_SLICE_ID,
+                    ResolvedType::String => crate::byte_ops::STR_AS_BYTES_ID,
                     ResolvedType::ArrayU8(_) => crate::byte_ops::ARRAY_AS_SLICE_ID,
                     ResolvedType::Str => crate::byte_ops::STR_AS_BYTES_ID,
                     _ => return true,

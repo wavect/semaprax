@@ -3987,6 +3987,16 @@ impl Evaluator<'_> {
                             value.bytes,
                         )))
                     }
+                    (crate::byte_ops::ByteOp::StrAsBytes, Value::String(value)) => {
+                        // The fused HIR form is exactly
+                        // str_as_bytes(string_as_str(owner)); retain the
+                        // owner identity while materializing the evaluator's
+                        // abstract borrowed-byte representation.
+                        Ok(Value::BorrowedSlice(BorrowedSliceValue::whole(
+                            place.root.clone(),
+                            Arc::from(value.as_bytes()),
+                        )))
+                    }
                     (crate::byte_ops::ByteOp::StringAsStr, Value::String(value)) => {
                         Ok(Value::BorrowedStr(BorrowedStrValue {
                             invocation_root: place.root.clone(),

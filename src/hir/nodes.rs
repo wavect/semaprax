@@ -67,6 +67,9 @@ pub enum ByteSliceRootKind {
     /// existing root; only a concrete host entry turns it into external input.
     FunctionParameter,
     OwnedBytes,
+    /// Fused `str_as_bytes(string_as_str(owner))` over one exact owned
+    /// String root. The fused HIR operation retains the root String identity.
+    OwnedString,
     FixedArray,
     BorrowedStr,
     /// The one immutable argument arena owned by the enclosing command

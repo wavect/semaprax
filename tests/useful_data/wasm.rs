@@ -42,11 +42,18 @@ fn choose(flag: bool) -> i64 {
     }
 }
 
+@id("bytes.composed_owned_string")
+fn composed_owned_string() -> i64 {
+    let text = "hé";
+    let bytes = str_as_bytes(string_as_str(text));
+    if byte_len(bytes) == 3usize { 1 } else { 0 }
+}
+
 @id("app.main")
 fn main() -> i64 {
     let repeated = [9u8; 4];
     let repeated_view = array_as_slice(repeated);
-    if byte_len(repeated_view) == 4usize { inspect() + empty() + choose(true) + choose(false) } else { 0 }
+    if byte_len(repeated_view) == 4usize { inspect() + empty() + choose(true) + choose(false) + composed_owned_string() } else { 0 }
 }
 "#;
 
@@ -67,7 +74,7 @@ fn core_wasm_arrays_and_owned_bytes_are_exact_and_execute() {
     std::fs::write(root.join("package.json"), "{\"type\":\"module\"}\n").unwrap();
     std::fs::write(
         root.join("probe.mjs"),
-        "import {readFile} from 'node:fs/promises';\nimport {instantiateBytes} from './semaprax.js';\nconst bytes=await readFile('./app.wasm');\nfor(let i=0;i<2;i+=1){const {instance}=await instantiateBytes(bytes);if(instance.exports.semaprax_main()!==45n)throw Error('semantic');const memory=instance.exports.__spx_byte_memory;if(memory.buffer.byteLength!==131072)throw Error('memory');let fixed=false;try{memory.grow(1)}catch{fixed=true}if(!fixed)throw Error('grow');}\nconsole.log('useful-data-wasm-v1-ok');\n",
+        "import {readFile} from 'node:fs/promises';\nimport {instantiateBytes} from './semaprax.js';\nconst bytes=await readFile('./app.wasm');\nfor(let i=0;i<2;i+=1){const {instance}=await instantiateBytes(bytes);if(instance.exports.semaprax_main()!==46n)throw Error('semantic');const memory=instance.exports.__spx_byte_memory;if(memory.buffer.byteLength!==131072)throw Error('memory');let fixed=false;try{memory.grow(1)}catch{fixed=true}if(!fixed)throw Error('grow');}\nconsole.log('useful-data-wasm-v1-ok');\n",
     )
     .unwrap();
     let output = Command::new("node")

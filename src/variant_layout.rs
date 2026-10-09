@@ -392,13 +392,13 @@ fn layout_case(
         } else if concrete_ty == ResolvedType::Bytes {
             let (size, align) = owned_bytes_size_align(target);
             (size, align, VariantFieldValueKind::OwnedBytes)
-        } else if crate::hir::collection_outcome::admitted(
+        } else if crate::hir::collection_outcome::runtime_admitted(
             &program.declarations,
             &ResolvedType::Nominal {
                 declaration: variant.clone(),
                 arguments: arguments.to_vec(),
             },
-        ) && crate::hir::copy_record_collection::is_vec(
+        ) && crate::hir::collection_outcome::field_admitted(
             &program.declarations,
             &concrete_ty,
         ) {

@@ -801,7 +801,7 @@ impl<'a> TypeTable<'a> {
     /// cannot be selected by a generic instantiation.
     pub(super) fn is_direct_owned_variant(&self, ty: &Type) -> bool {
         self.is_flat_owned_string_variant(ty)
-            || super::declared_type::collection_outcome::admitted(self, ty)
+            || super::declared_type::collection_outcome::runtime_admitted(self, ty)
     }
 
     pub(super) fn is_flat_owned_string_variant(&self, ty: &Type) -> bool {

@@ -50,6 +50,18 @@ increased. Selected Web/Wasm/npm command targets retain the inherited native-onl
 refusal before artifact publication; ordinary pure collection backend gates do
 not establish a streaming host implementation on those targets.
 
+The next source tranche admits an ordinary explicitly identified, monomorphic
+two-case private outcome. One case has one or two direct `Vec<T>` fields whose
+elements independently satisfy the owned-leaf collection contract; the other
+has exactly `i64`, `usize`, `i64` fields in that order. Case and field identities
+are explicit, and neither case names nor generated origins grant authority.
+The outcome is affine; its Vec fields remain whole canonical cleanup leaves.
+Source and HIR reconstruct this shape separately, and the original Copy-only
+collection outcome is unchanged. V29 and older native profiles refuse even a
+header-only or unused function carrying this new outcome. This source tranche
+does not admit arbitrary recursive variants, nested Vec values or an owned
+record inside a variant. Its owning gates and backend execution remain pending.
+
 The owning Project selectors are under
 `project::tests::stdin_stream_command::owned_data`:
 

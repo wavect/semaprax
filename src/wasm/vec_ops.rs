@@ -25,7 +25,8 @@ pub(crate) fn is_wasm_owned_vec_type(program: &ResolvedProgram, ty: &ResolvedTyp
 /// record keeps its old imports unless a new operation is present.
 pub(crate) fn program_uses_owned_leaf_vec(program: &ResolvedProgram) -> bool {
     let private_iterator = |ty: &ResolvedType| {
-        crate::iterator_ops::element(ty).is_some_and(|element| {
+        crate::hir::collection_outcome::owned_admitted(&program.declarations, ty)
+        || crate::iterator_ops::element(ty).is_some_and(|element| {
             crate::hir::owned_leaf_collection::layout(&program.declarations, element).is_some()
                 && !crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
                     &program.declarations,
@@ -93,7 +94,8 @@ pub(crate) const RECORD_ELEMENT_MAX_CAPACITY: u64 = crate::vec_ops::MAX_OWNED_PA
 const _: () = assert!(RECORD_ELEMENT_MAX_CAPACITY == 4_096);
 
 pub(crate) fn program_uses_vec(program: &ResolvedProgram) -> bool {
-    crate::hir::copy_record_collection::program_uses(program)
+    program_uses_owned_leaf_vec(program)
+        || crate::hir::copy_record_collection::program_uses(program)
         || program
             .functions
             .iter()

@@ -46,7 +46,7 @@ impl Emitter<'_> {
             .filter(|field| {
                 field.binding.ty == ResolvedType::Bytes
                     || field.binding.ty == ResolvedType::String
-                    || crate::hir::copy_record_collection::is_vec(
+                    || crate::hir::collection_outcome::field_admitted(
                         &self.program.declarations,
                         &field.binding.ty,
                     )

@@ -465,7 +465,7 @@ pub(super) fn resolver_admits_direct_owned_variant(
     ty: &ResolvedType,
 ) -> bool {
     resolver_admits_flat_owned_string_variant(declarations, ty)
-        || super::collection_outcome::admitted(declarations, ty)
+        || super::collection_outcome::runtime_admitted(declarations, ty)
 }
 
 #[allow(dead_code)]

@@ -59,7 +59,7 @@ pub(super) fn is_admitted_owned_variant(
     declarations: &hir::DeclarationIndex,
     ty: &ResolvedType,
 ) -> bool {
-    hir::collection_outcome::admitted(declarations, ty)
+    hir::collection_outcome::runtime_admitted(declarations, ty)
         || is_admitted_owned_byte_variant(declarations, ty)
         || hir::is_admitted_owned_string_variant(declarations, ty)
         || is_admitted_copy_aggregate_variant(declarations, ty)

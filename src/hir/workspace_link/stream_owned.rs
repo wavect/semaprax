@@ -7,17 +7,19 @@ pub(crate) fn stream_owned_signature_admitted(
 ) -> bool {
     let index = &program.declarations;
     let leaf = |ty| super::super::owned_leaf_collection::layout(index, ty).is_some();
+    let outcome = |ty| super::super::collection_outcome::owned_admitted(index, ty);
     let collection = |ty| {
         super::super::owned_leaf_collection::is_vec(index, ty)
             || crate::iterator_ops::element(ty).is_some_and(|element| leaf(element))
     };
     (super::stream_record::stream_record_return_admitted(index, &f.return_type)
         || leaf(&f.return_type)
+        || outcome(&f.return_type)
         || collection(&f.return_type))
         && f.params.iter().all(|p| {
             super::stream_record::stream_record_parameter_admitted(index, p)
                 || (matches!(p.ownership, OwnershipMode::Own | OwnershipMode::Borrow)
-                    && (leaf(&p.ty) || collection(&p.ty)))
+                    && (leaf(&p.ty) || collection(&p.ty) || outcome(&p.ty)))
         })
         && (!crate::stdin_stream_ops::is_reader(&f.return_type)
             || crate::stdin_stream_ops::resolved_forward_signature(f))
@@ -30,6 +32,9 @@ pub(crate) fn function_requires_owned_profile(
     f: &ResolvedFunction,
 ) -> bool {
     fn new_carrier(index: &DeclarationIndex, ty: &ResolvedType) -> bool {
+        if super::super::collection_outcome::owned_admitted(index, ty) {
+            return true;
+        }
         match ty {
             ResolvedType::Nominal {
                 declaration,
@@ -120,6 +125,7 @@ pub(crate) fn validate_stream_owned_program(
             if !super::super::copy_record_collection::admitted(&program.declarations, &ty)
                 && super::stream_record::codec_mode(&program.declarations, &ty).is_none()
                 && super::super::owned_leaf_collection::layout(&program.declarations, &ty).is_none()
+                && !super::super::collection_outcome::owned_admitted(&program.declarations, &ty)
             {
                 return Err(link_error(
                     "owned-data closure contains an unsupported authored nominal declaration",

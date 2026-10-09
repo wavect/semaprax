@@ -1,6 +1,17 @@
 //! Direct bounded collection outcomes; no recursive or synthesized authority.
 use super::*;
 
+mod owned;
+pub(crate) use owned::admitted as owned_admitted;
+
+pub(crate) fn runtime_admitted(index: &DeclarationIndex, ty: &ResolvedType) -> bool {
+    admitted(index, ty) || owned_admitted(index, ty)
+}
+
+pub(crate) fn field_admitted(index: &DeclarationIndex, ty: &ResolvedType) -> bool {
+    copy_record_collection::is_vec(index, ty) || owned_leaf_collection::is_vec(index, ty)
+}
+
 pub(crate) fn admitted(index: &DeclarationIndex, ty: &ResolvedType) -> bool {
     let ResolvedType::Nominal {
         declaration,

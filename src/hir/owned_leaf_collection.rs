@@ -236,7 +236,10 @@ pub(crate) fn function_requires_profile_by<'a>(
     function: &super::ResolvedFunction,
     lookup: impl Fn(&super::DeclarationId) -> Option<&'a super::ResolvedTypeDeclaration>,
 ) -> bool {
-    let carrier = |ty: &ResolvedType| {
+    fn carrier<'a>(
+        ty: &ResolvedType,
+        lookup: &impl Fn(&super::DeclarationId) -> Option<&'a super::ResolvedTypeDeclaration>,
+    ) -> bool {
         let ResolvedType::Nominal {
             declaration,
             arguments,
@@ -248,7 +251,14 @@ pub(crate) fn function_requires_profile_by<'a>(
             declaration.as_str(),
             crate::prelude::VEC_ID | crate::iterator_ops::ITER_ID | crate::iterator_ops::STEP_ID
         ) {
-            return false;
+            return arguments.is_empty()
+                && lookup(declaration).is_some_and(|item| {
+                    matches!(&item.kind, super::ResolvedTypeDeclarationKind::Variant { cases }
+                    if cases.iter().flat_map(|case| &case.fields).any(|field|
+                        matches!(&field.ty, ResolvedType::Nominal { declaration, .. }
+                            if declaration.as_str() == crate::prelude::VEC_ID)
+                        && carrier(&field.ty, lookup)))
+                });
         }
         let [element] = arguments.as_slice() else {
             return true;
@@ -287,8 +297,10 @@ pub(crate) fn function_requires_profile_by<'a>(
                     .filter(|f| f.ty == ResolvedType::Bytes)
                     .count()
                     == 2)
-    };
-    if carrier(&function.return_type) || function.params.iter().any(|p| carrier(&p.ty)) {
+    }
+    if carrier(&function.return_type, &lookup)
+        || function.params.iter().any(|p| carrier(&p.ty, &lookup))
+    {
         return true;
     }
     let mut pending = function
@@ -298,7 +310,7 @@ pub(crate) fn function_requires_profile_by<'a>(
         .chain(&function.ensures)
         .collect::<Vec<_>>();
     while let Some(expr) = pending.pop() {
-        if carrier(&expr.ty)
+        if carrier(&expr.ty, &lookup)
             || matches!(&expr.kind, super::ResolvedExprKind::Call { callee, .. } if crate::vec_ops::by_id(callee.as_str()).is_some_and(|op| op.owned_leaf_only()))
         {
             return true;

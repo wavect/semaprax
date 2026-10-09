@@ -468,6 +468,11 @@ fn main() -> i64
 
 ## Strings and bytes
 
+For literal templates such as `"id={}"`, use `string_format` instead of a
+conversion-and-concatenation chain. `semaprax help language builtins` gives
+its closed grammar and fields; [the owning specification](CHECKED-LITERAL-FORMAT-V1.md)
+names the selected backend profiles and gate status.
+
 `SPX-H006` loan-work refusal names the function: split into helpers, not files
 or higher limits. For loop named-slice refusals, bind the view before the
 helper call and pass its name; keep its owner alive through last use.

@@ -4,8 +4,8 @@
       "code": "SPX-B104",
       "rows": [
         {
-          "fix": "Repro; cleanup checks; “parent is not canonical” String-condition scalar match: backend regression",
-          "wrote": "native cleanup lowering refusal after check"
+          "fix": "Repro/check cleanup; String-condition scalar match “parent is not canonical”: backend regression",
+          "wrote": "native cleanup refusal post-check"
         }
       ]
     },
@@ -13,8 +13,8 @@
       "code": "SPX-F102",
       "rows": [
         {
-          "fix": "Project interpreter has no argv/file provider. Build with `semaprax build <manifest> --target native -o <fresh-path>`, then run the binary from the Project directory with its arguments",
-          "wrote": "interpreter run of a `source-command.v1` Project"
+          "fix": "No interpreter argv/file provider; build: `semaprax build <manifest> --target native -o <fresh-path>`, run in the Project directory with arguments",
+          "wrote": "interpreter: `source-command.v1` Project"
         }
       ]
     },
@@ -22,11 +22,11 @@
       "code": "SPX-G170",
       "rows": [
         {
-          "fix": "Built-in operations need no import. For a std.* source package, declare its Project dependency and import declarations by stable ID",
+          "fix": "Built-ins need no import. For std.* packages, declare its Project dependency; import by stable ID",
           "wrote": "use std::io;"
         },
         {
-          "fix": "Run `semaprax fmt <manifest>`; if manifest layout itself blocks discovery, first run `semaprax fmt --manifest <manifest>`, then retry",
+          "fix": "`semaprax fmt <manifest>`; if manifest layout blocks discovery, first `semaprax fmt --manifest <manifest>`, then retry",
           "wrote": "noncanonical Project source"
         }
       ]
@@ -35,20 +35,20 @@
       "code": "SPX-H006",
       "rows": [
         {
-          "fix": "Reduce shared loans; never raise limit; see [Loan Plan](SHARED-LOAN-PLAN-V1.md)",
-          "wrote": "function exceeds 256 shared loans"
+          "fix": "Fewer loans; fixed limit; [Loan Plan](SHARED-LOAN-PLAN-V1.md)",
+          "wrote": "function: >256 shared loans"
         },
         {
-          "fix": "Simplify flow; extract admitted helpers",
-          "wrote": "function exceeds 4096 loan points"
+          "fix": "Simpler flow; admitted helpers",
+          "wrote": "function: >4096 loan points"
         },
         {
-          "fix": "Simplify flow; extract admitted helpers",
-          "wrote": "function exceeds 4096 CFG edges"
+          "fix": "Simpler flow; admitted helpers",
+          "wrote": "function: >4096 CFG edges"
         },
         {
-          "fix": "Reduce analysis work; never raise bound",
-          "wrote": "loan analysis exceeds 1000000 checked work"
+          "fix": "Less work; fixed bound",
+          "wrote": "loan work >1000000"
         }
       ]
     },
@@ -56,8 +56,8 @@
       "code": "SPX-I307",
       "rows": [
         {
-          "fix": "Fresh --output; remove only after confirming it is your artifact. Never overwrite",
-          "wrote": "rebuild to existing output"
+          "fix": "Fresh --output; never overwrite; remove confirmed own artifacts only",
+          "wrote": "output exists"
         }
       ]
     },
@@ -65,8 +65,8 @@
       "code": "SPX-J100",
       "rows": [
         {
-          "fix": "2–16 sorted sources; one bounded test module ≠ entry. entry=\"app\", sources=[\"a.spx\",\"b.spx\"], tests=[\"app.tests\"]; [Manifest](PACKAGE-MANIFEST-V1.md)",
-          "wrote": "bad [modules] lists"
+          "fix": "2–16 sorted sources; one bounded non-entry test module. entry=\"app\", sources=[\"a.spx\",\"b.spx\"], tests=[\"app.tests\"]; [Manifest](PACKAGE-MANIFEST-V1.md)",
+          "wrote": "bad [modules]"
         }
       ]
     },
@@ -74,7 +74,7 @@
       "code": "SPX-M105",
       "rows": [
         {
-          "fix": "Payload-free alternatives only; separate payload arms",
+          "fix": "Payload-free alternatives; split payload arms",
           "wrote": "payload in or-pattern"
         }
       ]
@@ -83,8 +83,8 @@
       "code": "SPX-O001",
       "rows": [
         {
-          "fix": "Declare own/borrow; results move",
-          "wrote": "implicit collection ownership at helper boundary"
+          "fix": "own/borrow required; results move",
+          "wrote": "implicit helper ownership"
         }
       ]
     },
@@ -92,7 +92,7 @@
       "code": "SPX-O101",
       "rows": [
         {
-          "fix": "Borrow in callee or pass fresh value",
+          "fix": "Callee borrow, or fresh value",
           "wrote": "reuse after own"
         }
       ]
@@ -101,8 +101,8 @@
       "code": "SPX-P003",
       "rows": [
         {
-          "fix": "One literal: -9223372036854775808 or -2147483648i32; spaces trivia, parens separate; MIN negation or / -1 overflows",
-          "wrote": "i64 max + 1 or parenthesized min negation"
+          "fix": "One literal: -9223372036854775808/-2147483648i32; spaces trivia, parens separate; -MIN/MIN÷-1 overflow",
+          "wrote": "i64 max+1 / parenthesized MIN negation"
         }
       ]
     },
@@ -110,7 +110,7 @@
       "code": "SPX-P104",
       "rows": [
         {
-          "fix": "Use record/variant; omit visibility; return values",
+          "fix": "record/variant; omit visibility; return values",
           "wrote": "struct/enum/pub/const"
         }
       ]
@@ -119,7 +119,7 @@
       "code": "SPX-P105",
       "rows": [
         {
-          "fix": "Spell result type; no unit",
+          "fix": "Result type required; no unit",
           "wrote": "`fn f()` or `-> ()`"
         }
       ]
@@ -128,11 +128,11 @@
       "code": "SPX-P106",
       "rows": [
         {
-          "fix": "Use `while`, mutable counter, discarded tail",
-          "wrote": "range `for` loop"
+          "fix": "`while`; mutable counter; discard tail",
+          "wrote": "`for` range"
         },
         {
-          "fix": "Use `let _ = f(x)` or tail result",
+          "fix": "`let _ = f(x)` or tail result",
           "wrote": "call as statement"
         },
         {
@@ -140,23 +140,23 @@
           "wrote": "tuple"
         },
         {
-          "fix": "Comma every arm; final field/case may omit it",
-          "wrote": "match arm without comma"
+          "fix": "Arm commas; final field/case comma optional",
+          "wrote": "missing arm comma"
         },
         {
-          "fix": "Use `if c { a } else { b }`",
+          "fix": "`if c { a } else { b }`",
           "wrote": "ternary expression"
         },
         {
-          "fix": "Put exit test in `while` condition",
+          "fix": "Exit test in `while`",
           "wrote": "break / continue"
         },
         {
-          "fix": "Use named checked conversion or suffixed literals",
+          "fix": "Checked named conversion/suffixed literal",
           "wrote": "`x as i64`"
         },
         {
-          "fix": "Spell result type; no unit",
+          "fix": "Result type required; no unit",
           "wrote": "`fn f()` or `-> ()`"
         },
         {
@@ -169,11 +169,11 @@
       "code": "SPX-P201",
       "rows": [
         {
-          "fix": "Write x = x + 1",
-          "wrote": "compound assignment"
+          "fix": "x = x + 1",
+          "wrote": "compound assign"
         },
         {
-          "fix": "Use fn(x: i64) -> i64 { x + 1 }",
+          "fix": "fn(x: i64) -> i64 { x + 1 }",
           "wrote": "Rust/JS closure"
         }
       ]
@@ -182,8 +182,8 @@
       "code": "SPX-P203",
       "rows": [
         {
-          "fix": "End with discarded scalar, e.g. 0",
-          "wrote": "assignment-only while body"
+          "fix": "Scalar discard tail, e.g. 0",
+          "wrote": "assignment-only loop"
         }
       ]
     },
@@ -191,8 +191,8 @@
       "code": "SPX-T001",
       "rows": [
         {
-          "fix": "Strings/scalars; explicit Copy Vec<T> args; authenticated Project imports",
-          "wrote": "String/int or unsupported Vec types"
+          "fix": "String/scalars; explicit Copy Vec<T>; authenticated imports",
+          "wrote": "String/int/invalid Vec"
         }
       ]
     },
@@ -200,8 +200,8 @@
       "code": "SPX-T104",
       "rows": [
         {
-          "fix": "Return i64; CLI 0 succeeds",
-          "wrote": "fn main() -> bool"
+          "fix": "i64 result; CLI 0 succeeds",
+          "wrote": "main returns bool"
         }
       ]
     },
@@ -218,15 +218,15 @@
       "code": "SPX-T203",
       "rows": [
         {
-          "fix": "Call get(point) or use class; records have no methods",
-          "wrote": "method call on record"
+          "fix": "get(point) or class; records lack methods",
+          "wrote": "record method call"
         },
         {
           "fix": "Option<i64>::Some { value: 1 }, Option<i64>::None {}",
           "wrote": "Some(1), None"
         },
         {
-          "fix": "Use string_len(s); only classes have methods",
+          "fix": "string_len(s); only classes have methods",
           "wrote": "s.len() on string"
         }
       ]
@@ -235,8 +235,8 @@
       "code": "SPX-T204",
       "rows": [
         {
-          "fix": "Pass one: f64_from_i64(1)",
-          "wrote": "too many conversion args"
+          "fix": "One arg: f64_from_i64(1)",
+          "wrote": "excess conversion args"
         }
       ]
     },
@@ -245,11 +245,11 @@
       "rows": [
         {
           "fix": "Bind String; pass string_as_str(s)",
-          "wrote": "str arg from literal or owned String"
+          "wrote": "literal/String as str arg"
         },
         {
-          "fix": "Use i64_from_f64(3.0) or usize_from_i64(1)",
-          "wrote": "wrong numeric conversion type"
+          "fix": "i64_from_f64(3.0) or usize_from_i64(1)",
+          "wrote": "conversion type error"
         }
       ]
     },
@@ -257,8 +257,8 @@
       "code": "SPX-T207",
       "rows": [
         {
-          "fix": "Match; == only payload-free non-generic variants",
-          "wrote": "comparing payload/generic variant"
+          "fix": "Match; == only payload-free/nongeneric variants",
+          "wrote": "payload/generic variant =="
         }
       ]
     },
@@ -284,7 +284,7 @@
       "code": "SPX-T218",
       "rows": [
         {
-          "fix": "Only Result propagates; match in main",
+          "fix": "Only Result propagates; main matches",
           "wrote": "f()? in main"
         }
       ]
@@ -303,7 +303,7 @@
       "rows": [
         {
           "fix": "Suffix: 5i32",
-          "wrote": "unsuffixed `i32` literal"
+          "wrote": "unsuffixed i32"
         }
       ]
     },
@@ -320,20 +320,20 @@
       "code": "SPX-T252",
       "rows": [
         {
-          "fix": "vec_len<T>; imported generic aliases stay closed; see [While](WHILE-LOOPS-V1.md)",
-          "wrote": "generic call in while body"
+          "fix": "vec_len<T>; imported generic aliases closed; [While](WHILE-LOOPS-V1.md)",
+          "wrote": "generic while call"
         },
         {
-          "fix": "Borrow exact compiler Vec<T> of Copy scalars; result scalar, flat Copy variant or string",
+          "fix": "Borrow compiler Copy-scalar Vec<T>; return scalar/flat Copy variant/string",
           "wrote": "rejected while helper"
         },
         {
-          "fix": "Keep outer ownership unchanged",
-          "wrote": "outer owned binding changes in while"
+          "fix": "Preserve outer ownership",
+          "wrote": "outer owner changes in while"
         },
         {
-          "fix": "Pure nongeneric call; exactly one whole owner returned as the same type; whole named independent Slice/str borrows only; [renewal hook](IO-LINES-V1.md#cursor-transitions), executable gate pending",
-          "wrote": "one-Bytes-plus-usize owner renewal with input views"
+          "fix": "Pure nongeneric call; return only one whole same-type owner; whole named independent Slice/str borrows only; [renewal hook](IO-LINES-V1.md#cursor-transitions), executable gate pending",
+          "wrote": "Bytes+usize owner renewal/input views"
         }
       ]
     },
@@ -341,7 +341,7 @@
       "code": "SPX-T262",
       "rows": [
         {
-          "fix": "Arrays are bytes; use Vec<i64>",
+          "fix": "Byte arrays; Vec<i64> otherwise",
           "wrote": "array literal"
         }
       ]
@@ -350,8 +350,8 @@
       "code": "SPX-T263",
       "rows": [
         {
-          "fix": "Bind view: let v = string_as_str(text); str_as_bytes(v)",
-          "wrote": "str_as_bytes(text) / nested string_as_str"
+          "fix": "let v = string_as_str(text); str_as_bytes(v)",
+          "wrote": "str_as_bytes/nested string_as_str"
         }
       ]
     },
@@ -359,8 +359,8 @@
       "code": "SPX-T265",
       "rows": [
         {
-          "fix": "Pure nongeneric call; exactly one whole owner returned as the same type; whole named independent Slice/str borrows only; [renewal hook](IO-LINES-V1.md#cursor-transitions), executable gate pending",
-          "wrote": "one-Bytes-plus-usize owner renewal with input views"
+          "fix": "Pure nongeneric call; return only one whole same-type owner; whole named independent Slice/str borrows only; [renewal hook](IO-LINES-V1.md#cursor-transitions), executable gate pending",
+          "wrote": "Bytes+usize owner renewal/input views"
         }
       ]
     },
@@ -368,11 +368,11 @@
       "code": "SPX-T266",
       "rows": [
         {
-          "fix": "Bind view: let v = string_as_str(text); str_as_bytes(v)",
-          "wrote": "str_as_bytes(text) / nested string_as_str"
+          "fix": "let v = string_as_str(text); str_as_bytes(v)",
+          "wrote": "str_as_bytes/nested string_as_str"
         },
         {
-          "fix": "Bind literal first: let s = \"literal\"; string_as_str(s)",
+          "fix": "let s = \"literal\"; string_as_str(s)",
           "wrote": "string_as_str(\"literal\")"
         }
       ]
@@ -381,8 +381,8 @@
       "code": "SPX-T269",
       "rows": [
         {
-          "fix": "Keep direct writes outside loops and within selected-profile limits. Default combined stdout + stderr cap: 65,536 bytes; Project v28 staged appends: 1 MiB.",
-          "wrote": "repeated direct output on one path or direct output reachable from a loop"
+          "fix": "Direct writes outside loops; profile limits. Default stdout+stderr ≤65,536 bytes; Project v28 staged appends ≤1 MiB.",
+          "wrote": "direct output repeats per path / is loop-reachable"
         }
       ]
     },
@@ -390,8 +390,8 @@
       "code": "SPX-T274",
       "rows": [
         {
-          "fix": "Keys: string/i64/bool; values: String or Copy scalars",
-          "wrote": "float Map key / Set element"
+          "fix": "Keys string/i64/bool; values String/Copy scalars",
+          "wrote": "float Map key/Set element"
         }
       ]
     },
@@ -399,8 +399,8 @@
       "code": "SPX-T281",
       "rows": [
         {
-          "fix": "Strings/scalars; explicit Copy Vec<T> args; authenticated Project imports",
-          "wrote": "String/int or unsupported Vec types"
+          "fix": "String/scalars; explicit Copy Vec<T>; authenticated imports",
+          "wrote": "String/int/invalid Vec"
         }
       ]
     },
@@ -408,8 +408,8 @@
       "code": "SPX-T282",
       "rows": [
         {
-          "fix": "Reduce vec_with_capacity<T>; Vec-only limit; see [Vec](OWNED-BOUNDED-VEC-V1.md)",
-          "wrote": "Vec literal capacity >8192"
+          "fix": "Reduce vec_with_capacity<T>; Vec-only bound; [Vec](OWNED-BOUNDED-VEC-V1.md)",
+          "wrote": "Vec capacity >8192"
         }
       ]
     },
@@ -417,7 +417,7 @@
       "code": "SPX-T283",
       "rows": [
         {
-          "fix": "Import exact std.collections.vec.* stable ID; no authored substitute; see [Vec](OWNED-BOUNDED-VEC-V1.md)",
+          "fix": "Exact std.collections.vec.* ID; no authored substitute; [Vec](OWNED-BOUNDED-VEC-V1.md)",
           "wrote": "lookalike Vec wrapper"
         }
       ]
@@ -426,8 +426,8 @@
       "code": "SPX-T309",
       "rows": [
         {
-          "fix": "Explicit IDs; monomorphic acyclic records; own/borrow; no invariants",
-          "wrote": "unsupported String/collection record"
+          "fix": "IDs; monomorphic, acyclic; own/borrow; no invariants",
+          "wrote": "String/collection record"
         }
       ]
     },
@@ -435,8 +435,8 @@
       "code": "SPX-U101",
       "rows": [
         {
-          "fix": "Use let mut",
-          "wrote": "assignment to immutable"
+          "fix": "let mut",
+          "wrote": "assign immutable"
         }
       ]
     }

@@ -5480,8 +5480,7 @@ fn validate_imported_type(
     if owned_function_import::text_record_import(caller, target, authored, programs) {
         return Ok(());
     }
-    let generic_owned_record = generic_type_import::template_is_admitted(ty);
-    if !generic_owned_record
+    if !generic_type_import::template_is_admitted(ty)
         && (!ty.type_parameters.is_empty()
             || !type_is_admitted(target.module, ty, authored, programs, &mut BTreeSet::new())
             || !exposed_types_are_directly_imported(
@@ -5493,11 +5492,7 @@ fn validate_imported_type(
                 &mut BTreeSet::new(),
             ))
     {
-        return Err(vec![use_error(
-            caller,
-            module_use,
-            "type target must be an admitted nongeneric value type or flat generic record template without borrowed or nested storage",
-        )]);
+        return owned_function_import::type_refusal(caller, module_use, target, authored, programs);
     }
     Ok(())
 }

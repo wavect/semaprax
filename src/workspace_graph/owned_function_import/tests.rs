@@ -441,3 +441,156 @@ use function @id("reader.finish") from reader.provider as finish;
         "{refused:?}"
     );
 }
+
+const FACTORY_PROVIDER: &str = r#"
+module factory.provider;
+@id("factory.reader") record Reader { @id("factory.data") data: Bytes, @id("factory.cursor") cursor: usize, }
+@id("factory.new") fn new() -> Reader { Reader { data: bytes_zeroed(1usize), cursor: 0usize } }
+@id("factory.make") fn make(size: usize) -> Reader { Reader { data: bytes_zeroed(size), cursor: 0usize } }
+@id("factory.advance") fn advance(value: own Reader, view: borrow Slice<u8>, step: usize) -> Reader {
+    match own value { Reader { data, cursor } => Reader { data: data, cursor: cursor + byte_len(view) + step }, }
+}
+@id("factory.position") fn position(value: borrow Reader, index: usize) -> usize { value.cursor + index }
+@id("factory.finish") fn finish(value: own Reader) -> Bytes { match own value { Reader { data, cursor } => data, } }
+"#;
+const FACTORY_APP: &str = r#"
+module factory.app;
+use type @id("factory.reader") from factory.provider as Reader;
+use function @id("factory.new") from factory.provider as new;
+use function @id("factory.make") from factory.provider as make;
+use function @id("factory.advance") from factory.provider as advance;
+use function @id("factory.position") from factory.provider as position;
+use function @id("factory.finish") from factory.provider as finish;
+@id("factory.app.main") fn main() -> i64 {
+    let initial = new();
+    let first = position(initial, 0usize);
+    let data = finish(initial);
+    let input = [65u8];
+    let mut reader = make(1usize);
+    let view = array_as_slice(input);
+    let alias = view;
+    let mut count = 0usize;
+    while count < 2usize {
+        reader = advance(reader, alias, 1usize);
+        count = count + 1usize;
+        0
+    }
+    let observed = position(reader, 1usize);
+    let final_data = finish(reader);
+    if first == 0usize && observed == 5usize && byte_len(bytes_as_slice(data)) == 1usize && byte_len(bytes_as_slice(final_data)) == 1usize { 1 } else { 0 }
+}
+"#;
+
+#[test]
+fn owned_record_factories_and_named_view_renewal_preserve_real_checked_providers() {
+    let built = build_owned(sources(FACTORY_APP, FACTORY_PROVIDER))
+        .expect("zero/scalar factories, indexed observer and borrowed-view renewal import");
+    let linked = built
+        .linked_owned_data_api_program_with_roots("factory.app", &[])
+        .expect("real allocation-free renewal replaces the non-executable prototype");
+    hir::validate(&linked).expect("independent ownership, cleanup and shared-loan replay");
+    for _ in 0..3 {
+        let observed = crate::interpreter::evaluate_resolved_zero_arg_i64(
+            &linked, "factory.app.main", 100_000,
+        ).unwrap();
+        assert!(matches!(
+            observed.outcome,
+            crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(1)
+        ));
+    }
+    assert!(built.linked_scalar_program("factory.app").is_err());
+
+    let str_provider = FACTORY_PROVIDER.replace("view: borrow Slice<u8>", "view: borrow str")
+        .replace("byte_len(view)", "usize_from_i64(str_len_bytes(view))");
+    let str_app = FACTORY_APP.replace("let input = [65u8];", "let input = \"A\";")
+        .replace("array_as_slice(input)", "string_as_str(input)");
+    let str_built = build_owned(sources(&str_app, &str_provider))
+        .expect("named independent str input uses the same owner-forwarding prototype");
+    let str_linked = str_built.linked_owned_data_api_program_with_roots("factory.app", &[]).unwrap();
+    hir::validate(&str_linked).unwrap();
+    let observed = crate::interpreter::evaluate_resolved_zero_arg_i64(
+        &str_linked, "factory.app.main", 100_000,
+    ).unwrap();
+    assert!(matches!(observed.outcome, crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(1)));
+
+    let allocating = FACTORY_PROVIDER.replace(
+        "data: data, cursor: cursor +",
+        "data: bytes_zeroed(1usize), cursor: cursor +",
+    );
+    let built = build_owned(sources(FACTORY_APP, &allocating))
+        .expect("signature-only prototype conveys no provider allocation authority");
+    let errors = built
+        .linked_owned_data_api_program_with_roots("factory.app", &[])
+        .expect_err("linked provider allocation remains forbidden in the caller loop");
+    assert!(errors.iter().any(|error| error.code == "SPX-T267"), "{errors:?}");
+
+    for setup in [
+        "let view = bytes_as_slice(reader.data); let alias = view;",
+        "let view = bytes_as_slice(reader.data); let intermediate = view; let alias = intermediate;",
+    ] {
+        let hostile = FACTORY_APP.replace(
+            "let view = array_as_slice(input);\n    let alias = view;", setup,
+        );
+        let errors = build_owned(sources(&hostile, FACTORY_PROVIDER))
+            .err().expect("a forwarded prototype cannot hide an overlapping input loan");
+        assert!(errors.iter().any(|error| error.code == "SPX-T265"), "{errors:?}");
+    }
+    let moved_input = FACTORY_APP.replace(
+        "let view = array_as_slice(input);\n    let alias = view;",
+        "let view = bytes_as_slice(data); let alias = view; let moved = bytes_set(data, 0usize, 1u8);",
+    );
+    let errors = build_owned(sources(&moved_input, FACTORY_PROVIDER))
+        .err().expect("independent input storage cannot move while its named view is live");
+    assert!(errors.iter().any(|error| error.code == "SPX-T265"), "{errors:?}");
+}
+
+#[test]
+fn owned_record_factory_missing_nominal_import_reports_exact_repair() {
+    let missing = FACTORY_APP.replace(
+        "use type @id(\"factory.reader\") from factory.provider as Reader;", "",
+    );
+    let parsed = crate::parse(&missing, Path::new("app.spx")).unwrap();
+    let canonical = crate::format::canonical(&parsed);
+    let parsed = crate::parse(&canonical, Path::new("app.spx")).unwrap();
+    let expected_span = parsed.module_uses[0].span;
+    let errors = build_owned(sources(&missing, FACTORY_PROVIDER))
+        .err().expect("return identity must be directly imported even for a zero-arg factory");
+    assert_eq!(errors.len(), 1, "{errors:?}");
+    let error = &errors[0];
+    assert_eq!(error.code, "SPX-G172");
+    assert_eq!(error.span, Some(expected_span));
+    assert_eq!(error.path.as_deref(), Some("app.spx"));
+    assert_eq!(error.help.as_deref(), Some(
+        "missing direct nominal type import: use type @id(\"factory.reader\") from factory.provider as Reader;"
+    ));
+    let generic = FACTORY_PROVIDER.replace("fn new()", "fn new<T>()");
+    let errors = build_owned(sources(FACTORY_APP, &generic))
+        .err().expect("zero-arg factory does not widen generic admission");
+    assert!(errors.iter().any(|error| error.code == "SPX-G172"));
+
+    let nested_provider = r#"
+module factory.provider;
+@id("factory.inner") record Inner { @id("factory.inner.data") data: Bytes, }
+@id("factory.outer") record Outer { @id("factory.outer.inner") inner: Inner, }
+@id("factory.nested") fn nested() -> Outer { Outer { inner: Inner { data: bytes_zeroed(1usize) } } }
+"#;
+    let nested_app = r#"
+module factory.app;
+use type @id("factory.outer") from factory.provider as Outer;
+use function @id("factory.nested") from factory.provider as nested;
+@id("factory.app.main") fn main() -> i64 { let value = nested(); 0 }
+"#;
+    let errors = build_owned(sources(nested_app, nested_provider))
+        .err().expect("nested signature identities also require direct type imports");
+    assert!(errors.iter().any(|error| error.code == "SPX-G172" && error.help.as_deref() == Some(
+        "missing direct nominal type import: use type @id(\"factory.inner\") from factory.provider as Inner;"
+    )), "{errors:?}");
+    let repaired = nested_app.replace(
+        "module factory.app;",
+        "module factory.app; use type @id(\"factory.inner\") from factory.provider as Inner;",
+    );
+    let built = build_owned(sources(&repaired, nested_provider))
+        .expect("complete direct nested type imports authenticate the existing factory profile");
+    let linked = built.linked_owned_data_api_program_with_roots("factory.app", &[]).unwrap();
+    hir::validate(&linked).unwrap();
+}

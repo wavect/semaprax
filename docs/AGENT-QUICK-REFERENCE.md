@@ -296,6 +296,12 @@ fn main() -> i64
   leaves. Generic, resource/view/class and invariant-bearing String records
   stay outside the executable profile (`SPX-T309`);
   [String records](OWNED-STRING-RECORDS-V1.md) owns the exact shapes.
+- A source function import that returns or accepts a named record also needs
+  its exact type identity imported directly, even for a zero-argument factory
+  whose result type is inferred. Import each exposed nested type too. For
+  example, `use type @id("std.pattern.matcher") from std.pattern as Matcher;`
+  accompanies `std.pattern.make`, renewal calls and borrowed observers.
+  `SPX-G172` help names the first missing nominal identity and its import.
 - Classes hold fields and `fn name(self: Class, …)` methods, called as
   `value.method(args)`. `class Dog : Animal` inherits; `super.method()`
   dispatches to the parent. Records have no methods.
@@ -1102,6 +1108,7 @@ Replace a 256-arm i64-to-byte or byte-to-char match with
 | `x as i64`|`SPX-P106`|Use named checked conversion or suffixed literals|
 | Rust/JS closure|`SPX-P201`|Use fn(x: i64) -> i64 { x + 1 }|
 | use std::io;|`SPX-G170`|Built-in operations need no import. For a std.* source package, declare its Project dependency and import declarations by stable ID|
+| factory/record function import without its exact type import|`SPX-G172`|Add the direct `use type @id("…") from module as Type;` shown in help, including exposed nested types; inferred result types do not grant import authority|
 | noncanonical Project source|`SPX-G170`|Run `semaprax fmt <manifest>`; if manifest layout itself blocks discovery, first run `semaprax fmt --manifest <manifest>`, then retry|
 | interpreter run of a `source-command.v1` Project|`SPX-F102`|Project interpreter has no argv/file provider. Build with `semaprax build <manifest> --target native -o <fresh-path>`, then run the binary from the Project directory with its arguments|
 | rebuild to existing output|`SPX-I307`|Fresh --output; remove only after confirming it is your artifact. Never overwrite|

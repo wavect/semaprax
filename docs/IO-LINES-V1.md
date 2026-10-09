@@ -87,6 +87,15 @@ and transfer at the existing call boundary; successful publication restores
 the owner's original cleanup position under CleanupPlan v12. No schema,
 backend carrier, or public ABI changes for this hook.
 
+Across source-module imports, the caller must import the exact record type
+identity even when an outside-loop factory's return type is inferred. A
+renewal signature with independent named `Slice<u8>`/`str` operands uses an
+owner-forwarding, non-executable prototype while its module is checked.
+The final linked closure retains and revalidates the real provider body;
+loop-reachable allocation and overlapping or moved input roots still refuse.
+The added import-prototype and diagnostic regressions are source-only until
+the shared qualification batch runs.
+
 The OPT-702 focused source, HIR, native, and Wasm regressions passed
 ([receipt](../benchmarks/opt-batch-verification-v1/opt702-704-minimal-verification.json));
 the hosted-green line-package evidence above does not cover this extension.

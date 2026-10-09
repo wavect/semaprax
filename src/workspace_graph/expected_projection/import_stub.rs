@@ -70,7 +70,9 @@ fn forward_parameter(
             ParamMode::Own if parameter.ty == function.return_type && owner.is_none() => {
                 owner = Some(parameter)
             }
-            ParamMode::Borrow if is_record(&parameter.ty) => {}
+            ParamMode::Borrow
+                if is_record(&parameter.ty)
+                    || matches!(parameter.ty, Type::SliceU8 | Type::Str) => {}
             ParamMode::Value if crate::vec_ops::ast_element_is_admitted(&parameter.ty) => {}
             _ => return None,
         }

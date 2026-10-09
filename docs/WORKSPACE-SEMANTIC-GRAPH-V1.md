@@ -375,6 +375,26 @@ The frozen Workspace Semantic Graph v1 `nonclaims` bytes above remain
 unchanged: the Project-v7 linked-execution admission does not grant this
 read-only carrier general borrowing or lifetime authority.
 
+The internal owned-data source-call lane retains its existing authenticated
+monomorphic record trees with owned Bytes and scalar leaves. It admits a
+zero-argument or scalar-value factory, consuming record updates, and borrowed
+record observers without selecting a public host descriptor. Every nominal
+signature identity, including exposed nested records, must have an explicit
+direct `use type` edge in the caller. Inference of a factory's result grants
+no type-import authority. A refusal keeps `SPX-G172` and its original import
+span; bounded help names the first missing nominal identity, provider module,
+and exact type-import syntax from authenticated declaration metadata.
+
+Non-executable import prototypes for exact one-Bytes-plus-usize owner renewal
+forward their existing owning parameter when the remaining operands are the
+admitted scalar values, borrowed records, or borrowed `Slice<u8>`/`str` views.
+Factories retain their bounded default prototypes. Linked execution replaces
+every prototype with the real provider body and independently revalidates
+allocation reachability, ownership, loans and canonical cleanup. Forwarding
+therefore grants no exemption for an allocating provider or aliased input.
+No workspace graph, cleanup, loan or public ABI schema changes here. The
+source-only regression additions await the shared qualification batch.
+
 ## Additive source Agent execution metadata (v070 candidate)
 
 Source Agents with embedded deterministic operations or `model_wait_v1` metadata select `semaprax.workspace-semantic-graph.v4`. The existing graph body is preserved over its actual v1/v2/v3 base; the appended `agent_execution` object records `base_schema`, `authority: "none"`, and module/path-qualified checked Agent rows. Source rows follow the [owning syntax contract](LANGUAGE-NATIVE-AGENT-SYNTAX-V1.md#additive-embedded-execution-metadata-v070-candidate). Facts come only from the selected reachable closure after complete authenticated-source validation. No metadata means unchanged legacy schema and bytes. These descriptive facts grant no execution, storage, or publication authority.

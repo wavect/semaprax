@@ -200,6 +200,69 @@ fn record_shape(
     Some(owns_bytes)
 }
 
+/// Diagnose the first absent nominal signature identity from authenticated
+/// declarations. This is help only: it grants no import or type authority.
+fn missing_signature_import(
+    module: &str,
+    ty: &Type,
+    caller: &Program,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    programs: &[Program],
+    visiting: &mut BTreeSet<String>,
+) -> Option<String> {
+    let Type::Named { name, arguments } = ty else {
+        return None;
+    };
+    if !arguments.is_empty() || visiting.len() >= MAX_CHECKED_VALUE_DEPTH {
+        return None;
+    }
+    let id = resolve_type_id(module, name, programs)?;
+    if !visiting.insert(id.clone()) {
+        return None;
+    }
+    let target = authored.get(id.as_str())?;
+    let declaration = target.ty?;
+    if !target.explicit || !declaration.explicit_id {
+        return None;
+    }
+    if !caller.module_uses.iter().any(|item| {
+        item.kind == ModuleUseKind::Type && item.persistent_id == id
+    }) {
+        return Some(crate::bounded_output::budgeted_format(format_args!(
+            "missing direct nominal type import: use type @id(\"{id}\") from {} as {};",
+            target.module, declaration.name
+        )));
+    }
+    let fields = match &declaration.kind {
+        TypeDeclarationKind::Record { fields } => fields.as_slice(),
+        _ => return None,
+    };
+    fields.iter().find_map(|field| {
+        missing_signature_import(target.module, &field.ty, caller, authored, programs, visiting)
+    })
+}
+
+pub(super) fn type_refusal(
+    caller: &Program,
+    module_use: &ModuleUse,
+    target: &AuthoredDeclaration<'_>,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    programs: &[Program],
+) -> Result<(), Vec<Diagnostic>> {
+    let diagnostic = use_error(
+        caller,
+        module_use,
+        "type target must be an admitted nongeneric value type or flat generic record template without borrowed or nested storage",
+    );
+    let declaration = target.ty.expect("type target carries a type");
+    let ty = Type::Named { name: declaration.name.clone(), arguments: Vec::new() };
+    let diagnostic = match missing_signature_import(target.module, &ty, caller, authored, programs, &mut BTreeSet::new()) {
+        Some(help) => diagnostic.with_help(help),
+        None => diagnostic,
+    };
+    Err(vec![diagnostic])
+}
+
 // Closed internal Reader inspections retain a scalar result; no view or owner
 // can escape through this signature. The defining body is verified separately.
 fn reader_inspection_signature(function: &Function) -> bool {
@@ -261,6 +324,22 @@ pub(super) fn validate_imported_function(
             | Type::F64
             | Type::Bool
     );
+    let refusal = |message: &str, scalar_help: bool| {
+        let diagnostic = use_error(caller, module_use, message);
+        let mut visiting = BTreeSet::new();
+        let missing = function.params.iter().map(|parameter| &parameter.ty)
+            .chain(std::iter::once(&function.return_type))
+            .find_map(|ty| {
+                missing_signature_import(target.module, ty, caller, authored, programs, &mut visiting)
+            });
+        if let Some(help) = missing {
+            diagnostic.with_help(help)
+        } else if scalar_help {
+            diagnostic.with_help(PROJECT_SIGNATURE_HELP)
+        } else {
+            diagnostic
+        }
+    };
     if !function.type_parameters.is_empty()
         || function.params.iter().any(|param| {
             param.mode != ParamMode::Value
@@ -270,11 +349,7 @@ pub(super) fn validate_imported_function(
         })
         || (has_byte_parameter && !scalar_return)
     {
-        return Err(vec![use_error(
-            caller,
-            module_use,
-            package::import_profile_refusal(),
-        )]);
+        return Err(vec![refusal(package::import_profile_refusal(), false)]);
     }
     for param in &function.params {
         if byte_parameter(param) || borrowed_copy_vec_parameter(param) {
@@ -288,12 +363,10 @@ pub(super) fn validate_imported_function(
             programs,
             &mut BTreeSet::new(),
         ) {
-            return Err(vec![use_error(
-                caller,
-                module_use,
+            return Err(vec![refusal(
                 "function signature leaves the admitted scalar/Copy workspace domain",
-            )
-            .with_help(PROJECT_SIGNATURE_HELP)]);
+                true,
+            )]);
         }
     }
     let ty = &function.return_type;
@@ -306,12 +379,10 @@ pub(super) fn validate_imported_function(
             programs,
             &mut BTreeSet::new(),
         ) {
-            return Err(vec![use_error(
-                caller,
-                module_use,
+            return Err(vec![refusal(
                 "function signature leaves the admitted scalar/Copy workspace domain",
-            )
-            .with_help(PROJECT_SIGNATURE_HELP)]);
+                true,
+            )]);
         }
     }
     Ok(())

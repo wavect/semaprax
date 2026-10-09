@@ -1,4 +1,5 @@
 module loglens;
+use type @id("experiment.pattern.matcher") from experiment.pattern.ascii as Matcher;
 use function @id("experiment.pattern.from-bytes") from experiment.pattern.ascii as matcher_from_bytes;
 use function @id("experiment.pattern.compile") from experiment.pattern.ascii as matcher_compile;
 use function @id("experiment.pattern.full-match") from experiment.pattern.ascii as matcher_full_match;

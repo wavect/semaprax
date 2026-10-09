@@ -635,3 +635,26 @@ pub(super) fn scoped_expression_identity_upper(
         path_len,
     )
 }
+
+/// Bounds a scoped identity's String capacity plus its shared carrier.
+///
+/// The formatter appends into a fresh String. Rust 1.97.1's RawVec growth
+/// chooses at most twice the final capacity (with an eight-byte floor for
+/// `u8`); keep this tied to the pinned source guard rather than treating it as
+/// a promise about arbitrary Rust toolchains. See:
+/// https://github.com/rust-lang/rust/blob/1.97.1/library/alloc/src/raw_vec/mod.rs
+pub(super) fn scoped_expression_backing_upper(
+    function: &crate::ast::Function,
+    generic_instance_identity_len: usize,
+    path_len: usize,
+) -> Option<usize> {
+    let encoded_len = scoped_expression_identity_upper(
+        function,
+        generic_instance_identity_len,
+        path_len,
+    )?;
+    encoded_len
+        .checked_mul(2)?
+        .max(8)
+        .checked_add(semaprax::hir::ExpressionId::OWNED_ALLOCATION_CARRIER_BYTES)
+}

@@ -276,14 +276,16 @@ def compile_pattern(spec: str | dict[str, Any]) -> dict[str, Any]:
                     lower_text, upper_text = pieces
                 else:
                     return _invalid(cursor)
+                lower_start = cursor + 1
+                upper_start = lower_start + len(lower_text) + (1 if len(pieces) == 2 else 0)
                 if not lower_text.isdigit() or not upper_text.isdigit():
                     invalid = next((cursor + 1 + index for index, digit in enumerate(body)
                                     if digit not in b"0123456789,"), cursor + 1)
                     return _invalid(invalid)
                 if ((len(lower_text) > 1 and lower_text.startswith(b"0"))
                         or (len(upper_text) > 1 and upper_text.startswith(b"0"))):
-                    bad = cursor + 2 if len(lower_text) > 1 and lower_text.startswith(b"0") else (
-                        cursor + 2 + len(lower_text) + 1)
+                    bad = lower_start + 1 if len(lower_text) > 1 and lower_text.startswith(b"0") else (
+                        upper_start + 1)
                     return _invalid(bad)
                 minimum, maximum = int(lower_text), int(upper_text)
                 def first_overflow(text: bytes, start: int) -> int:
@@ -295,9 +297,9 @@ def compile_pattern(spec: str | dict[str, Any]) -> dict[str, Any]:
                     return start + len(text) - 1
 
                 if minimum > 255:
-                    return _invalid(first_overflow(lower_text, cursor + 2))
+                    return _invalid(first_overflow(lower_text, lower_start))
                 if maximum > 255:
-                    return _invalid(first_overflow(upper_text, cursor + 2 + len(lower_text) + 1))
+                    return _invalid(first_overflow(upper_text, upper_start))
                 if minimum > maximum:
                     return _invalid(end)
                 atom["min"], atom["max"] = minimum, maximum

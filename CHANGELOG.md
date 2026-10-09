@@ -1,5 +1,10 @@
 # Changelog
 
+- Admit authenticated full-root owned-String byte views in the additive Wasm
+  Text Toolkit profile. Keep the default Web and standalone internal-String
+  v1 profiles closed; exercise fused and named-view cleanup through the toolkit
+  runtime.
+
 - Add OPT-704 function identity and existing body context for the unchanged
   loan-analysis work refusal, plus a named-slice repair for loop call diagnostics.
   Preserve the selected code/message, existing blame, missing provenance and

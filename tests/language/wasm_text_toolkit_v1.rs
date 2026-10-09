@@ -251,6 +251,44 @@ fn standalone_profile_case(
     fixture.cleanup();
 }
 
+#[test]
+fn owned_string_byte_views_use_the_toolkit_runtime_and_settle_on_reentry() {
+    let source = r#"module test.toolkit_owned_string_bytes;
+@id("app.fused") fn fused() -> i64 {
+    let text = "h\u{0}é";
+    let bytes = str_as_bytes(string_as_str(text));
+    if byte_len(bytes) == 4usize {
+        match byte_get(bytes, 1usize) {
+            Option::Some { value: zero } => if zero == 0u8 {
+                match byte_get(bytes, 2usize) {
+                    Option::Some { value: first } => if first == 195u8 { 1 } else { 0 },
+                    Option::None {} => 0,
+                }
+            } else { 0 },
+            Option::None {} => 0,
+        }
+    } else { 0 }
+}
+@id("app.named") fn named() -> i64 {
+    let text = "h\u{0}é";
+    let text_view = string_as_str(text);
+    let bytes = str_as_bytes(text_view);
+    if byte_len(bytes) == 4usize {
+        match byte_get(bytes, 3usize) {
+            Option::Some { value: last } => if last == 169u8 { 1 } else { 0 },
+            Option::None {} => 0,
+        }
+    } else { 0 }
+}
+@id("app.main") fn main() -> i64 { fused() + named() }
+"#;
+    standalone_case(
+        source,
+        &["app.main"],
+        "for(let i=0;i<8;i++){const result=runtime.call('app.main');if(result.kind!=='success'||result.value!==2n)throw Error('owned String byte view or cleanup changed')}\n",
+    );
+}
+
 const STANDALONE: &str = r#"
 module test.standalone_toolkit;
 @id("choice") variant Choice {

@@ -4,7 +4,7 @@ use super::{error, Export, PreparedSelection};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
     self, DeclarationId, IdentityOrigin, OwnershipMode, ResolvedExprKind, ResolvedProgram,
-    ResolvedStatement, ResolvedType,
+    ResolvedFunction, ResolvedStatement, ResolvedType, ValueId,
 };
 use std::collections::BTreeSet;
 
@@ -112,6 +112,7 @@ fn prepare_profile(
         .iter()
         .filter(|function| closure.contains(&function.id))
     {
+        let owned_string_roots = owned_string_roots(function);
         if !replacements && crate::string_ops::replacement::requires(function) {
             return Err(error(
                 "whole String replacement requires the explicit string-replacement-v1 profile",
@@ -247,6 +248,16 @@ fn prepare_profile(
                 ResolvedExprKind::BorrowPlace { operation, place }
                     if toolkit && operation.as_str() == crate::byte_ops::STRING_AS_STR_ID && place.projections.is_empty() => {}
                 ResolvedExprKind::BorrowPlace { operation, place }
+                    if toolkit
+                        && admits_owned_string_byte_view(
+                            program,
+                            function,
+                            expression,
+                            operation.as_str(),
+                            place,
+                            &owned_string_roots,
+                        ) => {}
+                ResolvedExprKind::BorrowPlace { operation, place }
                     if copy_variants && operation.as_str() == crate::byte_ops::ARRAY_AS_SLICE_ID && place.projections.is_empty() => {}
                 ResolvedExprKind::String(value) => {
                     // The selected profile owns the fixed literal segment's
@@ -336,6 +347,88 @@ fn prepare_profile(
         }
     }
     Ok((exports, closure))
+}
+
+fn owned_string_roots(function: &ResolvedFunction) -> BTreeSet<ValueId> {
+    let mut roots = function
+        .params
+        .iter()
+        .filter(|parameter| {
+            parameter.ty == ResolvedType::String && parameter.ownership == OwnershipMode::Own
+        })
+        .map(|parameter| parameter.id.clone())
+        .collect::<BTreeSet<_>>();
+    let mut pending = function
+        .requires
+        .iter()
+        .chain(std::iter::once(&function.body))
+        .chain(&function.ensures)
+        .collect::<Vec<_>>();
+    while let Some(expression) = pending.pop() {
+        if let ResolvedExprKind::Block { statements, .. } = &expression.kind {
+            for statement in statements {
+                if let ResolvedStatement::Let { binding, .. } = statement {
+                    if binding.ty == ResolvedType::String && binding.ownership == OwnershipMode::Own
+                    {
+                        roots.insert(binding.id.clone());
+                    }
+                }
+            }
+        }
+        crate::interpreter::push_resolved_expression_children_in_authored_order(
+            expression,
+            &mut pending,
+        );
+    }
+    roots
+}
+
+fn admits_owned_string_byte_view(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &crate::hir::ResolvedExpr,
+    operation: &str,
+    place: &crate::hir::Place,
+    owned_string_roots: &BTreeSet<ValueId>,
+) -> bool {
+    if operation != crate::byte_ops::STR_AS_BYTES_ID
+        || expression.ty != ResolvedType::SliceU8
+        || expression.ownership != OwnershipMode::Borrow
+        || !place.projections.is_empty()
+    {
+        return false;
+    }
+    let Some(loan) = function.loan_plan.loans.iter().find(|loan| {
+        loan.site == expression.id
+            && loan.cause == crate::loan_plan::LoanCause::SliceView
+            && loan.origin.projections.is_empty()
+            && owned_string_roots.contains(&loan.origin.root)
+    }) else {
+        return false;
+    };
+    program
+        .declarations
+        .byte_slice_provenances()
+        .any(|(_, provenance)| {
+            let common = provenance.producer.as_ref() == Some(&expression.id)
+                && provenance.projections.is_empty()
+                && provenance.offset == crate::hir::ByteSliceExtent::Constant(0)
+                && provenance.root_length == crate::hir::ByteSliceExtent::ValueLength
+                && provenance.length == crate::hir::ByteSliceExtent::ValueLength;
+            common
+                && match provenance.root_kind {
+                    crate::hir::ByteSliceRootKind::OwnedString => {
+                        provenance.root == loan.origin.root
+                            && provenance.root == place.root
+                            && provenance.projected_type == ResolvedType::String
+                    }
+                    crate::hir::ByteSliceRootKind::BorrowedStr => {
+                        provenance.root == place.root
+                            && provenance.projected_type == ResolvedType::Str
+                    }
+                    _ => false,
+                }
+        })
 }
 
 fn public_scalar(ty: &ResolvedType) -> bool {

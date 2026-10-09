@@ -62,6 +62,9 @@ text-toolkit-v1"). Consuming an enclosing String in a condition remains a
 source-level `SPX-T252` refusal. Repeated String settlement is exercised by
 scalar-signature helpers that allocate and release Strings internally on each
 iteration.
+The v1 selector also retains its refusal of borrowed byte views rooted in an
+owned String; the separate additive Text Toolkit profile owns that lowering
+and its authenticated `SliceView` loan.
 [Whole String Replacement v1](STRING-REPLACEMENT-V1.md) admits whole mutable
 String replacement at source level. This frozen selector rejects replacement
 with `SPX-W111` ("whole String replacement requires the explicit

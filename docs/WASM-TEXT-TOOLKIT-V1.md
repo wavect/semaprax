@@ -10,6 +10,14 @@ or owned String variant matching. Existing internal String v1 and Copy Variant
 String Settlement v1 selectors, imports, descriptors, and host bytes remain
 frozen. The additive Toolkit selector also admits the closed String Collections
 profiles through checked collection imports and a bounded generated host arena.
+It also lowers `str_as_bytes` over an authenticated, full, nonprojected owned
+String view, in either the exact fused spelling
+`str_as_bytes(string_as_str(owner))` or the named `str`-view chain. Independent
+HIR validation must prove the `SliceView` loan reaches the live owned String;
+borrowed external roots, projected roots and forged provenance remain outside
+this profile. The existing private byte-slice carrier import is reused, with no
+new capability or public String/Slice ABI. The frozen default Web profile and
+the standalone internal String v1 selector continue to refuse this shape.
 
 ## Entry points and authority
 
@@ -86,6 +94,11 @@ bounds and validate the complete file as UTF-8 before publishing an owner.
 The standalone arena authenticates positive opaque tokens and exact extents;
 String views retain the compiler-proved owner's token. Aggregate carriers use
 the separate tagged owned byte arena. The representations are never exchanged.
+For the toolkit's owned-String byte view, the existing String carrier is
+borrowed through the compiler-authenticated full-root `SliceView` loan and
+passed to the same byte-slice runtime operation used by other admitted views.
+The slice remains non-owning and the String finalizer remains governed by the
+canonical cleanup plan.
 The existing derived owner/stack limits, expression/function/literal/module
 work bounds, allocation refusal cause, and explicit per-owner finalizers apply.
 The host never bulk-clears an arena to hide a missing finalizer. Failed entries

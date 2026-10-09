@@ -8,6 +8,54 @@ const SOURCE: &str = r#"module test.toolkit_proof;
 "#;
 
 #[test]
+fn toolkit_owned_string_byte_views_require_a_replayed_full_root_loan() {
+    let source = program(
+        r#"module test.toolkit_owned_string_byte_view;
+@id("app.fused") fn fused() -> i64 {
+    let text = "h\u{0}é";
+    let bytes = str_as_bytes(string_as_str(text));
+    if byte_len(bytes) == 4usize { 1 } else { 0 }
+}
+@id("app.named") fn named() -> i64 {
+    let text = "h\u{0}é";
+    let text_view = string_as_str(text);
+    let bytes = str_as_bytes(text_view);
+    if byte_len(bytes) == 4usize { 1 } else { 0 }
+}
+@id("app.main") fn main() -> i64 { fused() + named() }
+"#,
+    );
+    let resolved = crate::hir::resolve(&source).unwrap();
+    let ids = ["app.main".to_owned()];
+    assert!(admission::prepare_toolkit(&resolved, &ids).is_ok());
+
+    let mut forged = resolved.clone();
+    let producer = forged
+        .declarations
+        .byte_slice_provenances()
+        .find(|(_, provenance)| {
+            provenance.root_kind == crate::hir::ByteSliceRootKind::OwnedString
+        })
+        .and_then(|(_, provenance)| provenance.producer.clone())
+        .unwrap();
+    let main = forged
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "app.fused")
+        .unwrap();
+    let loan = main
+        .loan_plan
+        .loans
+        .iter_mut()
+        .find(|loan| {
+            loan.site == producer && loan.cause == crate::loan_plan::LoanCause::SliceView
+        })
+        .unwrap();
+    loan.origin.root = crate::hir::ValueId::intrinsic_parameter("forged.byte.root", 0);
+    assert!(admission::prepare_toolkit(&forged, &ids).is_err());
+}
+
+#[test]
 fn toolkit_selector_validates_owned_variant_call_and_every_canonical_exit() {
     let ast = program(SOURCE);
     let resolved = crate::hir::resolve(&ast).unwrap();

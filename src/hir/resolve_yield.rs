@@ -671,7 +671,7 @@ fn scan_expr(
                 yielded_bindings,
             )?;
         }
-        ResolvedExprKind::Call { args, .. } => {
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
             scan_children(
                 resolver,
                 function_name,

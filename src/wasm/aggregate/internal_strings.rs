@@ -94,11 +94,23 @@ pub(in crate::wasm) fn emit(
                 })
                 .count(),
         );
+        cleanup_action_counts.push(literal_format::worker_cleanup_actions(function)?);
         frames.insert(function.id.clone(), plan.frame_size);
         owners.insert(
             function.id.clone(),
             u32::try_from(plan.cleanup_place_flags.len())
-                .map_err(|_| error("standalone String owner count overflows"))?,
+                .ok()
+                // Rendering calls no authored function and starts only after
+                // every child finishes. At most one worker in this function
+                // owns accumulator, current piece and uncommitted join result.
+                .and_then(|places| {
+                    places.checked_add(if plan.literal_format_scratch.is_empty() {
+                        0
+                    } else {
+                        3
+                    })
+                })
+                .ok_or_else(|| error("standalone String owner count overflows"))?,
         );
     }
     canonical_cleanup_emission_work(cleanup_action_counts)

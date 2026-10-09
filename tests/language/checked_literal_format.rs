@@ -273,3 +273,55 @@ if(instance.exports.semaprax_main()!==7n) throw Error('aggregate staged-scalar s
     std::fs::remove_dir_all(success_web).unwrap();
     fixture.cleanup();
 }
+
+#[test]
+fn checked_literal_format_standalone_counts_private_owners_and_admits_integer_widths() {
+    // No owned argument or binding inflates the canonical owner inventory:
+    // the worker itself must account for the three simultaneously live handles.
+    let source = r#"module test.format_private_owners;
+@id("app.main") fn main()->i64 { string_len(string_format("{}{}{}{}", 1, 2u8, 3usize, false)) }
+"#;
+    let program = parse(source, Path::new("format-private-owners.spx")).unwrap();
+    let mut fixture = Fixture::new(source);
+    for (name, owners) in [("default", None), ("limited", Some(2))] {
+        let artifact = emit_module(
+            &program,
+            &["app.main".into()],
+            InternalStringOptions {
+                max_live_owners: owners,
+                ..InternalStringOptions::default()
+            },
+        )
+        .unwrap();
+        wasmparser::Validator::new()
+            .validate_all(artifact.wasm_bytes())
+            .unwrap();
+        let descriptor: serde_json::Value = serde_json::from_str(artifact.descriptor()).unwrap();
+        assert!(descriptor["derived_owner_capacity"].as_u64().unwrap() >= 3);
+        fixture.write(&format!("{name}.wasm"), artifact.wasm_bytes());
+        fixture.write(&format!("{name}.mjs"), artifact.runtime_source());
+    }
+    let script = fixture.write("probe.mjs", r#"import {readFileSync} from 'node:fs';
+import {instantiate as ordinary} from './default.mjs';
+import {instantiate as limited} from './limited.mjs';
+const ok = await ordinary(Uint8Array.from(readFileSync('default.wasm')));
+const small = await limited(Uint8Array.from(readFileSync('limited.wasm')));
+for(let i=0;i<8;i++) {
+ const result=ok.call('app.main');
+ if(result.kind!=='success'||result.value!==8n) throw Error(String(result.value));
+ const refused=small.call('app.main');
+ if(refused.kind!=='failure'||refused.domain!=='semaprax.string-format.v1'||refused.code!==1) throw Error(JSON.stringify(refused));
+}
+"#);
+    let output = Command::new("node")
+        .current_dir(&fixture.root)
+        .arg(script)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    fixture.cleanup();
+}

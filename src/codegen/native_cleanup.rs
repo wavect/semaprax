@@ -826,6 +826,12 @@ fn validate_expression(
                 ));
             }
         }
+        ResolvedExprKind::LiteralFormat { .. } => {
+            return Err(unsupported(
+                function,
+                "literal format requires the staged String cleanup profile",
+            ));
+        }
         ResolvedExprKind::Call { callee, args, .. } => {
             for argument in args {
                 validate_expression(program, function, argument)?;

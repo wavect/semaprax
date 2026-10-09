@@ -202,7 +202,9 @@ pub(super) fn validate_expression(
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_) => {}
-            ResolvedExprKind::String(_) => return Err(body_error(function_id)),
+            ResolvedExprKind::String(_) | ResolvedExprKind::LiteralFormat { .. } => {
+                return Err(body_error(function_id))
+            }
             ResolvedExprKind::Place(place) => {
                 if !place.projections.is_empty() {
                     return Err(body_error(function_id));

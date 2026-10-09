@@ -467,6 +467,7 @@ fn validate_function(
             | ResolvedExprKind::FunctionReference { .. }
             | ResolvedExprKind::Invoke { .. }
             | ResolvedExprKind::String(_)
+            | ResolvedExprKind::LiteralFormat { .. }
             | ResolvedExprKind::NativeRustImportCall(_)
             | ResolvedExprKind::HostCommandCall(_) => {
                 return Err(admission(format!(

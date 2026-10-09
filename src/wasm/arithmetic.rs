@@ -32,6 +32,7 @@ pub(super) fn needs_i32_wide_scratch(expression: &ResolvedExpr) -> bool {
             ResolvedExprKind::Closure { captures, .. } => {
                 pending.extend(captures.iter().map(|capture| &capture.value))
             }
+            ResolvedExprKind::LiteralFormat { args, .. } => pending.extend(args.iter()),
             ResolvedExprKind::Call { callee, args, .. } => {
                 if crate::string_ops::by_id(callee.as_str())
                     .is_some_and(|op| op.is_integer_conversion())
@@ -142,7 +143,7 @@ fn contains_checked_arithmetic(expression: &ResolvedExpr, target: &ResolvedType)
         | ResolvedExprKind::Project { base: value, .. }
         | ResolvedExprKind::Upcast { source: value }
         | ResolvedExprKind::Yield { request: value } => contains_checked_arithmetic(value, target),
-        ResolvedExprKind::Call { args, .. } => args
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => args
             .iter()
             .any(|argument| contains_checked_arithmetic(argument, target)),
         ResolvedExprKind::Invoke { callable, args } => {
@@ -223,5 +224,25 @@ fn contains_checked_arithmetic(expression: &ResolvedExpr, target: &ResolvedType)
         ResolvedExprKind::Closure { captures, .. } => captures
             .iter()
             .any(|capture| contains_checked_arithmetic(&capture.value, target)),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn literal_format_arguments_retain_nested_arithmetic_scratch() {
+        let ast=crate::check(r#"module format.arithmetic;
+@id("main") fn main()->i64 {string_len(string_format("{}{}{}",2u8+3u8,4usize+5usize,{let n=1i32+2i32;true}))}
+"#, "format-arithmetic.spx").unwrap();
+        let program = crate::hir::resolve(&ast).unwrap();
+        let body = &program
+            .functions
+            .iter()
+            .find(|f| f.id.as_str() == "main")
+            .unwrap()
+            .body;
+        assert!(super::needs_i32_wide_scratch(body));
+        assert!(super::contains_u8_arithmetic(body));
+        assert!(super::contains_usize_arithmetic(body));
     }
 }

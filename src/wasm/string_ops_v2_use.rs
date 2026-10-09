@@ -20,7 +20,9 @@ pub(super) fn program_uses_string_ops_v2(program: &ResolvedProgram) -> bool {
             ResolvedExprKind::Closure { captures, .. } => {
                 pending.extend(captures.iter().map(|capture| &capture.value))
             }
-            ResolvedExprKind::Call { args, .. } => pending.extend(args.iter()),
+            ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
+                pending.extend(args.iter())
+            }
             ResolvedExprKind::Invoke { callable, args } => {
                 pending.push(callable);
                 pending.extend(args.iter());

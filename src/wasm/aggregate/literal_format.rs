@@ -42,6 +42,38 @@ pub(super) fn insert_index(
     }
 }
 
+/// The worker has independent failure cleanup after the canonical CallCommit.
+/// Count every emitted guard's drops in the same bounded emission inventory.
+pub(super) fn worker_cleanup_actions(function: &ResolvedFunction) -> Result<usize, Diagnostic> {
+    let mut pending = std::iter::once(&function.body)
+        .chain(&function.requires)
+        .chain(&function.ensures)
+        .collect::<Vec<_>>();
+    let mut total = 0usize;
+    while let Some(expression) = pending.pop() {
+        if let ResolvedExprKind::LiteralFormat { template, args } = &expression.kind {
+            let pieces =
+                crate::literal_format::scan(template).map_err(|reason| error(reason.message()))?;
+            let owned = args
+                .iter()
+                .filter(|arg| arg.ty == ResolvedType::String)
+                .count();
+            // One initial-accumulator guard, then a piece and a join guard.
+            let actions = pieces
+                .len()
+                .checked_mul(2)
+                .and_then(|n| n.checked_add(1))
+                .and_then(|guards| guards.checked_mul(3 + owned))
+                .ok_or_else(|| error("literal format cleanup work overflows"))?;
+            total = total
+                .checked_add(actions)
+                .ok_or_else(|| error("literal format cleanup work overflows"))?;
+        }
+        crate::hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
+    }
+    Ok(total)
+}
+
 impl FunctionPlan {
     pub(super) fn collect_literal_format(
         &mut self,
@@ -385,5 +417,44 @@ impl Emitter<'_> {
         failed?;
         self.output.push(0x0b);
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn literal_format_worker_cleanup_census_counts_all_failure_guards() {
+        let ast = crate::check(
+            r#"module format.cleanup_work;
+@id("render") fn render(a:own string,b:own string)->string {string_format("{}-{}",a,b)}
+@id("main") fn main()->i64 {0}
+"#,
+            "format-cleanup-work.spx",
+        )
+        .unwrap();
+        let program = crate::hir::resolve(&ast).unwrap();
+        let function = program
+            .functions
+            .iter()
+            .find(|f| f.id.as_str() == "render")
+            .unwrap();
+        // Three pieces, two guards per piece + initial accumulator; every
+        // guard settles three scratch handles and two staged owned arguments.
+        assert_eq!(
+            worker_cleanup_actions(function).unwrap(),
+            (2 * 3 + 1) * (3 + 2)
+        );
+        assert_eq!(
+            worker_cleanup_actions(
+                program
+                    .functions
+                    .iter()
+                    .find(|f| f.id.as_str() == "main")
+                    .unwrap()
+            )
+            .unwrap(),
+            0
+        );
     }
 }

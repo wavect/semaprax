@@ -45,6 +45,9 @@ fn is_direct_string_carrier(expression: &ResolvedExpr) -> bool {
 fn expression_reaches_string_intrinsic(root: &ResolvedExpr) -> bool {
     let mut pending = vec![root];
     while let Some(expression) = pending.pop() {
+        if matches!(expression.kind, ResolvedExprKind::LiteralFormat { .. }) {
+            return true;
+        }
         if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
             if crate::string_ops::by_id(callee.as_str()).is_some() {
                 return true;
@@ -64,4 +67,29 @@ fn expression_reaches_owned_string(root: &ResolvedExpr) -> bool {
         crate::hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
     }
     false
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn literal_format_does_not_widen_the_closed_v10_string_carrier() {
+        let ast = crate::check(
+            r#"module utf8.format;
+@id("take") fn take(text:own string)->string {text}
+@id("render") fn render()->string {take(string_format("{}",1))}
+@id("main") fn main()->i64 {0}
+"#,
+            "utf8-format.spx",
+        )
+        .unwrap();
+        let program = crate::hir::resolve(&ast).unwrap();
+        let function = program
+            .functions
+            .iter()
+            .find(|f| f.id.as_str() == "render")
+            .unwrap();
+        assert!(super::validate_closure_shape(function)
+            .unwrap_err()
+            .contains("compiler-owned string intrinsic"));
+    }
 }

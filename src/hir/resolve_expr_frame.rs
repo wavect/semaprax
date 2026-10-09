@@ -432,6 +432,8 @@ pub(super) fn frame_owned_capacity(
         | Frame::FinishNativeCall { path, .. }
         | Frame::FinishCall { path, .. }
         | Frame::FinishStringOp { path, .. }
+        | Frame::FinishLiteralFormat { path, .. }
+        | Frame::LiteralFormatArgNext { path, .. }
         | Frame::FinishStrOp { path, .. }
         | Frame::FinishByteOp { path, .. }
         | Frame::FinishOwnedGenericOp { path, .. }
@@ -489,6 +491,7 @@ pub(super) fn frame_owned_capacity(
     let scope = match frame {
         Frame::Enter { bindings, .. }
         | Frame::ChildNext { bindings, .. }
+        | Frame::LiteralFormatArgNext { bindings, .. }
         | Frame::MethodArgNext { bindings, .. }
         | Frame::StartUpcast { bindings, .. }
         | Frame::AfterBinaryLeft { bindings, .. }
@@ -657,4 +660,38 @@ pub(super) fn frame_owned_capacity(
         _ => 0,
     };
     path.saturating_add(scope).saturating_add(retained)
+}
+
+#[cfg(test)]
+mod literal_format_capacity_tests {
+    use super::*;
+    #[test]
+    fn literal_format_frames_count_template_paths_and_shared_scope_once() {
+        let bindings = Rc::new(BTreeMap::new());
+        let path = "body.arg.0".to_owned();
+        let template = "prefix {}".to_owned();
+        let frame = Frame::FinishLiteralFormat {
+            span: Span::default(),
+            path: path.clone(),
+            template: template.clone(),
+            argument_count: 1,
+        };
+        let mut seen = std::collections::HashSet::new();
+        assert_eq!(
+            frame_owned_capacity(&frame, &mut seen),
+            path.capacity() + template.capacity()
+        );
+        let next = Frame::LiteralFormatArgNext {
+            args: &[],
+            index: 1,
+            bindings: Rc::clone(&bindings),
+            path: path.clone(),
+        };
+        assert_eq!(
+            frame_owned_capacity(&next, &mut seen),
+            path.capacity() + resolver_scope_owned_capacity(&bindings)
+        );
+        assert_eq!(seen.len(), 1);
+        assert_eq!(frame_owned_capacity(&next, &mut seen), path.capacity());
+    }
 }

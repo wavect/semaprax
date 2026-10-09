@@ -33,7 +33,13 @@ The aggregate Wasm host adds one format-only private import,
 the generated worker then releases its owned inputs and reports
 `semaprax.string-format.v1/1`. Existing byte and String imports retain their
 prior behavior. The selected standalone String arena uses its existing
-fallible allocation imports and the same worker recipe.
+fallible allocation imports and the same worker recipe. Its default owner
+census additionally charges three worker handles per active function containing
+formatting, before the existing call-path bound. Workers in the same function
+cannot overlap: dynamic children finish before rendering, which calls no
+source functions. Modules without formatting retain their prior owner bound.
+Each emitted worker failure guard also charges its three scratch drops and
+all staged String argument drops to the existing 262,144 cleanup-action bound.
 The browser host recognizes that exact private import in the authenticated
 module and admits up to 64 live owned byte entries for this selected shape, so
 all 32 owned fields and the worker's scratch owners fit. Earlier modules keep
@@ -50,5 +56,8 @@ The focused gate is `cargo test --locked -p semaprax --test language
 checked_literal_format -- --nocapture`, followed by the full quality profile.
 It covers canonical and graph round trips, refusals, left-to-right staging,
 native allocation failure, repeated standalone Core-Wasm settlement, and
-aggregate Wasm host allocation refusal and reentry. A current-head
+aggregate Wasm host allocation refusal and reentry. The `literal_format`
+unit selectors additionally cover raw-template cache tag 33, independent source
+and synthetic-AST replay, malformed ownership/commit proofs, and private worker
+cleanup census. A current-head
 pass is required before this row can be marked implemented.

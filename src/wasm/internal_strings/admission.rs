@@ -247,9 +247,9 @@ fn prepare_profile(
                 | ResolvedExprKind::Unary { .. }
                 | ResolvedExprKind::Binary { .. }
                 | ResolvedExprKind::If { .. } => {}
-                ResolvedExprKind::Uint8(_)
-                | ResolvedExprKind::Usize(_)
-                | ResolvedExprKind::ArrayU8(_)
+                ResolvedExprKind::Uint8(_) | ResolvedExprKind::Usize(_)
+                    if copy_variants || literal_format => {}
+                ResolvedExprKind::ArrayU8(_)
                 | ResolvedExprKind::RepeatArrayU8 { .. }
                     if copy_variants => {}
                 ResolvedExprKind::ConstructRecord { .. } if toolkit && (hir::is_admitted_copy_aggregate_variant_field(&program.declarations, &expression.ty) || hir::owned_text_record::admitted(&expression.ty, &program.declarations)) => {}
@@ -529,8 +529,14 @@ fn expression_type(
     general_guards: bool,
     literal_format: bool,
 ) -> bool {
-    signature_type(program, ty, copy_variants, toolkit, general_guards, literal_format)
-        || toolkit && hir::is_admitted_owned_string_variant(&program.declarations, ty)
+    signature_type(
+        program,
+        ty,
+        copy_variants,
+        toolkit,
+        general_guards,
+        literal_format,
+    ) || toolkit && hir::is_admitted_owned_string_variant(&program.declarations, ty)
         || copy_variants
             && (matches!(ty, ResolvedType::ArrayU8(_) | ResolvedType::SliceU8)
                 || crate::variant_guards::copy_variant(&program.declarations, ty))
@@ -542,7 +548,8 @@ fn condition_allocates_string(condition: &hir::ResolvedExpr) -> bool {
         if expression.ty == ResolvedType::String
             && matches!(
                 expression.kind,
-                ResolvedExprKind::String(_) | ResolvedExprKind::Call { .. }
+                ResolvedExprKind::String(_)
+                    | ResolvedExprKind::Call { .. }
                     | ResolvedExprKind::LiteralFormat { .. }
             )
         {

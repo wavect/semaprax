@@ -118,6 +118,12 @@ fn collect_calls(
         | ResolvedExprKind::RepeatArrayU8 { .. }
         | ResolvedExprKind::BorrowPlace { .. }
         | ResolvedExprKind::Place(_) => {}
+        ResolvedExprKind::LiteralFormat { args, .. } => {
+            *call_sites = call_sites.saturating_add(1);
+            for argument in args {
+                collect_calls(argument, known, calls, call_sites);
+            }
+        }
         ResolvedExprKind::Call { callee, args, .. } => {
             *call_sites = call_sites.saturating_add(1);
             if known.contains(callee) {
@@ -200,6 +206,24 @@ fn collect_calls(
 mod tests {
     use super::*;
 
+    #[test]
+    fn literal_format_retains_nested_calls_and_operation_work() {
+        let ast = crate::check(
+            r#"module format.repair;
+@id("helper") fn helper()->i64 {1}
+@id("main") fn main()->i64 {string_len(string_format("{}",helper()))}
+"#,
+            "format-repair.spx",
+        )
+        .unwrap();
+        let program = hir::resolve(&ast).unwrap();
+        let graph = call_graph(&program).unwrap();
+        assert_eq!(graph.call_sites, 3);
+        assert_eq!(
+            graph.edges[&DeclarationId::new("main")],
+            BTreeSet::from([DeclarationId::new("helper")])
+        );
+    }
     #[test]
     fn closure_body_calls_contribute_dependencies_and_call_site_budget_without_counting_creation() {
         let source = r#"

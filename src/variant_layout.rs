@@ -641,7 +641,7 @@ fn collect_expr_variant_types(
                 pending.extend(args.iter().rev().map(Work::Expression));
                 pending.push(Work::Expression(callable));
             }
-            ResolvedExprKind::Call { args, .. } => {
+            ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
                 pending.extend(args.iter().rev().map(Work::Expression));
             }
             ResolvedExprKind::NativeRustImportCall(call) => {

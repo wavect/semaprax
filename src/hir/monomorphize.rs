@@ -437,6 +437,11 @@ pub(super) fn materialize_template_expr(
         ResolvedExprKind::Float64(bits) => ResolvedExprKind::Float64(*bits),
         ResolvedExprKind::Bool(value) => ResolvedExprKind::Bool(*value),
         ResolvedExprKind::String(value) => ResolvedExprKind::String(value.clone()),
+        ResolvedExprKind::LiteralFormat { .. } => {
+            return Err(hir_error(
+                "generic templates cannot construct literal formats",
+            ))
+        }
         ResolvedExprKind::Place(place) => ResolvedExprKind::Place(Place {
             root: values
                 .get(&place.root)

@@ -20,6 +20,11 @@ pub(super) fn replay_source(
     let fresh = crate::hir::resolve(synthetic).map_err(|_| {
         invalid("semantic snapshot literal-format source cannot be independently resolved")
     })?;
+    if fresh.functions.len() != retained.functions.len() {
+        return Err(invalid(
+            "semantic snapshot literal-format function inventory disagrees",
+        ));
+    }
     for function in &fresh.functions {
         let expected = retained
             .functions
@@ -46,3 +51,6 @@ pub(super) fn replay_source(
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests;

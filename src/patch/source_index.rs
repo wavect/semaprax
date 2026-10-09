@@ -127,6 +127,29 @@ impl SemanticSourceIndex {
         match (&source.kind, &resolved.kind) {
             (
                 ExprKind::Call {
+                    name,
+                    type_arguments,
+                    args,
+                },
+                ResolvedExprKind::LiteralFormat {
+                    template,
+                    args: resolved_args,
+                },
+            ) => {
+                if name != crate::literal_format::NAME
+                    || !type_arguments.is_empty()
+                    || !matches!(args.first().map(|arg| &arg.kind), Some(ExprKind::String(value)) if value == template)
+                    || args.len() != resolved_args.len() + 1
+                {
+                    return None;
+                }
+                for (argument, resolved_argument) in args.iter().skip(1).zip(resolved_args) {
+                    self.expr(argument, resolved_argument, tokens)?;
+                }
+            }
+
+            (
+                ExprKind::Call {
                     type_arguments,
                     args,
                     ..

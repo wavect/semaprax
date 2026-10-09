@@ -229,6 +229,7 @@ fn normalize_expression_spans(expression: &mut ResolvedExpr) {
             normalize_expression_spans(end);
         }
         ResolvedExprKind::Call { args, .. }
+        | ResolvedExprKind::LiteralFormat { args, .. }
         | ResolvedExprKind::NativeRustImportCall(crate::hir::ResolvedNativeRustImportCall {
             args,
             ..

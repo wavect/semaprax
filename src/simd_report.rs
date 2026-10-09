@@ -654,7 +654,7 @@ impl Walker<'_> {
                     self.scan_expr(arg);
                 }
             }
-            ResolvedExprKind::Call { args, .. } => {
+            ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
                 self.record_call();
                 self.push_ineligible(expr, REASON_CALL);
                 for argument in args {

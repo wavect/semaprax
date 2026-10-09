@@ -5,6 +5,7 @@ use std::process::{Command, Stdio};
 
 use super::*;
 
+#[path = "stream_native/boundary.rs"]
 mod boundary;
 
 const PERMITS: &str =

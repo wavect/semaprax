@@ -1,6 +1,7 @@
 //! Actual owned request values, detached from input, on the same three backends.
 use super::*;
 
+#[path = "owned/stream.rs"]
 mod stream;
 
 const VALID: &[u8] = br#"{"patients":[{"id":"P2","arrival":2,"service":5,"priority":1,"deadline":8},{"id":"\u00501","arrival":1,"service":4,"priority":0,"deadline":9}],"servers":["S2","\u00531"]}"#;

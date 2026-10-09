@@ -9,6 +9,103 @@ record Matcher {
     position: usize,
 }
 
+// Token helpers return only flat Copy cases. Their work field is the exact
+// number of pattern reads (and decimal-loop iterations), never AST fuel.
+@id("experiment.pattern.token")
+variant Token {
+    @id("experiment.pattern.token.byte")
+    Byte {
+        @id("experiment.pattern.token.byte.value")
+        value: usize,
+        @id("experiment.pattern.token.byte.next")
+        next: usize,
+        @id("experiment.pattern.token.byte.work")
+        work: usize,
+    },
+    @id("experiment.pattern.token.invalid")
+    Invalid {
+        @id("experiment.pattern.token.invalid.offset")
+        offset: usize,
+        @id("experiment.pattern.token.invalid.work")
+        work: usize,
+    },
+    @id("experiment.pattern.token.exhausted")
+    Exhausted {
+        @id("experiment.pattern.token.exhausted.work")
+        work: usize,
+    },
+}
+
+@id("experiment.pattern.quantifier")
+variant Quantifier {
+    @id("experiment.pattern.quantifier.bounds")
+    Bounds {
+        @id("experiment.pattern.quantifier.bounds.minimum")
+        minimum: usize,
+        @id("experiment.pattern.quantifier.bounds.maximum")
+        maximum: usize,
+        @id("experiment.pattern.quantifier.bounds.next")
+        next: usize,
+        @id("experiment.pattern.quantifier.bounds.work")
+        work: usize,
+    },
+    @id("experiment.pattern.quantifier.invalid")
+    Invalid {
+        @id("experiment.pattern.quantifier.invalid.offset")
+        offset: usize,
+        @id("experiment.pattern.quantifier.invalid.work")
+        work: usize,
+    },
+    @id("experiment.pattern.quantifier.exhausted")
+    Exhausted {
+        @id("experiment.pattern.quantifier.exhausted.work")
+        work: usize,
+    },
+}
+
+// Long-run scans retain no loan and return only direct Copy scalar payloads.
+// Work is actual input reads plus entered scan-loop iterations. The caller
+// passes its remaining work after reserving the refusal packet.
+@id("experiment.pattern.scan")
+variant Scan {
+    @id("experiment.pattern.scan.done")
+    Done {
+        @id("experiment.pattern.scan.done.count")
+        count: usize,
+        @id("experiment.pattern.scan.done.work")
+        work: usize,
+        @id("experiment.pattern.scan.done.exhausted")
+        exhausted: usize,
+    },
+}
+
+// A required disjoint follower cannot consume a byte removed from this run.
+// This proof reads six metadata bytes and at most one bitmap byte. No input
+// byte is inspected and no accept-capable count vector is skipped.
+@id("experiment.pattern.disjoint")
+variant Disjoint {
+    @id("experiment.pattern.disjoint.checked")
+    Checked {
+        @id("experiment.pattern.disjoint.checked.value")
+        value: usize,
+        @id("experiment.pattern.disjoint.checked.work")
+        work: usize,
+    },
+}
+
+// A pair observer validates the complete packet once and returns only Copy
+// offsets. Its result carries no authority or borrowed input lifetime.
+@id("experiment.pattern.capture")
+variant Capture {
+    @id("experiment.pattern.capture.span")
+    Span {
+        @id("experiment.pattern.capture.span.start")
+        start: usize,
+        @id("experiment.pattern.capture.span.end")
+        end: usize,
+    },
+}
+
 @id("experiment.pattern.from-bytes")
 fn matcher_from_bytes(storage: own Bytes) -> Matcher
     requires byte_len(bytes_as_slice(storage)) == 3072usize
@@ -34,140 +131,73 @@ fn carrier_valid(state: borrow Matcher) -> bool
 fn read(state: borrow Matcher, offset: usize) -> usize
     requires carrier_valid(state) && offset < 3072usize
 {
-    match borrow state {
-        Matcher { storage, position } => match byte_get(bytes_as_slice(storage), offset) {
-            Option::Some { value } => usize_from_u8(value),
-            Option::None {} => 0usize,
-        },
-    }
+    match borrow state { Matcher { storage, position } => match byte_get(bytes_as_slice(storage), offset) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }, }
 }
 
 @id("experiment.pattern.input-byte")
 fn input_byte(input: borrow Slice<u8>, offset: usize) -> usize
     requires offset < byte_len(input)
 {
-    match byte_get(input, offset) {
-        Option::Some { value } => usize_from_u8(value),
-        Option::None {} => 0usize,
-    }
+    match byte_get(input, offset) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }
 }
 
 @id("experiment.pattern.bit")
 fn bit(index: usize) -> usize
     requires index < 8usize
 {
-    if index == 0usize { 1usize } else {
-        if index == 1usize { 2usize } else {
-            if index == 2usize { 4usize } else {
-                if index == 3usize { 8usize } else {
-                    if index == 4usize { 16usize } else {
-                        if index == 5usize { 32usize } else {
-                            if index == 6usize { 64usize } else { 128usize }
-                        }
-                    }
-                }
-            }
-        }
-    }
+    if index == 0usize { 1usize } else { if index == 1usize { 2usize } else { if index == 2usize { 4usize } else { if index == 3usize { 8usize } else { if index == 4usize { 16usize } else { if index == 5usize { 32usize } else { if index == 6usize { 64usize } else { 128usize } } } } } } }
 }
 
 // Costs are actual storage events. The engine owns the scalar meter and
 // preflights each helper's fixed cost before calling it; these helpers never
 // retain a borrowed view across an owning update.
-
 @id("experiment.pattern.load-2")
 fn load2(state: borrow Matcher, offset: usize) -> usize
     requires carrier_valid(state) && offset <= 3070usize
 {
-    match borrow state {
-        Matcher { storage, position } => {
-            let view = bytes_as_slice(storage);
-            (match byte_get(view, offset) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 1usize + (match byte_get(view, offset + 1usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 256usize
-        },
-    }
+    match borrow state { Matcher { storage, position } => { let view = bytes_as_slice(storage); match byte_get(view, offset) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 1usize + match byte_get(view, offset + 1usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 256usize }, }
 }
 
 @id("experiment.pattern.load-4")
 fn load4(state: borrow Matcher, offset: usize) -> usize
     requires carrier_valid(state) && offset <= 3068usize
 {
-    match borrow state {
-        Matcher { storage, position } => {
-            let view = bytes_as_slice(storage);
-            (match byte_get(view, offset) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 1usize + (match byte_get(view, offset + 1usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 256usize + (match byte_get(view, offset + 2usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 65536usize + (match byte_get(view, offset + 3usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 16777216usize
-        },
-    }
+    match borrow state { Matcher { storage, position } => { let view = bytes_as_slice(storage); match byte_get(view, offset) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 1usize + match byte_get(view, offset + 1usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 256usize + match byte_get(view, offset + 2usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 65536usize + match byte_get(view, offset + 3usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 16777216usize }, }
 }
 
 @id("experiment.pattern.load-8")
 fn load8(state: borrow Matcher, offset: usize) -> usize
     requires carrier_valid(state) && offset <= 3064usize
 {
-    match borrow state {
-        Matcher { storage, position } => {
-            let view = bytes_as_slice(storage);
-            (match byte_get(view, offset) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 1usize + (match byte_get(view, offset + 1usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 256usize + (match byte_get(view, offset + 2usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 65536usize + (match byte_get(view, offset + 3usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 16777216usize + (match byte_get(view, offset + 4usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 4294967296usize + (match byte_get(view, offset + 5usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 1099511627776usize + (match byte_get(view, offset + 6usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 281474976710656usize + (match byte_get(view, offset + 7usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }) * 72057594037927936usize
-        },
-    }
+    match borrow state { Matcher { storage, position } => { let view = bytes_as_slice(storage); match byte_get(view, offset) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 1usize + match byte_get(view, offset + 1usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 256usize + match byte_get(view, offset + 2usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 65536usize + match byte_get(view, offset + 3usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 16777216usize + match byte_get(view, offset + 4usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 4294967296usize + match byte_get(view, offset + 5usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 1099511627776usize + match byte_get(view, offset + 6usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 281474976710656usize + match byte_get(view, offset + 7usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 72057594037927936usize }, }
 }
 
 @id("experiment.pattern.store-1")
 fn store1(state: own Matcher, offset: usize, value: usize) -> Matcher
     requires carrier_valid(state) && offset <= 3071usize && value <= 255usize
 {
-    match own state {
-        Matcher { storage, position } => {
-            let mut next = storage;
-            next = bytes_set(next, offset, u8_from_i64(i64_from_usize(value % 256usize)));
-            Matcher { storage: next, position: position }
-        },
-    }
+    match own state { Matcher { storage, position } => { let mut next = storage; next = bytes_set(next, offset, u8_from_i64(i64_from_usize(value % 256usize))); Matcher { storage: next, position: position } }, }
 }
 
 @id("experiment.pattern.store-2")
 fn store2(state: own Matcher, offset: usize, value: usize) -> Matcher
     requires carrier_valid(state) && offset <= 3070usize && value <= 65535usize
 {
-    match own state {
-        Matcher { storage, position } => {
-            let mut next = storage;
-            next = bytes_set(next, offset, u8_from_i64(i64_from_usize(value % 256usize)));
-            next = bytes_set(next, offset + 1usize, u8_from_i64(i64_from_usize(value / 256usize % 256usize)));
-            Matcher { storage: next, position: position }
-        },
-    }
+    match own state { Matcher { storage, position } => { let mut next = storage; next = bytes_set(next, offset, u8_from_i64(i64_from_usize(value % 256usize))); next = bytes_set(next, offset + 1usize, u8_from_i64(i64_from_usize(value / 256usize % 256usize))); Matcher { storage: next, position: position } }, }
 }
 
 @id("experiment.pattern.store-4")
 fn store4(state: own Matcher, offset: usize, value: usize) -> Matcher
     requires carrier_valid(state) && offset <= 3068usize && value <= 4294967295usize
 {
-    match own state {
-        Matcher { storage, position } => {
-            let mut next = storage;
-            next = bytes_set(next, offset, u8_from_i64(i64_from_usize(value % 256usize)));
-            next = bytes_set(next, offset + 1usize, u8_from_i64(i64_from_usize(value / 256usize % 256usize)));
-            next = bytes_set(next, offset + 2usize, u8_from_i64(i64_from_usize(value / 65536usize % 256usize)));
-            next = bytes_set(next, offset + 3usize, u8_from_i64(i64_from_usize(value / 16777216usize % 256usize)));
-            Matcher { storage: next, position: position }
-        },
-    }
+    match own state { Matcher { storage, position } => { let mut next = storage; next = bytes_set(next, offset, u8_from_i64(i64_from_usize(value % 256usize))); next = bytes_set(next, offset + 1usize, u8_from_i64(i64_from_usize(value / 256usize % 256usize))); next = bytes_set(next, offset + 2usize, u8_from_i64(i64_from_usize(value / 65536usize % 256usize))); next = bytes_set(next, offset + 3usize, u8_from_i64(i64_from_usize(value / 16777216usize % 256usize))); Matcher { storage: next, position: position } }, }
 }
 
 @id("experiment.pattern.store-8")
 fn store8(state: own Matcher, offset: usize, value: usize) -> Matcher
     requires carrier_valid(state) && offset <= 3064usize
 {
-    match own state {
-        Matcher { storage, position } => {
-            let mut next = storage;
-            next = bytes_set5(next, offset, u8_from_i64(i64_from_usize(value % 256usize)), u8_from_i64(i64_from_usize(value / 256usize % 256usize)), u8_from_i64(i64_from_usize(value / 65536usize % 256usize)), u8_from_i64(i64_from_usize(value / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(value / 4294967296usize % 256usize)));
-            next = bytes_set(next, offset + 5usize, u8_from_i64(i64_from_usize(value / 1099511627776usize % 256usize)));
-            next = bytes_set(next, offset + 6usize, u8_from_i64(i64_from_usize(value / 281474976710656usize % 256usize)));
-            next = bytes_set(next, offset + 7usize, u8_from_i64(i64_from_usize(value / 72057594037927936usize % 256usize)));
-            Matcher { storage: next, position: position }
-        },
-    }
+    match own state { Matcher { storage, position } => { let mut next = storage; next = bytes_set5(next, offset, u8_from_i64(i64_from_usize(value % 256usize)), u8_from_i64(i64_from_usize(value / 256usize % 256usize)), u8_from_i64(i64_from_usize(value / 65536usize % 256usize)), u8_from_i64(i64_from_usize(value / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(value / 4294967296usize % 256usize))); next = bytes_set(next, offset + 5usize, u8_from_i64(i64_from_usize(value / 1099511627776usize % 256usize))); next = bytes_set(next, offset + 6usize, u8_from_i64(i64_from_usize(value / 281474976710656usize % 256usize))); next = bytes_set(next, offset + 7usize, u8_from_i64(i64_from_usize(value / 72057594037927936usize % 256usize))); Matcher { storage: next, position: position } }, }
 }
 
 @id("experiment.pattern.frame")
@@ -175,16 +205,7 @@ fn frame(state: own Matcher, atom: usize, start: usize, count: usize) -> Matcher
     requires atom <= 128usize && start <= 65536usize && count <= 65536usize
     requires carrier_valid(state)
 {
-    match own state {
-        Matcher { storage, position } => {
-            let mut next = storage;
-            next = bytes_set5(next, 1664usize + atom * 8usize, u8_from_i64(i64_from_usize(start % 256usize)), u8_from_i64(i64_from_usize(start / 256usize % 256usize)), u8_from_i64(i64_from_usize(start / 65536usize % 256usize)), u8_from_i64(i64_from_usize(start / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(count % 256usize)));
-            next = bytes_set(next, (1664usize + atom * 8usize) + 5usize, u8_from_i64(i64_from_usize(count / 256usize % 256usize)));
-            next = bytes_set(next, (1664usize + atom * 8usize) + 6usize, u8_from_i64(i64_from_usize(count / 65536usize % 256usize)));
-            next = bytes_set(next, (1664usize + atom * 8usize) + 7usize, u8_from_i64(i64_from_usize(count / 16777216usize % 256usize)));
-            Matcher { storage: next, position: position }
-        },
-    }
+    match own state { Matcher { storage, position } => { let mut next = storage; next = bytes_set5(next, 1664usize + atom * 8usize, u8_from_i64(i64_from_usize(start % 256usize)), u8_from_i64(i64_from_usize(start / 256usize % 256usize)), u8_from_i64(i64_from_usize(start / 65536usize % 256usize)), u8_from_i64(i64_from_usize(start / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(count % 256usize))); next = bytes_set(next, 1664usize + atom * 8usize + 5usize, u8_from_i64(i64_from_usize(count / 256usize % 256usize))); next = bytes_set(next, 1664usize + atom * 8usize + 6usize, u8_from_i64(i64_from_usize(count / 65536usize % 256usize))); next = bytes_set(next, 1664usize + atom * 8usize + 7usize, u8_from_i64(i64_from_usize(count / 16777216usize % 256usize))); Matcher { storage: next, position: position } }, }
 }
 
 // Exactly 32 writes. The caller includes those stores in work_used before
@@ -195,20 +216,7 @@ fn packet(state: own Matcher, status: usize, captures: usize, reason: usize, len
     requires work <= 262144usize
     requires carrier_valid(state)
 {
-    match own state {
-        Matcher { storage, position } => {
-            let mut next = storage;
-            next = bytes_set5(next, 2696usize, 83u8, 80u8, 65u8, 84u8, 1u8);
-            next = bytes_set5(next, 2701usize, u8_from_i64(i64_from_usize(status)), u8_from_i64(i64_from_usize(captures)), u8_from_i64(i64_from_usize(reason)), u8_from_i64(i64_from_usize(length % 256usize)), u8_from_i64(i64_from_usize(length / 256usize % 256usize)));
-            next = bytes_set5(next, 2706usize, u8_from_i64(i64_from_usize(length / 65536usize % 256usize)), u8_from_i64(i64_from_usize(length / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(length / 4294967296usize % 256usize)), u8_from_i64(i64_from_usize(length / 1099511627776usize % 256usize)), u8_from_i64(i64_from_usize(length / 281474976710656usize % 256usize)));
-            next = bytes_set5(next, 2711usize, u8_from_i64(i64_from_usize(length / 72057594037927936usize % 256usize)), u8_from_i64(i64_from_usize(work % 256usize)), u8_from_i64(i64_from_usize(work / 256usize % 256usize)), u8_from_i64(i64_from_usize(work / 65536usize % 256usize)), u8_from_i64(i64_from_usize(work / 16777216usize % 256usize)));
-            next = bytes_set5(next, 2716usize, u8_from_i64(i64_from_usize(work / 4294967296usize % 256usize)), u8_from_i64(i64_from_usize(work / 1099511627776usize % 256usize)), u8_from_i64(i64_from_usize(work / 281474976710656usize % 256usize)), u8_from_i64(i64_from_usize(work / 72057594037927936usize % 256usize)), u8_from_i64(i64_from_usize(detail % 256usize)));
-            next = bytes_set5(next, 2721usize, u8_from_i64(i64_from_usize(detail / 256usize % 256usize)), u8_from_i64(i64_from_usize(detail / 65536usize % 256usize)), u8_from_i64(i64_from_usize(detail / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(detail / 4294967296usize % 256usize)), u8_from_i64(i64_from_usize(detail / 1099511627776usize % 256usize)));
-            next = bytes_set(next, 2726usize, u8_from_i64(i64_from_usize(detail / 281474976710656usize % 256usize)));
-            next = bytes_set(next, 2727usize, u8_from_i64(i64_from_usize(detail / 72057594037927936usize % 256usize)));
-            Matcher { storage: next, position: position }
-        },
-    }
+    match own state { Matcher { storage, position } => { let mut next = storage; next = bytes_set5(next, 2696usize, 83u8, 80u8, 65u8, 84u8, 1u8); next = bytes_set5(next, 2701usize, u8_from_i64(i64_from_usize(status)), u8_from_i64(i64_from_usize(captures)), u8_from_i64(i64_from_usize(reason)), u8_from_i64(i64_from_usize(length % 256usize)), u8_from_i64(i64_from_usize(length / 256usize % 256usize))); next = bytes_set5(next, 2706usize, u8_from_i64(i64_from_usize(length / 65536usize % 256usize)), u8_from_i64(i64_from_usize(length / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(length / 4294967296usize % 256usize)), u8_from_i64(i64_from_usize(length / 1099511627776usize % 256usize)), u8_from_i64(i64_from_usize(length / 281474976710656usize % 256usize))); next = bytes_set5(next, 2711usize, u8_from_i64(i64_from_usize(length / 72057594037927936usize % 256usize)), u8_from_i64(i64_from_usize(work % 256usize)), u8_from_i64(i64_from_usize(work / 256usize % 256usize)), u8_from_i64(i64_from_usize(work / 65536usize % 256usize)), u8_from_i64(i64_from_usize(work / 16777216usize % 256usize))); next = bytes_set5(next, 2716usize, u8_from_i64(i64_from_usize(work / 4294967296usize % 256usize)), u8_from_i64(i64_from_usize(work / 1099511627776usize % 256usize)), u8_from_i64(i64_from_usize(work / 281474976710656usize % 256usize)), u8_from_i64(i64_from_usize(work / 72057594037927936usize % 256usize)), u8_from_i64(i64_from_usize(detail % 256usize))); next = bytes_set5(next, 2721usize, u8_from_i64(i64_from_usize(detail / 256usize % 256usize)), u8_from_i64(i64_from_usize(detail / 65536usize % 256usize)), u8_from_i64(i64_from_usize(detail / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(detail / 4294967296usize % 256usize)), u8_from_i64(i64_from_usize(detail / 1099511627776usize % 256usize))); next = bytes_set(next, 2726usize, u8_from_i64(i64_from_usize(detail / 281474976710656usize % 256usize))); next = bytes_set(next, 2727usize, u8_from_i64(i64_from_usize(detail / 72057594037927936usize % 256usize))); Matcher { storage: next, position: position } }, }
 }
 
 @id("experiment.pattern.capture-result")
@@ -216,16 +224,7 @@ fn capture_result(state: own Matcher, capture: usize, start: usize, end: usize) 
     requires capture < 16usize && start <= end && end <= 65536usize
     requires carrier_valid(state)
 {
-    match own state {
-        Matcher { storage, position } => {
-            let mut next = storage;
-            next = bytes_set5(next, 2728usize + capture * 16usize, u8_from_i64(i64_from_usize(start % 256usize)), u8_from_i64(i64_from_usize(start / 256usize % 256usize)), u8_from_i64(i64_from_usize(start / 65536usize % 256usize)), u8_from_i64(i64_from_usize(start / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(start / 4294967296usize % 256usize)));
-            next = bytes_set5(next, (2728usize + capture * 16usize) + 5usize, u8_from_i64(i64_from_usize(start / 1099511627776usize % 256usize)), u8_from_i64(i64_from_usize(start / 281474976710656usize % 256usize)), u8_from_i64(i64_from_usize(start / 72057594037927936usize % 256usize)), u8_from_i64(i64_from_usize(end % 256usize)), u8_from_i64(i64_from_usize(end / 256usize % 256usize)));
-            next = bytes_set5(next, (2728usize + capture * 16usize) + 10usize, u8_from_i64(i64_from_usize(end / 65536usize % 256usize)), u8_from_i64(i64_from_usize(end / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(end / 4294967296usize % 256usize)), u8_from_i64(i64_from_usize(end / 1099511627776usize % 256usize)), u8_from_i64(i64_from_usize(end / 281474976710656usize % 256usize)));
-            next = bytes_set(next, (2728usize + capture * 16usize) + 15usize, u8_from_i64(i64_from_usize(end / 72057594037927936usize % 256usize)));
-            Matcher { storage: next, position: position }
-        },
-    }
+    match own state { Matcher { storage, position } => { let mut next = storage; next = bytes_set5(next, 2728usize + capture * 16usize, u8_from_i64(i64_from_usize(start % 256usize)), u8_from_i64(i64_from_usize(start / 256usize % 256usize)), u8_from_i64(i64_from_usize(start / 65536usize % 256usize)), u8_from_i64(i64_from_usize(start / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(start / 4294967296usize % 256usize))); next = bytes_set5(next, 2728usize + capture * 16usize + 5usize, u8_from_i64(i64_from_usize(start / 1099511627776usize % 256usize)), u8_from_i64(i64_from_usize(start / 281474976710656usize % 256usize)), u8_from_i64(i64_from_usize(start / 72057594037927936usize % 256usize)), u8_from_i64(i64_from_usize(end % 256usize)), u8_from_i64(i64_from_usize(end / 256usize % 256usize))); next = bytes_set5(next, 2728usize + capture * 16usize + 10usize, u8_from_i64(i64_from_usize(end / 65536usize % 256usize)), u8_from_i64(i64_from_usize(end / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(end / 4294967296usize % 256usize)), u8_from_i64(i64_from_usize(end / 1099511627776usize % 256usize)), u8_from_i64(i64_from_usize(end / 281474976710656usize % 256usize))); next = bytes_set(next, 2728usize + capture * 16usize + 15usize, u8_from_i64(i64_from_usize(end / 72057594037927936usize % 256usize))); Matcher { storage: next, position: position } }, }
 }
 
 // Budget comparison subtracts the already reserved refusal header first.
@@ -237,56 +236,22 @@ fn affords(work: usize, cost: usize, limit: usize) -> bool
     work <= limit - 32usize && cost <= limit - 32usize - work
 }
 
-// Token helpers return only flat Copy cases. Their work field is the exact
-// number of pattern reads (and decimal-loop iterations), never AST fuel.
-@id("experiment.pattern.token")
-variant Token {
-    @id("experiment.pattern.token.byte")
-    Byte {
-        @id("experiment.pattern.token.byte.value") value: usize,
-        @id("experiment.pattern.token.byte.next") next: usize,
-        @id("experiment.pattern.token.byte.work") work: usize,
-    },
-    @id("experiment.pattern.token.invalid")
-    Invalid {
-        @id("experiment.pattern.token.invalid.offset") offset: usize,
-        @id("experiment.pattern.token.invalid.work") work: usize,
-    },
-    @id("experiment.pattern.token.exhausted")
-    Exhausted {
-        @id("experiment.pattern.token.exhausted.work") work: usize,
-    },
-}
-
 @id("experiment.pattern.hex")
 fn hex(byte: usize) -> usize
 {
-    if byte >= 48usize && byte <= 57usize { byte - 48usize } else {
-        if byte >= 65usize && byte <= 70usize { byte - 55usize } else {
-            if byte >= 97usize && byte <= 102usize { byte - 87usize } else { 16usize }
-        }
-    }
+    if byte >= 48usize && byte <= 57usize { byte - 48usize } else { if byte >= 65usize && byte <= 70usize { byte - 55usize } else { if byte >= 97usize && byte <= 102usize { byte - 87usize } else { 16usize } } }
 }
 
 @id("experiment.pattern.punctuation")
 fn punctuation(byte: usize) -> bool
 {
-    byte >= 33usize && byte <= 126usize
-        && !(byte >= 48usize && byte <= 57usize)
-        && !(byte >= 65usize && byte <= 90usize)
-        && !(byte >= 97usize && byte <= 122usize)
+    byte >= 33usize && byte <= 126usize && !(byte >= 48usize && byte <= 57usize) && !(byte >= 65usize && byte <= 90usize) && !(byte >= 97usize && byte <= 122usize)
 }
 
 @id("experiment.pattern.literal")
 fn literal(byte: usize, in_class: bool) -> bool
 {
-    byte >= 32usize && byte <= 126usize && byte != 92usize
-        && if in_class { byte != 93usize && byte != 94usize } else {
-            byte != 46usize && byte != 91usize && byte != 93usize
-                && byte != 40usize && byte != 41usize && byte != 63usize
-                && byte != 42usize && byte != 43usize && byte != 123usize
-                && byte != 125usize && byte != 124usize && byte != 94usize && byte != 36usize
-        }
+    byte >= 32usize && byte <= 126usize && byte != 92usize && if in_class { byte != 93usize && byte != 94usize } else { byte != 46usize && byte != 91usize && byte != 93usize && byte != 40usize && byte != 41usize && byte != 63usize && byte != 42usize && byte != 43usize && byte != 123usize && byte != 125usize && byte != 124usize && byte != 94usize && byte != 36usize }
 }
 
 // EOF is diagnosed without a read. Escape parsing debits each actual byte
@@ -296,63 +261,7 @@ fn read_token(pattern: borrow Slice<u8>, offset: usize, in_class: bool, availabl
     requires byte_len(pattern) <= 1024usize && offset <= byte_len(pattern)
 {
     let length = byte_len(pattern);
-    if offset == length { Token::Invalid { offset: length, work: 0usize } } else {
-        if available < 1usize { Token::Exhausted { work: 0usize } } else {
-            let first = input_byte(pattern, offset);
-            if first != 92usize {
-                if literal(first, in_class) { Token::Byte { value: first, next: offset + 1usize, work: 1usize } } else {
-                    Token::Invalid { offset: offset, work: 1usize }
-                }
-            } else {
-                if offset + 1usize == length { Token::Invalid { offset: length, work: 1usize } } else {
-                    if available < 2usize { Token::Exhausted { work: 1usize } } else {
-                        let second = input_byte(pattern, offset + 1usize);
-                        if second != 120usize {
-                            if punctuation(second) { Token::Byte { value: second, next: offset + 2usize, work: 2usize } } else {
-                                Token::Invalid { offset: offset + 1usize, work: 2usize }
-                            }
-                        } else {
-                            if offset + 2usize == length { Token::Invalid { offset: length, work: 2usize } } else {
-                                if available < 3usize { Token::Exhausted { work: 2usize } } else {
-                                    let high = hex(input_byte(pattern, offset + 2usize));
-                                    if high == 16usize { Token::Invalid { offset: offset + 2usize, work: 3usize } } else {
-                                        if offset + 3usize == length { Token::Invalid { offset: length, work: 3usize } } else {
-                                            if available < 4usize { Token::Exhausted { work: 3usize } } else {
-                                                let low = hex(input_byte(pattern, offset + 3usize));
-                                                if low == 16usize { Token::Invalid { offset: offset + 3usize, work: 4usize } } else {
-                                                    Token::Byte { value: high * 16usize + low, next: offset + 4usize, work: 4usize }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@id("experiment.pattern.quantifier")
-variant Quantifier {
-    @id("experiment.pattern.quantifier.bounds")
-    Bounds {
-        @id("experiment.pattern.quantifier.bounds.minimum") minimum: usize,
-        @id("experiment.pattern.quantifier.bounds.maximum") maximum: usize,
-        @id("experiment.pattern.quantifier.bounds.next") next: usize,
-        @id("experiment.pattern.quantifier.bounds.work") work: usize,
-    },
-    @id("experiment.pattern.quantifier.invalid")
-    Invalid {
-        @id("experiment.pattern.quantifier.invalid.offset") offset: usize,
-        @id("experiment.pattern.quantifier.invalid.work") work: usize,
-    },
-    @id("experiment.pattern.quantifier.exhausted")
-    Exhausted {
-        @id("experiment.pattern.quantifier.exhausted.work") work: usize,
-    },
+    if offset == length { Token::Invalid { offset: length, work: 0usize } } else { if available < 1usize { Token::Exhausted { work: 0usize } } else { let first = input_byte(pattern, offset); if first != 92usize { if literal(first, in_class) { Token::Byte { value: first, next: offset + 1usize, work: 1usize } } else { Token::Invalid { offset: offset, work: 1usize } } } else { if offset + 1usize == length { Token::Invalid { offset: length, work: 1usize } } else { if available < 2usize { Token::Exhausted { work: 1usize } } else { let second = input_byte(pattern, offset + 1usize); if second != 120usize { if punctuation(second) { Token::Byte { value: second, next: offset + 2usize, work: 2usize } } else { Token::Invalid { offset: offset + 1usize, work: 2usize } } } else { if offset + 2usize == length { Token::Invalid { offset: length, work: 2usize } } else { if available < 3usize { Token::Exhausted { work: 2usize } } else { let high = hex(input_byte(pattern, offset + 2usize)); if high == 16usize { Token::Invalid { offset: offset + 2usize, work: 3usize } } else { if offset + 3usize == length { Token::Invalid { offset: length, work: 3usize } } else { if available < 4usize { Token::Exhausted { work: 3usize } } else { let low = hex(input_byte(pattern, offset + 3usize)); if low == 16usize { Token::Invalid { offset: offset + 3usize, work: 4usize } } else { Token::Byte { value: high * 16usize + low, next: offset + 4usize, work: 4usize } } } } } } } } } } } } }
 }
 
 @id("experiment.pattern.read-quantifier")
@@ -360,67 +269,7 @@ fn read_quantifier(pattern: borrow Slice<u8>, offset: usize, available: usize) -
     requires byte_len(pattern) <= 1024usize && offset <= byte_len(pattern)
 {
     let length = byte_len(pattern);
-    if offset == length { Quantifier::Bounds { minimum: 1usize, maximum: 1usize, next: offset, work: 0usize } } else {
-        if available == 0usize { Quantifier::Exhausted { work: 0usize } } else {
-            let first = input_byte(pattern, offset);
-            if first == 63usize || first == 42usize || first == 43usize {
-                Quantifier::Bounds { minimum: if first == 43usize { 1usize } else { 0usize }, maximum: if first == 63usize { 1usize } else { 4294967295usize }, next: offset + 1usize, work: 1usize }
-            } else {
-                if first != 123usize { Quantifier::Bounds { minimum: 1usize, maximum: 1usize, next: offset, work: 1usize } } else {
-                    let mut cursor = offset + 1usize;
-                    let mut work = 1usize;
-                    let mut minimum = 0usize;
-                    let mut number = 0usize;
-                    let mut digits = 0usize;
-                    let mut second = false;
-                    let mut closed = false;
-                    let mut invalid = false;
-                    let mut exhausted = false;
-                    let mut detail = length;
-                    while !closed && !invalid && !exhausted {
-                        if cursor == length {
-                            if available - work < 1usize { exhausted = true; } else { work = work + 1usize; invalid = true; }
-                        } else {
-                            if 2usize > available - work { exhausted = true; } else {
-                                work = work + 2usize;
-                                let byte = input_byte(pattern, cursor);
-                                if byte >= 48usize && byte <= 57usize {
-                                    if digits > 0usize && number == 0usize { invalid = true; detail = cursor; } else {
-                                        number = number * 10usize + byte - 48usize;
-                                        if number > 255usize { invalid = true; detail = cursor; } else {
-                                            digits = digits + 1usize;
-                                            cursor = cursor + 1usize;
-                                        }
-                                    }
-                                } else {
-                                    if byte == 44usize && !second && digits > 0usize {
-                                        minimum = number;
-                                        number = 0usize;
-                                        digits = 0usize;
-                                        second = true;
-                                        cursor = cursor + 1usize;
-                                    } else {
-                                        if byte == 125usize && digits > 0usize && (!second || minimum <= number) {
-                                            if !second { minimum = number; }
-                                            cursor = cursor + 1usize;
-                                            closed = true;
-                                        } else { invalid = true; detail = cursor; }
-                                    }
-                                }
-                                0
-                            }
-                        }
-                        0
-                    }
-                    if exhausted { Quantifier::Exhausted { work: work } } else {
-                        if invalid { Quantifier::Invalid { offset: detail, work: work } } else {
-                            Quantifier::Bounds { minimum: minimum, maximum: number, next: cursor, work: work }
-                        }
-                    }
-                }
-            }
-        }
-    }
+    if offset == length { Quantifier::Bounds { minimum: 1usize, maximum: 1usize, next: offset, work: 0usize } } else { if available == 0usize { Quantifier::Exhausted { work: 0usize } } else { let first = input_byte(pattern, offset); if first == 63usize || first == 42usize || first == 43usize { Quantifier::Bounds { minimum: if first == 43usize { 1usize } else { 0usize }, maximum: if first == 63usize { 1usize } else { 4294967295usize }, next: offset + 1usize, work: 1usize } } else { if first != 123usize { Quantifier::Bounds { minimum: 1usize, maximum: 1usize, next: offset, work: 1usize } } else { let mut cursor = offset + 1usize; let mut work = 1usize; let mut minimum = 0usize; let mut number = 0usize; let mut digits = 0usize; let mut second = false; let mut closed = false; let mut invalid = false; let mut exhausted = false; let mut detail = length; while !closed && !invalid && !exhausted { if cursor == length { if available - work < 1usize { exhausted = true; } else { work = work + 1usize; invalid = true; } } else { if 2usize > available - work { exhausted = true; } else { work = work + 2usize; let byte = input_byte(pattern, cursor); if byte >= 48usize && byte <= 57usize { if digits > 0usize && number == 0usize { invalid = true; detail = cursor; } else { number = number * 10usize + byte - 48usize; if number > 255usize { invalid = true; detail = cursor; } else { digits = digits + 1usize; cursor = cursor + 1usize; } } } else { if byte == 44usize && !second && digits > 0usize { minimum = number; number = 0usize; digits = 0usize; second = true; cursor = cursor + 1usize; } else { if byte == 125usize && digits > 0usize && (!second || minimum <= number) { if !second { minimum = number; } cursor = cursor + 1usize; closed = true; } else { invalid = true; detail = cursor; } } } 0 } } 0 } if exhausted { Quantifier::Exhausted { work: work } } else { if invalid { Quantifier::Invalid { offset: detail, work: work } } else { Quantifier::Bounds { minimum: minimum, maximum: number, next: cursor, work: work } } } } } } }
 }
 
 @id("experiment.pattern.store-atom")
@@ -429,36 +278,14 @@ fn store_atom(state: own Matcher, atom: usize, kind: usize, value: usize, minimu
     requires minimum <= 255usize && (maximum == 4294967295usize || minimum <= maximum && maximum <= 255usize)
     requires carrier_valid(state)
 {
-    match own state {
-        Matcher { storage, position } => {
-            let mut next = storage;
-            next = bytes_set5(next, 64usize + atom * 8usize, u8_from_i64(i64_from_usize(kind)), u8_from_i64(i64_from_usize(value)), u8_from_i64(i64_from_usize(minimum % 256usize)), u8_from_i64(i64_from_usize(minimum / 256usize % 256usize)), u8_from_i64(i64_from_usize(maximum % 256usize)));
-            next = bytes_set(next, (64usize + atom * 8usize) + 5usize, u8_from_i64(i64_from_usize(maximum / 256usize % 256usize)));
-            next = bytes_set(next, (64usize + atom * 8usize) + 6usize, u8_from_i64(i64_from_usize(maximum / 65536usize % 256usize)));
-            next = bytes_set(next, (64usize + atom * 8usize) + 7usize, u8_from_i64(i64_from_usize(maximum / 16777216usize % 256usize)));
-            Matcher { storage: next, position: position }
-        },
-    }
+    match own state { Matcher { storage, position } => { let mut next = storage; next = bytes_set5(next, 64usize + atom * 8usize, u8_from_i64(i64_from_usize(kind)), u8_from_i64(i64_from_usize(value)), u8_from_i64(i64_from_usize(minimum % 256usize)), u8_from_i64(i64_from_usize(minimum / 256usize % 256usize)), u8_from_i64(i64_from_usize(maximum % 256usize))); next = bytes_set(next, 64usize + atom * 8usize + 5usize, u8_from_i64(i64_from_usize(maximum / 256usize % 256usize))); next = bytes_set(next, 64usize + atom * 8usize + 6usize, u8_from_i64(i64_from_usize(maximum / 65536usize % 256usize))); next = bytes_set(next, 64usize + atom * 8usize + 7usize, u8_from_i64(i64_from_usize(maximum / 16777216usize % 256usize))); Matcher { storage: next, position: position } }, }
 }
 
 @id("experiment.pattern.clear-candidate")
 fn clear_candidate(state: own Matcher) -> Matcher
     requires carrier_valid(state)
 {
-    match own state {
-        Matcher { storage, position } => {
-            let mut next = storage;
-            next = bytes_set5(next, 2984usize, 0u8, 0u8, 0u8, 0u8, 0u8);
-            next = bytes_set5(next, 2989usize, 0u8, 0u8, 0u8, 0u8, 0u8);
-            next = bytes_set5(next, 2994usize, 0u8, 0u8, 0u8, 0u8, 0u8);
-            next = bytes_set5(next, 2999usize, 0u8, 0u8, 0u8, 0u8, 0u8);
-            next = bytes_set5(next, 3004usize, 0u8, 0u8, 0u8, 0u8, 0u8);
-            next = bytes_set5(next, 3009usize, 0u8, 0u8, 0u8, 0u8, 0u8);
-            next = bytes_set(next, 3014usize, 0u8);
-            next = bytes_set(next, 3015usize, 0u8);
-            Matcher { storage: next, position: position }
-        },
-    }
+    match own state { Matcher { storage, position } => { let mut next = storage; next = bytes_set5(next, 2984usize, 0u8, 0u8, 0u8, 0u8, 0u8); next = bytes_set5(next, 2989usize, 0u8, 0u8, 0u8, 0u8, 0u8); next = bytes_set5(next, 2994usize, 0u8, 0u8, 0u8, 0u8, 0u8); next = bytes_set5(next, 2999usize, 0u8, 0u8, 0u8, 0u8, 0u8); next = bytes_set5(next, 3004usize, 0u8, 0u8, 0u8, 0u8, 0u8); next = bytes_set5(next, 3009usize, 0u8, 0u8, 0u8, 0u8, 0u8); next = bytes_set(next, 3014usize, 0u8); next = bytes_set(next, 3015usize, 0u8); Matcher { storage: next, position: position } }, }
 }
 
 @id("experiment.pattern.compiled-header")
@@ -466,28 +293,7 @@ fn compiled_header(state: own Matcher, atoms: usize, classes: usize, captures: u
     requires atoms <= 128usize && classes <= 16usize && captures <= 16usize
     requires carrier_valid(state)
 {
-    match own state {
-        Matcher { storage, position } => {
-            let mut next = storage;
-            next = bytes_set5(next, 0usize, 83u8, 80u8, 65u8, 67u8, 1u8);
-            next = bytes_set5(next, 5usize, 1u8, u8_from_i64(i64_from_usize(atoms)), u8_from_i64(i64_from_usize(classes)), u8_from_i64(i64_from_usize(captures)), 0u8);
-            next = bytes_set5(next, 10usize, 0u8, 0u8, 0u8, 0u8, 0u8);
-            next = bytes_set5(next, 15usize, 0u8, 0u8, 0u8, 0u8, 0u8);
-            next = bytes_set5(next, 20usize, 0u8, 0u8, 0u8, 0u8, 0u8);
-            next = bytes_set5(next, 25usize, 0u8, 0u8, 0u8, 0u8, 0u8);
-            next = bytes_set5(next, 30usize, 0u8, 0u8, 0u8, 0u8, 0u8);
-            next = bytes_set5(next, 35usize, 0u8, 0u8, 0u8, 0u8, 0u8);
-            next = bytes_set5(next, 40usize, 0u8, 0u8, 0u8, 0u8, 0u8);
-            next = bytes_set5(next, 45usize, 0u8, 0u8, 0u8, 0u8, 0u8);
-            next = bytes_set5(next, 50usize, 0u8, 0u8, 0u8, 0u8, 0u8);
-            next = bytes_set5(next, 55usize, 0u8, 0u8, 0u8, 0u8, 0u8);
-            next = bytes_set(next, 60usize, 0u8);
-            next = bytes_set(next, 61usize, 0u8);
-            next = bytes_set(next, 62usize, 0u8);
-            next = bytes_set(next, 63usize, 0u8);
-            Matcher { storage: next, position: position }
-        },
-    }
+    match own state { Matcher { storage, position } => { let mut next = storage; next = bytes_set5(next, 0usize, 83u8, 80u8, 65u8, 67u8, 1u8); next = bytes_set5(next, 5usize, 1u8, u8_from_i64(i64_from_usize(atoms)), u8_from_i64(i64_from_usize(classes)), u8_from_i64(i64_from_usize(captures)), 0u8); next = bytes_set5(next, 10usize, 0u8, 0u8, 0u8, 0u8, 0u8); next = bytes_set5(next, 15usize, 0u8, 0u8, 0u8, 0u8, 0u8); next = bytes_set5(next, 20usize, 0u8, 0u8, 0u8, 0u8, 0u8); next = bytes_set5(next, 25usize, 0u8, 0u8, 0u8, 0u8, 0u8); next = bytes_set5(next, 30usize, 0u8, 0u8, 0u8, 0u8, 0u8); next = bytes_set5(next, 35usize, 0u8, 0u8, 0u8, 0u8, 0u8); next = bytes_set5(next, 40usize, 0u8, 0u8, 0u8, 0u8, 0u8); next = bytes_set5(next, 45usize, 0u8, 0u8, 0u8, 0u8, 0u8); next = bytes_set5(next, 50usize, 0u8, 0u8, 0u8, 0u8, 0u8); next = bytes_set5(next, 55usize, 0u8, 0u8, 0u8, 0u8, 0u8); next = bytes_set(next, 60usize, 0u8); next = bytes_set(next, 61usize, 0u8); next = bytes_set(next, 62usize, 0u8); next = bytes_set(next, 63usize, 0u8); Matcher { storage: next, position: position } }, }
 }
 
 // Compile invalidates byte5 first, even on an extent or work refusal. Its
@@ -512,261 +318,12 @@ fn compile(state: own Matcher, pattern: borrow Slice<u8>, work_limit: usize) -> 
     let mut detail = 0usize;
     if length > 1024usize { exhausted = true; reason = 1usize; detail = length; }
     while cursor < length && !invalid && !exhausted {
-        if affords(work, 2usize, work_limit) {
-            work = work + 2usize;
-            let byte = input_byte(pattern, cursor);
-            if byte == 40usize || byte == 41usize {
-                if byte == 40usize {
-                    if open != 16usize { invalid = true; detail = cursor; } else {
-                        if captures == 16usize { exhausted = true; reason = 5usize; detail = cursor; } else {
-                            if affords(work, 2usize, work_limit) {
-                                work = work + 2usize;
-                                matcher = store2(matcher, 1600usize + captures * 4usize, atoms);
-                                open = captures;
-                                captures = captures + 1usize;
-                                cursor = cursor + 1usize;
-                                0
-                            } else { exhausted = true; reason = 7usize; 0 }
-                        }
-                    }
-                } else {
-                    if open == 16usize { invalid = true; detail = cursor; } else {
-                        if affords(work, 2usize, work_limit) {
-                            work = work + 2usize;
-                            matcher = store2(matcher, 1602usize + open * 4usize, atoms);
-                            open = 16usize;
-                            cursor = cursor + 1usize;
-                            0
-                        } else { exhausted = true; reason = 7usize; 0 }
-                    }
-                }
-            } else {
-                let atom_offset = cursor;
-                let mut kind = 0usize;
-                let mut value = 0usize;
-                if byte == 46usize { kind = 1usize; cursor = cursor + 1usize; } else {
-                    if byte == 91usize {
-                        kind = 2usize;
-                        cursor = cursor + 1usize;
-                        if affords(work, 32usize, work_limit) {
-                            work = work + 32usize;
-                            matcher = clear_candidate(matcher);
-                            0
-                        } else { exhausted = true; reason = 7usize; 0 }
-                        let mut complement = false;
-                        if cursor < length && !exhausted {
-                            if affords(work, 1usize, work_limit) {
-                                work = work + 1usize;
-                                if input_byte(pattern, cursor) == 94usize { complement = true; cursor = cursor + 1usize; }
-                                0
-                            } else { exhausted = true; reason = 7usize; 0 }
-                        }
-                        let mut closed = false;
-                        let mut items = 0usize;
-                        while !closed && !invalid && !exhausted {
-                            if cursor == length {
-                                if affords(work, 1usize, work_limit) { work = work + 1usize; invalid = true; detail = length; 0 } else { exhausted = true; reason = 7usize; 0 }
-                            } else {
-                                if affords(work, 2usize, work_limit) {
-                                    work = work + 2usize;
-                                    let first_byte = input_byte(pattern, cursor);
-                                    if first_byte == 93usize {
-                                        if items == 0usize { invalid = true; detail = cursor; } else { closed = true; cursor = cursor + 1usize; }
-                                    } else {
-                                        if first_byte == 45usize {
-                                            if cursor + 1usize == length { invalid = true; detail = length; } else {
-                                                if affords(work, 1usize, work_limit) {
-                                                    work = work + 1usize;
-                                                    if input_byte(pattern, cursor + 1usize) != 93usize { invalid = true; detail = cursor; }
-                                                    0
-                                                } else { exhausted = true; reason = 7usize; 0 }
-                                            }
-                                        }
-                                        let mut low = 0usize;
-                                        let mut high = 0usize;
-                                        if !invalid && !exhausted {
-                                            let parsed = match read_token(pattern, cursor, true, work_limit - 32usize - work) {
-                                            Token::Byte { value: token_value, next, work: token_work } => {
-                                                work = work + token_work; low = token_value; high = token_value; cursor = next; 0
-                                            },
-                                            Token::Invalid { offset, work: token_work } => {
-                                                work = work + token_work; invalid = true; detail = offset; 0
-                                            },
-                                            Token::Exhausted { work: token_work } => {
-                                                work = work + token_work; exhausted = true; reason = 7usize; 0
-                                            },
-                                        };
-                                        }
-                                        let mut range = false;
-                                        if cursor < length && !invalid && !exhausted {
-                                            if affords(work, 1usize, work_limit) {
-                                                work = work + 1usize;
-                                                if input_byte(pattern, cursor) == 45usize {
-                                                    if cursor + 1usize == length { invalid = true; detail = length; } else {
-                                                        if affords(work, 1usize, work_limit) {
-                                                            work = work + 1usize;
-                                                            let following = input_byte(pattern, cursor + 1usize);
-                                                            if following == 45usize { invalid = true; detail = cursor + 1usize; } else { range = following != 93usize; }
-                                                            0
-                                                        } else { exhausted = true; reason = 7usize; 0 }
-                                                    }
-                                                }
-                                                0
-                                            } else { exhausted = true; reason = 7usize; 0 }
-                                        }
-                                        if range && !invalid && !exhausted {
-                                            cursor = cursor + 1usize;
-                                            let endpoint_offset = cursor;
-                                            let parsed_end = match read_token(pattern, cursor, true, work_limit - 32usize - work) {
-                                                Token::Byte { value: token_value, next, work: token_work } => {
-                                                    work = work + token_work; high = token_value; cursor = next;
-                                                    if high < low { invalid = true; detail = endpoint_offset; }
-                                                    0
-                                                },
-                                                Token::Invalid { offset, work: token_work } => {
-                                                    work = work + token_work; invalid = true; detail = offset; 0
-                                                },
-                                                Token::Exhausted { work: token_work } => {
-                                                    work = work + token_work; exhausted = true; reason = 7usize; 0
-                                                },
-                                            };
-                                        }
-                                        let mut member = low;
-                                        while member <= high && !invalid && !exhausted {
-                                            if affords(work, 3usize, work_limit) {
-                                                work = work + 3usize;
-                                                let slot = 2984usize + member / 8usize;
-                                                let old = read(matcher, slot);
-                                                let mask = bit(member % 8usize);
-                                                let updated = if old / mask % 2usize == 0usize { old + mask } else { old };
-                                                matcher = store1(matcher, slot, updated);
-                                                member = member + 1usize;
-                                                0
-                                            } else { exhausted = true; reason = 7usize; 0 }
-                                            0
-                                        }
-                                        items = items + 1usize;
-                                        0
-                                    }
-                                    0
-                                } else { exhausted = true; reason = 7usize; 0 }
-                            }
-                            0
-                        }
-                        let mut bitmap_byte = 0usize;
-                        while complement && bitmap_byte < 32usize && !invalid && !exhausted {
-                            if affords(work, 3usize, work_limit) {
-                                work = work + 3usize;
-                                let old = read(matcher, 2984usize + bitmap_byte);
-                                matcher = store1(matcher, 2984usize + bitmap_byte, 255usize - old);
-                                bitmap_byte = bitmap_byte + 1usize;
-                                0
-                            } else { exhausted = true; reason = 7usize; 0 }
-                            0
-                        }
-                        let mut candidate = 0usize;
-                        let mut found = false;
-                        while candidate < classes && !found && !invalid && !exhausted {
-                            if affords(work, 1usize, work_limit) {
-                                work = work + 1usize;
-                                let mut same = true;
-                                let mut compared = 0usize;
-                                while compared < 32usize && same && !exhausted {
-                                    if affords(work, 3usize, work_limit) {
-                                        work = work + 3usize;
-                                        same = read(matcher, 2984usize + compared) == read(matcher, 1088usize + candidate * 32usize + compared);
-                                        compared = compared + 1usize;
-                                        0
-                                    } else { exhausted = true; reason = 7usize; 0 }
-                                    0
-                                }
-                                if same && !exhausted { found = true; value = candidate; } else { candidate = candidate + 1usize; }
-                                0
-                            } else { exhausted = true; reason = 7usize; 0 }
-                            0
-                        }
-                        if !found && !invalid && !exhausted {
-                            if classes == 16usize { exhausted = true; reason = 4usize; detail = atom_offset; } else {
-                                value = classes;
-                                let mut copied = 0usize;
-                                while copied < 32usize && !exhausted {
-                                    if affords(work, 3usize, work_limit) {
-                                        work = work + 3usize;
-                                        let source = read(matcher, 2984usize + copied);
-                                        matcher = store1(matcher, 1088usize + classes * 32usize + copied, source);
-                                        copied = copied + 1usize;
-                                        0
-                                    } else { exhausted = true; reason = 7usize; 0 }
-                                    0
-                                }
-                                if !exhausted { classes = classes + 1usize; }
-                            }
-                        }
-                    } else {
-                        let parsed = match read_token(pattern, cursor, false, work_limit - 32usize - work) {
-                            Token::Byte { value: token_value, next, work: token_work } => {
-                                work = work + token_work; value = token_value; cursor = next; 0
-                            },
-                            Token::Invalid { offset, work: token_work } => {
-                                work = work + token_work; invalid = true; detail = offset; 0
-                            },
-                            Token::Exhausted { work: token_work } => {
-                                work = work + token_work; exhausted = true; reason = 7usize; 0
-                            },
-                        };
-                    }
-                }
-                let mut minimum = 1usize;
-                let mut maximum = 1usize;
-                if !invalid && !exhausted {
-                    let parsed_bounds = match read_quantifier(pattern, cursor, work_limit - 32usize - work) {
-                        Quantifier::Bounds { minimum: low, maximum: high, next, work: token_work } => {
-                            work = work + token_work; minimum = low; maximum = high; cursor = next; 0
-                        },
-                        Quantifier::Invalid { offset, work: token_work } => {
-                            work = work + token_work; invalid = true; detail = offset; 0
-                        },
-                        Quantifier::Exhausted { work: token_work } => {
-                            work = work + token_work; exhausted = true; reason = 7usize; 0
-                        },
-                    };
-                }
-                if !invalid && !exhausted {
-                    if atoms == 128usize { exhausted = true; reason = 3usize; detail = atom_offset; } else {
-                        if affords(work, 8usize, work_limit) {
-                            work = work + 8usize;
-                            matcher = store_atom(matcher, atoms, kind, value, minimum, maximum);
-                            atoms = atoms + 1usize;
-                            0
-                        } else { exhausted = true; reason = 7usize; 0 }
-                    }
-                }
-            }
-            0
-        } else { exhausted = true; reason = 7usize; 0 }
+        if affords(work, 2usize, work_limit) { work = work + 2usize; let byte = input_byte(pattern, cursor); if byte == 40usize || byte == 41usize { if byte == 40usize { if open != 16usize { invalid = true; detail = cursor; } else { if captures == 16usize { exhausted = true; reason = 5usize; detail = cursor; } else { if affords(work, 2usize, work_limit) { work = work + 2usize; matcher = store2(matcher, 1600usize + captures * 4usize, atoms); open = captures; captures = captures + 1usize; cursor = cursor + 1usize; 0 } else { exhausted = true; reason = 7usize; 0 } } } } else { if open == 16usize { invalid = true; detail = cursor; } else { if affords(work, 2usize, work_limit) { work = work + 2usize; matcher = store2(matcher, 1602usize + open * 4usize, atoms); open = 16usize; cursor = cursor + 1usize; 0 } else { exhausted = true; reason = 7usize; 0 } } } } else { let atom_offset = cursor; let mut kind = 0usize; let mut value = 0usize; if byte == 46usize { kind = 1usize; cursor = cursor + 1usize; } else { if byte == 91usize { kind = 2usize; cursor = cursor + 1usize; if affords(work, 32usize, work_limit) { work = work + 32usize; matcher = clear_candidate(matcher); 0 } else { exhausted = true; reason = 7usize; 0 } let mut complement = false; if cursor < length && !exhausted { if affords(work, 1usize, work_limit) { work = work + 1usize; if input_byte(pattern, cursor) == 94usize { complement = true; cursor = cursor + 1usize; } 0 } else { exhausted = true; reason = 7usize; 0 } } let mut closed = false; let mut items = 0usize; while !closed && !invalid && !exhausted { if cursor == length { if affords(work, 1usize, work_limit) { work = work + 1usize; invalid = true; detail = length; 0 } else { exhausted = true; reason = 7usize; 0 } } else { if affords(work, 2usize, work_limit) { work = work + 2usize; let first_byte = input_byte(pattern, cursor); if first_byte == 93usize { if items == 0usize { invalid = true; detail = cursor; } else { closed = true; cursor = cursor + 1usize; } } else { if first_byte == 45usize { if cursor + 1usize == length { invalid = true; detail = length; } else { if affords(work, 1usize, work_limit) { work = work + 1usize; if input_byte(pattern, cursor + 1usize) != 93usize { invalid = true; detail = cursor; } 0 } else { exhausted = true; reason = 7usize; 0 } } } let mut low = 0usize; let mut high = 0usize; if !invalid && !exhausted { let parsed = match read_token(pattern, cursor, true, work_limit - 32usize - work) { Token::Byte { value: token_value, next, work: token_work } => { work = work + token_work; low = token_value; high = token_value; cursor = next; 0 }, Token::Invalid { offset, work: token_work } => { work = work + token_work; invalid = true; detail = offset; 0 }, Token::Exhausted { work: token_work } => { work = work + token_work; exhausted = true; reason = 7usize; 0 }, }; } let mut range = false; if cursor < length && !invalid && !exhausted { if affords(work, 1usize, work_limit) { work = work + 1usize; if input_byte(pattern, cursor) == 45usize { if cursor + 1usize == length { invalid = true; detail = length; } else { if affords(work, 1usize, work_limit) { work = work + 1usize; let following = input_byte(pattern, cursor + 1usize); if following == 45usize { invalid = true; detail = cursor + 1usize; } else { range = following != 93usize; } 0 } else { exhausted = true; reason = 7usize; 0 } } } 0 } else { exhausted = true; reason = 7usize; 0 } } if range && !invalid && !exhausted { cursor = cursor + 1usize; let endpoint_offset = cursor; let parsed_end = match read_token(pattern, cursor, true, work_limit - 32usize - work) { Token::Byte { value: token_value, next, work: token_work } => { work = work + token_work; high = token_value; cursor = next; if high < low { invalid = true; detail = endpoint_offset; } 0 }, Token::Invalid { offset, work: token_work } => { work = work + token_work; invalid = true; detail = offset; 0 }, Token::Exhausted { work: token_work } => { work = work + token_work; exhausted = true; reason = 7usize; 0 }, }; } let mut member = low; while member <= high && !invalid && !exhausted { if affords(work, 3usize, work_limit) { work = work + 3usize; let slot = 2984usize + member / 8usize; let old = read(matcher, slot); let mask = bit(member % 8usize); let updated = if old / mask % 2usize == 0usize { old + mask } else { old }; matcher = store1(matcher, slot, updated); member = member + 1usize; 0 } else { exhausted = true; reason = 7usize; 0 } 0 } items = items + 1usize; 0 } 0 } else { exhausted = true; reason = 7usize; 0 } } 0 } let mut bitmap_byte = 0usize; while complement && bitmap_byte < 32usize && !invalid && !exhausted { if affords(work, 3usize, work_limit) { work = work + 3usize; let old = read(matcher, 2984usize + bitmap_byte); matcher = store1(matcher, 2984usize + bitmap_byte, 255usize - old); bitmap_byte = bitmap_byte + 1usize; 0 } else { exhausted = true; reason = 7usize; 0 } 0 } let mut candidate = 0usize; let mut found = false; while candidate < classes && !found && !invalid && !exhausted { if affords(work, 1usize, work_limit) { work = work + 1usize; let mut same = true; let mut compared = 0usize; while compared < 32usize && same && !exhausted { if affords(work, 3usize, work_limit) { work = work + 3usize; same = read(matcher, 2984usize + compared) == read(matcher, 1088usize + candidate * 32usize + compared); compared = compared + 1usize; 0 } else { exhausted = true; reason = 7usize; 0 } 0 } if same && !exhausted { found = true; value = candidate; } else { candidate = candidate + 1usize; } 0 } else { exhausted = true; reason = 7usize; 0 } 0 } if !found && !invalid && !exhausted { if classes == 16usize { exhausted = true; reason = 4usize; detail = atom_offset; } else { value = classes; let mut copied = 0usize; while copied < 32usize && !exhausted { if affords(work, 3usize, work_limit) { work = work + 3usize; let source = read(matcher, 2984usize + copied); matcher = store1(matcher, 1088usize + classes * 32usize + copied, source); copied = copied + 1usize; 0 } else { exhausted = true; reason = 7usize; 0 } 0 } if !exhausted { classes = classes + 1usize; } } } } else { let parsed = match read_token(pattern, cursor, false, work_limit - 32usize - work) { Token::Byte { value: token_value, next, work: token_work } => { work = work + token_work; value = token_value; cursor = next; 0 }, Token::Invalid { offset, work: token_work } => { work = work + token_work; invalid = true; detail = offset; 0 }, Token::Exhausted { work: token_work } => { work = work + token_work; exhausted = true; reason = 7usize; 0 }, }; } } let mut minimum = 1usize; let mut maximum = 1usize; if !invalid && !exhausted { let parsed_bounds = match read_quantifier(pattern, cursor, work_limit - 32usize - work) { Quantifier::Bounds { minimum: low, maximum: high, next, work: token_work } => { work = work + token_work; minimum = low; maximum = high; cursor = next; 0 }, Quantifier::Invalid { offset, work: token_work } => { work = work + token_work; invalid = true; detail = offset; 0 }, Quantifier::Exhausted { work: token_work } => { work = work + token_work; exhausted = true; reason = 7usize; 0 }, }; } if !invalid && !exhausted { if atoms == 128usize { exhausted = true; reason = 3usize; detail = atom_offset; } else { if affords(work, 8usize, work_limit) { work = work + 8usize; matcher = store_atom(matcher, atoms, kind, value, minimum, maximum); atoms = atoms + 1usize; 0 } else { exhausted = true; reason = 7usize; 0 } } } } 0 } else { exhausted = true; reason = 7usize; 0 }
         0
     }
     if !invalid && !exhausted && open != 16usize { invalid = true; detail = length; }
     if !invalid && !exhausted && 96usize > work_limit - work { exhausted = true; reason = 7usize; }
-    if !invalid && !exhausted {
-        let ready = compiled_header(matcher, atoms, classes, captures);
-        packet(ready, 0usize, 0usize, 0usize, 0usize, work + 96usize, 0usize)
-    } else {
-        packet(matcher, if invalid { 3usize } else { 4usize }, 0usize, if invalid { 1usize } else { reason }, 0usize, work + 32usize, detail)
-    }
-}
-
-// Long-run scans retain no loan and return only direct Copy scalar payloads.
-// Work is actual input reads plus entered scan-loop iterations. The caller
-// passes its remaining work after reserving the refusal packet.
-@id("experiment.pattern.scan")
-variant Scan {
-    @id("experiment.pattern.scan.done")
-    Done {
-        @id("experiment.pattern.scan.done.count") count: usize,
-        @id("experiment.pattern.scan.done.work") work: usize,
-        @id("experiment.pattern.scan.done.exhausted") exhausted: usize,
-    },
+    if !invalid && !exhausted { let ready = compiled_header(matcher, atoms, classes, captures); packet(ready, 0usize, 0usize, 0usize, 0usize, work + 96usize, 0usize) } else { packet(matcher, if invalid { 3usize } else { 4usize }, 0usize, if invalid { 1usize } else { reason }, 0usize, work + 32usize, detail) }
 }
 
 // Fixed scalar work; no byte event or loop. Return 64 unless the word is
@@ -777,36 +334,12 @@ fn single_bit_index(word: usize) -> usize
     let mut candidate = word;
     let mut index = 0usize;
     let mut valid = true;
-    if candidate >= 4294967296usize {
-        valid = valid && candidate % 4294967296usize == 0usize;
-        candidate = candidate / 4294967296usize;
-        index = index + 32usize;
-    }
-    if candidate >= 65536usize {
-        valid = valid && candidate % 65536usize == 0usize;
-        candidate = candidate / 65536usize;
-        index = index + 16usize;
-    }
-    if candidate >= 256usize {
-        valid = valid && candidate % 256usize == 0usize;
-        candidate = candidate / 256usize;
-        index = index + 8usize;
-    }
-    if candidate >= 16usize {
-        valid = valid && candidate % 16usize == 0usize;
-        candidate = candidate / 16usize;
-        index = index + 4usize;
-    }
-    if candidate >= 4usize {
-        valid = valid && candidate % 4usize == 0usize;
-        candidate = candidate / 4usize;
-        index = index + 2usize;
-    }
-    if candidate >= 2usize {
-        valid = valid && candidate % 2usize == 0usize;
-        candidate = candidate / 2usize;
-        index = index + 1usize;
-    }
+    if candidate >= 4294967296usize { valid = valid && candidate % 4294967296usize == 0usize; candidate = candidate / 4294967296usize; index = index + 32usize; }
+    if candidate >= 65536usize { valid = valid && candidate % 65536usize == 0usize; candidate = candidate / 65536usize; index = index + 16usize; }
+    if candidate >= 256usize { valid = valid && candidate % 256usize == 0usize; candidate = candidate / 256usize; index = index + 8usize; }
+    if candidate >= 16usize { valid = valid && candidate % 16usize == 0usize; candidate = candidate / 16usize; index = index + 4usize; }
+    if candidate >= 4usize { valid = valid && candidate % 4usize == 0usize; candidate = candidate / 4usize; index = index + 2usize; }
+    if candidate >= 2usize { valid = valid && candidate % 2usize == 0usize; candidate = candidate / 2usize; index = index + 1usize; }
     if valid && candidate == 1usize { index } else { 64usize }
 }
 
@@ -826,44 +359,9 @@ fn class_scan_mode(state: borrow Matcher, value: usize) -> usize
     let fourth = load8(state, offset + 24usize);
     let full = 18446744073709551615usize;
     let mut mode = 0usize;
-    if second == full && third == full && fourth == full {
-        if first == 18446744073709542399usize { mode = 1usize; } else {
-            if first == 18446744073709550590usize { mode = 2usize; } else {
-                if first == full { mode = 3usize; }
-            }
-        }
-    }
-    if mode == 0usize && third == full && fourth == full {
-        if first == 18446744065119617024usize && second == 9223372036854775807usize { mode = 4usize; } else {
-            if first == 18446744047939747840usize && second == 9223372036586340351usize { mode = 5usize; }
-        }
-    }
-    if mode == 0usize {
-        let mut block = 4usize;
-        let mut singleton = 0usize;
-        let mut excluded = false;
-        if second == 0usize && third == 0usize && fourth == 0usize { block = 0usize; singleton = first; } else {
-            if first == 0usize && third == 0usize && fourth == 0usize { block = 1usize; singleton = second; } else {
-                if first == 0usize && second == 0usize && fourth == 0usize { block = 2usize; singleton = third; } else {
-                    if first == 0usize && second == 0usize && third == 0usize { block = 3usize; singleton = fourth; }
-                }
-            }
-        }
-        if block == 4usize {
-            excluded = true;
-            if second == full && third == full && fourth == full { block = 0usize; singleton = full - first; } else {
-                if first == full && third == full && fourth == full { block = 1usize; singleton = full - second; } else {
-                    if first == full && second == full && fourth == full { block = 2usize; singleton = full - third; } else {
-                        if first == full && second == full && third == full { block = 3usize; singleton = full - fourth; }
-                    }
-                }
-            }
-        }
-        if block < 4usize {
-            let index = single_bit_index(singleton);
-            if index < 64usize { mode = (if excluded { 256usize } else { 512usize }) + block * 64usize + index; }
-        }
-    }
+    if second == full && third == full && fourth == full { if first == 18446744073709542399usize { mode = 1usize; } else { if first == 18446744073709550590usize { mode = 2usize; } else { if first == full { mode = 3usize; } } } }
+    if mode == 0usize && third == full && fourth == full { if first == 18446744065119617024usize && second == 9223372036854775807usize { mode = 4usize; } else { if first == 18446744047939747840usize && second == 9223372036586340351usize { mode = 5usize; } } }
+    if mode == 0usize { let mut block = 4usize; let mut singleton = 0usize; let mut excluded = false; if second == 0usize && third == 0usize && fourth == 0usize { block = 0usize; singleton = first; } else { if first == 0usize && third == 0usize && fourth == 0usize { block = 1usize; singleton = second; } else { if first == 0usize && second == 0usize && fourth == 0usize { block = 2usize; singleton = third; } else { if first == 0usize && second == 0usize && third == 0usize { block = 3usize; singleton = fourth; } } } } if block == 4usize { excluded = true; if second == full && third == full && fourth == full { block = 0usize; singleton = full - first; } else { if first == full && third == full && fourth == full { block = 1usize; singleton = full - second; } else { if first == full && second == full && fourth == full { block = 2usize; singleton = full - third; } else { if first == full && second == full && third == full { block = 3usize; singleton = full - fourth; } } } } } if block < 4usize { let index = single_bit_index(singleton); if index < 64usize { mode = if excluded { 256usize } else { 512usize } + block * 64usize + index; } } }
     mode
 }
 
@@ -883,19 +381,7 @@ fn span48_cr_lf(input: borrow Slice<u8>, start: usize) -> usize
     requires start <= byte_len(input) && 48usize <= byte_len(input) - start
 {
     let first = span8_cr_lf(input, start);
-    if first < 8usize { first } else {
-        let second = span8_cr_lf(input, start + 8usize);
-        if second < 8usize { 8usize + second } else {
-            let third = span8_cr_lf(input, start + 16usize);
-            if third < 8usize { 16usize + third } else {
-                let fourth = span8_cr_lf(input, start + 24usize);
-                if fourth < 8usize { 24usize + fourth } else {
-                    let fifth = span8_cr_lf(input, start + 32usize);
-                    if fifth < 8usize { 32usize + fifth } else { 40usize + span8_cr_lf(input, start + 40usize) }
-                }
-            }
-        }
-    }
+    if first < 8usize { first } else { let second = span8_cr_lf(input, start + 8usize); if second < 8usize { 8usize + second } else { let third = span8_cr_lf(input, start + 16usize); if third < 8usize { 16usize + third } else { let fourth = span8_cr_lf(input, start + 24usize); if fourth < 8usize { 24usize + fourth } else { let fifth = span8_cr_lf(input, start + 32usize); if fifth < 8usize { 32usize + fifth } else { 40usize + span8_cr_lf(input, start + 40usize) } } } } }
 }
 
 @id("experiment.pattern.scan-cr-lf")
@@ -908,20 +394,7 @@ fn scan_cr_lf(input: borrow Slice<u8>, start: usize, bound: usize, available: us
     let mut scanning = true;
     let mut exhausted = false;
     while count < bound && scanning && !exhausted {
-        if 48usize <= bound - count {
-            if 49usize <= available - work {
-                let width = span48_cr_lf(input, start + count);
-                work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize };
-                count = count + width;
-                scanning = width == 48usize;
-            } else { exhausted = true; }
-        } else {
-            if 2usize <= available - work {
-                let matched = match byte_get(input, start + count) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, };
-                work = work + 2usize;
-                if matched { count = count + 1usize; } else { scanning = false; }
-            } else { exhausted = true; }
-        }
+        if 48usize <= bound - count { if 49usize <= available - work { let width = span48_cr_lf(input, start + count); work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize }; count = count + width; scanning = width == 48usize; } else { exhausted = true; } } else { if 2usize <= available - work { let matched = match byte_get(input, start + count) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, }; work = work + 2usize; if matched { count = count + 1usize; } else { scanning = false; } } else { exhausted = true; } }
         0
     }
     Scan::Done { count: count, work: work, exhausted: if exhausted { 1usize } else { 0usize } }
@@ -943,19 +416,7 @@ fn span48_nul_lf(input: borrow Slice<u8>, start: usize) -> usize
     requires start <= byte_len(input) && 48usize <= byte_len(input) - start
 {
     let first = span8_nul_lf(input, start);
-    if first < 8usize { first } else {
-        let second = span8_nul_lf(input, start + 8usize);
-        if second < 8usize { 8usize + second } else {
-            let third = span8_nul_lf(input, start + 16usize);
-            if third < 8usize { 16usize + third } else {
-                let fourth = span8_nul_lf(input, start + 24usize);
-                if fourth < 8usize { 24usize + fourth } else {
-                    let fifth = span8_nul_lf(input, start + 32usize);
-                    if fifth < 8usize { 32usize + fifth } else { 40usize + span8_nul_lf(input, start + 40usize) }
-                }
-            }
-        }
-    }
+    if first < 8usize { first } else { let second = span8_nul_lf(input, start + 8usize); if second < 8usize { 8usize + second } else { let third = span8_nul_lf(input, start + 16usize); if third < 8usize { 16usize + third } else { let fourth = span8_nul_lf(input, start + 24usize); if fourth < 8usize { 24usize + fourth } else { let fifth = span8_nul_lf(input, start + 32usize); if fifth < 8usize { 32usize + fifth } else { 40usize + span8_nul_lf(input, start + 40usize) } } } } }
 }
 
 @id("experiment.pattern.scan-nul-lf")
@@ -968,20 +429,7 @@ fn scan_nul_lf(input: borrow Slice<u8>, start: usize, bound: usize, available: u
     let mut scanning = true;
     let mut exhausted = false;
     while count < bound && scanning && !exhausted {
-        if 48usize <= bound - count {
-            if 49usize <= available - work {
-                let width = span48_nul_lf(input, start + count);
-                work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize };
-                count = count + width;
-                scanning = width == 48usize;
-            } else { exhausted = true; }
-        } else {
-            if 2usize <= available - work {
-                let matched = match byte_get(input, start + count) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, };
-                work = work + 2usize;
-                if matched { count = count + 1usize; } else { scanning = false; }
-            } else { exhausted = true; }
-        }
+        if 48usize <= bound - count { if 49usize <= available - work { let width = span48_nul_lf(input, start + count); work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize }; count = count + width; scanning = width == 48usize; } else { exhausted = true; } } else { if 2usize <= available - work { let matched = match byte_get(input, start + count) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, }; work = work + 2usize; if matched { count = count + 1usize; } else { scanning = false; } } else { exhausted = true; } }
         0
     }
     Scan::Done { count: count, work: work, exhausted: if exhausted { 1usize } else { 0usize } }
@@ -1003,19 +451,7 @@ fn span48_literal(input: borrow Slice<u8>, start: usize, expected: u8) -> usize
     requires start <= byte_len(input) && 48usize <= byte_len(input) - start
 {
     let first = span8_literal(input, start, expected);
-    if first < 8usize { first } else {
-        let second = span8_literal(input, start + 8usize, expected);
-        if second < 8usize { 8usize + second } else {
-            let third = span8_literal(input, start + 16usize, expected);
-            if third < 8usize { 16usize + third } else {
-                let fourth = span8_literal(input, start + 24usize, expected);
-                if fourth < 8usize { 24usize + fourth } else {
-                    let fifth = span8_literal(input, start + 32usize, expected);
-                    if fifth < 8usize { 32usize + fifth } else { 40usize + span8_literal(input, start + 40usize, expected) }
-                }
-            }
-        }
-    }
+    if first < 8usize { first } else { let second = span8_literal(input, start + 8usize, expected); if second < 8usize { 8usize + second } else { let third = span8_literal(input, start + 16usize, expected); if third < 8usize { 16usize + third } else { let fourth = span8_literal(input, start + 24usize, expected); if fourth < 8usize { 24usize + fourth } else { let fifth = span8_literal(input, start + 32usize, expected); if fifth < 8usize { 32usize + fifth } else { 40usize + span8_literal(input, start + 40usize, expected) } } } } }
 }
 
 @id("experiment.pattern.scan-literal")
@@ -1028,20 +464,7 @@ fn scan_literal(input: borrow Slice<u8>, start: usize, bound: usize, available: 
     let mut scanning = true;
     let mut exhausted = false;
     while count < bound && scanning && !exhausted {
-        if 48usize <= bound - count {
-            if 49usize <= available - work {
-                let width = span48_literal(input, start + count, expected);
-                work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize };
-                count = count + width;
-                scanning = width == 48usize;
-            } else { exhausted = true; }
-        } else {
-            if 2usize <= available - work {
-                let matched = match byte_get(input, start + count) { Option::Some { value } => value == expected, Option::None {} => false, };
-                work = work + 2usize;
-                if matched { count = count + 1usize; } else { scanning = false; }
-            } else { exhausted = true; }
-        }
+        if 48usize <= bound - count { if 49usize <= available - work { let width = span48_literal(input, start + count, expected); work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize }; count = count + width; scanning = width == 48usize; } else { exhausted = true; } } else { if 2usize <= available - work { let matched = match byte_get(input, start + count) { Option::Some { value } => value == expected, Option::None {} => false, }; work = work + 2usize; if matched { count = count + 1usize; } else { scanning = false; } } else { exhausted = true; } }
         0
     }
     Scan::Done { count: count, work: work, exhausted: if exhausted { 1usize } else { 0usize } }
@@ -1063,19 +486,7 @@ fn span48_excluding(input: borrow Slice<u8>, start: usize, expected: u8) -> usiz
     requires start <= byte_len(input) && 48usize <= byte_len(input) - start
 {
     let first = span8_excluding(input, start, expected);
-    if first < 8usize { first } else {
-        let second = span8_excluding(input, start + 8usize, expected);
-        if second < 8usize { 8usize + second } else {
-            let third = span8_excluding(input, start + 16usize, expected);
-            if third < 8usize { 16usize + third } else {
-                let fourth = span8_excluding(input, start + 24usize, expected);
-                if fourth < 8usize { 24usize + fourth } else {
-                    let fifth = span8_excluding(input, start + 32usize, expected);
-                    if fifth < 8usize { 32usize + fifth } else { 40usize + span8_excluding(input, start + 40usize, expected) }
-                }
-            }
-        }
-    }
+    if first < 8usize { first } else { let second = span8_excluding(input, start + 8usize, expected); if second < 8usize { 8usize + second } else { let third = span8_excluding(input, start + 16usize, expected); if third < 8usize { 16usize + third } else { let fourth = span8_excluding(input, start + 24usize, expected); if fourth < 8usize { 24usize + fourth } else { let fifth = span8_excluding(input, start + 32usize, expected); if fifth < 8usize { 32usize + fifth } else { 40usize + span8_excluding(input, start + 40usize, expected) } } } } }
 }
 
 @id("experiment.pattern.scan-excluding")
@@ -1088,20 +499,7 @@ fn scan_excluding(input: borrow Slice<u8>, start: usize, bound: usize, available
     let mut scanning = true;
     let mut exhausted = false;
     while count < bound && scanning && !exhausted {
-        if 48usize <= bound - count {
-            if 49usize <= available - work {
-                let width = span48_excluding(input, start + count, expected);
-                work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize };
-                count = count + width;
-                scanning = width == 48usize;
-            } else { exhausted = true; }
-        } else {
-            if 2usize <= available - work {
-                let matched = match byte_get(input, start + count) { Option::Some { value } => value != expected, Option::None {} => false, };
-                work = work + 2usize;
-                if matched { count = count + 1usize; } else { scanning = false; }
-            } else { exhausted = true; }
-        }
+        if 48usize <= bound - count { if 49usize <= available - work { let width = span48_excluding(input, start + count, expected); work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize }; count = count + width; scanning = width == 48usize; } else { exhausted = true; } } else { if 2usize <= available - work { let matched = match byte_get(input, start + count) { Option::Some { value } => value != expected, Option::None {} => false, }; work = work + 2usize; if matched { count = count + 1usize; } else { scanning = false; } } else { exhausted = true; } }
         0
     }
     Scan::Done { count: count, work: work, exhausted: if exhausted { 1usize } else { 0usize } }
@@ -1123,19 +521,7 @@ fn span48_token(input: borrow Slice<u8>, start: usize) -> usize
     requires start <= byte_len(input) && 48usize <= byte_len(input) - start
 {
     let first = span8_token(input, start);
-    if first < 8usize { first } else {
-        let second = span8_token(input, start + 8usize);
-        if second < 8usize { 8usize + second } else {
-            let third = span8_token(input, start + 16usize);
-            if third < 8usize { 16usize + third } else {
-                let fourth = span8_token(input, start + 24usize);
-                if fourth < 8usize { 24usize + fourth } else {
-                    let fifth = span8_token(input, start + 32usize);
-                    if fifth < 8usize { 32usize + fifth } else { 40usize + span8_token(input, start + 40usize) }
-                }
-            }
-        }
-    }
+    if first < 8usize { first } else { let second = span8_token(input, start + 8usize); if second < 8usize { 8usize + second } else { let third = span8_token(input, start + 16usize); if third < 8usize { 16usize + third } else { let fourth = span8_token(input, start + 24usize); if fourth < 8usize { 24usize + fourth } else { let fifth = span8_token(input, start + 32usize); if fifth < 8usize { 32usize + fifth } else { 40usize + span8_token(input, start + 40usize) } } } } }
 }
 
 @id("experiment.pattern.scan-token")
@@ -1148,20 +534,7 @@ fn scan_token(input: borrow Slice<u8>, start: usize, bound: usize, available: us
     let mut scanning = true;
     let mut exhausted = false;
     while count < bound && scanning && !exhausted {
-        if 48usize <= bound - count {
-            if 49usize <= available - work {
-                let width = span48_token(input, start + count);
-                work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize };
-                count = count + width;
-                scanning = width == 48usize;
-            } else { exhausted = true; }
-        } else {
-            if 2usize <= available - work {
-                let matched = match byte_get(input, start + count) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, };
-                work = work + 2usize;
-                if matched { count = count + 1usize; } else { scanning = false; }
-            } else { exhausted = true; }
-        }
+        if 48usize <= bound - count { if 49usize <= available - work { let width = span48_token(input, start + count); work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize }; count = count + width; scanning = width == 48usize; } else { exhausted = true; } } else { if 2usize <= available - work { let matched = match byte_get(input, start + count) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, }; work = work + 2usize; if matched { count = count + 1usize; } else { scanning = false; } } else { exhausted = true; } }
         0
     }
     Scan::Done { count: count, work: work, exhausted: if exhausted { 1usize } else { 0usize } }
@@ -1183,19 +556,7 @@ fn span48_path(input: borrow Slice<u8>, start: usize) -> usize
     requires start <= byte_len(input) && 48usize <= byte_len(input) - start
 {
     let first = span8_path(input, start);
-    if first < 8usize { first } else {
-        let second = span8_path(input, start + 8usize);
-        if second < 8usize { 8usize + second } else {
-            let third = span8_path(input, start + 16usize);
-            if third < 8usize { 16usize + third } else {
-                let fourth = span8_path(input, start + 24usize);
-                if fourth < 8usize { 24usize + fourth } else {
-                    let fifth = span8_path(input, start + 32usize);
-                    if fifth < 8usize { 32usize + fifth } else { 40usize + span8_path(input, start + 40usize) }
-                }
-            }
-        }
-    }
+    if first < 8usize { first } else { let second = span8_path(input, start + 8usize); if second < 8usize { 8usize + second } else { let third = span8_path(input, start + 16usize); if third < 8usize { 16usize + third } else { let fourth = span8_path(input, start + 24usize); if fourth < 8usize { 24usize + fourth } else { let fifth = span8_path(input, start + 32usize); if fifth < 8usize { 32usize + fifth } else { 40usize + span8_path(input, start + 40usize) } } } } }
 }
 
 @id("experiment.pattern.scan-path")
@@ -1208,35 +569,10 @@ fn scan_path(input: borrow Slice<u8>, start: usize, bound: usize, available: usi
     let mut scanning = true;
     let mut exhausted = false;
     while count < bound && scanning && !exhausted {
-        if 48usize <= bound - count {
-            if 49usize <= available - work {
-                let width = span48_path(input, start + count);
-                work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize };
-                count = count + width;
-                scanning = width == 48usize;
-            } else { exhausted = true; }
-        } else {
-            if 2usize <= available - work {
-                let matched = match byte_get(input, start + count) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, };
-                work = work + 2usize;
-                if matched { count = count + 1usize; } else { scanning = false; }
-            } else { exhausted = true; }
-        }
+        if 48usize <= bound - count { if 49usize <= available - work { let width = span48_path(input, start + count); work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize }; count = count + width; scanning = width == 48usize; } else { exhausted = true; } } else { if 2usize <= available - work { let matched = match byte_get(input, start + count) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, }; work = work + 2usize; if matched { count = count + 1usize; } else { scanning = false; } } else { exhausted = true; } }
         0
     }
     Scan::Done { count: count, work: work, exhausted: if exhausted { 1usize } else { 0usize } }
-}
-
-// A required disjoint follower cannot consume a byte removed from this run.
-// This proof reads six metadata bytes and at most one bitmap byte. No input
-// byte is inspected and no accept-capable count vector is skipped.
-@id("experiment.pattern.disjoint")
-variant Disjoint {
-    @id("experiment.pattern.disjoint.checked")
-    Checked {
-        @id("experiment.pattern.disjoint.checked.value") value: usize,
-        @id("experiment.pattern.disjoint.checked.work") work: usize,
-    },
 }
 
 @id("experiment.pattern.disjoint-follower")
@@ -1250,21 +586,7 @@ fn disjoint_follower(state: borrow Matcher, atom: usize) -> Disjoint
     let next_minimum = load2(state, 74usize + atom * 8usize);
     let mut work = 6usize;
     let mut separated = false;
-    if next_minimum != 0usize {
-        if current_kind == 0usize && next_kind == 0usize { separated = current_value != next_value; } else {
-            if current_kind == 2usize && next_kind == 0usize {
-                let bitmap = read(state, 1088usize + current_value * 32usize + next_value / 8usize);
-                work = 7usize;
-                separated = bitmap / bit(next_value % 8usize) % 2usize == 0usize;
-            } else {
-                if current_kind == 0usize && next_kind == 2usize {
-                    let bitmap = read(state, 1088usize + next_value * 32usize + current_value / 8usize);
-                    work = 7usize;
-                    separated = bitmap / bit(current_value % 8usize) % 2usize == 0usize;
-                }
-            }
-        }
-    }
+    if next_minimum != 0usize { if current_kind == 0usize && next_kind == 0usize { separated = current_value != next_value; } else { if current_kind == 2usize && next_kind == 0usize { let bitmap = read(state, 1088usize + current_value * 32usize + next_value / 8usize); work = 7usize; separated = bitmap / bit(next_value % 8usize) % 2usize == 0usize; } else { if current_kind == 0usize && next_kind == 2usize { let bitmap = read(state, 1088usize + next_value * 32usize + current_value / 8usize); work = 7usize; separated = bitmap / bit(current_value % 8usize) % 2usize == 0usize; } } } }
     Disjoint::Checked { value: if separated { 1usize } else { 0usize }, work: work }
 }
 
@@ -1288,103 +610,20 @@ fn full_match(state: own Matcher, input: borrow Slice<u8>, work_limit: usize) ->
     let mut classes = 0usize;
     let mut captures = 0usize;
     let mut header = 0usize;
-    if length > 65536usize {
-        exhausted = true;
-        reason = 2usize;
-        detail = length;
-    }
+    if length > 65536usize { exhausted = true; reason = 2usize; detail = length; }
     while header < 64usize && !exhausted && !invalid {
-        if affords(work, 2usize, work_limit) {
-            work = work + 2usize;
-            let value = read(matcher, header);
-            let expected = if header == 0usize { 83usize } else {
-                if header == 1usize { 80usize } else {
-                    if header == 2usize { 65usize } else {
-                        if header == 3usize { 67usize } else {
-                            if header == 4usize || header == 5usize { 1usize } else { 0usize }
-                        }
-                    }
-                }
-            };
-            if header == 6usize {
-                atoms = value;
-                invalid = atoms > 128usize;
-            } else {
-                if header == 7usize {
-                    classes = value;
-                    invalid = classes > 16usize;
-                } else {
-                    if header == 8usize {
-                        captures = value;
-                        invalid = captures > 16usize;
-                    } else { invalid = value != expected; }
-                }
-            }
-            if invalid { detail = header; }
-            header = header + 1usize;
-            0
-        } else {
-            exhausted = true;
-            reason = 7usize;
-            0
-        }
+        if affords(work, 2usize, work_limit) { work = work + 2usize; let value = read(matcher, header); let expected = if header == 0usize { 83usize } else { if header == 1usize { 80usize } else { if header == 2usize { 65usize } else { if header == 3usize { 67usize } else { if header == 4usize || header == 5usize { 1usize } else { 0usize } } } } }; if header == 6usize { atoms = value; invalid = atoms > 128usize; } else { if header == 7usize { classes = value; invalid = classes > 16usize; } else { if header == 8usize { captures = value; invalid = captures > 16usize; } else { invalid = value != expected; } } } if invalid { detail = header; } header = header + 1usize; 0 } else { exhausted = true; reason = 7usize; 0 }
         0
     }
     let mut checked_atom = 0usize;
     while checked_atom < atoms && !exhausted && !invalid {
-        if affords(work, 9usize, work_limit) {
-            work = work + 9usize;
-            let offset = 64usize + checked_atom * 8usize;
-            let kind = read(matcher, offset);
-            let value = read(matcher, offset + 1usize);
-            let minimum = load2(matcher, offset + 2usize);
-            let maximum = load4(matcher, offset + 4usize);
-            if kind > 2usize {
-                invalid = true;
-                detail = offset;
-            } else {
-                if kind == 1usize && value != 0usize || kind == 2usize && value >= classes {
-                    invalid = true;
-                    detail = offset + 1usize;
-                } else {
-                    if minimum > 255usize {
-                        invalid = true;
-                        detail = offset + 2usize;
-                    } else {
-                        if maximum != 4294967295usize && (maximum < minimum || maximum > 255usize) {
-                            invalid = true;
-                            detail = offset + 4usize;
-                        } else { 0usize }
-                    }
-                }
-            }
-            checked_atom = checked_atom + 1usize;
-            0
-        } else {
-            exhausted = true;
-            reason = 7usize;
-            0
-        }
+        if affords(work, 9usize, work_limit) { work = work + 9usize; let offset = 64usize + checked_atom * 8usize; let kind = read(matcher, offset); let value = read(matcher, offset + 1usize); let minimum = load2(matcher, offset + 2usize); let maximum = load4(matcher, offset + 4usize); if kind > 2usize { invalid = true; detail = offset; } else { if kind == 1usize && value != 0usize || kind == 2usize && value >= classes { invalid = true; detail = offset + 1usize; } else { if minimum > 255usize { invalid = true; detail = offset + 2usize; } else { if maximum != 4294967295usize && (maximum < minimum || maximum > 255usize) { invalid = true; detail = offset + 4usize; } else { 0usize } } } } checked_atom = checked_atom + 1usize; 0 } else { exhausted = true; reason = 7usize; 0 }
         0
     }
     let mut checked_capture = 0usize;
     let mut previous_end = 0usize;
     while checked_capture < captures && !exhausted && !invalid {
-        if affords(work, 5usize, work_limit) {
-            work = work + 5usize;
-            let offset = 1600usize + checked_capture * 4usize;
-            let start = load2(matcher, offset);
-            let end = load2(matcher, offset + 2usize);
-            invalid = start < previous_end || start > end || end > atoms;
-            if invalid { detail = offset; }
-            previous_end = end;
-            checked_capture = checked_capture + 1usize;
-            0
-        } else {
-            exhausted = true;
-            reason = 7usize;
-            0
-        }
+        if affords(work, 5usize, work_limit) { work = work + 5usize; let offset = 1600usize + checked_capture * 4usize; let start = load2(matcher, offset); let end = load2(matcher, offset + 2usize); invalid = start < previous_end || start > end || end > atoms; if invalid { detail = offset; } previous_end = end; checked_capture = checked_capture + 1usize; 0 } else { exhausted = true; reason = 7usize; 0 }
         0
     }
     let mut atom = 0usize;
@@ -1397,205 +636,19 @@ fn full_match(state: own Matcher, input: borrow Slice<u8>, work_limit: usize) ->
     // table above before using this bounded necessary-condition rejection.
     // Also check many-atom records spanning at least two eight-byte windows;
     // smaller records retain the exact short-input work path.
-    if (length >= 64usize || (length >= 16usize && atoms >= 6usize)) && atoms != 0usize && !exhausted && !invalid {
-        if affords(work, 2usize, work_limit) {
-            work = work + 2usize;
-            let final_atom = atoms - 1usize;
-            let minimum = load2(matcher, 66usize + final_atom * 8usize);
-            if minimum != 0usize {
-                if affords(work, 3usize, work_limit) {
-                    work = work + 3usize;
-                    let kind = read(matcher, 64usize + final_atom * 8usize);
-                    let value = read(matcher, 65usize + final_atom * 8usize);
-                    let byte = input_byte(input, length - 1usize);
-                    if kind == 2usize {
-                        if affords(work, 1usize, work_limit) {
-                            work = work + 1usize;
-                            let bitmap = read(matcher, 1088usize + value * 32usize + byte / 8usize);
-                            finished = bitmap / bit(byte % 8usize) % 2usize == 0usize;
-                        } else { exhausted = true; reason = 7usize; }
-                    } else { finished = kind == 0usize && byte != value; }
-                } else { exhausted = true; reason = 7usize; }
-            }
-        } else { exhausted = true; reason = 7usize; }
-    }
+    if (length >= 64usize || length >= 16usize && atoms >= 6usize) && atoms != 0usize && !exhausted && !invalid { if affords(work, 2usize, work_limit) { work = work + 2usize; let final_atom = atoms - 1usize; let minimum = load2(matcher, 66usize + final_atom * 8usize); if minimum != 0usize { if affords(work, 3usize, work_limit) { work = work + 3usize; let kind = read(matcher, 64usize + final_atom * 8usize); let value = read(matcher, 65usize + final_atom * 8usize); let byte = input_byte(input, length - 1usize); if kind == 2usize { if affords(work, 1usize, work_limit) { work = work + 1usize; let bitmap = read(matcher, 1088usize + value * 32usize + byte / 8usize); finished = bitmap / bit(byte % 8usize) % 2usize == 0usize; } else { exhausted = true; reason = 7usize; } } else { finished = kind == 0usize && byte != value; } } else { exhausted = true; reason = 7usize; } } } else { exhausted = true; reason = 7usize; } }
     while !finished && !exhausted && !invalid {
-        if rewinding {
-            if atom == 0usize {
-                if affords(work, 1usize, work_limit) {
-                    work = work + 1usize;
-                    finished = true;
-                    0
-                } else {
-                    exhausted = true;
-                    reason = 7usize;
-                    0
-                }
-                0
-            } else {
-                if affords(work, 11usize, work_limit) {
-                    work = work + 11usize;
-                    atom = atom - 1usize;
-                    let minimum = load2(matcher, 66usize + atom * 8usize);
-                    let start = load4(matcher, 1664usize + atom * 8usize);
-                    let count = load4(matcher, 1668usize + atom * 8usize);
-                    if count > minimum {
-                        let mut separated = false;
-                        if length >= 64usize && atom + 1usize < atoms && affords(work, 7usize, work_limit) {
-                            let checked = match disjoint_follower(matcher, atom) { Disjoint::Checked { value: proof, work: used } => { separated = proof != 0usize; work = work + used; 0 }, };
-                        }
-                        if !separated {
-                            if affords(work, 4usize, work_limit) {
-                                work = work + 4usize;
-                                matcher = store4(matcher, 1668usize + atom * 8usize, count - 1usize);
-                                position = start + count - 1usize;
-                                atom = atom + 1usize;
-                                rewinding = false;
-                                0
-                            } else {
-                                exhausted = true;
-                                reason = 7usize;
-                                0
-                            }
-                            0
-                        } else { 0 }
-                        0
-                    } else { 0 }
-                    0
-                } else {
-                    exhausted = true;
-                    reason = 7usize;
-                    0
-                }
-                0
-            }
-            0
-        } else {
-            if atom == atoms {
-                if affords(work, 9usize, work_limit) {
-                    work = work + 9usize;
-                    matcher = frame(matcher, atom, position, 0usize);
-                    accepted = position == length;
-                    finished = accepted;
-                    rewinding = !accepted;
-                    0
-                } else {
-                    exhausted = true;
-                    reason = 7usize;
-                    0
-                }
-                0
-            } else {
-                if affords(work, 9usize, work_limit) {
-                    work = work + 9usize;
-                    let kind = read(matcher, 64usize + atom * 8usize);
-                    let value = read(matcher, 65usize + atom * 8usize);
-                    let minimum = load2(matcher, 66usize + atom * 8usize);
-                    let maximum = load4(matcher, 68usize + atom * 8usize);
-                    let remaining = length - position;
-                    let bound = if maximum < remaining { maximum } else { remaining };
-                    let mut count = 0usize;
-                    let mut scanning = true;
-                    if bound >= 64usize {
-                        if kind == 1usize {
-                            // Any-byte membership follows from the checked input
-                            // extent. There are no input reads or scan iterations.
-                            count = bound;
-                            scanning = false;
-                        } else {
-                            let mut mode = 0usize;
-                            if kind == 2usize && affords(work, 32usize, work_limit) {
-                                work = work + 32usize;
-                                mode = class_scan_mode(matcher, value);
-                            }
-                            if mode == 3usize {
-                                count = bound;
-                                scanning = false;
-                            } else {
-                                if kind == 0usize || mode != 0usize {
-                                    let scanned = if kind == 0usize || mode >= 512usize { scan_literal(input, position, bound, work_limit - 32usize - work, u8_from_i64(i64_from_usize(if kind == 0usize { value } else { mode - 512usize }))) } else { if mode >= 256usize { scan_excluding(input, position, bound, work_limit - 32usize - work, u8_from_i64(i64_from_usize(mode - 256usize))) } else { if mode == 4usize { scan_token(input, position, bound, work_limit - 32usize - work) } else { if mode == 5usize { scan_path(input, position, bound, work_limit - 32usize - work) } else { if mode == 1usize { scan_cr_lf(input, position, bound, work_limit - 32usize - work) } else { scan_nul_lf(input, position, bound, work_limit - 32usize - work) } } } } };
-                                    let consumed = match scanned { Scan::Done { count: found, work: used, exhausted: stopped } => { count = found; work = work + used; exhausted = stopped != 0usize; if exhausted { reason = 7usize; } 0 }, };
-                                    scanning = false;
-                                }
-                            }
-                        }
-                    }
-                    while count < bound && scanning && !exhausted {
-                        let cost = if kind == 2usize { 3usize } else { 2usize };
-                        if affords(work, cost, work_limit) {
-                            work = work + cost;
-                            let byte = input_byte(input, position + count);
-                            let matched = if kind == 0usize { byte == value } else {
-                                if kind == 1usize { true } else {
-                                    let bitmap = read(matcher, 1088usize + value * 32usize + byte / 8usize);
-                                    bitmap / bit(byte % 8usize) % 2usize == 1usize
-                                }
-                            };
-                            if matched { count = count + 1usize; } else { scanning = false; }
-                            0
-                        } else {
-                            exhausted = true;
-                            reason = 7usize;
-                            0
-                        }
-                        0
-                    }
-                    if !exhausted {
-                        if affords(work, 8usize, work_limit) {
-                            work = work + 8usize;
-                            matcher = frame(matcher, atom, position, count);
-                            if count < minimum { rewinding = true; } else {
-                                // With a fixed prefix, reducing the terminal
-                                // atom can never cover an already uncovered
-                                // input suffix. Skip only those dead alternatives.
-                                if length >= 64usize && atom + 1usize == atoms && count < remaining { rewinding = true; } else {
-                                    position = position + count;
-                                    atom = atom + 1usize;
-                                }
-                            }
-                            0
-                        } else {
-                            exhausted = true;
-                            reason = 7usize;
-                            0
-                        }
-                        0
-                    } else { 0 }
-                    0
-                } else {
-                    exhausted = true;
-                    reason = 7usize;
-                    0
-                }
-                0
-            }
-            0
-        }
+        // Any-byte membership follows from the checked input
+        // extent. There are no input reads or scan iterations.
+        // With a fixed prefix, reducing the terminal
+        // atom can never cover an already uncovered
+        // input suffix. Skip only those dead alternatives.
+        if rewinding { if atom == 0usize { if affords(work, 1usize, work_limit) { work = work + 1usize; finished = true; 0 } else { exhausted = true; reason = 7usize; 0 } 0 } else { if affords(work, 11usize, work_limit) { work = work + 11usize; atom = atom - 1usize; let minimum = load2(matcher, 66usize + atom * 8usize); let start = load4(matcher, 1664usize + atom * 8usize); let count = load4(matcher, 1668usize + atom * 8usize); if count > minimum { let mut separated = false; if length >= 64usize && atom + 1usize < atoms && affords(work, 7usize, work_limit) { let checked = match disjoint_follower(matcher, atom) { Disjoint::Checked { value: proof, work: used } => { separated = proof != 0usize; work = work + used; 0 }, }; } if !separated { if affords(work, 4usize, work_limit) { work = work + 4usize; matcher = store4(matcher, 1668usize + atom * 8usize, count - 1usize); position = start + count - 1usize; atom = atom + 1usize; rewinding = false; 0 } else { exhausted = true; reason = 7usize; 0 } 0 } else { 0 } 0 } else { 0 } 0 } else { exhausted = true; reason = 7usize; 0 } 0 } 0 } else { if atom == atoms { if affords(work, 9usize, work_limit) { work = work + 9usize; matcher = frame(matcher, atom, position, 0usize); accepted = position == length; finished = accepted; rewinding = !accepted; 0 } else { exhausted = true; reason = 7usize; 0 } 0 } else { if affords(work, 9usize, work_limit) { work = work + 9usize; let kind = read(matcher, 64usize + atom * 8usize); let value = read(matcher, 65usize + atom * 8usize); let minimum = load2(matcher, 66usize + atom * 8usize); let maximum = load4(matcher, 68usize + atom * 8usize); let remaining = length - position; let bound = if maximum < remaining { maximum } else { remaining }; let mut count = 0usize; let mut scanning = true; if bound >= 64usize { if kind == 1usize { count = bound; scanning = false; } else { let mut mode = 0usize; if kind == 2usize && affords(work, 32usize, work_limit) { work = work + 32usize; mode = class_scan_mode(matcher, value); } if mode == 3usize { count = bound; scanning = false; } else { if kind == 0usize || mode != 0usize { let scanned = if kind == 0usize || mode >= 512usize { scan_literal(input, position, bound, work_limit - 32usize - work, u8_from_i64(i64_from_usize(if kind == 0usize { value } else { mode - 512usize }))) } else { if mode >= 256usize { scan_excluding(input, position, bound, work_limit - 32usize - work, u8_from_i64(i64_from_usize(mode - 256usize))) } else { if mode == 4usize { scan_token(input, position, bound, work_limit - 32usize - work) } else { if mode == 5usize { scan_path(input, position, bound, work_limit - 32usize - work) } else { if mode == 1usize { scan_cr_lf(input, position, bound, work_limit - 32usize - work) } else { scan_nul_lf(input, position, bound, work_limit - 32usize - work) } } } } }; let consumed = match scanned { Scan::Done { count: found, work: used, exhausted: stopped } => { count = found; work = work + used; exhausted = stopped != 0usize; if exhausted { reason = 7usize; } 0 }, }; scanning = false; } } } } while count < bound && scanning && !exhausted { let cost = if kind == 2usize { 3usize } else { 2usize }; if affords(work, cost, work_limit) { work = work + cost; let byte = input_byte(input, position + count); let matched = if kind == 0usize { byte == value } else { if kind == 1usize { true } else { let bitmap = read(matcher, 1088usize + value * 32usize + byte / 8usize); bitmap / bit(byte % 8usize) % 2usize == 1usize } }; if matched { count = count + 1usize; } else { scanning = false; } 0 } else { exhausted = true; reason = 7usize; 0 } 0 } if !exhausted { if affords(work, 8usize, work_limit) { work = work + 8usize; matcher = frame(matcher, atom, position, count); if count < minimum { rewinding = true; } else { if length >= 64usize && atom + 1usize == atoms && count < remaining { rewinding = true; } else { position = position + count; atom = atom + 1usize; } } 0 } else { exhausted = true; reason = 7usize; 0 } 0 } else { 0 } 0 } else { exhausted = true; reason = 7usize; 0 } 0 } 0 }
         0
     }
     let final_cost = 32usize + captures * 29usize;
-    if accepted && !exhausted && final_cost > work_limit - work {
-        exhausted = true;
-        reason = 7usize;
-    }
-    if accepted && !exhausted {
-        let mut capture = 0usize;
-        while capture < captures {
-            work = work + 29usize;
-            let begin_atom = load2(matcher, 1600usize + capture * 4usize);
-            let end_atom = load2(matcher, 1602usize + capture * 4usize);
-            let start = load4(matcher, 1664usize + begin_atom * 8usize);
-            let end = load4(matcher, 1664usize + end_atom * 8usize);
-            matcher = capture_result(matcher, capture, start, end);
-            capture = capture + 1usize;
-            0
-        }
-        packet(matcher, 1usize, captures, 0usize, length, work + 32usize, 0usize)
-    } else {
-        let code = if exhausted { 4usize } else { if invalid { 3usize } else { 2usize } };
-        let why = if invalid { 2usize } else { reason };
-        packet(matcher, code, 0usize, why, length, work + 32usize, detail)
-    }
+    if accepted && !exhausted && final_cost > work_limit - work { exhausted = true; reason = 7usize; }
+    if accepted && !exhausted { let mut capture = 0usize; while capture < captures { work = work + 29usize; let begin_atom = load2(matcher, 1600usize + capture * 4usize); let end_atom = load2(matcher, 1602usize + capture * 4usize); let start = load4(matcher, 1664usize + begin_atom * 8usize); let end = load4(matcher, 1664usize + end_atom * 8usize); matcher = capture_result(matcher, capture, start, end); capture = capture + 1usize; 0 } packet(matcher, 1usize, captures, 0usize, length, work + 32usize, 0usize) } else { let code = if exhausted { 4usize } else { if invalid { 3usize } else { 2usize } }; let why = if invalid { 2usize } else { reason }; packet(matcher, code, 0usize, why, length, work + 32usize, detail) }
 }
 
 // Result observers inspect only the logical packet, never program or scratch
@@ -1604,42 +657,7 @@ fn full_match(state: own Matcher, input: borrow Slice<u8>, work_limit: usize) ->
 fn result_valid(state: borrow Matcher) -> bool
 {
     let mut valid = carrier_valid(state);
-    if valid {
-        valid = read(state, 2696usize) == 83usize && read(state, 2697usize) == 80usize
-            && read(state, 2698usize) == 65usize && read(state, 2699usize) == 84usize
-            && read(state, 2700usize) == 1usize;
-        if valid {
-            let code = read(state, 2701usize);
-            let count = read(state, 2702usize);
-            let reason = read(state, 2703usize);
-            let length = load8(state, 2704usize);
-            let work = load8(state, 2712usize);
-            let detail = load8(state, 2720usize);
-            valid = code <= 4usize && count <= 16usize && work >= 32usize && work <= 262144usize;
-            valid = valid && (code == 1usize || count == 0usize);
-            valid = valid && (code == 4usize && (reason >= 1usize && reason <= 5usize || reason == 7usize)
-                || code == 3usize && (reason == 1usize || reason == 2usize)
-                || code <= 2usize && reason == 0usize);
-            valid = valid && (code != 3usize || reason == 1usize && detail <= 1024usize || reason == 2usize && detail < 1664usize);
-            valid = valid && (length <= 65536usize || code == 4usize && reason == 2usize);
-            valid = valid && (code != 0usize || length == 0usize);
-            valid = valid && (code != 3usize || reason != 1usize || length == 0usize);
-            valid = valid && (code != 4usize || reason != 1usize || length == 0usize && detail > 1024usize);
-            valid = valid && (code != 4usize || reason != 2usize || length > 65536usize && detail == length);
-            valid = valid && (code != 4usize || reason < 3usize || reason > 5usize || length == 0usize && detail <= 1024usize);
-            valid = valid && (code != 4usize || reason != 7usize || detail == 0usize);
-            valid = valid && (code == 3usize || code == 4usize || detail == 0usize);
-            let mut capture = 0usize;
-            while valid && capture < count {
-                let start = load8(state, 2728usize + capture * 16usize);
-                let end = load8(state, 2736usize + capture * 16usize);
-                valid = start <= end && end <= length;
-                capture = capture + 1usize;
-                0
-            }
-            valid
-        } else { false }
-    } else { false }
+    if valid { valid = read(state, 2696usize) == 83usize && read(state, 2697usize) == 80usize && read(state, 2698usize) == 65usize && read(state, 2699usize) == 84usize && read(state, 2700usize) == 1usize; if valid { let code = read(state, 2701usize); let count = read(state, 2702usize); let reason = read(state, 2703usize); let length = load8(state, 2704usize); let work = load8(state, 2712usize); let detail = load8(state, 2720usize); valid = code <= 4usize && count <= 16usize && work >= 32usize && work <= 262144usize; valid = valid && (code == 1usize || count == 0usize); valid = valid && (code == 4usize && (reason >= 1usize && reason <= 5usize || reason == 7usize) || code == 3usize && (reason == 1usize || reason == 2usize) || code <= 2usize && reason == 0usize); valid = valid && (code != 3usize || reason == 1usize && detail <= 1024usize || reason == 2usize && detail < 1664usize); valid = valid && (length <= 65536usize || code == 4usize && reason == 2usize); valid = valid && (code != 0usize || length == 0usize); valid = valid && (code != 3usize || reason != 1usize || length == 0usize); valid = valid && (code != 4usize || reason != 1usize || length == 0usize && detail > 1024usize); valid = valid && (code != 4usize || reason != 2usize || length > 65536usize && detail == length); valid = valid && (code != 4usize || reason < 3usize || reason > 5usize || length == 0usize && detail <= 1024usize); valid = valid && (code != 4usize || reason != 7usize || detail == 0usize); valid = valid && (code == 3usize || code == 4usize || detail == 0usize); let mut capture = 0usize; while valid && capture < count { let start = load8(state, 2728usize + capture * 16usize); let end = load8(state, 2736usize + capture * 16usize); valid = start <= end && end <= length; capture = capture + 1usize; 0 } valid } else { false } } else { false }
 }
 
 @id("experiment.pattern.status")
@@ -1675,18 +693,6 @@ fn capture_end(state: borrow Matcher, capture: usize) -> usize
     requires result_valid(state) && read(state, 2701usize) == 1usize && capture < read(state, 2702usize)
 {
     load8(state, 2736usize + capture * 16usize)
-}
-
-
-// A pair observer validates the complete packet once and returns only Copy
-// offsets. Its result carries no authority or borrowed input lifetime.
-@id("experiment.pattern.capture")
-variant Capture {
-    @id("experiment.pattern.capture.span")
-    Span {
-        @id("experiment.pattern.capture.span.start") start: usize,
-        @id("experiment.pattern.capture.span.end") end: usize,
-    },
 }
 
 @id("experiment.pattern.capture-bounds")

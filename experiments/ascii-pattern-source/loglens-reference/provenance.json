@@ -16,17 +16,17 @@
   ],
   "matcher_adapted_files_sha256": {
     "README.md": "b5aba2bb5a173c4562945e7eff939a5543011855c64586a527fc4b9a6d184a20",
-    "ascii.spx": "811758cb937938ef39c00b5fbee4d6f3bfa843360ba65e5f65de3a0e99b94d79",
+    "ascii.spx": "c1e0924c27ec74e77849c800ec305c8443f94d9335cc1114bcc842794b8a49aa",
     "build.sh": "4472886bf4c8e098be277256c99028880df329e539a145b69183f7815ad94ffc",
-    "loglens.spx": "440736b14dfee07dc60e1d0b5b506bd372205804e877c558b2971c30ef780482",
+    "loglens.spx": "11cb4622b50497c149ac1cf4d0d8c07cbe23975626c601cef4e69e78e33a0a6c",
     "run.sh": "2225e59a4c08a79f56d08e905c6b0c949929a20e3fd1d7c6e532651dab565431",
     "semaprax.toml": "632cd50c9b6c33191d875dfc5053415fc1864baacde5034dfb83a934435dfa3e",
     "test.sh": "aa027be53ae6792f56cbabd126386269ce90fbc0f17ec8c75924e6fd25ed570f",
     "tests.mjs": "dfe55d51ff79cb39e8d392605bdc2f5e35c154037ae5729698d125a67d5bea53",
     "unit.spx": "02f0d43cfac00a54e85119a737f07dfeab03d361f435b16c9d7d7d5e000e4c82"
   },
-  "matcher_source_revision": "75d9df106",
-  "matcher_source_sha256": "811758cb937938ef39c00b5fbee4d6f3bfa843360ba65e5f65de3a0e99b94d79",
+  "matcher_source_revision": "49b66571d; compiler canonical formatting after source checks",
+  "matcher_source_sha256": "c1e0924c27ec74e77849c800ec305c8443f94d9335cc1114bcc842794b8a49aa",
   "qualified_source_files_sha256": {
     "README.md": "b5aba2bb5a173c4562945e7eff939a5543011855c64586a527fc4b9a6d184a20",
     "build.sh": "4472886bf4c8e098be277256c99028880df329e539a145b69183f7815ad94ffc",
@@ -58,5 +58,37 @@
     },
     "status": "accepted",
     "trial_row_sha256": "8ff5e9b0ed5a677333c93277f948af819d87627a8c9be88859e61d35b8a94bec"
+  },
+  "canonical_format_derivation": {
+    "command": [
+      "semaprax",
+      "fmt",
+      "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/source-batch-706-707-20261009/qualified-adapter-round6/semaprax.toml"
+    ],
+    "compiler_sha256": "0c9c3c98052da5cd74b26bb104c970daefc0e8abf506999cf77aedaddc04f8ba",
+    "input_files_sha256": {
+      "README.md": "b5aba2bb5a173c4562945e7eff939a5543011855c64586a527fc4b9a6d184a20",
+      "ascii.spx": "811758cb937938ef39c00b5fbee4d6f3bfa843360ba65e5f65de3a0e99b94d79",
+      "build.sh": "4472886bf4c8e098be277256c99028880df329e539a145b69183f7815ad94ffc",
+      "loglens.spx": "440736b14dfee07dc60e1d0b5b506bd372205804e877c558b2971c30ef780482",
+      "run.sh": "2225e59a4c08a79f56d08e905c6b0c949929a20e3fd1d7c6e532651dab565431",
+      "semaprax.toml": "632cd50c9b6c33191d875dfc5053415fc1864baacde5034dfb83a934435dfa3e",
+      "test.sh": "aa027be53ae6792f56cbabd126386269ce90fbc0f17ec8c75924e6fd25ed570f",
+      "tests.mjs": "dfe55d51ff79cb39e8d392605bdc2f5e35c154037ae5729698d125a67d5bea53",
+      "unit.spx": "02f0d43cfac00a54e85119a737f07dfeab03d361f435b16c9d7d7d5e000e4c82"
+    },
+    "output_files_sha256": {
+      "README.md": "b5aba2bb5a173c4562945e7eff939a5543011855c64586a527fc4b9a6d184a20",
+      "ascii.spx": "c1e0924c27ec74e77849c800ec305c8443f94d9335cc1114bcc842794b8a49aa",
+      "build.sh": "4472886bf4c8e098be277256c99028880df329e539a145b69183f7815ad94ffc",
+      "loglens.spx": "11cb4622b50497c149ac1cf4d0d8c07cbe23975626c601cef4e69e78e33a0a6c",
+      "run.sh": "2225e59a4c08a79f56d08e905c6b0c949929a20e3fd1d7c6e532651dab565431",
+      "semaprax.toml": "632cd50c9b6c33191d875dfc5053415fc1864baacde5034dfb83a934435dfa3e",
+      "test.sh": "aa027be53ae6792f56cbabd126386269ce90fbc0f17ec8c75924e6fd25ed570f",
+      "tests.mjs": "dfe55d51ff79cb39e8d392605bdc2f5e35c154037ae5729698d125a67d5bea53",
+      "unit.spx": "02f0d43cfac00a54e85119a737f07dfeab03d361f435b16c9d7d7d5e000e4c82"
+    },
+    "source_verification_prior_to_format": "49b66571d",
+    "semantics_changed": false
   }
 }

@@ -7049,11 +7049,11 @@ impl Emitter<'_> {
                 Value::Scalar { .. } | Value::ScalarMemory { .. },
             ) => {
                 let internal_string_toolkit = self.standalone_strings
-                    && self.function_indexes.contains_key(
-                        &FunctionExecutionId::Monomorphic(DeclarationId::new(
+                    && self
+                        .function_indexes
+                        .contains_key(&FunctionExecutionId::Monomorphic(DeclarationId::new(
                             crate::string_ops::COMPARE_ID,
-                        )),
-                    );
+                        )));
                 let source_type = value_type(&source);
                 if source_type == &ResolvedType::String {
                     if self.standalone_strings && !internal_string_toolkit {

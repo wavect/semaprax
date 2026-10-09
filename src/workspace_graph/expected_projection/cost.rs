@@ -2,7 +2,8 @@
 //!
 //! Fixed inline HIR/cleanup footprints retain their original structural proof.
 //! Shared ExpressionId heap carriers have a separate checked prebound: three
-//! per visited expression cover ordinary, native/host and intrinsic lowering;
+//! per visited expression cover ordinary, native/host and intrinsic lowering.
+//! `super` methods charge four, including the discarded transient receiver;
 //! sixteen per authored traversal statement cover `for` (16) and `for own`
 //! (15), independently of their source/body children. Cloned identities share
 //! backing. Defaults, imported wrappers and generic materializations propagate
@@ -611,4 +612,33 @@ fn identity_prebound_carriers_propagate_defaults_and_generic_materializations() 
         .unwrap();
         assert_eq!(default.identity_carriers, expected);
     }
+}
+
+#[cfg(test)]
+#[test]
+fn identity_prebound_carriers_include_transient_super_receivers_in_wide_calls() {
+    use crate::ast::{Expr, ExprKind, Span};
+    let expression = Expr {
+        kind: ExprKind::Call {
+            name: "wide".to_owned(),
+            type_arguments: Vec::new(),
+            args: (0..6)
+                .map(|_| Expr {
+                    kind: ExprKind::SuperMethod {
+                        method: "inherited".to_owned(),
+                        method_span: Span::default(),
+                        args: Vec::new(),
+                    },
+                    span: Span::default(),
+                })
+                .collect(),
+        },
+        span: Span::default(),
+    };
+    let mut cost = StructuralCost::new();
+    super::declaration_cost::ast_expr_cost(&expression, &mut cost).unwrap();
+    // Six independent four-constructor expansions defeat any apparent spare
+    // allowance supplied by the enclosing ordinary call's single constructor.
+    assert_eq!(cost.identity_carriers, 3 + 6 * 4);
+    assert!(cost.identity_carriers >= 1 + 6 * 4);
 }

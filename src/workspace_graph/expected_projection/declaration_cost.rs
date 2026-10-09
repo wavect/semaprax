@@ -111,7 +111,13 @@ pub(super) fn ast_expr_cost(
     cost: &mut StructuralCost,
 ) -> Result<(), Vec<Diagnostic>> {
     cost.value(expression)?;
-    cost.add_identity_carriers(3)?;
+    // `super` allocates the initial receiver before recreating its source,
+    // upcast wrapper and call root; the discarded receiver still costs bytes.
+    cost.add_identity_carriers(if matches!(expression.kind, ExprKind::SuperMethod { .. }) {
+        4
+    } else {
+        3
+    })?;
     cost.account_scalar_identity(&expression.kind)?;
     match &expression.kind {
         ExprKind::Closure {

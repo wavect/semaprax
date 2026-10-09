@@ -50,9 +50,10 @@ pub(super) fn program_uses_owned_leaf(program: &crate::hir::ResolvedProgram) -> 
                 element,
             )
     };
-    let new_vec = |ty: &ResolvedType| {
+    let new_carrier = |ty: &ResolvedType| {
         matches!(ty, ResolvedType::Nominal { declaration, arguments }
-        if declaration.as_str() == crate::prelude::VEC_ID
+        if matches!(declaration.as_str(), crate::prelude::VEC_ID
+            | crate::iterator_ops::ITER_ID | crate::iterator_ops::STEP_ID)
         && matches!(arguments.as_slice(), [element] if new_element(element)))
     };
     program
@@ -60,13 +61,23 @@ pub(super) fn program_uses_owned_leaf(program: &crate::hir::ResolvedProgram) -> 
         .iter()
         .chain(program.function_instances.iter().map(|i| &i.function))
         .any(|f| {
-            if new_vec(&f.return_type) || f.params.iter().any(|p| new_vec(&p.ty)) {
+            if new_carrier(&f.return_type) || f.params.iter().any(|p| new_carrier(&p.ty)) {
                 return true;
             }
             std::iter::once(&f.body)
                 .chain(f.requires.iter())
                 .chain(f.ensures.iter())
                 .any(|root| {
+                    let mut pending = vec![root];
+                    while let Some(expression) = pending.pop() {
+                        if new_carrier(&expression.ty) {
+                            return true;
+                        }
+                        crate::hir::push_resolved_expression_children_in_authored_order(
+                            expression,
+                            &mut pending,
+                        );
+                    }
                     let mut found = false;
                     crate::hir::visit_resolved_calls(root, &mut |callee, instance, arguments| {
                         if instance.is_none() {

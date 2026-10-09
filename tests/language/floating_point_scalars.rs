@@ -143,7 +143,8 @@ fn children(expression: &hir::ResolvedExpr) -> Vec<&hir::ResolvedExpr> {
         hir::ResolvedExprKind::Invoke { callable, args } => std::iter::once(callable.as_ref())
             .chain(args.iter())
             .collect(),
-        hir::ResolvedExprKind::Call { args, .. } => args.iter().collect(),
+        hir::ResolvedExprKind::Call { args, .. }
+        | hir::ResolvedExprKind::LiteralFormat { args, .. } => args.iter().collect(),
         hir::ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().collect(),
         hir::ResolvedExprKind::HostCommandCall(call) => call.args.iter().collect(),
         hir::ResolvedExprKind::Unary { value, .. }
@@ -498,7 +499,8 @@ fn replace_f64_in_expression(expression: &mut hir::ResolvedExpr, bits: u64) -> b
                 || replace_f64_in_expression(then_branch, bits)
                 || replace_f64_in_expression(else_branch, bits)
         }
-        hir::ResolvedExprKind::Call { args, .. } => args
+        hir::ResolvedExprKind::Call { args, .. }
+        | hir::ResolvedExprKind::LiteralFormat { args, .. } => args
             .iter_mut()
             .any(|argument| replace_f64_in_expression(argument, bits)),
         hir::ResolvedExprKind::ConstructRecord { fields, .. }
@@ -559,7 +561,8 @@ fn replace_f32_in_expression(expression: &mut hir::ResolvedExpr, bits: u32) -> b
                 || replace_f32_in_expression(then_branch, bits)
                 || replace_f32_in_expression(else_branch, bits)
         }
-        hir::ResolvedExprKind::Call { args, .. } => args
+        hir::ResolvedExprKind::Call { args, .. }
+        | hir::ResolvedExprKind::LiteralFormat { args, .. } => args
             .iter_mut()
             .any(|argument| replace_f32_in_expression(argument, bits)),
         hir::ResolvedExprKind::ConstructRecord { fields, .. }

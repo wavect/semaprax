@@ -162,7 +162,8 @@ fn children(expression: &hir::ResolvedExpr) -> Vec<&hir::ResolvedExpr> {
         hir::ResolvedExprKind::Invoke { callable, args } => std::iter::once(callable.as_ref())
             .chain(args.iter())
             .collect(),
-        hir::ResolvedExprKind::Call { args, .. } => args.iter().collect(),
+        hir::ResolvedExprKind::Call { args, .. }
+        | hir::ResolvedExprKind::LiteralFormat { args, .. } => args.iter().collect(),
         hir::ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().collect(),
         hir::ResolvedExprKind::HostCommandCall(call) => call.args.iter().collect(),
         hir::ResolvedExprKind::Unary { value, .. }

@@ -427,7 +427,7 @@ mod tests {
     fn literal_format_worker_cleanup_census_counts_all_failure_guards() {
         let ast = crate::check(
             r#"module format.cleanup_work;
-@id("render") fn render(a:own string,b:own string)->string {string_format("{}-{}",a,b)}
+@id("render") fn render(a:string,b:string)->string {string_format("{}-{}",a,b)}
 @id("main") fn main()->i64 {0}
 "#,
             "format-cleanup-work.spx",

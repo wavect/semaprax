@@ -3,7 +3,7 @@ use super::*;
 use crate::hir::{OwnershipMode, ResolvedExpr, ResolvedExprKind, ResolvedProgram};
 
 const SOURCE: &str = r#"module format.cache;
-@id("format.render") fn render(a:own string,b:own string)->string {string_format("{}:{}",a,b)}
+@id("format.render") fn render(a:string,b:string)->string {string_format("{}:{}",a,b)}
 @id("format.main") fn main()->i64 {string_len(render("left","right"))}
 "#;
 
@@ -123,14 +123,17 @@ fn literal_format_cache_shape_and_owned_group_commit_are_independently_replayed(
 fn snapshot() -> Vec<u8> {
     let manifest = ProjectManifest::parse(
         r#"schema = "semaprax.manifest.v1"
+
 [package]
 name = "format-cache"
 version = "0.1.0"
 profile = "owned-data-api.v1"
+
 [modules]
 entry = "format.cache"
 sources = ["src/app.spx", "src/provider.spx", "src/tests.spx"]
 tests = ["format.tests"]
+
 [exports]
 web = []
 "#,

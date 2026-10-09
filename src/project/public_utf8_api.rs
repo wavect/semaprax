@@ -75,7 +75,7 @@ mod tests {
     fn literal_format_does_not_widen_the_closed_v10_string_carrier() {
         let ast = crate::check(
             r#"module utf8.format;
-@id("take") fn take(text:own string)->string {text}
+@id("take") fn take(text:string)->string {text}
 @id("render") fn render()->string {take(string_format("{}",1))}
 @id("main") fn main()->i64 {0}
 "#,

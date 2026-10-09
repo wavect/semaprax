@@ -88,7 +88,7 @@ fn checked_literal_format_refuses_nonliteral_grammar_count_and_type() {
 #[test]
 fn checked_literal_format_interpreter_and_native_preserve_staged_scalar() {
     let program = parse(SOURCE, Path::new("literal-format-execution.spx")).unwrap();
-    let mut fixture = Fixture::new(SOURCE);
+    let fixture = Fixture::new(SOURCE);
     let interpreted = interpreter::interpret(
         &fixture.source,
         "format.success",
@@ -222,7 +222,7 @@ fn checked_literal_format_aggregate_wasm_host_failure_reenters() {
     string_len(rendered)
 }"#;
     let program = parse(source, Path::new("format-wasm-failure.spx")).unwrap();
-    let mut fixture = Fixture::new(source);
+    let fixture = Fixture::new(source);
     let web = fixture.root.join("web");
     wasm::build_web(&program, &web).unwrap();
     std::fs::write(web.join("probe.mjs"), r#"import {readFile} from 'node:fs/promises';

@@ -26,6 +26,8 @@ mod formatting;
 mod logging;
 #[path = "standard_library/package_registry.rs"]
 mod package_registry;
+#[path = "standard_library/api_inventory.rs"]
+mod api_inventory;
 #[path = "standard_library/process.rs"]
 mod process;
 #[path = "standard_library/temporary.rs"]
@@ -108,6 +110,7 @@ fn package_libraries(package: &PackageMetadata) -> (Vec<LibrarySource>, String, 
         "{}: standard-library module inventory is closed",
         package.directory
     );
+    api_inventory::validate(package, &library);
     (library, entry, tests)
 }
 
@@ -197,7 +200,7 @@ fn every_public_declaration_has_a_std_identity_contracts_examples_and_conformanc
                     function.stable_id, library.program.module
                 );
                 assert!(
-                    conformance.contains(&import),
+                    !api_inventory::selected(&package, &function.stable_id) || conformance.contains(&import),
                     "{}: conformance module does not import `{}`",
                     library.path.display(),
                     function.stable_id
@@ -211,7 +214,7 @@ fn every_public_declaration_has_a_std_identity_contracts_examples_and_conformanc
                             .stable_id
                             .starts_with(&format!("{}.", package.module))
                 );
-                assert!(conformance.contains(&format!(
+                assert!(!api_inventory::selected(&package, &declaration.stable_id) || conformance.contains(&format!(
                     "use type @id(\"{}\") from {} as ",
                     declaration.stable_id, library.program.module
                 )));

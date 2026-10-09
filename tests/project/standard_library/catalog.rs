@@ -36,11 +36,10 @@ pub(super) fn render_catalogs() -> (String, String) {
                 semaprax::parse_with_comments(&library.source, &library.path).unwrap();
             let document = semaprax::doc::document(&program, &comments);
             let mut declarations = Vec::new();
-            for entry in document
-                .entries
-                .iter()
-                .filter(|entry| matches!(entry.kind, "function" | "record" | "variant"))
-            {
+            for entry in document.entries.iter().filter(|entry| {
+                matches!(entry.kind, "function" | "record" | "variant")
+                    && api_inventory::selected(&package, &entry.id)
+            }) {
                 let head: Vec<String> = entry
                     .signature
                     .lines()

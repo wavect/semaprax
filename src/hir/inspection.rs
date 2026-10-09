@@ -1027,59 +1027,55 @@ pub(crate) fn workspace_expression_identity(owner: &DeclarationId, path: &str) -
         .to_owned()
 }
 
-#[allow(dead_code, reason = "private Workspace Semantic Graph Phase-A seam")]
-pub(crate) fn workspace_call_sites(
-    program: &ResolvedProgram,
-) -> Vec<(DeclarationId, String, DeclarationId)> {
-    fn walk(
+/// Visit every call site in authored order without copying retained identities.
+/// The owner may be a temporary closure identity; expression and target borrow HIR.
+pub(crate) fn visit_workspace_call_sites<'a, E>(
+    program: &'a ResolvedProgram,
+    visit: &mut impl FnMut(&DeclarationId, &'a str, &'a DeclarationId) -> Result<(), E>,
+) -> Result<(), E> {
+    fn walk<'a, E>(
         owner: &DeclarationId,
-        expression: &ResolvedExpr,
-        sites: &mut Vec<(DeclarationId, String, DeclarationId)>,
-    ) {
+        expression: &'a ResolvedExpr,
+        visit: &mut impl FnMut(&DeclarationId, &'a str, &'a DeclarationId) -> Result<(), E>,
+    ) -> Result<(), E> {
         match &expression.kind {
             ResolvedExprKind::Closure { body, captures, .. } => {
                 let closure_owner = super::closure::closure_id(&expression.id);
-                walk(&closure_owner, body, sites);
+                walk(&closure_owner, body, visit)?;
                 for capture in captures {
-                    walk(owner, &capture.value, sites);
+                    walk(owner, &capture.value, visit)?;
                 }
             }
-            ResolvedExprKind::FunctionReference { target } => sites.push((
-                owner.clone(),
-                expression.id.as_str().to_owned(),
-                target.clone(),
-            )),
+            ResolvedExprKind::FunctionReference { target } => {
+                visit(owner, expression.id.as_str(), target)?;
+            }
             ResolvedExprKind::Invoke { callable, args } => {
-                walk(owner, callable, sites);
+                walk(owner, callable, visit)?;
                 for arg in args {
-                    walk(owner, arg, sites);
+                    walk(owner, arg, visit)?;
                 }
             }
             ResolvedExprKind::ByteRange {
                 source, start, end, ..
             } => {
-                walk(owner, source, sites);
-                walk(owner, start, sites);
-                walk(owner, end, sites);
+                walk(owner, source, visit)?;
+                walk(owner, start, visit)?;
+                walk(owner, end, visit)?;
             }
             ResolvedExprKind::Call { callee, args, .. } => {
-                sites.push((
-                    owner.clone(),
-                    expression.id.as_str().to_owned(),
-                    callee.clone(),
-                ));
+                visit(owner, expression.id.as_str(), callee)?;
                 for argument in args {
-                    walk(owner, argument, sites);
+                    walk(owner, argument, visit)?;
                 }
             }
             ResolvedExprKind::NativeRustImportCall(call) => {
                 for argument in &call.args {
-                    walk(owner, argument, sites);
+                    walk(owner, argument, visit)?;
                 }
             }
             ResolvedExprKind::HostCommandCall(call) => {
                 for argument in &call.args {
-                    walk(owner, argument, sites);
+                    walk(owner, argument, visit)?;
                 }
             }
             ResolvedExprKind::Unary { value, .. }
@@ -1087,54 +1083,54 @@ pub(crate) fn workspace_call_sites(
             | ResolvedExprKind::TryOption { operand: value, .. }
             | ResolvedExprKind::Project { base: value, .. }
             | ResolvedExprKind::Upcast { source: value }
-            | ResolvedExprKind::Yield { request: value } => walk(owner, value, sites),
+            | ResolvedExprKind::Yield { request: value } => walk(owner, value, visit)?,
             ResolvedExprKind::Binary { left, right, .. } => {
-                walk(owner, left, sites);
-                walk(owner, right, sites);
+                walk(owner, left, visit)?;
+                walk(owner, right, visit)?;
             }
             ResolvedExprKind::Block { statements, tail } => {
                 for statement in statements {
                     for index in 0..statement.child_count() {
                         if let Some(child) = statement.child(index) {
-                            walk(owner, child, sites);
+                            walk(owner, child, visit)?;
                         }
                     }
                 }
-                walk(owner, tail, sites);
+                walk(owner, tail, visit)?;
             }
             ResolvedExprKind::If {
                 condition,
                 then_branch,
                 else_branch,
             } => {
-                walk(owner, condition, sites);
-                walk(owner, then_branch, sites);
-                walk(owner, else_branch, sites);
+                walk(owner, condition, visit)?;
+                walk(owner, then_branch, visit)?;
+                walk(owner, else_branch, visit)?;
             }
             ResolvedExprKind::ConstructRecord { fields, .. }
             | ResolvedExprKind::ConstructVariant { fields, .. } => {
                 for field in fields {
-                    walk(owner, &field.value, sites);
+                    walk(owner, &field.value, visit)?;
                 }
             }
             ResolvedExprKind::Match {
                 scrutinee, arms, ..
             } => {
-                walk(owner, scrutinee, sites);
+                walk(owner, scrutinee, visit)?;
                 for arm in arms {
                     // Authored order places the guard before the arm value,
                     // as `push_resolved_expression_children_in_authored_order`
                     // already does for the byte-capacity walk.
                     if let Some(guard) = &arm.guard {
-                        walk(owner, guard, sites);
+                        walk(owner, guard, visit)?;
                     }
-                    walk(owner, &arm.value, sites);
+                    walk(owner, &arm.value, visit)?;
                 }
             }
             ResolvedExprKind::UpdateRecord { base, fields, .. } => {
-                walk(owner, base, sites);
+                walk(owner, base, visit)?;
                 for field in fields {
-                    walk(owner, &field.value, sites);
+                    walk(owner, &field.value, visit)?;
                 }
             }
             ResolvedExprKind::Int(_)
@@ -1151,9 +1147,9 @@ pub(crate) fn workspace_call_sites(
             | ResolvedExprKind::Place(_)
             | ResolvedExprKind::BorrowPlace { .. } => {}
         }
+        Ok(())
     }
 
-    let mut sites = Vec::new();
     for function in &program.functions {
         for expression in function
             .requires
@@ -1161,7 +1157,7 @@ pub(crate) fn workspace_call_sites(
             .chain(std::iter::once(&function.body))
             .chain(&function.ensures)
         {
-            walk(&function.id, expression, &mut sites);
+            walk(&function.id, expression, visit)?;
         }
     }
     for template in &program.function_templates {
@@ -1171,10 +1167,25 @@ pub(crate) fn workspace_call_sites(
             .chain(std::iter::once(&template.body))
             .chain(&template.ensures)
         {
-            walk(&template.id, expression, &mut sites);
+            walk(&template.id, expression, visit)?;
         }
     }
-    sites
+    Ok(())
+}
+
+#[allow(dead_code, reason = "private Workspace Semantic Graph Phase-A seam")]
+pub(crate) fn workspace_call_sites(
+    program: &ResolvedProgram,
+) -> Vec<(DeclarationId, String, DeclarationId)> {
+    let mut sites = Vec::new();
+    let result = visit_workspace_call_sites(program, &mut |owner, expression, target| {
+        sites.push((owner.clone(), expression.to_owned(), target.clone()));
+        Ok::<(), std::convert::Infallible>(())
+    });
+    match result {
+        Ok(()) => sites,
+        Err(never) => match never {},
+    }
 }
 
 #[cfg(test)]

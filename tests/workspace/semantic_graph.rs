@@ -391,6 +391,8 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
         include_str!("../../src/workspace_graph/expected_projection/local_identity.rs");
     let projection_call_identity =
         include_str!("../../src/workspace_graph/expected_projection/call_identity.rs");
+    let projection_call_sites =
+        include_str!("../../src/workspace_graph/expected_projection/call_sites.rs");
     let projection_cost = include_str!("../../src/workspace_graph/expected_projection/cost.rs");
     let projection_declaration_cost =
         include_str!("../../src/workspace_graph/expected_projection/declaration_cost.rs");
@@ -405,7 +407,7 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     let projection_uncached_peak =
         include_str!("../../src/workspace_graph/expected_projection/uncached_peak.rs");
     let projection = format!(
-        "{projection_import_stub}\n{projection_uncached_peak}\n{projection_root}\n{projection_local_identity}\n{projection_call_identity}\n{projection_cost}\n{projection_declaration_cost}\n{projection_identity_slots}\n{projection_statement_segment}\n{projection_defaults}"
+        "{projection_import_stub}\n{projection_uncached_peak}\n{projection_root}\n{projection_local_identity}\n{projection_call_identity}\n{projection_call_sites}\n{projection_cost}\n{projection_declaration_cost}\n{projection_identity_slots}\n{projection_statement_segment}\n{projection_defaults}"
     );
 
     assert!(root.contains("mod expected_projection;"));
@@ -444,6 +446,17 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
             })
             .collect::<Vec<_>>(),
         exact_facade,
+    );
+
+    assert_eq!(
+        projection_call_sites
+            .lines()
+            .filter_map(|line| {
+                let trimmed = line.trim();
+                trimmed.contains("pub(super)").then_some(trimmed)
+            })
+            .collect::<Vec<_>>(),
+        ["pub(super) fn imported_call_sites<'a>("],
     );
 
     for helper in [

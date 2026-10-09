@@ -99,6 +99,29 @@ fn call_sites_keep_authored_order_and_repeat_one_callee_per_site() {
 }
 
 #[test]
+fn call_site_visitor_stops_at_the_first_callback_failure() {
+    let program = resolved(CALLS, "hir-inspection-call-refusal.spx");
+    let mut observed = Vec::new();
+    let error = visit_workspace_call_sites(&program, &mut |owner, _, target| {
+        observed.push((owner.as_str().to_owned(), target.as_str().to_owned()));
+        if observed.len() == 2 {
+            Err("refused call-site storage")
+        } else {
+            Ok(())
+        }
+    })
+    .unwrap_err();
+    assert_eq!(error, "refused call-site storage");
+    assert_eq!(
+        observed,
+        vec![
+            ("app.beta".to_owned(), "app.zed".to_owned()),
+            ("app.alpha".to_owned(), "app.zed".to_owned()),
+        ]
+    );
+}
+
+#[test]
 fn every_call_site_carries_a_distinct_expression_identity() {
     let program = resolved(CALLS, "hir-inspection-calls.spx");
     let sites = workspace_call_sites(&program);

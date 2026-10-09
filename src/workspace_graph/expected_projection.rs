@@ -21,6 +21,8 @@ use super::{
 
 #[path = "expected_projection/call_identity.rs"]
 mod call_identity;
+#[path = "expected_projection/call_sites.rs"]
+mod call_sites;
 #[path = "expected_projection/cost.rs"]
 pub(super) mod cost;
 #[path = "expected_projection/declaration_cost.rs"]
@@ -1862,17 +1864,11 @@ pub(super) fn verify_resolved_call_edges(
         {
             visit_ast_call_sites(expression, &root, &mut |name, path| {
                 if let Some(target) = aliases.get(name) {
-                    reserve_builder_structure(std::mem::size_of::<(
-                        hir::DeclarationId,
-                        hir::ExpressionId,
-                        hir::DeclarationId,
-                    )>())?;
+                    reserve_builder_structure(std::mem::size_of::<(&str, String, &str)>())?;
                     expected.push((
-                        hir::DeclarationId::new(crate::bounded_output::budgeted_clone(
-                            owner.as_str(),
-                        )),
+                        function.stable_id.as_str(),
                         hir::workspace_expression_identity(&owner, path),
-                        hir::DeclarationId::new(crate::bounded_output::budgeted_clone(target)),
+                        *target,
                     ));
                 }
                 Ok(())
@@ -1883,18 +1879,20 @@ pub(super) fn verify_resolved_call_edges(
         .module_uses
         .iter()
         .filter(|item| item.kind == ModuleUseKind::Function)
-        .map(|item| {
-            hir::DeclarationId::new(crate::bounded_output::budgeted_clone(&item.persistent_id))
-        })
+        .map(|item| item.persistent_id.as_str())
         .collect::<BTreeSet<_>>();
-    let mut actual = hir::workspace_call_sites(resolved);
-    actual.retain(|(_, _, target)| target_ids.contains(target));
+    let mut actual = call_sites::imported_call_sites(resolved, &target_ids)?;
     expected.sort();
     actual.sort();
-    if expected != actual
+    if expected
+        .iter()
+        .map(|(owner, expression, target)| (*owner, expression.as_str(), *target))
+        .ne(actual
+            .iter()
+            .map(|(owner, expression, target)| (owner.as_str(), *expression, *target)))
         || expected
             .iter()
-            .any(|(_, _, target)| !authored.contains_key(target.as_str()))
+            .any(|(_, _, target)| !authored.contains_key(target))
     {
         return Err(vec![graph_error(
             "SPX-G173",

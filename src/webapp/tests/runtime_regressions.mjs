@@ -233,6 +233,23 @@ try {
   assert.equal((await call("GET", p.location)).value.__proto__, "updated text");
   await stop(server); server = await start();
   assert.equal((await call("GET", persisted.location + "/history")).value.length, 1);
+  // Exercise the Windows publication branch through actual HTTP writes and
+  // restart recovery, while refusing directory descriptors on every host.
+  await stop(server);
+  const windowsPublication = path.join(root, "windows-publication.mjs");
+  fs.writeFileSync(windowsPublication, `import fs from "node:fs";
+Object.defineProperty(process, "platform", { value: "win32" });
+const open = fs.openSync;
+fs.openSync = function(file, ...args) {
+  if (fs.existsSync(file) && fs.statSync(file).isDirectory()) throw new Error("directory descriptors unavailable");
+  return open.call(this, file, ...args);
+};`);
+  server = await start(data, pathToFileURL(windowsPublication).href);
+  const windowsWrite = await call("POST", "/api/number", { value: 12 });
+  assert.equal(windowsWrite.status, 201);
+  await stop(server); server = await start(data, pathToFileURL(windowsPublication).href);
+  assert.equal((await call("GET", windowsWrite.location)).value.value, 12);
+  assert.equal((await call("GET", windowsWrite.location + "/history")).value.length, 1);
   // Inject a filesystem failure after the publication pivot, without changing
   // the generated runtime. The response explicitly reports committed uncertainty.
   await stop(server);

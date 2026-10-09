@@ -98,6 +98,9 @@ bind the retained evidence.
 | --- | ---: | ---: |
 | Accepted / recorded | 5 / 5 | 0 / 5 |
 | Reconciled internal model requests | 103 | 141 |
+| Derived uncached input tokens (raw minus cached) | 354,241 | 357,347 |
+| Agent wall time, all attempts (seconds) | 1,268.279 | 3,704.705 |
+| Acceptance wall time, all attempts (seconds) | 1,574.611 | 1,200.161 |
 | Conditional estimate, all five attempts | $1.767554 | $2.802326 |
 | Conditional estimate per accepted task | $0.353511 | unavailable (0 accepted) |
 | Actual provider billing | unavailable | unavailable |

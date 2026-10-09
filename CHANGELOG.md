@@ -1,5 +1,13 @@
 # Changelog
 
+- Reduce validation allocation by borrowing byte-operation signatures and
+  retained zero-argument nominal facts, constructing byte-slot labels only
+  when retained, and omitting loan census scratch for HIR-covered identities.
+  Preserve conservative fallback accounting and the 64 MiB builder ceiling;
+  add exact-budget, refusal, hostile-HIR and backend-composition regressions.
+- Explain unknown import identities with a bounded query for the validated
+  provider. Bind the CLI library index assertion to its complete catalog rows.
+
 - Share immutable expression-identity backing storage across HIR clones while
   preserving byte equality, ordering, hashing, cache encoding and graph output.
   Account retained loan-proof vector capacities and each distinct backing

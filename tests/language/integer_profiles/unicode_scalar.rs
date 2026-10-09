@@ -94,12 +94,44 @@ fn unicode_scalar_failure_settles_live_and_staged_owners() {
             .iter()
             .find(|f| f.id.as_str() == id)
             .unwrap();
+        let hir::ResolvedExprKind::Block { statements, tail } = &function.body.kind else {
+            panic!("owning conversion witness remains a block")
+        };
+        let conversion = if id == "scalar.live" {
+            let hir::ResolvedStatement::Let { value, .. } = &statements[1] else {
+                panic!("conversion result binding")
+            };
+            value
+        } else {
+            let hir::ResolvedExprKind::Call { args, .. } = &tail.kind else {
+                panic!("owning sibling call")
+            };
+            &args[1]
+        };
+        assert!(
+            matches!(&conversion.kind, hir::ResolvedExprKind::Call { callee, .. }
+            if callee.as_str() == "core.num.char_from_i64")
+        );
         assert!(
             function.cleanup_plan.exits.iter().any(|exit| {
                 matches!(
-                    exit.continuation,
-                    semaprax::cleanup_plan::ExitContinuation::ReturnFailure { .. }
-                ) && !exit.finalize_in_order.is_empty()
+                    &exit.continuation,
+                    semaprax::cleanup_plan::ExitContinuation::ReturnFailure { source }
+                        if source.expression == conversion.id
+                            && source.lane == semaprax::cleanup_plan::StatusLane::OperationFailure
+                ) && exit.finalize_in_order.iter().any(|action| {
+                    if id == "scalar.live" {
+                        matches!(
+                            action.source.storage,
+                            semaprax::cleanup_plan::StorageId::Value(_)
+                        )
+                    } else {
+                        matches!(
+                            action.source.storage,
+                            semaprax::cleanup_plan::StorageId::CallArgument { .. }
+                        )
+                    }
+                })
             }),
             "{id} must retain canonical owner cleanup on conversion failure"
         );

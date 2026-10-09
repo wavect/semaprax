@@ -199,11 +199,9 @@ fn standalone_help_is_exact_capability_aware_and_inert() {
             "guided entry `{name}` must have scoped help"
         );
         assert!(output.stderr.is_empty(), "{name}");
-        assert!(
-            String::from_utf8(output.stdout)
-                .unwrap()
-                .starts_with("Usage:\n  semaprax ")
-        );
+        assert!(String::from_utf8(output.stdout)
+            .unwrap()
+            .starts_with("Usage:\n  semaprax "));
         std::fs::remove_dir(directory).unwrap();
     }
 
@@ -364,18 +362,14 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     assert!(scalars.status.success());
     assert!(scalars.stderr.is_empty());
     assert!(scalars.stdout.starts_with(b"## Scalars and literals\n"));
-    assert!(
-        scalars
-            .stdout
-            .windows(b"- `u8`:".len())
-            .any(|window| window == b"- `u8`:")
-    );
-    assert!(
-        !scalars
-            .stdout
-            .windows(b"## Control flow".len())
-            .any(|window| window == b"## Control flow")
-    );
+    assert!(scalars
+        .stdout
+        .windows(b"- `u8`:".len())
+        .any(|window| window == b"- `u8`:"));
+    assert!(!scalars
+        .stdout
+        .windows(b"## Control flow".len())
+        .any(|window| window == b"## Control flow"));
     assert!(scalars.stdout.len() <= 1_024);
     assert!(scalars.stdout.len() * 20 < card.len());
     let scalar_units =
@@ -531,11 +525,9 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     let (representative, representative_dir) = invoke(&["help", "shapes", "record"]);
     assert!(representative.status.success());
     assert!(representative.stderr.is_empty());
-    assert!(
-        representative
-            .stdout
-            .starts_with(b"representative record\nsource ")
-    );
+    assert!(representative
+        .stdout
+        .starts_with(b"representative record\nsource "));
     assert!(representative.stdout.len() <= 512);
     assert!(representative.stdout.len() * 40 < shapes_catalog.len());
     assert!(
@@ -548,11 +540,9 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
         invoke(&["help", "shapes", "examples/calculator.spx#app.main"]);
     assert!(disambiguated.status.success());
     assert!(disambiguated.stderr.is_empty());
-    assert!(
-        disambiguated
-            .stdout
-            .starts_with(b"function app.main\nsource examples/calculator.spx\n")
-    );
+    assert!(disambiguated
+        .stdout
+        .starts_with(b"function app.main\nsource examples/calculator.spx\n"));
     std::fs::remove_dir(disambiguated_dir).unwrap();
     let (missing_shape, missing_shape_dir) = invoke(&["help", "shapes", "not_a_shape"]);
     assert_eq!(missing_shape.status.code(), Some(2));
@@ -742,11 +732,9 @@ fn fmt_and_context_failures_keep_stable_diagnostic_codes() {
         .output()
         .unwrap();
     assert_eq!(missing_source.status.code(), Some(1));
-    assert!(
-        String::from_utf8(missing_source.stderr)
-            .unwrap()
-            .contains("error[SPX-I001]")
-    );
+    assert!(String::from_utf8(missing_source.stderr)
+        .unwrap()
+        .contains("error[SPX-I001]"));
 
     let empty_project = directory.join("empty-project");
     std::fs::create_dir(&empty_project).unwrap();

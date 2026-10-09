@@ -702,6 +702,8 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
                 "  semaprax help language\n",
                 "  semaprax help language all\n",
                 "  semaprax help language <topic|topics>\n",
+                "  semaprax help language author:<route>\n",
+                "  semaprax help language find:<word>:<offset>\n",
                 "  semaprax help library\n",
                 "  semaprax help library all\n",
                 "  semaprax help library <module|name|stable-id>\n",

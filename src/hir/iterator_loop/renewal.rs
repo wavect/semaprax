@@ -72,6 +72,17 @@ pub(crate) fn renewal_binding<'a>(
         .or_else(|| record_bindings(program, &function.body).remove(at))
 }
 
+pub(crate) fn renewal_bindings<'a>(
+    program: &'a ResolvedProgram,
+    function: &'a ResolvedFunction,
+) -> BTreeMap<ExpressionId, &'a ResolvedBinding> {
+    let mut found = record_bindings(program, &function.body);
+    // Preserve renewal_binding's historical default-profile precedence when
+    // malformed HIR reuses one expression identity across both collectors.
+    found.extend(bindings(&function.body, None));
+    found
+}
+
 fn has_record_renewal_candidate(body: &ResolvedExpr) -> bool {
     let mut pending = vec![body];
     while let Some(expression) = pending.pop() {

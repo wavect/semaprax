@@ -8,19 +8,33 @@ use super::*;
 pub(super) struct SkeletonWork<'a, 'b> {
     pub(super) function: &'a ResolvedFunction,
     pub(super) budget: &'b mut ReplayBudget,
+    pub(super) renewal_bindings:
+        std::collections::BTreeMap<crate::hir::ExpressionId, &'a crate::hir::ResolvedBinding>,
     /// Owned String Loops v1 same-owner append operands that move, not clone.
     pub(super) string_owner_moves: BTreeSet<ExpressionId>,
     pub(super) string_condition_reads: BTreeSet<ExpressionId>,
 }
 
 impl<'a, 'b> SkeletonWork<'a, 'b> {
-    pub(super) fn new(function: &'a ResolvedFunction, budget: &'b mut ReplayBudget) -> Self {
+    pub(super) fn new(
+        program: &'a crate::hir::ResolvedProgram,
+        function: &'a ResolvedFunction,
+        budget: &'b mut ReplayBudget,
+    ) -> Self {
         Self {
             function,
             budget,
+            renewal_bindings: crate::cleanup_plan::renewal_bindings(program, function),
             string_owner_moves: crate::string_ops::same_owner_concat_operands(function),
             string_condition_reads: crate::string_ops::conditions::function_reads(function),
         }
+    }
+
+    pub(super) fn renewal_binding(
+        &self,
+        at: &crate::hir::ExpressionId,
+    ) -> Option<&'a crate::hir::ResolvedBinding> {
+        self.renewal_bindings.get(at).copied()
     }
 }
 

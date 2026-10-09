@@ -42,6 +42,7 @@
     {"directory": "path", "module": "std.path", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "path-normalize", "module": "std.path.normalize", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "path-value", "module": "std.path.value", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
+    {"directory": "pattern", "module": "std.pattern", "tier": "alloc", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial", "api": ["std.pattern.capture-count", "std.pattern.capture-end", "std.pattern.capture-start", "std.pattern.compile", "std.pattern.detail", "std.pattern.detail-domain", "std.pattern.full-match", "std.pattern.make", "std.pattern.matcher", "std.pattern.reason", "std.pattern.result-valid", "std.pattern.status", "std.pattern.work-used"]},
     {"directory": "process", "module": "std.process", "tier": "hosted", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "random", "module": "std.random", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "test", "module": "std.test", "tier": "test", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},

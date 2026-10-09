@@ -11,6 +11,7 @@ pub(super) struct PackageMetadata {
     pub(super) tier: String,
     pub(super) targets: Vec<String>,
     pub(super) status: String,
+    pub(super) api: Option<Vec<String>>,
 }
 
 pub(super) fn packages() -> Vec<PackageMetadata> {
@@ -32,6 +33,7 @@ pub(super) fn packages() -> Vec<PackageMetadata> {
                 .map(|target| target.as_str().unwrap().to_owned())
                 .collect(),
             status: package["status"].as_str().unwrap().to_owned(),
+            api: super::api_inventory::parse(package).unwrap_or_else(|error| panic!("{error}")),
         })
         .collect::<Vec<_>>();
     assert!(!packages.is_empty(), "{PACKAGES} lists no packages");

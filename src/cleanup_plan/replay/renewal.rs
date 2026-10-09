@@ -136,13 +136,13 @@ pub(super) fn renew(
     Ok(())
 }
 pub(super) fn prepend_reservation(
-    program: &ResolvedProgram,
     function: &ResolvedFunction,
     expression: &ResolvedExpr,
     paths: &mut [ExprSkeletonPath],
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<(), Diagnostic> {
-    let binding = crate::cleanup_plan::renewal_binding(program, function, &expression.id)
+    let binding = work
+        .renewal_binding(&expression.id)
         .ok_or_else(|| replay_error(function, "renewal HIR binding disappeared"))?;
     for path in paths {
         let at = work.clone_owned(&expression.id, "renewal expression clone")?;

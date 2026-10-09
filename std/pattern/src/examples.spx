@@ -1,0 +1,75 @@
+module std.pattern.examples;
+use type @id("std.pattern.matcher") from std.pattern as Matcher;
+use function @id("std.pattern.capture-count") from std.pattern as capture_count;
+use function @id("std.pattern.capture-end") from std.pattern as capture_end;
+use function @id("std.pattern.capture-start") from std.pattern as capture_start;
+use function @id("std.pattern.compile") from std.pattern as compile;
+use function @id("std.pattern.detail") from std.pattern as detail;
+use function @id("std.pattern.detail-domain") from std.pattern as detail_domain;
+use function @id("std.pattern.full-match") from std.pattern as full_match;
+use function @id("std.pattern.make") from std.pattern as make;
+use function @id("std.pattern.reason") from std.pattern as reason;
+use function @id("std.pattern.result-valid") from std.pattern as result_valid;
+use function @id("std.pattern.status") from std.pattern as status;
+use function @id("std.pattern.work-used") from std.pattern as work_used;
+
+// Compile once, then renew the same whole owner against independent named
+// inputs. Captures are byte offsets and do not keep either input borrowed.
+@id("std.pattern.examples.headers")
+fn headers() -> i64
+{
+    let pattern = "([A-Za-z-]+):[ \\x09]*([^\\x0D\\x0A]*)";
+    let pattern_text = string_as_str(pattern);
+    let pattern_view = str_as_bytes(pattern_text);
+    let first = [88u8, 45u8, 75u8, 101u8, 121u8, 58u8, 32u8, 118u8, 97u8, 108u8, 117u8, 101u8];
+    let first_view = array_as_slice(first);
+    let second = [89u8, 58u8, 32u8, 122u8];
+    let second_view = array_as_slice(second);
+    let initial = make();
+    let fresh = !result_valid(initial);
+    let mut matcher: Matcher = compile(initial, pattern_view, 262144usize);
+    let ready = status(matcher) == 0usize;
+    let mut iteration = 0usize;
+    let mut correct = 0usize;
+    while iteration < 2usize {
+        if iteration == 0usize {
+            matcher = full_match(matcher, first_view, 262144usize);
+            0
+        } else {
+            matcher = full_match(matcher, second_view, 262144usize);
+            0
+        }
+        let key_end = if iteration == 0usize { 5usize } else { 1usize };
+        let value_start = if iteration == 0usize { 7usize } else { 3usize };
+        let value_end = if iteration == 0usize { 12usize } else { 4usize };
+        if status(matcher) == 1usize && capture_count(matcher) == 2usize {
+            if capture_start(matcher, 0usize) == 0usize && capture_end(matcher, 0usize) == key_end && capture_start(matcher, 1usize) == value_start && capture_end(matcher, 1usize) == value_end && reason(matcher) == 0usize && detail(matcher) == 0usize && detail_domain(matcher) == 0usize && work_used(matcher) <= 262144usize {
+                correct = correct + 1usize;
+                0
+            } else { 0 }
+            0
+        } else { 0 }
+        iteration = iteration + 1usize;
+        0
+    }
+    if fresh && ready && correct == 2usize { 0 } else { 1 }
+}
+
+// The same numeric detail may denote a pattern offset or a table offset;
+// inspect its domain before using it as a source location.
+@id("std.pattern.examples.malformed")
+fn malformed() -> i64
+{
+    let pattern = "\\";
+    let text = string_as_str(pattern);
+    let view = str_as_bytes(text);
+    let initial = make();
+    let matcher = compile(initial, view, 262144usize);
+    if status(matcher) == 3usize && reason(matcher) == 1usize && detail(matcher) == 0usize && detail_domain(matcher) == 1usize && capture_count(matcher) == 0usize { 0 } else { 1 }
+}
+
+@id("std.pattern.examples.main")
+fn main() -> i64
+{
+    if headers() == 0 && malformed() == 0 { 0 } else { 1 }
+}

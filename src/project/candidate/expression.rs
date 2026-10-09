@@ -4,7 +4,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::ast::{self, Expr, ExprKind, Span, Statement};
 use crate::diagnostic::Diagnostic;
@@ -14,7 +14,7 @@ use crate::hir::{
 };
 use crate::project::{ProjectRevision, ProjectSource};
 
-use super::{intent, parse_revision, wire, ProjectCandidate};
+use super::{ProjectCandidate, intent, parse_revision, wire};
 
 const MAX_EXPRESSIONS: usize = 4096;
 const MAX_DEPTH: usize = 256;
@@ -680,7 +680,8 @@ fn join<'a, 'b>(
             name,
             type_arguments,
             args: source_args,
-        } = &node.expression.kind else {
+        } = &node.expression.kind
+        else {
             return None;
         };
         if name != "string_format"
@@ -1254,6 +1255,29 @@ fn audited(value: i64) -> i64 {
     @audit("keep this audit owner") unsafe { value + 1 }
     value
 }
+"#;
+        let program = crate::parse(source, std::path::Path::new("audit.spx")).unwrap();
+        let function = &program.functions[0];
+        let facts = ast_facts(function).unwrap();
+        let inside = facts
+            .iter()
+            .find(|fact| {
+                source.get(fact.expression.span.start..fact.expression.span.end)
+                    == Some("value + 1")
+            })
+            .unwrap();
+        let errors = reject_unsafe_ancestor(&function.body, &inside.path).unwrap_err();
+        assert!(errors.iter().any(|error| error.code == "SPX-G225"));
+        let tail = facts
+            .iter()
+            .find(|fact| {
+                source.get(fact.expression.span.start..fact.expression.span.end) == Some("value")
+                    && fact.expression.span.start > inside.expression.span.end
+            })
+            .unwrap();
+        reject_unsafe_ancestor(&function.body, &tail.path).unwrap();
+    }
+}
 
 #[cfg(test)]
 mod literal_format_join_tests {
@@ -1325,28 +1349,5 @@ mod literal_format_join_tests {
             args.pop();
         }
         assert!(!joined(&resolved));
-    }
-}
-"#;
-        let program = crate::parse(source, std::path::Path::new("audit.spx")).unwrap();
-        let function = &program.functions[0];
-        let facts = ast_facts(function).unwrap();
-        let inside = facts
-            .iter()
-            .find(|fact| {
-                source.get(fact.expression.span.start..fact.expression.span.end)
-                    == Some("value + 1")
-            })
-            .unwrap();
-        let errors = reject_unsafe_ancestor(&function.body, &inside.path).unwrap_err();
-        assert!(errors.iter().any(|error| error.code == "SPX-G225"));
-        let tail = facts
-            .iter()
-            .find(|fact| {
-                source.get(fact.expression.span.start..fact.expression.span.end) == Some("value")
-                    && fact.expression.span.start > inside.expression.span.end
-            })
-            .unwrap();
-        reject_unsafe_ancestor(&function.body, &tail.path).unwrap();
     }
 }

@@ -1,7 +1,7 @@
 //! Checked resource-free value dependencies and hygienic source relocation.
 //! Type declarations stay in their authenticated provider modules.
 
-use super::{intent, invalid, limit, Result, MAX_DEPENDENCIES};
+use super::{MAX_DEPENDENCIES, Result, intent, invalid, limit};
 use crate::ast::{
     ExprKind, Function, MatchPattern, ModuleUse, ModuleUseKind, ParamMode, Program,
     RecordMatchFieldPattern, RecordMatchPatternField, Span, Statement, Type,
@@ -280,7 +280,7 @@ impl TypeMovePlan {
                 _ => {
                     return Err(invalid(
                         "movement destination has multiple bindings for one nominal type",
-                    ))
+                    ));
                 }
             };
             occupied.insert(name.clone());
@@ -368,7 +368,7 @@ fn signature(
             _ => {
                 return Err(invalid(
                     "movement signature does not admit borrowed or shared parameters",
-                ))
+                ));
             }
         };
         if resolved.ownership != expected_ownership
@@ -418,7 +418,9 @@ fn checked_type(module: &WorkspaceGraphProjectionModule, ty: &ResolvedType) -> R
                 || facts.contains_resource
                 || facts.copy == facts.needs_drop
             {
-                return Err(invalid("movement nominal values require sized resource-free Copy or owning records or variants"));
+                return Err(invalid(
+                    "movement nominal values require sized resource-free Copy or owning records or variants",
+                ));
             }
             Ok(())
         }

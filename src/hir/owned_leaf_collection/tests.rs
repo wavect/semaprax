@@ -155,3 +155,99 @@ fn owned_leaf_string_vectors_can_clone_and_replace_in_bounded_loops() {
         crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(0)
     ));
 }
+
+#[test]
+fn every_owned_position_and_mixed_kind_uses_independent_descriptor_charges() {
+    for fields in [
+        vec!["string"],
+        vec!["Bytes"],
+        vec!["string", "i64", "Bytes"],
+        vec![
+            "bool", "string", "i32", "string", "u8", "usize", "f32", "f64",
+        ],
+    ] {
+        let declarations = fields
+            .iter()
+            .enumerate()
+            .map(|(index, ty)| format!("@id(\"r.{index}\") f{index}:{ty},"))
+            .collect::<String>();
+        let source = format!(
+            "module t;@id(\"r\") record R{{{declarations}}}@id(\"unused\") fn unused(v:own Vec<R>)->i64{{0}}@id(\"main\") fn main()->i64{{0}}"
+        );
+        let program = checked(&source);
+        let ty = ResolvedType::Nominal {
+            declaration: DeclarationId::new("r"),
+            arguments: Vec::new(),
+        };
+        let descriptor = layout(&program.declarations, &ty).unwrap();
+        let owned = fields
+            .iter()
+            .filter(|ty| matches!(**ty, "string" | "Bytes"))
+            .count();
+        assert_eq!(descriptor.owned_count, owned);
+        assert_eq!(descriptor.scalar_count, fields.len() - owned);
+        for field in descriptor.owned_fields.iter().flatten() {
+            assert_eq!(
+                field.kind,
+                if fields[field.index] == "string" {
+                    OwnedLeafKind::String
+                } else {
+                    OwnedLeafKind::Bytes
+                }
+            );
+        }
+        assert!(
+            descriptor.capacity() * owned as u64 * 16 <= crate::vec_ops::MAX_OWNED_PAYLOAD_BYTES
+        );
+        assert!(
+            descriptor.capacity() * descriptor.scalar_count as u64 <= crate::vec_ops::MAX_CAPACITY
+        );
+    }
+}
+
+#[test]
+fn new_operations_keep_three_owned_fields_and_automatic_fields_refused() {
+    for fields in [
+        "@id(\"r.a\") a:string,@id(\"r.b\") b:string,@id(\"r.c\") c:string,",
+        "a:string,",
+    ] {
+        let source = format!(
+            "module t;@id(\"r\") record R{{{fields}}}@id(\"main\") fn main()->i64{{let v=vec_with_capacity<R>(0usize);let w=vec_sort_owned<R>(v);0}}"
+        );
+        let errors = crate::check(&source, "closed-shape.spx").unwrap_err();
+        assert!(errors.iter().any(|d| d.code == "SPX-T281"), "{errors:?}");
+    }
+}
+
+#[test]
+fn owned_leaf_loop_helpers_and_field_views_replay_ordinary_loans() {
+    let source = r#"module row.loop;
+@id("r") record R { @id("r.text") text:string,@id("r.count") count:i64, }
+@id("observe") fn observe(value:borrow R)->i64 { value.count }
+@id("entry") fn main()->i64 {
+ let mut rows=vec_with_capacity<R>(2usize);
+ let mut i=0usize;
+ while i<2usize { rows=vec_push<R>(rows,R{text:"key",count:4});i=i+1usize;0 }
+ let mut total=0;
+ i=0usize;
+ while i<vec_len<R>(rows) {
+   let row=vec_clone_at<R>(rows,i);
+   let n={let text=string_as_str(row.text);str_len_bytes(text)};
+   total=total+observe(row)+n;
+   i=i+1usize;
+   0
+ }
+ if total==14 {0}else{1}
+}"#;
+    let program = checked(source);
+    let observed =
+        crate::interpreter::evaluate_resolved_zero_arg_i64(&program, "entry", 1_000_000).unwrap();
+    assert!(
+        matches!(
+            observed.outcome,
+            crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(0)
+        ),
+        "{:?}",
+        observed.outcome
+    );
+}

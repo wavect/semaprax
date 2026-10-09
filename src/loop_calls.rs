@@ -33,6 +33,8 @@ pub(crate) fn ast_param_admitted(program: &Program, mode: ParamMode, ty: &Type) 
         }
         ParamMode::Borrow => {
             matches!(ty, Type::SliceU8 | Type::Str)
+                || (matches!(ty, Type::Named { .. })
+                    && crate::source_verify::owned_leaf_source_admitted(program, ty))
                 || crate::map_ops::ast_collection(ty)
                 || crate::vec_ops::ast_copy_vec(ty)
                 || matches!(ty, Type::Named { name, arguments } if name == "Vec" && matches!(arguments.as_slice(), [element] if (crate::source_verify::copy_record_source_admitted(program, element) || crate::source_verify::owned_leaf_source_admitted(program, element))))
@@ -96,6 +98,8 @@ pub(crate) fn resolved_param_admitted(
         }
         OwnershipMode::Borrow => {
             matches!(ty, ResolvedType::SliceU8 | ResolvedType::Str)
+                || (matches!(ty, ResolvedType::Nominal { .. })
+                    && crate::hir::owned_leaf_collection::layout(declarations, ty).is_some())
                 || crate::map_ops::is_collection(ty)
                 || crate::vec_ops::resolved_copy_vec(ty)
                 || crate::hir::owned_leaf_collection::is_copy_or_leaf_vec(declarations, ty)

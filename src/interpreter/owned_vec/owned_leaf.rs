@@ -81,6 +81,15 @@ impl Evaluator<'_> {
                 bytes: Arc::from(bytes),
             }));
         }
+        if let Value::String(value) = value {
+            self.charge_utf8_materialization(value.len())?;
+            let mut copy = String::new();
+            copy.try_reserve_exact(value.len()).map_err(|_| {
+                Flow::Failure(normalize_vec(crate::vec_ops::ALLOCATION_FAILURE_CODE))
+            })?;
+            copy.push_str(value);
+            return Ok(Value::String(copy));
+        }
         // String copies charge the established UTF-8 materialization budget;
         // scalar copies preserve floating-point bits. Records never reach here.
         self.clone_value(value)
@@ -153,3 +162,6 @@ fn compare(
         leaf_compare(a, b)
     }
 }
+
+#[cfg(test)]
+mod tests;

@@ -83,7 +83,14 @@ impl HirValidator<'_> {
                             &self.program.declarations,
                             &expression.ty,
                         );
+                    let projected_text = expression.ty == ResolvedType::String
+                        && crate::hir::owned_leaf_collection::projected_leaf_admitted(
+                            &self.program.declarations,
+                            place,
+                            &expression.ty,
+                        );
                     if !whole_string
+                        && !projected_text
                         && !named_str
                         && !cursor_borrow
                         && !self.is_owned_iterator_record_item(expression, owned_item)
@@ -113,7 +120,13 @@ impl HirValidator<'_> {
                             && expression.ty == ResolvedType::SliceU8);
                     if !exact_view
                         || expression.ownership != OwnershipMode::Borrow
-                        || !place.projections.is_empty()
+                        || (!place.projections.is_empty()
+                            && !(operation.as_str() == crate::byte_ops::STRING_AS_STR_ID
+                                && crate::hir::owned_leaf_collection::projected_leaf_admitted(
+                                    &self.program.declarations,
+                                    place,
+                                    &ResolvedType::String,
+                                )))
                     {
                         return Err(hir_error("while loops cannot construct byte views"));
                     }
@@ -425,10 +438,14 @@ impl HirValidator<'_> {
                                 )));
                             }
                         } else if parameter.ownership == OwnershipMode::Borrow
-                            && crate::hir::iterator_loop::is_owner_renewal_record(
+                            && (crate::hir::iterator_loop::is_owner_renewal_record(
+                                &self.program.declarations,
+                                &parameter.ty,
+                            ) || crate::hir::owned_leaf_collection::layout(
                                 &self.program.declarations,
                                 &parameter.ty,
                             )
+                            .is_some())
                         {
                             if !matches!(&argument.kind, ResolvedExprKind::Place(place)
                                 if place.projections.is_empty()
@@ -458,6 +475,11 @@ impl HirValidator<'_> {
                             }
                         } else if parameter.ownership != OwnershipMode::Own
                             || parameter.ty == ResolvedType::String
+                            || crate::hir::owned_leaf_collection::layout(
+                                &self.program.declarations,
+                                &parameter.ty,
+                            )
+                            .is_some()
                         {
                             // Loop Calls v1: a consumed String argument is an
                             // ordinary body operand; replay authenticates the

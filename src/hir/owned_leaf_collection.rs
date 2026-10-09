@@ -295,3 +295,32 @@ pub(crate) fn function_requires_profile_by<'a>(
 
 #[cfg(test)]
 mod tests;
+
+/// Direct owned-field access in a loop still receives ordinary place and loan
+/// replay. The field's authenticated owner provides the bounded shape proof.
+pub(crate) fn projected_leaf_admitted(
+    index: &DeclarationIndex,
+    place: &super::Place,
+    expected: &ResolvedType,
+) -> bool {
+    let [super::PlaceProjection::Field(field)] = place.projections.as_slice() else {
+        return false;
+    };
+    let Some(owner) = index
+        .declaration(field)
+        .and_then(|field| field.owner.as_ref())
+    else {
+        return false;
+    };
+    let record = ResolvedType::Nominal {
+        declaration: owner.clone(),
+        arguments: Vec::new(),
+    };
+    layout(index, &record).is_some_and(|layout| {
+        layout.fields.is_some_and(|fields| {
+            fields
+                .iter()
+                .any(|candidate| &candidate.id == field && &candidate.ty == expected)
+        })
+    })
+}

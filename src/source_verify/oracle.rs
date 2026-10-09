@@ -1005,7 +1005,7 @@ pub(super) fn check_expr(
             ))
         }
         ExprKind::Project { base, field, .. } => {
-            if matching::in_loop_scope() && source_place(base, variables, types).is_some_and(|place| !crate::source_verify::declared_type::copy_record_collection::admitted(types, &place.ty)) {
+            if matching::in_loop_scope() && source_place(base, variables, types).is_some_and(|place| !crate::source_verify::declared_type::owned_leaf_collection::copy_or_leaf_admitted(types, &place.ty)) {
                 diagnostics.push(error(program, "SPX-T252", "record field projection is not yet admitted in while bodies", expr.span));
             }
             if let Some(place) = source_place(expr, variables, types) {
@@ -1034,7 +1034,7 @@ pub(super) fn check_expr(
                 diagnostics,
             )?;
             reject_native_unit_value(program, base, &base_value, diagnostics);
-            if matching::in_loop_scope() && !crate::source_verify::declared_type::copy_record_collection::admitted(types, &base_value.ty) {
+            if matching::in_loop_scope() && !crate::source_verify::declared_type::owned_leaf_collection::copy_or_leaf_admitted(types, &base_value.ty) {
                 diagnostics.push(error(program, "SPX-T252", "record field projection is not yet admitted in while bodies", expr.span));
             }
             let Some(fields) = effective_record_fields(types, &base_value.ty) else {

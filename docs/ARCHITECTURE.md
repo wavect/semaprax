@@ -98,6 +98,13 @@ operation table and format synthetic parameter identities only for diagnostics;
 other signatures retain their owned metadata and full frame capacity census.
 The test-only recursive validator retains the allocating signature reference.
 
+`literal_format.rs` owns the closed decoded-template scanner and reserved
+operation identity. Source verification and HIR validation independently
+admit its dedicated `ResolvedExprKind::LiteralFormat`; the cleanup planner
+stages dynamic owned arguments in ordinary CallArgument epochs. The native
+and Wasm emitters use private rendering workers, while Project snapshot replay
+re-resolves format-bearing synthetic source before accepting retained HIR.
+
 Project execution selects interpreter closure admission from the retained manifest
 profile in `interpreter/resolved_case.rs`. Project v25 stream-text and its v27
 stream-data successor admit pure, explicit-ID owned-String helpers with the

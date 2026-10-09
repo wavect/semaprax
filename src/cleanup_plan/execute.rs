@@ -258,7 +258,8 @@ fn collect_variant_domains(
                     visit(program, arg, domains)?;
                 }
             }
-            hir::ResolvedExprKind::Call { args, .. } => {
+            hir::ResolvedExprKind::Call { args, .. }
+            | hir::ResolvedExprKind::LiteralFormat { args, .. } => {
                 for argument in args {
                     visit(program, argument, domains)?;
                 }

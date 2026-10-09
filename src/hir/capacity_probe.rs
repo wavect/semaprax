@@ -229,6 +229,10 @@ pub(super) fn resolved_expr_owned_capacity(expression: &ResolvedExpr) -> usize {
                 .map(resolved_type_owned_capacity)
                 .sum::<usize>();
         }
+        ResolvedExprKind::LiteralFormat { template, args } => {
+            bytes += template.capacity() + args.capacity() * std::mem::size_of::<ResolvedExpr>();
+            bytes += args.iter().map(resolved_expr_owned_capacity).sum::<usize>();
+        }
         ResolvedExprKind::NativeRustImportCall(call) => {
             bytes += call.expression.as_str().len() + call.import.as_str().len();
             bytes += call.args.capacity() * std::mem::size_of::<ResolvedExpr>();

@@ -14,7 +14,8 @@ pub(super) fn replay_expression_child(
         }
         ResolvedExprKind::FunctionReference { .. } => None,
         ResolvedExprKind::Invoke { args, .. } => args.get(index),
-        ResolvedExprKind::Call { args, .. } => args.get(index),
+        ResolvedExprKind::Call { args, .. }
+        | ResolvedExprKind::LiteralFormat { args, .. } => args.get(index),
         ResolvedExprKind::NativeRustImportCall(call) => call.args.get(index),
         ResolvedExprKind::HostCommandCall(call) => call.args.get(index),
         ResolvedExprKind::ByteRange {

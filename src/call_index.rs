@@ -252,7 +252,7 @@ impl PersistentCallIndex {
                 ResolvedExprKind::Invoke { callable, args } => std::iter::once(callable.as_ref())
                     .chain(args.iter())
                     .nth(index),
-                ResolvedExprKind::Call { args, .. } => args.get(index),
+                ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => args.get(index),
                 ResolvedExprKind::NativeRustImportCall(call) => call.args.get(index),
                 ResolvedExprKind::HostCommandCall(call) => call.args.get(index),
                 ResolvedExprKind::ByteRange {

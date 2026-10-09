@@ -883,7 +883,8 @@ fn evaluation_children(expression: &ResolvedExpr) -> Vec<&ResolvedExpr> {
         ResolvedExprKind::Invoke { callable, args } => std::iter::once(callable.as_ref())
             .chain(args.iter())
             .collect(),
-        ResolvedExprKind::Call { args, .. } => args.iter().collect(),
+        ResolvedExprKind::Call { args, .. }
+        | ResolvedExprKind::LiteralFormat { args, .. } => args.iter().collect(),
         ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().collect(),
         ResolvedExprKind::HostCommandCall(call) => call.args.iter().collect(),
         ResolvedExprKind::ByteRange {
@@ -1226,7 +1227,8 @@ fn push_children<'a>(expression: &'a ResolvedExpr, pending: &mut Vec<&'a Resolve
                 }
             }
         }
-        ResolvedExprKind::Call { args, .. } => pending.extend(args.iter().rev()),
+        ResolvedExprKind::Call { args, .. }
+        | ResolvedExprKind::LiteralFormat { args, .. } => pending.extend(args.iter().rev()),
         ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter().rev()),
         ResolvedExprKind::HostCommandCall(call) => pending.extend(call.args.iter().rev()),
         ResolvedExprKind::ByteRange {

@@ -147,6 +147,11 @@ fn expression_json(
             type_arguments.iter().map(type_json).collect::<Vec<_>>().budgeted_join(","),
             args.iter().map(|argument| expression_json(argument, roots)).collect::<Result<Vec<_>, _>>()?.budgeted_join(",")
         ),
+        ResolvedExprKind::LiteralFormat { template, args } => bf!(
+            "{{{header},\"kind\":\"literal_format\",\"template\":{},\"args\":[{}]}}",
+            quote_json(template),
+            args.iter().map(|argument| expression_json(argument, roots)).collect::<Result<Vec<_>, _>>()?.budgeted_join(",")
+        ),
         ResolvedExprKind::Unary { op, value } => bf!(
             "{{{header},\"kind\":\"unary\",\"op\":{},\"value\":{}}}",
             quote_json(unary_text(*op)),

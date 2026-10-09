@@ -1414,6 +1414,9 @@ impl<'a> HirValidator<'a> {
                     "generic templates cannot construct dynamic byte ranges",
                 ));
             }
+            ResolvedExprKind::LiteralFormat { .. } => {
+                return Err(hir_error("generic templates cannot construct literal formats"));
+            }
             ResolvedExprKind::Call {
                 callee,
                 type_arguments,
@@ -3343,6 +3346,27 @@ impl<'a> HirValidator<'a> {
                                 path,
                             });
                         }
+                        ResolvedExprKind::LiteralFormat { template, args } => {
+                            let pieces = crate::literal_format::scan(template)
+                                .map_err(|reason| hir_error(reason.message()))?;
+                            if crate::literal_format::field_count(&pieces) != args.len() {
+                                return Err(hir_error("literal format field count does not match arguments"));
+                            }
+                            if args.iter().any(|arg| !crate::literal_format::accepts_hir_type(&arg.ty)) {
+                                return Err(hir_error("literal format has an unsupported argument type"));
+                            }
+                            if function.instance().is_some()
+                                || function.monomorphic_declaration().is_none_or(|id| self.program.declarations.declaration(id).is_none())
+                            {
+                                return Err(hir_error("literal format is not admitted in generic or closure bodies"));
+                            }
+                            frames.push(Frame::CallNext {
+                                expression, args, params: CallParameters::LiteralFormat(args),
+                                return_type: ResolvedType::String,
+                                return_ownership: OwnershipMode::Own,
+                                index: 0, scope, path,
+                            });
+                        }
                         ResolvedExprKind::HostCommandCall(call) => {
                             if call.expression != expression.id
                                 || call.args.len() != crate::command_io_ops::arity(call.operation)
@@ -3826,8 +3850,10 @@ impl<'a> HirValidator<'a> {
                     }
                     if self.is_owned_resource(param.ty, param.ownership)? {
                         if !allow_moves {
-                            let ResolvedExprKind::Call { callee, .. } = &expression.kind else {
-                                unreachable!()
+                            let callee = match &expression.kind {
+                                ResolvedExprKind::Call { callee, .. } => callee.as_str(),
+                                ResolvedExprKind::LiteralFormat { .. } => crate::literal_format::ID,
+                                _ => unreachable!(),
                             };
                             return Err(hir_error(format!(
                                 "contract cannot transfer ownership to `{callee}`"
@@ -6323,6 +6349,35 @@ impl<'a> HirValidator<'a> {
                     return Err(hir_error("byte range operands have invalid ownership"));
                 }
                 (ResolvedType::SliceU8, OwnershipMode::Borrow)
+            }
+            ResolvedExprKind::LiteralFormat { template, args } => {
+                let pieces = crate::literal_format::scan(template)
+                    .map_err(|reason| hir_error(reason.message()))?;
+                if crate::literal_format::field_count(&pieces) != args.len() {
+                    return Err(hir_error("literal format field count does not match arguments"));
+                }
+                if function.instance().is_some()
+                    || function.monomorphic_declaration().is_none_or(|id| self.program.declarations.declaration(id).is_none())
+                {
+                    return Err(hir_error("literal format is not admitted in generic or closure bodies"));
+                }
+                for (index, argument) in args.iter().enumerate() {
+                    if !crate::literal_format::accepts_hir_type(&argument.ty) {
+                        return Err(hir_error("literal format has an unsupported argument type"));
+                    }
+                    self.validate_expr_recursive_reference(function, argument, scope,
+                        &format!("{path}.arg.{index}"), allow_moves, allowed_effects)?;
+                    let parameter = CallParameters::LiteralFormat(args).parameter(index);
+                    self.validate_argument_ownership_view(argument, parameter)?;
+                    let parameter = CallParameters::LiteralFormat(args).parameter(index);
+                    if self.is_owned_resource(parameter.ty, parameter.ownership)? {
+                        if !allow_moves {
+                            return Err(hir_error("contract cannot transfer ownership to literal format"));
+                        }
+                        self.mark_value_sources_moved(argument, scope)?;
+                    }
+                }
+                (ResolvedType::String, OwnershipMode::Own)
             }
             ResolvedExprKind::Call {
                 callee,

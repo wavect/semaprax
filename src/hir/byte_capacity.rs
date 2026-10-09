@@ -301,7 +301,8 @@ pub(crate) fn push_resolved_expression_children_in_authored_order<'a>(
             pending.extend(args.iter().rev());
             pending.push(callable);
         }
-        ResolvedExprKind::Call { args, .. } => pending.extend(args.iter().rev()),
+        ResolvedExprKind::Call { args, .. }
+        | ResolvedExprKind::LiteralFormat { args, .. } => pending.extend(args.iter().rev()),
         ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter().rev()),
         ResolvedExprKind::HostCommandCall(call) => pending.extend(call.args.iter().rev()),
         ResolvedExprKind::ByteRange {

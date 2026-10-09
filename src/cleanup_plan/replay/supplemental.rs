@@ -25,7 +25,7 @@ pub(super) fn collect_supplemental_slots(
                 }) = parts(expression, function)?
                 {
                     let params =
-                        resolved_call_params(program, function, callee, instance, type_arguments)?;
+                        resolved_call_params(program, function, expression, callee, instance, type_arguments)?;
                     if params.len() != args.len() {
                         return Err(replay_error(
                             function,
@@ -65,7 +65,7 @@ pub(super) fn collect_supplemental_slots(
                     unreachable!("call-argument continuation retains a call");
                 };
                 let params =
-                    resolved_call_params(program, function, callee, instance, type_arguments)?;
+                    resolved_call_params(program, function, expression, callee, instance, type_arguments)?;
                 let argument = &args[index];
                 let parameter = &params[index];
                 if parameter.ownership == OwnershipMode::Own

@@ -85,6 +85,15 @@ pub(super) fn render_expr(
             output.push_str(&name);
             render_args(walker, args, output);
         }
+        ResolvedExprKind::LiteralFormat { template, args } => {
+            output.push_str("string_format(");
+            output.push_str(&crate::diagnostic::quote_json(template));
+            for argument in args {
+                output.push_str(", ");
+                output.push_str(&render_child(walker, argument, 0));
+            }
+            output.push(')');
+        }
         ResolvedExprKind::NativeRustImportCall(call) => {
             let name = walker.declaration_name(&call.import);
             output.push_str(&name);

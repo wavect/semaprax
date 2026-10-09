@@ -85,6 +85,12 @@ pub enum ResolvedExprKind {
         instance: Option<FunctionInstanceId>,
         args: Vec<ResolvedExpr>,
     },
+    /// Compiler-owned literal rendering. The template is the decoded source
+    /// literal; the children are dynamic arguments only, in evaluation order.
+    LiteralFormat {
+        template: String,
+        args: Vec<ResolvedExpr>,
+    },
     NativeRustImportCall(ResolvedNativeRustImportCall),
     HostCommandCall(ResolvedHostCommandCall),
     Unary {

@@ -103,6 +103,7 @@ pub(super) fn type_arguments(expression: &ResolvedExpr) -> Result<&[ResolvedType
         | ResolvedExprKind::Closure { .. }
         | ResolvedExprKind::NativeRustImportCall(_)
         | ResolvedExprKind::HostCommandCall(_) => Ok(&[]),
+        ResolvedExprKind::LiteralFormat { .. } => Ok(&[]),
         ResolvedExprKind::Call { type_arguments, .. } => Ok(type_arguments),
         _ => Err(plan_error("cleanup call expression has inconsistent shape")),
     }

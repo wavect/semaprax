@@ -281,6 +281,7 @@ fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
                 reject_nul_identity("resolved call target", callee.as_str())?;
                 pending.extend(args);
             }
+            ResolvedExprKind::LiteralFormat { args, .. } => pending.extend(args),
             ResolvedExprKind::Upcast { source } | ResolvedExprKind::Yield { request: source } => {
                 pending.push(source)
             }
@@ -916,6 +917,9 @@ pub(crate) fn visit_resolved_calls(
                 visit_resolved_calls(arg, visit);
             }
         }
+        ResolvedExprKind::LiteralFormat { args, .. } => {
+            for arg in args { visit_resolved_calls(arg, visit); }
+        }
         ResolvedExprKind::NativeRustImportCall(call) => {
             for arg in &call.args {
                 visit_resolved_calls(arg, visit);
@@ -1067,6 +1071,9 @@ pub(crate) fn visit_workspace_call_sites<'a, E>(
                 for argument in args {
                     walk(owner, argument, visit)?;
                 }
+            }
+            ResolvedExprKind::LiteralFormat { args, .. } => {
+                for argument in args { walk(owner, argument, visit)?; }
             }
             ResolvedExprKind::NativeRustImportCall(call) => {
                 for argument in &call.args {

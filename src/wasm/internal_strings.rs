@@ -23,6 +23,8 @@ pub const SCHEMA: &str = "semaprax.wasm-internal-strings.v1";
 pub const RUNTIME_SCHEMA: &str = "semaprax.wasm-internal-strings.runtime.v1";
 pub const TOOLKIT_SCHEMA: &str = "semaprax.wasm-text-toolkit.v1";
 pub const TOOLKIT_RUNTIME_SCHEMA: &str = "semaprax.wasm-text-toolkit.runtime.v1";
+pub const LITERAL_FORMAT_SCHEMA: &str = "semaprax.wasm-literal-format.v1";
+pub const LITERAL_FORMAT_RUNTIME_SCHEMA: &str = "semaprax.wasm-literal-format.runtime.v1";
 
 /// Generation-time String arena policy. Limits cannot be widened by JavaScript.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -166,13 +168,20 @@ fn emit_selected(
     } else {
         admission::prepare(&resolved, export_ids)?
     };
+    let literal_format = resolved.functions.iter().any(|function| {
+        closure.contains(&function.id)
+            && std::iter::once(&function.body)
+                .chain(&function.requires)
+                .chain(&function.ensures)
+                .any(crate::literal_format::expression_uses)
+    });
     let (wasm, stack_bytes, derived_owner_capacity) = super::aggregate::internal_strings::emit(
         &resolved,
         &exports,
         &closure,
         options.max_live_owners,
         copy_variants,
-        toolkit,
+        toolkit || literal_format,
     )?;
     let owners = options.max_live_owners.unwrap_or(derived_owner_capacity);
     if owners == 0 || owners > derived_owner_capacity {
@@ -183,10 +192,13 @@ fn emit_selected(
     let wasm_sha256 = format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(&wasm)));
     let mut descriptor = format!(
         "{{\"schema\":{},\"runtime_schema\":{},\"wasm_sha256\":{},\"wasm_bytes\":{},\"memory_pages\":4,\"result_offset\":65536,\"literal_offset\":196608,\"stack_bytes\":{},\"derived_owner_capacity\":{},\"limits\":{{\"max_string_bytes\":{},\"max_live_bytes\":{},\"max_cumulative_bytes\":{},\"max_live_owners\":{}}},\"exports\":[",
-        quote_json(if toolkit { TOOLKIT_SCHEMA } else { SCHEMA }), quote_json(if toolkit { TOOLKIT_RUNTIME_SCHEMA } else { RUNTIME_SCHEMA }), quote_json(&wasm_sha256), wasm.len(),
+        quote_json(if toolkit { TOOLKIT_SCHEMA } else if literal_format { LITERAL_FORMAT_SCHEMA } else { SCHEMA }), quote_json(if toolkit { TOOLKIT_RUNTIME_SCHEMA } else if literal_format { LITERAL_FORMAT_RUNTIME_SCHEMA } else { RUNTIME_SCHEMA }), quote_json(&wasm_sha256), wasm.len(),
         stack_bytes, derived_owner_capacity, options.max_string_bytes, options.max_live_bytes,
         options.max_cumulative_bytes, owners
     );
+    if literal_format {
+        descriptor.insert_str(1, "\"literal_format_v1\":true,");
+    }
     if toolkit {
         let capabilities = if resolved.functions.iter().any(|function| {
             closure.contains(&function.id)
@@ -203,6 +215,8 @@ fn emit_selected(
             1,
             &format!("\"profile\":\"text-toolkit-v1\",\"capabilities\":{capabilities},"),
         );
+    } else if literal_format {
+        descriptor.insert_str(1, "\"profile\":\"literal-format-v1\",");
     } else if general_guards {
         descriptor.insert_str(1, "\"profile\":\"general-loop-match-v1\",");
     } else if replacements {
@@ -247,7 +261,7 @@ fn emit_selected(
                 .chain(std::iter::once(&function.body))
         })
         .any(crate::wasm::numeric_conversions::expression_uses_integer_conversion);
-    let runtime = if toolkit {
+    let runtime = if toolkit || literal_format {
         runtime::render_toolkit(&descriptor, &wasm_sha256, wasm.len(), &resolved, &closure)
     } else {
         runtime::render(

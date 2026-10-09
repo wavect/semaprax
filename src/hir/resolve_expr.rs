@@ -25,6 +25,7 @@ use super::{Binding, Place, PlaceProjection, Resolver};
 
 #[cfg(test)]
 mod capacity;
+mod literal_format;
 
 impl Resolver<'_> {
     pub(super) fn resolve_expr_iterative(
@@ -228,6 +229,8 @@ impl Resolver<'_> {
                                 path,
                                 segment: "native-rust-arg",
                             });
+                        } else if name == crate::literal_format::NAME {
+                            frames.extend(self.literal_format_frames(function, expr, type_arguments, args, bindings, path)?);
                         } else if let Some(op) = crate::string_ops::by_name(name).filter(|_| {
                             crate::map_ops::by_generic_name(name, type_arguments).is_none()
                         }) {
@@ -919,6 +922,13 @@ impl Resolver<'_> {
                         },
                         span,
                     });
+                }
+                Frame::FinishLiteralFormat { span, path, template, argument_count } => {
+                    let args = take_results(&mut results, argument_count);
+                    results.push(self.finish_literal_format(function, span, &path, template, args)?);
+                }
+                Frame::LiteralFormatArgNext { args, index, bindings, path } => {
+                    Self::queue_literal_format_argument(&mut frames, args, index, bindings, path);
                 }
                 Frame::FinishStrOp {
                     span,

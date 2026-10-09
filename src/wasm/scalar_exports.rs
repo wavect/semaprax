@@ -583,6 +583,7 @@ fn validate_expression_profile(
                 pending.push(else_branch);
             }
             ResolvedExprKind::ConstructRecord { .. }
+            | ResolvedExprKind::LiteralFormat { .. }
             | ResolvedExprKind::ConstructVariant { .. }
             | ResolvedExprKind::Match { .. }
             | ResolvedExprKind::Try { .. }

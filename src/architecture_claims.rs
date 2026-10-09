@@ -515,6 +515,7 @@ fn walk_for_edges(root: &ResolvedExpr, walked: &mut usize, node: &mut NodeFacts)
                 node.edges.insert(callee.as_str().to_owned());
                 pending.extend(args.iter());
             }
+            ResolvedExprKind::LiteralFormat { args, .. } => pending.extend(args.iter()),
             ResolvedExprKind::NativeRustImportCall(call) => {
                 node.edges.insert(call.import.as_str().to_owned());
                 pending.extend(call.args.iter());

@@ -661,7 +661,8 @@ fn render_expr(
         ResolvedExprKind::Upcast { .. }
         | ResolvedExprKind::Yield { .. }
         | ResolvedExprKind::ByteRange { .. }
-        | ResolvedExprKind::Call { .. } => Err(package_error(
+        | ResolvedExprKind::Call { .. }
+        | ResolvedExprKind::LiteralFormat { .. } => Err(package_error(
             "owned-data semantic recipe expression is unsupported",
         )),
     }

@@ -374,6 +374,9 @@ fn visit_resolved_calls<'a>(
                 visit_resolved_calls(argument, visit);
             }
         }
+        hir::ResolvedExprKind::LiteralFormat { args, .. } => {
+            for argument in args { visit_resolved_calls(argument, visit); }
+        }
         hir::ResolvedExprKind::Invoke { callable, args } => {
             visit_resolved_calls(callable, visit);
             for argument in args {
@@ -836,6 +839,15 @@ fn collect_resolved_expression_type_sites<'a>(
                     &crate::bounded_output::budgeted_format(format_args!("{path}.arg.{index}")),
                     imported,
                     out,
+                )?;
+            }
+        }
+        hir::ResolvedExprKind::LiteralFormat { args, .. } => {
+            for (index, argument) in args.iter().enumerate() {
+                collect_resolved_expression_type_sites(
+                    owner, argument,
+                    &crate::bounded_output::budgeted_format(format_args!("{path}.arg.{index}")),
+                    imported, out,
                 )?;
             }
         }

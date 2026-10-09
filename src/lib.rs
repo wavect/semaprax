@@ -66,6 +66,7 @@ pub mod architecture_claims;
 pub mod assurance_manifest;
 pub mod assurance_policy;
 pub mod ast;
+pub(crate) mod literal_format;
 pub mod audit_capsule;
 #[allow(
     dead_code,

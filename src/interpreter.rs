@@ -2602,6 +2602,7 @@ fn scan_closure(
             {
                 Err(reject_scan(expression, REASON_PLACE_PROJECTION))
             }
+            ResolvedExprKind::LiteralFormat { .. } => Ok(()),
             ResolvedExprKind::Call {
                 callee, instance, ..
             } => {
@@ -4347,6 +4348,9 @@ impl Evaluator<'_> {
                     case: case.clone(),
                     fields: values,
                 })))
+            }
+            ResolvedExprKind::LiteralFormat { template, args } => {
+                self.evaluate_literal_format(template, args, environment, depth)
             }
             ResolvedExprKind::Call {
                 callee,

@@ -2,6 +2,69 @@
 use super::*;
 
 impl Evaluator<'_> {
+    /// All dynamic values are staged before the first render operation. Once
+    /// staging completes this worker owns every String value; an error drops
+    /// the unrendered suffix and the accumulator without publishing a result.
+    pub(super) fn evaluate_literal_format(
+        &mut self,
+        template: &str,
+        args: &[ResolvedExpr],
+        environment: &mut Environment,
+        depth: usize,
+    ) -> Result<Value, Flow> {
+        self.charge()?;
+        let pieces = crate::literal_format::scan(template)
+            .map_err(|_| Flow::Guard("invalid checked literal format"))?;
+        if crate::literal_format::field_count(&pieces) != args.len() {
+            return Err(Flow::Guard("checked literal format arity changed"));
+        }
+        let mut staged = Vec::with_capacity(args.len());
+        for argument in args {
+            let value = if argument.ty == ResolvedType::String {
+                if let ResolvedExprKind::Place(place) = &argument.kind {
+                    self.begin_expression(argument, depth)?;
+                    take_owned_place(environment, place)
+                        .ok_or(Flow::Guard("checked literal format owner is unavailable"))?
+                } else {
+                    self.evaluate(argument, environment, depth)?
+                }
+            } else {
+                self.evaluate(argument, environment, depth)?
+            };
+            staged.push(value);
+        }
+        let mut result = self.materialize_utf8_copy("")?;
+        let mut field = 0;
+        for piece in pieces {
+            let part = match piece {
+                crate::literal_format::Piece::Literal(text) => self.materialize_utf8_copy(&text)?,
+                crate::literal_format::Piece::Field => {
+                    let value = std::mem::replace(&mut staged[field], Value::Moved);
+                    field += 1;
+                    match value {
+                        Value::String(text) => text,
+                        Value::Int(number) => self.materialize_utf8_copy(&number.to_string())?,
+                        Value::Uint8(number) => self.materialize_utf8_copy(&number.to_string())?,
+                        Value::Usize(number) => self.materialize_utf8_copy(&number.to_string())?,
+                        Value::Bool(boolean) => self.materialize_utf8_copy(if boolean { "true" } else { "false" })?,
+                        _ => return Err(Flow::Guard("ill-typed checked literal format value")),
+                    }
+                }
+            };
+            let length = result.len().checked_add(part.len()).ok_or(
+                Flow::Utf8MaterializationLimitExceeded {
+                    attempted_materializations: u64::MAX, attempted_bytes: u64::MAX,
+                },
+            )?;
+            self.charge_utf8_materialization(length)?;
+            let mut joined = String::with_capacity(length);
+            joined.push_str(&result);
+            joined.push_str(&part);
+            result = joined;
+        }
+        Ok(Value::String(result))
+    }
+
     pub(super) fn evaluate_string_op(
         &mut self,
         op: crate::string_ops::StringOp,

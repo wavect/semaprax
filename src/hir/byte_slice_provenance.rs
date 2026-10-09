@@ -338,7 +338,8 @@ pub(super) fn derive_byte_slice_provenance(
                     pending.push(callable);
                     pending.extend(args);
                 }
-                ResolvedExprKind::Call { args, .. } => pending.extend(args),
+                ResolvedExprKind::Call { args, .. }
+                | ResolvedExprKind::LiteralFormat { args, .. } => pending.extend(args),
                 ResolvedExprKind::ByteRange {
                     source, start, end, ..
                 } => {

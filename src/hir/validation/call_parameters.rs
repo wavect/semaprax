@@ -9,6 +9,7 @@ use crate::byte_ops::ByteOp;
 use std::fmt;
 
 pub(super) enum CallParameters<'a> {
+    LiteralFormat(&'a [ResolvedExpr]),
     Owned(Vec<ResolvedParam>),
     Borrowed(&'a [ResolvedParam]),
     Byte(ByteOp),
@@ -23,6 +24,7 @@ pub(super) struct ParameterView<'a> {
 }
 
 enum ParameterIdentity<'a> {
+    LiteralFormat(usize),
     Owned(&'a ValueId),
     Byte(ByteOp, usize),
     String(crate::string_ops::StringOp, usize),
@@ -32,6 +34,7 @@ enum ParameterIdentity<'a> {
 impl fmt::Display for ParameterIdentity<'_> {
     fn fmt(&self, output: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::LiteralFormat(index) => write!(output, "{}.param.{index}", crate::literal_format::ID),
             Self::Owned(identity) => fmt::Display::fmt(identity, output),
             Self::Byte(operation, index) => write!(output, "{}.param.{index}", operation.id()),
             Self::String(operation, index) => write!(output, "{}.param.{index}", operation.id()),
@@ -53,6 +56,11 @@ impl<'a> ParameterView<'a> {
 impl CallParameters<'_> {
     pub(super) fn parameter(&self, index: usize) -> ParameterView<'_> {
         match self {
+            Self::LiteralFormat(args) => ParameterView {
+                ty: &args[index].ty,
+                ownership: if args[index].ty == ResolvedType::String { OwnershipMode::Own } else { OwnershipMode::Value },
+                identity: ParameterIdentity::LiteralFormat(index),
+            },
             Self::Owned(parameters) => ParameterView::owned(&parameters[index]),
             Self::Borrowed(parameters) => ParameterView::owned(&parameters[index]),
             Self::Byte(operation) => ParameterView {
@@ -97,7 +105,7 @@ impl CallParameters<'_> {
             }
             // The enum and descriptor are inline in the charged frame; every
             // referenced type is immutable static data, with no heap payload.
-            Self::Byte(_) | Self::String(_) | Self::Str(_) => 0,
+            Self::Byte(_) | Self::String(_) | Self::Str(_) | Self::LiteralFormat(_) => 0,
             // Program retention already owns and accounts for this immutable
             // signature. The call frame adds only its inline slice descriptor.
             Self::Borrowed(_) => 0,

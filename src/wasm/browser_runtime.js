@@ -74,12 +74,14 @@ function checked(value, operation) {
   return value;
 }
 
-function createByteDataRuntime(options = {}) {
+function createByteDataRuntime(options = {}, formatSelected = false) {
   const FIXED_MEMORY_BYTES = 131072;
   const OWNED_UTF8_LITERAL_BASE = 196608;
   const OWNED_UTF8_MEMORY_BYTES = 262144;
   const entries = new Map();
-  const maxLiveEntries = boundedLimit(options.maxOwnedByteEntries, 16, "owned-byte-entry");
+  const maxLiveEntries = boundedLimit(
+    options.maxOwnedByteEntries === undefined && formatSelected ? 64 : options.maxOwnedByteEntries,
+    formatSelected ? 64 : 16, "owned-byte-entry");
   const encoder = new TextEncoder();
   let nextToken = 1;
   let instance = null;
@@ -196,6 +198,36 @@ function createByteDataRuntime(options = {}) {
     entries.set(token, owned);
     const root = 0x80000000n | BigInt(token);
     return BigInt.asIntN(64, (root << 32n) | BigInt(owned.byteLength));
+  };
+  // The compiler selects this private import only for a checked literal
+  // format worker. Zero is its allocation-failure signal; all other byte
+  // imports keep their existing invariant behavior and ABI.
+  const formatStep = (operation, left, right) => {
+    if (!Number.isInteger(operation) || typeof left !== "bigint" || typeof right !== "bigint") {
+      throw new TypeError("SEMAPRAX literal format import shape invariant");
+    }
+    let bytes;
+    try {
+      if (operation === 0) {
+        if (right !== 0n) throw new Error("SEMAPRAX literal format copy operand invariant");
+        bytes = read(decode(left));
+      } else if (operation === 1) {
+        const a = stringBytes(left), b = stringBytes(right);
+        if (a.byteLength > 65536 - b.byteLength) return 0n;
+        bytes = new Uint8Array(a.byteLength + b.byteLength);
+        bytes.set(a, 0); bytes.set(b, a.byteLength);
+      } else if (operation === 2 || operation === 3) {
+        if (right !== 0n) throw new Error("SEMAPRAX literal format numeric operand invariant");
+        bytes = encoder.encode((operation === 3 ? BigInt.asUintN(64, left) : left).toString());
+      } else {
+        throw new Error("SEMAPRAX literal format operation invariant");
+      }
+      if (bytes.byteLength > 65536 || entries.size >= maxLiveEntries || nextToken > 0x7fffffff) return 0n;
+      return allocate(bytes);
+    } catch (failure) {
+      if (failure instanceof RangeError) return 0n;
+      throw failure;
+    }
   };
   const textNumber = (value, unsigned) => {
     if (typeof value !== "bigint") throw new TypeError("SEMAPRAX numeric String input is not i64");
@@ -349,6 +381,7 @@ function createByteDataRuntime(options = {}) {
     collectionBytes += delta; output.setBigInt64(0, token, true); return 0;
   };
   const byteImports = Object.freeze({
+    spx_format_step_v1: formatStep,
     spx_collection_checked_v2: collectionChecked,
     spx_collection_drop_v2: collectionDrop,
     spx_bytes_copy: carrier => allocate(read(decode(carrier))),
@@ -580,6 +613,7 @@ export const imports = {
       // normalizes to the identical status the native C11 backend's
       // `spx_rt_call_depth_failure` reports.
       if (code === 18) throw new SpxSemanticFailure("semaprax.runtime.v1", 1, "SEMAPRAX call-depth admission failure");
+      if (code === 34) throw new SpxSemanticFailure("semaprax.string-format.v1", 1, "SEMAPRAX checked literal format failure");
       if (code === 11) throw new SpxSemanticFailure("semaprax.byte-range.v1", 1, "SEMAPRAX byte range failure");
       if (code === 12) throw new SpxSemanticFailure("semaprax.byte-range.v1", 2, "SEMAPRAX byte range failure");
       if (code === 16) throw new SpxSemanticFailure("semaprax.byte-buffer.v1", 1, "SEMAPRAX owned byte buffer failure");
@@ -933,7 +967,10 @@ function createOwnedRuntime(options = {}) {
 
 export async function instantiateBytes(bytes, options = {}) {
   const authenticatedBytes = await authenticatedWasmBytes(bytes);
-  const byteRuntime = createByteDataRuntime(options);
+  const inspected = await WebAssembly.compile(authenticatedBytes);
+  const formatSelected = WebAssembly.Module.imports(inspected).some(item =>
+    item.module === "env" && item.name === "spx_format_step_v1" && item.kind === "function");
+  const byteRuntime = createByteDataRuntime(options, formatSelected);
   if (Object.keys(SPX_OWNED_EXPORTS).length === 0) {
     const linkedImports = { env: { ...imports.env, ...byteRuntime.imports } };
     const result = await WebAssembly.instantiate(authenticatedBytes, linkedImports);

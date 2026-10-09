@@ -48,6 +48,10 @@ pub(super) struct CallParts<'a> {
 
 pub(super) fn parts(expression: &ResolvedExpr) -> Option<CallParts<'_>> {
     match &expression.kind {
+        ResolvedExprKind::LiteralFormat { args, .. } => Some(CallParts {
+            callee: crate::literal_format::operation_id(), instance: None,
+            args, type_arguments: &[],
+        }),
         ResolvedExprKind::Call {
             callee,
             instance,

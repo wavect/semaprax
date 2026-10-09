@@ -35,7 +35,7 @@ pub(super) fn collect_locals(
                 ));
             }
         }
-        ResolvedExprKind::Call { args, .. } => {
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
             for arg in args {
                 collect_locals(arg, parameter_count, layout)?;
             }

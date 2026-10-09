@@ -707,6 +707,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 end,
             } => self.emit_byte_range_expr(expr, operation, source, start, end),
             ResolvedExprKind::HostCommandCall(_) => self.emit_host_command_expr(expr),
+            ResolvedExprKind::LiteralFormat { template, args } => {
+                self.emit_literal_format(expr, template, args)
+            }
             ResolvedExprKind::Call { .. } => self.emit_call_expr(expr),
             ResolvedExprKind::Closure { .. } if expr.ty.is_once_function() => {
                 super::once::construct(self, expr)

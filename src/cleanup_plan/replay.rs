@@ -669,7 +669,8 @@ fn expression_path_counts_with_while(
                 [left.as_ref(), right.as_ref()].get(index).copied()
             }
             ResolvedExprKind::Invoke { args, .. } => args.get(index),
-            ResolvedExprKind::Call { args, .. } => args.get(index),
+            ResolvedExprKind::Call { args, .. }
+            | ResolvedExprKind::LiteralFormat { args, .. } => args.get(index),
             ResolvedExprKind::NativeRustImportCall(call) => call.args.get(index),
             ResolvedExprKind::HostCommandCall(call) => call.args.get(index),
             ResolvedExprKind::ByteRange {
@@ -835,6 +836,7 @@ fn expression_path_counts_with_while(
                     }
                     ResolvedExprKind::Invoke { .. }
                     | ResolvedExprKind::Call { .. }
+                    | ResolvedExprKind::LiteralFormat { .. }
                     | ResolvedExprKind::NativeRustImportCall(_) => {
                         let accumulator = sequence(children);
                         HirPathCounts {
@@ -1080,7 +1082,9 @@ fn expression_skeleton_work_upper(
                 }
                 ResolvedExprKind::Unary { .. } => 8,
                 ResolvedExprKind::Binary { .. } => 12,
-                ResolvedExprKind::Invoke { args, .. } | ResolvedExprKind::Call { args, .. } => {
+                ResolvedExprKind::Invoke { args, .. }
+                | ResolvedExprKind::Call { args, .. }
+                | ResolvedExprKind::LiteralFormat { args, .. } => {
                     args.len().saturating_mul(6) + 14
                 }
                 ResolvedExprKind::NativeRustImportCall(call) => {
@@ -1320,7 +1324,7 @@ fn expression_path_counts(
             continue;
         }
         result = match &frame.expression.kind {
-            kind if matches!(kind, ResolvedExprKind::Call { .. })
+            kind if matches!(kind, ResolvedExprKind::Call { .. } | ResolvedExprKind::LiteralFormat { .. })
                 || super::native_rust::owns(frame.expression) =>
             {
                 HirPathCounts {
@@ -1706,6 +1710,12 @@ fn collect_expression_statuses(
                             .0
                             .clone(),
                     },
+                });
+            }
+            ResolvedExprKind::LiteralFormat { .. } => {
+                statuses.push(StatusSource {
+                    id: StatusSourceId { expression: expression.id.clone(), lane: StatusLane::OperationFailure },
+                    producer: StatusProducer::PropagatedCall { callee: crate::literal_format::operation_id().clone() },
                 });
             }
             ResolvedExprKind::Call {
@@ -2450,6 +2460,7 @@ fn validate_blocks_and_edges(
                     let params = resolved_call_params(
                         program,
                         function,
+                        find_resolved_expression(function, call).ok_or_else(|| replay_error(function, "call commit expression is absent"))?,
                         &fact.callee,
                         fact.instance.as_ref(),
                         &fact.type_arguments,
@@ -3457,6 +3468,19 @@ fn expression_skeleton(
                             )?);
                         }
                     }
+                    ResolvedExprKind::LiteralFormat { args, .. } => {
+                        let params = resolved_call_params(
+                            program, function, expression, crate::literal_format::operation_id(), None, &[],
+                        )?;
+                        work.charge(1, "literal format skeleton root state")?;
+                        let states = vec![(empty_expr_path(), Vec::new())];
+                        if let Some(argument) = args.first() {
+                            push_frame!(frames, Frame::CallArgument { expression, params, args, index: 0, states });
+                            push_frame!(frames, Frame::Eval(argument));
+                        } else {
+                            produced = Some(finish_call_states(program, function, expression, states, work)?);
+                        }
+                    }
                     ResolvedExprKind::Call {
                         callee,
                         instance,
@@ -3490,7 +3514,7 @@ fn expression_skeleton(
                         let params = if instance.is_none()
                             && crate::map_ops::by_id(callee.as_str()).is_some()
                         {
-                            resolved_call_params(program, function, callee, None, type_arguments)?
+                            resolved_call_params(program, function, expression, callee, None, type_arguments)?
                         } else if let Some(op) = string_intrinsic {
                             crate::string_ops::resolved_params(op)
                         } else if let Some(op) = str_intrinsic {
@@ -3504,7 +3528,7 @@ fn expression_skeleton(
                                 || crate::list_ops::by_id(callee.as_str()).is_some()
                                 || callee.as_str() == crate::stdin_stream_ops::EOF_ID)
                         {
-                            resolved_call_params(program, function, callee, None, type_arguments)?
+                            resolved_call_params(program, function, expression, callee, None, type_arguments)?
                         } else if let Some(op) = vec_intrinsic {
                             let [element] = type_arguments.as_slice() else {
                                 return Err(replay_error(
@@ -3556,7 +3580,7 @@ fn expression_skeleton(
                         if super::native_rust::owns(expression) =>
                     {
                         let params =
-                            resolved_call_params(program, function, &call.import, None, &[])?;
+                            resolved_call_params(program, function, expression, &call.import, None, &[])?;
                         work.charge(1, "owned native call skeleton root state")?;
                         let states = vec![(empty_expr_path(), Vec::new())];
                         if let Some(argument) = call.args.first() {
@@ -7769,6 +7793,12 @@ fn collect_expression_facts(
                     instance: None,
                     arguments: args.iter().map(|a| a.id.clone()).collect(),
                     type_arguments: vec![callable.ty.clone()],
+                }),
+                ResolvedExprKind::LiteralFormat { args, .. } => Some(CallFact {
+                    callee: crate::literal_format::operation_id().clone(),
+                    instance: None,
+                    arguments: args.iter().map(|argument| argument.id.clone()).collect(),
+                    type_arguments: Vec::new(),
                 }),
                 ResolvedExprKind::Call {
                     callee,

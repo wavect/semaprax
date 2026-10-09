@@ -52,6 +52,9 @@ impl Emitter<'_> {
                 type_arguments,
                 args,
             } => self.emit_call(expr, callee, instance.as_ref(), type_arguments, args),
+            ResolvedExprKind::LiteralFormat { template, args } => {
+                self.emit_literal_format(expr, template, args)
+            }
             ResolvedExprKind::Match {
                 mode: crate::hir::ResolvedMatchMode::Value,
                 scrutinee,
@@ -190,7 +193,8 @@ impl Emitter<'_> {
 pub(super) fn expression_has_try(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
         ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => true,
-        ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_try),
+        ResolvedExprKind::Call { args, .. }
+        | ResolvedExprKind::LiteralFormat { args, .. } => args.iter().any(expression_has_try),
         ResolvedExprKind::Invoke { callable, args } => {
             expression_has_try(callable) || args.iter().any(expression_has_try)
         }

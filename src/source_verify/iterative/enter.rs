@@ -293,6 +293,34 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         return_type,
                         implicit_unique_ownership: false,
                     }))
+                } else if name == crate::literal_format::NAME {
+                    if !type_arguments.is_empty() {
+                        self.diagnostics.push(error(self.program, "SPX-T225", "string_format does not accept type arguments", expression.span));
+                    }
+                    if !self.current.type_parameters.is_empty() {
+                        self.diagnostics.push(error(self.program, "SPX-T225", "string_format is not admitted in generic function templates", expression.span));
+                    }
+                    let template = match args.first().map(|arg| &arg.kind) {
+                        Some(ExprKind::String(value)) => value,
+                        _ => {
+                            self.diagnostics.push(error(self.program, "SPX-T204", "string_format requires a compile-time string literal as its first argument", expression.span));
+                            self.values.push(None);
+                            return Ok(());
+                        }
+                    };
+                    let pieces = match crate::literal_format::scan(template) {
+                        Ok(pieces) => pieces,
+                        Err(reason) => {
+                            self.diagnostics.push(error(self.program, "SPX-T204", reason.message(), args[0].span));
+                            self.values.push(None);
+                            return Ok(());
+                        }
+                    };
+                    let fields = crate::literal_format::field_count(&pieces);
+                    if args.len() - 1 != fields {
+                        self.diagnostics.push(error(self.program, "SPX-T204", format!("string_format literal has {fields} fields, received {} values", args.len() - 1), expression.span));
+                    }
+                    VerifierCallTarget::LiteralFormat
                 } else if let Some(op) = crate::string_ops::by_name(name) {
                     // Compiler-owned string operations verify through
                     // the ordinary monomorphic machinery with one
@@ -704,6 +732,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     });
                 } else {
                     self.values.push(Some(match target {
+                        VerifierCallTarget::LiteralFormat => CheckedValue::returned(Type::String, true),
                         VerifierCallTarget::Native(import) => {
                             let mut value = CheckedValue::returned(
                                 import.result.value_type(),

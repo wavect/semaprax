@@ -2421,7 +2421,8 @@ fn resolved_function_imports(function: &hir::ResolvedFunction) -> BTreeSet<hir::
                 visit(start, imports);
                 visit(end, imports);
             }
-            hir::ResolvedExprKind::Call { args, .. }
+            hir::ResolvedExprKind::LiteralFormat { args, .. }
+            | hir::ResolvedExprKind::Call { args, .. }
             | hir::ResolvedExprKind::HostCommandCall(hir::ResolvedHostCommandCall {
                 args, ..
             }) => {

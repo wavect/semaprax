@@ -72,6 +72,7 @@ pub(super) fn push_children<'a>(
         | ResolvedExprKind::BorrowPlace { .. }
         | ResolvedExprKind::ByteRange { .. }
         | ResolvedExprKind::Call { .. }
+        | ResolvedExprKind::LiteralFormat { .. }
         | ResolvedExprKind::NativeRustImportCall(_)
         | ResolvedExprKind::HostCommandCall(_)
         | ResolvedExprKind::Unary { .. }

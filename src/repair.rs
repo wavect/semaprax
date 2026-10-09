@@ -975,6 +975,14 @@ impl StructuralRebase<'_> {
                 self.compare_value_reference(&left.root, &right.root)?;
             }
             (
+                ResolvedExprKind::LiteralFormat { template: left_template, args: left_args },
+                ResolvedExprKind::LiteralFormat { template: right_template, args: right_args },
+            ) if left_template == right_template && left_args.len() == right_args.len() => {
+                for (left, right) in left_args.iter().zip(right_args) {
+                    self.compare_expr(left, right)?;
+                }
+            }
+            (
                 ResolvedExprKind::Call {
                     callee: left_callee,
                     type_arguments: left_types,

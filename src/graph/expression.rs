@@ -101,6 +101,14 @@ pub(super) fn expr_json(
                 )
             }
         }
+        ResolvedExprKind::LiteralFormat { template, args } => {
+            let args = args.iter().map(|argument| expr_json(program, argument))
+                .collect::<Result<Vec<_>, _>>()?.budgeted_join(",");
+            format!(
+                "{{{header},\"kind\":\"literal_format\",\"template\":{},\"args\":[{}]}}",
+                quote_json(template), args
+            )
+        }
         ResolvedExprKind::NativeRustImportCall(call) => {
             let args = call
                 .args

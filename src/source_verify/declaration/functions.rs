@@ -40,7 +40,8 @@ pub(super) fn check_function_declarations<'p>(
                 function.name_span,
             ));
         }
-        if crate::string_ops::by_name(&function.name).is_some()
+        if function.name == crate::literal_format::NAME
+            || crate::string_ops::by_name(&function.name).is_some()
             || crate::map_ops::by_name(&function.name).is_some()
         {
             diagnostics.push(error(

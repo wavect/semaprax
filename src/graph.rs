@@ -1055,7 +1055,7 @@ fn collect_result_propagations<'a>(
             propagations.push(expression);
             collect_result_propagations(operand, propagations);
         }
-        ResolvedExprKind::Call { args, .. } => {
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
             for argument in args {
                 collect_result_propagations(argument, propagations);
             }
@@ -1304,7 +1304,7 @@ fn expression_has_byte_range(expression: &ResolvedExpr) -> bool {
                 pending.extend(args);
             }
             ResolvedExprKind::ByteRange { .. } => return true,
-            ResolvedExprKind::Call { args, .. } => pending.extend(args),
+            ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => pending.extend(args),
             ResolvedExprKind::NativeRustImportCall(call) => pending.extend(&call.args),
             ResolvedExprKind::HostCommandCall(call) => pending.extend(&call.args),
             ResolvedExprKind::Unary { value, .. }
@@ -1403,7 +1403,7 @@ fn expression_has_explicit_match_mode(expression: &ResolvedExpr) -> bool {
                         || expression_has_explicit_match_mode(&arm.value)
                 })
         }
-        ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_explicit_match_mode),
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => args.iter().any(expression_has_explicit_match_mode),
         ResolvedExprKind::NativeRustImportCall(call) => {
             call.args.iter().any(expression_has_explicit_match_mode)
         }
@@ -1713,7 +1713,7 @@ fn expression_has_usize(expression: &ResolvedExpr) -> bool {
                     .any(|index| statement.child(index).is_some_and(expression_has_usize))
             }) || expression_has_usize(tail)
         }
-        ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_usize),
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => args.iter().any(expression_has_usize),
         ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().any(expression_has_usize),
         ResolvedExprKind::HostCommandCall(call) => call.args.iter().any(expression_has_usize),
         ResolvedExprKind::ByteRange {
@@ -1799,7 +1799,7 @@ fn expression_has_while(expression: &ResolvedExpr) -> bool {
                     .any(|index| statement.child(index).is_some_and(expression_has_while)),
             }) || expression_has_while(tail)
         }
-        ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_while),
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => args.iter().any(expression_has_while),
         ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().any(expression_has_while),
         ResolvedExprKind::HostCommandCall(call) => call.args.iter().any(expression_has_while),
         ResolvedExprKind::Unary { value, .. }
@@ -1854,6 +1854,7 @@ fn expression_has_while(expression: &ResolvedExpr) -> bool {
 
 fn expression_has_stdout_write(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
+        ResolvedExprKind::LiteralFormat { args, .. } => args.iter().any(expression_has_stdout_write),
         ResolvedExprKind::Call { callee, args, .. } => {
             callee.as_str() == crate::host_io_ops::STDOUT_WRITE_ID
                 || args.iter().any(expression_has_stdout_write)
@@ -1936,7 +1937,7 @@ fn expression_has_command_io(expression: &ResolvedExpr) -> bool {
                 || expression_has_command_io(start)
                 || expression_has_command_io(end)
         }
-        ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_command_io),
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => args.iter().any(expression_has_command_io),
         ResolvedExprKind::NativeRustImportCall(call) => {
             call.args.iter().any(expression_has_command_io)
         }
@@ -2041,7 +2042,7 @@ fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
                 || expression_has_record_pattern(start)
                 || expression_has_record_pattern(end)
         }
-        ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_record_pattern),
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => args.iter().any(expression_has_record_pattern),
         ResolvedExprKind::NativeRustImportCall(call) => {
             call.args.iter().any(expression_has_record_pattern)
         }
@@ -2146,7 +2147,7 @@ fn expression_has_refutable_match(expression: &ResolvedExpr) -> bool {
                 })
             }) || expression_has_refutable_match(tail)
         }
-        ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_refutable_match),
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => args.iter().any(expression_has_refutable_match),
         ResolvedExprKind::NativeRustImportCall(call) => {
             call.args.iter().any(expression_has_refutable_match)
         }
@@ -2304,7 +2305,7 @@ fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSe
         ResolvedExprKind::BorrowPlace { place, .. } => {
             values.insert(place.root.clone());
         }
-        ResolvedExprKind::Call { args, .. } => {
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
             for argument in args {
                 collect_agent_contract_values(argument, values);
             }
@@ -2484,6 +2485,11 @@ pub(crate) fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<Stri
                     args
                 )
             }
+        }
+        ResolvedExprKind::LiteralFormat { template, args } => {
+            let args = args.iter().map(agent_contract_expr_json)
+                .collect::<Result<Vec<_>, _>>()?.budgeted_join(",");
+            format!("{{\"kind\":\"literal_format\",\"template\":{},\"args\":[{}]}}", quote_json(template), args)
         }
         ResolvedExprKind::NativeRustImportCall(_) => {
             return Err(Diagnostic::io(
@@ -4787,7 +4793,7 @@ fn visit_expr_call_instances(
         | ResolvedExprKind::RepeatArrayU8 { .. }
         | ResolvedExprKind::Place(_)
         | ResolvedExprKind::BorrowPlace { .. } => {}
-        ResolvedExprKind::Call { args, .. } => {
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
             for argument in args {
                 visit_expr_call_instances(argument, visit);
             }
@@ -4893,6 +4899,11 @@ fn visit_expr_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&Declarati
         | ResolvedExprKind::BorrowPlace { .. } => {}
         ResolvedExprKind::Call { callee, args, .. } => {
             visit(callee);
+            for argument in args {
+                visit_expr_calls(argument, visit);
+            }
+        }
+        ResolvedExprKind::LiteralFormat { args, .. } => {
             for argument in args {
                 visit_expr_calls(argument, visit);
             }
@@ -5021,7 +5032,7 @@ fn collect_expr_type_declarations(
         | ResolvedExprKind::RepeatArrayU8 { .. }
         | ResolvedExprKind::Place(_)
         | ResolvedExprKind::BorrowPlace { .. } => {}
-        ResolvedExprKind::Call { args, .. } => {
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
             for argument in args {
                 collect_expr_type_declarations(argument, declarations);
             }
@@ -5304,7 +5315,7 @@ fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, Re
         | ResolvedExprKind::RepeatArrayU8 { .. }
         | ResolvedExprKind::Place(_)
         | ResolvedExprKind::BorrowPlace { .. } => {}
-        ResolvedExprKind::Call { args, .. } => {
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
             for argument in args {
                 collect_expr_types(argument, types);
             }
@@ -5581,11 +5592,9 @@ fn unary_text(op: UnaryOp) -> &'static str {
 fn binary_text(op: BinaryOp) -> &'static str {
     op.text()
 }
-
 #[cfg(test)]
 #[path = "graph/tests.rs"]
 mod tests;
-
 #[cfg(test)]
 #[path = "graph/nested_owned_records_tests.rs"]
 mod nested_owned_records_tests;

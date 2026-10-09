@@ -5,6 +5,7 @@ use crate::cache_codec::{self, codec_struct};
 use std::collections::BTreeSet;
 
 mod loan_replay;
+mod literal_format;
 
 struct Snapshot {
     context: String,
@@ -210,6 +211,7 @@ pub(crate) fn decode_snapshot(bytes: &[u8]) -> Result<ProjectFrontendCache> {
         }
         crate::hir::replay_agent_source_associations(&program, &entry.resolved.agents)
             .map_err(|error| vec![error])?;
+        literal_format::replay_source(&entry.source, &entry.synthetic, &entry.resolved)?;
         loan_replay::reconstruct(&mut entry.resolved)?;
         sources.push(ProjectFrontendSource::new(&entry.path, &entry.source)?);
         cache.entries.insert(

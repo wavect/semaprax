@@ -61,7 +61,7 @@ use crate::bounded_output::{with_limit, BudgetedJoin as _};
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::hir::{
     OwnershipMode, ResolvedBinding, ResolvedExpr, ResolvedExprKind, ResolvedFunction,
-    ResolvedMatchPattern, ResolvedProgram, ResolvedRecordMatchFieldPattern, ResolvedStatement,
+    ResolvedMatchPattern, ResolvedProgram, ResolvedRecordMatchFieldPattern, ResolvedStatement, ResolvedType,
 };
 use crate::{graph, hir, parse, patch, verify};
 
@@ -441,6 +441,19 @@ fn collect_expr(
             collect_expr(source, scope_end, resolved, facts);
             collect_expr(start, scope_end, resolved, facts);
             collect_expr(end, scope_end, resolved, facts);
+        }
+        ResolvedExprKind::LiteralFormat { args, .. } => {
+            for argument in args {
+                collect_expr(argument, scope_end, resolved, facts);
+                if argument.ty == ResolvedType::String {
+                    if let ResolvedExprKind::Place(place) = &argument.kind {
+                        facts.consumption_sites.push(ConsumptionSite {
+                            binding: place.root.as_str().to_owned(),
+                            offset: argument.span.start,
+                        });
+                    }
+                }
+            }
         }
         ResolvedExprKind::Call {
             callee,

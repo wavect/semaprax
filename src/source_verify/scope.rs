@@ -314,6 +314,7 @@ pub(super) struct VariantMatchState<'a> {
 }
 
 pub(super) enum VerifierCallTarget<'a> {
+    LiteralFormat,
     Native(&'a ImportDeclaration),
     Byte(crate::byte_ops::ByteOp),
     HostIo(crate::host_io_ops::HostIoOp),
@@ -535,6 +536,7 @@ pub(super) fn verifier_frame_owned_capacity(frame: &VerifierFrame<'_>) -> usize 
                 .saturating_mul(std::mem::size_of::<&str>()),
         ),
         VerifierFrame::ResumeCallArgument { target, .. } => match target {
+            VerifierCallTarget::LiteralFormat => 0,
             VerifierCallTarget::Native(_) => 0,
             VerifierCallTarget::Byte(_)
             | VerifierCallTarget::HostIo(_)

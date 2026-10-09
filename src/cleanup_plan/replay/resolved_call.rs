@@ -249,10 +249,24 @@ pub(super) fn owned_try_residual_result_place(
 pub(super) fn resolved_call_params(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
+    expression: &crate::hir::ResolvedExpr,
     callee: &DeclarationId,
     instance: Option<&FunctionInstanceId>,
     type_arguments: &[ResolvedType],
 ) -> Result<Vec<ResolvedParam>, Diagnostic> {
+    if callee.as_str() == crate::literal_format::ID {
+        let ResolvedExprKind::LiteralFormat { args, template } = &expression.kind else {
+            return Err(replay_error(function, "literal format callee lacks its dedicated operation"));
+        };
+        let pieces = crate::literal_format::scan(template)
+            .map_err(|reason| replay_error(function, reason.message()))?;
+        if instance.is_some() || !type_arguments.is_empty()
+            || args.len() != crate::literal_format::field_count(&pieces)
+            || args.iter().any(|arg| !crate::literal_format::accepts_hir_type(&arg.ty)) {
+            return Err(replay_error(function, "literal format replay signature is inconsistent"));
+        }
+        return Ok(crate::literal_format::resolved_params(args));
+    }
     if instance.is_none() {
         if let Some(params) = crate::hir::closure::once::params(callee) {
             if !type_arguments.is_empty() {

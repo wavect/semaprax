@@ -23,6 +23,7 @@ pub(super) mod conversions;
 mod filesystem_checked;
 mod filesystem_ops;
 mod filesystem_v2;
+mod literal_format;
 mod generic_record;
 mod generic_variant;
 mod guarded_variant;
@@ -163,6 +164,7 @@ pub(super) const STATUS_VEC_GET_OUT_OF_BOUNDS: i32 = 14;
 pub(super) const STATUS_VEC_ALLOCATION_FAILURE: i32 = 15;
 pub(super) const STATUS_BYTE_BUFFER_INDEX_OUT_OF_BOUNDS: i32 = 16;
 pub(super) const STATUS_BOX_ALLOCATION_FAILURE: i32 = 17;
+pub(super) const STATUS_STRING_FORMAT_FAILURE: i32 = 34;
 pub(super) const STATUS_LIST_LENGTH_LIMIT: i32 = 19;
 pub(super) const STATUS_LIST_MEMORY_LIMIT: i32 = 20;
 pub(super) const STATUS_INTERNAL_INVALID_TAG: i32 = -1;
@@ -253,6 +255,8 @@ struct FunctionPlan {
     function_callables: HashMap<ExpressionId, u32>,
     function_arguments: HashMap<ExpressionId, u32>,
     range_descriptors: HashMap<ExpressionId, u32>,
+    literal_format_scratch: HashMap<ExpressionId, [u32; 3]>,
+    literal_format_args: HashMap<ExpressionId, Vec<Option<u32>>>,
     range_scratch: Option<RangeScratch>,
     copy_record_scratch: Option<[u32; 14]>,
     cleanup_flags: std::collections::BTreeMap<crate::cleanup::LivenessFlagId, u32>,
@@ -517,6 +521,8 @@ impl FunctionPlan {
             function_callables: HashMap::new(),
             function_arguments: HashMap::new(),
             range_descriptors: HashMap::new(),
+            literal_format_scratch: HashMap::new(),
+            literal_format_args: HashMap::new(),
             range_scratch,
             copy_record_scratch,
             cleanup_flags,
@@ -612,6 +618,7 @@ impl FunctionPlan {
             if matches!(
                 expr.kind,
                 ResolvedExprKind::Call { .. }
+                    | ResolvedExprKind::LiteralFormat { .. }
                     | ResolvedExprKind::HostCommandCall(_)
                     | ResolvedExprKind::Invoke { .. }
             ) {
@@ -677,6 +684,9 @@ impl FunctionPlan {
                 }
             }
             ResolvedExprKind::FunctionReference { .. } => {}
+            ResolvedExprKind::LiteralFormat { args, .. } => {
+                self.collect_literal_format(program, variant_layouts, expr, args, parameter_count, frame)?;
+            }
             ResolvedExprKind::Call { args, .. } => {
                 self.collect_exprs(program, variant_layouts, args, parameter_count, frame)?
             }
@@ -925,6 +935,9 @@ fn expression_uses_str_ops(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
         ResolvedExprKind::Invoke { callable, args } => {
             expression_uses_str_ops(callable) || args.iter().any(expression_uses_str_ops)
+        }
+        ResolvedExprKind::LiteralFormat { args, .. } => {
+            args.iter().any(expression_uses_str_ops)
         }
         ResolvedExprKind::Call { callee, args, .. } => {
             crate::str_ops::by_id(callee.as_str()).is_some_and(|op| {
@@ -2570,6 +2583,7 @@ fn emit_profile_with_scalar_exports(
     );
     let map_types = map_collections::import_types(program, &mut types, &mut type_indexes);
     let toolkit_types = text_toolkit::import_types(program, &mut types, &mut type_indexes);
+    let format_step_type = literal_format::import_type(program, &mut types, &mut type_indexes);
     let map_count = if uses_maps {
         map_collections::IMPORT_COUNT
     } else {
@@ -2757,6 +2771,7 @@ fn emit_profile_with_scalar_exports(
                 *ty,
             );
         }
+        literal_format::emit_import(&mut imports, format_step_type);
         let base = SCALAR_IMPORT_COUNT
             + if uses_byte_data { BYTE_IMPORT_COUNT } else { 0 }
             + if uses_owned_buffer {
@@ -2796,6 +2811,7 @@ fn emit_profile_with_scalar_exports(
                     + offset as u32,
             );
         }
+        literal_format::insert_index(&mut function_indexes, base, program, toolkit_types.len(), format_step_type);
     }
     if let Some(types) = map_types {
         let base = SCALAR_IMPORT_COUNT
@@ -4803,7 +4819,8 @@ impl Emitter<'_> {
             | ResolvedExprKind::Binary { .. }
             | ResolvedExprKind::Block { .. }
             | ResolvedExprKind::If { .. }
-            | ResolvedExprKind::Call { .. } => {
+            | ResolvedExprKind::Call { .. }
+            | ResolvedExprKind::LiteralFormat { .. } => {
                 unreachable!("recursive expression is handled by the small dispatcher")
             }
             ResolvedExprKind::ConstructRecord { record, fields } => {

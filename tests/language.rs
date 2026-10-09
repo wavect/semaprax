@@ -31,6 +31,8 @@ mod character_scalars;
 mod class_declarations;
 #[path = "language/class_inheritance.rs"]
 mod class_inheritance;
+#[path = "language/checked_literal_format.rs"]
+mod checked_literal_format;
 #[path = "language/collection_law_pack.rs"]
 mod collection_law_pack;
 #[path = "language/control_flow.rs"]

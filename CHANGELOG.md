@@ -9,6 +9,10 @@
   flat scalar records, typed invalid-input outcomes, exact output preflight and
   exclusive-create CLI publication. Preserve original profile admission and
   scanner semantics; first-tranche backend gates remain pending.
+- Add the source-checked `string_format` literal operation with bounded brace
+  grammar, grouped owned-argument staging, raw-template HIR/graph projection,
+  and private interpreter, C11 and Core-Wasm rendering. Current-head focused
+  and owning executable verification are pending.
 
 - Store immutable loan endpoint and edge identity lists as exact boxed slices,
   retaining list order and cache encoding while charging shrinking overlap.

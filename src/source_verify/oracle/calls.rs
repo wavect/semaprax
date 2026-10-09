@@ -519,6 +519,36 @@ pub(super) fn oracle_call(
             )
         });
     }
+    if name == crate::literal_format::NAME {
+        if !type_arguments.is_empty() || !current.type_parameters.is_empty() {
+            diagnostics.push(error(program, "SPX-T225", "string_format is admitted only in monomorphic functions without type arguments", expr.span));
+        }
+        let Some(Expr { kind: crate::ast::ExprKind::String(template), .. }) = args.first() else {
+            diagnostics.push(error(program, "SPX-T204", "string_format requires a compile-time string literal as its first argument", expr.span));
+            return None;
+        };
+        match crate::literal_format::scan(template) {
+            Ok(pieces) if crate::literal_format::field_count(&pieces) != args.len() - 1 => diagnostics.push(error(program, "SPX-T204", format!("string_format literal has {} fields, received {} values", crate::literal_format::field_count(&pieces), args.len() - 1), expr.span)),
+            Err(reason) => diagnostics.push(error(program, "SPX-T204", reason.message(), args[0].span)),
+            _ => {},
+        }
+        for (index, arg) in args.iter().enumerate().skip(1) {
+            let actual = check_expr(program, current, arg, variables, functions, types, result_type, allow_moves, diagnostics);
+            if let Some(actual) = actual {
+                reject_native_unit_value(program, arg, &actual, diagnostics);
+                if !actual.native_unit && !crate::literal_format::accepts_ast_type(&actual.ty) {
+                    diagnostics.push(error(program, "SPX-T205", format!("string_format value {} must be i64, u8, usize, bool, or own string", index - 1), arg.span));
+                }
+                let parameter = Param {
+                    name: format!("value{}", index - 1),
+                    mode: if actual.ty == Type::String { ParamMode::Own } else { ParamMode::Value },
+                    ty: actual.ty.clone(), span: arg.span,
+                };
+                check_argument_ownership(program, current, name, arg, &parameter, Some(&actual), variables, types, allow_moves, false, false, diagnostics);
+            }
+        }
+        return Some(CheckedValue::returned(Type::String, true));
+    }
     if crate::map_ops::by_generic_name(name, type_arguments).is_some()
         || crate::string_ops::by_name(name).is_some()
         || crate::str_ops::by_name(name).is_some()

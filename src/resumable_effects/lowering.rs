@@ -661,7 +661,7 @@ fn relocate_expression(
             relocate_expression(start, execution, &format!("{path}.arg.1"), values)?;
             relocate_expression(end, execution, &format!("{path}.arg.2"), values)?;
         }
-        ResolvedExprKind::Call { args, .. } => {
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
             relocate_arguments(args, execution, path, "arg", values)?;
         }
         ResolvedExprKind::NativeRustImportCall(call) => {

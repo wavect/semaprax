@@ -30,6 +30,23 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         let actual = self.values.pop().unwrap_or(None);
         let argument = &args[index];
         match &target {
+            VerifierCallTarget::LiteralFormat => {
+                if index > 0 {
+                    if let Some(actual) = &actual {
+                        reject_native_unit_value(self.program, argument, actual, self.diagnostics);
+                        if !actual.native_unit && !crate::literal_format::accepts_ast_type(&actual.ty) {
+                            self.diagnostics.push(error(self.program, "SPX-T205", format!("string_format value {} must be i64, u8, usize, bool, or own string", index - 1), argument.span));
+                        }
+                        let parameter = crate::ast::Param {
+                            name: format!("value{}", index - 1),
+                            mode: if actual.ty == Type::String { ParamMode::Own } else { ParamMode::Value },
+                            ty: actual.ty.clone(),
+                            span: argument.span,
+                        };
+                        check_argument_ownership(self.program, self.current, name, argument, &parameter, Some(actual), &mut self.scopes[scope].bindings, self.types, self.allow_moves, false, false, self.diagnostics);
+                    }
+                }
+            }
             VerifierCallTarget::Native(import) => {
                 if let (Some(actual), Some(parameter)) = (actual.as_ref(), import.params.get(index))
                 {
@@ -202,6 +219,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 &borrowed_bytes_loans,
             );
             let output = match target {
+                VerifierCallTarget::LiteralFormat => Some(CheckedValue::returned(Type::String, true)),
                 VerifierCallTarget::Native(import) => {
                     let mut value = CheckedValue::returned(
                         import.result.value_type(),

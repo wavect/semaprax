@@ -15,11 +15,19 @@ pub(super) const FROM_USIZE: u32 = 4;
 pub(super) const STARTS_WITH: u32 = 5;
 pub(super) const CONTAINS: u32 = 6;
 pub(super) const COMPARE: u32 = 7;
+pub(super) const FORMAT_STEP_ID: &str = "core.string.format.private-step.v1";
+
+pub(super) fn program_uses_format(program: &ResolvedProgram) -> bool {
+    program.functions.iter().chain(program.function_instances.iter().map(|instance| &instance.function))
+        .any(|function| std::iter::once(&function.body).chain(&function.requires).chain(&function.ensures)
+            .any(crate::literal_format::expression_uses))
+}
 
 pub(super) fn import_count(program: &ResolvedProgram) -> u32 {
     IMPORT_COUNT
         + u32::from(program_uses_ordering(program))
         + text_toolkit::selected(program).len() as u32
+        + u32::from(program_uses_format(program))
 }
 
 pub(super) fn program_uses_ordering(program: &ResolvedProgram) -> bool {
@@ -115,6 +123,9 @@ pub(super) fn program_uses_runtime(program: &ResolvedProgram) -> bool {
 fn expression_uses_runtime(expression: &ResolvedExpr) -> bool {
     let mut pending = vec![expression];
     while let Some(expression) = pending.pop() {
+        if matches!(expression.kind, ResolvedExprKind::LiteralFormat { .. }) {
+            return true;
+        }
         if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
             if crate::string_ops::by_id(callee.as_str()).is_some_and(requires_runtime) {
                 return true;

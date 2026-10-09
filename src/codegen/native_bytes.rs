@@ -40,6 +40,39 @@ pub(super) struct NativeBytesPlan {
 }
 
 impl NativeBytesPlan {
+    pub(super) fn authenticate_literal_format_commit(
+        &self,
+        call: &ExpressionId,
+        args: &[crate::hir::ResolvedExpr],
+    ) -> Result<(), Diagnostic> {
+        let mut commits = self.transitions.get(call).into_iter().flatten().filter_map(|transition| {
+            match transition {
+                CleanupTransition::CallCommit { call: owner, arguments } if owner == call => Some(arguments),
+                _ => None,
+            }
+        });
+        let arguments = commits.next().ok_or_else(|| error("literal format lacks canonical CallCommit"))?;
+        if commits.next().is_some() {
+            return Err(error("literal format has duplicate CallCommit"));
+        }
+        let expected = args.iter().enumerate().filter(|(_, argument)| argument.ty == crate::hir::ResolvedType::String)
+            .collect::<Vec<_>>();
+        if arguments.len() != expected.len() {
+            return Err(error("literal format CallCommit ownership disagrees"));
+        }
+        for (transfer, (index, argument)) in arguments.iter().zip(expected) {
+            if transfer.parameter_index != index as u32
+                || !transfer.source.projections.is_empty()
+                || !matches!(&transfer.source.storage,
+                    StorageId::CallArgument { call: owner, parameter_index, value_expression }
+                    if owner == call && *parameter_index == index as u32 && value_expression == &argument.id)
+            {
+                return Err(error("literal format CallCommit is not source-authenticated"));
+            }
+        }
+        Ok(())
+    }
+
     pub(super) fn build(function: &ResolvedFunction) -> Result<Option<Self>, Diagnostic> {
         let mut slots = BTreeMap::new();
         let mut storage_leaves = BTreeMap::<StorageId, Vec<CleanupPlace>>::new();

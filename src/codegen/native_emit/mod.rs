@@ -40,6 +40,7 @@ mod guarded_variant;
 mod http_io;
 mod indexed_reads;
 mod literals;
+mod literal_format;
 mod map_collections;
 mod narrow_remainder;
 mod native_list;
@@ -551,6 +552,7 @@ fn emit_native_prelude_inner(
     if program_uses_numeric_text(program, strings.include_instances) {
         output.push_str(NATIVE_NUMERIC_TEXT_RUNTIME_C);
     }
+    literal_format::emit_runtime(output, program, strings);
     if strings.length_delimited
         && text_toolkit::program_uses_text_toolkit(program, strings.include_instances)
     {
@@ -642,7 +644,6 @@ fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
     crate::box_ops::resolved_program_uses_owned_payload(program)
         || crate::vec_ops::resolved_program_uses_owned_payload(program)
 }
-
 /// Store helpers added after the frozen byte runtime are emitted only for a
 /// resolved call that can reach them. This keeps legacy native projections and
 /// generated package pins byte exact while retaining the helper definitions

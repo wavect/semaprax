@@ -1168,7 +1168,8 @@ impl InventoryBuilder<'_> {
                                 args.get(index - 1)
                             };
                         }
-                        ResolvedExprKind::Call { args, .. } => {
+                        ResolvedExprKind::Call { args, .. }
+                        | ResolvedExprKind::LiteralFormat { args, .. } => {
                             enter = args.get(index);
                         }
                         ResolvedExprKind::NativeRustImportCall(call) => {

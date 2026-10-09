@@ -21,6 +21,7 @@ pub(super) fn artifacts(
     let facts: serde_json::Value = serde_json::from_str(module.descriptor())
         .map_err(|_| super::super::error("invalid emitted descriptor"))?;
     let toolkit = facts["profile"] == "text-toolkit-v1";
+    let literal_format = facts["literal_format_v1"] == true;
     // Only compiler-derived hexadecimal and decimal constants enter this
     // executable template. Source names and stable identities never do.
     let mut app = include_str!("app.js")
@@ -36,6 +37,14 @@ pub(super) fn artifacts(
         app = app.replace("['schema','runtime_schema'", "['profile','capabilities','schema','runtime_schema'")
             .replace("value.schema!=='semaprax.wasm-internal-strings.v1'", "value.profile!=='text-toolkit-v1'||!Array.isArray(value.capabilities)||value.capabilities.length>1||value.capabilities.some(effect=>effect!=='fs.read')||value.schema!=='semaprax.wasm-text-toolkit.v1'")
             .replace("value.runtime_schema!=='semaprax.wasm-internal-strings.runtime.v1'", "value.runtime_schema!=='semaprax.wasm-text-toolkit.runtime.v1'");
+    } else if literal_format {
+        app = app.replace("['schema','runtime_schema'", "['profile','literal_format_v1','schema','runtime_schema'")
+            .replace("value.schema!=='semaprax.wasm-internal-strings.v1'", "value.profile!=='literal-format-v1'||value.literal_format_v1!==true||value.schema!=='semaprax.wasm-literal-format.v1'")
+            .replace("value.runtime_schema!=='semaprax.wasm-internal-strings.runtime.v1'", "value.runtime_schema!=='semaprax.wasm-literal-format.runtime.v1'");
+    }
+    if toolkit && literal_format {
+        app = app.replace("['profile','capabilities','schema'", "['profile','capabilities','literal_format_v1','schema'")
+            .replace("value.profile!=='text-toolkit-v1'", "value.literal_format_v1!==true||value.profile!=='text-toolkit-v1'");
     }
     let mut files = vec![
         ("app.wasm", module.wasm_bytes().to_vec()),
@@ -62,7 +71,7 @@ pub(super) fn artifacts(
         })
         .collect::<Vec<_>>()
         .join(",");
-    let manifest = format!("{{\"schema\":\"semaprax.web-internal-strings.v1\",\"module\":{},\"source_digest\":{},\"graph_revision\":{},\"compiler_schema\":{},\"runtime_schema\":{},\"capabilities\":[],\"artifacts\":[{}]}}\n", quote_json(module_name), quote_json(&digest(source.as_bytes())), quote_json(revision), quote_json(if toolkit { super::super::TOOLKIT_SCHEMA } else { SCHEMA }), quote_json(if toolkit { super::super::TOOLKIT_RUNTIME_SCHEMA } else { RUNTIME_SCHEMA }), rows);
+    let manifest = format!("{{\"schema\":\"semaprax.web-internal-strings.v1\",\"module\":{},\"source_digest\":{},\"graph_revision\":{},\"compiler_schema\":{},\"runtime_schema\":{},\"capabilities\":[],\"artifacts\":[{}]}}\n", quote_json(module_name), quote_json(&digest(source.as_bytes())), quote_json(revision), quote_json(if toolkit { super::super::TOOLKIT_SCHEMA } else if literal_format { super::super::LITERAL_FORMAT_SCHEMA } else { SCHEMA }), quote_json(if toolkit { super::super::TOOLKIT_RUNTIME_SCHEMA } else if literal_format { super::super::LITERAL_FORMAT_RUNTIME_SCHEMA } else { RUNTIME_SCHEMA }), rows);
     let manifest = if toolkit {
         manifest
             .replace(
@@ -73,6 +82,8 @@ pub(super) fn artifacts(
                 "\"capabilities\":[]",
                 &format!("\"capabilities\":{}", facts["capabilities"]),
             )
+    } else if literal_format {
+        manifest.replace("\"schema\":\"semaprax.web-internal-strings.v1\"", "\"schema\":\"semaprax.web-literal-format.v1\"")
     } else {
         manifest
     };
@@ -117,6 +128,18 @@ fn declarations(descriptor: &str) -> Result<String, Diagnostic> {
             .replace("StringOutcome<bigint>;", "StringOutcome<bigint> | ToolkitFailure;")
             .replace("StringOutcome<boolean>;", "StringOutcome<boolean> | ToolkitFailure;")
             .replace("instantiate(bytes: Uint8Array)", "instantiate(bytes: Uint8Array, options?: Readonly<{maxOwnedCollections?: number; maxOwnedCollectionBytes?: number; fileReadText?: Readonly<{read(path: Uint8Array, maximum: number): Readonly<{ok: true; bytes: Uint8Array}> | Readonly<{ok: false; code: 1|2|3|4|5|6|7}>}>}>)");
+    }
+    if value["literal_format_v1"] == true {
+        text = text.replace(
+            "export interface StringFacade",
+            "export type LiteralFormatFailure = Readonly<{kind: 'failure'; domain: 'semaprax.string-format.v1'; code: 1}>;\nexport interface StringFacade",
+        );
+        text = if value["profile"] == "text-toolkit-v1" {
+            text.replace("| ToolkitFailure;", "| ToolkitFailure | LiteralFormatFailure;")
+        } else {
+            text.replace("StringOutcome<bigint>;", "StringOutcome<bigint> | LiteralFormatFailure;")
+                .replace("StringOutcome<boolean>;", "StringOutcome<boolean> | LiteralFormatFailure;")
+        };
     }
     Ok(text)
 }

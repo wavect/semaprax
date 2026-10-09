@@ -104,6 +104,13 @@ fn prepare_profile(
             .ok_or_else(|| error("standalone String callee is absent"))?;
         pending.extend(children.iter().filter(|id| !closure.contains(*id)).cloned());
     }
+    let literal_format = program.functions.iter().any(|function| {
+        closure.contains(&function.id)
+            && std::iter::once(&function.body)
+                .chain(&function.requires)
+                .chain(&function.ensures)
+                .any(crate::literal_format::expression_uses)
+    });
     let mut nodes = 0usize;
     let mut literals = BTreeSet::new();
     let mut literal_bytes = 0usize;
@@ -130,6 +137,7 @@ fn prepare_profile(
                 copy_variants,
                 toolkit,
                 general_guards,
+                literal_format,
             ) || general_guards
                 && crate::variant_guards::copy_variant(
                     &program.declarations,
@@ -176,6 +184,7 @@ fn prepare_profile(
                         copy_variants,
                         toolkit,
                         general_guards,
+                        literal_format,
                     ) || general_guards
                         && crate::variant_guards::copy_variant(
                             &program.declarations,
@@ -208,6 +217,7 @@ fn prepare_profile(
                     copy_variants,
                     toolkit,
                     general_guards,
+                    literal_format,
                 )
             {
                 return Err(error(
@@ -273,6 +283,7 @@ fn prepare_profile(
                     }
                 }
                 ResolvedExprKind::Place(place) if place.projections.is_empty() || toolkit && place.projections.iter().all(|projection| matches!(projection, hir::PlaceProjection::Field(_))) => {}
+                ResolvedExprKind::LiteralFormat { .. } if literal_format => {}
                 ResolvedExprKind::Call { callee, instance, type_arguments, args }
                     if toolkit && instance.is_none()
                         && crate::map_ops::by_id(callee.as_str()).and_then(|op| op.resolved_signature(type_arguments))
@@ -495,6 +506,7 @@ fn signature_type(
     copy_variants: bool,
     toolkit: bool,
     general_guards: bool,
+    literal_format: bool,
 ) -> bool {
     internal_type(ty)
         || general_guards && hir::is_scalar_resolved_type(ty)
@@ -506,7 +518,7 @@ fn signature_type(
                 || crate::map_ops::is_collection(ty)
                 || hir::owned_text_record::admitted(ty, &program.declarations))
         || toolkit && matches!(ty, ResolvedType::F64 | ResolvedType::Str)
-        || copy_variants && matches!(ty, ResolvedType::U8 | ResolvedType::Usize)
+        || (copy_variants || literal_format) && matches!(ty, ResolvedType::U8 | ResolvedType::Usize)
 }
 
 fn expression_type(
@@ -515,8 +527,9 @@ fn expression_type(
     copy_variants: bool,
     toolkit: bool,
     general_guards: bool,
+    literal_format: bool,
 ) -> bool {
-    signature_type(program, ty, copy_variants, toolkit, general_guards)
+    signature_type(program, ty, copy_variants, toolkit, general_guards, literal_format)
         || toolkit && hir::is_admitted_owned_string_variant(&program.declarations, ty)
         || copy_variants
             && (matches!(ty, ResolvedType::ArrayU8(_) | ResolvedType::SliceU8)
@@ -530,6 +543,7 @@ fn condition_allocates_string(condition: &hir::ResolvedExpr) -> bool {
             && matches!(
                 expression.kind,
                 ResolvedExprKind::String(_) | ResolvedExprKind::Call { .. }
+                    | ResolvedExprKind::LiteralFormat { .. }
             )
         {
             return true;

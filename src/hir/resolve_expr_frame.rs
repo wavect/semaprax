@@ -59,6 +59,18 @@ pub(super) enum Frame<'expr> {
         op: crate::string_ops::StringOp,
         argument_count: usize,
     },
+    FinishLiteralFormat {
+        span: Span,
+        path: String,
+        template: String,
+        argument_count: usize,
+    },
+    LiteralFormatArgNext {
+        args: &'expr [Expr],
+        index: usize,
+        bindings: Rc<BTreeMap<String, Binding>>,
+        path: String,
+    },
     FinishStrOp {
         span: Span,
         path: String,
@@ -505,6 +517,7 @@ pub(super) fn frame_owned_capacity(
     };
     let retained = match frame {
         Frame::FinishInvoke { callable, .. } => resolved_expr_owned_capacity(callable),
+        Frame::FinishLiteralFormat { template, .. } => template.capacity(),
         Frame::FinishMethodCall { type_arguments, .. } => {
             type_arguments.capacity() * std::mem::size_of::<ResolvedType>()
                 + type_arguments

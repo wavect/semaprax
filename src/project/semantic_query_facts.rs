@@ -370,7 +370,8 @@ fn push_children<'a>(expression: &'a ResolvedExpr, pending: &mut Vec<&'a Resolve
         } => {
             pending.extend([end.as_ref(), start.as_ref(), source.as_ref()]);
         }
-        ResolvedExprKind::Call { args, .. }
+        ResolvedExprKind::LiteralFormat { args, .. }
+        | ResolvedExprKind::Call { args, .. }
         | ResolvedExprKind::NativeRustImportCall(crate::hir::ResolvedNativeRustImportCall {
             args,
             ..
@@ -724,6 +725,7 @@ fn expression_kind(kind: &ResolvedExprKind) -> &'static str {
         ResolvedExprKind::FunctionReference { .. } => "function_reference",
         ResolvedExprKind::Invoke { .. } => "invoke",
         ResolvedExprKind::Call { .. } => "call",
+        ResolvedExprKind::LiteralFormat { .. } => "literal_format",
         ResolvedExprKind::NativeRustImportCall(_) => "native_import_call",
         ResolvedExprKind::HostCommandCall(_) => "host_command_call",
         ResolvedExprKind::Unary { .. } => "unary",

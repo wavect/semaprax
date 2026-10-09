@@ -1016,7 +1016,8 @@ mod carrier_tests {
                     path_len,
                 )
                 .unwrap();
-                let actual_closure_body_len = closure_body_identity_upper(creation_len).unwrap();
+                let actual_closure_body_len =
+                    closure_body_identity_upper(creation_len, "body".len()).unwrap();
                 path_len = path_len.checked_add(increment).unwrap();
                 let synthetic_upper = scoped_expression_identity_upper(
                     function,
@@ -1025,6 +1026,21 @@ mod carrier_tests {
                 )
                 .unwrap();
                 assert!(synthetic_upper >= actual_closure_body_len);
+
+                let descendant_suffix_len = ".value".len();
+                let actual_descendant_len = closure_body_identity_upper(
+                    creation_len,
+                    "body".len() + descendant_suffix_len,
+                )
+                .unwrap();
+                let synthetic_descendant = scoped_expression_identity_upper(
+                    function,
+                    generic_identity_len,
+                    path_len + descendant_suffix_len,
+                )
+                .unwrap();
+                assert!(synthetic_descendant >= actual_descendant_len);
+                path_len += descendant_suffix_len;
             }
         }
     }

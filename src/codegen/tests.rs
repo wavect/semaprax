@@ -494,9 +494,9 @@ fn scalar_c_output_matches_the_committed_pre_resource_template_baseline() {
     );
     assert_eq!(
         digest,
-        // Restoring only the pre-conversion-help scalar runtime reproduces
-        // the prior baseline byte for byte; all other generated C is unchanged.
-        "ad313242ea1e297cd802e47812285f886fbc3528b903e9210d24fa4d27d35bb3"
+        // Hosted producer 37955738301: reversing only the two result-initializer
+        // moves restores prior SHA-256 ad313242ea1e297cd802e47812285f886fbc3528b903e9210d24fa4d27d35bb3.
+        "496140f513b84aab2a5518cb2d33438c419312c58bea026ad42798cb45fabf32"
     );
 }
 

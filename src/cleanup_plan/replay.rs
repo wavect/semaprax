@@ -6798,7 +6798,11 @@ fn execute_replay_transition(
                         replay_error(function, "conditional state omits authenticated case")
                     })?;
                 let flags = if flags.is_empty() {
-                    validate_place(function, &source.projected(case.clone()), storage, leaves)?
+                    let prefix = source.projected(case.clone()).projections;
+                    validate_place(function, source, storage, leaves)?
+                        .into_iter()
+                        .filter(|flag| leaves[flag].place.projections.starts_with(&prefix))
+                        .collect()
                 } else {
                     flags
                 };

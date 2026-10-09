@@ -167,12 +167,23 @@ fn validation_admits_nested_records_but_rejects_non_record_and_forbidden_leaves(
     );
     crate::hir::validate(&mixed).expect("nested Copy-only record companion is admitted");
 
-    let mut forbidden = mixed;
+    let mut text = mixed;
+    set_record_field_type(
+        &mut text,
+        "marker.type",
+        "marker.value",
+        ResolvedType::String,
+    );
+    crate::hir::validate(&text).expect("nested owned String companion is admitted");
+
+    // Owned String Records v1 admits the original String leaf, while a
+    // borrowed view still cannot become an owning record field.
+    let mut forbidden = text;
     set_record_field_type(
         &mut forbidden,
         "marker.type",
         "marker.value",
-        ResolvedType::String,
+        ResolvedType::Str,
     );
     assert_hir_rejects(
         &forbidden,

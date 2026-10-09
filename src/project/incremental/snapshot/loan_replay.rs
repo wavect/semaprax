@@ -232,7 +232,7 @@ module loan_snapshot;
         assert_eq!(error[0].code, "SPX-G256");
         assert_eq!(
             error[0].message,
-            "decoded HIR loan traversal exceeds its point bound"
+            "decoded HIR loan traversal exceeds its edge bound"
         );
         assert_eq!(crate::cache_codec::encode(&entry.resolved).unwrap(), wire);
     }

@@ -354,6 +354,7 @@ mod tests {
             std::process::id()
         ));
         std::fs::create_dir(&directory).unwrap();
+        let directory = std::fs::canonicalize(directory).unwrap();
         let path = directory.join("semaprax.toml");
         std::fs::write(&path, source).unwrap();
         (directory, path)

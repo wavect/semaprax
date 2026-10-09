@@ -1,6 +1,7 @@
 use std::fmt::Write as _;
 use std::process::ExitCode;
 
+mod authoring;
 mod diagnostic_index;
 mod library;
 mod shapes;
@@ -418,6 +419,9 @@ fn language_topics() -> String {
 }
 
 pub(crate) fn language_topic(query: &str) -> Result<String, String> {
+    if query.starts_with("author:") || query.starts_with("find:") {
+        return authoring::lookup(query);
+    }
     if query == "all" {
         return Ok(LANGUAGE_REFERENCE.to_owned());
     }

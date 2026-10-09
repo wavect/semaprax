@@ -1,5 +1,11 @@
 # Changelog
 
+- Bound default language help and application-route discovery, preserve the full
+  reference under `help language all`, and page exact checked library signatures
+  with explicit prerequisites and deterministic continuations. Correct the
+  starter command grammar; current-head help gates and live measurements await
+  the grouped batch.
+
 - Store immutable loan endpoint and edge identity lists as exact boxed slices,
   retaining list order and cache encoding while charging shrinking overlap.
   Preserve conservative construction prebounds and exact retained payload census.

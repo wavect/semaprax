@@ -343,6 +343,25 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     assert_eq!(language.stdout, guide);
     assert!(language.stdout.len() <= 2_048);
     std::fs::remove_dir(language_dir).unwrap();
+    for selector in [
+        "author:routes",
+        "author:stdin-json",
+        "author:file-text",
+        "author:source-web",
+        "find:json:0",
+    ] {
+        let (page, directory) = invoke(&["help", "language", selector]);
+        assert!(page.status.success(), "{selector}: {page:?}");
+        assert!(page.stderr.is_empty());
+        assert!(page.stdout.len() <= 2_048);
+        std::fs::remove_dir(directory).unwrap();
+    }
+    for selector in ["author:unknown", "find:json:00", "find:json:0:extra"] {
+        let (page, directory) = invoke(&["help", "language", selector]);
+        assert_eq!(page.status.code(), Some(2));
+        assert!(page.stdout.is_empty());
+        std::fs::remove_dir(directory).unwrap();
+    }
     let (language_all, language_all_dir) = invoke(&["help", "language", "all"]);
     assert!(language_all.status.success());
     assert!(language_all.stderr.is_empty());
@@ -351,7 +370,9 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     )
     .unwrap();
     assert_eq!(language_all.stdout, card);
-    assert!(language_all.stdout.starts_with(b"# Agent quick reference\n"));
+    assert!(language_all
+        .stdout
+        .starts_with(b"# Agent quick reference\n"));
     std::fs::remove_dir(language_all_dir).unwrap();
     let (topics, topics_dir) = invoke(&["help", "language", "topics"]);
     assert!(topics.status.success());

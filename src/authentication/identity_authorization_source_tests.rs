@@ -313,6 +313,6 @@ fn main() -> i64
     assert_eq!(diagnostics[0].code, "SPX-F102");
     assert_eq!(
         diagnostics[0].message,
-        "interpreter admission failed (unsupported_callee)"
+        "interpreter admission failed (unsupported_callee): expression `declaration:8:app.main:expression:13:body.s1.value`"
     );
 }

@@ -283,12 +283,8 @@ pub(super) fn ast_child_identity_path_increment(
                 ) {
                     (crate::ast::Statement::While { .. }, false) => ".condition",
                     (crate::ast::Statement::For { .. }, false) => ".values",
-                    (crate::ast::Statement::For { .. }, true) => {
-                        ".value.s2.body.s1.value"
-                    }
-                    (crate::ast::Statement::ForOwn { .. }, false) => {
-                        ".value.s0.value.arg.0"
-                    }
+                    (crate::ast::Statement::For { .. }, true) => ".value.s2.body.s1.value",
+                    (crate::ast::Statement::ForOwn { .. }, false) => ".value.s0.value.arg.0",
                     (crate::ast::Statement::ForOwn { .. }, true) => {
                         ".value.s1.body.s0.value.arm.1.value.s0.value"
                     }
@@ -591,7 +587,9 @@ pub(super) fn closure_body_identity_upper(
     creation_expression_len: usize,
     body_path_len: usize,
 ) -> Option<usize> {
-    let closure_owner_len = "semaprax.closure.v1:".len().checked_add(creation_expression_len)?;
+    let closure_owner_len = "semaprax.closure.v1:"
+        .len()
+        .checked_add(creation_expression_len)?;
     scoped_monomorphic_identity_upper(closure_owner_len, "expression".len(), body_path_len)
 }
 
@@ -601,9 +599,7 @@ pub(super) fn closure_body_identity_path_increment() -> usize {
         + 4 // owner-length, owner, kind, and path-length separators
         + "expression".len()
         + "body".len();
-    closure_owner_prefix_len
-        + monomorphic_body_frame
-        + 2 * decimal_digits(usize::MAX)
+    closure_owner_prefix_len + monomorphic_body_frame + 2 * decimal_digits(usize::MAX)
 }
 
 fn scoped_identity_upper(
@@ -612,11 +608,8 @@ fn scoped_identity_upper(
     kind_len: usize,
     path_len: usize,
 ) -> Option<usize> {
-    let monomorphic = scoped_monomorphic_identity_upper(
-        function.stable_id.len(),
-        kind_len,
-        path_len,
-    )?;
+    let monomorphic =
+        scoped_monomorphic_identity_upper(function.stable_id.len(), kind_len, path_len)?;
     if function.type_parameters.is_empty() {
         return Some(monomorphic);
     }
@@ -680,11 +673,8 @@ pub(super) fn scoped_expression_backing_upper(
     generic_instance_identity_len: usize,
     path_len: usize,
 ) -> Option<usize> {
-    let encoded_len = scoped_expression_identity_upper(
-        function,
-        generic_instance_identity_len,
-        path_len,
-    )?;
+    let encoded_len =
+        scoped_expression_identity_upper(function, generic_instance_identity_len, path_len)?;
     encoded_len
         .checked_mul(2)?
         .max(8)

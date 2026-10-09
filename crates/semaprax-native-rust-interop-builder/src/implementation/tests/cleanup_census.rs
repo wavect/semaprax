@@ -666,7 +666,11 @@ fn main() -> i64 { generic_marker<i64>(0) }
                 .chain(std::iter::once(&loan.start.expression))
                 .chain(loan.ends.iter().map(|point| &point.expression))
         })
-        .chain(plan.endpoints.iter().map(|endpoint| &endpoint.point.expression))
+        .chain(
+            plan.endpoints
+                .iter()
+                .map(|endpoint| &endpoint.point.expression),
+        )
         .map(|expression| {
             expression
                 .owned_allocation_bytes()

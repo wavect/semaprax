@@ -878,10 +878,8 @@ fn main() -> i64
 }
 "#;
 
-const FUSED_OWNED_STRING_VIEW_CASES: [(&str, i64); 2] = [
-    ("voc.fused_owned_string_byte_view", 1),
-    ("app.main", 2),
-];
+const FUSED_OWNED_STRING_VIEW_CASES: [(&str, i64); 2] =
+    [("voc.fused_owned_string_byte_view", 1), ("app.main", 2)];
 
 #[test]
 fn fused_owned_string_byte_view_agrees_across_interpreter_native_and_core_wasm() {
@@ -896,25 +894,17 @@ fn fused_owned_string_byte_view_agrees_across_interpreter_native_and_core_wasm()
     .unwrap();
     let diagnostics = verify::verify(&program);
     assert!(
-        diagnostics.iter().all(|diagnostic| !diagnostic.severity.is_error()),
+        diagnostics
+            .iter()
+            .all(|diagnostic| !diagnostic.severity.is_error()),
         "fused String byte-view fixture failed verification: {diagnostics:?}"
     );
     let generated = codegen::emit_c(&program).unwrap();
     let root = temporary_root("fused-owned-string-view");
     fs::create_dir(&root).unwrap();
 
-    let native_o0 = run_native(
-        &generated,
-        &root,
-        "-O0",
-        &FUSED_OWNED_STRING_VIEW_CASES,
-    );
-    let native_o2 = run_native(
-        &generated,
-        &root,
-        "-O2",
-        &FUSED_OWNED_STRING_VIEW_CASES,
-    );
+    let native_o0 = run_native(&generated, &root, "-O0", &FUSED_OWNED_STRING_VIEW_CASES);
+    let native_o2 = run_native(&generated, &root, "-O2", &FUSED_OWNED_STRING_VIEW_CASES);
     let wasm_main = run_core_wasm_aggregate(&program, &root);
     let interpreter_path = root.join("interpret-fused-owned-string-view.spx");
     fs::write(&interpreter_path, FUSED_OWNED_STRING_VIEW_SOURCE).unwrap();
@@ -922,7 +912,10 @@ fn fused_owned_string_byte_view_agrees_across_interpreter_native_and_core_wasm()
 
     assert_eq!(native_o0.len(), FUSED_OWNED_STRING_VIEW_CASES.len());
     assert_eq!(native_o2.len(), FUSED_OWNED_STRING_VIEW_CASES.len());
-    assert_eq!(interpreter_values.len(), FUSED_OWNED_STRING_VIEW_CASES.len());
+    assert_eq!(
+        interpreter_values.len(),
+        FUSED_OWNED_STRING_VIEW_CASES.len()
+    );
     assert_eq!(wasm_main, 2, "Core Wasm must run both fused-view scopes");
     for (index, (case_id, expected)) in FUSED_OWNED_STRING_VIEW_CASES.iter().enumerate() {
         assert_eq!(native_o0[index].0, *case_id);

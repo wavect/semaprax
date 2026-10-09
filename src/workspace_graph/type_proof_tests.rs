@@ -769,7 +769,10 @@ module graph.v14;
     #[test]
     #[ignore = "owning wire pin candidate; audit budget/digest differences before moving the literal"]
     fn emit_projection_wire_pin_candidate() {
-        eprintln!("PROJECTION_WIRE_PIN_CANDIDATE {}", rendered_entry().to_json());
+        eprintln!(
+            "PROJECTION_WIRE_PIN_CANDIDATE {}",
+            rendered_entry().to_json()
+        );
     }
 
     #[test]

@@ -920,9 +920,10 @@ mod carrier_tests {
 
     #[test]
     fn hir_capacity_identity_carriers_reserve_three_headers_per_expression() {
-        let source = "module capacity.expression_carriers; @id(\"app.main\") fn main() -> i64 { 0 }";
-        let program = crate::parse(source, std::path::Path::new("expression-carriers.spx"))
-            .unwrap();
+        let source =
+            "module capacity.expression_carriers; @id(\"app.main\") fn main() -> i64 { 0 }";
+        let program =
+            crate::parse(source, std::path::Path::new("expression-carriers.spx")).unwrap();
         let function = program
             .functions
             .iter()
@@ -933,18 +934,11 @@ mod carrier_tests {
             cleanup_plan_variable_identity_bytes(function, &program, 0).unwrap();
         let direct_suffix = longest_direct_expression_identity_suffix_len();
         assert!(direct_suffix > ".arg.0.source".len());
-        let body_backing = scoped_expression_backing_upper(
-            function,
-            0,
-            "body".len() + direct_suffix,
-        )
-        .unwrap();
-        let tail_backing = scoped_expression_backing_upper(
-            function,
-            0,
-            "body.tail".len() + direct_suffix,
-        )
-        .unwrap();
+        let body_backing =
+            scoped_expression_backing_upper(function, 0, "body".len() + direct_suffix).unwrap();
+        let tail_backing =
+            scoped_expression_backing_upper(function, 0, "body.tail".len() + direct_suffix)
+                .unwrap();
         assert_eq!(retained_expression_bytes, 3 * (body_backing + tail_backing));
 
         let long_utf8_path = "λ-prefix-".repeat(64);
@@ -957,10 +951,16 @@ mod carrier_tests {
             scoped_expression_backing_upper(function, 0, long_utf8_path.len()).unwrap();
         let receiver_backing =
             scoped_expression_backing_upper(function, 0, receiver_path_len).unwrap();
-        assert!(plain_backing >= 2 * encoded_len.max(8)
-            + semaprax::hir::ExpressionId::OWNED_ALLOCATION_CARRIER_BYTES);
-        assert!(receiver_backing >= 2 * receiver_len.max(8)
-            + semaprax::hir::ExpressionId::OWNED_ALLOCATION_CARRIER_BYTES);
+        assert!(
+            plain_backing
+                >= 2 * encoded_len.max(8)
+                    + semaprax::hir::ExpressionId::OWNED_ALLOCATION_CARRIER_BYTES
+        );
+        assert!(
+            receiver_backing
+                >= 2 * receiver_len.max(8)
+                    + semaprax::hir::ExpressionId::OWNED_ALLOCATION_CARRIER_BYTES
+        );
         assert!(receiver_backing > plain_backing);
     }
 
@@ -1010,29 +1010,21 @@ mod carrier_tests {
             "λ-prefix-".repeat(64).len(),
         ] {
             for _ in 0..3 {
-                let creation_len = scoped_expression_identity_upper(
-                    function,
-                    generic_identity_len,
-                    path_len,
-                )
-                .unwrap();
+                let creation_len =
+                    scoped_expression_identity_upper(function, generic_identity_len, path_len)
+                        .unwrap();
                 let actual_closure_body_len =
                     closure_body_identity_upper(creation_len, "body".len()).unwrap();
                 path_len = path_len.checked_add(increment).unwrap();
-                let synthetic_upper = scoped_expression_identity_upper(
-                    function,
-                    generic_identity_len,
-                    path_len,
-                )
-                .unwrap();
+                let synthetic_upper =
+                    scoped_expression_identity_upper(function, generic_identity_len, path_len)
+                        .unwrap();
                 assert!(synthetic_upper >= actual_closure_body_len);
 
                 let descendant_suffix_len = ".value".len();
-                let actual_descendant_len = closure_body_identity_upper(
-                    creation_len,
-                    "body".len() + descendant_suffix_len,
-                )
-                .unwrap();
+                let actual_descendant_len =
+                    closure_body_identity_upper(creation_len, "body".len() + descendant_suffix_len)
+                        .unwrap();
                 let synthetic_descendant = scoped_expression_identity_upper(
                     function,
                     generic_identity_len,
@@ -1073,8 +1065,8 @@ mod carrier_tests {
             ast_child_identity_path_increment(&function.body, 3, &program),
             ".s1.value.s1.body.s0.value.arm.1.value.s0.value".len(),
         );
-        let actual = desugared_statement_identity_upper(function, 0, "body".len(), statements)
-            .unwrap();
+        let actual =
+            desugared_statement_identity_upper(function, 0, "body".len(), statements).unwrap();
         let for_path = "body.s0.value.s2.body.s0.value.arg.1".len();
         let for_own_path = "body.s1.value.s1.body.s0.value.arm.1.value.tail.arg.0".len();
         let expected = scoped_expression_backing_upper(function, 0, for_path).unwrap()

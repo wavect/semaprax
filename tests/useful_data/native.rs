@@ -357,11 +357,7 @@ int main(void) {{
         let composed_source = std::env::temp_dir().join(format!("{stem}-composed.c"));
         let composed_executable =
             std::env::temp_dir().join(format!("{stem}-composed{}", std::env::consts::EXE_SUFFIX));
-        std::fs::write(
-            &composed_source,
-            format!("{generated}\n{composed_probe}"),
-        )
-        .unwrap();
+        std::fs::write(&composed_source, format!("{generated}\n{composed_probe}")).unwrap();
         let compiled = Command::new("clang")
             .args([
                 "-std=c11",

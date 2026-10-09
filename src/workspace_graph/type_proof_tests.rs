@@ -774,6 +774,9 @@ module graph.v14;
 
     #[test]
     fn rendered_document_has_literal_sha_exact_wire_order_and_digest_binding() {
+        // The owning producer plus restoration against the previous full-wire
+        // SHA proves only builder usage (421597 -> 419077) and its digest move
+        // after borrowing retained identities; all other wire bytes are exact.
         let graph = rendered_entry();
         let json = graph.to_json();
         let document_sha = format!(
@@ -839,7 +842,7 @@ module graph.v14;
         // digest over it move.
         assert_eq!(
             document_sha,
-            "sha256:417cfdf2e461b5e703c837b00533695b4452760dd175bb04f3edfe3d95103911"
+            "sha256:712c6d303fda3d05e4a9fd7afc9ca1d6e111739588a4ddc12cbc61c874e220d5"
         );
         assert!(json.starts_with(
                 "{\"schema\":\"semaprax.workspace-semantic-graph.v1\",\"workspace_manifest_schema\":\"semaprax.workspace-semantic-manifest.v1\",\"workspace_revision\":\"sha256:workspace\",\"graph_digest\":\"sha256:"

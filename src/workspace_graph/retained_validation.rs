@@ -1044,7 +1044,7 @@ fn collect_resolved_expression_type_sites(
                     &crate::bounded_output::budgeted_format(format_args!(
                         "{path}.arm.{index}.pattern"
                     )),
-                    &expression_id,
+                    expression_id,
                     imported,
                     out,
                 )?;

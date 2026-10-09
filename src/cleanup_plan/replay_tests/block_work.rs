@@ -49,7 +49,7 @@ fn measure(
         program,
         &program.functions[0],
         expression,
-        &mut SkeletonWork::new(&program.functions[0], &mut budget),
+        &mut SkeletonWork::new(program, &program.functions[0], &mut budget),
     );
     (
         result,

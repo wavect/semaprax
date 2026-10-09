@@ -1392,6 +1392,7 @@ pub(crate) mod collection_outcome;
 pub(crate) mod copy_record_collection;
 pub(crate) mod declared_collection;
 pub(super) mod owned_record_collection;
+pub(crate) mod owned_leaf_collection;
 
 /// Ordinary resource-free record algebra may return a Copy value or transfer
 /// an existing Bytes/record owner; borrowed values never escape a match arm.

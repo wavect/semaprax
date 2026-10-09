@@ -9,6 +9,7 @@ use crate::diagnostic::Diagnostic;
 use crate::hir;
 use std::collections::{BTreeMap, BTreeSet};
 
+mod capability_projection;
 mod dependency_closure;
 mod edge_projection;
 mod profile_names;
@@ -654,46 +655,7 @@ fn validate_effect_and_capability_edges_against_calls<'a>(
         )]);
     }
 
-    let mut expected_capabilities = Vec::new();
-    for module in modules {
-        for (ordinal, permit) in module.permits.iter().enumerate() {
-            let path = crate::bounded_output::budgeted_format(format_args!("permit.{ordinal}"));
-            push_edge(
-                &mut expected_capabilities,
-                WorkspaceEdge {
-                    caller_path: crate::bounded_output::budgeted_clone(&module.path),
-                    caller: crate::bounded_output::budgeted_clone(&module.module),
-                    target_path: crate::bounded_output::budgeted_clone(&module.path),
-                    target: crate::bounded_output::budgeted_clone(permit),
-                    kind: "capability_authority",
-                    site: "module",
-                    expression: crate::bounded_output::budgeted_clone(&path),
-                    ast_path: path,
-                    alias: String::new(),
-                    ordinal,
-                },
-            )?;
-        }
-    }
-    let mut actual_capabilities = Vec::new();
-    for edge in edges
-        .iter()
-        .filter(|edge| edge.kind == "capability_authority")
-    {
-        push_edge_reference(&mut actual_capabilities, edge)?;
-    }
-    expected_capabilities.sort();
-    actual_capabilities.sort();
-    if !actual_capabilities
-        .into_iter()
-        .eq(expected_capabilities.iter())
-    {
-        return Err(vec![graph_error(
-            "SPX-G173",
-            "workspace capability-authority edges disagree with retained module permits",
-        )]);
-    }
-    Ok(())
+    capability_projection::validate(modules, edges)
 }
 
 fn collect_resolved_signature_sites<'a>(

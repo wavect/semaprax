@@ -1316,7 +1316,9 @@ Push consumes; `for own` uses `vec_into_iter`. Bytes allocation/copy and
 Ask `help language author:stream-data-v2` or `help language author:owned-data`; see
 [v27](STREAM-DATA-COMMAND-V1.md), [v29](STREAM-DATA-COMMAND-V2.md),
 [v30](STREAM-OWNED-DATA-COMMAND-V1.md) and
-[collections](OWNED-LEAF-COLLECTIONS-V1.md).
+[collections](OWNED-LEAF-COLLECTIONS-V1.md). The current String-plus-scalar
+project example is [owned-leaf-command](../examples/owned-leaf-command-project/README.md);
+its focused gate remains pending.
 
 `semaprax lock semaprax.toml --write` pins identity, source digests, interface,
 targets, and capabilities; `--verify` checks it and `--compare <base.lock>`
@@ -1328,29 +1330,27 @@ and [Project Dependency Resolution v1](PROJECT-DEPENDENCY-RESOLUTION-V1.md).
 
 ## JSON documents and cursors
 
-For a complete strict JSON document, add `std.data.json.scan = "^0.1.0"`
-under `[dependencies]` with `profile = "useful-data.v1"`. Import
-`std.data.json.scan.strict_end` by stable ID and call
-`strict_end(input, 32usize, policy)` before navigation. Policy `0` accepts
-duplicate names; `1` rejects decoded-equivalent names. A successful scan
-returns `byte_len(input)`; a greater result encodes the rejection offset.
+Strict JSON uses `std.data.json.scan = "^0.1.0"` and `profile =
+"useful-data.v1"`. Call `strict_end(input, 32usize, policy)` by ID first.
+Policy `0` allows duplicate names; `1` rejects decoded duplicates. Success is
+input length; larger values encode the error offset. Navigation and exact
+number spans use borrowed bytes. See [Strict JSON Scan v1](STRICT-JSON-SCAN-V1.md).
+`std.data.json.query` decodes string tokens ([JSON String Query v1](JSON-STRING-QUERY-V1.md)).
 
-`root`, `kind`, `first_member`, `member_value`, `next_member`,
-`first_element`, `next_element`, `key_eq`, `value_end`, and `decimal_end`
-return scalar offsets or comparisons over the same borrowed byte view.
-`decimal_end` preserves the exact JSON number span. See
-[Strict JSON Scan v1](STRICT-JSON-SCAN-V1.md). For standalone decoded string
-tokens, use `std.data.json.query` and
-[JSON String Query v1](JSON-STRING-QUERY-V1.md).
-
-`semaprax json-codec` derives checked ordinary source from an authenticated
-Project record. The default scalar shape and opt-in identifier, request and
-stream-request view profiles are source-implemented; qualification is pending.
-Use `help language author:json-codec` to select a profile by exact source shape;
-it links profile cards for identifier, request and stream-request views.
-Declared `Vec<string>` describes a request schema only; executable collections
-carry Copy views. Stream errors use raw offsets; post-Ready errors use offsets
-in retained Ready bytes. Owning view-composition gates remain pending.
+`semaprax json-codec` derives checked source from an authenticated Project record.
+`help language author:json-owned-request` selects `owned-request.v1` or
+`stream-owned-request.v1`. A request has `Vec<string>` identifiers (≤8) and
+`Vec<Row>` (≤256). A flat stable-ID `Row` has a `string` identifier plus
+0–6 `i64`, `u8`, `usize` or `bool` fields; each field has an ID and order may
+vary. Identifier strings are unique, 1–16 ASCII
+letters, digits, `_` or `-`; nonempty rows need an identifier. Encoders borrow
+both vectors and `output_limit`. `json_<Request>_owned_decode` returns
+independent Strings, so completed decode permits release of normalized input
+Bytes. Streaming errors before Ready use raw offsets; later errors use
+normalized-buffer offsets. Owned runtime support is private to
+`owned-data-api.v1` or native v30; v29 views keep Copy tokens tied to source
+lifetime. Source and current-head qualification remain pending; this is not
+full #724 or arbitrary-Unicode support.
 
 ## Where the rules live
 

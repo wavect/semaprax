@@ -216,6 +216,106 @@
                    "match": {"status": "matched", "status_code": 1, "spans": [[0, 1]]}}
     },
     {
+      "id": "source-long-token-valid-65536",
+      "source_differential": true,
+      "purpose": "A full-limit byte token uses the bounded token-complement scan and captures exact byte endpoints.",
+      "pattern": "([^\\x00-\\x20\\x7F]+)",
+      "input": {"repeat_ascii": {"text": "a", "count": 65536}},
+      "engine_work_status": "not_predicted_by_oracle",
+      "expected": {"compile": {"status": "ready"},
+                   "match": {"status": "matched", "status_code": 1, "spans": [[0, 65536]]}}
+    },
+    {
+      "id": "source-long-token-rejects-excluded-final-space",
+      "source_differential": true,
+      "purpose": "A valid token prefix followed by one excluded final byte is a semantic no-match.",
+      "pattern": "([^\\x00-\\x20\\x7F]+)",
+      "input": {"repeat_ascii_suffix": {"text": "a", "count": 65535, "suffix": " "}},
+      "engine_work_status": "not_predicted_by_oracle",
+      "expected": {"compile": {"status": "ready"},
+                   "match": {"status": "no_match", "status_code": 2, "spans": []}}
+    },
+    {
+      "id": "source-long-any-byte-exact-bound",
+      "source_differential": true,
+      "purpose": "Any-byte matching succeeds at the inclusive 65536-byte input limit.",
+      "pattern": ".*",
+      "input": {"repeat_ascii": {"text": "a", "count": 65536}},
+      "engine_work_status": "not_predicted_by_oracle",
+      "expected": {"compile": {"status": "ready"},
+                   "match": {"status": "matched", "status_code": 1, "spans": []}}
+    },
+    {
+      "id": "source-long-any-greedy-required-suffix",
+      "source_differential": true,
+      "purpose": "A long greedy any-byte capture stops at the required final literal.",
+      "pattern": "(.*)z",
+      "input": {"repeat_ascii_suffix": {"text": "a", "count": 65535, "suffix": "z"}},
+      "engine_work_status": "not_predicted_by_oracle",
+      "expected": {"compile": {"status": "ready"},
+                   "match": {"status": "matched", "status_code": 1, "spans": [[0, 65535]]}}
+    },
+    {
+      "id": "source-long-any-required-suffix-near-miss",
+      "source_differential": true,
+      "purpose": "A single excluded suffix remains semantic no-match after a full-length greedy scan.",
+      "pattern": "(.*)z",
+      "input": {"repeat_ascii_suffix": {"text": "a", "count": 65535, "suffix": "y"}},
+      "engine_work_status": "not_predicted_by_oracle",
+      "expected": {"compile": {"status": "ready"},
+                   "match": {"status": "no_match", "status_code": 2, "spans": []}}
+    },
+    {
+      "id": "source-long-singleton-class-high-byte",
+      "source_differential": true,
+      "purpose": "A singleton class at byte 255 uses the correct top bitmap word on a long scan.",
+      "pattern": "[\\xFF]*",
+      "input": {"repeat_hex": {"byte": "ff", "count": 64}},
+      "engine_work_status": "not_predicted_by_oracle",
+      "expected": {"compile": {"status": "ready"},
+                   "match": {"status": "matched", "status_code": 1, "spans": []}}
+    },
+    {
+      "id": "source-long-complement-singleton-class-high-byte",
+      "source_differential": true,
+      "purpose": "The complement of byte 255 accepts a neighboring byte in the same bitmap word.",
+      "pattern": "[^\\xFF]*",
+      "input": {"repeat_hex": {"byte": "bf", "count": 64}},
+      "engine_work_status": "not_predicted_by_oracle",
+      "expected": {"compile": {"status": "ready"},
+                   "match": {"status": "matched", "status_code": 1, "spans": []}}
+    },
+    {
+      "id": "source-long-all-byte-class-high-byte",
+      "source_differential": true,
+      "purpose": "An inclusive 0..255 class admits high bytes across the complete four-word bitmap.",
+      "pattern": "[\\x00-\\xFF]*",
+      "input": {"repeat_hex": {"byte": "ff", "count": 64}},
+      "engine_work_status": "not_predicted_by_oracle",
+      "expected": {"compile": {"status": "ready"},
+                   "match": {"status": "matched", "status_code": 1, "spans": []}}
+    },
+    {
+      "id": "source-long-cr-lf-complement-class",
+      "source_differential": true,
+      "purpose": "The exact CR/LF complement optimized path accepts ordinary long bytes.",
+      "pattern": "[^\\x0D\\x0A]*",
+      "input": {"repeat_ascii": {"text": "a", "count": 64}},
+      "engine_work_status": "not_predicted_by_oracle",
+      "expected": {"compile": {"status": "ready"},
+                   "match": {"status": "matched", "status_code": 1, "spans": []}}
+    },
+    {
+      "id": "source-long-nul-lf-complement-class",
+      "source_differential": true,
+      "purpose": "The exact NUL/LF complement optimized path accepts ordinary long bytes.",
+      "pattern": "[^\\x00\\x0A]*",
+      "input": {"repeat_ascii": {"text": "a", "count": 64}},
+      "engine_work_status": "not_predicted_by_oracle",
+      "expected": {"compile": {"status": "ready"},
+                   "match": {"status": "matched", "status_code": 1, "spans": []}}
+    },
+    {
       "id": "pattern-length-limit",
       "purpose": "A valid 1024-byte pattern is admitted before other pattern limits; it cannot match this short input.",
       "pattern": {"repeat": "a{255,255}", "count": 102, "suffix": "\\x61"},

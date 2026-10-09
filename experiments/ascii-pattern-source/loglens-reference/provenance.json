@@ -16,17 +16,17 @@
   ],
   "matcher_adapted_files_sha256": {
     "README.md": "b5aba2bb5a173c4562945e7eff939a5543011855c64586a527fc4b9a6d184a20",
-    "ascii.spx": "f6bf78b5956a55bfe80e45098477d11f7b80c2a60de3c30864e8707f69ea7108",
+    "ascii.spx": "72bd8411185d2c95e87724e22c466e42fc34e7fca39a2628b6d996dcd66eb14a",
     "build.sh": "4472886bf4c8e098be277256c99028880df329e539a145b69183f7815ad94ffc",
-    "loglens.spx": "ff383b83f05f0ae1d2a09c645c06eec7d7aae7b2aa73de45a30de6f0a13dcd15",
+    "loglens.spx": "440736b14dfee07dc60e1d0b5b506bd372205804e877c558b2971c30ef780482",
     "run.sh": "2225e59a4c08a79f56d08e905c6b0c949929a20e3fd1d7c6e532651dab565431",
     "semaprax.toml": "ad616239c71a68315a95ad1b1e42b05a98c9701c044532c15c351c01b9b1c4a2",
     "test.sh": "aa027be53ae6792f56cbabd126386269ce90fbc0f17ec8c75924e6fd25ed570f",
     "tests.mjs": "dfe55d51ff79cb39e8d392605bdc2f5e35c154037ae5729698d125a67d5bea53",
     "unit.spx": "02f0d43cfac00a54e85119a737f07dfeab03d361f435b16c9d7d7d5e000e4c82"
   },
-  "matcher_source_revision": "c18b5b0a13c84de07cf2c0a9d69aed4032e5c354",
-  "matcher_source_sha256": "f6bf78b5956a55bfe80e45098477d11f7b80c2a60de3c30864e8707f69ea7108",
+  "matcher_source_revision": "72a8fc3f4",
+  "matcher_source_sha256": "72bd8411185d2c95e87724e22c466e42fc34e7fca39a2628b6d996dcd66eb14a",
   "qualified_source_files_sha256": {
     "README.md": "b5aba2bb5a173c4562945e7eff939a5543011855c64586a527fc4b9a6d184a20",
     "build.sh": "4472886bf4c8e098be277256c99028880df329e539a145b69183f7815ad94ffc",

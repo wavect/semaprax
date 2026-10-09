@@ -20,6 +20,23 @@ fn bytes(name: &str, value: &[u8]) -> String {
     )
 }
 
+fn input_source(value: &[u8]) -> String {
+    if value.len() >= 1024 && value.iter().all(|byte| (0x20..=0x7e).contains(byte)) {
+        let mut escaped = String::with_capacity(value.len());
+        for byte in value {
+            match byte {
+                b'\\' => escaped.push_str("\\\\"),
+                b'"' => escaped.push_str("\\\""),
+                _ => escaped.push(char::from(*byte)),
+            }
+        }
+        return format!(
+            "let input_text = \"{escaped}\";\nlet input_str = string_as_str(input_text);\nlet input_view = str_as_bytes(input_str);\n"
+        );
+    }
+    bytes("input", value)
+}
+
 fn expect_packet(
     status: u64,
     spans: &[[u64; 2]],
@@ -55,7 +72,7 @@ fn compile_source_with_limit(
     expected: &str,
     work_limit: u64,
 ) -> String {
-    format!("{ENGINE}\n@id(\"experiment.pattern.witness.main\")\nfn main() -> i64\n{{\n{}{}\nlet storage = bytes_zeroed(3072usize);\nlet initial = matcher_from_bytes(storage);\nlet compiled = compile(initial, pattern_view, {work_limit}usize);\nlet ready = status(compiled) == 0usize;\nlet mut matcher = compiled;\nlet mut iteration = 0usize;\nwhile iteration < 1usize {{\nmatcher = full_match(matcher, input_view, {work_limit}usize);\niteration = iteration + 1usize;\n0\n}}\nif ready {{ {expected} }} else {{ -2 }}\n}}\n", bytes("pattern", pattern), bytes("input", input))
+    format!("{ENGINE}\n@id(\"experiment.pattern.witness.main\")\nfn main() -> i64\n{{\n{}{}\nlet storage = bytes_zeroed(3072usize);\nlet initial = matcher_from_bytes(storage);\nlet compiled = compile(initial, pattern_view, {work_limit}usize);\nlet ready = status(compiled) == 0usize;\nlet mut matcher = compiled;\nlet mut iteration = 0usize;\nwhile iteration < 1usize {{\nmatcher = full_match(matcher, input_view, {work_limit}usize);\niteration = iteration + 1usize;\n0\n}}\nif ready {{ {expected} }} else {{ -2 }}\n}}\n", bytes("pattern", pattern), input_source(input))
 }
 
 fn fixture_pattern(value: &serde_json::Value) -> Vec<u8> {
@@ -84,6 +101,17 @@ fn fixture_input(value: &serde_json::Value) -> Vec<u8> {
             .unwrap()
             .repeat(repeat["count"].as_u64().unwrap() as usize)
             .into_bytes();
+    }
+    if let Some(repeat) = value.get("repeat_ascii_suffix") {
+        return format!(
+            "{}{}",
+            repeat["text"]
+                .as_str()
+                .unwrap()
+                .repeat(repeat["count"].as_u64().unwrap() as usize),
+            repeat["suffix"].as_str().unwrap()
+        )
+        .into_bytes();
     }
     let repeat = &value["repeat_hex"];
     let byte = u8::from_str_radix(repeat["byte"].as_str().unwrap(), 16).unwrap();
@@ -221,7 +249,7 @@ fn private_ascii_pattern_fixture_cases_match_independent_exhaustive_oracle() {
             &fixture_pattern(&case["pattern"]),
             &fixture_input(&case["input"]),
             &expected,
-            1_000_000,
+            262_144,
         );
         interpret(&source, case["id"].as_str().unwrap());
         count += 1;

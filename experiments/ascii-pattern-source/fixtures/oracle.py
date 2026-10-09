@@ -71,6 +71,15 @@ def _input_bytes(spec: str | dict[str, Any]) -> bytes:
         if not isinstance(text, str) or type(count) is not int or count < 0:
             raise ValueError("invalid repeat_ascii descriptor")
         return (text * count).encode("ascii")
+    if "repeat_ascii_suffix" in spec:
+        item = spec["repeat_ascii_suffix"]
+        if not isinstance(item, dict) or set(item) != {"text", "count", "suffix"}:
+            raise ValueError("repeat_ascii_suffix needs text, count, and suffix")
+        text, count, suffix = item["text"], item["count"], item["suffix"]
+        if (not isinstance(text, str) or type(count) is not int or count < 0
+                or not isinstance(suffix, str)):
+            raise ValueError("invalid repeat_ascii_suffix descriptor")
+        return (text * count + suffix).encode("ascii")
     if "hex" in spec and isinstance(spec["hex"], str):
         return bytes.fromhex(spec["hex"])
     if "repeat_hex" in spec:

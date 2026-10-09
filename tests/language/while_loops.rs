@@ -1092,7 +1092,7 @@ fn record_owner_renewal_named_views_execute_and_settle_on_three_backends() {
     let document: serde_json::Value = serde_json::from_str(&result.envelope).unwrap();
     assert_eq!(document["payload"]["outcome"]["value"], "15");
     let generated = codegen::emit_c(&program).unwrap();
-    let probe = format!("{}\n{}\n{generated}\n#undef malloc\n#undef free\nint main(void) {{\nREQUIRE(fixture_binary_stdout());\nstruct spx_status_entry entries[32]; struct spx_context context={{0}}; REQUIRE(spx_context_init(&context,19,entries,32,NULL,NULL,NULL));\nfor(unsigned i=0;i<8;++i) {{ int64_t value=INT64_MIN; REQUIRE(spx_decl_{}(&context,&value)==0); REQUIRE(value==15); REQUIRE(fixture_live==0 && fixture_allocations==fixture_frees); }}\nreturn 0; }}\n",
+    let probe = format!("{}\n#define FIXTURE_TRACK_CALLOC\n{}\n{generated}\n#undef malloc\n#undef calloc\n#undef free\n#undef FIXTURE_TRACK_CALLOC\nint main(void) {{\nREQUIRE(fixture_binary_stdout());\nstruct spx_status_entry entries[32]; struct spx_context context={{0}}; REQUIRE(spx_context_init(&context,19,entries,32,NULL,NULL,NULL));\nfor(unsigned i=0;i<8;++i) {{ int64_t value=INT64_MIN; REQUIRE(spx_decl_{}(&context,&value)==0); REQUIRE(value==15); REQUIRE(fixture_live==0 && fixture_allocations==fixture_frees); }}\nreturn 0; }}\n",
         include_str!("../support/native_fixture_stdio.c"),
         include_str!("../native_owned_utf8_settlement_v1/allocations.c"), hex_identity("app.main"));
     for optimization in ["-O0", "-O2"] {

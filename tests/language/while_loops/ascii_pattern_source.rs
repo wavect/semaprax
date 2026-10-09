@@ -171,7 +171,7 @@ fn private_ascii_pattern_malformed_offsets_and_compile_invalidation() {
         let source = format!("{ENGINE}\n@id(\"experiment.pattern.witness.main\")\nfn main() -> i64\n{{\n{}\nlet storage = bytes_zeroed(3072usize);\nlet initial = matcher_from_bytes(storage);\nlet matcher = compile(initial, pattern_view, 8192usize);\n{}\n}}", bytes("pattern", pattern), expect_packet(3, &[], None, 1, offset));
         interpret(&source, &format!("ascii-invalid-{index}"));
     }
-    let source = format!("{ENGINE}\n@id(\"experiment.pattern.witness.main\")\nfn main() -> i64\n{{\n{}{}{}\nlet storage = bytes_zeroed(3072usize);\nlet initial = matcher_from_bytes(storage);\nlet good = compile(initial, good_view, 8192usize);\nlet bad = compile(good, bad_view, 33usize);\nlet refused = status(bad) == 4usize && work_used(bad) == 33usize && read(bad, 5usize) == 0usize;\nlet matcher = full_match(bad, input_view, 8192usize);\nif refused {{ {} }} else {{ -2 }}\n}}", bytes("good", b"a"), bytes("bad", b"b"), bytes("input", b"a"), expect_packet(3, &[], Some(44), 2, 5));
+    let source = format!("{ENGINE}\n@id(\"experiment.pattern.witness.main\")\nfn main() -> i64\n{{\n{}{}{}\nlet storage = bytes_zeroed(3072usize);\nlet initial = matcher_from_bytes(storage);\nlet good_matcher = compile(initial, good_view, 8192usize);\nlet bad_matcher = compile(good_matcher, bad_view, 33usize);\nlet refused = status(bad_matcher) == 4usize && work_used(bad_matcher) == 33usize && read(bad_matcher, 5usize) == 0usize;\nlet matcher = full_match(bad_matcher, input_view, 8192usize);\nif refused {{ {} }} else {{ -2 }}\n}}", bytes("good", b"a"), bytes("bad", b"b"), bytes("input", b"a"), expect_packet(3, &[], Some(44), 2, 5));
     interpret(&source, "ascii-compile-invalidates");
 }
 
@@ -248,7 +248,7 @@ fn private_ascii_pattern_header_source_backend_parity_and_settlement() {
     let program = semaprax::check(&source, "ascii-header.spx").unwrap();
     let mut fixture = Fixture::new(&source);
     let generated = semaprax::codegen::emit_c(&program).unwrap();
-    let probe = format!("{}\n{}\n{generated}\n#undef malloc\n#undef free\nint main(void) {{\nREQUIRE(fixture_binary_stdout());\nstruct spx_status_entry entries[32]; struct spx_context context={{0}}; REQUIRE(spx_context_init(&context,19,entries,32,NULL,NULL,NULL));\nfor(unsigned i=0;i<4;++i) {{ int64_t value=INT64_MIN; REQUIRE(spx_decl_{}(&context,&value)==0); REQUIRE(value==1); REQUIRE(fixture_live==0 && fixture_allocations==fixture_frees); }}\nreturn 0; }}\n",
+    let probe = format!("{}\n#define FIXTURE_TRACK_CALLOC\n{}\n{generated}\n#undef malloc\n#undef calloc\n#undef free\n#undef FIXTURE_TRACK_CALLOC\nint main(void) {{\nREQUIRE(fixture_binary_stdout());\nstruct spx_status_entry entries[32]; struct spx_context context={{0}}; REQUIRE(spx_context_init(&context,19,entries,32,NULL,NULL,NULL));\nfor(unsigned i=0;i<4;++i) {{ int64_t value=INT64_MIN; REQUIRE(spx_decl_{}(&context,&value)==0); REQUIRE(value==1); REQUIRE(fixture_live==0 && fixture_allocations==fixture_frees); }}\nreturn 0; }}\n",
         include_str!("../../support/native_fixture_stdio.c"),
         include_str!("../../native_owned_utf8_settlement_v1/allocations.c"), super::hex_identity("experiment.pattern.witness.main"));
     for optimization in ["-O0", "-O2"] {

@@ -19,9 +19,7 @@ static void fixture_require(bool condition, const char *message, unsigned line) 
 }
 #define REQUIRE(condition) fixture_require((condition), #condition, __LINE__)
 
-static void *fixture_malloc(size_t size) {
-    REQUIRE(size != 0);
-    void *pointer = malloc(size);
+static void *fixture_track(void *pointer, size_t size) {
     REQUIRE(pointer != NULL);
     size_t slot = 0;
     while (slot < 512 && fixture_table[slot].pointer != NULL) ++slot;
@@ -34,6 +32,22 @@ static void *fixture_malloc(size_t size) {
     if (fixture_live > fixture_peak) fixture_peak = fixture_live;
     return pointer;
 }
+
+static void *fixture_malloc(size_t size) {
+    REQUIRE(size != 0);
+    return fixture_track(malloc(size), size);
+}
+
+#if defined(FIXTURE_TRACK_CALLOC)
+/* Owned Bytes zero-fill uses calloc; opt in only for probes that exercise it.
+ * Register the physical allocation in the same live-pointer inventory so all
+ * duplicate, foreign and interior-free checks remain unchanged. */
+static void *fixture_calloc(size_t count, size_t size) {
+    REQUIRE(count != 0 && size != 0);
+    REQUIRE(count <= SIZE_MAX / size);
+    return fixture_track(calloc(count, size), count * size);
+}
+#endif
 
 static void fixture_free(void *pointer) {
     if (pointer == NULL) return; /* normalized empty Bytes */
@@ -48,4 +62,7 @@ static void fixture_free(void *pointer) {
 }
 
 #define malloc fixture_malloc
+#if defined(FIXTURE_TRACK_CALLOC)
+#define calloc fixture_calloc
+#endif
 #define free fixture_free

@@ -182,12 +182,26 @@ impl fmt::Display for ValueId {
     }
 }
 
-#[derive(Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct ExpressionId(pub(super) String);
+#[derive(Clone)]
+pub struct ExpressionId(Option<Arc<String>>);
 
 impl ExpressionId {
+    // Arc owns two reference counters beside the moved String carrier. Its
+    // payload keeps the exact-capacity buffer produced by exact_string.
+    pub(crate) const SHARED_ALLOCATION_CARRIER_BYTES: usize =
+        2 * std::mem::size_of::<usize>() + std::mem::size_of::<String>();
+
     pub(crate) fn new(function: &FunctionExecutionId, path: &str) -> Self {
-        Self(exact_string(scoped_identity(function, "expression", path)))
+        Self::from_owned(scoped_identity(function, "expression", path))
+    }
+
+    pub(crate) fn from_owned(value: String) -> Self {
+        if !crate::bounded_output::reserve_active(Self::SHARED_ALLOCATION_CARRIER_BYTES) {
+            // The caller's existing overflow flag rejects the enclosing work.
+            // Do not allocate even an empty shared carrier after refusal.
+            return Self(None);
+        }
+        Self(Some(Arc::new(exact_string(value))))
     }
 
     pub(super) fn matches(&self, function: &FunctionExecutionId, path: &str) -> bool {
@@ -195,13 +209,56 @@ impl ExpressionId {
     }
 
     pub fn as_str(&self) -> &str {
-        &self.0
+        self.0.as_deref().map_or("", String::as_str)
+    }
+
+    pub(super) fn cached_text(&self) -> Option<&String> {
+        self.0.as_deref()
+    }
+
+    pub(crate) fn shared_allocation_key(&self) -> Option<usize> {
+        self.0.as_ref().map(|backing| Arc::as_ptr(backing) as usize)
+    }
+
+    pub(crate) fn shared_allocation_bytes(&self) -> Option<usize> {
+        self.0.as_ref().and_then(|backing| {
+            Self::SHARED_ALLOCATION_CARRIER_BYTES.checked_add(backing.capacity())
+        })
     }
 }
 
-impl Clone for ExpressionId {
-    fn clone(&self) -> Self {
-        Self(exact_string(self.0.clone()))
+impl fmt::Debug for ExpressionId {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_tuple("ExpressionId")
+            .field(&self.as_str())
+            .finish()
+    }
+}
+
+impl PartialEq for ExpressionId {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_str() == other.as_str()
+    }
+}
+
+impl Eq for ExpressionId {}
+
+impl PartialOrd for ExpressionId {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for ExpressionId {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.as_str().cmp(other.as_str())
+    }
+}
+
+impl Hash for ExpressionId {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.as_str().hash(state);
     }
 }
 
@@ -231,9 +288,13 @@ pub(super) fn scoped_identity(owner: &FunctionExecutionId, kind: &str, path: &st
 
 impl fmt::Display for ExpressionId {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str(&self.0)
+        formatter.write_str(self.as_str())
     }
 }
+
+#[cfg(test)]
+#[path = "ids/shared_identity_tests.rs"]
+mod shared_identity_tests;
 
 impl FunctionInstanceId {
     pub fn derive(template: &DeclarationId, arguments: &[ResolvedType]) -> Self {

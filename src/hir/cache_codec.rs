@@ -14,7 +14,22 @@ impl Codec for ValueId {
         String::decode(decoder).map(Self::new)
     }
 }
-codec_tuple!(ExpressionId(0));
+impl Codec for ExpressionId {
+    fn encode(&self, encoder: &mut Encoder) -> crate::cache_codec::Result<()> {
+        encoder.nested(|encoder| match self.cached_text() {
+            Some(text) => text.encode(encoder),
+            None => String::new().encode(encoder),
+        })
+    }
+
+    fn decode(decoder: &mut Decoder<'_>) -> crate::cache_codec::Result<Self> {
+        decoder.nested(|decoder| {
+            let value = String::decode(decoder)?;
+            decoder.allocate(Self::SHARED_ALLOCATION_CARRIER_BYTES)?;
+            Ok(Self::from_owned(value))
+        })
+    }
+}
 codec_enum!(FunctionExecutionId {0=>Monomorphic(value),1=>Generic(value)});
 codec_enum!(DeclarationKind {0=>Resource,1=>ResourceDrop,2=>Record,3=>Field,4=>Class,5=>Variant,6=>VariantCase,7=>CaseField,8=>Interface,9=>Import,10=>Function});
 codec_enum!(IdentityOrigin {0=>Explicit,1=>Automatic,2=>CompilerOwned});

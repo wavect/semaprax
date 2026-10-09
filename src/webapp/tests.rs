@@ -309,12 +309,19 @@ syncBuiltinESMExports();
 "#,
     )
     .unwrap();
+    let guard_url = std::process::Command::new("node")
+        .args(["--input-type=module", "-e", "import { pathToFileURL } from 'node:url'; console.log(pathToFileURL(process.argv[1]).href)"])
+        .arg(&offline_guard)
+        .output()
+        .unwrap();
+    assert!(guard_url.status.success());
+    let guard_url = String::from_utf8(guard_url.stdout).unwrap();
     let run_offline = |server: &Path, cwd: &Path| {
         let _ = std::fs::remove_dir_all(cwd);
         std::fs::create_dir_all(cwd).unwrap();
         let mut child = std::process::Command::new("node")
             .arg("--import")
-            .arg(&offline_guard)
+            .arg(guard_url.trim())
             .arg(server)
             .arg("--self-test-offline")
             .current_dir(cwd)

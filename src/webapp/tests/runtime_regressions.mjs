@@ -14,7 +14,7 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), "semaprax-sg-http-"));
 const data = path.join(root, "data");
 const children = new Set();
 const start = (dir = data, preload = null) => new Promise((resolve, reject) => {
-  const child = spawn(process.execPath, [...(preload ? ["--import", pathToFileURL(preload).href] : []), path.join(app, "server.mjs"), "--port", "0", "--data", dir, "--setup"], { stdio: ["ignore", "pipe", "pipe"] });
+  const child = spawn(process.execPath, [...(preload ? ["--import", pathToFileURL(preload).href] : []), path.join(app, "server.mjs"), "--port", "0", "--data", dir, "--setup"], { stdio: ["ignore", "pipe", "pipe", "ipc"] });
   children.add(child); let output = "", errors = "";
   const timer = setTimeout(() => { child.kill(); reject(new Error("server startup timeout: " + errors)); }, 10000);
   child.stderr.on("data", (s) => errors += s);
@@ -27,7 +27,7 @@ const start = (dir = data, preload = null) => new Promise((resolve, reject) => {
 });
 const stop = async (server) => {
   if (server.child.exitCode !== null) return;
-  await new Promise((resolve) => { server.child.once("exit", resolve); server.child.kill("SIGTERM"); });
+  await new Promise((resolve) => { server.child.once("exit", resolve); server.child.send("semaprax.webapp.stop.v1"); });
 };
 let server, cookie;
 const mutationHeaders = async (auth) => {
@@ -224,7 +224,10 @@ try {
   assert.equal(persisted.status, 201);
   const history = (await call("GET", persisted.location + "/history")).value;
   assert.equal(history.length, 1);
+  const normalOwner = JSON.parse(fs.readFileSync(path.join(data, ".writer-lock/owner.json"), "utf8"));
+  assert.equal(normalOwner.pid, server.child.pid);
   await stop(server);
+  assert.equal(fs.existsSync(path.join(data, ".writer-lock")), false, "graceful parent shutdown releases its writer claim");
   // Publication snapshot repairs missing mirrors without replaying a mutation twice.
   for (const file of ["db.json", "auth.json", "audit.jsonl"]) fs.unlinkSync(path.join(data, file));
   server = await start();

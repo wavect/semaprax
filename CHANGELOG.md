@@ -370,6 +370,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Generated webapp self-tests stop their child through private parent IPC so Windows
+  releases the writer claim before restart; forced-crash recovery stays explicit.
+  Node preload paths are converted to file URLs on every host.
+
 - Authored webapp v3 sign-in limits, session-bound CSRF, explicit field migrations
   and pairwise candidate constraints (#607); focused verification pending.
 

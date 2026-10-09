@@ -136,14 +136,43 @@ fn ref10_budget_sweeps_keep_exact_known_answers() {
         assert!(transcript
             .lines()
             .any(|line| line.contains("\"max_bytes\"")));
-        // Sweep lines are "<v> <budget> <nodes> {render}", so an error line
-        // carries " err\t" (a space, not a tab, before the marker).
-        assert!(transcript.lines().any(|line| line.contains(" err\t")));
         assert!(transcript
             .lines()
             .any(|line| line.contains("\"reasons\":[\"max_bytes\"]")));
     }
     assert_eq!(digests, REF10_SWEEP_DIGESTS);
+    // These frozen corpora can fit their envelopes at the public minimum.
+    // Exercise refusal with an admitted identity that makes the envelope
+    // itself too large, retaining every sweep byte and known-answer digest.
+    let root = format!("ref10.{}", "x".repeat(MIN_AGENT_CONTEXT_BYTES));
+    let source = format!("module test.ref10_envelope;\n@id(\"{root}\") fn main() -> i64 {{ 0 }}\n");
+    let program = crate::parse(&source, Path::new("agent-fit-envelope.spx")).unwrap();
+    let expected = format!(
+        "agent context max_bytes {MIN_AGENT_CONTEXT_BYTES} cannot contain the canonical envelope"
+    );
+    let assert_refusal = |errors: Vec<crate::diagnostic::Diagnostic>| {
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].code, "SPX-G004");
+        assert_eq!(errors[0].message, expected);
+    };
+    let small = AgentContextOptions::new(0, MIN_AGENT_CONTEXT_BYTES, 1, CORE_FILTERS).unwrap();
+    assert_refusal(agent_context_json(&program, &root, &small).unwrap_err());
+    let large = AgentContextOptions::new(0, MAX_AGENT_CONTEXT_BYTES, 1, CORE_FILTERS).unwrap();
+    assert!(agent_context_json(&program, &root, &large)
+        .unwrap()
+        .is_some());
+    for direction in AgentContextDirection::ALL {
+        let small =
+            AgentContextV2Options::new(0, MIN_AGENT_CONTEXT_BYTES, 1, CORE_FILTERS, direction)
+                .unwrap();
+        assert_refusal(agent_context_v2_json(&program, &root, &small).unwrap_err());
+        let large =
+            AgentContextV2Options::new(0, MAX_AGENT_CONTEXT_BYTES, 1, CORE_FILTERS, direction)
+                .unwrap();
+        assert!(agent_context_v2_json(&program, &root, &large)
+            .unwrap()
+            .is_some());
+    }
 }
 
 const REF10_SWEEP_DIGESTS: [&str; 3] = [

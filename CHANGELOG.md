@@ -1,5 +1,11 @@
 # Changelog
 
+- Author OPT-725 checked `char_from_i64` Unicode scalar conversion across the
+  source/HIR intrinsic contract, interpreter, C11 and scalar/aggregate Wasm.
+  Preserve byte conversion behavior and existing failure status; stage exact
+  scalar boundaries, hostile graph/cache/HIR, lazy evaluation and staged-owner
+  cleanup gates. Current-head execution and codec qualification remain pending.
+
 - Author the owned identifier-request successor for OPT-724: checked derivation
   now emits actual String and authored-record vectors, deterministic encoding
   without retained input spans, and the existing whole-stream normalizer under

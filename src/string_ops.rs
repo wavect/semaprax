@@ -83,6 +83,8 @@
 pub(crate) mod conditions;
 
 pub(crate) mod replacement;
+#[cfg(test)]
+mod unicode_scalar_tests;
 use crate::ast::{Param, ParamMode, Span, Type};
 use crate::hir::{OwnershipMode, ResolvedParam, ResolvedType, ValueId};
 
@@ -162,6 +164,9 @@ pub(crate) const U8_FROM_I64_ID: &str = "core.num.u8_from_i64";
 
 pub(crate) const CHAR_FROM_U8_NAME: &str = "char_from_u8";
 pub(crate) const CHAR_FROM_U8_ID: &str = "core.num.char_from_u8";
+
+pub(crate) const CHAR_FROM_I64_NAME: &str = "char_from_i64";
+pub(crate) const CHAR_FROM_I64_ID: &str = "core.num.char_from_i64";
 
 /// The checked status domain of Conversions v1.
 pub(crate) const CONVERT_STATUS_DOMAIN: &str = "semaprax.convert.v1";
@@ -273,6 +278,8 @@ pub(crate) enum StringOp {
     U8FromI64,
     /// Exact conversion of one byte to the same Unicode scalar value.
     CharFromU8,
+    /// Checked conversion to a Unicode scalar, excluding surrogate code points.
+    CharFromI64,
 }
 
 impl StringOp {
@@ -360,6 +367,7 @@ impl StringOp {
             StringOp::UsizeFromU8 => USIZE_FROM_U8_NAME,
             StringOp::U8FromI64 => U8_FROM_I64_NAME,
             StringOp::CharFromU8 => CHAR_FROM_U8_NAME,
+            StringOp::CharFromI64 => CHAR_FROM_I64_NAME,
             StringOp::I64FromUsize => I64_FROM_USIZE_NAME,
         }
     }
@@ -400,6 +408,7 @@ impl StringOp {
             StringOp::UsizeFromU8 => USIZE_FROM_U8_ID,
             StringOp::U8FromI64 => U8_FROM_I64_ID,
             StringOp::CharFromU8 => CHAR_FROM_U8_ID,
+            StringOp::CharFromI64 => CHAR_FROM_I64_ID,
             StringOp::I64FromUsize => I64_FROM_USIZE_ID,
         }
     }
@@ -440,6 +449,7 @@ impl StringOp {
             | StringOp::UsizeFromU8
             | StringOp::U8FromI64
             | StringOp::CharFromU8
+            | StringOp::CharFromI64
             | StringOp::I64FromUsize => &["value"],
         }
     }
@@ -486,6 +496,7 @@ impl StringOp {
             StringOp::UsizeFromU8 => &[ResolvedType::U8],
             StringOp::U8FromI64 => &[ResolvedType::I64],
             StringOp::CharFromU8 => &[ResolvedType::U8],
+            StringOp::CharFromI64 => &[ResolvedType::I64],
             StringOp::I64FromUsize => &[ResolvedType::Usize],
         }
     }
@@ -544,6 +555,7 @@ impl StringOp {
                 | Self::UsizeFromU8
                 | Self::U8FromI64
                 | Self::CharFromU8
+                | Self::CharFromI64
                 | Self::I64FromUsize
                 | Self::UsizeFromI64
         )
@@ -562,6 +574,7 @@ impl StringOp {
                 | StringOp::UsizeFromU8
                 | StringOp::U8FromI64
                 | StringOp::CharFromU8
+                | StringOp::CharFromI64
                 | StringOp::I64FromUsize
         )
     }
@@ -615,7 +628,7 @@ impl StringOp {
             StringOp::I64FromI32 => ResolvedType::I64,
             StringOp::UsizeFromU8 => ResolvedType::Usize,
             StringOp::U8FromI64 => ResolvedType::U8,
-            StringOp::CharFromU8 => ResolvedType::Char,
+            StringOp::CharFromU8 | StringOp::CharFromI64 => ResolvedType::Char,
             StringOp::F64FromI64 => ResolvedType::F64,
             StringOp::UsizeFromI64 => ResolvedType::Usize,
             StringOp::MapNew | StringOp::MapAdd | StringOp::MapSet | StringOp::MapRemove => {
@@ -652,7 +665,7 @@ impl StringOp {
             StringOp::I64FromI32 => Type::I64,
             StringOp::UsizeFromU8 => Type::Usize,
             StringOp::U8FromI64 => Type::U8,
-            StringOp::CharFromU8 => Type::Char,
+            StringOp::CharFromU8 | StringOp::CharFromI64 => Type::Char,
             StringOp::F64FromI64 => Type::F64,
             StringOp::UsizeFromI64 => Type::Usize,
             StringOp::MapNew | StringOp::MapAdd | StringOp::MapSet | StringOp::MapRemove => {
@@ -737,6 +750,7 @@ pub(crate) fn by_name(name: &str) -> Option<StringOp> {
         USIZE_FROM_U8_NAME => Some(StringOp::UsizeFromU8),
         U8_FROM_I64_NAME => Some(StringOp::U8FromI64),
         CHAR_FROM_U8_NAME => Some(StringOp::CharFromU8),
+        CHAR_FROM_I64_NAME => Some(StringOp::CharFromI64),
         I64_FROM_USIZE_NAME => Some(StringOp::I64FromUsize),
         _ => None,
     }
@@ -779,6 +793,7 @@ pub(crate) fn by_id(id: &str) -> Option<StringOp> {
         USIZE_FROM_U8_ID => Some(StringOp::UsizeFromU8),
         U8_FROM_I64_ID => Some(StringOp::U8FromI64),
         CHAR_FROM_U8_ID => Some(StringOp::CharFromU8),
+        CHAR_FROM_I64_ID => Some(StringOp::CharFromI64),
         I64_FROM_USIZE_ID => Some(StringOp::I64FromUsize),
         _ => None,
     }

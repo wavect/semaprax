@@ -904,3 +904,19 @@ fn general_loop_match_guards_match_recursive_oracle() {
     }
     compare_scalar_body("module t; @id(\"t.inspect\") fn inspect(text:own string)->bool {string_len(text)>0} @id(\"t.main\") fn main()->i64 { let held=\"x\"; let selected=Option<i64>::Some {value:1}; match selected { _ if inspect(held) => 1, _ => 0, } }");
 }
+
+#[test]
+fn unicode_scalar_conversion_matches_recursive_oracle() {
+    for source in [
+        "module t; fn main(value:i64)->char { char_from_i64(value) }",
+        "module t; fn main()->char { char_from_i64(1114111) }",
+        "module t; fn main()->char { char_from_i64(-1) }",
+        "module t; fn main()->char { char_from_i64(55296) }",
+        "module t; fn main()->char { char_from_i64(65u8) }",
+        "module t; fn main()->char { char_from_i64() }",
+        "module t; fn main()->char { char_from_i64(1,2) }",
+        "module t; fn main()->char { char_from_i64<i64>(1) }",
+    ] {
+        compare_scalar_body(source);
+    }
+}

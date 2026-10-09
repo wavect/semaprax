@@ -464,6 +464,7 @@ fn string_signature_views_match_all_materialized_descriptors_at_zero_identity_bu
         StringOp::UsizeFromU8,
         StringOp::U8FromI64,
         StringOp::CharFromU8,
+        StringOp::CharFromI64,
     ];
     let mut count = 0;
     for operation in StringOp::ALL
@@ -477,7 +478,7 @@ fn string_signature_views_match_all_materialized_descriptors_at_zero_identity_bu
         assert_static_signature(CallParameters::String(operation), &owned);
         count += 1;
     }
-    assert_eq!(count, 35);
+    assert_eq!(count, 36);
     use crate::str_ops::StrOp;
     for operation in [
         StrOp::LenBytes,

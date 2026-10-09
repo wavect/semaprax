@@ -30,6 +30,28 @@ pub(super) fn emit_scalar(
             local_get(output, scratch);
             output.push(0xa7); // i32.wrap_i64, safe after the checked range
         }
+        StringOp::CharFromI64 => {
+            let scratch = layout.wide_scratch[0];
+            local_set(output, scratch);
+            for (bound, comparison) in [(0, 0x53), (0x10ffff, 0x55)] {
+                local_get(output, scratch);
+                output.push(0x42);
+                write_i64(output, bound);
+                output.push(comparison); // i64.lt_s / i64.gt_s
+                scalar_range_failure(output);
+            }
+            local_get(output, scratch);
+            output.push(0x42);
+            write_i64(output, 0xd800);
+            output.push(0x59); // i64.ge_s
+            local_get(output, scratch);
+            output.push(0x42);
+            write_i64(output, 0xdfff);
+            output.extend_bytes(&[0x57, 0x71]); // i64.le_s; i32.and
+            scalar_range_failure(output);
+            local_get(output, scratch);
+            output.push(0xa7); // i32.wrap_i64, after Unicode scalar validation
+        }
         StringOp::I64FromUsize | StringOp::UsizeFromI64 => {
             let scratch = layout.wide_scratch[0];
             local_set(output, scratch);
@@ -57,6 +79,13 @@ pub(super) fn emit_scalar(
         _ => return Err(crate::string_ops::text_toolkit_wasm_refusal(op)),
     }
     Ok(())
+}
+
+fn scalar_range_failure(output: &mut impl ByteOutput) {
+    output.extend_bytes(&[0x04, 0x40, 0x41]);
+    write_i64(output, i64::from(OUT_OF_RANGE_STATUS));
+    call_import(output, 6);
+    output.extend_bytes(&[0x00, 0x0b]);
 }
 
 pub(super) fn expression_uses_integer_conversion(expression: &crate::hir::ResolvedExpr) -> bool {

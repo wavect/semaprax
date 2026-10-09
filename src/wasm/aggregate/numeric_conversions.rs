@@ -59,6 +59,30 @@ impl super::Emitter<'_> {
                 result?;
             }
         }
+        if op == StringOp::CharFromI64 {
+            for (bound, comparison) in [(0, 0x53), (0x10ffff, 0x55)] {
+                self.get_scalar(&value);
+                self.output.push(0x42);
+                write_i64(self.output, bound);
+                self.output.push(comparison); // i64.lt_s / i64.gt_s
+                let saved = self.failure_expression.replace(expression.id.clone());
+                let result = self.fail_if(OUT_OF_RANGE_STATUS);
+                self.failure_expression = saved;
+                result?;
+            }
+            self.get_scalar(&value);
+            self.output.push(0x42);
+            write_i64(self.output, 0xd800);
+            self.output.push(0x59); // i64.ge_s
+            self.get_scalar(&value);
+            self.output.push(0x42);
+            write_i64(self.output, 0xdfff);
+            self.output.extend([0x57, 0x71]); // i64.le_s; i32.and
+            let saved = self.failure_expression.replace(expression.id.clone());
+            let result = self.fail_if(OUT_OF_RANGE_STATUS);
+            self.failure_expression = saved;
+            result?;
+        }
         self.get_scalar(&value);
         if matches!(op, StringOp::I64FromU8 | StringOp::UsizeFromU8) {
             self.output.push(0xad);
@@ -66,7 +90,7 @@ impl super::Emitter<'_> {
         if op == StringOp::I64FromI32 {
             self.output.push(0xac);
         }
-        if op == StringOp::U8FromI64 {
+        if matches!(op, StringOp::U8FromI64 | StringOp::CharFromI64) {
             self.output.push(0xa7); // i32.wrap_i64, safe after the checked range
         }
         let local = self.plan.expr_scalar(expression)?;

@@ -355,3 +355,6 @@ fn integer_profile_types_and_forged_results_fail_closed() {
     value.ty = hir::ResolvedType::U8;
     assert!(hir::validate(&forged_remainder).is_err());
 }
+
+#[path = "integer_profiles/unicode_scalar.rs"]
+mod unicode_scalar;

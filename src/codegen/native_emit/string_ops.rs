@@ -166,6 +166,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             | crate::string_ops::StringOp::UsizeFromU8
             | crate::string_ops::StringOp::U8FromI64
             | crate::string_ops::StringOp::CharFromU8
+            | crate::string_ops::StringOp::CharFromI64
             | crate::string_ops::StringOp::I64FromUsize => {
                 self.emit_conversion_op(op, &arguments[0].code, &temporary)?;
             }
@@ -234,6 +235,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             StringOp::UsizeFromI64 => (ResolvedType::I64, "uint64_t"),
             StringOp::I64FromUsize => (ResolvedType::Usize, "int64_t"),
             StringOp::U8FromI64 => (ResolvedType::I64, "uint8_t"),
+            StringOp::CharFromI64 => (ResolvedType::I64, "uint32_t"),
             _ => {
                 return Err(super::backend_error(
                     "operation is not a Conversions v1 call",
@@ -257,6 +259,10 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             }
             StringOp::U8FromI64 => vec![(
                 format!("{input} < INT64_C(0) || {input} > INT64_C(255)"),
+                CONVERT_OUT_OF_RANGE_CODE,
+            )],
+            StringOp::CharFromI64 => vec![(
+                format!("{input} < INT64_C(0) || {input} > INT64_C(1114111) || ({input} >= INT64_C(55296) && {input} <= INT64_C(57343))"),
                 CONVERT_OUT_OF_RANGE_CODE,
             )],
             _ => vec![(

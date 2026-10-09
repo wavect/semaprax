@@ -46,14 +46,17 @@ impl Evaluator<'_> {
                         Value::Int(number) => self.materialize_utf8_copy(&number.to_string())?,
                         Value::Uint8(number) => self.materialize_utf8_copy(&number.to_string())?,
                         Value::Usize(number) => self.materialize_utf8_copy(&number.to_string())?,
-                        Value::Bool(boolean) => self.materialize_utf8_copy(if boolean { "true" } else { "false" })?,
+                        Value::Bool(boolean) => {
+                            self.materialize_utf8_copy(if boolean { "true" } else { "false" })?
+                        }
                         _ => return Err(Flow::Guard("ill-typed checked literal format value")),
                     }
                 }
             };
             let length = result.len().checked_add(part.len()).ok_or(
                 Flow::Utf8MaterializationLimitExceeded {
-                    attempted_materializations: u64::MAX, attempted_bytes: u64::MAX,
+                    attempted_materializations: u64::MAX,
+                    attempted_bytes: u64::MAX,
                 },
             )?;
             self.charge_utf8_materialization(length)?;
@@ -402,6 +405,11 @@ impl Evaluator<'_> {
                 .map(Value::Uint8)
                 .map_err(|_| convert_failure(CONVERT_OUT_OF_RANGE_CODE)),
             (StringOp::CharFromU8, [Value::Uint8(value)]) => Ok(Value::Char(u32::from(*value))),
+            (StringOp::CharFromI64, [Value::Int(value)]) => u32::try_from(*value)
+                .ok()
+                .and_then(char::from_u32)
+                .map(|value| Value::Char(u32::from(value)))
+                .ok_or_else(|| convert_failure(CONVERT_OUT_OF_RANGE_CODE)),
             // Rust's `as` rounds to nearest, ties to even, like C and Wasm.
             (StringOp::F64FromI64, [Value::Int(value)]) => Ok(Value::Float64(*value as f64)),
             (StringOp::I64FromF64, [Value::Float64(value)]) => {

@@ -188,6 +188,7 @@ fn nearest_function_name(name: &str, functions: &HashMap<&str, &Function>) -> Op
             crate::string_ops::I64_FROM_U8_NAME,
             crate::string_ops::U8_FROM_I64_NAME,
             crate::string_ops::CHAR_FROM_U8_NAME,
+            crate::string_ops::CHAR_FROM_I64_NAME,
             crate::str_ops::LEN_BYTES_NAME,
             crate::str_ops::IS_EMPTY_NAME,
             crate::str_ops::STARTS_WITH_NAME,

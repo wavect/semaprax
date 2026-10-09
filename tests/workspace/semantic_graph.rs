@@ -517,7 +517,14 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     assert!(synthetic < collect && collect < verify);
 
     let collect_source = &projection[collect..verify];
-    assert_eq!(collect_source.matches("edges.sort();").count(), 1);
+    // Import-free modules return after their capability edges; the imported
+    // path reaches the terminal sort. Each path sorts the complete projection
+    // exactly once, and the fast path must not admit intervening work.
+    assert_eq!(collect_source.matches("edges.sort();").count(), 2);
+    assert!(collect_source.contains(
+        "if function_uses.is_empty() && type_uses.is_empty() {\n        edges.sort();\n        return Ok(());\n    }"
+    ));
+    assert!(collect_source.contains("    edges.sort();\n    Ok(())\n}"));
     assert!(!collect_source.contains("workspace_call_sites"));
     let verify_source = &projection[verify..];
     assert!(verify_source.contains("expected.sort();"));

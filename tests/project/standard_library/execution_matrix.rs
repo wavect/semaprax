@@ -76,6 +76,7 @@ fn declared_owners() -> Vec<(&'static str, Owner)> {
         ("std.path", Test("data_encoding_backend_audit::data_encoding_url_path_execute_on_all_three_backends")),
         ("std.path.normalize", Test("path_normalize::path_normalization_executes_on_all_three_backends")),
         ("std.path.value", Test("typed_paths_execute_on_all_three_backends")),
+        ("std.pattern", Test("pattern_executes_on_all_three_backends")),
         ("std.process", Test("process::process_package_executes_all_functions_with_registered_request_shape")),
         ("std.random", Test("core_num_backend_audit::core_num_random_time_test_execute_on_all_three_backends")),
         ("std.test", Test("core_num_backend_audit::core_num_random_time_test_execute_on_all_three_backends")),

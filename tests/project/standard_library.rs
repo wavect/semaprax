@@ -446,6 +446,16 @@ fn typed_paths_execute_on_all_three_backends() {
     );
 }
 
+#[test]
+fn pattern_executes_on_all_three_backends() {
+    run_examples_and_conformance(
+        packages()
+            .into_iter()
+            .filter(|package| package.module == "std.pattern")
+            .collect(),
+    );
+}
+
 fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
     assert!(!selected.is_empty());
     let scratch = temporary("lanes");
@@ -599,7 +609,7 @@ for (let r = 0; r < 4; ++r) {{ assert.equal(linked.instance.exports.semaprax_mai
             ] {
                 let cursor_case = json_cursors::is_cursor_case(&manifest);
                 // Each fixture must balance its declared live Bytes bound.
-                let arena = role == "tests" && (cursor_case || matches!(package.module.as_str(), "std.data.json.dec" | "std.data.csv" | "std.encoding.base64" | "std.io" | "std.io.lines" | "std.path.value" | "std.path.normalize" | "std.log.redact" | "std.email" | "std.webhook" | "std.tracing" | "std.metrics" | "std.http") || (package.module == "std.format" && formatting::uses_byte_arena(&manifest)) || (package.module == "std.log" && logging::uses_byte_writes(&manifest)));
+                let arena = role == "tests" && (cursor_case || matches!(package.module.as_str(), "std.data.json.dec" | "std.data.csv" | "std.encoding.base64" | "std.io" | "std.io.lines" | "std.path.value" | "std.path.normalize" | "std.pattern" | "std.log.redact" | "std.email" | "std.webhook" | "std.tracing" | "std.metrics" | "std.http") || (package.module == "std.format" && formatting::uses_byte_arena(&manifest)) || (package.module == "std.log" && logging::uses_byte_writes(&manifest)));
                 if role == "tests" {
                     for name in ["spx_bytes_zeroed", "spx_bytes_set"] {
                         let present = module_bytes.windows(name.len()).any(|w| w == name.as_bytes());

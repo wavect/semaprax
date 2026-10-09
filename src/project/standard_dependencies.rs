@@ -289,6 +289,12 @@ const PACKAGES: &[BundledPackage] = &[
         dependencies: &[],
     },
     BundledPackage {
+        name: "std.pattern",
+        path: "dependencies/std.pattern/0.1.0/pattern.spx",
+        source: include_str!("../../std/pattern/src/pattern.spx"),
+        dependencies: &[],
+    },
+    BundledPackage {
         name: "std.process",
         path: "dependencies/std.process/0.1.0/process.spx",
         source: include_str!("../../std/process/src/process.spx"),
@@ -574,6 +580,7 @@ mod tests {
             "std.io.lines",
             "std.net",
             "std.path.normalize",
+            "std.pattern",
         ] {
             assert!(is_bundled(name), "`{name}` is not a bundled package");
         }
@@ -593,6 +600,7 @@ mod tests {
             package("std.path.normalize").unwrap().dependencies,
             &["std.path.value"]
         );
+        assert!(package("std.pattern").unwrap().dependencies.is_empty());
     }
 
     #[test]

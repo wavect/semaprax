@@ -56,10 +56,9 @@ Audit changed-field values may be a two-item `[old,new]` pair or an object
 with exactly `old` and `new` fields. An audit event may state a valid `action`
 (`create`, `update`, or `delete`), or omit it when complete, unambiguous
 old/new required-field changes identify that operation; an explicit action must
-match those changes. An explicit update may record any real non-create/delete
-transition, including a nullable field; an explicit empty or unchanged update is a
-no-op and is not a required mutation witness. Their values and every audit obligation
-remain independently checked. CSV headers are decoded as CSV, including
+match those changes. An explicit update may record a nullable-field transition or a
+no-op; each is an audit witness. Their values and every audit obligation remain
+independently checked. CSV headers are decoded as CSV, including
 quoted columns and an optional leading UTF-8 BOM. Records must have consistent
 width and required columns, and quoted fields preserve commas, quotes and
 newlines. These representation normalizations apply identically to both arms.

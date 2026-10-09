@@ -775,7 +775,13 @@
           },
           "conditional_api_equivalent_usd_all_attempts": 2.1614,
           "conditional_api_equivalent_usd_per_accepted_task": 0.7204666666666667,
-          "actual_billed_usd_per_accepted_task": null
+          "actual_billed_usd_per_accepted_task": null,
+          "uncached_input_tokens_raw_minus_cache_read": {
+            "total": 325677,
+            "mean_per_attempt": 65135.4,
+            "median_per_attempt": 65357,
+            "definition": "raw_input_tokens minus cached_input_tokens; includes unknown task/system/tool/history context and is not task-only input"
+          }
         },
         "typescript": {
           "attempts": 5,
@@ -823,7 +829,13 @@
           },
           "conditional_api_equivalent_usd_all_attempts": 0.933032,
           "conditional_api_equivalent_usd_per_accepted_task": 0.233258,
-          "actual_billed_usd_per_accepted_task": null
+          "actual_billed_usd_per_accepted_task": null,
+          "uncached_input_tokens_raw_minus_cache_read": {
+            "total": 205103,
+            "mean_per_attempt": 41020.6,
+            "median_per_attempt": 47715,
+            "definition": "raw_input_tokens minus cached_input_tokens; includes unknown task/system/tool/history context and is not task-only input"
+          }
         }
       },
       "measurement_caveats": [
@@ -833,7 +845,8 @@
         "Final-source value is the legacy Claude BPE tokenizer proxy, not cumulative authorship or exact GPT tokenization.",
         "Conditional short-context API-equivalent estimates are not actual billing; provider receipts and resolved model are unavailable.",
         "Fixed harness context is unknown; separate calibration was not subtracted.",
-        "All ten attempts, including three rejected tasks, remain in totals."
+        "All ten attempts, including three rejected tasks, remain in totals.",
+        "Uncached input is raw input minus cached input; it still includes task, system, tool and history context, so it is not task-only input."
       ],
       "resource_contaminated_attempts": 0,
       "reports": "reports/codex-current398-20261009.md",
@@ -842,7 +855,10 @@
       "campaign_json_sha256": "79d28a19fa1b7a9ee33edccfb74069fd8b10192997575bc74409b46f5cb0a548",
       "reviewed_plan_sha256": "21429250472e855378b1e9232b6a20385ac9d1b9ae4706af81ed66debbb84af1",
       "terminal_receipt_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/loglens-current-source398b051e6-terminal-receipt-20261009.json",
-      "terminal_receipt_sha256": "ba4cacf4645045a46783aac05fff6a045b12a7aaf2ab16691e8989e7ca18fdb1"
+      "terminal_receipt_sha256": "ba4cacf4645045a46783aac05fff6a045b12a7aaf2ab16691e8989e7ca18fdb1",
+      "launch_time_compiler_label_note": "“Current-compiler” labels the source 398b051e6 pinned at launch. Later source batch 700701 (687cbed33) and subsequent heads are not included in this campaign.",
+      "report_sha256": "536a51976c408b5b4e50465d138146f799907997dc032dc21be42dd3a4123121",
+      "trace_backed_recount_sha256": "8cf37abde6d55e6e95561ee26d5fd16805ed972d8e3f404d87cde996633e4d60"
     }
   ]
 }

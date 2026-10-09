@@ -2,7 +2,7 @@
 
 This completed Codex campaign retained five attempts per arm and all ten outcomes. SEMAPRAX accepted **3/5**; TypeScript accepted **4/5**. The three rejected attempts (SEM01, SEM04, TS02) each failed the same two `literal-plus-timezone` boundary outputs (text and JSON). Every trial completed, and the resource receipts classify all ten as uncontaminated. These are descriptive observations from one matched campaign; they do not establish a winner, a causal language comparison, or an efficiency advantage. Failed attempts and their full usage/cost estimates remain in every all-attempt total.
 
-The adapter metadata retains `round: 6`; this is a new artifact namespace and plan, chronologically after the previously published round-seven report. It is not a replacement, selective retry, or corrected rescore of that earlier campaign. The stable label here is “fresh current-compiler repeat.”
+The adapter metadata retains `round: 6`; this is a new artifact namespace and plan, chronologically after the previously published round-seven report. It is not a replacement, selective retry, or corrected rescore of that earlier campaign. The stable label here is “fresh current-compiler repeat.” “Current-compiler” is a launch-time label for the pinned source `398b051e6e7a06ac49ecf77d9292831401430de0`; later source batch `700701` (`687cbed33`) and subsequent heads were not included in these observations.
 
 ## Frozen identity and acceptance
 
@@ -16,13 +16,14 @@ The adapter metadata retains `round: 6`; this is a new artifact namespace and pl
 
 ## All-attempt measurements
 
-Values are mean per attempt, with five attempts in each arm. Parentheses show the total across all five. “Raw input” includes cache-read input; cached input is a subset and must not be added to raw input. The legacy net-input convention is separate and is not task-only input.
+Values are mean per attempt, with five attempts in each arm. Parentheses show the total across all five. “Raw input” includes cached input; cached input is a subset and must not be added to raw input. “Uncached input” is exactly raw input minus cached input; it still includes task, system, tool, and history context and is not task-only input. The legacy net-input convention is separate and is also not task-only input.
 
 | Measure | SEMAPRAX | TypeScript |
 |---|---:|---:|
 | Model requests | 29.200 (146) | 8.800 (44) |
 | Raw input tokens | 1,556,745 (7,783,725) | 233,993 (1,169,967) |
 | Cached-input subset | 1,491,610 (7,458,048) | 192,973 (964,864) |
+| Uncached input (raw minus cached subset) | 65,135.4 (325,677) | 41,020.6 (205,103) |
 | Legacy net-input convention | 1,159,771 (5,798,855) | 114,419 (572,095) |
 | Output tokens | 15,285 (76,424) | 8,527 (42,634) |
 | Final-source token proxy | 8,014 (40,072) | 5,332 (26,661) |
@@ -36,24 +37,24 @@ The cost-per-accepted values divide the conditional short-context rate-card esti
 
 ## Attempt record
 
-| Order | Arm/run | Result | Requests | Raw input | Cached subset | Output | Legacy net | Final-source proxy | Conditional estimate | Agent wall (s) | Acceptance wall (s) |
+| Order | Arm/run | Result | Requests | Raw input | Cached subset | Uncached input | Output | Legacy net | Final-source proxy | Conditional estimate | Agent wall (s) | Acceptance wall (s) |
 |---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 1 | SEM01 | not_accepted | 32 | 1,686,295 | 1,616,128 | 14,383 | 1,251,255 | 8,243 | $0.445777 | 432.276 | 34.925 |
-| 2 | TS01 | accepted | 9 | 239,075 | 191,360 | 7,567 | 116,783 | 4,659 | $0.190236 | 179.802 | 4.171 |
-| 3 | TS02 | not_accepted | 10 | 273,732 | 239,744 | 9,189 | 137,852 | 5,501 | $0.183840 | 195.620 | 4.536 |
-| 4 | SEM02 | accepted | 21 | 1,037,805 | 976,640 | 14,774 | 752,310 | 7,959 | $0.367734 | 387.662 | 28.528 |
-| 5 | SEM03 | accepted | 22 | 1,084,283 | 1,028,096 | 11,743 | 785,193 | 7,352 | $0.332614 | 328.086 | 27.477 |
-| 6 | TS03 | accepted | 9 | 244,364 | 196,480 | 10,142 | 122,072 | 6,309 | $0.216836 | 253.219 | 3.996 |
-| 7 | TS04 | accepted | 8 | 204,809 | 156,928 | 7,911 | 96,105 | 5,222 | $0.190565 | 194.881 | 3.542 |
-| 8 | SEM04 | not_accepted | 30 | 1,611,085 | 1,545,728 | 16,736 | 1,203,235 | 7,897 | $0.452647 | 490.870 | 33.775 |
-| 9 | SEM05 | accepted | 41 | 2,364,257 | 2,291,456 | 18,788 | 1,806,862 | 8,621 | $0.562628 | 603.152 | 36.394 |
-| 10 | TS05 | accepted | 8 | 207,987 | 180,352 | 7,825 | 99,283 | 4,970 | $0.151555 | 177.792 | 3.931 |
+| 1 | SEM01 | not_accepted | 32 | 1,686,295 | 1,616,128 | 70,167 | 14,383 | 1,251,255 | 8,243 | $0.445777 | 432.276 | 34.925 |
+| 2 | TS01 | accepted | 9 | 239,075 | 191,360 | 47,715 | 7,567 | 116,783 | 4,659 | $0.190236 | 179.802 | 4.171 |
+| 3 | TS02 | not_accepted | 10 | 273,732 | 239,744 | 33,988 | 9,189 | 137,852 | 5,501 | $0.183840 | 195.620 | 4.536 |
+| 4 | SEM02 | accepted | 21 | 1,037,805 | 976,640 | 61,165 | 14,774 | 752,310 | 7,959 | $0.367734 | 387.662 | 28.528 |
+| 5 | SEM03 | accepted | 22 | 1,084,283 | 1,028,096 | 56,187 | 11,743 | 785,193 | 7,352 | $0.332614 | 328.086 | 27.477 |
+| 6 | TS03 | accepted | 9 | 244,364 | 196,480 | 47,884 | 10,142 | 122,072 | 6,309 | $0.216836 | 253.219 | 3.996 |
+| 7 | TS04 | accepted | 8 | 204,809 | 156,928 | 47,881 | 7,911 | 96,105 | 5,222 | $0.190565 | 194.881 | 3.542 |
+| 8 | SEM04 | not_accepted | 30 | 1,611,085 | 1,545,728 | 65,357 | 16,736 | 1,203,235 | 7,897 | $0.452647 | 490.870 | 33.775 |
+| 9 | SEM05 | accepted | 41 | 2,364,257 | 2,291,456 | 72,801 | 18,788 | 1,806,862 | 8,621 | $0.562628 | 603.152 | 36.394 |
+| 10 | TS05 | accepted | 8 | 207,987 | 180,352 | 27,635 | 7,825 | 99,283 | 4,970 | $0.151555 | 177.792 | 3.931 |
 
 Each row remains in the denominator. Per-attempt transcript and rollout SHA-256 values, candidate-archive verification, detailed resource receipts, and raw usage reconciliation are in the recount JSON linked below.
 
 ## Calibration and limits
 
-Calibration was separate and was not subtracted: 5.086 seconds, one request, 13,203 input tokens and 5 output tokens; conditional API-equivalent estimate $0.026456. Fixed harness/system/tool/task/history context composition remains unknown (`fixed_harness_context_tokens: null`); the calibration is not a measurement of per-trial fixed context.
+Calibration was separate and was not subtracted: 5.086 seconds, one request, 13,203 raw input tokens, 0 cached-input tokens, therefore 13,203 uncached input tokens, and 5 output tokens; conditional API-equivalent estimate $0.026456. This uncached calibration input is a context diagnostic, not task-only input. Fixed harness/system/tool/task/history context composition remains unknown (`fixed_harness_context_tokens: null`); the calibration is not a measurement of per-trial fixed context.
 
 Cache-write input was zero for every attempt. Reasoning-output counts are already subsets of output. Actual billed cost, provider-resolved model identity, and stable context tokens are null. The legacy Claude BPE final-source proxy uses `@anthropic-ai/tokenizer` 0.0.4 / `tiktoken` 1.0.22 and must not be treated as exact current-model tokenization.
 

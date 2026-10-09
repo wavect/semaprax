@@ -1330,7 +1330,7 @@ mod tests {
 
         let codes = diagnostic_entry("codes").unwrap();
         assert!(
-            codes.starts_with("Common diagnostic codes:\n  SPX-P106 SPX-H006 SPX-T203 SPX-T252 ")
+            codes.starts_with("Common diagnostic codes:\n  SPX-P106 SPX-H006 SPX-T252 SPX-T203 ")
         );
         assert!(codes.ends_with("All: semaprax help language mistakes-index\n"));
         assert_eq!(codes.lines().count(), 4);
@@ -1396,6 +1396,9 @@ mod tests {
                     "\n",
                     "wrote: outer owned binding changes in while\n",
                     "fix: Keep outer ownership unchanged\n",
+                    "\n",
+                    "wrote: one-Bytes-plus-usize owner renewal with input views\n",
+                    "fix: Pure nongeneric call; exactly one whole owner returned as the same type; whole named independent Slice/str borrows only; [renewal hook](IO-LINES-V1.md#cursor-transitions), executable gate pending\n",
                 ),
             ),
             (

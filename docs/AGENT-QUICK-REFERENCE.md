@@ -1101,8 +1101,9 @@ Replace a 256-arm i64-to-byte or byte-to-char match with
 | break / continue|`SPX-P106`|Put exit test in `while` condition|
 | `x as i64`|`SPX-P106`|Use named checked conversion or suffixed literals|
 | Rust/JS closure|`SPX-P201`|Use fn(x: i64) -> i64 { x + 1 }|
-| use std::io;|`SPX-G170`|Built-ins need no import; project imports stable IDs|
-|source-command run|`SPX-F102`|Native build|
+| use std::io;|`SPX-G170`|Built-in operations need no import. For a std.* source package, declare its Project dependency and import declarations by stable ID|
+| noncanonical Project source|`SPX-G170`|Run `semaprax fmt <manifest>`; if manifest layout itself blocks discovery, first run `semaprax fmt --manifest <manifest>`, then retry|
+| interpreter run of a `source-command.v1` Project|`SPX-F102`|Project interpreter has no argv/file provider. Build with `semaprax build <manifest> --target native -o <fresh-path>`, then run the binary from the Project directory with its arguments|
 | rebuild to existing output|`SPX-I307`|Fresh --output; remove only after confirming it is your artifact. Never overwrite|
 | f()? in main|`SPX-T218`|Only Result propagates; match in main|
 | array literal|`SPX-T262`|Arrays are bytes; use Vec<i64>|

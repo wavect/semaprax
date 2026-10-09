@@ -4042,6 +4042,9 @@ fn build_owned_inner(
                         "workspace semantic source `{}` is not canonical",
                         source.path
                     ),
+                )
+                .with_help(
+                    "Run `semaprax fmt <project-directory-or-manifest>` to canonicalize project source, then retry.",
                 )]);
             }
             if let Some(frontend) = frontend.as_deref_mut() {

@@ -411,7 +411,7 @@ impl Emitter<'_> {
         self.emit_pointer(item);
         self.load_scalar(&ResolvedType::Bytes);
         self.output.extend([0x42, 0x00, 0x10]);
-        write_u32(self.output, BYTE_GET_IMPORT);
+        write_u32(self.output, self.byte_get_import);
         self.output.extend([0x41]);
         write_i64(self.output, 255);
         self.output.push(0x4b); // byte_get < 0 is unsigned > 255

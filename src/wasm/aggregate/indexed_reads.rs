@@ -30,7 +30,7 @@ impl Emitter<'_> {
         self.get_scalar(&values[0]);
         self.get_scalar(&values[1]);
         self.output.push(0x10);
-        write_u32(self.output, BYTE_GET_IMPORT);
+        write_u32(self.output, self.byte_get_import);
         self.output.extend([0x22]);
         write_u32(self.output, self.plan.status);
         self.output.extend([0x41, 0x00, 0x4e, 0x04, 0x40]);

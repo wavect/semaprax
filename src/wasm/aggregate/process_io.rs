@@ -76,7 +76,7 @@ impl Emitter<'_> {
                 self.process_integer(fixed + i);
             }
             self.output.push(0x10);
-            write_u32(self.output, BYTE_GET_IMPORT);
+            write_u32(self.output, self.byte_get_import);
             self.output.push(0x22);
             write_u32(self.output, byte);
             self.output.push(0x41);

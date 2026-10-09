@@ -18,7 +18,7 @@ impl Emitter<'_> {
         self.list_get_local(carrier);
         self.list_get_local(index);
         self.output.push(0x10);
-        write_u32(self.output, BYTE_GET_IMPORT);
+        write_u32(self.output, self.byte_get_import);
         self.output.push(0xad);
     }
     fn list_failure_if(

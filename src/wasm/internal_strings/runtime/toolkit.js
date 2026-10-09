@@ -38,6 +38,11 @@ function createToolkitOperations({authenticate,mint,checkedMemory,fail,options})
       for(let i=0;i<bound;i++)if(a[i]!==b[i])return a[i]<b[i]?-1n:1n;
       return a.length===b.length?0n:a.length<b.length?-1n:1n;
     },
+    spx_bytes_get(carrier,index){
+      const value=bytes(carrier);
+      if(typeof index!=="bigint"||index<0n||index>=BigInt(value.length))return -1;
+      return value[Number(index)];
+    },
     spx_string_slice_v2(carrier,start,end,offset){
       const value=bytes(carrier),out=output(offset);
       if(!range(start,value.length)||!range(end,value.length)||start>end)return 23;

@@ -289,7 +289,7 @@ impl Emitter<'_> {
         self.output.push(0x20);
         write_u32(self.output, index);
         self.output.push(0x10);
-        write_u32(self.output, BYTE_GET_IMPORT);
+        write_u32(self.output, self.byte_get_import);
         self.output.push(0x22);
         write_u32(self.output, self.plan.status);
         self.output.push(0x41);

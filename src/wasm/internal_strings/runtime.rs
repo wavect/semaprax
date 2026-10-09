@@ -55,6 +55,7 @@ pub(super) fn render_toolkit(
     // Import selection is bound to the chosen executable closure. Unused
     // type declarations cannot add a host arena or widen its import inventory.
     selected.types.clear();
+    let uses_byte_get = crate::wasm::aggregate::text_toolkit::uses_byte_get(&selected);
     let collections = crate::wasm::aggregate::map_collections::uses(&selected);
     let names = ["from_i64", "from_usize", "compare"]
         .into_iter()
@@ -69,6 +70,7 @@ pub(super) fn render_toolkit(
                 .into_iter()
                 .flatten(),
         )
+        .chain(uses_byte_get.then_some("spx_bytes_get"))
         .map(quote_json)
         .collect::<Vec<_>>()
         .join(",");
@@ -76,6 +78,15 @@ pub(super) fn render_toolkit(
         "\"contains\",\"drop\"]);",
         &format!("\"contains\",\"drop\",{names}]);"),
     );
+    input = input
+        .replace(
+            "const IMPORT_NAMES=Object.freeze(",
+            "const ENV_IMPORT_NAMES=Object.freeze([\"spx_bytes_get\",\"spx_collection_checked_v2\",\"spx_collection_drop_v2\"]);\nconst IMPORT_NAMES=Object.freeze(",
+        )
+        .replace(
+            "item.module!==\"semaprax.internal-strings.v1\"",
+            "item.module!==(ENV_IMPORT_NAMES.includes(item.name)?\"env\":\"semaprax.internal-strings.v1\")",
+        );
     let mut arena = include_str!("runtime/arena.js")
         .replace("function createArena(fail,isPoisoned){", "function createArena(fail,isPoisoned,options){")
         .replace("  const imports=Object.create(null);", "  const toolkit=createToolkitOperations({authenticate,mint,checkedMemory,fail,options});\n  Object.assign(operations,toolkit.operations);\n  const imports=Object.create(null);")
@@ -86,10 +97,6 @@ pub(super) fn render_toolkit(
         .replace("status<0||status>11", "!(status>=0&&status<=11||status>=21&&status<=25||status>=65&&status<=71)")
         .replace("domain:status<=8?\"semaprax.arithmetic.v1\":\"semaprax.contract.v1\",code:status<=8?status:status-8", "domain:status<=8?\"semaprax.arithmetic.v1\":status<=10?\"semaprax.contract.v1\":status<=22?\"semaprax.convert.v1\":status<=25?\"semaprax.text.v1\":\"semaprax.filesystem.v1\",code:status<=8?status:status<=10?status-8:status<=22?status-20:status<=25?status-22:status-64");
     if collections {
-        input = input.replace(
-            "item.module!==\"semaprax.internal-strings.v1\"",
-            "item.module!==(i<IMPORT_NAMES.length-2?\"semaprax.internal-strings.v1\":\"env\")",
-        );
         arena = arena.replace("  const imports=Object.create(null);", "  function refuseCapacity(reason){requireActive();if(cause!==null)fail();cause=reason;return 11}\n  const collections=createCollectionOperations({authenticate,mint,checkedMemory,requireActive,refuseCapacity,fail,options});\n  Object.assign(operations,collections.operations);\n  const imports=Object.create(null);")
             .replace("active=true;toolkit.begin()", "active=true;toolkit.begin();collections.begin()")
             .replace("active=false;return cause", "collections.settle();active=false;return cause");
@@ -98,6 +105,10 @@ pub(super) fn render_toolkit(
             .replace("status<=25?\"semaprax.text.v1\":\"semaprax.filesystem.v1\"", "status<=25?\"semaprax.text.v1\":status<=29?\"semaprax.map.v1\":status<=33?\"semaprax.map.v2\":\"semaprax.filesystem.v1\"")
             .replace("status<=25?status-22:status-64", "status<=25?status-22:status<=29?status-25:status<=33?status-29:status-64");
     }
+    facade = facade.replace(
+        "Object.freeze({\"semaprax.internal-strings.v1\":arena.imports})",
+        "Object.freeze({\"semaprax.internal-strings.v1\":arena.imports,env:arena.imports})",
+    );
     let operations = if collections {
         format!(
             "{}\n{}",

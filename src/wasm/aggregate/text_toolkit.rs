@@ -42,6 +42,32 @@ pub(in crate::wasm) fn program_uses_toolkit(program: &ResolvedProgram) -> bool {
     !selected(program).is_empty()
 }
 
+pub(in crate::wasm) fn uses_byte_get(program: &ResolvedProgram) -> bool {
+    if selected(program).contains(&StringOp::FileReadText) {
+        return true;
+    }
+    let mut pending = Vec::new();
+    for function in program
+        .functions
+        .iter()
+        .chain(program.function_instances.iter().map(|instance| &instance.function))
+    {
+        pending.push(&function.body);
+        pending.extend(function.requires.iter().chain(&function.ensures));
+    }
+    while let Some(expression) = pending.pop() {
+        if matches!(
+            &expression.kind,
+            ResolvedExprKind::Call { callee, .. }
+                if callee.as_str() == crate::byte_ops::GET_ID
+        ) {
+            return true;
+        }
+        crate::hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
+    }
+    false
+}
+
 pub(super) fn import_types(
     program: &ResolvedProgram,
     types: &mut Vec<Signature>,

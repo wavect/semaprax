@@ -3130,6 +3130,7 @@ fn emit_function(
         environment_utf8_index,
         list_heap_global,
         false,
+        None,
     )
 }
 
@@ -3147,6 +3148,7 @@ fn emit_function_profile(
     environment_utf8_index: Option<u32>,
     list_heap_global: Option<u32>,
     standalone_strings: bool,
+    byte_get_import: Option<u32>,
 ) -> Result<Vec<u8>, Diagnostic> {
     if crate::list_ops::resolved_program_uses_list(program) && list_heap_global.is_none() {
         return Err(Diagnostic::io(
@@ -3316,6 +3318,7 @@ fn emit_function_profile(
         environment_utf8_index,
         list_heap_global,
         standalone_strings,
+        byte_get_import: byte_get_import.unwrap_or(BYTE_GET_IMPORT),
         string_condition_reads: crate::string_ops::conditions::function_reads(function),
     };
     emitter.call_depth_admission()?;
@@ -3550,6 +3553,7 @@ struct Emitter<'a> {
     environment_utf8_index: Option<u32>,
     list_heap_global: Option<u32>,
     standalone_strings: bool,
+    byte_get_import: u32,
     string_condition_reads: std::collections::BTreeSet<ExpressionId>,
 }
 
@@ -5887,7 +5891,7 @@ impl Emitter<'_> {
         self.output.push(0x20);
         write_u32(self.output, self.plan.status);
         self.output.extend([0xad, 0x10]);
-        write_u32(self.output, BYTE_GET_IMPORT);
+        write_u32(self.output, self.byte_get_import);
         self.output.push(0x22);
         write_u32(
             self.output,
@@ -5996,7 +6000,7 @@ impl Emitter<'_> {
         self.output.push(0x20);
         write_u32(self.output, self.plan.status);
         self.output.extend([0xad, 0x10]);
-        write_u32(self.output, BYTE_GET_IMPORT);
+        write_u32(self.output, self.byte_get_import);
         self.output.push(0x22);
         write_u32(
             self.output,

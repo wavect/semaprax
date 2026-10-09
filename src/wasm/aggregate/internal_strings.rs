@@ -163,6 +163,7 @@ pub(in crate::wasm) fn emit(
     // Import selection is bound to the chosen executable closure. Unused
     // type declarations cannot add a host arena or widen its import inventory.
     selected.types.clear();
+    let toolkit_byte_get = toolkit && text_toolkit::uses_byte_get(&selected);
     let toolkit_types = if toolkit {
         text_toolkit::import_types(&selected, &mut types, &mut type_indexes)
     } else {
@@ -195,6 +196,16 @@ pub(in crate::wasm) fn emit(
     } else {
         None
     };
+    let toolkit_byte_get_type = toolkit_byte_get.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I64],
+                results: vec![I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
     let collection_import_count = if collection_types.is_some() {
         map_collections::IMPORT_COUNT
     } else {
@@ -207,6 +218,7 @@ pub(in crate::wasm) fn emit(
             0
         }
         + collection_import_count;
+    let selected_import_count = selected_import_count + u32::from(toolkit_byte_get);
     let mut function_types = Vec::new();
     for function in &functions {
         let mut params = function
@@ -278,7 +290,7 @@ pub(in crate::wasm) fn emit(
     if collection_types.is_some() {
         map_collections::insert_indexes(
             &mut function_indexes,
-            selected_import_count - collection_import_count,
+            selected_import_count - collection_import_count - u32::from(toolkit_byte_get),
         );
     }
     let mut module = b"\0asm\x01\0\0\0".to_vec();
@@ -314,6 +326,9 @@ pub(in crate::wasm) fn emit(
     }
     if let Some(types) = collection_types {
         map_collections::emit_imports(&mut section_bytes, types);
+    }
+    if let Some(ty) = toolkit_byte_get_type {
+        function_import(&mut section_bytes, "env", "spx_bytes_get", ty);
     }
     section(&mut module, 2, section_bytes);
     let mut section_bytes = Vec::new();
@@ -362,6 +377,7 @@ pub(in crate::wasm) fn emit(
             None,
             None,
             true,
+            toolkit_byte_get.then_some(selected_import_count - 1),
         )?;
         append_body(&mut code, body)?;
     }

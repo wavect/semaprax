@@ -28,6 +28,26 @@ fn toolkit_owned_string_byte_views_require_a_replayed_full_root_loan() {
     let resolved = crate::hir::resolve(&source).unwrap();
     let ids = ["app.main".to_owned()];
     assert!(admission::prepare_toolkit(&resolved, &ids).is_ok());
+    let artifact =
+        emit_text_toolkit_module(&source, &ids, InternalStringOptions::default()).unwrap();
+    let mut imports = Vec::new();
+    for payload in wasmparser::Parser::new(0).parse_all(artifact.wasm_bytes()) {
+        if let wasmparser::Payload::ImportSection(section) = payload.unwrap() {
+            for import in section.into_imports() {
+                let import = import.unwrap();
+                imports.push((import.module.to_owned(), import.name.to_owned()));
+            }
+        }
+    }
+    assert!(imports.contains(&("env".to_owned(), "spx_bytes_get".to_owned())));
+    assert_eq!(
+        imports.last().unwrap(),
+        &("env".to_owned(), "spx_bytes_get".to_owned())
+    );
+    assert!(artifact.runtime_source().contains("spx_bytes_get(carrier,index)"));
+    assert!(artifact
+        .runtime_source()
+        .contains("ENV_IMPORT_NAMES.includes(item.name)?\"env\":\"semaprax.internal-strings.v1\""));
 
     let mut forged = resolved.clone();
     let producer = forged

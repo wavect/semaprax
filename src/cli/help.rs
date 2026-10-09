@@ -1358,6 +1358,13 @@ mod tests {
             )
         );
         assert!(t208.len() <= 256);
+        let f102 = diagnostic_entry("SPX-F102").unwrap();
+        assert!(f102.contains("source-command.v1"));
+        assert!(f102.contains("semaprax build <manifest> --target native -o <fresh-path>"));
+        let g170 = diagnostic_entry("SPX-G170").unwrap();
+        assert!(g170.contains("noncanonical Project source"));
+        assert!(g170.contains("semaprax fmt --manifest <manifest>"));
+        assert!(g170.contains("declare its Project dependency"));
         let t269 = diagnostic_entry("SPX-T269").unwrap();
         assert_eq!(
             t269,

@@ -1,5 +1,10 @@
 # Changelog
 
+- Explain the native build/invoke route directly in source-command interpreter
+  refusal diagnostics (issue #701). Exact G170/F102 help distinguishes source
+  formatting, manifest formatting, bundled imports and native-only profiles.
+  Focused regressions are authored; validation is pending.
+
 - Add explicit `fmt --manifest <semaprax.toml> [--check]` for canonical table
   layout. The mode shares complete manifest semantic validation, while ordinary
   `fmt` keeps formatting only selected `.spx` files. Focused regressions are

@@ -156,6 +156,7 @@ impl Sources {
                 read(repository, "src/cli/project_runtime.rs"),
                 read(repository, "src/cli/help.rs"),
                 read(repository, "src/cli/help/library.rs"),
+                read(repository, "src/cli/help/shapes.rs"),
                 read(repository, "src/cli/help/diagnostic_index.rs"),
                 read(repository, "src/doctor.rs"),
                 read(repository, "src/doctor/offline_profile.rs"),

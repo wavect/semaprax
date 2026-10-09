@@ -249,7 +249,7 @@ pub(super) fn ast_child_identity_path_increment(
     program: &Program,
 ) -> usize {
     match &expression.kind {
-        crate::ast::ExprKind::Closure { .. } => ".closure.body".len(),
+        crate::ast::ExprKind::Closure { .. } => closure_body_identity_path_increment(),
         crate::ast::ExprKind::Call { name, .. } => {
             let prefix = if program
                 .interfaces
@@ -568,23 +568,57 @@ pub(in crate::implementation) fn generic_function_instance_identity_upper(
     Some(maximum)
 }
 
+fn scoped_monomorphic_identity_upper(
+    stable_id_len: usize,
+    kind_len: usize,
+    path_len: usize,
+) -> Option<usize> {
+    "declaration:"
+        .len()
+        .checked_add(decimal_digits(stable_id_len))?
+        .checked_add(1)?
+        .checked_add(stable_id_len)?
+        .checked_add(1)?
+        .checked_add(kind_len)?
+        .checked_add(1)?
+        .checked_add(decimal_digits(path_len))?
+        .checked_add(1)?
+        .checked_add(path_len)
+}
+
+#[cfg(test)]
+fn closure_body_identity_upper(creation_expression_len: usize) -> Option<usize> {
+    let closure_owner_len = "semaprax.closure.v1:".len().checked_add(creation_expression_len)?;
+    scoped_monomorphic_identity_upper(
+        closure_owner_len,
+        "expression".len(),
+        "body".len(),
+    )
+}
+
+fn closure_body_identity_path_increment() -> usize {
+    let closure_owner_prefix_len = "semaprax.closure.v1:".len();
+    let monomorphic_body_frame = "declaration:".len()
+        + 4 // owner-length, owner, kind, and path-length separators
+        + "expression".len()
+        + decimal_digits("body".len())
+        + "body".len();
+    closure_owner_prefix_len
+        + monomorphic_body_frame
+        + 2 * decimal_digits(usize::MAX)
+}
+
 fn scoped_identity_upper(
     function: &crate::ast::Function,
     generic_instance_identity_len: usize,
     kind_len: usize,
     path_len: usize,
 ) -> Option<usize> {
-    let monomorphic = "declaration:"
-        .len()
-        .checked_add(decimal_digits(function.stable_id.len()))?
-        .checked_add(1)?
-        .checked_add(function.stable_id.len())?
-        .checked_add(1)?
-        .checked_add(kind_len)?
-        .checked_add(1)?
-        .checked_add(decimal_digits(path_len))?
-        .checked_add(1)?
-        .checked_add(path_len)?;
+    let monomorphic = scoped_monomorphic_identity_upper(
+        function.stable_id.len(),
+        kind_len,
+        path_len,
+    )?;
     if function.type_parameters.is_empty() {
         return Some(monomorphic);
     }

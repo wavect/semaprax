@@ -6,6 +6,21 @@ use super::*;
 const FOR_GENERATED_EXPRESSION_COUNT: usize = 16;
 const FOR_OWN_GENERATED_EXPRESSION_COUNT: usize = 15;
 
+fn longest_direct_expression_identity_suffix_len() -> usize {
+    let index_digits = decimal_digits(usize::MAX);
+    [
+        ".arg.0.source".len(),
+        ".callable".len(),
+        ".capture.".len() + index_digits,
+        ".native-rust-arg.".len() + index_digits,
+        ".arg.".len() + index_digits,
+        ".field.".len() + index_digits + ".value".len(),
+    ]
+    .into_iter()
+    .max()
+    .unwrap_or(0)
+}
+
 fn desugared_statement_identity_upper(
     function: &crate::ast::Function,
     generic_instance_identity_len: usize,
@@ -395,11 +410,13 @@ pub(super) fn cleanup_plan_variable_identity_bytes(
                     .checked_sub(copies.min(cleanup_path_copies))
                     .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                 // Ordinary HIR retains at most three backing strings for an
-                // authored expression. Super-method receiver and upcast IDs
-                // add a direct `.arg.0.source` suffix, so bound every retained
-                // backing with that longest direct path and allocator growth.
+                // authored expression. Direct generated identities include
+                // indexed native arguments, fields, and captures; bound every
+                // retained backing by the longest such direct suffix and the
+                // allocator growth allowance. Closure-owner framing is a
+                // separate structural bound and is not represented here.
                 let retained_path_len = path_len
-                    .checked_add(".arg.0.source".len())
+                    .checked_add(longest_direct_expression_identity_suffix_len())
                     .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                 let identity_bytes = scoped_expression_backing_upper(
                     function,
@@ -914,32 +931,94 @@ mod carrier_tests {
 
         let (retained_expression_bytes, _) =
             cleanup_plan_variable_identity_bytes(function, &program, 0).unwrap();
-        let direct_receiver_suffix = ".arg.0.source".len();
+        let direct_suffix = longest_direct_expression_identity_suffix_len();
+        assert!(direct_suffix > ".arg.0.source".len());
         let body_backing = scoped_expression_backing_upper(
             function,
             0,
-            "body".len() + direct_receiver_suffix,
+            "body".len() + direct_suffix,
         )
         .unwrap();
         let tail_backing = scoped_expression_backing_upper(
             function,
             0,
-            "body.tail".len() + direct_receiver_suffix,
+            "body.tail".len() + direct_suffix,
         )
         .unwrap();
         assert_eq!(retained_expression_bytes, 3 * (body_backing + tail_backing));
 
         let long_utf8_path = "λ-prefix-".repeat(64);
-        let encoded_len = scoped_expression_identity_upper(function, 0, long_utf8_path.len()).unwrap();
-        let receiver_path_len = long_utf8_path.len() + direct_receiver_suffix;
-        let receiver_len = scoped_expression_identity_upper(function, 0, receiver_path_len).unwrap();
-        let plain_backing = scoped_expression_backing_upper(function, 0, long_utf8_path.len()).unwrap();
-        let receiver_backing = scoped_expression_backing_upper(function, 0, receiver_path_len).unwrap();
+        let encoded_len =
+            scoped_expression_identity_upper(function, 0, long_utf8_path.len()).unwrap();
+        let receiver_path_len = long_utf8_path.len() + direct_suffix;
+        let receiver_len =
+            scoped_expression_identity_upper(function, 0, receiver_path_len).unwrap();
+        let plain_backing =
+            scoped_expression_backing_upper(function, 0, long_utf8_path.len()).unwrap();
+        let receiver_backing =
+            scoped_expression_backing_upper(function, 0, receiver_path_len).unwrap();
         assert!(plain_backing >= 2 * encoded_len.max(8)
             + semaprax::hir::ExpressionId::OWNED_ALLOCATION_CARRIER_BYTES);
         assert!(receiver_backing >= 2 * receiver_len.max(8)
             + semaprax::hir::ExpressionId::OWNED_ALLOCATION_CARRIER_BYTES);
         assert!(receiver_backing > plain_backing);
+    }
+
+    #[test]
+    fn closure_owner_identity_growth_is_bounded_across_nested_path_widths() {
+        let source =
+            "module capacity.closure_growth; @id(\"app.main\") fn main<T>(value: T) -> i64 { 0 }";
+        let program = crate::parse(source, std::path::Path::new("closure-growth.spx")).unwrap();
+        let function = program
+            .functions
+            .iter()
+            .find(|function| function.name == "main")
+            .unwrap();
+        let generic_identity_len = 256;
+        let increment = closure_body_identity_path_increment();
+        assert_eq!(
+            ast_child_identity_path_increment(
+                &crate::ast::Expr {
+                    kind: crate::ast::ExprKind::Closure {
+                        params: Vec::new(),
+                        return_type: crate::ast::Type::I64,
+                        body: Box::new(crate::ast::Expr {
+                            kind: crate::ast::ExprKind::Int(0),
+                            span: crate::ast::Span::default(),
+                        }),
+                        owning: false,
+                        retained: false,
+                        mutable: false,
+                    },
+                    span: crate::ast::Span::default(),
+                },
+                0,
+                &program,
+            ),
+            increment,
+        );
+
+        let mut path_len = "x".repeat(128).len();
+        for boundary in [9, 99, 999, 9_999] {
+            path_len = path_len.max(boundary);
+            for _ in 0..3 {
+                let creation_len = scoped_expression_identity_upper(
+                    function,
+                    generic_identity_len,
+                    path_len,
+                )
+                .unwrap();
+                let actual_closure_body_len = closure_body_identity_upper(creation_len).unwrap();
+                path_len = path_len.checked_add(increment).unwrap();
+                let synthetic_upper = scoped_expression_identity_upper(
+                    function,
+                    generic_identity_len,
+                    path_len,
+                )
+                .unwrap();
+                assert!(synthetic_upper >= actual_closure_body_len);
+            }
+        }
     }
 
     #[test]

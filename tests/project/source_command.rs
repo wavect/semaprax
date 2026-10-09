@@ -174,8 +174,8 @@ fn test_helper(value: i64) -> i64 { value }
                     .collect::<Vec<_>>(),
                 [
                     ("decimal.tests.main", true),
-                    ("decimal.tests.test_pass", false),
                     ("decimal.tests.test_fail", false),
+                    ("decimal.tests.test_pass", false),
                 ]
             );
             assert_eq!(

@@ -1,0 +1,49 @@
+# Private ASCII-pattern source experiment
+
+This branch contains unchecked source, independent review fixtures, and future language-harness witnesses. It has no package manifest, catalog entry, target admission, performance result, or completion claim. The engine is [ascii.spx](ascii.spx); [DRAFT.md](DRAFT.md) records its exact grammar, carrier layout, and reason/offset domains. The separate [oracle](fixtures/README.md) enumerates count vectors and does not imitate engine traversal or predict its work meter.
+
+The source carrier needs only OPT-702: one `Bytes` field, one `usize` field, and an independent whole named borrowed input on exact whole-record renewal. Its buffer stays exactly 3,072 bytes; `position` stays zero. Pattern/input views never enter the carrier. The parser uses flat Copy variants and scalar local counters; classes use a temporary bitmap in bytes 2984–3015. Every renewing source call is pure and nongeneric. No new language, regex runtime, nominal ABI, stored loan, or source allocation site is proposed inside compile/match.
+
+The following costs are pinned by unrolled source helpers, not runtime measurements:
+
+| Operation | Logical work |
+| --- | ---: |
+| `load2/4/8` | 2/4/8 byte reads |
+| `store1/2/4/8` | 1/2/4/8 byte writes |
+| `store_atom`, `frame`, `capture_result` | 8/8/16 byte writes |
+| `clear_candidate`, `compiled_header`, `packet` | 32/64/32 byte writes |
+| Pattern dispatch | 1 control iteration + 1 read |
+| Escape token | 1–4 actual reads, preflighted individually |
+| Decimal quantifier iteration | 1 control + 1 read; EOF iteration costs 1 control |
+| Class member bit update/complement/copy | 1 control + 1 read + 1 write |
+| Class equality iteration | 1 control + 2 reads |
+| Full-match table validation | 128 + 9×atoms + 5×captures |
+| Forward atom dispatch | 1 control + 8 metadata reads |
+| Literal/any/class predicate | 2/2/3 |
+| Backtrack dispatch | 1 control + 2 minimum + 4 start + 4 count reads |
+| Successful count reduction | 4 writes |
+| Match finalization `F(c)` | 32 + 29×captures |
+| Successful compile finalization | 64 header + 32 packet writes |
+
+Compile first invalidates the old ready byte. Therefore its checked minimum work limit is 33; matching retains the minimum 32. Compile failures expose no old compiled authority. Invalid source packets use status 3/reason 1 and pattern offsets; malformed table packets use status 3/reason 2 and absolute table offsets. Resource reason 6 is reserved and rejected. Read-only result observers use ordinary AST fuel and never add to `work_used`.
+
+The greedy engine explores complete count vectors in descending lexicographic order. With `k` adjacent variable atoms and `n` input bytes, the count partitions can grow on the order of the binomial coefficient `(n+k choose k)`. Work exhaustion stays a resource refusal. The 262,144-unit maximum limits performed byte/control events, and fixed helpers make ordinary source work bounded in terms of those events. It does **not** pin the multiplier in interpreter AST steps. One 65,536-byte class scan alone costs 196,608 logical units plus validation, frame, and packet work. Whether that fits the unchanged 1,000,000-step default is unproved and is a major usability constraint.
+
+Interpreter byte updates transfer the owner before `bytes_set`; `Arc::make_mut` provides the storage update. Read-only helpers return Copy scalars and end their calls before the next update. Static review therefore expects unique storage on successful updates, but does not measure payload-copy behavior. A conservative fallback bound is 3,072 bytes copied per write, at most 768 MiB if all 262,144 logical units were writes. Interpreter record reconstruction and call frames still allocate host metadata; no source-level buffer allocation does not mean no host allocation. Native/Wasm behavior and exact helper AST costs must be checked on the final source.
+
+The minimal remaining sequence is:
+
+1. Finish source review and reconcile the independent oracle's pending grammar edges with the choices in `DRAFT.md`.
+2. After the paid campaign is terminal and the whole source batch is ready, execute the oracle and the four existing-language-harness witnesses, fix diagnostics/cost failures without raising fuel, and run the final required formatting/clippy batch.
+3. Pin exact helper AST costs and run the unchanged 49-obligation corpus, long valid/nonmatching records, hostile adjacent repeats, and ambiguous accepted suffixes under ordinary fuel and declared work limits.
+4. Consider package admission only if the useful corpus succeeds with exact interpreter/C11/Wasm parity and settlement. If ordinary fuel fails, report the exact helper/profile obstacle before proposing a separately reviewed change.
+
+Deferred selectors, not executed:
+
+```sh
+python3 experiments/ascii-pattern-source/fixtures/oracle.py
+cargo test --locked -p semaprax --test language private_ascii_pattern_
+cargo clippy --locked -p semaprax --lib --test language -- -D warnings
+```
+
+[Compiled witnesses](compiled-witnesses.json) pin full carrier bytes by zero-fill plus ordered segments and SHA-256. In particular, `(a*)(a*)` on `aa` matches with work 293 at limit 293; limit 292 refuses before capture publication and reports work 235. Empty-match and zero-repeat witnesses pin sentinel handling; hostile adjacent repeats require a work refusal. These are authored expectations; no execution result is claimed.

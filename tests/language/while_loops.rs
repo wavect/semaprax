@@ -1161,3 +1161,6 @@ fn record_owner_renewal_named_views_refuse_aliases_and_temporary_operands() {
         .iter()
         .any(|d| d.code == "SPX-T267"));
 }
+
+#[path = "while_loops/ascii_pattern_source.rs"]
+mod ascii_pattern_source;

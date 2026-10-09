@@ -1,0 +1,184 @@
+{
+  "schema": "semaprax.ascii-pattern-compiled-witness.v1",
+  "status": "source-only unexecuted",
+  "encoding": "Start with3072 zero bytes; apply segments in listed order. Hash covers all3072 bytes.",
+  "cases": [
+    {
+      "id": "greedy-exact-finalization",
+      "zeroed_extent": 3072,
+      "compiled_sha256": "3a3aff74a1594a978523568be0f054c36ef63efb7ff1dcc2f39ead793098eca6",
+      "segments": [
+        {
+          "offset": 0,
+          "hex": "53504143010102000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "offset": 64,
+          "hex": "00610000ffffffff00610000ffffffff"
+        },
+        {
+          "offset": 1600,
+          "hex": "0000010001000200"
+        }
+      ],
+      "input_ascii": "aa",
+      "work_limit": 293,
+      "expected": {
+        "status": 1,
+        "spans": [
+          [
+            0,
+            2
+          ],
+          [
+            2,
+            2
+          ]
+        ],
+        "work_used": 293,
+        "reason": 0,
+        "detail": 0
+      }
+    },
+    {
+      "id": "greedy-finalization-one-unit-short",
+      "zeroed_extent": 3072,
+      "compiled_sha256": "3a3aff74a1594a978523568be0f054c36ef63efb7ff1dcc2f39ead793098eca6",
+      "segments": [
+        {
+          "offset": 0,
+          "hex": "53504143010102000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "offset": 64,
+          "hex": "00610000ffffffff00610000ffffffff"
+        },
+        {
+          "offset": 1600,
+          "hex": "0000010001000200"
+        }
+      ],
+      "input_ascii": "aa",
+      "work_limit": 292,
+      "expected": {
+        "status": 4,
+        "spans": [],
+        "work_used": 235,
+        "reason": 7,
+        "detail": 0
+      }
+    },
+    {
+      "id": "empty-match",
+      "zeroed_extent": 3072,
+      "compiled_sha256": "1ec330ecc263773b1229c3d7344ab438aba5d5b619f0aaf77d36258c26407e0b",
+      "segments": [
+        {
+          "offset": 0,
+          "hex": "53504143010100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "input_ascii": "",
+      "work_limit": 169,
+      "expected": {
+        "status": 1,
+        "spans": [],
+        "work_used": 169,
+        "reason": 0,
+        "detail": 0
+      }
+    },
+    {
+      "id": "empty-nonmatch",
+      "zeroed_extent": 3072,
+      "compiled_sha256": "1ec330ecc263773b1229c3d7344ab438aba5d5b619f0aaf77d36258c26407e0b",
+      "segments": [
+        {
+          "offset": 0,
+          "hex": "53504143010100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "input_ascii": "x",
+      "work_limit": 170,
+      "expected": {
+        "status": 2,
+        "spans": [],
+        "work_used": 170,
+        "reason": 0,
+        "detail": 0
+      }
+    },
+    {
+      "id": "zero-repeat",
+      "zeroed_extent": 3072,
+      "compiled_sha256": "3946f9d8faa54d0bdfd672c6f218067794c994cd5d55e64f0799189ad9fb747f",
+      "segments": [
+        {
+          "offset": 0,
+          "hex": "53504143010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "offset": 64,
+          "hex": "0078000000000000"
+        }
+      ],
+      "input_ascii": "",
+      "work_limit": 195,
+      "expected": {
+        "status": 1,
+        "spans": [],
+        "work_used": 195,
+        "reason": 0,
+        "detail": 0
+      }
+    },
+    {
+      "id": "forged-kind",
+      "zeroed_extent": 3072,
+      "compiled_sha256": "aa6706bc60c4ce45b14a7b1e0cd143726f5622d8c6cee0cb4b55d2f04612a87c",
+      "segments": [
+        {
+          "offset": 0,
+          "hex": "53504143010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "offset": 64,
+          "hex": "0361010001000000"
+        }
+      ],
+      "input_ascii": "a",
+      "work_limit": 8192,
+      "expected": {
+        "status": 3,
+        "spans": [],
+        "work_used": 169,
+        "reason": 2,
+        "detail": 64
+      }
+    },
+    {
+      "id": "hostile-adjacent-repeats-refuse-work",
+      "zeroed_extent": 3072,
+      "compiled_sha256": "d01a49a0313ef4da0545940600a23f68755b822256d3b42dc0f0348e9ee55eb3",
+      "segments": [
+        {
+          "offset": 0,
+          "hex": "53504143010109000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "offset": 64,
+          "hex": "00610000ffffffff00610000ffffffff00610000ffffffff00610000ffffffff00610000ffffffff00610000ffffffff00610000ffffffff00610000ffffffff0062010001000000"
+        }
+      ],
+      "input_ascii": "aaaaaaaa",
+      "work_limit": 4096,
+      "expected": {
+        "status": 4,
+        "spans": [],
+        "work_used": null,
+        "reason": 7,
+        "detail": 0
+      }
+    }
+  ]
+}

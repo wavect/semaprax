@@ -168,7 +168,8 @@ fn main() -> i64 { helper(1) }
             .unwrap();
 
         let mut program = original.clone();
-        program.functions[helper_index].body.id = ExpressionId("expression\0forged".to_owned());
+        program.functions[helper_index].body.id =
+            ExpressionId::from_owned("expression\0forged".to_owned());
         assert_nul_rejected(&program, "expression");
 
         let mut program = original.clone();
@@ -289,9 +290,9 @@ fn main() -> i64 { helper(1) }
         let mut program = original.clone();
         program.functions[discard].cleanup_plan.slots[0].storage =
             crate::cleanup_plan::StorageId::CallArgument {
-                call: ExpressionId("plan.call\0forged".to_owned()),
+                call: ExpressionId::from_owned("plan.call\0forged".to_owned()),
                 parameter_index: 0,
-                value_expression: ExpressionId("plan.value".to_owned()),
+                value_expression: ExpressionId::from_owned("plan.value".to_owned()),
             };
         assert_nul_rejected(&program, "plan call-argument storage");
 

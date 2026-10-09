@@ -172,7 +172,7 @@ mod tests {
         ] {
             assert!(lookup(bad).is_err(), "{bad}");
         }
-        let mut query = "find:json:0".to_owned();
+        let mut query = "find:std.data.json.:0".to_owned();
         let mut ids = std::collections::BTreeSet::new();
         loop {
             let page = lookup(&query).unwrap();
@@ -201,7 +201,12 @@ mod tests {
             .unwrap()
             .iter()
             .flat_map(|module| module["declarations"].as_array().unwrap().iter())
-            .filter(|declaration| declaration["id"].as_str().unwrap().contains("json"))
+            .filter(|declaration| {
+                declaration["id"]
+                    .as_str()
+                    .unwrap()
+                    .contains("std.data.json.")
+            })
             .map(|declaration| declaration["id"].as_str().unwrap().to_owned())
             .collect::<std::collections::BTreeSet<_>>();
         assert_eq!(ids, expected);

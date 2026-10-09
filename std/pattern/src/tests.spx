@@ -1,0 +1,185 @@
+module std.pattern.tests;
+
+use type @id("std.pattern.matcher") from std.pattern as Matcher;
+use function @id("std.pattern.capture-count") from std.pattern as capture_count;
+use function @id("std.pattern.capture-end") from std.pattern as capture_end;
+use function @id("std.pattern.capture-start") from std.pattern as capture_start;
+use function @id("std.pattern.compile") from std.pattern as compile;
+use function @id("std.pattern.detail") from std.pattern as detail;
+use function @id("std.pattern.detail-domain") from std.pattern as detail_domain;
+use function @id("std.pattern.full-match") from std.pattern as full_match;
+use function @id("std.pattern.make") from std.pattern as make;
+use function @id("std.pattern.reason") from std.pattern as reason;
+use function @id("std.pattern.result-valid") from std.pattern as result_valid;
+use function @id("std.pattern.status") from std.pattern as status;
+use function @id("std.pattern.work-used") from std.pattern as work_used;
+
+@id("std.pattern.tests.main")
+fn main() -> i64
+{
+    if test_public_api() == 0 && test_invalid_pattern() == 0
+        && test_bounded_resource_refusal() == 0 && test_no_match() == 0
+        && test_empty_capture() == 0 && test_malformed_carrier() == 0
+        && test_bounded_reentry() == 0
+    { 0 } else { 1 }
+}
+
+@id("std.pattern.tests.public-api")
+fn test_public_api() -> i64
+{
+    let fresh = make();
+    let fresh_is_unpublished = !result_valid(fresh);
+    let pattern = "([A-Z]+)";
+    let pattern_text = string_as_str(pattern);
+    let pattern_view = str_as_bytes(pattern_text);
+    let mut matcher: Matcher = compile(fresh, pattern_view, 262144usize);
+    let compile_packet = result_valid(matcher);
+    if compile_packet {
+        let compile_status = status(matcher);
+        let compile_reason = reason(matcher);
+        let compile_detail = detail(matcher);
+        let compile_domain = detail_domain(matcher);
+        let compile_captures = capture_count(matcher);
+        let compile_work = work_used(matcher);
+        let input = "ABC";
+        let input_text = string_as_str(input);
+        let input_view = str_as_bytes(input_text);
+        if fresh_is_unpublished && compile_status == 0usize && compile_reason == 0usize
+            && compile_detail == 0usize && compile_domain == 0usize
+            && compile_captures == 0usize && compile_work <= 262144usize
+        {
+            matcher = full_match(matcher, input_view, 262144usize);
+            if result_valid(matcher) {
+                if status(matcher) == 1usize && reason(matcher) == 0usize
+                    && detail(matcher) == 0usize && detail_domain(matcher) == 0usize
+                    && work_used(matcher) <= 262144usize && capture_count(matcher) == 1usize
+                    && capture_start(matcher, 0usize) == 0usize
+                    && capture_end(matcher, 0usize) == 3usize
+                { 0 } else { 1 }
+            } else { 1 }
+        } else { 1 }
+    } else { 1 }
+}
+
+@id("std.pattern.tests.invalid-pattern")
+fn test_invalid_pattern() -> i64
+{
+    let pattern = "\\";
+    let pattern_text = string_as_str(pattern);
+    let pattern_view = str_as_bytes(pattern_text);
+    let matcher = compile(make(), pattern_view, 262144usize);
+    if result_valid(matcher) {
+        if status(matcher) == 3usize && reason(matcher) == 1usize
+            && detail(matcher) == 0usize && detail_domain(matcher) == 1usize
+            && capture_count(matcher) == 0usize && work_used(matcher) <= 262144usize
+        { 0 } else { 1 }
+    } else { 1 }
+}
+
+@id("std.pattern.tests.resource-refusal")
+fn test_bounded_resource_refusal() -> i64
+{
+    let pattern = "a";
+    let pattern_text = string_as_str(pattern);
+    let pattern_view = str_as_bytes(pattern_text);
+    let matcher = compile(make(), pattern_view, 33usize);
+    if result_valid(matcher) {
+        if status(matcher) == 4usize && reason(matcher) == 7usize
+            && detail_domain(matcher) == 0usize && capture_count(matcher) == 0usize
+            && work_used(matcher) <= 33usize
+        { 0 } else { 1 }
+    } else { 1 }
+}
+
+@id("std.pattern.tests.no-match")
+fn test_no_match() -> i64
+{
+    let pattern = "a";
+    let pattern_text = string_as_str(pattern);
+    let pattern_view = str_as_bytes(pattern_text);
+    let mut matcher = compile(make(), pattern_view, 262144usize);
+    let compiled = result_valid(matcher) && status(matcher) == 0usize;
+    let input = "b";
+    let input_text = string_as_str(input);
+    let input_view = str_as_bytes(input_text);
+    if compiled {
+        matcher = full_match(matcher, input_view, 262144usize);
+        if result_valid(matcher) && status(matcher) == 2usize && reason(matcher) == 0usize
+            && detail(matcher) == 0usize && detail_domain(matcher) == 0usize
+            && capture_count(matcher) == 0usize && work_used(matcher) <= 262144usize
+        { 0 } else { 1 }
+    } else { 1 }
+}
+
+@id("std.pattern.tests.empty-capture")
+fn test_empty_capture() -> i64
+{
+    let pattern = "()";
+    let pattern_text = string_as_str(pattern);
+    let pattern_view = str_as_bytes(pattern_text);
+    let mut matcher = compile(make(), pattern_view, 262144usize);
+    let compiled = result_valid(matcher) && status(matcher) == 0usize;
+    let input = "";
+    let input_text = string_as_str(input);
+    let input_view = str_as_bytes(input_text);
+    if compiled {
+        matcher = full_match(matcher, input_view, 262144usize);
+        if result_valid(matcher) && status(matcher) == 1usize && reason(matcher) == 0usize
+            && detail(matcher) == 0usize && detail_domain(matcher) == 0usize
+            && capture_count(matcher) == 1usize && capture_start(matcher, 0usize) == 0usize
+            && capture_end(matcher, 0usize) == 0usize && work_used(matcher) <= 262144usize
+        { 0 } else { 1 }
+    } else { 1 }
+}
+
+@id("std.pattern.tests.malformed-carrier")
+fn test_malformed_carrier() -> i64
+{
+    let storage = bytes_zeroed(3072usize);
+    let malformed = Matcher { storage: storage, position: 3073usize };
+    if !result_valid(malformed) { 0 } else { 1 }
+}
+
+@id("std.pattern.tests.bounded-reentry")
+fn test_bounded_reentry() -> i64
+{
+    let pattern = "([A-Za-z-]+):[ \\x09]*([^\\x0D\\x0A]*)";
+    let pattern_text = string_as_str(pattern);
+    let pattern_view = str_as_bytes(pattern_text);
+    let first = "A: x";
+    let first_text = string_as_str(first);
+    let first_view = str_as_bytes(first_text);
+    let second = "XY: z";
+    let second_text = string_as_str(second);
+    let second_view = str_as_bytes(second_text);
+    let mut matcher: Matcher = compile(make(), pattern_view, 262144usize);
+    let compiled = result_valid(matcher) && status(matcher) == 0usize;
+    let mut iteration = 0usize;
+    let mut correct = 0usize;
+    if compiled {
+        while iteration < 2usize {
+            if iteration == 0usize {
+                matcher = full_match(matcher, first_view, 262144usize);
+                0
+            } else {
+                matcher = full_match(matcher, second_view, 262144usize);
+                0
+            }
+            if result_valid(matcher) && status(matcher) == 1usize && capture_count(matcher) == 2usize
+                && work_used(matcher) <= 262144usize
+            {
+                let key_end = if iteration == 0usize { 1usize } else { 2usize };
+                let value_start = if iteration == 0usize { 3usize } else { 4usize };
+                let value_end = if iteration == 0usize { 4usize } else { 5usize };
+                if capture_start(matcher, 0usize) == 0usize && capture_end(matcher, 0usize) == key_end
+                    && capture_start(matcher, 1usize) == value_start
+                    && capture_end(matcher, 1usize) == value_end && reason(matcher) == 0usize
+                    && detail(matcher) == 0usize && detail_domain(matcher) == 0usize
+                { correct = correct + 1usize; 0 } else { 0 }
+            } else { 0 }
+            iteration = iteration + 1usize;
+            0
+        }
+    }
+    if compiled && correct == 2usize { 0 } else { 1 }
+}

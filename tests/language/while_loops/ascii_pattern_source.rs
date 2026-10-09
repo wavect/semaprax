@@ -4,6 +4,7 @@ use semaprax::{format, graph, hir, interpreter, parse};
 use sha2::{Digest as _, Sha256};
 
 const ENGINE: &str = include_str!("../../../experiments/ascii-pattern-source/ascii.spx");
+const STD_ENGINE: &str = include_str!("../../../std/pattern/src/pattern.spx");
 const COMPILED: &str =
     include_str!("../../../experiments/ascii-pattern-source/compiled-witnesses.json");
 const CASES: &str = include_str!("../../../experiments/ascii-pattern-source/fixtures/cases.json");
@@ -75,6 +76,49 @@ fn compile_source_with_limit(
     format!("{ENGINE}\n@id(\"experiment.pattern.witness.main\")\nfn main() -> i64\n{{\n{}{}\nlet storage = bytes_zeroed(3072usize);\nlet initial = matcher_from_bytes(storage);\nlet compiled = compile(initial, pattern_view, {work_limit}usize);\nlet ready = status(compiled) == 0usize;\nlet mut matcher = compiled;\nlet mut iteration = 0usize;\nwhile iteration < 1usize {{\nmatcher = full_match(matcher, input_view, {work_limit}usize);\niteration = iteration + 1usize;\n0\n}}\nif ready {{ {expected} }} else {{ -2 }}\n}}\n", bytes("pattern", pattern), input_source(input))
 }
 
+fn expect_std_packet(
+    status: u64,
+    spans: &[[u64; 2]],
+    work: Option<u64>,
+    reason: u64,
+    detail: u64,
+    detail_domain: u64,
+) -> String {
+    let mut checks = vec![
+        "result_valid(matcher)".to_owned(),
+        format!("status(matcher) == {status}usize"),
+        format!("capture_count(matcher) == {}usize", spans.len()),
+        format!("reason(matcher) == {reason}usize"),
+        format!("detail(matcher) == {detail}usize"),
+        format!("detail_domain(matcher) == {detail_domain}usize"),
+    ];
+    if let Some(work) = work {
+        checks.push(format!("work_used(matcher) == {work}usize"));
+    }
+    for (index, [start, end]) in spans.iter().enumerate() {
+        checks.push(format!(
+            "capture_start(matcher, {index}usize) == {start}usize"
+        ));
+        checks.push(format!(
+            "capture_end(matcher, {index}usize) == {end}usize"
+        ));
+    }
+    format!("if {} {{ 1 }} else {{ -1 }}", checks.join(" && "))
+}
+
+fn std_compile_source_with_limit(
+    pattern: &[u8],
+    input: &[u8],
+    expected: &str,
+    work_limit: u64,
+) -> String {
+    format!(
+        "{STD_ENGINE}\n@id(\"std.pattern.witness.main\")\nfn main() -> i64\n{{\n{}{}\nlet mut matcher = compile(make(), pattern_view, {work_limit}usize);\nlet compile_ready = result_valid(matcher) && status(matcher) == 0usize;\nif compile_ready {{\nmatcher = full_match(matcher, input_view, {work_limit}usize);\nif result_valid(matcher) {{ {expected} }} else {{ -1 }}\n}} else {{ -2 }}\n}}\n",
+        bytes("pattern", pattern),
+        input_source(input)
+    )
+}
+
 fn fixture_pattern(value: &serde_json::Value) -> Vec<u8> {
     if let Some(text) = value.as_str() {
         return text.as_bytes().to_vec();
@@ -119,6 +163,10 @@ fn fixture_input(value: &serde_json::Value) -> Vec<u8> {
 }
 
 fn interpret(source: &str, stem: &str) {
+    interpret_with_identity(source, stem, "experiment.pattern.witness.main");
+}
+
+fn interpret_with_identity(source: &str, stem: &str, identity: &str) {
     let program =
         semaprax::check(source, "ascii-private-witness.spx").expect("private source verifies");
     hir::validate(&hir::resolve(&program).unwrap()).unwrap();
@@ -139,7 +187,7 @@ fn interpret(source: &str, stem: &str) {
     std::fs::write(&path, source).unwrap();
     let result = interpreter::internal_strings::interpret(
         &path,
-        "experiment.pattern.witness.main",
+        identity,
         &[],
         &InterpreterOptions::default(),
     )
@@ -261,6 +309,40 @@ fn private_ascii_pattern_fixture_cases_match_independent_exhaustive_oracle() {
 }
 
 #[test]
+fn standard_library_ascii_pattern_fixture_cases_match_independent_exhaustive_oracle() {
+    let fixtures: serde_json::Value = serde_json::from_str(CASES).unwrap();
+    let mut count = 0usize;
+    for case in fixtures["cases"].as_array().unwrap() {
+        if case["source_differential"] != true {
+            continue;
+        }
+        let expected_match = &case["expected"]["match"];
+        let status = expected_match["status_code"].as_u64().unwrap();
+        assert!(
+            matches!(status, 1 | 2),
+            "{} is semantic, not a refusal",
+            case["id"]
+        );
+        let spans: Vec<[u64; 2]> = expected_match["spans"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|span| [span[0].as_u64().unwrap(), span[1].as_u64().unwrap()])
+            .collect();
+        let expected = expect_std_packet(status, &spans, None, 0, 0, 0);
+        let source = std_compile_source_with_limit(
+            &fixture_pattern(&case["pattern"]),
+            &fixture_input(&case["input"]),
+            &expected,
+            262_144,
+        );
+        interpret_with_identity(&source, case["id"].as_str().unwrap(), "std.pattern.witness.main");
+        count += 1;
+    }
+    assert_eq!(count, 19, "the std implementation uses the same 19 independent cases");
+}
+
+#[test]
 fn private_ascii_pattern_malformed_offsets_and_compile_invalidation() {
     for (index, (pattern, offset)) in [
         (b"\\xG0".as_slice(), 2),
@@ -368,6 +450,69 @@ import {instantiateBytes} from './semaprax.js';
 const {instance}=await instantiateBytes(await readFile('./app.wasm'),{maxOwnedByteEntries:2});
 for(let i=0;i<4;i++) { const value=instance.exports.semaprax_main(); if(value!==1n) throw Error(`pattern:${value}`); }
 "#).unwrap();
+    let output = std::process::Command::new("node")
+        .arg(web.join("probe.mjs"))
+        .current_dir(&web)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(output.stdout.is_empty());
+    for name in [
+        "app.wasm",
+        "semaprax.js",
+        "index.html",
+        "package.json",
+        "semaprax.manifest.json",
+        "probe.mjs",
+    ] {
+        std::fs::remove_file(web.join(name)).unwrap();
+    }
+    std::fs::remove_dir(web).unwrap();
+    fixture.cleanup();
+}
+
+#[test]
+fn standard_library_ascii_pattern_header_source_backend_parity_and_settlement() {
+    use super::super::owned_string_loops_v1::support::Fixture;
+    let expected = expect_std_packet(1, &[[0, 5], [7, 12]], None, 0, 0, 0);
+    let source = std_compile_source_with_limit(
+        b"([A-Za-z-]+):[ \\x09]*([^\\x0D\\x0A]*)",
+        b"X-Key: value",
+        &expected,
+        262_144,
+    );
+    interpret_with_identity(
+        &source,
+        "std-pattern-header-interpreter",
+        "std.pattern.witness.main",
+    );
+    let program = semaprax::check(&source, "std-pattern-header.spx").unwrap();
+    let mut fixture = Fixture::new(&source);
+    let generated = semaprax::codegen::emit_c(&program).unwrap();
+    let probe = format!(
+        "{}\n#define FIXTURE_TRACK_CALLOC\n{}\n{generated}\n#undef malloc\n#undef calloc\n#undef free\n#undef FIXTURE_TRACK_CALLOC\nint main(void) {{\nREQUIRE(fixture_binary_stdout());\nstruct spx_status_entry entries[32]; struct spx_context context={{0}}; REQUIRE(spx_context_init(&context,19,entries,32,NULL,NULL,NULL));\nfor(unsigned i=0;i<4;++i) {{ int64_t value=INT64_MIN; REQUIRE(spx_decl_{}(&context,&value)==0); REQUIRE(value==1); REQUIRE(fixture_live==0 && fixture_allocations==fixture_frees); }}\nreturn 0; }}\n",
+        include_str!("../../support/native_fixture_stdio.c"),
+        include_str!("../../native_owned_utf8_settlement_v1/allocations.c"),
+        super::hex_identity("std.pattern.witness.main")
+    );
+    for optimization in ["-O0", "-O2"] {
+        assert_eq!(fixture.native(&probe, optimization), "");
+    }
+    let web = fixture.root.join("web");
+    semaprax::wasm::build_web(&program, &web).unwrap();
+    std::fs::write(
+        web.join("probe.mjs"),
+        r#"import {readFile} from 'node:fs/promises';
+import {instantiateBytes} from './semaprax.js';
+const {instance}=await instantiateBytes(await readFile('./app.wasm'),{maxOwnedByteEntries:2});
+for(let i=0;i<4;i++) { const value=instance.exports.semaprax_main(); if(value!==1n) throw Error(`pattern:${value}`); }
+"#,
+    )
+    .unwrap();
     let output = std::process::Command::new("node")
         .arg(web.join("probe.mjs"))
         .current_dir(&web)

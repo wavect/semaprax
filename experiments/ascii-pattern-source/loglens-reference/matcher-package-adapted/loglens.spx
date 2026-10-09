@@ -1,13 +1,13 @@
 module loglens;
 
 use type @id("std.pattern.matcher") from std.pattern as Matcher;
-use function @id("std.pattern.make") from std.pattern as matcher_make;
+use function @id("std.pattern.capture-count") from std.pattern as matcher_capture_count;
+use function @id("std.pattern.capture-end") from std.pattern as matcher_capture_end;
+use function @id("std.pattern.capture-start") from std.pattern as matcher_capture_start;
 use function @id("std.pattern.compile") from std.pattern as matcher_compile;
 use function @id("std.pattern.full-match") from std.pattern as matcher_full_match;
+use function @id("std.pattern.make") from std.pattern as matcher_make;
 use function @id("std.pattern.status") from std.pattern as matcher_status;
-use function @id("std.pattern.capture-count") from std.pattern as matcher_capture_count;
-use function @id("std.pattern.capture-start") from std.pattern as matcher_capture_start;
-use function @id("std.pattern.capture-end") from std.pattern as matcher_capture_end;
 
 permit { fs.read, process.args.read, process.stderr.write, process.stdout.write }
 

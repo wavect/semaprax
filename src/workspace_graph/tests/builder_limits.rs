@@ -492,3 +492,90 @@ fn builder_budget_refusal_names_the_bound_that_fired_and_its_dominant_module() {
         "{help}"
     );
 }
+
+#[test]
+fn import_free_edge_replay_does_not_materialize_unused_paths() {
+    let sources = vec![
+        canonical_source(
+            "app.spx",
+            "module isolated.app;\n@id(\"isolated.main\") fn main() -> i64 { let value = 3; value + 4 }\n",
+        ),
+        canonical_source(
+            "lib.spx",
+            "module isolated.lib;\n@id(\"isolated.answer\") fn answer() -> i64 { 42 }\n",
+        ),
+    ];
+    let programs = parsed_sources(&sources);
+    let authored = index_authored(&programs).unwrap();
+    let paths = index_modules(&programs).unwrap();
+    for program in &programs {
+        let synthetic = synthetic_program(program, &authored, &programs).unwrap();
+        let resolved = hir::resolve(&synthetic).unwrap();
+        let (result, overflow, consumed) = crate::bounded_output::with_limit_usage(0, || {
+            let mut edges = Vec::new();
+            collect_expected_edges(program, &paths, &authored, &mut edges)?;
+            assert!(edges.is_empty());
+            verify_resolved_call_edges(program, &resolved, &authored)
+        });
+        assert!(result.is_ok(), "{result:?}");
+        assert!(!overflow);
+        assert_eq!(consumed, 0);
+    }
+    let mut built = build_owned(sources).unwrap();
+    assert!(built.edges.is_empty());
+    for kind in ["type_reference", "call"] {
+        // An empty import domain must not suppress the complete projection
+        // comparison: a forged edge is still extra evidence and fails closed.
+        built.edges = vec![WorkspaceEdge {
+            caller_path: "app.spx".to_owned(),
+            caller: "isolated.main".to_owned(),
+            target_path: "lib.spx".to_owned(),
+            target: "isolated.answer".to_owned(),
+            kind,
+            site: "body",
+            expression: "forged.expression".to_owned(),
+            ast_path: "body".to_owned(),
+            alias: "forged".to_owned(),
+            ordinal: 0,
+        }];
+        let errors = validate_retained_facts(&programs, &built.hir.modules, &built.edges)
+            .expect_err("an import-free module cannot authorize an injected edge");
+        assert_eq!(errors[0].code, "SPX-G173");
+        assert_eq!(
+            errors[0].message,
+            if kind == "type_reference" {
+                "workspace explicit type-reference facts disagree with retained HIR"
+            } else {
+                "emitted workspace call edges disagree with authenticated AST/HIR occurrences"
+            }
+        );
+    }
+}
+
+#[test]
+fn pattern_source_workspace_fits_unchanged_builder_budget() {
+    let sources = [
+        (
+            "src/examples.spx",
+            include_str!("../../../std/pattern/src/examples.spx"),
+        ),
+        (
+            "src/pattern.spx",
+            include_str!("../../../std/pattern/src/pattern.spx"),
+        ),
+        (
+            "src/tests.spx",
+            include_str!("../../../std/pattern/src/tests.spx"),
+        ),
+    ]
+    .into_iter()
+    .map(|(path, source)| WorkspaceSource {
+        path: path.to_owned(),
+        source: source.to_owned(),
+    })
+    .collect();
+    let built = build_owned(sources).unwrap_or_else(|errors| panic!("{errors:?}"));
+    assert_eq!(built.hir.modules.len(), 3);
+    assert!(built.usage.builder_bytes <= MAX_BUILDER_BYTES);
+    assert!(built.hir.module_paths.contains_key("std.pattern"));
+}

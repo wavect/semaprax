@@ -8,6 +8,7 @@ use crate::ast::{
     Expr, ExprKind, Function, ModuleUse, ModuleUseKind, Program, Span, Type, TypeDeclaration,
     TypeDeclarationKind,
 };
+use crate::bounded_output::budgeted_format;
 use crate::diagnostic::Diagnostic;
 use crate::{hir, prelude};
 
@@ -548,7 +549,7 @@ pub(super) fn rewrite_type_runtime_cost(
         .ok_or_else(|| {
             vec![graph_error(
                 "SPX-G172",
-                crate::bounded_output::budgeted_format(format_args!(
+                budgeted_format(format_args!(
                     "cross-file signature type `{target_id}` is not explicitly imported"
                 )),
             )]
@@ -726,9 +727,7 @@ pub(super) fn dependency_depths<'a>(
             );
             return Err(vec![graph_error(
                 "SPX-G172",
-                crate::bounded_output::budgeted_format(format_args!(
-                    "workspace module dependency cycle: {witness}"
-                )),
+                budgeted_format(format_args!("workspace module dependency cycle: {witness}")),
             )]);
         }
         if let Some(depth) = depths.get(module) {
@@ -861,7 +860,7 @@ pub(super) fn synthetic_program(
         reserve_builder_structure(std::mem::size_of::<Function>())?;
         reserve_builder_structure(std::mem::size_of::<Expr>())?;
         synthetic.functions.push(Function {
-            stable_id: crate::bounded_output::budgeted_format(format_args!(
+            stable_id: budgeted_format(format_args!(
                 "workspace.synthetic.main.{}",
                 synthetic.module
             )),
@@ -920,7 +919,7 @@ pub(super) fn rewrite_type(
         .ok_or_else(|| {
             vec![graph_error(
                 "SPX-G172",
-                crate::bounded_output::budgeted_format(format_args!(
+                budgeted_format(format_args!(
                     "cross-file signature type `{target_id}` is not explicitly imported"
                 )),
             )]
@@ -948,7 +947,7 @@ pub(super) fn collect_expected_edges(
         .map(|item| (item.alias.as_str(), item))
         .collect::<BTreeMap<_, _>>();
     for (index, permit) in program.permits.iter().enumerate() {
-        let path = crate::bounded_output::budgeted_format(format_args!("permit.{index}"));
+        let path = budgeted_format(format_args!("permit.{index}"));
         push_edge(
             edges,
             WorkspaceEdge {
@@ -965,6 +964,12 @@ pub(super) fn collect_expected_edges(
             },
         )?;
     }
+    // All remaining edges require an authored import; capability edges above
+    // still participate in the complete independently checked projection.
+    if function_uses.is_empty() && type_uses.is_empty() {
+        edges.sort();
+        return Ok(());
+    }
     for declaration in &program.types {
         let declaration_type_uses = ScopedTypeUses {
             uses: &type_uses,
@@ -978,7 +983,7 @@ pub(super) fn collect_expected_edges(
                         program,
                         &declaration.stable_id,
                         &field.ty,
-                        &crate::bounded_output::budgeted_format(format_args!(
+                        &budgeted_format(format_args!(
                             "type.{}.field.{index}",
                             declaration.stable_id
                         )),
@@ -995,7 +1000,7 @@ pub(super) fn collect_expected_edges(
                         program,
                         &declaration.stable_id,
                         &field.ty,
-                        &crate::bounded_output::budgeted_format(format_args!(
+                        &budgeted_format(format_args!(
                             "type.{}.field.{index}",
                             declaration.stable_id
                         )),
@@ -1011,7 +1016,7 @@ pub(super) fn collect_expected_edges(
                             program,
                             &method.stable_id,
                             &param.ty,
-                            &crate::bounded_output::budgeted_format(format_args!(
+                            &budgeted_format(format_args!(
                                 "fn.{}.param.{param_index}",
                                 method.stable_id
                             )),
@@ -1025,10 +1030,7 @@ pub(super) fn collect_expected_edges(
                         program,
                         &method.stable_id,
                         &method.return_type,
-                        &crate::bounded_output::budgeted_format(format_args!(
-                            "fn.{}.return",
-                            method.stable_id
-                        )),
+                        &budgeted_format(format_args!("fn.{}.return", method.stable_id)),
                         declaration_type_uses,
                         module_paths,
                         authored,
@@ -1043,7 +1045,7 @@ pub(super) fn collect_expected_edges(
                             program,
                             &declaration.stable_id,
                             &field.ty,
-                            &crate::bounded_output::budgeted_format(format_args!(
+                            &budgeted_format(format_args!(
                                 "type.{}.case.{case_index}.field.{field_index}",
                                 declaration.stable_id
                             )),
@@ -1067,7 +1069,7 @@ pub(super) fn collect_expected_edges(
                 program,
                 &function.stable_id,
                 &param.ty,
-                &crate::bounded_output::budgeted_format(format_args!(
+                &budgeted_format(format_args!(
                     "function.{}.param.{index}",
                     function.stable_id
                 )),
@@ -1081,10 +1083,7 @@ pub(super) fn collect_expected_edges(
             program,
             &function.stable_id,
             &function.return_type,
-            &crate::bounded_output::budgeted_format(format_args!(
-                "function.{}.return",
-                function.stable_id
-            )),
+            &budgeted_format(format_args!("function.{}.return", function.stable_id)),
             function_type_uses,
             module_paths,
             authored,
@@ -1097,13 +1096,9 @@ pub(super) fn collect_expected_edges(
         ] {
             for (root_index, expression) in expressions.iter().enumerate() {
                 let root = match site {
-                    "requires" => crate::bounded_output::budgeted_format(format_args!(
-                        "requires.{root_index}"
-                    )),
+                    "requires" => budgeted_format(format_args!("requires.{root_index}")),
                     "body" => crate::bounded_output::budgeted_clone("body"),
-                    "ensures" => {
-                        crate::bounded_output::budgeted_format(format_args!("ensures.{root_index}"))
-                    }
+                    "ensures" => budgeted_format(format_args!("ensures.{root_index}")),
                     _ => unreachable!(),
                 };
                 let mut call_ordinal = 0usize;
@@ -1202,8 +1197,8 @@ pub(super) fn collect_expected_edges(
                     ModuleUseKind::Protocol => unreachable!(),
                 },
                 site: "module",
-                expression: crate::bounded_output::budgeted_format(format_args!("use.{ordinal}")),
-                ast_path: crate::bounded_output::budgeted_format(format_args!("use.{ordinal}")),
+                expression: budgeted_format(format_args!("use.{ordinal}")),
+                ast_path: budgeted_format(format_args!("use.{ordinal}")),
                 alias: crate::bounded_output::budgeted_clone(&module_use.alias),
                 ordinal,
             },
@@ -1314,8 +1309,7 @@ fn collect_named_type_reference_edge_at(
         )?;
     }
     for (index, argument) in arguments.iter().enumerate() {
-        let argument_path =
-            crate::bounded_output::budgeted_format(format_args!("{path}.argument.{index}"));
+        let argument_path = budgeted_format(format_args!("{path}.argument.{index}"));
         collect_type_reference_edge_at(
             program,
             owner,
@@ -1342,10 +1336,17 @@ fn collect_expression_type_edges(
     authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
     edges: &mut Vec<WorkspaceEdge>,
 ) -> Result<(), Vec<Diagnostic>> {
-    let expression_id = hir::workspace_expression_identity(
-        &hir::DeclarationId::new(crate::bounded_output::budgeted_clone(owner)),
-        path,
-    );
+    if type_uses.uses.is_empty() {
+        return Ok(());
+    }
+    // Scalar nodes only recurse. Derive their identity only if a type site
+    // actually needs it, preserving its exact encoding and normal charge.
+    let expression_id = std::cell::LazyCell::new(|| {
+        hir::workspace_expression_identity(
+            &hir::DeclarationId::new(crate::bounded_output::budgeted_clone(owner)),
+            path,
+        )
+    });
     match &expression.kind {
         ExprKind::Closure {
             params,
@@ -1394,9 +1395,7 @@ fn collect_expression_type_edges(
             ..
         } => {
             for (index, argument) in type_arguments.iter().enumerate() {
-                let type_path = crate::bounded_output::budgeted_format(format_args!(
-                    "{path}.type_argument.{index}"
-                ));
+                let type_path = budgeted_format(format_args!("{path}.type_argument.{index}"));
                 collect_type_reference_edge_at(
                     program,
                     owner,
@@ -1410,8 +1409,7 @@ fn collect_expression_type_edges(
                 )?;
             }
             for (index, argument) in args.iter().enumerate() {
-                let child =
-                    crate::bounded_output::budgeted_format(format_args!("{path}.arg.{index}"));
+                let child = budgeted_format(format_args!("{path}.arg.{index}"));
                 collect_expression_type_edges(
                     program,
                     owner,
@@ -1431,9 +1429,7 @@ fn collect_expression_type_edges(
             ..
         } => {
             for (index, argument) in type_arguments.iter().enumerate() {
-                let type_path = crate::bounded_output::budgeted_format(format_args!(
-                    "{path}.type_argument.{index}"
-                ));
+                let type_path = budgeted_format(format_args!("{path}.type_argument.{index}"));
                 collect_type_reference_edge_at(
                     program,
                     owner,
@@ -1450,15 +1446,14 @@ fn collect_expression_type_edges(
                 program,
                 owner,
                 receiver,
-                &crate::bounded_output::budgeted_format(format_args!("{path}.receiver")),
+                &budgeted_format(format_args!("{path}.receiver")),
                 type_uses,
                 module_paths,
                 authored,
                 edges,
             )?;
             for (index, argument) in args.iter().enumerate() {
-                let child =
-                    crate::bounded_output::budgeted_format(format_args!("{path}.arg.{index}"));
+                let child = budgeted_format(format_args!("{path}.arg.{index}"));
                 collect_expression_type_edges(
                     program,
                     owner,
@@ -1473,8 +1468,7 @@ fn collect_expression_type_edges(
         }
         ExprKind::SuperMethod { args, .. } => {
             for (index, argument) in args.iter().enumerate() {
-                let child =
-                    crate::bounded_output::budgeted_format(format_args!("{path}.arg.{index}"));
+                let child = budgeted_format(format_args!("{path}.arg.{index}"));
                 collect_expression_type_edges(
                     program,
                     owner,
@@ -1491,7 +1485,7 @@ fn collect_expression_type_edges(
             program,
             owner,
             value,
-            &crate::bounded_output::budgeted_format(format_args!("{path}.value")),
+            &budgeted_format(format_args!("{path}.value")),
             type_uses,
             module_paths,
             authored,
@@ -1502,7 +1496,7 @@ fn collect_expression_type_edges(
                 program,
                 owner,
                 left,
-                &crate::bounded_output::budgeted_format(format_args!("{path}.left")),
+                &budgeted_format(format_args!("{path}.left")),
                 type_uses,
                 module_paths,
                 authored,
@@ -1512,7 +1506,7 @@ fn collect_expression_type_edges(
                 program,
                 owner,
                 right,
-                &crate::bounded_output::budgeted_format(format_args!("{path}.right")),
+                &budgeted_format(format_args!("{path}.right")),
                 type_uses,
                 module_paths,
                 authored,
@@ -1534,9 +1528,7 @@ fn collect_expression_type_edges(
                         program,
                         owner,
                         child,
-                        &crate::bounded_output::budgeted_format(format_args!(
-                            "{path}.s{index}.{segment}"
-                        )),
+                        &budgeted_format(format_args!("{path}.s{index}.{segment}")),
                         type_uses,
                         module_paths,
                         authored,
@@ -1548,7 +1540,7 @@ fn collect_expression_type_edges(
                 program,
                 owner,
                 tail,
-                &crate::bounded_output::budgeted_format(format_args!("{path}.tail")),
+                &budgeted_format(format_args!("{path}.tail")),
                 type_uses,
                 module_paths,
                 authored,
@@ -1569,7 +1561,7 @@ fn collect_expression_type_edges(
                     program,
                     owner,
                     child,
-                    &crate::bounded_output::budgeted_format(format_args!("{path}.{suffix}")),
+                    &budgeted_format(format_args!("{path}.{suffix}")),
                     type_uses,
                     module_paths,
                     authored,
@@ -1594,7 +1586,7 @@ fn collect_expression_type_edges(
                 owner,
                 type_name,
                 type_arguments,
-                &crate::bounded_output::budgeted_format(format_args!("{path}.type")),
+                &budgeted_format(format_args!("{path}.type")),
                 Some(&expression_id),
                 type_uses,
                 module_paths,
@@ -1606,9 +1598,7 @@ fn collect_expression_type_edges(
                     program,
                     owner,
                     &field.value,
-                    &crate::bounded_output::budgeted_format(format_args!(
-                        "{path}.field.{index}.value"
-                    )),
+                    &budgeted_format(format_args!("{path}.field.{index}.value")),
                     type_uses,
                     module_paths,
                     authored,
@@ -1623,16 +1613,14 @@ fn collect_expression_type_edges(
                 program,
                 owner,
                 scrutinee,
-                &crate::bounded_output::budgeted_format(format_args!("{path}.scrutinee")),
+                &budgeted_format(format_args!("{path}.scrutinee")),
                 type_uses,
                 module_paths,
                 authored,
                 edges,
             )?;
             for (index, arm) in arms.iter().enumerate() {
-                let pattern_path = crate::bounded_output::budgeted_format(format_args!(
-                    "{path}.arm.{index}.pattern"
-                ));
+                let pattern_path = budgeted_format(format_args!("{path}.arm.{index}.pattern"));
                 collect_match_pattern_type_edges(
                     program,
                     owner,
@@ -1648,9 +1636,7 @@ fn collect_expression_type_edges(
                     program,
                     owner,
                     &arm.value,
-                    &crate::bounded_output::budgeted_format(format_args!(
-                        "{path}.arm.{index}.value"
-                    )),
+                    &budgeted_format(format_args!("{path}.arm.{index}.value")),
                     type_uses,
                     module_paths,
                     authored,
@@ -1663,7 +1649,7 @@ fn collect_expression_type_edges(
                 program,
                 owner,
                 operand,
-                &crate::bounded_output::budgeted_format(format_args!("{path}.operand")),
+                &budgeted_format(format_args!("{path}.operand")),
                 type_uses,
                 module_paths,
                 authored,
@@ -1675,7 +1661,7 @@ fn collect_expression_type_edges(
                 program,
                 owner,
                 base,
-                &crate::bounded_output::budgeted_format(format_args!("{path}.base")),
+                &budgeted_format(format_args!("{path}.base")),
                 type_uses,
                 module_paths,
                 authored,
@@ -1686,9 +1672,7 @@ fn collect_expression_type_edges(
                     program,
                     owner,
                     &field.value,
-                    &crate::bounded_output::budgeted_format(format_args!(
-                        "{path}.field.{index}.value"
-                    )),
+                    &budgeted_format(format_args!("{path}.field.{index}.value")),
                     type_uses,
                     module_paths,
                     authored,
@@ -1700,7 +1684,7 @@ fn collect_expression_type_edges(
             program,
             owner,
             base,
-            &crate::bounded_output::budgeted_format(format_args!("{path}.base")),
+            &budgeted_format(format_args!("{path}.base")),
             type_uses,
             module_paths,
             authored,
@@ -1760,9 +1744,7 @@ fn collect_match_pattern_type_edges(
                     program,
                     owner,
                     alternative,
-                    &crate::bounded_output::budgeted_format(format_args!(
-                        "{path}.alternative.{index}"
-                    )),
+                    &budgeted_format(format_args!("{path}.alternative.{index}")),
                     expression,
                     type_uses,
                     module_paths,
@@ -1778,9 +1760,7 @@ fn collect_match_pattern_type_edges(
                 program,
                 owner,
                 &field.pattern,
-                &crate::bounded_output::budgeted_format(format_args!(
-                    "{path}.field.{index}.pattern"
-                )),
+                &budgeted_format(format_args!("{path}.field.{index}.pattern")),
                 expression,
                 type_uses,
                 module_paths,
@@ -1827,7 +1807,7 @@ fn collect_record_pattern_type_edges(
             program,
             owner,
             &field.pattern,
-            &crate::bounded_output::budgeted_format(format_args!("{path}.field.{index}.pattern")),
+            &budgeted_format(format_args!("{path}.field.{index}.pattern")),
             expression,
             type_uses,
             module_paths,
@@ -1849,6 +1829,9 @@ pub(super) fn verify_resolved_call_edges(
         .filter(|item| item.kind == ModuleUseKind::Function)
         .map(|item| (item.alias.as_str(), item.persistent_id.as_str()))
         .collect::<BTreeMap<_, _>>();
+    if aliases.is_empty() {
+        return Ok(());
+    }
     let mut expected = Vec::new();
     for function in &program.functions {
         let owner =
@@ -1859,7 +1842,7 @@ pub(super) fn verify_resolved_call_edges(
             .enumerate()
             .map(|(index, expression)| {
                 (
-                    crate::bounded_output::budgeted_format(format_args!("requires.{index}")),
+                    budgeted_format(format_args!("requires.{index}")),
                     expression,
                 )
             })
@@ -1873,10 +1856,7 @@ pub(super) fn verify_resolved_call_edges(
                     .iter()
                     .enumerate()
                     .map(|(index, expression)| {
-                        (
-                            crate::bounded_output::budgeted_format(format_args!("ensures.{index}")),
-                            expression,
-                        )
+                        (budgeted_format(format_args!("ensures.{index}")), expression)
                     }),
             )
         {

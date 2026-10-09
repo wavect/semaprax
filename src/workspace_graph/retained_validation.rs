@@ -4,11 +4,10 @@
 //! bounded builder ledger. It has no filesystem, locking, mutation, rendering,
 //! publication, backend, or runtime authority.
 
-use std::collections::{BTreeMap, BTreeSet};
-
 use crate::ast::{ModuleUseKind, Program};
 use crate::diagnostic::Diagnostic;
 use crate::hir;
+use std::collections::{BTreeMap, BTreeSet};
 
 mod dependency_closure;
 mod profile_names;
@@ -53,7 +52,6 @@ pub(super) fn validate_retained_facts(
             )]);
         }
     }
-
     let mut actual_type_sites = Vec::new();
     for module in modules {
         let source = programs
@@ -66,6 +64,9 @@ pub(super) fn validate_retained_facts(
             .filter(|item| item.kind == ModuleUseKind::Type)
             .map(|item| item.persistent_id.as_str())
             .collect::<BTreeSet<_>>();
+        if imported_type_ids.is_empty() {
+            continue;
+        }
         for declaration in &module.types {
             match &declaration.kind {
                 hir::ResolvedTypeDeclarationKind::Resource { .. } => {}
@@ -159,7 +160,6 @@ pub(super) fn validate_retained_facts(
             "workspace explicit type-reference facts disagree with retained HIR",
         )]);
     }
-
     let authenticated_calls = reconstruct_authenticated_call_edges(programs, modules)?;
     validate_retained_call_projection(programs, modules, &authenticated_calls)?;
     let mut emitted_calls = Vec::new();
@@ -193,6 +193,9 @@ fn reconstruct_authenticated_call_edges(
             .filter(|item| item.kind == ModuleUseKind::Function)
             .map(|item| (item.alias.as_str(), item))
             .collect::<BTreeMap<_, _>>();
+        if function_uses.is_empty() {
+            continue;
+        }
         for function in &program.functions {
             let owner =
                 hir::DeclarationId::new(crate::bounded_output::budgeted_clone(&function.stable_id));
@@ -783,7 +786,7 @@ fn collect_resolved_expression_type_sites(
     imported: &BTreeSet<&str>,
     out: &mut Vec<(String, String, String, String)>,
 ) -> Result<(), Vec<Diagnostic>> {
-    let expression_id = crate::bounded_output::budgeted_format(format_args!("{}", expression.id));
+    let expression_id = expression.id.as_str();
     match &expression.kind {
         hir::ResolvedExprKind::Closure {
             parameters, body, ..
@@ -793,7 +796,7 @@ fn collect_resolved_expression_type_sites(
                     owner.as_str(),
                     &parameter.ty,
                     &format!("{path}.closure.param.{index}"),
-                    Some(&expression_id),
+                    Some(expression_id),
                     imported,
                     out,
                 )?;
@@ -803,7 +806,7 @@ fn collect_resolved_expression_type_sites(
                     owner.as_str(),
                     result,
                     &format!("{path}.closure.result"),
-                    Some(&expression_id),
+                    Some(expression_id),
                     imported,
                     out,
                 )?;
@@ -858,7 +861,7 @@ fn collect_resolved_expression_type_sites(
                     &crate::bounded_output::budgeted_format(format_args!(
                         "{path}.type_argument.{index}"
                     )),
-                    Some(&expression_id),
+                    Some(expression_id),
                     imported,
                     out,
                 )?;
@@ -1008,7 +1011,7 @@ fn collect_resolved_expression_type_sites(
                 owner.as_str(),
                 &expression.ty,
                 &crate::bounded_output::budgeted_format(format_args!("{path}.type")),
-                Some(&expression_id),
+                Some(expression_id),
                 imported,
                 out,
             )?;

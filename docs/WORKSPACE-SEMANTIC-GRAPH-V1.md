@@ -259,6 +259,15 @@ debit is the maximum of all attempts; no enclosing budget is reset or refunded.
 Explicit smaller-limit invocations and nested budgets retain their original
 core-refusal behavior, and a successful earlier attempt retains its receipt.
 
+Cross-file edge reconstruction does not traverse an import-free module to
+materialize paths whose output set is necessarily empty. Capability edges
+are still emitted before that fast path, and the complete expected-versus-HIR
+edge comparisons still reject missing, extra, or forged evidence. Type-site
+replay borrows retained HIR expression identities; the authored projection
+derives an identity lazily only when a type site needs it. Emitted identities,
+paths, ordinals and canonical ordering are unchanged. The saved allocations
+reduce actual builder work without changing any pre-charge or budget limit.
+
 Canonical HIR identity validation compares the retained bytes directly with the
 length-delimited expression/value identity encoding, without allocating a second
 identity string solely for comparison. It checks every UTF-8 byte, execution

@@ -1,5 +1,11 @@
 # Changelog
 
+- Avoid allocating unused cross-file edge paths for import-free modules, borrow
+  retained HIR expression identities and lazily derive authored type-site IDs.
+  Preserve complete edge replay, capability facts, canonical bytes and every
+  builder pre-charge/limit; add zero-allocation and forged-edge regressions plus
+  the unchanged-budget standard pattern workspace gate.
+
 - Compare canonical HIR expression and value identities directly with their
   retained bytes during validation, removing temporary comparison strings.
   Preserve exact length-delimited identities, cached-hash checks, forged-HIR

@@ -256,8 +256,12 @@ The one-bit test is six fixed unsigned scalar stages, with no hidden scan or loo
 The inspection never trusts a class spelling or stores authority in a cache. All other bitsets use the original predicate.
 
 A selected literal or exclusion scan returns the flat Copy `Scan::Done { count, work, exhausted }`. It has no stored view,
-owned field, or escaping loan. Each 48-byte helper performs direct total reads in increasing order and stops at the first
-rejected byte. A complete chunk costs 49 logical units: one committed scan iteration plus 48 reads. A chunk rejecting its
+owned field, or escaping loan. Each 48-byte wrapper calls six shallow 8-byte helpers in increasing order and stops at the first
+rejected byte. The old 48 nested if/block expressions had roughly 100 retained AST levels and overflowed the default
+Rust test-thread stack in a small-input witness that does not execute those long scan helpers, implicating source traversal. The replacement has roughly 20 levels: nested match arms
+for class membership and guarded variant arms for literal membership eliminate intermediate booleans/true blocks. The
+8-byte helper checks only its fixed offset-overflow bound because `byte_get` is total; the wrapper retains the full 48-byte
+input-extent contract. This source repair preserves the same reads and avoids increasing the Rust stack or source fuel. A complete chunk costs 49 logical units: one committed scan iteration plus 48 reads. A chunk rejecting its
 zero-based byte `j` costs `j+2`; no later byte is read. A scalar tail costs two units per attempted byte. The caller reserves its
 32-write refusal packet before passing the remaining work; each chunk/tail preflights its complete worst-case cost. Budget
 bookkeeping and a refused preflight perform no predicate event. Thus a successful selected run of `n` bytes costs
@@ -265,7 +269,7 @@ bookkeeping and a refused preflight perform no predicate event. Thus a successfu
 The logical meter records performed work, not reserved chunk width. Source interpreter fuel remains separate.
 
 A manual conservative ordinary-fuel estimate allocates 660 steps per complete exclusion chunk: roughly 595 for the called
-48-byte helper including requires and arguments, and the remaining allowance for scan guard/body, scalar updates and implicit
+48-byte wrapper and its six 8-byte helpers including requires and arguments, and the remaining allowance for scan guard/body, scalar updates and implicit
 statement tails. The direct `byte_get` extra operation charge, match scrutinees, selected arm values, true blocks, and
 requires-clause charge are included. A 65,536-byte successful scan has 1,365 complete chunks and a 16-byte tail, putting the
 scanner below approximately 904,000 steps on that estimate. Literal and singleton-exclusion helpers differ only by fixed scalar

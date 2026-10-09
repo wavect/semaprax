@@ -626,10 +626,18 @@ fn hp_hn15_skill_evolve_v1_payloads_are_closed() {
 fn sg16_process_deadline_covers_request_write_and_inherited_stdout() {
     use std::time::Duration;
     let rig = Rig::new("hp-hn15-sg16");
-    for script in [
-        "sleep 20",
-        "cat >/dev/null; sleep 20 & echo '{}'",
-        "cat >/dev/null; sleep 20",
+    // The child requests cancellation at the exercised I/O phase, rather
+    // than racing a sleeping host thread against the timeout deadline.
+    for (timeout_script, cancellation_script) in [
+        ("sleep 20", "touch SG16-CANCEL; sleep 20"),
+        (
+            "cat >/dev/null; sleep 20 & echo '{}'",
+            "cat >/dev/null; (touch SG16-CANCEL; sleep 20) & echo '{}'",
+        ),
+        (
+            "cat >/dev/null; sleep 20",
+            "cat >/dev/null; touch SG16-CANCEL; sleep 20",
+        ),
     ] {
         for marker_cancel in [false, true] {
             let marker = rig.dir.join("SG16-CANCEL");
@@ -638,12 +646,11 @@ fn sg16_process_deadline_covers_request_write_and_inherited_stdout() {
                 flag: Default::default(),
                 file: marker_cancel.then(|| marker.clone()),
             };
-            let setter = marker_cancel.then(|| {
-                std::thread::spawn(move || {
-                    std::thread::sleep(Duration::from_millis(50));
-                    std::fs::write(marker, "cancel").unwrap();
-                })
-            });
+            let script = if marker_cancel {
+                cancellation_script
+            } else {
+                timeout_script
+            };
             let mut adapter = ProcessAdapter {
                 command: vec!["/bin/sh".into(), "-c".into(), script.into()],
                 env: [("PATH".into(), "/usr/bin:/bin".into())].into(),
@@ -652,7 +659,14 @@ fn sg16_process_deadline_covers_request_write_and_inherited_stdout() {
             let result = adapter.call(
                 &json!({"prompt": "x".repeat(263_150)}),
                 &rig.dir,
-                start + Duration::from_millis(150),
+                // Cancellation has its own watchdog; the strict timeout
+                // cases still exercise the original 150 ms deadline.
+                start
+                    + if marker_cancel {
+                        Duration::from_secs(20)
+                    } else {
+                        Duration::from_millis(150)
+                    },
                 &cancel,
             );
             assert_eq!(
@@ -664,8 +678,8 @@ fn sg16_process_deadline_covers_request_write_and_inherited_stdout() {
                 })
             );
             assert!(start.elapsed() < Duration::from_secs(2));
-            if let Some(setter) = setter {
-                setter.join().unwrap();
+            if marker_cancel {
+                assert!(marker.exists(), "the running child requested cancellation");
             }
         }
     }

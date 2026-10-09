@@ -19,6 +19,8 @@ mod owned_function_import;
 use owned_function_import::validate_imported_function;
 mod agent_execution;
 mod indexed_rust;
+mod loan_retention;
+use loan_retention::{retained_function_loan_bytes, retained_loan_plan_bytes};
 mod native_law;
 mod owned_generics;
 mod package;
@@ -4515,7 +4517,7 @@ fn retain_workspace_module(
     let functions = filter_owned_vec_accounted(
         resolved.functions,
         GRAPH_ACCOUNTED_RESOLVED_FUNCTION_BYTES,
-        |item| retained_loan_plan_bytes(&item.loan_plan),
+        retained_function_loan_bytes,
         |item| {
             authored
                 .get(item.id.as_str())
@@ -4796,15 +4798,6 @@ fn resolved_loan_bytes(program: &hir::ResolvedProgram) -> Result<usize, Vec<Diag
             sum.checked_add(retained_loan_plan_bytes(plan)?)
                 .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])
         })
-}
-
-fn retained_loan_plan_bytes(plan: &crate::loan_plan::LoanPlan) -> Result<usize, Vec<Diagnostic>> {
-    if plan.loans.is_empty() {
-        return Ok(0);
-    }
-    crate::loan_plan::owned_capacity_bytes(plan)
-        .and_then(|owned| std::mem::size_of::<crate::loan_plan::LoanPlan>().checked_add(owned))
-        .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])
 }
 
 fn authenticated_declaration_fingerprints(

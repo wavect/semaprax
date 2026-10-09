@@ -29,7 +29,7 @@ pub enum LoanPointPhase {
 mod boundary_tests;
 mod guidance;
 mod native_view;
-mod owned_capacity;
+pub(crate) mod owned_capacity;
 #[cfg(test)]
 mod shared_identity_tests;
 mod work;

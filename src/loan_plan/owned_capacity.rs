@@ -3,6 +3,19 @@ use super::{Loan, LoanEdge, LoanEndpoint, LoanId, LoanPlan, LoanProgramPoint};
 use crate::hir::{ExpressionId, Place, PlaceProjection};
 
 pub(super) fn owned_capacity_bytes(plan: &LoanPlan) -> Option<usize> {
+    owned_capacity_bytes_excluding(plan, &[])
+}
+
+/// Physical union with HIR backing already covered by the caller's retained
+/// HIR prebound. Keys must come from live authoritative HIR, never byte equality.
+/// Empty exclusions preserve the independent full-proof census used by caches.
+pub(crate) fn owned_capacity_bytes_excluding(
+    plan: &LoanPlan,
+    covered_hir_keys: &[usize],
+) -> Option<usize> {
+    if covered_hir_keys.windows(2).any(|pair| pair[0] >= pair[1]) {
+        return None;
+    }
     fn add(total: &mut usize, bytes: usize) -> Option<()> {
         *total = total.checked_add(bytes)?;
         Some(())
@@ -80,14 +93,14 @@ pub(super) fn owned_capacity_bytes(plan: &LoanPlan) -> Option<usize> {
                 .checked_mul(std::mem::size_of::<LoanId>())?,
         )?;
     }
-    add(&mut bytes, shared_identity_bytes(plan)?)?;
+    add(&mut bytes, shared_identity_bytes(plan, covered_hir_keys)?)?;
     Some(bytes)
 }
 
 /// Count one backing allocation per pointer, including Arc headers and the
 /// moved String carrier. Separate allocations with equal bytes remain distinct.
 /// The temporary inventory is charged before allocation and is not refunded.
-fn shared_identity_bytes(plan: &LoanPlan) -> Option<usize> {
+fn shared_identity_bytes(plan: &LoanPlan, covered_hir_keys: &[usize]) -> Option<usize> {
     let mut count = plan.endpoints.len();
     for loan in &plan.loans {
         count = count.checked_add(2)?.checked_add(loan.ends.len())?;
@@ -121,7 +134,12 @@ fn shared_identity_bytes(plan: &LoanPlan) -> Option<usize> {
     for identity in identities {
         let key = identity.shared_allocation_key()?;
         if previous != Some(key) {
-            bytes = bytes.checked_add(identity.shared_allocation_bytes()?)?;
+            // Validate backing even when its physical allocation is shared
+            // with charged HIR. Unmatched equal text still owns separate bytes.
+            let owned = identity.shared_allocation_bytes()?;
+            if covered_hir_keys.binary_search(&key).is_err() {
+                bytes = bytes.checked_add(owned)?;
+            }
             previous = Some(key);
         }
     }

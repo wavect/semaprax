@@ -14,7 +14,7 @@ use crate::diagnostic::Diagnostic;
 use crate::{ast::Program, hir};
 
 use super::{
-    graph_error, retained_loan_plan_bytes, AuthoredDeclaration, WorkspaceDeclarationFact,
+    graph_error, retained_function_loan_bytes, AuthoredDeclaration, WorkspaceDeclarationFact,
     WorkspaceResolvedModule, GRAPH_ACCOUNTED_RESOLVED_FUNCTION_INSTANCE_BYTES,
 };
 
@@ -115,7 +115,7 @@ pub(super) fn retain_module_instances(
     let retained = super::filter_owned_vec_accounted(
         instances,
         GRAPH_ACCOUNTED_RESOLVED_FUNCTION_INSTANCE_BYTES,
-        |item| retained_loan_plan_bytes(&item.function.loan_plan),
+        |item| retained_function_loan_bytes(&item.function),
         |item| {
             authored
                 .get(item.template.as_str())

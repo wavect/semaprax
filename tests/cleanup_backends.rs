@@ -72,6 +72,8 @@ mod independent_branches;
 mod inventory;
 #[path = "cleanup_backends/kernel_boundary.rs"]
 mod kernel_boundary;
+#[path = "cleanup_backends/owned_leaf_collections.rs"]
+mod owned_leaf_collections;
 #[path = "cleanup_backends/owned_string_variant.rs"]
 mod owned_string_variant;
 #[path = "cleanup_backends/plan.rs"]

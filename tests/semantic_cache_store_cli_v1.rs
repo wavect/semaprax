@@ -50,17 +50,23 @@ impl Fixture {
         let example = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("examples")
             .join(example_name);
-        for path in [
-            "semaprax.toml",
-            "src/app.spx",
-            "src/core.spx",
-            "src/frame.spx",
-            "src/tests.spx",
-        ] {
-            let source = example.join(path);
-            if source.exists() {
-                std::fs::copy(source, root.join(path)).unwrap();
-            }
+        let paths = if example_name == "frame-payload-project" {
+            [
+                "semaprax.toml",
+                "src/app.spx",
+                "src/frame.spx",
+                "src/tests.spx",
+            ]
+        } else {
+            [
+                "semaprax.toml",
+                "src/app.spx",
+                "src/core.spx",
+                "src/tests.spx",
+            ]
+        };
+        for path in paths {
+            std::fs::copy(example.join(path), root.join(path)).unwrap();
         }
         let store = root.join(".semaprax-semantic-cache");
         std::fs::create_dir(&store).unwrap();

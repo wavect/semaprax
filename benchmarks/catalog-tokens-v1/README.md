@@ -8,6 +8,11 @@ expected output bytes are retained: multikey ordering, decoded unique ASCII
 identifiers, prefix selection, whole-input validation, restocking, metrics,
 invalid diagnostics and unrestricted raw JSON whitespace. No prior application
 acceptance, paid run or efficiency result is reused.
+Identifier comparison is unsigned decoded ASCII bytes in this closed cohort.
+If a future cohort admits arbitrary Unicode, JavaScript's default UTF-16 sort
+cannot stand in for UTF-8 byte order: use an explicit byte comparator such as
+Node's Buffer.compare and a new versioned oracle/corpus. This cohort has no
+astral/BMP acceptance or general Unicode-codec claim.
 
 The two arms are SEMAPRAX Project v30 owned-data and idiomatic TypeScript on
 Node, both pinned to gpt-6.1-sol/medium, 1800 seconds and at least five attempts.

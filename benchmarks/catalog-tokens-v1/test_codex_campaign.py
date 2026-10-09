@@ -139,6 +139,15 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
                 paid.assert_not_called()
             self.assertEqual({path.name for path in (root / "artifacts").iterdir()}, {"resource-receipts"})
 
+    def test_unqualified_metadata_never_substitutes_for_the_fresh_report(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings, _, compiler, _, _, _, _, _ = self.fixture(root)
+            for qualification in ({}, {"scored_trials_allowed": True}):
+                settings["qualification"] = qualification
+                with self.subTest(qualification=qualification), self.assertRaisesRegex(ValueError, "all23 qualification"):
+                    catalog.require_authoring_eligibility(settings, compiler)
+
     def test_plan_preserves_matched_model_five_attempts_and_strong_ts_tooling(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

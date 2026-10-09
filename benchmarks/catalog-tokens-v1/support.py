@@ -153,6 +153,11 @@ def require_authoring_eligibility(settings: dict[str, Any], compiler: Path) -> N
             or settings.get("native_project_route") != ROUTE):
         raise ValueError("catalog dispatch requires its explicit independently qualified cohort/profile")
     qualified = settings.get("qualification", {})
+    if (not isinstance(qualified, dict) or qualified.get("scored_trials_allowed") is not True
+            or not isinstance(qualified.get("evidence_path"), str)
+            or not isinstance(settings.get("qualification_repository"), str)
+            or not isinstance(settings.get("compiler_source_commit"), str)):
+        raise ValueError("catalog dispatch requires fresh closed source/compiler/profile all23 qualification")
     fresh = validate_qualification_evidence(Path(qualified.get("evidence_path", "")),
         Path(settings["qualification_repository"]), settings["compiler_source_commit"], common.digest(compiler))
     artifact_keys = {"evidence_artifact": "evidence_sha256", "acceptance_report_artifact": "acceptance_report_sha256",

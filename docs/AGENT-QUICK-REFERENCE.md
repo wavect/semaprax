@@ -733,7 +733,8 @@ by IDs from `semaprax help library std.int.decimal`.
 
 For bounded ASCII byte patterns, add `std.pattern = "^0.1.0"` under
 `[dependencies]` in an `owned-data-api.v1` package, then import
-`std.pattern.matcher` and the selected functions by stable ID. Allocate one
+`std.pattern.matcher` and the selected functions by stable ID. Use
+`semaprax help library std.pattern` for imports, escapes, and owner renewal. Allocate one
 `Matcher`, call `compile` before its observers, and reuse the returned owner
 with `full-match` for independent named inputs. Check `result-valid` before
 reading a packet; captures are byte offsets into the corresponding input.

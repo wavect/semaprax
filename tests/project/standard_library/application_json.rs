@@ -5,6 +5,8 @@ use std::process::Command;
 use semaprax::{codegen, format, parse, project, wasm};
 use sha2::{Digest, Sha256};
 
+mod stream;
+
 const MANIFEST: &str = r#"schema = "semaprax.manifest.v1"
 
 [package]

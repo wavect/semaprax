@@ -56,8 +56,13 @@ the caller's back nor acquires a runtime capability.
 The owning gate uses private `owned-data-api.v1` Projects with empty web
 exports. Interpreter, native C11 O0/O2 and strict Core Wasm consume the same
 checked source. Public nominal exports and SourceCommand v27's scalar helper
-boundary are unchanged. Native streaming command composition needs an explicit
-successor profile and additional execution evidence. In particular, this slice
+boundary are unchanged. An additional owning fixture selects the explicit
+`language-command-io.stream-data.v2` successor: a native process reads one
+bounded stdin chunk, decodes a record, stores and reads it through `Vec<Patient>`,
+computes a decision, and writes the encoded result to stdout. Malformed inputs
+return status 2 without partial output. This composition gate is pending; the
+command fixture refuses additional chunks rather than claiming an incremental
+whole-stream codec. In particular, this slice
 does not establish ShiftSim's raw input above 65,536 bytes, nested requests,
 owned string patients or its complete fifteen-obligation acceptance contract.
 
@@ -130,6 +135,8 @@ O0/O2 and repeated strict Core Wasm. The corpus fixes grammar/duplicate/missing/
 unknown/type/range offsets, Unicode/NUL rejection policy, signed/unsigned limits
 and exact/one-short capacities. `cli::json_codec::tests::` owns closed command
 grammar and no-overwrite publication.
+`standard_library::application_json::stream::` owns the selected v29 native
+process composition, repeated canonical output and typed failure publication.
 
 Generated source bytes are compiler output. They must be reported separately
 from model-authored source bytes/tokens in any efficiency comparison. No token

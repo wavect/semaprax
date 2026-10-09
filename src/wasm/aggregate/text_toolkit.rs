@@ -47,11 +47,12 @@ pub(in crate::wasm) fn uses_byte_get(program: &ResolvedProgram) -> bool {
         return true;
     }
     let mut pending = Vec::new();
-    for function in program
-        .functions
-        .iter()
-        .chain(program.function_instances.iter().map(|instance| &instance.function))
-    {
+    for function in program.functions.iter().chain(
+        program
+            .function_instances
+            .iter()
+            .map(|instance| &instance.function),
+    ) {
         pending.push(&function.body);
         pending.extend(function.requires.iter().chain(&function.ensures));
     }

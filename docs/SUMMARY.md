@@ -244,6 +244,7 @@ Audience: all documentation readers.
 - [Native Law Declarations v1](NATIVE-LAW-DECLARATIONS-V1.md)
 - [Project Lock v1](PROJECT-LOCK-V1.md)
 - [Project Test Cases and Runtime Failure Report v1](PROJECT-TEST-CASES-V1.md)
+- [Project Native Tests v1](PROJECT-NATIVE-TEST-V1.md)
 - [Project Dependency Resolution v1](PROJECT-DEPENDENCY-RESOLUTION-V1.md)
 - [Project Dependencies v1](PROJECT-DEPENDENCIES-V1.md)
 - [Native Rust Rich Cargo Preparation v1](NATIVE-RUST-RICH-CARGO-PREPARATION-V1.md)

@@ -225,9 +225,11 @@ fn missing_signature_import(
     if !target.explicit || !declaration.explicit_id {
         return None;
     }
-    if !caller.module_uses.iter().any(|item| {
-        item.kind == ModuleUseKind::Type && item.persistent_id == id
-    }) {
+    if !caller
+        .module_uses
+        .iter()
+        .any(|item| item.kind == ModuleUseKind::Type && item.persistent_id == id)
+    {
         return Some(crate::bounded_output::budgeted_format(format_args!(
             "missing direct nominal type import: use type @id(\"{id}\") from {} as {};",
             target.module, declaration.name
@@ -238,7 +240,14 @@ fn missing_signature_import(
         _ => return None,
     };
     fields.iter().find_map(|field| {
-        missing_signature_import(target.module, &field.ty, caller, authored, programs, visiting)
+        missing_signature_import(
+            target.module,
+            &field.ty,
+            caller,
+            authored,
+            programs,
+            visiting,
+        )
     })
 }
 
@@ -255,8 +264,18 @@ pub(super) fn type_refusal(
         "type target must be an admitted nongeneric value type or flat generic record template without borrowed or nested storage",
     );
     let declaration = target.ty.expect("type target carries a type");
-    let ty = Type::Named { name: declaration.name.clone(), arguments: Vec::new() };
-    let diagnostic = match missing_signature_import(target.module, &ty, caller, authored, programs, &mut BTreeSet::new()) {
+    let ty = Type::Named {
+        name: declaration.name.clone(),
+        arguments: Vec::new(),
+    };
+    let diagnostic = match missing_signature_import(
+        target.module,
+        &ty,
+        caller,
+        authored,
+        programs,
+        &mut BTreeSet::new(),
+    ) {
         Some(help) => diagnostic.with_help(help),
         None => diagnostic,
     };
@@ -327,10 +346,20 @@ pub(super) fn validate_imported_function(
     let refusal = |message: &str, scalar_help: bool| {
         let diagnostic = use_error(caller, module_use, message);
         let mut visiting = BTreeSet::new();
-        let missing = function.params.iter().map(|parameter| &parameter.ty)
+        let missing = function
+            .params
+            .iter()
+            .map(|parameter| &parameter.ty)
             .chain(std::iter::once(&function.return_type))
             .find_map(|ty| {
-                missing_signature_import(target.module, ty, caller, authored, programs, &mut visiting)
+                missing_signature_import(
+                    target.module,
+                    ty,
+                    caller,
+                    authored,
+                    programs,
+                    &mut visiting,
+                )
             });
         if let Some(help) = missing {
             diagnostic.with_help(help)

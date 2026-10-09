@@ -25,10 +25,10 @@ mod context_dispatch;
 mod hot_reload;
 #[path = "native_scratch.rs"]
 mod native_scratch;
-#[path = "cli_driver/options.rs"]
-mod options;
 #[path = "cli_driver/native_test.rs"]
 mod native_test;
+#[path = "cli_driver/options.rs"]
+mod options;
 #[path = "cli_driver/persistence_dispatch.rs"]
 mod persistence_dispatch;
 #[path = "cli_driver/project_scaffold_options.rs"]

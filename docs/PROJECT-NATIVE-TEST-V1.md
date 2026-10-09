@@ -47,8 +47,8 @@ Every root passes only when its observed `i64` result is zero. A pure native
 root (one whose test closure has no module permits) must exit successfully and
 write one UTF-8 line parseable as an `i64`, followed by one line feed. A leading
 `+`, surrounding whitespace, missing line feed, multiple lines, invalid UTF-8,
-or an unparseable value fails the root. Leading zeroes are accepted by the
-current integer parser.
+or an unparseable value fails the root. The decimal form must be canonical:
+leading zeroes and negative zero fail the root.
 
 When the test module declares one or more permits, each executable uses the
 SourceCommand adapter's process status as its result, even if that particular

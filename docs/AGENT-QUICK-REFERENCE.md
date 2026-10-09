@@ -103,14 +103,16 @@ with `string_concat`. No `as`; use `f64_from_i64`, `i64_from_f64` (truncates),
 ## Control flow, mutation, contracts, effects
 
 Exact integer widening uses `i64_from_u8`, `i64_from_i32`, or `usize_from_u8`.
-Use `u8_from_i64(value)` for checked byte narrowing and
-`char_from_u8(byte)` for the Unicode scalar with the same value. Byte narrowing
-accepts exactly `0..=255`; `char_from_u8` accepts all 256 byte values and is
-not an ASCII check.
-Scalar conversions fail out of range or on NaN with `semaprax.convert.v1`.
-Exact integer widening and checked integer conversions run on the interpreter,
-native, and Core Wasm; float conversions and `string_from_str` retain
-`SPX-W116`. `i64_from_u8(byte)` is allocation-free and infallible. Integer `%`
+Use `u8_from_i64(value)` for checked byte narrowing and `char_from_u8(byte)`
+for byte-value scalars (all 256 values; not an ASCII check), not code points.
+Use `char_from_i64(value) -> char` (`core.num.char_from_i64`) for Unicode
+scalars `0..=0x10FFFF` except `0xD800..=0xDFFF`; NUL is valid. Example:
+`let face = char_from_i64(128512); let text = string_from_char(face);`
+Out-of-range values fail with `semaprax.convert.v1` code 1. The source
+implementation and focused current-head qualification are pending.
+Existing exact integer widening and checked integer conversions run on the
+interpreter, native, and Core Wasm; float conversions and `string_from_str`
+retain `SPX-W116`. `i64_from_u8(byte)` is allocation-free and infallible. Integer `%`
 supports i64, i32, u8, and usize: zero divisors fail; signed MIN % -1 fails
 with remainder overflow.
 
@@ -1070,8 +1072,8 @@ owner alive through the last use; `string_as_str` still takes a named binding,
 not a literal, and temporary or projected String roots remain rejected
 (`SPX-T266`).
 
-Replace a 256-arm i64-to-byte or byte-to-char match with
-`u8_from_i64(value)` then `char_from_u8(byte)`; narrowing is checked.
+Use `u8_from_i64(value)` then `char_from_u8(byte)` for byte conversion; use
+`char_from_i64(value)` for arbitrary Unicode code points.
 
 ## Habits from other languages: diagnostic index
 

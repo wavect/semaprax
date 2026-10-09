@@ -102,7 +102,10 @@ fn imports(program: &Program) -> String {
 }
 
 fn field_id(root: &str, field: &str, suffix: &str) -> String {
-    let digest = format!("{:x}", Sha256::digest(field.as_bytes()));
+    let digest = format!(
+        "{:x}",
+        crate::digest_hex::LowerHex(Sha256::digest(field.as_bytes()))
+    );
     format!("{root}.json.view.{}.{suffix}", &digest[..16])
 }
 

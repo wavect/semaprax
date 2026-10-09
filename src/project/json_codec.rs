@@ -99,10 +99,10 @@ pub fn derive_json_codec_source_with_profile(
             "JSON codec generated source exceeds its fixed 131072-byte bound",
         ));
     }
-    let generated = crate::parse(&fragment, source_path).map_err(|error| vec![error])?;
+    let mut generated = crate::parse(&fragment, source_path).map_err(|error| vec![error])?;
     // Import aliases and helper/type identities are checked normally, including
     // collisions with authored declarations. No hidden function exemption.
-    for import in generated.module_uses {
+    for import in generated.module_uses.drain(..) {
         if !program.module_uses.iter().any(|existing| {
             existing.kind == import.kind
                 && existing.persistent_id == import.persistent_id
@@ -112,8 +112,8 @@ pub fn derive_json_codec_source_with_profile(
             program.module_uses.push(import);
         }
     }
-    program.types.extend(generated.types);
-    program.functions.extend(generated.functions);
+    program.types.append(&mut generated.types);
+    program.functions.append(&mut generated.functions);
     let canonical = crate::format::canonical(&program);
     if canonical.len() > MAX_SCHEMA_BYTES + MAX_GENERATED_BYTES {
         return Err(refusal(

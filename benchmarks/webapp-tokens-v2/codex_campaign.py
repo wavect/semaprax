@@ -522,6 +522,8 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
         },
         "qualification": {"receipt": QUALIFICATION_RECEIPT,
                           "receipt_sha256": common.digest(repo / QUALIFICATION_RECEIPT),
+                          "compiler_source_commit": receipt["compiler_source_commit"],
+                          "compiler_binary_sha256": receipt["compiler_binary_sha256"],
                           "gate_source_commit": gate_commit, "spec_sha256": frozen_spec_hash,
                           "required_cases": 912, "required_arms": list(ARMS)},
         "effort_requested": args.effort, "timeout_seconds": args.timeout_seconds,
@@ -778,6 +780,7 @@ def check_candidate(candidate: Path, output: Path, arm: str, settings: dict[str,
 @resources.guarded_attempt
 def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any], settings: dict[str, Any], semaprax_bin: Path) -> dict[str, Any]:
     """Run one paid attempt. Every attempted trial remains in the result denominator."""
+    common.require_compiler_binding(settings, semaprax_bin)
     arm, number = trial["arm"], trial["number"]
     label = f"{arm}-{number:02d}"
     workspace = artifacts / "worktrees" / label
@@ -820,6 +823,7 @@ def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any]
     row.update({"transcript": str(transcript), "stderr_path": str(stderr),
                 "provider_receipt_actual_usd": None})
     try:
+        common.require_compiler_binding(settings, semaprax_bin)
         process = run_codex(_command(settings, prompt), workspace, trial_environment(semaprax_bin),
                             transcript, stderr, settings["timeout_seconds"])
         row.update(process)
@@ -905,6 +909,7 @@ def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any]
 @resources.guarded_attempt
 def launch_calibration(repo: Path, artifacts: Path, commit: str, settings: dict[str, Any], semaprax_bin: Path) -> dict[str, Any]:
     """One separately reported empty-task request; it is never subtracted from trials."""
+    common.require_compiler_binding(settings, semaprax_bin)
     workspace = artifacts / "worktrees" / "calibration"
     row: dict[str, Any] = {"status": "failed", "separate_from_trials": True, "subtracted_from_trials": False}
     error = add_seed_worktree(repo, workspace, commit)
@@ -915,6 +920,7 @@ def launch_calibration(repo: Path, artifacts: Path, commit: str, settings: dict[
     row.update({"transcript": str(transcript), "stderr_path": str(stderr),
                 "provider_receipt_actual_usd": None})
     try:
+        common.require_compiler_binding(settings, semaprax_bin)
         row.update(run_codex(_command(settings, CALIBRATION_PROMPT), workspace,
                              trial_environment(semaprax_bin), transcript, stderr,
                              settings["timeout_seconds"]))
@@ -1026,6 +1032,7 @@ def main() -> int:
         if args.action == "run":
             if not args.acknowledge_paid_attempts:
                 raise ValueError("run requires --acknowledge-paid-attempts")
+            common.require_compiler_binding(result, Path(args.semaprax_bin).resolve(strict=True))
             if result["capabilities"]["status"] != "ready":
                 raise ValueError("installed Codex CLI lacks required isolated-execution controls")
             if result["acceptance"]["capabilities"]["status"] != "ready":

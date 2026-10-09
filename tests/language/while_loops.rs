@@ -1054,6 +1054,8 @@ fn invalid() -> usize {
     observe(current)
 }
 "#;
+    let valid = source.split(r#"@id("pipeline.invalid")"#).next().unwrap();
+    semaprax::check(valid, "record-owner-pipeline-valid.spx").unwrap();
     let diagnostics = semaprax::check(source, "record-owner-pipeline.spx").unwrap_err();
     assert_eq!(
         diagnostics

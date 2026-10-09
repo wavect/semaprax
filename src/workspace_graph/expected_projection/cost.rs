@@ -1,14 +1,18 @@
 //! Private structural-cost accumulators for the expected projection.
 //!
 //! Fixed inline HIR/cleanup footprints retain their original structural proof.
-//! Shared ExpressionId heap carriers have a separate checked prebound: three
-//! per visited expression cover ordinary, native/host and intrinsic lowering.
-//! `super` methods charge four, including the discarded transient receiver;
+//! Retained ExpressionId heap carriers have a separate checked prebound: three
+//! per visited expression cover direct ordinary/native/host/intrinsic lowering.
+//! `super` methods charge four, conservatively including the discarded receiver;
 //! sixteen per authored traversal statement cover `for` (16) and `for own`
 //! (15), independently of their source/body children. Cloned identities share
 //! backing. Defaults, imported wrappers and generic materializations propagate
-//! their own counts before resolution. Payload buffers retain the independent
-//! identity/string bounds; heap carriers never spend bookkeeping allowance.
+//! their own counts before resolution. This bounds retained/direct lowering,
+//! not cumulative constructor attempts: upcast retries can revisit subtrees.
+//! Every constructor independently reserves its carrier before allocating, so
+//! all repeated/transient attempts also consume the live monotonic ledger.
+//! Payloads retain independent identity/string bounds; heap carriers never
+//! spend bookkeeping allowance.
 
 use crate::diagnostic::Diagnostic;
 

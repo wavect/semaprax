@@ -1066,13 +1066,13 @@ Replace a 256-arm i64-to-byte or byte-to-char match with
 
 | You wrote|Code|Fix|
 | ---|---|---|
-| native cleanup refusal post-check|`SPX-B104`|Repro/check cleanup; String-condition scalar match “parent is not canonical”: backend regression|
-| `for` range|`SPX-P106`|`while`; mutable counter; discard tail|
-| assignment-only loop|`SPX-P203`|Scalar discard tail, e.g. 0|
-| call as statement|`SPX-P106`|`let _ = f(x)` or tail result|
-| tuple|`SPX-P106`|No tuples; declare a `record`|
+| native cleanup refusal postcheck|`SPX-B104`|Repro/check cleanup; String-condition scalar match “parent is not canonical”: backend regression|
+| for range|`SPX-P106`|while; mutable counter; discard tail|
+| assignment loop|`SPX-P203`|Scalar tail discard, e.g. 0|
+| statement call|`SPX-P106`|let _ = f(x) or tail result|
+| tuple|`SPX-P106`|No tuples; declare a record|
 | Option::Some { value: 1 }|`SPX-T221`|Option<i64>::Some { value: 1 }|
-| `index + 1` when `index: usize`|`SPX-T208`|Integer literals default to `i64`; write `index + 1usize`|
+| index + 1 when index: usize|`SPX-T208`|Literals default to i64; use index + 1usize|
 | unsuffixed i32|`SPX-T232`|Suffix: 5i32|
 | i64 max+1 / parenthesized MIN negation|`SPX-P003`|One literal: -9223372036854775808/-2147483648i32; spaces trivia, parens separate; -MIN/MIN÷-1 overflow|
 | "a" + "b"|`SPX-T250`|string_concat("a", "b")|
@@ -1081,43 +1081,43 @@ Replace a 256-arm i64-to-byte or byte-to-char match with
 | excess conversion args|`SPX-T204`|One arg: f64_from_i64(1)|
 | float Map key/Set element|`SPX-T274`|Keys string/i64/bool; values String/Copy scalars|
 | implicit helper ownership|`SPX-O001`|own/borrow required; results move|
-| String/collection record|`SPX-T309`|IDs; monomorphic, acyclic; own/borrow; no invariants|
-| record method call|`SPX-T203`|get(point) or class; records lack methods|
+| String/collection record|`SPX-T309`|IDs; monomorphic acyclic; own/borrow; no invariants|
+| record method|`SPX-T203`|get(point) or class; records lack methods|
 | shadowed binding|`SPX-T209`|Rename binding|
 | assign immutable|`SPX-U101`|let mut|
-| main returns bool|`SPX-T104`|i64 result; CLI 0 succeeds|
+| bool main|`SPX-T104`|i64 result; CLI 0 succeeds|
 | reuse after own|`SPX-O101`|Callee borrow, or fresh value|
 | struct/enum/pub/const|`SPX-P104`|record/variant; omit visibility; return values|
 | missing arm comma|`SPX-P106`|Arm commas; final field/case comma optional|
 | compound assign|`SPX-P201`|x = x + 1|
-| ternary expression|`SPX-P106`|`if c { a } else { b }`|
-| break / continue|`SPX-P106`|Exit test in `while`|
-| `x as i64`|`SPX-P106`|Checked named conversion/suffixed literal|
+| ternary expression|`SPX-P106`|if c { a } else { b }|
+| break / continue|`SPX-P106`|Exit test in while|
+| x as i64|`SPX-P106`|Checked named conversion/suffixed literal|
 | Rust/JS closure|`SPX-P201`|fn(x: i64) -> i64 { x + 1 }|
-| use std::io;|`SPX-G170`|Built-ins need no import. For std.* packages, declare its Project dependency; import by stable ID|
-| noncanonical Project source|`SPX-G170`|`semaprax fmt <manifest>`; if manifest layout blocks discovery, first `semaprax fmt --manifest <manifest>`, then retry|
-| interpreter: `source-command.v1` Project|`SPX-F102`|No interpreter argv/file provider; build: `semaprax build <manifest> --target native -o <fresh-path>`, run in the Project directory with arguments|
+| use std::io;|`SPX-G170`|Built-ins need no import. std.* packages: declare its Project dependency; import by stable ID|
+| noncanonical Project source|`SPX-G170`|semaprax fmt <manifest>; if manifest layout blocks discovery, first semaprax fmt --manifest <manifest>, then retry|
+| interpreter: source-command.v1 Project|`SPX-F102`|Interpreter lacks argv/file provider; build: semaprax build <manifest> --target native -o <fresh-path>, run in Project directory with arguments|
 | output exists|`SPX-I307`|Fresh --output; never overwrite; remove confirmed own artifacts only|
-| f()? in main|`SPX-T218`|Only Result propagates; main matches|
+| f()? in main|`SPX-T218`|Result-only propagation; main matches|
 | array literal|`SPX-T262`|Byte arrays; Vec<i64> otherwise|
-| `fn f()` or `-> ()`|`SPX-P106`, `SPX-P105`|Result type required; no unit|
-| `a[0]`|`SPX-P106`|`byte_get(array_as_slice(a), 0usize)` (`Option<u8>`)|
+| fn f() or -> ()|`SPX-P106`, `SPX-P105`|Result type required without unit|
+| a[0]|`SPX-P106`|byte_get(array_as_slice(a), 0usize) (Option<u8>)|
 | Some(1), None|`SPX-T203`, `SPX-T202`|Option<i64>::Some { value: 1 }, Option<i64>::None {}|
 | s.len() on string|`SPX-T203`|string_len(s); only classes have methods|
 | str_as_bytes/nested string_as_str|`SPX-T263`, `SPX-T266`|let v = string_as_str(text); str_as_bytes(v)|
-| direct output repeats per path / is loop-reachable|`SPX-T269`|Direct writes outside loops; profile limits. Default stdout+stderr ≤65,536 bytes; Project v28 staged appends ≤1 MiB.|
+| direct output repeats per path / is loop-reachable|`SPX-T269`|Direct writes outside loops; profile limits. Default stdout+stderr ≤65536 bytes; Project v28 staged appends ≤1 MiB|
 | string_as_str("literal")|`SPX-T266`|let s = "literal"; string_as_str(s)|
-| payload/generic variant ==|`SPX-T207`|Match; == only payload-free/nongeneric variants|
+| payload/generic ==|`SPX-T207`|Match; == only payload-free/nongeneric variants|
 | payload in or-pattern|`SPX-M105`|Payload-free alternatives; split payload arms|
 | String/int/invalid Vec|`SPX-T001`/`SPX-T281`|String/scalars; explicit Copy Vec<T>; authenticated imports|
-| bad [modules]|`SPX-J100`|2–16 sorted sources; one bounded non-entry test module. entry="app", sources=["a.spx","b.spx"], tests=["app.tests"]; [Manifest](PACKAGE-MANIFEST-V1.md)|
-| generic while call|`SPX-T252`|vec_len<T>; imported generic aliases closed; [While](WHILE-LOOPS-V1.md)|
-| rejected while helper|`SPX-T252`|Borrow compiler Copy-scalar Vec<T>; return scalar/flat Copy variant/string|
+| bad [modules]|`SPX-J100`|2–16 sorted sources; one bounded nonentry test module. entry="app", sources=["a.spx","b.spx"], tests=["app.tests"] [Manifest](PACKAGE-MANIFEST-V1.md)|
+| generic while call|`SPX-T252`|vec_len<T>; imported generic aliases closed [While](WHILE-LOOPS-V1.md)|
+| rejected while helper|`SPX-T252`|Borrow compiler Copy scalar Vec<T>; return scalar/flat Copy variant/string|
 | outer owner changes in while|`SPX-T252`|Preserve outer ownership|
-| Bytes+usize owner renewal/input views|`SPX-T252`/`SPX-T265`|Pure nongeneric call; return only one whole same-type owner; whole named independent Slice/str borrows only; [renewal hook](IO-LINES-V1.md#cursor-transitions), executable gate pending|
-| Vec capacity >8192|`SPX-T282`|Reduce vec_with_capacity<T>; Vec-only bound; [Vec](OWNED-BOUNDED-VEC-V1.md)|
-| lookalike Vec wrapper|`SPX-T283`|Exact std.collections.vec.* ID; no authored substitute; [Vec](OWNED-BOUNDED-VEC-V1.md)|
-| function: >256 shared loans|`SPX-H006`|Fewer loans; fixed limit; [Loan Plan](SHARED-LOAN-PLAN-V1.md)|
+| Bytes+usize renewal/input views|`SPX-T252`/`SPX-T265`|Pure nongeneric call; return only one whole same type owner; whole named independent Slice/str borrows only [renewal hook](IO-LINES-V1.md#cursor-transitions), executable gate pending|
+| Vec capacity >8192|`SPX-T282`|Reduce vec_with_capacity<T>; Vec-only bound [Vec](OWNED-BOUNDED-VEC-V1.md)|
+| lookalike Vec wrapper|`SPX-T283`|Exact std.collections.vec.* ID; no substitute [Vec](OWNED-BOUNDED-VEC-V1.md)|
+| function: >256 shared loans|`SPX-H006`|Fewer loans; fixed limit [Loans](SHARED-LOAN-PLAN-V1.md)|
 | function: >4096 loan points|`SPX-H006`|Simpler flow; admitted helpers|
 | function: >4096 CFG edges|`SPX-H006`|Simpler flow; admitted helpers|
 | loan work >1000000|`SPX-H006`|Less work; fixed bound|

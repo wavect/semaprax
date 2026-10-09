@@ -49,10 +49,10 @@ const DIAGNOSTIC_CODES: &str = concat!(
     "All: semaprax help language mistakes-index\n",
 );
 const DIAGNOSTIC_T208: &str = concat!(
-    "SPX-T208\n",
-    "wrote: `index + 1` when `index: usize`\n",
-    "fix: Integer literals default to `i64`; write `index + 1usize`\n",
-);
+                "SPX-T208\n",
+                "wrote: index + 1 when index: usize\n",
+                "fix: Literals default to i64; use index + 1usize\n",
+            );
 
 /// The command named by every indented entry of the guided overview.
 fn guide_commands(guide: &str) -> Vec<&str> {

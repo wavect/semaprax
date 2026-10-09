@@ -10,6 +10,7 @@ use crate::hir;
 use std::collections::{BTreeMap, BTreeSet};
 
 mod dependency_closure;
+mod edge_projection;
 mod profile_names;
 mod scalar_link;
 mod stream_admission;
@@ -25,10 +26,11 @@ pub(super) use dependency_closure::{
 };
 
 use super::{
-    budgeted_edge_clone, graph_error, limit_error, push_edge, reserve_builder_structure,
+    graph_error, limit_error, push_edge, reserve_builder_structure,
     visit_ast_call_sites, CallOccurrenceKey, WorkspaceDeclarationFact, WorkspaceEdge,
     WorkspaceResolvedModule, MAX_CALLS,
 };
+use edge_projection::push_edge_reference;
 
 pub(super) fn validate_retained_facts(
     programs: &[Program],
@@ -144,17 +146,20 @@ pub(super) fn validate_retained_facts(
     }
     let mut expected_type_sites = Vec::new();
     for edge in edges.iter().filter(|edge| edge.kind == "type_reference") {
-        reserve_builder_structure(std::mem::size_of::<(String, String, String, String)>())?;
+        reserve_builder_structure(std::mem::size_of::<(&str, &str, &str, &str)>())?;
         expected_type_sites.push((
-            crate::bounded_output::budgeted_clone(&edge.caller),
-            crate::bounded_output::budgeted_clone(&edge.expression),
-            crate::bounded_output::budgeted_clone(&edge.ast_path),
-            crate::bounded_output::budgeted_clone(&edge.target),
+            edge.caller.as_str(),
+            edge.expression.as_str(),
+            edge.ast_path.as_str(),
+            edge.target.as_str(),
         ));
     }
     expected_type_sites.sort();
     actual_type_sites.sort();
-    if expected_type_sites != actual_type_sites {
+    if !expected_type_sites
+        .into_iter()
+        .eq(actual_type_sites.iter().map(edge_projection::type_site))
+    {
         return Err(vec![graph_error(
             "SPX-G173",
             "workspace explicit type-reference facts disagree with retained HIR",
@@ -164,16 +169,16 @@ pub(super) fn validate_retained_facts(
     validate_retained_call_projection(programs, modules, &authenticated_calls)?;
     let mut emitted_calls = Vec::new();
     for edge in edges.iter().filter(|edge| edge.kind == "call") {
-        push_edge(&mut emitted_calls, budgeted_edge_clone(edge))?;
+        push_edge_reference(&mut emitted_calls, edge)?;
     }
     emitted_calls.sort();
-    if emitted_calls != authenticated_calls {
+    if !emitted_calls.into_iter().eq(authenticated_calls.iter()) {
         return Err(vec![graph_error(
             "SPX-G173",
             "emitted workspace call edges disagree with authenticated AST/HIR occurrences",
         )]);
     }
-    validate_effect_and_capability_edges_against_calls(modules, edges, &authenticated_calls)?;
+    validate_effect_and_capability_edges_against_calls(modules, edges, authenticated_calls.iter())?;
     Ok(())
 }
 
@@ -297,12 +302,8 @@ fn validate_retained_call_projection(
     }
     let mut expected = Vec::new();
     for edge in authenticated_calls {
-        reserve_builder_structure(std::mem::size_of::<(String, String, String)>())?;
-        expected.push((
-            crate::bounded_output::budgeted_clone(&edge.caller),
-            crate::bounded_output::budgeted_clone(&edge.expression),
-            crate::bounded_output::budgeted_clone(&edge.target),
-        ));
+        reserve_builder_structure(std::mem::size_of::<(&str, &str, &str)>())?;
+        expected.push((edge.caller.as_str(), edge.expression.as_str(), edge.target.as_str()));
     }
     expected.sort();
     actual.sort();
@@ -315,29 +316,25 @@ fn validate_retained_call_projection(
     Ok(())
 }
 
-fn collect_retained_call_projection(
-    owner: &hir::DeclarationId,
-    requires: &[hir::ResolvedExpr],
-    body: &hir::ResolvedExpr,
-    ensures: &[hir::ResolvedExpr],
+fn collect_retained_call_projection<'a>(
+    owner: &'a hir::DeclarationId,
+    requires: &'a [hir::ResolvedExpr],
+    body: &'a hir::ResolvedExpr,
+    ensures: &'a [hir::ResolvedExpr],
     imported_targets: &BTreeSet<&str>,
-    output: &mut Vec<(String, String, String)>,
+    output: &mut Vec<(&'a str, &'a str, &'a str)>,
 ) -> Result<(), Vec<Diagnostic>> {
     let mut error = None;
     for expression in requires.iter().chain(std::iter::once(body)).chain(ensures) {
         visit_resolved_calls(expression, &mut |expression, target| {
             if error.is_none() && imported_targets.contains(target.as_str()) {
                 if let Err(diagnostics) =
-                    reserve_builder_structure(std::mem::size_of::<(String, String, String)>())
+                    reserve_builder_structure(std::mem::size_of::<(&str, &str, &str)>())
                 {
                     error = Some(diagnostics);
                     return;
                 }
-                output.push((
-                    crate::bounded_output::budgeted_clone(owner.as_str()),
-                    crate::bounded_output::budgeted_format(format_args!("{}", expression.id)),
-                    crate::bounded_output::budgeted_clone(target.as_str()),
-                ));
+                output.push((owner.as_str(), expression.id.as_str(), target.as_str()));
             }
         });
     }
@@ -347,9 +344,9 @@ fn collect_retained_call_projection(
     }
 }
 
-fn visit_resolved_calls(
-    expression: &hir::ResolvedExpr,
-    visit: &mut impl FnMut(&hir::ResolvedExpr, &hir::DeclarationId),
+fn visit_resolved_calls<'a>(
+    expression: &'a hir::ResolvedExpr,
+    visit: &mut impl FnMut(&'a hir::ResolvedExpr, &'a hir::DeclarationId),
 ) {
     match &expression.kind {
         hir::ResolvedExprKind::Closure { captures, body, .. } => {
@@ -467,15 +464,15 @@ pub(super) fn validate_effect_and_capability_edges(
 ) -> Result<(), Vec<Diagnostic>> {
     let mut calls = Vec::new();
     for edge in edges.iter().filter(|edge| edge.kind == "call") {
-        push_edge(&mut calls, budgeted_edge_clone(edge))?;
+        push_edge_reference(&mut calls, edge)?;
     }
-    validate_effect_and_capability_edges_against_calls(modules, edges, &calls)
+    validate_effect_and_capability_edges_against_calls(modules, edges, calls)
 }
 
-fn validate_effect_and_capability_edges_against_calls(
+fn validate_effect_and_capability_edges_against_calls<'a>(
     modules: &[WorkspaceResolvedModule],
     edges: &[WorkspaceEdge],
-    authenticated_calls: &[WorkspaceEdge],
+    authenticated_calls: impl IntoIterator<Item = &'a WorkspaceEdge>,
 ) -> Result<(), Vec<Diagnostic>> {
     let mut modules_by_path = BTreeMap::new();
     let mut target_functions = BTreeMap::new();
@@ -679,11 +676,11 @@ fn validate_effect_and_capability_edges_against_calls(
         .iter()
         .filter(|edge| edge.kind == "capability_authority")
     {
-        push_edge(&mut actual_capabilities, budgeted_edge_clone(edge))?;
+        push_edge_reference(&mut actual_capabilities, edge)?;
     }
     expected_capabilities.sort();
     actual_capabilities.sort();
-    if actual_capabilities != expected_capabilities {
+    if !actual_capabilities.into_iter().eq(expected_capabilities.iter()) {
         return Err(vec![graph_error(
             "SPX-G173",
             "workspace capability-authority edges disagree with retained module permits",

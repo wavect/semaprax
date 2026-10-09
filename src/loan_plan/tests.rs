@@ -353,42 +353,83 @@ fn record_renewal_named_views_replay_origins_and_reject_owner_aliases() {
     let ast = crate::check(source, Path::new("record-renewal-views.spx")).unwrap();
     let program = crate::hir::resolve(&ast).unwrap();
     crate::hir::validate(&program).unwrap();
-    let index = program.functions.iter().position(|f| f.id.as_str() == "matcher.run").unwrap();
+    let index = program
+        .functions
+        .iter()
+        .position(|f| f.id.as_str() == "matcher.run")
+        .unwrap();
     let function = &program.functions[index];
     assert_eq!(build_plan(&program, function).unwrap(), function.loan_plan);
-    let ResolvedExprKind::Block { statements, .. } = &function.body.kind else { panic!("run block") };
-    let matcher = statements.iter().find_map(|statement| match statement {
-        ResolvedStatement::Let { binding, .. } if binding.name == "matcher" => Some(binding.id.clone()),
-        _ => None,
-    }).unwrap();
+    let ResolvedExprKind::Block { statements, .. } = &function.body.kind else {
+        panic!("run block")
+    };
+    let matcher = statements
+        .iter()
+        .find_map(|statement| match statement {
+            ResolvedStatement::Let { binding, .. } if binding.name == "matcher" => {
+                Some(binding.id.clone())
+            }
+            _ => None,
+        })
+        .unwrap();
     // Keep the whole named call operand intact. Admission must still recognize
     // the renewal shape, while independent loan rebuilding rejects its new
     // transitive origin even with the original attached proof untouched.
     let mut aliased = program.clone();
-    let ResolvedExprKind::Block { statements, .. } = &mut aliased.functions[index].body.kind else { panic!("run block") };
-    let view = statements.iter_mut().find_map(|statement| match statement {
-        ResolvedStatement::Let { binding, value, .. } if binding.name == "input" => Some(value),
-        _ => None,
-    }).unwrap();
-    let ResolvedExprKind::BorrowPlace { place, .. } = &mut view.kind else { panic!("slice view") };
+    let ResolvedExprKind::Block { statements, .. } = &mut aliased.functions[index].body.kind else {
+        panic!("run block")
+    };
+    let view = statements
+        .iter_mut()
+        .find_map(|statement| match statement {
+            ResolvedStatement::Let { binding, value, .. } if binding.name == "input" => Some(value),
+            _ => None,
+        })
+        .unwrap();
+    let ResolvedExprKind::BorrowPlace { place, .. } = &mut view.kind else {
+        panic!("slice view")
+    };
     place.root = matcher;
-    place.projections = vec![crate::hir::PlaceProjection::Field(crate::hir::DeclarationId::new("matcher.storage"))];
-    let loop_body = statements.iter().find_map(|statement| match statement {
-        ResolvedStatement::While { body, .. } => Some(body), _ => None,
-    }).unwrap();
-    let ResolvedExprKind::Block { statements, .. } = &loop_body.kind else { panic!("loop block") };
-    let (binding, call) = statements.iter().find_map(|statement| match statement {
-        ResolvedStatement::Assign { binding, value, .. } if binding.name == "matcher" => Some((binding, value)), _ => None,
-    }).unwrap();
-    assert!(crate::hir::iterator_loop::is_record_owner_renewal(&aliased, binding, call));
+    place.projections = vec![crate::hir::PlaceProjection::Field(
+        crate::hir::DeclarationId::new("matcher.storage"),
+    )];
+    let loop_body = statements
+        .iter()
+        .find_map(|statement| match statement {
+            ResolvedStatement::While { body, .. } => Some(body),
+            _ => None,
+        })
+        .unwrap();
+    let ResolvedExprKind::Block { statements, .. } = &loop_body.kind else {
+        panic!("loop block")
+    };
+    let (binding, call) = statements
+        .iter()
+        .find_map(|statement| match statement {
+            ResolvedStatement::Assign { binding, value, .. } if binding.name == "matcher" => {
+                Some((binding, value))
+            }
+            _ => None,
+        })
+        .unwrap();
+    assert!(crate::hir::iterator_loop::is_record_owner_renewal(
+        &aliased, binding, call
+    ));
     let error = build_plan(&aliased, &aliased.functions[index]).unwrap_err();
     assert_eq!(error.code, "SPX-H006");
-    assert_eq!(error.message, "move, mutation, or transfer overlaps an active shared loan");
+    assert_eq!(
+        error.message,
+        "move, mutation, or transfer overlaps an active shared loan"
+    );
     assert_eq!(crate::hir::validate(&aliased).unwrap_err().code, "SPX-H006");
 
     let mut forged = program.clone();
-    let loan = forged.functions[index].loan_plan.loans.iter_mut()
-        .find(|loan| matches!(loan.cause, LoanCause::BorrowedCall { .. })).unwrap();
+    let loan = forged.functions[index]
+        .loan_plan
+        .loans
+        .iter_mut()
+        .find(|loan| matches!(loan.cause, LoanCause::BorrowedCall { .. }))
+        .unwrap();
     loan.origin.root = function.params[0].id.clone();
     assert_eq!(crate::hir::validate(&forged).unwrap_err().code, "SPX-H006");
 

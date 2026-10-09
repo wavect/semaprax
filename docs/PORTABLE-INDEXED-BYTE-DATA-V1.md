@@ -238,6 +238,15 @@ bounded-while schemas. Programs without byte-data facts select the same Graph
 v10-v16 version as before and retain byte-identical Graph JSON and revision
 digests.
 
+The exact fused composition `str_as_bytes(string_as_str(owner))` introduces
+the closed `owned_string` root-kind value into that existing provenance
+projection. It selects Graph v71, which carries the prior selected graph
+payload unchanged and identifies this additional root-kind vocabulary in the
+top-level schema. Programs without this composition retain their existing
+Graph v10-v70 selection and bytes, including Graph v17 for the earlier byte
+data profile. Consumers must reject relabeling a v71 graph as v17 or an older
+schema.
+
 Native64 and Wasm32 internal fixed-array layouts both have size `N` and
 alignment 1. Their layout identity and digest include the element identity
 and `N`. `usize` has size/alignment 8/8 on Native64 and is an `i64` Wasm value;

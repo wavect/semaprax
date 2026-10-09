@@ -46,7 +46,8 @@ pub(crate) use agent_execution::facts as agent_execution_facts;
 use expression::expr_json;
 mod generic_instances;
 mod generic_mapping;
-use byte_buffer_renewal::graph_json;
+mod owned_string_byte_view;
+use owned_string_byte_view::graph_json;
 use filesystem::string_array;
 use generic_instances::legacy_graph_json;
 pub(crate) use generic_instances::to_legacy_hir_json;
@@ -69,7 +70,7 @@ pub(crate) use prelude_binding::revision_from_canonical_program;
 
 pub(crate) use native_import::view_relation as native_view_relation;
 pub(crate) use native_import::{reject_native_rust_imports, reject_source_native_rust_imports};
-pub(crate) use nested_owned::{
+pub(crate) use owned_string_byte_view::{
     graph_schema, graph_schema_from_parts_and_instances, legacy_graph_schema,
 };
 
@@ -500,7 +501,7 @@ fn agent_context_hir_json(
     options: &AgentContextOptions,
 ) -> Result<Option<String>, Diagnostic> {
     hir::validate(program)?;
-    let source_graph_schema = nested_owned::legacy_graph_schema(program)?;
+    let source_graph_schema = legacy_graph_schema(program)?;
     let source_identity = SourceGraphIdentity {
         schema: source_graph_schema,
         revision: source_revision,
@@ -1223,6 +1224,7 @@ pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diag
             | "semaprax.graph.v68"
             | "semaprax.graph.v69"
             | "semaprax.graph.v70"
+            | "semaprax.graph.v71"
     ) {
         return Err(Diagnostic::io(
             "SPX-G410",
@@ -4012,7 +4014,7 @@ fn render_graph_json(
     let schema = if concrete_ownership {
         nested_owned::generic_payload_schema(program)?
     } else {
-        nested_owned::legacy_graph_schema(program)?
+        legacy_graph_schema(program)?
     };
     let mut output = crate::bounded_output::CappedString::new();
     write!(

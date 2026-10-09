@@ -73,6 +73,13 @@ fn nested_cleanup_versions_are_closed_and_legacy_selection_is_unchanged() {
     assert!(graph_schema_includes_projected_provenance(
         "semaprax.graph.v33"
     ));
+    assert!(graph_schema_includes_modern_composite_facts(
+        "semaprax.graph.v71"
+    ));
+    assert!(graph_schema_includes_loans("semaprax.graph.v71"));
+    assert!(graph_schema_includes_projected_provenance(
+        "semaprax.graph.v71"
+    ));
     for schema in [
         "semaprax.graph.v25",
         "semaprax.graph.v30 ",

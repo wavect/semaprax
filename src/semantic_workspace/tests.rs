@@ -40,6 +40,7 @@ fn current_source_graph_schemas_are_admitted_without_widening_unknown_schemas() 
         "semaprax.graph.v68",
         "semaprax.graph.v69",
         "semaprax.graph.v70",
+        "semaprax.graph.v71",
     ] {
         assert!(is_source_graph_schema(schema));
     }
@@ -58,7 +59,7 @@ fn current_source_graph_schemas_are_admitted_without_widening_unknown_schemas() 
         "semaprax.graph.v69 ",
         "semaprax.graph.v070",
         "semaprax.graph.v70 ",
-        "semaprax.graph.v71",
+        "semaprax.graph.v072",
         "semaprax.graph.v999",
         "semaprax.graph.v067",
         "semaprax.graph.v67 ",

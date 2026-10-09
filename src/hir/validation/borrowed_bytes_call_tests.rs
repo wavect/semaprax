@@ -319,7 +319,48 @@ fn fused_string_byte_view_has_rooted_graph_fact_and_full_owner_loan() {
     assert_eq!(slice, &binding.id);
 
     let graph = crate::graph::to_json(&parsed).unwrap();
+    let graph_value: serde_json::Value = serde_json::from_str(&graph).unwrap();
+    assert_eq!(graph_value["schema"], "semaprax.graph.v71");
+    assert_eq!(
+        crate::graph::graph_schema(&program).unwrap(),
+        "semaprax.graph.v71"
+    );
+    assert_eq!(
+        crate::graph::graph_schema_from_parts_and_instances(
+            &program.interfaces,
+            &program.types,
+            &program.functions,
+            &program.function_templates,
+            &program.function_instances,
+        )
+        .unwrap(),
+        "semaprax.graph.v71"
+    );
     assert!(graph.contains("\"root_kind\":\"owned_string\""));
+    let stale_schema = graph.replacen("semaprax.graph.v71", "semaprax.graph.v17", 1);
+    assert!(crate::graph::verify_json(&parsed, &stale_schema).is_err());
+    let forged_root = graph.replacen(
+        "\"root_kind\":\"owned_string\"",
+        "\"root_kind\":\"borrowed_str\"",
+        1,
+    );
+    assert!(crate::graph::verify_json(&parsed, &forged_root).is_err());
+    assert!(crate::graph::to_legacy_json(&parsed).is_err());
+}
+
+#[test]
+fn existing_borrowed_str_byte_view_keeps_graph_v17() {
+    let source = r#"
+module test.existing_borrowed_str_byte_view;
+@id("bytes.measure") fn measure(text: borrow str) -> usize {
+  byte_len(str_as_bytes(text))
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let parsed = crate::parse(source, "existing-borrowed-str-byte-view.spx").unwrap();
+    let graph = crate::graph::to_json(&parsed).unwrap();
+    let value: serde_json::Value = serde_json::from_str(&graph).unwrap();
+    assert_eq!(value["schema"], "semaprax.graph.v17");
 }
 
 #[test]

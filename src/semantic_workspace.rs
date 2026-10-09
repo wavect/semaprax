@@ -1065,6 +1065,7 @@ fn is_source_graph_schema(value: &str) -> bool {
             | "semaprax.graph.v68"
             | "semaprax.graph.v69"
             | "semaprax.graph.v70"
+            | "semaprax.graph.v71"
     )
 }
 

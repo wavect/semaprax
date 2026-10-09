@@ -962,6 +962,10 @@ without changing v15 or v16 meaning. `src/graph/byte_buffer_renewal.rs` composes
 Graph v70 and projects the exact function, expression, and binding identities.
 [Same-Owner Byte-Buffer Renewal v1](BYTE-BUFFER-RENEWAL-V1.md) owns the boundary.
 
+`src/graph/owned_string_byte_view.rs` selects additive Graph v71 only when
+validated byte-slice provenance has the exact fused owned-String root kind;
+otherwise it preserves the selected prior schema and payload.
+
 The additive owned-payload iterator is split across
 `src/interpreter/iterator.rs`, which validates the initialized suffix and uses a
 detached-prefix sentinel for the moved slot, and

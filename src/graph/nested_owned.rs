@@ -584,6 +584,7 @@ pub(super) fn graph_schema_includes_modern_composite_facts(schema: &str) -> bool
             | "semaprax.graph.v68"
             | "semaprax.graph.v69"
             | "semaprax.graph.v70"
+            | "semaprax.graph.v71"
     )
 }
 
@@ -618,6 +619,7 @@ pub(super) fn graph_schema_includes_loans(schema: &str) -> bool {
             | "semaprax.graph.v68"
             | "semaprax.graph.v69"
             | "semaprax.graph.v70"
+            | "semaprax.graph.v71"
     )
 }
 
@@ -650,11 +652,13 @@ pub(super) fn graph_schema_includes_projected_provenance(schema: &str) -> bool {
             | "semaprax.graph.v68"
             | "semaprax.graph.v69"
             | "semaprax.graph.v70"
+            | "semaprax.graph.v71"
     )
 }
 
 pub(super) fn rejected_evidence_schema(schema: &str) -> Option<Diagnostic> {
     let message = match schema {
+        "semaprax.graph.v71" => "owned-String byte-view composition selects `semaprax.graph.v71`, which is outside this evidence flow's admission",
         "semaprax.graph.v70" => "same-owner byte-buffer renewal selects `semaprax.graph.v70`, which is outside this evidence flow's admission",
         "semaprax.graph.v69" => "owned-text record loans select `semaprax.graph.v69`, which is outside this evidence flow's admission",
         "semaprax.graph.v68" => "String replacement selects `semaprax.graph.v68`, which is outside this evidence flow's admission",

@@ -18,7 +18,7 @@ pub(super) fn agent_function_json(
     function: &ResolvedFunction,
     filters: &BTreeSet<AgentContextFilter>,
 ) -> Result<String, Diagnostic> {
-    let schema = nested_owned::legacy_graph_schema(program)?;
+    let schema = super::legacy_graph_schema(program)?;
     let calls = super::agent_query::AgentCallables::new(program).function_calls(function);
     agent_function_json_for_schema(program, function, filters, schema, &calls)
 }

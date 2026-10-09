@@ -1295,3 +1295,15 @@ The digest input is exactly `b"semaprax.graph-revision.v1\0" || canonical_source
 Legacy `fnv1a64:` patch bases, graph caches, snapshots, and web manifest expectations are incompatible. Regenerate them from the current source. SEMAPRAX deliberately does not accept an FNV fallback: an old patch fails with `SPX-G409` before modifying its source. Web consumers must reject `semaprax.web.v1` when they require the SHA-256 revision contract.
 
 There is not yet a stable compatibility guarantee. Before 1.0, every breaking public syntax, CLI, diagnostics JSON, graph, patch, web manifest, package, component, or ABI change must add a section here and update the changelog.
+
+## Graph v70 to v71 for fused owned-String byte views
+
+Programs containing the exact fused expression
+`str_as_bytes(string_as_str(owner))` select `semaprax.graph.v71`. The new
+top-level schema versions the additional closed `owned_string` value in
+`portable_indexed_byte_data.byte_slice_provenance[].root_kind`; the existing
+Graph v17 payload and all higher-layer facts remain present and unchanged.
+Programs without that authenticated provenance retain their previous graph
+schema and bytes, including Graph v17 for existing portable byte-data views
+and Graph v70 for same-owner byte-buffer renewal. Consumers must bind caches
+and negotiation to the exact graph schema and reject v71 as an older version.

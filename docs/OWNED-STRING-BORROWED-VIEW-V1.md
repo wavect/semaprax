@@ -29,6 +29,10 @@ owner's `ValueId`; the SliceView loan protects that owner through the slice's
 last use. This does not admit direct `str_as_bytes(owner)`, temporary or
 projected owners, a borrowed view returned from a function, or mutable access.
 The underlying String remains the only cleanup root.
+Programs using this fused form select Graph v71, which versions its new
+closed `owned_string` provenance root kind while retaining prior graph facts.
+Programs without the exact composition keep their existing graph schema and
+bytes.
 
 This view is not the only authenticated root of an immutable borrowed-`str`
 local. `arg_utf8(index)`, owned by [Bounded Language Command

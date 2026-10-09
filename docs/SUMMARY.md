@@ -97,6 +97,7 @@ Audience: all documentation readers.
 - [Capability-aware CLI typo guidance](CLI-HELP-V2.md)
 - [Capability-aware CLI recovery](CLI-HELP-V3.md)
 - [Guided CLI help](CLI-HELP-V4.md)
+- [Bounded authoring help](CLI-HELP-V5.md)
 - [Documentation projection](DOC-PROJECTION-V1.md)
 - [Unified CLI: review, verify, agent, query, package, add, fetch](UNIFIED-CLI-V1.md)
 - [Human diagnostic locations](HUMAN-DIAGNOSTICS-V1.md)

@@ -302,7 +302,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Version, canonical: "version", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax version [--json]"] },
     CommandSpec { id: CommandId::VersionFlag, canonical: "--version", aliases: &["-V"], availability: Availability::Public, global: true, usages: &["semaprax --version"] },
     CommandSpec { id: CommandId::Harness, canonical: "harness", aliases: &[], availability: Availability::Private, global: true, usages: &["semaprax-full harness <verb> [args]  (status explain resolve adopt trust revoke inspect run context exec recover decide endpoints skills bridge report conformance bench)"] },
-    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all", "semaprax help diagnostic <SPX-code|codes>", "semaprax help language", "semaprax help language <topic|topics>", "semaprax help library", "semaprax help library all", "semaprax help library <module|name|stable-id>", "semaprax help shapes", "semaprax help shapes kinds", "semaprax help shapes <kind|stable-id|path#stable-id>"] },
+    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all", "semaprax help diagnostic <SPX-code|codes>", "semaprax help language", "semaprax help language all", "semaprax help language <topic|topics>", "semaprax help library", "semaprax help library all", "semaprax help library <module|name|stable-id>", "semaprax help shapes", "semaprax help shapes kinds", "semaprax help shapes <kind|stable-id|path#stable-id>"] },
 ];
 fn available(spec: &CommandSpec, private: bool) -> bool {
     spec.availability == Availability::Public || private
@@ -367,12 +367,12 @@ fn edit_distance(left: &[u8], right: &[u8]) -> usize {
 }
 const BANNER: &str = "SEMAPRAX — Meaning in. Verified machine code out.\n";
 
-/// The compiler-checked language card, printed by `semaprax help language` so
-/// an agent or developer with only the installed binary can read the admitted
-/// shapes, the diagnostics foreign habits trigger, and their fixes offline.
-/// The bytes are the repository document; `tests/documentation.rs` checks its
-/// code blocks against this compiler.
+/// The full compiler-checked language reference, available through
+/// `semaprax help language all`. The bytes are the repository document;
+/// `tests/documentation.rs` checks its code blocks against this compiler.
 pub(crate) const LANGUAGE_REFERENCE: &str = include_str!("../../docs/AGENT-QUICK-REFERENCE.md");
+/// A bounded starting point for authoring with the installed compiler.
+const AUTHORING_GUIDE: &str = include_str!("../../docs/AGENT-AUTHORING-GUIDE.md");
 /// The deterministic diagnostic index generated and pinned by the quick
 /// reference documentation gate.
 const DIAGNOSTIC_INDEX: &str = include_str!("../../docs/AGENT-DIAGNOSTIC-HELP.json");
@@ -418,6 +418,9 @@ fn language_topics() -> String {
 }
 
 pub(crate) fn language_topic(query: &str) -> Result<String, String> {
+    if query == "all" {
+        return Ok(LANGUAGE_REFERENCE.to_owned());
+    }
     if query == "topics" {
         return Ok(language_topics());
     }
@@ -553,7 +556,7 @@ pub(crate) fn dispatch(args: &[String], private: bool) -> Option<Result<(), u8>>
     if args.len() == 2 {
         let output = match args[1].as_str() {
             "all" => catalog(private),
-            "language" => LANGUAGE_REFERENCE.to_owned(),
+            "language" => AUTHORING_GUIDE.to_owned(),
             // The code list, not a usage error followed by the whole guide.
             "diagnostic" => {
                 diagnostic_entry("codes").expect("the indexed diagnostic help lists its codes")
@@ -763,8 +766,8 @@ static GUIDE: &[GuideGroup] = &[
             },
             GuideEntry {
                 id: CommandId::Help,
-                shape: "help language [topic]",
-                summary: "One topic (`topics` lists them)",
+                shape: "help language [topic|all]",
+                summary: "Guide, topic, or full card",
             },
             GuideEntry {
                 id: CommandId::Help,
@@ -1287,6 +1290,14 @@ mod tests {
         assert!(LANGUAGE_REFERENCE.starts_with("# Agent quick reference\n"));
         assert!(LANGUAGE_REFERENCE.contains("```semaprax\n"));
         assert!(LANGUAGE_REFERENCE.ends_with('\n'));
+        assert_eq!(AUTHORING_GUIDE, include_str!("../../docs/AGENT-AUTHORING-GUIDE.md"));
+        assert!(AUTHORING_GUIDE.len() <= 2_048);
+        assert!(semaprax::agent_economics::lexical_tokens(AUTHORING_GUIDE) <= 400);
+        assert!(AUTHORING_GUIDE.contains("internal-strings-v1` or `text-toolkit-v1`"));
+        assert!(AUTHORING_GUIDE.contains("Project profiles are distinct"));
+        assert!(AUTHORING_GUIDE.contains("source-command.v1"));
+        assert!(AUTHORING_GUIDE.contains("help language all"));
+        assert_eq!(language_topic("all").unwrap(), LANGUAGE_REFERENCE);
         let reference_units = semaprax::agent_economics::lexical_tokens(LANGUAGE_REFERENCE);
         assert_eq!(LANGUAGE_TOPICS.len(), 17);
         for (selector, heading) in LANGUAGE_TOPICS {

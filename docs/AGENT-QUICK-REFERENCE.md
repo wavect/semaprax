@@ -13,8 +13,9 @@ diagnostics, and the shortest useful check loop. For explanations, read the
 [language tour](LANGUAGE-TOUR.md). [RFC 0001](RFC-0001.md) defines the rules;
 the [completion matrix](COMPLETION-MATRIX.md) says what is implemented.
 
-The installed compiler prints this page verbatim with `semaprax help language`,
-so it is available without the source checkout.
+The installed compiler prints this page verbatim with
+`semaprax help language all`. For a shorter starting point, use
+`semaprax help language`.
 
 ## Spend tokens on source, not on dumps
 
@@ -38,7 +39,8 @@ so it is available without the source checkout.
 5. Ask for narrow help: `semaprax help <command>`, `semaprax help language
    topics`, `semaprax help language <topic>`, `semaprax help diagnostic
    <SPX-code>`, or `semaprax help shapes <kind|stable-id|path#stable-id>`.
-   `semaprax help all` and the full language card are for broad questions.
+   `semaprax help all` and `semaprax help language all` are for broad
+   questions.
 
 `fmt` and single-file `patch` preserve `//` comments. Workspace transactions
 do not promise that, so put durable intent in stable `@id` names, contracts,

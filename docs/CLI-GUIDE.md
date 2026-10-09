@@ -27,10 +27,16 @@ List every command your installed binary accepts:
 semaprax help all
 ```
 
-Get the compiler-checked language card without a source checkout:
+Get a compact authoring guide without a source checkout:
 
 ```sh
 semaprax help language
+```
+
+Read the complete compiler-checked language card explicitly:
+
+```sh
+semaprax help language all
 ```
 
 Look up a diagnostic code or list the codes with short help:

@@ -336,13 +336,23 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     let (language, language_dir) = invoke(&["help", "language"]);
     assert!(language.status.success());
     assert!(language.stderr.is_empty());
+    let guide = std::fs::read(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/AGENT-AUTHORING-GUIDE.md"),
+    )
+    .unwrap();
+    assert_eq!(language.stdout, guide);
+    assert!(language.stdout.len() <= 2_048);
+    std::fs::remove_dir(language_dir).unwrap();
+    let (language_all, language_all_dir) = invoke(&["help", "language", "all"]);
+    assert!(language_all.status.success());
+    assert!(language_all.stderr.is_empty());
     let card = std::fs::read(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/AGENT-QUICK-REFERENCE.md"),
     )
     .unwrap();
-    assert_eq!(language.stdout, card);
-    assert!(language.stdout.starts_with(b"# Agent quick reference\n"));
-    std::fs::remove_dir(language_dir).unwrap();
+    assert_eq!(language_all.stdout, card);
+    assert!(language_all.stdout.starts_with(b"# Agent quick reference\n"));
+    std::fs::remove_dir(language_all_dir).unwrap();
     let (topics, topics_dir) = invoke(&["help", "language", "topics"]);
     assert!(topics.status.success());
     assert!(topics.stderr.is_empty());
@@ -669,6 +679,7 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
                 "  semaprax help all\n",
                 "  semaprax help diagnostic <SPX-code|codes>\n",
                 "  semaprax help language\n",
+                "  semaprax help language all\n",
                 "  semaprax help language <topic|topics>\n",
                 "  semaprax help library\n",
                 "  semaprax help library all\n",

@@ -12,7 +12,7 @@ semaprax-native-rust-interop-platform-sys = { version = "=0.1.0", path = "../sem
 semaprax-toolchain = { version = "=0.9.0", path = "../semaprax-toolchain" }
 
 [target.'cfg(target_os = "linux")'.dev-dependencies]
-libc = "=0.2.189"
+libc = "=0.2.190"
 sha2 = "=0.11.0"
 
 [lints.rust]

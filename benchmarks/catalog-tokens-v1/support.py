@@ -311,7 +311,7 @@ def check_program(candidate, timeout, env, qualification_mode="evidence_gated_sc
         binary = regular(harness_output)
         command = [str(binary)]
     else:
-        if not any(Path(row["path"]).suffix in (".ts", ".mts", ".cts", ".tsx") for row in initial["files"]):
+        if not any(Path(row["path"]).suffix in (".ts", ".tsx") for row in initial["files"]):
             raise ValueError("strong TypeScript arm requires actual authored TypeScript source")
         node = regular(Path(env["CATALOG_NODE_BINARY"]))
         if common.digest(node) != env["CATALOG_NODE_SHA256"]:

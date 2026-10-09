@@ -190,7 +190,7 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
             candidate.mkdir()
             for name in ("run.sh", "build.sh", "test.sh"):
                 (candidate / name).write_text("exit 0\n")
-            (candidate / "catalog.mts").write_text("export {}\n")
+            (candidate / "catalog.ts").write_text("export {}\n")
             (candidate / "tsconfig.json").write_text("{}")
             dist = candidate / "dist"
             dist.mkdir()

@@ -1,0 +1,997 @@
+{
+  "actual_billed_usd": null,
+  "all_arms_have_minimum_trials": true,
+  "arms": {
+    "semaprax": {
+      "accepted": 5,
+      "actual_billed_usd": null,
+      "actual_billed_usd_per_accepted_task": null,
+      "attempted": 5,
+      "cache_write_input_tokens_per_attempt": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "cached_input_tokens_per_attempt": [
+        1279232,
+        1209600,
+        1375488,
+        1274752,
+        771584
+      ],
+      "conditional_short_context_api_equivalent_usd_all_recorded_attempts": 2.195423,
+      "conditional_short_context_api_equivalent_usd_per_accepted_task": 0.4390846,
+      "cost_includes_failed_attempts": true,
+      "cost_note": "Conditional standard short-context API-equivalent estimate; actual billing is unavailable.",
+      "failed_or_rejected": 0,
+      "final_authored_claude_bpe_proxy_per_attempt": [
+        8642,
+        10115,
+        8870,
+        10277,
+        8525
+      ],
+      "legacy_net_input_tokens_per_attempt": [
+        948533,
+        973848,
+        1045392,
+        928406,
+        571136
+      ],
+      "metrics_all_recorded_attempts": {
+        "acceptance_wall_seconds": {
+          "mean_per_attempt": 33.940599999999996,
+          "median_per_attempt": 33.791,
+          "total": 169.703
+        },
+        "agent_wall_seconds": {
+          "mean_per_attempt": 557.0108,
+          "median_per_attempt": 550.961,
+          "total": 2785.054
+        },
+        "cache_write_input_tokens": {
+          "mean_per_attempt": 0,
+          "median_per_attempt": 0,
+          "total": 0
+        },
+        "cached_input_tokens": {
+          "mean_per_attempt": 1182131.2,
+          "median_per_attempt": 1274752,
+          "total": 5910656
+        },
+        "final_authored_tokens_proxy": {
+          "mean_per_attempt": 9285.8,
+          "median_per_attempt": 8870,
+          "total": 46429
+        },
+        "legacy_net_input_tokens": {
+          "mean_per_attempt": 893463,
+          "median_per_attempt": 948533,
+          "total": 4467315
+        },
+        "model_request_turns": {
+          "mean_per_attempt": 26,
+          "median_per_attempt": 28,
+          "total": 130
+        },
+        "model_requests": {
+          "mean_per_attempt": 26,
+          "median_per_attempt": 28,
+          "total": 130
+        },
+        "output_tokens": {
+          "mean_per_attempt": 17608.4,
+          "median_per_attempt": 17424,
+          "total": 88042
+        },
+        "raw_input_tokens": {
+          "mean_per_attempt": 1254525,
+          "median_per_attempt": 1331129,
+          "total": 6272625
+        }
+      },
+      "metrics_per_attempt": {
+        "acceptance_wall_seconds": [
+          36.955,
+          26.691,
+          33.791,
+          48.339,
+          23.927
+        ],
+        "agent_wall_seconds": [
+          544.397,
+          603.467,
+          550.961,
+          618.574,
+          467.655
+        ],
+        "cache_write_input_tokens": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "cached_input_tokens": [
+          1279232,
+          1209600,
+          1375488,
+          1274752,
+          771584
+        ],
+        "final_authored_tokens_proxy": [
+          8642,
+          10115,
+          8870,
+          10277,
+          8525
+        ],
+        "legacy_net_input_tokens": [
+          948533,
+          973848,
+          1045392,
+          928406,
+          571136
+        ],
+        "model_request_turns": [
+          28,
+          25,
+          29,
+          29,
+          19
+        ],
+        "model_requests": [
+          28,
+          25,
+          29,
+          29,
+          19
+        ],
+        "output_tokens": [
+          16006,
+          20601,
+          17424,
+          19143,
+          14868
+        ],
+        "raw_input_tokens": [
+          1337369,
+          1321023,
+          1448115,
+          1331129,
+          834989
+        ]
+      },
+      "model_request_turns_per_attempt": [
+        28,
+        25,
+        29,
+        29,
+        19
+      ],
+      "model_request_turns_total": 130,
+      "output_tokens_per_attempt": [
+        16006,
+        20601,
+        17424,
+        19143,
+        14868
+      ],
+      "planned": 5,
+      "raw_input_tokens_per_attempt": [
+        1337369,
+        1321023,
+        1448115,
+        1331129,
+        834989
+      ],
+      "recorded": 5
+    },
+    "typescript": {
+      "accepted": 5,
+      "actual_billed_usd": null,
+      "actual_billed_usd_per_accepted_task": null,
+      "attempted": 5,
+      "cache_write_input_tokens_per_attempt": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "cached_input_tokens_per_attempt": [
+        153728,
+        133120,
+        54656,
+        79744,
+        107648
+      ],
+      "conditional_short_context_api_equivalent_usd_all_recorded_attempts": 0.6861440000000001,
+      "conditional_short_context_api_equivalent_usd_per_accepted_task": 0.1372288,
+      "cost_includes_failed_attempts": true,
+      "cost_note": "Conditional standard short-context API-equivalent estimate; actual billing is unavailable.",
+      "failed_or_rejected": 0,
+      "final_authored_claude_bpe_proxy_per_attempt": [
+        4847,
+        4868,
+        4713,
+        4543,
+        5411
+      ],
+      "legacy_net_input_tokens_per_attempt": [
+        51075,
+        43944,
+        15728,
+        23009,
+        36332
+      ],
+      "metrics_all_recorded_attempts": {
+        "acceptance_wall_seconds": {
+          "mean_per_attempt": 5.9574,
+          "median_per_attempt": 6.158,
+          "total": 29.787
+        },
+        "agent_wall_seconds": {
+          "mean_per_attempt": 213.44,
+          "median_per_attempt": 216.144,
+          "total": 1067.2
+        },
+        "cache_write_input_tokens": {
+          "mean_per_attempt": 0,
+          "median_per_attempt": 0,
+          "total": 0
+        },
+        "cached_input_tokens": {
+          "mean_per_attempt": 105779.2,
+          "median_per_attempt": 107648,
+          "total": 528896
+        },
+        "final_authored_tokens_proxy": {
+          "mean_per_attempt": 4876.4,
+          "median_per_attempt": 4847,
+          "total": 24382
+        },
+        "legacy_net_input_tokens": {
+          "mean_per_attempt": 34017.6,
+          "median_per_attempt": 36332,
+          "total": 170088
+        },
+        "model_request_turns": {
+          "mean_per_attempt": 7,
+          "median_per_attempt": 7,
+          "total": 35
+        },
+        "model_requests": {
+          "mean_per_attempt": 7,
+          "median_per_attempt": 7,
+          "total": 35
+        },
+        "output_tokens": {
+          "mean_per_attempt": 7588.2,
+          "median_per_attempt": 7766,
+          "total": 37941
+        },
+        "raw_input_tokens": {
+          "mean_per_attempt": 131163.6,
+          "median_per_attempt": 133478,
+          "total": 655818
+        }
+      },
+      "metrics_per_attempt": {
+        "acceptance_wall_seconds": [
+          7.064,
+          6.483,
+          5.829,
+          6.158,
+          4.253
+        ],
+        "agent_wall_seconds": [
+          222.811,
+          216.144,
+          192.206,
+          198.62,
+          237.419
+        ],
+        "cache_write_input_tokens": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "cached_input_tokens": [
+          153728,
+          133120,
+          54656,
+          79744,
+          107648
+        ],
+        "final_authored_tokens_proxy": [
+          4847,
+          4868,
+          4713,
+          4543,
+          5411
+        ],
+        "legacy_net_input_tokens": [
+          51075,
+          43944,
+          15728,
+          23009,
+          36332
+        ],
+        "model_request_turns": [
+          9,
+          8,
+          5,
+          6,
+          7
+        ],
+        "model_requests": [
+          9,
+          8,
+          5,
+          6,
+          7
+        ],
+        "output_tokens": [
+          7798,
+          7766,
+          7396,
+          6921,
+          8060
+        ],
+        "raw_input_tokens": [
+          175977,
+          154968,
+          85118,
+          106277,
+          133478
+        ]
+      },
+      "model_request_turns_per_attempt": [
+        9,
+        8,
+        5,
+        6,
+        7
+      ],
+      "model_request_turns_total": 35,
+      "output_tokens_per_attempt": [
+        7798,
+        7766,
+        7396,
+        6921,
+        8060
+      ],
+      "planned": 5,
+      "raw_input_tokens_per_attempt": [
+        175977,
+        154968,
+        85118,
+        106277,
+        133478
+      ],
+      "recorded": 5
+    }
+  },
+  "calibration_fixed_composition_tokens": null,
+  "calibration_note": "Calibration is a separate diagnostic request and is never subtracted from trial usage or cost.",
+  "calibration_separate": {
+    "elapsed_seconds": 4.799,
+    "failure": null,
+    "list_price": {
+      "actual_billed_usd": null,
+      "assumptions": "each request input <=272k; input/cache-read/cache-write/output use published standard rates",
+      "cache_write_cost_usd": 0.0,
+      "cache_write_tokens": 0,
+      "reason": null,
+      "standard_short_context_api_equivalent_usd": 0.026504
+    },
+    "observed": {
+      "codex_outer_turns": 1,
+      "effort_observed": "medium",
+      "final_turn_usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 13227,
+        "output_tokens": 5,
+        "reasoning_output_tokens": 0
+      },
+      "invalid_stream_lines": 0,
+      "legacy_net_input_tokens": 0,
+      "legacy_net_note": "Codex input includes cache subsets; subtract first request total once per model request for historical comparability only, never task-only input.",
+      "model_context_window": 258400,
+      "model_identity_note": "The exec JSONL does not expose an observed model identity.",
+      "model_identity_source": "client turn_context; provider-resolved model is unavailable",
+      "model_observed": "gpt-6.1-sol",
+      "model_request_count": 1,
+      "model_requests": [
+        {
+          "request_id": "resp_0b9f7122277984e3016ac88943ce68819199bf57b6978c8c98",
+          "usage": {
+            "cache_write_input_tokens": 0,
+            "cached_input_tokens": 0,
+            "input_tokens": 13227,
+            "output_tokens": 5,
+            "reasoning_output_tokens": 0
+          }
+        }
+      ],
+      "provider_resolved_model": null,
+      "reconciled": true,
+      "reconciliation_note": "Per-request trace sum must equal final turn.completed usage; tool item counts are separate.",
+      "request_usage_sum": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 13227,
+        "output_tokens": 5,
+        "reasoning_output_tokens": 0
+      },
+      "rollout_malformed_lines": 0,
+      "rollout_orphan_usage_records": 0,
+      "stable_context_tokens": null,
+      "thread_ids": [
+        "01a11f58-2558-7f70-a35f-f2839cb2e123"
+      ],
+      "tool_item_counts": {
+        "agent_message": 1
+      },
+      "turn_completed_events": 1
+    },
+    "process_exit_code": 0,
+    "provider_receipt_actual_usd": null,
+    "resource_assessment": {
+      "acceptance_unchanged": true,
+      "clean_comparison_eligible": true,
+      "contaminated": false,
+      "cost_retained": true,
+      "incidents": [],
+      "minimum_free_bytes_by_device": {
+        "16777233": 6686670848
+      },
+      "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-current-source398b051e6-base398b051e6-20261009/resource-receipts/calibration.json"
+    },
+    "rollout_trace": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-current-source398b051e6-base398b051e6-20261009/transcripts/calibration.rollout.jsonl",
+    "separate_from_trials": true,
+    "status": "ready",
+    "stderr_path": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-current-source398b051e6-base398b051e6-20261009/transcripts/calibration.stderr.txt",
+    "subtracted_from_trials": false,
+    "timed_out": false,
+    "transcript": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-current-source398b051e6-base398b051e6-20261009/transcripts/calibration.jsonl",
+    "workspace_integrity_before_cleanup": {
+      "outside_candidate_paths": [],
+      "spec_integrity": "passed",
+      "status": "passed"
+    },
+    "worktree_removed_after_archive": true
+  },
+  "campaign_status": "complete",
+  "clean_comparison_eligible": true,
+  "comparison_status": "complete; all arms have five recorded trials",
+  "complete": true,
+  "derived_measurements": {
+    "arms": {
+      "semaprax": {
+        "per_attempt": [
+          {
+            "number": 1,
+            "uncached_input_tokens": 58137
+          },
+          {
+            "number": 2,
+            "uncached_input_tokens": 111423
+          },
+          {
+            "number": 3,
+            "uncached_input_tokens": 72627
+          },
+          {
+            "number": 4,
+            "uncached_input_tokens": 56377
+          },
+          {
+            "number": 5,
+            "uncached_input_tokens": 63405
+          }
+        ],
+        "uncached_input_tokens": {
+          "mean_per_attempt": 72393.8,
+          "median_per_attempt": 63405,
+          "total": 361969
+        }
+      },
+      "typescript": {
+        "per_attempt": [
+          {
+            "number": 1,
+            "uncached_input_tokens": 22249
+          },
+          {
+            "number": 2,
+            "uncached_input_tokens": 21848
+          },
+          {
+            "number": 3,
+            "uncached_input_tokens": 30462
+          },
+          {
+            "number": 4,
+            "uncached_input_tokens": 26533
+          },
+          {
+            "number": 5,
+            "uncached_input_tokens": 25830
+          }
+        ],
+        "uncached_input_tokens": {
+          "mean_per_attempt": 25384.4,
+          "median_per_attempt": 25830,
+          "total": 126922
+        }
+      }
+    },
+    "bound_results_sha256": "bb4a73c13f639c08f2beec17a82d63a4e416c41bd265c61fbd12737afbcdabb1",
+    "derivation": "uncached_input_tokens = raw_input_tokens - cached_input_tokens",
+    "interpretation": "This is the uncached subset of reported input, not task-only input; it does not replace raw, cache-read, or legacy-net metrics.",
+    "schema": "semaprax.event-sim-derived-measurements.v1"
+  },
+  "fixed_harness_composition": null,
+  "fixed_harness_context_note": "No per-request fixed system/tool/task/history composition is exposed; no context baseline is subtracted.",
+  "fixed_harness_context_tokens": null,
+  "measurement_notes": {
+    "authored": "Final authored source is a Claude BPE tokenizer proxy over the final candidate inventory, not generated output or billed tokens.",
+    "cost": "Conditional Standard short-context API-equivalent estimate includes every recorded attempt, including failures, divided by accepted tasks; actual billed cost is unavailable.",
+    "input": "Raw input, cache reads, cache writes, and output remain separate counters; missing buckets stay null.",
+    "net_input": "Legacy net input is an explicit historical proxy: summed input minus first-request input times request count; it is not task-only input.",
+    "turns": "Model request turns come only from reconciled task-owned rollout records; outer CLI turns and tool items are separate."
+  },
+  "planned_attempts": 10,
+  "provenance": {
+    "adapter": "codex-matched-shiftsim-v2",
+    "authored_source_tokenizer": {
+      "claim": "legacy-Claude tokenizer proxy; not exact current-model or billing tokenization",
+      "dependency": "tiktoken",
+      "dependency_version": "1.0.22",
+      "encoding_identity": "package-bundled Claude BPE (`claude.json`), NFKC-normalized by countTokens",
+      "fingerprint_sha256": "8e68c3fb830068e2405910a4a8bfce7e4574d7a911cf732f6c6666814b47c1ea",
+      "package": "@anthropic-ai/tokenizer",
+      "runtime": "node",
+      "runtime_version": "v24.3.0",
+      "tokenizer_dir": "/private/tmp/semaprax-opt-tokenizer",
+      "version": "0.0.4"
+    },
+    "codex_version": "codex-cli 0.160.1",
+    "compiler_source_commit": "398b051e6e7a06ac49ecf77d9292831401430de0",
+    "effort_requested": "medium",
+    "model_requested": "gpt-6.1-sol",
+    "price_book": {
+      "actual_billed_usd": null,
+      "conditional": true,
+      "date": "2026-10-08",
+      "source": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+      "standard_short_context_usd_per_million": {
+        "cache_read": 0.1,
+        "cache_write": 2.5,
+        "input": 2.0,
+        "output": 10.0
+      }
+    },
+    "repository_commit": "398b051e6e7a06ac49ecf77d9292831401430de0",
+    "round": 3,
+    "seed_files_sha256": {
+      "benchmarks/event-sim-tokens-v1/SPEC.md": "5a8631fc59f55d145bfabb62c8edd3f86164114e3d27b69422031b664b529e00"
+    },
+    "source_binary_sha256": "594980a96bb3d7f74a168dfa6bc71d6355344f2963489f1e3ae854d2f3a01237"
+  },
+  "recorded_attempts": 10,
+  "resource_contaminated_attempts": 0,
+  "results_sha256": "bb4a73c13f639c08f2beec17a82d63a4e416c41bd265c61fbd12737afbcdabb1",
+  "schema": "semaprax.event-sim-codex-report.v1",
+  "trials": [
+    {
+      "acceptance_wall_seconds": 36.955,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 544.397,
+      "arm": "semaprax",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 1279232,
+      "conditional_api_equivalent_usd": 0.404257,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "2ff443806664be0b03a1e7d2902a6c799055c12efd2e6efd62c8828fa32ac0f5",
+        "exec": "156ca8a1dadf44434bea31ca08efda8684565e1e69fe2707ee242fe3a01a1dee",
+        "prompt": "6beb8089efe28430d80329b28ac9ebdeb990ab64fe3945c8c3234b83bb1b4fa5",
+        "rollout": "bfe3c1711b97d0cfbc8727c8b359f7407db8072724a84313bf8ba3aacdd5bad9"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 8642,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 948533,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 28,
+      "model_requests": 28,
+      "number": 1,
+      "output_tokens": 16006,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 1337369,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 6683443200
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-current-source398b051e6-base398b051e6-20261009/resource-receipts/semaprax-01.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    },
+    {
+      "acceptance_wall_seconds": 7.064,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 222.811,
+      "arm": "typescript",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 153728,
+      "conditional_api_equivalent_usd": 0.137851,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "458b0eba6d688ca84ccf030f06073fd2d76909a49ba0edcdd58343694d3ad953",
+        "exec": "63ab1ba0c58141d238b917c109eb7ec33390ed22f66e9d3de2b7e2084d1d6a31",
+        "prompt": "de96ef5bb5784201d450ad92a50d97bba51a035091a43efd31b315505ddf4b75",
+        "rollout": "cb80dc9625671085abef58c98f40201b37d0d1ed89c2561368fca144ccd96282"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 4847,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 51075,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 9,
+      "model_requests": 9,
+      "number": 1,
+      "output_tokens": 7798,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 175977,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 7498301440
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-current-source398b051e6-base398b051e6-20261009/resource-receipts/typescript-01.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    },
+    {
+      "acceptance_wall_seconds": 6.483,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 216.144,
+      "arm": "typescript",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 133120,
+      "conditional_api_equivalent_usd": 0.134668,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "daf2beb9ded61393261c356ca82426eb01dfcf2202b9b3e28755d8b3e2337337",
+        "exec": "0f0939ae588ed505995747ba88abeab95bbcc3a90e46ad0e5d9b024c46ea0280",
+        "prompt": "1ac7b4d7038f4a1f71164ca81da55c4634deac7e14ee1d6e610615666c43368a",
+        "rollout": "9c4612e65c5796e8617017ba62b2fc72b68e96a1cb309d3ded16ef07985c4300"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 4868,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 43944,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 8,
+      "model_requests": 8,
+      "number": 2,
+      "output_tokens": 7766,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 154968,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 7521931264
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-current-source398b051e6-base398b051e6-20261009/resource-receipts/typescript-02.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    },
+    {
+      "acceptance_wall_seconds": 26.691,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 603.467,
+      "arm": "semaprax",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 1209600,
+      "conditional_api_equivalent_usd": 0.549816,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "3b525f4d93e0c3b3f81d8cc28bcc01214e3e685e554c8297638df5ba3a1607d9",
+        "exec": "3f13dc5410c3f5bfe91e3f4e9c617ed75ea5af2483e222434958d0ffbe3c5867",
+        "prompt": "1e082d89fd6dd7b2723bebc58d0c2807719e9c306a90231f14a80b890cedbbd4",
+        "rollout": "d6af485a23ac6d5a82e62ac432083f058fd2e2318863536dea6999795204d7d3"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 10115,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 973848,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 25,
+      "model_requests": 25,
+      "number": 2,
+      "output_tokens": 20601,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 1321023,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 7507832832
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-current-source398b051e6-base398b051e6-20261009/resource-receipts/semaprax-02.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    },
+    {
+      "acceptance_wall_seconds": 33.791,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 550.961,
+      "arm": "semaprax",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 1375488,
+      "conditional_api_equivalent_usd": 0.457043,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "3785f4e2efb04e86a8ac118c408cb6ad09f67c6817ffef83f3ff5d199a2b06c2",
+        "exec": "de1e599e0ace37be91deb8290b4d5682d18b87b18f85d26c22e649dc2fb74c3a",
+        "prompt": "0f0e977f6f3134f949d608a7939df29b13a744438914f07fa3685ca2af133b21",
+        "rollout": "4b3a2b8e05661705ba95d51c5f3a10321970c3d2984706e7eb48b9dbf77b89d1"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 8870,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 1045392,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 29,
+      "model_requests": 29,
+      "number": 3,
+      "output_tokens": 17424,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 1448115,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 7148371968
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-current-source398b051e6-base398b051e6-20261009/resource-receipts/semaprax-03.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    },
+    {
+      "acceptance_wall_seconds": 5.829,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 192.206,
+      "arm": "typescript",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 54656,
+      "conditional_api_equivalent_usd": 0.14035,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "0778058acee922fd7dcac8446fbe881a869a26ecff7a6fe0f3ec85948f4c94a3",
+        "exec": "027efb8fa90f0d2e148c0b67b0f10dcd764b41890d3abf33237ca110161f2ac1",
+        "prompt": "dd5fd518e800716a7f2c768010c6249392b0826e8fa4c12abc6f925a1bbe8fe6",
+        "rollout": "6f33af4a7dd67f897c18f3fd131aea808eb7eeed3424a1b2c7ea6eba78f28abb"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 4713,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 15728,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 5,
+      "model_requests": 5,
+      "number": 3,
+      "output_tokens": 7396,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 85118,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 7296376832
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-current-source398b051e6-base398b051e6-20261009/resource-receipts/typescript-03.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    },
+    {
+      "acceptance_wall_seconds": 6.158,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 198.62,
+      "arm": "typescript",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 79744,
+      "conditional_api_equivalent_usd": 0.13025,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "1cb2f8016f9e688fa0a3f575a35c2ed4eb2eceaa80b4b5e6442a28f96f1a7fa6",
+        "exec": "5f6de6266ac41d54c8c54c15ea02e6802479ff6fffb33f35f5af18abb7d5d224",
+        "prompt": "19cb8ec1a9a29b812bb89cbfabc3b58b0dfffbdbc1289cac661989fea9a043c7",
+        "rollout": "b3e00642bb945417a3bcc83ec95eb5df45c9c540fd1ff03dfeec7a81ad172089"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 4543,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 23009,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 6,
+      "model_requests": 6,
+      "number": 4,
+      "output_tokens": 6921,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 106277,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 7033237504
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-current-source398b051e6-base398b051e6-20261009/resource-receipts/typescript-04.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    },
+    {
+      "acceptance_wall_seconds": 48.339,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 618.574,
+      "arm": "semaprax",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 1274752,
+      "conditional_api_equivalent_usd": 0.431659,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "12bd7b2d55121100d5f46da6fef22845a4822c519d868ce41a84aa81aa2153bd",
+        "exec": "3eab7be110229da81c4afaae263904f3c227cf1928082700e7f1be5f5bacfd3f",
+        "prompt": "abc220622143695a2cf8fb18d50ba94f83071b4dd89b2925ac2f3454f94b4c63",
+        "rollout": "faf7226190a1f52ca3611e7ae12ae895709c53e5aa18c00d2d086b842761fc8b"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 10277,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 928406,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 29,
+      "model_requests": 29,
+      "number": 4,
+      "output_tokens": 19143,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 1331129,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 6531145728
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-current-source398b051e6-base398b051e6-20261009/resource-receipts/semaprax-04.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    },
+    {
+      "acceptance_wall_seconds": 23.927,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 467.655,
+      "arm": "semaprax",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 771584,
+      "conditional_api_equivalent_usd": 0.352648,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "cebd63fe942861d7b5a4affdb0a1f9aa932147178f5ad73350be3d52c0422eeb",
+        "exec": "e97ba2774bea096c49e6344812f9bf5767789c5ea21a45234843632206b5e3dc",
+        "prompt": "3adf62408fefabd36a846ec3478a62f6366606e457309ad44df465b86251801e",
+        "rollout": "4908681823c37c7c202374a0c108340355a32a33d96cde110831e18ce1ded11d"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 8525,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 571136,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 19,
+      "model_requests": 19,
+      "number": 5,
+      "output_tokens": 14868,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 834989,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 6495268864
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-current-source398b051e6-base398b051e6-20261009/resource-receipts/semaprax-05.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    },
+    {
+      "acceptance_wall_seconds": 4.253,
+      "actual_billed_usd": null,
+      "agent_wall_seconds": 237.419,
+      "arm": "typescript",
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 107648,
+      "conditional_api_equivalent_usd": 0.143025,
+      "effort_observed": "medium",
+      "evidence_sha256": {
+        "candidate_manifest": "10325bc5fbebd1a4c8ef9efd36b3a46e47c363ed36c1071be39cd046952d67e2",
+        "exec": "c2704363ee3435a9677c695651fb4f95a34d2a68b9c706355b670ff77a2ddbfa",
+        "prompt": "2194b534a634d1c557d864e21a167c7180b1d50d18b958808cb56e300f958463",
+        "rollout": "c8d4ec9b9907dda27732303269d65c45c933768618ca58d7299276041c8d9e87"
+      },
+      "failure": null,
+      "final_authored_tokens_proxy": 5411,
+      "legacy_net_input_is_proxy": true,
+      "legacy_net_input_tokens": 36332,
+      "model_observed": "gpt-6.1-sol",
+      "model_request_turns": 7,
+      "model_requests": 7,
+      "number": 5,
+      "output_tokens": 8060,
+      "provider_resolved_model": null,
+      "raw_input_tokens": 133478,
+      "resource_assessment": {
+        "acceptance_unchanged": true,
+        "clean_comparison_eligible": true,
+        "contaminated": false,
+        "cost_retained": true,
+        "incidents": [],
+        "minimum_free_bytes_by_device": {
+          "16777233": 6089805824
+        },
+        "receipt": "/Users/kevin/.codex/benchmark-runs/opt687-689-verification-20261008/shiftsim-current-source398b051e6-base398b051e6-20261009/resource-receipts/typescript-05.json"
+      },
+      "status": "accepted",
+      "trace_status": "reconciled"
+    }
+  ],
+  "unlaunched_order": [],
+  "winner": null
+}

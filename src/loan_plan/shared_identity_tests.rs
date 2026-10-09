@@ -93,10 +93,12 @@ fn shared_expression_endpoints_replay_and_forged_endpoint_still_fails_closed() {
 module test.shared_loan_identity;
 @id("bytes.take") fn take(value: own Bytes) -> i64 { 1 }
 @id("loan.run")
-fn run(input: borrow Slice<u8>) -> i64 {
+fn run(input: borrow Slice<u8>, outer: bool, inner: bool) -> i64 {
     let owned = bytes_copy(input);
     let view = bytes_as_slice(owned);
-    let observed = byte_len(view) > 0usize;
+    let observed = if outer {
+        if inner { byte_len(view) > 0usize && byte_len(view) < 9usize } else { false }
+    } else { false };
     take(owned)
 }
 @id("app.main") fn main() -> i64 { 0 }

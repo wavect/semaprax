@@ -39,20 +39,20 @@ fn equal_bytes_keep_value_traits_while_only_clones_share_backing() {
 #[test]
 fn constructor_charges_the_exact_arc_carrier_and_fails_closed_before_allocating() {
     let value = String::from("budgeted-expression");
-    let expected_charge = ExpressionId::SHARED_ALLOCATION_CARRIER_BYTES + value.capacity();
+    let retained_bytes = ExpressionId::SHARED_ALLOCATION_CARRIER_BYTES + value.capacity();
+    let carrier_charge = ExpressionId::SHARED_ALLOCATION_CARRIER_BYTES;
     let (accepted, overflowed, used) =
-        crate::bounded_output::with_limit_usage(expected_charge, || {
-            ExpressionId::from_owned(value)
-        });
+        crate::bounded_output::with_limit_usage(carrier_charge, || ExpressionId::from_owned(value));
     assert!(!overflowed);
-    assert_eq!(used, expected_charge);
+    assert_eq!(used, carrier_charge);
     assert_eq!(accepted.as_str(), "budgeted-expression");
     assert!(accepted.shared_allocation_key().is_some());
-    assert_eq!(accepted.shared_allocation_bytes(), Some(expected_charge));
+    assert_eq!(accepted.shared_allocation_bytes(), Some(retained_bytes));
 
+    let rejected_value = String::from("budgeted-expression");
     let (refused, overflowed, used) =
-        crate::bounded_output::with_limit_usage(expected_charge - 1, || {
-            ExpressionId::from_owned(String::from("budgeted-expression"))
+        crate::bounded_output::with_limit_usage(carrier_charge - 1, || {
+            ExpressionId::from_owned(rejected_value)
         });
     assert!(overflowed);
     assert_eq!(used, 0);

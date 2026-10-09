@@ -1016,6 +1016,16 @@ class WebappCampaignTests(unittest.TestCase):
         self.assertEqual(summary["acceptance_wall_seconds_per_accepted_task"], 60)
         self.assertTrue(summary["calibration_separate"])
 
+    def test_empty_attempts_keep_cost_usage_and_time_unknown(self):
+        summary = campaign.summarize([])
+        self.assertEqual(summary["recorded_attempts"], 0)
+        self.assertEqual(summary["list_price_estimate_known_attempts"], 0)
+        self.assertIsNone(summary["list_price_estimate_all_attempts_usd"])
+        self.assertIsNone(summary["list_price_estimate_per_accepted_task_usd"])
+        self.assertIsNone(summary["usage_all_attempts"]["raw_input_tokens"])
+        self.assertIsNone(summary["agent_wall_seconds_all_attempts"])
+        self.assertIsNone(summary["acceptance_wall_seconds_all_attempts"])
+
 
 if __name__ == "__main__":
     unittest.main()

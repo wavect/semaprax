@@ -954,7 +954,10 @@ def launch_calibration(repo: Path, artifacts: Path, commit: str, settings: dict[
 
 def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
     def complete_sum(values: list[Any]) -> int | float | None:
-        return sum(values) if len(values) == len(rows) and all(isinstance(value, (int, float)) for value in values) else None
+        complete = rows and len(values) == len(rows) and all(
+            isinstance(value, (int, float)) for value in values
+        )
+        return sum(values) if complete else None
 
     accepted_rows = [row for row in rows if row.get("status") == "accepted"]
     accepted = len(accepted_rows)
@@ -970,7 +973,7 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
     acceptance_wall_values = [row.get("acceptance_elapsed_seconds",
         row.get("acceptance", {}).get("seconds", None if "acceptance" in row else 0)) for row in rows]
     acceptance_wall = (sum(acceptance_wall_values)
-                       if all(isinstance(value, (int, float)) for value in acceptance_wall_values) else None)
+                       if rows and all(isinstance(value, (int, float)) for value in acceptance_wall_values) else None)
     authored_values = [row.get("final_candidate_source_metrics", {}).get("total_tokens") for row in accepted_rows]
     authored_total = (sum(authored_values)
                       if accepted and len(authored_values) == accepted and all(isinstance(value, int) for value in authored_values)

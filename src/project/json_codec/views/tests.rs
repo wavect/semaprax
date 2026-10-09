@@ -2,14 +2,14 @@ use super::*;
 
 const SCHEMA: &str = r#"module schema;
 @id("app.patient") record Patient {
- @id("app.patient.id") id:String,
+ @id("app.patient.id") id:string,
  @id("app.patient.arrival") arrival:i64,
  @id("app.patient.service") service:i64,
  @id("app.patient.priority") priority:i64,
  @id("app.patient.deadline") deadline:i64,
 }
 @id("app.request") record Request {
- @id("app.request.servers") servers:Vec<String>,
+ @id("app.request.servers") servers:Vec<string>,
  @id("app.request.patients") patients:Vec<Patient>,
 }
 @id("app.schema.anchor") fn schema_anchor()->i64 {0}
@@ -20,6 +20,26 @@ fn identifier_view_derivation_has_checked_spans_and_bounded_array_owners() {
     let program = crate::parse(SCHEMA, "schema.spx").unwrap();
     let fragment = source(&program, &program.types[0]).unwrap();
     let parsed = crate::parse(&fragment, "views.spx").unwrap();
+    let renderers: Vec<_> = parsed
+        .functions
+        .iter()
+        .filter(|function| {
+            function.name.ends_with("_identifier_render") || function.name.ends_with("_view_render")
+        })
+        .collect();
+    assert_eq!(renderers.len(), 2);
+    assert!(renderers
+        .iter()
+        .all(|function| function.return_type == Type::String));
+    let encode = parsed
+        .types
+        .iter()
+        .find(|declaration| declaration.name == "PatientJsonViewEncode")
+        .unwrap();
+    let TypeDeclarationKind::Variant { cases } = &encode.kind else {
+        panic!("encode variant")
+    };
+    assert_eq!(cases[0].fields[0].ty, Type::String);
     assert!(parsed.permits.is_empty());
     assert!(parsed
         .functions

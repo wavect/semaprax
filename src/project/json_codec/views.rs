@@ -170,7 +170,7 @@ fn body(record: &TypeDeclaration) -> String {
         }
     }
     writeln!(out, "}}\n@id(\"{id}.json.view-decode\") variant {name}JsonViewDecode {{ @id(\"{id}.json.view-decoded\") Decoded{{@id(\"{id}.json.view-value\")value:{name}JsonView,}}, @id(\"{id}.json.view-error\") Error{{@id(\"{id}.json.view-code\")code:i64,@id(\"{id}.json.view-offset\")offset:usize,@id(\"{id}.json.view-field\")field:i64,}}, }}").unwrap();
-    writeln!(out, "@id(\"{id}.json.view-encode\") variant {name}JsonViewEncode {{ @id(\"{id}.json.view-encoded\") Encoded{{@id(\"{id}.json.view-text\")text:String,}}, @id(\"{id}.json.view-refused\") Refused{{@id(\"{id}.json.view-required\")required:usize,}}, }}").unwrap();
+    writeln!(out, "@id(\"{id}.json.view-encode\") variant {name}JsonViewEncode {{ @id(\"{id}.json.view-encoded\") Encoded{{@id(\"{id}.json.view-text\")text:string,}}, @id(\"{id}.json.view-refused\") Refused{{@id(\"{id}.json.view-required\")required:usize,}}, }}").unwrap();
     // All exported helpers revalidate token extent, decoded length and alphabet.
     writeln!(out, "@id(\"{id}.json.identifier-valid\") fn json_{name}_identifier_valid(input:borrow Slice<u8>,start:usize,end:usize)->bool {{
 let length=byte_len(input);
@@ -186,7 +186,7 @@ cursor=if valid {{ jv_token_end(input,cursor) }} else {{ end }};
 valid && cursor<end-1usize
 }}
 valid
-}}\n@id(\"{id}.json.identifier-render\") fn json_{name}_identifier_render(input:borrow Slice<u8>,start:usize,end:usize)->String {{
+}}\n@id(\"{id}.json.identifier-render\") fn json_{name}_identifier_render(input:borrow Slice<u8>,start:usize,end:usize)->string {{
 if !json_{name}_identifier_valid(input,start,end) {{ \"\" }} else {{
 let mut text=\"\\\"\";
 let mut cursor=start+1usize;

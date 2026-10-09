@@ -116,7 +116,7 @@ comparison does not allocate a key vector or decoded tree. Byte admission is
 checked before invoking the scanner; no new universal raw-input cap is imposed.
 Actual borrowed-root and target memory limits still apply.
 
-`PatientJsonEncode` is affine: `Encoded { text: String }` or
+`PatientJsonEncode` is affine: `Encoded { text: string }` or
 `Refused { required: usize }`. The exact size is computed without allocating
 output. A short output limit returns Refused before any String construction.
 Success emits one compact object, in declaration order, with ASCII field names
@@ -154,9 +154,9 @@ source implementations with their owning combined gates pending. View profiles
 use `std.data.json.query` from the declared scanner's authenticated bundled
 dependency closure; an explicit query dependency is also accepted. They do not
 change the default scalar codec. A selected identifier record has exactly one
-`String` field and up to six scalar fields; its runtime view replaces that
+`string` field and up to six scalar fields; its runtime view replaces that
 String with two `usize` token bounds. Request views derive from an explicit
-record whose first field is `Vec<String>` and whose second is `Vec<IdentifierRecord>`.
+record whose first field is `Vec<string>` and whose second is `Vec<IdentifierRecord>`.
 The faithful logical schema is checked by ordinary declaration-only collection
 rules; those String collections cannot be constructed or used at runtime.
 The generated runtime carriers are flat Copy views, `Vec<View>` and an ordinary

@@ -4,14 +4,14 @@ use super::*;
 
 pub(super) const SCHEMA: &str = r#"module consumer.schema;
 @id("application.patient") record Patient {
- @id("application.patient.id") id:String,
+ @id("application.patient.id") id:string,
  @id("application.patient.arrival") arrival:i64,
  @id("application.patient.service") service:i64,
  @id("application.patient.priority") priority:i64,
  @id("application.patient.deadline") deadline:i64,
 }
 @id("application.request") record Request {
- @id("application.request.servers") servers:Vec<String>,
+ @id("application.request.servers") servers:Vec<string>,
  @id("application.request.patients") patients:Vec<Patient>,
 }
 @id("consumer.schema.anchor") fn schema_anchor()->i64 {0}

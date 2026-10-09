@@ -45,7 +45,7 @@ pub(super) fn source(program: &Program, record: &TypeDeclaration) -> String {
     .unwrap();
     writeln!(
         out,
-        "@id(\"{id}.json.encoded\") Encoded {{ @id(\"{id}.json.encoded.text\") text: String, }},"
+        "@id(\"{id}.json.encoded\") Encoded {{ @id(\"{id}.json.encoded.text\") text: string, }},"
     )
     .unwrap();
     writeln!(out, "@id(\"{id}.json.refused\") Refused {{ @id(\"{id}.json.refused.required\") required: usize, }},\n}}").unwrap();

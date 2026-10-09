@@ -16,7 +16,7 @@ fn codec_shape_requires_authored_ids_and_refuses_unenforced_invariants() {
     for bad in [
         "module schema; record Row { @id(\"x\") n: i64, }",
         "module schema; @id(\"x\") record Row { n: i64, }",
-        "module schema; @id(\"x\") record Row { @id(\"y\") n: String, }",
+        "module schema; @id(\"x\") record Row { @id(\"y\") n: string, }",
         "module schema; @id(\"x\") record Row<T> { @id(\"y\") n: T, }",
         "module schema; @id(\"x\") record Row {}",
     ] {
@@ -49,6 +49,15 @@ fn codec_source_is_deterministic_ordinary_ast_and_has_no_authority_escape() {
     let source = emit::source(&program, &program.types[0]);
     assert_eq!(source, emit::source(&program, &program.types[0]));
     let parsed = crate::parse(&source, "codec.spx").unwrap();
+    let encode = parsed
+        .types
+        .iter()
+        .find(|declaration| declaration.name == "RowJsonEncode")
+        .unwrap();
+    let TypeDeclarationKind::Variant { cases } = &encode.kind else {
+        panic!("encode variant")
+    };
+    assert_eq!(cases[0].fields[0].ty, Type::String);
     assert!(parsed.permits.is_empty());
     assert!(parsed
         .functions

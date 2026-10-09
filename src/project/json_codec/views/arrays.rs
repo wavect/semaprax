@@ -54,7 +54,7 @@ error==0 && cursor<length
 }}
 if error==0{{{name}JsonArrayDecode::Decoded{{values:values}}}}else{{{name}JsonArrayDecode::Error{{code:error,offset:offset,field:field}}}}
 }}
-@id(\"{id}.json.view.render\") fn json_{name}_view_render(input:borrow Slice<u8>,value:{name}JsonView)->String{{
+@id(\"{id}.json.view.render\") fn json_{name}_view_render(input:borrow Slice<u8>,value:{name}JsonView)->string{{
 let rendered=json_{name}_view_encode(input,value,131072usize);
 match own rendered{{{name}JsonViewEncode::Encoded{{text}}=>text,{name}JsonViewEncode::Refused{{required}}=>\"\",}}
 }}

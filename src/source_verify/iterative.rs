@@ -90,10 +90,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         } = next_statement
         {
             if !source_identifier(name) {
-                self.diagnostics.push(error(
+                self.diagnostics.push(hints::reserved_local_binding(
                     self.program,
-                    "SPX-S109",
-                    format!("`{name}` is reserved and cannot name a local binding"),
+                    name,
                     *name_span,
                 ));
             }

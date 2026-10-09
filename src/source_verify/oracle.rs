@@ -97,12 +97,15 @@ pub(super) fn check_expr(
         ExprKind::Var(name) if name == "result" => result_type
             .map(|ty| CheckedValue::returned(ty.clone(), types.needs_drop(ty)))
             .or_else(|| {
-                diagnostics.push(error(
-                    program,
-                    "SPX-T201",
-                    "`result` is only available in postconditions",
-                    expr.span,
-                ));
+                diagnostics.push(
+                    error(
+                        program,
+                        "SPX-T201",
+                        "`result` is only available in postconditions",
+                        expr.span,
+                    )
+                    .with_help(hints::RESULT_NAME_HELP),
+                );
                 None
             }),
         ExprKind::Var(name) => variables
@@ -1071,10 +1074,9 @@ pub(super) fn check_expr(
                         value,
                         ..
                     } => {                        if !source_identifier(name) {
-                            diagnostics.push(error(
+                            diagnostics.push(hints::reserved_local_binding(
                                 program,
-                                "SPX-S109",
-                                format!("`{name}` is reserved and cannot name a local binding"),
+                                name,
                                 *name_span,
                             ));
                         }

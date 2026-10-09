@@ -542,6 +542,24 @@ pub(super) fn with_optional_help(diagnostic: Diagnostic, help: Option<String>) -
 /// `"a" + "b"`: string concatenation spelled as an operator.
 pub(super) const STRING_OPERATOR_HELP: &str =
     "join strings with `string_concat(a, b)`, which consumes both; strings compare with `==`, `!=`, `<`, `<=`, `>`, and `>=` (UTF-8 byte order)";
+/// `result` is the postcondition value, not an admitted local name.
+pub(super) const RESULT_NAME_HELP: &str = "`result` names the function's return value only in \
+    `ensures`; rename a local binding to `outcome` and update its uses";
+
+pub(super) fn reserved_local_binding(program: &Program, name: &str, span: Span) -> Diagnostic {
+    let diagnostic = error(
+        program,
+        "SPX-S109",
+        format!("`{name}` is reserved and cannot name a local binding"),
+        span,
+    );
+    if name == "result" {
+        diagnostic.with_help(RESULT_NAME_HELP)
+    } else {
+        diagnostic
+    }
+}
+
 /// `let x = …; let x = …;`: shadowing from Rust.
 pub(super) const SHADOW_HELP: &str =
     "there is no shadowing; pick a new name, or declare the first \

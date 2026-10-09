@@ -51,12 +51,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     .result_type
                     .map(|ty| CheckedValue::returned(ty.clone(), self.types.needs_drop(ty)));
                 if value.is_none() {
-                    self.diagnostics.push(error(
-                        self.program,
-                        "SPX-T201",
-                        "`result` is only available in postconditions",
-                        expression.span,
-                    ));
+                    self.diagnostics.push(
+                        error(
+                            self.program,
+                            "SPX-T201",
+                            "`result` is only available in postconditions",
+                            expression.span,
+                        )
+                        .with_help(hints::RESULT_NAME_HELP),
+                    );
                 }
                 self.values.push(value);
             }
@@ -822,10 +825,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     } = first_statement
                     {
                         if !source_identifier(name) {
-                            self.diagnostics.push(error(
+                            self.diagnostics.push(hints::reserved_local_binding(
                                 self.program,
-                                "SPX-S109",
-                                format!("`{name}` is reserved and cannot name a local binding"),
+                                name,
                                 *name_span,
                             ));
                         }

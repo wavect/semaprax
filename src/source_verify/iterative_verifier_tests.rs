@@ -8,6 +8,45 @@ fn source_diagnostics(source: &str) -> Vec<Diagnostic> {
 }
 
 #[test]
+fn reserved_result_local_has_a_stable_rename_hint_and_oracle_parity() {
+    for preceding in ["", "let seed = 0; "] {
+        let source = format!(
+            "module test.reserved_result;\n@id(\"app.main\") fn main() -> i64 {{ {preceding}let result = 3; result }}\n"
+        );
+        let diagnostics = source_diagnostics(&source);
+        assert_eq!(
+            diagnostics
+                .iter()
+                .map(|diagnostic| diagnostic.code)
+                .collect::<Vec<_>>(),
+            ["SPX-S109", "SPX-T201"]
+        );
+        assert_eq!(
+            diagnostics[0].message,
+            "`result` is reserved and cannot name a local binding"
+        );
+        assert_eq!(
+            diagnostics[1].message,
+            "`result` is only available in postconditions"
+        );
+        for (diagnostic, start) in diagnostics.iter().zip([
+            source.find("result =").unwrap(),
+            source.rfind("result").unwrap(),
+        ]) {
+            let span = diagnostic.span.expect("diagnostic remains source-bound");
+            assert_eq!((span.start, span.end), (start, start + "result".len()));
+            assert_eq!(diagnostic.help.as_deref(), Some(hints::RESULT_NAME_HELP));
+        }
+        compare_scalar_body(&source);
+        let repaired = source.replace("result", "outcome");
+        assert!(source_diagnostics(&repaired).is_empty());
+        compare_scalar_body(&repaired);
+    }
+    let postcondition = "module test.result_postcondition;\n@id(\"app.main\") fn main() -> i64 ensures result == 3 { let outcome = 3; outcome }\n";
+    assert!(source_diagnostics(postcondition).is_empty());
+}
+
+#[test]
 fn monomorphic_borrowed_bytes_calls_admit_named_and_direct_owned_field_places() {
     let source = r#"
 module test.borrowed_bytes_call_source;

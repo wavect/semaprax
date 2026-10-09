@@ -113,9 +113,14 @@ be matched inside bounded `while` conditions and bodies. The match must be
 exhaustive and guard-free with exact `Some { value: u8 }` and `None {}` cases,
 and every arm result remains a Copy scalar. This is an immutable read-only
 widening: `byte_len` and `byte_get` are the only byte operations admitted in a
-loop, a slice view must already exist, and `bytes_copy`, view construction,
-owned values, general variants, effects, imports, and cleanup-bearing work stay
-rejected. A dynamic index at or beyond the slice length selects `None` through
+loop, and a slice view used as loop-carried state must already exist. The
+general indexed-byte profile still rejects `bytes_copy`, arbitrary view
+construction, owned values, general variants, effects, imports, and
+cleanup-bearing work. [Owned String Loops v2](OWNED-STRING-LOOPS-V2.md#immutable-input-and-borrowed-views-590)
+adds the narrow exception for local `string_as_str(named_string)` and
+`str_as_bytes(named_str)` views created and consumed within one loop body;
+ordinary provenance, loans, and owner cleanup remain required. A dynamic index
+at or beyond the slice length selects `None` through
 the same target-independent semantics as a straight-line read.
 [Owned String Loops v2](OWNED-STRING-LOOPS-V2.md) subsequently widens the
 match surface to Copy scrutinees with ordinary guards and exhaustiveness;

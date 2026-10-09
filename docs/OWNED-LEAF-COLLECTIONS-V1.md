@@ -40,11 +40,12 @@ Use the v30 Project profile and `vec_clone_at` when a fresh deep copy is
 intended. A `Vec<string>` declaration inside a JSON request schema remains a
 schema description unless it is also an admitted executable source carrier.
 
-Bytes construction or copying inside a bounded `while` remains refused with
-`SPX-T267`; this collection tranche does not relax loop allocation rules.
-Construct or copy the Bytes value before the loop and pass or move the existing
-owner through the admitted operation. In particular, do not put
-`bytes_zeroed` or `bytes_copy` inside the loop.
+Bytes construction and copying inside a bounded `while` remain refused with
+`SPX-T267`. This includes `bytes_zeroed`, `bytes_copy`, and
+`vec_clone_at<Record>` when `Record` contains a Bytes leaf: deep-copying that
+element allocates. Construct or copy Bytes before the loop and move the existing
+owner through an admitted operation; this tranche does not relax loop allocation
+rules.
 
 Source and HIR reconstruct this shape independently from authenticated
 declarations. String, the record, and their Vec/iterator carriers remain affine;

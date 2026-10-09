@@ -296,13 +296,11 @@ fn main() -> i64
   records. Pass with `own` or `borrow`; results own their leaves. Generic,
   resource/view/class and invariant-bearing String records are `SPX-T309`;
   see [String records](OWNED-STRING-RECORDS-V1.md).
-- The Copy-record Vec profile admits explicitly identified flat Copy records
-  with 1–8 scalar fields; ask `help language author:copy-record-vec` for its
-  operations. Project v30 additionally admits `Vec<string>` and flat records
-  with one or two direct owned String/Bytes fields; ask
-  `help language author:owned-data` and see
-  [Owned Leaf Collections v1](OWNED-LEAF-COLLECTIONS-V1.md). In both profiles,
-  every user-declared record field needs its own stable `@id`.
+- Copy-record Vec admits identified flat records with 1–8 Copy fields. Project
+  v30 adds `Vec<string>` and flat records with up to two direct owned
+  String/Bytes fields. User records need `@id`; ask
+  `help language author:copy-record-vec` or `help language author:owned-data`.
+  See [Owned Leaf Collections v1](OWNED-LEAF-COLLECTIONS-V1.md).
 - Import every named type in a function import's signature, including nested
   types and inferred factory results. For example, import
   `@id("std.pattern.matcher")` with `std.pattern.make`; `SPX-G172` names a
@@ -512,9 +510,9 @@ fn main() -> i64
 }
 ```
 
-- Literals and `string_concat` results are owned. `string_as_str(binding)`
-  borrows a plain `let` binding; literals and calls are `SPX-T266`. Pass the
-  view to `borrow str` parameters or `str_as_bytes`.
+- `string_concat` results are owned. `string_as_str` borrows a plain `let`
+  binding; literals and calls are `SPX-T266`. Pass its view to `borrow str` or
+  `str_as_bytes`.
 - Byte functions take `borrow Slice<u8>`. Get one from `str_as_bytes(view)`,
   `array_as_slice(array_binding)`, or `bytes_as_slice(bytes_binding)`.
 - Build a bounded byte buffer in one write-once expression: `bytes_zeroed`
@@ -524,12 +522,10 @@ fn main() -> i64
   `SPX-T272`. A computed out-of-bounds index fails before writing with
   `semaprax.byte-buffer.v1` code 1.
   [Owned Bounded Byte Buffer v1](OWNED-BOUNDED-BYTE-BUFFER-V1.md) owns the rule.
-- One form re-opens a frozen buffer: the same-owner replacement
-  `buffer = bytes_set(buffer, index, value)`, where the assignment target and
-  the `buffer` operand are the same `let mut` binding. That is also the only
-  `bytes_set` a bounded `while` admits. Allocate before the loop:
-  `bytes_zeroed` inside is `SPX-T267`. A
-  borrowed view may not be live across the replacement (`SPX-T265`).
+- `buffer = bytes_set(buffer, index, value)` is same-owner replacement and the
+  only `bytes_set` admitted inside bounded `while`. `bytes_zeroed`, `bytes_copy`,
+  and `vec_clone_at` on Bytes-bearing records allocate and are refused there
+  (`SPX-T267`); borrowed views cannot cross replacement (`SPX-T265`).
 
 ```semaprax
 module app.buffer;
@@ -1308,25 +1304,20 @@ not select a profile. V28 opt-in `[package] profile =
 1 MiB Strings, borrowed text and staged output; v26 remains frozen. See
 [Project v28](PROJECT-MANIFEST-V28.md) for exact limits and refusal rules.
 
-`semaprax new <dir> --template stdin-stream-data` creates the native v27
-`language-command-io.stream-data.v1` starter. Its private helpers borrow
-Copy-scalar `Vec<T>`; `main` and the command stay `fn() -> i64`. The v29
-`language-command-io.stream-data.v2` profile adds only the closed private
-Copy-record, `Vec<R>` and codec outcome shapes. It is source-implemented with
-qualification pending. Ask `help language author:stream-data-v2`; v27 stays
-scalar-vector-only. Selected streaming commands remain native-only, while pure
-test functions run without a stdin provider. See [v27](STREAM-DATA-COMMAND-V1.md)
-and [v29](STREAM-DATA-COMMAND-V2.md).
+`stdin-stream-data` creates the native v27 `language-command-io.stream-data.v1`
+starter with private Copy-scalar `Vec<T>` helpers. V29 adds private Copy records,
+`Vec<R>` and codec outcomes; v27 stays scalar-only. Selected commands are
+native-only, while pure tests need no stdin provider. Ask
+`help language author:stream-data-v2`; see [v27](STREAM-DATA-COMMAND-V1.md) and
+[v29](STREAM-DATA-COMMAND-V2.md).
 
-The Project v30 `language-command-io.owned-data.v1` profile adds private
-`Vec<string>` and flat owned-leaf record carriers. Source spells the type
-`string`; `text: string` is already an owning parameter, while `text: own
-string` is refused (`SPX-O002`). `vec_push<string>` consumes its String value,
-and consuming traversal uses `for own` over `vec_into_iter`. Bytes construction
-or copying in a bounded `while` remains `SPX-T267`. Ask
-`help language author:owned-data`; see
-[v30](STREAM-OWNED-DATA-COMMAND-V1.md) and
-[its collection contract](OWNED-LEAF-COLLECTIONS-V1.md).
+V30 `language-command-io.owned-data.v1` adds private `Vec<string>` and
+flat owned-leaf records. Source uses lowercase `string`; `text: string` consumes
+its argument, while `text: own string` is `SPX-O002`. Push consumes; `for own`
+uses `vec_into_iter`. Bytes allocation/copy and `vec_clone_at` on Bytes-bearing
+records inside bounded `while` are `SPX-T267`. Ask
+`help language author:owned-data`; see [v30](STREAM-OWNED-DATA-COMMAND-V1.md)
+and [collections](OWNED-LEAF-COLLECTIONS-V1.md).
 
 `semaprax lock semaprax.toml --write` pins identity, source digests, interface,
 targets, and capabilities; `--verify` checks it and `--compare <base.lock>`

@@ -48,7 +48,7 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
             "Entry and command remain fn() -> i64 with the same four explicit command grants. Private helpers admit checked owned-leaf Vec/Iter carriers alongside v29's Copy records and codec outcomes.\n",
             "vec_clone_at deep-copies an element; vec_replace, vec_reserve_owned and vec_sort_owned transfer the collection owner. Consuming traversal uses for own and vec_into_iter.\n",
             "Source spells String as lowercase string. Write an owning parameter as text: string (not text: own string, SPX-O002); give each user record and field its own @id. Vec<string> push consumes the String.\n",
-            "Bytes-bearing allocation/deep copy stays refused in loops, including transitive helpers (SPX-T267). Stage Bytes payloads and clones outside loops; checked String-bearing loops remain distinct.\n",
+            "Bytes-bearing allocation/deep copy stays refused in loops, including vec_clone_at<Record> when Record has Bytes and transitive helpers (SPX-T267). Stage payloads and clones outside loops; checked String-bearing loops remain distinct.\n",
             "V27 and v29 stay closed to these owned carriers, including unused helpers. No public nominal ABI, ambient grant or Web/Wasm/npm command route is added.\n",
             "Exact source shapes, admission, cleanup and gates: docs/STREAM-OWNED-DATA-COMMAND-V1.md and docs/OWNED-LEAF-COLLECTIONS-V1.md.\n"
         ).to_owned()),

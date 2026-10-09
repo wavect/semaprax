@@ -30,8 +30,8 @@ owning carrier: pushing a String consumes it, while `vec_into_iter` transfers
 the elements to `for own`.
 
 Bytes-bearing construction or deep copy in loop bodies/conditions remains
-refused with `SPX-T267`, including transitive helper calls. This profile does not
-relax that capacity contract. Stage Bytes allocation and copies outside loops;
+refused with `SPX-T267`, including `vec_clone_at` on a Bytes-bearing record and
+transitive helper calls. Stage allocations and deep copies outside loops;
 admitted String-bearing loop operations retain their separate checked rules.
 
 Workspace routing constructs the ordinary owned-data closure, then independently

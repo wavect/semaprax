@@ -31,10 +31,7 @@ impl Evaluator<'_> {
             self.evaluate(argument, environment, depth)?
         };
         let owns_payload = *element == ResolvedType::Bytes
-            || crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
-                self.declarations,
-                element,
-            );
+            || crate::hir::owned_leaf_collection::runtime_element(self.declarations, element);
         if owns_payload {
             // A Place staging clone adds exactly one alias to the caller's
             // owner. Reject all other aliases before removing that owner.

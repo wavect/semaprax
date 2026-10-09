@@ -1,7 +1,7 @@
 //! Exact owned-Bytes iterator feature selection. Layout never grants admission.
 use super::*;
 pub(crate) fn item_ownership(element: &ResolvedType, borrowed: bool) -> OwnershipMode {
-    if *element == ResolvedType::Bytes
+    if matches!(element, ResolvedType::Bytes | ResolvedType::String)
         || matches!(element, ResolvedType::Nominal { arguments, .. } if arguments.is_empty())
     {
         if borrowed {
@@ -182,14 +182,14 @@ pub(crate) fn program_uses_owned_iterator(program: &crate::ast::Program) -> bool
                     type_arguments,
                     ..
                 } if by_name(name).is_some() && type_arguments.as_slice() == [Type::Bytes] => {
-                    return true
+                    return true;
                 }
                 crate::ast::ExprKind::ConstructVariant {
                     type_name,
                     type_arguments,
                     ..
                 } if type_name == "IterStep" && type_arguments.as_slice() == [Type::Bytes] => {
-                    return true
+                    return true;
                 }
                 _ => {}
             }

@@ -18,13 +18,14 @@ use super::byte_slice_provenance::derive_byte_slice_provenance;
 use super::ids::{DeclarationId, FunctionExecutionId, FunctionInstanceId, ValueId};
 use super::monomorphize::materialize_function_template;
 use super::nodes::{
-    admitted_owned_byte_prelude_instance, DeclarationKind, OwnershipMode, ResolvedFunction,
-    ResolvedFunctionInstance, ResolvedFunctionTemplate, ResolvedImport, ResolvedImportFailure,
-    ResolvedImportParameter, ResolvedImportResult, ResolvedImportResultKind, ResolvedInterface,
-    ResolvedParam, ResolvedProgram, ResolvedResourceDrop, ResolvedResourceDropKind, ResolvedType,
+    DeclarationKind, OwnershipMode, ResolvedFunction, ResolvedFunctionInstance,
+    ResolvedFunctionTemplate, ResolvedImport, ResolvedImportFailure, ResolvedImportParameter,
+    ResolvedImportResult, ResolvedImportResultKind, ResolvedInterface, ResolvedParam,
+    ResolvedProgram, ResolvedResourceDrop, ResolvedResourceDropKind, ResolvedType,
     ResolvedTypeDeclaration, ResolvedTypeDeclarationKind, ResolvedTypeParameterDeclaration,
+    admitted_owned_byte_prelude_instance,
 };
-use super::{validate, Binding, Resolver};
+use super::{Binding, Resolver, validate};
 
 impl Resolver<'_> {
     pub(super) fn resolve_call_type_argument(
@@ -1098,7 +1099,7 @@ impl Resolver<'_> {
                         let admitted_vec = declaration.as_str() == crate::prelude::VEC_ID
                             && matches!(resolved.as_slice(), [argument]
                             if crate::vec_ops::resolved_vec_element_is_admitted(argument)
-                                || crate::hir::copy_record_collection::admitted(&self.declarations, argument)
+                                || crate::hir::owned_leaf_collection::copy_or_leaf_admitted(&self.declarations, argument)
                                 || crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
                                     &self.declarations,
                                     argument,
@@ -1240,7 +1241,10 @@ impl Resolver<'_> {
             || (!crate::iterator_ops::is_iter(&instance)
                 && !crate::iterator_ops::is_step(&instance)
                 && !owned_record_vec
-                && !super::copy_record_collection::is_vec(&self.declarations, &instance)
+                && !super::owned_leaf_collection::is_copy_or_leaf_vec(
+                    &self.declarations,
+                    &instance,
+                )
                 && !transparent_vec
                 && !specialized_vec_wrapper
                 && !transparent_box

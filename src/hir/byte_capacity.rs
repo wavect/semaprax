@@ -301,8 +301,9 @@ pub(crate) fn push_resolved_expression_children_in_authored_order<'a>(
             pending.extend(args.iter().rev());
             pending.push(callable);
         }
-        ResolvedExprKind::Call { args, .. }
-        | ResolvedExprKind::LiteralFormat { args, .. } => pending.extend(args.iter().rev()),
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
+            pending.extend(args.iter().rev())
+        }
         ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter().rev()),
         ResolvedExprKind::HostCommandCall(call) => pending.extend(call.args.iter().rev()),
         ResolvedExprKind::ByteRange {
@@ -698,7 +699,11 @@ pub(super) fn byte_capacity_expression(
                         args,
                         ..
                     } => {
-                        let effect = if callee.as_str() == crate::byte_ops::COPY_ID {
+                        let effect = if let Some(flow) =
+                            super::owned_leaf_collection::clone_capacity_flow(program, expression)
+                        {
+                            Some(flow)
+                        } else if callee.as_str() == crate::byte_ops::COPY_ID {
                             Some(CapacityFlow::BytesCopy {
                                 site: expression.id.as_str().to_owned(),
                                 conservative_payload_bytes:
@@ -1146,7 +1151,10 @@ module test.format_capacity;
             flow,
             crate::byte_data_capacity::CapacityFlow::Sequence(expected)
         );
-        assert!(slots.is_empty(), "String/scalar staging has no inline arrays");
+        assert!(
+            slots.is_empty(),
+            "String/scalar staging has no inline arrays"
+        );
         let summary = analyze_byte_data_capacity(&program).unwrap();
         let render = summary.function("format.render").unwrap();
         assert_eq!(render.bytes_copy_sites, 2);

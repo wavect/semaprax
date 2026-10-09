@@ -8,7 +8,7 @@ use crate::hir::{
     ResolvedType,
 };
 
-use super::{resolved_vec, VecOp};
+use super::{VecOp, resolved_vec};
 
 pub(crate) const MODULE: &str = "std.collections";
 
@@ -33,8 +33,8 @@ pub(crate) fn source_module_is_authenticated(program: &Program) -> bool {
     program.module == MODULE || AUTHENTICATED_LINKED_SOURCE.with(Cell::get)
 }
 
-pub(crate) fn wrapper_id(op: VecOp) -> &'static str {
-    match op {
+pub(crate) fn wrapper_id(op: VecOp) -> Option<&'static str> {
+    Some(match op {
         VecOp::WithCapacity => "std.collections.vec.with-capacity",
         VecOp::Push => "std.collections.vec.push",
         VecOp::Len => "std.collections.vec.len",
@@ -44,11 +44,12 @@ pub(crate) fn wrapper_id(op: VecOp) -> &'static str {
         VecOp::Set => "std.collections.vec.set",
         VecOp::Clear => "std.collections.vec.clear",
         VecOp::Sort => "std.collections.vec.sort",
-    }
+        VecOp::CloneAt | VecOp::Replace | VecOp::ReserveOwned | VecOp::SortOwned => return None,
+    })
 }
 
-pub(crate) fn wrapper_name(op: VecOp) -> &'static str {
-    match op {
+pub(crate) fn wrapper_name(op: VecOp) -> Option<&'static str> {
+    Some(match op {
         VecOp::WithCapacity => "with_capacity",
         VecOp::Push => "push",
         VecOp::Len => "len",
@@ -58,11 +59,14 @@ pub(crate) fn wrapper_name(op: VecOp) -> &'static str {
         VecOp::Set => "set",
         VecOp::Clear => "clear",
         VecOp::Sort => "sort",
-    }
+        VecOp::CloneAt | VecOp::Replace | VecOp::ReserveOwned | VecOp::SortOwned => return None,
+    })
 }
 
 pub(crate) fn wrapper_by_id(id: &str) -> Option<VecOp> {
-    super::ALL.into_iter().find(|op| wrapper_id(*op) == id)
+    super::ALL
+        .into_iter()
+        .find(|op| wrapper_id(*op) == Some(id))
 }
 
 pub(crate) fn is_source_candidate(program: &Program, function: &Function) -> bool {
@@ -70,7 +74,7 @@ pub(crate) fn is_source_candidate(program: &Program, function: &Function) -> boo
         && (wrapper_by_id(&function.stable_id).is_some()
             || super::ALL
                 .into_iter()
-                .any(|op| wrapper_name(op) == function.name))
+                .any(|op| wrapper_name(op) == Some(function.name.as_str())))
 }
 
 pub(crate) fn source_wrapper(program: &Program, function: &Function) -> Option<VecOp> {
@@ -85,7 +89,7 @@ pub(crate) fn source_wrapper(program: &Program, function: &Function) -> Option<V
         return None;
     }
     let op = wrapper_by_id(&function.stable_id)?;
-    if function.name != wrapper_name(op) {
+    if function.name != wrapper_name(op)? {
         return None;
     }
     let parameter = Type::Named {
@@ -101,6 +105,7 @@ pub(crate) fn source_wrapper(program: &Program, function: &Function) -> Option<V
         VecOp::ReserveExact => &["values", "additional"],
         VecOp::Set => &["values", "index", "value"],
         VecOp::Clear | VecOp::Sort => &["values"],
+        VecOp::CloneAt | VecOp::Replace | VecOp::ReserveOwned | VecOp::SortOwned => return None,
     };
     if function.params.len() != expected.len()
         || function
@@ -174,7 +179,7 @@ pub(crate) fn hir_wrapper(template: &ResolvedFunctionTemplate) -> Option<VecOp> 
         return None;
     }
     let op = wrapper_by_id(template.id.as_str())?;
-    if template.name != wrapper_name(op) {
+    if template.name != wrapper_name(op)? {
         return None;
     }
     let parameter = ResolvedType::TypeParameter {
@@ -190,6 +195,7 @@ pub(crate) fn hir_wrapper(template: &ResolvedFunctionTemplate) -> Option<VecOp> 
         VecOp::ReserveExact => &["values", "additional"],
         VecOp::Set => &["values", "index", "value"],
         VecOp::Clear | VecOp::Sort => &["values"],
+        VecOp::CloneAt | VecOp::Replace | VecOp::ReserveOwned | VecOp::SortOwned => return None,
     };
     if template.params.len() != expected.len()
         || template

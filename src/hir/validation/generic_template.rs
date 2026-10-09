@@ -326,7 +326,7 @@ pub(super) fn authenticate_vec_wrapper(
         || (program.module == crate::vec_ops::MODULE
             && crate::vec_ops::ALL
                 .into_iter()
-                .any(|op| crate::vec_ops::wrapper_name(op) == template.name));
+                .any(|op| crate::vec_ops::wrapper_name(op) == Some(template.name.as_str())));
     match (
         candidate,
         crate::vec_ops::hir_wrapper_in_program(program, template),

@@ -5,7 +5,7 @@
 use super::binding::{Availability, Binding};
 use super::diagnostics::{error, source_identifier};
 use super::type_table::{
-    effective_record_fields, owned_byte_prelude_instance_is_admitted, TypeTable,
+    TypeTable, effective_record_fields, owned_byte_prelude_instance_is_admitted,
 };
 use crate::ast::{
     Expr, ExprKind, FieldDeclaration, Function, MatchMode, Param, ParamMode, Program,
@@ -273,7 +273,7 @@ pub(super) fn check_declared_type(
             || name == "Vec"
                 && arguments.len() == 1
                 && (crate::vec_ops::ast_vec_element_is_admitted(&arguments[0])
-                    || crate::source_verify::declared_type::copy_record_collection::admitted(
+                    || crate::source_verify::declared_type::owned_leaf_collection::copy_or_leaf_admitted(
                         types,
                         &arguments[0],
                     )
@@ -1391,8 +1391,8 @@ pub(super) mod string_record;
 pub(crate) mod collection_outcome;
 pub(crate) mod copy_record_collection;
 pub(crate) mod declared_collection;
-pub(super) mod owned_record_collection;
 pub(crate) mod owned_leaf_collection;
+pub(super) mod owned_record_collection;
 
 /// Ordinary resource-free record algebra may return a Copy value or transfer
 /// an existing Bytes/record owner; borrowed values never escape a match arm.

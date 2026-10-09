@@ -493,7 +493,7 @@ pub(crate) fn type_needs_resource_cleanup(
                 if declaration.as_str() == crate::prelude::VEC_ID
                     && arguments.len() == 1
                     && (crate::vec_ops::resolved_vec_element_is_admitted(&arguments[0])
-                        || crate::hir::copy_record_collection::admitted(&program.declarations, &arguments[0])
+                        || crate::hir::owned_leaf_collection::copy_or_leaf_admitted(&program.declarations, &arguments[0])
                         || crate::hir::owned_record_collection::
                             is_admitted_owned_record_collection_element(
                                 &program.declarations,
@@ -854,7 +854,7 @@ impl InventoryBuilder<'_> {
                             &self.program.declarations,
                             ty,
                         )
-                        || crate::hir::copy_record_collection::is_vec(
+                        || crate::hir::owned_leaf_collection::is_copy_or_leaf_vec(
                             &self.program.declarations,
                             ty,
                         )

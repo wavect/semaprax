@@ -27,6 +27,9 @@ pub(crate) const SCHEMA_V9: &str = "semaprax.prelude.v9";
 pub(crate) const SCHEMA_V10: &str = "semaprax.prelude.v10";
 pub(crate) const SCHEMA_V11: &str = "semaprax.prelude.v11";
 pub(crate) const SCHEMA_V12: &str = "semaprax.prelude.v12";
+pub(crate) const SCHEMA_V14: &str = "semaprax.prelude.v14";
+#[path = "prelude_owned_leaf.rs"]
+pub(crate) mod owned_leaf;
 pub(crate) const SCHEMA_V13: &str = "semaprax.prelude.v13";
 #[path = "prelude_map.rs"]
 mod collections;
@@ -70,7 +73,13 @@ pub(crate) fn declarations() -> &'static [TypeDeclaration] {
 pub(crate) fn declarations_for_program(
     program: &crate::ast::Program,
 ) -> &'static [TypeDeclaration] {
-    if crate::map_ops::program_uses(program) {
+    if owned_leaf::program_uses(program) {
+        (
+            SCHEMA_V14,
+            owned_leaf::contract_bytes(),
+            owned_leaf::digest_text(),
+        )
+    } else if crate::map_ops::program_uses(program) {
         declarations()
     } else if crate::stdin_stream_ops::program_uses(program)
         || crate::source_verify::program_uses_record_iterator(program)
@@ -685,7 +694,13 @@ pub(crate) fn selected_for_source(source: &str) -> (&'static str, Vec<u8>, Strin
 pub(crate) fn selected_for_program(
     program: &crate::ast::Program,
 ) -> (&'static str, Vec<u8>, String) {
-    if crate::map_ops::program_uses(program) {
+    if owned_leaf::program_uses(program) {
+        (
+            SCHEMA_V14,
+            owned_leaf::contract_bytes(),
+            owned_leaf::digest_text(),
+        )
+    } else if crate::map_ops::program_uses(program) {
         (SCHEMA_V13, contract_bytes_v13(), digest_text_v13())
     } else if crate::vec_ops::program_uses_sort(program) {
         (SCHEMA_V12, contract_bytes_v12(), digest_text_v12())

@@ -95,10 +95,7 @@ pub(crate) fn resolved_element_is_admitted_in(
     ty: &ResolvedType,
 ) -> bool {
     resolved_element_is_admitted(ty)
-        || crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
-            declarations,
-            ty,
-        )
+        || crate::hir::owned_leaf_collection::runtime_element(declarations, ty)
 }
 fn nominal(name: &str, element: Type) -> Type {
     Type::Named {
@@ -382,6 +379,10 @@ pub(crate) fn type_facts(
                 &arguments[0],
             ) {
                 "record-v3"
+            } else if crate::hir::owned_leaf_collection::layout(declarations, &arguments[0])
+                .is_some()
+            {
+                "owned-leaf-v4"
             } else if arguments[0] == ResolvedType::Bytes {
                 "v2"
             } else {
@@ -510,7 +511,7 @@ mod tests {
                 .any(|diagnostic| diagnostic.code == "SPX-O111"),
             "{diagnostics:?}"
         );
-        let source="module test.invalid_iter; @id(\"it.main\") fn main()->i64{let values=vec_with_capacity<Bytes>(1usize);let iterator=vec_into_iter<String>(values);0}";
+        let source = "module test.invalid_iter; @id(\"it.main\") fn main()->i64{let values=vec_with_capacity<Bytes>(1usize);let iterator=vec_into_iter<String>(values);0}";
         let diagnostics = crate::check(source, "iterator-owned.spx").unwrap_err();
         assert!(
             diagnostics

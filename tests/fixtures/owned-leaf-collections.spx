@@ -1,0 +1,41 @@
+module owned.leaf;
+
+@id("owned.leaf.entry")
+record Entry {
+    @id("owned.leaf.key") key: string,
+    @id("owned.leaf.count") count: i64,
+    @id("owned.leaf.payload") payload: Bytes,
+}
+
+@id("owned.leaf.main")
+fn main() -> i64 {
+    let bytes = [7u8];
+    let mut rows = vec_with_capacity<Entry>(2usize);
+    rows = vec_push<Entry>(rows, Entry { key: "b", count: 20, payload: bytes_copy(array_as_slice(bytes)) });
+    rows = vec_push<Entry>(rows, Entry { key: "a", count: 10, payload: bytes_copy(array_as_slice(bytes)) });
+    rows = vec_sort_owned<Entry>(rows);
+    let first = vec_clone_at<Entry>(rows, 0usize);
+    let score = match own first { Entry { key, count, payload } => {
+        let length = { let view = bytes_as_slice(payload); byte_len(view) };
+        if key == "a" && count == 10 && length == 1usize { 1 } else { 0 }
+    }, };
+    rows = vec_replace<Entry>(rows, 0usize, Entry { key: "c", count: 30, payload: bytes_copy(array_as_slice(bytes)) });
+    rows = vec_reserve_owned<Entry>(rows, 1usize);
+    let capacity_ok = vec_capacity<Entry>(rows) == 3usize;
+    let mut total = 0;
+    for own row in vec_into_iter<Entry>(rows) {
+        match own row { Entry { key, count, payload } => { total = total + count; 0 }, }
+    }
+    let mut words = vec_with_capacity<string>(3usize);
+    words = vec_push<string>(words, "a\u{0}z");
+    words = vec_push<string>(words, "a");
+    words = vec_push<string>(words, "a\u{0}");
+    words = vec_sort_owned<string>(words);
+    let word0 = vec_clone_at<string>(words, 0usize);
+    let word1 = vec_clone_at<string>(words, 1usize);
+    let word2 = vec_clone_at<string>(words, 2usize);
+    let order_ok = word0 == "a" && word1 == "a\u{0}" && word2 == "a\u{0}z";
+    let mut count = 0;
+    for own word in vec_into_iter<string>(words) { count = count + string_len(word); 0 }
+    if score == 1 && total == 50 && capacity_ok && order_ok && count == 6 { 0 } else { 1 }
+}

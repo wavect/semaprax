@@ -12,10 +12,8 @@ pub(crate) fn variant_record_field(
         && case.as_str() == crate::iterator_ops::YIELD_ID
         && field.as_str() == crate::iterator_ops::ITEM_ID
         && crate::iterator_ops::element(container) == Some(ty)
-        && crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
-            &program.declarations,
-            ty,
-        )
+        && matches!(ty, ResolvedType::Nominal { .. })
+        && crate::hir::owned_leaf_collection::runtime_element(&program.declarations, ty)
 }
 
 pub(crate) fn variant_leaf_lifecycle<'a>(

@@ -6,7 +6,7 @@ use crate::hir::{DeclarationId, ExpressionId, ResolvedParam, ResolvedType};
 #[cfg(test)]
 use crate::hir::{ResolvedExpr, ResolvedExprKind};
 
-use super::{plan_error, CleanupPlace, LeafMetadata, PlanBuilder, StorageId};
+use super::{CleanupPlace, LeafMetadata, PlanBuilder, StorageId, plan_error};
 
 impl PlanBuilder<'_> {
     pub(super) fn bounded_vec_shape(
@@ -16,7 +16,10 @@ impl PlanBuilder<'_> {
         projections: &[DeclarationId],
     ) -> Result<Option<FieldLivenessShape>, Diagnostic> {
         if !crate::cleanup::is_owned_bounded_vec_type(ty)
-            && !crate::hir::copy_record_collection::is_vec(&self.program.declarations, ty)
+            && !crate::hir::owned_leaf_collection::is_copy_or_leaf_vec(
+                &self.program.declarations,
+                ty,
+            )
             && !crate::hir::owned_record_collection::is_owned_record_vec_type(
                 &self.program.declarations,
                 ty,
@@ -77,13 +80,11 @@ fn resolved_params(
     if has_instance
         || argument_count != op.arity()
         || type_arguments.len() != 1
-        || !(crate::vec_ops::resolved_operation_element_is_admitted(op, &type_arguments[0])
-            || crate::hir::copy_record_collection::admitted(declarations, &type_arguments[0])
-            || crate::hir::owned_record_collection::admits_vec_operation_element(
-                declarations,
-                op,
-                &type_arguments[0],
-            ))
+        || !crate::hir::owned_leaf_collection::vec_operation_admitted(
+            declarations,
+            op,
+            &type_arguments[0],
+        )
     {
         return Err(plan_error(format!(
             "cleanup bounded Vec call `{expression}` has inconsistent shape"

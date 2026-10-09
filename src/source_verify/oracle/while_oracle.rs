@@ -225,7 +225,7 @@ pub(in crate::source_verify) fn reject_while_disallowed_oracle(
                 if !operation.admitted_in_while()
                     || type_arguments.len() != 1
                     || !(crate::vec_ops::ast_element_is_admitted(&type_arguments[0])
-                                || crate::source_verify::declared_type::copy_record_collection::source_admitted(program, &type_arguments[0]))
+                                || crate::source_verify::declared_type::copy_record_collection::source_admitted(program, &type_arguments[0]) || crate::source_verify::declared_type::owned_leaf_collection::source_admitted(program, &type_arguments[0]))
                     || args.len() != operation.arity()
                 {
                     diagnostics.push(error(
@@ -337,7 +337,9 @@ pub(in crate::source_verify) fn reject_while_disallowed_oracle(
                 name: type_name.clone(),
                 arguments: type_arguments.clone(),
             };
-            if crate::source_verify::declared_type::copy_record_collection::admitted(types, &ty) {
+            if crate::source_verify::declared_type::owned_leaf_collection::copy_or_leaf_admitted(
+                types, &ty,
+            ) {
                 let mut result = Ok(());
                 for field in fields {
                     if reject_while_disallowed_oracle(

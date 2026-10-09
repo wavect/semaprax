@@ -6,10 +6,10 @@ use crate::hir::{
 
 use super::replay_error;
 use crate::cleanup_plan::{
+    CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
     CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V11, CLEANUP_PLAN_SCHEMA_V12,
     CLEANUP_PLAN_SCHEMA_V13, CLEANUP_PLAN_SCHEMA_V14, CLEANUP_PLAN_SCHEMA_V15,
-    CLEANUP_PLAN_SCHEMA_V16, CLEANUP_PLAN_SCHEMA_V17, CLEANUP_PLAN_SCHEMA_V7,
-    CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
+    CLEANUP_PLAN_SCHEMA_V16, CLEANUP_PLAN_SCHEMA_V17,
 };
 
 fn nested_schema(schema: &str) -> bool {
@@ -101,7 +101,10 @@ fn derive(
                         &program.declarations,
                         &ty,
                     )
-                    || crate::hir::copy_record_collection::is_vec(&program.declarations, &ty)
+                    || crate::hir::owned_leaf_collection::is_copy_or_leaf_vec(
+                        &program.declarations,
+                        &ty,
+                    )
                 {
                     charge_leaf(function, budget)?;
                     shapes.push(FieldLivenessShape::Leaf {

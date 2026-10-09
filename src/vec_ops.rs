@@ -630,7 +630,7 @@ pub(crate) fn is_same_owner_reassignment_hir(
         })
     };
     op.is_some_and(|op| args.len() == op.arity())
-        && matches!(type_arguments.as_slice(), [argument] if resolved_vec_element_is_admitted(argument) || crate::hir::copy_record_collection::admitted(&program.declarations, argument))
+        && matches!(type_arguments.as_slice(), [argument] if resolved_vec_element_is_admitted(argument) || crate::hir::owned_leaf_collection::copy_or_leaf_admitted(&program.declarations, argument))
         && matches!(&args[0].kind, ResolvedExprKind::Place(place)
             if &place.root == owner && place.projections.is_empty())
 }
@@ -666,7 +666,7 @@ pub(crate) fn is_same_owner_reassignment_hir_source(
         })
     };
     op.is_some_and(|op| args.len() == op.arity())
-        && matches!(type_arguments.as_slice(), [argument] if resolved_vec_element_is_admitted(argument) || crate::source_verify::copy_record_resolved_source_admitted(program, argument))
+        && matches!(type_arguments.as_slice(), [argument] if resolved_vec_element_is_admitted(argument) || crate::source_verify::copy_record_resolved_source_admitted(program, argument) || crate::source_verify::owned_leaf_resolved_source_admitted(program, argument))
         && matches!(&args[0].kind, ResolvedExprKind::Place(place)
             if &place.root == owner && place.projections.is_empty())
 }

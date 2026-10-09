@@ -3,6 +3,7 @@
 
 use crate::ast::{Expr, Function, ImportResult, ParamMode, Type};
 use crate::diagnostic::Diagnostic;
+use crate::source_verify::IterativeVerifier;
 use crate::source_verify::arguments::{
     check_argument_ownership, release_borrowed_bytes_call_loans,
 };
@@ -13,7 +14,6 @@ use crate::source_verify::hints;
 use crate::source_verify::loans::mark_value_sources_moved;
 use crate::source_verify::scope::{VerifierCallTarget, VerifierFrame, VerifierFunctionSignature};
 use crate::source_verify::type_table::{effective_record_fields, resolve_class_method};
-use crate::source_verify::IterativeVerifier;
 
 impl<'a, 'p> IterativeVerifier<'a, 'p> {
     #[allow(clippy::too_many_arguments)]
@@ -34,16 +34,35 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 if index > 0 {
                     if let Some(actual) = &actual {
                         reject_native_unit_value(self.program, argument, actual, self.diagnostics);
-                        if !actual.native_unit && !crate::literal_format::accepts_ast_type(&actual.ty) {
+                        if !actual.native_unit
+                            && !crate::literal_format::accepts_ast_type(&actual.ty)
+                        {
                             self.diagnostics.push(error(self.program, "SPX-T205", format!("string_format value {} must be i64, u8, usize, bool, or own string", index - 1), argument.span));
                         }
                         let parameter = crate::ast::Param {
                             name: format!("value{}", index - 1),
-                            mode: if actual.ty == Type::String { ParamMode::Own } else { ParamMode::Value },
+                            mode: if actual.ty == Type::String {
+                                ParamMode::Own
+                            } else {
+                                ParamMode::Value
+                            },
                             ty: actual.ty.clone(),
                             span: argument.span,
                         };
-                        check_argument_ownership(self.program, self.current, name, argument, &parameter, Some(actual), &mut self.scopes[scope].bindings, self.types, self.allow_moves, false, false, self.diagnostics);
+                        check_argument_ownership(
+                            self.program,
+                            self.current,
+                            name,
+                            argument,
+                            &parameter,
+                            Some(actual),
+                            &mut self.scopes[scope].bindings,
+                            self.types,
+                            self.allow_moves,
+                            false,
+                            false,
+                            self.diagnostics,
+                        );
                     }
                 }
             }
@@ -191,7 +210,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         self.diagnostics.push(error(
                             self.program,
                             "SPX-T270",
-                            format!("command I/O operation `{name}` argument {index} has the wrong type"),
+                            format!(
+                                "command I/O operation `{name}` argument {index} has the wrong type"
+                            ),
                             argument.span,
                         ));
                     }
@@ -219,7 +240,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 &borrowed_bytes_loans,
             );
             let output = match target {
-                VerifierCallTarget::LiteralFormat => Some(CheckedValue::returned(Type::String, true)),
+                VerifierCallTarget::LiteralFormat => {
+                    Some(CheckedValue::returned(Type::String, true))
+                }
                 VerifierCallTarget::Native(import) => {
                     let mut value = CheckedValue::returned(
                         import.result.value_type(),
@@ -629,7 +652,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         };
         reject_native_unit_value(self.program, base, &base_value, self.diagnostics);
         if self.loop_depth != 0
-            && !crate::source_verify::declared_type::copy_record_collection::admitted(
+            && !crate::source_verify::declared_type::owned_leaf_collection::copy_or_leaf_admitted(
                 self.types,
                 &base_value.ty,
             )

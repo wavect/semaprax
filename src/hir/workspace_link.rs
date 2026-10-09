@@ -8,6 +8,7 @@ use super::*;
 mod compiler_prelude;
 mod profile_diagnostics;
 mod stdin_stream;
+mod stream_owned;
 mod stream_record;
 pub(crate) use stdin_stream::{
     link_stdin_stream_command_workspace, link_stdin_stream_data_command_workspace,
@@ -17,6 +18,8 @@ pub(crate) use stdin_stream::{
     stream_text_parameter_with_index, stream_text_return_admitted, stream_text_return_with_index,
     validate_stream_data_program, validate_stream_text_program,
 };
+pub(crate) use stream_owned::function_requires_owned_profile as stream_owned_function_requires_profile;
+pub(crate) use stream_owned::{stream_owned_signature_admitted, validate_stream_owned_program};
 pub(crate) use stream_record::{stream_record_signature_admitted, validate_stream_record_program};
 pub(in crate::hir) mod native_owner;
 
@@ -1168,7 +1171,7 @@ fn resolved_function_uses_list(function: &ResolvedFunction) -> bool {
 mod tests {
     use std::path::Path;
 
-    use crate::workspace_graph::{build_owned, WorkspaceSource};
+    use crate::workspace_graph::{WorkspaceSource, build_owned};
 
     mod profile_tests;
 

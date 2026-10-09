@@ -17,7 +17,7 @@ use crate::source_verify::place::{join_definitely_partial, join_moved_places, so
 use crate::source_verify::scope::pattern_literal_type;
 use crate::source_verify::type_table::TypeTable;
 use crate::source_verify::variant_or::{
-    check_variant_or_pattern, VariantOrContext, AGGREGATE_REFUTABLE_HELP,
+    AGGREGATE_REFUTABLE_HELP, VariantOrContext, check_variant_or_pattern,
 };
 use std::collections::{BTreeSet, HashMap, HashSet};
 
@@ -90,8 +90,9 @@ pub(super) fn oracle_match(
     if let Some(value) = &scrutinee_value {
         reject_native_unit_value(program, scrutinee, value, diagnostics);
         let exact_owned_record_item = value.mode == ParamMode::Own
-            && crate::source_verify::declared_type::owned_record_collection::
-                is_admitted_owned_record_collection_element(types, &value.ty)
+            && crate::source_verify::declared_type::owned_leaf_collection::runtime_element(
+                types, &value.ty,
+            )
             && matches!(&scrutinee.kind, ExprKind::Var(name)
                 if is_owned_iterator_item(name, &value.ty));
         if LOOP_DEPTH.with(std::cell::Cell::get) != 0 && !exact_owned_record_item {

@@ -63,14 +63,15 @@ fn logical_collection_declarations_refuse_all_unused_runtime_uses() {
     for suffix in [
         "@id(\"unused\") fn unused(input:own Request)->i64 {0}",
         "@id(\"unused\") fn unused(input:borrow Wrapper)->i64 {0}",
-        "@id(\"unused\") fn unused(input:own Vec<string>)->i64 {0}",
-        "@id(\"unused\") fn unused()->i64 {let v=vec_with_capacity<string>(0usize);0}",
-        "@id(\"unused\") fn unused()->i64 {let v=vec_with_capacity<Patient>(0usize);0}",
         "@id(\"unused\") fn unused()->i64 {let r=Request{servers:vec_with_capacity<string>(0usize),patients:vec_with_capacity<Patient>(0usize)};0}",
         "@id(\"unused\") fn unused()->i64 {let r:Request=0;0}",
     ] {
-        let diagnostics=crate::check(&format!("{SOURCE}{suffix}"),"unused-logical.spx").unwrap_err();
-        assert!(diagnostics.iter().any(|d|d.code=="SPX-T281"),"{diagnostics:?}");
+        let diagnostics =
+            crate::check(&format!("{SOURCE}{suffix}"), "unused-logical.spx").unwrap_err();
+        assert!(
+            diagnostics.iter().any(|d| d.code == "SPX-T281"),
+            "{diagnostics:?}"
+        );
     }
 }
 #[test]
@@ -110,4 +111,19 @@ fn logical_collection_hir_replays_declaration_identity_and_refuses_runtime_autho
     assert!(crate::codegen::emit_hir_c(&body).is_err());
     assert!(crate::wasm::emit_resolved_module(&body).is_err());
     assert!(super::super::validate_stream_record_program(&body, None).is_err());
+}
+
+#[test]
+fn direct_owned_vectors_keep_v29_refused_with_v14_runtime_admission() {
+    for suffix in [
+        "@id(\"unused\") fn unused(input:own Vec<string>)->i64 {0}",
+        "@id(\"unused\") fn unused()->i64 {let v=vec_with_capacity<string>(0usize);0}",
+        "@id(\"unused\") fn unused()->i64 {let v=vec_with_capacity<Patient>(0usize);0}",
+    ] {
+        let source = format!("{SOURCE}{suffix}");
+        let parsed = crate::check(&source, "unused-v14.spx").unwrap();
+        let program = resolve(&parsed).unwrap();
+        assert!(super::super::validate_stream_record_program(&program, None).is_err());
+        super::super::validate_stream_owned_program(&program, None).unwrap();
+    }
 }

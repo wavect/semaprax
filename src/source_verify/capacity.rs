@@ -1026,7 +1026,14 @@ fn source_capacity_expr(
                     ExprKind::Closure { .. } => frames.push(Frame::Emit(CapacityFlow::Empty)),
                     ExprKind::Call { name, args, .. } => {
                         let target = context.ordinary.get(name.as_str()).copied();
-                        let effect = if name == crate::byte_ops::COPY_NAME {
+                        let effect = if let Some(flow) =
+                            super::declared_type::owned_leaf_collection::clone_capacity_flow(
+                                context.types,
+                                expression,
+                                &path,
+                            ) {
+                            Some(flow)
+                        } else if name == crate::byte_ops::COPY_NAME {
                             Some(CapacityFlow::BytesCopy {
                                 site: path.clone(),
                                 conservative_payload_bytes:

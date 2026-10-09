@@ -24,6 +24,7 @@ pub(super) fn owned_builtin_facts(
             "vec"
         }
         crate::prelude::VEC_ID if super::super::declared_collection::text_element(declarations,element) => "declared-vector-only",
+        crate::prelude::VEC_ID if crate::hir::owned_leaf_collection::layout(declarations,element).is_some() => "owned-leaf-vector-v1",
         crate::prelude::BOX_ID if crate::box_ops::resolved_box_element_is_admitted(element) => {
             "box"
         }
@@ -48,10 +49,13 @@ pub(super) fn resource_result_shape(index: &DeclarationIndex, ty: &ResolvedType)
     else {
         return false;
     };
-    let [ResolvedType::Nominal {
-        declaration: resource,
-        arguments: resource_arguments,
-    }, ResolvedType::I64] = arguments.as_slice()
+    let [
+        ResolvedType::Nominal {
+            declaration: resource,
+            arguments: resource_arguments,
+        },
+        ResolvedType::I64,
+    ] = arguments.as_slice()
     else {
         return false;
     };

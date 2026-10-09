@@ -3,13 +3,13 @@
 
 use crate::ast::{Expr, ParamMode, Span, Statement, Type};
 use crate::diagnostic::Diagnostic;
+use crate::source_verify::IterativeVerifier;
 use crate::source_verify::binding::{Availability, Binding};
 use crate::source_verify::diagnostics::{error, is_scalar_source_type, reject_native_unit_value};
 use crate::source_verify::loans::{
     activate_local_loan, has_active_overlapping_loan, local_borrow_origin,
     mark_value_sources_moved, merge_moved, release_dead_local_loans,
 };
-use crate::source_verify::IterativeVerifier;
 use std::collections::{BTreeSet, HashMap, HashSet};
 
 impl<'a, 'p> IterativeVerifier<'a, 'p> {
@@ -640,8 +640,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 if name == (if consuming { "Iter" } else { "Vec" })
                     && matches!(arguments.as_slice(), [ty] if crate::vec_ops::ast_element_is_admitted(ty)
                         || (consuming && (*ty == Type::Bytes
-                            || crate::source_verify::declared_type::owned_record_collection::
-                                is_admitted_owned_record_collection_element(self.types, ty)
+                            || crate::source_verify::declared_type::owned_leaf_collection::runtime_element(self.types, ty)
                             || crate::source_verify::declared_type::generic_collection::slot(self.current, &actual.ty))))
                     && (!consuming || actual.mode == ParamMode::Own) => Some(arguments[0].clone()),
             _ => None,
@@ -689,8 +688,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         }
         let baseline = consuming.then(|| self.scopes[block_scope].bindings.clone());
         let owned_record_item = element.as_ref().is_some_and(|element| {
-            crate::source_verify::declared_type::owned_record_collection::
-                is_admitted_owned_record_collection_element(self.types, element)
+            crate::source_verify::declared_type::owned_leaf_collection::runtime_element(
+                self.types, element,
+            )
         });
         let _ = self.reject_iterator_body(
             body,
@@ -712,8 +712,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     Binding {
                         mode: if consuming
                             && (element == Type::Bytes
-                                || crate::source_verify::declared_type::owned_record_collection::
-                                    is_admitted_owned_record_collection_element(
+                                || crate::source_verify::declared_type::owned_leaf_collection::runtime_element(
                                         self.types,
                                         &element,
                                     ))

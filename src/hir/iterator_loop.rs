@@ -72,12 +72,14 @@ fn replacement<'a>(
     let ResolvedExprKind::Block { statements, tail } = &arms[1].value.kind else {
         return None;
     };
-    let [ResolvedStatement::Let {
-        binding: discard,
-        mutable: false,
-        value: authored_body,
-        ..
-    }] = statements.as_slice()
+    let [
+        ResolvedStatement::Let {
+            binding: discard,
+            mutable: false,
+            value: authored_body,
+            ..
+        },
+    ] = statements.as_slice()
     else {
         return None;
     };
@@ -118,12 +120,14 @@ fn recognize_scoped<'a>(
     let ResolvedExprKind::Block { statements, tail } = &body.kind else {
         return None;
     };
-    let [ResolvedStatement::Assign {
-        binding: step,
-        field: None,
-        value,
-        ..
-    }] = statements.as_slice()
+    let [
+        ResolvedStatement::Assign {
+            binding: step,
+            field: None,
+            value,
+            ..
+        },
+    ] = statements.as_slice()
     else {
         return None;
     };
@@ -208,12 +212,15 @@ pub(crate) fn validate_function(
                 } = statement
                 {
                     if let Some(protocol) = recognize(condition, body) {
-                        let [ResolvedStatement::Let {
-                            binding,
-                            mutable: true,
-                            value: seed,
-                            ..
-                        }, ResolvedStatement::While { .. }] = statements.as_slice()
+                        let [
+                            ResolvedStatement::Let {
+                                binding,
+                                mutable: true,
+                                value: seed,
+                                ..
+                            },
+                            ResolvedStatement::While { .. },
+                        ] = statements.as_slice()
                         else {
                             return Err(crate::diagnostic::Diagnostic::io(
                                 "SPX-H006",
@@ -271,6 +278,7 @@ fn step_element<'a>(
     };
     (declaration.as_str() == crate::iterator_ops::STEP_ID
         && (crate::iterator_ops::resolved_element_is_admitted(element)
+            || *element == ResolvedType::String
             || matches!(element, ResolvedType::Nominal { arguments, .. } if arguments.is_empty())
             || owner.is_some_and(|(owner, count)| {
                 generic_collection::parameter(element, owner, count)
@@ -287,14 +295,17 @@ pub(crate) fn template_contains(template: &ResolvedFunctionTemplate) -> bool {
     let mut pending = vec![&template.body];
     while let Some(expression) = pending.pop() {
         if let ResolvedExprKind::Block { statements, tail } = &expression.kind {
-            if let [ResolvedStatement::Let {
-                binding,
-                mutable: true,
-                value: seed,
-                ..
-            }, ResolvedStatement::While {
-                condition, body, ..
-            }] = statements.as_slice()
+            if let [
+                ResolvedStatement::Let {
+                    binding,
+                    mutable: true,
+                    value: seed,
+                    ..
+                },
+                ResolvedStatement::While {
+                    condition, body, ..
+                },
+            ] = statements.as_slice()
             {
                 if let Some(protocol) = recognize_scoped(
                     condition,

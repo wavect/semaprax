@@ -37,6 +37,8 @@ pub(super) fn call_behavior(
             crate::vec_ops::VecOp::Push
                 | crate::vec_ops::VecOp::ReserveExact
                 | crate::vec_ops::VecOp::Set
+                | crate::vec_ops::VecOp::Replace
+                | crate::vec_ops::VecOp::ReserveOwned
         )
     ) || callee.as_str() == crate::iterator_ops::NEXT_ID
         || (callee.as_str() == crate::iterator_ops::INTO_ITER_ID
@@ -71,6 +73,7 @@ pub(super) fn is_infallible_vec_operation(op: Option<crate::vec_ops::VecOp>) -> 
                 | crate::vec_ops::VecOp::Capacity
                 | crate::vec_ops::VecOp::Clear
                 | crate::vec_ops::VecOp::Sort
+                | crate::vec_ops::VecOp::SortOwned
         )
     )
 }

@@ -3,6 +3,7 @@
 
 use crate::ast::{Expr, ExprKind, ImportResult, ParamMode, Statement, Type, TypeDeclarationKind};
 use crate::diagnostic::Diagnostic;
+use crate::source_verify::IterativeVerifier;
 use crate::source_verify::arguments::{
     activate_borrowed_bytes_call_loans, source_byte_view_place_is_admitted,
 };
@@ -20,7 +21,6 @@ use crate::source_verify::scope::{
     VerifierCallTarget, VerifierFrame, VerifierFunctionSignature, VerifierScope,
 };
 use crate::source_verify::type_table::effective_record_fields;
-use crate::source_verify::IterativeVerifier;
 use std::collections::HashSet;
 
 impl<'a, 'p> IterativeVerifier<'a, 'p> {
@@ -295,10 +295,20 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     }))
                 } else if name == crate::literal_format::NAME {
                     if !type_arguments.is_empty() {
-                        self.diagnostics.push(error(self.program, "SPX-T225", "string_format does not accept type arguments", expression.span));
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T225",
+                            "string_format does not accept type arguments",
+                            expression.span,
+                        ));
                     }
                     if !self.current.type_parameters.is_empty() {
-                        self.diagnostics.push(error(self.program, "SPX-T225", "string_format is not admitted in generic function templates", expression.span));
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T225",
+                            "string_format is not admitted in generic function templates",
+                            expression.span,
+                        ));
                     }
                     let template = match args.first().map(|arg| &arg.kind) {
                         Some(ExprKind::String(value)) => value,
@@ -311,14 +321,27 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     let pieces = match crate::literal_format::scan(template) {
                         Ok(pieces) => pieces,
                         Err(reason) => {
-                            self.diagnostics.push(error(self.program, "SPX-T204", reason.message(), args[0].span));
+                            self.diagnostics.push(error(
+                                self.program,
+                                "SPX-T204",
+                                reason.message(),
+                                args[0].span,
+                            ));
                             self.values.push(None);
                             return Ok(());
                         }
                     };
                     let fields = crate::literal_format::field_count(&pieces);
                     if args.len() - 1 != fields {
-                        self.diagnostics.push(error(self.program, "SPX-T204", format!("string_format literal has {fields} fields, received {} values", args.len() - 1), expression.span));
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T204",
+                            format!(
+                                "string_format literal has {fields} fields, received {} values",
+                                args.len() - 1
+                            ),
+                            expression.span,
+                        ));
                     }
                     VerifierCallTarget::LiteralFormat
                 } else if let Some(op) = crate::string_ops::by_name(name) {
@@ -384,16 +407,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     let element = type_arguments.first();
                     if type_arguments.len() != 1
                         || element.is_none_or(|ty| {
-                            !crate::vec_ops::ast_operation_element_is_admitted(op, ty)
-                                && !crate::vec_ops::source_parameter_is_admitted(
-                                    self.program,
-                                    self.current,
-                                    op,
-                                    ty,
-                                )
-                                && !crate::source_verify::declared_type::owned_record_collection::
-                                    admits_vec_operation_element(self.types, op, ty)
-                                && !crate::source_verify::declared_type::copy_record_collection::admitted(self.types, ty)
+                            !crate::source_verify::declared_type::owned_leaf_collection::vec_operation_admitted(self.types, op, ty)
+                                && !crate::vec_ops::source_parameter_is_admitted(self.program, self.current, op, ty)
                         })
                     {
                         self.diagnostics.push(error(
@@ -435,9 +450,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 op,
                                 element,
                                 *element == crate::ast::Type::Bytes
+                                    || crate::source_verify::declared_type::owned_leaf_collection::admitted(self.types, element)
                                     || crate::source_verify::declared_type::
-                                        owned_record_collection::
-                                        is_admitted_owned_record_collection_element(
+                                        owned_leaf_collection::runtime_element(
                                             self.types, element,
                                         ),
                             ),
@@ -461,8 +476,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         || element.is_none_or(|ty| {
                             !crate::iterator_ops::ast_element_is_admitted(ty)
                                     && !crate::source_verify::declared_type::
-                                        owned_record_collection::
-                                        is_admitted_owned_record_collection_element(
+                                        owned_leaf_collection::runtime_element(
                                             self.types,
                                             ty,
                                         )
@@ -732,7 +746,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     });
                 } else {
                     self.values.push(Some(match target {
-                        VerifierCallTarget::LiteralFormat => CheckedValue::returned(Type::String, true),
+                        VerifierCallTarget::LiteralFormat => {
+                            CheckedValue::returned(Type::String, true)
+                        }
                         VerifierCallTarget::Native(import) => {
                             let mut value = CheckedValue::returned(
                                 import.result.value_type(),
@@ -961,7 +977,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 if self.loop_depth != 0
                     && source_place(base, &self.scopes[scope].bindings, self.types).is_some_and(
                         |place| {
-                            !crate::source_verify::declared_type::copy_record_collection::admitted(
+                            !crate::source_verify::declared_type::owned_leaf_collection::copy_or_leaf_admitted(
                                 self.types, &place.ty,
                             )
                         },

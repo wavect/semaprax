@@ -23,7 +23,7 @@ use super::place::{
     check_source_place_availability, join_definitely_partial, join_moved_places,
     overlapping_place_state, source_place,
 };
-use super::type_table::{effective_record_fields, TypeTable};
+use super::type_table::{TypeTable, effective_record_fields};
 use crate::ast::{
     BinaryOp, Expr, ExprKind, Function, ParamMode, Program, Statement, Type, TypeDeclarationKind,
     UnaryOp,
@@ -1222,8 +1222,7 @@ pub(super) fn check_expr(
                             Type::Named { name, arguments } if name == "Iter" && actual.mode == ParamMode::Own
                                 && matches!(arguments.as_slice(), [ty] if crate::vec_ops::ast_element_is_admitted(ty)
                                     || *ty == Type::Bytes
-                                    || crate::source_verify::declared_type::owned_record_collection::
-                                        is_admitted_owned_record_collection_element(types, ty)
+                                    || crate::source_verify::declared_type::owned_leaf_collection::runtime_element(types, ty)
                                     || crate::source_verify::declared_type::generic_collection::slot(current, &actual.ty)) => Some(arguments[0].clone()),
                             _ => None,
                         });
@@ -1239,8 +1238,7 @@ pub(super) fn check_expr(
                         let item_inserted = !scope.contains_key(item);
                         if let Some(element) = element.as_ref().filter(|element| item_inserted && {
                             **element == Type::Bytes
-                                || crate::source_verify::declared_type::owned_record_collection::
-                                    is_admitted_owned_record_collection_element(types, element)
+                                || crate::source_verify::declared_type::owned_leaf_collection::runtime_element(types, element)
                         }) {
                             let _ = matching::with_owned_iterator_item(item, element, || {
                                 reject_while_disallowed_oracle(program, body, functions, types, diagnostics)
@@ -1252,8 +1250,7 @@ pub(super) fn check_expr(
                             diagnostics.push(error(program, "SPX-T209", format!("loop item `{item}` shadows an existing value"), *item_span));
                         } else if let Some(element) = element.as_ref() {
                             let owned = *element == Type::Bytes
-                                || crate::source_verify::declared_type::owned_record_collection::
-                                    is_admitted_owned_record_collection_element(types, element);
+                                || crate::source_verify::declared_type::owned_leaf_collection::runtime_element(types, element);
                             scope.insert(item.clone(), Binding { ty:element.clone(), mode:if owned { ParamMode::Own } else { ParamMode::Value },
                                 availability:Availability::Available, moved_places:HashMap::new(), definitely_partial:HashSet::new(),
                                 native_unit_discard:false, mutable:false, active_loans:BTreeSet::new(), borrow_origin:None });
@@ -1261,8 +1258,7 @@ pub(super) fn check_expr(
                         let checked_body = || check_expr(program, current, body, &mut scope, functions, types, result_type, allow_moves, diagnostics);
                         let _ = if let Some(element) = element.as_ref().filter(|element| item_inserted && {
                             **element == Type::Bytes
-                                || crate::source_verify::declared_type::owned_record_collection::
-                                    is_admitted_owned_record_collection_element(types, element)
+                                || crate::source_verify::declared_type::owned_leaf_collection::runtime_element(types, element)
                         }) {
                             matching::in_owned_iterator_loop(item, element, checked_body)
                         } else {

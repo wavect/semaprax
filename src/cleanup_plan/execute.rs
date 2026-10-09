@@ -1075,6 +1075,7 @@ impl<'a> Executor<'a> {
                                 | crate::vec_ops::VecOp::Capacity
                                 | crate::vec_ops::VecOp::Clear
                                 | crate::vec_ops::VecOp::Sort
+                                | crate::vec_ops::VecOp::SortOwned
                         )
                     )
                     || crate::box_ops::by_id(callee.as_str()).is_some_and(|op| {

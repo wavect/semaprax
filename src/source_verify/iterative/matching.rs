@@ -3,6 +3,7 @@
 
 use crate::ast::{Expr, ExprKind, MatchMode, MatchPattern, ParamMode, Type};
 use crate::diagnostic::Diagnostic;
+use crate::source_verify::IterativeVerifier;
 use crate::source_verify::declared_type::check_record_pattern;
 use crate::source_verify::diagnostics::{
     error, reject_loop_match_scrutinee, reject_native_unit_value,
@@ -10,10 +11,9 @@ use crate::source_verify::diagnostics::{
 use crate::source_verify::loans::{activate_match_loan, mark_value_sources_moved};
 use crate::source_verify::place::source_place;
 use crate::source_verify::scope::{
-    pattern_literal_type, ScalarMatchState, VariantMatchState, VerifierFrame, VerifierScope,
+    ScalarMatchState, VariantMatchState, VerifierFrame, VerifierScope, pattern_literal_type,
 };
 use crate::source_verify::variant_or::AGGREGATE_REFUTABLE_HELP;
-use crate::source_verify::IterativeVerifier;
 use std::collections::HashSet;
 
 impl<'a, 'p> IterativeVerifier<'a, 'p> {
@@ -32,8 +32,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         if let Some(value) = &scrutinee_value {
             reject_native_unit_value(self.program, scrutinee, value, self.diagnostics);
             let exact_owned_record_item = value.mode == ParamMode::Own
-                && crate::source_verify::declared_type::owned_record_collection::
-                    is_admitted_owned_record_collection_element(self.types, &value.ty)
+                && crate::source_verify::declared_type::owned_leaf_collection::runtime_element(
+                    self.types, &value.ty,
+                )
                 && matches!(&scrutinee.kind, ExprKind::Var(name)
                     if self.owned_iterator_items.last().is_some_and(|item| item == name));
             if self.loop_depth != 0 && !exact_owned_record_item {

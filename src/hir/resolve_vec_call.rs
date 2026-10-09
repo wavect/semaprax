@@ -9,7 +9,7 @@ use crate::diagnostic::Diagnostic;
 
 use super::expr_nodes::{ResolvedExpr, ResolvedExprKind};
 use super::ids::{DeclarationId, ExpressionId, FunctionExecutionId};
-use super::nodes::{is_scalar_resolved_type, OwnershipMode, ResolvedBinding, ResolvedType};
+use super::nodes::{OwnershipMode, ResolvedBinding, ResolvedType, is_scalar_resolved_type};
 use super::resolve_expr_frame::Frame;
 use super::{Binding, Resolver};
 
@@ -185,15 +185,10 @@ pub(super) fn schedule<'expr>(
         ));
     }
     let element = resolve_element(resolver, function, op, &type_arguments[0], span)?;
-    if !crate::vec_ops::resolved_operation_element_is_admitted(op, &element)
-        && !crate::hir::copy_record_collection::admitted(&resolver.declarations, &element)
+    if !super::owned_leaf_collection::vec_operation_admitted(&resolver.declarations, op, &element)
         && !crate::vec_ops::resolved_parameter_is_admitted(function, op, &element)
-        && !super::generic_collection::source_parameter(resolver.program, function, &element)
-        && !super::owned_record_collection::admits_vec_operation_element(
-            &resolver.declarations,
-            op,
-            &element,
-        )
+        && !(!op.owned_leaf_only()
+            && super::generic_collection::source_parameter(resolver.program, function, &element))
     {
         return Err(resolver.error(
             "SPX-H006",
@@ -286,15 +281,10 @@ pub(super) fn resolve_reference(
         ));
     }
     let element = resolve_element(resolver, function, op, &type_arguments[0], span)?;
-    if !crate::vec_ops::resolved_operation_element_is_admitted(op, &element)
-        && !crate::hir::copy_record_collection::admitted(&resolver.declarations, &element)
+    if !super::owned_leaf_collection::vec_operation_admitted(&resolver.declarations, op, &element)
         && !crate::vec_ops::resolved_parameter_is_admitted(function, op, &element)
-        && !super::generic_collection::source_parameter(resolver.program, function, &element)
-        && !super::owned_record_collection::admits_vec_operation_element(
-            &resolver.declarations,
-            op,
-            &element,
-        )
+        && !(!op.owned_leaf_only()
+            && super::generic_collection::source_parameter(resolver.program, function, &element))
     {
         return Err(resolver.error(
             "SPX-H006",

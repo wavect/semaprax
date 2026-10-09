@@ -22,7 +22,7 @@ impl HirValidator<'_> {
             item.ownership == OwnershipMode::Own
                 && expression.ownership == OwnershipMode::Own
                 && expression.ty == item.ty
-                && crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+                && crate::hir::owned_leaf_collection::runtime_element(
                     &self.program.declarations,
                     &item.ty,
                 )
@@ -61,7 +61,7 @@ impl HirValidator<'_> {
                     // Owned String Loops v2: a whole Copy-payload variant
                     // place may be a match scrutinee; moving an outer one
                     // still fails the loop-entry state equality.
-                    let whole_string = (crate::hir::copy_record_collection::admitted(
+                    let whole_string = (crate::hir::owned_leaf_collection::copy_or_leaf_admitted(
                         &self.program.declarations,
                         &expression.ty,
                     ) || matches!(
@@ -243,7 +243,7 @@ impl HirValidator<'_> {
                         if !operation.admitted_in_while()
                             || type_arguments.len() != 1
                             || !(crate::vec_ops::resolved_element_is_admitted(&type_arguments[0])
-                                || crate::hir::copy_record_collection::admitted(
+                                || crate::hir::owned_leaf_collection::copy_or_leaf_admitted(
                                     &self.program.declarations,
                                     &type_arguments[0],
                                 ))
@@ -369,11 +369,11 @@ impl HirValidator<'_> {
                                     _ => {
                                         return Err(hir_error(
                                             "forwarding helper requires a named reader",
-                                        ))
+                                        ));
                                     }
                                 },
                                 _ => {
-                                    return Err(hir_error("forwarding helper requires one reader"))
+                                    return Err(hir_error("forwarding helper requires one reader"));
                                 }
                             },
                         ) {
@@ -419,12 +419,10 @@ impl HirValidator<'_> {
                                         .byte_slice_provenance(&place.root)
                                         .is_none())
                             {
-                                return Err(hir_error(
-                                    format!(
-                                        "while loop bounded-read call slice `{}` lacks authenticated provenance",
-                                        place.root
-                                    ),
-                                ));
+                                return Err(hir_error(format!(
+                                    "while loop bounded-read call slice `{}` lacks authenticated provenance",
+                                    place.root
+                                )));
                             }
                         } else if parameter.ownership == OwnershipMode::Borrow
                             && crate::hir::iterator_loop::is_owner_renewal_record(
@@ -443,7 +441,7 @@ impl HirValidator<'_> {
                             }
                         } else if parameter.ownership == OwnershipMode::Borrow
                             && (crate::vec_ops::resolved_copy_vec(&parameter.ty)
-                                || crate::hir::copy_record_collection::is_vec(
+                                || crate::hir::owned_leaf_collection::is_copy_or_leaf_vec(
                                     &self.program.declarations,
                                     &parameter.ty,
                                 ))
@@ -477,7 +475,7 @@ impl HirValidator<'_> {
                     return Err(hir_error("while loops cannot contain inheritance upcasts"));
                 }
                 ResolvedExprKind::Project { base, .. } => {
-                    if !crate::hir::copy_record_collection::admitted(
+                    if !crate::hir::owned_leaf_collection::copy_or_leaf_admitted(
                         &self.program.declarations,
                         &base.ty,
                     ) {
@@ -486,7 +484,7 @@ impl HirValidator<'_> {
                     pending.push(base);
                 }
                 ResolvedExprKind::ConstructRecord { fields, .. } => {
-                    if !crate::hir::copy_record_collection::admitted(
+                    if !crate::hir::owned_leaf_collection::copy_or_leaf_admitted(
                         &self.program.declarations,
                         &expression.ty,
                     ) {

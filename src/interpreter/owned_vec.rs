@@ -2,6 +2,7 @@
 
 #[cfg(test)]
 mod float_order_probe;
+mod owned_leaf;
 
 use std::sync::Arc;
 
@@ -58,6 +59,7 @@ fn scalar_value_matches_type(value: &Value, ty: &ResolvedType) -> bool {
             | (Value::Float64(_), ResolvedType::F64)
             | (Value::Bool(_), ResolvedType::Bool)
             | (Value::Bytes(_), ResolvedType::Bytes)
+            | (Value::String(_), ResolvedType::String)
     )
 }
 
@@ -91,10 +93,8 @@ pub(super) fn element_value_matches_type(
     };
     if !arguments.is_empty()
         || record.record != *declaration
-        || !(crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
-            declarations,
-            ty,
-        ) || crate::hir::copy_record_collection::admitted(declarations, ty))
+        || !(crate::hir::owned_leaf_collection::runtime_element(declarations, ty)
+            || crate::hir::copy_record_collection::admitted(declarations, ty))
     {
         return false;
     }
@@ -125,11 +125,8 @@ fn owned_payload_bytes_per_element(
     if *ty == ResolvedType::Bytes {
         return Some(crate::vec_ops::OWNED_PAYLOAD_BYTES_PER_ELEMENT);
     }
-    crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
-        declarations,
-        ty,
-    )
-    .then_some(crate::hir::owned_record_collection::OWNED_PAYLOAD_BYTES_PER_RECORD_ELEMENT)
+    crate::hir::owned_leaf_collection::layout(declarations, ty)
+        .map(|layout| layout.owned_count as u64 * crate::vec_ops::OWNED_PAYLOAD_BYTES_PER_ELEMENT)
 }
 
 fn normalize_vec(code: u32) -> NormalizedStatus {
@@ -167,18 +164,11 @@ impl Evaluator<'_> {
             .first()
             .filter(|element| {
                 type_arguments.len() == 1
-                    && (crate::vec_ops::resolved_operation_element_is_admitted(op, element)
-                        || crate::hir::copy_record_collection::admitted(declarations, element)
-                        // SPX-AI-019's owned-record element keeps its own
-                        // narrow admission predicate rather than widening the
-                        // shared scalar-or-`Bytes` one the native and Wasm
-                        // layout/ABI sites consult; see
-                        // `docs/OWNED-RECORD-COLLECTION-ELEMENT-V1.md`.
-                        || crate::hir::owned_record_collection::admits_vec_operation_element(
-                            declarations,
-                            op,
-                            element,
-                        ))
+                    && crate::hir::owned_leaf_collection::vec_operation_admitted(
+                        declarations,
+                        op,
+                        element,
+                    )
             })
             .ok_or(Flow::Guard("invalid compiler-owned bounded Vec type"))?
             .clone();
@@ -190,6 +180,7 @@ impl Evaluator<'_> {
                     crate::vec_ops::VecOp::Len
                         | crate::vec_ops::VecOp::Capacity
                         | crate::vec_ops::VecOp::Get
+                        | crate::vec_ops::VecOp::CloneAt
                 )
             {
                 self.charge()?;
@@ -210,6 +201,8 @@ impl Evaluator<'_> {
             }
         }
         match op {
+            crate::vec_ops::VecOp::CloneAt => self.clone_owned_vec_element(&element, &values),
+            crate::vec_ops::VecOp::SortOwned => self.sort_owned_vec_elements(&element, values),
             crate::vec_ops::VecOp::WithCapacity => {
                 let [Value::Usize(capacity)] = values.as_slice() else {
                     return Err(Flow::Guard(
@@ -220,7 +213,7 @@ impl Evaluator<'_> {
                     Flow::Failure(normalize_vec(crate::vec_ops::ALLOCATION_FAILURE_CODE))
                 })?;
                 if capacity
-                    > crate::hir::copy_record_collection::capacity(declarations, &element) as usize
+                    > crate::hir::owned_leaf_collection::capacity(declarations, &element) as usize
                 {
                     return Err(Flow::Failure(normalize_vec(
                         crate::vec_ops::ALLOCATION_FAILURE_CODE,
@@ -276,7 +269,7 @@ impl Evaluator<'_> {
                     .ok_or(Flow::Guard("bounded Vec generation overflowed"))?;
                 Ok(Value::Vec(Arc::new(vector)))
             }
-            crate::vec_ops::VecOp::ReserveExact => {
+            crate::vec_ops::VecOp::ReserveExact | crate::vec_ops::VecOp::ReserveOwned => {
                 let mut values = values.into_iter();
                 let (Some(Value::Vec(vector)), Some(Value::Usize(additional)), None) =
                     (values.next(), values.next(), values.next())
@@ -294,7 +287,7 @@ impl Evaluator<'_> {
                     .map(|required| required.max(vector.capacity as u64))
                     .filter(|target| {
                         *target
-                            <= crate::hir::copy_record_collection::capacity(declarations, &element)
+                            <= crate::hir::owned_leaf_collection::capacity(declarations, &element)
                     })
                     .and_then(|target| usize::try_from(target).ok())
                     .ok_or_else(|| {
@@ -331,7 +324,7 @@ impl Evaluator<'_> {
                     .ok_or(Flow::Guard("bounded Vec generation overflowed"))?;
                 Ok(Value::Vec(Arc::new(vector)))
             }
-            crate::vec_ops::VecOp::Set => {
+            crate::vec_ops::VecOp::Set | crate::vec_ops::VecOp::Replace => {
                 let mut values = values.into_iter();
                 let (Some(Value::Vec(vector)), Some(Value::Usize(index)), Some(value), None) =
                     (values.next(), values.next(), values.next(), values.next())

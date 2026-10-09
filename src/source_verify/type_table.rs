@@ -76,8 +76,7 @@ impl<'a> TypeTable<'a> {
             || matches!(ty, Type::Named { name, arguments }
             if matches!(name.as_str(), "Iter" | "IterStep")
             && matches!(arguments.as_slice(), [element]
-                if super::declared_type::owned_record_collection::
-                    is_admitted_owned_record_collection_element(self, element)))
+                if super::declared_type::owned_leaf_collection::runtime_element(self, element)))
     }
     pub(super) fn new(program: &'a Program) -> Self {
         let declarations: HashMap<&'a str, &'a TypeDeclaration> = program
@@ -485,9 +484,8 @@ impl<'a> TypeTable<'a> {
                             && arguments.len() == 1
                             && (super::declared_type::declared_collection::text_element(self,&arguments[0])
                                 || crate::vec_ops::ast_vec_element_is_admitted(&arguments[0])
-                || crate::source_verify::declared_type::copy_record_collection::admitted(self, &arguments[0])
-                                || super::declared_type::owned_record_collection::
-                                    is_admitted_owned_record_collection_element(
+                || crate::source_verify::declared_type::owned_leaf_collection::copy_or_leaf_admitted(self, &arguments[0])
+                                || super::declared_type::owned_leaf_collection::runtime_element(
                                         self,
                                         &arguments[0],
                                     ))

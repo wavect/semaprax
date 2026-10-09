@@ -2,7 +2,7 @@
 use super::*;
 
 /// Codec outcomes have no name-based privilege: only these exact closed shapes qualify.
-fn codec_mode(index: &DeclarationIndex, ty: &ResolvedType) -> Option<OwnershipMode> {
+pub(super) fn codec_mode(index: &DeclarationIndex, ty: &ResolvedType) -> Option<OwnershipMode> {
     if super::super::collection_outcome::admitted(index, ty) {
         return Some(OwnershipMode::Own);
     }
@@ -98,6 +98,11 @@ pub(crate) fn validate_stream_record_program(
         return Err(link_error("stream record command is absent"));
     }
     for f in &program.functions {
+        if super::stream_owned::function_requires_owned_profile(program, f) {
+            return Err(link_error(
+                "owned-leaf vector operations require the owned-data command profile",
+            ));
+        }
         let root = f.id == program.entrypoint || command == Some(&f.id);
         if (if root {
             !f.params.is_empty() || f.return_type != ResolvedType::I64

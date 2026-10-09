@@ -10,8 +10,8 @@ use crate::hir::{
 };
 
 use super::{
-    find_resolved_expression, replay_error, validate_place, Leaves, PathState,
-    ReplayConditionalVariant,
+    Leaves, PathState, ReplayConditionalVariant, find_resolved_expression, replay_error,
+    validate_place,
 };
 
 pub(super) fn exact_owned_try(source: &[ResolvedType], target: &[ResolvedType]) -> bool {
@@ -256,14 +256,24 @@ pub(super) fn resolved_call_params(
 ) -> Result<Vec<ResolvedParam>, Diagnostic> {
     if callee.as_str() == crate::literal_format::ID {
         let ResolvedExprKind::LiteralFormat { args, template } = &expression.kind else {
-            return Err(replay_error(function, "literal format callee lacks its dedicated operation"));
+            return Err(replay_error(
+                function,
+                "literal format callee lacks its dedicated operation",
+            ));
         };
         let pieces = crate::literal_format::scan(template)
             .map_err(|reason| replay_error(function, reason.message()))?;
-        if instance.is_some() || !type_arguments.is_empty()
+        if instance.is_some()
+            || !type_arguments.is_empty()
             || args.len() != crate::literal_format::field_count(&pieces)
-            || args.iter().any(|arg| !crate::literal_format::accepts_hir_type(&arg.ty)) {
-            return Err(replay_error(function, "literal format replay signature is inconsistent"));
+            || args
+                .iter()
+                .any(|arg| !crate::literal_format::accepts_hir_type(&arg.ty))
+        {
+            return Err(replay_error(
+                function,
+                "literal format replay signature is inconsistent",
+            ));
         }
         return Ok(crate::literal_format::resolved_params(args));
     }
@@ -282,7 +292,7 @@ pub(super) fn resolved_call_params(
                     return Err(replay_error(
                         function,
                         "indirect call lacks exact callable signature",
-                    ))
+                    ));
                 }
             };
             if !signature.is_mut_function() && !crate::hir::function_value::is_signature(signature)
@@ -368,6 +378,16 @@ pub(super) fn resolved_call_params(
                     "cleanup bounded Vec call has incorrect type arity",
                 ));
             };
+            if !crate::hir::owned_leaf_collection::vec_operation_admitted(
+                &program.declarations,
+                op,
+                element,
+            ) {
+                return Err(replay_error(
+                    function,
+                    "cleanup bounded Vec call has unsupported element",
+                ));
+            }
             return Ok(crate::vec_ops::resolved_params_in(
                 &program.declarations,
                 op,
@@ -424,6 +444,7 @@ pub(super) fn defers_owner_commit(expression: &crate::hir::ResolvedExpr) -> bool
                 crate::vec_ops::VecOp::Push
                     | crate::vec_ops::VecOp::ReserveExact
                     | crate::vec_ops::VecOp::Set
+                | crate::vec_ops::VecOp::Replace | crate::vec_ops::VecOp::ReserveOwned
             )
         )
             || callee.as_str() == crate::iterator_ops::NEXT_ID

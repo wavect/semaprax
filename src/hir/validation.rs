@@ -11,6 +11,7 @@ mod borrowed_argument;
 mod borrowed_str;
 mod box_intrinsic;
 mod branch_merge;
+mod call_parameters;
 mod callable_types;
 mod closure;
 mod generic_record_composition;
@@ -26,6 +27,7 @@ mod type_profiles;
 mod unsafe_scan;
 mod vec_intrinsic;
 use borrowed_argument::{hir_diagnostic_at_span, hir_error_at_span};
+use call_parameters::CallParameters;
 pub(crate) use type_profiles::resolved_type_contains_owned_bytes;
 use type_profiles::{
     generic_instance_arguments_are_admitted, resolved_type_is_flat_owned_byte_variant,
@@ -2290,7 +2292,7 @@ impl<'a> HirValidator<'a> {
             CallNext {
                 expression: &'e ResolvedExpr,
                 args: &'e [ResolvedExpr],
-                params: Vec<ResolvedParam>,
+                params: CallParameters,
                 return_type: ResolvedType,
                 return_ownership: OwnershipMode,
                 index: usize,
@@ -2300,7 +2302,7 @@ impl<'a> HirValidator<'a> {
             CallAfterArg {
                 expression: &'e ResolvedExpr,
                 args: &'e [ResolvedExpr],
-                params: Vec<ResolvedParam>,
+                params: CallParameters,
                 return_type: ResolvedType,
                 return_ownership: OwnershipMode,
                 index: usize,
@@ -2608,15 +2610,7 @@ impl<'a> HirValidator<'a> {
                     scope: value,
                     ..
                 } => {
-                    params.capacity() * std::mem::size_of::<ResolvedParam>()
-                        + params
-                            .iter()
-                            .map(|param| {
-                                param.id.as_str().len()
-                                    + param.name.capacity()
-                                    + resolved_type_owned_capacity(&param.ty)
-                            })
-                            .sum::<usize>()
+                    params.owned_capacity()
                         + resolved_type_owned_capacity(return_type)
                         + scope(value)
                 }
@@ -2624,18 +2618,7 @@ impl<'a> HirValidator<'a> {
                     params,
                     return_type,
                     ..
-                } => {
-                    params.capacity() * std::mem::size_of::<ResolvedParam>()
-                        + params
-                            .iter()
-                            .map(|param| {
-                                param.id.as_str().len()
-                                    + param.name.capacity()
-                                    + resolved_type_owned_capacity(&param.ty)
-                            })
-                            .sum::<usize>()
-                        + resolved_type_owned_capacity(return_type)
-                }
+                } => params.owned_capacity() + resolved_type_owned_capacity(return_type),
                 Frame::NativeNext {
                     params,
                     result,
@@ -3189,6 +3172,7 @@ impl<'a> HirValidator<'a> {
                                     "resolved call has a generic type argument outside the direct-scalar or owned-record relay profile",
                                 ));
                             }
+                            let mut byte_operation = None;
                             let (params, return_type) = if let Some(signature) =
                                 self.intrinsic_signature(callee, type_arguments, instance, args)?
                             {
@@ -3247,7 +3231,8 @@ impl<'a> HirValidator<'a> {
                                     args,
                                     self.buffer_reopen_sites.contains(&expression.id),
                                 )?;
-                                (crate::byte_ops::resolved_params(op), op.return_type())
+                                byte_operation = Some(op);
+                                (Vec::new(), op.return_type())
                             } else if let Some(op) = crate::host_io_ops::by_id(callee.as_str()) {
                                 if instance.is_some() || !type_arguments.is_empty() {
                                     return Err(hir_error(
@@ -3320,6 +3305,10 @@ impl<'a> HirValidator<'a> {
                                 }
                                 (params, return_type)
                             };
+                            let params = match byte_operation {
+                                Some(operation) => CallParameters::Byte(operation),
+                                None => CallParameters::Owned(params),
+                            };
                             let return_ownership =
                                 self.expected_ownership(&return_type, OwnershipMode::Own)?;
                             frames.push(Frame::CallNext {
@@ -3345,7 +3334,9 @@ impl<'a> HirValidator<'a> {
                             frames.push(Frame::CallNext {
                                 expression,
                                 args: &call.args,
-                                params: crate::command_io_ops::resolved_params(call.operation),
+                                params: CallParameters::Owned(
+                                    crate::command_io_ops::resolved_params(call.operation),
+                                ),
                                 return_type: crate::command_io_ops::return_type(call.operation),
                                 return_ownership: crate::command_io_ops::result_ownership(
                                     call.operation,
@@ -3778,13 +3769,18 @@ impl<'a> HirValidator<'a> {
                     let mut scope = scopes.pop().expect("call argument scope retained");
                     publication.publish(&scope);
                     let argument = &args[index];
-                    let param = &params[index];
-                    self.require_type(&argument.ty, &param.ty, "call argument")?;
-                    self.validate_argument_ownership(argument, param)?;
-                    self.validate_borrowed_bytes_call_argument(
-                        expression, argument, param, index, &scope,
+                    let param = params.parameter(index);
+                    self.require_type(&argument.ty, param.ty, "call argument")?;
+                    self.validate_argument_ownership_view(argument, param)?;
+                    let param = params.parameter(index);
+                    self.validate_borrowed_bytes_call_argument_fields(
+                        expression,
+                        argument,
+                        (param.ty, param.ownership),
+                        index,
+                        &scope,
                     )?;
-                    if param.ty == ResolvedType::SliceU8 {
+                    if *param.ty == ResolvedType::SliceU8 {
                         match &argument.kind {
                             ResolvedExprKind::Place(place)
                                 if place.projections.is_empty()
@@ -3807,7 +3803,7 @@ impl<'a> HirValidator<'a> {
                             }
                         }
                     }
-                    if self.argument_transfers(param)? {
+                    if self.is_owned_resource(param.ty, param.ownership)? {
                         if !allow_moves {
                             let ResolvedExprKind::Call { callee, .. } = &expression.kind else {
                                 unreachable!()
@@ -8265,6 +8261,7 @@ impl<'a> HirValidator<'a> {
         substitute_type(&template.ty, declaration, arguments)
     }
 
+    #[cfg(test)]
     fn argument_transfers(&self, param: &ResolvedParam) -> Result<bool, Diagnostic> {
         self.is_owned_resource(&param.ty, param.ownership)
     }
@@ -8489,88 +8486,6 @@ impl<'a> HirValidator<'a> {
         }
         *scope = scopes.pop().expect("root move scope retained");
         Ok(())
-    }
-
-    fn validate_argument_ownership(
-        &self,
-        argument: &ResolvedExpr,
-        param: &ResolvedParam,
-    ) -> Result<(), Diagnostic> {
-        let actual = argument.ownership;
-        let facts = self
-            .program
-            .declarations
-            .type_facts(&param.ty)
-            .ok_or_else(|| {
-                hir_error_at_span(
-                    argument.span,
-                    format!("type `{}` has no semantic facts", param.ty.identity_key()),
-                )
-            })?;
-        let valid = if facts.copy {
-            actual == OwnershipMode::Value && param.ownership == OwnershipMode::Value
-        } else {
-            match param.ownership {
-                OwnershipMode::Own => actual == OwnershipMode::Own,
-                OwnershipMode::Borrow => {
-                    let exact_place = matches!(&argument.kind, ResolvedExprKind::Place(_));
-                    if crate::stdin_stream_ops::is_reader(&param.ty) {
-                        matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow)
-                            && matches!(&argument.kind, ResolvedExprKind::Place(place) if place.projections.is_empty())
-                    } else if param.ty == ResolvedType::Bytes {
-                        matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow) && exact_place
-                    } else if crate::map_ops::is_collection(&param.ty) {
-                        // Compiler-owned nominal collections are leaves, not
-                        // authored aggregate records; projected and temporary
-                        // readers borrow their carrier without transferring it.
-                        matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow)
-                    } else if resolved_type_contains_owned_bytes(self.program, &param.ty) {
-                        (vec_intrinsic::is_owned_vec_carrier(self.program, &param.ty)
-                            || super::type_reachability::is_admitted_nested_owned_byte_record(
-                                &self.program.declarations,
-                                &param.ty,
-                            )
-                            || super::owned_text_record::admitted(
-                                &param.ty,
-                                &self.program.declarations,
-                            )
-                            || resolved_type_is_flat_owned_byte_variant(self.program, &param.ty))
-                            && matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow)
-                            && matches!(
-                                &argument.kind,
-                                ResolvedExprKind::Place(place) if place.projections.is_empty()
-                            )
-                    } else if super::owned_text_record::admitted(
-                        &param.ty,
-                        &self.program.declarations,
-                    ) || resolved_type_is_flat_owned_string_variant(
-                        self.program,
-                        &param.ty,
-                    ) {
-                        matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow)
-                            && matches!(
-                                &argument.kind,
-                                ResolvedExprKind::Place(place) if place.projections.is_empty()
-                            )
-                    } else {
-                        true
-                    }
-                }
-                OwnershipMode::Shared => actual == OwnershipMode::Shared,
-                OwnershipMode::Value => false,
-            }
-        };
-        if valid {
-            Ok(())
-        } else {
-            Err(hir_error_at_span(
-                argument.span,
-                format!(
-                    "argument ownership is incompatible with parameter `{}`",
-                    param.id
-                ),
-            ))
-        }
     }
 
     /// Class Inheritance v1: independent re-derivation of the upcast

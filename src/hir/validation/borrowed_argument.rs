@@ -85,6 +85,7 @@ impl<'a> HirValidator<'a> {
         Ok(())
     }
 
+    #[cfg(test)]
     pub(super) fn validate_borrowed_bytes_call_argument(
         &self,
         call: &ResolvedExpr,
@@ -93,7 +94,25 @@ impl<'a> HirValidator<'a> {
         parameter_index: usize,
         scope: &BTreeMap<ValueId, ValidationBinding>,
     ) -> Result<(), Diagnostic> {
-        if parameter.ty != ResolvedType::Bytes || parameter.ownership != OwnershipMode::Borrow {
+        self.validate_borrowed_bytes_call_argument_fields(
+            call,
+            argument,
+            (&parameter.ty, parameter.ownership),
+            parameter_index,
+            scope,
+        )
+    }
+
+    pub(super) fn validate_borrowed_bytes_call_argument_fields(
+        &self,
+        call: &ResolvedExpr,
+        argument: &ResolvedExpr,
+        parameter: (&ResolvedType, OwnershipMode),
+        parameter_index: usize,
+        scope: &BTreeMap<ValueId, ValidationBinding>,
+    ) -> Result<(), Diagnostic> {
+        let (parameter_type, parameter_ownership) = parameter;
+        if *parameter_type != ResolvedType::Bytes || parameter_ownership != OwnershipMode::Borrow {
             return Ok(());
         }
         let ResolvedExprKind::Call {

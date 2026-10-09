@@ -92,6 +92,12 @@ canonical .spx source or held Project inputs
 Every backend passes source verification and validated HIR. Cleanup-plan vectors
 are canonical runtime order; projections and backends must never sort or repair them.
 
+`hir/validation/call_parameters.rs` owns validation-only byte-operation
+signature views and argument ownership checks. Byte views borrow the immutable
+operation table and format synthetic parameter identities only for diagnostics;
+other signatures retain their owned metadata and full frame capacity census.
+The test-only recursive validator retains the allocating signature reference.
+
 Project execution selects interpreter closure admission from the retained manifest
 profile in `interpreter/resolved_case.rs`. Project v25 stream-text and its v27
 stream-data successor admit pure, explicit-ID owned-String helpers with the

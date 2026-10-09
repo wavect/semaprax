@@ -28,6 +28,8 @@ mod execution;
 mod external_dependencies;
 mod filesystem;
 mod flat_owned_record;
+mod json_codec;
+pub use json_codec::{derive_json_codec_source, verify_json_codec_source};
 pub(crate) mod host_policy;
 mod hot_reload;
 mod hot_reload_watcher;

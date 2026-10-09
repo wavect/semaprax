@@ -1,0 +1,169 @@
+//! Checked, ordinary-source application JSON codecs. Generated names confer no authority.
+
+mod emit;
+#[cfg(test)]
+mod tests;
+
+use crate::ast::{Type, TypeDeclaration, TypeDeclarationKind};
+use crate::diagnostic::Diagnostic;
+use crate::semantic_workspace::SemanticWorkspaceSource;
+
+use super::ProjectRevision;
+
+const MAX_SCHEMA_BYTES: usize = 65_536;
+const MAX_GENERATED_BYTES: usize = 131_072;
+const MAX_FIELDS: usize = 8;
+
+pub(super) fn refusal(message: impl Into<String>) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-J180", message).with_help(
+        "JSON codec v1 derives private flat records with explicit identities, 1..8 i64/u8/usize/bool fields and no invariants; declare std.data.json.scan, std.data.json.token, std.data.json.digits and std.data.json.write dependencies",
+    )]
+}
+
+/// Derive a checked canonical replacement of one existing Project source.
+///
+/// Wire names are field display names, ordering is declaration order, and
+/// identities come from this revision's authenticated source. This is source
+/// generation, not a schema-authorized HIR operation or a public nominal ABI.
+/// Replacing or installing the output still uses the ordinary Project boundary.
+pub fn derive_json_codec_source(
+    revision: &ProjectRevision,
+    source_path: &str,
+    record_id: &str,
+) -> Result<String, Vec<Diagnostic>> {
+    revision.check()?;
+    let source = revision
+        .sources()
+        .iter()
+        .find(|source| source.path() == source_path)
+        .ok_or_else(|| refusal("JSON codec source must be an exact Project source path"))?;
+    if !revision
+        .manifest()
+        .sources()
+        .iter()
+        .any(|path| path == source_path)
+        || source.source().len() > MAX_SCHEMA_BYTES
+    {
+        return Err(refusal(
+            "JSON codec requires an authored source of at most 65536 bytes",
+        ));
+    }
+    let mut program = crate::parse(source.source(), source_path).map_err(|error| vec![error])?;
+    let declaration = program
+        .types
+        .iter()
+        .find(|ty| ty.stable_id == record_id)
+        .ok_or_else(|| {
+            refusal("JSON codec record identity was not found in the selected source")
+        })?;
+    validate_record(declaration)?;
+    let fragment = emit::source(&program, declaration);
+    if fragment.len() > MAX_GENERATED_BYTES {
+        return Err(refusal(
+            "JSON codec generated source exceeds its fixed 131072-byte bound",
+        ));
+    }
+    let generated = crate::parse(&fragment, source_path).map_err(|error| vec![error])?;
+    // Import aliases and helper/type identities are checked normally, including
+    // collisions with authored declarations. No hidden function exemption.
+    for import in generated.module_uses {
+        if !program.module_uses.iter().any(|existing| {
+            existing.kind == import.kind
+                && existing.persistent_id == import.persistent_id
+                && existing.target_module == import.target_module
+                && existing.alias == import.alias
+        }) {
+            program.module_uses.push(import);
+        }
+    }
+    program.types.extend(generated.types);
+    program.functions.extend(generated.functions);
+    let canonical = crate::format::canonical(&program);
+    if canonical.len() > MAX_SCHEMA_BYTES + MAX_GENERATED_BYTES {
+        return Err(refusal(
+            "JSON codec replacement exceeds its fixed canonical source bound",
+        ));
+    }
+    let reparsed = crate::parse(&canonical, source_path).map_err(|error| vec![error])?;
+    if crate::format::canonical(&reparsed) != canonical {
+        return Err(refusal("JSON codec canonical source did not round trip"));
+    }
+    let sources = revision
+        .sources()
+        .iter()
+        .map(|source| SemanticWorkspaceSource {
+            path: source.path().to_owned(),
+            source: if source.path() == source_path {
+                canonical.clone()
+            } else {
+                source.source().to_owned()
+            },
+        })
+        .collect();
+    // The original profile, capabilities, exports, dependency inventory, HIR
+    // validation, graph construction and cache-compatible source facts remain
+    // authoritative. A refused profile is never broadened by this generator.
+    let candidate = super::build::build_owned(revision.manifest(), sources)?;
+    crate::hir::validate(&candidate.entry_program).map_err(|error| vec![error])?;
+    crate::hir::validate(&candidate.test_program).map_err(|error| vec![error])?;
+    Ok(canonical)
+}
+
+/// Replay a derivation claim against the exact authenticated revision.
+/// Ordinary edited source has no derivation authority merely from helper IDs.
+pub fn verify_json_codec_source(
+    revision: &ProjectRevision,
+    source_path: &str,
+    record_id: &str,
+    candidate: &str,
+) -> Result<(), Vec<Diagnostic>> {
+    if candidate.len() > MAX_SCHEMA_BYTES + MAX_GENERATED_BYTES
+        || derive_json_codec_source(revision, source_path, record_id)? != candidate
+    {
+        return Err(refusal(
+            "JSON codec source differs from its checked-source derivation",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_record(record: &TypeDeclaration) -> Result<(), Vec<Diagnostic>> {
+    let TypeDeclarationKind::Record { fields } = &record.kind else {
+        return Err(refusal("JSON codec root must be a record"));
+    };
+    if !record.explicit_id
+        || !record.type_parameters.is_empty()
+        || !record.invariants().is_empty()
+        || fields.is_empty()
+        || fields.len() > MAX_FIELDS
+        || record.stable_id.len() > 80
+        || record.name.len() > 64
+        || !record
+            .stable_id
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || b"._-:".contains(&byte))
+        || !identifier(&record.name)
+    {
+        return Err(refusal("JSON codec requires a bounded explicitly identified monomorphic record without invariants"));
+    }
+    for field in fields {
+        if !field.explicit_id
+            || !identifier(&field.name)
+            || field.name.len() > 64
+            || !matches!(field.ty, Type::I64 | Type::U8 | Type::Usize | Type::Bool)
+        {
+            return Err(refusal(format!(
+                "JSON codec field `{}` is outside the flat scalar v1 contract",
+                field.stable_id
+            )));
+        }
+    }
+    Ok(())
+}
+
+fn identifier(value: &str) -> bool {
+    !value.is_empty()
+        && value.bytes().enumerate().all(|(index, byte)| {
+            byte == b'_' || byte.is_ascii_alphabetic() || index > 0 && byte.is_ascii_digit()
+        })
+}

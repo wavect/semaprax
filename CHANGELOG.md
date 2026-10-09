@@ -5,6 +5,10 @@
   with explicit prerequisites and deterministic continuations. Correct the
   starter command grammar; current-head help gates and live measurements await
   the grouped batch.
+- Add checked-source derivation of ordinary application JSON codecs for private
+  flat scalar records, typed invalid-input outcomes, exact output preflight and
+  exclusive-create CLI publication. Preserve original profile admission and
+  scanner semantics; first-tranche backend gates remain pending.
 
 - Store immutable loan endpoint and edge identity lists as exact boxed slices,
   retaining list order and cache encoding while charging shrinking overlap.

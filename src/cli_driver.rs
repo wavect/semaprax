@@ -407,9 +407,8 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{output}");
             Ok(())
         }
-        CommandId::Doc => {
-            let options = cli::doc::parse(&args[1..])?;
-            cli::doc::run(options, |errors| report(errors, false))
+        CommandId::Doc | CommandId::JsonCodec => {
+            cli::json_codec::dispatch(command_id, &args[1..], |errors| report(errors, false))
         }
         CommandId::Verify => {
             let options = cli::verify::parse(&args[1..])?;

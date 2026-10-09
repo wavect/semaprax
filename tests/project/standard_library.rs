@@ -16,6 +16,8 @@ fn root() -> PathBuf {
 
 #[path = "standard_library/api_inventory.rs"]
 mod api_inventory;
+#[path = "standard_library/application_json.rs"]
+mod application_json;
 #[path = "standard_library/backend_value_equivalence.rs"]
 mod backend_value_equivalence;
 #[path = "standard_library/cross_backend_capture.rs"]

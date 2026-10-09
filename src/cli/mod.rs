@@ -18,6 +18,7 @@ pub(crate) mod fix;
 pub(crate) mod fmt;
 pub(crate) mod graph;
 pub(crate) mod help;
+pub(crate) mod json_codec;
 pub(crate) mod manifest_hint;
 pub(crate) mod new_project;
 pub(crate) mod package;

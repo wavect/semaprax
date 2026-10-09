@@ -17,6 +17,7 @@ pub(crate) enum CommandId {
     Explore,
     Compact,
     Doc,
+    JsonCodec,
     Verify,
     Agent,
     SourceLive,
@@ -173,6 +174,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Graph, canonical: "graph", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax graph <file>"] },
     CommandSpec { id: CommandId::Explore, canonical: "explore", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax explore <manifest> [--target <id> --depth <n>] [--candidate-capsule <path> --expect-candidate <digest>] --format html|json|markdown|svg --output <path>"] },
     CommandSpec { id: CommandId::Doc, canonical: "doc", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax doc <file|project> [--module <source-path>] [--json]"] },
+    CommandSpec { id: CommandId::JsonCodec, canonical: "json-codec", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax json-codec <project> --source <module-path> --type <record-id> --output <new-file>"] },
     CommandSpec { id: CommandId::Verify, canonical: "verify", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax verify <file> <patch.spatch> <evidence.json>", "semaprax verify <root> <patch.wspatch>|<proposal.json> <evidence.json>", "semaprax verify <definition.json> <profile.json> <graph.json>", "semaprax verify <manifest> <image.json>"] },
     CommandSpec { id: CommandId::Agent, canonical: "agent", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax agent inspect <definition.json> [--profile]", "semaprax agent run <definition.json> <task.json> <transcript.json> [--evidence|--trace]", "semaprax agent replay <definition.json> <task.json> <transcript.json> <evidence.json>", "semaprax agent skill [--require-schema <schema>]"] },
     CommandSpec { id: CommandId::SourceLive, canonical: "source-live", aliases: &[], availability: Availability::Private, global: true, usages: &["semaprax-full source-live run <config.json> <checkpoint-dir> --opencode <absolute-executable> --scratch <empty-absolute-dir>", "semaprax-full source-live resume <config.json> <checkpoint-dir> --opencode <absolute-executable> --scratch <empty-absolute-dir>", "semaprax-full source-live migrate <old-config.json> <old-checkpoint-dir> <new-config.json> <new-checkpoint-dir> <function-id> <steps> --opencode <absolute-executable> --scratch <empty-absolute-dir>", "semaprax-full source-live repair run <repair-config.json> <checkpoint-dir>", "semaprax-full source-live repair resume <repair-config.json> <checkpoint-dir>"] },
@@ -879,6 +881,9 @@ pub(crate) fn scoped(name: &str, private: bool) -> Option<String> {
         }
         out.push('\n');
     }
+    if spec.id == CommandId::JsonCodec {
+        out.push_str(super::json_codec::HELP);
+    }
     Some(out)
 }
 /// Every canonical top-level command name this compiler admits, public or
@@ -941,6 +946,7 @@ mod tests {
         "check",
         "graph",
         "doc",
+        "json-codec",
         "verify",
         "agent",
         "source-live",

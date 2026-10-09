@@ -49,11 +49,13 @@ class CodexShiftSimTests(unittest.TestCase):
                 with patch.object(adapter.shiftsim.common, "add_seed_worktree") as worktree, \
                      patch.object(adapter.codex, "run_codex") as paid:
                     for launch in calls:
-                        with self.assertRaisesRegex(ValueError, "compiler .* differs"):
-                            launch()
+                        row = launch()
+                        self.assertEqual(row["status"], "failed")
+                        self.assertTrue(row["runner_error"])
+                        self.assertRegex(row["failure"], "compiler .* differs")
                     worktree.assert_not_called()
                     paid.assert_not_called()
-                self.assertFalse((root / "artifacts").exists())
+                self.assertEqual({path.name for path in (root / "artifacts").iterdir()}, {"resource-receipts"})
 
     def seed(self, root):
         result = adapter.shiftsim.common.create_seed_repository(

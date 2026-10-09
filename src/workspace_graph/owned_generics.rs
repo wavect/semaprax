@@ -701,6 +701,34 @@ pub(super) fn private_callable_link_ids(
 // The same authenticated owned-data linker serves ordinary roots and the
 // explicit Agent role/type roots. Existing callers retain their empty type set.
 impl super::WorkspaceGraphBuild {
+    /// Preserve the declared named-case roots for native source-command tests.
+    /// The old interpreter refusal remains unchanged; retaining a closure
+    /// grants no process or file authority by itself.
+    pub(super) fn linked_source_command_test_program(
+        &self,
+        test_module: &str,
+    ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
+        let roots = self
+            .hir
+            .modules
+            .iter()
+            .filter(|module| module.module == test_module)
+            .flat_map(|module| &module.functions)
+            .filter(|function| {
+                function.name.starts_with(crate::project::TEST_CASE_PREFIX)
+                    && function.params.is_empty()
+                    && function.return_type == hir::ResolvedType::I64
+                    && self
+                        .hir
+                        .declarations
+                        .get(function.id.as_str())
+                        .is_some_and(|fact| fact.origin == hir::IdentityOrigin::Explicit)
+            })
+            .map(|function| function.id.as_str().to_owned())
+            .collect::<Vec<_>>();
+        self.linked_owned_data_api_program_with_roots(test_module, &roots)
+    }
+
     pub(super) fn linked_stream_text_test_program(
         &self,
         test_module: &str,

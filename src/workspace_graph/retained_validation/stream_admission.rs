@@ -73,6 +73,10 @@ pub(in crate::workspace_graph) fn stream_test_program(
     dependency_anchors: bool,
 ) -> Result<hir::ResolvedProgram, Vec<crate::diagnostic::Diagnostic>> {
     match profile {
+        crate::project::ProjectProfile::SourceCommandV1
+        | crate::project::ProjectProfile::SourceCommandResourceOutputV1 => {
+            build.linked_source_command_test_program(test_module)
+        }
         crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
             build.linked_stream_data_test_program(test_module)
         }

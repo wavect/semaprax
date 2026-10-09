@@ -161,8 +161,9 @@ fn test_fail() -> i64 { 7 }
 @id("decimal.tests.test_helper")
 fn test_helper(value: i64) -> i64 { value }
 "#;
-    for manifest in [MANIFEST, RESOURCE_MANIFEST] {
-        let fixture = Fixture::with_tests(APP, manifest, tests);
+    let resource_app = resource_app(1, 0);
+    for (app, manifest) in [(APP, MANIFEST), (resource_app.as_str(), RESOURCE_MANIFEST)] {
+        let fixture = Fixture::with_tests(app, manifest, tests);
         let manifest_path = fixture.0.join("semaprax.toml");
         project::with_authenticated_project(&manifest_path, |snapshot| {
             let roots = snapshot.native_test_roots()?;

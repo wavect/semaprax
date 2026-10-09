@@ -1,0 +1,9 @@
+module warehouse.app;
+
+permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
+
+@id("warehouse.app.main")
+fn main() -> i64 { 0 }
+
+@id("warehouse.command")
+fn command() -> i64 uses { process.stdin.read, process.stdout.write } { 0 }

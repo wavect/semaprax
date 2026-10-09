@@ -1,0 +1,19 @@
+module warehouse.schema;
+
+permit { process.stdin.read }
+
+@id("warehouse.stock")
+record Stock {
+    @id("warehouse.stock.sku") sku: string,
+    @id("warehouse.stock.quantity") quantity: i64,
+    @id("warehouse.stock.available") available: bool,
+}
+
+@id("warehouse.request")
+record Request {
+    @id("warehouse.request.locations") locations: Vec<string>,
+    @id("warehouse.request.stock") stock: Vec<Stock>,
+}
+
+@id("warehouse.schema.anchor")
+fn schema_anchor() -> i64 { 0 }

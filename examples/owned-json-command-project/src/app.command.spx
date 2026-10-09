@@ -1,0 +1,61 @@
+module warehouse.app;
+
+use type @id("warehouse.stock") from warehouse.schema as Stock;
+use type @id("warehouse.request.json.stream-input") from warehouse.schema as StreamInput;
+use type @id("warehouse.request.json.owned-result") from warehouse.schema as Outcome;
+use type @id("warehouse.stock.json.view-encode") from warehouse.schema as Encoded;
+use function @id("warehouse.request.json.stream.normalize") from warehouse.schema as normalize;
+use function @id("warehouse.request.json.owned.decode") from warehouse.schema as decode;
+use function @id("warehouse.request.json.owned.encode") from warehouse.schema as encode;
+
+permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
+
+@id("warehouse.receive")
+fn receive() -> Outcome uses { process.stdin.read } {
+    let normalized = normalize();
+    match own normalized {
+        StreamInput::Error { code, offset, field } => Outcome::Error { code: code, offset: offset, field: field },
+        StreamInput::Ready { bytes, length } => decode(byte_range(bytes_as_slice(bytes), 0usize, length)),
+    }
+}
+
+@id("warehouse.adjust")
+fn adjust(value: own Stock) -> Stock {
+    match own value {
+        Stock { sku, quantity, available } => {
+            let reduced = if quantity > 0 { quantity - 1 } else { quantity };
+            Stock { sku: sku, quantity: reduced, available: available }
+        },
+    }
+}
+
+@id("warehouse.command")
+fn command() -> i64 uses { process.stdin.read, process.stdout.write } {
+    let result = receive();
+    match own result {
+        Outcome::Error { code, offset, field } => 2,
+        Outcome::Decoded { locations, stock } => {
+            let locations = vec_sort_owned<string>(locations);
+            let sorted = vec_sort_owned<Stock>(stock);
+            let rows = if vec_len<Stock>(sorted) > 0usize {
+                let first = vec_clone_at<Stock>(sorted, 0usize);
+                let revised = adjust(first);
+                vec_replace<Stock>(sorted, 0usize, revised)
+            } else {
+                sorted
+            };
+            let rendered = encode(locations, rows, 131072usize);
+            match own rendered {
+                Encoded::Refused { required } => 2,
+                Encoded::Encoded { text } => {
+                    let bytes = str_as_bytes(string_as_str(text));
+                    let written = stdout_write(bytes);
+                    if written == byte_len(bytes) { 0 } else { 1 }
+                },
+            }
+        },
+    }
+}
+
+@id("warehouse.app.main")
+fn main() -> i64 { 0 }

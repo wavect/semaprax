@@ -69,9 +69,13 @@ all scalar field kinds, signed-zero ordering, mixed-width records, exact/over
 capacity, bounds failures, allocation refusal, canonical/graph round trips and
 hostile HIR. The physical corpus executes interpreter, native C11 O0/O2, and
 validated Core Wasm under a strict moving-handle host; native allocation and
-all host handles must settle after repeated invocations. Exact NaN payload
-ordering needs an additional internal-boundary probe because source deliberately
-rejects nonfinite literal payloads. These gates have not been run by this lane.
+all host handles must settle after repeated invocations. The additional library
+`copy_record_float_total_order_preserves_nan_payloads_at_internal_boundaries`
+probe passes exact signed quiet/signaling NaN payloads, infinities and zeros
+through private interpreter/native calls and test-only Wasm argument constants.
+It verifies the full declared total order without changing public scalar
+admission or permitting nonfinite source/HIR literals. These gates have not
+been run by this lane.
 
 Project v27 remains frozen: `stream_data_parameter_admitted` accepts only borrowed
 scalar Vec helpers; `validate_stream_data_program` rejects authored nominal

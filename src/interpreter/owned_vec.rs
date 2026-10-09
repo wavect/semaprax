@@ -1,5 +1,8 @@
 //! Reference-interpreter carrier and evaluation for compiler-owned bounded Vec.
 
+#[cfg(test)]
+mod float_order_probe;
+
 use std::sync::Arc;
 
 use crate::conformance::{NormalizedStatus, Retryability, StatusClass};

@@ -3803,7 +3803,10 @@ impl<'a> HirValidator<'a> {
                         frames.push(Frame::Enter {
                             expression: &args[index],
                             scope,
-                            path: format!("{path}.arg.{index}"),
+                            path: format!(
+                                "{path}.arg.{}",
+                                index + usize::from(matches!(expression.kind, ResolvedExprKind::LiteralFormat { .. }))
+                            ),
                         });
                     }
                 }
@@ -6371,7 +6374,7 @@ impl<'a> HirValidator<'a> {
                         return Err(hir_error("literal format has an unsupported argument type"));
                     }
                     self.validate_expr_recursive_reference(function, argument, scope,
-                        &format!("{path}.arg.{index}"), allow_moves, allowed_effects)?;
+                        &format!("{path}.arg.{}", index + 1), allow_moves, allowed_effects)?;
                     let parameter = CallParameters::LiteralFormat(args).parameter(index);
                     self.validate_argument_ownership_view(argument, parameter)?;
                     let parameter = CallParameters::LiteralFormat(args).parameter(index);

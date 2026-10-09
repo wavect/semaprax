@@ -846,7 +846,7 @@ fn collect_resolved_expression_type_sites<'a>(
             for (index, argument) in args.iter().enumerate() {
                 collect_resolved_expression_type_sites(
                     owner, argument,
-                    &crate::bounded_output::budgeted_format(format_args!("{path}.arg.{index}")),
+                    &crate::bounded_output::budgeted_format(format_args!("{path}.arg.{}", index + 1)),
                     imported, out,
                 )?;
             }

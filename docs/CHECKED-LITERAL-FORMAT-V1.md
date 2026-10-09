@@ -14,7 +14,9 @@ For example, `string_format("{}: {{}}", 7)` produces `7: {}`. The source
 formatter preserves the ordinary call spelling. The graph projects the
 dedicated `literal_format` node with its decoded raw `template` and dynamic
 `args`, and the HIR cache uses additive expression tag 33. The retained HIR
-stores no parsed recipe; validation reparses the template, checks the children
+keeps dynamic child identities at their original source argument indexes
+(starting at one because the template is source argument zero). It stores no
+parsed recipe; validation reparses the template, checks the children
 and fixed result, and cached-module restoration independently resolves the
 synthetic source before Project replay binds it to canonical authored source.
 

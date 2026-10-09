@@ -129,21 +129,30 @@ version = "0.1.0"
 profile = "owned-data-api.v1"
 [modules]
 entry = "format.cache"
-sources = ["src/app.spx", "src/tests.spx"]
+sources = ["src/app.spx", "src/provider.spx", "src/tests.spx"]
 tests = ["format.tests"]
 [exports]
 web = []
 "#,
     )
     .unwrap();
-    let (source, _, _) = fixture();
+    let source=SOURCE.replace("module format.cache;", "module format.cache; use function @id(\"format.imported\") from format.provider as provided;")
+        .replace("string_len(render(\"left\",\"right\"))", "string_len(string_format(\"{}{}\",render(\"left\",\"right\"),provided()))");
+    let source = crate::format::canonical(&crate::parse(&source, "src/app.spx").unwrap());
     let tests = crate::check(
         "module format.tests; @id(\"tests.main\") fn main()->i64 {0}",
         "src/tests.spx",
     )
     .unwrap();
+    let provider = crate::check(
+        "module format.provider; @id(\"format.imported\") fn provided()->i64 {7}",
+        "src/provider.spx",
+    )
+    .unwrap();
     let sources = [
         ProjectFrontendSource::new("src/app.spx", &source).unwrap(),
+        ProjectFrontendSource::new("src/provider.spx", &crate::format::canonical(&provider))
+            .unwrap(),
         ProjectFrontendSource::new("src/tests.spx", &crate::format::canonical(&tests)).unwrap(),
     ];
     let mut cache = ProjectFrontendCache::new_with_semantic_cache();
@@ -174,8 +183,19 @@ fn literal_format_snapshot_rejects_template_source_and_synthetic_drift() {
         } else {
             // Consistently forged AST + HIR must still lose against unchanged
             // canonical authored source during ordinary Project reconstruction.
-            entry.synthetic =
-                crate::check(&entry.source.replace("{}:{}", "{}|{}"), "src/app.spx").unwrap();
+            let function = entry
+                .synthetic
+                .functions
+                .iter_mut()
+                .find(|f| f.stable_id == "format.render")
+                .unwrap();
+            let crate::ast::ExprKind::Block { tail, .. } = &mut function.body.kind else {
+                panic!("block")
+            };
+            let crate::ast::ExprKind::Call { args, .. } = &mut tail.kind else {
+                panic!("format call")
+            };
+            args[0].kind = crate::ast::ExprKind::String("{}|{}".into());
             entry.resolved = crate::hir::resolve(&entry.synthetic).unwrap();
         }
         let hostile = crate::cache_codec::encode(&snapshot).unwrap();

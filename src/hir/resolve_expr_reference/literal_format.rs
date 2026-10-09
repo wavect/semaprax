@@ -53,7 +53,7 @@ impl Resolver<'_> {
                     function,
                     argument,
                     bindings,
-                    &format!("{path}.arg.{}", index - 1),
+                    &format!("{path}.arg.{index}"),
                 )
             })
             .collect::<Result<Vec<_>, _>>()?;

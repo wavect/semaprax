@@ -20,7 +20,7 @@ impl Resolver<'_> {
             frames.push(Frame::Enter {
                 expr: argument,
                 bindings,
-                path: format!("{path}.arg.{}", index - 1),
+                path: format!("{path}.arg.{index}"),
             });
         }
     }

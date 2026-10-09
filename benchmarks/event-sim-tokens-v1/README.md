@@ -104,6 +104,13 @@ with `python3 codex_report.py /path/to/results.json`. It derives model-request
 usage and conditional cost only from reconciled rollout traces; missing traces
 and incomplete arms remain explicit in the JSON report.
 
+The fresh source398 campaign dated 2026-10-09 completed all ten planned attempts
+(five per arm); all ten were accepted through the independent 15-case gate. See
+the [campaign report](reports/codex-current-source398b051e6-base398b051e6-20261009.md)
+and [trace-backed recount](reports/codex-current-source398b051e6-base398b051e6-20261009-recount.json).
+This is a separate fresh run; historical reports remain unchanged, and no
+language-advantage or savings claim is made.
+
 Future matched runs can opt into the pinned dependency-only TypeScript setup
 with `--typescript-bootstrap-receipt`. See [LIVE-CAMPAIGN.md](LIVE-CAMPAIGN.md)
 for setup instructions and the unknown-context reporting limit.

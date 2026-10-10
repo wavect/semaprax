@@ -415,6 +415,9 @@ fn run_profile(
 
 #[test]
 fn generated_rust_moves_allocating_and_nested_moves_callers_admit_before_physical_handoff() {
+    // Native result initialization now precedes failure exits. Reversing only
+    // that relocation and recomputing the artifact binding reproduces all three
+    // prior consumer pins byte for byte; descriptor and other files are unchanged.
     reuse_controls();
     let root = env::temp_dir().join(format!(
         "semaprax-r07-profile-rust-{}-{}",
@@ -437,7 +440,7 @@ fn generated_rust_moves_allocating_and_nested_moves_callers_admit_before_physica
         library: "spx_pg_private_authenticated_moves_rust_v1",
         // The selected branch swaps the distinct, non-palindromic leaves.
         expected: ["[2, 11, 17, 23]", "[1, 7, 13]"],
-        pin: "b441b0d08a2f8edf6218c8ac9058ec617f9c31990aaa0179c49902d72094a12a",
+        pin: "4056250fc5dfba904b08792a1c5f5f0abde8cd62bd6772a3c913c9ff247c3a72",
     };
     let mut processes = run_profile(
         &root,
@@ -479,7 +482,7 @@ fn generated_rust_moves_allocating_and_nested_moves_callers_admit_before_physica
         library: "spx_pg_private_authenticated_allocating_rust_v1",
         // Left is a fresh copy; right is remade by the allocating callee.
         expected: ["[1, 7, 13]", "[9, 0, 0]"],
-        pin: "24523f13a41d7f9c92a31588b005dc7248e7ac96ab1ad72a689e428b904f09d6",
+        pin: "2b5d031842792e63c6eb41aa76713c25fbfe503123297b9548603aefbf45e083",
     };
     processes += run_profile(
         &root,
@@ -534,7 +537,7 @@ fn generated_rust_moves_allocating_and_nested_moves_callers_admit_before_physica
         library: "spx_pg_private_authenticated_moves_nested_rust_v1",
         // `Leaf { a, b }` is swapped exactly like `Pair { left, right }` above.
         expected: ["[2, 11, 17, 23]", "[1, 7, 13]"],
-        pin: "daeb042ea36bd6ab5925bbb87848cdebc1ab7f3b21a272057ed8916533079fe8",
+        pin: "bd0ee81f95f0f9f92cec13d11f052a6da95e21aa965a16471510213d6ecf7bd3",
     };
     processes += run_profile(
         &root,

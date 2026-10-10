@@ -2,7 +2,7 @@ use super::*;
 
 fn manifest(profile: &str) -> String {
     format!(
-        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"collection-record\"\nversion = \"0.1.0\"\nprofile = \"{profile}\"\n\n[modules]\nentry = \"app.entry\"\nsources = [\"src/app.spx\"]\ntests = []\n\n[exports]\nweb = []\n\n[command]\nfunction = \"app.command\"\ninput = \"argv-utf8+stdin-stream.v1\"\n\n[capabilities]\nrequired = [\"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]\n"
+        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"collection-record\"\nversion = \"0.1.0\"\nprofile = \"{profile}\"\n\n[modules]\nentry = \"app.entry\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"app.tests\"]\n\n[exports]\nweb = [\"app.command\"]\n\n[command]\nfunction = \"app.command\"\ninput = \"argv-utf8+stdin-stream.v1\"\n\n[capabilities]\nrequired = [\"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]\n"
     )
 }
 

@@ -51,7 +51,9 @@ permit {process.args.read,process.stderr.write,process.stdin.read,process.stdout
 "#
     };
     let provider = if helper_in_app {
-        "module collection.data;\n"
+        r#"module collection.data;
+@id("collection.data.anchor") fn anchor()->i64 {0}
+"#
     } else {
         r#"module collection.data;
 @id("collection.metrics") record Metrics {@id("collection.metrics.selected") selected:i64,}
@@ -91,9 +93,9 @@ fn command_data() -> &'static str {
 @id("collection.report") record Report {@id("collection.report.items") items:Vec<string>,@id("collection.report.metrics") metrics:Metrics,}
 @id("collection.inspect") fn inspect(value:borrow Report)->i64 {i64_from_usize(vec_len<string>(value.items))+value.metrics.selected}
 @id("collection.verify") fn verify()->i64 {
- let items=vec_with_capacity<string>(2usize);
- let items=vec_push<string>(items,"one");
- let items=vec_push<string>(items,"two");
+ let empty_items=vec_with_capacity<string>(2usize);
+ let first_item=vec_push<string>(empty_items,"one");
+ let items=vec_push<string>(first_item,"two");
  let report=Report{items,metrics:Metrics{selected:10}};
  inspect(report)
 }

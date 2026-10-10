@@ -29,11 +29,11 @@ fn empty_report() -> Report
 @id("record_order.full_report")
 fn full_report() -> Report
 {
-    let items = vec_with_capacity<Row>(4usize);
-    let items = vec_push<Row>(items, Row { department: 2, priority: 1, id: "b", ordinal: 1 });
-    let items = vec_push<Row>(items, Row { department: 1, priority: 3, id: "z", ordinal: 2 });
-    let items = vec_push<Row>(items, Row { department: 1, priority: 3, id: "a", ordinal: 3 });
-    let items = vec_push<Row>(items, Row { department: 1, priority: 1, id: "x", ordinal: 4 });
+    let empty_items = vec_with_capacity<Row>(4usize);
+    let department_two = vec_push<Row>(empty_items, Row { department: 2, priority: 1, id: "b", ordinal: 1 });
+    let tied_z = vec_push<Row>(department_two, Row { department: 1, priority: 3, id: "z", ordinal: 2 });
+    let tied_a = vec_push<Row>(tied_z, Row { department: 1, priority: 3, id: "a", ordinal: 3 });
+    let items = vec_push<Row>(tied_a, Row { department: 1, priority: 1, id: "x", ordinal: 4 });
     Report { items, metrics: Metrics { selected: 0 } }
 }
 

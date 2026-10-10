@@ -201,7 +201,13 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
             settings, repo, compiler, candidate, evidence, _, _, _ = self.fixture(root, profile_name)
             admission = catalog.candidate_authoring_admission(candidate, "semaprax", profile_name)
             self.assertEqual(admission["status"], "passed")
-            self.assertEqual(admission["route"], catalog.ROUTE_BY_PROFILE[profile_name])
+            self.assertEqual(admission["route"]["schema"], "semaprax.manifest.v1")
+            self.assertEqual(admission["route"]["profile"], catalog.ROUTE_BY_PROFILE[profile_name]["project_profile"])
+            self.assertEqual(admission["route"]["input"], catalog.ROUTE_BY_PROFILE[profile_name]["input_route"])
+            self.assertEqual(admission["route"]["function"], "run")
+            self.assertEqual(admission["route"]["exports_web"], ["run"])
+            self.assertEqual(admission["route"]["capabilities"], [
+                "process.args.read", "process.stderr.write", "process.stdin.read", "process.stdout.write"])
             self.assertEqual(settings["qualification"]["acceptance_cases_passed"], 23)
             with patch.object(catalog.ts_bootstrap, "verify_plan", return_value={}):
                 catalog.require_authoring_eligibility(settings, compiler)
@@ -319,7 +325,7 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
 
             with patch.object(catalog.subprocess, "run", side_effect=fail_tsc):
                 failed = catalog.check_program(candidate, 10, env,
-                    harness_output=root / "typescript-failed-harness/catalog", arm="typescript",
+                    harness_output=root / "typescript-failed-parent" / "catalog", arm="typescript",
                     exclude_verified_node_modules=True)
             self.assertFalse(failed["accepted"])
             self.assertEqual(failed["pinned_typescript_build"]["status"], "failed")
@@ -340,7 +346,7 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
             with patch.object(catalog.subprocess, "run", side_effect=forge_report), \
                     self.assertRaisesRegex(ValueError, "differs from frozen case"):
                 catalog.check_program(candidate, 10, env,
-                    harness_output=root / "harness/typescript-forged-report", arm="typescript",
+                    harness_output=root / "typescript-forged-report" / "catalog", arm="typescript",
                     exclude_verified_node_modules=True)
 
             (candidate / "helper.cts").write_text("export const changed = true;\n")
@@ -376,7 +382,7 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
                 if command[0] == "git":
                     return original_run(command, **kwargs)
                 commands.append(command)
-                if command[:2] == [str(compiler), "build"]:
+                if len(command) > 1 and command[1] == "build":
                     Path(command[command.index("--output") + 1]).write_bytes(b"actual harness native fixture")
                 if "--report-json" in command:
                     app = json.loads(command[command.index("--command-json") + 1])

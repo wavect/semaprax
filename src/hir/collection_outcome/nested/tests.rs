@@ -256,7 +256,7 @@ fn nested_outcome_preserves_variant_inclusive_depth_and_leaf_bounds() {
         assert!(
             errors
                 .iter()
-                .any(|d| matches!(d.code.as_str(), "SPX-T215" | "SPX-T309" | "SPX-T268")),
+                .any(|d| matches!(d.code, "SPX-T215" | "SPX-T309" | "SPX-T268")),
             "{errors:?}"
         );
     }

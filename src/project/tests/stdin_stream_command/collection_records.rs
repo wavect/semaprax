@@ -286,6 +286,30 @@ fn pre_v32_profiles_reject_unused_nested_outcome_runtime_with_exact_route_hint()
 @id("n.forward") fn forward(value:own Outcome)->Outcome {value}
 "#;
 
+    for profile in [
+        PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V2,
+        PROJECT_PROFILE_STDIN_STREAM_OWNED_DATA_COMMAND_IO_V1,
+        PROJECT_PROFILE_STDIN_STREAM_COLLECTION_RECORD_COMMAND_IO_V1,
+    ] {
+        let root = fixture(profile, false);
+        std::fs::write(
+            root.join("b/data.spx"),
+            canonical_source("b/data.spx", nested_outcome),
+        )
+        .unwrap();
+        let before = file_inventory(&root);
+        let errors =
+            with_authenticated_project(&root.join(MANIFEST_FILE), |_| Ok(())).unwrap_err();
+        assert!(errors.iter().any(|error| {
+            error.code == "SPX-G172"
+                && error.message
+                    == "nested outcome runtime requires the explicitly selected language-command-io.nested-outcome.v1 profile"
+        }), "{profile}: {errors:?}");
+        assert_eq!(file_inventory(&root), before, "{profile}");
+        let _ = std::fs::remove_dir_all(root);
+    }
+}
+
 #[test]
 fn v32_nested_outcome_project_route_executes_native_command() {
     let root = fixture(PROJECT_PROFILE_STDIN_STREAM_NESTED_OUTCOME_COMMAND_IO_V1, false);
@@ -359,27 +383,4 @@ use function @id("n.decide") from collection.data as decide;
     assert!(result.stderr.is_empty());
     let _ = std::fs::remove_file(output);
     let _ = std::fs::remove_dir_all(root);
-}
-    for profile in [
-        PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V2,
-        PROJECT_PROFILE_STDIN_STREAM_OWNED_DATA_COMMAND_IO_V1,
-        PROJECT_PROFILE_STDIN_STREAM_COLLECTION_RECORD_COMMAND_IO_V1,
-    ] {
-        let root = fixture(profile, false);
-        std::fs::write(
-            root.join("b/data.spx"),
-            canonical_source("b/data.spx", nested_outcome),
-        )
-        .unwrap();
-        let before = file_inventory(&root);
-        let errors =
-            with_authenticated_project(&root.join(MANIFEST_FILE), |_| Ok(())).unwrap_err();
-        assert!(errors.iter().any(|error| {
-            error.code == "SPX-G172"
-                && error.message
-                    == "nested outcome runtime requires the explicitly selected language-command-io.nested-outcome.v1 profile"
-        }), "{profile}: {errors:?}");
-        assert_eq!(file_inventory(&root), before, "{profile}");
-        let _ = std::fs::remove_dir_all(root);
-    }
 }

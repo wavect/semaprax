@@ -22,6 +22,8 @@ mod scalar_match_scope;
 mod semantic_work;
 mod string_slots;
 mod variant_match;
+#[cfg(test)]
+mod projected_vec_tests;
 use owned_leaf::{emit_transfer, ByteSlot, OwnedLeafKind};
 use scalar_match_scope::ScopeExit;
 
@@ -102,7 +104,7 @@ impl NativeBytesPlan {
                         crate::stdin_stream_ops::DROP_ID if place.projections.is_empty() => {
                             OwnedLeafKind::StdinReader
                         }
-                        crate::cleanup::VEC_DROP_LIFECYCLE_ID if place.projections.is_empty() => {
+                        crate::cleanup::VEC_DROP_LIFECYCLE_ID => {
                             OwnedLeafKind::Vec
                         }
                         crate::cleanup::BOX_DROP_LIFECYCLE_ID if place.projections.is_empty() => {

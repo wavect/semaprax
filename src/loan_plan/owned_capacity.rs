@@ -16,6 +16,37 @@ pub(crate) fn owned_capacity_bytes_excluding(
     if covered_hir_keys.windows(2).any(|pair| pair[0] >= pair[1]) {
         return None;
     }
+    structural_capacity_bytes(plan)?.checked_add(shared_identity_bytes(plan, covered_hir_keys)?)
+}
+
+/// Final uncached retention reuses its charged candidate-key and state vectors.
+/// State 1 proves live HIR backing; state 0 must be charged independently. State
+/// 2 records a charged proof backing, never HIR sharing authority.
+pub(crate) fn owned_capacity_bytes_partitioned(
+    plan: &LoanPlan,
+    candidate_keys: &[usize],
+    states: &mut [u8],
+) -> Option<usize> {
+    if candidate_keys.len() != states.len()
+        || candidate_keys.windows(2).any(|pair| pair[0] >= pair[1])
+        || states.iter().any(|state| *state > 1)
+    {
+        return None;
+    }
+    let mut shared_bytes = 0usize;
+    for identity in proof_identities(plan) {
+        let key = identity.shared_allocation_key()?;
+        let bytes = identity.shared_allocation_bytes()?;
+        let index = candidate_keys.binary_search(&key).ok()?;
+        if states[index] == 0 {
+            shared_bytes = shared_bytes.checked_add(bytes)?;
+            states[index] = 2;
+        }
+    }
+    structural_capacity_bytes(plan)?.checked_add(shared_bytes)
+}
+
+fn structural_capacity_bytes(plan: &LoanPlan) -> Option<usize> {
     fn add(total: &mut usize, bytes: usize) -> Option<()> {
         *total = total.checked_add(bytes)?;
         Some(())
@@ -91,7 +122,6 @@ pub(crate) fn owned_capacity_bytes_excluding(
             edge.live.len().checked_mul(std::mem::size_of::<LoanId>())?,
         )?;
     }
-    add(&mut bytes, shared_identity_bytes(plan, covered_hir_keys)?)?;
     Some(bytes)
 }
 

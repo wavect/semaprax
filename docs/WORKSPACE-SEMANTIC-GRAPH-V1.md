@@ -288,9 +288,15 @@ distinct loan-plan identity backing keys. An allocation-free comparison census
 counts the exact distinct candidates before reserving either carrier. It sorts
 those candidates, then walks
 and validates every retained HIR identity and marks only exact backing-key
-matches. It compacts the matched keys in sorted order before the unchanged
-loan-sidecar capacity census. Unreferenced HIR identities consume no inventory
-entry; equal text in distinct allocations never establishes sharing.
+matches. The final uncached census reuses these same carriers to visit every
+proof backing: state 1 records HIR sharing, state 0 identifies independent
+storage and state 2 records its complete physical debit once. Every proof key
+must occur in the sorted candidate inventory, and every backing is validated.
+The independent debit includes the full String capacity and Arc carrier; equal
+text never establishes sharing. Only state 1 keys survive the final compaction.
+This eliminates the second unmatched-reference vector in this final attempt.
+Earlier attempts and standalone capacity APIs retain their original reference
+inventory and exact reservations. Unreferenced HIR identities consume no entry.
 
 One key vector and one byte-per-candidate match vector are reused across
 functions and modules. Before consuming a module, both carriers reserve the

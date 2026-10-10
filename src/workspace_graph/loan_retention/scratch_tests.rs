@@ -95,7 +95,12 @@ fn scratch_growth_reserves_the_whole_new_carrier_and_refuses_one_short() {
             assert!(overflow);
             // The refused replacement allocates no keys. Its diagnostic still
             // appends the complete message to the same cumulative ledger.
-            assert_eq!(debit, metadata(&small) + errors[0].message.len());
+            assert_eq!(
+                debit,
+                metadata(&small)
+                    + errors[0].message.len()
+                    + errors[0].help.as_ref().map_or(0, String::len)
+            );
         }
     }
 }
@@ -218,9 +223,11 @@ module generic.scratch;
     crate::hir::validate(&resolved).unwrap();
     let instances = resolved.function_instances;
     assert_eq!(instances.len(), 2);
-    assert!(instances
-        .iter()
-        .all(|instance| !instance.function.loan_plan.loans.is_empty()));
+    assert!(
+        instances
+            .iter()
+            .all(|instance| !instance.function.loan_plan.loans.is_empty())
+    );
     let programs = vec![program];
     let authored = super::super::index_authored(&programs).unwrap();
     let wires = instances
@@ -436,14 +443,16 @@ fn candidate_intersection_keeps_equal_text_distinct_full_capacity_and_exact_unma
     }
 }
 
-
 #[test]
 fn distinct_candidate_prefilter_keeps_collisions_exact_without_allocating() {
     for keys in [&[0usize, 4181, 0, 4181][..], &[1usize, 2, 3, 1, 4, 2][..]] {
-        let expected = keys.iter().copied().collect::<std::collections::BTreeSet<_>>().len();
-        let (actual, overflow, debit) = bounded_output::with_limit_usage(0, || {
-            distinct_keys(|| keys.iter().copied())
-        });
+        let expected = keys
+            .iter()
+            .copied()
+            .collect::<std::collections::BTreeSet<_>>()
+            .len();
+        let (actual, overflow, debit) =
+            bounded_output::with_limit_usage(0, || distinct_keys(|| keys.iter().copied()));
         assert_eq!(actual.unwrap().unwrap().0, expected);
         assert!(!overflow);
         assert_eq!(debit, 0);
@@ -452,9 +461,56 @@ fn distinct_candidate_prefilter_keeps_collisions_exact_without_allocating() {
     // must retain both; a bitmap hit must never grant physical sharing.
     let bucket = |key: usize| ((key as u64).wrapping_mul(0x9e37_79b9_7f4a_7c15) >> 52) as usize;
     assert_eq!(bucket(0), bucket(4181));
-    let (distinct, comparisons) = distinct_keys(|| [0usize, 4181].into_iter()).unwrap().unwrap();
+    let (distinct, comparisons) = distinct_keys(|| [0usize, 4181].into_iter())
+        .unwrap()
+        .unwrap();
     assert_eq!((distinct, comparisons), (2, 1));
     let (distinct, comparisons) = distinct_keys(|| 0usize..512).unwrap().unwrap();
     assert_eq!(distinct, 512);
-    assert_eq!(comparisons, 0, "a definitely new bucket needs no prior scan");
+    assert_eq!(
+        comparisons, 0,
+        "a definitely new bucket needs no prior scan"
+    );
+}
+
+#[test]
+fn final_census_reuses_candidate_storage_for_independent_full_capacity_backing() {
+    let mut function = tests::function();
+    let original = function.loan_plan.loans[0].site.clone();
+    let mut text = String::with_capacity(original.as_str().len() + 4096);
+    text.push_str(original.as_str());
+    let independent = ExpressionId::from_untrimmed_backing_for_test(text);
+    let independent_bytes = independent.shared_allocation_bytes().unwrap();
+    function.loan_plan.loans[0].site = independent.clone();
+    let mut endpoint = function.loan_plan.endpoints[0].clone();
+    endpoint.point.expression = independent;
+    function.loan_plan.endpoints.push(endpoint);
+    let expected = retained_function_loan_bytes(&function).unwrap();
+    let full = retained_loan_plan_bytes(&function.loan_plan).unwrap();
+    assert!(full >= independent_bytes);
+    let wire = crate::cache_codec::encode(&function.loan_plan).unwrap();
+    let required = metadata(&function);
+    let mut scratch = RetentionScratch::default();
+    let (value, overflow, debit) =
+        bounded_output::with_limit_usage(required, || scratch.measure(&function));
+    assert_eq!(
+        value.unwrap(),
+        expected,
+        "independent full capacity is retained"
+    );
+    assert!(!overflow);
+    assert_eq!(
+        debit, required,
+        "no unmatched-reference vector is allocated"
+    );
+    assert_eq!(
+        crate::cache_codec::encode(&function.loan_plan).unwrap(),
+        wire
+    );
+    let mut scratch = RetentionScratch::default();
+    let (refused, overflow, _) =
+        bounded_output::with_limit_usage(required - 1, || scratch.measure(&function));
+    assert_eq!(refused.unwrap_err()[0].code, "SPX-G171");
+    assert!(overflow);
+    assert_eq!(scratch.keys.capacity(), 0);
 }

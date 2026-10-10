@@ -40,7 +40,10 @@ pub(super) struct RetentionScratch {
 }
 
 impl RetentionScratch {
-    fn prepare<'a>(&mut self, functions: impl Iterator<Item = &'a ResolvedFunction>) -> Result<()> {
+    pub(super) fn prepare<'a>(
+        &mut self,
+        functions: impl Iterator<Item = &'a ResolvedFunction>,
+    ) -> Result<()> {
         let mut maximum = 0;
         for function in functions {
             if let Some(count) = candidate_count(function)? {
@@ -95,21 +98,25 @@ impl RetentionScratch {
                 WalkError::Invalid => Err(refusal()),
             };
         }
+        // The existing candidate carriers also census independent proof
+        // backing. No second reference inventory is physically allocated.
+        let owned = crate::loan_plan::owned_capacity::owned_capacity_bytes_partitioned(
+            &function.loan_plan,
+            &self.keys,
+            &mut self.matched,
+        );
         let mut length = 0;
         for index in 0..self.keys.len() {
-            if self.matched[index] != 0 {
+            if self.matched[index] == 1 {
                 self.keys[length] = self.keys[index];
                 length += 1;
             }
         }
         self.keys.truncate(length);
         self.matched.clear();
-        crate::loan_plan::owned_capacity::owned_capacity_bytes_excluding(
-            &function.loan_plan,
-            &self.keys,
-        )
-        .and_then(|owned| std::mem::size_of::<LoanPlan>().checked_add(owned))
-        .ok_or_else(refusal)
+        owned
+            .and_then(|owned| std::mem::size_of::<LoanPlan>().checked_add(owned))
+            .ok_or_else(refusal)
     }
 }
 

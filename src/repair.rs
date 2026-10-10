@@ -1,6 +1,7 @@
 //! Read-only, targeted diagnostic repair discovery and instantiation.
 
 mod call_closure;
+mod scoped_vec_field;
 use call_closure::{call_graph, has_call_cycle};
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -9,7 +10,7 @@ use std::path::Path;
 use sha2::{Digest, Sha256};
 
 use crate::ast::{Expr, ExprKind, ParamMode, Program, Type};
-use crate::diagnostic::{quote_json, Diagnostic};
+use crate::diagnostic::{Diagnostic, quote_json};
 use crate::hir::{
     self, DeclarationId, ExpressionId, IdentityOrigin, ResolvedBinding, ResolvedExpr,
     ResolvedExprKind, ResolvedFunction, ResolvedStatement, ValueId,
@@ -975,12 +976,21 @@ impl StructuralRebase<'_> {
                 self.compare_value_reference(&left.root, &right.root)?;
             }
             (
-                ResolvedExprKind::LiteralFormat { template: left_template, args: left_args },
-                ResolvedExprKind::LiteralFormat { template: right_template, args: right_args },
+                ResolvedExprKind::LiteralFormat {
+                    template: left_template,
+                    args: left_args,
+                },
+                ResolvedExprKind::LiteralFormat {
+                    template: right_template,
+                    args: right_args,
+                },
             ) if left_template == right_template && left_args.len() == right_args.len() => {
                 for (left, right) in left_args.iter().zip(right_args) {
                     self.compare_expr(left, right)?;
                 }
+            }
+            (ResolvedExprKind::VecFieldRead { .. }, ResolvedExprKind::VecFieldRead { .. }) => {
+                self.compare_vec_field(&before.kind, &after.kind)?;
             }
             (
                 ResolvedExprKind::Call {

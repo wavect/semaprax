@@ -80,6 +80,37 @@ pub(super) fn render_expr(
             output.push_str(&render_child(walker, callable, 0));
             render_args(walker, args, output);
         }
+        ResolvedExprKind::VecFieldRead {
+            element,
+            field,
+            bytes,
+            args,
+        } => {
+            if *bytes {
+                output.push_str("str_as_bytes(");
+            }
+            output.push_str("vec_field<");
+            if let ResolvedType::Nominal { declaration, .. } = element {
+                output.push_str(&walker.declaration_name(declaration));
+            } else {
+                output.push_str("<invalid>");
+            }
+            output.push_str(">(");
+            for (index, argument) in args.iter().enumerate() {
+                if index != 0 {
+                    output.push_str(", ");
+                }
+                output.push_str(&render_child(walker, argument, 0));
+            }
+            output.push_str(", ");
+            output.push_str(&crate::format::canonical_string(
+                &walker.declaration_name(field),
+            ));
+            output.push(')');
+            if *bytes {
+                output.push(')');
+            }
+        }
         ResolvedExprKind::Call { callee, args, .. } => {
             let name = walker.declaration_name(callee);
             output.push_str(&name);

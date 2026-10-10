@@ -71,6 +71,7 @@ pub(super) fn push_children<'a>(
         | ResolvedExprKind::Place(_)
         | ResolvedExprKind::BorrowPlace { .. }
         | ResolvedExprKind::ByteRange { .. }
+        | ResolvedExprKind::VecFieldRead { .. }
         | ResolvedExprKind::Call { .. }
         | ResolvedExprKind::LiteralFormat { .. }
         | ResolvedExprKind::NativeRustImportCall(_)

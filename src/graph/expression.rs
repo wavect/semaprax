@@ -74,6 +74,12 @@ pub(super) fn expr_json(
             crate::byte_ops::RANGE_START_AFTER_END_CODE,
             crate::byte_ops::RANGE_END_OUT_OF_BOUNDS_CODE,
         ),
+        ResolvedExprKind::VecFieldRead { element, field, bytes, args } => {
+            let arguments = args.iter().map(|arg| expr_json(program, arg))
+                .collect::<Result<Vec<_>, _>>()?.budgeted_join(",");
+            format!("{{{header},\"kind\":\"vec_field_read\",\"element_type\":{},\"field\":{},\"bytes\":{bytes},\"args\":[{arguments}]}}",
+                type_json(element), quote_json(field.as_str()))
+        }
         ResolvedExprKind::Call {
             callee,
             type_arguments,

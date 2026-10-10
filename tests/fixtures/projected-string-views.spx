@@ -19,6 +19,7 @@ module test.projected_string_views;
   let bytes=str_as_bytes(string_as_str(value.inner.text));
   total=total+str_len_bytes(text)+i64_from_usize(byte_len(bytes));
   at=at+1;
+  at<4
  }
  total
 }

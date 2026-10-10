@@ -19,6 +19,7 @@ module test.nested_collection_record;
   let row=vec_clone_at<Row>(value.items,at);
   total=total+match own row {Row{label,rank}=>rank+string_len(label),};
   at=at+1usize;
+  at<vec_len<Row>(value.items)
  }
  if at==value.metrics.count {total}else{0}
 }

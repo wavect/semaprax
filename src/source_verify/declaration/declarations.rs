@@ -54,7 +54,9 @@ pub(super) fn check_byte_data_declarations<'p>(
                     name: declaration.name.clone(),
                     arguments: Vec::new(),
                 };
-                if types.contains_owned_bytes(&root) {
+                if types.contains_owned_bytes(&root)
+                    && !super::super::declared_type::string_record::runtime_admitted(&root, types)
+                {
                     match classify_nested_owned_byte_record(types, &root) {
                         NestedOwnedRecordAdmission::Admitted
                         | NestedOwnedRecordAdmission::Recursive => {}
@@ -579,6 +581,14 @@ pub(super) fn check_declared_fields<'p>(
                             )
                 ) && !crate::map_ops::ast_collection(&field.ty)
                     && !super::super::declared_type::declared_collection::vector(types, &field.ty)
+                    && !(super::super::declared_type::collection_record::vector(types, &field.ty)
+                        && super::super::declared_type::collection_record::admitted(
+                            &Type::Named {
+                                name: declaration.name.clone(),
+                                arguments: Vec::new(),
+                            },
+                            types,
+                        ))
                     && !(types.contains_owned_bytes(&field.ty)
                         && matches!(
                             classify_nested_owned_byte_record(types, &field.ty),

@@ -48,6 +48,52 @@ fn owned_collection_outcome_replays_even_without_a_vector_constructor() {
     assert!(native.contains("spx_leaf_drop_storage"));
     let wasm = crate::wasm::emit_resolved_module(&program).unwrap();
     wasmparser::Validator::new().validate_all(&wasm).unwrap();
+    // Both cleanup inventories must recognize the exact case-qualified Vec,
+    // including when the only executed constructor is the scalar error case.
+    let word_type = ResolvedType::Nominal {
+        declaration: DeclarationId::new(crate::prelude::VEC_ID),
+        arguments: vec![ResolvedType::String],
+    };
+    assert_eq!(
+        crate::cleanup::variant_leaf_lifecycle(
+            &program,
+            &ty(),
+            &DeclarationId::new("out.ok"),
+            &DeclarationId::new("out.words"),
+            &word_type
+        ),
+        Some(crate::cleanup::VEC_DROP_LIFECYCLE_ID)
+    );
+    for (case, field) in [
+        ("out.bad", "out.words"),
+        ("out.ok", "out.code"),
+        ("forged", "out.words"),
+    ] {
+        assert_eq!(
+            crate::cleanup::variant_leaf_lifecycle(
+                &program,
+                &ty(),
+                &DeclarationId::new(case),
+                &DeclarationId::new(field),
+                &word_type
+            ),
+            None
+        );
+    }
+    let wrong_element = ResolvedType::Nominal {
+        declaration: DeclarationId::new(crate::prelude::VEC_ID),
+        arguments: vec![ResolvedType::I64],
+    };
+    assert_eq!(
+        crate::cleanup::variant_leaf_lifecycle(
+            &program,
+            &ty(),
+            &DeclarationId::new("out.ok"),
+            &DeclarationId::new("out.words"),
+            &wrong_element
+        ),
+        None
+    );
 }
 
 #[test]

@@ -873,8 +873,9 @@ impl<'a> HirValidator<'a> {
                         {
                             if !arguments.is_empty()
                                 && !crate::map_ops::is_collection(&field.ty)
-                                && !super::declared_collection::vector(
-                                    &self.program.declarations,
+                                && !type_profiles::record_field_storage_instance_is_admitted(
+                                    self.program,
+                                    &declaration.id,
                                     &field.ty,
                                 )
                                 && self

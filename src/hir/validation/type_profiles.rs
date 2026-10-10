@@ -2,6 +2,24 @@
 
 use super::*;
 
+/// Concrete vector storage is legal only inside its independently admitted
+/// whole record. Logical text schemas retain their existing declaration rule.
+pub(super) fn record_field_storage_instance_is_admitted(
+    program: &ResolvedProgram,
+    record: &DeclarationId,
+    field: &ResolvedType,
+) -> bool {
+    crate::hir::declared_collection::vector(&program.declarations, field)
+        || (crate::hir::owned_collection_record::vector(&program.declarations, field)
+            && crate::hir::owned_collection_record::admitted(
+                &ResolvedType::Nominal {
+                    declaration: record.clone(),
+                    arguments: Vec::new(),
+                },
+                &program.declarations,
+            ))
+}
+
 pub(super) fn template_ownership(
     program: &ResolvedProgram,
     template: &ResolvedFunctionTemplate,

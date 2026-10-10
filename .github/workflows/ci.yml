@@ -1993,11 +1993,28 @@ jobs:
           fi
           echo "SEMAPRAX_TEST_REFERENCE_SERVICE_STATIC_EXECUTABLE=$executable" >> "$GITHUB_ENV"
       - name: Test the complete workspace target shard (Unix)
+        id: workspace_target_shard_unix
         if: runner.os != 'Windows'
         env:
           SEMAPRAX_REQUIRE_KERNEL_ZERO_RUNG_TWO_TARGETS: "1"
           SEMAPRAX_REQUIRE_RESUMABLE_BACKENDS: "1"
         run: python3 scripts/ci-msrv.py --label "Rust $RUNNER_OS" --shard "${{ matrix.shard }}"
+      - name: Capture task-service frontend bytes after a failed owning shard
+        if: failure() && runner.os != 'Windows' && matrix.shard == 'integration-0' && steps.workspace_target_shard_unix.outcome == 'failure'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --locked --offline -p semaprax --all-features --test useful_data \
+            task_service_project::task_service_frontend_byte_audit -- \
+            --exact --ignored --nocapture > task-service-frontend-audit.log 2>&1
+      - name: Retain the task-service frontend byte audit
+        if: failure() && runner.os != 'Windows' && matrix.shard == 'integration-0' && steps.workspace_target_shard_unix.outcome == 'failure'
+        uses: actions/upload-artifact@043fb46d1a93c403eaa67cda896b071bcbacbf22 # v7.0.1
+        with:
+          name: task-service-frontend-audit-${{ matrix.os }}-${{ github.sha }}
+          path: task-service-frontend-audit.log
+          if-no-files-found: error
+          retention-days: 7
       - name: Test the complete workspace target shard without duplicate Windows native interop
         if: runner.os == 'Windows'
         shell: pwsh

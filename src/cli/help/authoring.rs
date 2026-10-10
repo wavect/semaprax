@@ -126,6 +126,7 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
             "The finite schema uses explicit monomorphic acyclic records with string/i64/u8/usize/bool fields, nested records and at most one transitive already-admitted Vec. No optional/variant schema, new vector element shape or unbounded JSON tree is admitted.\n",
             "Direct borrowed-input decoding only; no stream normalizer or capability is generated. Helpers are ordinary checked source, and malformed usage refuses before derivation. The caller's Project profile and existing input/fuel/owner bounds remain authoritative.\n",
             "Native nested-outcome command source route: language-command-io.nested-outcome.v1; v29/v30/v31 stay frozen. Route qualification is pending; docs/PROJECT-V32-NESTED-OUTCOME-COMMAND-V1.md.\n",
+            "Exact schema, typed errors and detached-owner contract: docs/APPLICATION-JSON-NESTED-REQUEST-V1.md.\n",
             "Publication, source replay and declared dependencies: help language author:json-codec.\n"
         ).to_owned()),
         "author:json-owned-request" => Ok(concat!(
@@ -376,6 +377,7 @@ mod tests {
             "language-command-io.nested-outcome.v1",
             "at most one transitive",
             "Older codec selectors reject",
+            "docs/APPLICATION-JSON-NESTED-REQUEST-V1.md",
         ] {
             assert!(
                 nested_request.contains(fact),

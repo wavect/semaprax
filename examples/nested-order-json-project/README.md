@@ -52,6 +52,9 @@ preorder: configuration1, label2, retry3, lines4, sku5, quantity6, urgent7.
 Exact and one-short input limits, an exact 16-byte String and exactly eight
 rows remain independent boundary witnesses.
 
+The normative schema and error contract is
+[APPLICATION-JSON-NESTED-REQUEST-V1](../../docs/APPLICATION-JSON-NESTED-REQUEST-V1.md).
+
 The `project` harness's `standard_library::application_json::nested_request`
 child is the owning compiler/three-backend gate. No compilation, runtime result,
 model-authored token saving or benchmark improvement is claimed by this source

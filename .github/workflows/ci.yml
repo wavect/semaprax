@@ -2009,7 +2009,7 @@ jobs:
             --exact --ignored --nocapture > task-service-frontend-audit.log 2>&1
       - name: Retain the task-service frontend byte audit
         if: failure() && runner.os != 'Windows' && matrix.shard == 'integration-0' && steps.workspace_target_shard_unix.outcome == 'failure'
-        uses: actions/upload-artifact@043fb46d1a93c403eaa67cda896b071bcbacbf22 # v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: task-service-frontend-audit-${{ matrix.os }}-${{ github.sha }}
           path: task-service-frontend-audit.log

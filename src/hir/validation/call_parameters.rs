@@ -34,9 +34,7 @@ enum ParameterIdentity<'a> {
 impl fmt::Display for ParameterIdentity<'_> {
     fn fmt(&self, output: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::LiteralFormat(index) => {
-                write!(output, "{}.param.{index}", crate::literal_format::ID)
-            }
+            Self::LiteralFormat(index) => write!(output, "{}.param.{index}", crate::literal_format::ID),
             Self::Owned(identity) => fmt::Display::fmt(identity, output),
             Self::Byte(operation, index) => write!(output, "{}.param.{index}", operation.id()),
             Self::String(operation, index) => write!(output, "{}.param.{index}", operation.id()),
@@ -60,11 +58,7 @@ impl CallParameters<'_> {
         match self {
             Self::LiteralFormat(args) => ParameterView {
                 ty: &args[index].ty,
-                ownership: if args[index].ty == ResolvedType::String {
-                    OwnershipMode::Own
-                } else {
-                    OwnershipMode::Value
-                },
+                ownership: if args[index].ty == ResolvedType::String { OwnershipMode::Own } else { OwnershipMode::Value },
                 identity: ParameterIdentity::LiteralFormat(index),
             },
             Self::Owned(parameters) => ParameterView::owned(&parameters[index]),

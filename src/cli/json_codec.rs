@@ -158,19 +158,15 @@ mod tests {
         }
         let mut utf8 = strings(&good);
         utf8.extend([
-            "--profile".to_owned(),
-            "utf8-owned-request.v1".to_owned(),
-            "--max-string-bytes".to_owned(),
-            "64".to_owned(),
+            "--profile".to_owned(), "utf8-owned-request.v1".to_owned(),
+            "--max-string-bytes".to_owned(), "64".to_owned(),
         ]);
         assert!(parse(&utf8).is_ok());
         for invalid in ["0", "65", "01", "+1", " 1"] {
             let mut args = strings(&good);
             args.extend([
-                "--profile".to_owned(),
-                "utf8-owned-request.v1".to_owned(),
-                "--max-string-bytes".to_owned(),
-                invalid.to_owned(),
+                "--profile".to_owned(), "utf8-owned-request.v1".to_owned(),
+                "--max-string-bytes".to_owned(), invalid.to_owned(),
             ]);
             assert!(parse(&args).is_err());
         }
@@ -179,10 +175,8 @@ mod tests {
         assert!(parse(&missing_bound).is_err());
         let mut old_with_bound = strings(&good);
         old_with_bound.extend([
-            "--profile".to_owned(),
-            "owned-request.v1".to_owned(),
-            "--max-string-bytes".to_owned(),
-            "8".to_owned(),
+            "--profile".to_owned(), "owned-request.v1".to_owned(),
+            "--max-string-bytes".to_owned(), "8".to_owned(),
         ]);
         assert!(parse(&old_with_bound).is_err());
         let mut unknown = strings(&good);

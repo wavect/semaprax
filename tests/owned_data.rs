@@ -51,8 +51,6 @@ mod generic_owned_function_runtime;
 mod generic_owned_variant_runtime;
 #[path = "owned_data/generic_two_owned_variant_runtime.rs"]
 mod generic_two_owned_variant_runtime;
-#[path = "owned_data/internal_owned_slice_boundary.rs"]
-mod internal_owned_slice_boundary;
 #[path = "owned_data/interpreter.rs"]
 mod interpreter;
 #[path = "owned_data/nested_generic_owned_record_frontend_hir.rs"]
@@ -69,12 +67,14 @@ mod nested_owned_record_update_frontend_hir;
 mod owned_bounded_box_runtime;
 #[path = "owned_data/owned_bounded_vec_runtime.rs"]
 mod owned_bounded_vec_runtime;
-#[path = "owned_data/owned_leaf_vec.rs"]
-mod owned_leaf_vec;
 #[path = "owned_data/owned_record_vec_runtime.rs"]
 mod owned_record_vec_runtime;
+#[path = "owned_data/owned_leaf_vec.rs"]
+mod owned_leaf_vec;
 #[path = "owned_data/projected_bytes_borrowed_call_native.rs"]
 mod projected_bytes_borrowed_call_native;
+#[path = "owned_data/internal_owned_slice_boundary.rs"]
+mod internal_owned_slice_boundary;
 #[path = "owned_data/public_utf8_api.rs"]
 mod public_utf8_api;
 #[path = "owned_data/useful_data_usize.rs"]

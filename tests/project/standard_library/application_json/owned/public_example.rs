@@ -107,9 +107,11 @@ fn public_owned_json_command_bootstraps_and_runs_valid_and_malformed_stdin() {
 
     let c = project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
         let revision = snapshot.retain_revision();
-        assert!(revision
-            .semantic_graph()
-            .contains("warehouse.request.json.owned.decode"));
+        assert!(
+            revision
+                .semantic_graph()
+                .contains("warehouse.request.json.owned.decode")
+        );
         assert!(revision.semantic_graph().contains("core.vec.sort-owned"));
         codegen::emit_hir_c_with_stdin_stream_owned_data(
             snapshot.public_api_program(),

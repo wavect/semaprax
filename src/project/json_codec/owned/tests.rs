@@ -25,10 +25,12 @@ fn owned_request_materialization_uses_authored_field_names_and_record_order() {
     );
     let parsed = crate::parse(&source, "owned-codec.spx").unwrap();
     assert!(parsed.permits.is_empty());
-    assert!(parsed
-        .functions
-        .iter()
-        .all(|function| function.effects.is_empty()));
+    assert!(
+        parsed
+            .functions
+            .iter()
+            .all(|function| function.effects.is_empty())
+    );
     let outcome = parsed
         .types
         .iter()

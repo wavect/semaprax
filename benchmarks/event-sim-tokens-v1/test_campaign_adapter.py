@@ -1072,7 +1072,7 @@ exec node dist/cli.js
             live_campaign.prompt_for("typescript", Path("/candidate"), Path("/compiler"), live_campaign.AUTHORING_PROFILE_V27))
         prompt = live_campaign.prompt_for("semaprax", Path("/candidate"), Path("/compiler"), profile)
         for text in ("native Project v31", "language-command-io.collection-record.v1",
-                     "author:collection-records", "All original 15 application requirements",
+                     "author:collection-records", "Preserve all original 15 application requirements",
                      "tie behavior", "exact publication bytes", "unchanged limits"):
             self.assertIn(text, prompt)
         self.assertNotIn("nested-outcome", prompt)

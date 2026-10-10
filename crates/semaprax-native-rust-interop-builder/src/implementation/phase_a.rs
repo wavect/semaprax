@@ -1284,6 +1284,8 @@ pub(super) fn validate_selected_scalar_closure(
             | ResolvedExprKind::RepeatArrayU8 { .. }
             | ResolvedExprKind::BorrowPlace { .. }
             | ResolvedExprKind::ByteRange { .. }
+            | ResolvedExprKind::LiteralFormat { .. }
+            | ResolvedExprKind::VecFieldRead { .. }
             | ResolvedExprKind::Call { .. }
             | ResolvedExprKind::ConstructVariant { .. }
             | ResolvedExprKind::Match { .. }

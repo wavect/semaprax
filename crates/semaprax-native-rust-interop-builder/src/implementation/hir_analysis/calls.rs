@@ -163,6 +163,10 @@ pub(in crate::implementation) fn resolved_expression_child<'a>(
         ResolvedExprKind::Call { args, .. } => {
             advance(index.checked_add(1)?, index, args.get(index)?)
         }
+        ResolvedExprKind::LiteralFormat { args, .. }
+        | ResolvedExprKind::VecFieldRead { args, .. } => {
+            advance(index.checked_add(1)?, index, args.get(index)?)
+        }
         ResolvedExprKind::NativeRustImportCall(call) => {
             advance(index.checked_add(1)?, index, call.args.get(index)?)
         }

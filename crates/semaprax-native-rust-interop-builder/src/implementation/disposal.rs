@@ -273,6 +273,13 @@ fn drain_disposal_frames(
                     disposal_push(frames, ResolvedDisposeFrame::Types(type_arguments));
                     disposal_push(frames, ResolvedDisposeFrame::Exprs(args));
                 }
+                ResolvedExprKind::LiteralFormat { args, .. } => {
+                    disposal_push(frames, ResolvedDisposeFrame::Exprs(args));
+                }
+                ResolvedExprKind::VecFieldRead { element, args, .. } => {
+                    disposal_push(frames, ResolvedDisposeFrame::Type(element));
+                    disposal_push(frames, ResolvedDisposeFrame::Exprs(args));
+                }
                 ResolvedExprKind::NativeRustImportCall(call) => {
                     disposal_push(frames, ResolvedDisposeFrame::Exprs(call.args));
                 }

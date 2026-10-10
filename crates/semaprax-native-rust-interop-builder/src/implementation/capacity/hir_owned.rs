@@ -258,6 +258,37 @@ pub(in crate::implementation) fn hir_expr_owned_capacity(
                 )?;
                 pending.extend(args);
             }
+            ResolvedExprKind::LiteralFormat { template, args } => {
+                total = total
+                    .checked_add(template.capacity())
+                    .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+                add_capacity(
+                    &mut total,
+                    args.capacity(),
+                    std::mem::size_of::<ResolvedExpr>(),
+                )?;
+                pending.extend(args);
+            }
+            ResolvedExprKind::VecFieldRead {
+                element,
+                field,
+                args,
+                ..
+            } => {
+                total = total
+                    .checked_add(
+                        hir_type_owned_capacity(element)
+                            .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?,
+                    )
+                    .and_then(|bytes| bytes.checked_add(field.as_str().len()))
+                    .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+                add_capacity(
+                    &mut total,
+                    args.capacity(),
+                    std::mem::size_of::<ResolvedExpr>(),
+                )?;
+                pending.extend(args);
+            }
             ResolvedExprKind::NativeRustImportCall(call) => {
                 total = Some(total)
                     .and_then(|bytes| bytes.checked_add(call.expression.owned_allocation_bytes()?))

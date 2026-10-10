@@ -537,6 +537,19 @@ pub(in crate::implementation) fn fingerprint_expression_types_scratch(
                             Frame::Exprs(args, 0, child_depth),
                         )?;
                     }
+                    ResolvedExprKind::LiteralFormat { args, .. } => push(
+                        &mut stack,
+                        &mut stack_len,
+                        Frame::Exprs(args, 0, child_depth),
+                    )?,
+                    ResolvedExprKind::VecFieldRead { element, args, .. } => {
+                        maximum = maximum.max(type_identity_scratch_upper(element)?);
+                        push(
+                            &mut stack,
+                            &mut stack_len,
+                            Frame::Exprs(args, 0, child_depth),
+                        )?;
+                    }
                     ResolvedExprKind::NativeRustImportCall(call) => push(
                         &mut stack,
                         &mut stack_len,

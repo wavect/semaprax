@@ -508,7 +508,7 @@ class CodexShiftSimTests(unittest.TestCase):
             settings = {"round": 6, "authoring_profile": adapter.shiftsim.AUTHORING_PROFILE_SHIFTSIM_V31,
                         "qualification": {"scored_trials_allowed": False}}
             with patch.object(adapter.shiftsim.common, "add_seed_worktree") as worktree, \
-                 patch.object(adapter, "run_codex") as paid:
+                 patch.object(adapter.codex, "run_codex") as paid:
                 calls = [lambda: adapter.launch_calibration(root, root / "artifacts", "seed", settings, root / "compiler")]
                 calls.extend(lambda arm=arm: adapter.launch_trial(root, root / "artifacts", "seed",
                     {"arm": arm, "number": 1}, settings, root / "compiler") for arm in adapter.ARMS)

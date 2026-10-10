@@ -197,7 +197,7 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             profile_name = catalog.AUTHORING_PROFILE_V31
-            self.assertNotIn(profile_name, catalog.shared.PINNED_AUTHORING_PROFILES)
+            self.assertIn(profile_name, catalog.shared.PINNED_AUTHORING_PROFILES)
             settings, repo, compiler, candidate, evidence, _, _, _ = self.fixture(root, profile_name)
             admission = catalog.candidate_authoring_admission(candidate, "semaprax", profile_name)
             self.assertEqual(admission["status"], "passed")
@@ -467,7 +467,7 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
 
         v31 = catalog.prompt_for("semaprax", Path("/candidate"), Path("/compiler"), catalog.AUTHORING_PROFILE_V31)
         self.assertIn("all 23 original functional and output requirements stay binding", v31)
-        self.assertIn("Preserve every requirement, including repeated keys, decoded identifiers, maximum cardinalities and unlimited raw whitespace.", v31)
+        self.assertIn("Preserve every requirement, including repeated\nkeys, decoded identifiers, maximum cardinalities and unlimited raw whitespace.", v31)
         self.assertIn("owned String id and scalar mark", v31)
         self.assertIn("owned String label and Bytes payload", v31)
         self.assertIn("Allocate, clone and replace Bytes-bearing owners outside loops", v31)

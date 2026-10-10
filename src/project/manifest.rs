@@ -1,6 +1,6 @@
 use super::profile::{
     valid_environment_capabilities, valid_process_capabilities, PROJECT_PROFILE_ENVIRONMENT_IO_V1,
-    PROJECT_PROFILE_PROCESS_IO_V1,
+    PROJECT_PROFILE_PROCESS_IO_V1, PROJECT_SCHEMA_V32,
 };
 mod format;
 mod stream;

@@ -1,4 +1,6 @@
 //! Scoped read of one authenticated field; no owning argument epoch or result.
+use crate::hir;
+
 use super::*;
 
 pub(super) fn uses(program: &ResolvedProgram) -> bool {

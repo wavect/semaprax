@@ -2,7 +2,7 @@
 use std::fmt::Write as _;
 
 const MAX_BYTES: usize = 2_048;
-const ROUTES: &str = "Authoring routes (complete):\n  author:stdin-json               v27 bounded native stream command\n  author:stream-data-v2           v29 private record/Vec stream command\n  author:owned-data               v30 private owned-leaf collections\n  author:collection-records       v31 nested records containing Vec\n  author:file-text                native UTF-8 file command\n  author:source-web               single-source web build\n  author:literal-format           checked literal String rendering\n  author:copy-record-vec          flat Copy-record vectors\n  author:json-codec               checked source JSON codec derivation\n  author:json-identifier-views    one identifier as a token view\n  author:json-request-views       bounded identifier and record arrays\n  author:json-stream-request-views bounded native stream request view\n  author:json-owned-request      bounded owning request collections\n  author:json-utf8-owned-request bounded UTF-8 string values\n  author:json-stream-utf8-owned-request bounded UTF-8 stdin requests\n  author:json-collection-response bounded nested collection encoder\n  author:json-nested-request      bounded finite nested request decoder\n  author:json-stream-nested-request bounded finite nested stdin decoder\n  author:json-request-response    typed request/response composition boundaries\nLibrary-only search: help language find:<word>:0\nExact card sections: help language topics\n";
+const ROUTES: &str = "Authoring routes (complete):\n  author:stdin-json               v27 bounded native stream command\n  author:stream-data-v2           v29 private record/Vec stream command\n  author:owned-data               v30 private owned-leaf collections\n  author:collection-records       v31 nested records containing Vec\n  author:file-text                native UTF-8 file command\n  author:source-web               single-source web build\n  author:literal-format           checked literal String rendering\n  author:string-from-utf8         strict owned String construction from bytes\n  author:copy-record-vec          flat Copy-record vectors\n  author:record-field-views       borrowed record and Vec field reads\n  author:json-codec               checked source JSON codec derivation\n  author:json-identifier-views    one identifier as a token view\n  author:json-request-views       bounded identifier and record arrays\n  author:json-stream-request-views bounded native stream request view\n  author:json-owned-request      bounded owning request collections\n  author:json-utf8-owned-request bounded UTF-8 string values\n  author:json-stream-utf8-owned-request bounded UTF-8 stdin requests\n  author:json-collection-response bounded nested collection encoder\n  author:json-nested-request      bounded finite nested request decoder\n  author:json-stream-nested-request bounded finite nested stdin decoder\n  author:json-request-response    typed request/response composition boundaries\nLibrary-only search: help language find:<word>:0\nExact card sections: help language topics\n";
 
 #[cfg(test)]
 pub(super) fn assert_guide_contract() {
@@ -52,7 +52,16 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
             "Use string_from_utf8(bytes: borrow Slice<u8>) -> string (core.string.from_utf8) to copy exact strict UTF-8 into a detached String. NUL, BOM and noncharacters stay; malformed UTF-8 fails semaprax.convert.v1 code 1, never replacement or normalization. This adds no public ABI, carrier layout or capability.\n",
             "Bytes-bearing allocation/deep copy stays refused in loops, including vec_clone_at<Record> when Record has Bytes and transitive helpers (SPX-T267). Stage payloads and clones outside loops; checked String-bearing loops remain distinct.\n",
             "V27 and v29 stay closed to these owned carriers, including unused helpers. No public nominal ABI, ambient grant or Web/Wasm/npm command route is added.\n",
+            "For the exact strict byte-to-String shape and refusal domain: help language author:string-from-utf8.\n",
             "Exact source shapes, admission, cleanup and gates: docs/STREAM-OWNED-DATA-COMMAND-V1.md and docs/OWNED-LEAF-COLLECTIONS-V1.md.\n"
+        ).to_owned()),
+        "author:string-from-utf8" => Ok(concat!(
+            "Strict owned String construction; current-head executable qualification pending.\n",
+            "let view = bytes_as_slice(bytes); let text = string_from_utf8(view);\n",
+            "The exact signature is string_from_utf8(input: borrow Slice<u8>) -> string (core.string.from_utf8). It reads the borrowed slice for this call and returns a fresh detached String; the input owner stays live only under the ordinary loan rules.\n",
+            "Input must be strict UTF-8. Empty input and exact NUL, BOM, noncharacters, and 1/2/3/4-byte scalars are retained byte-for-byte. Overlong, lone-continuation, truncated, surrogate, and >U+10FFFF spellings fail semaprax.convert.v1 code 1 with no result; there is no replacement or normalization.\n",
+            "For an admitted command that needs an owned String carrier, select language-command-io.owned-data.v1 (v30). This does not add a public/standalone adapter, ABI, carrier layout, capability, raw-input limit, or lossy conversion.\n",
+            "Wrong arity/type/generic use and reserved-name forgery remain T204/T205/T225/S113 refusals. Core interpreter/native/aggregate-Wasm and codec fast-path qualification are still pending.\n"
         ).to_owned()),
         "author:collection-records" => Ok(concat!(
             "Project v31 source only; execution qualification pending.\n",
@@ -78,6 +87,13 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
             "R is an explicit monomorphic record with 1..8 direct Copy-scalar fields. Vec<R> uses typed vec_*<R> operations; get copies R, mutations transfer the Vec owner.\n",
             "Capacity is bounded by 8192 scalar words divided by R's field count. Private pure helpers may borrow Vec<R> and pass R by value; generic wrappers, nested/owned records and for traversal remain closed.\n",
             "Core interpreter/native/Wasm contracts and exact status: docs/COPY-RECORD-COLLECTIONS-V1.md. Native v29 private command transport: help language author:stream-data-v2.\n"
+        ).to_owned()),
+        "author:record-field-views" => Ok(concat!(
+            "Authenticated borrowed record and Vec field views; current-head executable qualification pending.\n",
+            "Use string_as_str(value.label) or string_as_str(value.inner.label) for an exact live borrowed record path. It returns borrow str without cloning the stored String; str_as_bytes may consume that view only while its owner path remains live.\n",
+            "For an admitted Vec<Row>, vec_field<Row>(value.items, index, \"selected\") returns a Copy field by value; String and Bytes fields return borrow str and borrow Slice<u8> views. The type, named Vec root, usize index, literal field, owner generation, and complete field path are checked independently.\n",
+            "Use language-command-io.collection-record.v1 (v31) for nested Record{items: Vec<Row>} command data: help language author:collection-records. Keep the root Vec and every borrowed record path live: moving, replacing, sorting, pushing, reserving, clearing, consuming, or returning an escaping view before last use is refused.\n",
+            "Temporary/call roots, forged or stale paths, unsupported profiles, and nonliteral/unknown fields stay refused; SPX-T310 still requires one admitted record type. vec_clone_at creates an owned clone; do not use it for scalar or borrowed-field inspection.\n"
         ).to_owned()),
         "author:json-codec" => Ok(concat!(
             "Checked source generator implementation; focused/application qualification pending.\n",
@@ -296,7 +312,9 @@ mod tests {
             "author:file-text",
             "author:source-web",
             "author:literal-format",
+            "author:string-from-utf8",
             "author:copy-record-vec",
+            "author:record-field-views",
             "author:json-codec",
             "author:json-identifier-views",
             "author:json-request-views",
@@ -459,6 +477,21 @@ mod tests {
         assert!(owned.contains("core.string.from_utf8"));
         assert!(owned.contains("semaprax.convert.v1 code 1"));
         assert!(owned.contains("never replacement or normalization"));
+        assert!(owned.contains("author:string-from-utf8"));
+        let bulk_utf8 = lookup("author:string-from-utf8").unwrap();
+        for fact in [
+            "string_from_utf8(input: borrow Slice<u8>) -> string",
+            "core.string.from_utf8",
+            "fresh detached String",
+            "NUL, BOM, noncharacters",
+            "semaprax.convert.v1 code 1",
+            "no replacement or normalization",
+            "language-command-io.owned-data.v1",
+            "public/standalone adapter",
+            "T204/T205/T225/S113",
+        ] {
+            assert!(bulk_utf8.contains(fact), "bulk UTF-8 guidance omits {fact}");
+        }
         let nested = lookup("author:collection-records").unwrap();
         assert!(nested.len() <= 2_048);
         for fact in [
@@ -491,8 +524,25 @@ mod tests {
                 "collection record guidance omits {fact}"
             );
         }
+        let field_views = lookup("author:record-field-views").unwrap();
+        for fact in [
+            "string_as_str(value.label)",
+            "string_as_str(value.inner.label)",
+            "vec_field<Row>(value.items, index, \"selected\")",
+            "owner generation",
+            "language-command-io.collection-record.v1",
+            "SPX-T310",
+            "vec_clone_at creates an owned clone",
+        ] {
+            assert!(
+                field_views.contains(fact),
+                "field-view guidance omits {fact}"
+            );
+        }
         let routes = lookup("author:routes").unwrap();
         for selector in [
+            "author:string-from-utf8",
+            "author:record-field-views",
             "author:collection-records",
             "author:json-identifier-views",
             "author:json-request-views",

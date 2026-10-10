@@ -1265,75 +1265,71 @@ web = ["calculator.add"]
 std.num = "^0.1.0"
 ```
 
-Use canonical table order, blank lines, one-line arrays, and no comments.
-`SPX-J100` identifies the first differing help line; frozen v1 has six ordered
-lines. Unknown/reserved tables or keys give `SPX-J120`. `[package] profile`
-selects function-boundary carriers. Bundled `std.*` packages use `0.1.0`;
-unknown packages or unsatisfied ranges give `SPX-J121`. Ordinary packages
-use the separate resolution route.
-`[targets] matrix = ["wasm32"]` rejects native builds with `SPX-J122`.
+Use canonical table order, blank lines, one-line arrays, no comments. Frozen v1
+has six ordered lines; `SPX-J100` identifies the first differing line and
+unknown tables/keys give `SPX-J120`. `[package] profile` selects boundary
+carriers. Bundled `std.*` is `0.1.0`; unknown packages/ranges give `SPX-J121`
+on the separate resolution route. A wasm-only target rejects native builds
+with `SPX-J122`.
 
-Import functions by stable ID after `module`, for example
+Import functions by stable ID after `module`, e.g.
 `use function @id("calculator.add") from calculator.core as add;`; `entry`
-names the module declaring `main`. Project v1 admits Copy scalars; later
-profiles add only their stated text, byte, and aggregate carriers. On
-`SPX-G174`, keep unsupported aggregates local or select a profile that admits
-the intended boundary. For `SPX-H006: function exceeds 4,096 loan program
-points`, extract named helpers with admitted signatures; other H006 messages
-require their specific HIR or cleanup fix, not raised limits.
+names the module with `main`. Project v1 admits Copy scalars; profiles add only
+their stated carriers. On `SPX-G174`, keep unsupported aggregates local or
+select an admitting profile. For H006's 4,096 loan-point limit, extract named
+helpers with admitted signatures; other H006 errors need their specific fix.
 
-A test module's `main` returns 0 on success. Each `@id`'d `fn test_<name>() ->
-i64` runs independently. Failures report stable ID and outcome; contract
-failures include clause and argument values. The ordinary Project route uses
-the interpreter. For Project v26/v28 source-command profiles, opt into
-authenticated native test roots with `semaprax test <project> --target native`;
-native timeout and combined-output bounds are documented in
-[Project Native Tests v1](PROJECT-NATIVE-TEST-V1.md). See also
-[Project Test Cases v1](PROJECT-TEST-CASES-V1.md).
+A test module `main` returns 0 on success; each `@id`'d `fn test_<name>() ->
+i64` runs independently. Failures report stable IDs/outcomes and contract
+clause/arguments. Ordinary tests use the interpreter; v26/v28 source-command
+profiles can select authenticated native roots with
+`semaprax test <project> --target native` ([bounds](PROJECT-NATIVE-TEST-V1.md),
+[cases](PROJECT-TEST-CASES-V1.md)).
 
-Use `semaprax help library` to list modules, `semaprax help library all` for
-the offline [catalog](STANDARD-LIBRARY-CATALOG.md), or
-`semaprax help library <module|name|stable-id>` for exact lookup (no fuzzy or
-prefix search). Import its `@id` and dependency; it supplies contracts and
-profiles. Bundled packages ship with the compiler.
+Use `semaprax help library` to list modules, `... all` for the offline
+[catalog](STANDARD-LIBRARY-CATALOG.md), or
+`... <module|name|stable-id>` for exact lookup (no fuzzy/prefix search).
+Import its `@id` and dependency; bundled packages supply contracts/profiles.
 Bounded Vec uses `owned-data-api.v1` and `std.collections = "^0.1.0"`; import
 `std.collections.vec.*` by ID with an explicit Copy-scalar type argument.
 Mutators transfer and return the owner; there is no public export or stable
 generic ABI. [Package Manifest v1](PACKAGE-MANIFEST-V1.md) owns table layout;
 [Project Manifest v1](PROJECT-MANIFEST-V1.md) owns the frozen format.
 
-`semaprax new <dir> --template source-command-file-text` creates a v26
-`source-command.v1` native64 Project with `argv-utf8+file-text.v1`. Web/Wasm/npm
-refuse it. Ordinary interpreter `run`/`test` retain `SPX-F102`; use
-`semaprax test . --target native`. `doctor --profile` reports support but does
-not select a profile. V28 opt-in `[package] profile =
-"source-command.resource-output.v1"` retains v26's command ABI and adds bounded
-1 MiB Strings, borrowed text and staged output; v26 remains frozen. See
-[Project v28](PROJECT-MANIFEST-V28.md) for exact limits and refusal rules.
+`semaprax new <dir> --template source-command-file-text` creates v26
+`source-command.v1`/native64 with `argv-utf8+file-text.v1`; Web/Wasm/npm refuse
+it. Interpreter `run`/`test` retain `SPX-F102`; use native `semaprax test .`.
+`doctor --profile` reports but does not select profiles. Opt-in v28
+`source-command.resource-output.v1` keeps the v26 ABI and adds bounded 1 MiB
+Strings, borrowed text and staged output; see [limits](PROJECT-MANIFEST-V28.md).
 
-`stdin-stream-data` creates native v27 `language-command-io.stream-data.v1` with
-private Copy-scalar `Vec<T>` helpers; v29 adds private Copy records, `Vec<R>`
-and codec outcomes. V27 stays scalar-only. V30
-`language-command-io.owned-data.v1` adds private `Vec<string>` and flat
-owned-leaf records. Select v30 only when runtime helpers need those carriers; a
-request-schema `Vec<string>` stays descriptive.
-`text: string` consumes its argument, while `text: own string` is `SPX-O002`.
-Push consumes; `for own` uses `vec_into_iter`. Bytes allocation/copy and
-`vec_clone_at` on Bytes-bearing records inside bounded `while` are `SPX-T267`.
-Ask `help language author:stream-data-v2` or `help language author:owned-data`; see
+`stdin-stream-data` selects native v27 `language-command-io.stream-data.v1`
+(private Copy-scalar `Vec<T>`); v29 adds private Copy records/`Vec<R>`, and
+v30 `language-command-io.owned-data.v1` adds private owned `Vec<string>` and
+flat owned-leaf records. Schema `Vec` declarations alone grant no carrier.
+`text: string` consumes; `text: own string` is `SPX-O002`. Push consumes;
+`for own` uses `vec_into_iter`. Bytes allocation/copy or cloning a Bytes-bearing
+record in `while` is `SPX-T267`. See `help language author:owned-data` and the
 [v27](STREAM-DATA-COMMAND-V1.md), [v29](STREAM-DATA-COMMAND-V2.md),
-[v30](STREAM-OWNED-DATA-COMMAND-V1.md) and
-[collections](OWNED-LEAF-COLLECTIONS-V1.md). The current String-plus-scalar
-project example is [owned-leaf-command](../examples/owned-leaf-command-project/README.md);
-its focused gate remains pending.
+[v30](STREAM-OWNED-DATA-COMMAND-V1.md) references. The String-plus-scalar
+[owned-leaf-command](../examples/owned-leaf-command-project/README.md) gate is pending.
 
-`semaprax lock semaprax.toml --write` pins identity, source digests, interface,
-targets, and capabilities; `--verify` checks it and `--compare <base.lock>`
-reports breaking interface changes (nonzero for CI). `[dependencies]` accepts
-`^`, `~`, or `=` ranges. `semaprax resolve semaprax.toml --target native64
---cache <dir> --write` pins per-target resolution; `--verify` rechecks it.
-Build does not yet link resolved dependencies. See [Project Lock v1](PROJECT-LOCK-V1.md)
-and [Project Dependency Resolution v1](PROJECT-DEPENDENCY-RESOLUTION-V1.md).
+Project v31 `language-command-io.collection-record.v1` adds private typed
+records with admitted Vec shapes; command/entry stay `fn() -> i64`. Prefer
+`vec_field<Row>(values,index,"field")` for queries: the literal resolves an
+explicit field; Copy returns by value, String/Bytes as `borrow str`/`borrow
+Slice<u8>`. Fuse bytes with `str_as_bytes(vec_field<Row>(values,index,"text"))`;
+named record paths allow `string_as_str(record.text)`. The view locks the whole
+named vector generation through last use; do not move/sort/push/reserve before
+then. `vec_clone_at` is for an owned result. These private reads apply only in
+v30/v31/v32, not public ABIs. Implementation/qualification pending; see
+[scoped Vec field reads](SCOPED-VEC-FIELD-READS-V1.md).
+
+`semaprax lock --write` pins identity, sources, interface, targets and
+capabilities; `--verify` checks it and `--compare <base.lock>` reports breaking
+changes. Dependency ranges use `^`, `~` or `=`. `semaprax resolve` pins
+per-target resolution; Build does not yet link resolved dependencies. See
+[Lock](PROJECT-LOCK-V1.md) and [resolution](PROJECT-DEPENDENCY-RESOLUTION-V1.md).
 
 ## JSON documents and cursors
 

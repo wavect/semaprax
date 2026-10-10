@@ -3,6 +3,8 @@ use super::*;
 
 #[path = "utf8/stream.rs"]
 mod stream;
+#[path = "utf8/max_shape.rs"]
+mod max_shape;
 
 const SCHEMA: &str = r#"module consumer.schema;
 @id("unicode.row") record Row {

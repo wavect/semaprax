@@ -49,7 +49,10 @@ fn assert_reserved(program: &ResolvedProgram) {
 fn every_string_operation_reserves_its_exact_authored_identity() {
     let mut count = 0;
     for operation in operations() {
-        let source = format!("module test.alias; @id(\"{}\") fn ordinary_name(value:i64)->i64 {{ value }} @id(\"app.main\") fn main()->i64{{ordinary_name(1)}}", operation.id());
+        let source = format!(
+            "module test.alias; @id(\"{}\") fn ordinary_name(value:i64)->i64 {{ value }} @id(\"app.main\") fn main()->i64{{ordinary_name(1)}}",
+            operation.id()
+        );
         let source = crate::parse(&source, "reserved-id.spx").unwrap();
         assert!(
             crate::verify::verify(&source)
@@ -72,10 +75,21 @@ fn every_string_operation_reserves_its_exact_authored_identity() {
         "@id(\"alias.variant\") variant Alias { @id(\"alias.case\") Value { @id(\"core.num.char_from_i64\") value:i64, }, }",
         "@id(\"core.num.char_from_i64\") fn ordinary_name<T>(value:T)->T { value }",
     ] {
-        let source = format!("module test.alias; {declaration} @id(\"app.main\") fn main()->i64{{0}}");
+        let source =
+            format!("module test.alias; {declaration} @id(\"app.main\") fn main()->i64{{0}}");
         let ast = crate::parse(&source, "reserved-declaration.spx").unwrap();
-        assert!(crate::verify::verify(&ast).iter().any(|d| d.code == "SPX-S113"), "{declaration}");
-        assert!(hir::resolve(&ast).unwrap_err().iter().any(|d| d.code == "SPX-S113"));
+        assert!(
+            crate::verify::verify(&ast)
+                .iter()
+                .any(|d| d.code == "SPX-S113"),
+            "{declaration}"
+        );
+        assert!(
+            hir::resolve(&ast)
+                .unwrap_err()
+                .iter()
+                .any(|d| d.code == "SPX-S113")
+        );
     }
 }
 
@@ -108,6 +122,107 @@ fn reserved_declaration_metadata_is_not_authority_after_cache_decode() {
                 assert_reserved(&restored);
             }
         }
+    }
+}
+
+#[test]
+fn reserved_identity_with_a_matching_index_key_is_rejected_for_every_declaration_kind() {
+    let source = program();
+    for kind in [
+        DeclarationKind::Resource,
+        DeclarationKind::ResourceDrop,
+        DeclarationKind::Record,
+        DeclarationKind::Field,
+        DeclarationKind::Class,
+        DeclarationKind::Variant,
+        DeclarationKind::VariantCase,
+        DeclarationKind::CaseField,
+        DeclarationKind::Interface,
+        DeclarationKind::Import,
+        DeclarationKind::Function,
+    ] {
+        for origin in [
+            IdentityOrigin::Explicit,
+            IdentityOrigin::Automatic,
+            IdentityOrigin::CompilerOwned,
+        ] {
+            let mut forged = source.clone();
+            let id = DeclarationId::new(StringOp::CharFromI64.id());
+            forged.declarations.declarations.insert(
+                id.clone(),
+                hir::Declaration {
+                    id,
+                    name: "ordinary_name".to_owned(),
+                    kind,
+                    identity_origin: origin,
+                    owner: None,
+                },
+            );
+            // Matching the map key and attached identity must not establish
+            // intrinsic authority, regardless of the claimed origin or kind.
+            assert_reserved(&forged);
+            let wire = crate::cache_codec::encode(&forged).unwrap();
+            let restored: ResolvedProgram = crate::cache_codec::decode(&wire).unwrap();
+            assert_reserved(&restored);
+        }
+    }
+}
+
+#[test]
+fn resource_and_interface_declarations_cannot_alias_string_operation_identities() {
+    let source = r#"module test.resource_identity;
+@id("app.file") resource File {
+ @id("app.file.drop") drop trivial;
+}
+@id("app.host") interface Host permits {} {
+ @id("app.host.consume") import fn consume(file: own File) -> unit
+  effects {} failure infallible consumes file always;
+}
+@id("app.main") fn main()->i64 { 0 }
+"#;
+    crate::check(source, "resource-identities.spx").unwrap();
+    for identity in ["app.file", "app.file.drop", "app.host", "app.host.consume"] {
+        let forged = source.replace(
+            &format!("@id(\"{identity}\")"),
+            "@id(\"core.num.char_from_i64\")",
+        );
+        assert_ne!(forged, source);
+        let ast = crate::parse(&forged, "resource-identities.spx").unwrap();
+        assert!(crate::verify::verify(&ast)
+            .iter()
+            .any(|diagnostic| diagnostic.code == "SPX-S113"));
+        assert!(hir::resolve(&ast)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "SPX-S113"));
+    }
+}
+
+#[test]
+fn graph_replay_rejects_reserved_declaration_reminting_in_graph_or_source() {
+    let ast = crate::check(SOURCE, "intrinsic-identity.spx").unwrap();
+    let graph = crate::graph::to_json(&ast).unwrap();
+    crate::graph::verify_json(&ast, &graph).unwrap();
+    for operation in operations() {
+        let forged_graph = graph.replace("\"app.helper\"", &format!("\"{}\"", operation.id()));
+        assert_ne!(forged_graph, graph);
+        let errors = crate::graph::verify_json(&ast, &forged_graph).unwrap_err();
+        assert!(errors
+            .iter()
+            .any(|diagnostic| diagnostic.code == "SPX-G411"));
+
+        // Changing retained source as well cannot launder a reserved identity
+        // through graph reconstruction; ordinary source admission runs first.
+        let forged_source = SOURCE.replace(
+            "@id(\"app.helper\")",
+            &format!("@id(\"{}\")", operation.id()),
+        );
+        assert_ne!(forged_source, SOURCE);
+        let forged_ast = crate::parse(&forged_source, "intrinsic-identity.spx").unwrap();
+        let errors = crate::graph::verify_json(&forged_ast, &forged_graph).unwrap_err();
+        assert!(errors
+            .iter()
+            .any(|diagnostic| diagnostic.code == "SPX-S113"));
     }
 }
 

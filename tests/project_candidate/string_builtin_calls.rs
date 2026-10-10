@@ -495,22 +495,15 @@ fn arity_types_names_and_source_identity_collisions_remain_closed() {
     assert_eq!(selected.to_json(), selected_before);
     let collision = Fixture::new(true);
     let collision_disk = collision.bytes();
-    let colliding = collision.candidate();
+    // Reserved intrinsic identities fail at ordinary Project admission. A
+    // candidate/catalog must never be created from this invalid source; the
+    // transaction-level G225 guards above still cover disposable edits.
     code(
-        replace(
-            &colliding,
-            "strings.measure",
-            builtin("core.string.len", vec![place("value")]),
-        ),
-        "SPX-G225",
+        with_authenticated_project(&collision.0.join("semaprax.toml"), |snapshot| {
+            ProjectCandidate::open(snapshot.retain_revision(), snapshot.project_revision())
+        }),
+        "SPX-S113",
     );
-    let catalog: Value =
-        serde_json::from_str(&colliding.change_catalog("strings.measure").unwrap()).unwrap();
-    assert!(!catalog["builtin_calls"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|row| row["target"] == "core.string.len"));
     assert_eq!(collision.bytes(), collision_disk);
     let reserved = Fixture::new(false);
     let core = std::fs::read_to_string(reserved.0.join("src/core.spx")).unwrap()

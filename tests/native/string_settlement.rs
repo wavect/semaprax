@@ -11,6 +11,9 @@ use semaprax::{codegen, format, graph, hir};
 
 #[path = "string_settlement/bulk_utf8.rs"]
 mod bulk_utf8;
+#[cfg(unix)]
+#[path = "string_settlement/codec_allocation.rs"]
+mod codec_allocation;
 #[path = "../native_string_settlement_v1/contents.rs"]
 mod contents;
 

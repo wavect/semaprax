@@ -127,3 +127,26 @@ Runtime settlement and profile/loan replay gates remain required. Same-source
 backend definitions, emitted artifacts and source-size reductions do not count
 as execution, current-head application acceptance, billed cost or matched-agent
 efficiency evidence.
+
+## Composed native allocation-fault boundary
+
+The owning native child selector
+`string_settlement::codec_allocation::composed_nested_codec_allocation_failures_preserve_return_and_fatal_boundaries`
+contains one regression definition. It derives and authenticates the request and
+response sources, then sweeps each allocation attempt in the successful composed
+path, using an independent declaration-order Unicode/NUL output oracle. Each
+returned Vec allocation refusal must retain its selected `semaprax.vec.v1` code 3,
+leave the caller's result unpublished, settle all tracked pointers exactly once,
+and permit a later successful call with the same invocation context. Disarming
+one-shot fault injection does not reset that context's status arena or budgets.
+
+Ordinary native String allocation failure follows the existing fatal invariant
+policy, outside the language status-token channel (`native_runtime.rs` and
+`native_scalar_runtime.rs`; String helpers in `native_emit/mod.rs`). The same
+child observes the unmodified process termination and exact diagnostic, and
+checks the shared result slot remains unpublished. It does **not** interpret
+process retirement as zero-live-owner cleanup or recoverable failure. The
+OPT-724 requirement for zero leaks and recovery at every partial String/output
+allocation site therefore remains unmet by this witness. Changing that global
+failure policy requires a separate language/backend decision. This regression
+is authored, not executed; it establishes no application or efficiency result.

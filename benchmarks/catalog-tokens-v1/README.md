@@ -52,12 +52,33 @@ Pending commands after a verified native compiler is available:
 ```sh
 python3 benchmarks/catalog-tokens-v1/codex_campaign.py qualify \
   --compiler-source-ref <verified-source> --semaprax-bin <verified-compiler> \
-  --candidate <reviewed-closed-v30-reference> --output <new-external-qualification>
+  --candidate <reviewed-closed-v30-reference> --output <new-external-qualification> \
+  --authoring-profile semaprax-project-v30-owned-data-v1
 
 python3 benchmarks/catalog-tokens-v1/codex_campaign.py plan \
   --base-ref <verified-source> --compiler-source-ref <verified-source> \
   --semaprax-bin <verified-compiler> --qualification-evidence <fresh-evidence-json> \
   --authoring-profile semaprax-project-v30-owned-data-v1 --artifacts <new-external-campaign> \
+  --typescript-bootstrap-receipt <strong-tooling-receipt> --node-binary <verified-node> \
+  --npm-binary <verified-npm> --trials-per-arm 5 --model gpt-6.1-sol --effort medium
+```
+
+The collection-record cohort is a separate v31 choice. Use a reviewed v31
+reference candidate and qualify it independently; qualification and planning
+must name the same profile. Its route is `language-command-io.collection-record.v1`
+and its campaign schema is `semaprax.catalog-codex-campaign.v2`.
+
+```sh
+python3 benchmarks/catalog-tokens-v1/codex_campaign.py qualify \
+  --compiler-source-ref <verified-source> --semaprax-bin <verified-compiler> \
+  --candidate <reviewed-closed-v31-reference> --output <new-external-v31-qualification> \
+  --authoring-profile semaprax-project-v31-collection-record-v1
+
+python3 benchmarks/catalog-tokens-v1/codex_campaign.py plan \
+  --base-ref <verified-source> --compiler-source-ref <verified-source> \
+  --semaprax-bin <verified-compiler> --qualification-evidence <fresh-v31-evidence-json> \
+  --authoring-profile semaprax-project-v31-collection-record-v1 \
+  --artifacts <new-external-v31-campaign> \
   --typescript-bootstrap-receipt <strong-tooling-receipt> --node-binary <verified-node> \
   --npm-binary <verified-npm> --trials-per-arm 5 --model gpt-6.1-sol --effort medium
 ```

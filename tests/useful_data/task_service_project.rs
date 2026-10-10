@@ -1089,3 +1089,72 @@ fn observability_policy_packages_fit_the_real_reference_application() {
     })
     .expect("the checked-in observability policy closure must fit under SPX-G171");
 }
+
+/// Hosted forensic capture only: keep the service's exact revision comparison
+/// and every owning runtime assertion intact while exposing both producer bytes.
+#[test]
+#[ignore = "captures cold and cached task-service revision bytes for CI diagnosis"]
+fn task_service_frontend_byte_audit() {
+    for comment_free in [false, true] {
+        let checked_in = fixture();
+        let working = ScratchTree::new(if comment_free {
+            "frontend-audit-comment-free"
+        } else {
+            "frontend-audit-original"
+        });
+        std::fs::create_dir_all(working.join("src")).unwrap();
+        for relative in ["semaprax.toml", "src/app.spx", "src/tests.spx"] {
+            std::fs::copy(checked_in.join(relative), working.join(relative)).unwrap();
+        }
+        if comment_free {
+            write_comment_free_core(
+                &checked_in.join("src/core.spx"),
+                &working.join("src/core.spx"),
+            );
+        } else {
+            std::fs::copy(
+                checked_in.join("src/core.spx"),
+                working.join("src/core.spx"),
+            )
+            .unwrap();
+        }
+        project::with_authenticated_project(&working.join("semaprax.toml"), |snapshot| {
+            snapshot.check()?;
+            let cold = snapshot.retain_revision();
+            let sources = cold
+                .sources()
+                .iter()
+                .map(|source| project::ProjectFrontendSource::new(source.path(), source.source()))
+                .collect::<Result<Vec<_>, _>>()?;
+            let mut cache = project::ProjectFrontendCache::new_with_semantic_cache();
+            let cached = cache.build(cold.manifest(), &sources)?;
+            let warm = cache.build(cold.manifest(), &sources)?;
+            let facts = |revision: &project::ProjectRevision| {
+                json!({
+                    "project_revision": revision.project_revision(),
+                    "workspace_revision": revision.workspace_revision(),
+                    "manifest": revision.manifest().to_canonical_toml(),
+                    "workspace_manifest": revision.workspace_manifest(),
+                    "graph": revision.semantic_graph(),
+                    "sources": revision.sources().iter().map(|source| json!({
+                        "path": source.path(), "source": source.source(),
+                        "revision": source.source_revision(), "digest": source.source_digest()
+                    })).collect::<Vec<_>>()
+                })
+            };
+            let row = serde_json::to_string(&json!({
+                "comment_free": comment_free, "cold": facts(&cold),
+                "cached": facts(cached.revision()), "warm": facts(warm.revision()),
+                "cached_work": cached.to_json(), "warm_work": warm.to_json()
+            }))
+            .unwrap();
+            assert!(
+                row.len() <= 32 * 1024 * 1024,
+                "frontend audit exceeds its byte bound"
+            );
+            println!("SEMAPRAX_TASK_SERVICE_FRONTEND_AUDIT={row}");
+            Ok(())
+        })
+        .unwrap();
+    }
+}

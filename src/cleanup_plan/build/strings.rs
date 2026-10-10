@@ -11,14 +11,15 @@ pub(super) fn owns_clone(expression: &ResolvedExpr) -> bool {
 }
 impl PlanBuilder<'_> {
     /// An owning String read allocates a clone, except the first operand of
-    /// an Owned String Loops v1 same-owner append, which moves the binding.
+    /// an Owned String Loops v1 same-owner append or a direct literal-format
+    /// owned Place argument, which transfers its existing generation.
     pub(super) fn owns_string_clone(&self, expression: &ResolvedExpr) -> bool {
         owns_clone(expression)
-            && !self.string_appends.contains_key(&expression.id)
+            && !self.string_owner_moves.contains(&expression.id)
             && !self.string_condition_reads.contains(&expression.id)
     }
 
-    /// An append move or condition inspection never initializes its inventory
+    /// A consuming move or condition inspection never initializes its inventory
     /// temporary, but that storage still belongs to the clone's lexical region.
     pub(super) fn assign_moved_string_slot(
         &mut self,
@@ -28,7 +29,7 @@ impl PlanBuilder<'_> {
         // Only a String operand would otherwise have cloned; a moving map
         // reopen operand never had an inventory temporary.
         if expression.ty == ResolvedType::String
-            && (self.string_appends.contains_key(&expression.id)
+            && (self.string_owner_moves.contains(&expression.id)
                 || self.string_condition_reads.contains(&expression.id))
         {
             let region = self.blocks[block.0 as usize].region;

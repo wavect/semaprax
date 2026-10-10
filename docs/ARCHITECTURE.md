@@ -859,6 +859,13 @@ including conditional bounded-loop updates with other live owners. Allocation
 in loops, growth, general owned-loop state, wider elements, Project/public
 layouts, and public byte adapters remain outside this boundary.
 
+`literal_format::moving_string_operands` derives the existing direct String
+argument transfer exception from the dedicated checked operation. Cleanup
+construction and independent replay, native and Wasm use the same typed-HIR
+classification; only actual concat renewal operands reserve initialization
+history. Formatter moves do not create a clone or a renewal. Standalone format
+host status handling is bound by the already authenticated selected closure.
+
 `src/loan_plan.rs` owns the additive plan schema, builder, and replay;
 endpoint and edge loan-ID lists use immutable boxed slices in their original
 canonical order. `loan_plan/compact_ids.rs` reserves possible vector-to-slice

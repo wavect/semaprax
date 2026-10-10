@@ -56,9 +56,10 @@ pub(super) fn emit_literal_data(
 
 impl super::Emitter<'_> {
     /// Owned String Loops v1: the first operand of a same-owner append moves
-    /// the binding's carrier into the call instead of cloning it, exactly as
-    /// the replayed CleanupPlan transfers it.
+    /// the binding's carrier into the call instead of cloning it. Direct owned
+    /// String Places in LiteralFormat have the same transfer behavior, exactly
+    /// as independently derived by CleanupPlan construction and replay.
     pub(super) fn moves_string_owner(&self, expression: &crate::hir::ResolvedExpr) -> bool {
-        crate::string_ops::same_owner_concat_operands(self.function).contains(&expression.id)
+        crate::literal_format::moving_string_operands(self.function).contains(&expression.id)
     }
 }

@@ -2427,7 +2427,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             semantic_metered: false,
             owned_strings: track_strings.then(owned_strings::OwnedStrings::default),
             try_target_enabled: false,
-            string_owner_moves: crate::string_ops::same_owner_concat_operands(function),
+            string_owner_moves: crate::literal_format::moving_string_operands(function),
             string_condition_reads: crate::string_ops::conditions::function_reads(function),
             next_local: 0,
             indent: 1,

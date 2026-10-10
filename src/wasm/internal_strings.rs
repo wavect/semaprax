@@ -262,7 +262,14 @@ fn emit_selected(
         })
         .any(crate::wasm::numeric_conversions::expression_uses_integer_conversion);
     let runtime = if toolkit || literal_format {
-        runtime::render_toolkit(&descriptor, &wasm_sha256, wasm.len(), &resolved, &closure)
+        runtime::render_toolkit(
+            &descriptor,
+            &wasm_sha256,
+            wasm.len(),
+            &resolved,
+            &closure,
+            literal_format,
+        )
     } else {
         runtime::render(
             &descriptor,

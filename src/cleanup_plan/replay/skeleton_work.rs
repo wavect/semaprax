@@ -10,7 +10,7 @@ pub(super) struct SkeletonWork<'a, 'b> {
     pub(super) budget: &'b mut ReplayBudget,
     pub(super) renewal_bindings:
         std::collections::BTreeMap<crate::hir::ExpressionId, &'a crate::hir::ResolvedBinding>,
-    /// Owned String Loops v1 same-owner append operands that move, not clone.
+    /// Authored same-owner append and direct literal-format String moves.
     pub(super) string_owner_moves: BTreeSet<ExpressionId>,
     pub(super) string_condition_reads: BTreeSet<ExpressionId>,
 }
@@ -25,7 +25,7 @@ impl<'a, 'b> SkeletonWork<'a, 'b> {
             function,
             budget,
             renewal_bindings: crate::cleanup_plan::renewal_bindings(program, function),
-            string_owner_moves: crate::string_ops::same_owner_concat_operands(function),
+            string_owner_moves: crate::literal_format::moving_string_operands(function),
             string_condition_reads: crate::string_ops::conditions::function_reads(function),
         }
     }

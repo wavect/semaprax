@@ -131,6 +131,30 @@ pub(crate) fn expression_uses(expression: &crate::hir::ResolvedExpr) -> bool {
     false
 }
 
+/// Ordinary concat renewals and direct formatter-owned Place operands move
+/// their authenticated source generation. This is derived from typed HIR, not
+/// from attached cleanup flags or a callee name on an ordinary Call node.
+pub(crate) fn moving_string_operands(
+    function: &crate::hir::ResolvedFunction,
+) -> std::collections::BTreeSet<crate::hir::ExpressionId> {
+    use crate::hir::{OwnershipMode, ResolvedExprKind, ResolvedType};
+    let mut operands = crate::string_ops::same_owner_concat_operands(function);
+    crate::hir::function_value::walk(function, |expression| {
+        if let ResolvedExprKind::LiteralFormat { args, .. } = &expression.kind {
+            operands.extend(
+                args.iter()
+                    .filter(|argument| {
+                        argument.ty == ResolvedType::String
+                            && argument.ownership == OwnershipMode::Own
+                            && matches!(argument.kind, ResolvedExprKind::Place(_))
+                    })
+                    .map(|argument| argument.id.clone()),
+            );
+        }
+    });
+    operands
+}
+
 pub(crate) fn accepts_ast_type(ty: &crate::ast::Type) -> bool {
     matches!(
         ty,
@@ -152,6 +176,9 @@ pub(crate) fn accepts_hir_type(ty: &crate::hir::ResolvedType) -> bool {
             | crate::hir::ResolvedType::String
     )
 }
+
+#[cfg(test)]
+mod move_tests;
 
 #[cfg(test)]
 mod tests {

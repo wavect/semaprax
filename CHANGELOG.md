@@ -1,5 +1,11 @@
 # Changelog
 
+- Align direct owned formatter Place transfers across cleanup construction,
+  independent replay, native and Wasm with the interpreter; preserve ordinary
+  String clones, pre-commit failure cleanup and post-commit worker settlement.
+  Bind standalone format status 34 separately from conversion status 21; source
+  regressions are staged and grouped execution remains pending.
+
 - Reuse fully selected exact HIR carriers and the final uncached workspace
   loan-inventory allocation across functions,
   retaining full capacity charges, source ownership and the unchanged 64 MiB

@@ -23,7 +23,13 @@ synthetic source before Project replay binds it to canonical authored source.
 Dynamic arguments evaluate once from left to right. Every scalar is captured
 before the next argument runs. Each owned String enters its canonical
 CallArgument epoch; one complete CallCommit transfers the group before the
-first rendering allocation. A private worker constructs the empty accumulator,
+first rendering allocation. A direct owned String Place argument transfers its
+existing generation rather than initializing the ordinary String-read clone.
+Cleanup construction, independent replay, interpreter, native C11 and Wasm
+all derive this exception from the dedicated source-bound operation; ordinary
+String reads retain their prior cloning behavior. If a later dynamic argument
+fails, the already staged prefix settles through the ordinary pre-commit exit.
+A private worker constructs the empty accumulator,
 then each literal or converted field, then joins each piece in source order.
 If a helper fails, it drops the accumulator, current piece and every remaining
 owned argument before the ordinary failure cleanup. The selected failure is
@@ -35,7 +41,11 @@ The aggregate Wasm host adds one format-only private import,
 the generated worker then releases its owned inputs and reports
 `semaprax.string-format.v1/1`. Existing byte and String imports retain their
 prior behavior. The selected standalone String arena uses its existing
-fallible allocation imports and the same worker recipe. Its default owner
+fallible allocation imports and the same worker recipe. The authenticated
+selected closure binds its format-status handling once: checked worker refusal
+is internal status 34 and requires a recorded arena capacity cause after all
+owners settle; conversion status 21 retains its existing separate meaning.
+Non-format profiles do not admit status 34. Its default owner
 census additionally charges three worker handles per active function containing
 formatting, before the existing call-path bound. Workers in the same function
 cannot overlap: dynamic children finish before rendering, which calls no

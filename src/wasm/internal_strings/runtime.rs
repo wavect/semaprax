@@ -46,6 +46,7 @@ pub(super) fn render_toolkit(
     wasm_byte_length: usize,
     program: &crate::hir::ResolvedProgram,
     closure: &std::collections::BTreeSet<crate::hir::DeclarationId>,
+    literal_format: bool,
 ) -> String {
     let mut selected = program.clone();
     selected
@@ -105,22 +106,17 @@ pub(super) fn render_toolkit(
             .replace("status<=25?\"semaprax.text.v1\":\"semaprax.filesystem.v1\"", "status<=25?\"semaprax.text.v1\":status<=29?\"semaprax.map.v1\":status<=33?\"semaprax.map.v2\":\"semaprax.filesystem.v1\"")
             .replace("status<=25?status-22:status-64", "status<=25?status-22:status<=29?status-25:status<=33?status-29:status-64");
     }
-    if selected.functions.iter().any(|function| {
-        std::iter::once(&function.body)
-            .chain(&function.requires)
-            .chain(&function.ensures)
-            .any(crate::literal_format::expression_uses)
-    }) {
-        arena = arena.replace(
-            "(status===11)!==(cause!==null)",
-            "(status===11||status===34)!==(cause!==null)",
-        );
-        facade = facade
-            .replace("status>=0&&status<=11||", "status>=0&&status<=11||status===34||")
-            .replace(
-                "else result=Object.freeze({kind:\"failure\",domain:",
-                "else if(status===34)result=Object.freeze({kind:\"failure\",domain:\"semaprax.string-format.v1\",code:1});\n      else result=Object.freeze({kind:\"failure\",domain:",
-            );
+    if literal_format {
+        const CAUSE: &str = "(status===11)!==(cause!==null)";
+        const RANGE: &str = "status>=0&&status<=11||";
+        const FAILURE: &str = "else result=Object.freeze({kind:\"failure\",domain:";
+        assert_eq!(arena.matches(CAUSE).count(), 1);
+        assert_eq!(facade.matches(RANGE).count(), 1);
+        assert_eq!(facade.matches(FAILURE).count(), 1);
+        arena = arena.replacen(CAUSE, "(status===11||status===34)!==(cause!==null)", 1);
+        facade = facade.replacen(RANGE, "status>=0&&status<=11||status===34||", 1)
+            .replacen(FAILURE,
+                "else if(status===34)result=Object.freeze({kind:\"failure\",domain:\"semaprax.string-format.v1\",code:1});\n      else result=Object.freeze({kind:\"failure\",domain:", 1);
     }
     facade = facade.replace(
         "Object.freeze({\"semaprax.internal-strings.v1\":arena.imports})",

@@ -1,5 +1,4 @@
 module shiftsim.schedule;
-
 use type @id("shiftsim.patient") from shiftsim.request_schema as Patient;
 use type @id("shiftsim.request") from shiftsim.request_schema as Request;
 use type @id("shiftsim.assignment") from shiftsim.response_schema as Assignment;
@@ -16,19 +15,7 @@ use function @id("shiftsim.order.unique_sorted_server_ids") from shiftsim.order 
 @id("shiftsim.schedule.empty_report")
 fn empty_report() -> Report
 {
-    Report {
-        assignments: vec_with_capacity<Assignment>(0usize),
-        metrics: Metrics {
-            patients: 0,
-            total_wait: 0,
-            max_wait: 0,
-            late: 0,
-            busy_time: 0,
-            makespan: 0,
-            peak_queue: 0,
-            utilization_ppm: 0,
-        },
-    }
+    Report { assignments: vec_with_capacity<Assignment>(0usize), metrics: Metrics { patients: 0, total_wait: 0, max_wait: 0, late: 0, busy_time: 0, makespan: 0, peak_queue: 0, utilization_ppm: 0 } }
 }
 
 @id("shiftsim.schedule.identifier")
@@ -39,12 +26,7 @@ fn identifier(value: borrow str) -> bool
     let mut valid = length > 0usize && length <= 16usize;
     let mut index = 0usize;
     while valid && index < length {
-        valid = match byte_get(bytes, index) {
-            Option::Some { value: byte } => (byte >= 65u8 && byte <= 90u8)
-                || (byte >= 97u8 && byte <= 122u8)
-                || (byte >= 48u8 && byte <= 57u8) || byte == 95u8 || byte == 45u8,
-            Option::None {} => false,
-        };
+        valid = match byte_get(bytes, index) { Option::Some { value: byte } => byte >= 65u8 && byte <= 90u8 || byte >= 97u8 && byte <= 122u8 || byte >= 48u8 && byte <= 57u8 || byte == 95u8 || byte == 45u8, Option::None {} => false, };
         index = index + 1usize;
         valid && index < length
     }
@@ -71,225 +53,6 @@ fn unique_identifiers(values: own Vec<string>) -> bool
 @id("shiftsim.schedule.run")
 fn run(request: own Request) -> ScheduleResult
 {
-    match own request {
-        Request { servers: input_servers, patients: input_patients } => {
-            let patient_count = vec_len<Patient>(input_patients);
-            let server_count = vec_len<string>(input_servers);
-            let ordered_patients = patients_by_dispatch_key(input_patients);
-            let mut ordered_servers = vec_with_capacity<Server>(server_count);
-            for own server_name in vec_into_iter<string>(input_servers) {
-                ordered_servers = vec_push<Server>(ordered_servers, Server { id: server_name });
-                0
-            }
-            ordered_servers = servers_by_id(ordered_servers);
-
-            let mut people = vec_with_capacity<Patient>(patient_count);
-            let mut patient_states = vec_with_capacity<PatientState>(patient_count);
-            let mut valid = server_count <= 8usize && patient_count <= 256usize
-                && (server_count > 0usize || patient_count == 0usize);
-            let mut patient_ids = vec_with_capacity<string>(patient_count);
-            for own ordered_patient in vec_into_iter<Patient>(ordered_patients) {
-                match own ordered_patient {
-                    Patient {
-                        priority: person_priority,
-                        arrival: person_arrival,
-                        id: person_id,
-                        service: person_service,
-                        deadline: person_deadline,
-                    } => {
-                        if !identifier(string_as_str(person_id)) { valid = false; }
-                        patient_ids = vec_push<string>(patient_ids, person_id);
-                        if person_arrival < 0 || person_arrival > 1000000
-                            || person_service < 1 || person_service > 100000
-                            || person_priority < 0 || person_priority > 9
-                            || person_deadline < 0 || person_deadline > 1000000
-                        { valid = false; }
-                        patient_states = vec_push<PatientState>(patient_states, PatientState {
-                            arrival: person_arrival,
-                            assigned: false,
-                        });
-                        people = vec_push<Patient>(people, Patient {
-                            priority: person_priority,
-                            arrival: person_arrival,
-                            id: person_id,
-                            service: person_service,
-                            deadline: person_deadline,
-                        });
-                        0
-                    },
-                }
-            }
-
-            valid = unique_identifiers(patient_ids) && valid;
-            let mut workers = vec_with_capacity<Server>(server_count);
-            let mut worker_states = vec_with_capacity<WorkerState>(server_count);
-            for own ordered_server in vec_into_iter<Server>(ordered_servers) {
-                match own ordered_server {
-                    Server { id: server_id } => {
-                        if !identifier(string_as_str(server_id)) { valid = false; }
-                        workers = vec_push<Server>(workers, Server { id: server_id });
-                        worker_states = vec_push<WorkerState>(worker_states, WorkerState {
-                            free_at: 0,
-                        });
-                        0
-                    },
-                }
-            }
-
-            valid = sorted_servers_have_unique_ids(workers) && valid;
-            if !valid {
-                ScheduleResult { valid: false, report: empty_report() }
-            } else {
-                let mut assignments = vec_with_capacity<Assignment>(patient_count);
-                let mut total_wait = 0;
-                let mut max_wait = 0;
-                let mut late_count = 0;
-                let mut busy_time = 0;
-                let mut makespan = 0;
-                let mut peak_queue = 0;
-                let mut time = 0;
-                let mut dispatched = 0usize;
-
-                while dispatched < patient_count {
-                    let mut waiting = 0;
-                    let mut waiting_index = 0usize;
-                    while waiting_index < patient_count {
-                        let waiting_state = vec_get<PatientState>(patient_states, waiting_index);
-                        if !waiting_state.assigned && waiting_state.arrival <= time {
-                            waiting = waiting + 1;
-                        }
-                        waiting_index = waiting_index + 1usize;
-                        0
-                    }
-                    if waiting > peak_queue { peak_queue = waiting; }
-
-                    let mut dispatching = true;
-                    while dispatching {
-                        let mut patient_index = patient_count;
-                        let mut patient_scan = 0usize;
-                        let mut patient_searching = true;
-                        while patient_scan < patient_count && patient_searching {
-                            let candidate_state = vec_get<PatientState>(patient_states, patient_scan);
-                            if !candidate_state.assigned && candidate_state.arrival <= time {
-                                patient_index = patient_scan;
-                                patient_searching = false;
-                            }
-                            patient_scan = patient_scan + 1usize;
-                            0
-                        }
-
-                        let mut server_index = server_count;
-                        let mut server_scan = 0usize;
-                        let mut server_searching = true;
-                        while server_scan < server_count && server_searching {
-                            let candidate_worker = vec_get<WorkerState>(worker_states, server_scan);
-                            if candidate_worker.free_at <= time {
-                                server_index = server_scan;
-                                server_searching = false;
-                            }
-                            server_scan = server_scan + 1usize;
-                            0
-                        }
-
-                        if patient_index == patient_count || server_index == server_count {
-                            dispatching = false;
-                        } else {
-                            // One deep copy per dispatched Patient supplies its published ID.
-                            let selected_patient = vec_clone_at<Patient>(people, patient_index);
-                            match own selected_patient {
-                                Patient {
-                                    priority: _selected_priority,
-                                    arrival: selected_arrival,
-                                    id: selected_id,
-                                    service: selected_service,
-                                    deadline: selected_deadline,
-                                } => {
-                                    let finish = time + selected_service;
-                                    let wait = time - selected_arrival;
-                                    let is_late = finish > selected_deadline;
-                                    let prior_patient_state = vec_get<PatientState>(patient_states, patient_index);
-                                    let updated_patient_state = PatientState {
-                                        arrival: prior_patient_state.arrival,
-                                        assigned: true,
-                                    };
-                                    patient_states = vec_replace<PatientState>(patient_states, patient_index, updated_patient_state);
-
-                                    let selected_worker = vec_clone_at<Server>(workers, server_index);
-                                    match own selected_worker {
-                                        Server { id: selected_server_id } => {
-                                            let updated_worker_state = WorkerState { free_at: finish };
-                                            worker_states = vec_replace<WorkerState>(worker_states, server_index, updated_worker_state);
-                                            assignments = vec_push<Assignment>(assignments, Assignment {
-                                                id: selected_id,
-                                                server: selected_server_id,
-                                                arrival: selected_arrival,
-                                                start: time,
-                                                finish,
-                                                wait,
-                                                late: is_late,
-                                            });
-                                            total_wait = total_wait + wait;
-                                            if wait > max_wait { max_wait = wait; }
-                                            if is_late { late_count = late_count + 1; }
-                                            busy_time = busy_time + selected_service;
-                                            if finish > makespan { makespan = finish; }
-                                            dispatched = dispatched + 1usize;
-                                            0
-                                        },
-                                    }
-                                },
-                            }
-                        }
-                        0
-                    }
-
-                    if dispatched < patient_count {
-                        let mut next_time = 9223372036854775807;
-                        let mut arrival_scan = 0usize;
-                        while arrival_scan < patient_count {
-                            let arrival_state = vec_get<PatientState>(patient_states, arrival_scan);
-                            if !arrival_state.assigned && arrival_state.arrival > time && arrival_state.arrival < next_time {
-                                next_time = arrival_state.arrival;
-                            }
-                            arrival_scan = arrival_scan + 1usize;
-                            0
-                        }
-                        let mut completion_scan = 0usize;
-                        while completion_scan < server_count {
-                            let completion_state = vec_get<WorkerState>(worker_states, completion_scan);
-                            if completion_state.free_at > time && completion_state.free_at < next_time {
-                                next_time = completion_state.free_at;
-                            }
-                            completion_scan = completion_scan + 1usize;
-                            0
-                        }
-                        time = next_time;
-                        0
-                    } else { 0 }
-                }
-
-                let utilization_ppm = if patient_count == 0usize || server_count == 0usize || makespan == 0 {
-                    0
-                } else {
-                    busy_time * 1000000 / (i64_from_usize(server_count) * makespan)
-                };
-                ScheduleResult {
-                    valid: true,
-                    report: Report {
-                        assignments,
-                        metrics: Metrics {
-                            patients: i64_from_usize(patient_count),
-                            total_wait,
-                            max_wait,
-                            late: late_count,
-                            busy_time,
-                            makespan,
-                            peak_queue,
-                            utilization_ppm,
-                        },
-                    },
-                }
-            }
-        },
-    }
+    // One deep copy per dispatched Patient supplies its published ID.
+    match own request { Request { servers: input_servers, patients: input_patients } => { let patient_count = vec_len<Patient>(input_patients); let server_count = vec_len<string>(input_servers); let ordered_patients = patients_by_dispatch_key(input_patients); let mut ordered_servers = vec_with_capacity<Server>(server_count); for own server_name in vec_into_iter<string>(input_servers) { ordered_servers = vec_push<Server>(ordered_servers, Server { id: server_name }); 0 } ordered_servers = servers_by_id(ordered_servers); let mut people = vec_with_capacity<Patient>(patient_count); let mut patient_states = vec_with_capacity<PatientState>(patient_count); let mut valid = server_count <= 8usize && patient_count <= 256usize && (server_count > 0usize || patient_count == 0usize); let mut patient_ids = vec_with_capacity<string>(patient_count); for own ordered_patient in vec_into_iter<Patient>(ordered_patients) { match own ordered_patient { Patient { priority: person_priority, arrival: person_arrival, id: person_id, service: person_service, deadline: person_deadline } => { if !identifier(string_as_str(person_id)) { valid = false; } patient_ids = vec_push<string>(patient_ids, person_id); if person_arrival < 0 || person_arrival > 1000000 || person_service < 1 || person_service > 100000 || person_priority < 0 || person_priority > 9 || person_deadline < 0 || person_deadline > 1000000 { valid = false; } patient_states = vec_push<PatientState>(patient_states, PatientState { arrival: person_arrival, assigned: false }); people = vec_push<Patient>(people, Patient { priority: person_priority, arrival: person_arrival, id: person_id, service: person_service, deadline: person_deadline }); 0 }, } } valid = unique_identifiers(patient_ids) && valid; let mut workers = vec_with_capacity<Server>(server_count); let mut worker_states = vec_with_capacity<WorkerState>(server_count); for own ordered_server in vec_into_iter<Server>(ordered_servers) { match own ordered_server { Server { id: server_id } => { if !identifier(string_as_str(server_id)) { valid = false; } workers = vec_push<Server>(workers, Server { id: server_id }); worker_states = vec_push<WorkerState>(worker_states, WorkerState { free_at: 0 }); 0 }, } } valid = sorted_servers_have_unique_ids(workers) && valid; if !valid { ScheduleResult { valid: false, report: empty_report() } } else { let mut assignments = vec_with_capacity<Assignment>(patient_count); let mut total_wait = 0; let mut max_wait = 0; let mut late_count = 0; let mut busy_time = 0; let mut makespan = 0; let mut peak_queue = 0; let mut time = 0; let mut dispatched = 0usize; while dispatched < patient_count { let mut waiting = 0; let mut waiting_index = 0usize; while waiting_index < patient_count { let waiting_state = vec_get<PatientState>(patient_states, waiting_index); if !waiting_state.assigned && waiting_state.arrival <= time { waiting = waiting + 1; } waiting_index = waiting_index + 1usize; 0 } if waiting > peak_queue { peak_queue = waiting; } let mut dispatching = true; while dispatching { let mut patient_index = patient_count; let mut patient_scan = 0usize; let mut patient_searching = true; while patient_scan < patient_count && patient_searching { let candidate_state = vec_get<PatientState>(patient_states, patient_scan); if !candidate_state.assigned && candidate_state.arrival <= time { patient_index = patient_scan; patient_searching = false; } patient_scan = patient_scan + 1usize; 0 } let mut server_index = server_count; let mut server_scan = 0usize; let mut server_searching = true; while server_scan < server_count && server_searching { let candidate_worker = vec_get<WorkerState>(worker_states, server_scan); if candidate_worker.free_at <= time { server_index = server_scan; server_searching = false; } server_scan = server_scan + 1usize; 0 } if patient_index == patient_count || server_index == server_count { dispatching = false; } else { let selected_patient = vec_clone_at<Patient>(people, patient_index); match own selected_patient { Patient { priority: _selected_priority, arrival: selected_arrival, id: selected_id, service: selected_service, deadline: selected_deadline } => { let finish = time + selected_service; let wait = time - selected_arrival; let is_late = finish > selected_deadline; let prior_patient_state = vec_get<PatientState>(patient_states, patient_index); let updated_patient_state = PatientState { arrival: prior_patient_state.arrival, assigned: true }; patient_states = vec_replace<PatientState>(patient_states, patient_index, updated_patient_state); let selected_worker = vec_clone_at<Server>(workers, server_index); match own selected_worker { Server { id: selected_server_id } => { let updated_worker_state = WorkerState { free_at: finish }; worker_states = vec_replace<WorkerState>(worker_states, server_index, updated_worker_state); assignments = vec_push<Assignment>(assignments, Assignment { id: selected_id, server: selected_server_id, arrival: selected_arrival, start: time, finish: finish, wait: wait, late: is_late }); total_wait = total_wait + wait; if wait > max_wait { max_wait = wait; } if is_late { late_count = late_count + 1; } busy_time = busy_time + selected_service; if finish > makespan { makespan = finish; } dispatched = dispatched + 1usize; 0 }, } }, } } 0 } if dispatched < patient_count { let mut next_time = 9223372036854775807; let mut arrival_scan = 0usize; while arrival_scan < patient_count { let arrival_state = vec_get<PatientState>(patient_states, arrival_scan); if !arrival_state.assigned && arrival_state.arrival > time && arrival_state.arrival < next_time { next_time = arrival_state.arrival; } arrival_scan = arrival_scan + 1usize; 0 } let mut completion_scan = 0usize; while completion_scan < server_count { let completion_state = vec_get<WorkerState>(worker_states, completion_scan); if completion_state.free_at > time && completion_state.free_at < next_time { next_time = completion_state.free_at; } completion_scan = completion_scan + 1usize; 0 } time = next_time; 0 } else { 0 } } let utilization_ppm = if patient_count == 0usize || server_count == 0usize || makespan == 0 { 0 } else { busy_time * 1000000 / (i64_from_usize(server_count) * makespan) }; ScheduleResult { valid: true, report: Report { assignments: assignments, metrics: Metrics { patients: i64_from_usize(patient_count), total_wait: total_wait, max_wait: max_wait, late: late_count, busy_time: busy_time, makespan: makespan, peak_queue: peak_queue, utilization_ppm: utilization_ppm } } } } }, }
 }

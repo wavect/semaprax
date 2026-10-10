@@ -87,7 +87,7 @@ def _options(argv: list[str]) -> dict[str, str] | None:
     if profile not in PROFILES and profile is not None:
         return None
     if profile in ("utf8-owned-request.v1", "stream-utf8-owned-request.v1"):
-        if bound is None or not bound.isascii() or not bound.isdigit():
+        if bound is None or len(bound) > 2 or not bound.isascii() or not bound.isdigit():
             return None
         if str(int(bound)) != bound or not 1 <= int(bound) <= 64:
             return None

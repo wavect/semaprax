@@ -27,7 +27,7 @@ class LiveCampaignTests(unittest.TestCase):
         for profile in utf8_profiles:
             good = [*base, "--profile", profile, "--max-string-bytes", "64"]
             self.assertEqual(compiler_capture._options(good)["--max-string-bytes"], "64")
-            for bound in ("0", "65", "01", "+1", " 1", ""):
+            for bound in ("0", "65", "01", "+1", " 1", "", "9" * 5_000, "١", "６４"):
                 with self.subTest(profile=profile, bound=bound):
                     args = [*base, "--profile", profile, "--max-string-bytes", bound]
                     self.assertIsNone(compiler_capture._options(args))

@@ -815,7 +815,7 @@ jobs:
           import json, sys
           source, path = sys.argv[1:]
           run = json.load(open(path))
-          if (run.get("name") != "Focused implementation-batch 706-730 verification" or
+          if (run.get("name") != "Focused canonical source repair" or
               run.get("event") != "workflow_dispatch" or
               run.get("status") != "completed" or run.get("conclusion") != "success"):
               raise SystemExit("verification run is not the successful focused workflow")

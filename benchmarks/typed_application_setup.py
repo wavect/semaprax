@@ -374,8 +374,12 @@ def install(args: argparse.Namespace) -> Path:
         subject()
         result["generated_outputs"] = [{"path": key, "sha256": sha(value), "bytes": len(value)}
                                        for key, value in sorted(candidates.items())]
-        result["installed_source_inventory"] = [{"path": str(path.relative_to(complete)), "sha256": sha(read_regular(path))}
-                                                for path in sorted(complete.rglob("*")) if path.is_file()]
+        installed_paths = sorted((set(files) - {"src/app.command.spx"}) | set(scaffold))
+        # The closed installed-source selection excludes compiler-created cache,
+        # lock and build artifacts. It includes every declared source and all
+        # three operator scripts; none of those files can disappear silently.
+        result["installed_source_inventory"] = [{"path": relative, "sha256": sha(read_regular(complete / relative))}
+                                                for relative in installed_paths]
         installed_receipt, installed_sha = provenance.capture_inputs(
             complete, output / "installed-inputs", [row["path"] for row in result["installed_source_inventory"]])
         provenance.validate_input_snapshot(installed_receipt, installed_sha)

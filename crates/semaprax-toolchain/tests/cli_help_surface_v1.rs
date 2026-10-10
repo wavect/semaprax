@@ -20,6 +20,8 @@ const BUILD_SOURCE_LINE: &str =
     "semaprax build <file> [--target native] [-o|--output path] [--json]\n";
 const BUILD_PROJECT_LINE: &str = "semaprax build [<dir>|semaprax.toml|--manifest-path path] [--target native|web|wasm|npm|oci|rust] [-o|--output path] [--json]\n";
 const BANNER: &str = "SEMAPRAX — Meaning in. Verified machine code out.\n";
+const JSON_CODEC_HELP: &str = "Derives checked ordinary source for explicit scalar records; opt-in identifier-views.v1, request-views.v1 and stream-request-views.v1 add bounded identifier/array views; owned-request.v1 and stream-owned-request.v1 materialize bounded identifier String/record collections under an owning runtime profile. UTF-8 owned request profiles bound each decoded string with --max-string-bytes (1..64 UTF-8 bytes). bounded-collection-response.v1 selects an encode-only nested collection view and also requires that bound. bounded-nested-request.v1 requires both --max-string-bytes (1..64) and --max-array-items (1..256); direct decoding only, under the independently admitted caller Project profile. bounded-stream-nested-request.v1 uses the same bounds, original schema stdin permit and a computed normalized spelling envelope; it adds no raw-input or whitespace cap.\nRequires declared std.data.json scan/token/digits/write dependencies. Publishes a new complete module replacement; never overwrites source.\nContract and typed failure codes: docs/APPLICATION-JSON-CODECS-V1.md\n";
+
 const GUIDE_MAX_BYTES: usize = 2048;
 const LANGUAGE_TOPICS: &str = concat!(
     "Language topics:\n",
@@ -185,7 +187,14 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
                 .then(|| format!("  {line}\n"))
             })
             .collect();
-        let expected = format!("Usage:\n{expected}");
+        let expected = format!(
+            "Usage:\n{expected}{}",
+            if command == "json-codec" {
+                JSON_CODEC_HELP
+            } else {
+                ""
+            }
+        );
         for arguments in [
             vec!["help", command],
             vec![command, "--help"],
@@ -288,15 +297,33 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     assert!(diagnostic.stderr.is_empty());
     assert_eq!(diagnostic.stdout, DIAGNOSTIC_T208.as_bytes());
     assert!(diagnostic.stdout.len() <= 256);
-    let mistakes = invoke(&["help", "language", "mistakes-index"]);
-    assert!(diagnostic.stdout.len() * 20 < mistakes.0.stdout.len());
+    let (mistakes, mistakes_dir) = invoke(&["help", "language", "mistakes-index"]);
+    assert!(mistakes.status.success());
+    assert!(mistakes.stderr.is_empty());
+    assert!(
+        mistakes
+            .stdout
+            .starts_with(b"## Habits from other languages: diagnostic index\n")
+    );
+    let (reference, reference_dir) = invoke(&["help", "language", "all"]);
+    assert!(reference.status.success());
+    assert!(reference.stderr.is_empty());
+    let reference = std::str::from_utf8(&reference.stdout).unwrap();
+    let marker = "## Habits from other languages: diagnostic index\n";
+    let index = reference
+        .split_once(marker)
+        .unwrap()
+        .1
+        .split("\n## ")
+        .next()
+        .unwrap();
+    assert!(diagnostic.stdout.len() * 20 < index.len());
     assert!(
         semaprax::agent_economics::lexical_tokens(DIAGNOSTIC_T208) * 20
-            < semaprax::agent_economics::lexical_tokens(
-                std::str::from_utf8(&mistakes.0.stdout).unwrap()
-            )
+            < semaprax::agent_economics::lexical_tokens(index)
     );
-    std::fs::remove_dir(mistakes.1).unwrap();
+    std::fs::remove_dir(reference_dir).unwrap();
+    std::fs::remove_dir(mistakes_dir).unwrap();
     std::fs::remove_dir(diagnostic_dir).unwrap();
     let (p106, p106_dir) = invoke(&["help", "diagnostic", "SPX-P106"]);
     assert!(p106.status.success());

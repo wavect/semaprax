@@ -109,6 +109,7 @@ fn repeated_scalar_and_utf8_byte_reads_never_materialize_owners() {
   let bytes=vec_field<Row>(rows,0usize,"payload");
   if byte_len(text)==3usize && byte_len(bytes)==3usize && str_len_bytes(vec_field<Row>(rows,0usize,"title"))==3 && marker(rows)==-17 {total=total+1;}
   index=index+1usize;
+  0
  }
  total
 }

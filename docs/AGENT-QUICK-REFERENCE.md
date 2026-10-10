@@ -1245,9 +1245,8 @@ fn order_status(paid: bool) -> string
 
 ## Projects
 
-`str_byte_at(text, 0usize)` reads borrowed UTF-8 bytes; match its `Option<u8>`
-and widen `Some` with `i64_from_u8`. `std.bytes.get_or` is available in
-`useful-data.v1` (`semaprax help library std.bytes.get_or`).
+`str_byte_at(text,index)` returns `Option<u8>`; match `Some`, then `i64_from_u8`.
+`std.bytes.get_or`: `useful-data.v1` (`help library std.bytes.get_or`).
 
 Keep `semaprax.toml` beside `src/`. Tables are canonical; the frozen
 one-line-per-key `semaprax.project.v1` layout remains admitted.

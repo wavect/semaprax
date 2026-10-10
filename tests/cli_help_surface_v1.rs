@@ -440,15 +440,33 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     assert!(diagnostic.stderr.is_empty());
     assert_eq!(diagnostic.stdout, DIAGNOSTIC_T208.as_bytes());
     assert!(diagnostic.stdout.len() <= 256);
-    let mistakes = invoke(&["help", "language", "mistakes-index"]);
-    assert!(diagnostic.stdout.len() * 20 < mistakes.0.stdout.len());
+    let (mistakes, mistakes_dir) = invoke(&["help", "language", "mistakes-index"]);
+    assert!(mistakes.status.success());
+    assert!(mistakes.stderr.is_empty());
+    assert!(
+        mistakes
+            .stdout
+            .starts_with(b"## Habits from other languages: diagnostic index\n")
+    );
+    let (reference, reference_dir) = invoke(&["help", "language", "all"]);
+    assert!(reference.status.success());
+    assert!(reference.stderr.is_empty());
+    let reference = std::str::from_utf8(&reference.stdout).unwrap();
+    let marker = "## Habits from other languages: diagnostic index\n";
+    let index = reference
+        .split_once(marker)
+        .unwrap()
+        .1
+        .split("\n## ")
+        .next()
+        .unwrap();
+    assert!(diagnostic.stdout.len() * 20 < index.len());
     assert!(
         semaprax::agent_economics::lexical_tokens(DIAGNOSTIC_T208) * 20
-            < semaprax::agent_economics::lexical_tokens(
-                std::str::from_utf8(&mistakes.0.stdout).unwrap()
-            )
+            < semaprax::agent_economics::lexical_tokens(index)
     );
-    std::fs::remove_dir(mistakes.1).unwrap();
+    std::fs::remove_dir(reference_dir).unwrap();
+    std::fs::remove_dir(mistakes_dir).unwrap();
     std::fs::remove_dir(diagnostic_dir).unwrap();
     let (g171, g171_dir) = invoke(&["help", "diagnostic", "SPX-G171"]);
     assert!(g171.status.success());

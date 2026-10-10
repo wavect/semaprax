@@ -125,6 +125,8 @@ pub(super) fn pre_filesystem_graph_json(
         && !hir::function_value::requires_function_values(program)
         && !super::owned_text_record_loans::requires(program)
         && !super::owned_collection_records::requires(program)
+        && !super::projected_string_view::requires(program)
+        && !super::owned_nested_outcome::requires(program)
         && !super::scoped_vec_field::requires(program)
         && !program
             .declarations
@@ -538,3 +540,6 @@ pub(super) fn type_facts_json(
         .collect::<Result<Vec<_>, Diagnostic>>()
         .map(|items| items.budgeted_join(","))
 }
+
+#[cfg(test)]
+mod tests;

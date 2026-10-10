@@ -1,5 +1,10 @@
 # Changelog
 
+- Route Graph v73 projected String views and v74 nested owning outcomes through
+  concrete ownership rendering even without incidental Vec or loan features.
+  Preserve exact additive schemas, source replay and frozen legacy refusals;
+  the new routing regression is source-authored pending grouped execution.
+
 - Release completed JSON-codec parse/round-trip temporaries before the full
   candidate Project rebuild, and move its canonical source buffer through that
   unchanged admission path. The source-only handoff regression preserves full

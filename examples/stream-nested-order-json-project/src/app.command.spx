@@ -1,0 +1,57 @@
+module orders.app;
+
+use type @id("orders.configuration") from orders.schema as Configuration;
+use type @id("orders.line") from orders.schema as Line;
+use type @id("orders.request") from orders.schema as OrderRequest;
+use type @id("orders.request.json.nested.decode-result") from orders.schema as Outcome;
+use function @id("orders.request.json.nested.stream-decode") from orders.schema as receive;
+
+permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
+
+@id("orders.summary")
+record Summary {
+    @id("orders.summary.quantity") quantity: i64,
+    @id("orders.summary.sku-bytes") sku_bytes: i64,
+}
+
+@id("orders.summarize")
+fn summarize(lines: borrow Vec<Line>) -> Summary {
+    let mut quantity = 0;
+    let mut sku_bytes = 0;
+    let mut at = 0usize;
+    while at < vec_len<Line>(lines) {
+        let row = vec_clone_at<Line>(lines, at);
+        quantity = quantity + i64_from_u8(row.quantity);
+        sku_bytes = sku_bytes + i64_from_usize(byte_len(str_as_bytes(string_as_str(row.sku))));
+        at = at + 1usize;
+        at < vec_len<Line>(lines)
+    }
+    Summary { quantity: quantity, sku_bytes: sku_bytes }
+}
+
+@id("orders.command")
+fn command() -> i64 uses { process.stdin.read, process.stdout.write, process.stderr.write } {
+    let result = receive();
+    match own result {
+        Outcome::Error { code, offset, field } => {
+            let message = string_format("error:{}:{}:{}", code, offset, field);
+            let diagnostic = str_as_bytes(string_as_str(message));
+            let _ = stderr_write(diagnostic);
+            2
+        },
+        Outcome::Ready { value } => match own value {
+            OrderRequest { configuration, lines, urgent } => match own configuration {
+                Configuration { label, retry } => {
+                    let summary = summarize(lines);
+                    let text = string_format("{}:{}:{}:{}:{}:{}", string_len(label), retry, urgent, vec_len<Line>(lines), summary.quantity, summary.sku_bytes);
+                    let payload = str_as_bytes(string_as_str(text));
+                    let written = stdout_write(payload);
+                    if written == byte_len(payload) { 0 } else { 1 }
+                },
+            },
+        },
+    }
+}
+
+@id("orders.main")
+fn main() -> i64 { 0 }

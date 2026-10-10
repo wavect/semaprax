@@ -37,7 +37,7 @@ WAIT_SECONDS = 30
 PROFILES = {"identifier-views.v1", "request-views.v1", "stream-request-views.v1",
             "owned-request.v1", "stream-owned-request.v1", "utf8-owned-request.v1",
             "stream-utf8-owned-request.v1", "bounded-collection-response.v1",
-            "bounded-nested-request.v1"}
+            "bounded-nested-request.v1", "bounded-stream-nested-request.v1"}
 
 
 def _json(path: Path, document: dict[str, Any], limit: int = MAX_MESSAGE_BYTES) -> None:
@@ -90,14 +90,15 @@ def _options(argv: list[str]) -> dict[str, str] | None:
     if profile not in PROFILES and profile is not None:
         return None
     if profile in ("utf8-owned-request.v1", "stream-utf8-owned-request.v1",
-                   "bounded-collection-response.v1", "bounded-nested-request.v1"):
+                   "bounded-collection-response.v1", "bounded-nested-request.v1",
+                   "bounded-stream-nested-request.v1"):
         if bound is None or len(bound) > 2 or not bound.isascii() or not bound.isdigit():
             return None
         if str(int(bound)) != bound or not 1 <= int(bound) <= 64:
             return None
     elif bound is not None:
         return None
-    if profile == "bounded-nested-request.v1":
+    if profile in ("bounded-nested-request.v1", "bounded-stream-nested-request.v1"):
         if items is None or len(items) > 3 or not items.isascii() or not items.isdigit():
             return None
         if str(int(items)) != items or not 1 <= int(items) <= 256:

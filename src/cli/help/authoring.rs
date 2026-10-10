@@ -2,7 +2,7 @@
 use std::fmt::Write as _;
 
 const MAX_BYTES: usize = 2_048;
-const ROUTES: &str = "Authoring routes (complete):\n  author:stdin-json               v27 bounded native stream command\n  author:stream-data-v2           v29 private record/Vec stream command\n  author:owned-data               v30 private owned-leaf collections\n  author:collection-records       v31 nested records containing Vec\n  author:file-text                native UTF-8 file command\n  author:source-web               single-source web build\n  author:literal-format           checked literal String rendering\n  author:copy-record-vec          flat Copy-record vectors\n  author:json-codec               checked source JSON codec derivation\n  author:json-identifier-views    one identifier as a token view\n  author:json-request-views       bounded identifier and record arrays\n  author:json-stream-request-views bounded native stream request view\n  author:json-owned-request      bounded owning request collections\n  author:json-utf8-owned-request bounded UTF-8 string values\n  author:json-stream-utf8-owned-request bounded UTF-8 stdin requests\n  author:json-collection-response bounded nested collection encoder\n  author:json-nested-request      bounded finite nested request decoder\nLibrary-only search: help language find:<word>:0\nExact card sections: help language topics\n";
+const ROUTES: &str = "Authoring routes (complete):\n  author:stdin-json               v27 bounded native stream command\n  author:stream-data-v2           v29 private record/Vec stream command\n  author:owned-data               v30 private owned-leaf collections\n  author:collection-records       v31 nested records containing Vec\n  author:file-text                native UTF-8 file command\n  author:source-web               single-source web build\n  author:literal-format           checked literal String rendering\n  author:copy-record-vec          flat Copy-record vectors\n  author:json-codec               checked source JSON codec derivation\n  author:json-identifier-views    one identifier as a token view\n  author:json-request-views       bounded identifier and record arrays\n  author:json-stream-request-views bounded native stream request view\n  author:json-owned-request      bounded owning request collections\n  author:json-utf8-owned-request bounded UTF-8 string values\n  author:json-stream-utf8-owned-request bounded UTF-8 stdin requests\n  author:json-collection-response bounded nested collection encoder\n  author:json-nested-request      bounded finite nested request decoder\n  author:json-stream-nested-request bounded finite nested stdin decoder\nLibrary-only search: help language find:<word>:0\nExact card sections: help language topics\n";
 
 #[cfg(test)]
 pub(super) fn assert_guide_contract() {
@@ -128,6 +128,14 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
             "Native nested-outcome command source route: language-command-io.nested-outcome.v1; v29/v30/v31 stay frozen. Route qualification is pending; docs/PROJECT-V32-NESTED-OUTCOME-COMMAND-V1.md.\n",
             "Exact schema, typed errors and detached-owner contract: docs/APPLICATION-JSON-NESTED-REQUEST-V1.md.\n",
             "Publication, source replay and declared dependencies: help language author:json-codec.\n"
+        ).to_owned()),
+        "author:json-stream-nested-request" => Ok(concat!(
+            "Bounded streaming nested JSON source implementation; qualification pending.\n",
+            "Select bounded-stream-nested-request.v1 with canonical --max-string-bytes 1..64 and --max-array-items 1..256. It keeps the finite single-Vec schema of author:json-nested-request.\n",
+            "The exact original schema must permit process.stdin.read; the selected v32 command manifest independently grants all four existing command effects. No implicit capability is generated.\n",
+            "Derivation proves the worst fully escaped valid normalized spelling fits the existing 131072-byte owned buffer. Raw input and whitespace have no byte cap; grammar validation continues after semantic-buffer refusal. Unsupported envelopes fail before publication.\n",
+            "json_Root_nested_stream_decode() returns RootJsonNestedDecode::Ready { value: Root } or Error { code, offset, field }. Input Bytes retire only after independent owners are decoded. Stream grammar offsets are raw; downstream schema offsets are normalized.\n",
+            "Direct nested decoding remains unchanged. Contract: docs/APPLICATION-JSON-NESTED-REQUEST-V1.md; caller route language-command-io.nested-outcome.v1 remains independently checked.\n"
         ).to_owned()),
         "author:json-owned-request" => Ok(concat!(
             "Owned request source implementation; focused cross-backend and application qualification pending.\n",
@@ -288,6 +296,7 @@ mod tests {
             "author:json-stream-utf8-owned-request",
             "author:json-collection-response",
             "author:json-nested-request",
+            "author:json-stream-nested-request",
         ] {
             let output = lookup(route).unwrap();
             assert!(output.len() <= MAX_BYTES);
@@ -384,6 +393,13 @@ mod tests {
                 "nested request guidance omits {fact}"
             );
         }
+        let stream_nested = lookup("author:json-stream-nested-request").unwrap();
+        for fact in ["bounded-stream-nested-request.v1", "--max-string-bytes 1..64",
+            "--max-array-items 1..256", "exact original schema", "process.stdin.read",
+            "131072-byte", "Raw input and whitespace have no byte cap",
+            "normalized", "independently checked", "qualification pending"] {
+            assert!(stream_nested.contains(fact), "stream nested guidance omits {fact}");
+        }
         let owned_request = lookup("author:json-owned-request").unwrap();
         for fact in [
             "owned-request.v1",
@@ -441,6 +457,7 @@ mod tests {
             "author:json-stream-utf8-owned-request",
             "author:json-collection-response",
             "author:json-nested-request",
+            "author:json-stream-nested-request",
         ] {
             assert!(routes.contains(selector), "route list omits {selector}");
         }

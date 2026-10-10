@@ -50,6 +50,11 @@ pub enum JsonCodecProfile {
         max_string_bytes: usize,
         max_array_items: usize,
     },
+    /// Original stdin permit and bounded normalized spelling for nested owners.
+    StreamNestedRequest {
+        max_string_bytes: usize,
+        max_array_items: usize,
+    },
 }
 
 pub(super) fn refusal(message: impl Into<String>) -> Vec<Diagnostic> {
@@ -133,6 +138,10 @@ pub fn derive_json_codec_source_with_profile(
             max_string_bytes,
             max_array_items,
         } => nested_request::derive(&program, declaration, max_string_bytes, max_array_items)?,
+        JsonCodecProfile::StreamNestedRequest {
+            max_string_bytes,
+            max_array_items,
+        } => nested_request::derive_stream(&program, declaration, max_string_bytes, max_array_items)?,
     };
     if fragment.len() > MAX_GENERATED_BYTES {
         return Err(refusal(

@@ -9,6 +9,8 @@ use sha2::{Digest, Sha256};
 mod collection_response;
 #[path = "application_json/nested_request.rs"]
 mod nested_request;
+#[path = "application_json/stream_nested_request.rs"]
+mod stream_nested_request;
 #[path = "application_json/owned.rs"]
 mod owned;
 #[path = "application_json/stream.rs"]

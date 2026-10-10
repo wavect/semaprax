@@ -47,10 +47,29 @@ class LiveCampaignTests(unittest.TestCase):
         unknown = arguments("64", "256")
         unknown[12] = "--maximum-array-items"
         self.assertIsNone(compiler_capture._options(unknown))
-        for profile in compiler_capture.PROFILES - {"bounded-nested-request.v1"}:
+        for profile in compiler_capture.PROFILES - {"bounded-nested-request.v1", "bounded-stream-nested-request.v1"}:
             stale = arguments("64", "256")
             stale[9] = profile
             self.assertIsNone(compiler_capture._options(stale))
+
+    def test_stream_nested_codec_capture_keeps_both_bounds_and_actual_selector(self):
+        base = ["json-codec", "semaprax.toml", "--source", "src/schema.spx",
+                "--type", "orders.request", "--output", "derived.spx", "--profile",
+                "bounded-stream-nested-request.v1", "--max-string-bytes", "16",
+                "--max-array-items", "8"]
+        parsed = compiler_capture._options(base)
+        self.assertEqual(parsed["--profile"], "bounded-stream-nested-request.v1")
+        self.assertEqual(parsed["--max-string-bytes"], "16")
+        self.assertEqual(parsed["--max-array-items"], "8")
+        for index, invalid in ((11, "0"), (11, "65"), (11, "016"), (11, "+16"),
+                               (13, "0"), (13, "257"), (13, "08"), (13, "８")):
+            changed = list(base)
+            changed[index] = invalid
+            self.assertIsNone(compiler_capture._options(changed))
+        for removed in (8, 10, 12):
+            changed = list(base)
+            del changed[removed:removed + 2]
+            self.assertIsNone(compiler_capture._options(changed))
 
     def test_json_codec_capture_profile_bound_matches_closed_cli_grammar(self):
         base = ["json-codec", "semaprax.toml", "--source", "src/schema.spx",
@@ -102,9 +121,10 @@ class LiveCampaignTests(unittest.TestCase):
                     if profile is not None:
                         args.extend(["--profile", profile])
                         if profile in ("utf8-owned-request.v1", "stream-utf8-owned-request.v1",
-                                       "bounded-collection-response.v1", "bounded-nested-request.v1"):
+                                       "bounded-collection-response.v1", "bounded-nested-request.v1",
+                                       "bounded-stream-nested-request.v1"):
                             args.extend(["--max-string-bytes", "64"])
-                        if profile == "bounded-nested-request.v1":
+                        if profile in ("bounded-nested-request.v1", "bounded-stream-nested-request.v1"):
                             args.extend(["--max-array-items", "256"])
                     authored = (candidate / "src/schema.spx").read_bytes()
                     mixed = authored + b"compiler-authored helpers\n"

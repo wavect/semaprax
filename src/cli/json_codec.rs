@@ -12,7 +12,7 @@ use semaprax::diagnostic::Diagnostic;
 static NEXT: AtomicU64 = AtomicU64::new(0);
 const USAGE: &str =
     "json-codec <project> --source <module-path> --type <record-id> --output <new-file> [--profile <selector>] [--max-string-bytes <1..64>] [--max-array-items <1..256>]";
-pub(crate) const HELP: &str = "Derives checked ordinary source for explicit scalar records; opt-in identifier-views.v1, request-views.v1 and stream-request-views.v1 add bounded identifier/array views; owned-request.v1 and stream-owned-request.v1 materialize bounded identifier String/record collections under an owning runtime profile. UTF-8 owned request profiles bound each decoded string with --max-string-bytes (1..64 UTF-8 bytes). bounded-collection-response.v1 selects an encode-only nested collection view and also requires that bound. bounded-nested-request.v1 requires both --max-string-bytes (1..64) and --max-array-items (1..256); direct decoding only, under the independently admitted caller Project profile.\nRequires declared std.data.json scan/token/digits/write dependencies. Publishes a new complete module replacement; never overwrites source.\nContract and typed failure codes: docs/APPLICATION-JSON-CODECS-V1.md\n";
+pub(crate) const HELP: &str = "Derives checked ordinary source for explicit scalar records; opt-in identifier-views.v1, request-views.v1 and stream-request-views.v1 add bounded identifier/array views; owned-request.v1 and stream-owned-request.v1 materialize bounded identifier String/record collections under an owning runtime profile. UTF-8 owned request profiles bound each decoded string with --max-string-bytes (1..64 UTF-8 bytes). bounded-collection-response.v1 selects an encode-only nested collection view and also requires that bound. bounded-nested-request.v1 requires both --max-string-bytes (1..64) and --max-array-items (1..256); direct decoding only, under the independently admitted caller Project profile. bounded-stream-nested-request.v1 uses the same bounds, original schema stdin permit and a computed normalized spelling envelope; it adds no raw-input or whitespace cap.\nRequires declared std.data.json scan/token/digits/write dependencies. Publishes a new complete module replacement; never overwrites source.\nContract and typed failure codes: docs/APPLICATION-JSON-CODECS-V1.md\n";
 
 pub(crate) struct Options {
     project: PathBuf,
@@ -127,6 +127,35 @@ fn error(message: impl Into<String>) -> Diagnostic {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn stream_nested_codec_cli_requires_closed_bounds_before_authority() {
+        let args = ["missing-project", "--source", "src/schema.spx", "--type",
+            "orders.request", "--output", "derived.spx", "--profile",
+            "bounded-stream-nested-request.v1", "--max-string-bytes", "16",
+            "--max-array-items", "8"].map(str::to_owned).to_vec();
+        assert_eq!(parse(&args).unwrap_or_else(|_| panic!("valid stream bounds")).profile,
+            semaprax::project::JsonCodecProfile::StreamNestedRequest {
+                max_string_bytes: 16, max_array_items: 8,
+            });
+        for (index, invalid) in [(10, "0"), (10, "65"), (10, "016"), (10, "+16"),
+            (12, "0"), (12, "257"), (12, "08"), (12, "８")] {
+            let mut changed = args.clone();
+            changed[index] = invalid.to_owned();
+            assert_eq!(dispatch(super::super::help::CommandId::JsonCodec, &changed,
+                |_| panic!("malformed stream bounds reached authoritative generation")), Err(2));
+        }
+        for removed in [7, 9, 11] {
+            let mut changed = args.clone();
+            changed.drain(removed..removed + 2);
+            assert!(parse(&changed).is_err());
+        }
+        for index in [9, 11] {
+            let mut changed = args.clone();
+            changed[index] = "--source".to_owned();
+            assert!(parse(&changed).is_err());
+        }
+    }
 
     #[test]
     fn nested_codec_cli_bounds_are_canonical_closed_and_profile_specific() {

@@ -75,3 +75,91 @@ fn literal_format_status_is_bound_once_and_does_not_reclassify_conversion_failur
     assert!(!legacy.contains("status===34"));
     assert!(legacy.contains("status===21)result=Object.freeze({kind:\"failure\",domain:\"semaprax.convert.v1\",code:1})"));
 }
+
+#[test]
+fn borrowed_toolkit_selection_preserves_artifacts_and_excludes_unselected_hir() {
+    use crate::hir::DeclarationId;
+    use crate::string_ops::StringOp;
+    use crate::wasm::aggregate::{map_collections, text_toolkit};
+    use crate::wasm::internal_strings::{emit_text_toolkit_module, InternalStringOptions};
+    use std::collections::BTreeSet;
+
+    let baseline = r#"module toolkit.borrowed_selection;
+@id("app.main") fn main()->i64 { string_len(string_trim(" text ")) }
+"#;
+    let additions = r#"
+@id("unused.record") record Unused { @id("unused.record.value") value:i64, }
+@id("unused.generic") fn generic<T>(value:T)->T { value }
+@id("unused.instance") fn instance()->i64 { generic<i64>(9) }
+@id("unused.count") fn count(value:borrow Map<i64,i64>)->i64 { i64_from_usize(map_len<i64,i64>(value)) }
+@id("unused.map") fn map_count()->i64 { let value=map_new<i64,i64>(1usize); count(value) }
+@id("unused.byte") fn first_byte()->i64 {
+    let text="a"; let view=str_as_bytes(string_as_str(text));
+    match byte_get(view,0usize) { Option::Some { value: first } => if first==97u8 { 1 } else { 0 }, Option::None {} => 0, }
+}
+@id("unused.slice") fn slice_count()->i64 { string_len(string_slice("abc",0,1)) }
+"#;
+    let base = crate::check(baseline, "toolkit-base.spx").unwrap();
+    let extended = crate::check(&format!("{baseline}{additions}"), "toolkit-extended.spx").unwrap();
+    let program = crate::hir::resolve(&extended).unwrap();
+    assert!(!program.types.is_empty());
+    assert!(!program.function_templates.is_empty());
+    assert!(!program.function_instances.is_empty());
+    let before = crate::cache_codec::encode(&program).unwrap();
+
+    for (id, expected, byte_get, collections) in [
+        ("app.main", vec![StringOp::Trim], false, false),
+        ("unused.slice", vec![StringOp::Slice], false, false),
+        ("unused.byte", vec![], true, false),
+        ("unused.map", vec![], false, true),
+    ] {
+        let (_, closure) =
+            super::super::admission::prepare_toolkit(&program, &[id.into()]).unwrap();
+        let selected = program.functions.iter().filter(|f| closure.contains(&f.id));
+        let actual = text_toolkit::selected_functions(selected.clone());
+        assert_eq!(actual, (expected, byte_get));
+        assert_eq!(
+            map_collections::selected_functions_use(selected),
+            collections
+        );
+
+        // Independent prior selection recipe: owned filtering is retained only
+        // in this regression to prove exact import and runtime-byte equivalence.
+        let mut filtered = program.clone();
+        filtered.functions.retain(|f| closure.contains(&f.id));
+        filtered.function_instances.clear();
+        filtered.types.clear();
+        assert_eq!(actual.0, text_toolkit::selected(&filtered));
+        assert_eq!(actual.1, text_toolkit::uses_byte_get(&filtered));
+        assert_eq!(collections, map_collections::uses(&filtered));
+        let all = filtered
+            .functions
+            .iter()
+            .map(|f| f.id.clone())
+            .collect::<BTreeSet<DeclarationId>>();
+        assert_eq!(
+            super::render_toolkit("{}", "digest", 0, &program, &closure, false),
+            super::render_toolkit("{}", "digest", 0, &filtered, &all, false),
+        );
+    }
+    assert_eq!(crate::cache_codec::encode(&program).unwrap(), before);
+    let old = emit_text_toolkit_module(
+        &base,
+        &["app.main".into()],
+        InternalStringOptions::default(),
+    )
+    .unwrap();
+    let new = emit_text_toolkit_module(
+        &extended,
+        &["app.main".into()],
+        InternalStringOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(old.wasm_bytes(), new.wasm_bytes());
+    assert_eq!(old.descriptor(), new.descriptor());
+    assert_eq!(old.runtime_source(), new.runtime_source());
+    assert!(new
+        .runtime_source()
+        .contains("\"compare\",\"spx_string_trim_v2\"]"));
+    assert!(!new.runtime_source().contains("collections.settle()"));
+}

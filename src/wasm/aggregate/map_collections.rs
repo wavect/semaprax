@@ -4,50 +4,75 @@ use crate::map_ops::MapOp;
 pub(super) const CHECKED_ID: &str = "core.collection.wasm.checked.v2";
 pub(super) const DROP_ID: &str = "core.collection.wasm.drop.v2";
 pub(super) const IMPORT_COUNT: u32 = 2;
-pub(in crate::wasm) fn uses(program: &ResolvedProgram) -> bool {
-    if program.functions.iter().any(|function| {
-        function.cleanup_plan.exits.iter().any(|exit| {
-            exit.finalize_in_order.iter().any(|action| {
-                matches!(
-                    action.lifecycle_id.as_str(),
-                    crate::map_ops::DROP_ID | crate::string_ops::MAP_DROP_LIFECYCLE_ID
-                )
-            })
+fn cleanup_uses(function: &ResolvedFunction) -> bool {
+    function.cleanup_plan.exits.iter().any(|exit| {
+        exit.finalize_in_order.iter().any(|action| {
+            matches!(
+                action.lifecycle_id.as_str(),
+                crate::map_ops::DROP_ID | crate::string_ops::MAP_DROP_LIFECYCLE_ID
+            )
         })
-    }) || crate::map_ops::resolved_program_uses(program)
-    {
-        return true;
-    }
-    executable_functions(program).iter().any(|(f, _)| {
-        crate::map_ops::is_collection(&f.return_type)
-            || f.params
-                .iter()
-                .any(|p| crate::map_ops::is_collection(&p.ty))
-            || f.requires
-                .iter()
-                .chain(std::iter::once(&f.body))
-                .chain(&f.ensures)
-                .any(|root| {
-                    let mut pending = vec![root];
-                    while let Some(e) = pending.pop() {
-                        if crate::map_ops::is_collection(&e.ty) {
+    })
+}
+
+fn expression_or_signature_uses(function: &ResolvedFunction) -> bool {
+    crate::map_ops::is_collection(&function.return_type)
+        || function
+            .params
+            .iter()
+            .any(|p| crate::map_ops::is_collection(&p.ty))
+        || function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+            .any(|root| {
+                let mut pending = vec![root];
+                while let Some(e) = pending.pop() {
+                    if crate::map_ops::is_collection(&e.ty) {
+                        return true;
+                    }
+                    if let ResolvedExprKind::Call { callee, .. } = &e.kind {
+                        if crate::string_ops::by_id(callee.as_str()).is_some_and(|op| {
+                            op.is_collection() && op != crate::string_ops::StringOp::Compare
+                        }) {
                             return true;
                         }
-                        if let ResolvedExprKind::Call { callee, .. } = &e.kind {
-                            if crate::string_ops::by_id(callee.as_str()).is_some_and(|op| {
-                                op.is_collection() && op != crate::string_ops::StringOp::Compare
-                            }) {
-                                return true;
-                            }
-                        }
-                        crate::hir::push_resolved_expression_children_in_authored_order(
-                            e,
-                            &mut pending,
-                        );
                     }
-                    false
-                })
+                    crate::hir::push_resolved_expression_children_in_authored_order(
+                        e,
+                        &mut pending,
+                    );
+                }
+                false
+            })
+}
+
+/// Match a monomorphic selected closure, with no declaration-only or unselected
+/// instance authority, without constructing a temporary ResolvedProgram.
+pub(in crate::wasm) fn selected_functions_use<'a>(
+    functions: impl IntoIterator<Item = &'a ResolvedFunction>,
+) -> bool {
+    functions.into_iter().any(|function| {
+        cleanup_uses(function)
+            || crate::map_ops::resolved_function_uses(function)
+            || expression_or_signature_uses(function)
     })
+}
+
+pub(in crate::wasm) fn uses(program: &ResolvedProgram) -> bool {
+    program.functions.iter().any(cleanup_uses)
+        || crate::map_ops::resolved_program_uses(program)
+        || program
+            .functions
+            .iter()
+            .chain(
+                program
+                    .function_instances
+                    .iter()
+                    .map(|instance| &instance.function),
+            )
+            .any(expression_or_signature_uses)
 }
 /// Map bodies use the additive aggregate adapter behind the established
 /// scalar-only boundary; programs without collections retain frozen refusal.

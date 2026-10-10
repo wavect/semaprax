@@ -48,20 +48,20 @@ pub(super) fn render_toolkit(
     closure: &std::collections::BTreeSet<crate::hir::DeclarationId>,
     literal_format: bool,
 ) -> String {
-    let mut selected = program.clone();
-    selected
+    // Admission already authenticated this monomorphic executable closure.
+    // Borrow its functions: unrelated HIR, proofs, instances and declarations
+    // neither need a second allocation nor contribute host imports.
+    let selected = program
         .functions
-        .retain(|function| closure.contains(&function.id));
-    selected.function_instances.clear();
-    // Import selection is bound to the chosen executable closure. Unused
-    // type declarations cannot add a host arena or widen its import inventory.
-    selected.types.clear();
-    let uses_byte_get = crate::wasm::aggregate::text_toolkit::uses_byte_get(&selected);
-    let collections = crate::wasm::aggregate::map_collections::uses(&selected);
+        .iter()
+        .filter(|function| closure.contains(&function.id));
+    let (operations, uses_byte_get) =
+        crate::wasm::aggregate::text_toolkit::selected_functions(selected.clone());
+    let collections = crate::wasm::aggregate::map_collections::selected_functions_use(selected);
     let names = ["from_i64", "from_usize", "compare"]
         .into_iter()
         .chain(
-            crate::wasm::aggregate::text_toolkit::selected(&selected)
+            operations
                 .into_iter()
                 .map(crate::wasm::aggregate::text_toolkit::import_name),
         )

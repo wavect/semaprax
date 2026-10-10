@@ -1582,6 +1582,9 @@ reference evaluator. The existing aggregate entry points explicitly leave
 that mode off. Generated modules pass structural validation before return.
 `internal_strings/runtime/` separates exact input/artifact admission, bounded
 UTF-8 arena ownership, and a scalar-only poisoned-on-uncertainty facade.
+Its additive runtime renderer borrows only the authenticated selected functions
+through the shared text/collection import selectors. It does not clone the full
+HIR or let unrelated declarations and instances contribute imports.
 The shared `aggregate/expressions.rs` keeps recursive scalar dispatch and block
 statement lowering separate from inactive aggregate-arm temporaries. The
 `aggregate.rs` expression wrapper still applies canonical post-transitions and

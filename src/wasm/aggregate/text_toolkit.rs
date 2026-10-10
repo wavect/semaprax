@@ -17,14 +17,15 @@ pub(super) fn admitted(operation: StringOp) -> bool {
     OPERATIONS.contains(&operation)
 }
 
-pub(in crate::wasm) fn selected(program: &ResolvedProgram) -> Vec<StringOp> {
+/// Inspect borrowed executable functions without copying their HIR or proofs.
+/// The caller owns closure selection; operations retain the canonical table order.
+pub(in crate::wasm) fn selected_functions<'a>(
+    functions: impl IntoIterator<Item = &'a ResolvedFunction>,
+) -> (Vec<StringOp>, bool) {
     let mut found = BTreeSet::new();
+    let mut byte_get = false;
     let mut pending = Vec::new();
-    for function in program
-        .functions
-        .iter()
-        .chain(program.function_instances.iter().map(|i| &i.function))
-    {
+    for function in functions {
         pending.push(&function.body);
         pending.extend(function.requires.iter().chain(&function.ensures));
     }
@@ -33,10 +34,27 @@ pub(in crate::wasm) fn selected(program: &ResolvedProgram) -> Vec<StringOp> {
             if let Some(index) = OPERATIONS.iter().position(|op| op.id() == callee.as_str()) {
                 found.insert(index);
             }
+            byte_get |= callee.as_str() == crate::byte_ops::GET_ID
+                || callee.as_str() == StringOp::FileReadText.id();
         }
         crate::hir::push_resolved_expression_children_in_authored_order(expr, &mut pending);
     }
-    found.into_iter().map(|index| OPERATIONS[index]).collect()
+    (
+        found.into_iter().map(|index| OPERATIONS[index]).collect(),
+        byte_get,
+    )
+}
+
+pub(in crate::wasm) fn selected(program: &ResolvedProgram) -> Vec<StringOp> {
+    selected_functions(
+        program.functions.iter().chain(
+            program
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function),
+        ),
+    )
+    .0
 }
 
 pub(in crate::wasm) fn program_uses_toolkit(program: &ResolvedProgram) -> bool {
@@ -44,30 +62,15 @@ pub(in crate::wasm) fn program_uses_toolkit(program: &ResolvedProgram) -> bool {
 }
 
 pub(in crate::wasm) fn uses_byte_get(program: &ResolvedProgram) -> bool {
-    if selected(program).contains(&StringOp::FileReadText) {
-        return true;
-    }
-    let mut pending = Vec::new();
-    for function in program.functions.iter().chain(
-        program
-            .function_instances
-            .iter()
-            .map(|instance| &instance.function),
-    ) {
-        pending.push(&function.body);
-        pending.extend(function.requires.iter().chain(&function.ensures));
-    }
-    while let Some(expression) = pending.pop() {
-        if matches!(
-            &expression.kind,
-            ResolvedExprKind::Call { callee, .. }
-                if callee.as_str() == crate::byte_ops::GET_ID
-        ) {
-            return true;
-        }
-        crate::hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
-    }
-    false
+    selected_functions(
+        program.functions.iter().chain(
+            program
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function),
+        ),
+    )
+    .1
 }
 
 pub(super) fn import_types(

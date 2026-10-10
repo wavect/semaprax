@@ -1,5 +1,10 @@
 # Changelog
 
+- Remove the standalone text/format runtime renderer's full-HIR clone by
+  borrowing its authenticated selected functions. Preserve import order and
+  exact artifact bytes; a selected/unselected parity regression is staged.
+  Execution and any measured memory or agent-cost benefit remain pending.
+
 - Align direct owned formatter Place transfers across cleanup construction,
   independent replay, native and Wasm with the interpreter; preserve ordinary
   String clones, pre-commit failure cleanup and post-commit worker settlement.

@@ -87,9 +87,9 @@ let short=encode(words,rows,{}usize);
 let short_ok=match own short{{Encoded::Refused{{required}}=>required=={}usize,Encoded::Encoded{{text}}=>false,}};
 let full=encode(words,rows,{}usize);
 let same=match own full{{Encoded::Refused{{required}}=>false,Encoded::Encoded{{text}}=>{{
-let wanted={};let bytes=str_as_bytes(string_as_str(text));let mut index=0usize;
-let mut equal=byte_len(bytes)==byte_len(array_as_slice(wanted));
-while equal && index<byte_len(bytes){{equal=match byte_get(bytes,index){{Option::None{{}}=>false,Option::Some{{value:a}}=>match byte_get(array_as_slice(wanted),index){{Option::None{{}}=>false,Option::Some{{value:b}}=>a==b,}},}};index=index+1usize;equal && index<byte_len(bytes)}}equal
+let wanted={};let wanted_view=array_as_slice(wanted);let bytes=str_as_bytes(string_as_str(text));let mut index=0usize;
+let mut equal=byte_len(bytes)==byte_len(wanted_view);
+while equal && index<byte_len(bytes){{equal=match byte_get(bytes,index){{Option::None{{}}=>false,Option::Some{{value:a}}=>match byte_get(wanted_view,index){{Option::None{{}}=>false,Option::Some{{value:b}}=>a==b,}},}};index=index+1usize;equal && index<byte_len(bytes)}}equal
 }},}};
 if needed=={}usize && short_ok && same && invalid_ok{{0}}else{{1}}
 }},}};

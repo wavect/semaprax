@@ -1,5 +1,11 @@
 # Changelog
 
+- Hoist generated JSON key views before loops and authenticate finite imported
+  decode/encode result shapes and flat Vec element aliases. Correct authored
+  example identities and native UTF-8 fixture roots/readers while preserving
+  assertions, hostile cases and profile refusals. Executable verification is
+  pending.
+
 - Repair generated JSON effect-binding names and move fixed decoder key arrays
   outside loops. Authenticate nested collection cleanup and finite typed Project
   import joins across source, HIR, replay and native ownership paths. Preserve

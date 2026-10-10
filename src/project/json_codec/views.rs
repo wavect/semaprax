@@ -247,13 +247,18 @@ let _ = if error==0 && jv_kind(input,object)!=1 {{error=5;offset=object;false}}e
         }
     }
     for (i, f) in fs.iter().enumerate() {
-        writeln!(out, "let key_{i}={};", key_array(&f.name)).unwrap();
+        writeln!(
+            out,
+            "let key_{i}={};\nlet key_view_{i}=array_as_slice(key_{i});",
+            key_array(&f.name)
+        )
+        .unwrap();
     }
     out.push_str("let mut key=if error==0{jv_first_member(input,object)}else{length};\nwhile error==0 && key<length {let start=jv_member_value(input,key);let mut selected=0;\n");
     for (i, _) in fs.iter().enumerate() {
         writeln!(
             out,
-            "selected=if jv_key_eq(input,key,array_as_slice(key_{i})){{{}}}else{{selected}};",
+            "selected=if jv_key_eq(input,key,key_view_{i}){{{}}}else{{selected}};",
             i + 1
         )
         .unwrap();

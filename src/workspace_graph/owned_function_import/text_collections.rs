@@ -20,7 +20,7 @@ pub(super) fn admitted(
     let added = |ty: &Type| {
         crate::map_ops::ast_collection(ty)
             || *ty == Type::String
-            || (matches!(ty, Type::Named { .. }) && shape(ty) == Some(true))
+            || (matches!(ty, Type::Named { .. }) && shape(ty).is_some())
     };
     let selected = added(&function.return_type) || function.params.iter().any(|p| added(&p.ty));
     selected
@@ -114,7 +114,8 @@ fn shape<'a>(
                     return None;
                 }
                 // A conditional owner is admitted only at the signature root.
-                // Its success payload is a record and its error carries no owner.
+                // Its finite record/vector/String payload and scalar refusal
+                // are independently replayed; no borrowed or generic result escapes.
                 if let TypeDeclarationKind::Variant { cases } = &declaration.kind {
                     if depth != 1
                         || outcome
@@ -129,29 +130,47 @@ fn shape<'a>(
                         matches!(case.fields.as_slice(), [code, offset, field]
                         if code.ty == Type::I64 && offset.ty == Type::Usize && field.ty == Type::I64)
                     };
-                    let payload = if cases[0].fields.len() == 1 && error(&cases[1]) {
-                        &cases[0].fields[0].ty
-                    } else if cases[1].fields.len() == 1 && error(&cases[0]) {
-                        &cases[1].fields[0].ty
+                    let payloads = if error(&cases[1]) {
+                        &cases[0].fields
+                    } else if error(&cases[0]) {
+                        &cases[1].fields
                     } else {
-                        return None;
+                        // The response encoder returns exactly one owned String
+                        // or one scalar required-length refusal, never a view.
+                        let encoded = |case: &crate::ast::VariantCaseDeclaration| matches!(case.fields.as_slice(), [text] if text.ty == Type::String);
+                        let refused = |case: &crate::ast::VariantCaseDeclaration| matches!(case.fields.as_slice(), [required] if required.ty == Type::Usize);
+                        if encoded(&cases[0]) && refused(&cases[1]) {
+                            &cases[0].fields
+                        } else if encoded(&cases[1]) && refused(&cases[0]) {
+                            &cases[1].fields
+                        } else {
+                            return None;
+                        }
                     };
-                    let Type::Named { name, arguments } = payload else {
-                        return None;
-                    };
-                    let payload_id = resolve_type_id(target.module, name, programs)?;
-                    if !arguments.is_empty()
-                        || !matches!(
-                            &authored.get(payload_id.as_str())?.ty?.kind,
-                            TypeDeclarationKind::Record { .. }
-                        )
-                    {
+                    let record_payload = matches!(payloads.as_slice(), [payload]
+                        if matches!(&payload.ty, Type::Named { name, arguments }
+                            if arguments.is_empty() && resolve_type_id(target.module, name, programs)
+                                .and_then(|id| authored.get(id.as_str()))
+                                .and_then(|target| target.ty)
+                                .is_some_and(|ty| matches!(&ty.kind, TypeDeclarationKind::Record { .. }))));
+                    let vector_payload = (1..=2).contains(&payloads.len())
+                        && payloads.iter().all(|payload| {
+                            vector(target.module, &payload.ty, caller, authored, programs)
+                        });
+                    let string_payload = matches!(payloads.as_slice(), [payload]
+                        if payload.ty == Type::String);
+                    if !record_payload && !vector_payload && !string_payload {
                         return None;
                     }
                     outcome = true;
-                    fields += 4;
+                    fields += cases.iter().map(|case| case.fields.len()).sum::<usize>();
                     pending.push(Frame::Leave(id));
-                    pending.push(Frame::Enter(target.module, payload, depth + 1));
+                    pending.extend(
+                        payloads
+                            .iter()
+                            .rev()
+                            .map(|payload| Frame::Enter(target.module, &payload.ty, depth + 1)),
+                    );
                     continue;
                 }
                 let TypeDeclarationKind::Record { fields: declared } = &declaration.kind else {
@@ -186,9 +205,6 @@ fn shape<'a>(
             return None;
         }
     }
-    if outcome && !owns {
-        return None;
-    }
     Some(owns)
 }
 
@@ -208,7 +224,7 @@ fn vector(
     };
     let identity = resolve_type_id(module, name, programs).or_else(|| {
         crate::prelude::declarations_for_program(provider)
-            .into_iter()
+            .iter()
             .find(|declaration| declaration.name == *name)
             .map(|declaration| declaration.stable_id.clone())
     });
@@ -309,5 +325,70 @@ use type @id("outcome") from imports.provider as Outcome;
             APP
         ));
         assert!(!accepts(&PROVIDER.replace("@id(\"ok.report\") ", ""), APP));
+    }
+
+    #[test]
+    fn string_response_import_preserves_exact_scalar_refusal_and_excludes_views() {
+        let provider = r#"module imports.provider;
+@id("outcome") variant Encoded {
+ @id("encoded") Encoded { @id("encoded.text") text:string, },
+ @id("refused") Refused { @id("refused.required") required:usize, },
+}
+@id("inspect") fn inspect()->Encoded { Encoded::Refused{required:0usize} }
+"#;
+        let app = r#"module imports.app;
+use type @id("outcome") from imports.provider as Outcome;
+@id("app.main") fn main()->i64{0}
+"#;
+        assert!(accepts(provider, app));
+        assert!(!accepts(
+            &provider.replace("required:usize", "required:i64"),
+            app
+        ));
+        assert!(!accepts(&provider.replace("text:string", "text:str"), app));
+        assert!(!accepts(
+            &provider.replace("@id(\"encoded.text\") ", ""),
+            app
+        ));
+        assert!(!accepts(
+            provider,
+            &app.replace(
+                "use type @id(\"outcome\") from imports.provider as Outcome;",
+                ""
+            )
+        ));
+    }
+    #[test]
+    fn decoded_vector_import_replays_flat_elements_and_refuses_nested_or_missing_types() {
+        let provider = r#"module imports.provider;
+@id("item") record Item { @id("item.text") text:string, @id("item.n") n:i64, }
+@id("outcome") variant Decoded {
+ @id("ok") Ready { @id("ok.words") words:Vec<string>, @id("ok.rows") rows:Vec<Item>, },
+ @id("err") Error { @id("err.code") code:i64, @id("err.offset") offset:usize, @id("err.field") field:i64, },
+}
+@id("inspect") fn inspect()->Decoded { Decoded::Error{code:1,offset:0usize,field:0} }
+"#;
+        let app = r#"module imports.app;
+use type @id("item") from imports.provider as Item;
+use type @id("outcome") from imports.provider as Outcome;
+@id("app.main") fn main()->i64{0}
+"#;
+        assert!(accepts(provider, app));
+        assert!(!accepts(
+            &provider.replace("text:string", "text:Vec<string>"),
+            app
+        ));
+        assert!(!accepts(
+            &provider.replace("offset:usize", "offset:i64"),
+            app
+        ));
+        assert!(!accepts(
+            provider,
+            &app.replace("use type @id(\"item\") from imports.provider as Item;", "")
+        ));
+        assert!(!accepts(
+            &provider.replace("fn inspect()", "fn inspect<T>()"),
+            app
+        ));
     }
 }

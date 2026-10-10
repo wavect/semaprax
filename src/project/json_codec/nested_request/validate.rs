@@ -15,9 +15,11 @@ pub(super) fn source(root: &TypeDeclaration, record: &Record<'_>, bound: usize) 
         writeln!(out, "let mut seen_{}=false;", field.ordinal).unwrap();
         writeln!(
             out,
-            "let key_{}={};",
+            "let key_{}={};\nlet key_view_{}=array_as_slice(key_{});",
             field.ordinal,
-            key_array(&field.declaration.name)
+            key_array(&field.declaration.name),
+            field.ordinal,
+            field.ordinal
         )
         .unwrap();
     }
@@ -26,7 +28,7 @@ pub(super) fn source(root: &TypeDeclaration, record: &Record<'_>, bound: usize) 
         let n = field.ordinal;
         writeln!(
             out,
-            "selected=if jv_key_eq(input,key,array_as_slice(key_{n})){{{n}}}else{{selected}};"
+            "selected=if jv_key_eq(input,key,key_view_{n}){{{n}}}else{{selected}};"
         )
         .unwrap();
     }

@@ -71,11 +71,20 @@ pub(super) fn source(program: &Program, record: &TypeDeclaration) -> String {
             .map(|b| format!("{b}u8"))
             .collect::<Vec<_>>()
             .join(", ");
-        writeln!(out, "let key_{index} = [{bytes}];").unwrap();
+        writeln!(
+            out,
+            "let key_{index} = [{bytes}];\nlet key_view_{index} = array_as_slice(key_{index});"
+        )
+        .unwrap();
     }
     out.push_str("let mut key = if error == 0 { jc_first_member(input, object) } else { length };\nwhile error == 0 && key < length {\nlet start = jc_member_value(input, key);\nlet mut selected = 0;\n");
     for (index, _) in fields.iter().enumerate() {
-        writeln!(out, "selected = if jc_key_eq(input, key, array_as_slice(key_{index})) {{ {} }} else {{ selected }};", index + 1).unwrap();
+        writeln!(
+            out,
+            "selected = if jc_key_eq(input, key, key_view_{index}) {{ {} }} else {{ selected }};",
+            index + 1
+        )
+        .unwrap();
     }
     out.push_str("let _ = if selected == 0 { error = 4; offset = key; field = 0; false } else {\nfield = selected;\n");
     for (index, f) in fields.iter().enumerate() {

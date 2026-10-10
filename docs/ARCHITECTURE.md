@@ -3582,7 +3582,12 @@ a supported language, CLI, ABI, or runtime surface.
 ### Internal owned-data libraries
 
 `workspace_graph/owned_function_import.rs` authenticates explicit nongeneric
-record signatures over Bytes and Copy scalars. `expected_projection/defaults.rs`
+record signatures over Bytes and Copy scalars. Its `text_collections` helper
+replays finite String/vector result variants and their direct element imports.
+`expected_projection/type_rewrite.rs` rewrites only authenticated compiler-owned
+Vec elements to the caller's exact imported alias, with matching cost replay.
+Selected Project profiles still independently admit the linked HIR closure.
+`expected_projection/defaults.rs`
 precharges checking-only empty leaves; execution retains provider body and
 ordinary HIR/cleanup replay. Record-match results use the same transfer before
 settlement across verifier, HIR, interpreter, C11, and Wasm. No target repairs

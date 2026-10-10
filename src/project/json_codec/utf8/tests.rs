@@ -44,7 +44,9 @@ fn utf8_owned_policy_is_explicit_bounded_and_uses_distinct_scalar_decoders() {
     assert!(derived.contains("required>output_limit"));
     let row_decode = derived.split("fn json_Row_view_decode").nth(1).unwrap();
     assert!(
-        row_decode.find("let key_0=").unwrap()
+        row_decode
+            .find("let key_view_0=array_as_slice(key_0)")
+            .unwrap()
             < row_decode.find("while error==0 && key<length").unwrap()
     );
     let request_decode = derived
@@ -52,7 +54,9 @@ fn utf8_owned_policy_is_explicit_bounded_and_uses_distinct_scalar_decoders() {
         .nth(1)
         .unwrap();
     assert!(
-        request_decode.find("let servers_key=").unwrap()
+        request_decode
+            .find("let servers_key_view=array_as_slice(servers_key)")
+            .unwrap()
             < request_decode.find("while error==0 && key<length").unwrap()
     );
     let parsed = crate::parse(&derived, "utf8-generated.spx").unwrap();

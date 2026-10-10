@@ -1,5 +1,22 @@
 # Changelog
 
+- Repair generated JSON effect-binding names and move fixed decoder key arrays
+  outside loops. Authenticate nested collection cleanup and finite typed Project
+  import joins across source, HIR, replay and native ownership paths. Preserve
+  earlier profile refusals and original application corpora; grouped executable
+  verification remains pending.
+
+- Read named String views without cloning their owner in the interpreter and
+  replay the closed conversion status table. Retain full-capacity spare HIR slots
+  only when their cumulative charge is cheaper than replacement storage. Add
+  exact-limit and one-byte-short witnesses; no measured token or memory advantage
+  is claimed before execution.
+
+- Add read-only typed-installation verification and preserve completed-stage
+  failure evidence. Import byte-authenticated formatter outputs and repair
+  terminal help and private adapter fixtures without reducing acceptance checks.
+  Current-source pin regeneration and application qualification remain pending.
+
 - Generate scoped Vec-field reads for collection-response preflight and rendering,
   preserving direct Row helper APIs, complete validation, wire bytes and limits.
   Retain explicit owning-clone failure coverage and add a clone-refusing positive

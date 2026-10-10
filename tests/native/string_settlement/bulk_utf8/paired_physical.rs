@@ -6,6 +6,8 @@ use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::{fmt::Write as _, fs, path::Path, process::Command};
 
+const BASELINE: &str = "fc9e5090daffaada9cdb738a410cd3ae92577785";
+const HISTORICAL_SHA256: &str = "c3ece1ef543c28c39f2615cb77c9fa325f15c16b46e1ed1074b79b8a627fdc67";
 const OLD: &str = "1e9c886b2f34280ea8d37bae60478d59510853ff";
 const LEGACY: &str = include_str!("historical_text.spx");
 fn sha(bytes: &[u8]) -> String {
@@ -144,6 +146,29 @@ if same{264}else{0}},}}
 "#);
     canonical(&app)
 }
+fn require_baseline_equivalence() {
+    let delta = Command::new("git")
+        .args([
+            "diff",
+            "--name-only",
+            BASELINE,
+            "HEAD",
+            "--",
+            ".",
+            ":(exclude)tests/native/string_settlement/bulk_utf8.rs",
+            ":(exclude)tests/native/string_settlement/bulk_utf8/paired_physical.rs",
+            ":(exclude)tests/native/string_settlement/bulk_utf8/paired_probe.c",
+            ":(exclude)tests/native/string_settlement/bulk_utf8/historical_text.spx",
+            ":(exclude)tests/native/string_settlement/bulk_utf8/historical_text.sha256",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        delta.status.success() && delta.stdout.is_empty(),
+        "baseline source drift: {}",
+        String::from_utf8_lossy(&delta.stdout)
+    );
+}
 fn derive(root: &Path) -> String {
     project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
         let revision = snapshot.retain_revision();
@@ -188,6 +213,8 @@ fn matched_historical_current_codec_physical_work() {
         sha(LEGACY.as_bytes()),
         include_str!("historical_text.sha256").trim()
     );
+    assert_eq!(sha(LEGACY.as_bytes()), HISTORICAL_SHA256);
+    require_baseline_equivalence();
     let output = std::path::PathBuf::from(
         std::env::var_os("SEMAPRAX_PAIRED_PHYSICAL_OUTPUT")
             .expect("explicit external output required"),
@@ -205,7 +232,7 @@ fn matched_historical_current_codec_physical_work() {
         .output()
         .unwrap();
     assert!(clean.status.success() && clean.stdout.is_empty());
-    let mut receipt = json!({"schema":"semaprax.paired-physical-codec.v1","proof_kind":"native-owning-private","source_checkout_head":String::from_utf8(head.stdout).unwrap().trim(),"historical_algorithm_source":OLD,"historical_template_sha256":sha(LEGACY.as_bytes()),"historical_compiler":null,"test_executable_sha256":sha(&fs::read(std::env::current_exe().unwrap()).unwrap()),"baseline_source": "fc9e5090daffaada9cdb738a410cd3ae92577785","logical_meter":"ordinary native: no Fixed 4096 counter","executed":true,"status":"started","rows":[]});
+    let mut receipt = json!({"schema":"semaprax.paired-physical-codec.v1","proof_kind":"native-owning-private","source_checkout_head":String::from_utf8(head.stdout).unwrap().trim(),"historical_algorithm_source":OLD,"historical_template_sha256":sha(LEGACY.as_bytes()),"historical_compiler":null,"test_executable_sha256":sha(&fs::read(std::env::current_exe().unwrap()).unwrap()),"baseline_source": BASELINE,"baseline_equivalence":"all tracked bytes outside five named owning witness files unchanged","logical_meter":"ordinary native: no Fixed 4096 counter","executed":true,"status":"started","rows":[]});
     fs::write(
         output.join("receipt.json"),
         serde_json::to_vec_pretty(&receipt).unwrap(),
@@ -342,6 +369,7 @@ fn matched_historical_current_codec_physical_work() {
         String::from_utf8(after.stdout).unwrap().trim(),
         receipt["source_checkout_head"].as_str().unwrap()
     );
+    require_baseline_equivalence();
     receipt["status"] = json!("success");
     fs::write(
         output.join("receipt.json"),

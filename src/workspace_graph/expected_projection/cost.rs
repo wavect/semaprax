@@ -741,9 +741,7 @@ mod exact_bundle_tests {
         )
         .unwrap();
         let expression = match &program.functions[0].body.kind {
-            crate::ast::ExprKind::Block {
-                tail: Some(tail), ..
-            } => tail.as_ref(),
+            crate::ast::ExprKind::Block { tail, .. } => tail.as_ref(),
             _ => panic!("literal fixture has a block tail"),
         };
         let mut raw = StructuralCost::raw_ast(true).with_inline_values(true);
@@ -751,9 +749,9 @@ mod exact_bundle_tests {
         let runtime = StructuralCost::new();
         assert_eq!(identity_carriers(4, &raw, &runtime).unwrap(), 3);
         assert_eq!(identity_carriers(5, &raw, &runtime).unwrap(), 1);
-        let discount = super::super::HIR_FIXED_EXPANSION_FACTOR
+        let discount = crate::workspace_graph::HIR_FIXED_EXPANSION_FACTOR
             * std::mem::size_of::<crate::ast::Expr>()
-            - super::super::HIR_EXPR_FIXED_BUNDLE;
+            - crate::workspace_graph::HIR_EXPR_FIXED_BUNDLE;
         assert_eq!(raw.exact_fixed_discount, discount);
         assert_eq!(
             fixed_hir_discount(4, &raw, &runtime).unwrap(),

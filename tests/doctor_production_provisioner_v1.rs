@@ -144,6 +144,7 @@ impl Sources {
             known_ordinary_cli_surfaces: [
                 read(repository, "src/cli_driver.rs"),
                 read(repository, "src/cli/json_codec.rs"),
+                read(repository, "src/cli_driver/native_test.rs"),
                 read(repository, "src/cli_driver/context_dispatch.rs"),
                 read(repository, "src/cli_driver/hot_reload.rs"),
                 read(repository, "src/cli_driver/options.rs"),

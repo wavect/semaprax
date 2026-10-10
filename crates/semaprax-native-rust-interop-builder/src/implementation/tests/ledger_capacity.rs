@@ -194,6 +194,8 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     );
     let hir_validator = concat!(
         include_str!("../../../../../src/hir/validation.rs"),
+        include_str!("../../../../../src/hir/validation/call_parameters.rs"),
+        include_str!("../../../../../src/hir/validation/nominal_facts.rs"),
         include_str!("../../../../../src/hir/validation/variant_guard_state.rs"),
         include_str!("../../../../../src/hir/validation/string_replacement.rs"),
         include_str!("../../../../../src/hir/validation/borrowed_argument.rs"),

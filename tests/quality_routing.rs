@@ -70,6 +70,7 @@ fn profiles_are_deterministic_and_broad_dispatch_files_force_full() {
         "src/graph/byte_buffer_renewal.rs",
         "src/graph/filesystem_outcome.rs",
         "src/graph/owned_text_record_loans.rs",
+        "src/graph/owned_string_byte_view.rs",
         "src/graph/string_replacement.rs",
     ];
     for path in additive_graph_modules {

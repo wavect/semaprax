@@ -231,10 +231,10 @@ pub fn explain_installed_diagnostic(code: &str) -> Result<InstalledDiagnosticExp
         if occurrence_count == 1 { "" } else { "s" },
         guidance
             .as_ref()
-            .map(|_| " See the code-specific explanation for the admitted shape and repair guidance.")
+            .map(|_| "\nUse vec_field<Row>(rows, index, \"field\") with a named Vec, usize index and literal declared field. Scalars are Copy; String/Bytes views borrow the owner through last use.")
             .unwrap_or(""),
     );
-    let payload = json!({
+    let mut payload = json!({
         "authority": false,
         "code": installed,
         "compiler": compiler()?,
@@ -242,7 +242,6 @@ pub fn explain_installed_diagnostic(code: &str) -> Result<InstalledDiagnosticExp
         "explanation": {
             "classification": "installed_static_diagnostic_identifier",
             "message_contract": "emission_site_specific; inspect the emitted message and optional help",
-            "code_specific_guidance": guidance,
             "namespace": namespace(installed),
             "occurrences": occurrences.iter().map(|(path,line)|json!({
                 "line":line,"path":path,"scope":scope(path)
@@ -257,6 +256,9 @@ pub fn explain_installed_diagnostic(code: &str) -> Result<InstalledDiagnosticExp
             "no_host_capability_grant",
         ],
     });
+    if let Some(guidance) = guidance {
+        payload["explanation"]["code_specific_guidance"] = guidance;
+    }
     let (json, digest) = document(
         INSTALLED_DIAGNOSTIC_EXPLANATION_SCHEMA,
         EXPLANATION_DOMAIN,

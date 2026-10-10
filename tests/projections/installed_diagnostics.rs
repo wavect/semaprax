@@ -271,60 +271,70 @@ fn catalog_exactly_covers_static_tokens_and_reports_unresolved_dynamic_sites() {
 
 #[test]
 fn explanation_is_deterministic_digest_bound_and_exactly_replayable() {
-    let explanation = explain_installed_diagnostic("SPX-T310").unwrap();
-    let repeated = explain_installed_diagnostic("SPX-T310").unwrap();
-    assert_eq!(explanation, repeated);
-    let value = envelope(
-        explanation.to_json(),
-        INSTALLED_DIAGNOSTIC_EXPLANATION_SCHEMA,
-        b"semaprax.installed-diagnostic-explanation.payload.digest.v1\0",
-        MAX_INSTALLED_DIAGNOSTIC_EXPLANATION_BYTES,
-    );
-    assert_eq!(value["payload"]["code"], "SPX-T310");
-    assert_eq!(value["payload"]["explanation"]["namespace"], "T");
-    assert_eq!(
-        value["payload"]["explanation"]["code_specific_guidance"]["required_shape"],
-        "vec_field<Row>(rows, index, \"field\")"
-    );
-    assert!(value["payload"]["explanation"]["code_specific_guidance"]["repair"]
-        .as_str()
-        .unwrap()
-        .contains("declared fields"));
-    assert_eq!(value["payload"]["concise"], explanation.to_text());
-    assert!(explanation.to_text().ends_with('\n'));
-    assert_eq!(explanation.code(), "SPX-T310");
-    assert_eq!(value["digest"], explanation.digest());
-    assert_eq!(
-        InstalledDiagnosticExplanation::replay(
-            "SPX-T310",
-            explanation.digest(),
-            explanation.to_json().as_bytes(),
-        )
-        .unwrap(),
-        explanation
-    );
+    for code in ["SPX-T001", "SPX-T310"] {
+        let explanation = explain_installed_diagnostic(code).unwrap();
+        let repeated = explain_installed_diagnostic(code).unwrap();
+        assert_eq!(explanation, repeated);
+        let value = envelope(
+            explanation.to_json(),
+            INSTALLED_DIAGNOSTIC_EXPLANATION_SCHEMA,
+            b"semaprax.installed-diagnostic-explanation.payload.digest.v1\0",
+            MAX_INSTALLED_DIAGNOSTIC_EXPLANATION_BYTES,
+        );
+        assert_eq!(value["payload"]["code"], code);
+        assert_eq!(value["payload"]["explanation"]["namespace"], "T");
+        if code == "SPX-T310" {
+            assert_eq!(
+                value["payload"]["explanation"]["code_specific_guidance"]["required_shape"],
+                "vec_field<Row>(rows, index, \"field\")"
+            );
+            assert!(
+                value["payload"]["explanation"]["code_specific_guidance"]["repair"]
+                    .as_str()
+                    .unwrap()
+                    .contains("declared fields")
+            );
+            assert!(explanation.to_text().contains("vec_field<Row>"));
+        } else {
+            assert!(value["payload"]["explanation"]
+                .get("code_specific_guidance")
+                .is_none());
+        }
+        assert_eq!(value["payload"]["concise"], explanation.to_text());
+        assert!(explanation.to_text().ends_with('\n'));
+        assert_eq!(explanation.code(), code);
+        assert_eq!(value["digest"], explanation.digest());
+        assert_eq!(
+            InstalledDiagnosticExplanation::replay(
+                code,
+                explanation.digest(),
+                explanation.to_json().as_bytes(),
+            )
+            .unwrap(),
+            explanation
+        );
+    }
 }
 
 #[test]
 fn explain_cli_is_exact_core_projection_and_has_no_working_directory_authority() {
     let root = EmptyRoot::new();
-    let explanation = explain_installed_diagnostic("SPX-T310").unwrap();
-    for (arguments, expected) in [
-        (&["explain", "SPX-T310"][..], explanation.to_text()),
-        (
-            &["explain", "SPX-T310", "--json"][..],
-            explanation.to_json(),
-        ),
-    ] {
-        let output = root.invoke(arguments);
-        assert!(
-            output.status.success(),
-            "{}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-        assert!(output.stderr.is_empty());
-        assert_eq!(output.stdout, expected.as_bytes());
-        root.assert_empty();
+    for code in ["SPX-T001", "SPX-T310"] {
+        let explanation = explain_installed_diagnostic(code).unwrap();
+        for (arguments, expected) in [
+            (&["explain", code][..], explanation.to_text()),
+            (&["explain", code, "--json"][..], explanation.to_json()),
+        ] {
+            let output = root.invoke(arguments);
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            assert!(output.stderr.is_empty());
+            assert_eq!(output.stdout, expected.as_bytes());
+            root.assert_empty();
+        }
     }
 }
 

@@ -79,6 +79,14 @@ The default output is the exact LF-terminated `to_text()` projection:
 {CODE}: installed {NAMESPACE} diagnostic ({N} static source occurrence[s]); emitted message and help are site-specific.
 ```
 
+New code-specific guidance may follow that first line for a newly admitted
+code. `SPX-T310` additionally gives the literal `vec_field<Row>(rows, index,
+"field")` shape, named-carrier and usize-index requirements, and borrowed view
+lifetime. Its explanation object includes `code_specific_guidance` with operand,
+result and repair details. Codes without such guidance retain their original
+concise projection and omit that optional JSON member. Guidance grants no repair
+or execution authority and remains bound to fresh derivation and exact replay.
+
 `--json` prints `to_json()` byte for byte. Missing or extra operands and
 unknown options are CLI grammar errors with status 2. A well-formed but absent
 code reaches the core and reports `SPX-G542`. The catalogue remains a library

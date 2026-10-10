@@ -281,9 +281,9 @@ fn main() -> i64
 }
 ```
 
-- A declaration's last field or case may omit its `,`; `fmt` writes it.
+- The last field or case may omit its `,`; `fmt` writes it.
 - Give every field and case its own `@id`. Cases without payload are
-  written `Name,` in the declaration and `Type::Name {}` everywhere else;
+  written `Name,` in declarations and `Type::Name {}` elsewhere;
   the `{}` may be omitted (`Type::Name`) and `fmt` writes it back.
 - Constructing a generic variant spells the type arguments:
   `Option<i64>::Some { value: v }`. Matching one does not:
@@ -296,12 +296,11 @@ fn main() -> i64
   leaves. Generic, resource/view/class and invariant-bearing String records
   stay outside the executable profile (`SPX-T309`);
   [String records](OWNED-STRING-RECORDS-V1.md) owns the exact shapes.
-- A source function import that returns or accepts a named record also needs
-  its exact type identity imported directly, even for a zero-argument factory
-  whose result type is inferred. Import each exposed nested type too. For
-  example, `use type @id("std.pattern.matcher") from std.pattern as Matcher;`
-  accompanies `std.pattern.make`, renewal calls and borrowed observers.
-  `SPX-G172` help names the first missing nominal identity and its import.
+- Import the exact type identity of each named record a source function
+  accepts or returns, including exposed nested types and inferred factory
+  results. For `std.pattern.make`, renewal and borrowed observers, add:
+  `use type @id("std.pattern.matcher") from std.pattern as Matcher;`
+  `SPX-G172` names the first missing nominal identity and its import.
 - Classes hold fields and `fn name(self: Class, …)` methods, called as
   `value.method(args)`. `class Dog : Animal` inherits; `super.method()`
   dispatches to the parent. Records have no methods.

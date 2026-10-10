@@ -303,7 +303,14 @@ or foreign proof storage. Missing HIR or proof backing refuses before scratch
 allocation. The successor HIR walk retains the existing depth bound and uses
 the existing one-million expression-work bound, rather than the 4096 loan
 endpoint bound: HIR-only nodes are not loan points. The optional distinct-key
-census falls back after 64 million key comparisons. Full-census fallbacks, proof carriers, unmatched
+census uses a fixed 4096-bit stack bitmap to skip a prior-key scan only when
+that bucket has never been set. Every bitmap hit, including collisions, uses
+exact prior-key comparison; the bitmap grants no sharing or exclusion authority.
+It allocates no heap storage and cannot change the distinct-key count. The
+census still falls back after 64 million actual key comparisons. A refused
+uncovered-proof reference inventory names the authenticated internal stage
+`loan identity inventory`; this is the actual enclosing reservation operation,
+not an inference from requested bytes or a change to the sticky refusal. Full-census fallbacks, proof carriers, unmatched
 identities and earlier-attempt per-HIR-key receipts are unchanged. Reuse and
 candidate intersection remove actual temporary storage; they do not discount
 any allocation that still occurs or raise the builder limit. The full pattern

@@ -209,6 +209,16 @@ impl ExpressionId {
         Self(Some(Arc::new(exact_string(value))))
     }
 
+    /// Hostile accounting fixture: preserve a deliberately oversized buffer.
+    /// Ordinary constructors continue to normalize identity capacity exactly.
+    #[cfg(test)]
+    pub(crate) fn from_untrimmed_backing_for_test(value: String) -> Self {
+        if !crate::bounded_output::reserve_active_required(Self::SHARED_ALLOCATION_CARRIER_BYTES) {
+            return Self(None);
+        }
+        Self(Some(Arc::new(value)))
+    }
+
     pub(super) fn matches(&self, function: &FunctionExecutionId, path: &str) -> bool {
         matches_scoped_identity(self.as_str(), function, "expression", path.len(), path)
     }

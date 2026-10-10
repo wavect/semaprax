@@ -21,6 +21,7 @@ pub(crate) enum ReservationStage {
     CachedValidation,
     FreshResolution,
     RetainedModule,
+    LoanIdentityInventory,
 }
 
 impl ReservationStage {
@@ -31,6 +32,7 @@ impl ReservationStage {
             Self::CachedValidation => "cached HIR validation",
             Self::FreshResolution => "fresh HIR resolution",
             Self::RetainedModule => "resolved module retention",
+            Self::LoanIdentityInventory => "loan identity inventory",
         }
     }
 }

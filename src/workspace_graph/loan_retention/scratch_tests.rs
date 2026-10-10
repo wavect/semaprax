@@ -198,11 +198,11 @@ fn generic_instances_reuse_one_scratch_and_refuse_one_short() {
     let program = crate::parse(
         r#"
 module generic.scratch;
-@id("generic.consume") fn consume(bytes: own Bytes) -> i64 { 0 }
+@id("generic.consume") fn consume(text: own string) -> i64 { 0 }
 @id("generic.keep") fn keep<T>(value: T) -> T {
-    let owned = bytes_zeroed(1usize);
-    let view = bytes_as_slice(owned);
-    let observed_length = byte_len(view);
+    let owned = "scratch";
+    let view = string_as_str(owned);
+    let observed_length = string_len(view);
     let consumed_status = consume(owned);
     value
 }
@@ -369,8 +369,8 @@ fn candidate_intersection_checks_unmatched_hir_and_proof_backing_before_allocati
         assert!(!overflow);
         assert_eq!(
             debit,
-            errors[0].message.len(),
-            "only refusal text is allocated"
+            errors[0].message.len() + errors[0].help.as_ref().map_or(0, String::len),
+            "the complete refusal message and stage help are allocated before any scratch"
         );
         assert_eq!(scratch.keys.capacity(), 0);
         assert_eq!(scratch.matched.capacity(), 0);
@@ -396,7 +396,7 @@ fn candidate_intersection_keeps_equal_text_distinct_full_capacity_and_exact_unma
     let original = function.loan_plan.endpoints[index].point.expression.clone();
     let mut text = String::with_capacity(original.as_str().len() + 4096);
     text.push_str(original.as_str());
-    let independent = ExpressionId::from_owned(text);
+    let independent = ExpressionId::from_untrimmed_backing_for_test(text);
     assert_eq!(independent, original);
     assert_ne!(
         independent.shared_allocation_key(),
@@ -434,4 +434,27 @@ fn candidate_intersection_keeps_equal_text_distinct_full_capacity_and_exact_unma
             wire
         );
     }
+}
+
+
+#[test]
+fn distinct_candidate_prefilter_keeps_collisions_exact_without_allocating() {
+    for keys in [&[0usize, 4181, 0, 4181][..], &[1usize, 2, 3, 1, 4, 2][..]] {
+        let expected = keys.iter().copied().collect::<std::collections::BTreeSet<_>>().len();
+        let (actual, overflow, debit) = bounded_output::with_limit_usage(0, || {
+            distinct_keys(|| keys.iter().copied())
+        });
+        assert_eq!(actual.unwrap().unwrap().0, expected);
+        assert!(!overflow);
+        assert_eq!(debit, 0);
+    }
+    // These two distinct keys collide in the fixed bitmap. Exact comparison
+    // must retain both; a bitmap hit must never grant physical sharing.
+    let bucket = |key: usize| ((key as u64).wrapping_mul(0x9e37_79b9_7f4a_7c15) >> 52) as usize;
+    assert_eq!(bucket(0), bucket(4181));
+    let (distinct, comparisons) = distinct_keys(|| [0usize, 4181].into_iter()).unwrap().unwrap();
+    assert_eq!((distinct, comparisons), (2, 1));
+    let (distinct, comparisons) = distinct_keys(|| 0usize..512).unwrap().unwrap();
+    assert_eq!(distinct, 512);
+    assert_eq!(comparisons, 0, "a definitely new bucket needs no prior scan");
 }

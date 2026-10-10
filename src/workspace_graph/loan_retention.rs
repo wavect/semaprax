@@ -207,27 +207,48 @@ fn candidate_count(function: &ResolvedFunction) -> Result<Option<usize>> {
     // Optional sharing proof stays bounded. Counting distinct candidates needs
     // no allocation; repeated loan sites/endpoints need only one real key slot.
     // The comparison budget is explicit work, never a storage or ledger debit.
+    let result = distinct_keys(|| identities().filter_map(ExpressionId::shared_allocation_key))?;
+    if let Some((count, _)) = result {
+        debug_assert!(count <= references);
+        Ok(Some(count))
+    } else {
+        Ok(None)
+    }
+}
+
+// A fixed stack bitmap can only prove that a key has NOT occurred. A set bit
+// always falls back to exact prior-key comparison, including hash collisions.
+// It is neither exclusion authority nor retained storage; the physical census
+// and the existing comparison-work ceiling remain unchanged.
+fn distinct_keys<I: Iterator<Item = usize>>(
+    identities: impl Fn() -> I,
+) -> Result<Option<(usize, usize)>> {
+    let mut seen = [0u64; 64];
     let mut comparisons = 0usize;
     let mut count = 0usize;
-    for (index, identity) in identities().enumerate() {
-        let key = identity.shared_allocation_key().ok_or_else(refusal)?;
+    for (index, key) in identities().enumerate() {
+        let bit = ((key as u64).wrapping_mul(0x9e37_79b9_7f4a_7c15) >> 52) as usize;
+        let mask = 1u64 << (bit % 64);
+        let word = &mut seen[bit / 64];
         let mut repeated = false;
-        for prior in identities().take(index) {
-            comparisons = comparisons.checked_add(1).ok_or_else(refusal)?;
-            if comparisons > crate::loan_plan::MAX_LOAN_PLAN_WORK_V1.saturating_mul(64) {
-                return Ok(None);
-            }
-            if prior.shared_allocation_key() == Some(key) {
-                repeated = true;
-                break;
+        if *word & mask != 0 {
+            for prior in identities().take(index) {
+                comparisons = comparisons.checked_add(1).ok_or_else(refusal)?;
+                if comparisons > crate::loan_plan::MAX_LOAN_PLAN_WORK_V1.saturating_mul(64) {
+                    return Ok(None);
+                }
+                if prior == key {
+                    repeated = true;
+                    break;
+                }
             }
         }
+        *word |= mask;
         if !repeated {
             count = count.checked_add(1).ok_or_else(refusal)?;
         }
     }
-    debug_assert!(count <= references);
-    Ok(Some(count))
+    Ok(Some((count, comparisons)))
 }
 
 fn allocate_candidates(count: usize) -> Result<RetentionScratch> {

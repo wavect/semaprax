@@ -99,6 +99,13 @@ pub(crate) fn owned_capacity_bytes_excluding(
 /// moved String carrier. Separate allocations with equal bytes remain distinct.
 /// The temporary inventory is charged before allocation and is not refunded.
 fn shared_identity_bytes(plan: &LoanPlan, covered_hir_keys: &[usize]) -> Option<usize> {
+    crate::bounded_output::with_reservation_stage(
+        crate::bounded_output::ReservationStage::LoanIdentityInventory,
+        || shared_identity_inventory_bytes(plan, covered_hir_keys),
+    )
+}
+
+fn shared_identity_inventory_bytes(plan: &LoanPlan, covered_hir_keys: &[usize]) -> Option<usize> {
     let mut count = 0usize;
     // Validate every physical backing before allocating scratch. The caller
     // already owns and charged its sorted HIR keys; covered references need

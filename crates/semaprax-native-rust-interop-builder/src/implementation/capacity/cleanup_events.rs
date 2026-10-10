@@ -418,13 +418,19 @@ pub(super) fn cleanup_plan_variable_identity_bytes(
                 let retained_path_len = path_len
                     .checked_add(longest_direct_expression_identity_suffix_len())
                     .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
-                let identity_bytes = scoped_expression_backing_upper(
+                let cleanup_identity_bytes = scoped_expression_backing_upper(
                     function,
                     generic_instance_identity_len,
                     retained_path_len,
                 )
-                .and_then(|bytes| bytes.checked_mul(3))
                 .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+                // HIR may construct three identities from one authored node.
+                // Each independently counted cleanup occurrence refers to
+                // one identity, not another complete three-identity HIR set.
+                // Keep its full allocator-growth and carrier upper bound.
+                let identity_bytes = cleanup_identity_bytes
+                    .checked_mul(3)
+                    .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                 let desugared_statement_bytes = match &expression.kind {
                     crate::ast::ExprKind::Block { statements, .. } => {
                         desugared_statement_identity_upper(
@@ -444,7 +450,7 @@ pub(super) fn cleanup_plan_variable_identity_bytes(
                 bytes = bytes
                     .checked_add(
                         uncovered
-                            .checked_mul(identity_bytes)
+                            .checked_mul(cleanup_identity_bytes)
                             .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?,
                     )
                     .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;

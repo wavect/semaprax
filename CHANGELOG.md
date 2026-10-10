@@ -1,5 +1,9 @@
 # Changelog
 
+- Fix Native Rust Interop's depth-512 reservation by separating the three
+  possible HIR identity backings from each single cleanup identity reference.
+  Preserve the full backing-growth allowance and unchanged 32 MiB limit.
+
 - Fix the unchanged 64 MiB pattern workspace gate with a final uncached profile
   that reserves the complete asserted expression footprint and audited identity
   carriers, then independently replays call facts against borrowed immutable

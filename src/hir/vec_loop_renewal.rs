@@ -141,3 +141,17 @@ fn same_cell(
                 && (index == 0 || arg.ownership == OwnershipMode::Value)
         })
 }
+
+/// Forge cached field drift for independent renewal-replay hostile controls.
+#[cfg(test)]
+pub(crate) fn forge_record_field_for_test(
+    declarations: &mut DeclarationIndex,
+    record: &DeclarationId,
+    ty: ResolvedType,
+) {
+    declarations
+        .record_fields
+        .get_mut(record)
+        .expect("fixture record")[0]
+        .ty = ty;
+}

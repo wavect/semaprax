@@ -572,12 +572,11 @@ fn main() -> i64
         assert_eq!(function.cleanup_plan.schema, CLEANUP_PLAN_SCHEMA_V15);
         validate_structure(&copy, function).unwrap();
         let mut drift = copy.clone();
-        drift
-            .declarations
-            .record_fields
-            .get_mut(&crate::hir::DeclarationId::new("row"))
-            .unwrap()[0]
-            .ty = crate::hir::ResolvedType::String;
+        crate::hir::vec_loop_renewal::forge_record_field_for_test(
+            &mut drift.declarations,
+            &crate::hir::DeclarationId::new("row"),
+            crate::hir::ResolvedType::String,
+        );
         assert!(!crate::hir::vec_loop_renewal::requires_in(&drift, function));
         assert!(validate_structure(&drift, function).is_err());
         let source = crate::check(

@@ -433,10 +433,19 @@ impl Resolver<'_> {
                                 place
                             }
                             _ => {
+                                let requirement = match op {
+                                    crate::byte_ops::ByteOp::StringAsStr => {
+                                        "a named String owner or an authenticated named-record path to a String field"
+                                    }
+                                    crate::byte_ops::ByteOp::StrAsBytes => {
+                                        "a named `str` view or a view derived from a named String field path"
+                                    }
+                                    _ => "an exact named storage root",
+                                };
                                 return Err(self.error(
                                     "SPX-T266",
                                     format!(
-                                        "borrowed view `{name}` requires an exact named storage root"
+                                        "borrowed view `{name}` requires {requirement}"
                                     ),
                                     args[0].span,
                                 ));

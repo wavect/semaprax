@@ -179,7 +179,14 @@ fn source_refuses_temporary_roots_and_moves_during_projected_loans() {
             &format!("string_as_str({expression})"),
         );
         let errors = crate::check(&source, "temporary.spx").unwrap_err();
-        assert!(errors.iter().any(|e| e.code == "SPX-T266"), "{errors:?}");
+        let diagnostic = errors
+            .iter()
+            .find(|e| e.code == "SPX-T266")
+            .expect("temporary projected String roots retain SPX-T266");
+        assert_eq!(
+            diagnostic.message,
+            "borrowed view `string_as_str` requires a named String owner or an authenticated named-record path to a String field"
+        );
     }
     let source = SOURCE.replace(
         "let count=str_len_bytes(alias)",

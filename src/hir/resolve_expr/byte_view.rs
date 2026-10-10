@@ -17,14 +17,25 @@ impl Resolver<'_> {
             {
                 Ok(place)
             }
-            _ => Err(self.error(
-                "SPX-T266",
-                format!(
-                    "borrowed view `{}` requires an exact named storage root",
-                    operation.name()
-                ),
-                argument.span,
-            )),
+            _ => {
+                let requirement = match operation {
+                    crate::byte_ops::ByteOp::StringAsStr => {
+                        "a named String owner or an authenticated named-record path to a String field"
+                    }
+                    crate::byte_ops::ByteOp::StrAsBytes => {
+                        "a named `str` view or a view derived from a named String field path"
+                    }
+                    _ => "an exact named storage root",
+                };
+                Err(self.error(
+                    "SPX-T266",
+                    format!(
+                        "borrowed view `{}` requires {requirement}",
+                        operation.name()
+                    ),
+                    argument.span,
+                ))
+            }
         }
     }
 }

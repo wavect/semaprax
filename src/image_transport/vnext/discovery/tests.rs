@@ -1003,6 +1003,36 @@ fn selected_bundle_resolves_constructor_requests_and_marks_opaque_reports() {
         .unwrap();
     assert_eq!(control, r"^[^\u0000-\u001f\u007f-\u009f]+$");
 }
+
+#[test]
+fn selected_agent_instructions_allow_authenticated_projected_string_views() {
+    let policy = VNextPolicy {
+        candidate_prepare: true,
+        ..VNextPolicy::default()
+    };
+    let methods = super::super::methods(&policy, false);
+    let instructions_method = methods
+        .iter()
+        .copied()
+        .find(|method| method.name == "protocol/instructions")
+        .unwrap();
+    let payload = super::payload(
+        instructions_method,
+        &serde_json::Map::new(),
+        &methods,
+        &policy,
+        false,
+    )
+    .unwrap();
+    let instructions = payload["instructions"].as_str().unwrap();
+    assert!(instructions.contains(
+        "authenticated named-record path ending at a String field"
+    ));
+    assert!(instructions.contains("fused str_as_bytes(string_as_str(...))"));
+    assert!(instructions.contains("temporary, call-result and constructor roots remain refused"));
+    assert!(!instructions.contains("exact unprojected owning String root"));
+}
+
 #[test]
 fn optional_and_nullable_fields_remain_distinct_and_capabilities_do_not_expand() {
     let bundle = selected(VNextPolicy::default());

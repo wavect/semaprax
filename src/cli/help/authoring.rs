@@ -2,7 +2,7 @@
 use std::fmt::Write as _;
 
 const MAX_BYTES: usize = 2_048;
-const ROUTES: &str = "Authoring routes (complete):\n  author:stdin-json               v27 bounded native stream command\n  author:stream-data-v2           v29 private record/Vec stream command\n  author:owned-data               v30 private owned-leaf collections\n  author:file-text                native UTF-8 file command\n  author:source-web               single-source web build\n  author:literal-format           checked literal String rendering\n  author:copy-record-vec          flat Copy-record vectors\n  author:json-codec               checked source JSON codec derivation\n  author:json-identifier-views    one identifier as a token view\n  author:json-request-views       bounded identifier and record arrays\n  author:json-stream-request-views bounded native stream request view\n  author:json-owned-request      bounded owning request collections\n  author:json-utf8-owned-request bounded UTF-8 string values\n  author:json-stream-utf8-owned-request bounded UTF-8 stdin requests\n  author:json-collection-response bounded nested collection encoder\nLibrary-only search: help language find:<word>:0\nExact card sections: help language topics\n";
+const ROUTES: &str = "Authoring routes (complete):\n  author:stdin-json               v27 bounded native stream command\n  author:stream-data-v2           v29 private record/Vec stream command\n  author:owned-data               v30 private owned-leaf collections\n  author:collection-records       v31 nested records containing Vec\n  author:file-text                native UTF-8 file command\n  author:source-web               single-source web build\n  author:literal-format           checked literal String rendering\n  author:copy-record-vec          flat Copy-record vectors\n  author:json-codec               checked source JSON codec derivation\n  author:json-identifier-views    one identifier as a token view\n  author:json-request-views       bounded identifier and record arrays\n  author:json-stream-request-views bounded native stream request view\n  author:json-owned-request      bounded owning request collections\n  author:json-utf8-owned-request bounded UTF-8 string values\n  author:json-stream-utf8-owned-request bounded UTF-8 stdin requests\n  author:json-collection-response bounded nested collection encoder\nLibrary-only search: help language find:<word>:0\nExact card sections: help language topics\n";
 
 #[cfg(test)]
 pub(super) fn assert_guide_contract() {
@@ -52,6 +52,15 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
             "Bytes-bearing allocation/deep copy stays refused in loops, including vec_clone_at<Record> when Record has Bytes and transitive helpers (SPX-T267). Stage payloads and clones outside loops; checked String-bearing loops remain distinct.\n",
             "V27 and v29 stay closed to these owned carriers, including unused helpers. No public nominal ABI, ambient grant or Web/Wasm/npm command route is added.\n",
             "Exact source shapes, admission, cleanup and gates: docs/STREAM-OWNED-DATA-COMMAND-V1.md and docs/OWNED-LEAF-COLLECTIONS-V1.md.\n"
+        ).to_owned()),
+        "author:collection-records" => Ok(concat!(
+            "Project v31 source implementation; current-head execution qualification pending.\n",
+            "Select [package] profile = \"language-command-io.collection-record.v1\" with input argv-utf8+stdin-stream.v1. Entry and selected command remain fn() -> i64; native64 uses the same four explicit command grants.\n",
+            "Private helpers may use explicit monomorphic acyclic record trees containing admitted Vec elements, nested records, Copy scalars, string and Bytes. Existing Vec element shapes, capacities and byte limits remain in force; this profile does not admit arbitrary Vec elements.\n",
+            "Borrow the root as value: borrow Report. Read vec_len(value.items) and value.metrics.selected; vec_clone_at(value.items, index) yields an independent owned element. Keep the root owner live while any projected borrow is live.\n",
+            "Select v31 for Report{items: Vec<Row>, metrics: Metrics}. V30 keeps its original owned-leaf boundary; unused helpers requiring nested collection records are also refused by older stream profiles (SPX-G172). Schema declarations alone grant no carrier.\n",
+            "Checked JSON request decoding: author:json-stream-utf8-owned-request. Encode-only response derivation: author:json-collection-response; select its bounded-collection-response.v1 profile explicitly.\n",
+            "Exact runtime boundary and gates: docs/PROJECT-V31-COLLECTION-RECORD-COMMAND-V1.md. Public nominal ABIs and Web/Wasm/npm command targets remain closed.\n"
         ).to_owned()),
         "author:literal-format" => Ok(concat!(
             "Checked literal format source implementation; current-head executable qualification pending.\n",
@@ -252,6 +261,7 @@ mod tests {
             "author:stdin-json",
             "author:stream-data-v2",
             "author:owned-data",
+            "author:collection-records",
             "author:file-text",
             "author:source-web",
             "author:literal-format",
@@ -282,12 +292,13 @@ mod tests {
             assert!(lookup(bad).is_err(), "{bad}");
         }
         let codec = lookup("author:json-codec").unwrap();
-        assert!(codec
-            .contains("--profile <selector>"));
+        assert!(codec.contains("--profile <selector>"));
         assert!(codec.contains("--max-string-bytes 1..64"));
         assert!(codec.contains("Omit --profile for the default flat scalar record"));
         assert!(codec.contains("author:json-identifier-views"));
-        assert!(codec.contains("Declared Vec<string> in a request-view schema is description only"));
+        assert!(
+            codec.contains("Declared Vec<string> in a request-view schema is description only")
+        );
         assert!(codec.contains("post-Ready request/schema errors use normalized-input offsets"));
         let identifier_views = lookup("author:json-identifier-views").unwrap();
         assert!(identifier_views.contains("exactly one string identifier"));
@@ -307,7 +318,10 @@ mod tests {
             "0..256",
             "Unicode",
         ] {
-            assert!(utf8_request.contains(fact), "UTF-8 request guidance omits {fact}");
+            assert!(
+                utf8_request.contains(fact),
+                "UTF-8 request guidance omits {fact}"
+            );
         }
         let stream_utf8_request = lookup("author:json-stream-utf8-owned-request").unwrap();
         for fact in [
@@ -333,7 +347,10 @@ mod tests {
             "execution qualification are pending",
             "not a v30 command route",
         ] {
-            assert!(collection_response.contains(fact), "collection response guidance omits {fact}");
+            assert!(
+                collection_response.contains(fact),
+                "collection response guidance omits {fact}"
+            );
         }
         let owned_request = lookup("author:json-owned-request").unwrap();
         for fact in [
@@ -359,8 +376,24 @@ mod tests {
         assert!(owned.contains("SPX-T267"));
         assert!(owned.contains("fn() -> i64"));
         assert!(owned.contains("Choose v30 when private helpers need owned-leaf Vec/Iter runtime"));
+        let nested = lookup("author:collection-records").unwrap();
+        for fact in [
+            "language-command-io.collection-record.v1",
+            "current-head execution qualification pending",
+            "value: borrow Report",
+            "vec_len(value.items)",
+            "V30 keeps its original owned-leaf boundary",
+            "SPX-G172",
+            "author:json-collection-response",
+        ] {
+            assert!(
+                nested.contains(fact),
+                "collection record guidance omits {fact}"
+            );
+        }
         let routes = lookup("author:routes").unwrap();
         for selector in [
+            "author:collection-records",
             "author:json-identifier-views",
             "author:json-request-views",
             "author:json-stream-request-views",

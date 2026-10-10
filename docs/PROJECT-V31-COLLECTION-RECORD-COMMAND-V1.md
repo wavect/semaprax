@@ -1,6 +1,6 @@
 # Project v31 Collection-Record Command v1
 
-Status: Project profile metadata only; carrier admission and current-head execution are pending.
+Status: Project routing and owning regression source implemented; carrier integration and current-head execution qualification are pending.
 
 Audience: Project profile authors, compiler contributors, and reviewers.
 
@@ -20,4 +20,6 @@ Names, generated identities, schema-only declarations, and source provenance gra
 
 ## Evidence status
 
-This source batch adds profile/schema metadata and parser-level profile checks only. Ordinary admission, nested carrier execution, native settlement, and current-head qualification remain pending their owning implementation and focused gates. Metadata recognition alone is not a completion claim.
+This source batch adds profile/schema metadata, separate command admission and backend/interpreter routes, and owning Project cases for execution plus older-profile refusal before source cropping. Nested carrier execution and native settlement remain pending compiler integration and focused current-head qualification. Source presence alone is not a completion claim.
+
+Use `semaprax help language author:collection-records` for bounded profile guidance. The response-codec selector has its own card, `author:json-collection-response`; neither a schema nor a generator selection grants runtime admission.

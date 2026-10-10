@@ -3,6 +3,7 @@ use super::*;
 
 pub(crate) mod nested;
 mod owned;
+mod stream_input;
 pub(crate) use owned::admitted as owned_admitted;
 
 pub(crate) fn runtime_admitted(index: &DeclarationIndex, ty: &ResolvedType) -> bool {
@@ -21,14 +22,15 @@ pub(crate) fn match_result(
     else {
         return false;
     };
-    *mode != ResolvedMatchMode::Value
-        && runtime_admitted(index, &scrutinee.ty)
-        && ((arm.ownership == OwnershipMode::Value
-            && (crate::vec_ops::resolved_element_is_admitted(&arm.ty)
-                || copy_record_collection::admitted(index, &arm.ty)))
-            || (*mode == ResolvedMatchMode::Own
-                && arm.ownership == OwnershipMode::Own
-                && runtime_admitted(index, &arm.ty)))
+    stream_input::match_result(index, &scrutinee.ty, *mode, &arm.ty, arm.ownership)
+        || (*mode != ResolvedMatchMode::Value
+            && runtime_admitted(index, &scrutinee.ty)
+            && ((arm.ownership == OwnershipMode::Value
+                && (crate::vec_ops::resolved_element_is_admitted(&arm.ty)
+                    || copy_record_collection::admitted(index, &arm.ty)))
+                || (*mode == ResolvedMatchMode::Own
+                    && arm.ownership == OwnershipMode::Own
+                    && runtime_admitted(index, &arm.ty))))
 }
 
 pub(crate) fn match_arm_execution(

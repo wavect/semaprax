@@ -274,7 +274,26 @@ fn typed_application_json_success_errors_and_exact_capacity_agree_on_three_backe
         semaprax::hir::validate(snapshot.entry_program()).map_err(|error| vec![error])?;
         let graph = snapshot.retain_revision();
         assert!(graph.semantic_graph().contains("application.patient.json.decode"));
-        assert!(graph.semantic_graph().contains("core.string.concat"));
+        // Workspace edges index authored/imported declarations, not prelude
+        // intrinsics. Assert the actual checked encoder calls instead.
+        assert!(graph.semantic_graph().contains("application.patient.json.encode"));
+        use semaprax::hir::{OwnershipMode, ResolvedExprKind, ResolvedType};
+        let encoder = snapshot.entry_program().functions.iter()
+            .find(|function| function.id.as_str()=="application.patient.json.encode").unwrap();
+        let ResolvedExprKind::Block {tail,..} = &encoder.body.kind else {panic!("encoder block")};
+        let ResolvedExprKind::If {else_branch,..} = &tail.kind else {panic!("output limit preflight")};
+        let ResolvedExprKind::Block {statements,tail} = &else_branch.kind else {panic!("render block")};
+        let concat = |expression: &semaprax::hir::ResolvedExpr| {
+            matches!(&expression.kind, ResolvedExprKind::Call {callee,instance:None,type_arguments,args}
+                if callee.as_str()=="core.string.concat" && type_arguments.is_empty() && args.len()==2)
+                && expression.ty==ResolvedType::String && expression.ownership==OwnershipMode::Own
+        };
+        // Four fields require exactly a key append and value append each.
+        assert_eq!(statements.iter().filter(|statement| concat(statement.value())).count(),8);
+        let ResolvedExprKind::ConstructVariant {case,fields,..} = &tail.kind else {panic!("encoded result")};
+        assert_eq!(case.as_str(),"application.patient.json.encoded");
+        assert_eq!(fields.len(),1);
+        assert!(concat(&fields[0].value));
         let outcome = snapshot.execute_entry(&project::ProjectExecutionOptions::default())?;
         assert_eq!(outcome.outcome(), &project::ProjectExecutionOutcome::Returned(439));
         let c = codegen::emit_hir_c(snapshot.entry_program()).map_err(|error| vec![error])?;

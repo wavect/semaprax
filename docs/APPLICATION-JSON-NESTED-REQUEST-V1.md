@@ -167,3 +167,21 @@ These are required gates, not claims of execution.
 A general JSON tree, nullable/optional schemas, user-defined variants, multiple
 arrays, new collection shapes, and broad streaming qualification remain open
 parts of #724.
+
+## Checked normalization-to-outcome join
+
+The stream wrapper consumes the independently checked normalization carrier and
+returns a separately admitted nested owning outcome through `match own`.
+This bridge requires an explicit, monomorphic, invariant-free two-case input:
+one case has exactly `Bytes, usize` fields, the other exactly `i64, usize, i64`
+fields in declaration order. Every case and field has its own identity; names
+and case order do not grant authority. The result must independently satisfy
+[Owned Nested Outcomes v1](OWNED-NESTED-OUTCOMES-V1.md). Source verification and
+HIR replay derive both shapes, including complete case/field identity ownership.
+
+The bridge preserves left-to-right evaluation, ordinary case cleanup and the
+input Bytes lifetime through detached decoding. It admits neither borrowed
+aggregate results nor arbitrary String/record/variant joins. Normalization,
+input authority, error precedence, capacities and older Project profiles do not
+change. The owning native command route remains v32; earlier profiles refuse
+the nested result. Execution qualification is a separate owning gate.

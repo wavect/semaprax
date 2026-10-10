@@ -3,6 +3,7 @@ use super::*;
 
 mod nested;
 mod owned;
+mod stream_input;
 
 pub(in crate::source_verify) fn runtime_admitted(types: &TypeTable<'_>, ty: &Type) -> bool {
     admitted(types, ty)
@@ -20,6 +21,9 @@ pub(in crate::source_verify) fn match_result(
     result: &Type,
     ownership: ParamMode,
 ) -> bool {
+    if stream_input::match_result(types, scrutinee, mode, result, ownership) {
+        return true;
+    }
     if mode == MatchMode::Value || !runtime_admitted(types, scrutinee) {
         return false;
     }

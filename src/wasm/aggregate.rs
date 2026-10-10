@@ -19,6 +19,7 @@ pub(in crate::wasm) use function_value::{
 };
 use function_value::{executable_functions, hex_execution_identity, program_uses_byte_range};
 mod binary_ops;
+mod borrowed_call;
 pub(super) mod conversions;
 mod filesystem_checked;
 mod filesystem_ops;
@@ -6210,25 +6211,7 @@ impl Emitter<'_> {
             let borrowed_aggregate = parameter.ownership == crate::hir::OwnershipMode::Borrow
                 && is_aggregate(self.program, &parameter.ty)?;
             let value = if borrowed_bytes || borrowed_vec || borrowed_box || borrowed_aggregate {
-                let ResolvedExprKind::Place(place) = &argument.kind else {
-                    return Err(error(if borrowed_bytes || borrowed_vec || borrowed_box {
-                        "borrowed direct owner call argument is not an exact place"
-                    } else {
-                        "borrowed aggregate call argument is not an exact place"
-                    }));
-                };
-                if (borrowed_vec || borrowed_box || borrowed_aggregate)
-                    && !place.projections.is_empty()
-                {
-                    return Err(error(
-                        "borrowed aggregate call projections are outside flat v1",
-                    ));
-                }
-                // Borrowed record parameters alias the authenticated caller
-                // carrier. Going through ordinary expression materialization
-                // would perform an owned field move while CleanupPlan quite
-                // correctly emits no ownership transition for the borrow.
-                self.place_value(place)?
+                self.borrowed_call_argument(argument, borrowed_bytes)?
             } else {
                 self.emit_expr(argument)?
             };

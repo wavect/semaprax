@@ -237,10 +237,8 @@ fn run(request: own Request) -> ScheduleResult
                                             0
                                         },
                                     }
-                                    0
                                 },
                             }
-                            0
                         }
                         0
                     }

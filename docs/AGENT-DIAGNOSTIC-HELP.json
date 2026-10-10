@@ -32,6 +32,15 @@
       ]
     },
     {
+      "code": "SPX-G171",
+      "rows": [
+        {
+          "fix": "Use requested/remaining/floor plus the compiler-owned stage to choose a smaller graph; those are cumulative ledger bytes, not RSS/peak forecast; unknown is not inferred",
+          "wrote": "resolved-core builder ledger refusal"
+        }
+      ]
+    },
+    {
       "code": "SPX-G172",
       "rows": [
         {

@@ -1,5 +1,14 @@
 # Changelog
 
+- Derive bounded nested JSON responses with recursive length preflight, borrowed
+  record paths and up to two existing Vec owners. Repair owned Vec renewal,
+  projected Wasm borrow calls, stream-to-nested-result joins and independently
+  authenticated workspace schema selection. Reuse final loan candidate storage
+  for independent backing charges and preflight selected generic scratch once.
+  Add scoped language help and checked application formatting. Full backing
+  charges, canonical cleanup and runtime limits remain unchanged. Grouped
+  executable verification is pending; no current efficiency gain is claimed.
+
 - Intersect retained loan-plan backing keys with a bounded full HIR walk,
   reserving complete scratch capacities for distinct proof candidates while
   preserving legacy receipts and the unchanged builder cap. Align finite

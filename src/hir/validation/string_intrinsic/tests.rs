@@ -23,6 +23,7 @@ fn operations() -> impl Iterator<Item = StringOp> {
             StringOp::U8FromI64,
             StringOp::CharFromU8,
             StringOp::CharFromI64,
+            StringOp::FromUtf8,
         ])
 }
 
@@ -67,7 +68,7 @@ fn every_string_operation_reserves_its_exact_authored_identity() {
             .any(|d| d.code == "SPX-S113"));
         count += 1;
     }
-    assert_eq!(count, 36);
+    assert_eq!(count, 37);
     for declaration in [
         "@id(\"core.num.char_from_i64\") record Alias { @id(\"alias.field\") value:i64, }",
         "@id(\"alias.record\") record Alias { @id(\"core.num.char_from_i64\") value:i64, }",

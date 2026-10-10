@@ -114,10 +114,10 @@ function createByteDataRuntime(options = {}, formatSelected = false) {
     }
     return entry;
   };
-  const fixed = decoded => {
+  const fixed = (decoded, copy = true) => {
     const bytes = memory();
     if (decoded.root <= FIXED_MEMORY_BYTES - decoded.length) {
-      return bytes.slice(decoded.root, decoded.root + decoded.length);
+      return copy ? bytes.slice(decoded.root, decoded.root + decoded.length) : bytes.subarray(decoded.root, decoded.root + decoded.length);
     }
     // Aggregate owned String literals are compiler-authored data in the fourth
     // fixed page. Only the exact 256 KiB String profile can address this
@@ -126,11 +126,11 @@ function createByteDataRuntime(options = {}, formatSelected = false) {
         && decoded.root >= OWNED_UTF8_LITERAL_BASE
         && decoded.root < OWNED_UTF8_MEMORY_BYTES
         && decoded.root <= OWNED_UTF8_MEMORY_BYTES - decoded.length) {
-      return bytes.slice(decoded.root, decoded.root + decoded.length);
+      return copy ? bytes.slice(decoded.root, decoded.root + decoded.length) : bytes.subarray(decoded.root, decoded.root + decoded.length);
     }
     throw new Error("SEMAPRAX fixed byte range invariant");
   };
-  const read = decoded => {
+  const read = (decoded, copy = true) => {
     if (decoded.tagged) return resolve(decoded);
     if ((decoded.root & 0xc0000000) === 0x40000000) {
       // The guest validates the descriptor against its private binding globals
@@ -157,11 +157,11 @@ function createByteDataRuntime(options = {}, formatSelected = false) {
       if (offset > BigInt(ultimate.length) || length > BigInt(ultimate.length) - offset) {
         throw new Error("SEMAPRAX byte range descriptor extent invariant");
       }
-      const root = ultimate.tagged ? resolve(ultimate) : fixed(ultimate);
+      const root = ultimate.tagged ? resolve(ultimate) : fixed(ultimate, copy);
       const start = Number(offset);
-      return root.slice(start, start + Number(length));
+      return copy ? root.slice(start, start + Number(length)) : root.subarray(start, start + Number(length));
     }
-    return fixed(decoded);
+    return fixed(decoded, copy);
   };
   const validUtf8 = bytes => {
     for (let index = 0; index < bytes.length;) {
@@ -536,6 +536,11 @@ function createByteDataRuntime(options = {}, formatSelected = false) {
       const bytes = stringBytes(carrier), output = toolkitOutput(offset);
       if (!textRange(index, bytes.length) || index === BigInt(bytes.length)) return 23;
       output.setBigInt64(0, BigInt(bytes[Number(index)]), true); return 0;
+    },
+    spx_string_from_utf8_v1: (carrier, offset) => {
+      const bytes = read(decode(carrier), false), output = toolkitOutput(offset);
+      if (!validUtf8(bytes)) return 21;
+      output.setBigInt64(0, allocate(bytes), true); return 0;
     },
     spx_string_from_str_v2: (carrier, offset) => {
       const bytes = read(decode(carrier)), output = toolkitOutput(offset);

@@ -51,6 +51,19 @@ const read = carrier => {
     if (!bytes || bytes.length !== length) throw Error('stale payload');
     return bytes;
   }
+  if ((origin & 0xc0000000) === 0x40000000) {
+    const pointer=(origin & 0xffff)*8;
+    if(pointer>131072-32)throw Error('range descriptor bounds');
+    const descriptor=view(pointer,32),identity=descriptor.getUint32(0,true);
+    if(!identity||identity!==((origin>>>16)&0x1fff)||descriptor.getUint32(4,true)!==pointer)
+      throw Error('range descriptor identity');
+    const carrier=descriptor.getBigInt64(8,true),ultimate=split(carrier);
+    const start=descriptor.getBigUint64(16,true),extent=descriptor.getBigUint64(24,true);
+    if((ultimate.origin & 0xc0000000)===0x40000000||extent!==BigInt(length)||
+       start>BigInt(ultimate.length)||extent>BigInt(ultimate.length)-start)
+      throw Error('range descriptor extent');
+    return read(carrier).subarray(Number(start),Number(start+extent));
+  }
   if (origin > memory().buffer.byteLength - length) throw Error('borrowed payload range');
   return new Uint8Array(memory().buffer, origin, length);
 };
@@ -78,6 +91,26 @@ const drop = carrier => {
     throw Error('double or borrowed payload drop');
   drops++;
 };
+const validUtf8 = bytes => {
+    for (let index = 0; index < bytes.length;) {
+      const first = bytes[index++];
+      let extra, minimum, scalar;
+      if (first < 128) continue;
+      if (first >= 194 && first <= 223) { extra = 1; minimum = 128; scalar = first & 31; }
+      else if (first >= 224 && first <= 239) { extra = 2; minimum = 2048; scalar = first & 15; }
+      else if (first >= 240 && first <= 244) { extra = 3; minimum = 65536; scalar = first & 7; }
+      else return false;
+      if (index + extra > bytes.length) return false;
+      for (let count = 0; count < extra; count++) {
+        const byte = bytes[index++];
+        if ((byte & 192) !== 128) return false;
+        scalar = (scalar << 6) | (byte & 63);
+      }
+      if (scalar < minimum || scalar > 1114111 || (scalar >= 55296 && scalar <= 57343)) return false;
+    }
+    return true;
+  };
+
 const fields = shape => {
   allocationOutsideSort('descriptor array');
   const raw = BigInt.asUintN(64, shape), result = [];
@@ -262,6 +295,11 @@ const env = {
   spx_bytes_set5:()=>{throw Error('unexpected five-byte write')},
   spx_bytes_set1_or5:()=>{throw Error('unexpected one-or-five write')},
   spx_bytes_set1_or6_or48:()=>{throw Error('unexpected one-or-six-or-forty-eight write')},
+  spx_string_from_utf8_v1:(carrier,offset)=>{
+    const bytes=read(carrier),output=view(offset,8);
+    if(!validUtf8(bytes))return 21;
+    output.setBigInt64(0,ownBytes(bytes),true);return 0;
+  },
   spx_string_concat_v1:(left,right)=>ownBytes(new Uint8Array([...read(left),...read(right)])),
   spx_string_from_char_v1:value=>ownBytes(new TextEncoder().encode(String.fromCodePoint(value))),
   spx_string_len_chars_v1:carrier=>BigInt([...new TextDecoder('utf-8',{fatal:true}).decode(read(carrier))].length),

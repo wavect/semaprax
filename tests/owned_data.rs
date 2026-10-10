@@ -113,3 +113,6 @@ mod owned_nested_outcome;
 
 #[path = "owned_data/scoped_vec_field_native.rs"]
 mod scoped_vec_field_native;
+
+#[path = "owned_data/bulk_utf8.rs"]
+mod bulk_utf8;

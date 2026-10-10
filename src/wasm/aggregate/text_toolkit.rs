@@ -2,7 +2,7 @@
 use super::*;
 use crate::string_ops::StringOp;
 
-const OPERATIONS: [StringOp; 7] = [
+const OPERATIONS: [StringOp; 8] = [
     StringOp::Slice,
     StringOp::Find,
     StringOp::ToI64,
@@ -10,6 +10,7 @@ const OPERATIONS: [StringOp; 7] = [
     StringOp::ByteAt,
     StringOp::FromStr,
     StringOp::FileReadText,
+    StringOp::FromUtf8,
 ];
 
 pub(super) fn admitted(operation: StringOp) -> bool {
@@ -100,6 +101,7 @@ pub(in crate::wasm) fn import_name(operation: StringOp) -> &'static str {
         StringOp::Trim => "spx_string_trim_v2",
         StringOp::ByteAt => "spx_string_byte_at_v2",
         StringOp::FromStr => "spx_string_from_str_v2",
+        StringOp::FromUtf8 => "spx_string_from_utf8_v1",
         StringOp::FileReadText => "spx_file_read_text_v2",
         _ => unreachable!("selected toolkit operation"),
     }
@@ -124,6 +126,9 @@ impl Emitter<'_> {
         for (argument, ty) in args.iter().zip(operation.param_types()) {
             let value = self.emit_expr(argument)?;
             require_type(value_type(&value), ty, "checked text argument")?;
+            if *ty == ResolvedType::SliceU8 {
+                self.validate_byte_slice(&value);
+            }
             values.push(value);
         }
         self.apply_call_commit(&expression.id)?;
@@ -158,6 +163,7 @@ impl Emitter<'_> {
             StringOp::Slice => &[0, 23, 24],
             StringOp::Find | StringOp::ByteAt => &[0, 23],
             StringOp::FromStr => &[0, 25],
+            StringOp::FromUtf8 => &[0, 21],
             StringOp::FileReadText => &[0, 25, 65, 66, 67, 68, 69, 70, 71],
             _ => &[0],
         };

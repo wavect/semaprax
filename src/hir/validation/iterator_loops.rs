@@ -336,6 +336,19 @@ impl HirValidator<'_> {
                                 "while loop string operation is outside Owned String Loops v1",
                             ));
                         }
+                        if operation == crate::string_ops::StringOp::FromUtf8
+                            && matches!(&args[0].kind, ResolvedExprKind::Place(_))
+                        {
+                            // A named Slice is an existing immutable loan. Full
+                            // replay authenticates its root, extent and lifetime;
+                            // the copy cannot retain it across loop iterations.
+                            if args[0].ownership != OwnershipMode::Borrow
+                                || !matches!(&args[0].kind, ResolvedExprKind::Place(place) if place.projections.is_empty())
+                            {
+                                return Err(hir_error("loop string_from_utf8 requires an authenticated borrowed slice"));
+                            }
+                            continue;
+                        }
                         if operation == crate::string_ops::StringOp::FromStr {
                             // The conversion only copies an existing view; full
                             // expression replay authenticates its immutable loan.

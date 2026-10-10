@@ -297,7 +297,7 @@ fn prepare_profile(
                 } if instance.is_none()
                     && type_arguments.is_empty()
                     && (closure.contains(callee)
-                        || crate::string_ops::by_id(callee.as_str()).is_some()
+                        || crate::string_ops::by_id(callee.as_str()).is_some_and(|op| op != crate::string_ops::StringOp::FromUtf8)
                         || copy_variants && matches!(crate::byte_ops::by_id(callee.as_str()), Some(crate::byte_ops::ByteOp::Len | crate::byte_ops::ByteOp::Get))) => {}
                 ResolvedExprKind::Block { statements, .. } => {
                     if !toolkit && statements.iter().any(|statement| matches!(statement,

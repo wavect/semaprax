@@ -393,6 +393,11 @@ impl Evaluator<'_> {
     ) -> Result<Value, Flow> {
         use crate::string_ops::{StringOp, CONVERT_NAN_CODE, CONVERT_OUT_OF_RANGE_CODE};
         match (op, values) {
+            (StringOp::FromUtf8, [Value::BorrowedSlice(bytes)]) => {
+                let text = std::str::from_utf8(bytes.bytes())
+                    .map_err(|_| convert_failure(CONVERT_OUT_OF_RANGE_CODE))?;
+                Ok(Value::String(self.materialize_utf8_copy(text)?))
+            }
             (StringOp::FromStr, [Value::BorrowedStr(text)]) => {
                 let text = std::str::from_utf8(text.bytes.as_ref())
                     .map_err(|_| Flow::Guard("ill-typed borrowed string operand"))?;
@@ -478,3 +483,6 @@ fn text_failure(code: u32) -> Flow {
         .expect("compiler-owned text status table is valid"),
     )
 }
+
+#[cfg(test)]
+mod bulk_utf8_tests;

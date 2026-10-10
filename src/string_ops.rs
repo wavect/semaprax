@@ -82,6 +82,8 @@
 
 pub(crate) mod conditions;
 
+#[cfg(test)]
+mod bulk_utf8_tests;
 pub(crate) mod replacement;
 #[cfg(test)]
 mod unicode_scalar_tests;
@@ -113,6 +115,9 @@ pub(crate) const MAP_LEN_NAME: &str = "map_len";
 pub(crate) const MAP_KEY_AT_NAME: &str = "map_key_at";
 pub(crate) const MAP_VALUE_AT_NAME: &str = "map_value_at";
 pub(crate) const MAP_REMOVE_NAME: &str = "map_remove";
+pub(crate) const FROM_UTF8_NAME: &str = "string_from_utf8";
+pub(crate) const FROM_UTF8_ID: &str = "core.string.from_utf8";
+
 pub(crate) const FROM_STR_NAME: &str = "string_from_str";
 pub(crate) const F64_FROM_I64_NAME: &str = "f64_from_i64";
 pub(crate) const I64_FROM_F64_NAME: &str = "i64_from_f64";
@@ -260,6 +265,8 @@ pub(crate) enum StringOp {
     MapRemove,
     /// Copy of a borrowed `str` view into a new owned string.
     FromStr,
+    /// Checked, exact copy of a borrowed UTF-8 byte slice into one String.
+    FromUtf8,
     /// `i64` to the nearest `f64`, ties to even.
     F64FromI64,
     /// Checked `f64` to `i64`, truncating toward zero.
@@ -359,6 +366,7 @@ impl StringOp {
             StringOp::MapValueAt => MAP_VALUE_AT_NAME,
             StringOp::MapRemove => MAP_REMOVE_NAME,
             StringOp::FromStr => FROM_STR_NAME,
+            StringOp::FromUtf8 => FROM_UTF8_NAME,
             StringOp::F64FromI64 => F64_FROM_I64_NAME,
             StringOp::I64FromF64 => I64_FROM_F64_NAME,
             StringOp::UsizeFromI64 => USIZE_FROM_I64_NAME,
@@ -400,6 +408,7 @@ impl StringOp {
             StringOp::MapValueAt => MAP_VALUE_AT_ID,
             StringOp::MapRemove => MAP_REMOVE_ID,
             StringOp::FromStr => FROM_STR_ID,
+            StringOp::FromUtf8 => FROM_UTF8_ID,
             StringOp::F64FromI64 => F64_FROM_I64_ID,
             StringOp::I64FromF64 => I64_FROM_F64_ID,
             StringOp::UsizeFromI64 => USIZE_FROM_I64_ID,
@@ -441,6 +450,7 @@ impl StringOp {
             StringOp::MapLen => &["map"],
             StringOp::MapKeyAt | StringOp::MapValueAt => &["map", "index"],
             StringOp::FromStr => &["s"],
+            StringOp::FromUtf8 => &["input"],
             StringOp::F64FromI64
             | StringOp::I64FromF64
             | StringOp::UsizeFromI64
@@ -489,6 +499,7 @@ impl StringOp {
                 &[ResolvedType::StringMap, ResolvedType::Usize]
             }
             StringOp::FromStr => &[ResolvedType::Str],
+            StringOp::FromUtf8 => &[ResolvedType::SliceU8],
             StringOp::F64FromI64 | StringOp::UsizeFromI64 => &[ResolvedType::I64],
             StringOp::I64FromF64 => &[ResolvedType::F64],
             StringOp::I64FromU8 => &[ResolvedType::U8],
@@ -543,7 +554,7 @@ impl StringOp {
 
     /// Conversions v1 forms a sixth optional backend group.
     pub(crate) fn is_conversion(self) -> bool {
-        Self::CONVERSIONS.contains(&self) || self.is_integer_conversion()
+        Self::CONVERSIONS.contains(&self) || self.is_integer_conversion() || self == Self::FromUtf8
     }
 
     /// Additive integer conversion profile, with direct extension and checked ranges.
@@ -644,7 +655,8 @@ impl StringOp {
             | StringOp::Slice
             | StringOp::Trim
             | StringOp::FileReadText
-            | StringOp::FromStr => ResolvedType::String,
+            | StringOp::FromStr
+            | StringOp::FromUtf8 => ResolvedType::String,
             StringOp::IsEmpty | StringOp::StartsWith | StringOp::Contains => ResolvedType::Bool,
             StringOp::ToI64 => option_i64(),
         }
@@ -681,7 +693,8 @@ impl StringOp {
             | StringOp::Slice
             | StringOp::Trim
             | StringOp::FileReadText
-            | StringOp::FromStr => Type::String,
+            | StringOp::FromStr
+            | StringOp::FromUtf8 => Type::String,
             StringOp::IsEmpty | StringOp::StartsWith | StringOp::Contains => Type::Bool,
             StringOp::ToI64 => Type::Named {
                 name: "Option".to_owned(),
@@ -742,6 +755,7 @@ pub(crate) fn by_name(name: &str) -> Option<StringOp> {
         MAP_VALUE_AT_NAME => Some(StringOp::MapValueAt),
         MAP_REMOVE_NAME => Some(StringOp::MapRemove),
         FROM_STR_NAME => Some(StringOp::FromStr),
+        FROM_UTF8_NAME => Some(StringOp::FromUtf8),
         F64_FROM_I64_NAME => Some(StringOp::F64FromI64),
         I64_FROM_F64_NAME => Some(StringOp::I64FromF64),
         USIZE_FROM_I64_NAME => Some(StringOp::UsizeFromI64),
@@ -785,6 +799,7 @@ pub(crate) fn by_id(id: &str) -> Option<StringOp> {
         MAP_VALUE_AT_ID => Some(StringOp::MapValueAt),
         MAP_REMOVE_ID => Some(StringOp::MapRemove),
         FROM_STR_ID => Some(StringOp::FromStr),
+        FROM_UTF8_ID => Some(StringOp::FromUtf8),
         F64_FROM_I64_ID => Some(StringOp::F64FromI64),
         I64_FROM_F64_ID => Some(StringOp::I64FromF64),
         USIZE_FROM_I64_ID => Some(StringOp::UsizeFromI64),
@@ -828,7 +843,7 @@ pub(crate) fn ast_params(op: StringOp) -> Vec<Param> {
         .enumerate()
         .map(|(index, (name, ty))| Param {
             name: (*name).to_owned(),
-            mode: if *ty == ResolvedType::Str {
+            mode: if matches!(ty, ResolvedType::Str | ResolvedType::SliceU8) {
                 ParamMode::Borrow
             } else if op.param_ownership(index) == OwnershipMode::Own {
                 ParamMode::Own
@@ -843,6 +858,7 @@ pub(crate) fn ast_params(op: StringOp) -> Vec<Param> {
                 ResolvedType::Usize => Type::Usize,
                 ResolvedType::F64 => Type::F64,
                 ResolvedType::Str => Type::Str,
+                ResolvedType::SliceU8 => Type::SliceU8,
                 ResolvedType::StringMap => Type::StringMap,
                 _ => Type::String,
             },

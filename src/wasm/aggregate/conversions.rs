@@ -40,7 +40,10 @@ pub(in crate::wasm) fn validate_public_profile(
     program: &ResolvedProgram,
     public: bool,
 ) -> Result<(), Diagnostic> {
-    if public && program_uses_float_conversion(program) {
+    if public
+        && (program_uses_float_conversion(program)
+            || text_toolkit::selected(program).contains(&StringOp::FromUtf8))
+    {
         crate::string_ops::refuse_collections_for_wasm(program)?;
     }
     Ok(())

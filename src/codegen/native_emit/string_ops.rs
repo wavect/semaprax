@@ -158,6 +158,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 self.emit_collection_op(op, &arguments, &temporary, expression)?;
             }
             crate::string_ops::StringOp::FromStr
+            | crate::string_ops::StringOp::FromUtf8
             | crate::string_ops::StringOp::F64FromI64
             | crate::string_ops::StringOp::I64FromF64
             | crate::string_ops::StringOp::UsizeFromI64
@@ -206,6 +207,19 @@ impl<'a, O: COutput> CEmitter<'a, O> {
     ) -> Result<(), Diagnostic> {
         use crate::string_ops::{StringOp, CONVERT_NAN_CODE, CONVERT_OUT_OF_RANGE_CODE};
         let (input_type, target) = match op {
+            StringOp::FromUtf8 => {
+                if !self.output_profile.string_runtime().length_delimited {
+                    return Err(backend_error(
+                        "string_from_utf8 requires a length-delimited native String profile",
+                    ));
+                }
+                // Slice authority/range came from ordinary argument replay; do
+                // not reapply a foreign-root byte limit to an internal view.
+                self.line(&format!("if (({operand}).len > (uint64_t)SIZE_MAX || (({operand}).len != UINT64_C(0) && ({operand}).data == NULL)) spx_runtime_invariant_failure(\"invalid UTF-8 input slice\");"));
+                self.line(&format!("if (!spx_status_domain_is_utf8((const char *)({operand}).data, (size_t)({operand}).len)) {{ if (!spx_status_record_adapter(spx_ctx, \"{}\", UINT32_C(1), SPX_STATUS_CLASS_ADAPTER, SPX_RETRYABILITY_FALSE, &spx_status)) spx_runtime_invariant_failure(\"conversion status could not be recorded\"); goto spx_epilogue; }}", crate::string_ops::CONVERT_STATUS_DOMAIN));
+                self.line(&format!("{temporary} = spx_string_from_literal((const char *)({operand}).data, ({operand}).len);"));
+                return Ok(());
+            }
             StringOp::FromStr => {
                 self.line(&format!(
                     "{temporary} = spx_string_from_literal((const char *)({operand}).data, ({operand}).len);"

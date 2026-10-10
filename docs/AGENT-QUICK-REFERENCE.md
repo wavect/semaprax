@@ -517,6 +517,11 @@ fn main() -> i64
   `str_as_bytes`.
 - Byte functions take `borrow Slice<u8>`. Get one from `str_as_bytes(view)`,
   `array_as_slice(array_binding)`, or `bytes_as_slice(bytes_binding)`.
+- `string_from_utf8(bytes: borrow Slice<u8>) -> string` (`core.string.from_utf8`)
+  copies exact strict UTF-8 into a detached owner: `let text =
+  string_from_utf8(bytes_as_slice(bytes));`. NUL, BOM and noncharacters stay.
+  Malformed UTF-8 fails with `semaprax.convert.v1` code 1; it never replaces or
+  normalizes input and does not widen profile admission.
 - Build a bounded byte buffer in one write-once expression: `bytes_zeroed`
   requires a literal `usize` capacity; each `bytes_set` takes the prior link,
   a `usize` index expression, and a byte. Binding freezes it for borrowed reads.

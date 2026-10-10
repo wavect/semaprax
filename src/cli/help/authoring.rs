@@ -49,6 +49,7 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
             "Choose v30 when private helpers need owned-leaf Vec/Iter runtime; v29 covers private Copy-record Vec helpers and codec outcomes, while v27 remains scalar-Vec-only. Schema declarations alone grant no carrier.\n",
             "vec_clone_at deep-copies an element; vec_replace, vec_reserve_owned and vec_sort_owned transfer the collection owner. Consuming traversal uses for own and vec_into_iter.\n",
             "Source spells String as lowercase string. Write an owning parameter as text: string (not text: own string, SPX-O002); give each user record and field its own @id. Vec<string> push consumes the String.\n",
+            "Use string_from_utf8(bytes: borrow Slice<u8>) -> string (core.string.from_utf8) to copy exact strict UTF-8 into a detached String. NUL, BOM and noncharacters stay; malformed UTF-8 fails semaprax.convert.v1 code 1, never replacement or normalization. Profile admission is unchanged.\n",
             "Bytes-bearing allocation/deep copy stays refused in loops, including vec_clone_at<Record> when Record has Bytes and transitive helpers (SPX-T267). Stage payloads and clones outside loops; checked String-bearing loops remain distinct.\n",
             "V27 and v29 stay closed to these owned carriers, including unused helpers. No public nominal ABI, ambient grant or Web/Wasm/npm command route is added.\n",
             "Exact source shapes, admission, cleanup and gates: docs/STREAM-OWNED-DATA-COMMAND-V1.md and docs/OWNED-LEAF-COLLECTIONS-V1.md.\n"
@@ -454,6 +455,10 @@ mod tests {
         assert!(owned.contains("SPX-T267"));
         assert!(owned.contains("fn() -> i64"));
         assert!(owned.contains("Choose v30 when private helpers need owned-leaf Vec/Iter runtime"));
+        assert!(owned.contains("string_from_utf8(bytes: borrow Slice<u8>) -> string"));
+        assert!(owned.contains("core.string.from_utf8"));
+        assert!(owned.contains("semaprax.convert.v1 code 1"));
+        assert!(owned.contains("never replacement or normalization"));
         let nested = lookup("author:collection-records").unwrap();
         assert!(nested.len() <= 2_048);
         for fact in [

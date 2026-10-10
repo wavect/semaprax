@@ -118,7 +118,8 @@ fn collect_calls(
         | ResolvedExprKind::RepeatArrayU8 { .. }
         | ResolvedExprKind::BorrowPlace { .. }
         | ResolvedExprKind::Place(_) => {}
-        ResolvedExprKind::LiteralFormat { args, .. } => {
+        ResolvedExprKind::LiteralFormat { args, .. }
+        | ResolvedExprKind::VecFieldRead { args, .. } => {
             *call_sites = call_sites.saturating_add(1);
             for argument in args {
                 collect_calls(argument, known, calls, call_sites);

@@ -8,7 +8,8 @@ pub(super) fn child_expressions(expression: &ResolvedExpr) -> Vec<&ResolvedExpr>
             captures.iter().map(|capture| &capture.value).collect()
         }
         ResolvedExprKind::Call { args, .. }
-        | ResolvedExprKind::LiteralFormat { args, .. } => args.iter().collect(),
+        | ResolvedExprKind::LiteralFormat { args, .. }
+        | ResolvedExprKind::VecFieldRead { args, .. } => args.iter().collect(),
         ResolvedExprKind::Invoke { callable, args } => std::iter::once(callable.as_ref())
             .chain(args.iter())
             .collect(),

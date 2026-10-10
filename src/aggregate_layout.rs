@@ -886,7 +886,9 @@ fn collect_expr_record_types(
                 pending.extend(args.iter().rev().map(Work::Expression));
                 pending.push(Work::Expression(callable));
             }
-            ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
+            ResolvedExprKind::Call { args, .. }
+            | ResolvedExprKind::LiteralFormat { args, .. }
+            | ResolvedExprKind::VecFieldRead { args, .. } => {
                 pending.extend(args.iter().rev().map(Work::Expression));
             }
             ResolvedExprKind::NativeRustImportCall(call) => {

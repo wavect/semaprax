@@ -76,6 +76,7 @@ pub(crate) fn function_requires_owned_profile(
         .collect::<Vec<_>>();
     while let Some(expr) = pending.pop() {
         if new_carrier(&program.declarations, &expr.ty)
+            || matches!(expr.kind, ResolvedExprKind::VecFieldRead { .. })
             || matches!(&expr.kind, ResolvedExprKind::Call { callee, .. } if crate::vec_ops::by_id(callee.as_str()).is_some_and(|op| op.owned_leaf_only()))
         {
             return true;

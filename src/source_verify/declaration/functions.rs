@@ -76,7 +76,7 @@ pub(super) fn check_function_declarations<'p>(
                 function.name_span,
             ));
         }
-        if crate::vec_ops::by_name(&function.name).is_some() {
+        if super::super::vec_field::reserved_function(function) {
             diagnostics.push(error(
                 program,
                 "SPX-S113",

@@ -229,6 +229,17 @@ pub(super) fn resolved_expr_owned_capacity(expression: &ResolvedExpr) -> usize {
                 .map(resolved_type_owned_capacity)
                 .sum::<usize>();
         }
+        ResolvedExprKind::VecFieldRead {
+            element,
+            field,
+            args,
+            ..
+        } => {
+            bytes += resolved_type_owned_capacity(element)
+                + field.as_str().len()
+                + args.capacity() * std::mem::size_of::<ResolvedExpr>();
+            bytes += args.iter().map(resolved_expr_owned_capacity).sum::<usize>();
+        }
         ResolvedExprKind::LiteralFormat { template, args } => {
             bytes += template.capacity() + args.capacity() * std::mem::size_of::<ResolvedExpr>();
             bytes += args.iter().map(resolved_expr_owned_capacity).sum::<usize>();
@@ -511,4 +522,14 @@ pub(super) fn resolver_scope_owned_capacity(scope: &BTreeMap<String, Binding>) -
                 })
                 .sum::<usize>(),
         )
+}
+
+#[cfg(test)]
+pub(super) fn vector_field_owned_capacity(provenance: &super::ByteSliceProvenance) -> usize {
+    provenance.vector_field.as_ref().map_or(0, |value| {
+        std::mem::size_of::<super::VectorFieldProvenance>()
+            + resolved_type_owned_capacity(&value.element)
+            + value.field.as_str().len()
+            + value.index.as_str().len()
+    })
 }

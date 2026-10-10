@@ -110,6 +110,12 @@ impl HirValidator<'_> {
                 // Owned String Loops v1: a literal allocates one owned String
                 // in the per-iteration body region.
                 ResolvedExprKind::String(_) => {}
+                ResolvedExprKind::VecFieldRead { args, .. } => {
+                    let [_, index] = args.as_slice() else {
+                        return Err(hir_error("scoped vector read loop shape is invalid"));
+                    };
+                    pending.push(index);
+                }
                 ResolvedExprKind::LiteralFormat { args, .. } => pending.extend(args.iter().rev()),
                 ResolvedExprKind::ArrayU8(_) | ResolvedExprKind::RepeatArrayU8 { .. } => {
                     return Err(hir_error("while loops cannot contain fixed-array literals"));

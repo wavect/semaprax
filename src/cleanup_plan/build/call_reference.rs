@@ -25,7 +25,9 @@ impl PlanBuilder<'_> {
         } else if super::super::native_rust::owns(expression) {
             super::super::native_rust::params(self.program, callee)?
         } else if instance.is_none() {
-            if callee.as_str() == crate::literal_format::ID {
+            if callee.as_str() == crate::vec_field::ID {
+                crate::vec_field::resolved_params(args)
+            } else if callee.as_str() == crate::literal_format::ID {
                 crate::literal_format::resolved_params(args)
             } else if let Some(op) = crate::map_ops::by_id(callee.as_str()) {
                 op.resolved_signature(type_arguments)

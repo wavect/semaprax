@@ -117,7 +117,7 @@ pub struct VectorFieldProvenance {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ByteSliceProvenance {
     /// Present only for a checked indexed Vec element field.
-    pub vector_field: Option<VectorFieldProvenance>,
+    pub vector_field: Option<Box<VectorFieldProvenance>>,
     pub root: ValueId,
     /// Exact stable-ID path from `root` to the borrowed storage. Empty retains
     /// the byte-for-byte legacy root provenance carried through Graph v23.

@@ -1168,7 +1168,8 @@ impl InventoryBuilder<'_> {
                             };
                         }
                         ResolvedExprKind::Call { args, .. }
-                        | ResolvedExprKind::LiteralFormat { args, .. } => {
+                        | ResolvedExprKind::LiteralFormat { args, .. }
+                        | ResolvedExprKind::VecFieldRead { args, .. } => {
                             enter = args.get(index);
                         }
                         ResolvedExprKind::NativeRustImportCall(call) => {

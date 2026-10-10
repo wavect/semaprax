@@ -26,7 +26,9 @@ use super::{Binding, Place, PlaceProjection, Resolver};
 mod byte_view;
 #[cfg(test)]
 mod capacity;
+mod finish;
 mod literal_format;
+mod vec_field;
 
 impl Resolver<'_> {
     pub(super) fn resolve_expr_iterative(
@@ -230,6 +232,15 @@ impl Resolver<'_> {
                                 path,
                                 segment: "native-rust-arg",
                             });
+                        } else if name == crate::vec_field::NAME {
+                            frames.extend(self.vec_field_frames(
+                                function,
+                                expr,
+                                type_arguments,
+                                args,
+                                bindings,
+                                path,
+                            )?);
                         } else if name == crate::literal_format::NAME {
                             frames.extend(self.literal_format_frames(
                                 function,
@@ -931,6 +942,16 @@ impl Resolver<'_> {
                         span,
                     });
                 }
+                Frame::FinishVecField {
+                    span,
+                    path,
+                    element,
+                    field,
+                } => {
+                    let args = take_results(&mut results, 2);
+                    results
+                        .push(self.finish_vec_field(function, span, &path, element, field, args)?);
+                }
                 Frame::FinishLiteralFormat {
                     span,
                     path,
@@ -1035,6 +1056,11 @@ impl Resolver<'_> {
                             },
                             span,
                         });
+                        continue;
+                    }
+                    if let Some(fused) = self.fuse_vec_field_bytes(function, span, &path, op, &args)
+                    {
+                        results.push(fused);
                         continue;
                     }
                     if op.is_view() {
@@ -3103,40 +3129,11 @@ impl Resolver<'_> {
                     span,
                 } => {
                     let source = results.pop().expect("upcast source result retained");
-                    let declared = ResolvedType::Nominal {
-                        declaration: holder,
-                        arguments: Vec::new(),
-                    };
-                    results.push(ResolvedExpr {
-                        id: ExpressionId::new(function, &slot_path),
-                        ty: declared.clone(),
-                        ownership: self.expression_ownership(
-                            &declared,
-                            OwnershipMode::Own,
-                            span,
-                        )?,
-                        kind: ResolvedExprKind::Upcast {
-                            source: Box::new(source),
-                        },
-                        span,
-                    });
+                    results.push(self.finish_upcast(function, slot_path, holder, span, source)?);
                 }
             }
         }
 
-        if results.len() != 1 {
-            return Err(self.error(
-                "SPX-H006",
-                "iterative expression resolver finished with an invalid result stack",
-                expr.span,
-            ));
-        }
-        results.pop().ok_or_else(|| {
-            self.error(
-                "SPX-H006",
-                "iterative expression resolver lost its root result",
-                expr.span,
-            )
-        })
+        self.finish_expression_results(results, expr.span)
     }
 }

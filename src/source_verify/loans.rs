@@ -65,6 +65,19 @@ pub(super) fn local_borrow_origin(
             }
             (root.clone(), Vec::new(), None)
         }
+        ExprKind::Call {
+            name,
+            type_arguments,
+            args,
+        } if name == crate::vec_field::NAME => {
+            let (_, result) =
+                super::vec_field::signature(types, type_arguments, args, expression.span)?;
+            if !matches!(result, Type::Str | Type::SliceU8) {
+                return None;
+            }
+            let place = source_place(args.first()?, variables, types)?;
+            (place.root, place.projections, None)
+        }
         ExprKind::Call { name, args, .. } => {
             let operation = crate::byte_ops::by_name(name)?;
             if !operation.is_view() && operation != crate::byte_ops::ByteOp::Range {
@@ -85,7 +98,9 @@ pub(super) fn local_borrow_origin(
             } else {
                 let place = if operation == crate::byte_ops::ByteOp::StrAsBytes {
                     if let ExprKind::Call { name, args, .. } = &source.kind {
-                        if crate::byte_ops::by_name(name)
+                        if name == crate::vec_field::NAME {
+                            source_place(args.first()?, variables, types)?
+                        } else if crate::byte_ops::by_name(name)
                             == Some(crate::byte_ops::ByteOp::StringAsStr)
                         {
                             let [owner] = args.as_slice() else {

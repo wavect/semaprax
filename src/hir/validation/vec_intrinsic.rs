@@ -20,6 +20,8 @@ pub(super) fn reject_reserved_identities(program: &ResolvedProgram) -> Result<()
 
 pub(super) fn reject_reserved_declaration(declaration: &Declaration) -> Result<(), Diagnostic> {
     if crate::vec_ops::by_id(declaration.id.as_str()).is_some()
+        || declaration.id.as_str() == crate::vec_field::ID
+        || declaration.name == crate::vec_field::NAME
         || crate::vec_ops::by_name(&declaration.name).is_some()
     {
         return Err(hir_error(format!(
@@ -32,6 +34,8 @@ pub(super) fn reject_reserved_declaration(declaration: &Declaration) -> Result<(
 
 pub(super) fn reject_reserved_function(function: &ResolvedFunction) -> Result<(), Diagnostic> {
     if crate::vec_ops::by_id(function.id.as_str()).is_some()
+        || function.id.as_str() == crate::vec_field::ID
+        || function.name == crate::vec_field::NAME
         || crate::vec_ops::by_name(&function.name).is_some()
     {
         return Err(hir_error(format!(
@@ -46,6 +50,8 @@ pub(super) fn reject_reserved_template(
     template: &ResolvedFunctionTemplate,
 ) -> Result<(), Diagnostic> {
     if crate::vec_ops::by_id(template.id.as_str()).is_some()
+        || template.id.as_str() == crate::vec_field::ID
+        || template.name == crate::vec_field::NAME
         || crate::vec_ops::by_name(&template.name).is_some()
     {
         return Err(hir_error(format!(

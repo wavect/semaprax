@@ -16,7 +16,8 @@ pub(super) fn find_expression_by<'a>(
         hir::ResolvedExprKind::Invoke { callable, args } => find_expression_by(callable, predicate)
             .or_else(|| args.iter().find_map(|a| find_expression_by(a, predicate))),
         hir::ResolvedExprKind::Call { args, .. }
-        | hir::ResolvedExprKind::LiteralFormat { args, .. } => args
+        | hir::ResolvedExprKind::LiteralFormat { args, .. }
+        | hir::ResolvedExprKind::VecFieldRead { args, .. } => args
             .iter()
             .find_map(|argument| find_expression_by(argument, predicate)),
         hir::ResolvedExprKind::NativeRustImportCall(call) => call

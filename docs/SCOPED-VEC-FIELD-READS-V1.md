@@ -1,6 +1,6 @@
 # Scoped owned-vector field reads v1
 
-Status: source implementation in progress for OPT-730. No owning execution,
+Status: partial source batch for OPT-730; owning executable gates are authored. No owning execution,
 application qualification or agent-efficiency result is claimed.
 
 ## Checked source shape
@@ -43,8 +43,8 @@ move. Distinct parent-record siblings remain independent. Changing the source
 index variable after a read does not retarget its already selected view.
 
 Views may be locally aliased or passed to existing synchronous borrow parameters.
-They cannot escape via returns, aggregates, storage, captures, tasks or owning
-conversion. Named byte-range rules and existing per-function loan/work limits
+The borrowed views cannot escape via returns, aggregates, storage, captures or
+tasks, or be reclassified as owners. Named byte-range rules and existing per-function loan/work limits
 remain unchanged. Releasing a loan creates no runtime finalizer and no authority.
 Failure selection and cleanup order remain the existing canonical sticky rules.
 
@@ -63,7 +63,12 @@ SharedLoanPlan retains the complete vector origin and derives its canonical
 lifetime from this node and ordinary uses. The node retains the index expression
 and selected field identity; the loan conservatively protects the full vector,
 not a fabricated integer element handle. Source, HIR, cache and graph replay must
-agree; malformed/stale fields, roots, selectors, flags and attached loan plans
+agree. ByteSliceProvenance adds an optional boxed `VectorFieldProvenance` with
+element, stable field and index-child identity; its root and projections still
+name the carrier. Named Str aliases preserve this metadata through byte views
+and ranges. Checked cache compatibility v7 independently resolves the retained
+canonical synthetic source, so a valid same-type field substitution cannot gain
+source authority. Malformed/stale fields, roots, selectors, flags and attached loan plans
 fail closed. Source identity guards reserve `vec_field` and `core.vec.field`.
 
 Native C11 reads the selected carrier directly from authenticated compact or
@@ -94,3 +99,10 @@ aborting read witnesses; strict Wasm host witnesses must reject any read-time
 clone, allocation, drop or renewal. Native O0/O2, interpreter and strict Wasm must
 agree on the same source. Typed ShiftSim and independent catalog/order adoption
 retain the complete original application acceptance and strong TS comparisons.
+
+
+The scoped semantic gates are `hir::vec_field::tests` (6),
+`interpreter::vec_field::tests` (1), and
+`project::incremental::snapshot::vec_field::tests` (1). Backend, graph and
+source-index gates live in their existing owning harnesses. None of these new
+source-authored gates is execution evidence until the grouped check succeeds.

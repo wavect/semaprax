@@ -311,6 +311,7 @@ pub(crate) fn function_requires_profile_by<'a>(
         .collect::<Vec<_>>();
     while let Some(expr) = pending.pop() {
         if carrier(&expr.ty, &lookup)
+            || matches!(expr.kind, super::ResolvedExprKind::VecFieldRead { .. })
             || matches!(&expr.kind, super::ResolvedExprKind::Call { callee, .. } if crate::vec_ops::by_id(callee.as_str()).is_some_and(|op| op.owned_leaf_only()))
         {
             return true;

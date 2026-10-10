@@ -212,6 +212,14 @@ fn has_own_root_candidate(
     for expression in expressions {
         let view = match &expression.kind {
             ResolvedExprKind::BorrowPlace { place, .. } => Some(place.clone()),
+            ResolvedExprKind::VecFieldRead { args, .. }
+                if matches!(
+                    expression.ty,
+                    crate::hir::ResolvedType::Str | crate::hir::ResolvedType::SliceU8
+                ) =>
+            {
+                args.first().and_then(expression_place)
+            }
             ResolvedExprKind::ByteRange { source, .. } => expression_place(source),
             ResolvedExprKind::NativeRustImportCall(call)
                 if matches!(
@@ -378,6 +386,14 @@ fn build_cfg_plan_counted(
         charge(work)?;
         let view = match &expression.kind {
             ResolvedExprKind::BorrowPlace { place, .. } => Some(place.clone()),
+            ResolvedExprKind::VecFieldRead { args, .. }
+                if matches!(
+                    expression.ty,
+                    crate::hir::ResolvedType::Str | crate::hir::ResolvedType::SliceU8
+                ) =>
+            {
+                args.first().and_then(expression_place)
+            }
             ResolvedExprKind::ByteRange { source, .. } => expression_place(source),
             ResolvedExprKind::NativeRustImportCall(call)
                 if matches!(
@@ -883,9 +899,9 @@ fn evaluation_children(expression: &ResolvedExpr) -> Vec<&ResolvedExpr> {
         ResolvedExprKind::Invoke { callable, args } => std::iter::once(callable.as_ref())
             .chain(args.iter())
             .collect(),
-        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
-            args.iter().collect()
-        }
+        ResolvedExprKind::Call { args, .. }
+        | ResolvedExprKind::LiteralFormat { args, .. }
+        | ResolvedExprKind::VecFieldRead { args, .. } => args.iter().collect(),
         ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().collect(),
         ResolvedExprKind::HostCommandCall(call) => call.args.iter().collect(),
         ResolvedExprKind::ByteRange {
@@ -1174,6 +1190,7 @@ fn resolve_origin(
 
 fn expression_place(expression: &ResolvedExpr) -> Option<Place> {
     match &expression.kind {
+        ResolvedExprKind::VecFieldRead { args, .. } => args.first().and_then(expression_place),
         ResolvedExprKind::Place(place) | ResolvedExprKind::BorrowPlace { place, .. } => {
             Some(place.clone())
         }
@@ -1228,9 +1245,9 @@ fn push_children<'a>(expression: &'a ResolvedExpr, pending: &mut Vec<&'a Resolve
                 }
             }
         }
-        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
-            pending.extend(args.iter().rev())
-        }
+        ResolvedExprKind::Call { args, .. }
+        | ResolvedExprKind::LiteralFormat { args, .. }
+        | ResolvedExprKind::VecFieldRead { args, .. } => pending.extend(args.iter().rev()),
         ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter().rev()),
         ResolvedExprKind::HostCommandCall(call) => pending.extend(call.args.iter().rev()),
         ResolvedExprKind::ByteRange {
@@ -1310,6 +1327,10 @@ fn borrowed_call_arguments<'a>(
     expression: &'a ResolvedExpr,
 ) -> Vec<(usize, &'a ResolvedExpr)> {
     match &expression.kind {
+        ResolvedExprKind::VecFieldRead { args, .. } => args
+            .first()
+            .map(|source| vec![(0, source)])
+            .unwrap_or_default(),
         ResolvedExprKind::Call {
             callee,
             instance,

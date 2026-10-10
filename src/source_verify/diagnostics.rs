@@ -263,7 +263,7 @@ pub(super) fn reject_reserved_host_id(
     span: Span,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
-    if crate::vec_ops::by_id(stable_id).is_some() {
+    if crate::vec_ops::by_id(stable_id).is_some() || stable_id == crate::vec_field::ID {
         diagnostics.push(error(
             program,
             "SPX-S113",

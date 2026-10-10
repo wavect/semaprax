@@ -9,6 +9,7 @@
     reason = "sealed validation and test-only replay seams remain non-public"
 )]
 mod builder_bytes_report;
+mod callee_inventory;
 mod checked_value_retention;
 mod dependency_pruning;
 pub(crate) mod diagnostics;
@@ -16,6 +17,8 @@ mod expected_projection;
 mod generic_type_import;
 mod operation_sidecar;
 mod owned_function_import;
+use callee_inventory::resolved_function_callees;
+
 use owned_function_import::validate_imported_function;
 mod agent_execution;
 mod indexed_rust;
@@ -1477,7 +1480,8 @@ impl WorkspaceGraphBuild {
             | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
             | crate::project::ProjectProfile::StdinStreamDataCommandIoV2
             | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
-            | P::StdinStreamCollectionRecordCommandIoV1 | P::StdinStreamNestedOutcomeCommandIoV1 => {
+            | P::StdinStreamCollectionRecordCommandIoV1
+            | P::StdinStreamNestedOutcomeCommandIoV1 => {
                 // The selected command is retained separately from this pure entry.
                 retained_validation::entry_link(
                     profile,
@@ -1700,7 +1704,8 @@ impl WorkspaceGraphBuild {
             | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
             | crate::project::ProjectProfile::StdinStreamDataCommandIoV2
             | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
-            | P::StdinStreamCollectionRecordCommandIoV1 | P::StdinStreamNestedOutcomeCommandIoV1 => {
+            | P::StdinStreamCollectionRecordCommandIoV1
+            | P::StdinStreamNestedOutcomeCommandIoV1 => {
                 let [command_id] = additional_roots else {
                     return Err(vec![graph_error(
                         "SPX-G172",
@@ -1833,9 +1838,8 @@ impl WorkspaceGraphBuild {
                 | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamDataCommandIoV2
                 | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
-                | P::StdinStreamCollectionRecordCommandIoV1 | P::StdinStreamNestedOutcomeCommandIoV1 => {
-                    (hir::ResolvedType::I64, "i64")
-                }
+                | P::StdinStreamCollectionRecordCommandIoV1
+                | P::StdinStreamNestedOutcomeCommandIoV1 => (hir::ResolvedType::I64, "i64"),
                 _ => (hir::ResolvedType::Bool, "bool"),
             };
             if !explicit || !command.params.is_empty() || command.return_type != return_type {
@@ -2012,7 +2016,8 @@ impl WorkspaceGraphBuild {
                     profile,
                     crate::project::ProjectProfile::StdinStreamDataCommandIoV2
                         | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
-                        | P::StdinStreamCollectionRecordCommandIoV1 | P::StdinStreamNestedOutcomeCommandIoV1
+                        | P::StdinStreamCollectionRecordCommandIoV1
+                        | P::StdinStreamNestedOutcomeCommandIoV1
                 ) && retained_validation::record_project_shape(module))
                 || matches!(profile, crate::project::ProjectProfile::ScalarV1)
                 || (module.types.is_empty()
@@ -2071,7 +2076,8 @@ impl WorkspaceGraphBuild {
                 || profile == crate::project::ProjectProfile::StdinStreamDataCommandIoV1
                 || profile == crate::project::ProjectProfile::StdinStreamDataCommandIoV2
                 || profile == crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
-                || profile == P::StdinStreamCollectionRecordCommandIoV1 || profile == P::StdinStreamNestedOutcomeCommandIoV1
+                || profile == P::StdinStreamCollectionRecordCommandIoV1
+                || profile == P::StdinStreamNestedOutcomeCommandIoV1
             {
                 continue;
             }
@@ -2092,7 +2098,8 @@ impl WorkspaceGraphBuild {
                     }
                     crate::project::ProjectProfile::StdinStreamDataCommandIoV2
                     | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
-                    | P::StdinStreamCollectionRecordCommandIoV1 | P::StdinStreamNestedOutcomeCommandIoV1 => false,
+                    | P::StdinStreamCollectionRecordCommandIoV1
+                    | P::StdinStreamNestedOutcomeCommandIoV1 => false,
                     crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
                         hir::stream_data_parameter_admitted(parameter)
                     }
@@ -2145,7 +2152,8 @@ impl WorkspaceGraphBuild {
                     }
                     crate::project::ProjectProfile::StdinStreamDataCommandIoV2
                     | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
-                    | P::StdinStreamCollectionRecordCommandIoV1 | P::StdinStreamNestedOutcomeCommandIoV1 => false,
+                    | P::StdinStreamCollectionRecordCommandIoV1
+                    | P::StdinStreamNestedOutcomeCommandIoV1 => false,
                     crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
                         hir::stream_text_return_admitted(&function.return_type)
                     }
@@ -2383,21 +2391,6 @@ fn semantic_workspace_source_schema(
     .map_err(|error| vec![error])
 }
 
-fn resolved_function_callees(function: &hir::ResolvedFunction) -> BTreeSet<hir::DeclarationId> {
-    let mut callees = BTreeSet::new();
-    for expression in function
-        .requires
-        .iter()
-        .chain(std::iter::once(&function.body))
-        .chain(&function.ensures)
-    {
-        hir::visit_resolved_calls(expression, &mut |callee, _, _| {
-            callees.insert(callee.clone());
-        });
-    }
-    callees
-}
-
 fn resolved_function_imports(function: &hir::ResolvedFunction) -> BTreeSet<hir::DeclarationId> {
     fn visit(expression: &hir::ResolvedExpr, imports: &mut BTreeSet<hir::DeclarationId>) {
         match &expression.kind {
@@ -2421,6 +2414,7 @@ fn resolved_function_imports(function: &hir::ResolvedFunction) -> BTreeSet<hir::
                 visit(end, imports);
             }
             hir::ResolvedExprKind::LiteralFormat { args, .. }
+            | hir::ResolvedExprKind::VecFieldRead { args, .. }
             | hir::ResolvedExprKind::Call { args, .. }
             | hir::ResolvedExprKind::HostCommandCall(hir::ResolvedHostCommandCall {
                 args, ..

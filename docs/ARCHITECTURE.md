@@ -3954,3 +3954,35 @@ admission. Typed collection evaluation stays in `interpreter/map_collections.rs`
 Retained workspace declaration and owner identity checks live in
 `workspace_graph/shape_identity.rs`; the workspace source-boundary audit joins
 that child with its parent so relocation preserves the checked contract.
+
+
+### Scoped owned-vector field read boundary
+
+`vec_field` and `hir/vec_field` own the reserved operation identity and the
+independently declaration-authenticated field descriptor. Source verification
+and both resolver paths omit the literal selector from runtime children;
+`hir/validation/vec_field` independently checks live carrier paths, child order,
+field identity, ownership and result mode. The source/HIR loan planners protect
+the full Vec generation during index evaluation and through a view's last use.
+`hir/byte_slice_provenance/vec_field` derives exact element/field/index metadata,
+including named Str aliases and ordinary ranges. This metadata is boxed only
+for scoped fields and charged by the declaration-index capacity census.
+
+The cleanup builder and independent replay retain an ordinary zero-owned
+CallCommit followed by the checked Vec/2 operation-failure edge. Extracted
+`cleanup_plan/replay/expression_facts` owns the same operation/child inventory;
+`hir/validation/upcast` and `hir/resolve_expr/finish` preserve existing class and
+resolver stack checks while keeping module ceilings fixed.
+`workspace_graph/callee_inventory` and the retained validation `scalar_link`
+child retain their existing authority checks after extraction; textual owning
+audits include every moved body.
+
+`interpreter/vec_field` reads the staged carrier without semantic owner creation
+or UTF-8 materialization. Native and Wasm lowering use their authenticated
+existing layouts and borrowed leaf carriers. Checked semantic-cache v7 invokes
+`project/incremental/snapshot/vec_field` to compare the fresh source-resolved
+operation tree, including same-type selector substitutions; independent HIR,
+loan, cleanup and graph validation remain separate obligations. Graph v75 is
+selected only for this operation. Old public adapters and command profiles keep
+their closed admission. [Scoped Vec Field Reads v1](SCOPED-VEC-FIELD-READS-V1.md)
+owns the exact contract and pending executable gates.

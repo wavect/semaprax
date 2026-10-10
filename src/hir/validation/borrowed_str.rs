@@ -8,6 +8,16 @@ impl HirValidator<'_> {
         value: &ResolvedExpr,
     ) -> Result<(Place, bool), Diagnostic> {
         match &value.kind {
+            ResolvedExprKind::VecFieldRead { args, .. } => {
+                let Some(ResolvedExpr {
+                    kind: ResolvedExprKind::Place(place),
+                    ..
+                }) = args.first()
+                else {
+                    return Err(hir_error("vector view lacks a named carrier origin"));
+                };
+                Ok((place.clone(), true))
+            }
             ResolvedExprKind::Place(place) if place.projections.is_empty() => self
                 .borrowed_str_aliases
                 .get(&place.root)

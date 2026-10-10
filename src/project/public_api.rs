@@ -601,7 +601,9 @@ fn expression_reaches_import(root: &ResolvedExpr) -> bool {
             ResolvedExprKind::NativeRustImportCall(_) | ResolvedExprKind::HostCommandCall(_) => {
                 return true
             }
-            ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => pending.extend(args),
+            ResolvedExprKind::Call { args, .. }
+            | ResolvedExprKind::LiteralFormat { args, .. }
+            | ResolvedExprKind::VecFieldRead { args, .. } => pending.extend(args),
             ResolvedExprKind::ByteRange {
                 source, start, end, ..
             } => pending.extend([source.as_ref(), start.as_ref(), end.as_ref()]),

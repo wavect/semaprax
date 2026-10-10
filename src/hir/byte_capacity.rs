@@ -224,6 +224,7 @@ pub(super) fn byte_slice_transcript_source(
                             }
                             ByteSliceRootKind::FunctionParameter
                             | ByteSliceRootKind::OwnedBytes
+                            | ByteSliceRootKind::OwnedVectorField
                             | ByteSliceRootKind::OwnedString
                             | ByteSliceRootKind::BorrowedStr
                             | ByteSliceRootKind::StdinStreamReader => TranscriptSource::Unknown,
@@ -301,9 +302,9 @@ pub(crate) fn push_resolved_expression_children_in_authored_order<'a>(
             pending.extend(args.iter().rev());
             pending.push(callable);
         }
-        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
-            pending.extend(args.iter().rev())
-        }
+        ResolvedExprKind::Call { args, .. }
+        | ResolvedExprKind::LiteralFormat { args, .. }
+        | ResolvedExprKind::VecFieldRead { args, .. } => pending.extend(args.iter().rev()),
         ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter().rev()),
         ResolvedExprKind::HostCommandCall(call) => pending.extend(call.args.iter().rev()),
         ResolvedExprKind::ByteRange {
@@ -757,7 +758,8 @@ pub(super) fn byte_capacity_expression(
                             ));
                         }
                     }
-                    ResolvedExprKind::LiteralFormat { args, .. } => {
+                    ResolvedExprKind::LiteralFormat { args, .. }
+                    | ResolvedExprKind::VecFieldRead { args, .. } => {
                         frames.push(Frame::Sequence(args.len()));
                         for argument in args.iter().rev() {
                             frames.push(Frame::Visit(argument, false));

@@ -6,7 +6,7 @@ use crate::hir::{DeclarationId, ExpressionId, ResolvedParam, ResolvedType};
 #[cfg(test)]
 use crate::hir::{ResolvedExpr, ResolvedExprKind};
 
-use super::{CleanupPlace, LeafMetadata, PlanBuilder, StorageId, plan_error};
+use super::{plan_error, CleanupPlace, LeafMetadata, PlanBuilder, StorageId};
 
 impl PlanBuilder<'_> {
     pub(super) fn bounded_vec_shape(
@@ -104,7 +104,7 @@ pub(super) fn type_arguments(expression: &ResolvedExpr) -> Result<&[ResolvedType
         | ResolvedExprKind::Closure { .. }
         | ResolvedExprKind::NativeRustImportCall(_)
         | ResolvedExprKind::HostCommandCall(_) => Ok(&[]),
-        ResolvedExprKind::LiteralFormat { .. } => Ok(&[]),
+        ResolvedExprKind::LiteralFormat { .. } | ResolvedExprKind::VecFieldRead { .. } => Ok(&[]),
         ResolvedExprKind::Call { type_arguments, .. } => Ok(type_arguments),
         _ => Err(plan_error("cleanup call expression has inconsistent shape")),
     }

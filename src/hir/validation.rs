@@ -27,6 +27,8 @@ mod stdin_stream;
 mod string_intrinsic;
 mod type_profiles;
 mod unsafe_scan;
+mod upcast;
+mod vec_field;
 mod vec_intrinsic;
 use borrowed_argument::{hir_diagnostic_at_span, hir_error_at_span};
 use call_parameters::CallParameters;
@@ -1424,9 +1426,9 @@ impl<'a> HirValidator<'a> {
                     "generic templates cannot construct dynamic byte ranges",
                 ));
             }
-            ResolvedExprKind::LiteralFormat { .. } => {
+            ResolvedExprKind::LiteralFormat { .. } | ResolvedExprKind::VecFieldRead { .. } => {
                 return Err(hir_error(
-                    "generic templates cannot construct literal formats",
+                    "generic templates cannot construct literal formats or scoped vector reads",
                 ));
             }
             ResolvedExprKind::Call {
@@ -3351,31 +3353,33 @@ impl<'a> HirValidator<'a> {
                                 path,
                             });
                         }
+                        ResolvedExprKind::VecFieldRead { args, bytes, .. } => {
+                            let return_type =
+                                self.validate_vec_field_shape(function, expression, &scope)?;
+                            let return_ownership =
+                                if matches!(return_type, ResolvedType::Str | ResolvedType::SliceU8)
+                                {
+                                    OwnershipMode::Borrow
+                                } else {
+                                    OwnershipMode::Value
+                                };
+                            frames.push(Frame::CallNext {
+                                expression,
+                                args,
+                                params: CallParameters::VecField(args),
+                                return_type,
+                                return_ownership,
+                                index: 0,
+                                scope,
+                                path: if *bytes {
+                                    format!("{path}.arg.0")
+                                } else {
+                                    path
+                                },
+                            });
+                        }
                         ResolvedExprKind::LiteralFormat { template, args } => {
-                            let pieces = crate::literal_format::scan(template)
-                                .map_err(|reason| hir_error(reason.message()))?;
-                            if crate::literal_format::field_count(&pieces) != args.len() {
-                                return Err(hir_error(
-                                    "literal format field count does not match arguments",
-                                ));
-                            }
-                            if args
-                                .iter()
-                                .any(|arg| !crate::literal_format::accepts_hir_type(&arg.ty))
-                            {
-                                return Err(hir_error(
-                                    "literal format has an unsupported argument type",
-                                ));
-                            }
-                            if function.instance().is_some()
-                                || function.monomorphic_declaration().is_none_or(|id| {
-                                    self.program.declarations.declaration(id).is_none()
-                                })
-                            {
-                                return Err(hir_error(
-                                    "literal format is not admitted in generic or closure bodies",
-                                ));
-                            }
+                            self.validate_literal_format_arguments(function, template, args)?;
                             frames.push(Frame::CallNext {
                                 expression,
                                 args,
@@ -3854,6 +3858,7 @@ impl<'a> HirValidator<'a> {
                     )?;
                     if *param.ty == ResolvedType::SliceU8 {
                         match &argument.kind {
+                            ResolvedExprKind::VecFieldRead { .. } => {}
                             ResolvedExprKind::Place(place)
                                 if place.projections.is_empty()
                                     && self.byte_slice_aliases.contains_key(&place.root) => {}
@@ -3880,6 +3885,7 @@ impl<'a> HirValidator<'a> {
                             let callee = match &expression.kind {
                                 ResolvedExprKind::Call { callee, .. } => callee.as_str(),
                                 ResolvedExprKind::LiteralFormat { .. } => crate::literal_format::ID,
+                                ResolvedExprKind::VecFieldRead { .. } => crate::vec_field::ID,
                                 _ => unreachable!(),
                             };
                             return Err(hir_error(format!(
@@ -4462,6 +4468,12 @@ impl<'a> HirValidator<'a> {
                                 (place, origin)
                             }
                             ResolvedExprKind::BorrowPlace { place, .. } => (place, place.clone()),
+                            ResolvedExprKind::VecFieldRead { args, .. } => {
+                                let ResolvedExprKind::Place(place) = &args[0].kind else {
+                                    return Err(hir_error("vector view has no carrier place"));
+                                };
+                                (place, place.clone())
+                            }
                             ResolvedExprKind::ByteRange { source, .. } => {
                                 let ResolvedExprKind::Place(place) = &source.kind else {
                                     return Err(hir_error(
@@ -4483,8 +4495,11 @@ impl<'a> HirValidator<'a> {
                                 ));
                             }
                         };
-                        let is_authenticated_view =
-                            matches!(&value.kind, ResolvedExprKind::BorrowPlace { .. });
+                        let is_authenticated_view = matches!(
+                            &value.kind,
+                            ResolvedExprKind::BorrowPlace { .. }
+                                | ResolvedExprKind::VecFieldRead { .. }
+                        );
                         if *mutable || (!is_authenticated_view && !place.projections.is_empty()) {
                             return Err(hir_error(
                                 "byte-slice local alias must be immutable and unprojected",
@@ -4494,6 +4509,7 @@ impl<'a> HirValidator<'a> {
                             .insert(binding.id.clone(), origin.clone());
                         let borrowed_origin = match &value.kind {
                             ResolvedExprKind::BorrowPlace { .. }
+                            | ResolvedExprKind::VecFieldRead { .. }
                             | ResolvedExprKind::ByteRange { .. } => Some(origin),
                             _ => None,
                         };
@@ -6377,6 +6393,34 @@ impl<'a> HirValidator<'a> {
                 }
                 (ResolvedType::SliceU8, OwnershipMode::Borrow)
             }
+            ResolvedExprKind::VecFieldRead { args, bytes, .. } => {
+                let ty = self.validate_vec_field_shape(function, expression, scope)?;
+                for (index, argument) in args.iter().enumerate() {
+                    let child = if *bytes {
+                        format!("{path}.arg.0.arg.{index}")
+                    } else {
+                        format!("{path}.arg.{index}")
+                    };
+                    self.validate_expr_recursive_reference(
+                        function,
+                        argument,
+                        scope,
+                        &child,
+                        allow_moves,
+                        allowed_effects,
+                    )?;
+                    self.validate_argument_ownership_view(
+                        argument,
+                        CallParameters::VecField(args).parameter(index),
+                    )?;
+                }
+                let ownership = if matches!(ty, ResolvedType::Str | ResolvedType::SliceU8) {
+                    OwnershipMode::Borrow
+                } else {
+                    OwnershipMode::Value
+                };
+                (ty, ownership)
+            }
             ResolvedExprKind::LiteralFormat { template, args } => {
                 let pieces = crate::literal_format::scan(template)
                     .map_err(|reason| hir_error(reason.message()))?;
@@ -6843,6 +6887,14 @@ impl<'a> HirValidator<'a> {
                                     ResolvedExprKind::BorrowPlace { place, .. } => {
                                         (place, place.clone())
                                     }
+                                    ResolvedExprKind::VecFieldRead { args, .. } => {
+                                        let ResolvedExprKind::Place(place) = &args[0].kind else {
+                                            return Err(hir_error(
+                                                "vector view has no carrier place",
+                                            ));
+                                        };
+                                        (place, place.clone())
+                                    }
                                     ResolvedExprKind::ByteRange { source, .. } => {
                                         let ResolvedExprKind::Place(place) = &source.kind else {
                                             return Err(hir_error(
@@ -6860,8 +6912,11 @@ impl<'a> HirValidator<'a> {
                                         ));
                                     }
                                 };
-                                let is_authenticated_view =
-                                    matches!(&value.kind, ResolvedExprKind::BorrowPlace { .. });
+                                let is_authenticated_view = matches!(
+                                    &value.kind,
+                                    ResolvedExprKind::BorrowPlace { .. }
+                                        | ResolvedExprKind::VecFieldRead { .. }
+                                );
                                 if *mutable
                                     || (!is_authenticated_view && !place.projections.is_empty())
                                 {
@@ -6873,6 +6928,7 @@ impl<'a> HirValidator<'a> {
                                     .insert(binding.id.clone(), origin.clone());
                                 let borrowed_origin = match &value.kind {
                                     ResolvedExprKind::BorrowPlace { .. }
+                                    | ResolvedExprKind::VecFieldRead { .. }
                                     | ResolvedExprKind::ByteRange { .. } => Some(origin),
                                     _ => None,
                                 };
@@ -8529,6 +8585,7 @@ impl<'a> HirValidator<'a> {
                     | ResolvedExprKind::ByteRange { .. }
                     | ResolvedExprKind::Call { .. }
                     | ResolvedExprKind::LiteralFormat { .. }
+                    | ResolvedExprKind::VecFieldRead { .. }
                     | ResolvedExprKind::NativeRustImportCall(_)
                     | ResolvedExprKind::HostCommandCall(_)
                     | ResolvedExprKind::Unary { .. }
@@ -8609,71 +8666,6 @@ impl<'a> HirValidator<'a> {
     /// contract. The source must be a descendant class value whose effective
     /// field sequence extends the ancestor's exactly, with a cleanup-inert
     /// child-declared suffix.
-    fn validate_upcast(
-        &self,
-        expression: &ResolvedExpr,
-        source: &ResolvedExpr,
-    ) -> Result<(), Diagnostic> {
-        let (
-            ResolvedType::Nominal {
-                declaration: child_id,
-                arguments: child_arguments,
-            },
-            ResolvedType::Nominal {
-                declaration: parent_id,
-                arguments: parent_arguments,
-            },
-        ) = (&source.ty, &expression.ty)
-        else {
-            return Err(hir_error(
-                "resolved upcast operands are not nominal classes",
-            ));
-        };
-        if !child_arguments.is_empty() || !parent_arguments.is_empty() {
-            return Err(hir_error("resolved upcast has generic class arguments"));
-        }
-        if !self.program.declarations.class_extends(child_id, parent_id) {
-            return Err(hir_error(format!(
-                "resolved upcast `{child_id}` does not inherit from `{parent_id}`"
-            )));
-        }
-        let child_fields = self
-            .program
-            .declarations
-            .record_fields(child_id)
-            .ok_or_else(|| hir_error(format!("class `{child_id}` has no fields")))?;
-        let parent_fields = self
-            .program
-            .declarations
-            .record_fields(parent_id)
-            .ok_or_else(|| hir_error(format!("class `{parent_id}` has no fields")))?;
-        if child_fields.len() < parent_fields.len()
-            || child_fields[..parent_fields.len()]
-                .iter()
-                .zip(parent_fields.iter())
-                .any(|(child_field, parent_field)| child_field.id != parent_field.id)
-        {
-            return Err(hir_error(format!(
-                "resolved upcast `{child_id}` prefix disagrees with ancestor `{parent_id}`"
-            )));
-        }
-        for field in &child_fields[parent_fields.len()..] {
-            let drops = self
-                .program
-                .declarations
-                .type_facts(&field.ty)
-                .is_some_and(|facts| facts.needs_drop);
-            if drops {
-                return Err(hir_error(format!(
-                    "resolved upcast from `{child_id}` would discard owned field `{}`",
-                    field.name
-                )));
-            }
-        }
-        let _ = source;
-        Ok(())
-    }
-
     fn expected_ownership(
         &self,
         ty: &ResolvedType,

@@ -61,7 +61,8 @@ use crate::bounded_output::{with_limit, BudgetedJoin as _};
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::hir::{
     OwnershipMode, ResolvedBinding, ResolvedExpr, ResolvedExprKind, ResolvedFunction,
-    ResolvedMatchPattern, ResolvedProgram, ResolvedRecordMatchFieldPattern, ResolvedStatement, ResolvedType,
+    ResolvedMatchPattern, ResolvedProgram, ResolvedRecordMatchFieldPattern, ResolvedStatement,
+    ResolvedType,
 };
 use crate::{graph, hir, parse, patch, verify};
 
@@ -442,7 +443,8 @@ fn collect_expr(
             collect_expr(start, scope_end, resolved, facts);
             collect_expr(end, scope_end, resolved, facts);
         }
-        ResolvedExprKind::LiteralFormat { args, .. } => {
+        ResolvedExprKind::LiteralFormat { args, .. }
+        | ResolvedExprKind::VecFieldRead { args, .. } => {
             for argument in args {
                 collect_expr(argument, scope_end, resolved, facts);
                 if argument.ty == ResolvedType::String {

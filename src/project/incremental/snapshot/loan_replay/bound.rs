@@ -232,6 +232,18 @@ fn walk(
                 walk(program, child, inventory, depth + 1)?;
             }
         }
+        ResolvedExprKind::VecFieldRead { args, .. } => {
+            add(
+                &mut inventory.drafts,
+                1 + usize::from(matches!(
+                    expression.ty,
+                    crate::hir::ResolvedType::Str | crate::hir::ResolvedType::SliceU8
+                )),
+            )?;
+            for argument in args {
+                walk(program, argument, inventory, depth + 1)?;
+            }
+        }
         ResolvedExprKind::LiteralFormat { args, .. } => {
             for argument in args {
                 if argument.ownership == OwnershipMode::Borrow {
@@ -427,9 +439,9 @@ fn edge_entries(expression: &ResolvedExpr) -> Result<usize> {
         ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => return Ok(3),
         ResolvedExprKind::Closure { captures, .. } => captures.len(),
         ResolvedExprKind::Invoke { args, .. } => sum(&[args.len(), 1])?,
-        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
-            args.len()
-        }
+        ResolvedExprKind::Call { args, .. }
+        | ResolvedExprKind::LiteralFormat { args, .. }
+        | ResolvedExprKind::VecFieldRead { args, .. } => args.len(),
         ResolvedExprKind::NativeRustImportCall(call) => call.args.len(),
         ResolvedExprKind::HostCommandCall(call) => call.args.len(),
         ResolvedExprKind::ByteRange { .. } => 3,

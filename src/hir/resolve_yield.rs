@@ -671,7 +671,9 @@ fn scan_expr(
                 yielded_bindings,
             )?;
         }
-        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
+        ResolvedExprKind::Call { args, .. }
+        | ResolvedExprKind::LiteralFormat { args, .. }
+        | ResolvedExprKind::VecFieldRead { args, .. } => {
             scan_children(
                 resolver,
                 function_name,

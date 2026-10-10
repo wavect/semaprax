@@ -1,9 +1,12 @@
 # Changelog
 
-- Author scoped Vec field reads for OPT-730: authenticate literal field
-  selectors, preserve named-vector provenance, project conditional Graph v75,
-  and add direct native field reads plus source-index/repair joins. Owning
-  execution and application qualification remain pending; no efficiency claim.
+- Author OPT-730 scoped `vec_field` reads over authenticated owned-record Vecs.
+  Preserve exact carrier loans and field/index provenance, avoid semantic owned
+  clones, retain sticky Vec bounds failure and bind checked-cache v7 to canonical
+  selectors. Join conditional Graph v75, native and Wasm/Node field reads,
+  source-index/repair and scalar/view/alias/hostile allocation-budget regressions.
+  Owning execution and application qualification remain pending; no efficiency claim.
+
 
 - Author bounded nested-request streaming derivation with a source-derived fully
   escaped spelling envelope, unchanged strict normalizer and one-call typed owning

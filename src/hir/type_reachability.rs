@@ -198,8 +198,11 @@ fn collect_expression(expression: &ResolvedExpr, declarations: &mut BTreeSet<Dec
                 collect_expression(argument, declarations);
             }
         }
-        ResolvedExprKind::LiteralFormat { args, .. } => {
-            for argument in args { collect_expression(argument, declarations); }
+        ResolvedExprKind::LiteralFormat { args, .. }
+        | ResolvedExprKind::VecFieldRead { args, .. } => {
+            for argument in args {
+                collect_expression(argument, declarations);
+            }
         }
         ResolvedExprKind::NativeRustImportCall(call) => {
             for argument in &call.args {

@@ -10,8 +10,8 @@ use crate::hir::{
 };
 
 use super::{
-    Leaves, PathState, ReplayConditionalVariant, find_resolved_expression, replay_error,
-    validate_place,
+    find_resolved_expression, replay_error, validate_place, Leaves, PathState,
+    ReplayConditionalVariant,
 };
 
 pub(super) fn exact_owned_try(source: &[ResolvedType], target: &[ResolvedType]) -> bool {
@@ -254,6 +254,43 @@ pub(super) fn resolved_call_params(
     instance: Option<&FunctionInstanceId>,
     type_arguments: &[ResolvedType],
 ) -> Result<Vec<ResolvedParam>, Diagnostic> {
+    if callee.as_str() == crate::vec_field::ID {
+        let ResolvedExprKind::VecFieldRead {
+            element,
+            field,
+            bytes,
+            args,
+        } = &expression.kind
+        else {
+            return Err(replay_error(
+                function,
+                "scoped vector callee lacks its dedicated operation",
+            ));
+        };
+        let [source, index] = args.as_slice() else {
+            return Err(replay_error(function, "scoped vector read arity mismatch"));
+        };
+        let selected = crate::hir::vec_field::field(&program.declarations, element, field)
+            .and_then(|f| f.result_type(*bytes));
+        if instance.is_some()
+            || !type_arguments.is_empty()
+            || selected.as_ref() != Some(&expression.ty)
+            || source.ty != crate::vec_ops::resolved_vec(element.clone())
+            || !matches!(source.kind, ResolvedExprKind::Place(_))
+            || !matches!(
+                source.ownership,
+                crate::hir::OwnershipMode::Own | crate::hir::OwnershipMode::Borrow
+            )
+            || index.ty != ResolvedType::Usize
+            || index.ownership != crate::hir::OwnershipMode::Value
+        {
+            return Err(replay_error(
+                function,
+                "scoped vector read replay signature is inconsistent",
+            ));
+        }
+        return Ok(crate::vec_field::resolved_params(args));
+    }
     if callee.as_str() == crate::literal_format::ID {
         let ResolvedExprKind::LiteralFormat { args, template } = &expression.kind else {
             return Err(replay_error(

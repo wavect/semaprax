@@ -13,6 +13,18 @@ pub(super) fn validate_propagated_status(
     callee: &DeclarationId,
     status: &NormalizedStatus,
 ) -> Result<(), CleanupExecutionError> {
+    if callee.as_str() == crate::vec_field::ID {
+        if status.domain_id() != crate::vec_ops::STATUS_DOMAIN
+            || status.code() != crate::vec_ops::GET_OUT_OF_BOUNDS_CODE
+            || status.class() != StatusClass::Adapter
+            || status.retryability() != Retryability::Known(false)
+        {
+            return Err(invariant(
+                "scoped vector read supplied a status outside its exact normalized failure domain",
+            ));
+        }
+        return Ok(());
+    }
     if matches!(
         callee.as_str(),
         crate::byte_ops::SET_ID

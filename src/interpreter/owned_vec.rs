@@ -129,7 +129,7 @@ fn owned_payload_bytes_per_element(
         .map(|layout| layout.owned_count as u64 * crate::vec_ops::OWNED_PAYLOAD_BYTES_PER_ELEMENT)
 }
 
-fn normalize_vec(code: u32) -> NormalizedStatus {
+pub(super) fn normalize_vec(code: u32) -> NormalizedStatus {
     NormalizedStatus::try_new(
         crate::vec_ops::STATUS_DOMAIN,
         code,

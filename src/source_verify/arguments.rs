@@ -233,7 +233,12 @@ pub(super) fn activate_borrowed_bytes_call_loans(
         let reader = crate::stdin_stream_ops::ast_is_reader(&parameter.ty)
             && matches!(&borrowed.kind, ExprKind::Var(name) if variables.get(name).is_some_and(|binding| crate::stdin_stream_ops::ast_is_reader(&binding.ty)));
         let collection = super::declared_type::collection_record::vector(types, &parameter.ty)
-            && source_collection_field_is_admitted(borrowed, variables, types);
+            && (source_collection_field_is_admitted(borrowed, variables, types)
+                || source_place(borrowed, variables, types).is_some_and(|p| {
+                    p.projections.is_empty()
+                        && p.ty == parameter.ty
+                        && matches!(p.mode, ParamMode::Own | ParamMode::Borrow)
+                }));
         let text_view = matches!(parameter.ty, Type::Str | Type::SliceU8)
             .then(|| {
                 super::loans::local_borrow_origin(
@@ -303,6 +308,14 @@ pub(super) fn source_byte_view_place_is_admitted(
             args,
         } = &expression.kind
         {
+            if name == crate::vec_field::NAME {
+                return super::vec_field::signature(types, type_arguments, args, expression.span)
+                    .is_some_and(|(_, result)| result == Type::Str)
+                    && args
+                        .first()
+                        .and_then(|arg| source_place(arg, variables, types))
+                        .is_some();
+            }
             if crate::byte_ops::by_name(name) == Some(crate::byte_ops::ByteOp::StringAsStr)
                 && type_arguments.is_empty()
             {

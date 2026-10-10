@@ -374,7 +374,8 @@ fn visit_resolved_calls<'a>(
                 visit_resolved_calls(argument, visit);
             }
         }
-        hir::ResolvedExprKind::LiteralFormat { args, .. } => {
+        hir::ResolvedExprKind::LiteralFormat { args, .. }
+        | hir::ResolvedExprKind::VecFieldRead { args, .. } => {
             for argument in args {
                 visit_resolved_calls(argument, visit);
             }
@@ -839,6 +840,35 @@ fn collect_resolved_expression_type_sites<'a>(
                     owner,
                     argument,
                     &crate::bounded_output::budgeted_format(format_args!("{path}.arg.{index}")),
+                    imported,
+                    out,
+                )?;
+            }
+        }
+        hir::ResolvedExprKind::VecFieldRead {
+            element,
+            bytes,
+            args,
+            ..
+        } => {
+            let call_path = if *bytes {
+                format!("{path}.arg.0")
+            } else {
+                path.to_owned()
+            };
+            collect_resolved_type_sites(
+                owner.as_str(),
+                element,
+                &format!("{call_path}.type_argument.0"),
+                Some(expression_id),
+                imported,
+                out,
+            )?;
+            for (index, argument) in args.iter().enumerate() {
+                collect_resolved_expression_type_sites(
+                    owner,
+                    argument,
+                    &format!("{call_path}.arg.{index}"),
                     imported,
                     out,
                 )?;
@@ -1398,44 +1428,6 @@ pub(super) fn permits_admitted(
 
 /// Bind one retained declaration to its authenticated Phase-A fact. Both an
 /// absent fact and a disagreeing or repeated one fail closed.
-fn retain_linked_fact(
-    authenticated: &BTreeMap<String, WorkspaceDeclarationFact>,
-    selected: &mut BTreeMap<hir::DeclarationId, hir::LinkedDeclarationFact>,
-    id: &hir::DeclarationId,
-    kind: hir::DeclarationKind,
-    owner: Option<&hir::DeclarationId>,
-) -> Result<(), Diagnostic> {
-    let Some(fact) = authenticated.get(id.as_str()) else {
-        return Err(graph_error(
-            "SPX-G173",
-            format!("scalar Native Rust declaration `{id}` has no Phase-A fact"),
-        ));
-    };
-    if fact.kind != kind || fact.owner.as_deref() != owner.map(hir::DeclarationId::as_str) {
-        return Err(graph_error(
-            "SPX-G173",
-            format!("scalar Native Rust declaration `{id}` disagrees with its Phase-A fact"),
-        ));
-    }
-    if selected
-        .insert(
-            id.clone(),
-            hir::LinkedDeclarationFact {
-                kind: fact.kind,
-                origin: fact.origin,
-                owner: owner.cloned(),
-            },
-        )
-        .is_some()
-    {
-        return Err(graph_error(
-            "SPX-G173",
-            format!("scalar Native Rust declaration `{id}` is selected more than once"),
-        ));
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 mod environment_profile_tests {
     use super::{project_effects_admitted, scalar_native_imports};

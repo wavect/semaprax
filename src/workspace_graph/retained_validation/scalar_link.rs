@@ -142,3 +142,41 @@ impl ScalarNativeImports {
         }
     }
 }
+
+fn retain_linked_fact(
+    authenticated: &BTreeMap<String, WorkspaceDeclarationFact>,
+    selected: &mut BTreeMap<hir::DeclarationId, hir::LinkedDeclarationFact>,
+    id: &hir::DeclarationId,
+    kind: hir::DeclarationKind,
+    owner: Option<&hir::DeclarationId>,
+) -> Result<(), Diagnostic> {
+    let Some(fact) = authenticated.get(id.as_str()) else {
+        return Err(graph_error(
+            "SPX-G173",
+            format!("scalar Native Rust declaration `{id}` has no Phase-A fact"),
+        ));
+    };
+    if fact.kind != kind || fact.owner.as_deref() != owner.map(hir::DeclarationId::as_str) {
+        return Err(graph_error(
+            "SPX-G173",
+            format!("scalar Native Rust declaration `{id}` disagrees with its Phase-A fact"),
+        ));
+    }
+    if selected
+        .insert(
+            id.clone(),
+            hir::LinkedDeclarationFact {
+                kind: fact.kind,
+                origin: fact.origin,
+                owner: owner.cloned(),
+            },
+        )
+        .is_some()
+    {
+        return Err(graph_error(
+            "SPX-G173",
+            format!("scalar Native Rust declaration `{id}` is selected more than once"),
+        ));
+    }
+    Ok(())
+}

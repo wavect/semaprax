@@ -259,7 +259,8 @@ fn collect_variant_domains(
                 }
             }
             hir::ResolvedExprKind::Call { args, .. }
-            | hir::ResolvedExprKind::LiteralFormat { args, .. } => {
+            | hir::ResolvedExprKind::LiteralFormat { args, .. }
+            | hir::ResolvedExprKind::VecFieldRead { args, .. } => {
                 for argument in args {
                     visit(program, argument, domains)?;
                 }
@@ -1103,7 +1104,9 @@ impl<'a> Executor<'a> {
                 "call `{call}` status source is not a propagated call"
             )));
         };
-        if self.program.functions.iter().any(|item| item.id == *callee) {
+        if callee.as_str() == crate::vec_field::ID
+            || self.program.functions.iter().any(|item| item.id == *callee)
+        {
             return Ok(callee.clone());
         }
         if self

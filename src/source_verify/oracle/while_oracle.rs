@@ -211,6 +211,7 @@ pub(in crate::source_verify) fn reject_while_disallowed_oracle(
             let vec_operation = crate::vec_ops::by_name(name);
             if !type_arguments.is_empty()
                 && vec_operation.is_none()
+                && name != crate::vec_field::NAME
                 && crate::map_ops::by_generic_name(name, type_arguments).is_none()
             {
                 diagnostics.push(error(

@@ -82,6 +82,7 @@ mod owned_vec;
 mod prepared;
 mod projected_string_view;
 mod public_api_argument;
+mod vec_field;
 pub use public_api_argument::PublicApiArgument;
 mod map_collections;
 mod resolved_case;
@@ -2603,7 +2604,9 @@ fn scan_closure(
             {
                 Err(reject_scan(expression, REASON_PLACE_PROJECTION))
             }
-            ResolvedExprKind::LiteralFormat { .. } => Ok(()),
+            ResolvedExprKind::LiteralFormat { .. } | ResolvedExprKind::VecFieldRead { .. } => {
+                Ok(())
+            }
             ResolvedExprKind::Call {
                 callee, instance, ..
             } => {
@@ -4362,6 +4365,12 @@ impl Evaluator<'_> {
                     fields: values,
                 })))
             }
+            ResolvedExprKind::VecFieldRead {
+                element,
+                field,
+                bytes,
+                args,
+            } => self.evaluate_vec_field(element, field, *bytes, args, environment, depth),
             ResolvedExprKind::LiteralFormat { template, args } => {
                 self.evaluate_literal_format(template, args, environment, depth)
             }

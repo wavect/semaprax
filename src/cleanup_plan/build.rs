@@ -2494,6 +2494,21 @@ impl<'a> PlanBuilder<'a> {
                             commits: Vec::new(),
                         });
                     }
+                    ResolvedExprKind::VecFieldRead { args, .. } => {
+                        frames.push(Frame::CallNext {
+                            expression,
+                            callee: crate::vec_field::operation_id(),
+                            args,
+                            params: crate::vec_field::resolved_params(args),
+                            index: 0,
+                            flow: EvalResult {
+                                block,
+                                state,
+                                owned_source: None,
+                            },
+                            commits: Vec::new(),
+                        });
+                    }
                     ResolvedExprKind::LiteralFormat { args, .. } => {
                         frames.push(Frame::CallNext {
                             expression,
@@ -2501,7 +2516,11 @@ impl<'a> PlanBuilder<'a> {
                             args,
                             params: crate::literal_format::resolved_params(args),
                             index: 0,
-                            flow: EvalResult { block, state, owned_source: None },
+                            flow: EvalResult {
+                                block,
+                                state,
+                                owned_source: None,
+                            },
                             commits: Vec::new(),
                         });
                     }
@@ -4635,8 +4654,19 @@ impl<'a> PlanBuilder<'a> {
                 let (callee, args, _) = crate::hir::function_value::cleanup_call(expression)?;
                 self.lower_call(expression, callee, None, args, (block, state, region))
             }
+            ResolvedExprKind::VecFieldRead { args, .. } => self.lower_call(
+                expression,
+                crate::vec_field::operation_id(),
+                None,
+                args,
+                (block, state, region),
+            ),
             ResolvedExprKind::LiteralFormat { args, .. } => self.lower_call(
-                expression, crate::literal_format::operation_id(), None, args, (block, state, region),
+                expression,
+                crate::literal_format::operation_id(),
+                None,
+                args,
+                (block, state, region),
             ),
             ResolvedExprKind::Call {
                 callee,

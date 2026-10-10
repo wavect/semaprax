@@ -209,6 +209,24 @@ impl Resolver<'_> {
                         span: expr.span,
                     });
                 }
+                if name == crate::vec_field::NAME {
+                    let (element, field) =
+                        self.prepare_vec_field(function, expr, type_arguments, args)?;
+                    let values = args[..2]
+                        .iter()
+                        .enumerate()
+                        .map(|(index, arg)| {
+                            self.resolve_expr_recursive_reference(
+                                function,
+                                arg,
+                                bindings,
+                                &format!("{path}.arg.{index}"),
+                            )
+                        })
+                        .collect::<Result<Vec<_>, _>>()?;
+                    return self
+                        .finish_vec_field(function, expr.span, path, element, field, values);
+                }
                 if name == crate::literal_format::NAME {
                     return self.resolve_literal_format_reference(
                         function,
@@ -423,6 +441,11 @@ impl Resolver<'_> {
                             span: expr.span,
                         });
                     }
+                    if let Some(fused) =
+                        self.fuse_vec_field_bytes(function, expr.span, path, op, &args)
+                    {
+                        return Ok(fused);
+                    }
                     if op.is_view() {
                         let place = match &args[0].kind {
                             ResolvedExprKind::Place(place) => place,
@@ -444,9 +467,7 @@ impl Resolver<'_> {
                                 };
                                 return Err(self.error(
                                     "SPX-T266",
-                                    format!(
-                                        "borrowed view `{name}` requires {requirement}"
-                                    ),
+                                    format!("borrowed view `{name}` requires {requirement}"),
                                     args[0].span,
                                 ));
                             }

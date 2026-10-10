@@ -664,6 +664,14 @@ fn relocate_expression(
         ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
             relocate_arguments(args, execution, path, "arg", values)?;
         }
+        ResolvedExprKind::VecFieldRead { args, bytes, .. } => {
+            let call_path = if *bytes {
+                format!("{path}.arg.0")
+            } else {
+                path.to_owned()
+            };
+            relocate_arguments(args, execution, &call_path, "arg", values)?;
+        }
         ResolvedExprKind::NativeRustImportCall(call) => {
             call.expression = expression_id;
             relocate_arguments(&mut call.args, execution, path, "native-rust-arg", values)?;

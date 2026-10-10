@@ -1,0 +1,33 @@
+module scoped.fields;
+@id("scoped.row") record Row {
+    @id("scoped.row.text") text: string,
+    @id("scoped.row.payload") payload: Bytes,
+    @id("scoped.row.number") number: i64,
+}
+@id("scoped.metrics") record Metrics { @id("scoped.metrics.count") count: usize }
+@id("scoped.envelope") record Envelope {
+    @id("scoped.envelope.rows") rows: Vec<Row>,
+    @id("scoped.envelope.metrics") metrics: Metrics,
+}
+@id("scoped.inspect") fn inspect(value: own Envelope) -> i64 {
+    let text=vec_field<Row>(value.rows,0usize,"text");
+    let alias=text;
+    let bytes=str_as_bytes(alias);
+    let prefix=byte_range(bytes,0usize,3usize);
+    let fused=str_as_bytes(vec_field<Row>(value.rows,0usize,"text"));
+    let payload=vec_field<Row>(value.rows,0usize,"payload");
+    let mut iteration=0;
+    let mut result=0;
+    while iteration<5000 {
+        result=vec_field<Row>(value.rows,0usize,"number");
+        iteration=iteration+1;
+        0
+    }
+    if byte_len(prefix)==3usize && byte_len(fused)==3usize && byte_len(payload)==1usize {result} else {0}
+}
+@id("app.main") fn main()->i64 {
+    let row=Row{text:"abc",payload:bytes_zeroed(1usize),number:42};
+    let rows=vec_new<Row>(1usize);
+    let rows=vec_push<Row>(rows,row);
+    inspect(Envelope{rows:rows,metrics:Metrics{count:1usize}})
+}

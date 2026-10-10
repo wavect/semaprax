@@ -518,6 +518,72 @@ pub(super) fn oracle_call(
             )
         });
     }
+    if name == crate::vec_field::NAME {
+        let Some((params, ty)) =
+            crate::source_verify::vec_field::signature(types, type_arguments, args, expr.span)
+        else {
+            diagnostics.push(error(program,"SPX-T310","vec_field requires one admitted owned record type, a named Vec and usize index, and an exact literal field selector",expr.span));
+            return None;
+        };
+        if !current.type_parameters.is_empty() {
+            diagnostics.push(error(
+                program,
+                "SPX-T310",
+                "vec_field is not admitted in generic function templates",
+                expr.span,
+            ));
+        }
+        let loans = activate_borrowed_bytes_call_loans(program, args, &params, variables, types);
+        for (arg, param) in args.iter().zip(&params) {
+            let actual = check_expr(
+                program,
+                current,
+                arg,
+                variables,
+                functions,
+                types,
+                result_type,
+                allow_moves,
+                diagnostics,
+            );
+            if let Some(actual) = &actual {
+                reject_native_unit_value(program, arg, actual, diagnostics);
+                if actual.ty != param.ty {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T205",
+                        "vec_field argument type differs",
+                        arg.span,
+                    ));
+                }
+            }
+            check_argument_ownership(
+                program,
+                current,
+                name,
+                arg,
+                param,
+                actual.as_ref(),
+                variables,
+                types,
+                allow_moves,
+                false,
+                false,
+                diagnostics,
+            );
+        }
+        release_borrowed_bytes_call_loans(variables, &loans);
+        let mode = if matches!(ty, Type::Str | Type::SliceU8) {
+            ParamMode::Borrow
+        } else {
+            ParamMode::Value
+        };
+        return Some(CheckedValue {
+            ty,
+            mode,
+            native_unit: false,
+        });
+    }
     if name == crate::literal_format::NAME {
         if !type_arguments.is_empty() || !current.type_parameters.is_empty() {
             diagnostics.push(error(

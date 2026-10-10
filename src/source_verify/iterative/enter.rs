@@ -293,6 +293,30 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         return_type,
                         implicit_unique_ownership: false,
                     }))
+                } else if name == crate::vec_field::NAME {
+                    let Some((params, return_type)) = super::super::vec_field::signature(
+                        self.types,
+                        type_arguments,
+                        args,
+                        expression.span,
+                    ) else {
+                        self.diagnostics.push(error(self.program,"SPX-T310","vec_field requires one admitted owned record type, a named Vec and usize index, and an exact literal field selector",expression.span));
+                        self.values.push(None);
+                        return Ok(());
+                    };
+                    if !self.current.type_parameters.is_empty() {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T310",
+                            "vec_field is not admitted in generic function templates",
+                            expression.span,
+                        ));
+                    }
+                    VerifierCallTarget::Ordinary(Some(VerifierFunctionSignature::Specialized {
+                        params,
+                        return_type,
+                        implicit_unique_ownership: false,
+                    }))
                 } else if name == crate::literal_format::NAME {
                     if !type_arguments.is_empty() {
                         self.diagnostics.push(error(

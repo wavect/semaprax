@@ -182,6 +182,7 @@ fn validate_function(
             }
             ResolvedExprKind::String(_)
             | ResolvedExprKind::LiteralFormat { .. }
+            | ResolvedExprKind::VecFieldRead { .. }
             | ResolvedExprKind::NativeRustImportCall(_)
             | ResolvedExprKind::HostCommandCall(_) => {
                 return Err(admission(format!(

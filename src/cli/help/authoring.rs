@@ -2,7 +2,7 @@
 use std::fmt::Write as _;
 
 const MAX_BYTES: usize = 2_048;
-const ROUTES: &str = "Authoring routes (complete):\n  author:stdin-json               v27 bounded native stream command\n  author:stream-data-v2           v29 private record/Vec stream command\n  author:owned-data               v30 private owned-leaf collections\n  author:file-text                native UTF-8 file command\n  author:source-web               single-source web build\n  author:literal-format           checked literal String rendering\n  author:copy-record-vec          flat Copy-record vectors\n  author:json-codec               checked source JSON codec derivation\n  author:json-identifier-views    one identifier as a token view\n  author:json-request-views       bounded identifier and record arrays\n  author:json-stream-request-views bounded native stream request view\n  author:json-owned-request      bounded owning request collections\n  author:json-utf8-owned-request bounded UTF-8 string values\n  author:json-stream-utf8-owned-request bounded UTF-8 stdin requests\nLibrary-only search: help language find:<word>:0\nExact card sections: help language topics\n";
+const ROUTES: &str = "Authoring routes (complete):\n  author:stdin-json               v27 bounded native stream command\n  author:stream-data-v2           v29 private record/Vec stream command\n  author:owned-data               v30 private owned-leaf collections\n  author:file-text                native UTF-8 file command\n  author:source-web               single-source web build\n  author:literal-format           checked literal String rendering\n  author:copy-record-vec          flat Copy-record vectors\n  author:json-codec               checked source JSON codec derivation\n  author:json-identifier-views    one identifier as a token view\n  author:json-request-views       bounded identifier and record arrays\n  author:json-stream-request-views bounded native stream request view\n  author:json-owned-request      bounded owning request collections\n  author:json-utf8-owned-request bounded UTF-8 string values\n  author:json-stream-utf8-owned-request bounded UTF-8 stdin requests\n  author:json-collection-response bounded nested collection encoder\nLibrary-only search: help language find:<word>:0\nExact card sections: help language topics\n";
 
 #[cfg(test)]
 pub(super) fn assert_guide_contract() {
@@ -68,7 +68,7 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
         "author:json-codec" => Ok(concat!(
             "Checked source generator implementation; focused/application qualification pending.\n",
             "semaprax json-codec <project> --source <module-path> --type <record-id> --output <new-file> [--profile <selector>]\n",
-            "utf8-owned-request.v1 also requires --max-string-bytes 1..64; see author:json-utf8-owned-request.\n",
+            "UTF-8 owned request and bounded-collection-response.v1 profiles require --max-string-bytes 1..64. See their authoring cards.\n",
             "Omit --profile for the default flat scalar record (1..8 i64/u8/usize/bool fields). Choose by source shape: help language author:json-identifier-views, author:json-request-views or author:json-stream-request-views.\n",
             "Declare std.data.json.scan/token/digits/write. Output is a new complete module, never an overwrite. Generated helpers are ordinary checked source.\n",
             "Declared Vec<string> in a request-view schema is description only: runtime carries Copy views and Vec<View>, not owned String collections. For owning requests: help language author:json-owned-request. This is not a generic JSON codec.\n",
@@ -101,6 +101,11 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
             "The schema must already declare process.stdin.read; derivation grants no capability. Decode only the Ready Bytes from the existing bounded stream normalizer.\n",
             "Raw normalizer errors use raw-input offsets; post-Ready request/schema errors use normalized-input offsets. This is a native stream selector.\n",
             "The selector does not widen the foreign 65,536-byte input bound. Exact contract: docs/APPLICATION-JSON-CODECS-V1.md.\n"
+        ).to_owned()),
+        "author:json-collection-response" => Ok(concat!(
+            "Source-generation selector bounded-collection-response.v1 requires --max-string-bytes N, canonical decimal 1..64. It derives an encode-only view for one Vec<Row> plus one nested flat Copy Metrics record; Row has one string and up to six scalar fields, Metrics has 1..8 Copy scalars.\n",
+            "Each stored Row string is bounded by UTF-8 byte length; complete encoded output remains separately bounded by 131072 bytes and output_limit. The caller's independently checked Project profile must admit the generated helpers. Nested-carrier runtime admission and execution qualification are pending; this is not a v30 command route. No decoder or stream normalizer is generated.\n",
+            "Exact signatures and limits: docs/APPLICATION-JSON-CODECS-V1.md.\n"
         ).to_owned()),
         "author:json-owned-request" => Ok(concat!(
             "Owned request source implementation; focused cross-backend and application qualification pending.\n",
@@ -258,6 +263,7 @@ mod tests {
             "author:json-owned-request",
             "author:json-utf8-owned-request",
             "author:json-stream-utf8-owned-request",
+            "author:json-collection-response",
         ] {
             let output = lookup(route).unwrap();
             assert!(output.len() <= MAX_BYTES);
@@ -318,6 +324,17 @@ mod tests {
                 "stream UTF-8 request guidance omits {fact}"
             );
         }
+        let collection_response = lookup("author:json-collection-response").unwrap();
+        for fact in [
+            "bounded-collection-response.v1",
+            "--max-string-bytes N",
+            "canonical decimal 1..64",
+            "encode-only",
+            "execution qualification are pending",
+            "not a v30 command route",
+        ] {
+            assert!(collection_response.contains(fact), "collection response guidance omits {fact}");
+        }
         let owned_request = lookup("author:json-owned-request").unwrap();
         for fact in [
             "owned-request.v1",
@@ -350,6 +367,7 @@ mod tests {
             "author:json-owned-request",
             "author:json-utf8-owned-request",
             "author:json-stream-utf8-owned-request",
+            "author:json-collection-response",
         ] {
             assert!(routes.contains(selector), "route list omits {selector}");
         }

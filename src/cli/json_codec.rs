@@ -12,7 +12,7 @@ use semaprax::diagnostic::Diagnostic;
 static NEXT: AtomicU64 = AtomicU64::new(0);
 const USAGE: &str =
     "json-codec <project> --source <module-path> --type <record-id> --output <new-file> [--profile <selector>] [--max-string-bytes <1..64>]";
-pub(crate) const HELP: &str = "Derives checked ordinary source for explicit scalar records; opt-in identifier-views.v1, request-views.v1 and stream-request-views.v1 add bounded identifier/array views; owned-request.v1 and stream-owned-request.v1 materialize bounded identifier String/record collections under an owning runtime profile. utf8-owned-request.v1 and stream-utf8-owned-request.v1 bound each decoded string with --max-string-bytes (1..64 UTF-8 bytes).\nRequires declared std.data.json scan/token/digits/write dependencies. Publishes a new complete module replacement; never overwrites source.\nContract and typed failure codes: docs/APPLICATION-JSON-CODECS-V1.md\n";
+pub(crate) const HELP: &str = "Derives checked ordinary source for explicit scalar records; opt-in identifier-views.v1, request-views.v1 and stream-request-views.v1 add bounded identifier/array views; owned-request.v1 and stream-owned-request.v1 materialize bounded identifier String/record collections under an owning runtime profile. UTF-8 owned request profiles bound each decoded string with --max-string-bytes (1..64 UTF-8 bytes). bounded-collection-response.v1 selects an encode-only nested collection view and also requires that bound.\nRequires declared std.data.json scan/token/digits/write dependencies. Publishes a new complete module replacement; never overwrites source.\nContract and typed failure codes: docs/APPLICATION-JSON-CODECS-V1.md\n";
 
 pub(crate) struct Options {
     project: PathBuf,
@@ -168,8 +168,18 @@ mod tests {
             "--max-string-bytes".to_owned(), "64".to_owned(),
         ]);
         assert!(parse(&stream_utf8).is_ok());
+        let mut collection_response = strings(&good);
+        collection_response.extend([
+            "--profile".to_owned(), "bounded-collection-response.v1".to_owned(),
+            "--max-string-bytes".to_owned(), "64".to_owned(),
+        ]);
+        assert!(parse(&collection_response).is_ok());
         for invalid in ["0", "65", "01", "+1", " 1"] {
-            for profile in ["utf8-owned-request.v1", "stream-utf8-owned-request.v1"] {
+            for profile in [
+                "utf8-owned-request.v1",
+                "stream-utf8-owned-request.v1",
+                "bounded-collection-response.v1",
+            ] {
                 let mut args = strings(&good);
                 args.extend([
                     "--profile".to_owned(), profile.to_owned(),
@@ -186,6 +196,11 @@ mod tests {
             "--profile".to_owned(), "stream-utf8-owned-request.v1".to_owned(),
         ]);
         assert!(parse(&stream_missing_bound).is_err());
+        let mut collection_response_missing_bound = strings(&good);
+        collection_response_missing_bound.extend([
+            "--profile".to_owned(), "bounded-collection-response.v1".to_owned(),
+        ]);
+        assert!(parse(&collection_response_missing_bound).is_err());
         let mut old_with_bound = strings(&good);
         old_with_bound.extend([
             "--profile".to_owned(), "owned-request.v1".to_owned(),

@@ -232,6 +232,8 @@ impl SemanticSourceIndex {
                     Span {
                         start: literal.start + 1,
                         end: literal.end - 1,
+                        line: literal.line,
+                        column: literal.column + 1,
                     },
                     None,
                 );

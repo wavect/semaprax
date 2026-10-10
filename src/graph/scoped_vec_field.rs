@@ -6,11 +6,7 @@ fn function_requires(function: &ResolvedFunction) -> bool {
     std::iter::once(&function.body)
         .chain(function.requires.iter())
         .chain(function.ensures.iter())
-        .any(|root| {
-            traversal::any_expression(root, traversal::ClosureBodies::Structural, |expression| {
-                matches!(expression.kind, ResolvedExprKind::VecFieldRead { .. })
-            })
-        })
+        .any(crate::vec_field::expression_uses)
 }
 fn requires(program: &ResolvedProgram) -> bool {
     program

@@ -12,18 +12,16 @@ pub(in crate::codegen) struct Layout {
 }
 
 pub(in crate::codegen) fn program_uses_field_reads(program: &ResolvedProgram) -> bool {
-    program.functions.iter().chain(program.function_instances.iter().map(|i| &i.function))
-        .any(|function| std::iter::once(&function.body).chain(&function.requires).chain(&function.ensures)
-            .any(|root| {
-                let mut pending = vec![root];
-                while let Some(expression) = pending.pop() {
-                    if matches!(expression.kind, crate::hir::ResolvedExprKind::VecFieldRead { .. }) {
-                        return true;
-                    }
-                    crate::hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
-                }
-                false
-            }))
+    program
+        .functions
+        .iter()
+        .chain(program.function_instances.iter().map(|i| &i.function))
+        .any(|function| {
+            std::iter::once(&function.body)
+                .chain(&function.requires)
+                .chain(&function.ensures)
+                .any(crate::vec_field::expression_uses)
+        })
 }
 
 pub(in crate::codegen) fn layout(
@@ -100,7 +98,8 @@ pub(in crate::codegen) fn layout(
 }
 
 pub(super) fn emit_runtime(output: &mut impl super::super::COutput, program: &ResolvedProgram) {
-    if program_uses_field_reads(program) {
+    let field_reads = program_uses_field_reads(program);
+    if field_reads {
         // Additive programs bind tag-10 descriptors at construction. Keep the
         // legacy runtime text and context layout exact for all older programs.
         let runtime = include_str!("owned_leaf.c");
@@ -128,6 +127,11 @@ pub(super) fn emit_runtime(output: &mut impl super::super::COutput, program: &Re
                 {
                     if let Some(l) = layout(program, element) {
                         layouts.insert(l.symbol.clone(), l);
+                    }
+                }
+                if field_reads {
+                    if let crate::hir::ResolvedExprKind::Closure { body, .. } = &expression.kind {
+                        pending.push(body);
                     }
                 }
                 crate::hir::push_resolved_expression_children_in_authored_order(

@@ -33,6 +33,11 @@ pub(crate) fn expression_uses(root: &crate::hir::ResolvedExpr) -> bool {
         ) {
             return true;
         }
+        // Feature discovery includes deferred bodies. Execution traversals
+        // continue to keep those bodies in their own evaluation scope.
+        if let crate::hir::ResolvedExprKind::Closure { body, .. } = &expression.kind {
+            pending.push(body);
+        }
         crate::hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
     }
     false

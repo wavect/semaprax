@@ -3,7 +3,7 @@
 //! These tests exercise generated C, not a handwritten model of its ownership.
 //! Every invocation must release every tracked heap owner and vector authority;
 //! a failure must retain its first status and leave the result sentinel intact.
-use semaprax::{codegen, graph, hir};
+use semaprax::{codegen, hir};
 
 #[path = "owned_leaf_collections/native.rs"]
 mod native;
@@ -227,49 +227,6 @@ fn every_partial_clone_prefix_settles_without_publishing_a_record() {
     native::run(primitive, 3, 42, native::Failure::CloneLeaf(1));
 }
 
-#[test]
-fn native_emission_replays_owned_leaf_identity_layout_and_source_authority() {
-    let ast = semaprax::check(SHARED, "owned-leaf-native.spx").unwrap();
-    let canonical = semaprax::format::canonical(&ast);
-    let round = semaprax::check(&canonical, "owned-leaf-native.spx").unwrap();
-    let expected = codegen::emit_c(&ast).unwrap();
-    assert_eq!(expected, codegen::emit_c(&round).unwrap());
-    let graph = graph::to_json(&ast).unwrap();
-    let changed = semaprax::check(
-        &SHARED.replace("count: 20", "count: 21"),
-        "owned-leaf-native.spx",
-    )
-    .unwrap();
-    assert!(graph::verify_json(&changed, &graph).is_err());
-    let resolved = hir::resolve(&ast).unwrap();
-    for drift in 0..3 {
-        let mut forged = resolved.clone();
-        if drift == 0 {
-            forged
-                .declarations
-                .declarations
-                .get_mut(&hir::DeclarationId::new("owned.leaf.key"))
-                .unwrap()
-                .identity_origin = hir::IdentityOrigin::Automatic;
-        } else {
-            let fields = forged
-                .declarations
-                .record_fields
-                .get_mut(&hir::DeclarationId::new("owned.leaf.entry"))
-                .unwrap();
-            if drift == 1 {
-                fields[0].ty = hir::ResolvedType::Bytes;
-            } else {
-                fields.swap(0, 2);
-            }
-        }
-        assert!(
-            hir::validate(&forged).is_err(),
-            "accepted declaration drift {drift}"
-        );
-        assert!(
-            codegen::emit_hir_c(&forged).is_err(),
-            "emitted declaration drift {drift}"
-        );
-    }
-}
+// Native emission/declaration mutation coverage lives in the HIR-owned
+// native_identity_tests child, which can forge private indexes without exposing
+// mutation authority through the public compiler API.

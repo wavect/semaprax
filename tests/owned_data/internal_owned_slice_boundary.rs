@@ -12,7 +12,7 @@ const SOURCE: &str = r#"module test.internal_owned_slice;
     if byte_len(value) == 131072usize { 9 } else { 3 }
 }
 @id("probe.pair") fn pair(text: borrow str, value: borrow Slice<u8>) -> i64 {
-    if str_len_bytes(text) == 512usize && byte_len(value) == 65024usize { 5 } else { 0 }
+    if str_len_bytes(text) == 512 && byte_len(value) == 65024usize { 5 } else { 0 }
 }
 @id("app.main") fn main() -> i64 {
     let buffer = bytes_zeroed(131072usize);

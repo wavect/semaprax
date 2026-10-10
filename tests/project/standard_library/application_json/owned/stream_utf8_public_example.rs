@@ -1,6 +1,6 @@
 //! Public bootstrap and native stdin execution for the streamed UTF-8 profile.
-use super::*;
 use super::public_example::{compile_native, execute};
+use super::*;
 
 const EXPECTED: &[u8] = r#"{"labels":["","\u0000","é","é"],"rows":[{"number":5,"text":"é\u0000😀"},{"number":4,"text":""},{"number":4,"text":""}]}"#.as_bytes();
 
@@ -71,7 +71,8 @@ fn public_stream_utf8_owned_request_bootstraps_and_runs_native_stdin() {
     std::fs::copy(root.join("src/app.command.spx"), root.join("src/app.spx")).unwrap();
 
     let c = project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
-        let graph = snapshot.retain_revision().semantic_graph();
+        let revision = snapshot.retain_revision();
+        let graph = revision.semantic_graph();
         assert!(graph.contains("catalog.request.json.stream.normalize"));
         assert!(graph.contains("catalog.request.json.utf8.owned.decode"));
         assert!(graph.contains("catalog.request.json.utf8.owned.encode"));

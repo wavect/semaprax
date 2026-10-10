@@ -351,3 +351,7 @@ pub(crate) fn projected_leaf_admitted(
         })
     })
 }
+
+#[cfg(test)]
+#[path = "owned_leaf_collection/native_identity_tests.rs"]
+mod native_identity_tests;

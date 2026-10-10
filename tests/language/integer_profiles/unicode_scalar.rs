@@ -1,5 +1,5 @@
 //! Checked Unicode scalars share the integer conversion status and cleanup path.
-use super::{checked_program, parity_cases};
+use super::{checked_program, parity_cases, parity_cases_with_internal_strings};
 use semaprax::{graph, hir};
 
 const SOURCE: &str = r#"module test.unicode_scalar;
@@ -136,7 +136,9 @@ fn unicode_scalar_failure_settles_live_and_staged_owners() {
             "{id} must retain canonical owner cleanup on conversion failure"
         );
     }
-    parity_cases(
+    // Direct String parameters require the explicit InternalStrings interpreter
+    // profile, matching the other owning String signature witnesses.
+    parity_cases_with_internal_strings(
         OWNED,
         &[
             ("scalar.utf8", "ok|0"),
@@ -144,5 +146,6 @@ fn unicode_scalar_failure_settles_live_and_staged_owners() {
             ("scalar.staged_failure", "semaprax.convert.v1|1"),
         ],
         false,
+        true,
     );
 }

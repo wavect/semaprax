@@ -98,11 +98,25 @@ fn checked_program(source: &str) -> semaprax::ast::Program {
 }
 
 fn parity_cases(source: &str, cases: &[(&str, &str)], public_exports: bool) {
+    parity_cases_with_internal_strings(source, cases, public_exports, false);
+}
+
+fn parity_cases_with_internal_strings(
+    source: &str,
+    cases: &[(&str, &str)],
+    public_exports: bool,
+    internal_strings: bool,
+) {
     let program = checked_program(source);
     let mut fixture = Fixture::new(source);
     let mut expected = String::new();
     for (id, observation) in cases {
-        let result = interpreter::interpret(
+        let interpret = if internal_strings {
+            interpreter::internal_strings::interpret
+        } else {
+            interpreter::interpret
+        };
+        let result = interpret(
             &fixture.source,
             id,
             &[],

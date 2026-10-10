@@ -13,6 +13,7 @@ const DOCTOR_LINE: &str = "semaprax doctor [--profile <id>] [--target native|web
 const NEW_LINE: &str = "semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text|stdin-stream-data|source-command-file-text]\n";
 const PROJECT_SCAFFOLD_LINE: &str = "semaprax project-scaffold --name project-name [--template calculator|library|service|stdin-stream-text|stdin-stream-data|source-command-file-text] [--layout frozen|tables]\n";
 const BANNER: &str = "SEMAPRAX — Meaning in. Verified machine code out.\n";
+const JSON_CODEC_HELP: &str = "Derives checked ordinary source for explicit scalar records; opt-in identifier-views.v1, request-views.v1 and stream-request-views.v1 add bounded identifier/array views; owned-request.v1 and stream-owned-request.v1 materialize bounded identifier String/record collections under an owning runtime profile. UTF-8 owned request profiles bound each decoded string with --max-string-bytes (1..64 UTF-8 bytes). bounded-collection-response.v1 selects an encode-only nested collection view and also requires that bound. bounded-nested-request.v1 requires both --max-string-bytes (1..64) and --max-array-items (1..256); direct decoding only, under the independently admitted caller Project profile. bounded-stream-nested-request.v1 uses the same bounds, original schema stdin permit and a computed normalized spelling envelope; it adds no raw-input or whitespace cap.\nRequires declared std.data.json scan/token/digits/write dependencies. Publishes a new complete module replacement; never overwrites source.\nContract and typed failure codes: docs/APPLICATION-JSON-CODECS-V1.md\n";
 /// The guided overview must stay one screen; CLI Help v4 fixes the bound.
 const GUIDE_MAX_BYTES: usize = 2048;
 const GUIDE_HEADINGS: &[&str] = &[
@@ -308,7 +309,17 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
                 .then(|| format!("  {line}\n"))
             })
             .collect();
-        let expected = format!("Usage:\n{expected}");
+        // The exhaustive catalog carries exact grammar only. Scoped codec
+        // help deliberately appends its profile contract, which is part of
+        // the public no-side-effect authoring surface.
+        let expected = format!(
+            "Usage:\n{expected}{}",
+            if command == "json-codec" {
+                JSON_CODEC_HELP
+            } else {
+                ""
+            }
+        );
         for arguments in [
             vec!["help", command],
             vec![command, "--help"],

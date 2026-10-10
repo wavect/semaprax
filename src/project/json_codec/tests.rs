@@ -80,7 +80,9 @@ fn codec_source_is_deterministic_ordinary_ast_and_has_no_authority_escape() {
     // Constant field selectors must be installed once before member iteration;
     // fixed-array construction is deliberately closed inside source loops.
     assert!(
-        source.find("let key_0 =").unwrap()
+        source
+            .find("let key_view_0 = array_as_slice(key_0)")
+            .unwrap()
             < source.find("while error == 0 && key < length").unwrap()
     );
     let fresh = super::template::discard_bindings(&source, "", "codec.spx").unwrap();

@@ -146,6 +146,8 @@ fn run(source: &str, expected: i64, failure: Option<(&str, u32, u32)>, allocatio
     let output = Command::new("node")
         .arg("-e")
         .arg(host)
+        // The shared file-mode host reads the Wasm path at argv[2].
+        .arg("semaprax-owned-host")
         .arg(module)
         .args([status.to_string(), expected.to_string(), "bulk-utf8".into()])
         .output()

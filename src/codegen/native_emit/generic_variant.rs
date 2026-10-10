@@ -8,6 +8,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         scrutinee: &ResolvedType,
     ) -> bool {
         super::generic_record::match_result_is_admitted(self.program, self.function, expression)
+            || hir::collection_outcome::match_join(&self.program.declarations, expression)
             || hir::generic_variant::match_result(
                 self.program,
                 self.function,

@@ -39,6 +39,14 @@ stage all arguments and commit them together. Later argument failure leaves
 staged owners with the caller. Callee/postcondition failure cannot publish an
 owned result and cannot replace the first selected status during cleanup.
 
+Finite collection-outcome matches may yield another independently admitted
+collection outcome in own mode, or one admitted Copy scalar/flat Copy record.
+The scrutinee and result each rederive their ordinary carrier classifiers.
+Arm type and ownership must agree; borrowed matches cannot publish an owner.
+This does not admit arbitrary owning variant results or use generated codec
+names as authority. Both source paths, retained HIR, independent cleanup replay
+and backends authenticate the same closed join.
+
 The cleanup inventory and independent cleanup plan retain the complete
 `case / payload field / record field ... / owned leaf` identity path. Borrowed
 payload bindings alias the active case's storage and cannot move or clone its

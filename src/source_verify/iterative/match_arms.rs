@@ -392,20 +392,37 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             return Ok(());
         }
         let arm_value = self.values.pop().unwrap_or(None);
+        let collection_result = |ty: &Type, mode: ParamMode| {
+            state.variant_name.as_ref().is_some_and(|name| {
+                crate::source_verify::declared_type::collection_outcome::match_result(
+                    self.types,
+                    &Type::Named {
+                        name: name.clone(),
+                        arguments: state.variant_arguments.clone(),
+                    },
+                    state.mode,
+                    ty,
+                    mode,
+                )
+            })
+        };
         if let Some(value) = &arm_value {
             reject_native_unit_value(self.program, &arm.value, value, self.diagnostics);
-            if !crate::source_verify::declared_type::generic_variant::match_result(
-                self.functions.get(self.current.name.as_str()).copied(),
-                self.types,
-                state.mode,
-                &value.ty,
-                value.mode,
-            ) {
+            if !collection_result(&value.ty, value.mode)
+                && !crate::source_verify::declared_type::generic_variant::match_result(
+                    self.functions.get(self.current.name.as_str()).copied(),
+                    self.types,
+                    state.mode,
+                    &value.ty,
+                    value.mode,
+                )
+            {
                 reject_aggregate_match_result(self.program, &arm.value, value, self.diagnostics);
             }
         }
         if let Some(arm_value) = arm_value {
             if state.needs_drop
+                && !collection_result(&arm_value.ty, arm_value.mode)
                 && !crate::source_verify::declared_type::generic_variant::match_result(
                     self.functions.get(self.current.name.as_str()).copied(),
                     self.types,

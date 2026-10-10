@@ -165,7 +165,8 @@ impl Emitter<'_> {
                     ty: field.ty.clone(),
                 }
             };
-            if matches!(&field.ty, ResolvedType::Bytes | ResolvedType::String)
+            if (matches!(&field.ty, ResolvedType::Bytes | ResolvedType::String)
+                || owned_vec(self.program, &field.ty))
                 && mode == crate::hir::ResolvedMatchMode::Borrow
             {
                 self.copy_borrowed_scalar_alias(&destination, &source)?;

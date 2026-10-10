@@ -222,11 +222,11 @@ fn escaped_token(value: &str, mixed: bool) -> Vec<u8> {
 }
 
 fn append_token(app: &mut String) {
-    app.push_str("let mut part=0usize;while part<byte_len(array_as_slice(token)){let byte=match byte_get(array_as_slice(token),part){Option::Some{value}=>value,Option::None{}=>0u8,};buffer=bytes_set(buffer,cursor,byte);cursor=cursor+1usize;part=part+1usize;part<byte_len(array_as_slice(token))}\n");
+    app.push_str("let mut part=0usize;while part<byte_len(token_view){let byte=match byte_get(token_view,part){Option::Some{value}=>value,Option::None{}=>0u8,};buffer=bytes_set(buffer,cursor,byte);cursor=cursor+1usize;part=part+1usize;part<byte_len(token_view)}\n");
 }
 
 fn unicode_wire(app: &mut String, function: &str, token: &[u8], length: usize) {
-    app.push_str(&format!("@id(\"consumer.{function}\") fn {function}()->Bytes{{let token={};let mut buffer=bytes_zeroed({}usize);let mut cursor=0usize;\n", array(token), length + 1));
+    app.push_str(&format!("@id(\"consumer.{function}\") fn {function}()->Bytes{{let token={};let token_view=array_as_slice(token);let mut buffer=bytes_zeroed({}usize);let mut cursor=0usize;\n", array(token), length + 1));
     super::write_fixed(app, b"{\"labels\":[");
     app.push_str("let mut label=0usize;while label<8usize{let _ = if label>0usize{buffer=bytes_set(buffer,cursor,44u8);cursor=cursor+1usize;true}else{true};\n");
     append_token(app);

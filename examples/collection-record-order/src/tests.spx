@@ -1,6 +1,6 @@
 module record_order.tests;
-use function @id("record_order.data.empty_order") from record_order.data as empty_order;
-use function @id("record_order.data.full_order") from record_order.data as full_order;
+use function @id("record_order.empty_order") from record_order.data as empty_order;
+use function @id("record_order.full_order") from record_order.data as full_order;
 
 @id("record_order.tests.main")
 fn main() -> i64

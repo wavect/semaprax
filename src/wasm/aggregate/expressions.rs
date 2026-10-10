@@ -12,6 +12,7 @@ impl Emitter<'_> {
         scrutinee: &ResolvedType,
     ) -> bool {
         generic_record::match_result_is_admitted(self.program, self.function, expression)
+            || hir::collection_outcome::match_join(&self.program.declarations, expression)
             || hir::generic_variant::match_result(
                 self.program,
                 self.function,
@@ -52,9 +53,12 @@ impl Emitter<'_> {
                 type_arguments,
                 args,
             } => self.emit_call(expr, callee, instance.as_ref(), type_arguments, args),
-            ResolvedExprKind::VecFieldRead { element, field, bytes, args } => {
-                self.emit_vec_field_read(expr, element, field, *bytes, args)
-            }
+            ResolvedExprKind::VecFieldRead {
+                element,
+                field,
+                bytes,
+                args,
+            } => self.emit_vec_field_read(expr, element, field, *bytes, args),
             ResolvedExprKind::LiteralFormat { template, args } => {
                 self.emit_literal_format(expr, template, args)
             }

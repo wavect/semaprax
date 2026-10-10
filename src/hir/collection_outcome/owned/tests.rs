@@ -149,3 +149,39 @@ fn owned_collection_outcome_refuses_unbounded_or_nonowned_shapes() {
         assert!(errors.iter().any(|d| d.code == "SPX-T215"), "{errors:?}");
     }
 }
+
+#[test]
+fn owned_collection_match_join_replays_source_types_and_rejects_result_drift() {
+    let source = SOURCE.replace(
+        "@id(\"app.main\")",
+        r#"
+@id("rebuild") fn rebuild(value:own Output)->Output {
+ match own value {
+  Output::Ready{words,rows}=>Output::Ready{words:words,rows:rows},
+  Output::Invalid{code,offset,field}=>Output::Invalid{code:code,offset:offset,field:field},
+ }
+}
+@id("app.main")"#,
+    );
+    let ast = crate::check(&source, "owned-match-join.spx").unwrap();
+    let program = crate::hir::resolve(&ast).unwrap();
+    let function = program
+        .functions
+        .iter()
+        .find(|f| f.id.as_str() == "rebuild")
+        .unwrap();
+    let ResolvedExprKind::Block { tail, .. } = &function.body.kind else {
+        panic!("body");
+    };
+    assert!(super::super::match_join(&program.declarations, tail));
+    crate::hir::validate(&program).unwrap();
+    crate::codegen::emit_hir_c(&program).unwrap();
+    wasmparser::Validator::new()
+        .validate_all(&crate::wasm::emit_resolved_module(&program).unwrap())
+        .unwrap();
+    let mut forged = tail.as_ref().clone();
+    forged.ownership = OwnershipMode::Value;
+    assert!(!super::super::match_join(&program.declarations, &forged));
+    let graph = crate::graph::to_json(&ast).unwrap();
+    crate::graph::verify_json(&ast, &graph).unwrap();
+}

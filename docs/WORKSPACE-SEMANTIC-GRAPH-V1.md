@@ -285,8 +285,10 @@ capacity factor or retained-closure forecast is reduced.
 
 In that final uncached retention attempt, the HIR allocation-key inventory
 used to prove loan-sidecar sharing reuses one temporary vector across functions
-and modules. Every replacement allocation reserves its entire capacity before
-allocation, including capacity excess; earlier allocations remain charged in
+and modules. Before consuming a module, it reserves the largest selected
+ordinary-function census once, avoiding intermediate replacement allocations.
+Every replacement reserves its entire capacity before allocation, including
+capacity excess; earlier allocations remain charged in
 the cumulative ledger. The vector is cleared before each function, so a previous
 function's keys cannot exclude independent or foreign proof storage. Proof
 carriers, unmatched identities, full-census fallbacks and earlier attempt

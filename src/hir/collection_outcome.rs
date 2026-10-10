@@ -9,6 +9,62 @@ pub(crate) fn runtime_admitted(index: &DeclarationIndex, ty: &ResolvedType) -> b
     admitted(index, ty) || owned_admitted(index, ty) || nested::admitted(index, ty)
 }
 
+/// Independently replay the finite collection match join on both HIR paths.
+pub(crate) fn match_result(
+    index: &DeclarationIndex,
+    expression: &ResolvedExpr,
+    arm: &ResolvedExpr,
+) -> bool {
+    let ResolvedExprKind::Match {
+        mode, scrutinee, ..
+    } = &expression.kind
+    else {
+        return false;
+    };
+    *mode != ResolvedMatchMode::Value
+        && runtime_admitted(index, &scrutinee.ty)
+        && ((arm.ownership == OwnershipMode::Value
+            && (crate::vec_ops::resolved_element_is_admitted(&arm.ty)
+                || copy_record_collection::admitted(index, &arm.ty)))
+            || (*mode == ResolvedMatchMode::Own
+                && arm.ownership == OwnershipMode::Own
+                && runtime_admitted(index, &arm.ty)))
+}
+
+pub(crate) fn match_arm_execution(
+    program: &ResolvedProgram,
+    execution: &FunctionExecutionId,
+    expression: &ResolvedExpr,
+    arm: &ResolvedExpr,
+) -> bool {
+    let ResolvedExprKind::Match { mode, .. } = &expression.kind else {
+        return false;
+    };
+    *mode == ResolvedMatchMode::Value
+        || match_result(&program.declarations, expression, arm)
+        || super::generic_variant::match_result_execution(
+            program,
+            execution,
+            *mode,
+            &arm.ty,
+            arm.ownership,
+        )
+        || (matches!(arm.ty, ResolvedType::I64 | ResolvedType::Bool)
+            && arm.ownership == OwnershipMode::Value)
+}
+
+pub(crate) fn match_join(index: &DeclarationIndex, expression: &ResolvedExpr) -> bool {
+    let ResolvedExprKind::Match { arms, .. } = &expression.kind else {
+        return false;
+    };
+    !arms.is_empty()
+        && arms.iter().all(|arm| {
+            arm.value.ty == expression.ty
+                && arm.value.ownership == expression.ownership
+                && match_result(index, expression, &arm.value)
+        })
+}
+
 pub(crate) fn field_admitted(index: &DeclarationIndex, ty: &ResolvedType) -> bool {
     copy_record_collection::is_vec(index, ty) || owned_leaf_collection::is_vec(index, ty)
 }

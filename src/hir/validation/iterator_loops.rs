@@ -293,7 +293,10 @@ impl HirValidator<'_> {
                             || args.iter().zip(operation.param_types()).any(|(argument, ty)| {
                                 argument.ty != *ty || if *ty == ResolvedType::Str {
                                     argument.ownership != OwnershipMode::Borrow
-                                    || !matches!(&argument.kind, ResolvedExprKind::Place(place) if place.projections.is_empty())
+                                    || !(matches!(&argument.kind, ResolvedExprKind::Place(place) if place.projections.is_empty())
+                                        || matches!(&argument.kind, ResolvedExprKind::VecFieldRead { element, field, bytes: false, .. }
+                                            if crate::hir::vec_field::field(&self.program.declarations, element, field)
+                                                .is_some_and(|selected| selected.result_type(false) == Some(ResolvedType::Str))))
                                 } else { argument.ownership != OwnershipMode::Value }
                             })
                         {
@@ -302,10 +305,10 @@ impl HirValidator<'_> {
                         // Full expression replay authenticates each binding and
                         // immutable borrowed-str origin; these closed readers
                         // return only Copy data and cannot retain their inputs.
-                        pending.extend(
-                            args.iter()
-                                .filter(|argument| argument.ty != ResolvedType::Str),
-                        );
+                        pending.extend(args.iter().filter(|argument| {
+                            argument.ty != ResolvedType::Str
+                                || matches!(argument.kind, ResolvedExprKind::VecFieldRead { .. })
+                        }));
                         continue;
                     }
                     if let Some(operation) = crate::map_ops::by_id(callee.as_str()) {

@@ -37,6 +37,8 @@ mod import_stub;
 mod local_identity;
 #[path = "expected_projection/statement_segment.rs"]
 mod statement_segment;
+#[path = "expected_projection/type_rewrite.rs"]
+mod type_rewrite;
 #[path = "expected_projection/uncached_peak.rs"]
 pub(super) mod uncached_peak;
 use cost::{ExpandedDefaultCost, GenericInstanceCost, StructuralCost};
@@ -543,41 +545,7 @@ pub(super) fn rewrite_type_runtime_cost(
     programs: &[Program],
     cost: &mut StructuralCost,
 ) -> Result<(), Vec<Diagnostic>> {
-    if crate::stdin_stream_ops::ast_is_reader(ty)
-        || crate::map_ops::ast_collection(ty)
-        || crate::vec_ops::ast_copy_vec(ty)
-    {
-        return Ok(());
-    }
-    let Type::Named { name, arguments } = ty else {
-        return Ok(());
-    };
-    if !arguments.is_empty() {
-        return Err(vec![graph_error(
-            "SPX-G172",
-            "generic cross-file types are not admitted",
-        )]);
-    }
-    let target_id = resolve_type_id(target_module, name, programs).ok_or_else(|| {
-        vec![graph_error(
-            "SPX-G173",
-            "cross-file type identity cost lookup disagrees",
-        )]
-    })?;
-    let alias = caller
-        .module_uses
-        .iter()
-        .find(|item| item.kind == ModuleUseKind::Type && item.persistent_id == target_id)
-        .map(|item| item.alias.as_str())
-        .ok_or_else(|| {
-            vec![graph_error(
-                "SPX-G172",
-                budgeted_format(format_args!(
-                    "cross-file signature type `{target_id}` is not explicitly imported"
-                )),
-            )]
-        })?;
-    cost.string(alias)
+    type_rewrite::runtime_cost(ty, target_module, caller, programs, cost)
 }
 fn synthetic_main_runtime_cost(module: &str) -> Result<StructuralCost, Vec<Diagnostic>> {
     let mut cost = StructuralCost::new();
@@ -914,44 +882,8 @@ pub(super) fn rewrite_type(
     caller: &Program,
     programs: &[Program],
 ) -> Result<(), Vec<Diagnostic>> {
-    if crate::stdin_stream_ops::ast_is_reader(ty)
-        || crate::map_ops::ast_collection(ty)
-        || crate::vec_ops::ast_copy_vec(ty)
-    {
-        return Ok(());
-    }
-    let Type::Named { name, arguments } = ty else {
-        return Ok(());
-    };
-    if !arguments.is_empty() {
-        return Err(vec![graph_error(
-            "SPX-G172",
-            "generic cross-file types are not admitted",
-        )]);
-    }
-    let target_id = resolve_type_id(target_module, name, programs).ok_or_else(|| {
-        vec![graph_error(
-            "SPX-G173",
-            "cross-file type identity lookup disagrees",
-        )]
-    })?;
-    let alias = caller
-        .module_uses
-        .iter()
-        .find(|item| item.kind == ModuleUseKind::Type && item.persistent_id == target_id)
-        .map(|item| item.alias.as_str())
-        .ok_or_else(|| {
-            vec![graph_error(
-                "SPX-G172",
-                budgeted_format(format_args!(
-                    "cross-file signature type `{target_id}` is not explicitly imported"
-                )),
-            )]
-        })?;
-    *name = crate::bounded_output::budgeted_clone(alias);
-    Ok(())
+    type_rewrite::rewrite(ty, target_module, caller, programs)
 }
-
 pub(super) fn collect_expected_edges(
     program: &Program,
     module_paths: &BTreeMap<&str, &str>,

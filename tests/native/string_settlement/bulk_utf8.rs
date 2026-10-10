@@ -99,7 +99,7 @@ fn derived_decoder() -> String {
     .unwrap();
     fs::write(
         root.join("src/tests.spx"),
-        canonical("module consumer.tests;@id(\"consumer.tests\") fn tests()->i64{0}"),
+        canonical("module consumer.tests;@id(\"consumer.tests\") fn main()->i64{0}"),
     )
     .unwrap();
     let generated = project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
@@ -159,6 +159,10 @@ fn stream_bulk_copy_rechecks_epoch_and_preserves_internal_and_foreign_bounds() {
         "module native.bulk_utf8;",
         "module native.bulk_utf8;\npermit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }",
         1,
+    );
+    let stream_source = stream_source.replace(
+        "fn main()->i64 {",
+        "fn main()->i64 uses {process.stdin.read} {\nlet mut reader=stdin_stream_open();let chunk_size={let chunk=stdin_stream_chunk(reader);byte_len(chunk)};reader=stdin_stream_next(reader);",
     );
     let program = hir::resolve(&checked(&stream_source)).unwrap();
     let generated = codegen::emit_hir_c_with_stdin_stream_text(&program, "s.main").unwrap();

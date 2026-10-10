@@ -79,8 +79,8 @@ mod scalar_shape;
 pub(super) mod string_runtime;
 mod variant_equality;
 mod vec_copy_record;
-mod vec_owned_leaf;
 mod vec_field;
+mod vec_owned_leaf;
 mod vec_owned_payload;
 mod vec_record_payload;
 use crate::wasm::vec_ops::is_wasm_owned_vec_type as owned_vec;
@@ -4789,7 +4789,8 @@ impl Emitter<'_> {
             | ResolvedExprKind::Block { .. }
             | ResolvedExprKind::If { .. }
             | ResolvedExprKind::Call { .. }
-            | ResolvedExprKind::LiteralFormat { .. } | ResolvedExprKind::VecFieldRead { .. } => {
+            | ResolvedExprKind::LiteralFormat { .. }
+            | ResolvedExprKind::VecFieldRead { .. } => {
                 unreachable!("recursive expression is handled by the small dispatcher")
             }
             ResolvedExprKind::ConstructRecord { record, fields } => {
@@ -5559,7 +5560,8 @@ impl Emitter<'_> {
         };
         if expr.ownership == crate::hir::OwnershipMode::Borrow
             && (matches!(expr.ty, ResolvedType::Bytes | ResolvedType::String)
-                || crate::map_ops::is_collection(&expr.ty))
+                || crate::map_ops::is_collection(&expr.ty)
+                || owned_vec(self.program, &expr.ty))
         {
             self.copy_borrowed_scalar_alias(&destination, source)?;
         } else {
@@ -6374,7 +6376,8 @@ impl Emitter<'_> {
         if crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
             &self.program.declarations,
             element,
-        ) && !op.owned_leaf_only() && !vec_field::typed_legacy_constructor(self.program, op)
+        ) && !op.owned_leaf_only()
+            && !vec_field::typed_legacy_constructor(self.program, op)
         {
             return self.emit_vec_record_payload(expr, op, element, args);
         }
@@ -6826,7 +6829,9 @@ impl Emitter<'_> {
                         self.emit_indexed_byte_get(expr, &values)
                     }
                 }
-                crate::hir::ByteSliceRootKind::OwnedVectorField => Err(error("standalone byte view excludes owned vector fields")),
+                crate::hir::ByteSliceRootKind::OwnedVectorField => {
+                    Err(error("standalone byte view excludes owned vector fields"))
+                }
                 _ => Err(error("standalone byte view has an unsupported root")),
             };
         }

@@ -17,7 +17,7 @@ use crate::source_verify::place::{join_definitely_partial, join_moved_places, so
 use crate::source_verify::scope::pattern_literal_type;
 use crate::source_verify::type_table::TypeTable;
 use crate::source_verify::variant_or::{
-    AGGREGATE_REFUTABLE_HELP, VariantOrContext, check_variant_or_pattern,
+    check_variant_or_pattern, VariantOrContext, AGGREGATE_REFUTABLE_HELP,
 };
 use std::collections::{BTreeSet, HashMap, HashSet};
 
@@ -855,7 +855,11 @@ pub(super) fn oracle_match(
         );
         if let Some(value) = &arm_value {
             reject_native_unit_value(program, &arm.value, value, diagnostics);
-            if !crate::source_verify::declared_type::generic_variant::match_result(
+            if !scrutinee_value.as_ref().is_some_and(|input| {
+                crate::source_verify::declared_type::collection_outcome::match_result(
+                    types, &input.ty, *mode, &value.ty, value.mode,
+                )
+            }) && !crate::source_verify::declared_type::generic_variant::match_result(
                 functions.get(current.name.as_str()).copied(),
                 types,
                 *mode,
@@ -867,6 +871,15 @@ pub(super) fn oracle_match(
         }
         if let Some(arm_value) = arm_value {
             if variant_needs_drop
+                && !scrutinee_value.as_ref().is_some_and(|input| {
+                    crate::source_verify::declared_type::collection_outcome::match_result(
+                        types,
+                        &input.ty,
+                        *mode,
+                        &arm_value.ty,
+                        arm_value.mode,
+                    )
+                })
                 && !crate::source_verify::declared_type::generic_variant::match_result(
                     functions.get(current.name.as_str()).copied(),
                     types,

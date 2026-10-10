@@ -1,10 +1,10 @@
 //! Plain UTF-8 owned values, exact policy replay, and independent backend gates.
 use super::*;
 
-#[path = "utf8/stream.rs"]
-mod stream;
 #[path = "utf8/max_shape.rs"]
 mod max_shape;
+#[path = "utf8/stream.rs"]
+mod stream;
 
 const SCHEMA: &str = r#"module consumer.schema;
 @id("unicode.row") record Row {
@@ -141,9 +141,9 @@ Outcome::Error{{code,offset,field}}=>0,
 Outcome::Decoded{{labels,rows}}=>{{let required=encoded_len(labels,rows);
 let short=encode(labels,rows,{}usize);let short_ok=match own short{{Encoded::Refused{{required:count}}=>count=={}usize,Encoded::Encoded{{text}}=>false,}};
 let full=encode(labels,rows,{}usize);match own full{{Encoded::Refused{{required}}=>0,Encoded::Encoded{{text}}=>{{
-let wanted={};let actual=str_as_bytes(string_as_str(text));let mut at=0usize;
-let mut equal=byte_len(actual)==byte_len(array_as_slice(wanted));
-while equal && at<byte_len(actual){{equal=match byte_get(actual,at){{Option::Some{{value:a}}=>match byte_get(array_as_slice(wanted),at){{Option::Some{{value:b}}=>a==b,Option::None{{}}=>false,}},Option::None{{}}=>false,}};at=at+1usize;equal && at<byte_len(actual)}}
+let wanted={};let wanted_view=array_as_slice(wanted);let actual=str_as_bytes(string_as_str(text));let mut at=0usize;
+let mut equal=byte_len(actual)==byte_len(wanted_view);
+while equal && at<byte_len(actual){{equal=match byte_get(actual,at){{Option::Some{{value:a}}=>match byte_get(wanted_view,at){{Option::Some{{value:b}}=>a==b,Option::None{{}}=>false,}},Option::None{{}}=>false,}};at=at+1usize;equal && at<byte_len(actual)}}
 if required=={}usize && short_ok && equal{{727}}else{{0}}
 }},}}
 }},}}}}

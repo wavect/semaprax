@@ -20,7 +20,7 @@ pub(crate) fn selected_schema(
         CLEANUP_PLAN_SCHEMA_V17
     } else if crate::string_ops::replacement::requires(function) {
         CLEANUP_PLAN_SCHEMA_V16
-    } else if crate::hir::vec_loop_renewal::requires(function) {
+    } else if crate::hir::vec_loop_renewal::requires_in(program, function) {
         CLEANUP_PLAN_SCHEMA_V15
     } else if function_has_owner_admission(program, function)? {
         CLEANUP_PLAN_SCHEMA_V14

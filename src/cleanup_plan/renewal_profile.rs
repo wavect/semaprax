@@ -9,7 +9,7 @@ pub(crate) fn binding<'a>(
 ) -> Option<&'a ResolvedBinding> {
     crate::string_ops::replacement::binding(function, at)
         .or_else(|| crate::byte_ops::same_owner_set_binding(function, at))
-        .or_else(|| crate::hir::vec_loop_renewal::binding(function, at))
+        .or_else(|| crate::hir::vec_loop_renewal::binding_in(program, function, at))
         .or_else(|| crate::hir::iterator_loop::renewal_binding(program, function, at))
 }
 
@@ -21,7 +21,7 @@ pub(crate) fn bindings<'a>(
     function: &'a ResolvedFunction,
 ) -> BTreeMap<ExpressionId, &'a ResolvedBinding> {
     let mut found = crate::hir::iterator_loop::renewal_bindings(program, function);
-    found.extend(crate::hir::vec_loop_renewal::bindings(function));
+    found.extend(crate::hir::vec_loop_renewal::bindings_in(program, function));
     found.extend(crate::byte_ops::same_owner_set_bindings(function));
     found.extend(crate::string_ops::replacement::bindings(function));
     found
@@ -39,7 +39,7 @@ mod tests {
     ) -> Option<&'a ResolvedBinding> {
         crate::string_ops::replacement::binding(function, at)
             .or_else(|| crate::byte_ops::same_owner_set_binding(function, at))
-            .or_else(|| crate::hir::vec_loop_renewal::binding(function, at))
+            .or_else(|| crate::hir::vec_loop_renewal::binding_in(program, function, at))
             .or_else(|| crate::hir::iterator_loop::renewal_binding(program, function, at))
     }
 
@@ -82,7 +82,7 @@ mod tests {
                 .iter()
                 .find(|function| function.id.as_str() == "app.main")
                 .unwrap();
-            crate::hir::vec_loop_renewal::bindings(function)
+            crate::hir::vec_loop_renewal::bindings_in(&program, function)
                 .keys()
                 .next()
                 .unwrap()
@@ -133,7 +133,8 @@ mod tests {
             .into_keys()
             .collect::<std::collections::BTreeSet<_>>();
         candidate_ids.extend(crate::byte_ops::same_owner_set_bindings(function).into_keys());
-        candidate_ids.extend(crate::hir::vec_loop_renewal::bindings(function).into_keys());
+        candidate_ids
+            .extend(crate::hir::vec_loop_renewal::bindings_in(&program, function).into_keys());
         candidate_ids
             .extend(crate::hir::iterator_loop::renewal_bindings(&program, function).into_keys());
         for at in candidate_ids {

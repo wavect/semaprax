@@ -5649,20 +5649,12 @@ impl<'a> HirValidator<'a> {
                         }
                     }
                     let arm = &arms[index];
-                    let ResolvedExprKind::Match { mode, .. } = &expression.kind else {
-                        unreachable!()
-                    };
-                    if *mode != ResolvedMatchMode::Value
-                        && !super::generic_variant::match_result_execution(
-                            self.program,
-                            function,
-                            *mode,
-                            &arm.value.ty,
-                            arm.value.ownership,
-                        )
-                        && (!matches!(arm.value.ty, ResolvedType::I64 | ResolvedType::Bool)
-                            || arm.value.ownership != OwnershipMode::Value)
-                    {
+                    if !super::collection_outcome::match_arm_execution(
+                        self.program,
+                        function,
+                        expression,
+                        &arm.value,
+                    ) {
                         return Err(hir_error(
                             "resolved owned variant match arm must produce a Copy scalar",
                         ));
@@ -7987,17 +7979,12 @@ impl<'a> HirValidator<'a> {
                             }
                         }
                     }
-                    if *mode != ResolvedMatchMode::Value
-                        && !super::generic_variant::match_result_execution(
-                            self.program,
-                            function,
-                            *mode,
-                            &arm.value.ty,
-                            arm.value.ownership,
-                        )
-                        && (!matches!(arm.value.ty, ResolvedType::I64 | ResolvedType::Bool)
-                            || arm.value.ownership != OwnershipMode::Value)
-                    {
+                    if !super::collection_outcome::match_arm_execution(
+                        self.program,
+                        function,
+                        expression,
+                        &arm.value,
+                    ) {
                         return Err(hir_error(
                             "resolved owned variant match arm must produce a Copy scalar",
                         ));

@@ -172,6 +172,33 @@ fn nested_outcome_cleanup_uses_exact_case_and_full_record_path() {
 
 #[test]
 fn nested_outcome_layout_is_record_sized_not_a_vec_slot() {
+    let signature_only = checked(
+        r#"module signature_only;
+@id("payload") record Payload { @id("payload.text") text:string, }
+@id("out") variant Output {
+ @id("out.ok") Ready { @id("out.value") value:Payload, },
+ @id("out.bad") Invalid { @id("out.code") code:i64, @id("out.offset") offset:usize, @id("out.field") field:i64, },
+}
+@id("inspect") fn inspect(value:borrow Output)->i64 { 7 }
+@id("app.main") fn main()->i64 { 42 }
+"#,
+    );
+    let payload = ResolvedType::Nominal {
+        declaration: DeclarationId::new("payload"),
+        arguments: vec![],
+    };
+    for target in [
+        crate::aggregate_layout::AggregateTarget::Native64,
+        crate::aggregate_layout::AggregateTarget::Wasm32,
+    ] {
+        let cache =
+            crate::aggregate_layout::AggregateLayoutCache::build(&signature_only, target).unwrap();
+        cache
+            .layout(&payload)
+            .unwrap()
+            .validate(&signature_only)
+            .unwrap();
+    }
     use crate::variant_layout::{VariantFieldValueKind, VariantLayout, VariantTarget};
     let program = checked(SOURCE);
     for target in [VariantTarget::Native64, VariantTarget::Wasm32] {

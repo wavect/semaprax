@@ -136,29 +136,95 @@ fn scratch_uncertain_inventory_keeps_full_charge_and_missing_backing_refuses() {
 }
 
 #[test]
+fn prepared_module_census_avoids_intermediate_allocations_at_exact_limits() {
+    let small = tests::function();
+    let mut large = small.clone();
+    let body = large.body;
+    large.body = ResolvedExpr {
+        id: body.id.clone(),
+        ty: body.ty.clone(),
+        ownership: body.ownership,
+        span: body.span,
+        kind: E::Unary {
+            op: crate::ast::UnaryOp::Neg,
+            value: Box::new(body),
+        },
+    };
+    let expected = [
+        retained_function_loan_bytes(&small).unwrap(),
+        retained_function_loan_bytes(&large).unwrap(),
+    ];
+    let wires =
+        [&small, &large].map(|function| crate::cache_codec::encode(&function.loan_plan).unwrap());
+    let maximum = count(&large) * std::mem::size_of::<usize>();
+    let mut scratch = RetentionScratch::default();
+    let (result, overflow, debit) = bounded_output::with_limit_usage(maximum, || {
+        scratch.prepare([&small, &large].into_iter())?;
+        let pointer = scratch.keys.as_ptr();
+        for (function, expected) in [&small, &large].into_iter().zip(expected) {
+            assert_eq!(scratch.measure(function)?, expected);
+            assert_eq!(scratch.keys.as_ptr(), pointer);
+        }
+        Ok::<_, Vec<Diagnostic>>(())
+    });
+    result.unwrap();
+    assert!(!overflow);
+    assert_eq!(debit, maximum);
+    assert_eq!(
+        [&small, &large]
+            .map(|function| { crate::cache_codec::encode(&function.loan_plan).unwrap() }),
+        wires
+    );
+    let mut scratch = RetentionScratch::default();
+    let (refused, overflow, _) = bounded_output::with_limit_usage(maximum - 1, || {
+        scratch.prepare([&small, &large].into_iter())
+    });
+    assert_eq!(refused.unwrap_err()[0].code, "SPX-G171");
+    assert!(overflow);
+    assert_eq!(scratch.keys.capacity(), 0, "refuse before allocation");
+    let mut scratch = RetentionScratch::default();
+    let (legacy, overflow, debit) = bounded_output::with_limit_usage(usize::MAX, || {
+        scratch.measure(&small)?;
+        scratch.measure(&large)
+    });
+    assert_eq!(legacy.unwrap(), expected[1]);
+    assert!(!overflow);
+    assert_eq!(
+        debit,
+        maximum + count(&small) * std::mem::size_of::<usize>()
+    );
+}
+
+#[test]
 fn generic_instances_reuse_one_scratch_and_refuse_one_short() {
     let program = crate::parse(
         r#"
 module generic.scratch;
 @id("generic.consume") fn consume(bytes: own Bytes) -> i64 { 0 }
-@id("generic.keep") fn keep<T>(value: T, input: borrow Slice<u8>) -> T {
-    let owned = bytes_copy(input);
+@id("generic.keep") fn keep<T>(value: T) -> T {
+    let owned = bytes_zeroed(1usize);
+    let view = bytes_as_slice(owned);
+    let _ = byte_len(view);
     let _ = consume(owned);
     value
 }
-@id("generic.main") fn main(input: borrow Slice<u8>) -> i64 {
-    let number = keep<i64>(1, input);
-    if keep<bool>(true, input) { number } else { 0 }
+@id("generic.main") fn main() -> i64 {
+    let number = keep<i64>(1);
+    if keep<bool>(true) { number } else { 0 }
 }
 "#,
         std::path::Path::new("generic-scratch.spx"),
     )
     .unwrap();
-    let instances = crate::hir::resolve(&program).unwrap().function_instances;
+    let resolved = crate::hir::resolve(&program).unwrap();
+    crate::hir::validate(&resolved).unwrap();
+    let instances = resolved.function_instances;
     assert_eq!(instances.len(), 2);
-    assert!(instances
-        .iter()
-        .all(|instance| !instance.function.loan_plan.loans.is_empty()));
+    assert!(
+        instances
+            .iter()
+            .all(|instance| !instance.function.loan_plan.loans.is_empty())
+    );
     let programs = vec![program];
     let authored = super::super::index_authored(&programs).unwrap();
     let wires = instances

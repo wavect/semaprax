@@ -5,13 +5,31 @@ use std::collections::{BTreeMap, BTreeSet};
 pub(crate) fn requires(function: &ResolvedFunction) -> bool {
     !bindings(function).is_empty()
 }
-pub(crate) fn binding<'a>(
+pub(crate) fn bindings(function: &ResolvedFunction) -> BTreeMap<ExpressionId, &ResolvedBinding> {
+    collect(function, None)
+}
+/// Copy-record collection admission composes the existing same-cell protocol;
+/// it never authorizes an owned element or trusts a cached Copy flag.
+pub(crate) fn bindings_in<'a>(
+    program: &ResolvedProgram,
+    function: &'a ResolvedFunction,
+) -> BTreeMap<ExpressionId, &'a ResolvedBinding> {
+    collect(function, Some(&program.declarations))
+}
+pub(crate) fn requires_in(program: &ResolvedProgram, function: &ResolvedFunction) -> bool {
+    !bindings_in(program, function).is_empty()
+}
+pub(crate) fn binding_in<'a>(
+    program: &ResolvedProgram,
     function: &'a ResolvedFunction,
     at: &ExpressionId,
 ) -> Option<&'a ResolvedBinding> {
-    bindings(function).remove(at)
+    bindings_in(program, function).remove(at)
 }
-pub(crate) fn bindings(function: &ResolvedFunction) -> BTreeMap<ExpressionId, &ResolvedBinding> {
+fn collect<'a>(
+    function: &'a ResolvedFunction,
+    index: Option<&DeclarationIndex>,
+) -> BTreeMap<ExpressionId, &'a ResolvedBinding> {
     let mut mutable = BTreeSet::new();
     let mut pending = vec![&function.body];
     while let Some(expression) = pending.pop() {
@@ -44,7 +62,10 @@ pub(crate) fn bindings(function: &ResolvedFunction) -> BTreeMap<ExpressionId, &R
                         field: None,
                         value,
                         ..
-                    } if in_loop && mutable.contains(&binding.id) && same_cell(binding, value) => {
+                    } if in_loop
+                        && mutable.contains(&binding.id)
+                        && same_cell(binding, value, index) =>
+                    {
                         found.insert(value.id.clone(), binding);
                         pending.push((value, in_loop));
                     }
@@ -70,7 +91,11 @@ pub(crate) fn bindings(function: &ResolvedFunction) -> BTreeMap<ExpressionId, &R
     }
     found
 }
-fn same_cell(binding: &ResolvedBinding, value: &ResolvedExpr) -> bool {
+fn same_cell(
+    binding: &ResolvedBinding,
+    value: &ResolvedExpr,
+    index: Option<&DeclarationIndex>,
+) -> bool {
     let ResolvedType::Nominal {
         declaration,
         arguments,
@@ -82,7 +107,8 @@ fn same_cell(binding: &ResolvedBinding, value: &ResolvedExpr) -> bool {
         return false;
     };
     if declaration.as_str() != crate::prelude::VEC_ID
-        || !super::generic_collection::scalar(element)
+        || !(super::generic_collection::scalar(element)
+            || index.is_some_and(|index| super::copy_record_collection::admitted(index, element)))
         || binding.ownership != OwnershipMode::Own
         || value.ownership != OwnershipMode::Own
         || value.ty != binding.ty

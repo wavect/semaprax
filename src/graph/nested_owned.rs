@@ -775,7 +775,12 @@ fn iterator_loop_schema<'a>(
         {
             return Err(composition_error("owned iterator cleanup schema disagrees"));
         }
-        let ordinary_renewal = crate::hir::vec_loop_renewal::requires(function);
+        // Without retained declarations the frozen from-parts view cannot
+        // authenticate the additive nominal Copy-record renewal classifier.
+        let ordinary_renewal = program.map_or_else(
+            || crate::hir::vec_loop_renewal::requires(function),
+            |program| crate::hir::vec_loop_renewal::requires_in(program, function),
+        );
         let string_replacement = crate::string_ops::replacement::requires(function);
         let byte_renewal = crate::byte_ops::requires_same_owner_set(function);
         if (function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V17) != byte_renewal {

@@ -5,12 +5,12 @@
 
 use crate::ast::{BinaryOp, Span, UnaryOp};
 
+use super::Place;
 use super::ids::{DeclarationId, ExpressionId, FunctionInstanceId};
 use super::nodes::{
     OwnershipMode, ResolvedBinding, ResolvedHostCommandCall, ResolvedMatchMode,
     ResolvedNativeRustImportCall, ResolvedType,
 };
-use super::Place;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ResolvedExpr {
@@ -89,6 +89,16 @@ pub enum ResolvedExprKind {
     /// literal; the children are dynamic arguments only, in evaluation order.
     LiteralFormat {
         template: String,
+        args: Vec<ResolvedExpr>,
+    },
+    /// Nonallocating read of one explicit field in a borrowed Vec generation.
+    /// `args` are exactly [named Vec place, usize index], in authored order.
+    /// The literal selector is resolved into `field`, never a runtime String.
+    /// `bytes` denotes only the exact fused str_as_bytes(String-field) form.
+    VecFieldRead {
+        element: ResolvedType,
+        field: DeclarationId,
+        bytes: bool,
         args: Vec<ResolvedExpr>,
     },
     NativeRustImportCall(ResolvedNativeRustImportCall),

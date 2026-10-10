@@ -79,6 +79,7 @@ fn view() -> usize uses { process.args.read } {
 pub(crate) mod owned_collection_record;
 pub(crate) mod owned_text_record;
 pub(crate) mod projected_string_view;
+pub(crate) mod vec_field;
 
 mod agent_nodes;
 mod agent_validation;

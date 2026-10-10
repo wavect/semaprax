@@ -430,6 +430,7 @@ mod trace_path_certificate;
 pub mod ui_schema;
 pub(crate) mod variant_guards;
 pub(crate) mod variant_layout;
+pub(crate) mod vec_field;
 pub(crate) mod vec_ops;
 pub mod verify;
 #[allow(

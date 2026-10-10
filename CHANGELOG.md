@@ -1,5 +1,15 @@
 # Changelog
 
+- Stage OPT-731 bulk UTF-8 codec materialization after complete existing token
+  validation, retaining escaped decoding and exact input bounds. Escape-free
+  quoting uses a bulk String copy; native length-delimited concatenation writes
+  directly to one final carrier. Add scalar/escape/bound and physical native
+  allocation/copy witnesses; current-head runtime and efficiency remain unverified.
+
+- Improve manifest authoring help for quoted dependency keys and unsorted source
+  lists without changing the closed grammar or stable refusal codes/messages.
+  Traverse scoped Vec-field arguments in all affected owning test walkers.
+
 - Author OPT-730 scoped `vec_field` reads over authenticated owned-record Vecs.
   Preserve exact carrier loans and field/index provenance, avoid semantic owned
   clones, retain sticky Vec bounds failure and bind checked-cache v7 to canonical

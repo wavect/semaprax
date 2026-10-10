@@ -215,7 +215,7 @@ fn functions_use_strings<'a>(
             ResolvedExprKind::Closure { captures, .. } => {
                 pending.extend(captures.iter().map(|capture| &capture.value))
             }
-            ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => pending.extend(args.iter()),
+            ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } | ResolvedExprKind::VecFieldRead { args, .. } => pending.extend(args.iter()),
             ResolvedExprKind::Invoke { callable, args } => {
                 pending.push(callable);
                 pending.extend(args.iter());
@@ -338,7 +338,7 @@ fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
             ResolvedExprKind::Closure { captures, .. } => {
                 pending.extend(captures.iter().map(|capture| &capture.value))
             }
-            ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => pending.extend(args),
+            ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } | ResolvedExprKind::VecFieldRead { args, .. } => pending.extend(args),
             ResolvedExprKind::Invoke { callable, args } => {
                 pending.push(callable);
                 pending.extend(args);
@@ -435,7 +435,7 @@ fn program_uses_string_ops(program: &ResolvedProgram) -> bool {
             ResolvedExprKind::Closure { captures, .. } => {
                 pending.extend(captures.iter().map(|capture| &capture.value))
             }
-            ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => pending.extend(args.iter()),
+            ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } | ResolvedExprKind::VecFieldRead { args, .. } => pending.extend(args.iter()),
             ResolvedExprKind::Invoke { callable, args } => {
                 pending.push(callable);
                 pending.extend(args.iter());
@@ -538,7 +538,7 @@ fn collect_string_data(program: &ResolvedProgram) -> StringData {
                 }
                 pending.push(callable);
             }
-            ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
+            ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } | ResolvedExprKind::VecFieldRead { args, .. } => {
                 for arg in args.iter().rev() {
                     pending.push(arg);
                 }
@@ -4235,7 +4235,7 @@ fn emit_expr(
                 "aggregate expressions require WebAssembly aggregate lowering",
             ));
         }
-        ResolvedExprKind::LiteralFormat { .. } | ResolvedExprKind::ConstructRecord { .. }
+        ResolvedExprKind::LiteralFormat { .. } | ResolvedExprKind::VecFieldRead { .. } | ResolvedExprKind::ConstructRecord { .. }
         | ResolvedExprKind::ArrayU8(_)
         | ResolvedExprKind::RepeatArrayU8 { .. }
         | ResolvedExprKind::BorrowPlace { .. }

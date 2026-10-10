@@ -9,16 +9,16 @@ const expectedValue = BigInt(process.argv[4]);
 const refusal = process.argv[5] || '';
 const codecPushFailure = /^codec-push-([1-4])$/.exec(refusal);
 let codecPushAttempts = 0;
-let instance, nextPayload = 1, nextVec = 1n, nextIter = 1n << 62n, copies = 0, drops = 0;
+let instance, fieldOutput, nextPayload = 1, nextVec = 1n, nextIter = 1n << 62n, copies = 0, drops = 0;
 const payloads = new Map(), vectors = new Map(), iterators = new Map();
 // Fixture authority encoding v2: old mint/move keeps its generation-zero
 // low-word handle. Additive sort renews the existing authority slot in place.
 // Import signatures, legacy tags and generated legacy modules are unchanged.
 const AUTHORITY_ENCODING = 'semaprax.test.owned-leaf-authority.v2';
 const EMPTY_BYTES = new Uint8Array(0);
-let sorting = false;
+let sorting = false, fieldReading = false, fieldReads = 0;
 const allocationOutsideSort = name => {
-  if(sorting)throw Error(`infallible sort reached allocating/settling helper: ${name}`);
+  if(sorting||fieldReading)throw Error(`infallible read/sort reached allocating/settling helper: ${name}`);
 };
 // Test-only guards make a future slice/sort/map or authority re-mint fail the
 // same executable corpus, rather than quietly reintroducing a failure lane.
@@ -342,8 +342,46 @@ const env = {
   },
   spx_vec_leaf_new_v1:(identity,shape,capacity)=>{
     if(capacity<0n||capacity>limit(shape)||refusal==='allocation')return 0n;
-    try{return mint({tag:11,identity,shape,capacity,values:[]})}
+    const spec=fields(shape);
+    const legacy=spec.length===3&&spec.filter(field=>field.code===9).length===2
+      &&spec.filter(field=>field.code<=8).length===1
+      &&spec.filter(field=>field.code===9).every(field=>field.slot<=1)
+      &&spec.find(field=>field.code<=8).slot===2;
+    try{return mint({tag:legacy?10:11,identity,shape,capacity,values:[]})}
     catch(error){if(error instanceof RangeError)return 0n;throw error}
+  },
+  spx_vec_leaf_field_read_v1:(handle,identity,shape,index,position,out)=>{
+    // No descriptor construction or binding here. Construction/push already
+    // validated each field and payload; a read requires exact existing facts.
+    const value=vectorValue(handle);
+    if(!value||(value.tag!==10&&value.tag!==11)||value.identity!==identity
+       ||value.shape!==shape)throw Error('unbound, stale or mismatched field-read authority');
+    if(position<0n||position>=8n)throw Error('invalid field-read position');
+    const byte=Number((BigInt.asUintN(64,shape)>>(position*8n))&255n);
+    const code=byte>>4,slot=byte&15;
+    if(code<1||code>10||slot>=8)
+      throw Error('invalid field-read descriptor');
+    if(index<0n||index>=BigInt(value.values.length))return 2;
+    const row=value.values[Number(index)],word=row[slot];
+    const beforeCopies=copies,beforeDrops=drops,beforePayload=nextPayload,beforeVec=nextVec;
+    fieldReading=true;
+    try{
+      if(code>=9&&word!==0n){
+        const raw=BigInt.asUintN(64,word),origin=raw>>32n,length=Number(raw&0xffffffffn);
+        if(!(origin&0x80000000n))throw Error('borrowed field-read leaf');
+        const payload=payloads.get(Number(origin&0x7fffffffn));
+        if(!payload||payload.length!==length)throw Error('stale field-read leaf');
+      }else if(code<9)checkWord(word,code);
+      if(copies!==beforeCopies||drops!==beforeDrops||nextPayload!==beforePayload
+         ||nextVec!==beforeVec||vectorValue(handle)!==value||value.values[Number(index)]!==row)
+        throw Error('field-read changed authority or allocation inventory');
+      fieldReads++;
+      const result=refusal==='field-bad-word'?(code>=9?1n:0x100000000n):word;
+      if(!Number.isInteger(out)||out<0||!fieldOutput||fieldOutput.buffer!==memory().buffer
+         ||out>fieldOutput.byteLength-8)throw Error('field-read output range');
+      fieldOutput.setBigInt64(out,BigInt.asIntN(64,result),true);
+      return 0;
+    }finally{fieldReading=false}
   },
   spx_vec_leaf_push_v1:(handle,identity,shape,...words)=>{
     const value=bind(handle,identity,shape);
@@ -498,10 +536,41 @@ const env = {
   try{await WebAssembly.instantiate(moduleBytes,{env:missing})}
   catch(error){if(!(error instanceof WebAssembly.LinkError))throw error;refused=true}
   if(!refused)throw Error('private boundary linked without clone import');
+  if(refusal==='field-no-allocation'){
+    const withoutRead={...env};delete withoutRead.spx_vec_leaf_field_read_v1;
+    let absent=false;
+    try{await WebAssembly.instantiate(moduleBytes,{env:withoutRead})}
+    catch(error){if(!(error instanceof WebAssembly.LinkError))throw error;absent=true}
+    if(!absent)throw Error('read module linked without its conditional private import');
+  }
+  if(refusal==='field-bad-word'||refusal==='field-forged-shape'||refusal==='field-unknown-status'){
+    let calls=0,trapped=false;
+    const actual=env.spx_vec_leaf_field_read_v1;
+    const hostile={...env,spx_vec_leaf_field_read_v1:(...args)=>{
+      calls++;
+      if(refusal==='field-unknown-status')return 1;
+      if(refusal==='field-forged-shape')args[2]^=1n;
+      return actual(...args);
+    }};
+    ({instance}=await WebAssembly.instantiate(moduleBytes,{env:hostile}));
+    fieldOutput=new DataView(memory().buffer);
+    try{instance.exports.semaprax_main()}
+    catch(error){
+      if(refusal!=='field-forged-shape'&&!(error instanceof WebAssembly.RuntimeError))throw error;
+      if(refusal==='field-forged-shape'&&error.message!=='unbound, stale or mismatched field-read authority')throw error;
+      trapped=true;
+    }
+    if(!trapped||calls!==1)throw Error('forged field-read result/descriptor did not trap');
+    for(const owner of vectors.values())
+      env.spx_vec_drop_v2(BigInt.asIntN(64,(owner.generation<<32n)|owner.authority_slot));
+    if(payloads.size||vectors.size||iterators.size||copies!==drops)throw Error('field trap teardown leaked');
+    return;
+  }
   if(refusal==='sort-null'){
     let calls=0,trapped=false;
     const hostile={...env,spx_vec_leaf_sort_v1:()=>{calls++;return 0n}};
     ({instance}=await WebAssembly.instantiate(moduleBytes,{env:hostile}));
+    fieldOutput=new DataView(memory().buffer);
     try{instance.exports.semaprax_main()}
     catch(error){if(!(error instanceof WebAssembly.RuntimeError))throw error;trapped=true}
     if(!trapped||calls!==1)throw Error('null infallible sort result was not a host invariant trap');
@@ -513,8 +582,9 @@ const env = {
     return;
   }
   ({instance}=await WebAssembly.instantiate(moduleBytes,{env}));
+  fieldOutput=new DataView(memory().buffer);
   for(let run=0;run<3;run++){
-    codecPushAttempts=0;
+    codecPushAttempts=0;fieldReads=0;
     let selected=0,returned;
     try{returned=instance.exports.semaprax_main()}
     catch(error){if(!error.message.startsWith('status:'))throw error;selected=Number(error.message.slice(7))}
@@ -522,6 +592,8 @@ const env = {
     if(!selected&&returned!==expectedValue)throw Error(`value ${returned}, expected ${expectedValue}`);
     if(vectors.size||iterators.size||payloads.size||copies!==drops)
       throw Error(`leaks vec=${vectors.size} iter=${iterators.size} payload=${payloads.size} copies=${copies} drops=${drops}`);
+    if(refusal==='field-index-failure'&&fieldReads!==0)throw Error('index failure accessed row storage');
+    if(refusal==='field-no-allocation'&&fieldReads<64)throw Error('repeated read guard was not exercised');
     if(codecPushFailure&&codecPushAttempts!==Number(codecPushFailure[1]))
       throw Error('partial codec allocation failure did not reach its exact owning commit');
   }
@@ -566,6 +638,55 @@ const env = {
        ||rows[0]!==first||rows[1]!==second||first[0]!==a||second[0]!==b)
       throw Error('stable sort changed row identity or retained a stale epoch');
     env.spx_vec_drop_v2(again);
+    let inspected=env.spx_vec_leaf_new_v1(23n,0xa180n,1n);
+    const inspectedText=ownBytes(new TextEncoder().encode('a\u0000é'));
+    inspected=env.spx_vec_leaf_push_v1(inspected,23n,0xa180n,1n,inspectedText,0n,0n,0n,0n,0n,0n);
+    const beforeCopies=copies,beforeDrops=drops,beforePayload=nextPayload,beforeVec=nextVec;
+    const fieldOut=0;
+    for(let i=0;i<64;i++){
+      if(env.spx_vec_leaf_field_read_v1(inspected,23n,0xa180n,0n,0n,fieldOut)!==0
+         ||view(fieldOut,8).getBigInt64(0,true)!==1n
+         ||env.spx_vec_leaf_field_read_v1(inspected,23n,0xa180n,0n,1n,fieldOut)!==0
+         ||view(fieldOut,8).getBigInt64(0,true)!==inspectedText)
+        throw Error('field-read lost exact scalar/payload identity');
+    }
+    if(copies!==beforeCopies||drops!==beforeDrops||nextPayload!==beforePayload||nextVec!==beforeVec)
+      throw Error('read allocated, cloned, dropped or renewed');
+    for(const [handle,identity,shape,index,position] of [
+      [inspected,24n,0xa180n,0n,0n],[inspected,23n,0xa180n^1n,0n,0n],
+      [inspected,23n,0xa180n,0n,2n],
+      [inspected,23n,0xa180n,0n,-1n],
+    ]){
+      let rejected=false;
+      try{env.spx_vec_leaf_field_read_v1(handle,identity,shape,index,position,fieldOut)}catch(error){rejected=true}
+      if(!rejected)throw Error('forged field-read facts were accepted');
+    }
+    for(const index of [1n,-1n,0xffffffffffffffffn]){
+      view(fieldOut,8).setBigInt64(0,123n,true);
+      if(env.spx_vec_leaf_field_read_v1(inspected,23n,0xa180n,index,0n,fieldOut)!==2
+         ||view(fieldOut,8).getBigInt64(0,true)!==123n)
+        throw Error('index refusal mutated output or lost Vec/2 status');
+    }
+    const consumed=inspected;
+    inspected=env.spx_vec_leaf_sort_v1(inspected,23n,0xa180n);
+    let staleRead=false;
+    try{env.spx_vec_leaf_field_read_v1(consumed,23n,0xa180n,0n,0n,fieldOut)}catch(error){staleRead=true}
+    if(!staleRead)throw Error('stale generation permitted a field read');
+    env.spx_vec_drop_v2(inspected);
+    for(const bits of [-0x8000000000000000n,0x7ff8000000001234n]){
+      let floating=env.spx_vec_leaf_new_v1(29n,0xa170n,1n);
+      floating=env.spx_vec_leaf_push_v1(floating,29n,0xa170n,bits,0n,0n,0n,0n,0n,0n,0n);
+      if(env.spx_vec_leaf_field_read_v1(floating,29n,0xa170n,0n,0n,fieldOut)!==0
+         ||view(fieldOut,8).getBigInt64(0,true)!==bits)
+        throw Error('signed zero or NaN payload bits changed during field read');
+      env.spx_vec_drop_v2(floating);
+    }
+    const unbound=env.spx_vec_with_capacity_v2(10,1n);
+    let unboundRead=false;
+    try{env.spx_vec_leaf_field_read_v1(unbound,1n,0x929110n,0n,0n,fieldOut)}catch(error){unboundRead=true}
+    if(!unboundRead||vectorValue(unbound).shape!==undefined)
+      throw Error('read lazily repaired an unbound legacy authority');
+    env.spx_vec_drop_v2(unbound);
     if(vectors.size||iterators.size||payloads.size)throw Error('host self-check leaked an owner');
   }
 })().catch(error=>{console.error(error);process.exitCode=2});

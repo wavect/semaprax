@@ -485,6 +485,7 @@ fn admits_owned_string_byte_view(
                         provenance.root == place.root
                             && provenance.projected_type == ResolvedType::Str
                     }
+                    crate::hir::ByteSliceRootKind::OwnedVectorField => false,
                     _ => false,
                 }
         })

@@ -32,7 +32,7 @@ pub(super) fn needs_i32_wide_scratch(expression: &ResolvedExpr) -> bool {
             ResolvedExprKind::Closure { captures, .. } => {
                 pending.extend(captures.iter().map(|capture| &capture.value))
             }
-            ResolvedExprKind::LiteralFormat { args, .. } => pending.extend(args.iter()),
+            ResolvedExprKind::LiteralFormat { args, .. } | ResolvedExprKind::VecFieldRead { args, .. } => pending.extend(args.iter()),
             ResolvedExprKind::Call { callee, args, .. } => {
                 if crate::string_ops::by_id(callee.as_str())
                     .is_some_and(|op| op.is_integer_conversion())
@@ -143,7 +143,7 @@ fn contains_checked_arithmetic(expression: &ResolvedExpr, target: &ResolvedType)
         | ResolvedExprKind::Project { base: value, .. }
         | ResolvedExprKind::Upcast { source: value }
         | ResolvedExprKind::Yield { request: value } => contains_checked_arithmetic(value, target),
-        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => args
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } | ResolvedExprKind::VecFieldRead { args, .. } => args
             .iter()
             .any(|argument| contains_checked_arithmetic(argument, target)),
         ResolvedExprKind::Invoke { callable, args } => {

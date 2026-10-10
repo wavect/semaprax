@@ -72,11 +72,21 @@ pub(super) fn descriptor(program: &ResolvedProgram, element: &ResolvedType) -> R
     })
 }
 
+pub(super) struct Imports {
+    legacy: [u32; IMPORT_COUNT as usize],
+    field: Option<u32>,
+}
+
+pub(super) fn import_count(program: &ResolvedProgram) -> u32 {
+    IMPORT_COUNT + u32::from(super::vec_field::uses(program))
+}
+
 pub(super) fn import_types(
+    program: &ResolvedProgram,
     enabled: bool,
     types: &mut Vec<Signature>,
     indexes: &mut HashMap<Signature, u32>,
-) -> Option<[u32; IMPORT_COUNT as usize]> {
+) -> Option<Imports> {
     enabled.then(|| {
         let signatures = [
             (vec![I64, I64, I64], vec![I64]),
@@ -89,19 +99,26 @@ pub(super) fn import_types(
             (vec![I64, I64, I64, I64, I32], vec![I32]),
             (vec![I64, I64, I64, I64], Vec::new()),
         ];
-        signatures.map(|(params, results)| intern_type(Signature {
+        let legacy = signatures.map(|(params, results)| intern_type(Signature {
             params, results,
-        }, types, indexes))
+        }, types, indexes));
+        let field = super::vec_field::uses(program).then(|| intern_type(Signature {
+            params: vec![I64, I64, I64, I64, I64, I32], results: vec![I32],
+        }, types, indexes));
+        Imports { legacy, field }
     })
 }
 
-pub(super) fn emit_imports(output: &mut Vec<u8>, types: [u32; IMPORT_COUNT as usize]) {
+pub(super) fn emit_imports(output: &mut Vec<u8>, types: Imports) {
     for (name, ty) in [
         "spx_vec_leaf_new_v1", "spx_vec_leaf_push_v1", "spx_vec_leaf_clone_at_v1",
         "spx_vec_leaf_replace_v1", "spx_vec_leaf_reserve_v1", "spx_vec_leaf_sort_v1",
         "spx_vec_leaf_into_iter_v1", "spx_vec_leaf_iter_next_v1", "spx_vec_leaf_iter_drop_v1",
-    ].into_iter().zip(types) {
+    ].into_iter().zip(types.legacy) {
         function_import(output, "env", name, ty);
+    }
+    if let Some(ty) = types.field {
+        function_import(output, "env", "spx_vec_leaf_field_read_v1", ty);
     }
 }
 

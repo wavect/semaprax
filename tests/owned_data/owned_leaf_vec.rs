@@ -1,4 +1,7 @@
 //! OPT-723 private Core-Wasm host qualification for directly owned leaves.
+#[path = "owned_leaf_vec/field_reads.rs"]
+mod field_reads;
+
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 

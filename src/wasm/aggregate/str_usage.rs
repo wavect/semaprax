@@ -6,7 +6,7 @@ fn expression_uses_str_ops(expression: &ResolvedExpr) -> bool {
         ResolvedExprKind::Invoke { callable, args } => {
             expression_uses_str_ops(callable) || args.iter().any(expression_uses_str_ops)
         }
-        ResolvedExprKind::LiteralFormat { args, .. } => args.iter().any(expression_uses_str_ops),
+        ResolvedExprKind::LiteralFormat { args, .. } | ResolvedExprKind::VecFieldRead { args, .. } => args.iter().any(expression_uses_str_ops),
         ResolvedExprKind::Call { callee, args, .. } => {
             crate::str_ops::by_id(callee.as_str()).is_some_and(|op| {
                 matches!(

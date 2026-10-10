@@ -80,6 +80,7 @@ pub(super) mod string_runtime;
 mod variant_equality;
 mod vec_copy_record;
 mod vec_owned_leaf;
+mod vec_field;
 mod vec_owned_payload;
 mod vec_record_payload;
 use crate::wasm::vec_ops::is_wasm_owned_vec_type as owned_vec;
@@ -676,6 +677,7 @@ impl FunctionPlan {
             }
         }
 
+        self.collect_vec_field_scratch(expr, frame)?;
         match &expr.kind {
             ResolvedExprKind::Closure { captures, .. } => {
                 for capture in captures {
@@ -724,7 +726,7 @@ impl FunctionPlan {
                     frame,
                 )?;
             }
-            ResolvedExprKind::Call { args, .. } => {
+            ResolvedExprKind::Call { args, .. } | ResolvedExprKind::VecFieldRead { args, .. } => {
                 self.collect_exprs(program, variant_layouts, args, parameter_count, frame)?
             }
             ResolvedExprKind::NativeRustImportCall(call) => {
@@ -2431,7 +2433,7 @@ fn emit_profile_with_scalar_exports(
         )
     });
     let owned_leaf_types =
-        vec_owned_leaf::import_types(uses_owned_leaf_vec, &mut types, &mut type_indexes);
+        vec_owned_leaf::import_types(program, uses_owned_leaf_vec, &mut types, &mut type_indexes);
     let (iter_into, iter_next, iter_drop, record_iter_next) = iterator_ops::intern_import_types(
         uses_owned_iterator,
         uses_record_iterator,
@@ -2582,7 +2584,7 @@ fn emit_profile_with_scalar_exports(
                     }
                     + map_count
                     + if uses_owned_leaf_vec {
-                        vec_owned_leaf::IMPORT_COUNT
+                        vec_owned_leaf::import_count(program)
                     } else {
                         0
                     }
@@ -2637,7 +2639,7 @@ fn emit_profile_with_scalar_exports(
             }
             + map_count
             + if uses_owned_leaf_vec {
-                vec_owned_leaf::IMPORT_COUNT
+                vec_owned_leaf::import_count(program)
             } else {
                 0
             },
@@ -2962,7 +2964,7 @@ fn emit_profile_with_scalar_exports(
         .and_then(|value| value.checked_add(map_count))
         .and_then(|value| {
             value.checked_add(if uses_owned_leaf_vec {
-                vec_owned_leaf::IMPORT_COUNT
+                vec_owned_leaf::import_count(program)
             } else {
                 0
             })
@@ -4787,7 +4789,7 @@ impl Emitter<'_> {
             | ResolvedExprKind::Block { .. }
             | ResolvedExprKind::If { .. }
             | ResolvedExprKind::Call { .. }
-            | ResolvedExprKind::LiteralFormat { .. } => {
+            | ResolvedExprKind::LiteralFormat { .. } | ResolvedExprKind::VecFieldRead { .. } => {
                 unreachable!("recursive expression is handled by the small dispatcher")
             }
             ResolvedExprKind::ConstructRecord { record, fields } => {
@@ -6372,7 +6374,7 @@ impl Emitter<'_> {
         if crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
             &self.program.declarations,
             element,
-        ) && !op.owned_leaf_only()
+        ) && !op.owned_leaf_only() && !vec_field::typed_legacy_constructor(self.program, op)
         {
             return self.emit_vec_record_payload(expr, op, element, args);
         }
@@ -6824,6 +6826,7 @@ impl Emitter<'_> {
                         self.emit_indexed_byte_get(expr, &values)
                     }
                 }
+                crate::hir::ByteSliceRootKind::OwnedVectorField => Err(error("standalone byte view excludes owned vector fields")),
                 _ => Err(error("standalone byte view has an unsupported root")),
             };
         }

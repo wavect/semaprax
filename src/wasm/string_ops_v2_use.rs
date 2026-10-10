@@ -20,7 +20,7 @@ pub(super) fn program_uses_string_ops_v2(program: &ResolvedProgram) -> bool {
             ResolvedExprKind::Closure { captures, .. } => {
                 pending.extend(captures.iter().map(|capture| &capture.value))
             }
-            ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
+            ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } | ResolvedExprKind::VecFieldRead { args, .. } => {
                 pending.extend(args.iter())
             }
             ResolvedExprKind::Invoke { callable, args } => {

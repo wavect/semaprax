@@ -134,7 +134,9 @@ fn derived_decoder() -> String {
         codegen::emit_hir_c(snapshot.entry_program()).map_err(|error| vec![error])
     })
     .unwrap();
-    super::remove_successful_fixture(&root);
+    // This directory was created here for the authenticated source fixture;
+    // the physical-probe cleanup helper owns a different fixed file inventory.
+    fs::remove_dir_all(&root).unwrap();
     emitted
 }
 

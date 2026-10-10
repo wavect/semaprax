@@ -112,15 +112,15 @@ let first=vec_clone_at<string>(labels,0usize);let last=vec_clone_at<Row>(rows,25
 let count_ok=vec_len<string>(labels)==8usize && vec_len<Row>(rows)==256usize;
 let required=encoded_len(labels,rows);
 let short=encode(labels,rows,{}usize);
-let short_ok=match own short{{Encoded::Encoded{{text}}=>false,Encoded::Refused{{required:size}}=>size=={expected_len}usize,}};
-let full=encode(labels,rows,{expected_len}usize);match own full{{Encoded::Refused{{required}}=>0,Encoded::Encoded{{text}}=>{{
+let short_ok=match own short{{Encoded::Encoded{{text:short_text}}=>false,Encoded::Refused{{required:size}}=>size=={expected_len}usize,}};
+let full=encode(labels,rows,{expected_len}usize);match own full{{Encoded::Refused{{required:refused_count}}=>0,Encoded::Encoded{{text}}=>{{
 let actual=str_as_bytes(string_as_str(text));let wanted=byte_range(bytes_as_slice(canonical),0usize,{expected_len}usize);
 let mut same=byte_len(actual)==byte_len(wanted);let mut at=0usize;
 while same && at<byte_len(wanted){{same=match byte_get(actual,at){{Option::None{{}}=>false,Option::Some{{value:a}}=>match byte_get(wanted,at){{Option::None{{}}=>false,Option::Some{{value:b}}=>a==b,}},}};at=at+1usize;same && at<byte_len(wanted)}}
 if count_ok && string_len(first)==__VALUE_BYTES__ && string_len(last.text)==__VALUE_BYTES__ && required=={expected_len}usize && short_ok && malformed_ok && same{{727}}else{{0}}
 }},}}
 }},}}}}
-@id("consumer.command") fn command()->i64{{main()}}
+@id("consumer.command") fn command()->i64 uses{{process.stdin.read}}{{let mut reader=stdin_stream_open();while !stdin_stream_eof(reader){{reader=stdin_stream_next(reader);0}}main()}}
 "#,
         expected_len - 1,
     ));

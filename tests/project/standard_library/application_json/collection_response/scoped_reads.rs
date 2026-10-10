@@ -12,16 +12,22 @@ let nul=string_from_char(char_from_i64(0));let prefix=string_concat("é",nul);le
 let item=Item{{id,server:"worker-😀",arrival:0,start:0,finish:4,wait:4,late:true}};
 let entries=vec_push<Item>(vec_with_capacity<Item>(1usize),item);
 let report=Report{{stats:Metrics{{selected:1usize,total:4,live:true}},entries}};
-let mut at=0usize;let mut valid=true;
-while valid && at<64usize{{valid=encoded_len(report)=={}usize;at=at+1usize;valid && at<64usize}}
+let mut valid=true;
+{}
 let short=encode(report,{}usize);
-let short_ok=match own short{{Encoded::Refused{{required}}=>required=={}usize,Encoded::Encoded{{text}}=>false,}};
+let short_ok=match own short{{Encoded::Refused{{required:outcome_required_1}}=>outcome_required_1=={}usize,Encoded::Encoded{{text:outcome_text_2}}=>false,}};
 let full=encode(report,{}usize);let expected={};
-let same=match own full{{Encoded::Refused{{required}}=>false,Encoded::Encoded{{text}}=>equal(string_as_str(text),string_as_str(expected)),}};
+let same=match own full{{Encoded::Refused{{required:outcome_required_3}}=>false,Encoded::Encoded{{text:outcome_text_4}}=>equal(string_as_str(outcome_text_4),string_as_str(expected)),}};
 if valid && short_ok && same{{728}}else{{0}}
 }}
 "#,
-            expected.len(),
+            // Preserve all 64 short-circuit preflights. A borrow of the nested
+            // Report is outside the closed loop-call signature profile.
+            format!(
+                "valid=valid && encoded_len(report)=={}usize;\n",
+                expected.len()
+            )
+            .repeat(64),
             expected.len() - 1,
             expected.len(),
             expected.len(),

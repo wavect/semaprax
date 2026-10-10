@@ -47,7 +47,7 @@ fn full_report() -> Report
 @id("record_order.ordered_code")
 fn ordered_code(value: own Report) -> i64
 {
-    match own value { Report { items, metrics } => { let sorted = vec_sort_owned<Row>(items); let mut code = metrics.selected; for own row in vec_into_iter<Row>(sorted) { match own row { Row { department, priority, id, ordinal } => { if department >= 0 && priority >= 0 { code = code * 10 + ordinal; 0 } else { 1 } }, } } code }, }
+    match own value { Report { items, metrics: Metrics { selected } } => { let sorted = vec_sort_owned<Row>(items); let mut code = selected; for own row in vec_into_iter<Row>(sorted) { match own row { Row { department, priority, id, ordinal } => { if department >= 0 && priority >= 0 { code = code * 10 + ordinal; 0 } else { 1 } }, } } code }, }
 }
 
 @id("record_order.empty_order")

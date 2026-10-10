@@ -1,4 +1,5 @@
 module warehouse.app;
+use type @id("warehouse.stock") from warehouse.schema as Stock;
 
 permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
 
@@ -8,9 +9,20 @@ fn main() -> i64
     0
 }
 
+@id("warehouse.adjust")
+fn adjust(value: own Stock) -> Stock
+{
+    match own value { Stock { sku, quantity, available } => { let reduced = if quantity > 0 { quantity - 1 } else { quantity }; Stock { sku: sku, quantity: reduced, available: available } }, }
+}
+
 @id("warehouse.command")
 fn command() -> i64
     uses { process.stdin.read, process.stdout.write }
 {
+    let mut reader = stdin_stream_open();
+    while !stdin_stream_eof(reader) {
+        reader = stdin_stream_next(reader);
+        0
+    }
     0
 }

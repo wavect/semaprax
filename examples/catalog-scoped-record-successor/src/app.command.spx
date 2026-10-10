@@ -1,4 +1,8 @@
 module catalog.app;
+use type @id("catalog.input_item") from catalog.request_schema as InputItem;
+use type @id("catalog.report") from catalog.response_schema as Report;
+use type @id("catalog.output_item") from catalog.response_schema as Item;
+use type @id("catalog.metrics") from catalog.response_schema as Metrics;
 use type @id("catalog.request") from catalog.request_schema as Request;
 use type @id("catalog.request.json.stream-input") from catalog.request_schema as StreamInput;
 use type @id("catalog.request.json.utf8.owned-result") from catalog.request_schema as Decode;
@@ -35,7 +39,7 @@ fn reject() -> i64
 fn command() -> i64
     uses { process.stdin.read, process.stderr.write, process.stdout.write }
 {
-    match own receive() { Decode::Error { code: _code, offset: _offset, field: _field } => reject(), Decode::Decoded { tags, items } => { let outcome = run(Request { tags: tags, items: items }); match own outcome { Result { valid: false, report: _invalid } => reject(), Result { valid: true, report } => { let encoded = encode(report, 65535usize); match own encoded { Encoded::Refused { required: _required } => 1, Encoded::Encoded { text } => publish(ReportParts { body: text, trailer: "\n" }), } }, } }, }
+    match own receive() { Decode::Error { code: _code, offset: _offset, field: _field } => reject(), Decode::Decoded { tags, items } => { let outcome = run(Request { tags: tags, items: items }); if !outcome.valid { reject() } else { let encoded = encode(outcome.report, 65535usize); match own encoded { Encoded::Refused { required: _required } => 1, Encoded::Encoded { text } => publish(ReportParts { body: text, trailer: "\n" }), } } }, }
 }
 
 @id("catalog.app.main")

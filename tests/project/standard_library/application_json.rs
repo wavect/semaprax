@@ -9,14 +9,14 @@ use sha2::{Digest, Sha256};
 mod collection_response;
 #[path = "application_json/nested_request.rs"]
 mod nested_request;
-#[path = "application_json/stream_nested_request.rs"]
-mod stream_nested_request;
 #[path = "application_json/owned.rs"]
 mod owned;
 #[path = "application_json/stream.rs"]
 mod stream;
 #[path = "application_json/stream_native.rs"]
 mod stream_native;
+#[path = "application_json/stream_nested_request.rs"]
+mod stream_nested_request;
 #[path = "application_json/utf8.rs"]
 mod utf8;
 #[path = "application_json/views.rs"]
@@ -69,10 +69,26 @@ fn canonical(source: &str) -> String {
     format::canonical(&parse(source, "application-json.spx").unwrap())
 }
 
+// Stream profile admission checks the bootstrap before generated helpers exist.
+// Retain a genuine reader rather than relying on the selected permit alone.
+fn stream_bootstrap_command() -> &'static str {
+    r#"@id("consumer.command") fn command()->i64 uses{process.stdin.read}{
+let mut reader=stdin_stream_open();
+while !stdin_stream_eof(reader){reader=stdin_stream_next(reader);0}
+0
+}
+"#
+}
+
 fn fixture(label: &str, schema: &str) -> std::path::PathBuf {
     let root = super::temporary(label);
     std::fs::create_dir_all(root.join("src")).unwrap();
-    assert_eq!(project::ProjectManifest::parse(MANIFEST).unwrap().to_canonical_toml(), MANIFEST);
+    assert_eq!(
+        project::ProjectManifest::parse(MANIFEST)
+            .unwrap()
+            .to_canonical_toml(),
+        MANIFEST
+    );
     std::fs::write(root.join("semaprax.toml"), MANIFEST).unwrap();
     std::fs::write(root.join("src/schema.spx"), canonical(schema)).unwrap();
     std::fs::write(
@@ -250,7 +266,7 @@ fn typed_application_json_success_errors_and_exact_capacity_agree_on_three_backe
     ));
     let expected =
         br#"{"n":-9223372036854775808,"count":18446744073709551615,"byte":255,"ok":true}"#;
-    app.push_str(&format!("let value = Patient {{ n: -9223372036854775808, count: 18446744073709551615usize, byte: 255u8, ok: true }};\nlet required = encoded_len(value);\nfailures = failures + if required == {}usize {{ 0 }} else {{ 1 }};\nlet refused = encode(value, required - 1usize);\nfailures = failures + match own refused {{ PatientJsonEncode::Refused {{ required: count }} => if count == required {{ 0 }} else {{ 1 }}, PatientJsonEncode::Encoded {{ text }} => 1, }};\nlet rendered = encode(value, required);\nfailures = failures + match own rendered {{ PatientJsonEncode::Refused {{ required }} => 1, PatientJsonEncode::Encoded {{ text }} => {{ let view = string_as_str(text); let expected = {}; let expected_view = array_as_slice(expected); let mut index = 0usize; let mut mismatch = usize_from_i64(str_len_bytes(view)) != byte_len(expected_view); while index < byte_len(expected_view) {{ let a = str_byte_at(view, index); let b = byte_get(expected_view, index); let equal = match a {{ Option::Some {{ value: actual }} => match b {{ Option::Some {{ value: wanted }} => actual == wanted, Option::None {{}} => false, }}, Option::None {{}} => false, }}; mismatch = mismatch || !equal; index = index + 1usize; index < byte_len(expected_view) }} if mismatch {{ 1 }} else {{ 0 }} }}, }};\nif failures == 0 {{ 439 }} else {{ 0 - failures }}\n}}", expected.len(), array(expected)));
+    app.push_str(&format!("let value = Patient {{ n: -9223372036854775808, count: 18446744073709551615usize, byte: 255u8, ok: true }};\nlet required = encoded_len(value);\nfailures = failures + if required == {}usize {{ 0 }} else {{ 1 }};\nlet refused = encode(value, required - 1usize);\nfailures = failures + match own refused {{ PatientJsonEncode::Refused {{ required: count }} => if count == required {{ 0 }} else {{ 1 }}, PatientJsonEncode::Encoded {{ text: short_text }} => 1, }};\nlet rendered = encode(value, required);\nfailures = failures + match own rendered {{ PatientJsonEncode::Refused {{ required: refused_count }} => 1, PatientJsonEncode::Encoded {{ text }} => {{ let view = string_as_str(text); let expected = {}; let expected_view = array_as_slice(expected); let mut index = 0usize; let mut mismatch = usize_from_i64(str_len_bytes(view)) != byte_len(expected_view); while index < byte_len(expected_view) {{ let a = str_byte_at(view, index); let b = byte_get(expected_view, index); let equal = match a {{ Option::Some {{ value: actual_byte }} => match b {{ Option::Some {{ value: wanted }} => actual_byte == wanted, Option::None {{}} => false, }}, Option::None {{}} => false, }}; mismatch = mismatch || !equal; index = index + 1usize; index < byte_len(expected_view) }} if mismatch {{ 1 }} else {{ 0 }} }}, }};\nif failures == 0 {{ 439 }} else {{ 0 - failures }}\n}}", expected.len(), array(expected)));
     std::fs::write(root.join("src/app.spx"), canonical(&app)).unwrap();
     project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
         semaprax::hir::validate(snapshot.entry_program()).map_err(|error| vec![error])?;

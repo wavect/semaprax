@@ -124,6 +124,119 @@ fn wasm_run(root: &std::path::Path, status: u32, value: i64, refusal: &str) {
     );
 }
 
+// Project graphs carry declaration/contract projections. Inspect the checked
+// expression carrier itself for the nonallocating indexed-read witness.
+pub(super) fn assert_scoped_row_reads(program: &semaprax::hir::ResolvedProgram, row: &str) {
+    use semaprax::hir::{
+        OwnershipMode, ResolvedExprKind as E, ResolvedType, ResolvedTypeDeclarationKind,
+    };
+    semaprax::hir::validate(program).expect("scoped row witness has independently valid HIR");
+    let declaration = program
+        .types
+        .iter()
+        .find(|item| item.id.as_str() == row)
+        .expect("exact response row declaration");
+    let ResolvedTypeDeclarationKind::Record { fields } = &declaration.kind else {
+        panic!("response row is a record");
+    };
+    let expected = fields
+        .iter()
+        .map(|field| field.id.as_str())
+        .collect::<std::collections::BTreeSet<_>>();
+    for suffix in [
+        ".json.collection-response.object-len-at",
+        ".json.collection-response.object-render-at",
+    ] {
+        let identity = format!("{row}{suffix}");
+        let function = program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == identity)
+            .expect("actual indexed response helper");
+        let mut observed = std::collections::BTreeSet::new();
+        let mut pending = vec![&function.body];
+        while let Some(expression) = pending.pop() {
+            match &expression.kind {
+                E::VecFieldRead {
+                    element,
+                    field,
+                    args,
+                    ..
+                } => {
+                    assert!(
+                        matches!(element, ResolvedType::Nominal { declaration, arguments }
+                        if declaration.as_str() == row && arguments.is_empty())
+                    );
+                    let selected = fields
+                        .iter()
+                        .find(|item| item.id == *field)
+                        .expect("exact declared row field");
+                    assert_eq!(args.len(), 2);
+                    assert!(matches!(&args[0].kind, E::Place(_)));
+                    assert_eq!(args[0].ownership, OwnershipMode::Borrow);
+                    assert_eq!(args[1].ty, ResolvedType::Usize);
+                    assert_eq!(
+                        expression.ownership,
+                        if selected.ty == ResolvedType::String {
+                            OwnershipMode::Borrow
+                        } else {
+                            OwnershipMode::Value
+                        }
+                    );
+                    observed.insert(field.as_str());
+                    pending.extend(args);
+                }
+                E::Call { callee, args, .. } => {
+                    assert_ne!(
+                        callee.as_str(),
+                        "core.vec.clone-at",
+                        "indexed helper cannot clone a row"
+                    );
+                    pending.extend(args);
+                }
+                E::Unary { value, .. } => pending.push(value),
+                E::Binary { left, right, .. } => {
+                    pending.push(left);
+                    pending.push(right);
+                }
+                E::If {
+                    condition,
+                    then_branch,
+                    else_branch,
+                } => {
+                    pending.extend([
+                        condition.as_ref(),
+                        then_branch.as_ref(),
+                        else_branch.as_ref(),
+                    ]);
+                }
+                E::Block { statements, tail } => {
+                    pending.push(tail);
+                    for statement in statements {
+                        for index in 0..statement.child_count() {
+                            pending.push(statement.child(index).expect("declared statement child"));
+                        }
+                    }
+                }
+                E::Int(_)
+                | E::Int32(_)
+                | E::Char(_)
+                | E::Uint8(_)
+                | E::Usize(_)
+                | E::Bool(_)
+                | E::String(_)
+                | E::Place(_)
+                | E::BorrowPlace { .. } => {}
+                other => panic!("unexpected indexed response helper shape: {other:?}"),
+            }
+        }
+        assert_eq!(
+            observed, expected,
+            "every exact declared field has a nonallocating read in {identity}"
+        );
+    }
+}
+
 fn qualify(root: &std::path::Path) {
     project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
         semaprax::hir::validate(snapshot.entry_program()).map_err(|e| vec![e])?;
@@ -131,7 +244,7 @@ fn qualify(root: &std::path::Path) {
         assert!(graph
             .semantic_graph()
             .contains("response.report.json.collection-response.encode"));
-        assert!(graph.semantic_graph().contains("vec_field_read"));
+        assert_scoped_row_reads(snapshot.entry_program(), "response.item");
         let options = project::ProjectExecutionOptions::new(16 * 1024 * 1024, 160_000_000)
             .map_err(|e| vec![e])?;
         assert_eq!(
@@ -167,9 +280,9 @@ let required=encoded_len(report);
 let clone_probe=vec_clone_at<Item>(report.entries,0usize);
 let clone_ok=clone_probe.number==-9223372036854775808;
 let short=encode(report,{}usize);
-let short_ok=match own short{{Encoded::Refused{{required:count}}=>count=={}usize,Encoded::Encoded{{text}}=>false,}};
+let short_ok=match own short{{Encoded::Refused{{required:count}}=>count=={}usize,Encoded::Encoded{{text:outcome_text_1}}=>false,}};
 let full=encode(report,{}usize);let expected={};
-let same=match own full{{Encoded::Refused{{required}}=>false,Encoded::Encoded{{text}}=>equal(string_as_str(text),string_as_str(expected)),}};
+let same=match own full{{Encoded::Refused{{required:outcome_required_2}}=>false,Encoded::Encoded{{text:outcome_text_3}}=>equal(string_as_str(outcome_text_3),string_as_str(expected)),}};
 if clone_ok && required=={}usize && short_ok && same{{728}}else{{0}}
 }}
 "#,
@@ -207,15 +320,15 @@ fn collection_response_checks_actual_cardinality_and_string_bound_before_output(
 @id("consumer.row") fn row()->Item{Item{number:0,label:"xx",byte:0u8,count:0usize,active:true}}
 @id("consumer.main") fn main()->i64{
 let invalid=Report{stats:Metrics{selected:1usize,total:0,live:true},entries:vec_push<Item>(vec_with_capacity<Item>(1usize),row())};
-let bad=encode(invalid,131072usize);let bad_ok=match own bad{Encoded::Refused{required}=>required==18446744073709551615usize,Encoded::Encoded{text}=>false,};
+let bad=encode(invalid,131072usize);let bad_ok=match own bad{Encoded::Refused{required:outcome_required_4}=>outcome_required_4==18446744073709551615usize,Encoded::Encoded{text:outcome_text_5}=>false,};
 let mut rows=vec_with_capacity<Item>(257usize);let mut at=0usize;
 while at<257usize{rows=vec_push<Item>(rows,row());at=at+1usize;at<257usize}
 let too_many=Report{stats:Metrics{selected:257usize,total:0,live:true},entries:rows};
-let refused=encode(too_many,131072usize);let count_ok=match own refused{Encoded::Refused{required}=>required==18446744073709551615usize,Encoded::Encoded{text}=>false,};
+let refused=encode(too_many,131072usize);let count_ok=match own refused{Encoded::Refused{required:outcome_required_6}=>outcome_required_6==18446744073709551615usize,Encoded::Encoded{text:outcome_text_7}=>false,};
 let empty=Report{stats:Metrics{selected:0usize,total:0,live:true},entries:vec_with_capacity<Item>(0usize)};
 let needed=encoded_len(empty);let outcome=encode(empty,needed);
 let expected="{\"stats\":{\"selected\":0,\"total\":0,\"live\":true},\"entries\":[]}";
-let empty_ok=match own outcome{Encoded::Refused{required}=>false,Encoded::Encoded{text}=>equal(string_as_str(text),string_as_str(expected)),};
+let empty_ok=match own outcome{Encoded::Refused{required:outcome_required_8}=>false,Encoded::Encoded{text:outcome_text_9}=>equal(string_as_str(outcome_text_9),string_as_str(expected)),};
 if bad_ok && count_ok && empty_ok{728}else{0}
 }
 "#;
@@ -246,13 +359,13 @@ let mut rows=vec_with_capacity<Item>(256usize);let mut expected={};let expected_
 while at<256usize{{
 let row=vec_clone_at<Item>(seeds,0usize);rows=vec_push<Item>(rows,row);
 let _ = if at>0usize{{expected=string_concat(expected,",");true}}else{{true}};
-expected=string_concat(expected,expected_row);at=at+1usize;at<256usize
+expected=string_concat(expected,string_from_str(string_as_str(expected_row)));at=at+1usize;at<256usize
 }}
 let wanted=string_concat(expected,"]}}");
 let report=Report{{stats:Metrics{{selected:256usize,total:0,live:true}},entries:rows}};
 let required=encoded_len(report);let short=encode(report,{}usize);
-let short_ok=match own short{{Encoded::Refused{{required:count}}=>count=={}usize,Encoded::Encoded{{text}}=>false,}};
-let full=encode(report,{}usize);let same=match own full{{Encoded::Refused{{required}}=>false,Encoded::Encoded{{text}}=>equal(string_as_str(text),string_as_str(wanted)),}};
+let short_ok=match own short{{Encoded::Refused{{required:count}}=>count=={}usize,Encoded::Encoded{{text:outcome_text_10}}=>false,}};
+let full=encode(report,{}usize);let same=match own full{{Encoded::Refused{{required:outcome_required_11}}=>false,Encoded::Encoded{{text:outcome_text_12}}=>equal(string_as_str(outcome_text_12),string_as_str(wanted)),}};
 if required=={}usize && short_ok && same{{728}}else{{0}}
 }}
 "#,
@@ -281,7 +394,7 @@ let mut rows=vec_with_capacity<Item>(256usize);let mut at=0usize;
 while at<256usize{let row=vec_clone_at<Item>(seeds,0usize);rows=vec_push<Item>(rows,row);at=at+1usize;at<256usize}
 let report=Report{stats:Metrics{selected:256usize,total:0,live:true},entries:rows};
 let required=encoded_len(report);let outcome=encode(report,18446744073709551615usize);
-let refused=match own outcome{Encoded::Refused{required}=>required==18446744073709551615usize,Encoded::Encoded{text}=>false,};
+let refused=match own outcome{Encoded::Refused{required:outcome_required_13}=>outcome_required_13==18446744073709551615usize,Encoded::Encoded{text:outcome_text_14}=>false,};
 if required==18446744073709551615usize && refused{728}else{0}
 }
 "#;

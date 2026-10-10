@@ -65,7 +65,8 @@ fn generated_application_json_composes_with_record_vectors_in_v29_stream_command
     // are installed. It cannot make an otherwise inadmissible project valid.
     let initial = "module consumer.app;\n".to_owned()
         + PERMITS
-        + "@id(\"consumer.command\") fn command()->i64 {0}\n@id(\"consumer.main\") fn main()->i64 {0}\n";
+        + stream_bootstrap_command()
+        + "@id(\"consumer.main\") fn main()->i64 {0}\n";
     std::fs::write(root.join("src/app.spx"), canonical(&initial)).unwrap();
     let derived = project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
         project::derive_json_codec_source(

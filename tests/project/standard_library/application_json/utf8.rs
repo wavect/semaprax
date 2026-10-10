@@ -140,7 +140,7 @@ fn roundtrip(input: &[u8], expected: &[u8]) -> String {
 Outcome::Error{{code,offset,field}}=>0,
 Outcome::Decoded{{labels,rows}}=>{{let required=encoded_len(labels,rows);
 let short=encode(labels,rows,{}usize);let short_ok=match own short{{Encoded::Refused{{required:count}}=>count=={}usize,Encoded::Encoded{{text}}=>false,}};
-let full=encode(labels,rows,{}usize);match own full{{Encoded::Refused{{required}}=>0,Encoded::Encoded{{text}}=>{{
+let full=encode(labels,rows,{}usize);match own full{{Encoded::Refused{{required:refused_count}}=>0,Encoded::Encoded{{text}}=>{{
 let wanted={};let wanted_view=array_as_slice(wanted);let actual=str_as_bytes(string_as_str(text));let mut at=0usize;
 let mut equal=byte_len(actual)==byte_len(wanted_view);
 while equal && at<byte_len(actual){{equal=match byte_get(actual,at){{Option::Some{{value:a}}=>match byte_get(wanted_view,at){{Option::Some{{value:b}}=>a==b,Option::None{{}}=>false,}},Option::None{{}}=>false,}};at=at+1usize;equal && at<byte_len(actual)}}
@@ -245,7 +245,7 @@ match own decoded{{Outcome::Error{{code,offset,field}}=>0,Outcome::Decoded{{labe
 let first=vec_clone_at<string>(labels,0usize);let last=vec_clone_at<Row>(rows,255usize);
 let count_ok=vec_len<string>(labels)==8usize && vec_len<Row>(rows)==256usize && string_len(first)==64 && string_len(last.text)==64;
 let required=encoded_len(labels,rows);let outcome=encode(labels,rows,{canonical_length}usize);
-match own outcome{{Encoded::Refused{{required}}=>0,Encoded::Encoded{{text}}=>{{let output=str_as_bytes(string_as_str(text));
+match own outcome{{Encoded::Refused{{required:refused_count}}=>0,Encoded::Encoded{{text}}=>{{let output=str_as_bytes(string_as_str(text));
 let mut same=byte_len(output)==byte_len(expected);let mut index=0usize;
 while same && index<byte_len(expected){{same=match byte_get(expected,index){{Option::Some{{value:a}}=>match byte_get(output,index){{Option::Some{{value:b}}=>a==b,Option::None{{}}=>false,}},Option::None{{}}=>false,}};index=index+1usize;same && index<byte_len(expected)}}
 if count_ok && required=={canonical_length}usize && same{{727}}else{{0}}
@@ -273,7 +273,7 @@ fn utf8_owned_request_all_264_values_at_64_decoded_bytes_obey_existing_limits() 
         let app = full_bound_app(escaped, length).replace(
             "module consumer.app;",
             "module consumer.app;\npermit {process.args.read,process.stderr.write,process.stdin.read,process.stdout.write}\n",
-        ) + "\n@id(\"consumer.command\") fn command()->i64{main()}\n";
+        ) + "\n@id(\"consumer.command\") fn command()->i64 uses{process.stdin.read}{let mut reader=stdin_stream_open();while !stdin_stream_eof(reader){reader=stdin_stream_next(reader);0}main()}\n";
         let root = install(&format!("utf8-json-full-bound-{escaped}"), &app, 64);
         let manifest = MANIFEST
             .replace("owned-data-api.v1", "language-command-io.owned-data.v1")
@@ -291,7 +291,7 @@ fn utf8_owned_request_partial_push_and_encoder_clone_refusals_leave_no_owners() 
     let app = imports().to_owned()
         + &format!(
             r#"@id("consumer.main") fn main()->i64{{let raw={};let decoded=decode(array_as_slice(raw));
-match own decoded{{Outcome::Error{{code,offset,field}}=>0,Outcome::Decoded{{labels,rows}}=>{{let outcome=encode(labels,rows,131072usize);match own outcome{{Encoded::Refused{{required}}=>0,Encoded::Encoded{{text}}=>727,}}}},}}}}
+match own decoded{{Outcome::Error{{code,offset,field}}=>0,Outcome::Decoded{{labels,rows}}=>{{let outcome=encode(labels,rows,131072usize);match own outcome{{Encoded::Refused{{required:refused_count}}=>0,Encoded::Encoded{{text}}=>727,}}}},}}}}
 "#,
             array(input)
         );

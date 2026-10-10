@@ -1,9 +1,14 @@
 module catalog.app;
 
+permit { process.stdin.read }
+
 // Bootstrap only: both schema derivations run before installing app.command.spx.
 @id("catalog.command")
 fn command() -> i64
+    uses { process.stdin.read }
 {
+    let mut reader = stdin_stream_open();
+    while !stdin_stream_eof(reader) { reader = stdin_stream_next(reader); 0 }
     0
 }
 

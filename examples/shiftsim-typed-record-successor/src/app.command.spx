@@ -1,4 +1,8 @@
 module shiftsim.app;
+use type @id("shiftsim.patient") from shiftsim.request_schema as Patient;
+use type @id("shiftsim.report") from shiftsim.response_schema as Report;
+use type @id("shiftsim.assignment") from shiftsim.response_schema as Assignment;
+use type @id("shiftsim.metrics") from shiftsim.response_schema as Metrics;
 use type @id("shiftsim.request") from shiftsim.request_schema as Request;
 use type @id("shiftsim.request.json.stream-input") from shiftsim.request_schema as StreamInput;
 use type @id("shiftsim.request.json.owned-result") from shiftsim.request_schema as Decode;
@@ -34,7 +38,7 @@ fn command() -> i64
     uses { process.stdin.read, process.stdout.write, process.stderr.write }
 {
     let decoded = receive();
-    match own decoded { Decode::Error { code: _error_code, offset: _error_offset, field: _error_field } => reject(), Decode::Decoded { servers, patients } => { let outcome = run(Request { servers: servers, patients: patients }); match own outcome { ScheduleResult { valid: false, report: _invalid_report } => reject(), ScheduleResult { valid: true, report } => { let encoded = encode(report, 131071usize); match own encoded { Encoded::Refused { required: _required } => reject(), Encoded::Encoded { text } => { let line = string_concat(text, "\n"); let output = str_as_bytes(string_as_str(line)); let written = stdout_write(output); if written == byte_len(output) { 0 } else { 1 } }, } }, } }, }
+    match own decoded { Decode::Error { code: _error_code, offset: _error_offset, field: _error_field } => reject(), Decode::Decoded { servers, patients } => { let outcome = run(Request { servers: servers, patients: patients }); if !outcome.valid { reject() } else { let encoded = encode(outcome.report, 131071usize); match own encoded { Encoded::Refused { required: _required } => reject(), Encoded::Encoded { text } => { let line = string_concat(text, "\n"); let output = str_as_bytes(string_as_str(line)); let written = stdout_write(output); if written == byte_len(output) { 0 } else { 1 } } }, } }, }
 }
 
 @id("shiftsim.app.main")

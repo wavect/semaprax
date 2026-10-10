@@ -34,9 +34,9 @@ let row=Item{{id:patient_id,server,arrival:0,start:0,finish:4,wait:4,late:true}}
 let entries=vec_push<Item>(vec_with_capacity<Item>(1usize),row);
 let report=Report{{stats:Metrics{{selected:1usize,total:4,live:true}},entries}};
 let required=encoded_len(report);let short=encode(report,{}usize);
-let short_ok=match own short{{Encoded::Refused{{required:count}}=>count=={}usize,Encoded::Encoded{{text}}=>false,}};
+let short_ok=match own short{{Encoded::Refused{{required:count}}=>count=={}usize,Encoded::Encoded{{text:outcome_text_1}}=>false,}};
 let full=encode(report,{}usize);let expected={};
-let same=match own full{{Encoded::Refused{{required}}=>false,Encoded::Encoded{{text}}=>equal(string_as_str(text),string_as_str(expected)),}};
+let same=match own full{{Encoded::Refused{{required:outcome_required_2}}=>false,Encoded::Encoded{{text:outcome_text_3}}=>equal(string_as_str(outcome_text_3),string_as_str(expected)),}};
 if required=={}usize && short_ok && same{{728}}else{{0}}
 }}
 "#,
@@ -61,7 +61,7 @@ let entries=vec_push<Item>(vec_with_capacity<Item>(1usize),row);
 let report=Report{stats:Metrics{selected:1usize,total:1,live:true},entries};
 let required=encoded_len(report);
 let outcome=encode(report,131072usize);
-let refused=match own outcome{Encoded::Refused{required:actual}=>actual==18446744073709551615usize,Encoded::Encoded{text}=>false,};
+let refused=match own outcome{Encoded::Refused{required:actual}=>actual==18446744073709551615usize,Encoded::Encoded{text:outcome_text_4}=>false,};
 if required==18446744073709551615usize && refused{728}else{0}
 }
 "#;

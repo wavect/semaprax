@@ -186,7 +186,7 @@ if !valid || required>output_limit{{{row}JsonViewEncode::Refused{{required:requi
 let mut text={head};let mut at=0usize;
 while at<vec_len<{name}JsonIdentifierSpan>(servers){{let _ = if at>0usize{{text=string_concat(text,\",\");true}}else{{true}};let span=vec_get<{name}JsonIdentifierSpan>(servers,at);text=string_concat(text,json_{row}_identifier_render(input,span.start,span.end));at=at+1usize;at<vec_len<{name}JsonIdentifierSpan>(servers)}}
 let prefix=string_concat(text,{middle});let rendered=json_{row}_view_array_encode(input,patients,131072usize);
-match own rendered{{{row}JsonViewEncode::Refused{{required:count}}=>{row}JsonViewEncode::Refused{{required:count}},{row}JsonViewEncode::Encoded{{text:items}}=>{{let whole=string_concat(prefix,items);{row}JsonViewEncode::Encoded{{text:string_concat(whole,\"}}\")}}}},}}
+let mut refused_size=0usize;let mut output=\"\";let accepted=match own rendered{{{row}JsonViewEncode::Refused{{required:count}}=>{{refused_size=count;false}},{row}JsonViewEncode::Encoded{{text:items}}=>{{let whole=string_concat(prefix,items);output=string_concat(whole,\"}}\");true}},}};if accepted{{{row}JsonViewEncode::Encoded{{text:output}}}}else{{{row}JsonViewEncode::Refused{{required:refused_size}}}}
 }}
 }}")
 }

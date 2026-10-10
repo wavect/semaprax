@@ -72,7 +72,7 @@ fn emit_children(
             emit_children(out, root, kind, ordinal, bound);
             let name = &root.name;
             let id = &root.stable_id;
-            writeln!(out,"@id(\"{id}.json.nested.array-check.{ordinal}\") fn json_{name}_nested_array_check_{ordinal}(input:borrow Slice<u8>,start:usize)->{name}JsonNestedStatus {{let length=byte_len(input);let mut error=if jv_kind(input,start)==2{{0}}else{{5}};let mut offset=if error==0{{0usize}}else{{start}};let mut field={ordinal};let mut count=0usize;let mut cursor=if error==0{{jv_first_element(input,start)}}else{{length}};\nwhile error==0 && cursor<length{{let start=cursor;\nlet _ = if count>={bound}usize{{error=8;offset=cursor;false}}else{{").unwrap();
+            writeln!(out,"@id(\"{id}.json.nested.array-check.{ordinal}\") fn json_{name}_nested_array_check_{ordinal}(input:borrow Slice<u8>,array_start:usize)->{name}JsonNestedStatus {{let length=byte_len(input);let mut error=if jv_kind(input,array_start)==2{{0}}else{{5}};let mut offset=if error==0{{0usize}}else{{array_start}};let mut field={ordinal};let mut count=0usize;let mut cursor=if error==0{{jv_first_element(input,array_start)}}else{{length}};\nwhile error==0 && cursor<length{{let start=cursor;\nlet _ = if count>={bound}usize{{error=8;offset=cursor;false}}else{{").unwrap();
             out.push_str(&check(root, kind, ordinal, bound));
             out.push_str("count=count+1usize;true};\ncursor=if error==0{jv_next_element(input,cursor,32usize)}else{length};error==0 && cursor<length\n}\n");
             writeln!(out,"{name}JsonNestedStatus{{code:error,offset:offset,field:if error==0{{0}}else{{field}}}}\n}}").unwrap();

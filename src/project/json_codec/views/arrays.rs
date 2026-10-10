@@ -56,7 +56,7 @@ if error==0{{{name}JsonArrayDecode::Decoded{{values:values}}}}else{{{name}JsonAr
 }}
 @id(\"{id}.json.view.render\") fn json_{name}_view_render(input:borrow Slice<u8>,value:{name}JsonView)->string{{
 let rendered=json_{name}_view_encode(input,value,131072usize);
-match own rendered{{{name}JsonViewEncode::Encoded{{text}}=>text,{name}JsonViewEncode::Refused{{required}}=>\"\",}}
+let mut output=\"\";let accepted=match own rendered{{{name}JsonViewEncode::Encoded{{text:encoded_text}}=>{{output=encoded_text;true}},{name}JsonViewEncode::Refused{{required:refused_size}}=>false,}};output
 }}
 @id(\"{id}.json.array.encoded-len\") fn json_{name}_view_array_encoded_len(input:borrow Slice<u8>,values:borrow Vec<{name}JsonView>)->usize{{
 let count=vec_len<{name}JsonView>(values);let mut total=if count<=256usize{{2usize}}else{{18446744073709551615usize}};let mut index=0usize;

@@ -30,7 +30,16 @@ fn owned_stream_request_drops_input_before_native_decision_and_output() {
     let root = fixture("owned-json-stream", &schema);
     let manifest = command_manifest("language-command-io.owned-data.v1");
     std::fs::write(root.join("semaprax.toml"), &manifest).unwrap();
-    std::fs::write(root.join("src/app.spx"), canonical(&("module consumer.app;\n".to_owned() + PERMITS + "@id(\"consumer.command\") fn command()->i64{0}\n@id(\"consumer.main\") fn main()->i64{0}"))).unwrap();
+    std::fs::write(
+        root.join("src/app.spx"),
+        canonical(
+            &("module consumer.app;\n".to_owned()
+                + PERMITS
+                + stream_bootstrap_command()
+                + "@id(\"consumer.main\") fn main()->i64{0}"),
+        ),
+    )
+    .unwrap();
     let generated = project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
         project::derive_json_codec_source_with_profile(
             &snapshot.retain_revision(),

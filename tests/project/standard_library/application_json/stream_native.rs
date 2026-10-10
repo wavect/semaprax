@@ -131,7 +131,16 @@ fn streamed_request_codecs_accept_full_raw_domain_and_preserve_late_grammar_prio
         "module consumer.schema; permit {process.stdin.read}",
     );
     std::fs::write(root.join("src/schema.spx"), canonical(&schema)).unwrap();
-    std::fs::write(root.join("src/app.spx"),canonical(&("module consumer.app;".to_owned()+PERMITS+"@id(\"consumer.command\") fn command()->i64{0} @id(\"consumer.main\") fn main()->i64{0}"))).unwrap();
+    std::fs::write(
+        root.join("src/app.spx"),
+        canonical(
+            &("module consumer.app;".to_owned()
+                + PERMITS
+                + stream_bootstrap_command()
+                + "@id(\"consumer.main\") fn main()->i64{0}"),
+        ),
+    )
+    .unwrap();
     let source = project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
         project::derive_json_codec_source_with_profile(
             &snapshot.retain_revision(),

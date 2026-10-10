@@ -143,7 +143,10 @@ fn typed_catalog_derives_codecs_and_preserves_all_23_functional_cases() {
             project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1
         );
         let graph = snapshot.semantic_graph();
-        assert!(graph.contains("\"kind\":\"vec_field_read\""));
+        super::super::collection_response::assert_scoped_row_reads(
+            snapshot.public_api_program(),
+            "catalog.output_item",
+        );
         assert!(graph.contains("catalog.request.json.utf8.owned.decode"));
         assert!(graph.contains("catalog.report.json.collection-response.encode"));
         let tests = snapshot.execute_test(&project::ProjectExecutionOptions::default())?;

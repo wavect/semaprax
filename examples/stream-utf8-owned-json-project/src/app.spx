@@ -12,5 +12,10 @@ fn main() -> i64
 fn command() -> i64
     uses { process.stdin.read, process.stdout.write }
 {
+    let mut reader = stdin_stream_open();
+    while !stdin_stream_eof(reader) {
+        reader = stdin_stream_next(reader);
+        0
+    }
     0
 }

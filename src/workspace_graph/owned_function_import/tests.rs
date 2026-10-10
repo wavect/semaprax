@@ -625,3 +625,48 @@ use function @id("factory.nested") from factory.provider as nested;
         .unwrap();
     hir::validate(&linked).unwrap();
 }
+
+#[test]
+fn concrete_copy_record_vector_return_import_retains_the_real_provider_body() {
+    let provider = r#"module rows.provider;
+@id("row") record Row { @id("row.n") n:i64, }
+@id("rows.make") fn make()->Vec<Row> {
+let first=vec_push<Row>(vec_with_capacity<Row>(2usize),Row{n:9});
+vec_push<Row>(first,Row{n:3})
+}
+@id("rows.order") fn order(values:own Vec<Row>)->Vec<Row>{vec_sort<Row>(values)}
+@id("rows.first") fn first(values:borrow Vec<Row>)->Row{vec_get<Row>(values,0usize)}
+"#;
+    let app = r#"module rows.app;
+use type @id("row") from rows.provider as ImportedRow;
+use function @id("rows.make") from rows.provider as make;
+use function @id("rows.order") from rows.provider as order;
+use function @id("rows.first") from rows.provider as first;
+@id("app.main") fn main()->i64 {let values=order(make());let row=first(values);row.n}
+"#;
+    let built = build_owned(sources(app, provider))
+        .expect("exact record Vec return has a checked signature prototype");
+    let linked = built
+        .linked_owned_data_api_program_with_roots("rows.app", &[])
+        .unwrap();
+    hir::validate(&linked).expect("real body and cleanup independently replay");
+    let value =
+        crate::interpreter::evaluate_resolved_zero_arg_i64(&linked, "app.main", 100_000).unwrap();
+    assert_eq!(
+        value.outcome,
+        crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(3)
+    );
+    let missing = app.replace(
+        "use type @id(\"row\") from rows.provider as ImportedRow;",
+        "",
+    );
+    let errors = build_owned(sources(&missing, provider))
+        .err()
+        .expect("missing concrete element authority refuses");
+    assert!(errors.iter().any(|error| error.code == "SPX-G172"));
+    let nested = provider.replace("n:i64", "n:Vec<i64>");
+    assert!(
+        build_owned(sources(app, &nested)).is_err(),
+        "nested Vec elements remain outside the flat classifier"
+    );
+}

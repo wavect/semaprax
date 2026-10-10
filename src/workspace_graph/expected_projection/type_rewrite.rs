@@ -101,7 +101,7 @@ pub(super) fn rewrite(
     Ok(())
 }
 
-fn vector_element<'a>(
+pub(super) fn vector_element<'a>(
     ty: &'a Type,
     module: &str,
     caller: &Program,
@@ -137,23 +137,47 @@ fn vector_element<'a>(
         .iter()
         .flat_map(|program| &program.types)
         .find(|declaration| declaration.stable_id == id)?;
-    let TypeDeclarationKind::Record { fields } = &declaration.kind else {
+    (record_element(declaration)
+        && caller
+            .module_uses
+            .iter()
+            .any(|item| item.kind == ModuleUseKind::Type && item.persistent_id == id))
+    .then_some(element)
+}
+
+pub(super) fn default_vector_element<'a>(
+    ty: &'a Type,
+    declarations: &[(&str, &crate::ast::TypeDeclaration)],
+) -> Option<&'a Type> {
+    let Type::Named { name, arguments } = ty else {
         return None;
     };
-    let scalar = |ty: &Type| {
-        matches!(
-            ty,
-            Type::I64
-                | Type::I32
-                | Type::U8
-                | Type::Usize
-                | Type::Char
-                | Type::F32
-                | Type::F64
-                | Type::Bool
-        )
+    if name != "Vec" || declarations.iter().any(|(name, _)| *name == "Vec") {
+        return None;
+    }
+    let [element] = arguments.as_slice() else {
+        return None;
     };
-    (declaration.explicit_id
+    if crate::vec_ops::ast_vec_element_is_admitted(element) || *element == Type::String {
+        return Some(element);
+    }
+    let Type::Named { name, arguments } = element else {
+        return None;
+    };
+    if !arguments.is_empty() {
+        return None;
+    }
+    declarations
+        .iter()
+        .find(|(candidate, declaration)| *candidate == name && record_element(declaration))?;
+    Some(element)
+}
+
+fn record_element(declaration: &crate::ast::TypeDeclaration) -> bool {
+    let TypeDeclarationKind::Record { fields } = &declaration.kind else {
+        return false;
+    };
+    declaration.explicit_id
         && declaration.type_parameters.is_empty()
         && declaration.invariants().is_empty()
         && (1..=8).contains(&fields.len())
@@ -164,13 +188,9 @@ fn vector_element<'a>(
             <= 2
         && fields.iter().all(|field| {
             field.explicit_id
-                && (scalar(&field.ty) || matches!(field.ty, Type::String | Type::Bytes))
+                && (crate::vec_ops::ast_element_is_admitted(&field.ty)
+                    || matches!(field.ty, Type::String | Type::Bytes))
         })
-        && caller
-            .module_uses
-            .iter()
-            .any(|item| item.kind == ModuleUseKind::Type && item.persistent_id == id))
-    .then_some(element)
 }
 
 #[cfg(test)]

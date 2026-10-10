@@ -1,12 +1,16 @@
-//! Additive Project v31 private nested collection-record closure.
+//! Additive Project v32 private owning nested-outcome closure.
 use super::*;
 
-pub(crate) fn stream_collection_record_signature_admitted(
+pub(crate) fn stream_nested_outcome_signature_admitted(
     program: &ResolvedProgram,
     f: &ResolvedFunction,
 ) -> bool {
     let index = &program.declarations;
-    let nested = |ty| super::super::owned_collection_record::admitted(ty, index);
+    let nested = |ty| {
+        super::super::owned_collection_record::admitted(ty, index)
+            || super::super::collection_outcome::nested::admitted(index, ty)
+            || super::super::collection_outcome::nested::record_payload_admitted(index, ty)
+    };
     (super::stream_owned::return_admitted(index, &f.return_type) || nested(&f.return_type))
         && f.params.iter().all(|parameter| {
             super::stream_owned::parameter_admitted(index, parameter)
@@ -19,33 +23,28 @@ pub(crate) fn stream_collection_record_signature_admitted(
             || crate::stdin_stream_ops::resolved_forward_signature(f))
 }
 
-pub(crate) fn validate_stream_collection_record_program(
+pub(crate) fn validate_stream_nested_outcome_program(
     program: &ResolvedProgram,
     command: Option<&DeclarationId>,
 ) -> Result<(), Diagnostic> {
     validate(program)?;
-    if super::super::collection_outcome::nested::program_requires_profile(program) {
-        return Err(link_error(
-            "owning nested outcomes require the nested-outcome successor profile",
-        ));
-    }
     if !program.interfaces.is_empty()
         || !program.function_templates.is_empty()
         || !program.function_instances.is_empty()
     {
         return Err(link_error(
-            "collection-record command requires a monomorphic interface-free closure",
+            "nested-outcome command requires a monomorphic interface-free closure",
         ));
     }
     if command.is_some_and(|id| !program.functions.iter().any(|f| &f.id == id)) {
-        return Err(link_error("collection-record command is absent"));
+        return Err(link_error("nested-outcome command is absent"));
     }
     for f in &program.functions {
         let root = f.id == program.entrypoint || command == Some(&f.id);
         if (if root {
             !f.params.is_empty() || f.return_type != ResolvedType::I64
         } else {
-            !stream_collection_record_signature_admitted(program, f)
+            !stream_nested_outcome_signature_admitted(program, f)
         }) || program
             .declarations
             .declaration(&f.id)
@@ -62,7 +61,7 @@ pub(crate) fn validate_stream_collection_record_program(
             })
         {
             return Err(link_error(
-                "collection-record helper requires an explicit admitted signature/effect closure",
+                "nested-outcome helper requires an explicit admitted signature/effect closure",
             ));
         }
         for declaration in super::super::authored_nominal_declarations(f) {
@@ -75,8 +74,15 @@ pub(crate) fn validate_stream_collection_record_program(
                 && super::stream_record::codec_mode(&program.declarations, &ty).is_none()
                 && super::super::owned_leaf_collection::layout(&program.declarations, &ty).is_none()
                 && !super::super::collection_outcome::owned_admitted(&program.declarations, &ty)
+                && !super::super::collection_outcome::nested::admitted(&program.declarations, &ty)
+                && !super::super::collection_outcome::nested::record_payload_admitted(
+                    &program.declarations,
+                    &ty,
+                )
             {
-                return Err(link_error("collection-record closure contains an unsupported authored nominal declaration"));
+                return Err(link_error(
+                    "nested-outcome closure contains an unsupported authored nominal declaration",
+                ));
             }
         }
     }

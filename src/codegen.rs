@@ -55,11 +55,10 @@ mod native_source_resource_command;
 )]
 mod native_stdin_stream;
 pub use native_stdin_stream::{
-    emit_hir_c_with_stdin_stream, emit_hir_c_with_stdin_stream_data,
-    emit_hir_c_with_stdin_stream_collection_records,
-    emit_hir_c_with_stdin_stream_exit_status, emit_hir_c_with_stdin_stream_owned_data,
-    emit_hir_c_with_stdin_stream_records,
-    emit_hir_c_with_stdin_stream_text,
+    emit_hir_c_with_stdin_stream, emit_hir_c_with_stdin_stream_collection_records,
+    emit_hir_c_with_stdin_stream_data, emit_hir_c_with_stdin_stream_exit_status,
+    emit_hir_c_with_stdin_stream_nested_outcomes, emit_hir_c_with_stdin_stream_owned_data,
+    emit_hir_c_with_stdin_stream_records, emit_hir_c_with_stdin_stream_text,
 };
 mod native_trace;
 mod native_trace_runtime;

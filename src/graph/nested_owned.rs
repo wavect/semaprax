@@ -425,7 +425,8 @@ pub(super) fn pre_filesystem_graph_schema(
                 || crate::hir::function_value::requires_function_values(program)
                 || super::owned_text_record_loans::requires(program)
                 || super::owned_collection_records::requires(program)
-                || super::projected_string_view::requires(program),
+                || super::projected_string_view::requires(program)
+                || super::owned_nested_outcome::requires(program),
         )?;
         return Ok(iterator_schema);
     }
@@ -441,6 +442,7 @@ pub(super) fn pre_filesystem_graph_schema(
         && !super::owned_text_record_loans::requires(program)
         && !super::owned_collection_records::requires(program)
         && !super::projected_string_view::requires(program)
+        && !super::owned_nested_outcome::requires(program)
     {
         return legacy_graph_schema(program);
     }
@@ -475,11 +477,18 @@ pub(super) fn generic_payload_schema(
             || crate::hir::function_value::requires_function_values(program)
             || super::owned_text_record_loans::requires(program)
             || super::owned_collection_records::requires(program)
-            || super::projected_string_view::requires(program),
+            || super::projected_string_view::requires(program)
+            || super::owned_nested_outcome::requires(program),
     )
 }
 
 pub(crate) fn legacy_graph_schema(program: &ResolvedProgram) -> Result<&'static str, Diagnostic> {
+    if super::owned_nested_outcome::requires(program) {
+        return Err(Diagnostic::io(
+            "SPX-G410",
+            "owning nested outcomes require Graph v74",
+        ));
+    }
     if super::projected_string_view::requires(program) {
         return Err(Diagnostic::io(
             "SPX-G410",
@@ -605,6 +614,7 @@ pub(super) fn graph_schema_includes_modern_composite_facts(schema: &str) -> bool
             | "semaprax.graph.v71"
             | "semaprax.graph.v72"
             | "semaprax.graph.v73"
+            | "semaprax.graph.v74"
     )
 }
 
@@ -642,6 +652,7 @@ pub(super) fn graph_schema_includes_loans(schema: &str) -> bool {
             | "semaprax.graph.v71"
             | "semaprax.graph.v72"
             | "semaprax.graph.v73"
+            | "semaprax.graph.v74"
     )
 }
 
@@ -677,6 +688,7 @@ pub(super) fn graph_schema_includes_projected_provenance(schema: &str) -> bool {
             | "semaprax.graph.v71"
             | "semaprax.graph.v72"
             | "semaprax.graph.v73"
+            | "semaprax.graph.v74"
     )
 }
 

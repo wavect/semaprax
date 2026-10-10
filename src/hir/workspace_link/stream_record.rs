@@ -86,6 +86,11 @@ pub(crate) fn validate_stream_record_program(
     command: Option<&DeclarationId>,
 ) -> Result<(), Diagnostic> {
     validate(program)?;
+    if super::super::collection_outcome::nested::program_requires_profile(program) {
+        return Err(link_error(
+            "owning nested outcomes require the nested-outcome successor profile",
+        ));
+    }
     if !program.interfaces.is_empty()
         || !program.function_templates.is_empty()
         || !program.function_instances.is_empty()

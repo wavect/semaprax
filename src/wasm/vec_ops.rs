@@ -34,7 +34,8 @@ pub(crate) fn program_uses_owned_leaf_vec(program: &ResolvedProgram) -> bool {
                 )
         })
     };
-    crate::hir::owned_collection_record::program_requires_profile(program)
+    crate::hir::collection_outcome::nested::program_requires_profile(program)
+        || crate::hir::owned_collection_record::program_requires_profile(program)
         || program.functions.iter().chain(program.function_instances.iter().map(|i| &i.function))
         .any(|function| private_iterator(&function.return_type)
             || function.params.iter().any(|param| private_iterator(&param.ty))

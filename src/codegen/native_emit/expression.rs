@@ -1,5 +1,4 @@
 use std::collections::BTreeSet;
-
 use crate::aggregate_layout::AggregateLayout;
 use crate::ast::{BinaryOp, UnaryOp};
 use crate::bounded_output::BudgetedJoin as _;
@@ -1637,6 +1636,15 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 self.line(&format!("memset(&{temporary}, 0, sizeof({temporary}));"));
                 let case_symbol = c_case_symbol(case);
                 for (field, value) in values {
+                    if field.value_kind == crate::variant_layout::VariantFieldValueKind::OwnedRecord
+                    {
+                        let destination = format!(
+                            "{temporary}.spx_payload.{case_symbol}.{}",
+                            c_field_symbol(&field.field)
+                        );
+                        self.move_owned_record_fields(&destination, &value.code, &field.ty)?;
+                        continue;
+                    }
                     if field.size != 0
                         && !is_direct_plan_owned(self.program, &field.ty)
                         && !crate::iterator_ops::is_iter(&field.ty)

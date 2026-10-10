@@ -1,0 +1,38 @@
+module test.owned_nested_outcome;
+@id("n.Config") record Config { @id("n.Config.label") label:string, @id("n.Config.seed") seed:i64, }
+@id("n.Payload") record Payload {
+ @id("n.Payload.items") items:Vec<string>,
+ @id("n.Payload.config") config:Config,
+ @id("n.Payload.bytes") bytes:Bytes,
+}
+@id("n.Outcome") variant Outcome {
+ @id("n.Outcome.ready") Ready { @id("n.Outcome.value") value:Payload, },
+ @id("n.Outcome.error") Error { @id("n.Outcome.code") code:i64, @id("n.Outcome.offset") offset:usize, @id("n.Outcome.field") field:i64, },
+}
+@id("n.make") fn make(ok:bool)->Outcome {
+ if ok {
+  let items=vec_push<string>(vec_push<string>(vec_with_capacity<string>(2usize),"a"),"b");
+  Outcome::Ready{value:Payload{items:items,config:Config{label:"abc",seed:7},bytes:bytes_zeroed(3usize)}}
+ } else {Outcome::Error{code:5,offset:3usize,field:4}}
+}
+@id("n.forward") fn forward(value:own Outcome)->Outcome {value}
+@id("n.inspect_payload") fn inspect_payload(value:borrow Payload)->i64 {
+ i64_from_usize(vec_len<string>(value.items))+value.config.seed+str_len_bytes(string_as_str(value.config.label))+i64_from_usize(byte_len(bytes_as_slice(value.bytes)))
+}
+@id("n.inspect") fn inspect(value:borrow Outcome)->i64 {
+ match borrow value {Outcome::Ready{value}=>inspect_payload(value),Outcome::Error{code,offset,field}=>code+i64_from_usize(offset)+field,}
+}
+@id("n.finish") fn finish(value:own Outcome)->i64 {
+ match own value {
+  Outcome::Ready{value}=>match own value {Payload{items,config:Config{label,seed},bytes}=>i64_from_usize(vec_len<string>(items))+seed+string_len(label)+i64_from_usize(byte_len(bytes_as_slice(bytes))),},
+  Outcome::Error{code,offset,field}=>code+i64_from_usize(offset)+field,
+ }
+}
+@id("app.main") fn main()->i64 {
+ let success=make(true);
+ let read=inspect(success);
+ let moved=finish(forward(success));
+ let error=make(false);
+ let rejected=finish(forward(error));
+ if read==15 && moved==15 && rejected==12 {42}else{0}
+}

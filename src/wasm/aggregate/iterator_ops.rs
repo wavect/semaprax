@@ -114,12 +114,12 @@ impl Emitter<'_> {
             let source = value_at(pointer, field.ty.clone(), self.program)?;
             let borrowed_record_item = mode == crate::hir::ResolvedMatchMode::Borrow
                 && pattern_field.binding.ownership == crate::hir::OwnershipMode::Borrow
-                && case_layout.case.as_str() == crate::iterator_ops::YIELD_ID
+                && (field.value_kind == crate::variant_layout::VariantFieldValueKind::OwnedRecord || (case_layout.case.as_str() == crate::iterator_ops::YIELD_ID
                 && pattern_field.field.as_str() == crate::iterator_ops::ITEM_ID
                 && (crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
                     &self.program.declarations, &field.ty)
                     || crate::hir::owned_leaf_collection::layout(&self.program.declarations, &field.ty)
-                        .is_some());
+                        .is_some())));
             if mode == crate::hir::ResolvedMatchMode::Borrow
                 && (crate::iterator_ops::is_iter(&field.ty) || borrowed_record_item)
             {
@@ -313,13 +313,17 @@ impl Emitter<'_> {
         }
         if crate::hir::owned_leaf_collection::layout(&self.program.declarations, element).is_some()
             && !crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
-                &self.program.declarations, element)
+                &self.program.declarations,
+                element,
+            )
         {
             return match op {
-                crate::iterator_ops::IteratorOp::VecIntoIter =>
-                    self.emit_owned_leaf_vec_into_iter(expr, element, args),
-                crate::iterator_ops::IteratorOp::Next =>
-                    self.emit_owned_leaf_iter_next(expr, element, args),
+                crate::iterator_ops::IteratorOp::VecIntoIter => {
+                    self.emit_owned_leaf_vec_into_iter(expr, element, args)
+                }
+                crate::iterator_ops::IteratorOp::Next => {
+                    self.emit_owned_leaf_iter_next(expr, element, args)
+                }
             };
         }
         if crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(

@@ -90,6 +90,11 @@ pub(crate) fn validate_stream_owned_program(
     command: Option<&DeclarationId>,
 ) -> Result<(), Diagnostic> {
     validate(program)?;
+    if super::super::collection_outcome::nested::program_requires_profile(program) {
+        return Err(link_error(
+            "owning nested outcomes require the nested-outcome successor profile",
+        ));
+    }
     if super::super::owned_collection_record::program_requires_profile(program) {
         return Err(link_error(
             "nested collection records require the collection-record successor profile",

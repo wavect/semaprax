@@ -135,7 +135,28 @@ pub fn emit_hir_c_with_stdin_stream_collection_records(
     )
 }
 
+/// Explicit successor for properly tagged owning nested results.
+pub fn emit_hir_c_with_stdin_stream_nested_outcomes(
+    program: &ResolvedProgram,
+    command_id: &str,
+) -> Result<String, Diagnostic> {
+    crate::hir::validate_stream_nested_outcome_program(
+        program,
+        Some(&hir::DeclarationId::new(command_id)),
+    )?;
+    emit_profile(
+        program,
+        command_id,
+        NativeOutputProfile::StdinStreamDataCommandIo,
+    )
+}
+
 fn reject_owned_leaf_in_frozen_profile(program: &ResolvedProgram) -> Result<(), Diagnostic> {
+    if hir::collection_outcome::nested::program_requires_profile(program) {
+        return Err(backend_error(
+            "owning nested outcomes require the explicitly selected v32 native stream profile",
+        ));
+    }
     if hir::owned_collection_record::program_requires_profile(program) {
         return Err(backend_error(
             "nested collection records require the explicitly selected v31 native stream profile",

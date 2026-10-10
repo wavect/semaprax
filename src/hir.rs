@@ -244,12 +244,14 @@ pub(crate) use workspace_link::{
     link_useful_data_command_workspace, link_useful_data_workspace, link_useful_text_workspace,
     owned_data_api_workspace_return_admitted, package_scalar_type,
     stream_collection_record_signature_admitted, stream_data_parameter_admitted,
-    stream_owned_signature_admitted, stream_record_signature_admitted,
-    stream_text_parameter_admitted, stream_text_parameter_with_index, stream_text_return_admitted,
-    stream_text_return_with_index, useful_data_workspace_parameter_admitted,
-    useful_data_workspace_return_admitted, validate_stream_collection_record_program,
-    validate_stream_data_program, validate_stream_owned_program, validate_stream_record_program,
-    validate_stream_text_program, LinkedScalarProjectParts, COPY_SCALAR_NAMES, PACKAGE_SCALAR_NAME,
+    stream_nested_outcome_signature_admitted, stream_owned_signature_admitted,
+    stream_record_signature_admitted, stream_text_parameter_admitted,
+    stream_text_parameter_with_index, stream_text_return_admitted, stream_text_return_with_index,
+    useful_data_workspace_parameter_admitted, useful_data_workspace_return_admitted,
+    validate_stream_collection_record_program, validate_stream_data_program,
+    validate_stream_nested_outcome_program, validate_stream_owned_program,
+    validate_stream_record_program, validate_stream_text_program, LinkedScalarProjectParts,
+    COPY_SCALAR_NAMES, PACKAGE_SCALAR_NAME,
 };
 
 #[allow(dead_code, reason = "private Workspace Semantic Graph Phase-A seam")]

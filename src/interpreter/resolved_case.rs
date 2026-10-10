@@ -31,9 +31,13 @@ pub(crate) enum ResolvedFunctionProfile {
     StreamRecords,
     StreamOwned,
     StreamCollectionRecords,
+    StreamNestedOutcomes,
 }
 impl ResolvedFunctionProfile {
     pub(crate) fn for_project(profile: crate::project::ProjectProfile) -> Self {
+        if profile == crate::project::ProjectProfile::StdinStreamNestedOutcomeCommandIoV1 {
+            return Self::StreamNestedOutcomes;
+        }
         if profile == crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1 {
             return Self::StreamCollectionRecords;
         }
@@ -86,7 +90,10 @@ impl ResolvedFunctionProfile {
         }
         if matches!(
             self,
-            Self::StreamRecords | Self::StreamOwned | Self::StreamCollectionRecords
+            Self::StreamRecords
+                | Self::StreamOwned
+                | Self::StreamCollectionRecords
+                | Self::StreamNestedOutcomes
         ) {
             admitted.extend(
                 program
@@ -95,6 +102,9 @@ impl ResolvedFunctionProfile {
                     .filter(|f| {
                         f.effects.is_empty()
                             && match self {
+                                Self::StreamNestedOutcomes => {
+                                    hir::stream_nested_outcome_signature_admitted(program, f)
+                                }
                                 Self::StreamCollectionRecords => {
                                     hir::stream_collection_record_signature_admitted(program, f)
                                 }

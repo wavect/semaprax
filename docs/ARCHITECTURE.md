@@ -973,6 +973,19 @@ independently validates the v31 closure, while the v30 validator rejects the new
 carrier even in unused helpers. `interpreter/resolved_case` selects the matching
 private helper map. Owning source/backend regression execution is pending.
 
+The source-authored [owning nested-outcome slice](OWNED-NESTED-OUTCOMES-V1.md)
+adds a proper error-or-record carrier. Independent source and HIR
+`collection_outcome/nested` classifiers authenticate the entire explicit shape;
+`cleanup/iterator` binds its exact case/payload field before recursively deriving
+full record-leaf paths. VariantLayout delegates the payload to AggregateLayout.
+Native construction moves the inert scalar shell separately from canonical
+owner slots; Wasm active-case moves and borrowed payload aliases retain those
+same ownership boundaries. `hir/workspace_link/stream_nested_outcome` owns the
+v32 positive gate; older validators reject the carrier even behind scalar
+signatures. `graph/owned_nested_outcome` owns the non-authoritative Graph v74
+projection. Same-source success, no-allocation error, hostile replay and physical
+failure-settlement gates are authored but execution remains pending.
+
 ### Semantic graph
 
 `src/graph.rs` and `src/graph_cleanup.rs` project validated program and cleanup

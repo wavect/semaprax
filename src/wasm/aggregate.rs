@@ -8195,14 +8195,7 @@ impl Emitter<'_> {
                 }
                 if is_variant(self.program, ty)? {
                     let variant = variant_layout(self.variant_layouts, ty)?;
-                    if variant
-                        .cases
-                        .iter()
-                        .flat_map(|case| &case.fields)
-                        .any(|field| {
-                            matches!(&field.ty, ResolvedType::Bytes | ResolvedType::String)
-                        })
-                    {
+                    if generic_variant::has_owned_payload(&variant) {
                         // Authenticate the tag before reading any union payload.
                         self.emit_pointer(*source);
                         self.output.extend([0x28, 0x02, 0x00, 0x41]);

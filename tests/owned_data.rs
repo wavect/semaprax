@@ -107,3 +107,6 @@ mod nested_collection_record;
 
 #[path = "owned_data/projected_string_views.rs"]
 mod projected_string_views;
+
+#[path = "owned_data/owned_nested_outcome.rs"]
+mod owned_nested_outcome;

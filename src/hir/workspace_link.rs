@@ -9,6 +9,10 @@ mod compiler_prelude;
 mod profile_diagnostics;
 mod stdin_stream;
 mod stream_collection_record;
+mod stream_nested_outcome;
+pub(crate) use stream_nested_outcome::{
+    stream_nested_outcome_signature_admitted, validate_stream_nested_outcome_program,
+};
 mod stream_owned;
 pub(crate) use stream_collection_record::{
     stream_collection_record_signature_admitted, validate_stream_collection_record_program,

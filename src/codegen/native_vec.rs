@@ -57,7 +57,8 @@ pub(super) fn program_uses_owned_leaf(program: &crate::hir::ResolvedProgram) -> 
             | crate::iterator_ops::ITER_ID | crate::iterator_ops::STEP_ID)
         && matches!(arguments.as_slice(), [element] if new_element(element)))
     };
-    crate::hir::owned_collection_record::program_requires_profile(program)
+    crate::hir::collection_outcome::nested::program_requires_profile(program)
+        || crate::hir::owned_collection_record::program_requires_profile(program)
         || program
             .functions
             .iter()

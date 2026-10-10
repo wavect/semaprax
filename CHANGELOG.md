@@ -1,5 +1,11 @@
 # Changelog
 
+- Author OPT-729 properly tagged outcomes carrying authenticated nested owning
+  records. Preserve scalar error cases without a default payload, canonical
+  case-qualified cleanup, existing capacities and frozen command profiles. Stage
+  source/HIR/cache/Graph v74 and three-backend success/failure/zero-allocation
+  error regressions for v32; execution and nested codec qualification pending.
+
 - Author OPT-728 rooted record-field String views: exact source/HIR path and
   loan authentication, fused byte provenance, no-copy interpreter reads and
   Graph v73. Stage no-clone and failure-settlement regressions on interpreter,

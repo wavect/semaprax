@@ -49,6 +49,7 @@ use expression::expr_json;
 mod generic_instances;
 mod generic_mapping;
 mod owned_collection_records;
+mod owned_nested_outcome;
 mod owned_string_byte_view;
 mod projected_string_view;
 use filesystem::string_array;
@@ -56,7 +57,7 @@ use generic_instances::legacy_graph_json;
 pub(crate) use generic_instances::to_legacy_hir_json;
 pub use generic_instances::{legacy_context_json, to_legacy_json, verify_json};
 pub(crate) use generic_mapping::requires_v35;
-use projected_string_view::graph_json;
+use owned_nested_outcome::graph_json;
 
 #[path = "graph/native_import.rs"]
 mod native_import;
@@ -74,7 +75,7 @@ pub(crate) use prelude_binding::revision_from_canonical_program;
 
 pub(crate) use native_import::view_relation as native_view_relation;
 pub(crate) use native_import::{reject_native_rust_imports, reject_source_native_rust_imports};
-pub(crate) use projected_string_view::{
+pub(crate) use owned_nested_outcome::{
     graph_schema, graph_schema_from_parts_and_instances, legacy_graph_schema,
 };
 

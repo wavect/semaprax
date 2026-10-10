@@ -8,12 +8,18 @@ pub(crate) fn variant_record_field(
     field: &DeclarationId,
     ty: &ResolvedType,
 ) -> bool {
-    crate::iterator_ops::step_shape(&program.declarations, container)
+    crate::hir::collection_outcome::nested::record_field(
+        &program.declarations,
+        container,
+        case,
+        field,
+        ty,
+    ) || (crate::iterator_ops::step_shape(&program.declarations, container)
         && case.as_str() == crate::iterator_ops::YIELD_ID
         && field.as_str() == crate::iterator_ops::ITEM_ID
         && crate::iterator_ops::element(container) == Some(ty)
         && matches!(ty, ResolvedType::Nominal { .. })
-        && crate::hir::owned_leaf_collection::runtime_element(&program.declarations, ty)
+        && crate::hir::owned_leaf_collection::runtime_element(&program.declarations, ty))
 }
 
 pub(crate) fn variant_leaf_lifecycle<'a>(

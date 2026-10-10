@@ -411,6 +411,22 @@ fn layout_case(
                 8,
                 VariantFieldValueKind::OwnedVec,
             )
+        } else if crate::hir::collection_outcome::nested::record_field(
+            &program.declarations,
+            &ResolvedType::Nominal {
+                declaration: variant.clone(),
+                arguments: arguments.to_vec(),
+            },
+            &case.id,
+            &field.id,
+            &concrete_ty,
+        ) {
+            let nested = AggregateLayout::for_type(program, target, &concrete_ty)?;
+            (
+                nested.size,
+                nested.align,
+                VariantFieldValueKind::OwnedRecord,
+            )
         } else if concrete_ty == ResolvedType::String {
             (8, 8, VariantFieldValueKind::OwnedString)
         } else if crate::iterator_ops::is_iter(&concrete_ty) {

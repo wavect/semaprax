@@ -158,7 +158,8 @@ pub(super) fn check_byte_data_declarations<'p>(
                             ),
                             field.span,
                         ));
-                    } else if !has_direct_bytes && types.contains_owned_bytes(&field.ty) {
+                    } else if !has_direct_bytes && types.contains_owned_bytes(&field.ty)
+                        && !super::super::declared_type::collection_outcome::runtime_declaration_admitted(types, declaration) {
                         diagnostics.push(error(
                             program,
                             "SPX-T268",

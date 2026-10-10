@@ -28,6 +28,8 @@ fn strict_wasm(ast: &semaprax::ast::Program, root: &std::path::Path, status: &st
     let output = Command::new("node")
         .arg("-e")
         .arg(host)
+        // The shared file-mode host reads the Wasm path at argv[2].
+        .arg("semaprax-owned-host")
         .arg(module)
         .args([status, expected, "projected-view"])
         .output()

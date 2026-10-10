@@ -47,7 +47,7 @@ fn nested_outcome_partial_record_staging_callee_and_postcondition_keep_first_fai
   for _ in 0..3 {let result=interpreter::interpret(&path,"app.main",&[],&InterpreterOptions::default()).unwrap();assert!(!result.returned,"{}",result.envelope);interpreter::verify_envelope(&result.envelope).unwrap();assert!(result.envelope.contains(&format!("\"domain_id\":\"{domain}\"")));assert!(result.envelope.contains(&format!("\"code\":{code}")));}
   super::nested_collection_record::failure::native_failure(&ast,&root,domain,code);
   let wasm=semaprax::wasm::emit_module(&ast).unwrap();wasmparser::Validator::new().validate_all(&wasm).unwrap();let module=root.join("app.wasm");std::fs::write(&module,wasm).unwrap();
-  let output=Command::new("node").arg("-e").arg(include_str!("owned_leaf_vec/host.js")).arg(module).args([if contract{"10"}else{"1"},"0","prefix-failure"]).output().unwrap();assert!(output.status.success(),"{label}: {}",String::from_utf8_lossy(&output.stderr));std::fs::remove_dir_all(root).unwrap();
+  let output=Command::new("node").arg("-e").arg(include_str!("owned_leaf_vec/host.js")).arg("semaprax-owned-host").arg(module).args([if contract{"10"}else{"1"},"0","prefix-failure"]).output().unwrap();assert!(output.status.success(),"{label}: {}",String::from_utf8_lossy(&output.stderr));std::fs::remove_dir_all(root).unwrap();
  }
 }
 

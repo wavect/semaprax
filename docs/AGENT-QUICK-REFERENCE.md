@@ -1371,10 +1371,9 @@ Owned runtime support is private to
 lifetime. Source and current-head qualification remain pending; this is not
 full #724.
 
-For a typed request/response source sketch, open
-`help language author:json-request-response` or the
-[ShiftSim successor README](../examples/shiftsim-typed-record-successor/README.md).
-The CLI selects one profile per call and writes a new complete module:
+Typed source: `help language author:json-request-response` and the
+[ShiftSim README](../examples/shiftsim-typed-record-successor/README.md).
+Select one profile per call:
 
 ```sh
 cd examples/shiftsim-typed-record-successor
@@ -1388,44 +1387,18 @@ semaprax json-codec . --source src/response.spx --type shiftsim.report \
 For a two-codec application, derive both outputs from the unchanged bootstrap,
 then replay each candidate against that same authenticated Project revision with
 its exact source path, record ID, profile and bounds before copying either output
-over an authored source. The checked owner is
-`standard_library::application_json::owned::catalog_scoped_records::`.
-Installing one generated module first changes the revision and cannot prove the
-other candidate was derived/replayed against the original pair; hand edits also
-remove its derivation claim. The CLI still writes only new complete modules and
-never overwrites source or manifests.
+over an authored source. Installing a module first changes the revision; hand edits remove derivation
+evidence. The CLI never overwrites source or manifests. See the checked
+`standard_library::application_json::owned::catalog_scoped_records::` owner.
 
-A streamed nested decoder owns its `Ready` payload. Move it through nested
-owning matches, as in the checked
-`examples/stream-nested-order-json-project/src/app.command.spx` shape:
-
-```text
-match own outcome {
-    Outcome::Error { code, offset, field } => {
-        let message = string_format("error:{}:{}:{}", code, offset, field);
-        let diagnostic = str_as_bytes(string_as_str(message));
-        let _ = stderr_write(diagnostic);
-        2
-    },
-    Outcome::Ready { value } => match own value {
-        OrderRequest { configuration, lines, urgent } => match own configuration {
-            Configuration { label, retry } => {
-                let summary = summarize(lines);
-                let text = string_format("{}:{}:{}:{}:{}:{}", string_len(label), retry, urgent, vec_len<Line>(lines), summary.quantity, summary.sku_bytes);
-                let payload = str_as_bytes(string_as_str(text));
-                let written = stdout_write(payload);
-                if written == byte_len(payload) { 0 } else { 1 }
-            },
-        },
-    },
-}
-```
-
-`value`, its nested records, Strings and Vecs are moved by these bindings; do
-not retain a borrowed Ready byte slice or substitute dummy owners. For a stream
-normalizer, the equivalent `Ready { bytes, length }` branch passes exactly
-`byte_range(bytes_as_slice(bytes), 0usize, length)` to the decoder while owning
-`bytes` remains live for that call.
+A streamed decoder owns its `Ready` payload. Use nested `match own` bindings
+to move its records, Strings and Vecs; keep borrowed views within the owner's
+lifetime. The checked example
+`examples/stream-nested-order-json-project/src/app.command.spx` shows success,
+stderr errors and output status. Do not substitute dummy owners. A normalizer's
+`Ready { bytes, length }` branch passes exactly
+`byte_range(bytes_as_slice(bytes), 0usize, length)` to the decoder while `bytes`
+remains live.
 
 After an owned `Request` is decoded, ordinary code can inspect a row with
 `vec_field<Patient>(request.patients,index,"priority")`; a selected String is
@@ -1433,8 +1406,7 @@ a borrow that keeps the named vector live through its last use. The response
 selector only encodes `Report { assignments: Vec<Assignment>, metrics: Metrics }`;
 it does not decode requests or map business data. Helpers are ordinary checked
 source, and the caller's admitted Project profile still controls runtime
-support. The ShiftSim source composition and current-head qualification remain
-pending; it does not establish application acceptance or a general JSON codec.
+support. Current-head application qualification remains pending.
 
 ## Where the rules live
 

@@ -1316,12 +1316,13 @@ record in `while` is `SPX-T267`. See `help language author:owned-data` and the
 
 Project v31 `language-command-io.collection-record.v1` adds private typed
 records with admitted Vec shapes; command/entry stay `fn() -> i64`. Prefer
-`vec_field<Row>(values,index,"field")` for queries: the literal resolves an
-explicit field; Copy returns by value, String/Bytes as `borrow str`/`borrow
+`vec_field<Row>(values,index,"field")` for queries: the field must be a literal
+(SPX-T310); Copy returns by value, String/Bytes as `borrow str`/`borrow
 Slice<u8>`. Fuse bytes with `str_as_bytes(vec_field<Row>(values,index,"text"))`;
 named record paths allow `string_as_str(record.text)`. The view locks the whole
-named vector generation through last use; do not move/sort/push/reserve before
-then. `vec_clone_at` is for an owned result. These private reads apply only in
+named vector generation through last use; do not move/sort/push/reserve/clear
+before then. Avoid `vec_clone_at` for scalar queries; it makes an owned result.
+These private reads apply only in
 v30/v31/v32, not public ABIs. Implementation/qualification pending; see
 [scoped Vec field reads](SCOPED-VEC-FIELD-READS-V1.md).
 

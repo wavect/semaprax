@@ -63,27 +63,39 @@ fn feature_free_program_keeps_its_existing_graph_schema_and_wire() {
 }
 
 #[test]
-fn feature_discovery_includes_deferred_closure_bodies() {
+fn feature_discovery_includes_deferred_bodies_without_admitting_forged_closures() {
     let parsed = crate::check(
-        r#"module scoped.deferred;
-@id("row") record Row {@id("row.title") title:string,@id("row.marker") marker:i64,}
-@id("app.main") fn main()->i64 {
- let reader=fn(offset:i64)->i64 {
-  let empty=vec_with_capacity<Row>(1usize);
-  let rows=vec_push<Row>(empty,Row{title:"deferred",marker:7});
-  vec_field<Row>(rows,0usize,"marker")+offset
- };
- reader(0)
-}
-"#,
+        "module scoped.deferred;@id(\"app.main\") fn main()->i64 {let reader=fn(offset:i64)->i64 {offset};reader(0)}",
         "scoped-deferred.spx",
-    )
-    .unwrap();
-    let resolved = hir::resolve(&parsed).unwrap();
+    ).unwrap();
+    let mut resolved = hir::resolve(&parsed).unwrap();
+    assert!(!requires(&resolved));
+    let field_program = hir::resolve(&crate::check(SOURCE, "field-source.spx").unwrap()).unwrap();
+    let replacement = field_program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "inspect")
+        .unwrap()
+        .body
+        .clone();
+    let main = resolved
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "app.main")
+        .unwrap();
+    let ResolvedExprKind::Block { statements, .. } = &mut main.body.kind else {
+        panic!("main block")
+    };
+    let ResolvedStatement::Let { value, .. } = &mut statements[0] else {
+        panic!("closure binding")
+    };
+    let ResolvedExprKind::Closure { body, .. } = &mut value.kind else {
+        panic!("scalar closure")
+    };
+    // Discovery must see deferred syntax, but cannot authorize a foreign body
+    // or enlarge the existing scalar-local closure profile.
+    *body = Box::new(replacement);
+    assert!(function_requires(main));
     assert!(requires(&resolved));
-    assert_eq!(graph_schema(&resolved).unwrap(), SCHEMA);
-    let graph = crate::graph::to_json(&parsed).unwrap();
-    let document: serde_json::Value = serde_json::from_str(&graph).unwrap();
-    assert_eq!(document["schema"], SCHEMA);
-    assert!(graph.contains("\"kind\":\"vec_field_read\""));
+    assert!(graph_schema(&resolved).is_err());
 }

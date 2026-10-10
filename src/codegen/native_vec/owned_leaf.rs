@@ -96,6 +96,19 @@ pub(super) fn emit_runtime(output: &mut impl super::super::COutput, program: &Re
             .chain(f.requires.iter())
             .chain(f.ensures.iter())
         {
+            let mut pending = vec![root];
+            while let Some(expression) = pending.pop() {
+                if let crate::hir::ResolvedExprKind::VecFieldRead { element, .. } = &expression.kind
+                {
+                    if let Some(l) = layout(program, element) {
+                        layouts.insert(l.symbol.clone(), l);
+                    }
+                }
+                crate::hir::push_resolved_expression_children_in_authored_order(
+                    expression,
+                    &mut pending,
+                );
+            }
             crate::hir::visit_resolved_calls(root, &mut |_, _, arguments| {
                 for element in arguments {
                     if let Some(l) = layout(program, element) {

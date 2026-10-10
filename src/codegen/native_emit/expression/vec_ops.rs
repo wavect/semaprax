@@ -1,6 +1,7 @@
 //! Native expression lowering for compiler-owned bounded Vec operations.
 
 mod copy_record;
+mod field_read;
 mod owned_leaf;
 mod owned_payload;
 mod record_payload;

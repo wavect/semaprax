@@ -110,3 +110,6 @@ mod projected_string_views;
 
 #[path = "owned_data/owned_nested_outcome.rs"]
 mod owned_nested_outcome;
+
+#[path = "owned_data/scoped_vec_field_native.rs"]
+mod scoped_vec_field_native;

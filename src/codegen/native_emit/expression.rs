@@ -8,13 +8,11 @@ use crate::hir::{
     ResolvedExprKind, ResolvedStatement, ResolvedType,
 };
 use crate::variant_layout::VariantLayout;
-
 use super::{
     backend_error, c_case_symbol, c_field_symbol, c_i32, c_i64, c_pattern_literal, c_string,
     c_value_type, is_aggregate_type, is_direct_plan_owned, record_declaration_id,
     variant_declaration_id, CBinding, CEmitter, COutput, CValue,
 };
-
 mod box_ops;
 mod host_command;
 mod iterator_ops;
@@ -230,7 +228,6 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             ty: op.return_type(),
         })
     }
-
     /// Own String temporary descendants in scalar-match guards and arm values
     /// are each scoped by their own canonical child region. The cleanup plan
     /// determines both the region and its finalizer order; lowering only
@@ -699,6 +696,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             | ResolvedExprKind::String(_)
             | ResolvedExprKind::Place(_)
             | ResolvedExprKind::BorrowPlace { .. } => self.emit_leaf_expr(expr),
+            ResolvedExprKind::VecFieldRead { element, field, bytes, args } => {
+                self.emit_vec_field_read(expr, element, field, *bytes, args)
+            }
             ResolvedExprKind::ByteRange {
                 operation,
                 source,

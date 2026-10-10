@@ -73,7 +73,8 @@ pub(super) fn program_uses_owned_leaf(program: &crate::hir::ResolvedProgram) -> 
                     .any(|root| {
                         let mut pending = vec![root];
                         while let Some(expression) = pending.pop() {
-                            if new_carrier(&expression.ty) {
+                            if matches!(expression.kind, crate::hir::ResolvedExprKind::VecFieldRead { .. })
+                                || new_carrier(&expression.ty) {
                                 return true;
                             }
                             crate::hir::push_resolved_expression_children_in_authored_order(

@@ -45,6 +45,20 @@ static __attribute__((unused)) struct spx_vec_authority_entry *spx_leaf_check(
         spx_runtime_invariant_failure("legacy owned record layout mismatch");
     return e;
 }
+/* The checked field operation borrows the current generation without cloning,
+   transferring, settling or renewing any row or payload authority. */
+static __attribute__((unused)) spx_status_token spx_leaf_read_field(
+    struct spx_context *c, const spx_vec_v1 *s, const spx_leaf_layout_v1 *d,
+    uint64_t index, uint32_t field, const unsigned char **r
+) {
+    (void)spx_leaf_check(c, s, d);
+    if (!r || field >= d->count)
+        spx_runtime_invariant_failure("invalid owned leaf Vec field read");
+    *r = NULL;
+    if (index >= s->len) return spx_vec_failure(c, 2);
+    *r = (const unsigned char *)(const void *)s->ptr + index * d->stride + d->offsets[field];
+    return SPX_STATUS_SUCCESS;
+}
 static __attribute__((unused)) void spx_leaf_drop_row(unsigned char *row, const spx_leaf_layout_v1 *d) {
     for (uint32_t k = 0; k < d->count; ++k) {
         unsigned char *p = row + d->offsets[k];

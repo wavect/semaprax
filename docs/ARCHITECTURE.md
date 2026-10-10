@@ -873,7 +873,12 @@ backing already covered by its prebound. It charges the HIR inventory and any
 unmatched proof inventory before allocation; fully covered proof identities need
 no second inventory. It keeps unknown backing and all vector/place storage, and falls back to the full
 proof census when a bounded inventory cannot prove sharing. The independent
-cache census and canonical proof bytes are unchanged. The full pattern package
+cache census and canonical proof bytes are unchanged. The final uncached core
+moves a completely selected exact-capacity HIR carrier into its retained module
+without a duplicate allocation, and reuses one explicitly owned key-inventory
+scratch across retained functions;
+each new backing allocation keeps its full cumulative charge and each census
+clears earlier keys before proving sharing. The full pattern package
 budget gate exercises the unchanged production builder cap.
 `src/graph_loan.rs` owns its Graph projection. The
 [Shared Loan Plan v1](SHARED-LOAN-PLAN-V1.md) is a bounded, target-neutral proof

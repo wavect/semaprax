@@ -1,5 +1,11 @@
 # Changelog
 
+- Reuse fully selected exact HIR carriers and the final uncached workspace
+  loan-inventory allocation across functions,
+  retaining full capacity charges, source ownership and the unchanged 64 MiB
+  pattern gate. Repair Graph v75 generic-render routing and native projected
+  Vec move/drop fixture obligations; grouped execution remains pending.
+
 - Stage OPT-731 bulk UTF-8 codec materialization after complete existing token
   validation, retaining escaped decoding and exact input bounds. Escape-free
   quoting uses a bulk String copy; native length-delimited concatenation writes

@@ -273,6 +273,28 @@ debit is the maximum of all attempts; no enclosing budget is reset or refunded.
 Explicit smaller-limit invocations and nested budgets retain their original
 core-refusal behavior, and a successful earlier attempt retains its receipt.
 
+The resolver allocates the ordinary-function carrier at the exact count of
+nongeneric source functions and class methods. In final uncached retention, a
+fully selected carrier with capacity equal to that count moves directly into
+the retained module. Resolution already covers that physical allocation; no
+second output allocation or output-carrier charge is invented. Nonempty loan
+sidecars still receive their full charge. Partial selections and carriers with
+spare capacity keep the existing compact-copy path and its complete reservation,
+and earlier attempts retain their established receipts. No source prebound,
+capacity factor or retained-closure forecast is reduced.
+
+In that final uncached retention attempt, the HIR allocation-key inventory
+used to prove loan-sidecar sharing reuses one temporary vector across functions
+and modules. Every replacement allocation reserves its entire capacity before
+allocation, including capacity excess; earlier allocations remain charged in
+the cumulative ledger. The vector is cleared before each function, so a previous
+function's keys cannot exclude independent or foreign proof storage. Proof
+carriers, unmatched identities, full-census fallbacks and earlier attempt
+receipts are unchanged. Reuse removes actual repeated temporary allocations;
+it does not subtract a charge for an allocation that still occurs or raise the
+builder limit. The full pattern bundle and exact-limit/one-short hostile
+inventory gates remain required.
+
 Cross-file edge reconstruction does not traverse an import-free module to
 materialize paths whose output set is necessarily empty. Capability edges
 are still emitted before that fast path, and the complete expected-versus-HIR

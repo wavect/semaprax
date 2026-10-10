@@ -2,7 +2,7 @@ use super::*;
 use crate::bounded_output;
 use std::collections::BTreeMap;
 
-fn function() -> ResolvedFunction {
+pub(super) fn function() -> ResolvedFunction {
     let source = r#"
 module test.retained_loan_union;
 @id("bytes.take") fn take(value: own Bytes) -> i64 { 1 }

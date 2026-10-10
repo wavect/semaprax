@@ -4286,6 +4286,7 @@ fn build_resolved_core(
     compact_order: Option<&[usize]>,
 ) -> Result<ResolvedCore, Vec<Diagnostic>> {
     let retained_output_only = compact_order.is_some();
+    let mut loan_scratch = loan_retention::RetentionScratch::default();
     let mut expected_edges = Vec::new();
     for program in programs {
         collect_expected_edges(program, module_paths, authored, &mut expected_edges)?;
@@ -4405,7 +4406,7 @@ fn build_resolved_core(
                     resolved,
                     programs,
                     authored,
-                    true,
+                    Some(&mut loan_scratch),
                 )
             )?;
             owned_generics::merge_imported_vec_instances(
@@ -4441,7 +4442,7 @@ fn build_resolved_core(
                 .expect("every resolved module has authenticated source");
             let (module, imported_instances) = staged!(
                 RetainedModule,
-                retain_workspace_module(program, module, resolved, programs, authored, false)
+                retain_workspace_module(program, module, resolved, programs, authored, None)
             )?;
             owned_generics::merge_imported_vec_instances(
                 &mut imported_vec_instances,
@@ -4493,8 +4494,9 @@ fn retain_workspace_module(
     resolved: hir::ResolvedProgram,
     programs: &[Program],
     authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
-    retained_output_only: bool,
+    mut loan_scratch: Option<&mut loan_retention::RetentionScratch>,
 ) -> Result<(WorkspaceResolvedModule, Vec<hir::ResolvedFunctionInstance>), Vec<Diagnostic>> {
+    let retained_output_only = loan_scratch.is_some();
     hir::replay_agent_source_associations(program, &resolved.agents)
         .map_err(|error| vec![error])?;
     // Declaration facts, then `follows` binding facts, in one `Vec`: the two
@@ -4517,7 +4519,10 @@ fn retain_workspace_module(
     let functions = filter_owned_vec_accounted(
         resolved.functions,
         GRAPH_ACCOUNTED_RESOLVED_FUNCTION_BYTES,
-        retained_function_loan_bytes,
+        |function| match loan_scratch.as_deref_mut() {
+            Some(scratch) => scratch.measure(function),
+            None => retained_function_loan_bytes(function),
+        },
         |item| {
             authored
                 .get(item.id.as_str())

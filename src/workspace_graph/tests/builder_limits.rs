@@ -362,6 +362,58 @@ fn retained_output_carrier_charges_only_selected_entries_and_loan_plans() {
 }
 
 #[test]
+fn retained_output_reuses_only_complete_exact_carriers_and_charges_all_sidecars() {
+    let input = || vec![1usize, 2, 3, 4];
+    let original = input();
+    assert_eq!(original.capacity(), original.len());
+    let pointer = original.as_ptr();
+    let (retained, overflow, debit) = crate::bounded_output::with_limit_usage(10, || {
+        filter_owned_vec_accounted(original, 7, |item| Ok(*item), |_| true, true)
+    });
+    let retained = retained.unwrap();
+    assert!(!overflow);
+    assert_eq!(debit, 10, "every sidecar remains charged");
+    assert_eq!(retained, input());
+    assert_eq!(retained.as_ptr(), pointer, "no second physical carrier");
+    let (refused, overflow, _) = crate::bounded_output::with_limit_usage(9, || {
+        filter_owned_vec_accounted(input(), 7, |item| Ok(*item), |_| true, true)
+    });
+    assert_eq!(refused.unwrap_err()[0].code, "SPX-G171");
+    assert!(overflow);
+
+    let original = input();
+    let pointer = original.as_ptr();
+    let (retained, overflow, debit) =
+        crate::bounded_output::with_limit_usage(0, || filter_owned_vec(original, |_| true, true));
+    assert_eq!(retained.unwrap().as_ptr(), pointer);
+    assert!(!overflow);
+    assert_eq!(debit, 0);
+    for final_retry in [false, true] {
+        let mut excess = Vec::with_capacity(8);
+        excess.extend(input());
+        let pointer = excess.as_ptr();
+        let (retained, overflow, debit) = crate::bounded_output::with_limit_usage(38, || {
+            filter_owned_vec_accounted(excess, 7, |item| Ok(*item), |_| true, final_retry)
+        });
+        let retained = retained.unwrap();
+        assert!(!overflow);
+        assert_eq!(
+            debit, 38,
+            "excess carriers and earlier attempts keep their receipt"
+        );
+        assert_eq!(retained, input());
+        if final_retry {
+            assert_eq!(retained.capacity(), 4);
+            assert_ne!(
+                retained.as_ptr(),
+                pointer,
+                "compact while the old carrier is live"
+            );
+        }
+    }
+}
+
+#[test]
 fn catalog_normalizer_compact_core_fits_production_builder_cap() {
     let manifest = crate::project::ProjectManifest::parse(include_str!(
         "../../../examples/catalog-normalizer-project/semaprax.toml"

@@ -10,6 +10,7 @@ fn owned_outcome_vectors_have_case_qualified_move_and_drop_slots() {
  @id("out.bad") Invalid { @id("out.code") code:i64, @id("out.offset") offset:usize, @id("out.field") field:i64, },
 }
 @id("forward") fn forward(value:own Output)->Output {value}
+@id("discard") fn discard(value:own Output)->i64 {0}
 @id("app.main") fn main()->i64 {0}
 "#;
     let ast = crate::check(source, "projected-vectors.spx").unwrap();
@@ -48,5 +49,42 @@ fn owned_outcome_vectors_have_case_qualified_move_and_drop_slots() {
         .unwrap();
     assert_eq!(entry.matches("spx_vec_move(spx_ctx,").count(), 2);
     assert!(!entry.contains("spx_bytes_move("));
-    assert!(plan.epilogue().contains("spx_vec_drop(spx_ctx,"));
+    assert!(
+        plan.finalizers.is_empty(),
+        "forward transfers every active leaf into the published result"
+    );
+    assert!(!plan.epilogue().contains("spx_vec_drop(spx_ctx,"));
+    let discard = program
+        .functions
+        .iter()
+        .find(|f| f.id.as_str() == "discard")
+        .unwrap();
+    let plan = NativeBytesPlan::build(discard).unwrap().unwrap();
+    let expected = discard
+        .cleanup_plan
+        .exits
+        .iter()
+        .filter(|exit| {
+            !matches!(
+                exit.continuation,
+                crate::cleanup_plan::ExitContinuation::Continue(_)
+            )
+        })
+        .flat_map(|exit| &exit.finalize_in_order)
+        .map(|action| action.guard_flag.clone())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        expected.len(),
+        2,
+        "both case-qualified Vec owners must settle"
+    );
+    assert_eq!(plan.finalizers.len(), 2);
+    let epilogue = plan.epilogue();
+    assert_eq!(epilogue.matches("spx_vec_drop(spx_ctx,").count(), 2);
+    for slot in &plan.finalizers {
+        assert_eq!(slot.kind, OwnedLeafKind::Vec);
+        assert_eq!(slot.place.projections[0].as_str(), "out.ok");
+        assert!(epilogue.contains(&format!("if ({})", slot.flag)));
+        assert!(epilogue.contains(&slot.kind.drop_call(&slot.value)));
+    }
 }

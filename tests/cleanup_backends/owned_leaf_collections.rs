@@ -72,7 +72,7 @@ fn frozen_direct_native_stream_entries_refuse_body_only_owned_vectors() {
         let source = format!(
             r#"module profile.body;
 permit {{process.args.read,process.stderr.write,process.stdin.read,process.stdout.write}}
-@id("command") fn command()->{result} {{{body}}}
+@id("command") fn command()->{result} uses{{process.stdin.read}} {{let reader=stdin_stream_open();{body}}}
 @id("main") fn main()->i64 {{0}}
 "#
         );
@@ -147,7 +147,7 @@ fn failed_clone_replace_push_and_reserve_keep_first_status_and_settle() {
     );
     for (body, status) in [
         (
-            format!("{populated} let result = vec_clone_at<Entry>(rows, 1usize); 42"),
+            format!("{populated} let cloned = vec_clone_at<Entry>(rows, 1usize); 42"),
             2,
         ),
         (

@@ -125,6 +125,7 @@ pub(super) fn pre_filesystem_graph_json(
         && !hir::function_value::requires_function_values(program)
         && !super::owned_text_record_loans::requires(program)
         && !super::owned_collection_records::requires(program)
+        && !super::scoped_vec_field::requires(program)
         && !program
             .declarations
             .byte_slice_provenances()

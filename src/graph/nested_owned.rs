@@ -426,7 +426,8 @@ pub(super) fn pre_filesystem_graph_schema(
                 || super::owned_text_record_loans::requires(program)
                 || super::owned_collection_records::requires(program)
                 || super::projected_string_view::requires(program)
-                || super::owned_nested_outcome::requires(program),
+                || super::owned_nested_outcome::requires(program)
+                || super::scoped_vec_field::requires(program),
         )?;
         return Ok(iterator_schema);
     }
@@ -443,6 +444,7 @@ pub(super) fn pre_filesystem_graph_schema(
         && !super::owned_collection_records::requires(program)
         && !super::projected_string_view::requires(program)
         && !super::owned_nested_outcome::requires(program)
+        && !super::scoped_vec_field::requires(program)
     {
         return legacy_graph_schema(program);
     }
@@ -478,7 +480,8 @@ pub(super) fn generic_payload_schema(
             || super::owned_text_record_loans::requires(program)
             || super::owned_collection_records::requires(program)
             || super::projected_string_view::requires(program)
-            || super::owned_nested_outcome::requires(program),
+            || super::owned_nested_outcome::requires(program)
+            || super::scoped_vec_field::requires(program),
     )
 }
 

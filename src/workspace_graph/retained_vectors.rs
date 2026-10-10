@@ -56,7 +56,10 @@ fn output_carrier<T>(
 ///
 /// Normal core attempts retain the established full-carrier receipt. The final
 /// uncached retry keeps the complete input carrier live and charged until this
-/// move finishes, then charges only the new output carrier. `keep` is an `Fn`:
+/// move finishes, then charges only the new output carrier. When every entry
+/// is selected and capacity is exact, move the already-charged carrier itself:
+/// no second allocation occurs. Excess capacity always takes the compacting
+/// path, so retention cannot keep unaccounted spare/imported slots. `keep` is an `Fn`:
 /// the final retry counts and moves the same selection without accepting a
 /// stateful predicate as accounting evidence.
 pub(super) fn filter_owned_vec<T>(
@@ -75,6 +78,9 @@ pub(super) fn filter_owned_vec<T>(
     }
 
     let selected = items.iter().filter(|item| keep(*item)).count();
+    if selected == items.len() && items.capacity() == selected {
+        return Ok(items);
+    }
     let mut retained = output_carrier::<T>(selected, std::mem::size_of::<T>())?;
     for item in items {
         if keep(&item) {
@@ -89,7 +95,7 @@ pub(super) fn filter_owned_vec<T>(
 pub(super) fn filter_owned_vec_accounted<T>(
     items: Vec<T>,
     fixed_element_bytes: usize,
-    extra_owned_bytes: impl Fn(&T) -> Result<usize, Vec<Diagnostic>>,
+    mut extra_owned_bytes: impl FnMut(&T) -> Result<usize, Vec<Diagnostic>>,
     keep: impl Fn(&T) -> bool,
     retained_output_only: bool,
 ) -> Result<Vec<T>, Vec<Diagnostic>> {
@@ -119,6 +125,9 @@ pub(super) fn filter_owned_vec_accounted<T>(
         }
     }
     reserve_builder_structure(sidecars)?;
+    if selected == items.len() && items.capacity() == selected {
+        return Ok(items);
+    }
     let mut retained = output_carrier::<T>(selected, fixed_element_bytes)?;
     for item in items {
         if keep(&item) {

@@ -390,3 +390,35 @@ fn main() -> i64
     );
     assert_eq!(program.entrypoint, DeclarationId::new("app.main"));
 }
+
+#[test]
+fn resolved_function_carrier_is_exact_for_free_functions_and_class_methods() {
+    let ast = parsed(
+        r#"module exact.function.carrier;
+@id("counter") class Counter {
+ @id("counter.value") value:i64,
+ @id("counter.get") fn get(self:Counter)->i64 {self.value}
+ @id("counter.bump") fn bump(self:Counter)->Counter {Counter{value:self.value+1}}
+}
+@id("identity") fn identity<T>(value:T)->T {value}
+@id("zed") fn zed()->i64 {1}
+@id("alpha") fn alpha()->i64 {zed()}
+@id("app.main") fn main()->i64 {identity<i64>(alpha())}
+"#,
+        "exact-function-carrier.spx",
+    );
+    let program = crate::hir::resolve(&ast).unwrap();
+    crate::hir::validate(&program).unwrap();
+    assert_eq!(program.functions.len(), 5);
+    assert_eq!(program.functions.capacity(), program.functions.len());
+    assert_eq!(program.function_templates.len(), 1);
+    assert_eq!(program.function_instances.len(), 1);
+    assert_eq!(
+        program
+            .functions
+            .iter()
+            .map(|f| f.id.as_str())
+            .collect::<Vec<_>>(),
+        ["zed", "alpha", "app.main", "counter.get", "counter.bump"]
+    );
+}

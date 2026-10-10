@@ -29,9 +29,39 @@ pub(super) fn retained_loan_plan_bytes(plan: &LoanPlan) -> Result<usize> {
         .ok_or_else(refusal)
 }
 
+/// A final uncached build reuses this allocation across retained functions and
+/// modules. Growth reserves the entire replacement allocation before creating
+/// it; prior charges remain in the cumulative ledger. Keys are cleared before
+/// each census, so unrelated functions can never supply exclusion authority.
+#[derive(Default)]
+pub(super) struct RetentionScratch {
+    keys: Vec<usize>,
+}
+
+impl RetentionScratch {
+    pub(super) fn measure(&mut self, function: &ResolvedFunction) -> Result<usize> {
+        self.keys.clear();
+        let Some(count) = inventory_count(function)? else {
+            return retained_loan_plan_bytes(&function.loan_plan);
+        };
+        if count > self.keys.capacity() {
+            self.keys = allocate_keys(count)?;
+        }
+        inventory_bytes(function, &mut self.keys)
+    }
+}
+
 pub(super) fn retained_function_loan_bytes(function: &ResolvedFunction) -> Result<usize> {
+    // Earlier attempts preserve their established per-function scratch receipt.
+    let Some(count) = inventory_count(function)? else {
+        return retained_loan_plan_bytes(&function.loan_plan);
+    };
+    inventory_bytes(function, &mut allocate_keys(count)?)
+}
+
+fn inventory_count(function: &ResolvedFunction) -> Result<Option<usize>> {
     if function.loan_plan.loans.is_empty() {
-        return Ok(0);
+        return Ok(None);
     }
     let mut count = 0usize;
     match visit_function(function, &mut |identity| {
@@ -45,32 +75,38 @@ pub(super) fn retained_function_loan_bytes(function: &ResolvedFunction) -> Resul
         }
         Ok(())
     }) {
-        Ok(()) => {}
+        Ok(()) => Ok(Some(count)),
         // A bounded inventory is optional proof of sharing. When its limits
         // cannot establish that proof, retain the conservative full debit.
-        Err(WalkError::Uncertain) => return retained_loan_plan_bytes(&function.loan_plan),
-        Err(WalkError::Invalid) => return Err(refusal()),
+        Err(WalkError::Uncertain) => Ok(None),
+        Err(WalkError::Invalid) => Err(refusal()),
     }
+}
+
+fn allocate_keys(count: usize) -> Result<Vec<usize>> {
     let bytes = count
         .checked_mul(std::mem::size_of::<usize>())
         .ok_or_else(refusal)?;
     super::reserve_builder_structure(bytes)?;
-    let mut keys = Vec::with_capacity(count);
+    let keys = Vec::with_capacity(count);
     let excess = keys
         .capacity()
         .checked_sub(count)
         .and_then(|count| count.checked_mul(std::mem::size_of::<usize>()))
         .ok_or_else(refusal)?;
     super::reserve_builder_structure(excess)?;
+    Ok(keys)
+}
+
+fn inventory_bytes(function: &ResolvedFunction, keys: &mut Vec<usize>) -> Result<usize> {
     visit_function(function, &mut |identity| {
         keys.push(identity.shared_allocation_key().ok_or(WalkError::Invalid)?);
         Ok(())
     })
     .map_err(|_| refusal())?;
-    debug_assert_eq!(keys.len(), count);
     keys.sort_unstable();
     keys.dedup();
-    crate::loan_plan::owned_capacity::owned_capacity_bytes_excluding(&function.loan_plan, &keys)
+    crate::loan_plan::owned_capacity::owned_capacity_bytes_excluding(&function.loan_plan, keys)
         .and_then(|owned| std::mem::size_of::<LoanPlan>().checked_add(owned))
         .ok_or_else(refusal)
 }
@@ -215,5 +251,7 @@ fn walk(
     Ok(())
 }
 
+#[cfg(test)]
+mod scratch_tests;
 #[cfg(test)]
 mod tests;

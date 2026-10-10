@@ -18,14 +18,13 @@ use super::byte_slice_provenance::derive_byte_slice_provenance;
 use super::ids::{DeclarationId, FunctionExecutionId, FunctionInstanceId, ValueId};
 use super::monomorphize::materialize_function_template;
 use super::nodes::{
-    DeclarationKind, OwnershipMode, ResolvedFunction, ResolvedFunctionInstance,
-    ResolvedFunctionTemplate, ResolvedImport, ResolvedImportFailure, ResolvedImportParameter,
-    ResolvedImportResult, ResolvedImportResultKind, ResolvedInterface, ResolvedParam,
-    ResolvedProgram, ResolvedResourceDrop, ResolvedResourceDropKind, ResolvedType,
+    admitted_owned_byte_prelude_instance, DeclarationKind, OwnershipMode, ResolvedFunction,
+    ResolvedFunctionInstance, ResolvedFunctionTemplate, ResolvedImport, ResolvedImportFailure,
+    ResolvedImportParameter, ResolvedImportResult, ResolvedImportResultKind, ResolvedInterface,
+    ResolvedParam, ResolvedProgram, ResolvedResourceDrop, ResolvedResourceDropKind, ResolvedType,
     ResolvedTypeDeclaration, ResolvedTypeDeclarationKind, ResolvedTypeParameterDeclaration,
-    admitted_owned_byte_prelude_instance,
 };
-use super::{Binding, Resolver, validate};
+use super::{validate, Binding, Resolver};
 
 impl Resolver<'_> {
     pub(super) fn resolve_call_type_argument(
@@ -410,7 +409,24 @@ impl Resolver<'_> {
                 })
             })
             .collect::<Result<Vec<_>, Diagnostic>>()?;
-        let mut functions = Vec::new();
+        // Retention can move this exact carrier without creating a second Vec
+        // when the synthetic module contains only authored local functions.
+        let function_count = self
+            .program
+            .functions
+            .iter()
+            .chain(
+                self.program
+                    .types
+                    .iter()
+                    .flat_map(|declaration| match &declaration.kind {
+                        TypeDeclarationKind::Class { methods, .. } => methods.as_slice(),
+                        _ => &[],
+                    }),
+            )
+            .filter(|function| function.type_parameters.is_empty())
+            .count();
+        let mut functions = Vec::with_capacity(function_count);
         for function in self
             .program
             .functions

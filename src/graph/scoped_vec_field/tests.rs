@@ -26,6 +26,11 @@ fn graph_binds_stable_field_and_dynamic_vector_view_without_selector_expression(
     assert!(legacy_graph_schema(&resolved).is_err());
     assert!(crate::graph::reject_evidence_schema(SCHEMA).is_err());
     assert_eq!(crate::graph::to_json(&parsed).unwrap(), graph);
+    crate::graph::verify_json(&parsed, &graph).unwrap();
+    assert!(crate::graph::to_legacy_json(&parsed).is_err());
+    let stale = graph.replace("\"field\":\"row.title\"", "\"field\":\"row.marker\"");
+    assert_ne!(stale, graph);
+    assert!(crate::graph::verify_json(&parsed, &stale).is_err());
 }
 
 #[test]

@@ -7,6 +7,8 @@ use sha2::{Digest, Sha256};
 
 #[path = "application_json/collection_response.rs"]
 mod collection_response;
+#[path = "application_json/nested_response.rs"]
+mod nested_response;
 #[path = "application_json/nested_request.rs"]
 mod nested_request;
 #[path = "application_json/owned.rs"]

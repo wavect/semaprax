@@ -1,5 +1,5 @@
 //! Finite checked nested request derivation; all output is ordinary source.
-mod descriptor;
+pub(super) mod descriptor;
 mod emit;
 mod materialize;
 mod stream;

@@ -2,20 +2,20 @@
 use super::*;
 use std::collections::BTreeSet;
 
-pub(super) struct Shape<'a> {
+pub(in crate::project::json_codec) struct Shape<'a> {
     pub root: Record<'a>,
 }
-pub(super) struct Record<'a> {
+pub(in crate::project::json_codec) struct Record<'a> {
     pub declaration: &'a TypeDeclaration,
     pub ordinal: usize,
     pub fields: Vec<Field<'a>>,
 }
-pub(super) struct Field<'a> {
+pub(in crate::project::json_codec) struct Field<'a> {
     pub declaration: &'a FieldDeclaration,
     pub ordinal: usize,
     pub kind: Kind<'a>,
 }
-pub(super) enum Kind<'a> {
+pub(in crate::project::json_codec) enum Kind<'a> {
     Scalar(Type),
     Text,
     Record(Box<Record<'a>>),
@@ -26,13 +26,36 @@ struct Census {
     arrays: usize,
     strings: usize,
     owners: usize,
+    array_limit: usize,
+    decoded_string_limit: Option<usize>,
 }
 
-pub(super) fn validate<'a>(
+pub(in crate::project::json_codec) fn validate<'a>(
     program: &'a Program,
     root: &'a TypeDeclaration,
     string_bound: usize,
     array_bound: usize,
+) -> Result<Shape<'a>, Vec<Diagnostic>> {
+    validate_policy(program, root, string_bound, array_bound, 1, Some(264))
+}
+
+/// Response inspection creates no decoded owners. Keep request admission frozen.
+pub(in crate::project::json_codec) fn validate_response<'a>(
+    program: &'a Program,
+    root: &'a TypeDeclaration,
+    string_bound: usize,
+    array_bound: usize,
+) -> Result<Shape<'a>, Vec<Diagnostic>> {
+    validate_policy(program, root, string_bound, array_bound, 2, None)
+}
+
+fn validate_policy<'a>(
+    program: &'a Program,
+    root: &'a TypeDeclaration,
+    string_bound: usize,
+    array_bound: usize,
+    array_limit: usize,
+    decoded_string_limit: Option<usize>,
 ) -> Result<Shape<'a>, Vec<Diagnostic>> {
     if !(1..=64).contains(&string_bound) || !(1..=256).contains(&array_bound) {
         return Err(refusal(
@@ -44,6 +67,8 @@ pub(super) fn validate<'a>(
         arrays: 0,
         strings: 0,
         owners: 0,
+        array_limit,
+        decoded_string_limit,
     };
     let root = record(
         program,
@@ -147,7 +172,7 @@ fn kind<'a>(
         Type::String => {
             census.strings += multiplier;
             census.owners += multiplier;
-            if census.strings > 264 {
+            if census.decoded_string_limit.is_some_and(|limit| census.strings > limit) {
                 return Err(refusal(
                     "nested request exceeds 264 simultaneous decoded String owners",
                 ));
@@ -157,10 +182,12 @@ fn kind<'a>(
         Type::Named { name, arguments } if name == "Vec" && arguments.len() == 1 => {
             census.arrays += 1;
             census.owners += 1;
-            if census.arrays > 1 {
-                return Err(refusal(
-                    "nested request admits at most one expanded Vec field",
-                ));
+            if census.arrays > census.array_limit {
+                return Err(refusal(if census.array_limit == 1 {
+                    "nested request admits at most one expanded Vec field"
+                } else {
+                    "nested response admits at most two expanded Vec fields"
+                }));
             }
             let element = &arguments[0];
             match element {
@@ -202,7 +229,7 @@ fn kind<'a>(
                 element,
                 ordinal,
                 depth,
-                multiplier * array_bound,
+                multiplier.checked_mul(array_bound).ok_or_else(|| refusal("nested codec element census overflow"))?,
                 array_bound,
                 active,
                 census,

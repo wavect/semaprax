@@ -59,3 +59,15 @@ pub(super) fn nested_decode_source(root: &TypeDeclaration, bound: usize) -> Stri
     let body = expand(&body, root, bound);
     format!("{}{body}", imports())
 }
+
+/// Keep template rewriting before inserting opaque authored names and IDs.
+pub(super) fn nested_response_source(record: &TypeDeclaration, bound: usize) -> String {
+    let suffix = include_str!("text.spx")
+        .split_once("@id(\"__ROW_ID__.json.utf8.owned-valid\")")
+        .expect("owned UTF-8 encoder template")
+        .1;
+    let template = format!("@id(\"__ROW_ID__.json.utf8.owned-valid\"){suffix}")
+        .replace("json___ROW___", "json___ROW___nested_response_")
+        .replace(".json.utf8.", ".json.nested-response.");
+    expand(&template, record, bound)
+}

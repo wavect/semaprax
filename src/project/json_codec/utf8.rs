@@ -153,3 +153,7 @@ at=at+1usize;at<vec_len<{row_name}JsonView>(views)
     out.push_str(&encode::source(root, row, string));
     Ok(out)
 }
+
+pub(super) fn nested_response_text(root: &TypeDeclaration, bound: usize) -> String {
+    text::nested_response_source(root, bound)
+}

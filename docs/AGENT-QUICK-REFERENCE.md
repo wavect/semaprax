@@ -1321,15 +1321,16 @@ record in `while` is `SPX-T267`. See `help language author:owned-data` and the
 
 Project v31 `language-command-io.collection-record.v1` adds private typed
 records with admitted Vec shapes; command/entry stay `fn() -> i64`. Prefer
-`vec_field<Row>(values,index,"field")` for queries: the field must be a literal
-(SPX-T310); Copy returns by value, String/Bytes as `borrow str`/`borrow
-Slice<u8>`. Fuse bytes with `str_as_bytes(vec_field<Row>(values,index,"text"))`;
-named record paths allow `string_as_str(record.text)`. The view locks the whole
-named vector generation through last use; do not move/sort/push/reserve/clear
-before then. Avoid `vec_clone_at` for scalar queries; it makes an owned result.
-These private reads apply only in
-v30/v31/v32, not public ABIs. Implementation/qualification pending; see
-[scoped Vec field reads](SCOPED-VEC-FIELD-READS-V1.md).
+`vec_field<Row>(value.items,index,"field")` for queries: its root is one live
+named Vec path, `index` is `usize`, and the field is a literal (SPX-T310). Copy
+returns by value; String/Bytes return nonescaping `borrow str`/`borrow Slice<u8>`
+views. Consume a view before moving, replacing, sorting, pushing, reserving or
+clearing its root; temporary/call roots and escaped/stale views refuse. Fuse
+bytes with `str_as_bytes(vec_field<Row>(value.items,index,"text"))`; a nested
+`string_as_str(value.inner.label)` preserves the same live record path. Avoid
+`vec_clone_at` for scalar or view queries; it makes an owned clone. These private
+reads apply only in v30/v31/v32, not public ABIs. Implementation/qualification
+pending; see [scoped Vec field reads](SCOPED-VEC-FIELD-READS-V1.md).
 
 `semaprax lock --write` pins identity, sources, interface, targets and
 capabilities; `--verify` checks it and `--compare <base.lock>` reports breaking
@@ -1383,6 +1384,48 @@ semaprax json-codec . --source src/response.spx --type shiftsim.report \
   --output src/response.generated.spx --profile bounded-collection-response.v1 \
   --max-string-bytes 16
 ```
+
+For a two-codec application, derive both outputs from the unchanged bootstrap,
+then replay each candidate against that same authenticated Project revision with
+its exact source path, record ID, profile and bounds before copying either output
+over an authored source. The checked owner is
+`standard_library::application_json::owned::catalog_scoped_records::`.
+Installing one generated module first changes the revision and cannot prove the
+other candidate was derived/replayed against the original pair; hand edits also
+remove its derivation claim. The CLI still writes only new complete modules and
+never overwrites source or manifests.
+
+A streamed nested decoder owns its `Ready` payload. Move it through nested
+owning matches, as in the checked
+`examples/stream-nested-order-json-project/src/app.command.spx` shape:
+
+```text
+match own outcome {
+    Outcome::Error { code, offset, field } => {
+        let message = string_format("error:{}:{}:{}", code, offset, field);
+        let diagnostic = str_as_bytes(string_as_str(message));
+        let _ = stderr_write(diagnostic);
+        2
+    },
+    Outcome::Ready { value } => match own value {
+        OrderRequest { configuration, lines, urgent } => match own configuration {
+            Configuration { label, retry } => {
+                let summary = summarize(lines);
+                let text = string_format("{}:{}:{}:{}:{}:{}", string_len(label), retry, urgent, vec_len<Line>(lines), summary.quantity, summary.sku_bytes);
+                let payload = str_as_bytes(string_as_str(text));
+                let written = stdout_write(payload);
+                if written == byte_len(payload) { 0 } else { 1 }
+            },
+        },
+    },
+}
+```
+
+`value`, its nested records, Strings and Vecs are moved by these bindings; do
+not retain a borrowed Ready byte slice or substitute dummy owners. For a stream
+normalizer, the equivalent `Ready { bytes, length }` branch passes exactly
+`byte_range(bytes_as_slice(bytes), 0usize, length)` to the decoder while owning
+`bytes` remains live for that call.
 
 After an owned `Request` is decoded, ordinary code can inspect a row with
 `vec_field<Patient>(request.patients,index,"priority")`; a selected String is

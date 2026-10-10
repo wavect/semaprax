@@ -554,6 +554,31 @@ mod agent_quick_reference {
     }
 
     #[test]
+    fn typed_json_application_routes_keep_exact_ownership_and_replay_boundaries() {
+        let text = reference_text();
+        for required in [
+            "vec_field<Row>(value.items,index,\"field\")",
+            "index` is `usize`",
+            "Copy returns by value; String/Bytes return nonescaping",
+            "temporary/call roots and escaped/stale views refuse",
+            "reads apply only in v30/v31/v32, not public ABIs",
+            "derive both outputs from the unchanged bootstrap",
+            "before copying either output",
+            "standard_library::application_json::owned::catalog_scoped_records::",
+            "Installing one generated module first changes the revision",
+            "Outcome::Ready { value } => match own value",
+            "OrderRequest { configuration, lines, urgent }",
+            "do not retain a borrowed Ready byte slice",
+            "byte_range(bytes_as_slice(bytes), 0usize, length)",
+        ] {
+            assert!(
+                text.contains(required),
+                "typed JSON authoring guidance omits `{required}`"
+            );
+        }
+    }
+
+    #[test]
     fn diagnostic_help_is_pinned_and_covers_compiler_checked_examples() {
         let generated = diagnostic_help_json();
         let pinned =

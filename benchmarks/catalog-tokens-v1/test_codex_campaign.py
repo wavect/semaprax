@@ -228,6 +228,46 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
                 measured = catalog.common.authored_source_metrics(candidate, {"fixture": True},
                     additional_suffixes=catalog.ADDITIONAL_AUTHORED_SUFFIXES)
             self.assertEqual({row["path"] for row in measured["files"]}, retained_sources)
+            archive = root / "candidate-archive"
+            catalog.common.archive_candidate(candidate, archive, exclude_verified_node_modules=True)
+            archived_inventory = catalog.closed_authored_inventory(archive)
+            self.assertEqual(archived_inventory, result["closed_authored_inventory"])
+            with patch.object(catalog.common, "tokenize_texts", side_effect=lambda texts, metadata: [1] * len(texts)):
+                archived_metrics = catalog.common.authored_source_metrics(
+                    archive, {"fixture": True}, additional_suffixes=catalog.ADDITIONAL_AUTHORED_SUFFIXES)
+            self.assertEqual({row["path"] for row in archived_metrics["files"]}, retained_sources)
+
+            def fail_tsc(command, **kwargs):
+                if "--outDir" in command:
+                    return subprocess.CompletedProcess(command, 1, stdout=b"", stderr=b"pinned tsc failed")
+                return subprocess.CompletedProcess(command, 0, stdout=b"", stderr=b"")
+
+            with patch.object(catalog.subprocess, "run", side_effect=fail_tsc):
+                failed = catalog.check_program(candidate, 10, env,
+                    harness_output=root / "harness/typescript-failed", arm="typescript",
+                    exclude_verified_node_modules=True)
+            self.assertFalse(failed["accepted"])
+            self.assertEqual(failed["pinned_typescript_build"]["status"], "failed")
+            self.assertNotIn("independent_acceptance", failed)
+
+            def forge_report(command, **kwargs):
+                if "--outDir" in command:
+                    target = Path(command[command.index("--outDir") + 1])
+                    import shutil
+                    shutil.copytree(dist, target)
+                if "--report-json" in command:
+                    actual_command = json.loads(command[command.index("--command-json") + 1])
+                    forged = self.report(actual_command)
+                    forged["cases"][0]["stdout_hex"] += "00"
+                    Path(command[command.index("--report-json") + 1]).write_text(json.dumps(forged))
+                return subprocess.CompletedProcess(command, 0, stdout=b"", stderr=b"")
+
+            with patch.object(catalog.subprocess, "run", side_effect=forge_report), \
+                    self.assertRaisesRegex(ValueError, "differs from frozen case"):
+                catalog.check_program(candidate, 10, env,
+                    harness_output=root / "harness/typescript-forged-report", arm="typescript",
+                    exclude_verified_node_modules=True)
+
             (candidate / "helper.cts").write_text("export const changed = true;\n")
             source_intact, _ = catalog._phase_source_and_binary_guard(candidate,
                 result["closed_authored_inventory"], Path(result["native_binary"]["path"]), result["native_binary"]["sha256"],

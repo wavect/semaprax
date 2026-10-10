@@ -371,16 +371,52 @@ equal
     let over_limit = "x".repeat(65);
     let cases = [
         ("\"\"".to_owned(), b"\"\"".to_vec(), 2usize),
-        ("\"ordinary ASCII\"".to_owned(), b"\"ordinary ASCII\"".to_vec(), 16),
+        (
+            "\"ordinary ASCII\"".to_owned(),
+            b"\"ordinary ASCII\"".to_vec(),
+            16,
+        ),
         ("\"é😀\"".to_owned(), "\"é😀\"".as_bytes().to_vec(), 8),
-        ("string_from_char(char_from_i64(65279))".to_owned(), "\"\u{feff}\"".as_bytes().to_vec(), 5),
-        ("string_from_char(char_from_i64(0))".to_owned(), br#""\u0000""#.to_vec(), 8),
-        ("string_from_char(char_from_i64(31))".to_owned(), br#""\u001f""#.to_vec(), 8),
-        ("string_from_char(char_from_i64(34))".to_owned(), br#""\"""#.to_vec(), 4),
-        ("string_from_char(char_from_i64(92))".to_owned(), br#""\\""#.to_vec(), 4),
-        ("string_from_char(char_from_i64(10))".to_owned(), br#""\n""#.to_vec(), 4),
-        ("string_concat(\"é😀\",string_from_char(char_from_i64(0)))".to_owned(), "\"é😀\\u0000\"".as_bytes().to_vec(), 14),
-        (format!("\"{plain_limit}\""), format!("\"{plain_limit}\"").into_bytes(), 66),
+        (
+            "string_from_char(char_from_i64(65279))".to_owned(),
+            "\"\u{feff}\"".as_bytes().to_vec(),
+            5,
+        ),
+        (
+            "string_from_char(char_from_i64(0))".to_owned(),
+            br#""\u0000""#.to_vec(),
+            8,
+        ),
+        (
+            "string_from_char(char_from_i64(31))".to_owned(),
+            br#""\u001f""#.to_vec(),
+            8,
+        ),
+        (
+            "string_from_char(char_from_i64(34))".to_owned(),
+            br#""\"""#.to_vec(),
+            4,
+        ),
+        (
+            "string_from_char(char_from_i64(92))".to_owned(),
+            br#""\\""#.to_vec(),
+            4,
+        ),
+        (
+            "string_from_char(char_from_i64(10))".to_owned(),
+            br#""\n""#.to_vec(),
+            4,
+        ),
+        (
+            "string_concat(\"é😀\",string_from_char(char_from_i64(0)))".to_owned(),
+            "\"é😀\\u0000\"".as_bytes().to_vec(),
+            14,
+        ),
+        (
+            format!("\"{plain_limit}\""),
+            format!("\"{plain_limit}\"").into_bytes(),
+            66,
+        ),
         (format!("\"{over_limit}\""), Vec::new(), usize::MAX),
         (format!("\"{}\"", "é".repeat(33)), Vec::new(), usize::MAX),
     ];

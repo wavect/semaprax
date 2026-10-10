@@ -453,9 +453,9 @@ fn verification_receipt_api_cli_kat_shared_lock_and_no_write() {
     assert!(!receipt[..receipt.len() - 1].contains('\n'));
     assert_eq!(
         raw_sha(&receipt),
-        // The parsed receipt fields and fixed-point budget below independently
-        // bind this re-pinned whole-document digest.
-        "sha256:f546647ba87117276998427bec57a8c410c6aa58b38131da3761d189f5bdf58b"
+        // Full a64/current captures reproduce every old byte after restoring only
+        // measured graph builder charges and authenticated digest bindings.
+        "sha256:58afef656be82ede98080e316c879b9a99183c02f2d46e4f643b0d926385a016"
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(
@@ -666,9 +666,9 @@ fn application_receipt_api_cli_kat_fixed_point_and_raw_no_write() {
     assert!(!receipt[..receipt.len() - 1].contains('\n'));
     assert_eq!(
         raw_sha(&receipt),
-        // The parsed receipt fields and fixed-point budget below independently
-        // bind this re-pinned whole-document digest.
-        "sha256:c3283aeb6c18e327d3714b450703853afd3391429bf9692c91bfd49cb83e47fb"
+        // Full a64/current captures reproduce every old byte after restoring only
+        // measured graph builder charges and authenticated digest bindings.
+        "sha256:f09495db4b728e6d81a33b3973e50019286e8ee2e0c5190db8d1662664b19976"
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(

@@ -455,6 +455,8 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Refresh both semantic-change integration receipt KATs after complete historical/current byte proofs; retain exact replay, fixed-point accounting, shared locks, and no-write assertions.
+
 - Generated webapp self-tests stop their child through private parent IPC so Windows
   releases the writer claim before restart; forced-crash recovery stays explicit.
   Node preload paths are converted to file URLs on every host.

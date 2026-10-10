@@ -1,6 +1,7 @@
 //! Checked, ordinary-source application JSON codecs. Generated names confer no authority.
 
 mod emit;
+mod collection_response;
 mod owned;
 #[cfg(test)]
 mod tests;
@@ -37,6 +38,10 @@ pub enum JsonCodecProfile {
     },
     /// Original stdin permit plus normalization and plain UTF-8 owning values.
     StreamUtf8OwnedRequest {
+        max_string_bytes: usize,
+    },
+    /// Finite nested response: one Row vector and one flat scalar metrics record.
+    CollectionResponse {
         max_string_bytes: usize,
     },
 }
@@ -114,6 +119,9 @@ pub fn derive_json_codec_source_with_profile(
         }
         JsonCodecProfile::StreamUtf8OwnedRequest { max_string_bytes } => {
             utf8::stream_source(&program, declaration, max_string_bytes)?
+        }
+        JsonCodecProfile::CollectionResponse { max_string_bytes } => {
+            collection_response::source(&program, declaration, max_string_bytes)?
         }
     };
     if fragment.len() > MAX_GENERATED_BYTES {

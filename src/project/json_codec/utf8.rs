@@ -5,6 +5,11 @@ mod request;
 mod tests;
 mod text;
 
+/// Reuse only validated owned-string encoding, with a distinct helper namespace.
+pub(super) fn response_text(record: &TypeDeclaration, bound: usize) -> String {
+    text::response_source(record, bound)
+}
+
 use crate::ast::{FieldDeclaration, Program, Type, TypeDeclaration, TypeDeclarationKind};
 use crate::diagnostic::Diagnostic;
 use std::fmt::Write as _;

@@ -20,3 +20,19 @@ pub(super) fn source(record: &TypeDeclaration, max_string_bytes: usize) -> Strin
         .replace("__ROW_ID__", &record.stable_id)
         .replace("__BOUND__", &max_string_bytes.to_string())
 }
+
+pub(super) fn response_source(record: &TypeDeclaration, bound: usize) -> String {
+    // Rewrite template markers before substituting authored names/identities.
+    // Decoder helpers are not needed by the response-only source profile.
+    let template = include_str!("text.spx");
+    let suffix = template
+        .split_once("@id(\"__ROW_ID__.json.utf8.owned-valid\")")
+        .expect("owned UTF-8 encoder template")
+        .1;
+    format!("@id(\"__ROW_ID__.json.utf8.owned-valid\"){suffix}")
+        .replace("json___ROW___", "json___ROW___response")
+        .replace(".json.utf8.", ".json.collection-response.")
+        .replace("__ROW__", &record.name)
+        .replace("__ROW_ID__", &record.stable_id)
+        .replace("__BOUND__", &bound.to_string())
+}

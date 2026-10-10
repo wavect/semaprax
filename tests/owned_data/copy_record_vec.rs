@@ -116,30 +116,80 @@ fn capacity_bounds_and_failed_calls_settle_across_engines() {
 
 #[test]
 fn unsupported_shapes_and_owner_reuse_keep_stable_diagnostics() {
-    for (decl,body,code) in [
-        ("@id(\"app.r\") record R { @id(\"app.r.x\") x:Bytes, }", "let v=vec_with_capacity<R>(0usize); 0", "SPX-T281"),
-        ("@id(\"app.inner\") record Inner { @id(\"app.inner.x\") x:i64, } @id(\"app.r\") record R { @id(\"app.r.x\") x:Inner, }", "let v=vec_with_capacity<R>(0usize); 0", "SPX-T281"),
-        ("", "let v=vec_with_capacity<Job>(0usize); let w=vec_sort<Job>(v); let n=vec_len<Job>(v); 0", "SPX-O101"),
-        ("", "let v=vec_with_capacity<Job>(0usize); let n=vec_get<Job>(v); 0", "SPX-T281"),
+    // This original shape remains outside Copy Record Collections v1. The
+    // additive owned-leaf profile admits its owning Vec construction, but it
+    // cannot enter the Copy reader or gain Copy semantic facts.
+    let owned_declaration = "@id(\"app.r\") record R { @id(\"app.r.x\") x:Bytes, }";
+    let accepted = format!(
+        "{DECL}{owned_declaration}@id(\"app.main\") fn main()->i64 {{ let v=vec_with_capacity<R>(0usize); 0 }}"
+    );
+    let ast = semaprax::check(&accepted, "owned-leaf-element.spx").unwrap();
+    let resolved = hir::resolve(&ast).unwrap();
+    hir::validate(&resolved).unwrap();
+    let element = hir::ResolvedType::Nominal {
+        declaration: hir::DeclarationId::new("app.r"),
+        arguments: Vec::new(),
+    };
+    assert!(!resolved.declarations.type_facts(&element).unwrap().copy);
+    let copy_reader = accepted.replace(
+        "let v=vec_with_capacity<R>(0usize); 0",
+        "let v=vec_with_capacity<R>(0usize); let copied=vec_get<R>(v,0usize); 0",
+    );
+    let copy_ast = semaprax::parse(&copy_reader, "copy-reader-refusal.spx").unwrap();
+    assert!(
+        semaprax::verify::verify(&copy_ast)
+            .iter()
+            .any(|error| error.code == "SPX-T281")
+    );
+    for (decl, body, code) in [
+        (
+            "@id(\"app.r\") record R { @id(\"app.r.x\") x:Bytes, @id(\"app.r.y\") y:Bytes, @id(\"app.r.z\") z:Bytes, }",
+            "let v=vec_with_capacity<R>(0usize); 0",
+            "SPX-T281",
+        ),
+        (
+            "@id(\"app.inner\") record Inner { @id(\"app.inner.x\") x:i64, } @id(\"app.r\") record R { @id(\"app.r.x\") x:Inner, }",
+            "let v=vec_with_capacity<R>(0usize); 0",
+            "SPX-T281",
+        ),
+        (
+            "",
+            "let v=vec_with_capacity<Job>(0usize); let w=vec_sort<Job>(v); let n=vec_len<Job>(v); 0",
+            "SPX-O101",
+        ),
+        (
+            "",
+            "let v=vec_with_capacity<Job>(0usize); let n=vec_get<Job>(v); 0",
+            "SPX-T281",
+        ),
     ] {
-        let text=format!("{DECL}{decl}@id(\"app.main\") fn main()->i64 {{ {body} }}");
-        let ast=semaprax::parse(&text,"negative.spx").unwrap();
-        let errors=semaprax::verify::verify(&ast);
-        assert!(errors.iter().any(|error|error.code==code),"{text}: {errors:?}");
+        let text = format!("{DECL}{decl}@id(\"app.main\") fn main()->i64 {{ {body} }}");
+        let ast = semaprax::parse(&text, "negative.spx").unwrap();
+        let errors = semaprax::verify::verify(&ast);
+        assert!(
+            errors.iter().any(|error| error.code == code),
+            "{text}: {errors:?}"
+        );
     }
     let fields = (0..9)
         .map(|i| format!("@id(\"app.r.f{i}\") f{i}:i64,"))
         .collect::<String>();
-    let text=format!("module t; @id(\"app.r\") record R {{{fields}}} fn main()->i64 {{ let v=vec_with_capacity<R>(0usize); 0 }}");
+    let text = format!(
+        "module t; @id(\"app.r\") record R {{{fields}}} fn main()->i64 {{ let v=vec_with_capacity<R>(0usize); 0 }}"
+    );
     let ast = semaprax::parse(&text, "wide.spx").unwrap();
-    assert!(semaprax::verify::verify(&ast)
-        .iter()
-        .any(|e| e.code == "SPX-T281"));
+    assert!(
+        semaprax::verify::verify(&ast)
+            .iter()
+            .any(|e| e.code == "SPX-T281")
+    );
 }
 
 #[test]
 fn canonical_graph_and_hostile_hir_preserve_nominal_identity() {
-    let text=program(&format!("let v=vec_with_capacity<Job>(1usize); let w=vec_push<Job>(v,{JOB}); let j=vec_get<Job>(w,0usize); j.id"));
+    let text = program(&format!(
+        "let v=vec_with_capacity<Job>(1usize); let w=vec_push<Job>(v,{JOB}); let j=vec_get<Job>(w,0usize); j.id"
+    ));
     let ast = semaprax::check(&text, "copy-record.spx").unwrap();
     let canonical = semaprax::format::canonical(&ast);
     let round = semaprax::parse(&canonical, "copy-record.spx").unwrap();

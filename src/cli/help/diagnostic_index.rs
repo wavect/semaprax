@@ -18,12 +18,17 @@ pub(super) fn language_summary(index: &str) -> String {
         .collect::<Vec<_>>();
     codes.sort_unstable();
     codes.dedup();
-    let mut output = String::from("## Habits from other languages: diagnostic index\n\nComplete code inventory:\n");
+    let mut output = String::from(
+        "## Habits from other languages: diagnostic index\n\nComplete code inventory:\n",
+    );
     for code in codes {
         writeln!(output, "  {code}").expect("writing to a string cannot fail");
     }
     output.push_str("Exact attempts/fixes: semaprax help diagnostic <SPX-code>\nComplete table: semaprax help language all\n");
-    assert!(output.len() <= 5_000, "diagnostic topic inventory exceeds its bound");
+    assert!(
+        output.len() <= 5_000,
+        "diagnostic topic inventory exceeds its bound"
+    );
     output
 }
 

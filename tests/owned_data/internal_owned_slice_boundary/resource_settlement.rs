@@ -129,7 +129,11 @@ int main(void) {{
     ));
     std::fs::create_dir(&root).unwrap();
     let c_source = root.join("resource-settlement.c");
-    std::fs::write(&c_source, format!("{declarations}\n{tracked}\n{allocator}\n{probe}")).unwrap();
+    std::fs::write(
+        &c_source,
+        format!("{declarations}\n{tracked}\n{allocator}\n{probe}"),
+    )
+    .unwrap();
     for optimization in ["-O0", "-O2"] {
         let binary = root.join(format!("resource-settlement-{optimization}"));
         let compiled = Command::new("clang")

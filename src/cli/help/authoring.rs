@@ -268,8 +268,7 @@ mod tests {
             assert!(lookup(bad).is_err(), "{bad}");
         }
         let codec = lookup("author:json-codec").unwrap();
-        assert!(codec
-            .contains("--profile <selector>"));
+        assert!(codec.contains("--profile <selector>"));
         assert!(codec.contains("--max-string-bytes 1..64"));
         assert!(codec.contains("Omit --profile for the default flat scalar record"));
         assert!(codec.contains("author:json-identifier-views"));
@@ -293,7 +292,10 @@ mod tests {
             "0..256",
             "Unicode",
         ] {
-            assert!(utf8_request.contains(fact), "UTF-8 request guidance omits {fact}");
+            assert!(
+                utf8_request.contains(fact),
+                "UTF-8 request guidance omits {fact}"
+            );
         }
         let owned_request = lookup("author:json-owned-request").unwrap();
         for fact in [

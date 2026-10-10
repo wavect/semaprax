@@ -3,7 +3,7 @@
 use crate::diagnostic::Diagnostic;
 use crate::hir::{ResolvedExpr, ResolvedType};
 
-use super::super::{CEmitter, COutput, CValue, backend_error};
+use super::super::{backend_error, CEmitter, COutput, CValue};
 mod owned_leaf;
 
 impl<'a, O: COutput> CEmitter<'a, O> {

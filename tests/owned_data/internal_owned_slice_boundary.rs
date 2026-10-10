@@ -3,6 +3,9 @@ use semaprax::{codegen, hir, interpreter};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+#[path = "internal_owned_slice_boundary/resource_settlement.rs"]
+mod resource_settlement;
+
 static NEXT: AtomicU64 = AtomicU64::new(0);
 const SOURCE: &str = r#"module test.internal_owned_slice;
 @id("probe.inspect") fn inspect(value: borrow Slice<u8>) -> i64 {

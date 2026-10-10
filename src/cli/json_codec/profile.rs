@@ -1,6 +1,9 @@
 use semaprax::project::JsonCodecProfile;
 
-pub(super) fn parse(profile: Option<&str>, max_string_bytes: Option<&str>) -> Option<JsonCodecProfile> {
+pub(super) fn parse(
+    profile: Option<&str>,
+    max_string_bytes: Option<&str>,
+) -> Option<JsonCodecProfile> {
     match (profile, max_string_bytes) {
         (None, None) => Some(JsonCodecProfile::FlatScalars),
         (Some("identifier-views.v1"), None) => Some(JsonCodecProfile::IdentifierViews),

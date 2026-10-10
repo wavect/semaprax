@@ -523,7 +523,10 @@ fn whole_report_sha_kats_cover_patch_v1_v2_v3() {
     ]
     .map(|fixture| {
         let report = target_evidence::preview(&fixture.source, &fixture.patch).unwrap();
-        assert!(report.len() <= 1024 * 1024, "target evidence byte audit is bounded");
+        assert!(
+            report.len() <= 1024 * 1024,
+            "target evidence byte audit is bounded"
+        );
         println!("SEMAPRAX_TARGET_EVIDENCE_BYTE_AUDIT={report}");
         report
     });

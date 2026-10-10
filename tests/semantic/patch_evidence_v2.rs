@@ -537,7 +537,10 @@ fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
             "receipt": receipt,
         })
         .to_string();
-        assert!(row.len() <= 1024 * 1024, "patch evidence byte audit is bounded");
+        assert!(
+            row.len() <= 1024 * 1024,
+            "patch evidence byte audit is bounded"
+        );
         println!("SEMAPRAX_PATCH_EVIDENCE_BYTE_AUDIT={row}");
         let previous_report = report.replace("0.259.0", "0.256.0");
         let report_domain = b"semaprax.semantic-target-evidence.report-digest.v1\0";

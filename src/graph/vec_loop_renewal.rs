@@ -11,7 +11,7 @@ pub(crate) fn graph_schema(program: &ResolvedProgram) -> Result<&'static str, Di
             .functions
             .iter()
             .chain(program.function_instances.iter().map(|i| &i.function))
-            .any(requires)
+            .any(|function| hir::vec_loop_renewal::requires_in(program, function))
         {
             if previous == "semaprax.graph.v67" {
                 previous
@@ -55,7 +55,7 @@ pub(super) fn graph_json(
         .functions
         .iter()
         .chain(program.function_instances.iter().map(|i| &i.function))
-        .any(requires)
+        .any(|function| hir::vec_loop_renewal::requires_in(program, function))
     {
         return Ok(graph);
     }
@@ -83,7 +83,7 @@ pub(super) fn graph_json(
         .chain(program.function_instances.iter().map(|i| &i.function))
         .filter(|f| functions.contains(&f.id))
     {
-        for (at, binding) in hir::vec_loop_renewal::bindings(function) {
+        for (at, binding) in hir::vec_loop_renewal::bindings_in(program, function) {
             updates.push(format!(
                 "{{\"function\":{},\"at\":{},\"binding\":{}}}",
                 quote_json(function.id.as_str()),

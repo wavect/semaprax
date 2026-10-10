@@ -11,6 +11,26 @@ pub(in crate::source_verify) fn runtime_admitted(types: &TypeTable<'_>, ty: &Typ
             .is_some_and(|declaration| owned::admitted(types, declaration) || nested::admitted(types, declaration)))
 }
 
+/// Finite collection outcomes compose through matches without generated-name
+/// authority. The scrutinee and owning result independently rederive admission.
+pub(in crate::source_verify) fn match_result(
+    types: &TypeTable<'_>,
+    scrutinee: &Type,
+    mode: MatchMode,
+    result: &Type,
+    ownership: ParamMode,
+) -> bool {
+    if mode == MatchMode::Value || !runtime_admitted(types, scrutinee) {
+        return false;
+    }
+    (ownership == ParamMode::Value
+        && (crate::vec_ops::ast_element_is_admitted(result)
+            || super::copy_record_collection::admitted(types, result)))
+        || (mode == MatchMode::Own
+            && ownership == ParamMode::Own
+            && runtime_admitted(types, result))
+}
+
 pub(in crate::source_verify) fn runtime_declaration_admitted(
     types: &TypeTable<'_>,
     declaration: &crate::ast::TypeDeclaration,

@@ -16,7 +16,7 @@ pub(super) fn validate_binding(
             | CLEANUP_PLAN_SCHEMA_V15
             | CLEANUP_PLAN_SCHEMA_V16
             | CLEANUP_PLAN_SCHEMA_V17
-    ) || (crate::hir::vec_loop_renewal::binding(function, at).is_some()
+    ) || (crate::hir::vec_loop_renewal::binding_in(program, function, at).is_some()
         && !matches!(
             function.cleanup_plan.schema,
             CLEANUP_PLAN_SCHEMA_V15 | CLEANUP_PLAN_SCHEMA_V16 | CLEANUP_PLAN_SCHEMA_V17
@@ -550,6 +550,36 @@ fn main() -> i64
 
     #[test]
     fn ordinary_vec_renewal_rejects_missing_forged_and_downgraded_proofs() {
+        // The independently authenticated Copy-record extension must retain
+        // the same reservation and reject cached field-type drift.
+        let copy = crate::hir::resolve(
+            &crate::check(
+                r#"module copy_renewal;
+@id("row") record Row { @id("row.n") n:i64, }
+@id("app.main") fn main()->i64 {
+ let mut values=vec_with_capacity<Row>(2usize); let mut i=0;
+ while i<2 { values=vec_push<Row>(values,Row{n:i}); i=i+1; 0 }
+ i64_from_usize(vec_len<Row>(values))
+}
+"#,
+                "copy-renewal.spx",
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let function = &copy.functions[0];
+        assert!(crate::hir::vec_loop_renewal::requires_in(&copy, function));
+        assert_eq!(function.cleanup_plan.schema, CLEANUP_PLAN_SCHEMA_V15);
+        validate_structure(&copy, function).unwrap();
+        let mut drift = copy.clone();
+        drift
+            .declarations
+            .record_fields
+            .get_mut(&crate::hir::DeclarationId::new("row"))
+            .unwrap()[0]
+            .ty = crate::hir::ResolvedType::String;
+        assert!(!crate::hir::vec_loop_renewal::requires_in(&drift, function));
+        assert!(validate_structure(&drift, function).is_err());
         let source = crate::check(
             r#"module test.ordinary_vec_renewal;
 @id("app.main") fn main()->i64 {

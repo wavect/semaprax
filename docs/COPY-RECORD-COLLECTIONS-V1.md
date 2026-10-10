@@ -45,7 +45,15 @@ is sticky and an unsuccessful invocation does not publish its result.
 `hir/copy_record_collection.rs` independently reconstructs it from authenticated
 DeclarationIndex facts. Neither broadens the scalar-only element predicate.
 HIR validation, ownership/cleanup replay, native and Wasm carrier admission use
-this independently authenticated union. No new parser syntax, HIR expression,
+this independently authenticated union. Same-cell renewal of a whole mutable `Vec<R>` in ordinary while bodies uses
+CleanupPlan v15's existing reservation and history-preserving renewal protocol.
+Its element is independently reclassified from explicit declarations; a cached
+Copy flag, owning element, different source binding or projected destination
+cannot select renewal. Retained-program Graph v66 derives the same site metadata
+from those declarations; frozen from-parts routes lacking identity provenance
+refuse this nominal extension. Older scalar-only programs retain their bytes.
+
+No new parser syntax, HIR expression,
 graph node or cache field is introduced. Canonical source and graph retain the
 ordinary nominal types and typed calls; a cached plan is replayed against those
 same declaration facts. Prelude operation/version selection remains unchanged.

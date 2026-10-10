@@ -31,6 +31,9 @@ pub(super) fn admits_owned_match_result(
                 arm.value.ty == ResolvedType::String && arm.value.ownership == OwnershipMode::Own
             });
     }
+    if crate::hir::collection_outcome::match_join(&program.declarations, expression) {
+        return expression.ownership == OwnershipMode::Own;
+    }
     if let ResolvedExprKind::Match { mode, .. } = expression.kind {
         if crate::hir::generic_variant::match_result(
             program,

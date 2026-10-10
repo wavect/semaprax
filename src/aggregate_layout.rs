@@ -850,6 +850,15 @@ fn collect_record_type(
                 collect_record_type(program, &field_ty, instances)?;
             }
         }
+    } else if let ResolvedTypeDeclarationKind::Variant { cases } = &item.kind {
+        // Signature-only outcome carriers still require every possible payload
+        // record layout, even when the executable body constructs only errors.
+        if crate::hir::collection_outcome::runtime_admitted(&program.declarations, ty) {
+            for field in cases.iter().flat_map(|case| &case.fields) {
+                let field_ty = crate::hir::substitute_type(&field.ty, declaration, arguments)?;
+                collect_record_type(program, &field_ty, instances)?;
+            }
+        }
     }
     Ok(())
 }

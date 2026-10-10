@@ -736,7 +736,7 @@ impl<'a> PlanBuilder<'a> {
                 super::CLEANUP_PLAN_SCHEMA_V17
             } else if crate::string_ops::replacement::requires(function) {
                 super::CLEANUP_PLAN_SCHEMA_V16
-            } else if crate::hir::vec_loop_renewal::requires(function) {
+            } else if crate::hir::vec_loop_renewal::requires_in(program, function) {
                 super::CLEANUP_PLAN_SCHEMA_V15
             } else if crate::iterator_ops::function_uses_owned_iterator(function)
                 || crate::iterator_ops::function_uses_record_iterator_in(

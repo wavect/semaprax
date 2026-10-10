@@ -1,4 +1,8 @@
-use std::collections::BTreeSet;
+use super::{
+    backend_error, c_case_symbol, c_field_symbol, c_i32, c_i64, c_pattern_literal, c_string,
+    c_value_type, is_aggregate_type, is_direct_plan_owned, record_declaration_id,
+    variant_declaration_id, CBinding, CEmitter, COutput, CValue,
+};
 use crate::aggregate_layout::AggregateLayout;
 use crate::ast::{BinaryOp, UnaryOp};
 use crate::bounded_output::BudgetedJoin as _;
@@ -8,11 +12,7 @@ use crate::hir::{
     ResolvedExprKind, ResolvedStatement, ResolvedType,
 };
 use crate::variant_layout::VariantLayout;
-use super::{
-    backend_error, c_case_symbol, c_field_symbol, c_i32, c_i64, c_pattern_literal, c_string,
-    c_value_type, is_aggregate_type, is_direct_plan_owned, record_declaration_id,
-    variant_declaration_id, CBinding, CEmitter, COutput, CValue,
-};
+use std::collections::BTreeSet;
 mod box_ops;
 mod host_command;
 mod iterator_ops;
@@ -696,9 +696,12 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             | ResolvedExprKind::String(_)
             | ResolvedExprKind::Place(_)
             | ResolvedExprKind::BorrowPlace { .. } => self.emit_leaf_expr(expr),
-            ResolvedExprKind::VecFieldRead { element, field, bytes, args } => {
-                self.emit_vec_field_read(expr, element, field, *bytes, args)
-            }
+            ResolvedExprKind::VecFieldRead {
+                element,
+                field,
+                bytes,
+                args,
+            } => self.emit_vec_field_read(expr, element, field, *bytes, args),
             ResolvedExprKind::ByteRange {
                 operation,
                 source,
@@ -1816,10 +1819,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     // scope exit below so moved bindings are not finalized.
                     let mut value = self.emit_expr(&arm.value)?;
                     self.require_type(&value.ty, &expr.ty, "record match arm result")?;
-                    if aggregate_result
-                        || matches!(expr.ty, ResolvedType::Bytes | ResolvedType::String)
-                        || crate::map_ops::is_collection(&expr.ty)
-                    {
+                    if aggregate_result || is_direct_plan_owned(self.program, &expr.ty) {
                         self.finish_generic_owned_match_result(expr, &arm.value, &mut value)?;
                     }
                     if *mode == hir::ResolvedMatchMode::Own {

@@ -992,8 +992,11 @@ validation, and post-validation materialization. Its wrapper returns the ordinar
 #729 tagged outcome; helpers and the original schema pass the same Project
 rebuild as authored source. UTF-8 scalar pulls share a separately named checked
 template, with no identifier policy, new runtime intrinsic or authority bypass.
-The decoder and its independent owning Project corpus are source-only pending
-qualification; streaming adaptation remains a separate obligation.
+The additive `nested_request/stream` adapter authenticates a worst fully escaped
+valid-spelling envelope against the unchanged normalizer buffer, then holds that
+normalized input only until the owned decoder returns. Original schema permits
+and ordinary Project capability checks remain authoritative. Both selectors and
+their independent owning Project corpora are source-only pending qualification.
 
 ### Semantic graph
 

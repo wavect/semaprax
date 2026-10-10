@@ -79,6 +79,42 @@ including `-0`, is outside the `usize` domain; `u8` accepts integral numeric
 values in 0..255 (including the numeric value of `-0`). No coercion, truncation,
 defaulting or unknown-field skipping occurs.
 
+## Additive streaming adapter
+
+`bounded-stream-nested-request.v1` takes the same two explicit bounds and requires
+an existing `process.stdin.read` permit in the authored schema module. The
+ordinary Project manifest must independently grant that capability. It emits
+the same direct decoder, the unchanged strict incremental whitespace normalizer,
+and `json_OrderRequest_nested_stream_decode()->OrderRequestJsonNestedDecode`
+with effect `process.stdin.read` and identity
+`orders.request.json.nested.stream-decode`. The one-call wrapper owns the
+normalizer's Ready Bytes until the borrowed direct decoder returns. It publishes
+only the independently owning Root outcome, so callers need no buffer/view glue.
+
+Derivation additionally proves that **every valid whitespace-free spelling** of
+the bounded schema fits the existing 131,072-byte normalization buffer. This is
+an upper bound computed from source field names and declared bounds: six JSON
+bytes per decoded key/String UTF-8 byte plus quotes, all object/array punctuation,
+20 bytes for i64/usize, three for u8, five for bool, and the configured maximum
+array cardinality. Six accounts for escaped ASCII/control bytes; surrogate-pair
+spellings also fit that bound. The calculation includes repeated row keys and
+all nested fields; it grants no authority from declaration names. If the bound
+exceeds the buffer or arithmetic overflows, derivation refuses with SPX-J180.
+The direct-input selector remains available independently of this stream policy.
+
+An admitted stream schema accepts arbitrary permitted whitespace and arbitrary
+valid escape spellings within its decoded schema limits, across every provider
+chunk boundary. There is no raw-input length limit. The existing normalizer
+continues strict grammar validation after its semantic buffer fills, and retains
+its precedence and raw-offset grammar/UTF-8 failures. Its code 9 buffer refusal
+can occur only for schema-invalid content after the new envelope has admitted
+the schema. Schema errors selected by the direct decoder use offsets in the
+whitespace-normalized immutable bytes; normalizer errors use raw offsets.
+Provider limits, index width, UTF-8 rules, depth 32, and all runtime capacities
+remain unchanged. This policy does not claim that every decoded-fit schema has
+a spelling envelope that fits; supporting those schemas needs a later streaming
+representation, rather than a larger buffer or silent raw cap.
+
 ## Authority and owning gates
 
 Derivation rebuilds the original Project profile against its exact authored
@@ -93,18 +129,27 @@ by the Project's declared bundled dependencies.
 The direct-input selector accepts whatever immutable input storage and explicit
 caller budget the selected backend already admits. It adds no raw-input buffer
 or stream permit. It does not establish acceptance of arbitrarily long stdin
-whitespace or escaped spellings. A separately qualified streaming adaptation is
-required for the original complete ShiftSim/Catalog acceptance contracts.
+whitespace or escaped spellings. The streaming adaptation above has its own
+derivation-time envelope and owning gates; application acceptance still requires the original complete corpus.
 
 - `--lib project::json_codec::nested_request::tests::` (4): deterministic
   source/canonical projection, post-validation construction, independent field
   paths/names, strict supported shapes/identities and exact policy boundaries.
+- `--lib project::json_codec::nested_request::stream::tests::` (2): exact
+  escaped-spelling envelope, pure-selector independence, permit refusal,
+  unchanged normalizer identity, ordinary wrapper ownership and canonical source.
 - The independent nested order/configuration Project corpus qualifies the real
   CLI derivation and exact typed malformed outcomes, input-owner retirement,
   Unicode/NUL/numeric extrema, exact/over string and array limits, input budgets,
   policy/source replay and identical interpreter/C11 O0/O2/strict Wasm behavior.
 - `OWNED-NESTED-OUTCOMES-V1.md` owns the compiler's case/path authentication,
   physical layout and partial/staged/callee/postcondition cleanup gates.
+
+The independent stream orders corpus must exercise fully escaped keys/values,
+more than 65,536 bytes of leading/inter-token/trailing whitespace, malformed
+input and chunk splits through escapes/surrogates/UTF-8, exact typed errors,
+detached Root ownership, source/policy replay, and actual native command behavior.
+These are required gates, not claims of execution.
 
 A general JSON tree, nullable/optional schemas, user-defined variants, multiple
 arrays, new collection shapes, and broad streaming qualification remain open

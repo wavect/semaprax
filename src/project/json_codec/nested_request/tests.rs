@@ -1,5 +1,5 @@
 use super::*;
-const SCHEMA: &str = r#"module orders;
+pub(super) const SCHEMA: &str = r#"module orders;
 @id("orders.configuration") record Configuration {@id("orders.configuration.label") label:string,@id("orders.configuration.retry") retry:usize,}
 @id("orders.line") record Line {@id("orders.line.sku") sku:string,@id("orders.line.quantity") quantity:u8,}
 @id("orders.request") record OrderRequest {@id("orders.request.configuration") configuration:Configuration,@id("orders.request.lines") lines:Vec<Line>,@id("orders.request.urgent") urgent:bool,}

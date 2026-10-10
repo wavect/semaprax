@@ -2,6 +2,7 @@
 mod descriptor;
 mod emit;
 mod materialize;
+mod stream;
 #[cfg(test)]
 mod tests;
 mod validate;
@@ -48,5 +49,21 @@ pub(super) fn derive(
     let mut output = super::views::imports(program);
     output.push_str(&super::utf8::nested_decode_text(root, max_string_bytes));
     output.push_str(&emit::source(root, &shape, max_array_items));
+    Ok(output)
+}
+
+/// One-call streaming adapter over a source-derived worst-spelling envelope.
+pub(super) fn derive_stream(
+    program: &Program,
+    root: &TypeDeclaration,
+    max_string_bytes: usize,
+    max_array_items: usize,
+) -> Result<String, Vec<Diagnostic>> {
+    let shape = descriptor::validate(program, root, max_string_bytes, max_array_items)?;
+    stream::validate_envelope(&shape.root, max_string_bytes, max_array_items)?;
+    let normalization = super::views::stream_normalizer_source(program, root)?;
+    let mut output = derive(program, root, max_string_bytes, max_array_items)?;
+    output.push_str(&normalization);
+    output.push_str(&stream::wrapper(root));
     Ok(output)
 }

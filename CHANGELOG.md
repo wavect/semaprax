@@ -1,5 +1,9 @@
 # Changelog
 
+- Author bounded nested-request streaming derivation with a source-derived fully
+  escaped spelling envelope, unchanged strict normalizer and one-call typed owning
+  result; limits stay fixed and owning/application execution remains pending.
+
 - Author the finite bounded nested-request source decoder for OPT-724: explicit
   acyclic record paths, existing Vec element carriers, bounded Unicode strings,
   whole-grammar/schema validation before owning construction, and proper typed

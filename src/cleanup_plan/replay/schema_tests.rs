@@ -99,3 +99,30 @@ fn generic_instance_schema_substitution_rejects_before_semantic_execution() {
         }
     }
 }
+
+#[test]
+fn nested_string_cleanup_selects_nested_schema_and_rejects_flat_replay() {
+    let source = r#"
+module cleanup.nested_string;
+@id("inner") record Inner { @id("inner.text") text: string, }
+@id("outer") record Outer { @id("outer.inner") inner: Inner, }
+@id("make") fn make() -> Outer { Outer { inner: Inner { text: "owned" } } }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let parsed = crate::check(source, "nested-string-cleanup.spx").unwrap();
+    let mut program = crate::hir::resolve(&parsed).unwrap();
+    let index = program
+        .functions
+        .iter()
+        .position(|function| function.id.as_str() == "make")
+        .unwrap();
+    assert_eq!(
+        selected_schema(&program, &program.functions[index]).unwrap(),
+        CLEANUP_PLAN_SCHEMA_V7
+    );
+    validate_structure(&program, &program.functions[index]).unwrap();
+    program.functions[index].cleanup_plan.schema = CLEANUP_PLAN_SCHEMA_V2;
+    let diagnostic = validate_structure(&program, &program.functions[index]).unwrap_err();
+    assert_eq!(diagnostic.code, "SPX-H006");
+    assert!(diagnostic.message.contains("HIR-derived"));
+}

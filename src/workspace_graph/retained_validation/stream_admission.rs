@@ -133,10 +133,7 @@ pub(in crate::workspace_graph) fn stream_test_program(
             build.linked_stream_collection_record_test_program(test_module)
         }
         crate::project::ProjectProfile::StdinStreamNestedOutcomeCommandIoV1 => {
-            let linked = build.linked_stream_collection_record_test_program(test_module)?;
-            hir::validate_stream_nested_outcome_program(&linked, None)
-                .map_err(|error| vec![error])?;
-            Ok(linked)
+            build.linked_stream_nested_outcome_test_program(test_module)
         }
         crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
             build.linked_stream_data_test_program(test_module)
@@ -176,7 +173,7 @@ pub(in crate::workspace_graph) fn command_link(
             return Err(super::super::graph_error(
                 "SPX-G172",
                 "stream record linking requires authenticated declaration facts",
-            ))
+            ));
         }
 
         crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
@@ -209,7 +206,7 @@ pub(in crate::workspace_graph) fn entry_link(
             return Err(super::super::graph_error(
                 "SPX-G172",
                 "stream record linking requires authenticated declaration facts",
-            ))
+            ));
         }
 
         crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {

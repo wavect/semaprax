@@ -29,10 +29,23 @@ pub(super) use dependency_closure::{
 };
 
 use super::{
+    CallOccurrenceKey, MAX_CALLS, WorkspaceDeclarationFact, WorkspaceEdge, WorkspaceResolvedModule,
     graph_error, limit_error, push_edge, reserve_builder_structure, visit_ast_call_sites,
-    CallOccurrenceKey, WorkspaceDeclarationFact, WorkspaceEdge, WorkspaceResolvedModule, MAX_CALLS,
 };
 use edge_projection::push_edge_reference;
+
+/// Type imports are admitted only by the selected owned API or the exact
+/// record-bearing stream successors. Their type closure is replayed separately.
+pub(super) fn project_type_imports_admitted(profile: crate::project::ProjectProfile) -> bool {
+    profile.is_owned_api()
+        || matches!(
+            profile,
+            crate::project::ProjectProfile::StdinStreamDataCommandIoV2
+                | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
+                | crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1
+                | crate::project::ProjectProfile::StdinStreamNestedOutcomeCommandIoV1
+        )
+}
 
 pub(super) fn validate_retained_facts(
     programs: &[Program],
@@ -1475,3 +1488,6 @@ mod environment_profile_tests {
         }
     }
 }
+
+#[cfg(test)]
+mod profile_join_tests;

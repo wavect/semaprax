@@ -122,7 +122,10 @@ pub(super) fn check_argument_ownership(
             )
             .with_help("create or receive an explicitly shared resource before this call"),
         ),
-        ParamMode::Borrow if super::declared_type::collection_record::vector(types, &param.ty) => {
+        ParamMode::Borrow
+            if super::declared_type::collection_record::vector(types, &param.ty)
+                || crate::map_ops::ast_collection(&param.ty) =>
+        {
             if !matches!(actual.mode, ParamMode::Own | ParamMode::Borrow)
                 || source_place(arg, variables, types).is_none_or(|place| {
                     !place.projections.is_empty()
@@ -233,7 +236,8 @@ pub(super) fn activate_borrowed_bytes_call_loans(
     for (index, (borrowed, parameter)) in arguments.iter().zip(parameters).enumerate() {
         let reader = crate::stdin_stream_ops::ast_is_reader(&parameter.ty)
             && matches!(&borrowed.kind, ExprKind::Var(name) if variables.get(name).is_some_and(|binding| crate::stdin_stream_ops::ast_is_reader(&binding.ty)));
-        let collection = (super::declared_type::collection_record::vector(types, &parameter.ty)
+        let collection = (crate::map_ops::ast_collection(&parameter.ty)
+            || super::declared_type::collection_record::vector(types, &parameter.ty)
             || super::declared_type::string_record::runtime_admitted(&parameter.ty, types)
             || super::declared_type::collection_outcome::runtime_admitted(types, &parameter.ty))
             && (source_collection_field_is_admitted(borrowed, variables, types)
@@ -362,9 +366,11 @@ fn source_collection_field_is_admitted(
     };
     !place.projections.is_empty()
         && matches!(place.mode, ParamMode::Own | ParamMode::Borrow)
-        && super::declared_type::collection_record::vector(types, &place.ty)
+        && (super::declared_type::collection_record::vector(types, &place.ty)
+            || crate::map_ops::ast_collection(&place.ty))
         && variables.get(&place.root).is_some_and(|root| {
             matches!(root.mode, ParamMode::Own | ParamMode::Borrow)
-                && super::declared_type::collection_record::admitted(&root.ty, types)
+                && (super::declared_type::collection_record::admitted(&root.ty, types)
+                    || super::declared_type::string_record::admitted(&root.ty, types))
         })
 }

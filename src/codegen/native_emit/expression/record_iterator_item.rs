@@ -1,4 +1,4 @@
-//! Exact native bindings for the owned-record iterator `Yield.item` field.
+//! Exact native bindings for authenticated record payloads in conditional owners.
 
 use super::*;
 
@@ -9,14 +9,7 @@ pub(super) fn is_exact(
     field: &DeclarationId,
     field_ty: &ResolvedType,
 ) -> bool {
-    case.as_str() == crate::iterator_ops::YIELD_ID
-        && field.as_str() == crate::iterator_ops::ITEM_ID
-        && crate::iterator_ops::step_shape(&program.declarations, scrutinee)
-        && crate::iterator_ops::element(scrutinee) == Some(field_ty)
-        && crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
-            &program.declarations,
-            field_ty,
-        )
+    crate::cleanup::variant_record_field(program, scrutinee, case, field, field_ty)
 }
 
 pub(super) fn bind<O: COutput>(
@@ -66,34 +59,36 @@ fn bind_borrowed_leaves<O: COutput>(
     binding: &hir::ResolvedBinding,
     source_storage: Option<&crate::cleanup_plan::StorageId>,
 ) -> Result<(), Diagnostic> {
-    let ResolvedType::Nominal { declaration, .. } = field_ty else {
-        return Err(backend_error("record iterator item is not nominal"));
-    };
     let source = source_storage
-        .ok_or_else(|| backend_error("borrowed record iterator item is not place-rooted"))?;
-    let fields = emitter
-        .program
-        .declarations
-        .record_fields(declaration)
-        .ok_or_else(|| backend_error("record iterator item has no field inventory"))?;
-    let plan = emitter
-        .bytes_plan
-        .ok_or_else(|| backend_error("borrowed record iterator item has no cleanup plan"))?;
-    for leaf in fields.iter().filter(|leaf| leaf.ty == ResolvedType::Bytes) {
-        let path = vec![case.clone(), field.clone(), leaf.id.clone()];
-        let alias = plan
-            .projected_value_if_present(source, &path)
-            .ok_or_else(|| backend_error("borrowed record iterator leaf has no source slot"))?;
+        .ok_or_else(|| backend_error("borrowed variant record is not place-rooted"))?;
+    for relative in super::super::borrowed_aggregate_byte_paths(
+        emitter.program,
+        emitter.record_layouts,
+        emitter.variant_layouts,
+        field_ty,
+    )? {
+        let path = [vec![case.clone(), field.clone()], relative.clone()].concat();
+        let alias = emitter
+            .bytes_plan
+            .and_then(|plan| plan.projected_value_if_present(source, &path))
+            .map(str::to_owned)
+            .or_else(|| {
+                let crate::cleanup_plan::StorageId::Value(root) = source else {
+                    return None;
+                };
+                emitter
+                    .borrowed_aggregate_bytes
+                    .get(&(root.clone(), path))
+                    .cloned()
+            })
+            .ok_or_else(|| backend_error("borrowed variant record leaf has no source alias"))?;
         if emitter
             .borrowed_aggregate_bytes
-            .insert(
-                (binding.id.clone(), vec![leaf.id.clone()]),
-                alias.to_owned(),
-            )
+            .insert((binding.id.clone(), relative), alias)
             .is_some()
         {
             return Err(backend_error(
-                "borrowed record iterator leaf alias is duplicated",
+                "borrowed variant record leaf alias is duplicated",
             ));
         }
     }

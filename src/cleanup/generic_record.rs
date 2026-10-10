@@ -30,7 +30,28 @@ impl InventoryBuilder<'_> {
                         shapes.push(FieldLivenessShape::NoDrop);
                         continue;
                     }
-                    if let Some(id) = primitive_leaf_lifecycle(&ty) {
+                    // Collection carriers remain one owner even inside a variant's
+                    // record payload; their implementation record is not a layout proof.
+                    let lifecycle = primitive_leaf_lifecycle(&ty).or_else(|| {
+                        if crate::hir::owned_leaf_collection::is_copy_or_leaf_vec(
+                            &self.program.declarations,
+                            &ty,
+                        ) || is_owned_bounded_vec_type(&ty)
+                            || crate::hir::owned_record_collection::is_owned_record_vec_type(
+                                &self.program.declarations,
+                                &ty,
+                            )
+                        {
+                            Some(VEC_DROP_LIFECYCLE_ID)
+                        } else if crate::iterator_ops::is_iter(&ty) {
+                            Some(ITER_DROP_LIFECYCLE_ID)
+                        } else if is_owned_bounded_box_type(&ty) {
+                            Some(BOX_DROP_LIFECYCLE_ID)
+                        } else {
+                            None
+                        }
+                    });
+                    if let Some(id) = lifecycle {
                         owned_leaves = owned_leaves.checked_add(1).ok_or_else(|| {
                             cleanup_error("generic cleanup owned-leaf count overflowed")
                         })?;

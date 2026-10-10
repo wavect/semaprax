@@ -12,7 +12,7 @@ use crate::source_verify::is_scalar_source_type;
 use super::expr_nodes::ResolvedExpr;
 use super::ids::{DeclarationId, FunctionExecutionId};
 use super::monomorphize::substitute_type;
-use super::nodes::{is_scalar_resolved_type, DeclarationKind, ResolvedBinding, ResolvedType};
+use super::nodes::{DeclarationKind, ResolvedBinding, ResolvedType, is_scalar_resolved_type};
 use super::{Binding, Resolver};
 
 impl Resolver<'_> {
@@ -254,6 +254,7 @@ impl Resolver<'_> {
                     let vec_operation = crate::vec_ops::by_name(name);
                     if !type_arguments.is_empty()
                         && vec_operation.is_none()
+                        && name != crate::vec_field::NAME
                         && crate::map_ops::by_generic_name(name, type_arguments).is_none()
                     {
                         return Err(self.error(

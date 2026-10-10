@@ -37,6 +37,9 @@ ARMS = legacy.ARMS
 MIN_TRIALS_PER_ARM = legacy.MIN_TRIALS_PER_ARM
 SEED_FILES = legacy.SEED_FILES
 ROUND = 6
+COMPILER_BUILD_RECEIPT_SCHEMA = "semaprax.loglens.compiler-build.v1"
+MAX_COMPILER_BUILD_RECEIPT_BYTES = 1_048_576
+HASH_CHUNK_BYTES = 64 * 1024
 HARNESS_SOURCE_FILES = (
     "benchmarks/cli-tokens-v1/boundary-audit-v1/audit.py",
     "benchmarks/cli-tokens-v1/boundary-audit-v1/corpus.json",
@@ -109,6 +112,117 @@ def snapshot_harness_sources(repo: Path, artifacts: Path, expected: dict[str, st
     }
     (destination / "manifest.json").write_text(json.dumps(snapshot, indent=2, sort_keys=True) + "\n")
     return snapshot
+
+
+def _sha256(value: Any, label: str) -> str:
+    if (not isinstance(value, str) or len(value) != 64
+            or any(character not in "0123456789abcdef" for character in value)):
+        raise ValueError(f"{label} must be a lowercase SHA-256 digest")
+    return value
+
+
+def _regular_path(path: str | Path, label: str) -> Path:
+    """Return a lexical absolute regular path after rejecting every symlink."""
+    if not isinstance(path, (str, Path)):
+        raise ValueError(f"{label} path must be text")
+    absolute = Path(path).expanduser().absolute()
+    if any(component == ".." for component in absolute.parts):
+        raise ValueError(f"{label} path must not contain parent traversal")
+    current = Path(absolute.anchor)
+    for component in absolute.parts[1:]:
+        current /= component
+        if current.is_symlink():
+            raise ValueError(f"{label} must not be a symlink or have symlinked parents")
+    if not current.is_file():
+        raise ValueError(f"{label} must be a regular file")
+    return current
+
+
+def _bounded_regular_bytes(path: Path, label: str) -> bytes:
+    if path.stat().st_size > MAX_COMPILER_BUILD_RECEIPT_BYTES:
+        raise ValueError(f"{label} exceeds {MAX_COMPILER_BUILD_RECEIPT_BYTES} bytes")
+    with path.open("rb") as source:
+        contents = source.read(MAX_COMPILER_BUILD_RECEIPT_BYTES + 1)
+    if len(contents) > MAX_COMPILER_BUILD_RECEIPT_BYTES:
+        raise ValueError(f"{label} exceeds {MAX_COMPILER_BUILD_RECEIPT_BYTES} bytes")
+    return contents
+
+
+def _digest_regular(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(HASH_CHUNK_BYTES), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _compiler_build_receipt(path: str | Path, compiler_source_commit: str,
+                            compiler_binary_sha256: str) -> dict[str, Any]:
+    """Bind a planned binary to retained external build-log bytes.
+
+    A caller-supplied receipt establishes byte bindings only. It does not prove
+    that a hosted provider built or published the selected compiler.
+    """
+    if not isinstance(compiler_source_commit, str) or not re.fullmatch(r"[0-9a-f]{40}", compiler_source_commit):
+        raise ValueError("compiler build receipt requires an exact compiler source commit")
+    _sha256(compiler_binary_sha256, "compiler build receipt binary")
+    receipt_path = _regular_path(path, "compiler build receipt")
+    try:
+        receipt = json.loads(_bounded_regular_bytes(receipt_path, "compiler build receipt"))
+    except (UnicodeError, json.JSONDecodeError) as error:
+        raise ValueError("compiler build receipt must be UTF-8 JSON") from error
+    required = {"schema", "compiler_source_commit", "compiler_binary_sha256", "build_command", "build_log"}
+    if not isinstance(receipt, dict) or set(receipt) != required or receipt.get("schema") != COMPILER_BUILD_RECEIPT_SCHEMA:
+        raise ValueError("compiler build receipt has an unsupported schema")
+    if receipt.get("compiler_source_commit") != compiler_source_commit:
+        raise ValueError("compiler build receipt source differs from --compiler-source-ref")
+    if receipt.get("compiler_binary_sha256") != compiler_binary_sha256:
+        raise ValueError("compiler build receipt binary differs from --semaprax-bin")
+    command = receipt.get("build_command")
+    if (not isinstance(command, list) or not command
+            or any(not isinstance(argument, str) or not argument.strip() or "\x00" in argument
+                   for argument in command)):
+        raise ValueError("compiler build receipt command must be a nonempty argument array")
+    build_log = receipt.get("build_log")
+    if not isinstance(build_log, dict) or set(build_log) != {"path", "sha256"}:
+        raise ValueError("compiler build receipt must bind one build log")
+    relative_log = build_log.get("path")
+    relative_log_path = Path(relative_log) if isinstance(relative_log, str) else None
+    if (relative_log_path is None or not relative_log_path.parts or relative_log_path.is_absolute()
+            or any(component in {".", ".."} for component in relative_log_path.parts)):
+        raise ValueError("compiler build receipt build log path must be relative")
+    log_path = _regular_path(receipt_path.parent / relative_log_path, "compiler build receipt build log")
+    log_sha256 = _sha256(build_log.get("sha256"), "compiler build receipt build log")
+    if _digest_regular(log_path) != log_sha256:
+        raise ValueError("compiler build receipt build log hash differs")
+    return {
+        "schema": COMPILER_BUILD_RECEIPT_SCHEMA,
+        "receipt_path": str(receipt_path),
+        "receipt_sha256": _digest_regular(receipt_path),
+        "compiler_source_commit": compiler_source_commit,
+        "compiler_binary_sha256": compiler_binary_sha256,
+        "build_command": command,
+        "build_log_path": str(log_path),
+        "build_log_sha256": log_sha256,
+        "provenance": "caller-supplied external build receipt; hosted build and publication provenance require operator verification",
+    }
+
+
+def require_compiler_build_receipt(settings: dict[str, Any], semaprax_bin: Path) -> None:
+    """Refuse dispatch when the retained external build binding has drifted."""
+    planned = settings.get("compiler_build_receipt")
+    if not isinstance(planned, dict):
+        raise ValueError("future LogLens campaign requires a compiler build receipt")
+    source = settings.get("compiler_source_commit")
+    binary_sha256 = settings.get("source_binary_sha256")
+    if not isinstance(source, str):
+        raise ValueError("campaign plan must bind the compiler source commit")
+    _sha256(binary_sha256, "campaign compiler binary")
+    actual = _compiler_build_receipt(planned.get("receipt_path", ""), source, binary_sha256)
+    if actual != planned:
+        raise ValueError("compiler build receipt differs from the immutable campaign plan")
+    if legacy.digest(semaprax_bin.expanduser().resolve(strict=True)) != binary_sha256:
+        raise ValueError("compiler binary differs from the immutable campaign plan")
 
 
 def _usage(value: Any) -> dict[str, int | None]:
@@ -343,6 +457,13 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("matched campaign pins gpt-6.1-sol at medium effort")
     if args.trials_per_arm < MIN_TRIALS_PER_ARM or args.timeout_seconds != TIMEOUT_SECONDS:
         raise ValueError("matched campaign requires five trials per arm and a 1800-second timeout")
+    binary_sha256 = legacy.digest(Path(args.semaprax_bin).resolve(strict=True))
+    receipt_arg = getattr(args, "compiler_build_receipt", None)
+    if not receipt_arg:
+        raise ValueError("future LogLens campaign requires --compiler-build-receipt")
+    compiler_build_receipt = _compiler_build_receipt(
+        receipt_arg, compiler_source_commit, binary_sha256,
+    )
     tooling = None
     if getattr(args, "typescript_bootstrap_receipt", None):
         receipt_path = Path(args.typescript_bootstrap_receipt).expanduser()
@@ -386,7 +507,8 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
         "price_book": {"date": "2026-10-08", "source": "https://developers.openai.com/api/docs/models/gpt-6.1-sol", "standard_short_context_usd_per_million": PRICE_USD_PER_MTOK, "conditional": True},
         "attempt_denominator": args.trials_per_arm * len(ARMS),
         "resource_policy": resources.policy(),
-        "source_binary_sha256": legacy.digest(Path(args.semaprax_bin).resolve(strict=True)),
+        "source_binary_sha256": binary_sha256,
+        "compiler_build_receipt": compiler_build_receipt,
         "calibration": {"prompt": CALIBRATION_PROMPT, "separate": True, "subtracted_from_trials": False},
         "measurement": {"stable_context_tokens": None, "legacy_net_input_tokens": None,
                         "model_request_count": "trace-backed only; never inferred from item counts"},
@@ -449,6 +571,7 @@ def cleanup_trial(repo: Path, workspace: Path, settings: dict[str, Any], row: di
 def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any], settings: dict[str, Any], semaprax_bin: Path) -> dict[str, Any]:
     """Run one paid attempt. Every attempted trial remains in the result denominator."""
     common.require_compiler_binding(settings, semaprax_bin)
+    require_compiler_build_receipt(settings, semaprax_bin)
     arm, number = trial["arm"], trial["number"]
     legacy.qualification.require_settings(settings)
     label = f"{arm}-{number:02d}"
@@ -490,6 +613,7 @@ def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any]
         row["prompt_sha256"] = hashlib.sha256(prompt.encode()).hexdigest()
         authoring_env = {**env, "SEMAPRAX_BIN": str(authoring_binary)} if arm == "semaprax" else env
         common.require_compiler_binding(settings, semaprax_bin)
+        require_compiler_build_receipt(settings, semaprax_bin)
         process = run_codex(_command(settings, prompt), workspace, authoring_env, transcript, stderr, settings["timeout_seconds"])
     row.update(process); row.update({"transcript": str(transcript), "stderr_path": str(stderr)})
     exec_usage = parse_exec_jsonl(transcript)
@@ -553,6 +677,7 @@ def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any]
 def launch_calibration(repo: Path, artifacts: Path, commit: str, settings: dict[str, Any], semaprax_bin: Path) -> dict[str, Any]:
     """One separately reported empty-task request; it is never subtracted from trials."""
     common.require_compiler_binding(settings, semaprax_bin)
+    require_compiler_build_receipt(settings, semaprax_bin)
     workspace = artifacts / "worktrees" / "calibration"
     row: dict[str, Any] = {"status": "failed", "separate_from_trials": True, "subtracted_from_trials": False}
     error = legacy.add_seed_worktree(repo, workspace, commit)
@@ -561,6 +686,7 @@ def launch_calibration(repo: Path, artifacts: Path, commit: str, settings: dict[
     transcript, stderr, trace = (artifacts / "transcripts" / f"calibration.{suffix}" for suffix in ("jsonl", "stderr.txt", "rollout.jsonl"))
     transcript.parent.mkdir(parents=True, exist_ok=True)
     common.require_compiler_binding(settings, semaprax_bin)
+    require_compiler_build_receipt(settings, semaprax_bin)
     row.update(run_codex(_command(settings, CALIBRATION_PROMPT), workspace, legacy.trial_environment(semaprax_bin), transcript, stderr, settings["timeout_seconds"]))
     usage = parse_exec_jsonl(transcript); copied = copy_task_rollout(usage["thread_ids"], workspace, trace)
     trace_result = trace_usage(usage, copied) if copied else {"reconciled": False}
@@ -589,6 +715,8 @@ def main() -> int:
         current.add_argument("--artifacts", required=True); current.add_argument("--semaprax-bin", required=True)
         current.add_argument("--compiler-source-ref", required=True,
                              help="commit that produced --semaprax-bin; distinct from the docs-only seed ref")
+        current.add_argument("--compiler-build-receipt", required=True,
+                             help="external receipt binding selected compiler source, binary, command, and build log")
         current.add_argument("--tokenizer-dir", required=True)
         current.add_argument("--typescript-bootstrap-receipt", default=None)
         current.add_argument("--node-binary", default="node"); current.add_argument("--npm-binary", default="npm")
@@ -603,6 +731,7 @@ def main() -> int:
             if not args.acknowledge_paid_attempts:
                 raise ValueError("run requires --acknowledge-paid-attempts")
             common.require_compiler_binding(result, Path(args.semaprax_bin))
+            require_compiler_build_receipt(result, Path(args.semaprax_bin))
             ts_bootstrap.verify_plan(result.get("typescript_bootstrap"))
             if result["capabilities"]["status"] != "ready":
                 raise ValueError("installed Codex CLI lacks required isolated-execution controls")

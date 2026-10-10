@@ -15,6 +15,22 @@ class CodexCampaignTests(unittest.TestCase):
         self.enterContext(patch("campaign_resources.snapshot", return_value=[
             {"device": 1, "path": "/fixture", "free_bytes": 10 * 1024**3}]))
 
+    def compiler_build_settings(self, root, binary):
+        binary_sha256 = codex_campaign.common.digest(binary)
+        log = root / "build.log"
+        log.write_text("cargo build completed\n", encoding="utf-8")
+        receipt = root / "compiler-build.json"
+        receipt.write_text(json.dumps({
+            "schema": codex_campaign.COMPILER_BUILD_RECEIPT_SCHEMA,
+            "compiler_source_commit": "a" * 40,
+            "compiler_binary_sha256": binary_sha256,
+            "build_command": ["cargo", "build", "--locked"],
+            "build_log": {"path": "build.log", "sha256": codex_campaign.common.digest(log)},
+        }), encoding="utf-8")
+        return {"compiler_source_commit": "a" * 40, "source_binary_sha256": binary_sha256,
+                "compiler_build_receipt": codex_campaign._compiler_build_receipt(
+                    receipt, "a" * 40, binary_sha256), "build_log": log}
+
     def test_compiler_drift_refuses_before_worktree_or_paid_dispatch(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -53,12 +69,54 @@ class CodexCampaignTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, "differs from qualification evidence"):
                         codex_campaign.common.require_compiler_binding(changed, binary)
 
+    def test_compiler_build_receipt_binds_command_log_source_and_binary_before_dispatch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            binary = root / "semaprax"
+            binary.write_bytes(b"planned compiler")
+            settings = self.compiler_build_settings(root, binary)
+            self.assertIsNone(codex_campaign.require_compiler_build_receipt(settings, binary))
+            settings["build_log"].write_text("changed build log\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "build log hash differs"):
+                codex_campaign.require_compiler_build_receipt(settings, binary)
+
+    def test_compiler_build_receipt_rejects_oversize_and_symlinked_inputs_before_reading(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            binary = root / "semaprax"
+            binary.write_bytes(b"planned compiler")
+            settings = self.compiler_build_settings(root, binary)
+            source, binary_sha256 = settings["compiler_source_commit"], settings["source_binary_sha256"]
+            oversized = root / "oversized-receipt.json"
+            oversized.write_bytes(b" " * (codex_campaign.MAX_COMPILER_BUILD_RECEIPT_BYTES + 1))
+            with self.assertRaisesRegex(ValueError, "exceeds"):
+                codex_campaign._compiler_build_receipt(oversized, source, binary_sha256)
+            receipt_path = Path(settings["compiler_build_receipt"]["receipt_path"])
+            receipt_link = root / "receipt-link.json"
+            parent_link = root / "receipt-parent"
+            log_link = root / "build-link.log"
+            try:
+                receipt_link.symlink_to(receipt_path)
+                parent_link.symlink_to(root, target_is_directory=True)
+                log_link.symlink_to(settings["build_log"])
+            except OSError:
+                self.skipTest("this platform does not permit test symlinks")
+            with self.assertRaisesRegex(ValueError, "symlink"):
+                codex_campaign._compiler_build_receipt(receipt_link, source, binary_sha256)
+            with self.assertRaisesRegex(ValueError, "symlink"):
+                codex_campaign._compiler_build_receipt(parent_link / receipt_path.name, source, binary_sha256)
+            receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+            receipt["build_log"]["path"] = log_link.name
+            receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "symlink"):
+                codex_campaign._compiler_build_receipt(receipt_path, source, binary_sha256)
+
     def test_calibration_rechecks_compiler_after_workspace_preparation(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             binary = root / "semaprax"
             binary.write_bytes(b"planned compiler")
-            settings = {"source_binary_sha256": codex_campaign.common.digest(binary)}
+            settings = self.compiler_build_settings(root, binary)
             def mutate_during_preparation(*_):
                 binary.write_bytes(b"changed compiler")
             with patch.object(codex_campaign.legacy, "add_seed_worktree", side_effect=mutate_during_preparation), \

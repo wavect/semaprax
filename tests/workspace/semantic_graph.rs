@@ -577,23 +577,12 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
             "type_reference",
         ])
     );
-    // Current accounting adds 12 bytes to the prior 336437-byte debit.
-    // Restoring only that debit and derived digest reproduces the exact KAT.
-    assert_eq!(graph.budget().used_builder_bytes(), 336_449);
+    // Restoring the prior 336449-byte debit and authenticated digest chain
+    // independently reproduces all nine original whole-document KATs.
+    assert_eq!(graph.budget().used_builder_bytes(), 334_016);
     assert_eq!(
         document_digest(graph.to_json().as_bytes()),
-        // Exact graph fields and API/CLI byte parity above independently bind
-        // this re-pinned whole-document digest. Re-pinned again: issue #297
-        // (commit b8116173) added `Program.session_protocols`, growing every
-        // structural charge computed from `size_of::<Program>()`. Re-pinned a
-        // third time in the same session: R21's own Workspace Semantic Graph
-        // projection added `WorkspaceResolvedModule::session_protocol_facts`
-        // and the matching `WorkspaceGraphProjectionModule` field, growing
-        // every module's structural charge by one more `Vec`. Only
-        // `budget.used_builder_bytes` and this digest move; this fixture
-        // declares no session protocol, so nothing else in the document
-        // moves.
-        "sha256:1750a00f3865e11aeb1c1f19b2d8781ed9f569cac2d5b6135566ebc50af66024"
+        "sha256:c5cbb726c4e888d9b6e945964e52d233af45d25c80dc292890343d5ad2079a2e"
     );
 
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -995,19 +984,8 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
         "capability"
     );
 
-    // The current 12-byte workspace builder debit changes only the embedded
-    // workspace budget and its derived graph/artifact digests in these KATs.
-    // Restoring that debit and reminting reproduces all eight prior digests.
-    // Re-pinned: issue #297 (commit b8116173) added
-    // `Program.session_protocols`, growing every structural charge computed
-    // from `size_of::<Program>()`. Re-pinned a second time in the same
-    // session: R21's own Workspace Semantic Graph projection added
-    // `WorkspaceResolvedModule::session_protocol_facts` and the matching
-    // `WorkspaceGraphProjectionModule` field, growing every module's
-    // structural charge by one more `Vec`. These context/impact/review
-    // documents each carry a builder-byte-derived budget or embed the
-    // workspace graph's own digest, so all eight move together; none of this
-    // fixture's modules declare a session protocol.
+    // Full current reports reproduce all eight original hashes by restoring
+    // only the measured workspace debit and authenticated digest bindings.
     assert_eq!(
         [
             document_digest(context.as_bytes()),
@@ -1020,14 +998,14 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(capability_review.as_bytes()),
         ],
         [
-            "sha256:1ef7215d638028865979c8424406cf51b53fa422fafe0f64ad9256e1c20e67f4",
-            "sha256:b7869109b3594d3147bfcbf4dfb9d87556cdc1a4ea930deb2bda907adf88cc6e",
-            "sha256:a6afd87b0c10d96f92ad7d3d8d791f1a4edb7038bd7b600df7a8c40076e844a2",
-            "sha256:ddb2cbab243f4039e287dce6d0a66e7af2ae0a04fe54c0e7d7765d37cfc73a71",
-            "sha256:9779a87d2731c225e2ac462e55f0fd8b5180939612722c436261c9d08b56b893",
-            "sha256:9ad0a3c41065189942d9ef4845f30018c6caed862a02280a90958890e585faad",
-            "sha256:3beb92a9739a183d3e4294c998820e1d3387667eadde5cabd992cd495311903f",
-            "sha256:9f5c76d2da3e49fc2b88deb6fd77c647fe3fd4aa151094816ba417816fa1e73e",
+            "sha256:26296de75d133f1563b1b4fc23049b6eb29f4b407a2369d4849a12e9a379f225",
+            "sha256:190a00dfa539b7cef26a50dcbda97d522bb22699b02c6b904682d524806266c8",
+            "sha256:7ba1554e318ce8d56739e03a2987c90d5d7fdf1ff301b528ad67c1f8cd432a42",
+            "sha256:bccc97fe0ad0026b44544e1e7c27c72f4d266c6773de01e157dcc9492317dd83",
+            "sha256:6e0ea8e0fc10e31b325fdc33e41ab9030b75f393c2f0e4fec916be6a19abab62",
+            "sha256:421e0b0fba5f10c294d13bbfde592c9837468e074cacf6b113ab62051299b3bc",
+            "sha256:864367757119c169b5f049542de643b2825bcc64794ae91784920e8d73d18faf",
+            "sha256:812fa5e3a129b96f36eed9e686ec88e3b5118813f31106c42adae637c6c14b21",
         ]
     );
 

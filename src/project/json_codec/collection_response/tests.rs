@@ -25,6 +25,9 @@ fn collection_response_is_closed_ordered_and_canonical_without_source_authority(
     assert!(output.contains("vec_clone_at<Row>(value.entries,at)"));
     assert!(output.contains("fn json_Metrics_response_object_len(value:Metrics)"));
     assert!(output.contains("fn json_Row_response_object_len(value:borrow Row)"));
+    assert!(output.contains("match borrow value {Row{number:response_field_0,label:response_field_1,active:response_field_2}=>{"));
+    assert!(output.contains("string_as_str(response_field_1)"));
+    assert!(!output.contains("string_as_str(value.label)"));
     assert!(output.contains("count<=256usize"));
     assert!(output.contains("length<=64usize"));
     assert!(output.contains("required>output_limit"));

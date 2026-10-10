@@ -1,6 +1,6 @@
 name: Focused canonical source repair
 # DRAFT proposal only: final joined source census; the selectors below have not been executed.
-# Census bound statically to joined source c927d848a1e5ae7a51a57ef2ff8a1bdeab24c6ab; SOURCE_SUBJECT must select these exact source bytes.
+# Census bound statically to joined source e8b6d9536f94631613768f46cb607715d887d4e2; SOURCE_SUBJECT must select these exact source bytes.
 # Focused checks and generators remain unexecuted by this draft preparation; no full gates are selected.
 
 on:
@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     env:
-      SOURCE_SUBJECT: ${{ inputs.source_subject }} # exact joined source c927d848a1e5ae7a51a57ef2ff8a1bdeab24c6ab
+      SOURCE_SUBJECT: ${{ inputs.source_subject }} # exact joined source e8b6d9536f94631613768f46cb607715d887d4e2
       PRODUCER_ONLY: ${{ inputs.profile == 'produce' || inputs.profile == 'canonical' }}
       CANONICAL_ONLY: ${{ inputs.profile == 'canonical' }}
       SEMAPRAX_REQUIRE_VIEW_OWNERSHIP_COMPOSITION: "1"
@@ -1133,7 +1133,7 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 45
     env:
-      SOURCE_SUBJECT: ${{ inputs.source_subject }} # exact joined source c927d848a1e5ae7a51a57ef2ff8a1bdeab24c6ab
+      SOURCE_SUBJECT: ${{ inputs.source_subject }} # exact joined source e8b6d9536f94631613768f46cb607715d887d4e2
       VERIFICATION_RUN_ID: ${{ inputs.verification_run_id }}
       WORKFLOW_SHA: ${{ github.sha }}
       CARGO_BUILD_JOBS: "1"

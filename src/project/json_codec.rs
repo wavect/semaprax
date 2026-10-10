@@ -176,13 +176,32 @@ pub fn derive_json_codec_source_with_profile(
     if crate::format::canonical(&reparsed) != canonical {
         return Err(refusal("JSON codec canonical source did not round trip"));
     }
+    // The round trip has completed. These two complete ASTs and the fragment
+    // are not inputs to Project replay; release them before its peak allocation.
+    drop(reparsed);
+    drop(program);
+    drop(generated);
+    drop(fragment);
+    validate_candidate_source(revision, source_path, canonical)
+}
+
+/// Move the canonical replacement through ordinary complete Project admission
+/// and return its exact retained source buffer. No generated-source authority.
+fn validate_candidate_source(
+    revision: &ProjectRevision,
+    source_path: &str,
+    canonical: String,
+) -> Result<String, Vec<Diagnostic>> {
+    let mut replacement = Some(canonical);
     let sources = revision
         .sources()
         .iter()
         .map(|source| SemanticWorkspaceSource {
             path: source.path().to_owned(),
             source: if source.path() == source_path {
-                canonical.clone()
+                replacement
+                    .take()
+                    .expect("authenticated Project paths are unique")
             } else {
                 source.source().to_owned()
             },
@@ -194,7 +213,12 @@ pub fn derive_json_codec_source_with_profile(
     let candidate = super::build::build_owned(revision.manifest(), sources)?;
     crate::hir::validate(&candidate.entry_program).map_err(|error| vec![error])?;
     crate::hir::validate(&candidate.test_program).map_err(|error| vec![error])?;
-    Ok(canonical)
+    candidate
+        .sources
+        .into_iter()
+        .find(|source| source.path == source_path)
+        .map(|source| source.source)
+        .ok_or_else(|| refusal("JSON codec replacement is absent from its checked candidate"))
 }
 
 /// Replay a derivation claim against the exact authenticated revision.

@@ -1,5 +1,10 @@
 # Changelog
 
+- Release completed JSON-codec parse/round-trip temporaries before the full
+  candidate Project rebuild, and move its canonical source buffer through that
+  unchanged admission path. The source-only handoff regression preserves full
+  typing refusals and original inputs; measured memory savings remain pending.
+
 - Transfer completed Project semantic graph JSON and digest into retained state
   without cloning their owned buffers. Keep rendering, hashing and cumulative
   budget charges unchanged; pointer/capacity, digest and refusal regressions are

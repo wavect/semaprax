@@ -7,8 +7,11 @@ gates pending. This does not close the broader application JSON codec issue.
 --output <new-file>` derives a complete canonical replacement for one existing
 module. It checks the original Project, derives from that module's authenticated
 record declaration, and rebuilds the complete Project with the replacement in
-memory. The existing manifest profile, capabilities, exports and dependencies
-remain authoritative. Only a fully checked replacement is returned. The CLI
+memory. Completed parse/round-trip ASTs and the fragment are released before
+that candidate rebuild; the canonical replacement buffer passes through ordinary
+Project admission and is returned from its retained authenticated source fact.
+The existing manifest profile, capabilities, exports and dependencies remain
+authoritative. Only a fully checked replacement is returned. The CLI
 rechecks held source bytes before publication, creates a private file beside the
 explicit destination, and publishes through an atomic exclusive hard link.
 Existing destinations, including a racing creator, are refused; original source

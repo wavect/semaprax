@@ -87,3 +87,93 @@ fn codec_source_is_deterministic_ordinary_ast_and_has_no_authority_escape() {
         crate::format::canonical(&crate::parse(&canonical, "unsigned-canonical.spx").unwrap())
     );
 }
+
+#[test]
+fn candidate_source_handoff_reuses_buffer_and_preserves_full_project_refusals() {
+    let manifest = crate::project::ProjectManifest::parse(include_str!(
+        "../../../examples/calculator-project/semaprax.toml"
+    ))
+    .unwrap();
+    let sources = [
+        (
+            "src/app.spx",
+            include_str!("../../../examples/calculator-project/src/app.spx"),
+        ),
+        (
+            "src/core.spx",
+            include_str!("../../../examples/calculator-project/src/core.spx"),
+        ),
+        (
+            "src/tests.spx",
+            include_str!("../../../examples/calculator-project/src/tests.spx"),
+        ),
+    ]
+    .into_iter()
+    .map(|(path, source)| SemanticWorkspaceSource {
+        path: path.into(),
+        source: source.into(),
+    })
+    .collect();
+    let built = crate::project::build::build_owned(&manifest, sources).unwrap();
+    let revision = ProjectRevision::from_built(manifest, built);
+    let original = revision
+        .sources()
+        .iter()
+        .find(|s| s.path() == "src/core.spx")
+        .unwrap()
+        .source()
+        .to_owned();
+    let source = format!("{original}\n@id(\"replacement.probe\") fn probe()->i64 {{42}}\n");
+    let canonical = crate::format::canonical(&crate::parse(&source, "src/core.spx").unwrap());
+    let expected = canonical.clone();
+    let pointer = canonical.as_ptr();
+    let capacity = canonical.capacity();
+    let checked = validate_candidate_source(&revision, "src/core.spx", canonical).unwrap();
+    assert_eq!(checked, expected);
+    assert_eq!(checked.as_ptr(), pointer);
+    assert_eq!(checked.capacity(), capacity);
+    let absent = validate_candidate_source(&revision, "src/absent.spx", checked.clone())
+        .expect_err("an absent replacement path is a controlled refusal");
+    assert_eq!(absent[0].code, "SPX-J180");
+    assert_eq!(
+        absent[0].message,
+        "JSON codec replacement is absent from its checked candidate"
+    );
+
+    let invalid = checked.replace("fn probe() -> i64", "fn probe() -> bool");
+    assert_ne!(invalid, checked);
+    // The prior complete-Project recipe is an independent refusal oracle:
+    // the handoff must not bypass typing of an unselected generated helper.
+    let previous_sources = revision
+        .sources()
+        .iter()
+        .map(|source| SemanticWorkspaceSource {
+            path: source.path().to_owned(),
+            source: if source.path() == "src/core.spx" {
+                invalid.clone()
+            } else {
+                source.source().to_owned()
+            },
+        })
+        .collect();
+    let previous = crate::project::build::build_owned(revision.manifest(), previous_sources)
+        .err()
+        .expect("invalid helper is refused by ordinary Project construction");
+    let current = validate_candidate_source(&revision, "src/core.spx", invalid).unwrap_err();
+    let signatures = |errors: &[Diagnostic]| {
+        errors
+            .iter()
+            .map(|error| (error.code, error.message.clone()))
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(signatures(&current), signatures(&previous));
+    assert_eq!(
+        revision
+            .sources()
+            .iter()
+            .find(|s| s.path() == "src/core.spx")
+            .unwrap()
+            .source(),
+        original
+    );
+}

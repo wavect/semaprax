@@ -1,0 +1,22 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "native-bulk-utf8-witness"
+version = "0.1.0"
+profile = "owned-data-api.v1"
+
+[modules]
+entry = "consumer.app"
+sources = ["src/app.spx", "src/schema.spx", "src/tests.spx"]
+tests = ["consumer.tests"]
+
+[exports]
+web = []
+
+[dependencies]
+"std.data.json.digits" = "=0.1.0"
+"std.data.json.query" = "=0.1.0"
+"std.data.json.scan" = "=0.1.0"
+"std.data.json.token" = "=0.1.0"
+"std.data.json.utf8" = "=0.1.0"
+"std.data.json.write" = "=0.1.0"

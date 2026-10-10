@@ -9,6 +9,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use semaprax::{codegen, format, graph, hir};
 
+#[path = "string_settlement/bulk_utf8.rs"]
+mod bulk_utf8;
 #[path = "../native_string_settlement_v1/contents.rs"]
 mod contents;
 

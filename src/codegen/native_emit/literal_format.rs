@@ -217,7 +217,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
     }
 }
 
-pub(super) const RUNTIME_C: &str = r#"#define SPX_FORMAT_STATUS_DOMAIN_V1 "semaprax.string-format.v1"
+pub(super) const RUNTIME_C: &str = r#"#include <inttypes.h>
+#define SPX_FORMAT_STATUS_DOMAIN_V1 "semaprax.string-format.v1"
 static __attribute__((unused)) spx_status_token spx_format_failure_v1(struct spx_context *ctx) {
     spx_status_token token = SPX_STATUS_SUCCESS;
     if (!spx_status_record_adapter(ctx, SPX_FORMAT_STATUS_DOMAIN_V1, UINT32_C(1),

@@ -44,6 +44,7 @@ fn checked_literal_format_round_trips_and_projects_raw_template() {
     assert!(graph.contains("\"template\":\"{}{{}}:{}:{}{}\""), "{graph}");
     graph::verify_json(&program, &graph).unwrap();
     let c = codegen::emit_c(&program).unwrap();
+    assert!(c.contains("#include <inttypes.h>\n#define SPX_FORMAT_STATUS_DOMAIN_V1"));
     assert!(c.contains("spx_format_join_v1"));
     assert!(c.contains("spx_fmt_"));
 }
@@ -136,6 +137,15 @@ fn checked_literal_format_wasm_repeats_success_and_after_commit_failure() {
         },
     )
     .unwrap();
+    assert!(artifact
+        .descriptor()
+        .contains("\"profile\":\"literal-format-v1\""));
+    assert!(artifact
+        .runtime_source()
+        .contains("(status===11||status===34)!==(cause!==null)"));
+    assert!(artifact
+        .runtime_source()
+        .contains("status===34)result=Object.freeze({kind:\"failure\",domain:\"semaprax.string-format.v1\",code:1})"));
     let mut fixture = Fixture::new(SOURCE);
     fixture.write("program.wasm", artifact.wasm_bytes());
     fixture.write("program.mjs", artifact.runtime_source());
@@ -221,8 +231,26 @@ fn checked_literal_format_aggregate_wasm_host_failure_reenters() {
     let rendered = string_format("{}{}", 1, 2);
     string_len(rendered)
 }"#;
-    let program = parse(source, Path::new("format-wasm-failure.spx")).unwrap();
-    let fixture = Fixture::new(source);
+    let scalar = parse(source, Path::new("format-wasm-scalar-refusal.spx")).unwrap();
+    let scalar_web = std::env::temp_dir().join(format!(
+        "semaprax-format-scalar-refusal-{}",
+        std::process::id()
+    ));
+    assert_eq!(
+        wasm::build_web(&scalar, &scalar_web).unwrap_err().code,
+        "SPX-W116"
+    );
+    assert!(!scalar_web.exists());
+    let aggregate_source = source.replacen(
+        "@id(\"app.main\") fn main() -> i64 {",
+        "@id(\"format.private\") record Private { @id(\"format.private.marker\") marker: i64, }\n@id(\"app.main\") fn main() -> i64 {",
+        1,
+    ).replace(
+        "    let rendered = string_format(\"{}{}\", 1, 2);\n    string_len(rendered)",
+        "    let private = Private { marker: 1 };\n    let rendered = string_format(\"{}{}\", 1, 2);\n    if private.marker == 1 { string_len(rendered) } else { 0 }",
+    );
+    let program = parse(&aggregate_source, Path::new("format-wasm-failure.spx")).unwrap();
+    let fixture = Fixture::new(&aggregate_source);
     let web = fixture.root.join("web");
     wasm::build_web(&program, &web).unwrap();
     std::fs::write(web.join("probe.mjs"), r#"import {readFile} from 'node:fs/promises';
@@ -248,7 +276,19 @@ if(ordinary.instance.exports.semaprax_main()!==2n) throw Error('format success r
         String::from_utf8_lossy(&output.stderr)
     );
     std::fs::remove_dir_all(web).unwrap();
-    let success_program = parse(SOURCE, Path::new("format-wasm-success.spx")).unwrap();
+    let aggregate_success_source = SOURCE.replacen(
+        "@id(\"format.success\")",
+        "@id(\"format.private\") record Private { @id(\"format.private.marker\") marker: i64, }\n\n@id(\"format.success\")",
+        1,
+    ).replace(
+        "fn main() -> i64 { success() }",
+        "fn main() -> i64 { let private = Private { marker: 7 }; if private.marker == 7 { success() } else { 0 } }",
+    );
+    let success_program = parse(
+        &aggregate_success_source,
+        Path::new("format-wasm-success.spx"),
+    )
+    .unwrap();
     let success_web = fixture.root.join("success-web");
     wasm::build_web(&success_program, &success_web).unwrap();
     std::fs::write(

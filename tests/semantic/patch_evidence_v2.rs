@@ -531,6 +531,14 @@ fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
         // Reconstruct the prior binding to prove that only validator metadata
         // changed; old capsules must still fail replay before source writes.
         let report = target_evidence::preview(&fixture.source, &fixture.patch).unwrap();
+        let row = serde_json::json!({
+            "report": report,
+            "capsule": capsule,
+            "receipt": receipt,
+        })
+        .to_string();
+        assert!(row.len() <= 1024 * 1024, "patch evidence byte audit is bounded");
+        println!("SEMAPRAX_PATCH_EVIDENCE_BYTE_AUDIT={row}");
         let previous_report = report.replace("0.259.0", "0.256.0");
         let report_domain = b"semaprax.semantic-target-evidence.report-digest.v1\0";
         let artifact_domain = b"semaprax.semantic-patch-evidence.artifact-digest.v2\0";

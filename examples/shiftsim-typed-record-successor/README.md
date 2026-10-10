@@ -33,6 +33,8 @@ both derivations and a regular installation tree, use the shared
 [typed application setup operator](../../benchmarks/typed_application_setup_support/README.md).
 It also installs explicit build/test/run scripts for the unpaid v31 qualification
 route. It never copies this application into a paid trial or changes trial prompts.
+Before fresh qualification, the same operator supports `--verify-installation`
+to recheck a completed source tree without regenerating it or claiming acceptance.
 
 The request generator supplies the existing stream normalizer and owned
 decoder for `{servers:Vec<string>, patients:Vec<Patient>}`. The response

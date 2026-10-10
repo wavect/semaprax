@@ -38,6 +38,37 @@ publication claim. Failed commands retain their status, stdout/stderr hashes and
 partial generator artifacts without a completion receipt. These artifacts are
 not successful source installation or acceptance evidence.
 
+`setup-result.json` identifies the last stage and every generator output whose
+same-bootstrap replay completed, even if the second derivation or an installed
+source check fails. A failed directory is retained evidence: do not copy its
+partial replacements into another candidate or retry with the same output path.
+Correct the reported source/compiler issue and select a new output directory.
+
+Before qualification, recheck a completed installation with the same arguments
+and `--verify-installation`:
+
+```sh
+python3 benchmarks/typed_application_setup.py --application catalog \
+  --repo "$EXACT_SOURCE_REPO" --compiler "$VERIFIED_COMPILER" \
+  --compiler-source "$VERIFIED_SOURCE_COMMIT" \
+  --compiler-sha256 "$VERIFIED_BINARY_SHA256" \
+  --compiler-build-receipt "$RETAINED_BUILD_RECEIPT" \
+  --output "$COMPLETED_SETUP_DIRECTORY" --verify-installation
+```
+
+This read-only action prints the regular `installed-project` path only after
+checking the closed authored/generated/installed selections, all retained input
+snapshots, compiler/build-log bindings and current committed library closure.
+Missing or edited files report the affected path; stale or incomplete completion
+receipts refuse. It neither repairs files, repeats compiler commands nor claims
+runtime acceptance, provider execution or path locking. The owning acceptance
+runner must still independently validate the live candidate and all15/23 cases.
+Receipts in an operator-owned tree are byte evidence, not authority.
+Unlisted installed files and symlink ancestors are refused. Only the Project
+lock and the named `dist/<application>` / `dist/<application>.c` operator build
+outputs may coexist with the closed inputs; an arbitrary cache directory cannot
+hide additional authored source. Invocation-owned frontend caches remain in memory.
+
 Generated complete modules retain the authored schemas. They are not wholly
 compiler-authored files. The selected-input closure is explicit and incomplete
 for the full compiler; the declared bundled-library closure is separately closed.

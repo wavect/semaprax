@@ -15,6 +15,7 @@ import re
 import signal
 import stat
 import subprocess
+import sys
 import time
 import tomllib
 
@@ -172,7 +173,7 @@ def qualification_scaffolding(application: str) -> dict[str, bytes]:
 
 
 def derive_pair(application: str, compiler: Path, bootstrap: Path, generated: Path,
-                run, unchanged) -> dict[str, bytes]:
+                run, unchanged, on_replayed=None) -> dict[str, bytes]:
     """No installation is possible until both independent ordinary replays pass."""
     candidates = {}
     for index, (module, identity, profile, flags) in enumerate(generator_jobs(application)):
@@ -187,6 +188,8 @@ def derive_pair(application: str, compiler: Path, bootstrap: Path, generated: Pa
         if not original or original != read_regular(replay, MAX_GENERATED_BYTES):
             raise ValueError("actual generator output differs from same-bootstrap replay")
         candidates[module] = original
+        if on_replayed is not None:
+            on_replayed(module, original)
     return candidates
 
 
@@ -256,7 +259,8 @@ def install(args: argparse.Namespace) -> Path:
 
     subject()
     for relative in ("benchmarks/typed_application_setup.py", "benchmarks/compiler_output_provenance.py",
-                     "benchmarks/typed_application_setup_support/dependencies.py"):
+                     "benchmarks/typed_application_setup_support/dependencies.py",
+                     "benchmarks/typed_application_setup_support/installation.py"):
         committed(relative)
     prefix = "examples/" + EXAMPLES[args.application]["directory"] + "/"
     selected = selected_paths(args.application)
@@ -292,6 +296,7 @@ def install(args: argparse.Namespace) -> Path:
               "input_capture_complete_compiler_closure": False,
               "generated_output_is_wholly_compiler_authored": False,
               "model_authored_tokens": None, "fixed_context_tokens": None, "billed_usd": None,
+              "stage": "retain-original-inputs",
               "commands": []}
     try:
         selected_receipt, selected_sha = provenance.capture_inputs(repo, output / "selected-inputs", sorted(retained))
@@ -320,6 +325,7 @@ def install(args: argparse.Namespace) -> Path:
 
         def run(argv, label, cwd=bootstrap):
             subject()
+            result["stage"] = label
             row = {"argv": argv, "cwd": str(cwd), "started_unix_ns": time.time_ns()}
             result["commands"].append(row)
             try:
@@ -350,8 +356,14 @@ def install(args: argparse.Namespace) -> Path:
         run([str(compiler), "check", "--manifest-path", str(bootstrap / "semaprax.toml")], "bootstrap-check")
         generated = output / "generated"
         generated.mkdir()
-        candidates = derive_pair(args.application, compiler, bootstrap, generated, run, unchanged)
+        result["generated_outputs"] = []
+
+        def replayed(module, data):
+            result["generated_outputs"].append({"path": module, "sha256": sha(data), "bytes": len(data)})
+
+        candidates = derive_pair(args.application, compiler, bootstrap, generated, run, unchanged, replayed)
         unchanged()
+        result["stage"] = "install-source"
         complete = output / "installed-project"
         complete.mkdir()
         for relative, data in files.items():
@@ -372,8 +384,6 @@ def install(args: argparse.Namespace) -> Path:
         run([str(compiler), "fmt", str(complete / "semaprax.toml"), "--check"], "canonical-check", complete)
         run([str(compiler), "check", "--manifest-path", str(complete / "semaprax.toml")], "installed-check", complete)
         subject()
-        result["generated_outputs"] = [{"path": key, "sha256": sha(value), "bytes": len(value)}
-                                       for key, value in sorted(candidates.items())]
         installed_paths = sorted((set(files) - {"src/app.command.spx"}) | set(scaffold))
         # The closed installed-source selection excludes compiler-created cache,
         # lock and build artifacts. It includes every declared source and all
@@ -385,6 +395,7 @@ def install(args: argparse.Namespace) -> Path:
         provenance.validate_input_snapshot(installed_receipt, installed_sha)
         result["installed_input_snapshot"] = {"path": str(installed_receipt), "sha256": installed_sha}
         result["status"] = "checked_source_runtime_qualification_pending"
+        result["stage"] = "source-checks-complete"
     except BaseException as error:
         result["error"] = f"{type(error).__name__}: {error}"
         raise
@@ -410,8 +421,15 @@ def main() -> None:
     parser.add_argument("--compiler-sha256", required=True)
     parser.add_argument("--compiler-build-receipt", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--verify-installation", action="store_true",
+                        help="read-only byte recheck of an existing completed output; no compiler execution or qualification")
     parser.add_argument("--timeout-seconds", type=int, default=1800)
-    print(install(parser.parse_args()))
+    args = parser.parse_args()
+    if args.verify_installation:
+        from typed_application_setup_support import installation
+        print(installation.verify(args, api=sys.modules[__name__]))
+    else:
+        print(install(args))
 
 
 if __name__ == "__main__":

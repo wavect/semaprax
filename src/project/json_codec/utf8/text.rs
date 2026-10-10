@@ -15,10 +15,18 @@ pub(super) fn imports() -> String {
 }
 
 pub(super) fn source(record: &TypeDeclaration, max_string_bytes: usize) -> String {
-    include_str!("text.spx")
-        .replace("__ROW__", &record.name)
-        .replace("__ROW_ID__", &record.stable_id)
-        .replace("__BOUND__", &max_string_bytes.to_string())
+    expand(include_str!("text.spx"), record, max_string_bytes)
+}
+
+fn expand(template: &str, record: &TypeDeclaration, bound: usize) -> String {
+    super::super::template::expand(
+        template,
+        &[
+            ("__ROW__", &record.name),
+            ("__ROW_ID__", &record.stable_id),
+            ("__BOUND__", &bound.to_string()),
+        ],
+    )
 }
 
 pub(super) fn response_source(record: &TypeDeclaration, bound: usize) -> String {
@@ -29,12 +37,10 @@ pub(super) fn response_source(record: &TypeDeclaration, bound: usize) -> String 
         .split_once("@id(\"__ROW_ID__.json.utf8.owned-valid\")")
         .expect("owned UTF-8 encoder template")
         .1;
-    format!("@id(\"__ROW_ID__.json.utf8.owned-valid\"){suffix}")
+    let template = format!("@id(\"__ROW_ID__.json.utf8.owned-valid\"){suffix}")
         .replace("json___ROW___", "json___ROW___response_")
-        .replace(".json.utf8.", ".json.collection-response.")
-        .replace("__ROW__", &record.name)
-        .replace("__ROW_ID__", &record.stable_id)
-        .replace("__BOUND__", &bound.to_string())
+        .replace(".json.utf8.", ".json.collection-response.");
+    expand(&template, record, bound)
 }
 
 pub(super) fn nested_decode_source(root: &TypeDeclaration, bound: usize) -> String {
@@ -49,9 +55,7 @@ pub(super) fn nested_decode_source(root: &TypeDeclaration, bound: usize) -> Stri
         )
         .replace("json___ROW___utf8_text", "json___ROW___nested_text")
         .replace(".json.utf8.valid", ".json.nested.text-valid")
-        .replace(".json.utf8.materialize-text", ".json.nested.text")
-        .replace("__ROW__", &root.name)
-        .replace("__ROW_ID__", &root.stable_id)
-        .replace("__BOUND__", &bound.to_string());
+        .replace(".json.utf8.materialize-text", ".json.nested.text");
+    let body = expand(&body, root, bound);
     format!("{}{body}", imports())
 }

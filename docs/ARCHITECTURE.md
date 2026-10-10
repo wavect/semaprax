@@ -750,7 +750,9 @@ path readers.
 
 `src/project/json_codec` owns checked-source application codec derivation and
 exact regeneration replay. It emits ordinary source and rebuilds the original
-Project/profile; generated names have no HIR authority. Its `emit` module
+Project/profile; generated names have no HIR authority. Its `template` module
+expands compiler-owned markers once, keeping authored names and identities opaque
+through UTF-8 text helpers and streaming normalizers. Its `emit` module
 composes existing scanner/token operations. `views` owns checked identifier
 spans, array/request carriers and the ordinary incremental `stream.spx` template;
 stream errors use raw offsets while downstream schema errors use their supplied

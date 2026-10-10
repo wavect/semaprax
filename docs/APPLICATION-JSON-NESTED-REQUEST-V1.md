@@ -48,7 +48,10 @@ the scanner's existing depth 32, then the complete schema. Only after all pass
 does it call ordinary source constructors. Fields construct in declaration order;
 Vec elements construct in array order. Partial allocation/call failure follows
 ordinary sticky runtime status and canonical cleanup. Generated helpers gain no
-special HIR, source identity, profile, capability or cache authority.
+special HIR, source identity, profile, capability or cache authority. Compiler
+template markers expand in one pass: authored names and stable IDs remain opaque
+bytes even when they contain marker spellings; they are never interpreted as
+further substitutions.
 
 Record validation visits members in input order. Keys compare after JSON
 unescaping. Required-field checks follow the object walk in declaration order.
@@ -132,12 +135,17 @@ or stream permit. It does not establish acceptance of arbitrarily long stdin
 whitespace or escaped spellings. The streaming adaptation above has its own
 derivation-time envelope and owning gates; application acceptance still requires the original complete corpus.
 
-- `--lib project::json_codec::nested_request::tests::` (4): deterministic
+- `--lib project::json_codec::nested_request::tests::` (5): deterministic
   source/canonical projection, post-validation construction, independent field
   paths/names, strict supported shapes/identities and exact policy boundaries.
-- `--lib project::json_codec::nested_request::stream::tests::` (2): exact
+- `--lib project::json_codec::nested_request::stream::tests::` (3): exact
   escaped-spelling envelope, pure-selector independence, permit refusal,
   unchanged normalizer identity, ordinary wrapper ownership and canonical source.
+- `--lib project::json_codec::template::tests::` (2) preserves opaque replacement
+  bytes, unknown template text and ordinary expansion compatibility.
+- `--test project standard_library::application_json::nested_request::template_names::`
+  (1) derives a marker-named schema through the actual CLI, retains exact IDs and
+  policy replay, and exercises detached owners on all three backends.
 - The independent nested order/configuration Project corpus qualifies the real
   CLI derivation and exact typed malformed outcomes, input-owner retirement,
   Unicode/NUL/numeric extrema, exact/over string and array limits, input budgets,

@@ -4,6 +4,7 @@ mod collection_response;
 mod emit;
 mod nested_request;
 mod owned;
+mod template;
 #[cfg(test)]
 mod tests;
 mod utf8;
@@ -141,7 +142,9 @@ pub fn derive_json_codec_source_with_profile(
         JsonCodecProfile::StreamNestedRequest {
             max_string_bytes,
             max_array_items,
-        } => nested_request::derive_stream(&program, declaration, max_string_bytes, max_array_items)?,
+        } => {
+            nested_request::derive_stream(&program, declaration, max_string_bytes, max_array_items)?
+        }
     };
     if fragment.len() > MAX_GENERATED_BYTES {
         return Err(refusal(

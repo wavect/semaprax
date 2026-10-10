@@ -552,6 +552,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Preserve authored JSON codec names and stable IDs containing template-marker
+  spellings through one-pass expansion. Added generator and owning Project
+  regressions for exact identities, policy replay and detached nested owners;
+  executable qualification remains pending.
+
 - Add a source-only stream UTF-8 owned request selector that requires the original stdin permit and reuses the unchanged incremental grammar normalizer, with native composition regressions for empty first arrays, Unicode/NUL and large legal whitespace; execution gates remain pending.
 
 - Add source implementation and owning regressions for opt-in bounded UTF-8 owned request codecs, with distinct Unicode scalar decoding, empty/repeated value admission and exact escaped-output preflight. Existing identifier selectors remain separate; execution and the full-bound three-backend gate are pending.

@@ -1,6 +1,9 @@
 //! Independent configuration/order schema; actual checked-source CLI, no host codec.
 use super::*;
 
+#[path = "nested_request/template_names.rs"]
+mod template_names;
+
 const EXAMPLE: &str = "examples/nested-order-json-project";
 const PROFILE: project::JsonCodecProfile = project::JsonCodecProfile::NestedRequest {
     max_string_bytes: 16,
@@ -8,12 +11,23 @@ const PROFILE: project::JsonCodecProfile = project::JsonCodecProfile::NestedRequ
 };
 
 fn install(label: &str) -> std::path::PathBuf {
+    install_named(label, "OrderRequest", "orders.request")
+}
+
+fn install_named(label: &str, record_name: &str, record_id: &str) -> std::path::PathBuf {
     let root = super::super::temporary(label);
     std::fs::create_dir_all(root.join("src")).unwrap();
     let source = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(EXAMPLE);
     for path in ["semaprax.toml", "src/schema.spx", "src/app.spx"] {
         std::fs::copy(source.join(path), root.join(path)).unwrap();
     }
+    let rename = |source: &str| {
+        source
+            .replace("OrderRequest", record_name)
+            .replace("orders.request", record_id)
+    };
+    let schema = std::fs::read_to_string(root.join("src/schema.spx")).unwrap();
+    std::fs::write(root.join("src/schema.spx"), rename(&schema)).unwrap();
     let original = std::fs::read(root.join("src/schema.spx")).unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
         .args([
@@ -22,7 +36,7 @@ fn install(label: &str) -> std::path::PathBuf {
             "--source",
             "src/schema.spx",
             "--type",
-            "orders.request",
+            record_id,
             "--profile",
             "bounded-nested-request.v1",
             "--max-string-bytes",
@@ -51,7 +65,7 @@ fn install(label: &str) -> std::path::PathBuf {
         project::verify_json_codec_source_with_profile(
             &revision,
             "src/schema.spx",
-            "orders.request",
+            record_id,
             &generated,
             PROFILE,
         )?;
@@ -69,7 +83,7 @@ fn install(label: &str) -> std::path::PathBuf {
                 project::verify_json_codec_source_with_profile(
                     &revision,
                     "src/schema.spx",
-                    "orders.request",
+                    record_id,
                     &generated,
                     changed
                 )
@@ -88,19 +102,25 @@ fn install(label: &str) -> std::path::PathBuf {
     .unwrap();
     std::fs::write(
         root.join("src/app.spx"),
-        canonical(&std::fs::read_to_string(source.join("src/app.consumer.spx")).unwrap()),
+        canonical(&rename(
+            &std::fs::read_to_string(source.join("src/app.consumer.spx")).unwrap(),
+        )),
     )
     .unwrap();
     root
 }
 
 fn qualify(root: &std::path::Path) {
+    qualify_named(root, "orders.request");
+}
+
+fn qualify_named(root: &std::path::Path, record_id: &str) {
     project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
         semaprax::hir::validate(snapshot.entry_program()).map_err(|error| vec![error])?;
         assert!(snapshot
             .retain_revision()
             .semantic_graph()
-            .contains("orders.request.json.nested.decode"));
+            .contains(&format!("{record_id}.json.nested.decode")));
         let options = project::ProjectExecutionOptions::new(16 * 1024 * 1024, 160_000_000)
             .map_err(|error| vec![error])?;
         assert_eq!(

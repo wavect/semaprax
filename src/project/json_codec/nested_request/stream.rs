@@ -111,16 +111,41 @@ mod tests {
             .filter(|f| !f.effects.is_empty())
             .collect();
         assert_eq!(effectful.len(), 2);
-        assert!(
-            effectful
-                .iter()
-                .all(|f| f.effects == ["process.stdin.read"])
-        );
+        assert!(effectful
+            .iter()
+            .all(|f| f.effects == ["process.stdin.read"]));
         let canonical = crate::format::canonical(&parsed);
         assert_eq!(
             canonical,
             crate::format::canonical(&crate::parse(&canonical, "roundtrip.spx").unwrap())
         );
         assert!(source.len() <= super::super::super::MAX_GENERATED_BYTES);
+    }
+
+    #[test]
+    fn stream_nested_template_never_rewrites_authored_marker_text() {
+        for name in ["__ID__", "__FINISH_VALUE__", "__R__"] {
+            let mut program = crate::parse(SCHEMA, "schema.spx").unwrap();
+            program.permits.push("process.stdin.read".into());
+            program.types[2].name = name.into();
+            program.types[2].stable_id = "orders.__FINISH_VALUE__.__R__".into();
+            let root = &program.types[2];
+            let source = derive_stream(&program, root, 16, 8).unwrap();
+            let parsed = crate::parse(&source, "stream-marker.spx").unwrap();
+            let normalize = parsed
+                .functions
+                .iter()
+                .find(|function| function.name == format!("json_{name}_stream_normalize"))
+                .unwrap();
+            assert_eq!(
+                normalize.stable_id,
+                format!("{}.json.stream.normalize", root.stable_id)
+            );
+            let canonical = crate::format::canonical(&parsed);
+            assert_eq!(
+                canonical,
+                crate::format::canonical(&crate::parse(&canonical, "roundtrip.spx").unwrap())
+            );
+        }
     }
 }

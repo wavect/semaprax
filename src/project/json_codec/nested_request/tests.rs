@@ -155,3 +155,42 @@ fn nested_request_uses_existing_scalar_and_vector_shapes_without_name_special_ca
     assert!(source.contains("scalar>=0 && scalar<=1114111"));
     assert!(source.contains("scalar>=55296 && scalar<=57343"));
 }
+
+#[test]
+fn nested_codec_keeps_marker_like_authored_names_and_identities_opaque() {
+    for name in ["__ROW_ID__", "__BOUND__", "__ROW__"] {
+        let schema = SCHEMA
+            .replace("OrderRequest", name)
+            .replace("orders.request", "orders.__BOUND__.__ROW_ID__");
+        let program = crate::parse(&schema, "schema.spx").unwrap();
+        let root = &program.types[2];
+        for (fragment, suffix, helper) in [
+            (
+                derive(&program, root, 16, 8).unwrap(),
+                "nested.text",
+                format!("json_{name}_nested_text"),
+            ),
+            (
+                super::super::utf8::response_text(root, 16),
+                "collection-response.quoted-render",
+                format!("json_{name}_response_utf8_quote"),
+            ),
+        ] {
+            let parsed = crate::parse(&fragment, "marker.spx").unwrap();
+            let function = parsed
+                .functions
+                .iter()
+                .find(|function| function.name == helper)
+                .unwrap();
+            assert_eq!(
+                function.stable_id,
+                format!("{}.json.{suffix}", root.stable_id)
+            );
+            let canonical = crate::format::canonical(&parsed);
+            assert_eq!(
+                canonical,
+                crate::format::canonical(&crate::parse(&canonical, "roundtrip.spx").unwrap())
+            );
+        }
+    }
+}

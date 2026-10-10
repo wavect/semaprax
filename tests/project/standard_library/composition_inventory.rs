@@ -19,6 +19,7 @@ const VIEW_CALL_BOUNDARY: &str =
 const PROJECT_HARNESS: &str = concat!(
     include_str!("../standard_library.rs"),
     include_str!("wasm_host.rs"),
+    include_str!("backend_conformance.rs"),
     include_str!("pattern_conformance.rs")
 );
 const IMPORTED_VIEW: &str = include_str!("imported_view_composition.rs");

@@ -119,6 +119,18 @@ pub fn emit_hir_c_with_stdin_stream_owned_data(
     )
 }
 
+/// Explicit successor for authenticated nested collection-record carriers.
+pub fn emit_hir_c_with_stdin_stream_collection_records(
+    program: &ResolvedProgram,
+    command_id: &str,
+) -> Result<String, Diagnostic> {
+    crate::hir::validate_stream_collection_record_program(
+        program,
+        Some(&hir::DeclarationId::new(command_id)),
+    )?;
+    emit_profile(program, command_id, NativeOutputProfile::StdinStreamDataCommandIo)
+}
+
 fn reject_owned_leaf_in_frozen_profile(program: &ResolvedProgram) -> Result<(), Diagnostic> {
     if program
         .functions

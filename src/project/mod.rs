@@ -597,10 +597,11 @@ pub use profile::{
     PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2, PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V1,
     PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V2,
     PROJECT_PROFILE_STDIN_STREAM_OWNED_DATA_COMMAND_IO_V1,
+    PROJECT_PROFILE_STDIN_STREAM_COLLECTION_RECORD_COMMAND_IO_V1,
     PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1,
     PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2, PROJECT_PROFILE_USEFUL_DATA_V1,
     PROJECT_PROFILE_USEFUL_DATA_V2, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
-    PROJECT_SOURCE_COMMAND_INPUT_V1,
+    PROJECT_SOURCE_COMMAND_INPUT_V1, PROJECT_SCHEMA_V31,
 };
 pub use public_api::{
     derive_public_api_descriptor, replay_public_api_descriptor, PublicApiDescriptor,
@@ -1209,6 +1210,12 @@ impl ProjectSnapshot {
                     self.manifest.command().unwrap_or(""),
                 )
             }
+            ProjectProfile::StdinStreamCollectionRecordCommandIoV1 => {
+                crate::codegen::emit_hir_c_with_stdin_stream_collection_records(
+                    &self.public_api_program,
+                    self.manifest.command().unwrap_or(""),
+                )
+            }
             ProjectProfile::LineCommandIoV1 => crate::codegen::emit_hir_c_with_line_command_io(
                 &self.public_api_program,
                 self.manifest.command().unwrap_or(""),
@@ -1235,6 +1242,7 @@ impl ProjectSnapshot {
                 | ProjectProfile::StdinStreamDataCommandIoV1
                 | ProjectProfile::StdinStreamDataCommandIoV2
                 | ProjectProfile::StdinStreamOwnedDataCommandIoV1
+                | ProjectProfile::StdinStreamCollectionRecordCommandIoV1
                 | ProjectProfile::LineCommandIoV1
                 | ProjectProfile::NetworkCommandIoV1
                 | ProjectProfile::HttpsCommandIoV1

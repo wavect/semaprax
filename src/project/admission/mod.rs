@@ -49,6 +49,7 @@ pub(super) enum PreparedProjectAdmission {
     StdinStreamDataCommandIoV1,
     StdinStreamDataCommandIoV2,
     StdinStreamOwnedDataCommandIoV1,
+    StdinStreamCollectionRecordCommandIoV1,
     LineCommandIoV1,
     NetworkCommandIoV1,
     HttpsCommandIoV1,
@@ -90,6 +91,9 @@ impl PreparedProjectAdmission {
             Self::StdinStreamDataCommandIoV2 => ProjectProfile::StdinStreamDataCommandIoV2,
             Self::StdinStreamOwnedDataCommandIoV1 => {
                 ProjectProfile::StdinStreamOwnedDataCommandIoV1
+            }
+            Self::StdinStreamCollectionRecordCommandIoV1 => {
+                ProjectProfile::StdinStreamCollectionRecordCommandIoV1
             }
             Self::LineCommandIoV1 => ProjectProfile::LineCommandIoV1,
             Self::NetworkCommandIoV1 => ProjectProfile::NetworkCommandIoV1,
@@ -269,6 +273,16 @@ pub(super) fn prepare(
             )?;
             stdin_stream_command::admit(program, manifest.command().unwrap_or(""), true)?;
             Ok(PreparedProjectAdmission::StdinStreamOwnedDataCommandIoV1)
+        }
+        ProjectProfile::StdinStreamCollectionRecordCommandIoV1 => {
+            crate::hir::validate_stream_collection_record_program(
+                program,
+                Some(&crate::hir::DeclarationId::new(
+                    manifest.command().unwrap_or(""),
+                )),
+            )?;
+            stdin_stream_command::admit(program, manifest.command().unwrap_or(""), true)?;
+            Ok(PreparedProjectAdmission::StdinStreamCollectionRecordCommandIoV1)
         }
         ProjectProfile::LineCommandIoV1 => {
             legacy::line_command(program, manifest.command().unwrap_or(""))?;

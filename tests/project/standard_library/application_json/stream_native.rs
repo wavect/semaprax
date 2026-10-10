@@ -24,11 +24,7 @@ use function @id("application.request.json.request.encode") from consumer.schema
     .to_owned()
         + PERMITS
         + r#"@id("consumer.diagnostic") fn diagnostic(kind:borrow str,code:i64,offset:usize)->i64 uses{process.stderr.write}{
-let prefix=string_concat(string_from_str(kind),":");
-let number=string_concat(prefix,string_from_i64(code));
-let colon=string_concat(number,":");
-let position=string_concat(colon,string_from_usize(offset));
-let line=string_concat(position,"\n");
+let line=string_format("{}:{}:{}\n",string_from_str(kind),code,offset);
 let view=string_as_str(line);let written=stderr_write(str_as_bytes(view));2
 }
 @id("consumer.command") fn command()->i64 uses{process.stdin.read,process.stdout.write,process.stderr.write}{
@@ -52,7 +48,7 @@ let rendered=encode(source,servers,patients,131072usize);
 match own rendered{
 Encoded::Refused{required}=>{let label="schema";diagnostic(string_as_str(label),9,required)},
 Encoded::Encoded{text}=>{
-let line=string_concat(text,"\n");let view=string_as_str(line);let output=str_as_bytes(view);let written=stdout_write(output);if written==byte_len(output){0}else{1}
+let line=string_format("{}\n",text);let view=string_as_str(line);let output=str_as_bytes(view);let written=stdout_write(output);if written==byte_len(output){0}else{1}
 },
 }
 }
@@ -177,6 +173,13 @@ fn streamed_request_codecs_accept_full_raw_domain_and_preserve_late_grammar_prio
         assert!(output.stderr.is_empty());
     }
     boundary::lexical_splits(&traced);
+    // The identifier profile stays narrow even though the diagnostic formatter
+    // accepts owned String fields: braces, escapes and Unicode do not widen it.
+    let invalid_identifier = r#"{"servers":["S{}\"\\\u0000é😀"],"patients":[{"id":"P0","arrival":0,"service":1,"priority":0,"deadline":1}]}"#.as_bytes();
+    let rejected_identifier = execute(&binary, invalid_identifier);
+    assert_eq!(rejected_identifier.status.code(), Some(2));
+    assert!(rejected_identifier.stdout.is_empty());
+    assert_eq!(rejected_identifier.stderr, b"schema:6:12\n");
     let domain = execute(&binary, b"  {\"unknown\":0}");
     assert_eq!(domain.status.code(), Some(2));
     assert!(domain.stdout.is_empty());

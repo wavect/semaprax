@@ -38,7 +38,7 @@ fn test_max256_serial() -> i64
     let mut patients = vec_with_capacity<Patient>(256usize);
     let mut index = 0usize;
     while index < 256usize {
-        let person_id = string_concat("P", string_from_i64(i64_from_usize(index)));
+        let person_id = string_format("P{}", index);
         patients = vec_push<Patient>(patients, Patient { priority: 1, arrival: 0, id: person_id, service: 1, deadline: 1000000 });
         index = index + 1usize;
         0

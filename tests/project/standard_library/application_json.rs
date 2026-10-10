@@ -13,6 +13,8 @@ mod stream;
 mod stream_native;
 #[path = "application_json/views.rs"]
 mod views;
+#[path = "application_json/utf8.rs"]
+mod utf8;
 
 const MANIFEST: &str = r#"schema = "semaprax.manifest.v1"
 

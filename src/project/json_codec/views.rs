@@ -45,7 +45,7 @@ fn fields(record: &TypeDeclaration) -> &[crate::ast::FieldDeclaration] {
     }
 }
 
-fn validate(record: &TypeDeclaration) -> Result<(), Vec<Diagnostic>> {
+pub(super) fn validate(record: &TypeDeclaration) -> Result<(), Vec<Diagnostic>> {
     let TypeDeclarationKind::Record { fields } = &record.kind else {
         return Err(refusal("identifier view root must be a record"));
     };
@@ -72,7 +72,7 @@ fn validate(record: &TypeDeclaration) -> Result<(), Vec<Diagnostic>> {
     validate_record(&scalar)
 }
 
-fn imports(program: &Program) -> String {
+pub(super) fn imports(program: &Program) -> String {
     let mut out = format!("module {};\n", program.module);
     for (module, name) in [
         ("scan", "strict_end"),
@@ -136,6 +136,10 @@ pub(super) fn source(
 }
 
 fn body(record: &TypeDeclaration) -> String {
+    body_with_text(record, None)
+}
+
+pub(super) fn body_with_text(record: &TypeDeclaration, helpers: Option<&str>) -> String {
     let name = &record.name;
     let id = &record.stable_id;
     let fs = fields(record);
@@ -171,8 +175,11 @@ fn body(record: &TypeDeclaration) -> String {
     }
     writeln!(out, "}}\n@id(\"{id}.json.view-decode\") variant {name}JsonViewDecode {{ @id(\"{id}.json.view-decoded\") Decoded{{@id(\"{id}.json.view-value\")value:{name}JsonView,}}, @id(\"{id}.json.view-error\") Error{{@id(\"{id}.json.view-code\")code:i64,@id(\"{id}.json.view-offset\")offset:usize,@id(\"{id}.json.view-field\")field:i64,}}, }}").unwrap();
     writeln!(out, "@id(\"{id}.json.view-encode\") variant {name}JsonViewEncode {{ @id(\"{id}.json.view-encoded\") Encoded{{@id(\"{id}.json.view-text\")text:string,}}, @id(\"{id}.json.view-refused\") Refused{{@id(\"{id}.json.view-required\")required:usize,}}, }}").unwrap();
-    // All exported helpers revalidate token extent, decoded length and alphabet.
-    writeln!(out, "@id(\"{id}.json.identifier-valid\") fn json_{name}_identifier_valid(input:borrow Slice<u8>,start:usize,end:usize)->bool {{
+    if let Some(helpers) = helpers {
+        out.push_str(helpers);
+    } else {
+        // All exported helpers revalidate token extent, decoded length and alphabet.
+        writeln!(out, "@id(\"{id}.json.identifier-valid\") fn json_{name}_identifier_valid(input:borrow Slice<u8>,start:usize,end:usize)->bool {{
 let length=byte_len(input);
 let mut valid=start<end && end<=length;
 let closed=if valid {{ jv_scan_string(input,start,false) }} else {{ length+1usize }};
@@ -199,6 +206,7 @@ cursor<end-1usize
 string_concat(text,\"\\\"\")
 }}
 }}").unwrap();
+    }
     writeln!(out, "@id(\"{id}.json.view.decode\") fn json_{name}_view_decode(input:borrow Slice<u8>,input_limit:usize)->{name}JsonViewDecode {{
 let length=byte_len(input); let mut error=if length>input_limit {{7}}else{{0}};let mut offset=0usize;let mut field=0;
 let checked=if error==0 {{jv_strict_end(input,32usize,0)}}else{{length}};
@@ -268,7 +276,9 @@ if error==0 && jv_kind(input,object)!=1 {{error=5;offset=object;false}}else{{tru
         "}}}}}}else{{{name}JsonViewDecode::Error{{code:error,offset:offset,field:field}}}}\n}}"
     )
     .unwrap();
-    out.push_str(&encoder(record));
+    if helpers.is_none() {
+        out.push_str(&encoder(record));
+    }
     out
 }
 

@@ -757,7 +757,10 @@ stream errors use raw offsets while downstream schema errors use their supplied
 normalized input. Every emitted carrier is independently checked by ordinary
 source/HIR/profile rules. `json_codec/owned` layers actual String/record
 materialization and checked encoding over the same identifier request policy;
-the application no longer retains input spans. Its owning outcomes are classified
+the application no longer retains input spans. The opt-in `json_codec/utf8`
+successor emits a replay-bound per-value byte policy, separate escape/raw scalar
+validation and canonical escaping for ordinary owned Strings; it does not inherit
+identifier uniqueness or schema authority. Its owning outcomes are classified
 independently by the source and HIR `collection_outcome/owned` modules. The
 original Copy-only outcome remains separate, and v30 alone adds the new private
 command closure. Ordinary variant layout, cleanup, native/Wasm runtime selection

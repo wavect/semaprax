@@ -517,6 +517,8 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add source implementation and owning regressions for opt-in bounded UTF-8 owned request codecs, with distinct Unicode scalar decoding, empty/repeated value admission and exact escaped-output preflight. Existing identifier selectors remain separate; execution and the full-bound three-backend gate are pending.
+
 - Generated webapp self-tests stop their child through private parent IPC so Windows
   releases the writer claim before restart; forced-crash recovery stays explicit.
   Node preload paths are converted to file URLs on every host.

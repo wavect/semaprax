@@ -4,6 +4,7 @@ mod emit;
 mod owned;
 #[cfg(test)]
 mod tests;
+mod utf8;
 mod views;
 
 use crate::ast::{Type, TypeDeclaration, TypeDeclarationKind};
@@ -30,6 +31,10 @@ pub enum JsonCodecProfile {
     OwnedRequest,
     /// Original stdin permit plus normalization and owning request decoding.
     StreamOwnedRequest,
+    /// Plain UTF-8 Strings with an explicit decoded byte bound; no identifier domain.
+    Utf8OwnedRequest {
+        max_string_bytes: usize,
+    },
 }
 
 pub(super) fn refusal(message: impl Into<String>) -> Vec<Diagnostic> {
@@ -100,6 +105,9 @@ pub fn derive_json_codec_source_with_profile(
         }
         JsonCodecProfile::OwnedRequest => owned::source(&program, declaration, false)?,
         JsonCodecProfile::StreamOwnedRequest => owned::source(&program, declaration, true)?,
+        JsonCodecProfile::Utf8OwnedRequest { max_string_bytes } => {
+            utf8::source(&program, declaration, max_string_bytes)?
+        }
     };
     if fragment.len() > MAX_GENERATED_BYTES {
         return Err(refusal(

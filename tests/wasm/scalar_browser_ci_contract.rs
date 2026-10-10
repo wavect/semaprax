@@ -28,7 +28,9 @@ fn digest_without_checked_value_cursor_budget(graph: &str) -> String {
     // stayed frozen at this version. The pinned digests were re-taken when
     // imported functions began charging their retained stub plus the peak
     // transient provider clone, when the canonical prelude gained standard
-    // collections, and when import result ownership became explicit.
+    // collections, and when import result ownership became explicit. The latest
+    // pins retain that cursor subtraction and account for the independently
+    // proven 21,577-byte retained identity-carrier budget reduction.
     let current = parsed["budget"]["used_builder_bytes"].as_u64().unwrap();
     let previous = current.checked_sub(3 * 257 * 24).unwrap();
     let field = format!("\"used_builder_bytes\":{current}");
@@ -127,8 +129,8 @@ fn browser_known_answers_match_authenticated_baseline_and_rename_graphs() {
     assert_eq!(
         previous_digests,
         [
-            "sha256:bb473d70283498df2578e6c1818c3bc13bad8704bbba3f63b28ae6d87320f0cb",
-            "sha256:0eaea8587313f554be3a5213d2968c1b41c750a886353889b03682e134f7730e",
+            "sha256:489f02ed298c2d35433d6c9f811ccc26c50ce90117b3976a862b40aff11129b8",
+            "sha256:ccb0ec81a00f3890ec2fe87af8d0f801970a1a397eeb55fe115e83dab02188ba",
         ],
         "only the checked value cursor budget changed in the browser graphs"
     );

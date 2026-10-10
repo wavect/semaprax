@@ -77,8 +77,7 @@ impl ProjectSemanticState {
                 law_modules,
             )?
         };
-        let graph_json = graph.json().to_owned();
-        let graph_digest = graph.digest().to_owned();
+        let (graph_json, graph_digest) = graph.into_parts();
         let analysis = {
             #[cfg(feature = "unstable-workflow-profiling")]
             let _workflow_span =

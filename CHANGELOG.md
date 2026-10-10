@@ -1,5 +1,10 @@
 # Changelog
 
+- Transfer completed Project semantic graph JSON and digest into retained state
+  without cloning their owned buffers. Keep rendering, hashing and cumulative
+  budget charges unchanged; pointer/capacity, digest and refusal regressions are
+  staged for the next grouped check. No measured memory or token gain is claimed.
+
 - Remove the standalone text/format runtime renderer's full-HIR clone by
   borrowing its authenticated selected functions. Preserve import order and
   exact artifact bytes; a selected/unselected parity regression is staged.

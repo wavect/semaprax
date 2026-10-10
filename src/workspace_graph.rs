@@ -219,11 +219,10 @@ pub(crate) struct ProjectSemanticGraphArtifact {
     digest: String,
 }
 impl ProjectSemanticGraphArtifact {
-    pub(crate) fn json(&self) -> &str {
-        &self.json
-    }
-    pub(crate) fn digest(&self) -> &str {
-        &self.digest
+    /// Transfer the completed artifact into retained Project state without
+    /// copying its complete JSON or changing any rendering/budget receipt.
+    pub(crate) fn into_parts(self) -> (String, String) {
+        (self.json, self.digest)
     }
 }
 pub(crate) struct WorkspaceGraphOperationView {

@@ -326,6 +326,56 @@ fn disconnected() -> i64 { 0 }
     }
 
     #[test]
+    fn project_graph_handoff_preserves_owned_buffers_and_digest_without_new_debit() {
+        let projection = authenticated_build().project("app.entry").unwrap();
+        let name = "graph \"name\" λ\0";
+        let schema = "semaprax.project.v1";
+        let revision = "sha256:project";
+        let graph =
+            render_project_semantic_graph(&projection, schema, name, revision, "app.entry", &[])
+                .unwrap();
+        let json_pointer = graph.json.as_ptr();
+        let json_capacity = graph.json.capacity();
+        let digest_pointer = graph.digest.as_ptr();
+        let digest_capacity = graph.digest.capacity();
+        let ((json, digest), refused, used) =
+            crate::bounded_output::with_limit_usage(0, || graph.into_parts());
+        assert!(!refused);
+        assert_eq!(used, 0);
+        assert_eq!(json.as_ptr(), json_pointer);
+        assert_eq!(json.capacity(), json_capacity);
+        assert_eq!(digest.as_ptr(), digest_pointer);
+        assert_eq!(digest.capacity(), digest_capacity);
+        let payload =
+            render_project_graph_json(&projection, schema, name, revision, "app.entry", &[], None);
+        assert_eq!(
+            digest,
+            project_artifact_digest(PROJECT_GRAPH_DIGEST_DOMAIN, payload.as_bytes())
+        );
+        assert_eq!(
+            json,
+            render_project_graph_json(
+                &projection,
+                schema,
+                name,
+                revision,
+                "app.entry",
+                &[],
+                Some(&digest),
+            )
+        );
+        let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(value["project"], name);
+        assert_eq!(value["graph_digest"], digest);
+        assert_eq!(value["modules"].as_array().unwrap().len(), 3);
+        let errors =
+            render_project_semantic_graph(&projection, schema, name, revision, "absent.tests", &[])
+                .err()
+                .expect("absent test module remains refused before handoff");
+        assert_eq!(errors[0].code, "SPX-G173");
+    }
+
+    #[test]
     fn entry_need_not_define_main_and_reverse_consumers_are_excluded() {
         let projection = authenticated_build().project("types.core").unwrap();
         assert_eq!(projection.modules().len(), 1);

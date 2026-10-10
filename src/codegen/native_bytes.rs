@@ -20,6 +20,7 @@ mod record_if;
 mod replacement;
 mod scalar_match_scope;
 mod semantic_work;
+mod scoped_vec_field;
 mod string_slots;
 mod variant_match;
 #[cfg(test)]

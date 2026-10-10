@@ -77,6 +77,18 @@ fn codec_source_is_deterministic_ordinary_ast_and_has_no_authority_escape() {
     assert!(source.contains("required > output_limit"));
     assert!(!source.contains("serde"));
     assert!(source.len() <= MAX_GENERATED_BYTES);
+    // Constant field selectors must be installed once before member iteration;
+    // fixed-array construction is deliberately closed inside source loops.
+    assert!(
+        source.find("let key_0 =").unwrap()
+            < source.find("while error == 0 && key < length").unwrap()
+    );
+    let fresh = super::template::discard_bindings(&source, "", "codec.spx").unwrap();
+    assert!(!fresh.contains("let _ ="));
+    assert_eq!(
+        fresh,
+        super::template::discard_bindings(&source, "", "codec.spx").unwrap()
+    );
     // Every admitted field position can select the unsigned conversion branch;
     // it must end with a value rather than the preceding assignment statement.
     let unsigned = parse_schema("module schema; @id(\"unsigned.row\") record Row { @id(\"u.a\") a:usize, @id(\"u.b\") b:usize, @id(\"u.c\") c:usize, @id(\"u.d\") d:usize, @id(\"u.e\") e:usize, @id(\"u.f\") f:usize, @id(\"u.g\") g:usize, @id(\"u.h\") h:usize, }");

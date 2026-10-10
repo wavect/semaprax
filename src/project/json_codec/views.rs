@@ -246,9 +246,17 @@ let _ = if error==0 && jv_kind(input,object)!=1 {{error=5;offset=object;false}}e
             writeln!(out, "let mut value_{i}={zero};").unwrap();
         }
     }
-    out.push_str("let mut key=if error==0{jv_first_member(input,object)}else{length};\nwhile error==0 && key<length {let start=jv_member_value(input,key);let mut selected=0;\n");
     for (i, f) in fs.iter().enumerate() {
-        writeln!(out,"let key_{i}={};selected=if jv_key_eq(input,key,array_as_slice(key_{i})){{{}}}else{{selected}};",key_array(&f.name),i+1).unwrap();
+        writeln!(out, "let key_{i}={};", key_array(&f.name)).unwrap();
+    }
+    out.push_str("let mut key=if error==0{jv_first_member(input,object)}else{length};\nwhile error==0 && key<length {let start=jv_member_value(input,key);let mut selected=0;\n");
+    for (i, _) in fs.iter().enumerate() {
+        writeln!(
+            out,
+            "selected=if jv_key_eq(input,key,array_as_slice(key_{i})){{{}}}else{{selected}};",
+            i + 1
+        )
+        .unwrap();
     }
     out.push_str("let _ = if selected==0{error=4;offset=key;field=0;false}else{field=selected;\n");
     for (i, f) in fs.iter().enumerate() {

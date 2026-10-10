@@ -87,4 +87,34 @@ fn bulk_utf8_rejection_precedes_materialization_and_helpers_share_the_meter() {
     let (result,usage)=evaluate("let raw=[0u8];let input=array_as_slice(raw);let empty=copy(byte_range(input,0usize,0usize));str_len_bytes(string_as_str(empty))",Utf8MaterializationBudget::fixed());
     assert!(matches!(result, Ok(Value::Int(0))));
     assert_eq!(usage, (1, 0));
+    // Both unfused str and fused byte views of the same named owner retain
+    // their expression charges without creating another owned String.
+    let (result, usage) = evaluate(
+        "let raw=[65u8];let text=copy(array_as_slice(raw));let mut n=0;while n<8 {let view=string_as_str(text);let bytes=str_as_bytes(string_as_str(text));n=n+if byte_len(bytes)==1usize {str_len_bytes(view)}else{0};0\n}n",
+        Utf8MaterializationBudget::Fixed {
+            used_materializations: MAX_OWNED_UTF8_LOGICAL_ALLOCATIONS - 1,
+            used_bytes: MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES - 1,
+        },
+    );
+    assert!(matches!(result, Ok(Value::Int(8))), "{result:?}");
+    assert_eq!(
+        usage,
+        (
+            MAX_OWNED_UTF8_LOGICAL_ALLOCATIONS,
+            MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES
+        )
+    );
+    for code in [
+        crate::string_ops::CONVERT_OUT_OF_RANGE_CODE,
+        crate::string_ops::CONVERT_NAN_CODE,
+    ] {
+        let rendered = rebuild_conversion_status(u64::from(code)).unwrap();
+        let mut status: serde_json::Value = serde_json::from_str(&rendered).unwrap();
+        verify_status(&status).unwrap();
+        status["class"] = serde_json::json!("arithmetic");
+        assert_eq!(verify_status(&status).unwrap_err().code, "SPX-F106");
+    }
+    assert!(rebuild_conversion_status(0).is_err());
+    assert!(rebuild_conversion_status(3).is_err());
+    assert!(rebuild_conversion_status(u64::MAX).is_err());
 }

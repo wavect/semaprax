@@ -3968,11 +3968,10 @@ impl Evaluator<'_> {
             ResolvedExprKind::BorrowPlace { operation, place } => {
                 let op = crate::byte_ops::by_id(operation.as_str())
                     .ok_or(Flow::Guard("unknown compiler-owned byte view"))?;
-                if !place.projections.is_empty()
-                    && matches!(
-                        op,
-                        crate::byte_ops::ByteOp::StringAsStr | crate::byte_ops::ByteOp::StrAsBytes
-                    )
+                if op == crate::byte_ops::ByteOp::StringAsStr
+                    || op == crate::byte_ops::ByteOp::StrAsBytes
+                        && (!place.projections.is_empty()
+                            || matches!(environment.get(&place.root), Some(Value::String(_))))
                 {
                     return projected_string_view::read(
                         environment,
@@ -4003,22 +4002,6 @@ impl Evaluator<'_> {
                             value.invocation_root,
                             value.bytes,
                         )))
-                    }
-                    (crate::byte_ops::ByteOp::StrAsBytes, Value::String(value)) => {
-                        // The fused HIR form is exactly
-                        // str_as_bytes(string_as_str(owner)); retain the
-                        // owner identity while materializing the evaluator's
-                        // abstract borrowed-byte representation.
-                        Ok(Value::BorrowedSlice(BorrowedSliceValue::whole(
-                            place.root.clone(),
-                            Arc::from(value.as_bytes()),
-                        )))
-                    }
-                    (crate::byte_ops::ByteOp::StringAsStr, Value::String(value)) => {
-                        Ok(Value::BorrowedStr(BorrowedStrValue {
-                            invocation_root: place.root.clone(),
-                            bytes: Arc::from(value.as_bytes()),
-                        }))
                     }
                     _ => Err(Flow::Guard("ill-typed compiler-owned byte view")),
                 }
@@ -5749,6 +5732,9 @@ fn verify_status(status: &serde_json::Value) -> Result<(), Diagnostic> {
                     "contract status code is outside the closed v1 table".to_owned(),
                 ));
             }
+        }
+        Some(crate::string_ops::CONVERT_STATUS_DOMAIN) => {
+            string_operations::rebuild_conversion_status(code)?
         }
         _ => owned_box::rebuild_collection_status(status["domain_id"].as_str(), code)?,
     };

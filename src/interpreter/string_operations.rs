@@ -439,6 +439,25 @@ impl Evaluator<'_> {
     }
 }
 
+/// Envelope replay recognizes only the compiler's closed conversion table.
+pub(super) fn rebuild_conversion_status(code: u64) -> Result<String, Diagnostic> {
+    use crate::string_ops::{CONVERT_NAN_CODE, CONVERT_OUT_OF_RANGE_CODE};
+    let code = u32::try_from(code)
+        .ok()
+        .filter(|code| matches!(*code, CONVERT_OUT_OF_RANGE_CODE | CONVERT_NAN_CODE))
+        .ok_or_else(|| {
+            consistency_error("conversion status code is outside the closed v1 table".to_owned())
+        })?;
+    Ok(NormalizedStatus::try_new(
+        crate::string_ops::CONVERT_STATUS_DOMAIN,
+        code,
+        StatusClass::Adapter,
+        Retryability::Known(false),
+    )
+    .expect("compiler-owned conversion status table is valid")
+    .to_json())
+}
+
 fn convert_failure(code: u32) -> Flow {
     Flow::Failure(
         NormalizedStatus::try_new(

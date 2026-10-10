@@ -57,7 +57,8 @@ independently authenticated type closure. Inactive payload bytes grant no owner.
 The additive private command profile is
 `language-command-io.nested-outcome.v1` (Project schema v32). It retains all v31
 private helpers and adds the authenticated owning outcome and its record helper
-signatures. Selected entry/command roots remain `fn() -> i64`; process effects,
+signatures. Nested Copy helper records use the same independent explicit closure
+walk and pass by value; cached Copy facts alone do not admit them. Selected entry/command roots remain `fn() -> i64`; process effects,
 module permits, manifest grants, provider quotas, and public ABI stay unchanged.
 Older profiles reject the new carrier, including unused functions before source
 closure cropping and body-local constructions behind scalar signatures. Direct

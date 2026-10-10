@@ -36,3 +36,22 @@ pub(super) fn response_source(record: &TypeDeclaration, bound: usize) -> String 
         .replace("__ROW_ID__", &record.stable_id)
         .replace("__BOUND__", &bound.to_string())
 }
+
+pub(super) fn nested_decode_source(root: &TypeDeclaration, bound: usize) -> String {
+    let template = include_str!("text.spx")
+        .split_once("@id(\"__ROW_ID__.json.utf8.owned-valid\")")
+        .expect("decoder prefix")
+        .0;
+    let body = template
+        .replace(
+            "json___ROW___identifier_valid",
+            "json___ROW___nested_text_valid",
+        )
+        .replace("json___ROW___utf8_text", "json___ROW___nested_text")
+        .replace(".json.utf8.valid", ".json.nested.text-valid")
+        .replace(".json.utf8.materialize-text", ".json.nested.text")
+        .replace("__ROW__", &root.name)
+        .replace("__ROW_ID__", &root.stable_id)
+        .replace("__BOUND__", &bound.to_string());
+    format!("{}{body}", imports())
+}

@@ -1,5 +1,11 @@
 # Changelog
 
+- Author the finite bounded nested-request source decoder for OPT-724: explicit
+  acyclic record paths, existing Vec element carriers, bounded Unicode strings,
+  whole-grammar/schema validation before owning construction, and proper typed
+  malformed outcomes. Stage independent derivation/hostile and three-backend
+  configuration/order gates; execution and full streaming acceptance pending.
+
 - Author OPT-729 properly tagged outcomes carrying authenticated nested owning
   records. Preserve scalar error cases without a default payload, canonical
   case-qualified cleanup, existing capacities and frozen command profiles. Stage

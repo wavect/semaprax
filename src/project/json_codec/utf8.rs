@@ -10,6 +10,11 @@ pub(super) fn response_text(record: &TypeDeclaration, bound: usize) -> String {
     text::response_source(record, bound)
 }
 
+/// Reuse checked scalar pull/materialization with an independent nested namespace.
+pub(super) fn nested_decode_text(root: &TypeDeclaration, bound: usize) -> String {
+    text::nested_decode_source(root, bound)
+}
+
 use crate::ast::{FieldDeclaration, Program, Type, TypeDeclaration, TypeDeclarationKind};
 use crate::diagnostic::Diagnostic;
 use std::fmt::Write as _;

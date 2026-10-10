@@ -65,6 +65,20 @@ pub(crate) fn admitted(index: &DeclarationIndex, ty: &ResolvedType) -> bool {
 }
 
 pub(crate) fn record_payload_admitted(index: &DeclarationIndex, root: &ResolvedType) -> bool {
+    record_shape_admitted(index, root, true)
+}
+
+/// Copy-only nested helper records in the new profile use the same explicit
+/// declaration walk, never cached Copy facts as authority.
+pub(crate) fn copy_record_helper_admitted(index: &DeclarationIndex, root: &ResolvedType) -> bool {
+    record_shape_admitted(index, root, false)
+}
+
+fn record_shape_admitted(
+    index: &DeclarationIndex,
+    root: &ResolvedType,
+    expected_owning: bool,
+) -> bool {
     if !matches!(root, ResolvedType::Nominal { declaration, arguments }
         if arguments.is_empty() && index.declaration(declaration).is_some_and(|d| d.kind == DeclarationKind::Record))
     {
@@ -152,7 +166,7 @@ pub(crate) fn record_payload_admitted(index: &DeclarationIndex, root: &ResolvedT
             return false;
         }
     }
-    owned
+    owned == expected_owning
 }
 
 /// Every cleanup/layout use must bind the exact active case and payload field.

@@ -986,6 +986,15 @@ signatures. `graph/owned_nested_outcome` owns the non-authoritative Graph v74
 projection. Same-source success, no-allocation error, hostile replay and physical
 failure-settlement gates are authored but execution remains pending.
 
+The finite nested request generator in `project/json_codec/nested_request`
+separates source-derived path/bound descriptors, allocation-free recursive
+validation, and post-validation materialization. Its wrapper returns the ordinary
+#729 tagged outcome; helpers and the original schema pass the same Project
+rebuild as authored source. UTF-8 scalar pulls share a separately named checked
+template, with no identifier policy, new runtime intrinsic or authority bypass.
+The decoder and its independent owning Project corpus are source-only pending
+qualification; streaming adaptation remains a separate obligation.
+
 ### Semantic graph
 
 `src/graph.rs` and `src/graph_cleanup.rs` project validated program and cleanup

@@ -6,14 +6,19 @@ pub(crate) fn stream_nested_outcome_signature_admitted(
     f: &ResolvedFunction,
 ) -> bool {
     let index = &program.declarations;
+    let copy =
+        |ty| super::super::collection_outcome::nested::copy_record_helper_admitted(index, ty);
     let nested = |ty| {
         super::super::owned_collection_record::admitted(ty, index)
             || super::super::collection_outcome::nested::admitted(index, ty)
             || super::super::collection_outcome::nested::record_payload_admitted(index, ty)
     };
-    (super::stream_owned::return_admitted(index, &f.return_type) || nested(&f.return_type))
+    (super::stream_owned::return_admitted(index, &f.return_type)
+        || nested(&f.return_type)
+        || copy(&f.return_type))
         && f.params.iter().all(|parameter| {
             super::stream_owned::parameter_admitted(index, parameter)
+                || (parameter.ownership == OwnershipMode::Value && copy(&parameter.ty))
                 || (matches!(
                     parameter.ownership,
                     OwnershipMode::Own | OwnershipMode::Borrow
@@ -75,6 +80,10 @@ pub(crate) fn validate_stream_nested_outcome_program(
                 && super::super::owned_leaf_collection::layout(&program.declarations, &ty).is_none()
                 && !super::super::collection_outcome::owned_admitted(&program.declarations, &ty)
                 && !super::super::collection_outcome::nested::admitted(&program.declarations, &ty)
+                && !super::super::collection_outcome::nested::copy_record_helper_admitted(
+                    &program.declarations,
+                    &ty,
+                )
                 && !super::super::collection_outcome::nested::record_payload_admitted(
                     &program.declarations,
                     &ty,

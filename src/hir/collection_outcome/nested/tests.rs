@@ -28,6 +28,21 @@ fn nested_outcome_roundtrip_cache_graph_and_successor_profile_replay() {
     assert!(crate::graph::verify_json(&drift, &graph).is_err());
     let program = checked(SOURCE);
     assert!(admitted(&program.declarations, &ty()));
+    let copy_helpers = SOURCE
+        .replace(
+            "@id(\"app.main\")",
+            r#"
+@id("meta") record Meta {@id("meta.n") n:i64,}
+@id("stats") record Stats {@id("stats.meta") meta:Meta,}
+@id("make_stats") fn make_stats()->Stats {Stats{meta:Meta{n:5}}}
+@id("read_stats") fn read_stats(value:Stats)->i64 {value.meta.n}
+@id("app.main")"#,
+        )
+        .replace(
+            "let success=make(true);",
+            "let extra=read_stats(make_stats());let success=make(true);",
+        );
+    hir::validate_stream_nested_outcome_program(&checked(&copy_helpers), None).unwrap();
     hir::validate_stream_nested_outcome_program(&program, None).unwrap();
     assert!(hir::validate_stream_collection_record_program(&program, None).is_err());
     assert!(hir::validate_stream_owned_program(&program, None).is_err());
@@ -186,7 +201,9 @@ fn nested_outcome_layout_is_record_sized_not_a_vec_slot() {
 #[test]
 fn nested_outcome_error_only_and_unused_helpers_still_require_v32() {
     let prefix = SOURCE.split("@id(\"app.main\")").next().unwrap();
-    let source=format!("{prefix}@id(\"app.main\") fn main()->i64 {{let error=Outcome::Error{{code:42,offset:0usize,field:0}};finish(error)}}");
+    let source = format!(
+        "{prefix}@id(\"app.main\") fn main()->i64 {{let error=Outcome::Error{{code:42,offset:0usize,field:0}};finish(error)}}"
+    );
     let program = checked(&source);
     hir::validate_stream_nested_outcome_program(&program, None).unwrap();
     assert!(program_requires_profile(&program));

@@ -556,6 +556,7 @@ mod agent_quick_reference {
     #[test]
     fn typed_json_application_routes_keep_exact_ownership_and_replay_boundaries() {
         let text = reference_text();
+        let normalized = text.split_whitespace().collect::<Vec<_>>().join(" ");
         for required in [
             "vec_field<Row>(value.items,index,\"field\")",
             "index` is `usize`",
@@ -572,7 +573,7 @@ mod agent_quick_reference {
             "byte_range(bytes_as_slice(bytes), 0usize, length)",
         ] {
             assert!(
-                text.contains(required),
+                normalized.contains(required),
                 "typed JSON authoring guidance omits `{required}`"
             );
         }

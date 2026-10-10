@@ -80,8 +80,10 @@ int main(void) {
         STRING_SUCCESS(FIXTURE_MATCH(&context, 1, false, &value), 1, "fallback\0");
         STRING_SUCCESS(FIXTURE_PRESSURE(&context, &value), 18, "payload");
         STRING_SUCCESS(FIXTURE_EMPTY(&context, &value), 1, "");
-        ARITHMETIC(FIXTURE_OPS(&context, 0, &number), 5, number == INT64_MIN);
-        NUMBER_SUCCESS(FIXTURE_OPS(&context, 1, &number), 5, 10);
+        /* Two operand owners, one final concat owner and one length operand;
+         * concat has no separately allocated temporary join buffer. */
+        ARITHMETIC(FIXTURE_OPS(&context, 0, &number), 4, number == INT64_MIN);
+        NUMBER_SUCCESS(FIXTURE_OPS(&context, 1, &number), 4, 10);
         ARITHMETIC(FIXTURE_FROM_CHAR(&context, 0, &number), 2, number == INT64_MIN);
         NUMBER_SUCCESS(FIXTURE_FROM_CHAR(&context, 1, &number), 2, 1);
         ARITHMETIC(FIXTURE_EQUALITY(&context, 0, &boolean), 3, !boolean);

@@ -273,3 +273,69 @@ fn nul_does_not_widen_string_operators_or_invalid_unicode_admission() {
         );
     }
 }
+
+#[test]
+fn native_concat_allocates_one_final_owner_and_copies_each_operand_once() {
+    let source = r#"module strings.concat_allocation;
+@id("s.main") fn main()->i64{string_len(string_concat("a\u{0}","\u{0}b"))}
+"#;
+    let generated = codegen::emit_c(&checked(source)).unwrap();
+    assert!(generated.contains("string length overflow"));
+    assert!(generated.contains("string allocation length overflow"));
+    let probe = format!(
+        r#"{STDIO}
+{OBSERVER}
+static size_t fixture_copy_calls, fixture_copy_bytes;
+static void *fixture_concat_memcpy(void *output, const void *input, size_t length) {{
+    ++fixture_copy_calls; fixture_copy_bytes += length;
+    return memcpy(output, input, length);
+}}
+#define memcpy fixture_concat_memcpy
+{generated}
+#undef memcpy
+#undef malloc
+#undef free
+int main(void) {{
+    REQUIRE(fixture_binary_stdout());
+    const struct {{ const char *left; uint64_t left_len; const char *right; uint64_t right_len; bool same; }} cases[] = {{
+        {{"", 0, "", 0, false}},
+        {{"", 0, "\0tail", 5, false}},
+        {{"a\0", 2, "", 0, false}},
+        {{"a\0", 2, "\0b", 2, false}},
+        {{"\xef\xbb\xbf\xc3\xa9", 5, "\0\xf0\x9f\x98\x80", 5, false}},
+        {{"a\0b", 3, "a\0b", 3, true}}
+    }};
+    for (unsigned repeat = 0; repeat < 32; ++repeat) {{
+        for (size_t index = 0; index < sizeof cases / sizeof cases[0]; ++index) {{
+            char *left = spx_string_from_literal(cases[index].left, cases[index].left_len);
+            char *right = cases[index].same ? left : spx_string_from_literal(cases[index].right, cases[index].right_len);
+            size_t before = fixture_allocations, freed = fixture_frees, live = fixture_live;
+            fixture_copy_calls = 0; fixture_copy_bytes = 0;
+            char *result = spx_string_concat(left, right);
+            uint64_t length = cases[index].left_len + cases[index].right_len;
+            REQUIRE(fixture_allocations == before + 1 && fixture_frees == freed && fixture_live == live + 1);
+            REQUIRE(fixture_copy_bytes == length);
+            REQUIRE(fixture_copy_calls == (size_t)(cases[index].left_len != 0) + (size_t)(cases[index].right_len != 0));
+            REQUIRE(result != left && result != right && spx_string_length_v10(result) == length);
+            size_t allocated_size = 0;
+            for (size_t slot = 0; slot < 512; ++slot)
+                if (fixture_table[slot].pointer == spx_string_header_v10(result)) allocated_size = fixture_table[slot].size;
+            REQUIRE(allocated_size == offsetof(struct spx_string_v10, data) + (size_t)length + 1u);
+            REQUIRE(memcmp(result, cases[index].left, (size_t)cases[index].left_len) == 0);
+            REQUIRE(memcmp(result + cases[index].left_len, cases[index].right, (size_t)cases[index].right_len) == 0);
+            REQUIRE(result[length] == '\0');
+            REQUIRE(spx_string_length_v10(left) == cases[index].left_len && memcmp(left, cases[index].left, (size_t)cases[index].left_len) == 0);
+            REQUIRE(spx_string_length_v10(right) == cases[index].right_len && memcmp(right, cases[index].right, (size_t)cases[index].right_len) == 0);
+            spx_string_drop(result);
+            if (!cases[index].same) spx_string_drop(right);
+            spx_string_drop(left);
+            REQUIRE(fixture_live == 0 && fixture_allocations == fixture_frees);
+        }}
+    }}
+    (void)puts("native-ordinary-strings-settled");
+    return 0;
+}}
+"#
+    );
+    compile_and_run("concat-single-allocation", &probe, false);
+}

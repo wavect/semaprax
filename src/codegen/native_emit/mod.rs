@@ -1397,18 +1397,18 @@ static __attribute__((unused)) char *spx_string_concat(char *left, char *right) 
     uint64_t left_len = spx_string_length_v10(left), right_len = spx_string_length_v10(right);
     if (right_len > UINT64_MAX - left_len) spx_runtime_invariant_failure("string length overflow");
     uint64_t joined_len = left_len + right_len;
-    char *joined;
-    if (joined_len == UINT64_C(0)) joined = spx_string_from_literal("", UINT64_C(0));
-    else {
-        if (joined_len > (uint64_t)SIZE_MAX) spx_runtime_invariant_failure("string length overflow");
-        char *temporary = (char *)malloc((size_t)joined_len);
-        if (temporary == NULL) spx_runtime_invariant_failure("string allocation failed");
-        if (left_len != UINT64_C(0)) memcpy(temporary, left, (size_t)left_len);
-        if (right_len != UINT64_C(0)) memcpy(temporary + left_len, right, (size_t)right_len);
-        joined = spx_string_from_literal(temporary, joined_len);
-        free(temporary);
-    }
-    return joined;
+    if (joined_len > (uint64_t)SIZE_MAX) spx_runtime_invariant_failure("string length overflow");
+    if (joined_len > (uint64_t)SIZE_MAX - (uint64_t)offsetof(struct spx_string_v10, data) - UINT64_C(1))
+        spx_runtime_invariant_failure("string allocation length overflow");
+    struct spx_string_v10 *joined = (struct spx_string_v10 *)malloc(
+        offsetof(struct spx_string_v10, data) + (size_t)joined_len + 1u
+    );
+    if (joined == NULL) spx_runtime_invariant_failure("string allocation failed");
+    joined->len = joined_len;
+    if (left_len != UINT64_C(0)) memcpy(joined->data, left, (size_t)left_len);
+    if (right_len != UINT64_C(0)) memcpy(joined->data + left_len, right, (size_t)right_len);
+    joined->data[joined_len] = '\0';
+    return joined->data;
 }
 "#;
 

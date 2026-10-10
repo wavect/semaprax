@@ -83,7 +83,7 @@ static void private_emitted_functions(void) {
     before = fixture_allocations;
     status = FIXTURE_PRIVATE_INTRINSIC(&semantic, 0, &number);
     REQUIRE(status != 0 && number == INT64_MIN);
-    REQUIRE(fixture_allocations - before == 5 && fixture_live == 0);
+    REQUIRE(fixture_allocations - before == 4 && fixture_live == 0); /* no concat scratch allocation */
     REQUIRE(FIXTURE_PRIVATE_INTRINSIC(&semantic, 1, &number) == 0 && number == 9);
     REQUIRE(fixture_live == 0);
     bool boolean = false;

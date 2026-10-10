@@ -88,7 +88,7 @@ static void exercise(spx_context_v1 *context) {
         FAILURE(CALL(loop, 2), 3);
         SUCCESS(CALL(loop, 10), 5, input, sizeof(input));
         SUCCESS(VALUE(clone), 6, input, sizeof(input));
-        SUCCESS(VALUE(concat), 6, input, sizeof(input));
+        SUCCESS(VALUE(concat), 5, input, sizeof(input)); /* no concat scratch allocation */
         SUCCESS(VALUE(nul), 7, input, sizeof(input));
         /* Empty String still allocates its header; empty Bytes has a real
          * handle but no payload allocation. Closing the context is no oracle. */

@@ -19,6 +19,21 @@ acceptance. Native and interpreter routes remain eligible. All paid failures
 remain in the attempted-task and cost denominators; calibration stays separate.
 No expanded acceptance is assigned retroactively to an older result.
 
+Fresh Codex plans also require `--compiler-build-receipt /absolute/build/receipt.json`
+in addition to `--compiler-source-ref` and `--semaprax-bin`. The receipt uses
+`semaprax.loglens.compiler-build.v1` and has exactly these fields:
+`schema`, `compiler_source_commit` (resolved 40-character Git commit),
+`compiler_binary_sha256`, `build_command` (the actual argument array), and
+`build_log` (`path`, relative to the receipt directory, plus `sha256`). Retain the
+actual build log alongside the receipt. The plan binds those exact bytes and
+rechecks them and the binary before calibration and each paid dispatch.
+
+This caller-supplied receipt binds bytes; it does not authenticate a hosted
+build or publication. Independently retain and verify the hosted run, checked
+source, build command, downloaded artifact and binary hash before attributing
+that compiler to the source. Existing saved rounds and offline recounts remain
+unchanged; a new compiler requires fresh full 49-case qualification.
+
 Offline gates (no provider calls):
 
 ```sh

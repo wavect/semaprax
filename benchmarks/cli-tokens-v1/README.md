@@ -155,3 +155,8 @@ public-input guards, trace reconciliation, source hashes, and recorded evidence.
 Future matched runs may opt into a pinned dependency-only TypeScript toolchain
 with `--typescript-bootstrap-receipt`; setup instructions and provenance limits
 are in [LIVE-CAMPAIGN.md](LIVE-CAMPAIGN.md). Historical trials remain unchanged.
+
+Fresh Codex plans require `--compiler-build-receipt` to bind the selected compiler
+source, binary, actual build command and retained log. This is a byte binding;
+independent hosted-build provenance still needs verification. See
+[LIVE-CAMPAIGN.md](LIVE-CAMPAIGN.md). Saved historical recounts are unchanged.

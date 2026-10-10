@@ -52,6 +52,10 @@ fn every_legacy_marker_reports_one_exact_closed_profile() {
             ProjectProfile::StdinStreamCollectionRecordCommandIoV1,
         ),
         (
+            PreparedProjectAdmission::StdinStreamNestedOutcomeCommandIoV1,
+            ProjectProfile::StdinStreamNestedOutcomeCommandIoV1,
+        ),
+        (
             PreparedProjectAdmission::StdinStreamCommandIoV2,
             ProjectProfile::StdinStreamCommandIoV2,
         ),

@@ -1299,6 +1299,7 @@ pub(super) fn project_effects_admitted(
                 | crate::project::ProjectProfile::StdinStreamDataCommandIoV2
                 | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1
+                | crate::project::ProjectProfile::StdinStreamNestedOutcomeCommandIoV1
                 | crate::project::ProjectProfile::LineCommandIoV1
         ) && effects.iter().all(|effect| {
             matches!(
@@ -1369,6 +1370,7 @@ pub(super) fn permits_admitted(
                 | crate::project::ProjectProfile::StdinStreamDataCommandIoV2
                 | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1
+                | crate::project::ProjectProfile::StdinStreamNestedOutcomeCommandIoV1
                 | crate::project::ProjectProfile::LineCommandIoV1
         ) && module.module == entry_module
             && module.permits

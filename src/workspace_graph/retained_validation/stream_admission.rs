@@ -24,7 +24,8 @@ pub(in crate::workspace_graph) fn owned_stream_entry(
         | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
         | crate::project::ProjectProfile::StdinStreamDataCommandIoV2
         | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
-        | crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1 => {
+        | crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1
+        | crate::project::ProjectProfile::StdinStreamNestedOutcomeCommandIoV1 => {
             build.linked_owned_data_api_program_with_roots(entry_module, &[])?
         }
         _ => return Ok(None),
@@ -44,6 +45,9 @@ pub(in crate::workspace_graph) fn owned_stream_entry(
         }
         crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1 => {
             hir::validate_stream_collection_record_program(&linked, None)
+        }
+        crate::project::ProjectProfile::StdinStreamNestedOutcomeCommandIoV1 => {
+            hir::validate_stream_nested_outcome_program(&linked, None)
         }
         _ => unreachable!("non-stream profile returned above"),
     }
@@ -65,6 +69,7 @@ pub(in crate::workspace_graph) fn owned_stream_command(
         crate::project::ProjectProfile::StdinStreamDataCommandIoV2 => "records",
         crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1 => "owned data",
         crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1 => "collection records",
+        crate::project::ProjectProfile::StdinStreamNestedOutcomeCommandIoV1 => "nested outcomes",
         _ => return Ok(None),
     };
     if additional_roots.is_empty() {
@@ -96,6 +101,9 @@ pub(in crate::workspace_graph) fn owned_stream_command(
         crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1 => {
             collection_record_command_program(&mut linked, command)
         }
+        crate::project::ProjectProfile::StdinStreamNestedOutcomeCommandIoV1 => {
+            nested_outcome_command_program(&mut linked, command)
+        }
         _ => unreachable!("non-stream profile returned above"),
     }
     .map_err(|error| vec![error])?;
@@ -121,6 +129,12 @@ pub(in crate::workspace_graph) fn stream_test_program(
         }
         crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1 => {
             build.linked_stream_collection_record_test_program(test_module)
+        }
+        crate::project::ProjectProfile::StdinStreamNestedOutcomeCommandIoV1 => {
+            let linked = build.linked_stream_collection_record_test_program(test_module)?;
+            hir::validate_stream_nested_outcome_program(&linked, None)
+                .map_err(|error| vec![error])?;
+            Ok(linked)
         }
         crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
             build.linked_stream_data_test_program(test_module)
@@ -155,7 +169,8 @@ pub(in crate::workspace_graph) fn command_link(
     let link = match profile {
         crate::project::ProjectProfile::StdinStreamDataCommandIoV2
         | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
-        | crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1 => {
+        | crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1
+        | crate::project::ProjectProfile::StdinStreamNestedOutcomeCommandIoV1 => {
             return Err(super::super::graph_error(
                 "SPX-G172",
                 "stream record linking requires authenticated declaration facts",
@@ -187,7 +202,8 @@ pub(in crate::workspace_graph) fn entry_link(
     let link = match profile {
         crate::project::ProjectProfile::StdinStreamDataCommandIoV2
         | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
-        | crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1 => {
+        | crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1
+        | crate::project::ProjectProfile::StdinStreamNestedOutcomeCommandIoV1 => {
             return Err(super::super::graph_error(
                 "SPX-G172",
                 "stream record linking requires authenticated declaration facts",
@@ -335,15 +351,50 @@ pub(in crate::workspace_graph) fn collection_record_command_program(
     hir::validate(program)
 }
 
+pub(in crate::workspace_graph) fn nested_outcome_command_program(
+    program: &mut hir::ResolvedProgram,
+    command: &str,
+) -> Result<(), crate::diagnostic::Diagnostic> {
+    let command = hir::DeclarationId::new(command);
+    hir::validate_stream_nested_outcome_program(program, Some(&command))?;
+    crate::command_io_ops::validate_operation_profile(
+        program,
+        &command,
+        crate::command_io_ops::CommandOperationProfile::StdinStreamV1,
+    )?;
+    program.permits = crate::project::PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2
+        .iter()
+        .map(|effect| (*effect).to_owned())
+        .collect();
+    hir::validate(program)
+}
+
 /// Frozen stream profiles refuse new runtime carriers even in unused helpers.
 /// Logical schema declarations alone carry no runtime authority.
 pub(in crate::workspace_graph) fn reject_unselected_owned_collections(
     profile: crate::project::ProjectProfile,
     modules: &[super::WorkspaceResolvedModule],
 ) -> Result<(), Vec<crate::diagnostic::Diagnostic>> {
+    if profile != crate::project::ProjectProfile::StdinStreamNestedOutcomeCommandIoV1 {
+        for module in modules {
+            for function in &module.functions {
+                if hir::collection_outcome::nested::function_requires_profile_by(
+                    function,
+                    |id| modules.iter().flat_map(|provider| &provider.types).find(|ty| &ty.id == id),
+                ) {
+                    return Err(vec![super::super::project_function_error(
+                        module,
+                        "nested outcome runtime requires the explicitly selected language-command-io.nested-outcome.v1 profile",
+                        Some(function.span),
+                    )]);
+                }
+            }
+        }
+    }
     // Check every retained module before reachability crops unused helpers.
     if profile.is_stdin_stream()
         && profile != crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1
+        && profile != crate::project::ProjectProfile::StdinStreamNestedOutcomeCommandIoV1
     {
         for module in modules {
             for function in &module.functions {
@@ -362,6 +413,7 @@ pub(in crate::workspace_graph) fn reject_unselected_owned_collections(
     if !profile.is_stdin_stream()
         || profile == crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
         || profile == crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1
+        || profile == crate::project::ProjectProfile::StdinStreamNestedOutcomeCommandIoV1
     {
         return Ok(());
     }

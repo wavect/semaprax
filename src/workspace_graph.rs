@@ -1477,7 +1477,7 @@ impl WorkspaceGraphBuild {
             | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
             | crate::project::ProjectProfile::StdinStreamDataCommandIoV2
             | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
-            | crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1 => {
+            | P::StdinStreamCollectionRecordCommandIoV1 | P::StdinStreamNestedOutcomeCommandIoV1 => {
                 // The selected command is retained separately from this pure entry.
                 retained_validation::entry_link(
                     profile,
@@ -1700,7 +1700,7 @@ impl WorkspaceGraphBuild {
             | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
             | crate::project::ProjectProfile::StdinStreamDataCommandIoV2
             | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
-            | crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1 => {
+            | P::StdinStreamCollectionRecordCommandIoV1 | P::StdinStreamNestedOutcomeCommandIoV1 => {
                 let [command_id] = additional_roots else {
                     return Err(vec![graph_error(
                         "SPX-G172",
@@ -1833,7 +1833,7 @@ impl WorkspaceGraphBuild {
                 | crate::project::ProjectProfile::StdinStreamDataCommandIoV1
                 | crate::project::ProjectProfile::StdinStreamDataCommandIoV2
                 | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
-                | crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1 => {
+                | P::StdinStreamCollectionRecordCommandIoV1 | P::StdinStreamNestedOutcomeCommandIoV1 => {
                     (hir::ResolvedType::I64, "i64")
                 }
                 _ => (hir::ResolvedType::Bool, "bool"),
@@ -2012,7 +2012,7 @@ impl WorkspaceGraphBuild {
                     profile,
                     crate::project::ProjectProfile::StdinStreamDataCommandIoV2
                         | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
-                        | crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1
+                        | P::StdinStreamCollectionRecordCommandIoV1 | P::StdinStreamNestedOutcomeCommandIoV1
                 ) && retained_validation::record_project_shape(module))
                 || matches!(profile, crate::project::ProjectProfile::ScalarV1)
                 || (module.types.is_empty()
@@ -2071,7 +2071,7 @@ impl WorkspaceGraphBuild {
                 || profile == crate::project::ProjectProfile::StdinStreamDataCommandIoV1
                 || profile == crate::project::ProjectProfile::StdinStreamDataCommandIoV2
                 || profile == crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
-                || profile == crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1
+                || profile == P::StdinStreamCollectionRecordCommandIoV1 || profile == P::StdinStreamNestedOutcomeCommandIoV1
             {
                 continue;
             }
@@ -2092,7 +2092,7 @@ impl WorkspaceGraphBuild {
                     }
                     crate::project::ProjectProfile::StdinStreamDataCommandIoV2
                     | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
-                    | crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1 => false,
+                    | P::StdinStreamCollectionRecordCommandIoV1 | P::StdinStreamNestedOutcomeCommandIoV1 => false,
                     crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
                         hir::stream_data_parameter_admitted(parameter)
                     }
@@ -2145,7 +2145,7 @@ impl WorkspaceGraphBuild {
                     }
                     crate::project::ProjectProfile::StdinStreamDataCommandIoV2
                     | crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
-                    | crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1 => false,
+                    | P::StdinStreamCollectionRecordCommandIoV1 | P::StdinStreamNestedOutcomeCommandIoV1 => false,
                     crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
                         hir::stream_text_return_admitted(&function.return_type)
                     }

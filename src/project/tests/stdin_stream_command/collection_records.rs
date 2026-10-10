@@ -274,3 +274,112 @@ fn v29_and_v30_reject_unused_nested_collection_helpers_before_module_cropping() 
         }
     }
 }
+
+#[test]
+fn pre_v32_profiles_reject_unused_nested_outcome_runtime_with_exact_route_hint() {
+    let nested_outcome = r#"module collection.data;
+@id("n.Payload") record Payload { @id("n.Payload.label") label:string, }
+@id("n.Outcome") variant Outcome {
+ @id("n.Outcome.ready") Ready { @id("n.Outcome.value") value:Payload, },
+ @id("n.Outcome.error") Error { @id("n.Outcome.code") code:i64, @id("n.Outcome.offset") offset:usize, @id("n.Outcome.field") field:i64, },
+}
+
+#[test]
+fn v32_nested_outcome_project_route_executes_native_command() {
+    let root = fixture(PROJECT_PROFILE_STDIN_STREAM_NESTED_OUTCOME_COMMAND_IO_V1, false);
+    let app = r#"module collection.app;
+use function @id("n.decide") from collection.data as decide;
+permit {process.args.read,process.stderr.write,process.stdin.read,process.stdout.write}
+@id("collection.app.main") fn main()->i64 {if decide()==12 {0}else{1}}
+@id("collection.command") fn command()->i64 uses {process.stdin.read,process.stdout.write} {
+ let mut reader=stdin_stream_open();
+ let mut saw_input=false;
+ while !stdin_stream_eof(reader) {let chunk=stdin_stream_chunk(reader); saw_input=byte_len(chunk)>0usize; reader=stdin_stream_next(reader); 0}
+ let score=decide();
+ if saw_input {let text=string_from_i64(score); let view=string_as_str(text); let written=stdout_write(str_as_bytes(view)); 0}else{1}
+}
+"#;
+    let data = r#"module collection.data;
+@id("n.Payload") record Payload { @id("n.Payload.label") label:string, }
+@id("n.Outcome") variant Outcome {
+ @id("n.Outcome.ready") Ready { @id("n.Outcome.value") value:Payload, },
+ @id("n.Outcome.error") Error { @id("n.Outcome.code") code:i64, @id("n.Outcome.offset") offset:usize, @id("n.Outcome.field") field:i64, },
+}
+@id("n.forward") fn forward(value:own Outcome)->Outcome {value}
+@id("n.decide") fn decide()->i64 {let result=forward(Outcome::Error{code:12,offset:0usize,field:0}); match own result {Outcome::Ready{value}=>0,Outcome::Error{code,offset,field}=>code,}}
+"#;
+    let tests = r#"module collection.tests;
+use function @id("n.decide") from collection.data as decide;
+@id("collection.tests.main") fn main()->i64 {if decide()==12 {0}else{1}}
+@id("collection.tests.case") fn test_nested_outcome()->i64 {if decide()==12 {0}else{1}}
+"#;
+    for (path, source) in [
+        ("a/app.spx", app),
+        ("b/data.spx", data),
+        ("c/tests.spx", tests),
+    ] {
+        std::fs::write(root.join(path), canonical_source(path, source)).unwrap();
+    }
+
+    let output = root.with_extension("native-v32-nested-outcome");
+    with_authenticated_project(&root.join(MANIFEST_FILE), |snapshot| {
+        assert_eq!(snapshot.manifest().schema(), PROJECT_SCHEMA_V32);
+        assert_eq!(
+            snapshot.manifest().project_profile(),
+            ProjectProfile::StdinStreamNestedOutcomeCommandIoV1
+        );
+        assert!(snapshot
+            .manifest()
+            .capabilities()
+            .iter()
+            .map(String::as_str)
+            .eq(PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2));
+        assert!(snapshot
+            .execute_entry(&ProjectExecutionOptions::default())?
+            .command_succeeded());
+        let cases = snapshot.execute_test(&ProjectExecutionOptions::default())?;
+        assert!(cases.command_succeeded());
+        assert_eq!(cases.cases().len(), 1);
+        snapshot.build_native(&output)?;
+        Ok(())
+    })
+    .unwrap();
+    let mut child = Command::new(&output)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child.stdin.take().unwrap().write_all(b"input").unwrap();
+    let result = child.wait_with_output().unwrap();
+    assert_eq!(result.status.code(), Some(0));
+    assert_eq!(result.stdout, b"12");
+    assert!(result.stderr.is_empty());
+    let _ = std::fs::remove_file(output);
+    let _ = std::fs::remove_dir_all(root);
+}
+@id("n.forward") fn forward(value:own Outcome)->Outcome {value}
+"#;
+    for profile in [
+        PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V2,
+        PROJECT_PROFILE_STDIN_STREAM_OWNED_DATA_COMMAND_IO_V1,
+        PROJECT_PROFILE_STDIN_STREAM_COLLECTION_RECORD_COMMAND_IO_V1,
+    ] {
+        let root = fixture(profile, false);
+        std::fs::write(
+            root.join("b/data.spx"),
+            canonical_source("b/data.spx", nested_outcome),
+        )
+        .unwrap();
+        let before = file_inventory(&root);
+        let errors =
+            with_authenticated_project(&root.join(MANIFEST_FILE), |_| Ok(())).unwrap_err();
+        assert!(errors.iter().any(|error| {
+            error.code == "SPX-G172"
+                && error.message
+                    == "nested outcome runtime requires the explicitly selected language-command-io.nested-outcome.v1 profile"
+        }), "{profile}: {errors:?}");
+        assert_eq!(file_inventory(&root), before, "{profile}");
+        let _ = std::fs::remove_dir_all(root);
+    }
+}

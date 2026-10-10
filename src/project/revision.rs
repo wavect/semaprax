@@ -462,6 +462,7 @@ impl ProjectRevision {
                 ProjectProfile::StdinStreamDataCommandIoV2 => "v29",
                 ProjectProfile::StdinStreamOwnedDataCommandIoV1 => "v30",
                 ProjectProfile::StdinStreamCollectionRecordCommandIoV1 => "v31",
+                ProjectProfile::StdinStreamNestedOutcomeCommandIoV1 => "v32",
                 ProjectProfile::LineCommandIoV1 => "v7",
                 ProjectProfile::OwnedDataApiV1 => "v8",
                 ProjectProfile::FlatOwnedRecordApiV1 => "v9",

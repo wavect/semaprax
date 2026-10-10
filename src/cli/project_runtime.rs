@@ -30,6 +30,7 @@ pub(crate) fn execute_held(
                         | project::ProjectProfile::StdinStreamDataCommandIoV2
                         | project::ProjectProfile::StdinStreamOwnedDataCommandIoV1
                         | project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1
+                        | project::ProjectProfile::StdinStreamNestedOutcomeCommandIoV1
                         | project::ProjectProfile::LineCommandIoV1
                         | project::ProjectProfile::NetworkCommandIoV1
                         | project::ProjectProfile::HttpsCommandIoV1

@@ -62,6 +62,11 @@ pub const PROJECT_PROFILE_STDIN_STREAM_COLLECTION_RECORD_COMMAND_IO_V1: &str =
     "language-command-io.collection-record.v1";
 /// Semantic Project schema selected by the collection-record command profile.
 pub const PROJECT_SCHEMA_V31: &str = "semaprax.project.v31";
+/// Successor native command profile for bounded nested outcomes.
+pub const PROJECT_PROFILE_STDIN_STREAM_NESTED_OUTCOME_COMMAND_IO_V1: &str =
+    "language-command-io.nested-outcome.v1";
+/// Semantic Project schema selected by the nested-outcome command profile.
+pub const PROJECT_SCHEMA_V32: &str = "semaprax.project.v32";
 pub const PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2: &str = "language-command-io.stream.v2";
 pub const PROJECT_PROFILE_LINE_COMMAND_IO_V1: &str = "line-command-io.v1";
 pub const PROJECT_PROFILE_NETWORK_COMMAND_IO_V1: &str = "network-command-io.v1";
@@ -147,6 +152,7 @@ pub enum ProjectProfile {
     StdinStreamDataCommandIoV2,
     StdinStreamOwnedDataCommandIoV1,
     StdinStreamCollectionRecordCommandIoV1,
+    StdinStreamNestedOutcomeCommandIoV1,
     LineCommandIoV1,
     NetworkCommandIoV1,
     HttpsCommandIoV1,
@@ -177,6 +183,7 @@ impl ProjectProfile {
                 | Self::StdinStreamDataCommandIoV2
                 | Self::StdinStreamOwnedDataCommandIoV1
                 | Self::StdinStreamCollectionRecordCommandIoV1
+                | Self::StdinStreamNestedOutcomeCommandIoV1
         )
     }
     pub(crate) const fn is_filesystem(self) -> bool {
@@ -248,6 +255,9 @@ impl ProjectProfile {
             }
             Self::StdinStreamCollectionRecordCommandIoV1 => {
                 Some(PROJECT_PROFILE_STDIN_STREAM_COLLECTION_RECORD_COMMAND_IO_V1)
+            }
+            Self::StdinStreamNestedOutcomeCommandIoV1 => {
+                Some(PROJECT_PROFILE_STDIN_STREAM_NESTED_OUTCOME_COMMAND_IO_V1)
             }
             Self::LineCommandIoV1 => Some(PROJECT_PROFILE_LINE_COMMAND_IO_V1),
             Self::NetworkCommandIoV1 => Some(PROJECT_PROFILE_NETWORK_COMMAND_IO_V1),

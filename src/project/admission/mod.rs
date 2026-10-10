@@ -50,6 +50,7 @@ pub(super) enum PreparedProjectAdmission {
     StdinStreamDataCommandIoV2,
     StdinStreamOwnedDataCommandIoV1,
     StdinStreamCollectionRecordCommandIoV1,
+    StdinStreamNestedOutcomeCommandIoV1,
     LineCommandIoV1,
     NetworkCommandIoV1,
     HttpsCommandIoV1,
@@ -94,6 +95,9 @@ impl PreparedProjectAdmission {
             }
             Self::StdinStreamCollectionRecordCommandIoV1 => {
                 ProjectProfile::StdinStreamCollectionRecordCommandIoV1
+            }
+            Self::StdinStreamNestedOutcomeCommandIoV1 => {
+                ProjectProfile::StdinStreamNestedOutcomeCommandIoV1
             }
             Self::LineCommandIoV1 => ProjectProfile::LineCommandIoV1,
             Self::NetworkCommandIoV1 => ProjectProfile::NetworkCommandIoV1,
@@ -283,6 +287,16 @@ pub(super) fn prepare(
             )?;
             stdin_stream_command::admit(program, manifest.command().unwrap_or(""), true)?;
             Ok(PreparedProjectAdmission::StdinStreamCollectionRecordCommandIoV1)
+        }
+        ProjectProfile::StdinStreamNestedOutcomeCommandIoV1 => {
+            crate::hir::validate_stream_nested_outcome_program(
+                program,
+                Some(&crate::hir::DeclarationId::new(
+                    manifest.command().unwrap_or(""),
+                )),
+            )?;
+            stdin_stream_command::admit(program, manifest.command().unwrap_or(""), true)?;
+            Ok(PreparedProjectAdmission::StdinStreamNestedOutcomeCommandIoV1)
         }
         ProjectProfile::LineCommandIoV1 => {
             legacy::line_command(program, manifest.command().unwrap_or(""))?;

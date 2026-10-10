@@ -340,6 +340,7 @@ fn derive_source_interface(
         | ProjectProfile::StdinStreamDataCommandIoV2
         | ProjectProfile::StdinStreamOwnedDataCommandIoV1
         | ProjectProfile::StdinStreamCollectionRecordCommandIoV1
+        | ProjectProfile::StdinStreamNestedOutcomeCommandIoV1
         | ProjectProfile::LineCommandIoV1
         | ProjectProfile::NetworkCommandIoV1
         | ProjectProfile::HttpsCommandIoV1

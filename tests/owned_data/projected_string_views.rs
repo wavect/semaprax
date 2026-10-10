@@ -101,11 +101,13 @@ fn projected_view_then_owned_staging_or_callee_failure_keeps_first_status_and_se
         ("staging","let value=make();let view=string_as_str(value.inner.text);let count=str_len_bytes(view);sink(value,boom())"),
         ("callee","let value=make();fail(value)"),
         ("range","let value=make();let bytes=str_as_bytes(string_as_str(value.inner.text));let invalid=byte_range(bytes,0usize,5usize);0"),
+        ("range-first","let value=make();let bytes=str_as_bytes(string_as_str(value.inner.text));let invalid=byte_range(bytes,0usize,5usize);boom()"),
+        ("arithmetic-first","let value=make();let bytes=str_as_bytes(string_as_str(value.inner.text));let ignored=boom();let invalid=byte_range(bytes,0usize,5usize);0"),
     ] {
         let source=format!("{prefix}\n@id(\"view.boom\") fn boom()->i64 {{9223372036854775807+1}}\n@id(\"view.fail\") fn fail(value:own Outer)->i64 {{let view=string_as_str(value.inner.text);let count=str_len_bytes(view);boom()}}\n@id(\"app.main\") fn main()->i64 {{{body}}}");
         let root=directory(label);let path=root.join("app.spx");std::fs::write(&path,&source).unwrap();
         let ast=semaprax::check(&source,&path).unwrap();
-        let (domain,code,status)=if label=="range" {("semaprax.byte-range.v1",2,"12")}else{("semaprax.arithmetic.v1",1,"1")};
+        let (domain,code,status)=if label.starts_with("range") {("semaprax.byte-range.v1",2,"12")}else{("semaprax.arithmetic.v1",1,"1")};
         for _ in 0..3 {
             let result=interpreter::interpret(&path,"app.main",&[],&interpreter::InterpreterOptions::default()).unwrap();
             assert!(!result.returned,"{}",result.envelope);

@@ -245,3 +245,53 @@ fn old_profiles_and_generic_or_unidentified_paths_gain_no_authority() {
         ]
     ));
 }
+
+#[test]
+fn inline_projected_string_readers_replay_full_root_paths_and_refuse_forged_views() {
+    let source = format!("{}\n@id(\"view.inline\") fn inline(value:borrow Outer)->i64 {{i64_from_usize(byte_len(str_as_bytes(string_as_str(value.inner.text))))}}", SOURCE.replace("str_len_bytes(text)", "str_len_bytes(string_as_str(value.inner.text))"));
+    let ast = crate::check(&source, "inline-projected.spx").unwrap();
+    let canonical = crate::format::canonical(&ast);
+    assert_eq!(
+        crate::format::canonical(&crate::check(&canonical, "inline-round.spx").unwrap()),
+        canonical
+    );
+    let program = checked(&source);
+    hir::validate(&program).unwrap();
+    crate::codegen::emit_hir_c(&program).unwrap();
+    wasmparser::Validator::new()
+        .validate_all(&crate::wasm::emit_resolved_module(&program).unwrap())
+        .unwrap();
+    let wire = crate::cache_codec::encode(&program).unwrap();
+    let restored: ResolvedProgram = crate::cache_codec::decode(&wire).unwrap();
+    hir::validate(&restored).unwrap();
+    let graph = crate::graph::to_json(&ast).unwrap();
+    crate::graph::verify_json(&ast, &graph).unwrap();
+    for mode in 0..3 {
+        let mut hostile = restored.clone();
+        let function = hostile
+            .functions
+            .iter_mut()
+            .find(|f| f.id.as_str() == "view.inline")
+            .unwrap();
+        let ResolvedExprKind::Block { tail, .. } = &mut function.body.kind else {
+            panic!("body");
+        };
+        let ResolvedExprKind::Call { args, .. } = &mut tail.kind else {
+            panic!("widen");
+        };
+        let ResolvedExprKind::Call { args, .. } = &mut args[0].kind else {
+            panic!("length");
+        };
+        let ResolvedExprKind::BorrowPlace { operation, place } = &mut args[0].kind else {
+            panic!("fused view");
+        };
+        match mode {
+            0 => place.root = hir::ValueId::new("forged.inline.root".to_owned()),
+            1 => {
+                place.projections.pop();
+            }
+            _ => *operation = DeclarationId::new(crate::byte_ops::BYTES_AS_SLICE_ID),
+        }
+        rejected(&hostile);
+    }
+}

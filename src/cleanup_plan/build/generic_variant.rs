@@ -1,5 +1,6 @@
 //! Canonical owned-result join for an owning `match`: an exact authored
-//! generic variant template, or any `match` whose arms yield `string`.
+//! generic variant template, an authenticated finite collection outcome, or
+//! any `match` whose arms yield `string`.
 use super::*;
 
 pub(super) fn destination(
@@ -16,6 +17,9 @@ pub(super) fn destination(
     // An owned `string` arm result is one uniquely owned leaf whatever the
     // scrutinee: each reached arm transfers it into this join slot.
     if expression.ty == ResolvedType::String {
+        return builder.expression_slot(expression, region);
+    }
+    if crate::hir::collection_outcome::match_join(&builder.program.declarations, expression) {
         return builder.expression_slot(expression, region);
     }
     if !crate::hir::generic_variant::match_result(
@@ -119,6 +123,60 @@ module cleanup.generic.variant;
                 )
                 .is_err());
             }
+        }
+    }
+
+    #[test]
+    fn finite_owned_collection_join_matches_both_oracles_and_refuses_borrowed_publication() {
+        let source = r#"
+module cleanup.collection.join;
+@id("out") variant Output {
+ @id("out.ok") Ready { @id("out.words") words:Vec<string>, },
+ @id("out.bad") Invalid { @id("out.code") code:i64,@id("out.offset") offset:usize,@id("out.field") field:i64, },
+}
+@id("rebuild") fn rebuild(value:own Output)->Output {
+ match own value {
+  Output::Ready{words}=>Output::Ready{words:words},
+  Output::Invalid{code,offset,field}=>Output::Invalid{code:code,offset:offset,field:field},
+ }
+}
+@id("main") fn main()->i64 {0}
+"#;
+        let ast = crate::check(source, "cleanup-collection-join.spx").unwrap();
+        let program = crate::hir::resolve(&ast).unwrap();
+        let function = program
+            .functions
+            .iter()
+            .find(|f| f.id.as_str() == "rebuild")
+            .unwrap();
+        assert_expression_lowering_oracle(&program, function, &function.body);
+        assert_eq!(
+            build_plan(&program, function).unwrap(),
+            function.cleanup_plan
+        );
+        let ResolvedExprKind::Block { tail, .. } = &function.body.kind else {
+            panic!("body");
+        };
+        let mut hostile = tail.as_ref().clone();
+        let ResolvedExprKind::Match { mode, .. } = &mut hostile.kind else {
+            panic!("match");
+        };
+        *mode = ResolvedMatchMode::Borrow;
+        for lower in [
+            PlanBuilder::lower_expr_iterative,
+            PlanBuilder::lower_expr_recursive_reference,
+        ] {
+            let mut builder = PlanBuilder::new(&program, function).unwrap();
+            let state = builder.initial_state.clone();
+            let error = lower(
+                &mut builder,
+                &hostile,
+                BlockId(0),
+                state,
+                CleanupRegionId(0),
+            )
+            .unwrap_err();
+            assert_eq!(error.code, "SPX-H006");
         }
     }
 }

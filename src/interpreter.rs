@@ -5733,6 +5733,20 @@ fn verify_status(status: &serde_json::Value) -> Result<(), Diagnostic> {
                 ));
             }
         }
+        Some(crate::byte_ops::RANGE_STATUS_DOMAIN) => {
+            if ![
+                crate::byte_ops::RANGE_START_AFTER_END_CODE,
+                crate::byte_ops::RANGE_END_OUT_OF_BOUNDS_CODE,
+            ]
+            .into_iter()
+            .any(|known| code == u64::from(known))
+            {
+                return Err(consistency_error(
+                    "byte-range status code is outside the closed v1 table".to_owned(),
+                ));
+            }
+            normalize_byte_range(u32::try_from(code).expect("finite byte-range code")).to_json()
+        }
         Some(crate::string_ops::CONVERT_STATUS_DOMAIN) => {
             string_operations::rebuild_conversion_status(code)?
         }

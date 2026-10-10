@@ -101,6 +101,48 @@ impl<'a> HirValidator<'a> {
         Ok(())
     }
 
+    /// The expression walker has already checked the argument. Recheck its
+    /// exact view root at the call boundary, including admitted String fields;
+    /// a cached Slice type or a projection path alone cannot authorize a borrow.
+    pub(super) fn validate_byte_slice_call_argument(
+        &self,
+        argument: &ResolvedExpr,
+        scope: &BTreeMap<ValueId, ValidationBinding>,
+    ) -> Result<(), Diagnostic> {
+        match &argument.kind {
+            ResolvedExprKind::VecFieldRead { .. } => Ok(()),
+            ResolvedExprKind::Place(place)
+                if place.projections.is_empty()
+                    && self.byte_slice_aliases.contains_key(&place.root) =>
+            {
+                Ok(())
+            }
+            ResolvedExprKind::BorrowPlace { operation, place } => {
+                if place.projections.is_empty() {
+                    return Ok(());
+                }
+                let operation = crate::byte_ops::by_id(operation.as_str())
+                    .filter(|op| op.return_type() == ResolvedType::SliceU8)
+                    .ok_or_else(|| {
+                        hir_error("byte-slice call argument has no exact view operation")
+                    })?;
+                self.validate_byte_view_place(operation, place, argument.span, scope)
+            }
+            ResolvedExprKind::ByteRange {
+                operation, source, ..
+            } if operation.as_str() == crate::byte_ops::RANGE_ID
+                && matches!(&source.kind, ResolvedExprKind::Place(place)
+                        if place.projections.is_empty()
+                            && self.byte_slice_aliases.contains_key(&place.root)) =>
+            {
+                Ok(())
+            }
+            _ => Err(hir_error(
+                "byte-slice call argument lacks authenticated root provenance",
+            )),
+        }
+    }
+
     #[cfg(test)]
     pub(super) fn validate_borrowed_bytes_call_argument(
         &self,

@@ -182,6 +182,40 @@ fn owned_collection_match_join_replays_source_types_and_rejects_result_drift() {
     let mut forged = tail.as_ref().clone();
     forged.ownership = OwnershipMode::Value;
     assert!(!super::super::match_join(&program.declarations, &forged));
+    let wire = crate::cache_codec::encode(&program).unwrap();
+    let restored: ResolvedProgram = crate::cache_codec::decode(&wire).unwrap();
+    crate::hir::validate(&restored).unwrap();
+    assert_eq!(crate::cache_codec::encode(&restored).unwrap(), wire);
+    for mode in 0..3 {
+        let mut hostile = restored.clone();
+        let function = hostile
+            .functions
+            .iter_mut()
+            .find(|f| f.id.as_str() == "rebuild")
+            .unwrap();
+        let ResolvedExprKind::Block { tail, .. } = &mut function.body.kind else {
+            panic!("body");
+        };
+        match mode {
+            0 => tail.ty = ResolvedType::I64,
+            1 => {
+                let ResolvedExprKind::Match { mode, .. } = &mut tail.kind else {
+                    panic!("match");
+                };
+                *mode = ResolvedMatchMode::Borrow;
+            }
+            _ => {
+                let ResolvedExprKind::Match { arms, .. } = &mut tail.kind else {
+                    panic!("match");
+                };
+                arms[0].value.ownership = OwnershipMode::Value;
+            }
+        }
+        assert!(!super::super::match_join(&hostile.declarations, tail));
+        assert_eq!(crate::hir::validate(&hostile).unwrap_err().code, "SPX-H006");
+        assert!(crate::codegen::emit_hir_c(&hostile).is_err());
+        assert!(crate::wasm::emit_resolved_module(&hostile).is_err());
+    }
     let graph = crate::graph::to_json(&ast).unwrap();
     crate::graph::verify_json(&ast, &graph).unwrap();
 }

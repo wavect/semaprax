@@ -37,3 +37,31 @@ fn repeated_projected_views_do_not_charge_a_string_materialization() {
         )
     );
 }
+
+#[test]
+fn projected_byte_range_failures_keep_closed_compiler_statuses() {
+    for code in [
+        crate::byte_ops::RANGE_START_AFTER_END_CODE,
+        crate::byte_ops::RANGE_END_OUT_OF_BOUNDS_CODE,
+    ] {
+        let status = normalize_byte_range(code);
+        let document: serde_json::Value = serde_json::from_str(&status.to_json()).unwrap();
+        verify_status(&document).unwrap();
+        for (key, value) in [
+            ("code", serde_json::json!(0)),
+            ("code", serde_json::json!(3)),
+            ("code", serde_json::json!(4294967297u64)),
+            ("class", serde_json::json!("arithmetic")),
+            ("retryable", serde_json::json!(true)),
+            ("domain_id", serde_json::json!("foreign.byte-range")),
+        ] {
+            let mut hostile = document.clone();
+            hostile[key] = value;
+            assert_eq!(
+                verify_status(&hostile).unwrap_err().code,
+                "SPX-F106",
+                "{hostile}"
+            );
+        }
+    }
+}

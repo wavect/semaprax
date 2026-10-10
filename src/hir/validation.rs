@@ -3865,28 +3865,7 @@ impl<'a> HirValidator<'a> {
                         &scope,
                     )?;
                     if *param.ty == ResolvedType::SliceU8 {
-                        match &argument.kind {
-                            ResolvedExprKind::VecFieldRead { .. } => {}
-                            ResolvedExprKind::Place(place)
-                                if place.projections.is_empty()
-                                    && self.byte_slice_aliases.contains_key(&place.root) => {}
-                            ResolvedExprKind::BorrowPlace { place, .. }
-                                if place.projections.is_empty() => {}
-                            ResolvedExprKind::ByteRange {
-                                operation, source, ..
-                            } if operation.as_str() == crate::byte_ops::RANGE_ID
-                                && matches!(
-                                    &source.kind,
-                                    ResolvedExprKind::Place(place)
-                                        if place.projections.is_empty()
-                                            && self.byte_slice_aliases.contains_key(&place.root)
-                                ) => {}
-                            _ => {
-                                return Err(hir_error(
-                                    "byte-slice call argument lacks authenticated root provenance",
-                                ));
-                            }
-                        }
+                        self.validate_byte_slice_call_argument(argument, &scope)?;
                     }
                     if self.is_owned_resource(param.ty, param.ownership)? {
                         if !allow_moves {
@@ -6636,18 +6615,7 @@ impl<'a> HirValidator<'a> {
                         expression, argument, param, index, scope,
                     )?;
                     if param.ty == ResolvedType::SliceU8 {
-                        match &argument.kind {
-                            ResolvedExprKind::Place(place)
-                                if place.projections.is_empty()
-                                    && self.byte_slice_aliases.contains_key(&place.root) => {}
-                            ResolvedExprKind::BorrowPlace { place, .. }
-                                if place.projections.is_empty() => {}
-                            _ => {
-                                return Err(hir_error(
-                                    "byte-slice call argument lacks authenticated root provenance",
-                                ));
-                            }
-                        }
+                        self.validate_byte_slice_call_argument(argument, scope)?;
                     }
                     if self.argument_transfers(param)? {
                         if !allow_moves {

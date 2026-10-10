@@ -294,6 +294,11 @@ impl HirValidator<'_> {
                                 argument.ty != *ty || if *ty == ResolvedType::Str {
                                     argument.ownership != OwnershipMode::Borrow
                                     || !(matches!(&argument.kind, ResolvedExprKind::Place(place) if place.projections.is_empty())
+                                        || matches!(&argument.kind, ResolvedExprKind::BorrowPlace { operation, place }
+                                            if operation.as_str() == crate::byte_ops::STRING_AS_STR_ID
+                                                && (place.projections.is_empty()
+                                                    || crate::hir::projected_string_view::path_admitted(
+                                                        &self.program.declarations, &place.projections)))
                                         || matches!(&argument.kind, ResolvedExprKind::VecFieldRead { element, field, bytes: false, .. }
                                             if crate::hir::vec_field::field(&self.program.declarations, element, field)
                                                 .is_some_and(|selected| selected.result_type(false) == Some(ResolvedType::Str))))
@@ -307,7 +312,11 @@ impl HirValidator<'_> {
                         // return only Copy data and cannot retain their inputs.
                         pending.extend(args.iter().filter(|argument| {
                             argument.ty != ResolvedType::Str
-                                || matches!(argument.kind, ResolvedExprKind::VecFieldRead { .. })
+                                || matches!(
+                                    argument.kind,
+                                    ResolvedExprKind::VecFieldRead { .. }
+                                        | ResolvedExprKind::BorrowPlace { .. }
+                                )
                         }));
                         continue;
                     }

@@ -47,6 +47,31 @@ pub(super) fn module_uses_stream(source: &Program, programs: &[Program]) -> bool
         })
 }
 
+/// Imported signature prototypes select the same Vec prelude as authored types.
+/// Provider bodies and retained HIR facts do not grant declaration authority.
+fn module_imports_vec_signature(source: &Program, programs: &[Program]) -> bool {
+    fn uses(ty: &crate::ast::Type) -> bool {
+        match ty {
+            crate::ast::Type::Named { name, arguments } => {
+                name == "Vec" || arguments.iter().any(uses)
+            }
+            _ => false,
+        }
+    }
+    source.module_uses.iter().any(|import| {
+        import.kind == ModuleUseKind::Function
+            && programs
+                .iter()
+                .filter(|p| p.module == import.target_module)
+                .flat_map(|p| &p.functions)
+                .any(|function| {
+                    function.stable_id == import.persistent_id
+                        && (uses(&function.return_type)
+                            || function.params.iter().any(|param| uses(&param.ty)))
+                })
+    })
+}
+
 pub(super) fn ids(programs: &[Program], resolved_record_iterator: bool) -> BTreeSet<&'static str> {
     if programs.iter().any(crate::map_ops::program_uses) {
         let mut ids = prelude::all_type_ids_v9()
@@ -195,6 +220,7 @@ pub(super) fn expected_module_declaration_facts(
     let collections = collection_selection::module_uses(source, programs);
     let mut facts = expected_declaration_facts_for(
         prelude::program_uses_vec(source)
+            || module_imports_vec_signature(source, programs)
             || owned_generics::program_imports_vec_wrapper(source, programs),
         prelude::program_uses_box(source)
             || owned_generics::program_imports_box_wrapper(source, programs),
@@ -265,6 +291,41 @@ mod tests {
         WorkspaceSource {
             path: path.to_owned(),
             source: format::canonical(&parsed),
+        }
+    }
+
+    #[test]
+    fn direct_imported_vec_signatures_select_only_exact_provider_authority() {
+        let provider = crate::parse(
+            r#"module rows;
+@id("row") record Row { @id("row.n") n:i64, }
+@id("rows.make") fn make()->Vec<Row>{vec_with_capacity<Row>(0usize)}
+@id("rows.first") fn first(values:borrow Vec<Row>)->Row{vec_get<Row>(values,0usize)}
+@id("rows.scalar") fn scalar()->i64{0}
+"#,
+            "rows.spx",
+        )
+        .unwrap();
+        for id in ["rows.make", "rows.first"] {
+            let app = crate::parse(&format!("module app; use function @id(\"{id}\") from rows as imported; @id(\"app.main\") fn main()->i64{{0}}"), "app.spx").unwrap();
+            let facts =
+                expected_module_declaration_facts(&app, std::slice::from_ref(&provider), false)
+                    .unwrap();
+            assert!(facts.contains_key(prelude::VEC_ID));
+            assert!(!facts.contains_key(crate::stdin_stream_ops::READER_ID));
+        }
+        // An unrelated provider body containing Vec, absent identity, or wrong
+        // provider cannot select the imported signature's declaration inventory.
+        for (id, module) in [
+            ("rows.scalar", "rows"),
+            ("rows.absent", "rows"),
+            ("rows.make", "other"),
+        ] {
+            let app = crate::parse(&format!("module app; use function @id(\"{id}\") from {module} as imported; @id(\"app.main\") fn main()->i64{{0}}"), "app.spx").unwrap();
+            let facts =
+                expected_module_declaration_facts(&app, std::slice::from_ref(&provider), false)
+                    .unwrap();
+            assert!(!facts.contains_key(prelude::VEC_ID));
         }
     }
 

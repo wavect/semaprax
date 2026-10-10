@@ -13,3 +13,22 @@ fn servers_by_id(servers: own Vec<Server>) -> Vec<Server>
 {
     vec_sort_owned<Server>(servers)
 }
+
+@id("shiftsim.order.unique_sorted_server_ids")
+fn sorted_servers_have_unique_ids(servers: borrow Vec<Server>) -> bool
+{
+    // The caller retains servers_by_id order; Server has only its ID field.
+    // Equal byte lengths plus a full prefix match is exact UTF-8/NUL equality.
+    let length = vec_len<Server>(servers);
+    let mut index = 1usize;
+    let mut valid = true;
+    while valid && index < length {
+        let previous = vec_field<Server>(servers, index - 1usize, "id");
+        let current = vec_field<Server>(servers, index, "id");
+        valid = str_len_bytes(previous) != str_len_bytes(current)
+            || !str_starts_with(current, previous);
+        index = index + 1usize;
+        valid && index < length
+    }
+    valid
+}

@@ -11,6 +11,7 @@ use type @id("shiftsim.worker_state") from shiftsim.model as WorkerState;
 use type @id("shiftsim.schedule_result") from shiftsim.model as ScheduleResult;
 use function @id("shiftsim.order.patients") from shiftsim.order as patients_by_dispatch_key;
 use function @id("shiftsim.order.servers") from shiftsim.order as servers_by_id;
+use function @id("shiftsim.order.unique_sorted_server_ids") from shiftsim.order as sorted_servers_have_unique_ids;
 
 @id("shiftsim.schedule.empty_report")
 fn empty_report() -> Report
@@ -120,14 +121,12 @@ fn run(request: own Request) -> ScheduleResult
             }
 
             valid = unique_identifiers(patient_ids) && valid;
-            let mut server_ids = vec_with_capacity<string>(server_count);
             let mut workers = vec_with_capacity<Server>(server_count);
             let mut worker_states = vec_with_capacity<WorkerState>(server_count);
             for own ordered_server in vec_into_iter<Server>(ordered_servers) {
                 match own ordered_server {
                     Server { id: server_id } => {
                         if !identifier(string_as_str(server_id)) { valid = false; }
-                        server_ids = vec_push<string>(server_ids, server_id);
                         workers = vec_push<Server>(workers, Server { id: server_id });
                         worker_states = vec_push<WorkerState>(worker_states, WorkerState {
                             free_at: 0,
@@ -137,7 +136,7 @@ fn run(request: own Request) -> ScheduleResult
                 }
             }
 
-            valid = unique_identifiers(server_ids) && valid;
+            valid = sorted_servers_have_unique_ids(workers) && valid;
             if !valid {
                 ScheduleResult { valid: false, report: empty_report() }
             } else {

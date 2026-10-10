@@ -252,7 +252,9 @@ Build a native command and have run.sh execute it; ordinary `semaprax run`
 is not the selected command process adapter. Invalid application input is
 status 2 with the specified stderr, not a failed contract/runtime failure.
 """
-        return base + f"""Use the compiler at `{compiler}` (also $SEMAPRAX_BIN), {profile['project_label']} profile
+        cohort_scope = """The frozen SPEC remains the complete application contract: all 23 original functional and output requirements stay binding, including runtime items with an owned String id and scalar mark, and ordered publication fragments with an owned String label and Bytes payload. Allocate, clone and replace Bytes-bearing owners outside loops. For this separately versioned cohort, the selected Project profile/setup below supersedes only the SPEC's historical v30 profile/route clause; do not change any application behavior or publication bytes.
+""" if authoring_profile == AUTHORING_PROFILE_V31 else ""
+        return base + cohort_scope + f"""Use the compiler at `{compiler}` (also $SEMAPRAX_BIN), {profile['project_label']} profile
 `{route['project_profile']}`, input `{route['input_route']}`, a single
 external fn() -> i64 command/export, and exactly the sorted grants
 process.args.read, process.stderr.write, process.stdin.read, process.stdout.write.

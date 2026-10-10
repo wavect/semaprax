@@ -65,8 +65,16 @@ python3 benchmarks/catalog-tokens-v1/codex_campaign.py plan \
 
 The collection-record cohort is a separate v31 choice. Use a reviewed v31
 reference candidate and qualify it independently; qualification and planning
-must name the same profile. Its route is `language-command-io.collection-record.v1`
-and its campaign schema is `semaprax.catalog-codex-campaign.v2`.
+must name the same profile. The byte-frozen SPEC retains its historical v30
+profile clause, which this cohort supersedes only for Project route/setup. Its
+entire 23-case functional contract and source requirements remain unchanged,
+including runtime items with owned String identifiers and scalar marks, plus
+ordered publication fragments with owned String labels and Bytes payloads.
+The v31 prompt states this route-only qualification
+explicitly. Model, effort, timeout, attempt count, and the strong TypeScript
+baseline remain the same as the v30 cohort. Its route is
+`language-command-io.collection-record.v1` and its campaign schema is
+`semaprax.catalog-codex-campaign.v2`.
 
 ```sh
 python3 benchmarks/catalog-tokens-v1/codex_campaign.py qualify \

@@ -230,6 +230,11 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
             self.assertEqual(planned["authoring_profile"], profile_name)
             self.assertEqual(planned["native_project_route"]["project_schema"], "semaprax.project.v31")
             self.assertEqual(planned["qualification"]["acceptance_cases_passed"], 23)
+            self.assertEqual((planned["model"], planned["effort"], planned["timeout_seconds"],
+                              planned["trials_per_arm"]), ("gpt-6.1-sol", "medium", 1800, 5))
+            self.assertEqual(planned["arms"], list(adapter.ARMS))
+            self.assertEqual(planned["typescript_bootstrap"]["runtime"], receipt["runtime"])
+            self.assertEqual(planned["typescript_bootstrap"]["packages"], receipt["packages"])
             altered = json.loads(evidence.read_text())
             altered["authoring_profile"] = catalog.AUTHORING_PROFILE_V30
             evidence.write_text(json.dumps(altered))
@@ -424,6 +429,20 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
             self.assertIsNone(row["fixed_harness_context"]["tokens"])
             self.assertIsNone(row["fixed_harness_context"]["actual_billed_usd"])
         self.assertIn("idiomatic native", catalog.prompt_for("typescript", Path("/candidate"), Path("/compiler"), catalog.AUTHORING_PROFILE_V30))
+
+        v31 = catalog.prompt_for("semaprax", Path("/candidate"), Path("/compiler"), catalog.AUTHORING_PROFILE_V31)
+        self.assertIn("all 23 original functional and output requirements stay binding", v31)
+        self.assertIn("Preserve every requirement, including repeated keys, decoded identifiers, maximum cardinalities and unlimited raw whitespace.", v31)
+        self.assertIn("owned String id and scalar mark", v31)
+        self.assertIn("owned String label and Bytes payload", v31)
+        self.assertIn("Allocate, clone and replace Bytes-bearing owners outside loops", v31)
+        self.assertIn("supersedes only the SPEC's historical v30 profile/route clause", v31)
+        self.assertIn("Project v31 profile", v31)
+        self.assertIn("language-command-io.collection-record.v1", v31)
+        self.assertEqual(
+            catalog.prompt_for("typescript", Path("/candidate"), Path("/compiler"), catalog.AUTHORING_PROFILE_V31),
+            catalog.prompt_for("typescript", Path("/candidate"), Path("/compiler"), catalog.AUTHORING_PROFILE_V30),
+        )
 
 
 if __name__ == "__main__":

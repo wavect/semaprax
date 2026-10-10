@@ -11,16 +11,20 @@ pub(super) fn conformance_manifests(scratch: &Path, manifest: &Path, module: &st
     std::fs::write(
         directory.join("semaprax.toml"),
         r#"schema = "semaprax.manifest.v1"
+
 [package]
 name = "pattern-one-owner"
 version = "0.1.0"
 profile = "owned-data-api.v1"
+
 [modules]
 entry = "fixture.pattern.examples"
 sources = ["src/examples.spx", "src/tests.spx"]
 tests = ["fixture.pattern.tests"]
+
 [exports]
 web = []
+
 [dependencies]
 std.pattern = "=0.1.0"
 "#,

@@ -59,9 +59,9 @@ fn expressions(root: &hir::ResolvedExpr) -> Vec<&hir::ResolvedExpr> {
     while let Some(expression) = pending.pop() {
         out.push(expression);
         match &expression.kind {
-            ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
-                pending.extend(args)
-            }
+            ResolvedExprKind::Call { args, .. }
+            | ResolvedExprKind::LiteralFormat { args, .. }
+            | ResolvedExprKind::VecFieldRead { args, .. } => pending.extend(args),
             ResolvedExprKind::Invoke { callable, args } => {
                 pending.push(callable);
                 pending.extend(args);

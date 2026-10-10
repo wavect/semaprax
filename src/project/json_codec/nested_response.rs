@@ -15,7 +15,8 @@ pub(super) fn derive(
     max_string_bytes: usize,
     max_array_items: usize,
 ) -> Result<String, Vec<Diagnostic>> {
-    let shape = descriptor::validate_response(program, root, max_string_bytes, max_array_items)?;
+    let shape = descriptor::validate_response(program, root, max_string_bytes, max_array_items)
+        .map_err(response_diagnostics)?;
     validate_reads(&shape.root)?;
     let mut output = format!("module {};\n", program.module);
     for (module, name, alias) in [
@@ -30,6 +31,22 @@ pub(super) fn derive(
     output.push_str(&super::utf8::nested_response_text(root, max_string_bytes));
     output.push_str(&emit::source(root, &shape.root, max_array_items));
     Ok(output)
+}
+
+/// The shared descriptor keeps request diagnostics byte-for-byte frozen. Only
+/// its controlled policy prefix is contextualized; authored identities and
+/// diagnostic code/span/help/path retain their original bytes and authority.
+fn response_diagnostics(mut diagnostics: Vec<Diagnostic>) -> Vec<Diagnostic> {
+    for diagnostic in &mut diagnostics {
+        if let Some(message) = diagnostic.message.strip_prefix("nested request ") {
+            let message = message.strip_suffix("and one admitted Vec").map_or_else(
+                || message.to_owned(),
+                |prefix| format!("{prefix}and at most two admitted Vec fields"),
+            );
+            diagnostic.message = format!("nested response {message}");
+        }
+    }
+    diagnostics
 }
 
 fn validate_reads(record: &Record<'_>) -> Result<(), Vec<Diagnostic>> {

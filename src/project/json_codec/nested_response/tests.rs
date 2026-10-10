@@ -83,6 +83,31 @@ fn nested_response_refuses_unborrowable_or_broadened_schema_before_generation() 
             "SPX-J180"
         );
     }
+    // The response route must not describe the frozen request policy. The
+    // descriptor's request error remains exact, including its one-Vec boundary.
+    let unsupported = SCHEMA.replace("ok:bool", "ok:char");
+    let request_message = "nested request supports only explicit acyclic records, bounded Unicode Strings, i64/u8/usize/bool, and one admitted Vec";
+    let response = generate(&unsupported, 16, 8).unwrap_err().remove(0);
+    assert_eq!(response.code, "SPX-J180");
+    assert_eq!(response.message, "nested response supports only explicit acyclic records, bounded Unicode Strings, i64/u8/usize/bool, and at most two admitted Vec fields");
+    let program = crate::parse(&unsupported, "request-policy.spx").unwrap();
+    assert_eq!(
+        descriptor::validate(&program, &program.types[2], 16, 8)
+            .err()
+            .unwrap()[0]
+            .message,
+        request_message
+    );
+    let bounds = generate(SCHEMA, 0, 8).unwrap_err().remove(0);
+    assert_eq!(bounds.code, "SPX-J180");
+    assert!(bounds.message.starts_with("nested response "));
+    let third = SCHEMA
+        .replace("ok:bool", "ok:Vec<i64>")
+        .replace("retry:usize", "retry:Vec<u8>");
+    assert_eq!(
+        generate(&third, 16, 8).unwrap_err()[0].message,
+        "nested response admits at most two expanded Vec fields"
+    );
     // Borrowed response inspection is independent of the decoder's allocation census.
     let two = SCHEMA.replace("count:u8", "count:string");
     assert!(generate(&two, 64, 256).is_ok());

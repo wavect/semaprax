@@ -296,7 +296,8 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
                 return row
         row["final_candidate_source_metrics"] = catalog.common.authored_source_metrics(
             candidate, settings.get("authored_source_tokenizer"),
-            exclude_verified_node_modules=bool(tooling))
+            exclude_verified_node_modules=bool(tooling),
+            additional_suffixes=catalog.ADDITIONAL_AUTHORED_SUFFIXES)
     except (OSError, RuntimeError, ValueError, UnicodeError) as error:
         row["final_candidate_source_metrics"] = {"status": "measurement_failed", "total_tokens": None,
             "files": [], "tokenizer": settings.get("authored_source_tokenizer"), "error": str(error)}

@@ -146,7 +146,8 @@ def tokenize_texts(texts: list[dict[str, str]], metadata: dict[str, Any]) -> lis
 
 
 def authored_source_metrics(candidate: Path, metadata: dict[str, Any] | None, *,
-                            exclude_verified_node_modules: bool = False) -> dict[str, Any]:
+                            exclude_verified_node_modules: bool = False,
+                            additional_suffixes: frozenset[str] = frozenset()) -> dict[str, Any]:
     if metadata is None:
         return {"status": "unmeasured", "total_tokens": None, "files": [], "tokenizer": None}
     files = []
@@ -157,12 +158,12 @@ def authored_source_metrics(candidate: Path, metadata: dict[str, Any] | None, *,
                 or any(part in excluded for part in relative.parts[:-1])
                 or (exclude_verified_node_modules and relative.parts[0] == "node_modules")):
             continue
-        if path.suffix.lower() not in AUTHORED_SUFFIXES and path.name not in AUTHORED_SPECIAL_NAMES:
+        if path.suffix.lower() not in AUTHORED_SUFFIXES | additional_suffixes and path.name not in AUTHORED_SPECIAL_NAMES:
             continue
         if path.suffix.lower() in {".c", ".h"}:
             continue
         if path.suffix.lower() in {".js", ".mjs", ".cjs"} and any(
-            path.with_suffix(suffix).is_file() for suffix in (".ts", ".tsx")
+            path.with_suffix(suffix).is_file() for suffix in (".ts", ".tsx", *sorted(additional_suffixes))
         ):
             continue
         content = path.read_text(encoding="utf-8")

@@ -901,7 +901,8 @@ def launch_calibration(seed_repo: Path, artifacts: Path, seed_commit: str,
     return row
 
 
-def closed_authored_inventory(candidate: Path, *, exclude_verified_node_modules: bool = False) -> dict[str, Any]:
+def closed_authored_inventory(candidate: Path, *, exclude_verified_node_modules: bool = False,
+                              additional_suffixes: frozenset[str] = frozenset()) -> dict[str, Any]:
     """Hash retained authored files without following candidate-controlled links."""
     if not candidate.exists() and not candidate.is_symlink():
         files: list[dict[str, Any]] = []
@@ -937,12 +938,12 @@ def closed_authored_inventory(candidate: Path, *, exclude_verified_node_modules:
             mode = path.stat(follow_symlinks=False).st_mode
             if path.is_symlink() or not stat.S_ISREG(mode):
                 raise ValueError(f"retained candidate file must be regular: {relative}")
-            if path.suffix.lower() not in common.AUTHORED_SUFFIXES and name not in common.AUTHORED_SPECIAL_NAMES:
+            if path.suffix.lower() not in common.AUTHORED_SUFFIXES | additional_suffixes and name not in common.AUTHORED_SPECIAL_NAMES:
                 continue
             if path.suffix.lower() in {".c", ".h"}:
                 continue
             if path.suffix.lower() in {".js", ".mjs", ".cjs"} and any(
-                    path.with_suffix(suffix).is_file() for suffix in (".ts", ".tsx")):
+                    path.with_suffix(suffix).is_file() for suffix in (".ts", ".tsx", *sorted(additional_suffixes))):
                 continue
             files.append({"path": relative.as_posix(), "bytes": path.stat().st_size,
                           "sha256": common.digest(path)})
@@ -960,9 +961,11 @@ def _phase_source_and_binary_guard(
     compiler: Path | None = None,
     compiler_sha256: str | None = None,
     *, exclude_verified_node_modules: bool = False,
+    additional_suffixes: frozenset[str] = frozenset(),
 ) -> tuple[bool, dict[str, Any]]:
     try:
-        observed = closed_authored_inventory(candidate, exclude_verified_node_modules=exclude_verified_node_modules)
+        observed = closed_authored_inventory(candidate, exclude_verified_node_modules=exclude_verified_node_modules,
+                                             additional_suffixes=additional_suffixes)
         binary_regular = (native_binary is None or (
             not native_binary.is_symlink() and native_binary.is_file()
             and stat.S_ISREG(native_binary.stat(follow_symlinks=False).st_mode)))

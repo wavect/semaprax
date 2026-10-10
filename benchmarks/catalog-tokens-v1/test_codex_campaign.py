@@ -190,7 +190,8 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
             candidate.mkdir()
             for name in ("run.sh", "build.sh", "test.sh"):
                 (candidate / name).write_text("exit 0\n")
-            (candidate / "catalog.ts").write_text("export {}\n")
+            (candidate / "catalog.mts").write_text("export {}\n")
+            (candidate / "helper.cts").write_text("export {}\n")
             (candidate / "tsconfig.json").write_text("{}")
             dist = candidate / "dist"
             dist.mkdir()
@@ -218,6 +219,21 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
                 result = catalog.check_program(candidate, 10, env, harness_output=root / "harness/catalog",
                                                arm="typescript", exclude_verified_node_modules=True)
             self.assertTrue(result["accepted"])
+            retained_sources = {row["path"] for row in result["closed_authored_inventory"]["files"]}
+            self.assertTrue({"catalog.mts", "helper.cts"} <= retained_sources)
+            # Historical cohorts retain their frozen extension policy.
+            historical_sources = {row["path"] for row in catalog.shared.closed_authored_inventory(candidate)["files"]}
+            self.assertTrue({"catalog.mts", "helper.cts"}.isdisjoint(historical_sources))
+            with patch.object(catalog.common, "tokenize_texts", side_effect=lambda texts, metadata: [1] * len(texts)):
+                measured = catalog.common.authored_source_metrics(candidate, {"fixture": True},
+                    additional_suffixes=catalog.ADDITIONAL_AUTHORED_SUFFIXES)
+            self.assertEqual({row["path"] for row in measured["files"]}, retained_sources)
+            (candidate / "helper.cts").write_text("export const changed = true;\n")
+            source_intact, _ = catalog._phase_source_and_binary_guard(candidate,
+                result["closed_authored_inventory"], Path(result["native_binary"]["path"]), result["native_binary"]["sha256"],
+                None, None, expected_runtime=result["runtime_artifacts"])
+            self.assertFalse(source_intact)
+            (candidate / "helper.cts").write_text("export {}\n")
             self.assertEqual(result["pinned_typescript_build"]["command"][:2], [str(node), str(tsc)])
             actual = json.loads(next(command for command in commands if "--command-json" in command)[
                 next(command for command in commands if "--command-json" in command).index("--command-json") + 1])

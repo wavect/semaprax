@@ -26,7 +26,15 @@ if _shared_spec is None or _shared_spec.loader is None:
 sys.path.insert(0, str(REPO / "benchmarks/event-sim-tokens-v1"))
 shared = importlib.util.module_from_spec(_shared_spec)
 _shared_spec.loader.exec_module(shared)
-closed_authored_inventory = shared.closed_authored_inventory
+ADDITIONAL_AUTHORED_SUFFIXES = frozenset({".mts", ".cts"})
+
+
+def closed_authored_inventory(candidate: Path, *, exclude_verified_node_modules: bool = False) -> dict[str, Any]:
+    return shared.closed_authored_inventory(candidate,
+        exclude_verified_node_modules=exclude_verified_node_modules,
+        additional_suffixes=ADDITIONAL_AUTHORED_SUFFIXES)
+
+
 copy_qualification_artifacts = shared.copy_qualification_artifacts
 resolve_commit = shared.resolve_commit
 blob_at_commit = shared.blob_at_commit
@@ -243,7 +251,8 @@ def runtime_inventory(root: Path) -> dict[str, Any]:
 def _phase_source_and_binary_guard(candidate, inventory, native, native_hash, compiler, compiler_hash,
                                    *, exclude_verified_node_modules=False, expected_runtime=None):
     passed, result = shared._phase_source_and_binary_guard(candidate, inventory, native, native_hash,
-        compiler, compiler_hash, exclude_verified_node_modules=exclude_verified_node_modules)
+        compiler, compiler_hash, exclude_verified_node_modules=exclude_verified_node_modules,
+        additional_suffixes=ADDITIONAL_AUTHORED_SUFFIXES)
     if expected_runtime is not None:
         try:
             node = regular(Path(expected_runtime["node_binary"]))
@@ -311,7 +320,7 @@ def check_program(candidate, timeout, env, qualification_mode="evidence_gated_sc
         binary = regular(harness_output)
         command = [str(binary)]
     else:
-        if not any(Path(row["path"]).suffix in (".ts", ".tsx") for row in initial["files"]):
+        if not any(Path(row["path"]).suffix in (".ts", ".mts", ".cts", ".tsx") for row in initial["files"]):
             raise ValueError("strong TypeScript arm requires actual authored TypeScript source")
         node = regular(Path(env["CATALOG_NODE_BINARY"]))
         if common.digest(node) != env["CATALOG_NODE_SHA256"]:

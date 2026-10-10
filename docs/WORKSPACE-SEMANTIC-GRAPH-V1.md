@@ -301,7 +301,11 @@ inventory and exact reservations. Unreferenced HIR identities consume no entry.
 One key vector and one byte-per-candidate match vector are reused across
 functions and modules. Before consuming a module, both carriers reserve the
 largest selected ordinary-function candidate census once, avoiding intermediate
-replacement allocations. Every replacement reserves both entire requested
+replacement allocations. Before consuming selected generic instances, this
+attempt also reserves the largest selected instance census once; authored
+templates and exactly authenticated imported Vec/Box wrappers use the same
+selector for census and retention. Unselected instances grant no census
+authority. Earlier attempt receipts remain unchanged. Every replacement reserves both entire requested
 capacities before allocation and charges any allocator capacity excess; earlier
 allocations remain charged in the cumulative ledger. Both vectors are cleared
 before each function, so a previous function's keys cannot exclude independent

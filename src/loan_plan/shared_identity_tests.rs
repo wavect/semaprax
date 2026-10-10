@@ -127,3 +127,39 @@ fn run(input: borrow Slice<u8>, outer: bool, inner: bool) -> i64 {
         .expression = forged;
     assert_eq!(crate::hir::validate(&program).unwrap_err().code, "SPX-H006");
 }
+
+#[test]
+fn partitioned_capacity_rejects_missing_unsorted_and_precharged_candidates() {
+    let expression = ExpressionId::new(&execution(), "partitioned-endpoint");
+    let plan = endpoint_plan(vec![expression.clone(), expression.clone()]);
+    let key = expression.shared_allocation_key().unwrap();
+    let expected = owned_capacity_bytes(&plan).unwrap();
+    let (result, overflow, debit) = crate::bounded_output::with_limit_usage(0, || {
+        let mut states = [0];
+        let result = owned_capacity::owned_capacity_bytes_partitioned(&plan, &[key], &mut states);
+        assert_eq!(states, [2], "duplicate references charge backing once");
+        result
+    });
+    assert_eq!(result, Some(expected));
+    assert!(!overflow);
+    assert_eq!(
+        debit, 0,
+        "reuse caller-owned metadata without another allocation"
+    );
+    assert_eq!(
+        owned_capacity::owned_capacity_bytes_partitioned(&plan, &[], &mut []),
+        None
+    );
+    assert_eq!(
+        owned_capacity::owned_capacity_bytes_partitioned(&plan, &[key], &mut []),
+        None
+    );
+    assert_eq!(
+        owned_capacity::owned_capacity_bytes_partitioned(&plan, &[key, key], &mut [0, 0]),
+        None
+    );
+    assert_eq!(
+        owned_capacity::owned_capacity_bytes_partitioned(&plan, &[key], &mut [2]),
+        None
+    );
+}

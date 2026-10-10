@@ -16,6 +16,14 @@ pub(crate) fn owned_capacity_bytes_excluding(
     if covered_hir_keys.windows(2).any(|pair| pair[0] >= pair[1]) {
         return None;
     }
+    clone_capacity_bytes(plan)?.checked_add(shared_identity_bytes(plan, covered_hir_keys)?)
+}
+
+/// Capacity that can shrink when cloning a plan. ExpressionId backing is
+/// immutable and shared by Clone, so its physical debit cancels in a clone
+/// difference. This census allocates no scratch and never changes the full
+/// physical-storage census used for retained proofs or snapshot reconstruction.
+pub(crate) fn clone_capacity_bytes(plan: &LoanPlan) -> Option<usize> {
     fn add(total: &mut usize, bytes: usize) -> Option<()> {
         *total = total.checked_add(bytes)?;
         Some(())
@@ -93,7 +101,6 @@ pub(crate) fn owned_capacity_bytes_excluding(
                 .checked_mul(std::mem::size_of::<LoanId>())?,
         )?;
     }
-    add(&mut bytes, shared_identity_bytes(plan, covered_hir_keys)?)?;
     Some(bytes)
 }
 

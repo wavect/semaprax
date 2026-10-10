@@ -1,5 +1,10 @@
 # Changelog
 
+- Preserve exact cold/warm workspace graph accounting by measuring only loan
+  capacities that can shrink on HIR clone. Keep immutable identity storage and
+  full census scratch charged by their owning retention/replay paths; invalidate
+  prior cache capacity metadata with checked-HIR compatibility v6.
+
 - Reduce validation allocation by borrowing byte-operation signatures and
   retained zero-argument nominal facts, constructing byte-slot labels only
   when retained, and omitting loan census scratch for HIR-covered identities.

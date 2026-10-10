@@ -81,8 +81,13 @@ resolves afresh. An exact whole-module persistent hit remains eligible.
 The freshly validated checked clone is charged the resolver's retained bounded
 output consumption so cache hits preserve graph-builder accounting and cold
 graph/image bytes. Cloning can shrink loan-plan vector/string capacities;
-the original aggregate loan-plan charge is retained and any clone-capacity
-difference is restored before existing graph filtering/accounting. The
+the original mutable-capacity charge is retained and any clone-capacity
+difference is restored before existing graph filtering/accounting. Immutable
+expression-identity backing is shared across clones and cancels from this
+capacity difference. The allocation-free clone census does not repeat the
+full physical-storage census's scratch allocation inside the graph budget.
+The full census and its required scratch reservations remain unchanged for
+retained proof storage and authenticated snapshot reconstruction. The
 nonempty-loan regression now executes this path, including a range and sibling
 views of owned bytes in a module that also carries owned-variant cleanup. Its
 Graph v32 cold/warm bytes and accounting remain exact instead of relying only
@@ -107,11 +112,13 @@ can reuse the previous successful cache.
 ## Work report and limits
 
 Semantic mode emits `semaprax.project-semantic-cache-work.v1`, with compatibility
-`semaprax.project-checked-module-hir.v3` (bumped from `.v2` when a function
+`semaprax.project-checked-module-hir.v6`. The v6 binding invalidates stored
+full-capacity metadata before it can be interpreted as mutable clone capacity.
+Earlier compatibility bumps included `.v3` when a function
 gained the endpoint typestate `follows` clause, issue #297 follow-on, and
 before that from `.v1` when the sealed source carrier gained declared session
 protocols, issue #297, so a persisted payload from an older layout is never
-decoded as the new one). It preserves the frontend report's
+decoded as the new one. It preserves the frontend report's
 field structure but uses this separate schema so the old frontend contract's
 `checked_HIR_reused: 0` remains true.
 

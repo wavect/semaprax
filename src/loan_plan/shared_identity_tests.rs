@@ -88,6 +88,32 @@ fn loan_capacity_metadata_reservation_is_exact_and_refuses_before_allocation() {
 }
 
 #[test]
+fn clone_capacity_difference_preserves_full_storage_without_census_scratch() {
+    let expression = ExpressionId::new(&execution(), "shared-endpoint");
+    let mut plan = endpoint_plan(vec![expression.clone(), expression]);
+    plan.endpoints.reserve(8);
+    let cloned = plan.clone();
+    assert_eq!(plan, cloned);
+    assert!(plan.endpoints.capacity() > cloned.endpoints.capacity());
+    assert_eq!(
+        owned_capacity_bytes(&plan).unwrap() - owned_capacity_bytes(&cloned).unwrap(),
+        owned_capacity::clone_capacity_bytes(&plan).unwrap()
+            - owned_capacity::clone_capacity_bytes(&cloned).unwrap()
+    );
+    let (capacity, overflowed, used) =
+        crate::bounded_output::with_limit_usage(0, || owned_capacity::clone_capacity_bytes(&plan));
+    assert!(capacity.is_some());
+    assert!(!overflowed);
+    assert_eq!(used, 0);
+    for (original, copy) in plan.endpoints.iter().zip(&cloned.endpoints) {
+        assert_eq!(
+            original.point.expression.shared_allocation_key(),
+            copy.point.expression.shared_allocation_key()
+        );
+    }
+}
+
+#[test]
 fn shared_expression_endpoints_replay_and_forged_endpoint_still_fails_closed() {
     let source = r#"
 module test.shared_loan_identity;

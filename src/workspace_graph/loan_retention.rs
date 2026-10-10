@@ -29,6 +29,17 @@ pub(super) fn retained_loan_plan_bytes(plan: &LoanPlan) -> Result<usize> {
         .ok_or_else(refusal)
 }
 
+/// Only mutable vector/place capacities can shrink across an HIR clone.
+/// Shared immutable identity backing remains charged by ordinary retention.
+pub(super) fn clone_loan_plan_bytes(plan: &LoanPlan) -> Result<usize> {
+    if plan.loans.is_empty() {
+        return Ok(0);
+    }
+    crate::loan_plan::owned_capacity::clone_capacity_bytes(plan)
+        .and_then(|owned| std::mem::size_of::<LoanPlan>().checked_add(owned))
+        .ok_or_else(refusal)
+}
+
 pub(super) fn retained_function_loan_bytes(function: &ResolvedFunction) -> Result<usize> {
     if function.loan_plan.loans.is_empty() {
         return Ok(0);

@@ -20,7 +20,7 @@ use owned_function_import::validate_imported_function;
 mod agent_execution;
 mod indexed_rust;
 mod loan_retention;
-use loan_retention::{retained_function_loan_bytes, retained_loan_plan_bytes};
+use loan_retention::retained_function_loan_bytes;
 mod native_law;
 mod owned_generics;
 mod package;
@@ -4795,7 +4795,7 @@ fn resolved_loan_bytes(program: &hir::ResolvedProgram) -> Result<usize, Vec<Diag
                 .map(|instance| &instance.function.loan_plan),
         )
         .try_fold(0usize, |sum, plan| {
-            sum.checked_add(retained_loan_plan_bytes(plan)?)
+            sum.checked_add(loan_retention::clone_loan_plan_bytes(plan)?)
                 .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])
         })
 }

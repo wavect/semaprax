@@ -18,7 +18,6 @@ mod generic_type_import;
 mod operation_sidecar;
 mod owned_function_import;
 use callee_inventory::resolved_function_callees;
-
 use owned_function_import::validate_imported_function;
 mod agent_execution;
 mod indexed_rust;
@@ -4697,9 +4696,9 @@ impl<'a> CheckedValueNode<'a> {
                     .get(index)
                     .copied()
                     .map(Self::Expression),
-                E::Call { args, .. } | E::LiteralFormat { args, .. } => {
-                    args.get(index).map(Self::Expression)
-                }
+                E::Call { args, .. }
+                | E::LiteralFormat { args, .. }
+                | E::VecFieldRead { args, .. } => args.get(index).map(Self::Expression),
                 E::Invoke { callable, args } => {
                     if index == 0 {
                         Some(Self::Expression(callable))

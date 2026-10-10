@@ -70,7 +70,7 @@ fn collect_expression_facts(
                     type_arguments: type_arguments.clone(),
                 }),
                 ResolvedExprKind::NativeRustImportCall(call)
-                    if super::native_rust::owns(current) =>
+                    if crate::cleanup_plan::native_rust::owns(current) =>
                 {
                     Some(CallFact {
                         callee: call.import.clone(),

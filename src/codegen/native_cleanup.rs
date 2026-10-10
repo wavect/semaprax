@@ -826,6 +826,11 @@ fn validate_expression(
                 ));
             }
         }
+        ResolvedExprKind::VecFieldRead { args, .. } => {
+            for argument in args {
+                validate_expression(program, function, argument)?;
+            }
+        }
         ResolvedExprKind::LiteralFormat { .. } => {
             return Err(unsupported(
                 function,

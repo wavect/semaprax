@@ -766,6 +766,20 @@ impl<'a> Node<'a> {
                         E::LiteralFormat { template: b, .. },
                     ) => a == b,
                     (
+                        E::VecFieldRead {
+                            element: a,
+                            field: af,
+                            bytes: ab,
+                            ..
+                        },
+                        E::VecFieldRead {
+                            element: b,
+                            field: bf,
+                            bytes: bb,
+                            ..
+                        },
+                    ) => a == b && af == bf && ab == bb,
+                    (
                         E::Call {
                             callee: a,
                             type_arguments: aa,
@@ -874,9 +888,9 @@ impl<'a> Node<'a> {
                     .chain(args.iter())
                     .nth(index)
                     .map(Self::Expression),
-                E::Call { args, .. } | E::LiteralFormat { args, .. } => {
-                    args.get(index).map(Self::Expression)
-                }
+                E::Call { args, .. }
+                | E::LiteralFormat { args, .. }
+                | E::VecFieldRead { args, .. } => args.get(index).map(Self::Expression),
                 E::NativeRustImportCall(c) => c.args.get(index).map(Self::Expression),
                 E::HostCommandCall(c) => c.args.get(index).map(Self::Expression),
                 E::Unary { value, .. }

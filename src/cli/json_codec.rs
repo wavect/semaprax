@@ -10,9 +10,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use semaprax::diagnostic::Diagnostic;
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
-const USAGE: &str =
-    "json-codec <project> --source <module-path> --type <record-id> --output <new-file> [--profile <selector>] [--max-string-bytes <1..64>] [--max-array-items <1..256>]";
-pub(crate) const HELP: &str = "Derives checked ordinary source for explicit scalar records; opt-in identifier-views.v1, request-views.v1 and stream-request-views.v1 add bounded identifier/array views; owned-request.v1 and stream-owned-request.v1 materialize bounded identifier String/record collections under an owning runtime profile. UTF-8 owned request profiles bound each decoded string with --max-string-bytes (1..64 UTF-8 bytes). bounded-collection-response.v1 selects an encode-only nested collection view and also requires that bound. bounded-nested-request.v1 requires both --max-string-bytes (1..64) and --max-array-items (1..256); direct decoding only, under the independently admitted caller Project profile. bounded-stream-nested-request.v1 uses the same bounds, original schema stdin permit and a computed normalized spelling envelope; it adds no raw-input or whitespace cap.\nRequires declared std.data.json scan/token/digits/write dependencies. Publishes a new complete module replacement; never overwrites source.\nContract and typed failure codes: docs/APPLICATION-JSON-CODECS-V1.md\n";
+const USAGE: &str = "json-codec <project> --source <module-path> --type <record-id> --output <new-file> [--profile <selector>] [--max-string-bytes <1..64>] [--max-array-items <1..256>]";
+pub(crate) const HELP: &str = "Derives checked ordinary source for explicit scalar records; opt-in identifier-views.v1, request-views.v1 and stream-request-views.v1 add bounded identifier/array views; owned-request.v1 and stream-owned-request.v1 materialize bounded identifier String/record collections under an owning runtime profile. UTF-8 owned request profiles bound each decoded string with --max-string-bytes (1..64 UTF-8 bytes). bounded-collection-response.v1 selects an encode-only nested collection view and also requires that bound. bounded-nested-request.v1 requires both --max-string-bytes (1..64) and --max-array-items (1..256); direct decoding only, under the independently admitted caller Project profile. bounded-stream-nested-request.v1 uses the same bounds, original schema stdin permit and a computed normalized spelling envelope; it adds no raw-input or whitespace cap. bounded-nested-response.v1 requires the same two bounds and derives encode-only borrowed finite nested records; primitive Vec<string> refuses. Contract: docs/APPLICATION-JSON-NESTED-RESPONSE-V1.md.\nRequires declared std.data.json scan/token/digits/write dependencies. Publishes a new complete module replacement; never overwrites source.\nContract and typed failure codes: docs/APPLICATION-JSON-CODECS-V1.md\n";
 
 pub(crate) struct Options {
     project: PathBuf,
@@ -130,20 +129,52 @@ mod tests {
 
     #[test]
     fn stream_nested_codec_cli_requires_closed_bounds_before_authority() {
-        let args = ["missing-project", "--source", "src/schema.spx", "--type",
-            "orders.request", "--output", "derived.spx", "--profile",
-            "bounded-stream-nested-request.v1", "--max-string-bytes", "16",
-            "--max-array-items", "8"].map(str::to_owned).to_vec();
-        assert_eq!(parse(&args).unwrap_or_else(|_| panic!("valid stream bounds")).profile,
+        let args = [
+            "missing-project",
+            "--source",
+            "src/schema.spx",
+            "--type",
+            "orders.request",
+            "--output",
+            "derived.spx",
+            "--profile",
+            "bounded-stream-nested-request.v1",
+            "--max-string-bytes",
+            "16",
+            "--max-array-items",
+            "8",
+        ]
+        .map(str::to_owned)
+        .to_vec();
+        assert_eq!(
+            parse(&args)
+                .unwrap_or_else(|_| panic!("valid stream bounds"))
+                .profile,
             semaprax::project::JsonCodecProfile::StreamNestedRequest {
-                max_string_bytes: 16, max_array_items: 8,
-            });
-        for (index, invalid) in [(10, "0"), (10, "65"), (10, "016"), (10, "+16"),
-            (12, "0"), (12, "257"), (12, "08"), (12, "８")] {
+                max_string_bytes: 16,
+                max_array_items: 8,
+            }
+        );
+        for (index, invalid) in [
+            (10, "0"),
+            (10, "65"),
+            (10, "016"),
+            (10, "+16"),
+            (12, "0"),
+            (12, "257"),
+            (12, "08"),
+            (12, "８"),
+        ] {
             let mut changed = args.clone();
             changed[index] = invalid.to_owned();
-            assert_eq!(dispatch(super::super::help::CommandId::JsonCodec, &changed,
-                |_| panic!("malformed stream bounds reached authoritative generation")), Err(2));
+            assert_eq!(
+                dispatch(
+                    super::super::help::CommandId::JsonCodec,
+                    &changed,
+                    |_| panic!("malformed stream bounds reached authoritative generation")
+                ),
+                Err(2)
+            );
         }
         for removed in [7, 9, 11] {
             let mut changed = args.clone();
@@ -178,60 +209,90 @@ mod tests {
             .map(str::to_owned)
             .to_vec()
         };
-        for (bytes, items) in [("1", "1"), ("64", "256"), ("16", "8")] {
-            let parsed =
-                parse(&args(bytes, items)).unwrap_or_else(|_| panic!("valid nested bounds"));
+        for selector in [
+            "bounded-nested-request.v1",
+            "bounded-stream-nested-request.v1",
+            "bounded-nested-response.v1",
+        ] {
+            let selected_args = |bytes: &str, items: &str| {
+                let mut selected = args(bytes, items);
+                selected[8] = selector.to_owned();
+                selected
+            };
+            for (bytes, items) in [("1", "1"), ("64", "256"), ("16", "8")] {
+                let parsed = parse(&selected_args(bytes, items))
+                    .unwrap_or_else(|_| panic!("valid nested bounds"));
+                let bounds = (bytes.parse().unwrap(), items.parse().unwrap());
+                let expected = match selector {
+                    "bounded-nested-request.v1" => {
+                        semaprax::project::JsonCodecProfile::NestedRequest {
+                            max_string_bytes: bounds.0,
+                            max_array_items: bounds.1,
+                        }
+                    }
+                    "bounded-stream-nested-request.v1" => {
+                        semaprax::project::JsonCodecProfile::StreamNestedRequest {
+                            max_string_bytes: bounds.0,
+                            max_array_items: bounds.1,
+                        }
+                    }
+                    "bounded-nested-response.v1" => {
+                        semaprax::project::JsonCodecProfile::NestedResponse {
+                            max_string_bytes: bounds.0,
+                            max_array_items: bounds.1,
+                        }
+                    }
+                    _ => unreachable!(),
+                };
+                assert_eq!(parsed.profile, expected);
+            }
+            for (bytes, items) in [
+                ("0", "1"),
+                ("65", "1"),
+                ("1", "0"),
+                ("1", "257"),
+                ("01", "1"),
+                ("1", "0256"),
+                ("+1", "1"),
+                ("1", "+1"),
+                (" 1", "1"),
+                ("1", "1 "),
+                ("١", "1"),
+                ("1", "２５６"),
+                ("18446744073709551616", "1"),
+                ("1", "18446744073709551616"),
+            ] {
+                assert!(
+                    parse(&selected_args(bytes, items)).is_err(),
+                    "{bytes}/{items}"
+                );
+            }
+            for removed in [7, 9, 11] {
+                let mut incomplete = selected_args("64", "256");
+                incomplete.drain(removed..removed + 2);
+                assert!(parse(&incomplete).is_err());
+            }
+            let mut reordered = selected_args("64", "256");
+            reordered.swap(9, 11);
+            reordered.swap(10, 12);
+            assert!(parse(&reordered).is_ok());
+            let mut duplicate = selected_args("64", "256");
+            duplicate[11] = "--max-string-bytes".to_owned();
+            assert!(parse(&duplicate).is_err());
+            let mut unknown = selected_args("64", "256");
+            unknown[11] = "--maximum-array-items".to_owned();
+            assert!(parse(&unknown).is_err());
+            // Usage rejection must precede Project access and generation, even
+            // when the positional Project path does not exist.
+            let mut refused = selected_args("64", "257");
+            refused[0] = "not-an-existing-authorized-project".to_owned();
             assert_eq!(
-                parsed.profile,
-                semaprax::project::JsonCodecProfile::NestedRequest {
-                    max_string_bytes: bytes.parse().unwrap(),
-                    max_array_items: items.parse().unwrap(),
-                }
+                dispatch(super::super::help::CommandId::JsonCodec, &refused, |_| {
+                    panic!("malformed bounds reached authoritative generation")
+                }),
+                Err(2)
             );
         }
-        for (bytes, items) in [
-            ("0", "1"),
-            ("65", "1"),
-            ("1", "0"),
-            ("1", "257"),
-            ("01", "1"),
-            ("1", "0256"),
-            ("+1", "1"),
-            ("1", "+1"),
-            (" 1", "1"),
-            ("1", "1 "),
-            ("١", "1"),
-            ("1", "２５６"),
-            ("18446744073709551616", "1"),
-            ("1", "18446744073709551616"),
-        ] {
-            assert!(parse(&args(bytes, items)).is_err(), "{bytes}/{items}");
-        }
-        for removed in [7, 9, 11] {
-            let mut incomplete = args("64", "256");
-            incomplete.drain(removed..removed + 2);
-            assert!(parse(&incomplete).is_err());
-        }
-        let mut reordered = args("64", "256");
-        reordered.swap(9, 11);
-        reordered.swap(10, 12);
-        assert!(parse(&reordered).is_ok());
-        let mut duplicate = args("64", "256");
-        duplicate[11] = "--max-string-bytes".to_owned();
-        assert!(parse(&duplicate).is_err());
-        let mut unknown = args("64", "256");
-        unknown[11] = "--maximum-array-items".to_owned();
-        assert!(parse(&unknown).is_err());
-        // Usage rejection must precede Project access and generation, even
-        // when the positional Project path does not exist.
-        let mut refused = args("64", "257");
-        refused[0] = "not-an-existing-authorized-project".to_owned();
-        assert_eq!(
-            dispatch(super::super::help::CommandId::JsonCodec, &refused, |_| {
-                panic!("malformed bounds reached authoritative generation")
-            }),
-            Err(2)
-        );
         for old in [
             "identifier-views.v1",
             "request-views.v1",

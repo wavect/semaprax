@@ -1391,6 +1391,32 @@ over an authored source. Installing a module first changes the revision; hand ed
 evidence. The CLI never overwrites source or manifests. See the checked
 `standard_library::application_json::owned::catalog_scoped_records::` owner.
 
+For finite nested borrowed encoding, select `bounded-nested-response.v1` with
+both `--max-string-bytes 1..64` and `--max-array-items 1..256`. Unlike the
+fixed collection response, it admits acyclic records (depth 8, 64 expanded
+paths, 1..8 fields) with up to two expanded Vec fields of Copy scalars or flat
+rows containing at most two Strings. Primitive `Vec<string>` refuses
+(SPX-J180); decoder admission does not create a primitive String view.
+`json_Root_nested_response_encoded_len(value: borrow Root)` preflights all
+fields; `json_Root_nested_response_encode(value: borrow Root, output_limit:
+usize)` returns `Encoded { text }` or `Refused { required }`. `usize::MAX`
+marks a value outside string/array or 131072-byte output bounds. Borrowed
+encoding allocates output only after complete preflight and renders declaration
+order without cloning owners. Existing owners retain runtime bounds; the
+request decoder's 264 new-String census does not limit this response selector.
+No capability, profile, decoder or business-data mapping is generated. See
+`help language author:json-nested-response` and
+[nested response contract](APPLICATION-JSON-NESTED-RESPONSE-V1.md).
+
+Choose `author:collection-records` for v31 `Report { rows: Vec<Row> }` data;
+choose `author:nested-outcomes` for v32 typed nested success/error carriers.
+Import every directly named signature type, including the outcome and nested
+payload records (SPX-G172); matching generated names grant no nominal authority.
+A projected variant is not a record root: bind its payload with `match own`
+first. Keep each match-arm comma **inside** its closing brace. Owning aggregate
+match results require their independently admitted finite collection outcome;
+ordinary String/general variant joins do not gain that authority.
+
 A streamed decoder owns its `Ready` payload. Use nested `match own` bindings
 to move its records, Strings and Vecs; keep borrowed views within the owner's
 lifetime. The checked example

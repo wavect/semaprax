@@ -571,6 +571,16 @@ mod agent_quick_reference {
             "OrderRequest { configuration, lines, urgent }",
             "do not retain a borrowed Ready byte slice",
             "byte_range(bytes_as_slice(bytes), 0usize, length)",
+            "bounded-nested-response.v1",
+            "up to two expanded Vec fields",
+            "Primitive `Vec<string>` refuses",
+            "SPX-J180",
+            "264 new-String census does not limit this response selector",
+            "output only after complete preflight",
+            "author:nested-outcomes",
+            "SPX-G172",
+            "match-arm comma **inside** its closing brace",
+            "ordinary String/general variant joins do not gain that authority",
         ] {
             assert!(
                 normalized.contains(required),

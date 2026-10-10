@@ -53,3 +53,24 @@ reads a user project, compiles source, writes files or gains a capability.
 Focused tests cover deterministic route output, malformed selectors, complete
 multi-page traversal without duplicates, exact byte budget and one-short
 refusal. Smaller help bytes alone do not establish live-agent savings.
+
+## Typed records, outcomes and JSON response discovery
+
+`author:collection-records` describes the v31 record carrier. The distinct
+`author:nested-outcomes` card explains v32 typed success/error carriers, whole
+payload moves, direct nominal imports, commas inside match arms, and the closed
+owning result boundary. It links the [nested outcome contract](OWNED-NESTED-OUTCOMES-V1.md)
+and [native v32 route](PROJECT-V32-NESTED-OUTCOME-COMMAND-V1.md).
+
+`author:record-field-views` distinguishes detached clones from selected-field
+reads, Copy loan completion from String/Bytes view lifetimes, and ordinary
+out-of-range failure. `author:string-from-utf8` distinguishes the shared Fixed
+meter from native execution and keeps escaped JSON handling separate from the
+validated unescaped bulk constructor.
+
+`author:json-nested-response` documents the encode-only
+`bounded-nested-response.v1` selector, both canonical bounds, borrowed APIs,
+preflight refusal, and the explicit primitive `Vec<string>` refusal. The
+[nested response contract](APPLICATION-JSON-NESTED-RESPONSE-V1.md) owns the
+schema and limits. These cards describe authoring contracts; their bytes and
+selector assertions do not establish application qualification or efficiency.

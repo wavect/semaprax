@@ -20,7 +20,7 @@ const BUILD_SOURCE_LINE: &str =
     "semaprax build <file> [--target native] [-o|--output path] [--json]\n";
 const BUILD_PROJECT_LINE: &str = "semaprax build [<dir>|semaprax.toml|--manifest-path path] [--target native|web|wasm|npm|oci|rust] [-o|--output path] [--json]\n";
 const BANNER: &str = "SEMAPRAX — Meaning in. Verified machine code out.\n";
-const JSON_CODEC_HELP: &str = "Derives checked ordinary source for explicit scalar records; opt-in identifier-views.v1, request-views.v1 and stream-request-views.v1 add bounded identifier/array views; owned-request.v1 and stream-owned-request.v1 materialize bounded identifier String/record collections under an owning runtime profile. UTF-8 owned request profiles bound each decoded string with --max-string-bytes (1..64 UTF-8 bytes). bounded-collection-response.v1 selects an encode-only nested collection view and also requires that bound. bounded-nested-request.v1 requires both --max-string-bytes (1..64) and --max-array-items (1..256); direct decoding only, under the independently admitted caller Project profile. bounded-stream-nested-request.v1 uses the same bounds, original schema stdin permit and a computed normalized spelling envelope; it adds no raw-input or whitespace cap.\nRequires declared std.data.json scan/token/digits/write dependencies. Publishes a new complete module replacement; never overwrites source.\nContract and typed failure codes: docs/APPLICATION-JSON-CODECS-V1.md\n";
+const JSON_CODEC_HELP: &str = "Derives checked ordinary source for explicit scalar records; opt-in identifier-views.v1, request-views.v1 and stream-request-views.v1 add bounded identifier/array views; owned-request.v1 and stream-owned-request.v1 materialize bounded identifier String/record collections under an owning runtime profile. UTF-8 owned request profiles bound each decoded string with --max-string-bytes (1..64 UTF-8 bytes). bounded-collection-response.v1 selects an encode-only nested collection view and also requires that bound. bounded-nested-request.v1 requires both --max-string-bytes (1..64) and --max-array-items (1..256); direct decoding only, under the independently admitted caller Project profile. bounded-stream-nested-request.v1 uses the same bounds, original schema stdin permit and a computed normalized spelling envelope; it adds no raw-input or whitespace cap. bounded-nested-response.v1 requires the same two bounds and derives encode-only borrowed finite nested records; primitive Vec<string> refuses. Contract: docs/APPLICATION-JSON-NESTED-RESPONSE-V1.md.\nRequires declared std.data.json scan/token/digits/write dependencies. Publishes a new complete module replacement; never overwrites source.\nContract and typed failure codes: docs/APPLICATION-JSON-CODECS-V1.md\n";
 
 const GUIDE_MAX_BYTES: usize = 2048;
 const LANGUAGE_TOPICS: &str = concat!(
@@ -222,6 +222,10 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     for selector in [
         "author:routes",
         "author:stdin-json",
+        "author:nested-outcomes",
+        "author:record-field-views",
+        "author:string-from-utf8",
+        "author:json-nested-response",
         "author:file-text",
         "author:source-web",
         "find:json:0",
@@ -300,11 +304,9 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     let (mistakes, mistakes_dir) = invoke(&["help", "language", "mistakes-index"]);
     assert!(mistakes.status.success());
     assert!(mistakes.stderr.is_empty());
-    assert!(
-        mistakes
-            .stdout
-            .starts_with(b"## Habits from other languages: diagnostic index\n")
-    );
+    assert!(mistakes
+        .stdout
+        .starts_with(b"## Habits from other languages: diagnostic index\n"));
     let (reference, reference_dir) = invoke(&["help", "language", "all"]);
     assert!(reference.status.success());
     assert!(reference.stderr.is_empty());

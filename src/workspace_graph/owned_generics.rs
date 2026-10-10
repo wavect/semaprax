@@ -14,10 +14,12 @@ use crate::diagnostic::Diagnostic;
 use crate::{ast::Program, hir};
 
 use super::{
-    AuthoredDeclaration, GRAPH_ACCOUNTED_RESOLVED_FUNCTION_INSTANCE_BYTES,
-    WorkspaceDeclarationFact, WorkspaceResolvedModule, graph_error,
-    loan_retention::RetentionScratch, retained_function_loan_bytes,
+    graph_error, loan_retention::RetentionScratch, retained_function_loan_bytes,
+    AuthoredDeclaration, WorkspaceDeclarationFact, WorkspaceResolvedModule,
+    GRAPH_ACCOUNTED_RESOLVED_FUNCTION_INSTANCE_BYTES,
 };
+
+mod retention;
 
 /// Retain only authored nominal declarations reached by an already selected
 /// scalar function closure. This is needed when an otherwise scalar public
@@ -114,6 +116,17 @@ pub(super) fn retain_module_instances(
     Vec<Diagnostic>,
 > {
     let retained_output_only = loan_scratch.is_some();
+    // The final uncached pass reserves the largest selected census before
+    // consuming any instance. This avoids successive physical replacements;
+    // the original per-instance path and receipt remain exact in earlier passes.
+    if let Some(scratch) = loan_scratch.as_deref_mut() {
+        scratch.prepare(
+            instances
+                .iter()
+                .filter(|item| retention::selected(program, programs, authored, item))
+                .map(|item| &item.function),
+        )?;
+    }
     let retained = super::filter_owned_vec_accounted(
         instances,
         GRAPH_ACCOUNTED_RESOLVED_FUNCTION_INSTANCE_BYTES,
@@ -121,16 +134,7 @@ pub(super) fn retain_module_instances(
             Some(scratch) => scratch.measure(&item.function),
             None => retained_function_loan_bytes(&item.function),
         },
-        |item| {
-            authored
-                .get(item.template.as_str())
-                .is_some_and(|owner| owner.module == program.module)
-                || program.module_uses.iter().any(|module_use| {
-                    module_use.persistent_id == item.template.as_str()
-                        && (imported_vec_wrapper(programs, module_use).is_some()
-                            || imported_box_wrapper(programs, module_use).is_some())
-                })
-        },
+        |item| retention::selected(program, programs, authored, item),
         retained_output_only,
     )?;
     Ok(retained.into_iter().partition(|item| {

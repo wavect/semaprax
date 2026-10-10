@@ -95,3 +95,17 @@ python3 benchmarks/catalog-tokens-v1/codex_campaign.py plan \
 `--acknowledge-paid-attempts` flag. The owning mocked tests are
 `test_codex_campaign.CatalogCampaignTests`; production build, Python checks,
 real qualification, paired runtime and paid measurements remain pending.
+
+The nested-outcome successor is an explicit third choice:
+`semaprax-project-v32-nested-outcome-v1`, campaign schema
+`semaprax.catalog-codex-campaign.v3`, Project schema `semaprax.project.v32`,
+and profile `language-command-io.nested-outcome.v1`. Both qualification and
+plan/run must select it explicitly. It requires a new reviewed application
+and fresh source/compiler/native-command binding through all original 23
+cases; v30/v31 evidence cannot authorize it. The functional SPEC, corpus,
+oracle, TypeScript prompt and baseline, model/settings, minimum five trials
+per arm and separate fixed-context accounting stay unchanged. Only the
+historical Project route/setup clause is superseded. This harness addition
+is pending compiler and application qualification; it establishes no token,
+cost or acceptance gain and dispatches no model runs by itself. The route-only
+shared manifest registration does not add a ShiftSim campaign profile.

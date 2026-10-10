@@ -422,6 +422,35 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
             self.assertIn("controlled compiler refusal", failed["checks"]["pinned_compiler_check"]["stderr"])
             self.assertFalse((failed_output / "qualification-evidence.json").exists())
 
+    def test_nested_outcome_cohort_requires_its_own_profile_and_fresh_all23_binding(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings, repo, compiler, candidate, evidence, _, _, _ = self.fixture(
+                root, catalog.AUTHORING_PROFILE_V32)
+            self.assertEqual(settings["cohort"], "catalog-nested-outcome-v1")
+            self.assertEqual(settings["native_project_route"]["project_schema"], "semaprax.project.v32")
+            self.assertEqual(settings["native_project_route"]["project_profile"],
+                "language-command-io.nested-outcome.v1")
+            admitted = catalog.candidate_authoring_admission(candidate, "semaprax", catalog.AUTHORING_PROFILE_V32)
+            self.assertEqual(admitted["status"], "passed")
+            for old_profile in (catalog.AUTHORING_PROFILE_V30, catalog.AUTHORING_PROFILE_V31):
+                self.assertEqual(catalog.candidate_authoring_admission(candidate, "semaprax", old_profile)["status"], "failed")
+                with self.assertRaises(ValueError):
+                    catalog.validate_qualification_evidence(evidence, repo,
+                        settings["compiler_source_commit"], catalog.common.digest(compiler), old_profile)
+            self.assertNotIn(catalog.AUTHORING_PROFILE_V32, catalog.shared.AUTHORING_PROFILES)
+            # Only the Project setup differs; the strong TS prompt and all23 contract remain intact.
+            self.assertEqual(catalog.prompt_for("typescript", candidate, compiler, catalog.AUTHORING_PROFILE_V32),
+                catalog.prompt_for("typescript", candidate, compiler, catalog.AUTHORING_PROFILE_V30))
+            prompt = catalog.prompt_for("semaprax", candidate, compiler, catalog.AUTHORING_PROFILE_V32)
+            self.assertIn("all 23 original functional and output requirements stay binding", prompt)
+            self.assertIn("supersedes only the SPEC's historical v30 profile/route clause", prompt)
+            self.assertIn("Project v32 profile", prompt)
+            self.assertIn("language-command-io.nested-outcome.v1", prompt)
+            for requirement in ("unlimited raw whitespace", "owned String label and Bytes payload",
+                "Allocate, clone and replace Bytes-bearing owners outside loops"):
+                self.assertIn(requirement, prompt)
+
     def test_prompts_and_fixed_context_supply_no_solution_or_codegen_guess(self):
         for arm in adapter.ARMS:
             prompt = catalog.prompt_for(arm, Path("/candidate"), Path("/compiler"), catalog.AUTHORING_PROFILE_V30)

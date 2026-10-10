@@ -55,6 +55,7 @@ AUTHORING_PROFILE_V24 = "semaprax-project-v24-stream-v2"
 AUTHORING_PROFILE_V27 = "semaprax-project-v27-stream-data-v1"
 AUTHORING_PROFILE_V30 = "semaprax-project-v30-owned-data-v1"
 AUTHORING_PROFILE_CATALOG_V31 = "semaprax-project-v31-collection-record-v1"
+AUTHORING_PROFILE_CATALOG_V32 = "semaprax-project-v32-nested-outcome-v1"
 STREAM_DATA_CAPABILITIES = [
     "process.args.read", "process.stderr.write", "process.stdin.read", "process.stdout.write",
 ]
@@ -89,7 +90,7 @@ AUTHORING_PROFILES = {
 }
 PINNED_AUTHORING_PROFILES = (AUTHORING_PROFILE_V27, AUTHORING_PROFILE_V30)
 # Route-only registry for explicit profiles consumed by the shared manifest
-# reader. The Catalog v31 route is not a ShiftSim campaign/qualification profile.
+# reader. Catalog v31/v32 routes are not ShiftSim campaign/qualification profiles.
 AUTHORING_MANIFEST_ROUTES = {
     profile: data["route"] for profile, data in AUTHORING_PROFILES.items()
 }
@@ -97,6 +98,11 @@ AUTHORING_MANIFEST_ROUTES[AUTHORING_PROFILE_CATALOG_V31] = {
     **NATIVE_PROJECT_ROUTE_V27,
     "project_schema": "semaprax.project.v31",
     "project_profile": "language-command-io.collection-record.v1",
+}
+AUTHORING_MANIFEST_ROUTES[AUTHORING_PROFILE_CATALOG_V32] = {
+    **NATIVE_PROJECT_ROUTE_V27,
+    "project_schema": "semaprax.project.v32",
+    "project_profile": "language-command-io.nested-outcome.v1",
 }
 SPEC_RELATIVE = "benchmarks/event-sim-tokens-v1/SPEC.md"
 CORPUS_RELATIVE = "benchmarks/event-sim-tokens-v1/acceptance/corpus.json"

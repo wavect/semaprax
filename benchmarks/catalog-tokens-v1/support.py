@@ -46,7 +46,8 @@ MODEL, EFFORT = "gpt-6.1-sol", "medium"
 ARMS, MIN_TRIALS_PER_ARM = ("semaprax", "typescript"), 5
 AUTHORING_PROFILE_V30 = "semaprax-project-v30-owned-data-v1"
 AUTHORING_PROFILE_V31 = shared.AUTHORING_PROFILE_CATALOG_V31
-PINNED_AUTHORING_PROFILES = (AUTHORING_PROFILE_V30, AUTHORING_PROFILE_V31)
+AUTHORING_PROFILE_V32 = shared.AUTHORING_PROFILE_CATALOG_V32
+PINNED_AUTHORING_PROFILES = (AUTHORING_PROFILE_V30, AUTHORING_PROFILE_V31, AUTHORING_PROFILE_V32)
 SPEC_RELATIVE = "benchmarks/catalog-tokens-v1/SPEC.md"
 SEED_FILES = ("/" + SPEC_RELATIVE,)
 CANDIDATE_RELATIVE = "benchmarks/catalog-tokens-v1/candidate"
@@ -57,6 +58,7 @@ REPORT_SCHEMA = "semaprax.catalog-acceptance.v1"
 ROUTE_BY_PROFILE = {
     AUTHORING_PROFILE_V30: shared.AUTHORING_MANIFEST_ROUTES[shared.AUTHORING_PROFILE_V30],
     AUTHORING_PROFILE_V31: shared.AUTHORING_MANIFEST_ROUTES[AUTHORING_PROFILE_V31],
+    AUTHORING_PROFILE_V32: shared.AUTHORING_MANIFEST_ROUTES[AUTHORING_PROFILE_V32],
 }
 ROUTE = ROUTE_BY_PROFILE[AUTHORING_PROFILE_V30]
 AUTHORING_PROFILES = {
@@ -65,6 +67,9 @@ AUTHORING_PROFILES = {
     AUTHORING_PROFILE_V31: {"route": ROUTE_BY_PROFILE[AUTHORING_PROFILE_V31],
         "cohort": "catalog-collection-record-v1", "codex_campaign_schema": "semaprax.catalog-codex-campaign.v2",
         "project_label": "Project v31"},
+    AUTHORING_PROFILE_V32: {"route": ROUTE_BY_PROFILE[AUTHORING_PROFILE_V32],
+        "cohort": "catalog-nested-outcome-v1", "codex_campaign_schema": "semaprax.catalog-codex-campaign.v3",
+        "project_label": "Project v32"},
 }
 FROZEN_INPUTS = {'benchmarks/catalog-tokens-v1/SPEC.md': 'aa8073239954deb802bbd0278412a76fa8bb367f93d48ce91ecd09a1222893ad', 'benchmarks/catalog-tokens-v1/acceptance/corpus.json': 'd8469e9f91d832de41084ce12c97390c682f5b4aef30df075ec3b7f24db2ed73', 'benchmarks/catalog-tokens-v1/oracle.py': 'ed7532a00869333a06e6e5a242d1799f7a106db6fb47efd698ec822bed15590b'}
 
@@ -253,7 +258,7 @@ is not the selected command process adapter. Invalid application input is
 status 2 with the specified stderr, not a failed contract/runtime failure.
 """
         cohort_scope = """The frozen SPEC remains the complete application contract: all 23 original functional and output requirements stay binding, including runtime items with an owned String id and scalar mark, and ordered publication fragments with an owned String label and Bytes payload. Allocate, clone and replace Bytes-bearing owners outside loops. For this separately versioned cohort, the selected Project profile/setup below supersedes only the SPEC's historical v30 profile/route clause; do not change any application behavior or publication bytes.
-""" if authoring_profile == AUTHORING_PROFILE_V31 else ""
+""" if authoring_profile in (AUTHORING_PROFILE_V31, AUTHORING_PROFILE_V32) else ""
         return base + cohort_scope + f"""Use the compiler at `{compiler}` (also $SEMAPRAX_BIN), {profile['project_label']} profile
 `{route['project_profile']}`, input `{route['input_route']}`, a single
 external fn() -> i64 command/export, and exactly the sorted grants

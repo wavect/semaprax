@@ -10,7 +10,7 @@ use function @id("shiftsim.request.json.owned.decode") from shiftsim.request_sch
 use function @id("shiftsim.report.json.collection-response.encode") from shiftsim.response_schema as encode;
 use function @id("shiftsim.schedule.run") from shiftsim.schedule as run;
 
-permit { process.stdin.read, process.stdout.write }
+permit { process.stdin.read, process.stdout.write, process.stderr.write }
 
 @id("shiftsim.receive")
 fn receive() -> Decode uses { process.stdin.read }
@@ -28,20 +28,29 @@ fn receive() -> Decode uses { process.stdin.read }
     }
 }
 
+@id("shiftsim.reject")
+fn reject() -> i64 uses { process.stderr.write }
+{
+    let message = "invalid ShiftSim request\n";
+    let diagnostic = str_as_bytes(string_as_str(message));
+    let _ = stderr_write(diagnostic);
+    2
+}
+
 @id("shiftsim.command")
-fn command() -> i64 uses { process.stdin.read, process.stdout.write }
+fn command() -> i64 uses { process.stdin.read, process.stdout.write, process.stderr.write }
 {
     let decoded = receive();
     match own decoded {
-        Decode::Error { code: _error_code, offset: _error_offset, field: _error_field } => 2,
+        Decode::Error { code: _error_code, offset: _error_offset, field: _error_field } => reject(),
         Decode::Decoded { servers, patients } => {
             let result = run(Request { servers, patients });
             match own result {
-                ScheduleResult { valid: false, report: _invalid_report } => 2,
+                ScheduleResult { valid: false, report: _invalid_report } => reject(),
                 ScheduleResult { valid: true, report } => {
                     let encoded = encode(report, 131071usize);
                     match own encoded {
-                        Encoded::Refused { required: _required } => 2,
+                        Encoded::Refused { required: _required } => reject(),
                         Encoded::Encoded { text } => {
                             let line = string_concat(text, "\n");
                             let output = str_as_bytes(string_as_str(line));

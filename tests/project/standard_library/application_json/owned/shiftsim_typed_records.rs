@@ -51,6 +51,15 @@ fn write_example(root: &Path) {
     }
 }
 
+fn assert_one_diagnostic_line(output: &std::process::Output) {
+    assert_eq!(output.status.code(), Some(2));
+    assert!(output.stdout.is_empty());
+    assert!(output.stderr.ends_with(b"\n"));
+    let text = std::str::from_utf8(&output.stderr).expect("diagnostic is UTF-8");
+    assert_eq!(text.lines().count(), 1);
+    assert!(!text.trim().is_empty());
+}
+
 fn escaped_ascii(value: &str) -> String {
     let mut output = String::from("\"");
     for byte in value.bytes() {
@@ -110,8 +119,14 @@ fn expected_wire(value: &serde_json::Value) -> String {
     let metrics = &value["metrics"];
     format!(
         "{{\"assignments\":[{assignments}],\"metrics\":{{\"patients\":{},\"total_wait\":{},\"max_wait\":{},\"late\":{},\"busy_time\":{},\"makespan\":{},\"peak_queue\":{},\"utilization_ppm\":{}}}}}\n",
-        metrics["patients"], metrics["total_wait"], metrics["max_wait"], metrics["late"],
-        metrics["busy_time"], metrics["makespan"], metrics["peak_queue"], metrics["utilization_ppm"]
+        metrics["patients"],
+        metrics["total_wait"],
+        metrics["max_wait"],
+        metrics["late"],
+        metrics["busy_time"],
+        metrics["makespan"],
+        metrics["peak_queue"],
+        metrics["utilization_ppm"]
     )
 }
 
@@ -176,15 +191,21 @@ fn typed_record_shiftsim_derives_both_codecs_and_runs_retained_corpus() {
             snapshot.manifest().project_profile(),
             project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1
         );
-        assert!(snapshot
-            .semantic_graph()
-            .contains("shiftsim.request.json.owned.decode"));
-        assert!(snapshot
-            .semantic_graph()
-            .contains("shiftsim.report.json.collection-response.encode"));
-        assert!(snapshot
-            .execute_entry(&project::ProjectExecutionOptions::default())?
-            .command_succeeded());
+        assert!(
+            snapshot
+                .semantic_graph()
+                .contains("shiftsim.request.json.owned.decode")
+        );
+        assert!(
+            snapshot
+                .semantic_graph()
+                .contains("shiftsim.report.json.collection-response.encode")
+        );
+        assert!(
+            snapshot
+                .execute_entry(&project::ProjectExecutionOptions::default())?
+                .command_succeeded()
+        );
         let tests = snapshot.execute_test(&project::ProjectExecutionOptions::default())?;
         assert!(tests.command_succeeded());
         assert_eq!(tests.cases().len(), 2);
@@ -220,13 +241,41 @@ fn typed_record_shiftsim_derives_both_codecs_and_runs_retained_corpus() {
             );
             assert!(output.stderr.is_empty(), "{name}");
         }
+        for identifier in ["", "ABCDEFGHIJKLMNOPQ", "é", "has space", "NUL\0"] {
+            for slot in ["server", "patient"] {
+                let mut request = serde_json::json!({
+                    "servers": ["S0"],
+                    "patients": [{"id":"P0","arrival":0,"service":1,"priority":0,"deadline":1}]
+                });
+                if slot == "server" {
+                    request["servers"][0] = serde_json::json!(identifier);
+                } else {
+                    request["patients"][0]["id"] = serde_json::json!(identifier);
+                }
+                let output = execute(&binary, request_wire(&request, None, false).as_bytes());
+                assert_one_diagnostic_line(&output);
+            }
+        }
+        let too_many_servers = serde_json::json!({
+            "servers": (0..9).map(|i| format!("S{i}")).collect::<Vec<_>>(),
+            "patients": []
+        });
+        let too_many_patients = serde_json::json!({
+            "servers": ["S0"],
+            "patients": (0..257).map(|i| serde_json::json!({
+                "id": format!("P{i}"),"arrival":0,"service":1,"priority":0,"deadline":1
+            })).collect::<Vec<_>>()
+        });
+        for request in [too_many_servers, too_many_patients] {
+            let output = execute(&binary, request_wire(&request, None, false).as_bytes());
+            assert_one_diagnostic_line(&output);
+        }
         for case in corpus["invalid"].as_array().unwrap() {
             let name = case["name"].as_str().unwrap();
             let input = request_wire(&case["input"], None, false);
             let output = execute(&binary, input.as_bytes());
             assert_eq!(output.status.code(), Some(2), "{name}");
-            assert!(output.stdout.is_empty(), "{name}");
-            assert!(output.stderr.is_empty(), "{name}");
+            assert_one_diagnostic_line(&output);
         }
     }
 
@@ -239,8 +288,6 @@ fn typed_record_shiftsim_derives_both_codecs_and_runs_retained_corpus() {
     assert!(output.stderr.is_empty());
     let malformed = std::fs::read(root.join("fixtures/malformed.json")).unwrap();
     let output = execute(&native, &malformed);
-    assert_eq!(output.status.code(), Some(2));
-    assert!(output.stdout.is_empty());
-    assert!(output.stderr.is_empty());
+    assert_one_diagnostic_line(&output);
     std::fs::remove_dir_all(root).unwrap();
 }

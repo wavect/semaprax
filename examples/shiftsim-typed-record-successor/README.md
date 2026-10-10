@@ -30,9 +30,10 @@ semaprax build . --target native -o shiftsim
 The request generator supplies the existing stream normalizer and owned
 decoder for `{servers:Vec<string>, patients:Vec<Patient>}`. The response
 generator emits the bounded encoder for `Report`, whose assignments contain
-both patient and server IDs. The command returns status 2 without output for a
-malformed request or a scheduler-range refusal; successful output is one
-canonical JSON line. `tests.spx` covers a tied two-patient/eight-server case
+both patient and server IDs. The command rejects malformed JSON, duplicate or
+non-ASCII identifiers, oversized arrays, and out-of-range numeric fields with
+status 2, one diagnostic line on stderr, and empty stdout. Successful output is
+one canonical JSON line. `tests.spx` covers a tied two-patient/eight-server case
 and the full 256-patient serial boundary.
 
 The manifest selects the explicit v31 collection-record command profile.

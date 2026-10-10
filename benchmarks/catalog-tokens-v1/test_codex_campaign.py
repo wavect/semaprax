@@ -438,7 +438,7 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
                 with self.assertRaises(ValueError):
                     catalog.validate_qualification_evidence(evidence, repo,
                         settings["compiler_source_commit"], catalog.common.digest(compiler), old_profile)
-            self.assertNotIn(catalog.AUTHORING_PROFILE_V32, catalog.shared.AUTHORING_PROFILES)
+            self.assertEqual(catalog.shared.AUTHORING_PROFILES[catalog.AUTHORING_PROFILE_V32]["rounds"], (5,))
             # Only the Project setup differs; the strong TS prompt and all23 contract remain intact.
             self.assertEqual(catalog.prompt_for("typescript", candidate, compiler, catalog.AUTHORING_PROFILE_V32),
                 catalog.prompt_for("typescript", candidate, compiler, catalog.AUTHORING_PROFILE_V30))

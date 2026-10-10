@@ -107,5 +107,5 @@ oracle, TypeScript prompt and baseline, model/settings, minimum five trials
 per arm and separate fixed-context accounting stay unchanged. Only the
 historical Project route/setup clause is superseded. This harness addition
 is pending compiler and application qualification; it establishes no token,
-cost or acceptance gain and dispatches no model runs by itself. The route-only
-shared manifest registration does not add a ShiftSim campaign profile.
+cost or acceptance gain and dispatches no model runs by itself. ShiftSim uses its own explicitly selected round 5 and independent all15
+qualification; Catalog evidence cannot authorize a ShiftSim campaign.

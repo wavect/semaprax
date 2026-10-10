@@ -75,7 +75,7 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("compiler-source-ref differs from the qualified compiler source commit")
     base.update({
         "schema": shiftsim.AUTHORING_PROFILES[base["authoring_profile"]]["codex_campaign_schema"],
-        "adapter": {3: "codex-matched-shiftsim-v2", 4: "codex-matched-shiftsim-v3"}.get(base["round"], "codex-matched-shiftsim-v1"),
+        "adapter": {3: "codex-matched-shiftsim-v2", 4: "codex-matched-shiftsim-v3", 5: "codex-matched-shiftsim-v4"}.get(base["round"], "codex-matched-shiftsim-v1"),
         "resource_policy": codex.resources.policy(),
         "harness_source_files_sha256": codex.harness_source_inventory(REPO, HARNESS_SOURCE_FILES),
         "model_requested": MODEL,
@@ -471,7 +471,7 @@ def main() -> int:
         p.add_argument("--repo", default=str(REPO)); p.add_argument("--base-ref", required=True)
         p.add_argument("--compiler-source-ref", required=True); p.add_argument("--semaprax-bin", required=True)
         p.add_argument("--qualification-evidence", required=True); p.add_argument("--artifacts", required=True)
-        p.add_argument("--round", type=int, choices=(1, 2, 3, 4), default=2)
+        p.add_argument("--round", type=int, choices=(1, 2, 3, 4, 5), default=2)
         p.add_argument("--authoring-profile", choices=tuple(shiftsim.AUTHORING_PROFILES), default=None)
         p.add_argument("--trials-per-arm", type=int, default=5)
         p.add_argument("--model", default=MODEL); p.add_argument("--effort", default=EFFORT)

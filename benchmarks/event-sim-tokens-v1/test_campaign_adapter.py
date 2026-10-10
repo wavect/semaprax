@@ -102,9 +102,10 @@ web = ["run"]
 [capabilities]
 required = ["process.args.read", "process.stderr.write", "process.stdin.read", "process.stdout.write"]
 ''', encoding="utf-8")
-        if profile == live_campaign.AUTHORING_PROFILE_V30:
+        if profile in (live_campaign.AUTHORING_PROFILE_V30, live_campaign.AUTHORING_PROFILE_V32):
             manifest.write_text(manifest.read_text().replace(
-                "language-command-io.stream-data.v1", "language-command-io.owned-data.v1"), encoding="utf-8")
+                "language-command-io.stream-data.v1",
+                live_campaign.AUTHORING_PROFILES[profile]["route"]["project_profile"]), encoding="utf-8")
         manifest_hash = live_campaign.sha_bytes(manifest.read_bytes())
         inventory = root / "candidate-source-inventory.json"
         files = [{"path": "semaprax.toml", "bytes": manifest.stat().st_size,
@@ -990,6 +991,71 @@ exec node dist/cli.js
             admitted = live_campaign.validate_qualification_evidence(output / "qualification-evidence.json",
                 repo, commit, common.digest(compiler), live_campaign.AUTHORING_PROFILE_V30)
             self.assertEqual(admitted["acceptance_cases_passed"], 15)
+
+    def test_v32_qualification_builder_accepts_only_its_harness_native_subject(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _, _, report, repo, _, manifest = self._v3_qualification_evidence(
+                root, profile=live_campaign.AUTHORING_PROFILE_V32)
+            compiler = root / "compiler"
+            compiler.write_bytes(b"compiler fixture")
+            output = root / "fresh-qualification"
+            commands = []
+            original_run = subprocess.run
+            def execute(command, **kwargs):
+                if command[0] == "git":
+                    return original_run(command, **kwargs)
+                commands.append(command)
+                if command[:2] == [str(compiler.resolve()), "build"]:
+                    Path(command[command.index("--output") + 1]).write_bytes(b"new native fixture")
+                if "--report-json" in command:
+                    Path(command[command.index("--report-json") + 1]).write_bytes(report.read_bytes())
+                return subprocess.CompletedProcess(command, 0, stdout=b"", stderr=b"")
+            commit = live_campaign.resolve_commit(repo, "HEAD")
+            with patch.object(subprocess, "run", side_effect=execute):
+                result = live_campaign.generate_v3_qualification(manifest.parent, compiler, repo,
+                    commit, output, 10, authoring_profile=live_campaign.AUTHORING_PROFILE_V32)
+            self.assertEqual(result["status"], "qualified")
+            acceptance = next(command for command in commands if "--command-json" in command)
+            self.assertEqual(json.loads(acceptance[acceptance.index("--command-json") + 1]),
+                             [str(output / "qualified-native-binary")])
+            evidence = json.loads((output / "qualification-evidence.json").read_text())
+            self.assertEqual(evidence["schema"], live_campaign.QUALIFICATION_EVIDENCE_SCHEMA_V5)
+            self.assertEqual(evidence["native_project_route"]["project_schema"], "semaprax.project.v32")
+            admitted = live_campaign.validate_qualification_evidence(output / "qualification-evidence.json",
+                repo, commit, common.digest(compiler), live_campaign.AUTHORING_PROFILE_V32)
+            self.assertEqual(admitted["acceptance_cases_passed"], 15)
+
+    def test_v32_round_and_prompt_preserve_original_contract_and_refuse_old_profiles(self):
+        profile = live_campaign.AUTHORING_PROFILE_V32
+        with self.assertRaisesRegex(ValueError, "requires --authoring-profile"):
+            live_campaign.select_authoring_profile(5, None)
+        self.assertEqual(live_campaign.select_authoring_profile(5, profile)[0], profile)
+        for round_number, wrong_profile in ((4, profile), (5, live_campaign.AUTHORING_PROFILE_V30),
+                (5, live_campaign.AUTHORING_PROFILE_V27)):
+            with self.assertRaisesRegex(ValueError, "requires authoring profile"):
+                live_campaign.select_authoring_profile(round_number, wrong_profile)
+        self.assertEqual(live_campaign.prompt_for("typescript", Path("/candidate"), Path("/compiler"), profile),
+            live_campaign.prompt_for("typescript", Path("/candidate"), Path("/compiler"), live_campaign.AUTHORING_PROFILE_V27))
+        prompt = live_campaign.prompt_for("semaprax", Path("/candidate"), Path("/compiler"), profile)
+        for text in ("native Project v32", "language-command-io.nested-outcome.v1", "All original 15 application requirements",
+                "tie behavior", "exact publication bytes", "unchanged limits"):
+            self.assertIn(text, prompt)
+        self.assertNotIn("only when T is a Copy scalar", prompt)
+        self.assertNotIn("json_Request", prompt)
+        row = {}
+        live_campaign.retain_fixed_harness_context(row, {"authoring_profile": profile}, prompt)
+        self.assertEqual(row["fixed_harness_context"]["prompt_utf8_bytes"], len(prompt.encode()))
+        self.assertIsNone(row["fixed_harness_context"]["tokens"])
+        self.assertIsNone(row["fixed_harness_context"]["actual_billed_usd"])
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            evidence_path, _, _, repo, _, manifest = self._v3_qualification_evidence(root, profile=profile)
+            commit = live_campaign.resolve_commit(repo, "HEAD")
+            for old in (live_campaign.AUTHORING_PROFILE_V27, live_campaign.AUTHORING_PROFILE_V30):
+                self.assertEqual(live_campaign.candidate_authoring_admission(manifest.parent, "semaprax", old)["status"], "failed")
+                with self.assertRaisesRegex(ValueError, "schema"):
+                    live_campaign.validate_qualification_evidence(evidence_path, repo, commit, "a" * 64, old)
 
     def test_v30_claude_dispatch_refuses_unqualified_setup_before_worktree_or_paid_call(self):
         with tempfile.TemporaryDirectory() as directory:

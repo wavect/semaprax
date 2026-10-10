@@ -149,3 +149,20 @@ not verified authored tokens or cumulative edits.
 Future matched runs can opt into the pinned dependency-only TypeScript setup
 with `--typescript-bootstrap-receipt`. See [LIVE-CAMPAIGN.md](LIVE-CAMPAIGN.md)
 for setup instructions and the unknown-context reporting limit.
+
+Round 5 is the independent nested-outcome successor: explicitly select
+`--round 5 --authoring-profile semaprax-project-v32-nested-outcome-v1`. It
+uses Project v32 `language-command-io.nested-outcome.v1`, qualification schema
+`semaprax.event-sim-qualification-evidence.v5` and Codex campaign schema
+`semaprax.event-sim-codex-campaign.v4`. Produce its fresh evidence with
+`campaign.py qualify-v5` against a reviewed closed application and the exact
+verified compiler. Earlier round/profile evidence cannot authorize it.
+All original 15 acceptance obligations and compact/escaped maximum-cardinality
+requests remain required, with unchanged SPEC/corpus/oracle hashes, scheduler
+ties, diagnostics, publication and limits. Only the historical Project setup
+clause is superseded. The TypeScript prompt stays byte-identical to round 3
+and requires its pinned dependency-only bootstrap receipt. Both arms retain
+the matched model/settings and at least five attempts, including failures;
+fixed prompt context is reported separately and provider billing stays null
+without actual receipts. The compiler, application and live run qualification
+for this new cohort is pending; the harness does not establish a saving.

@@ -340,6 +340,28 @@ class CodexShiftSimTests(unittest.TestCase):
             self.assertEqual({path.name for path in (root / "artifacts").iterdir()}, {"resource-receipts"})
 
 
+    def test_v32_unqualified_or_stale_setup_refuses_all_paid_endpoints_before_worktree(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = self.settings(root)
+            settings.update({"round": 5, "authoring_profile": adapter.shiftsim.AUTHORING_PROFILE_V32,
+                             "native_project_route": adapter.shiftsim.AUTHORING_PROFILES[
+                                 adapter.shiftsim.AUTHORING_PROFILE_V32]["route"]})
+            with patch.object(adapter.shiftsim.common, "add_seed_worktree") as worktree, \
+                 patch.object(adapter.codex, "run_codex") as paid:
+                calls = [lambda: adapter.launch_calibration(root, root / "artifacts", "seed", settings, root / "semaprax")]
+                calls.extend(lambda arm=arm: adapter.launch_trial(root, root / "artifacts", "seed",
+                    {"arm": arm, "number": 1}, settings, root / "semaprax") for arm in adapter.ARMS)
+                for launch in calls:
+                    row = launch()
+                    self.assertEqual(row["status"], "failed")
+                    self.assertTrue(row["runner_error"])
+                    self.assertIn("all-15 qualification", row["failure"])
+                worktree.assert_not_called()
+                paid.assert_not_called()
+            self.assertEqual({path.name for path in (root / "artifacts").iterdir()}, {"resource-receipts"})
+
+
     def test_v30_codex_plan_keeps_matched_model_denominator_and_fresh_source_binding(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -376,6 +398,58 @@ class CodexShiftSimTests(unittest.TestCase):
                              adapter.shiftsim.AUTHORING_PROFILE_V27)
             adapter.shiftsim.require_authoring_eligibility(settings, binary)
             self.assertFalse((root / "artifacts").exists())
+
+
+    def test_v32_codex_plan_keeps_matched_model_denominator_and_fresh_source_binding(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            binary = root / "semaprax"
+            binary.write_bytes(b"v32 fixture compiler")
+            digest = adapter.shiftsim.common.digest(binary)
+            evidence, _, _, repo, _, _ = fixtures.ShiftSimCampaignTests()._v3_qualification_evidence(
+                root, profile=adapter.shiftsim.AUTHORING_PROFILE_V32, compiler_hash=digest)
+            tooling = root / "tooling.json"
+            tooling.write_text("{}")
+            receipt = {key: "a" * 64 for key in ("inventory_sha256", "package_json_sha256", "package_lock_sha256", "helper_sha256", "dependency_helper_sha256")}
+            receipt.update({"runtime": {"node_binary_sha256": "b" * 64}, "packages": {"typescript": "5.9.3"}})
+            args = Namespace(repo=str(repo), base_ref="HEAD", compiler_source_ref="HEAD",
+                semaprax_bin=str(binary), qualification_evidence=str(evidence), artifacts=str(root / "artifacts"),
+                round=5, authoring_profile=adapter.shiftsim.AUTHORING_PROFILE_V32,
+                trials_per_arm=5, model=adapter.MODEL, effort=adapter.EFFORT, timeout_seconds=1800,
+                max_budget_usd=None, tokenizer_dir=None, codex_binary="/fixture/codex",
+                typescript_bootstrap_receipt=str(tooling), node_binary="node", npm_binary="npm")
+            original_run = subprocess.run
+            def execute(command, **kwargs):
+                if command == ["/fixture/codex", "--version"]:
+                    return subprocess.CompletedProcess(command, 0, "codex fixture-version\n", "")
+                return original_run(command, **kwargs)
+            with patch.object(adapter.codex, "capabilities", return_value={"status": "ready"}), \
+                 patch.object(adapter.subprocess, "run", side_effect=execute), \
+                 patch.object(adapter.shiftsim.common, "tokenizer_metadata", return_value=None), \
+                 patch.object(adapter.shiftsim.ts_bootstrap, "validate", return_value=receipt):
+                settings = adapter.plan(args)
+            self.assertEqual(settings["schema"], "semaprax.event-sim-codex-campaign.v4")
+            self.assertEqual(settings["adapter"], "codex-matched-shiftsim-v4")
+            self.assertEqual((settings["model"], settings["effort"]), ("gpt-6.1-sol", "medium"))
+            self.assertEqual(settings["attempt_denominator"], 10)
+            self.assertEqual(settings["trial_order"].count("semaprax"), 5)
+            self.assertEqual(settings["trial_order"].count("typescript"), 5)
+            self.assertEqual(settings["source_binary_sha256"], digest)
+            self.assertEqual(settings["compiler_source_commit"], settings["repository_commit"])
+            self.assertEqual(settings["qualification"]["acceptance_cases_passed"], 15)
+            self.assertIsNone(settings["codex_execution"]["stable_context_tokens"])
+            self.assertEqual(settings["language_setup"]["typescript"]["prompt_condition"],
+                             adapter.shiftsim.AUTHORING_PROFILE_V27)
+            adapter.shiftsim.require_authoring_eligibility(settings, binary)
+            self.assertEqual(settings["native_project_route"]["project_schema"], "semaprax.project.v32")
+            self.assertEqual(settings["language_setup"]["semaprax"]["qualification_schema"],
+                adapter.shiftsim.QUALIFICATION_EVIDENCE_SCHEMA_V5)
+            self.assertEqual(settings["typescript_bootstrap"]["runtime"], receipt["runtime"])
+            self.assertFalse((root / "artifacts").exists())
+            args.typescript_bootstrap_receipt = None
+            with patch.object(adapter.shiftsim.common, "tokenizer_metadata", return_value=None), \
+                    self.assertRaisesRegex(ValueError, "pinned strong TypeScript"):
+                adapter.plan(args)
 
 
 if __name__ == "__main__":

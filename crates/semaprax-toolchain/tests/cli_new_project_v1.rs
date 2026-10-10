@@ -346,6 +346,10 @@ fn stdin_stream_collection_record_template_has_exact_bytes_and_passes_check() {
     let manifest = String::from_utf8(files["semaprax.toml"].clone()).unwrap();
     assert!(manifest.contains("profile = \"language-command-io.collection-record.v1\""));
     assert!(manifest.contains("matrix = [\"native64\"]"));
+    let readme = String::from_utf8(files["README.md"].clone()).unwrap();
+    assert!(readme.contains("printf 'sample\\n' | ./app"));
+    let tests = String::from_utf8(files["src/tests.spx"].clone()).unwrap();
+    assert!(tests.contains("fn test_report() -> i64"));
     assert_success(&cli(
         &fixture.root,
         &["check", "collection-command/semaprax.toml"],
@@ -358,6 +362,7 @@ fn generated_project_validation_never_reopens_the_ambient_staging_tree() {
     let scaffold = concat!(
         include_str!("../../../src/project/scaffold.rs"),
         include_str!("../../../src/project/scaffold/service_config.rs"),
+        include_str!("../../../src/project/scaffold/collection_records.rs"),
     );
     assert!(scaffold.contains("validate_owned_project_test"));
     assert!(!implementation.contains("project::with_authenticated_project"));

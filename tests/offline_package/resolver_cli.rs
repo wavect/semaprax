@@ -45,8 +45,8 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     // Undo the intentional surface changes made after this ledger was frozen,
     // so every historical witness below still measures the shape it recorded:
     // `semaprax lock` is new; directory inputs were added to check/build/run
-    // /test; the scaffold gained a library template and later a service
-    // template; `new` became public; `fmt --manifest`, `doc`, `verify`,
+    // /test; the scaffold gained a library template, a service template, and
+    // a collection-record template; `new` became public; `fmt --manifest`, `doc`, `verify`,
     // `agent`, `query`, `change`, `package`, `add`, `fetch`, `service`, and
     // `review` were added; and `doctor` became standalone.
     const RESTORED: [(&str, &str); 46] = [
@@ -108,7 +108,7 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
         ),
         ("semaprax fmt --manifest <semaprax.toml> [--check]\n", ""),
         (
-            "semaprax project-scaffold --name project-name [--template calculator|library|service|stdin-stream-text|stdin-stream-data|source-command-file-text] [--layout frozen|tables]\n",
+            "semaprax project-scaffold --name project-name [--template calculator|library|service|stdin-stream-text|stdin-stream-data|stdin-stream-collection-record|source-command-file-text] [--layout frozen|tables]\n",
             "semaprax project-scaffold --name project-name [--template calculator]\n",
         ),
         (
@@ -137,7 +137,7 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
             "semaprax test [semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n",
         ),
         (
-            "semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text|stdin-stream-data|source-command-file-text]\n",
+            "semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text|stdin-stream-data|stdin-stream-collection-record|source-command-file-text]\n",
             "",
         ),
     ];

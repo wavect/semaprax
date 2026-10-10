@@ -11,7 +11,7 @@ pub(super) const INVENTORY: [&str; FILE_COUNT] = [
     "src/tests.spx",
 ];
 
-pub(super) const README: &str = "# {{name}}\n\nA native stdin command starter for Project v31 collection records. It keeps the ordinary command route and demonstrates a borrowed `Report` with a projected `Vec<string>` length.\n\n```sh\nsemaprax check .\nsemaprax test .\nsemaprax build --manifest-path semaprax.toml --target native --output app\n./app\n```\n\nThe sample consumes stdin in bounded chunks and returns a small status. The v31 profile selects native64; web, Wasm, npm, and interpreter command execution are refused. Runtime qualification for this additive profile remains pending. Read `AGENTS.md` before editing the source.\n";
+pub(super) const README: &str = "# {{name}}\n\nA native stdin command starter for Project v31 collection records. It keeps the ordinary command route and demonstrates a borrowed `Report` with a projected `Vec<string>` length.\n\n```sh\nsemaprax check .\nsemaprax test .\nsemaprax build --manifest-path semaprax.toml --target native --output app\nprintf 'sample\\n' | ./app\n```\n\nThe sample consumes stdin in bounded chunks and returns a small status. The v31 profile selects native64; web, Wasm, npm, and interpreter command execution are refused. Runtime qualification for this additive profile remains pending. Read `AGENTS.md` before editing the source.\n";
 
 pub(super) const GUIDE: &str = "\n## Native collection-record command\n\nThis project selects Project v31 profile `language-command-io.collection-record.v1`, schema `semaprax.project.v31`, and input `argv-utf8+stdin-stream.v1`. The command and entry/test roots are separate stable-ID functions. The four command grants are unchanged from the stdin-stream-data starter.\n\n`core.spx` declares `Metrics` and `Report`; `inspect` immutably borrows `Report` and reads `vec_len<string>(value.items)` plus the nested scalar. For the bounded authoring card, run `semaprax help language author:collection-records`. This starter demonstrates the source shape only. The Project v31 current-head execution qualification is pending. Native64 is the selected target; web, Wasm, npm, and interpreter command execution are refused.\n";
 
@@ -80,6 +80,12 @@ fn verify() -> i64
 
 pub(super) const TESTS: &str = r#"module {{module}}.tests;
 use function @id("{{name}}.verify") from {{module}}.core as verify;
+
+@id("{{name}}.tests.test_report")
+fn test_report() -> i64
+{
+    if verify() == 12 { 0 } else { 1 }
+}
 
 @id("{{name}}.tests.main")
 fn main() -> i64

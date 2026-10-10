@@ -420,7 +420,7 @@ hint: run `semaprax new --help` for usage\n"
     assert_eq!(template.status.code(), Some(2));
     assert_eq!(
         stderr(&template),
-        "new: unknown new template `web`; expected calculator or library or service or stdin-stream-text or stdin-stream-data or source-command-file-text\nhint: run `semaprax new --help` for usage\n"
+        "new: unknown new template `web`; expected calculator or library or service or stdin-stream-text or stdin-stream-data or stdin-stream-collection-record or source-command-file-text\nhint: run `semaprax new --help` for usage\n"
     );
     assert!(!fixture.root.join("fine").exists());
 
@@ -452,7 +452,7 @@ fn standalone_new_is_listed_by_help_and_describes_its_grammar() {
     assert!(scoped.status.success());
     assert_eq!(
         stdout(&scoped),
-        "Usage:\n  semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text|stdin-stream-data|source-command-file-text]\n"
+        "Usage:\n  semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text|stdin-stream-data|stdin-stream-collection-record|source-command-file-text]\n"
     );
     let guided = cli(&fixture.root, &["--help"]);
     assert!(stdout(&guided).contains("\n  new <destination>"));

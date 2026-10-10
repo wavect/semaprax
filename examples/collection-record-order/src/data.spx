@@ -1,0 +1,80 @@
+module record_order.data;
+
+@id("record_order.row")
+record Row {
+    @id("record_order.row.department") department: i64,
+    @id("record_order.row.priority") priority: i64,
+    @id("record_order.row.id") id: string,
+    @id("record_order.row.ordinal") ordinal: i64,
+}
+
+@id("record_order.metrics")
+record Metrics {
+    @id("record_order.metrics.selected") selected: i64,
+}
+
+@id("record_order.report")
+record Report {
+    @id("record_order.report.items") items: Vec<Row>,
+    @id("record_order.report.metrics") metrics: Metrics,
+}
+
+@id("record_order.empty_report")
+fn empty_report() -> Report
+{
+    let items = vec_with_capacity<Row>(0usize);
+    Report { items, metrics: Metrics { selected: 0 } }
+}
+
+@id("record_order.full_report")
+fn full_report() -> Report
+{
+    let items = vec_with_capacity<Row>(4usize);
+    let items = vec_push<Row>(items, Row { department: 2, priority: 1, id: "b", ordinal: 1 });
+    let items = vec_push<Row>(items, Row { department: 1, priority: 3, id: "z", ordinal: 2 });
+    let items = vec_push<Row>(items, Row { department: 1, priority: 3, id: "a", ordinal: 3 });
+    let items = vec_push<Row>(items, Row { department: 1, priority: 1, id: "x", ordinal: 4 });
+    Report { items, metrics: Metrics { selected: 0 } }
+}
+
+@id("record_order.ordered_code")
+fn ordered_code(value: own Report) -> i64
+{
+    match own value {
+        Report { items, metrics } => {
+            let sorted = vec_sort_owned<Row>(items);
+            let mut code = metrics.selected;
+            for own row in vec_into_iter<Row>(sorted) {
+                match own row {
+                    Row { department, priority, id, ordinal } => {
+                        if department >= 0 && priority >= 0 {
+                            code = code * 10 + ordinal;
+                            0
+                        } else {
+                            1
+                        }
+                    },
+                }
+            }
+            code
+        },
+    }
+}
+
+@id("record_order.empty_order")
+fn empty_order() -> i64
+{
+    ordered_code(empty_report())
+}
+
+@id("record_order.full_order")
+fn full_order() -> i64
+{
+    ordered_code(full_report())
+}
+
+@id("record_order.verify_order")
+fn verify_order() -> i64
+{
+    if empty_order() == 0 && full_order() == 4321 { 0 } else { 1 }
+}

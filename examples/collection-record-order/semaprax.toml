@@ -1,0 +1,24 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "collection-record-order"
+version = "0.1.0"
+profile = "language-command-io.collection-record.v1"
+
+[modules]
+entry = "record_order.app"
+sources = ["src/app.spx", "src/data.spx", "src/tests.spx"]
+tests = ["record_order.tests"]
+
+[exports]
+web = ["record_order.command"]
+
+[command]
+function = "record_order.command"
+input = "argv-utf8+stdin-stream.v1"
+
+[capabilities]
+required = ["process.args.read", "process.stderr.write", "process.stdin.read", "process.stdout.write"]
+
+[targets]
+matrix = ["native64"]

@@ -1,0 +1,35 @@
+module record_order.app;
+
+use function @id("record_order.data.empty_order") from record_order.data as empty_order;
+use function @id("record_order.data.full_order") from record_order.data as full_order;
+use function @id("record_order.data.verify_order") from record_order.data as verify_order;
+
+permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
+
+@id("record_order.command")
+fn command() -> i64
+    uses { process.stdin.read, process.stdout.write }
+{
+    let mut reader = stdin_stream_open();
+    let mut saw_input = false;
+    while !stdin_stream_eof(reader) {
+        let chunk = stdin_stream_chunk(reader);
+        saw_input = saw_input || byte_len(chunk) > 0usize;
+        reader = stdin_stream_next(reader);
+        0
+    }
+    if saw_input && verify_order() == 0 {
+        let text = string_from_i64(full_order());
+        let view = string_as_str(text);
+        let ignored = stdout_write(str_as_bytes(view));
+        0
+    } else {
+        1
+    }
+}
+
+@id("record_order.app.main")
+fn main() -> i64
+{
+    verify_order()
+}

@@ -1,6 +1,15 @@
 //! Successor-profile routing for owned vectors nested in ordinary records.
 use super::*;
 
+const PUBLIC_ORDER_MANIFEST: &str =
+    include_str!("../../../../examples/collection-record-order/semaprax.toml");
+const PUBLIC_ORDER_APP: &str =
+    include_str!("../../../../examples/collection-record-order/src/app.spx");
+const PUBLIC_ORDER_DATA: &str =
+    include_str!("../../../../examples/collection-record-order/src/data.spx");
+const PUBLIC_ORDER_TESTS: &str =
+    include_str!("../../../../examples/collection-record-order/src/tests.spx");
+
 fn manifest(profile: &str) -> String {
     format!(
         "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"collection-records\"\nversion = \"0.1.0\"\nprofile = \"{profile}\"\n\n[modules]\nentry = \"collection.app\"\nsources = [\"a/app.spx\", \"b/data.spx\", \"c/tests.spx\"]\ntests = [\"collection.tests\"]\n\n[exports]\nweb = [\"collection.command\"]\n\n[command]\nfunction = \"collection.command\"\ninput = \"{PROJECT_LANGUAGE_COMMAND_STREAM_INPUT_V1}\"\n\n[capabilities]\nrequired = [\"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]\n"
@@ -109,6 +118,66 @@ fn valid_fixture() -> PathBuf {
         std::fs::write(root.join(path), canonical_source(path, source)).unwrap();
     }
     root
+}
+
+fn public_order_example_fixture() -> PathBuf {
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-project-public-record-order-{}-{}",
+        std::process::id(),
+        SERIAL.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir_all(root.join("src")).unwrap();
+    std::fs::write(root.join(MANIFEST_FILE), PUBLIC_ORDER_MANIFEST).unwrap();
+    for (name, source) in [
+        ("app.spx", PUBLIC_ORDER_APP),
+        ("data.spx", PUBLIC_ORDER_DATA),
+        ("tests.spx", PUBLIC_ORDER_TESTS),
+    ] {
+        std::fs::write(root.join("src").join(name), source).unwrap();
+        let parsed = crate::parse(source, Path::new(name)).unwrap();
+        assert_eq!(crate::format::canonical(&parsed), source);
+    }
+    root.canonicalize().unwrap()
+}
+
+#[test]
+fn v31_public_typed_record_order_example() {
+    let root = public_order_example_fixture();
+    let output = root.with_extension("native-v31-record-order");
+    let graph = with_authenticated_project(&root.join(MANIFEST_FILE), |snapshot| {
+        assert_eq!(snapshot.manifest().schema(), PROJECT_SCHEMA_V31);
+        assert_eq!(
+            snapshot.manifest().project_profile(),
+            ProjectProfile::StdinStreamCollectionRecordCommandIoV1
+        );
+        assert!(snapshot
+            .execute_entry(&ProjectExecutionOptions::default())?
+            .command_succeeded());
+        let cases = snapshot.execute_test(&ProjectExecutionOptions::default())?;
+        assert!(cases.command_succeeded());
+        assert_eq!(cases.cases().len(), 1);
+        snapshot.build_native(&output)?;
+        Ok(snapshot.semantic_graph().to_owned())
+    })
+    .unwrap();
+    with_authenticated_project(&root.join(MANIFEST_FILE), |snapshot| {
+        assert_eq!(snapshot.semantic_graph(), graph);
+        Ok(())
+    })
+    .unwrap();
+    let mut child = Command::new(&output)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child.stdin.take().unwrap().write_all(b"run\n").unwrap();
+    let result = child.wait_with_output().unwrap();
+    assert_eq!(result.status.code(), Some(0));
+    assert_eq!(result.stdout, b"4321");
+    assert!(result.stderr.is_empty());
+    let _ = std::fs::remove_file(output);
+    let _ = std::fs::remove_dir_all(root);
 }
 
 #[test]

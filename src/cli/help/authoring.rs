@@ -60,6 +60,7 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
             "Private helpers may use explicit monomorphic acyclic record trees containing admitted Vec elements, nested records, Copy scalars, string and Bytes. Existing Vec element shapes, capacities and byte limits remain in force; this profile does not admit arbitrary Vec elements.\n",
             "Borrow the root as value: borrow Report. Read vec_len(value.items) and value.metrics.selected; vec_clone_at(value.items, index) yields an independent owned element. Keep the root owner live while any projected borrow is live.\n",
             "Select v31 for Report{items: Vec<Row>, metrics: Metrics}. V30 keeps its original owned-leaf boundary; unused helpers requiring nested collection records are also refused by older stream profiles (SPX-G172). Schema declarations alone grant no carrier.\n",
+            "Bounded ordering recipe: examples/collection-record-order uses Vec<Row> with fields department:i64, priority:i64, id:string, ordinal:i64. vec_sort_owned<Row> compares the admitted flat record lexicographically in declaration order (scalar value, then String UTF-8 bytes); consume it with for own and vec_into_iter. The example covers empty and four-slot full vectors, with ties in the first two keys.\n",
             "Checked JSON request decoding: author:json-stream-utf8-owned-request. Encode-only response derivation: author:json-collection-response; select its bounded-collection-response.v1 profile explicitly.\n",
             "Exact runtime boundary and gates: docs/PROJECT-V31-COLLECTION-RECORD-COMMAND-V1.md. Public nominal ABIs and Web/Wasm/npm command targets remain closed.\n"
         ).to_owned()),
@@ -378,6 +379,7 @@ mod tests {
         assert!(owned.contains("fn() -> i64"));
         assert!(owned.contains("Choose v30 when private helpers need owned-leaf Vec/Iter runtime"));
         let nested = lookup("author:collection-records").unwrap();
+        assert!(nested.len() <= 2_048);
         for fact in [
             "language-command-io.collection-record.v1",
             "new app --template stdin-stream-collection-record",
@@ -386,6 +388,11 @@ mod tests {
             "vec_len(value.items)",
             "V30 keeps its original owned-leaf boundary",
             "SPX-G172",
+            "examples/collection-record-order",
+            "department:i64, priority:i64, id:string, ordinal:i64",
+            "vec_sort_owned<Row>",
+            "String UTF-8 bytes",
+            "for own and vec_into_iter",
             "author:json-collection-response",
         ] {
             assert!(

@@ -10,8 +10,8 @@ use crate::hir::{
 };
 
 use super::{
-    find_resolved_expression, replay_error, validate_place, Leaves, PathState,
-    ReplayConditionalVariant,
+    Leaves, PathState, ReplayConditionalVariant, find_resolved_expression, replay_error,
+    validate_place,
 };
 
 pub(super) fn exact_owned_try(source: &[ResolvedType], target: &[ResolvedType]) -> bool {
@@ -486,7 +486,7 @@ pub(super) fn defers_owner_commit(expression: &crate::hir::ResolvedExpr) -> bool
         )
             || callee.as_str() == crate::iterator_ops::NEXT_ID
             || (callee.as_str() == crate::iterator_ops::INTO_ITER_ID
-                && matches!(type_arguments.as_slice(), [crate::hir::ResolvedType::Bytes]))
+                && matches!(type_arguments.as_slice(), [crate::hir::ResolvedType::Bytes | crate::hir::ResolvedType::String | crate::hir::ResolvedType::Nominal { .. }]))
             || crate::byte_ops::by_id(callee.as_str())
                 .is_some_and(crate::byte_ops::ByteOp::is_fallible)
             || (callee.as_str() == crate::box_ops::NEW_ID

@@ -651,7 +651,15 @@ impl<'a> HirValidator<'a> {
                             "resolved owned-Bytes variant is not flat and monomorphic",
                         ));
                     }
+                    let nested_outcome = super::collection_outcome::nested::admitted(
+                        &self.program.declarations,
+                        &ResolvedType::Nominal {
+                            declaration: declaration.id.clone(),
+                            arguments: Vec::new(),
+                        },
+                    );
                     if !has_direct_bytes
+                        && !nested_outcome
                         && fields.iter().any(|field| {
                             resolved_type_contains_owned_bytes(self.program, &field.ty)
                         })

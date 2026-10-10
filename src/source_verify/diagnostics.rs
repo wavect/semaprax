@@ -82,7 +82,10 @@ pub(super) fn reject_loop_match_scrutinee(
                     .and_then(|declaration| {
                         TypeTable::substitute_variant_type(declaration, arguments, &field.ty)
                     })
-                    .is_some_and(|ty| is_scalar_source_type(&ty))
+                    .is_some_and(|ty| {
+                        is_scalar_source_type(&ty)
+                            || super::declared_type::copy_record_collection::admitted(types, &ty)
+                    })
             })
         }) {
             return;

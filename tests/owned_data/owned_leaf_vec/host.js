@@ -282,9 +282,20 @@ const bindSort = (handle,identity,shape) => {
   if(value.generation===0xffffffffn)throw Error('Vec generation exhausted');
   return value;
 };
+// Scalar export wrappers signal the selected checked arithmetic status after
+// their canonical cleanup has completed. Match the frozen arithmetic imports.
+const arithmetic = (code, operation) => (a,b) => {
+  if ((code===4||code===6)&&b===0n)throw Error(`status:${code}`);
+  if ((code===4||code===6)&&a===-(1n<<63n)&&b===-1n)
+    throw Error(`status:${code===4?5:7}`);
+  const value=operation(a,b);
+  if(value<-(1n<<63n)||value>(1n<<63n)-1n)throw Error(`status:${code}`);
+  return value;
+};
 const env = {
-  spx_add:(a,b)=>a+b, spx_sub:(a,b)=>a-b, spx_mul:(a,b)=>a*b,
-  spx_div:(a,b)=>a/b, spx_rem:(a,b)=>a%b, spx_neg:a=>-a,
+  spx_add:arithmetic(1,(a,b)=>a+b), spx_sub:arithmetic(2,(a,b)=>a-b), spx_mul:arithmetic(3,(a,b)=>a*b),
+  spx_div:arithmetic(4,(a,b)=>a/b), spx_rem:arithmetic(6,(a,b)=>a%b),
+  spx_neg:a=>{if(a===-(1n<<63n))throw Error('status:8');return -a;},
   spx_contract_fail:status=>{throw Error(`status:${status}`)},
   spx_bytes_copy:alloc, spx_bytes_drop:drop, spx_bytes_as_slice:carrier=>{read(carrier);return carrier},
   spx_bytes_get:(carrier,index)=>read(carrier)[Number(index)]??-1,

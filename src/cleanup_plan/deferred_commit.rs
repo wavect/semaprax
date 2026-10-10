@@ -42,7 +42,12 @@ pub(super) fn call_behavior(
         )
     ) || callee.as_str() == crate::iterator_ops::NEXT_ID
         || (callee.as_str() == crate::iterator_ops::INTO_ITER_ID
-            && matches!(type_arguments.as_slice(), [crate::hir::ResolvedType::Bytes]))
+            && matches!(
+                type_arguments.as_slice(),
+                [crate::hir::ResolvedType::Bytes
+                    | crate::hir::ResolvedType::String
+                    | crate::hir::ResolvedType::Nominal { .. }]
+            ))
         || is_fallible_byte_operation(callee)
         || (callee.as_str() == crate::box_ops::NEW_ID
             && matches!(type_arguments.as_slice(), [crate::hir::ResolvedType::Bytes]))
@@ -101,4 +106,50 @@ pub(super) fn expression_is_infallible_compiler_operation(
 
 fn is_fallible_byte_operation(callee: &DeclarationId) -> bool {
     crate::byte_ops::by_id(callee.as_str()).is_some_and(crate::byte_ops::ByteOp::is_fallible)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn owned_leaf_iterator_allocation_failure_retains_staged_vector() {
+        for element in ["string", "Row", "Bytes", "i64"] {
+            let source = format!(
+                r#"
+module iterator.commit;
+@id("row") record Row {{ @id("row.text") text: string, }}
+@id("app.main") fn main() -> i64 {{
+ let rows = vec_with_capacity<{element}>(0usize);
+ let iterator = vec_into_iter<{element}>(rows);
+ 0
+}}
+"#
+            );
+            let ast = crate::check(&source, "iterator-commit.spx").unwrap();
+            let program = crate::hir::resolve(&ast).unwrap();
+            crate::hir::validate(&program).unwrap();
+            let function = program
+                .functions
+                .iter()
+                .find(|f| f.id.as_str() == "app.main")
+                .unwrap();
+            let mut call = None;
+            crate::hir::function_value::walk(function, |expr| {
+                if matches!(&expr.kind, crate::hir::ResolvedExprKind::Call { callee, .. }
+                    if callee.as_str() == crate::iterator_ops::INTO_ITER_ID)
+                {
+                    call = Some(expr.clone());
+                }
+            });
+            let call = call.unwrap();
+            assert_eq!(call_behavior(&call).1, element != "i64");
+            let retains_vector = function.cleanup_plan.exits.iter().any(|exit|
+                matches!(&exit.continuation, crate::cleanup_plan::ExitContinuation::ReturnFailure { source }
+                    if source.expression == call.id && source.lane == crate::cleanup_plan::StatusLane::OperationFailure)
+                && exit.finalize_in_order.iter().any(|action|
+                    action.lifecycle_id.as_str() == crate::cleanup::VEC_DROP_LIFECYCLE_ID
+                    && matches!(action.source.storage, crate::cleanup_plan::StorageId::CallArgument { .. })));
+            assert_eq!(retains_vector, element != "i64");
+        }
+    }
 }

@@ -203,9 +203,16 @@ fn vector(
     let Type::Named { name, arguments } = ty else {
         return false;
     };
-    if name != "Vec"
-        || resolve_type_id(module, name, programs).is_some_and(|id| id != crate::prelude::VEC_ID)
-    {
+    let Some(provider) = programs.iter().find(|program| program.module == module) else {
+        return false;
+    };
+    let identity = resolve_type_id(module, name, programs).or_else(|| {
+        crate::prelude::declarations_for_program(provider)
+            .into_iter()
+            .find(|declaration| declaration.name == *name)
+            .map(|declaration| declaration.stable_id.clone())
+    });
+    if identity.as_deref() != Some(crate::prelude::VEC_ID) {
         return false;
     }
     let [element] = arguments.as_slice() else {

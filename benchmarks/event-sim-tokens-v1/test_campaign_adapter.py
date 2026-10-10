@@ -102,7 +102,8 @@ web = ["run"]
 [capabilities]
 required = ["process.args.read", "process.stderr.write", "process.stdin.read", "process.stdout.write"]
 ''', encoding="utf-8")
-        if profile in (live_campaign.AUTHORING_PROFILE_V30, live_campaign.AUTHORING_PROFILE_V32):
+        if profile in (live_campaign.AUTHORING_PROFILE_V30, live_campaign.AUTHORING_PROFILE_V32,
+                       live_campaign.AUTHORING_PROFILE_SHIFTSIM_V31):
             manifest.write_text(manifest.read_text().replace(
                 "language-command-io.stream-data.v1",
                 live_campaign.AUTHORING_PROFILES[profile]["route"]["project_profile"]), encoding="utf-8")
@@ -1057,10 +1058,100 @@ exec node dist/cli.js
                 with self.assertRaisesRegex(ValueError, "schema"):
                     live_campaign.validate_qualification_evidence(evidence_path, repo, commit, "a" * 64, old)
 
+    def test_v31_round_and_prompt_preserve_original_contract_and_refuse_old_profiles(self):
+        profile = live_campaign.AUTHORING_PROFILE_SHIFTSIM_V31
+        with self.assertRaisesRegex(ValueError, "requires --authoring-profile"):
+            live_campaign.select_authoring_profile(6, None)
+        self.assertEqual(live_campaign.select_authoring_profile(6, profile)[0], profile)
+        for round_number, wrong_profile in ((4, profile), (5, profile),
+                (6, live_campaign.AUTHORING_PROFILE_V30), (6, live_campaign.AUTHORING_PROFILE_V32),
+                (6, live_campaign.AUTHORING_PROFILE_V27)):
+            with self.assertRaisesRegex(ValueError, "requires authoring profile"):
+                live_campaign.select_authoring_profile(round_number, wrong_profile)
+        self.assertEqual(live_campaign.prompt_for("typescript", Path("/candidate"), Path("/compiler"), profile),
+            live_campaign.prompt_for("typescript", Path("/candidate"), Path("/compiler"), live_campaign.AUTHORING_PROFILE_V27))
+        prompt = live_campaign.prompt_for("semaprax", Path("/candidate"), Path("/compiler"), profile)
+        for text in ("native Project v31", "language-command-io.collection-record.v1",
+                     "author:collection-records", "All original 15 application requirements",
+                     "tie behavior", "exact publication bytes", "unchanged limits"):
+            self.assertIn(text, prompt)
+        self.assertNotIn("nested-outcome", prompt)
+        row = {}
+        live_campaign.retain_fixed_harness_context(row, {"authoring_profile": profile}, prompt)
+        self.assertEqual(row["fixed_harness_context"]["prompt_utf8_bytes"], len(prompt.encode()))
+        self.assertEqual(row["fixed_harness_context"]["prompt_sha256"], live_campaign.sha_text(prompt))
+        self.assertIsNone(row["fixed_harness_context"]["tokens"])
+        self.assertIsNone(row["fixed_harness_context"]["actual_billed_usd"])
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            evidence_path, _, _, repo, _, manifest = self._v3_qualification_evidence(root, profile=profile)
+            commit = live_campaign.resolve_commit(repo, "HEAD")
+            self.assertEqual(live_campaign.candidate_authoring_admission(
+                manifest.parent, "semaprax", profile)["status"], "passed")
+            for old in (live_campaign.AUTHORING_PROFILE_V27, live_campaign.AUTHORING_PROFILE_V30,
+                        live_campaign.AUTHORING_PROFILE_V32):
+                self.assertEqual(live_campaign.candidate_authoring_admission(
+                    manifest.parent, "semaprax", old)["status"], "failed")
+                with self.assertRaisesRegex(ValueError, "schema"):
+                    live_campaign.validate_qualification_evidence(
+                        evidence_path, repo, commit, "a" * 64, old)
+
+    def test_v31_qualification_builder_binds_fresh_native_subject_and_all_original_cases(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _, _, report, repo, _, manifest = self._v3_qualification_evidence(
+                root, profile=live_campaign.AUTHORING_PROFILE_SHIFTSIM_V31)
+            compiler = root / "compiler"
+            compiler.write_bytes(b"v31 fixture compiler")
+            output = root / "fresh-v31-qualification"
+            commands = []
+            original_run = subprocess.run
+            def execute(command, **kwargs):
+                if command[0] == "git":
+                    return original_run(command, **kwargs)
+                commands.append(command)
+                if command[:2] == [str(compiler.resolve()), "build"]:
+                    Path(command[command.index("--output") + 1]).write_bytes(b"new v31 native fixture")
+                if "--report-json" in command:
+                    Path(command[command.index("--report-json") + 1]).write_bytes(report.read_bytes())
+                return subprocess.CompletedProcess(command, 0, stdout=b"", stderr=b"")
+            commit = live_campaign.resolve_commit(repo, "HEAD")
+            with patch.object(subprocess, "run", side_effect=execute):
+                result = live_campaign.generate_v3_qualification(manifest.parent, compiler, repo,
+                    commit, output, 10, authoring_profile=live_campaign.AUTHORING_PROFILE_SHIFTSIM_V31)
+            self.assertEqual(result["status"], "qualified")
+            acceptance = next(command for command in commands if "--command-json" in command)
+            self.assertEqual(json.loads(acceptance[acceptance.index("--command-json") + 1]),
+                             [str(output / "qualified-native-binary")])
+            evidence = json.loads((output / "qualification-evidence.json").read_text())
+            self.assertEqual(evidence["schema"], live_campaign.QUALIFICATION_EVIDENCE_SCHEMA_V6)
+            self.assertEqual(evidence["native_project_route"]["project_schema"], "semaprax.project.v31")
+            self.assertEqual(evidence["native_project_route"]["project_profile"],
+                             "language-command-io.collection-record.v1")
+            admitted = live_campaign.validate_qualification_evidence(
+                output / "qualification-evidence.json", repo, commit, common.digest(compiler),
+                live_campaign.AUTHORING_PROFILE_SHIFTSIM_V31)
+            self.assertEqual(admitted["acceptance_cases_passed"], 15)
+
     def test_v30_claude_dispatch_refuses_unqualified_setup_before_worktree_or_paid_call(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             settings = {"round": 4, "authoring_profile": live_campaign.AUTHORING_PROFILE_V30,
+                        "qualification": {"scored_trials_allowed": False}}
+            with patch.object(common, "add_seed_worktree") as worktree, \
+                 patch.object(live_campaign, "run_process") as paid:
+                for launch in (lambda: live_campaign.launch_calibration(root, root / "artifacts", "seed", settings, root / "compiler"),
+                               lambda: live_campaign.launch_trial(root, root / "artifacts", "seed",
+                                   {"arm": "semaprax", "number": 1}, settings, root / "compiler")):
+                    with self.assertRaisesRegex(ValueError, "all-15 qualification"):
+                        launch()
+                worktree.assert_not_called()
+                paid.assert_not_called()
+
+    def test_v31_claude_dispatch_refuses_unqualified_setup_before_worktree_or_paid_call(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = {"round": 6, "authoring_profile": live_campaign.AUTHORING_PROFILE_SHIFTSIM_V31,
                         "qualification": {"scored_trials_allowed": False}}
             with patch.object(common, "add_seed_worktree") as worktree, \
                  patch.object(live_campaign, "run_process") as paid:

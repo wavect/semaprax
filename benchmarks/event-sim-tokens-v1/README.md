@@ -166,3 +166,29 @@ the matched model/settings and at least five attempts, including failures;
 fixed prompt context is reported separately and provider billing stays null
 without actual receipts. The compiler, application and live run qualification
 for this new cohort is pending; the harness does not establish a saving.
+
+Round 6 is a separate typed-collection-record authoring cohort. Select it only
+with `--round 6 --authoring-profile
+semaprax-project-v31-collection-record-v1`. The route is Project v31,
+`language-command-io.collection-record.v1`; its fresh evidence uses
+`semaprax.event-sim-qualification-evidence.v6`, campaign schema v5, and Codex
+campaign schema v5. Prepare a new all-15 native qualification with:
+
+```sh
+python3 benchmarks/event-sim-tokens-v1/campaign.py qualify-v6 \
+  --compiler-source-ref <verified-source-commit> --semaprax-bin <verified-compiler> \
+  --candidate <reviewed-v31-candidate> --output <new-external-qualification-directory>
+```
+
+The harness binds the exact compiler source and binary, closed authored source
+inventory, manifest, generated native subject, and every original acceptance
+case. Round-5/v32, round-4/v30, and older receipts cannot qualify this cohort.
+The frozen SPEC, corpus, oracle, 15 behaviors, diagnostics, publication
+requirements, and limits remain the governing application contract; only the
+historical Project setup clause is replaced by the selected v31 route. The
+TypeScript prompt and strong pinned setup remain byte-identical to the prior
+matched cohort. Both arms still require at least five trials, including
+failures, and the same requested model and effort. Evidence is replayed before
+any worktree or paid endpoint. The typed application and its fresh v31
+qualification are source-only and execution-pending; this cohort makes no
+performance or token-savings claim.

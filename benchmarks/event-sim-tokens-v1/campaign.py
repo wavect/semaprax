@@ -38,6 +38,7 @@ QUALIFICATION_EVIDENCE_SCHEMA = "semaprax.event-sim-qualification-evidence.v2"
 QUALIFICATION_EVIDENCE_SCHEMA_V3 = "semaprax.event-sim-qualification-evidence.v3"
 QUALIFICATION_EVIDENCE_SCHEMA_V4 = "semaprax.event-sim-qualification-evidence.v4"
 QUALIFICATION_EVIDENCE_SCHEMA_V5 = "semaprax.event-sim-qualification-evidence.v5"
+QUALIFICATION_EVIDENCE_SCHEMA_V6 = "semaprax.event-sim-qualification-evidence.v6"
 QUALIFICATION_BUILD_RECEIPT_SCHEMA = "semaprax.event-sim-qualification-build-receipt.v1"
 ACCEPTANCE_REPORT_SCHEMA = "semaprax.event-sim.acceptance-report.v1"
 NATIVE_PROJECT_SCHEMA = "semaprax.project.v24"
@@ -56,6 +57,7 @@ AUTHORING_PROFILE_V24 = "semaprax-project-v24-stream-v2"
 AUTHORING_PROFILE_V27 = "semaprax-project-v27-stream-data-v1"
 AUTHORING_PROFILE_V30 = "semaprax-project-v30-owned-data-v1"
 AUTHORING_PROFILE_CATALOG_V31 = "semaprax-project-v31-collection-record-v1"
+AUTHORING_PROFILE_SHIFTSIM_V31 = AUTHORING_PROFILE_CATALOG_V31
 AUTHORING_PROFILE_V32 = "semaprax-project-v32-nested-outcome-v1"
 AUTHORING_PROFILE_CATALOG_V32 = AUTHORING_PROFILE_V32
 STREAM_DATA_CAPABILITIES = [
@@ -98,9 +100,22 @@ AUTHORING_PROFILES[AUTHORING_PROFILE_V32] = {
     "route": {**NATIVE_PROJECT_ROUTE_V27, "project_schema": "semaprax.project.v32",
               "project_profile": "language-command-io.nested-outcome.v1"},
 }
-PINNED_AUTHORING_PROFILES = (AUTHORING_PROFILE_V27, AUTHORING_PROFILE_V30, AUTHORING_PROFILE_V32)
+AUTHORING_PROFILES[AUTHORING_PROFILE_SHIFTSIM_V31] = {
+    "rounds": (6,), "qualification_schema": QUALIFICATION_EVIDENCE_SCHEMA_V6,
+    "campaign_schema": "semaprax.event-sim-campaign.v5",
+    "codex_campaign_schema": "semaprax.event-sim-codex-campaign.v5",
+    "prompt_schema": "semaprax.event-sim-prompt.v6",
+    "route": {**NATIVE_PROJECT_ROUTE_V27, "project_schema": "semaprax.project.v31",
+              "project_profile": "language-command-io.collection-record.v1"},
+    "adapter": "claude-matched-shiftsim-v6",
+    "codex_adapter": "codex-matched-shiftsim-v5",
+}
+PINNED_AUTHORING_PROFILES = (
+    AUTHORING_PROFILE_V27, AUTHORING_PROFILE_V30, AUTHORING_PROFILE_V32,
+    AUTHORING_PROFILE_SHIFTSIM_V31,
+)
 # Route-only registry for explicit profiles consumed by the shared manifest
-# reader. Catalog v31 remains route-only; v32 has an explicit ShiftSim round 5.
+# reader. Catalog v31 shares its exact route identity with ShiftSim round 6.
 AUTHORING_MANIFEST_ROUTES = {
     profile: data["route"] for profile, data in AUTHORING_PROFILES.items()
 }
@@ -143,7 +158,7 @@ def blob_at_commit(repo: Path, commit: str, relative: str) -> bytes:
 
 
 def round_identity(repo: Path, commit: str, round_number: int) -> dict[str, str]:
-    if isinstance(round_number, bool) or round_number not in (1, 2, 3, 4, 5):
+    if isinstance(round_number, bool) or round_number not in (1, 2, 3, 4, 5, 6):
         raise ValueError(f"unsupported ShiftSim round: {round_number}")
     hashes = {path: sha_bytes(blob_at_commit(repo, commit, path))
               for path in FROZEN_BENCHMARK_SHA256}
@@ -153,9 +168,11 @@ def round_identity(repo: Path, commit: str, round_number: int) -> dict[str, str]
 
 
 def select_authoring_profile(round_number: int, requested: str | None) -> tuple[str, dict[str, Any]]:
-    expected = {3: AUTHORING_PROFILE_V27, 4: AUTHORING_PROFILE_V30, 5: AUTHORING_PROFILE_V32}.get(round_number, AUTHORING_PROFILE_V24)
+    expected = {3: AUTHORING_PROFILE_V27, 4: AUTHORING_PROFILE_V30,
+                5: AUTHORING_PROFILE_V32, 6: AUTHORING_PROFILE_SHIFTSIM_V31}.get(
+                    round_number, AUTHORING_PROFILE_V24)
     if requested is None:
-        if round_number in (3, 4, 5):
+        if round_number in (3, 4, 5, 6):
             raise ValueError(f"round {round_number} requires --authoring-profile {expected}")
         requested = expected
     if requested not in AUTHORING_PROFILES:
@@ -215,6 +232,7 @@ def _manifest_route(data: bytes, authoring_profile: str = AUTHORING_PROFILE_V27)
         label = {
             AUTHORING_PROFILE_V27: "v27 stream-data",
             AUTHORING_PROFILE_V30: "v30 owned-data",
+            AUTHORING_PROFILE_SHIFTSIM_V31: "v31 collection-record",
         }.get(authoring_profile, authoring_profile)
         raise ValueError(f"candidate manifest does not match the exact {label} command route")
     return route
@@ -249,7 +267,8 @@ def candidate_authoring_admission(candidate: Path, arm: str, authoring_profile: 
     path = candidate / "semaprax.toml"
     try:
         if path.is_symlink() or not path.is_file():
-            version = {AUTHORING_PROFILE_V27: "v27", AUTHORING_PROFILE_V30: "v30", AUTHORING_PROFILE_V32: "v32"}[authoring_profile]
+            version = {AUTHORING_PROFILE_V27: "v27", AUTHORING_PROFILE_V30: "v30",
+                       AUTHORING_PROFILE_V32: "v32", AUTHORING_PROFILE_SHIFTSIM_V31: "v31"}[authoring_profile]
             raise ValueError(f"{version} SEMAPRAX candidate must contain a regular semaprax.toml")
         data = path.read_bytes()
         route = _manifest_route(data, authoring_profile)
@@ -281,8 +300,10 @@ def validate_qualification_evidence(
     authoring_profile: str = AUTHORING_PROFILE_V24,
 ) -> dict[str, Any]:
     """Bind a scored campaign to reviewed native acceptance evidence."""
-    if authoring_profile in (AUTHORING_PROFILE_V30, AUTHORING_PROFILE_V32) and (evidence_path.is_symlink() or not evidence_path.is_file()):
-        version = "v32" if authoring_profile == AUTHORING_PROFILE_V32 else "v30"
+    if authoring_profile in (AUTHORING_PROFILE_V30, AUTHORING_PROFILE_V32,
+                             AUTHORING_PROFILE_SHIFTSIM_V31) and (evidence_path.is_symlink() or not evidence_path.is_file()):
+        version = {AUTHORING_PROFILE_V30: "v30", AUTHORING_PROFILE_V32: "v32",
+                   AUTHORING_PROFILE_SHIFTSIM_V31: "v31"}[authoring_profile]
         raise ValueError(f"{version} qualification evidence must be a regular JSON file")
     evidence_path = evidence_path.expanduser().resolve(strict=True)
     if not evidence_path.is_file():
@@ -389,7 +410,8 @@ def validate_qualification_evidence(
     if authoring_profile in PINNED_AUTHORING_PROFILES:
         source = evidence.get("candidate_source")
         if not isinstance(source, dict):
-            version = {AUTHORING_PROFILE_V27: "v3", AUTHORING_PROFILE_V30: "v4", AUTHORING_PROFILE_V32: "v5"}[authoring_profile]
+            version = {AUTHORING_PROFILE_V27: "v3", AUTHORING_PROFILE_V30: "v4",
+                       AUTHORING_PROFILE_V32: "v5", AUTHORING_PROFILE_SHIFTSIM_V31: "v6"}[authoring_profile]
             raise ValueError(f"{version} qualification evidence must bind candidate source inventory and manifest")
         inventory_path, inventory_bytes, inventory_hash = _bound_file(
             source.get("inventory"), evidence_path, "candidate source inventory")
@@ -425,7 +447,8 @@ def validate_qualification_evidence(
             "native_binary_sha256": native_hash,
         }
         if subject != expected_subject:
-            version = {AUTHORING_PROFILE_V27: "v3", AUTHORING_PROFILE_V30: "v4", AUTHORING_PROFILE_V32: "v5"}[authoring_profile]
+            version = {AUTHORING_PROFILE_V27: "v3", AUTHORING_PROFILE_V30: "v4",
+                       AUTHORING_PROFILE_V32: "v5", AUTHORING_PROFILE_SHIFTSIM_V31: "v6"}[authoring_profile]
             raise ValueError(f"{version} qualification subject does not bind compiler, source, manifest, and native binary")
         if (not isinstance(receipt, dict)
                 or receipt.get("schema") != QUALIFICATION_BUILD_RECEIPT_SCHEMA
@@ -639,10 +662,13 @@ def trial_environment(semaprax_bin: Path) -> dict[str, str]:
 def require_authoring_eligibility(settings: dict[str, Any], semaprax_bin: Path) -> None:
     """Successor dispatch replays the complete source/binary/profile qualification."""
     selected = settings.get("authoring_profile")
-    if selected not in (AUTHORING_PROFILE_V30, AUTHORING_PROFILE_V32):
+    if selected not in (AUTHORING_PROFILE_V30, AUTHORING_PROFILE_V32,
+                        AUTHORING_PROFILE_SHIFTSIM_V31):
         return
-    version = "v32" if selected == AUTHORING_PROFILE_V32 else "v30"
-    expected_round = 5 if selected == AUTHORING_PROFILE_V32 else 4
+    version = {AUTHORING_PROFILE_V30: "v30", AUTHORING_PROFILE_V32: "v32",
+               AUTHORING_PROFILE_SHIFTSIM_V31: "v31"}[selected]
+    expected_round = {AUTHORING_PROFILE_V30: 4, AUTHORING_PROFILE_V32: 5,
+                      AUTHORING_PROFILE_SHIFTSIM_V31: 6}[selected]
     qualification = settings.get("qualification", {})
     if (settings.get("round") != expected_round or qualification.get("scored_trials_allowed") is not True
             or settings.get("native_project_route") != AUTHORING_PROFILES[selected]["route"]
@@ -674,6 +700,30 @@ def require_authoring_eligibility(settings: dict[str, Any], semaprax_bin: Path) 
 
 def prompt_for(arm: str, candidate: Path, semaprax_bin: Path,
                authoring_profile: str = AUTHORING_PROFILE_V24) -> str:
+    if authoring_profile == AUTHORING_PROFILE_SHIFTSIM_V31:
+        historical = prompt_for(arm, candidate, semaprax_bin, AUTHORING_PROFILE_V30)
+        if arm == "typescript":
+            return historical
+        old_guidance = (
+            "Private helpers may use the v30 admitted owned leaf collections and flat records; "
+            "the external command ABI still contains no Vec or nominal value. Read "
+            "`$SEMAPRAX_BIN help language author:owned-data` for exact shapes, operations, "
+            "ownership, and unchanged Bytes allocation/clone loop restrictions. Built-in checked "
+            "source derivation is optional; all generated source remains subject to ordinary checks. ")
+        new_guidance = (
+            "Private helpers may use the v31 admitted typed collection records and nested collection "
+            "records; the external command ABI remains `fn() -> i64` with no Vec or nominal value. "
+            "Read `$SEMAPRAX_BIN help language author:collection-records` for exact shapes, ordering, "
+            "ownership, and unchanged limits. Built-in checked source derivation is optional; all "
+            "generated source remains subject to ordinary checks. ")
+        scope = ("This round 6 cohort changes only the historical Project setup clause. Preserve all "
+            "original 15 application requirements, the SPEC's scheduling and tie behavior, limits, "
+            "diagnostics, validation, and exact publication bytes. Existing raw-whitespace, escaped "
+            "identifier, and error-output obligations remain binding. Bytes allocation, clone, and "
+            "replacement loop restrictions remain unchanged.\n")
+        return scope + historical.replace("native Project v30 manifest", "native Project v31 manifest").replace(
+            "`language-command-io.owned-data.v1`", "`language-command-io.collection-record.v1`").replace(
+            old_guidance, new_guidance)
     if authoring_profile == AUTHORING_PROFILE_V32:
         historical = prompt_for(arm, candidate, semaprax_bin, AUTHORING_PROFILE_V30)
         if arm == "typescript":
@@ -768,7 +818,8 @@ is complete.
 
 
 def retain_fixed_harness_context(row: dict[str, Any], settings: dict[str, Any], prompt: str) -> None:
-    if settings.get("authoring_profile") in (AUTHORING_PROFILE_V30, AUTHORING_PROFILE_V32):
+    if settings.get("authoring_profile") in (AUTHORING_PROFILE_V30, AUTHORING_PROFILE_V32,
+                                               AUTHORING_PROFILE_SHIFTSIM_V31):
         row["fixed_harness_context"] = {
             "prompt_sha256": sha_text(prompt), "prompt_utf8_bytes": len(prompt.encode("utf-8")),
             "tokens": None, "actual_billed_usd": None,
@@ -819,11 +870,13 @@ def plan(args: argparse.Namespace, semaprax_binary_sha256: str | None = None) ->
                               "dependency_helper_sha256": receipt["dependency_helper_sha256"],
                               "node_binary": getattr(args, "node_binary", "node"),
                               "npm_binary": getattr(args, "npm_binary", "npm")}
-    if authoring_profile == AUTHORING_PROFILE_V32 and typescript_tooling is None:
-        raise ValueError("v32 requires the pinned strong TypeScript dependency-only bootstrap receipt")
+    if authoring_profile in (AUTHORING_PROFILE_V32, AUTHORING_PROFILE_SHIFTSIM_V31) and typescript_tooling is None:
+        raise ValueError("successor rounds 5/6 require the pinned strong TypeScript dependency-only bootstrap receipt")
     evidence_argument = getattr(args, "qualification_evidence", None)
-    if authoring_profile in (AUTHORING_PROFILE_V30, AUTHORING_PROFILE_V32) and evidence_argument is None:
-        version = "v32" if authoring_profile == AUTHORING_PROFILE_V32 else "v30"
+    if authoring_profile in (AUTHORING_PROFILE_V30, AUTHORING_PROFILE_V32,
+                             AUTHORING_PROFILE_SHIFTSIM_V31) and evidence_argument is None:
+        version = {AUTHORING_PROFILE_V30: "v30", AUTHORING_PROFILE_V32: "v32",
+                   AUTHORING_PROFILE_SHIFTSIM_V31: "v31"}[authoring_profile]
         raise ValueError(f"{version} authoring requires fresh source/binary/profile-bound all-15 qualification")
     if evidence_argument is not None:
         if semaprax_binary_sha256 is None:
@@ -853,6 +906,7 @@ def plan(args: argparse.Namespace, semaprax_binary_sha256: str | None = None) ->
         "benchmark": "event-sim-tokens-v1",
         "round": round_number,
         "authoring_profile": authoring_profile,
+        **({"adapter": profile["adapter"]} if authoring_profile == AUTHORING_PROFILE_SHIFTSIM_V31 else {}),
         "prompt_schema": profile["prompt_schema"],
         "benchmark_inputs_sha256": benchmark_hashes,
         "seed_files_sha256": {SPEC_RELATIVE: benchmark_hashes[SPEC_RELATIVE]},
@@ -879,9 +933,12 @@ def plan(args: argparse.Namespace, semaprax_binary_sha256: str | None = None) ->
             "typescript": {"prompt_condition": AUTHORING_PROFILE_V27,
                            "node_bootstrap": "unchanged strong baseline",
                            "fixed_harness_context_tokens": None},
-            "comparison": "SEM profile/help context changes from round 3; TS prompt is identical; no causal cost claim",
+            "comparison": ("v31 SEM profile/help context changes; the TypeScript prompt and pinned setup stay byte-identical; no causal cost claim"
+                           if authoring_profile == AUTHORING_PROFILE_SHIFTSIM_V31 else
+                           "SEM profile/help context changes from round 3; TS prompt is identical; no causal cost claim"),
             "accounting": "retain exact per-arm prompt bytes and hash separately from authored/generated source; tokens and billing unknown",
-        }} if authoring_profile in (AUTHORING_PROFILE_V30, AUTHORING_PROFILE_V32) else {}),
+        }} if authoring_profile in (AUTHORING_PROFILE_V30, AUTHORING_PROFILE_V32,
+                                    AUTHORING_PROFILE_SHIFTSIM_V31) else {}),
         "price_book": {
             "date": "2026-10-08" if round_number >= 2 else PRICE_BOOK_DATE,
             "source_url": PRICE_BOOK_SOURCE,
@@ -1060,7 +1117,8 @@ def check_program(
     result: dict[str, Any] = {"build": {"status": "missing"}, "candidate_tests": {"status": "not_run"},
                               "independent_acceptance": {"status": "not_run"}, "accepted": False}
     v27 = authoring_profile in PINNED_AUTHORING_PROFILES  # Successor profiles reuse the exact native qualification mechanics.
-    version = {AUTHORING_PROFILE_V27: "v27", AUTHORING_PROFILE_V30: "v30", AUTHORING_PROFILE_V32: "v32"}.get(authoring_profile, "v27")
+    version = {AUTHORING_PROFILE_V27: "v27", AUTHORING_PROFILE_V30: "v30",
+               AUTHORING_PROFILE_V32: "v32", AUTHORING_PROFILE_SHIFTSIM_V31: "v31"}.get(authoring_profile, "v27")
     if v27 and arm not in ARMS:
         result["route_admission"] = {"status": "failed", "error": f"{version} checks require an explicit arm"}
         return result
@@ -1521,7 +1579,7 @@ def summarize(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="action", required=True)
-    for qualification_action in ("qualify-v3", "qualify-v4", "qualify-v5"):
+    for qualification_action in ("qualify-v3", "qualify-v4", "qualify-v5", "qualify-v6"):
         qualify = sub.add_parser(qualification_action, help="build and accept one closed native qualification subject")
         qualify.add_argument("--repo", default=str(REPO))
         qualify.add_argument("--compiler-source-ref", required=True)
@@ -1533,8 +1591,8 @@ def main() -> int:
         p = sub.add_parser(action)
         p.add_argument("--repo", default=str(REPO))
         p.add_argument("--base-ref", required=True)
-        p.add_argument("--round", type=int, choices=(1, 2, 3, 4, 5), default=1,
-                       help="round 3 selects v27; rounds 4/5 require explicit qualified v30/v32 setup")
+        p.add_argument("--round", type=int, choices=(1, 2, 3, 4, 5, 6), default=1,
+                       help="round 3 selects v27; rounds 4/5/6 require explicit qualified v30/v32/v31 setup")
         p.add_argument("--authoring-profile", choices=tuple(AUTHORING_PROFILES), default=None)
         p.add_argument("--artifacts", required=True)
         if action != "preflight":
@@ -1559,13 +1617,14 @@ def main() -> int:
                            help="run one exploratory trial for this arm; results are never scored")
     args = parser.parse_args()
     try:
-        if args.action in ("qualify-v3", "qualify-v4", "qualify-v5"):
+        if args.action in ("qualify-v3", "qualify-v4", "qualify-v5", "qualify-v6"):
             repo = Path(args.repo).resolve(strict=True)
             result = generate_v3_qualification(
                 Path(args.candidate), Path(args.semaprax_bin), repo,
                 resolve_commit(repo, args.compiler_source_ref), Path(args.output),
                 args.timeout_seconds, authoring_profile={"qualify-v3": AUTHORING_PROFILE_V27,
-                    "qualify-v4": AUTHORING_PROFILE_V30, "qualify-v5": AUTHORING_PROFILE_V32}[args.action])
+                    "qualify-v4": AUTHORING_PROFILE_V30, "qualify-v5": AUTHORING_PROFILE_V32,
+                    "qualify-v6": AUTHORING_PROFILE_SHIFTSIM_V31}[args.action])
             print(json.dumps(result, indent=2, sort_keys=True))
             return 0
         semaprax_bin = None

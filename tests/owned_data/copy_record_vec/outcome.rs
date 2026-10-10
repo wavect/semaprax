@@ -102,11 +102,23 @@ fn bounded_collection_outcome_graph_and_hostile_ownership_are_authenticated() {
             "servers:Vec<Span>, @id(\"outcome.third\") third:Vec<Span>,",
         ),
         source.replace("fn forward(value:own Outcome)", "fn forward(value:Outcome)"),
-        source.replace(
-            "consume(make(true))",
-            "let value=make(true); let result=consume(value); inspect(value)",
-        ),
     ] {
         assert!(semaprax::check(&hostile, "hostile-outcome.spx").is_err());
     }
+    let reused = source.replace(
+        "consume(make(true))",
+        "let value=make(true); let consumed=consume(value); inspect(value)",
+    );
+    // This is an ownership refusal, not a parser/reserved-name refusal.
+    semaprax::parse(&reused, "reused-outcome.spx").unwrap();
+    let diagnostics = semaprax::check(&reused, "reused-outcome.spx").unwrap_err();
+    assert!(diagnostics.iter().all(|diagnostic| {
+        !diagnostic.code.starts_with("SPX-P") && diagnostic.code != "SPX-S109"
+    }));
+    assert!(diagnostics.iter().any(|diagnostic| {
+        diagnostic.code == "SPX-O101"
+            && diagnostic.message == "use of resource `value` after ownership was moved"
+            && diagnostic.help.as_deref()
+                == Some("borrow the resource if the callee does not need ownership")
+    }), "{diagnostics:?}");
 }

@@ -186,6 +186,7 @@ impl DeclarationIndex {
                         .iter()
                         .map(place_projection_owned_capacity)
                         .sum::<usize>()
+                    + provenance.vector_field.as_ref().map_or(0, |v| resolved_type_owned_capacity(&v.element) + v.field.as_str().len() + v.index.as_str().len())
                     + resolved_type_owned_capacity(&provenance.projected_type)
                     + provenance.ranges.capacity() * std::mem::size_of::<ByteSliceRangeStep>()
                     + provenance

@@ -67,6 +67,8 @@ pub enum ByteSliceRootKind {
     /// existing root; only a concrete host entry turns it into external input.
     FunctionParameter,
     OwnedBytes,
+    /// Exact indexed field of a borrowed, generation-protected owned Vec.
+    OwnedVectorField,
     /// Fused `str_as_bytes(string_as_str(owner))` over one exact owned
     /// String root. The fused HIR operation retains the root String identity.
     OwnedString,
@@ -99,6 +101,14 @@ pub struct ByteSliceRangeStep {
     pub end: ExpressionId,
 }
 
+/// Stable element/field identity and the exact once-evaluated index child.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct VectorFieldProvenance {
+    pub element: ResolvedType,
+    pub field: DeclarationId,
+    pub index: ExpressionId,
+}
+
 /// Exact provenance for a byte view. Legacy views retain a complete symbolic
 /// root (`offset = 0`, `length = root length`). The additive projected-field
 /// profile retains one stable field-ID projection and its authenticated type;
@@ -106,6 +116,8 @@ pub struct ByteSliceRangeStep {
 /// Host boundaries alone bind external parameter symbols to input storage.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ByteSliceProvenance {
+    /// Present only for a checked indexed Vec element field.
+    pub vector_field: Option<VectorFieldProvenance>,
     pub root: ValueId,
     /// Exact stable-ID path from `root` to the borrowed storage. Empty retains
     /// the byte-for-byte legacy root provenance carried through Graph v23.

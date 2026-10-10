@@ -48,7 +48,7 @@ codec_struct!(Declaration {
     identity_origin,
     owner
 });
-codec_enum!(ByteSliceRootKind {0=>FunctionParameter,1=>OwnedBytes,2=>FixedArray,3=>BorrowedStr,4=>CommandArguments,5=>StdinStreamReader,6=>OwnedString});
+codec_enum!(ByteSliceRootKind {0=>FunctionParameter,1=>OwnedBytes,2=>FixedArray,3=>BorrowedStr,4=>CommandArguments,5=>StdinStreamReader,6=>OwnedString,7=>OwnedVectorField});
 codec_enum!(ByteSliceExtent {0=>Constant(value),1=>ParameterLength,2=>ValueLength});
 codec_struct!(ByteSliceRangeStep {
     source,
@@ -56,7 +56,9 @@ codec_struct!(ByteSliceRangeStep {
     start,
     end
 });
+codec_struct!(VectorFieldProvenance { element, field, index });
 codec_struct!(ByteSliceProvenance {
+    vector_field,
     root,
     projections,
     projected_type,
@@ -282,7 +284,7 @@ codec_enum!(ResolvedExprKind {
     24=>Try{operand,result,ok_case,ok_field,err_case,err_field,residual_type},
     25=>TryOption{operand,option,some_case,some_field,none_case,residual_type},
     26=>UpdateRecord{base,record,fields},27=>Project{base,field},28=>Upcast{source},29=>FunctionReference{target},30=>Invoke{callable,args},31=>Closure{parameters,captures,body},
-    32=>Yield{request},33=>LiteralFormat{template,args}
+    32=>Yield{request},33=>LiteralFormat{template,args},34=>VecFieldRead{element,field,bytes,args}
 });
 codec_struct!(ResolvedMatchArm {
     pattern,

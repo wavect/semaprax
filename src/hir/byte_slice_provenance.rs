@@ -19,6 +19,8 @@ use super::nodes::{
 };
 use super::{hir_error, DeclarationIndex, Place, PlaceProjection};
 
+mod vec_field;
+
 const MAX_PATTERN_ORIGIN_FIELDS: usize = 64;
 
 fn resolve_pattern_origin(
@@ -302,6 +304,7 @@ pub(super) fn derive_byte_slice_provenance(
     let mut command_argument_views = BTreeSet::<ValueId>::new();
     let mut borrowed_pattern_origins = BTreeMap::<ValueId, Place>::new();
     let mut aliases = Vec::<(&ResolvedBinding, bool, &ResolvedExpr)>::new();
+    let mut vector_strings = Vec::new();
     for function in functions {
         for parameter in &function.params {
             root_types.insert(parameter.id.clone(), parameter.ty.clone());
@@ -309,6 +312,7 @@ pub(super) fn derive_byte_slice_provenance(
                 facts.insert(
                     parameter.id.clone(),
                     ByteSliceProvenance {
+                        vector_field: None,
                         root: parameter.id.clone(),
                         projections: Vec::new(),
                         projected_type: ResolvedType::SliceU8,
@@ -339,7 +343,7 @@ pub(super) fn derive_byte_slice_provenance(
                     pending.extend(args);
                 }
                 ResolvedExprKind::Call { args, .. }
-                | ResolvedExprKind::LiteralFormat { args, .. } => pending.extend(args),
+                | ResolvedExprKind::LiteralFormat { args, .. } | ResolvedExprKind::VecFieldRead { args, .. } => pending.extend(args),
                 ResolvedExprKind::ByteRange {
                     source, start, end, ..
                 } => {
@@ -384,6 +388,7 @@ pub(super) fn derive_byte_slice_provenance(
                                 environment_views.insert(binding.id.clone());
                             }
                             if binding.ty == ResolvedType::Str {
+                                vector_strings.push((binding, *mutable, value));
                                 if let ResolvedExprKind::Place(place) = &value.kind {
                                     if place.projections.is_empty() {
                                         environment_aliases
@@ -485,10 +490,17 @@ pub(super) fn derive_byte_slice_provenance(
             break;
         }
     }
+    let vector_strings = vec_field::string_origins(&vector_strings, declarations);
     let mut unresolved = aliases;
     loop {
         let before = unresolved.len();
         unresolved.retain(|(binding, mutable, value)| {
+            if !*mutable {
+                if let Some(provenance) = vec_field::origin(value, declarations, &vector_strings) {
+                    facts.insert(binding.id.clone(), provenance);
+                    return false;
+                }
+            }
             if let ResolvedExprKind::BorrowPlace { operation, place } = &value.kind {
                 if *mutable {
                     return true;
@@ -589,6 +601,7 @@ pub(super) fn derive_byte_slice_provenance(
                 facts.insert(
                     binding.id.clone(),
                     ByteSliceProvenance {
+                        vector_field: None,
                         root: if environment_views.contains(&place.root) {
                             environment_root.clone()
                         } else if root_kind == ByteSliceRootKind::CommandArguments {

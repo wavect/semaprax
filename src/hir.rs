@@ -360,7 +360,7 @@ pub(crate) use nodes::{
     LinkedDeclarationFact, LinkedOwnedDataParts, LinkedScalarFunction,
 };
 pub use nodes::{
-    ByteSliceExtent, ByteSliceProvenance, ByteSliceRangeStep, ByteSliceRootKind, Declaration,
+    ByteSliceExtent, ByteSliceProvenance, ByteSliceRangeStep, ByteSliceRootKind, VectorFieldProvenance, Declaration,
     DeclarationKind, IdentityOrigin, OwnershipMode, ResolvedBinding, ResolvedFieldDeclaration,
     ResolvedFunction, ResolvedFunctionInstance, ResolvedFunctionTemplate, ResolvedHostCommandCall,
     ResolvedHostCommandOperation, ResolvedImport, ResolvedImportFailure, ResolvedImportParameter,

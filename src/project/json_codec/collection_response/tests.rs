@@ -14,6 +14,25 @@ const SCHEMA: &str = r#"module schema;
 @id("schema.anchor") fn anchor()->i64{0}
 "#;
 
+const MULTI_STRING_SCHEMA: &str = r#"module schema;
+@id("response.item") record Item {
+ @id("response.item.id") id:string,
+ @id("response.item.server") server:string,
+ @id("response.item.arrival") arrival:i64,
+ @id("response.item.start") start:i64,
+ @id("response.item.finish") finish:i64,
+ @id("response.item.wait") wait:i64,
+ @id("response.item.late") late:bool,
+ @id("response.item.ordinal") ordinal:i64,
+}
+@id("response.metrics") record Metrics {@id("response.metrics.count") count:usize,}
+@id("response.root") record Report {
+ @id("response.root.items") entries:Vec<Item>,
+ @id("response.root.metrics") stats:Metrics,
+}
+@id("schema.anchor") fn anchor()->i64{0}
+"#;
+
 const ROW_SOURCE: &str = r#"@id("response.row.json.collection-response.object-len")
 fn json_Row_response_object_len(value:borrow Row)->usize {
 if !(json_Row_response_owned_valid(string_as_str(value.label))){18446744073709551615usize}else{30usize+(usize_from_i64(jv_i64_len(value.number)))+(json_Row_response_utf8_quoted_len(string_as_str(value.label)))+(if value.active{4usize}else{5usize})}}
@@ -196,4 +215,36 @@ fn collection_response_refuses_wrong_bound_nested_shapes_and_unchecked_identitie
         .body;
     p.types[1].invariants = Some(Box::new(vec![invariant]));
     assert_eq!(source(&p, &p.types[2], 64).unwrap_err()[0].code, "SPX-J180");
+}
+
+#[test]
+fn collection_response_checks_and_encodes_each_bounded_string_in_row_order() {
+    let program = crate::parse(MULTI_STRING_SCHEMA, "multi-string-schema.spx").unwrap();
+    let output = source(&program, &program.types[2], 64).unwrap();
+    let row = record::source(&program.types[0]);
+    let first_check = "let response_string_valid_0=json_Item_response_owned_valid(string_as_str(value.id));";
+    let second_check = "let response_string_valid_1=json_Item_response_owned_valid(string_as_str(value.server));";
+    assert!(row.contains(first_check));
+    assert!(row.contains(second_check));
+    assert!(row.contains("if !(response_string_valid_0&&response_string_valid_1)"));
+    assert!(row.contains("json_Item_response_utf8_quoted_len(string_as_str(value.id))"));
+    assert!(row.contains("json_Item_response_utf8_quoted_len(string_as_str(value.server))"));
+    assert!(row.contains("json_Item_response_utf8_quote(string_as_str(value.id))"));
+    assert!(row.contains("json_Item_response_utf8_quote(string_as_str(value.server))"));
+    assert!(row.contains("\\\"id\\\":"));
+    assert!(row.contains("\\\"server\\\":"));
+    assert!(output.contains("vec_len<Item>(value.entries)"));
+    let parsed = crate::parse(&output, "multi-string-generated.spx").unwrap();
+    let canonical = crate::format::canonical(&parsed);
+    assert_eq!(
+        canonical,
+        crate::format::canonical(&crate::parse(&canonical, "multi-string-canonical.spx").unwrap())
+    );
+
+    let too_many_strings = MULTI_STRING_SCHEMA.replace(
+        "@id(\"response.item.server\") server:string,",
+        "@id(\"response.item.server\") server:string,\n @id(\"response.item.region\") region:string,",
+    );
+    let malformed = crate::parse(&too_many_strings, "too-many-strings.spx").unwrap();
+    assert_eq!(source(&malformed, &malformed.types[2], 64).unwrap_err()[0].code, "SPX-J180");
 }

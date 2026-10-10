@@ -1,4 +1,7 @@
 //! Finite nested response source, independent wire oracle and physical owner gates.
+#[path = "collection_response/multi_string.rs"]
+mod multi_string;
+
 use super::*;
 
 const SCHEMA: &str = r#"module consumer.schema;

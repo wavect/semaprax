@@ -11,12 +11,13 @@ It is a finite #724/#727 tranche, not a general recursive JSON codec.
 The selected authenticated source must contain an explicitly identified,
 monomorphic record with exactly two fields in either declaration order: one
 direct `Vec<Row>` and one flat scalar `Metrics` record. Both child records must
-be declared in that same source. Row has exactly one `string` and zero through
-six `i64`, `u8`, `usize` or `bool` fields. Metrics has one through eight of those
-scalar fields. Record and field identities are explicit, and no type parameters
-or invariants are admitted. Existing source/name/schema/generated-byte limits
-remain unchanged. Field names, type names and identities are arbitrary admitted
-source names; a benchmark-specific name or generated origin grants no exemption.
+be declared in that same source. Row has one or two `string` fields and zero
+through six `i64`, `u8`, `usize` or `bool` fields, with at most eight fields
+total. Metrics has one through eight of those scalar fields. Record and field
+identities are explicit, and no type parameters or invariants are admitted.
+Existing source/name/schema/generated-byte limits remain unchanged. Field
+names, type names and identities are arbitrary admitted source names; a
+benchmark-specific name or generated origin grants no exemption.
 
 For `Report { items: Vec<Item>, metrics: Metrics }`, generated APIs are:
 
@@ -40,7 +41,8 @@ complete exact ranges; booleans emit lowercase literals. Strings are validated
 as UTF-8, including NUL and every Unicode scalar, then quote/backslash and
 control bytes use deterministic JSON escapes. Other Unicode scalars remain
 literal UTF-8. The bound is independently applied to every stored Row String's
-UTF-8 byte length. Empty/repeated Strings and an empty vector are valid; domain
+UTF-8 byte length. Every String field is checked in declaration order before
+output allocation. Empty/repeated Strings and an empty vector are valid; domain
 uniqueness and application numeric ranges remain the caller's responsibility.
 
 Preflight checks the actual vector length (at most 256), stored String validity

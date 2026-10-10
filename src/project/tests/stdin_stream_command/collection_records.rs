@@ -280,9 +280,11 @@ fn pre_v32_profiles_reject_unused_nested_outcome_runtime_with_exact_route_hint()
     let nested_outcome = r#"module collection.data;
 @id("n.Payload") record Payload { @id("n.Payload.label") label:string, }
 @id("n.Outcome") variant Outcome {
- @id("n.Outcome.ready") Ready { @id("n.Outcome.value") value:Payload, },
- @id("n.Outcome.error") Error { @id("n.Outcome.code") code:i64, @id("n.Outcome.offset") offset:usize, @id("n.Outcome.field") field:i64, },
+@id("n.Outcome.ready") Ready { @id("n.Outcome.value") value:Payload, },
+@id("n.Outcome.error") Error { @id("n.Outcome.code") code:i64, @id("n.Outcome.offset") offset:usize, @id("n.Outcome.field") field:i64, },
 }
+@id("n.forward") fn forward(value:own Outcome)->Outcome {value}
+"#;
 
 #[test]
 fn v32_nested_outcome_project_route_executes_native_command() {
@@ -358,8 +360,6 @@ use function @id("n.decide") from collection.data as decide;
     let _ = std::fs::remove_file(output);
     let _ = std::fs::remove_dir_all(root);
 }
-@id("n.forward") fn forward(value:own Outcome)->Outcome {value}
-"#;
     for profile in [
         PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V2,
         PROJECT_PROFILE_STDIN_STREAM_OWNED_DATA_COMMAND_IO_V1,

@@ -8,6 +8,32 @@ pub(super) struct Shape<'a> {
     pub metrics: &'a TypeDeclaration,
 }
 
+fn validate_row(record: &TypeDeclaration) -> Result<(), Vec<Diagnostic>> {
+    let TypeDeclarationKind::Record { fields } = &record.kind else {
+        return Err(refusal("collection response Row must be a record"));
+    };
+    let strings = fields
+        .iter()
+        .filter(|field| field.ty == Type::String)
+        .count();
+    let scalars = fields.len().saturating_sub(strings);
+    if !(1..=2).contains(&strings) || scalars > 6 {
+        return Err(refusal(
+            "collection response Row requires one or two String fields and at most six scalar fields",
+        ));
+    }
+    let mut scalar = record.clone();
+    let TypeDeclarationKind::Record { fields } = &mut scalar.kind else {
+        unreachable!()
+    };
+    for field in fields {
+        if field.ty == Type::String {
+            field.ty = Type::Usize;
+        }
+    }
+    super::super::validate_record(&scalar)
+}
+
 pub(super) fn validate<'a>(
     program: &'a Program,
     root: &'a TypeDeclaration,
@@ -72,7 +98,7 @@ pub(super) fn validate<'a>(
             return Err(refusal("collection response child type is ambiguous"));
         }
         if vector && items.is_none() {
-            super::super::views::validate(record)?;
+            validate_row(record)?;
             items = Some((field, record));
         } else if !vector && metrics.is_none() {
             super::super::validate_record(record)?;

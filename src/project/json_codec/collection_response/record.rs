@@ -44,20 +44,40 @@ pub(super) fn source(record: &TypeDeclaration) -> String {
         ""
     };
     let punctuation = 2 + fs.iter().map(|f| f.name.len() + 3).sum::<usize>() + fs.len() - 1;
-    let valid = fs
+    let string_fields: Vec<_> = fs
         .iter()
-        .find(|f| f.ty == Type::String)
-        .map(|field| {
+        .filter(|field| field.ty == Type::String)
+        .collect();
+    let (validity, validity_bindings) = match string_fields.as_slice() {
+        [] => ("true".to_owned(), String::new()),
+        [field] => (
             format!(
                 "json_{name}_response_owned_valid(string_as_str(value.{}))",
                 field.name
-            )
-        })
-        .unwrap_or_else(|| "true".to_owned());
+            ),
+            String::new(),
+        ),
+        _ => (
+            (0..string_fields.len())
+                .map(|index| format!("response_string_valid_{index}"))
+                .collect::<Vec<_>>()
+                .join("&&"),
+            string_fields
+                .iter()
+                .enumerate()
+                .map(|(index, field)| {
+                    format!(
+                        "let response_string_valid_{index}=json_{name}_response_owned_valid(string_as_str(value.{}));",
+                        field.name
+                    )
+                })
+                .collect::<String>(),
+        ),
+    };
     let mut out = format!(
         "@id(\"{id}.json.collection-response.object-len\")
 fn json_{name}_response_object_len(value:{ownership}{name})->usize {{
-if !({valid}){{18446744073709551615usize}}else{{{punctuation}usize"
+{validity_bindings}if !({validity}){{18446744073709551615usize}}else{{{punctuation}usize"
     );
     for field in fs {
         write!(out, "+({})", length(record, field)).unwrap();
@@ -67,7 +87,7 @@ if !({valid}){{18446744073709551615usize}}else{{{punctuation}usize"
         "}}}}
 @id(\"{id}.json.collection-response.object-render\")
 fn json_{name}_response_object_render(value:{ownership}{name})->string {{
-if !({valid}){{\"\"}}else{{let output_0=\"{{\";"
+{validity_bindings}if !({validity}){{\"\"}}else{{let output_0=\"{{\";"
     )
     .unwrap();
     for (index, field) in fs.iter().enumerate() {

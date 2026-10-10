@@ -147,7 +147,9 @@ web = []
         "src/tests.spx",
     )
     .unwrap();
-    let provider = crate::check(
+    // This is an imported library, not an executable entry. The owning
+    // Project build below verifies it together with its authenticated imports.
+    let provider = crate::parse(
         "module format.provider; @id(\"format.imported\") fn provided()->i64 {7}",
         "src/provider.spx",
     )

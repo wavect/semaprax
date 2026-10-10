@@ -32,6 +32,7 @@ mod retained_validation;
 mod retained_vectors;
 mod session_protocol_decl;
 mod shape_identity;
+mod source_schema;
 pub(crate) mod source_callables;
 mod validation;
 use crate::ast::{
@@ -2271,6 +2272,7 @@ impl WorkspaceGraphBuild {
     }
 
     pub(crate) fn into_change_view(self) -> Result<WorkspaceGraphChangeView, Vec<Diagnostic>> {
+        let mut source_schemas = source_schema::all(&self.hir.modules, &self.hir.declarations)?;
         let mut fingerprints = self.change_fingerprints.ok_or_else(|| {
             vec![graph_error(
                 "SPX-G173",
@@ -2281,8 +2283,8 @@ impl WorkspaceGraphBuild {
             .hir
             .modules
             .into_iter()
-            .map(|module| {
-                let source_graph_schema = semantic_workspace_source_schema(&module)?;
+            .zip(source_schemas.drain(..))
+            .map(|(module, source_graph_schema)| {
                 Ok(WorkspaceGraphChangeModule {
                     path: module.path,
                     module: module.module,
@@ -2359,7 +2361,7 @@ impl WorkspaceGraphBuild {
     ) -> Result<BTreeMap<String, &'static str>, Vec<Diagnostic>> {
         let mut schemas = BTreeMap::new();
         for module in &self.hir.modules {
-            let schema = semantic_workspace_source_schema(module)?;
+            let schema = source_schema::schema(module, &self.hir.modules, &self.hir.declarations)?;
             if schemas.insert(module.path.clone(), schema).is_some() {
                 return Err(vec![graph_error(
                     "SPX-G173",
@@ -2375,22 +2377,6 @@ impl WorkspaceGraphBuild {
         }
         Ok(schemas)
     }
-}
-
-fn semantic_workspace_source_schema(
-    module: &WorkspaceResolvedModule,
-) -> Result<&'static str, Vec<Diagnostic>> {
-    if module.native_law {
-        return Ok("semaprax.native-law.v1");
-    }
-    graph::graph_schema_from_parts_and_instances(
-        &module.interfaces,
-        &module.types,
-        &module.functions,
-        &module.function_templates,
-        &module.function_instances,
-    )
-    .map_err(|error| vec![error])
 }
 
 fn resolved_function_imports(function: &hir::ResolvedFunction) -> BTreeSet<hir::DeclarationId> {

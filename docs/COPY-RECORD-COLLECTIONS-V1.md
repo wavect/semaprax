@@ -52,6 +52,11 @@ Copy flag, owning element, different source binding or projected destination
 cannot select renewal. Retained-program Graph v66 derives the same site metadata
 from those declarations; frozen from-parts routes lacking identity provenance
 refuse this nominal extension. Older scalar-only programs retain their bytes.
+The retained Workspace route borrows its existing authored type and origin
+facts and compares every field layout against independently retained checked
+type facts. It passes this authority explicitly through schema selection;
+missing, duplicate, or changed authority refuses before a newer selector can
+mask an inconsistent renewal plan. It retains no second declaration index.
 
 No new parser syntax, HIR expression,
 graph node or cache field is introduced. Canonical source and graph retain the

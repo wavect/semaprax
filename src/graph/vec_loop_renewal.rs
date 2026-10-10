@@ -30,9 +30,38 @@ pub(crate) fn graph_schema_from_parts_and_instances(
     x: &[hir::ResolvedFunctionTemplate],
     n: &[hir::ResolvedFunctionInstance],
 ) -> Result<&'static str, Diagnostic> {
-    let previous = super::stdin_stream::graph_schema_from_parts_and_instances(i, t, f, x, n)?;
+    graph_schema_from_parts_and_instances_with_renewal_authority(i, t, f, x, n, None)
+}
+
+pub(crate) fn graph_schema_from_parts_and_instances_with_renewal_authority(
+    i: &[hir::ResolvedInterface],
+    t: &[hir::ResolvedTypeDeclaration],
+    f: &[ResolvedFunction],
+    x: &[hir::ResolvedFunctionTemplate],
+    n: &[hir::ResolvedFunctionInstance],
+    renewal_authority: Option<&dyn Fn(&ResolvedFunction) -> bool>,
+) -> Result<&'static str, Diagnostic> {
+    let previous = match renewal_authority {
+        None => super::stdin_stream::graph_schema_from_parts_and_instances(i, t, f, x, n),
+        Some(_) => {
+            super::stdin_stream::graph_schema_from_parts_and_instances_with_renewal_authority(
+                i,
+                t,
+                f,
+                x,
+                n,
+                renewal_authority,
+            )
+        }
+    }?;
     Ok(
-        if f.iter().chain(n.iter().map(|i| &i.function)).any(requires) {
+        if f.iter()
+            .chain(n.iter().map(|i| &i.function))
+            .any(|function| {
+                renewal_authority
+                    .map_or_else(|| requires(function), |authority| authority(function))
+            })
+        {
             if previous == "semaprax.graph.v67" {
                 previous
             } else {

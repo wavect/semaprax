@@ -74,7 +74,8 @@ pub(crate) use prelude_binding::revision_from_canonical_program;
 pub(crate) use native_import::view_relation as native_view_relation;
 pub(crate) use native_import::{reject_native_rust_imports, reject_source_native_rust_imports};
 pub(crate) use scoped_vec_field::{
-    graph_schema, graph_schema_from_parts_and_instances, legacy_graph_schema,
+    graph_schema, graph_schema_from_parts_and_instances,
+    graph_schema_from_parts_and_instances_with_renewal_authority, legacy_graph_schema,
 };
 /// Hash the canonical human-readable source projection and implicit prelude.
 ///

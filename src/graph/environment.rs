@@ -37,9 +37,32 @@ pub(crate) fn graph_schema_from_parts_and_instances(
     templates: &[hir::ResolvedFunctionTemplate],
     instances: &[hir::ResolvedFunctionInstance],
 ) -> Result<&'static str, Diagnostic> {
-    let previous = super::filesystem::graph_schema_from_parts_and_instances(
-        interfaces, types, functions, templates, instances,
-    )?;
+    graph_schema_from_parts_and_instances_with_renewal_authority(
+        interfaces, types, functions, templates, instances, None,
+    )
+}
+
+pub(crate) fn graph_schema_from_parts_and_instances_with_renewal_authority(
+    interfaces: &[hir::ResolvedInterface],
+    types: &[hir::ResolvedTypeDeclaration],
+    functions: &[ResolvedFunction],
+    templates: &[hir::ResolvedFunctionTemplate],
+    instances: &[hir::ResolvedFunctionInstance],
+    renewal_authority: Option<&dyn Fn(&ResolvedFunction) -> bool>,
+) -> Result<&'static str, Diagnostic> {
+    let previous = match renewal_authority {
+        None => super::filesystem::graph_schema_from_parts_and_instances(
+            interfaces, types, functions, templates, instances,
+        ),
+        Some(_) => super::filesystem::graph_schema_from_parts_and_instances_with_renewal_authority(
+            interfaces,
+            types,
+            functions,
+            templates,
+            instances,
+            renewal_authority,
+        ),
+    }?;
     Ok(
         if functions
             .iter()
@@ -106,7 +129,7 @@ pub(super) fn graph_json(
 #[cfg(test)]
 mod tests {
     use crate::{
-        command_io_ops::{validate_operation_profile, CommandOperationProfile},
+        command_io_ops::{CommandOperationProfile, validate_operation_profile},
         hir,
     };
     const SOURCE: &str = r#"module environment.graph;
@@ -203,11 +226,13 @@ permit { process.environment.read, process.stdout.write }
             value["bounded_environment_io"]["arena"],
             crate::environment_ops::ARENA_ID
         );
-        assert!(crate::graph::verify_json(
-            &source,
-            &graph.replacen("semaprax.graph.v43", "semaprax.graph.v42", 1)
-        )
-        .is_err());
+        assert!(
+            crate::graph::verify_json(
+                &source,
+                &graph.replacen("semaprax.graph.v43", "semaprax.graph.v42", 1)
+            )
+            .is_err()
+        );
     }
 }
 
@@ -236,8 +261,10 @@ permit {process.environment.read}
         .unwrap();
         let resolved = crate::hir::resolve(&source).unwrap();
         crate::hir::validate(&resolved).unwrap();
-        assert!(crate::graph::to_json(&source)
-            .unwrap()
-            .contains("semaprax.graph.v43"));
+        assert!(
+            crate::graph::to_json(&source)
+                .unwrap()
+                .contains("semaprax.graph.v43")
+        );
     }
 }

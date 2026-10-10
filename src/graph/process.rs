@@ -28,9 +28,34 @@ pub(crate) fn graph_schema_from_parts_and_instances(
     templates: &[hir::ResolvedFunctionTemplate],
     instances: &[hir::ResolvedFunctionInstance],
 ) -> Result<&'static str, Diagnostic> {
-    let previous = super::environment::graph_schema_from_parts_and_instances(
-        interfaces, types, functions, templates, instances,
-    )?;
+    graph_schema_from_parts_and_instances_with_renewal_authority(
+        interfaces, types, functions, templates, instances, None,
+    )
+}
+
+pub(crate) fn graph_schema_from_parts_and_instances_with_renewal_authority(
+    interfaces: &[hir::ResolvedInterface],
+    types: &[hir::ResolvedTypeDeclaration],
+    functions: &[ResolvedFunction],
+    templates: &[hir::ResolvedFunctionTemplate],
+    instances: &[hir::ResolvedFunctionInstance],
+    renewal_authority: Option<&dyn Fn(&ResolvedFunction) -> bool>,
+) -> Result<&'static str, Diagnostic> {
+    let previous = match renewal_authority {
+        None => super::environment::graph_schema_from_parts_and_instances(
+            interfaces, types, functions, templates, instances,
+        ),
+        Some(_) => {
+            super::environment::graph_schema_from_parts_and_instances_with_renewal_authority(
+                interfaces,
+                types,
+                functions,
+                templates,
+                instances,
+                renewal_authority,
+            )
+        }
+    }?;
     Ok(
         if functions
             .iter()
@@ -113,7 +138,7 @@ pub(super) fn graph_json(
 #[cfg(test)]
 mod tests {
     use crate::{
-        command_io_ops::{validate_operation_profile, CommandOperationProfile},
+        command_io_ops::{CommandOperationProfile, validate_operation_profile},
         hir,
     };
     const SOURCE: &str = r#"module process.graph;
@@ -180,11 +205,13 @@ permit { process.environment.read, process.execute }
                     .is_err()
             );
         }
-        assert!(crate::graph::verify_json(
-            &source,
-            &graph.replacen("semaprax.graph.v44", "semaprax.graph.v43", 1)
-        )
-        .is_err());
+        assert!(
+            crate::graph::verify_json(
+                &source,
+                &graph.replacen("semaprax.graph.v44", "semaprax.graph.v43", 1)
+            )
+            .is_err()
+        );
         let pure = crate::check(
             &SOURCE.replace(
                 "process_run(0usize,argv,4usize,stdin,0usize,100usize,32usize,16usize)",

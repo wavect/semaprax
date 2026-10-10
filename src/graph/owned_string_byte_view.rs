@@ -141,6 +141,19 @@ pub(crate) fn graph_schema_from_parts_and_instances(
     templates: &[hir::ResolvedFunctionTemplate],
     instances: &[hir::ResolvedFunctionInstance],
 ) -> Result<&'static str, Diagnostic> {
+    graph_schema_from_parts_and_instances_with_renewal_authority(
+        interfaces, types, functions, templates, instances, None,
+    )
+}
+
+pub(crate) fn graph_schema_from_parts_and_instances_with_renewal_authority(
+    interfaces: &[hir::ResolvedInterface],
+    types: &[hir::ResolvedTypeDeclaration],
+    functions: &[ResolvedFunction],
+    templates: &[hir::ResolvedFunctionTemplate],
+    instances: &[hir::ResolvedFunctionInstance],
+    renewal_authority: Option<&dyn Fn(&ResolvedFunction) -> bool>,
+) -> Result<&'static str, Diagnostic> {
     if requires_functions(
         functions
             .iter()
@@ -148,9 +161,7 @@ pub(crate) fn graph_schema_from_parts_and_instances(
     ) {
         Ok(SCHEMA)
     } else {
-        super::byte_buffer_renewal::graph_schema_from_parts_and_instances(
-            interfaces, types, functions, templates, instances,
-        )
+        match renewal_authority { None => super::byte_buffer_renewal::graph_schema_from_parts_and_instances(interfaces, types, functions, templates, instances), Some(_) => super::byte_buffer_renewal::graph_schema_from_parts_and_instances_with_renewal_authority(interfaces, types, functions, templates, instances, renewal_authority), }
     }
 }
 

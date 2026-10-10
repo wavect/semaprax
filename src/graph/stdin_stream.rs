@@ -20,9 +20,32 @@ pub(crate) fn graph_schema_from_parts_and_instances(
     templates: &[hir::ResolvedFunctionTemplate],
     instances: &[hir::ResolvedFunctionInstance],
 ) -> Result<&'static str, Diagnostic> {
-    let previous = super::affine::graph_schema_from_parts_and_instances(
-        interfaces, types, functions, templates, instances,
-    )?;
+    graph_schema_from_parts_and_instances_with_renewal_authority(
+        interfaces, types, functions, templates, instances, None,
+    )
+}
+
+pub(crate) fn graph_schema_from_parts_and_instances_with_renewal_authority(
+    interfaces: &[hir::ResolvedInterface],
+    types: &[hir::ResolvedTypeDeclaration],
+    functions: &[ResolvedFunction],
+    templates: &[hir::ResolvedFunctionTemplate],
+    instances: &[hir::ResolvedFunctionInstance],
+    renewal_authority: Option<&dyn Fn(&ResolvedFunction) -> bool>,
+) -> Result<&'static str, Diagnostic> {
+    let previous = match renewal_authority {
+        None => super::affine::graph_schema_from_parts_and_instances(
+            interfaces, types, functions, templates, instances,
+        ),
+        Some(_) => super::affine::graph_schema_from_parts_and_instances_with_renewal_authority(
+            interfaces,
+            types,
+            functions,
+            templates,
+            instances,
+            renewal_authority,
+        ),
+    }?;
     Ok(
         if functions
             .iter()

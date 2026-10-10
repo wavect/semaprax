@@ -1,10 +1,10 @@
 pub(crate) use super::byte_buffer_renewal::graph_schema;
 use crate::cleanup::FieldLivenessShape;
 use crate::cleanup_plan::{
-    StorageId, CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V11, CLEANUP_PLAN_SCHEMA_V12,
+    CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
+    CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V11, CLEANUP_PLAN_SCHEMA_V12,
     CLEANUP_PLAN_SCHEMA_V13, CLEANUP_PLAN_SCHEMA_V14, CLEANUP_PLAN_SCHEMA_V15,
-    CLEANUP_PLAN_SCHEMA_V16, CLEANUP_PLAN_SCHEMA_V17, CLEANUP_PLAN_SCHEMA_V7,
-    CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
+    CLEANUP_PLAN_SCHEMA_V16, CLEANUP_PLAN_SCHEMA_V17, StorageId,
 };
 use crate::diagnostic::Diagnostic;
 use crate::hir::{PlaceProjection, ResolvedFunction, ResolvedProgram};
@@ -278,8 +278,27 @@ pub(super) fn pre_filesystem_schema_from_parts(
     function_templates: &[crate::hir::ResolvedFunctionTemplate],
     function_instances: &[crate::hir::ResolvedFunctionInstance],
 ) -> Result<&'static str, Diagnostic> {
+    pre_filesystem_schema_from_parts_with_renewal_authority(
+        interfaces,
+        types,
+        functions,
+        function_templates,
+        function_instances,
+        None,
+    )
+}
+
+pub(super) fn pre_filesystem_schema_from_parts_with_renewal_authority(
+    interfaces: &[crate::hir::ResolvedInterface],
+    types: &[crate::hir::ResolvedTypeDeclaration],
+    functions: &[ResolvedFunction],
+    function_templates: &[crate::hir::ResolvedFunctionTemplate],
+    function_instances: &[crate::hir::ResolvedFunctionInstance],
+    renewal_authority: Option<&dyn Fn(&ResolvedFunction) -> bool>,
+) -> Result<&'static str, Diagnostic> {
     let iterator_schema = iterator_loop_schema(
         None,
+        renewal_authority,
         functions
             .iter()
             .chain(function_instances.iter().map(|instance| &instance.function)),
@@ -380,6 +399,7 @@ pub(super) fn pre_filesystem_graph_schema(
 ) -> Result<&'static str, Diagnostic> {
     let iterator_schema = iterator_loop_schema(
         Some(program),
+        None,
         program.functions.iter().chain(
             program
                 .function_instances
@@ -520,6 +540,7 @@ fn program_schema(
     super::work_counter::record(super::work_counter::Work::SchemaSelection, 1);
     let iterator_schema = iterator_loop_schema(
         Some(program),
+        None,
         program.functions.iter().chain(
             program
                 .function_instances
@@ -700,21 +721,51 @@ pub(super) fn graph_schema_includes_projected_provenance(schema: &str) -> bool {
 
 pub(super) fn rejected_evidence_schema(schema: &str) -> Option<Diagnostic> {
     let message = match schema {
-        "semaprax.graph.v75" => "scoped Vec field reads select `semaprax.graph.v75`, which is outside this evidence flow's admission",
-        "semaprax.graph.v71" => "owned-String byte-view composition selects `semaprax.graph.v71`, which is outside this evidence flow's admission",
-        "semaprax.graph.v70" => "same-owner byte-buffer renewal selects `semaprax.graph.v70`, which is outside this evidence flow's admission",
-        "semaprax.graph.v69" => "owned-text record loans select `semaprax.graph.v69`, which is outside this evidence flow's admission",
-        "semaprax.graph.v68" => "String replacement selects `semaprax.graph.v68`, which is outside this evidence flow's admission",
-        "semaprax.graph.v67" => "owned-record iteration selects `semaprax.graph.v67`, which is outside this evidence flow's admission",
-        "semaprax.graph.v66" => "ordinary Vec renewal selects `semaprax.graph.v66`, which is outside this evidence flow's admission",
-        "semaprax.graph.v27" => "nested owned-record programs composed with shared loans select `semaprax.graph.v27`, which is outside this evidence flow's admission",
-        "semaprax.graph.v26" => "nested owned-record programs select `semaprax.graph.v26`, which is outside this evidence flow's admission",
-        "semaprax.graph.v29" => "nested owned-record destructuring composed with authenticated projected loans selects `semaprax.graph.v29`, which is outside this evidence flow's admission",
-        "semaprax.graph.v28" => "nested owned-record destructuring selects `semaprax.graph.v28`, which is outside this evidence flow's admission",
-        "semaprax.graph.v31" => "nested owned-record update composed with authenticated projected loans selects `semaprax.graph.v31`, which is outside this evidence flow's admission",
-        "semaprax.graph.v30" => "nested owned-record update selects `semaprax.graph.v30`, which is outside this evidence flow's admission",
-        "semaprax.graph.v33" => "owned-variant programs composed with projected shared loans select `semaprax.graph.v33`, which is outside this evidence flow's admission",
-        "semaprax.graph.v32" => "owned-variant programs composed with shared loans select `semaprax.graph.v32`, which is outside this evidence flow's admission",
+        "semaprax.graph.v75" => {
+            "scoped Vec field reads select `semaprax.graph.v75`, which is outside this evidence flow's admission"
+        }
+        "semaprax.graph.v71" => {
+            "owned-String byte-view composition selects `semaprax.graph.v71`, which is outside this evidence flow's admission"
+        }
+        "semaprax.graph.v70" => {
+            "same-owner byte-buffer renewal selects `semaprax.graph.v70`, which is outside this evidence flow's admission"
+        }
+        "semaprax.graph.v69" => {
+            "owned-text record loans select `semaprax.graph.v69`, which is outside this evidence flow's admission"
+        }
+        "semaprax.graph.v68" => {
+            "String replacement selects `semaprax.graph.v68`, which is outside this evidence flow's admission"
+        }
+        "semaprax.graph.v67" => {
+            "owned-record iteration selects `semaprax.graph.v67`, which is outside this evidence flow's admission"
+        }
+        "semaprax.graph.v66" => {
+            "ordinary Vec renewal selects `semaprax.graph.v66`, which is outside this evidence flow's admission"
+        }
+        "semaprax.graph.v27" => {
+            "nested owned-record programs composed with shared loans select `semaprax.graph.v27`, which is outside this evidence flow's admission"
+        }
+        "semaprax.graph.v26" => {
+            "nested owned-record programs select `semaprax.graph.v26`, which is outside this evidence flow's admission"
+        }
+        "semaprax.graph.v29" => {
+            "nested owned-record destructuring composed with authenticated projected loans selects `semaprax.graph.v29`, which is outside this evidence flow's admission"
+        }
+        "semaprax.graph.v28" => {
+            "nested owned-record destructuring selects `semaprax.graph.v28`, which is outside this evidence flow's admission"
+        }
+        "semaprax.graph.v31" => {
+            "nested owned-record update composed with authenticated projected loans selects `semaprax.graph.v31`, which is outside this evidence flow's admission"
+        }
+        "semaprax.graph.v30" => {
+            "nested owned-record update selects `semaprax.graph.v30`, which is outside this evidence flow's admission"
+        }
+        "semaprax.graph.v33" => {
+            "owned-variant programs composed with projected shared loans select `semaprax.graph.v33`, which is outside this evidence flow's admission"
+        }
+        "semaprax.graph.v32" => {
+            "owned-variant programs composed with shared loans select `semaprax.graph.v32`, which is outside this evidence flow's admission"
+        }
         _ => return None,
     };
     Some(Diagnostic::io("SPX-G410", message))
@@ -735,6 +786,7 @@ pub(super) fn reject_nested_native_flags(
 
 fn iterator_loop_schema<'a>(
     program: Option<&ResolvedProgram>,
+    renewal_authority: Option<&dyn Fn(&ResolvedFunction) -> bool>,
     functions: impl IntoIterator<Item = &'a ResolvedFunction>,
     templates: &[crate::hir::ResolvedFunctionTemplate],
 ) -> Result<&'static str, Diagnostic> {
@@ -778,7 +830,12 @@ fn iterator_loop_schema<'a>(
         // Without retained declarations the frozen from-parts view cannot
         // authenticate the additive nominal Copy-record renewal classifier.
         let ordinary_renewal = program.map_or_else(
-            || crate::hir::vec_loop_renewal::requires(function),
+            || {
+                renewal_authority.map_or_else(
+                    || crate::hir::vec_loop_renewal::requires(function),
+                    |authority| authority(function),
+                )
+            },
             |program| crate::hir::vec_loop_renewal::requires_in(program, function),
         );
         let string_replacement = crate::string_ops::replacement::requires(function);

@@ -67,9 +67,32 @@ pub(crate) fn graph_schema_from_parts_and_instances(
     templates: &[hir::ResolvedFunctionTemplate],
     instances: &[hir::ResolvedFunctionInstance],
 ) -> Result<&'static str, Diagnostic> {
-    let old = super::nested_owned::pre_filesystem_schema_from_parts(
-        interfaces, types, functions, templates, instances,
-    )?;
+    graph_schema_from_parts_and_instances_with_renewal_authority(
+        interfaces, types, functions, templates, instances, None,
+    )
+}
+
+pub(crate) fn graph_schema_from_parts_and_instances_with_renewal_authority(
+    interfaces: &[hir::ResolvedInterface],
+    types: &[hir::ResolvedTypeDeclaration],
+    functions: &[ResolvedFunction],
+    templates: &[hir::ResolvedFunctionTemplate],
+    instances: &[hir::ResolvedFunctionInstance],
+    renewal_authority: Option<&dyn Fn(&ResolvedFunction) -> bool>,
+) -> Result<&'static str, Diagnostic> {
+    let old = match renewal_authority {
+        None => super::nested_owned::pre_filesystem_schema_from_parts(
+            interfaces, types, functions, templates, instances,
+        ),
+        Some(_) => super::nested_owned::pre_filesystem_schema_from_parts_with_renewal_authority(
+            interfaces,
+            types,
+            functions,
+            templates,
+            instances,
+            renewal_authority,
+        ),
+    }?;
     Ok(
         if functions
             .iter()
@@ -205,13 +228,11 @@ permit { fs.read, fs.write }
         let source = crate::check(&text, "filesystem-v2.spx").unwrap();
         let resolved = crate::hir::resolve(&source).unwrap();
         let entry = hir::DeclarationId::new("filesystem.run");
-        use crate::command_io_ops::{validate_operation_profile, CommandOperationProfile};
-        assert!(validate_operation_profile(
-            &resolved,
-            &entry,
-            CommandOperationProfile::FilesystemV1
-        )
-        .is_err());
+        use crate::command_io_ops::{CommandOperationProfile, validate_operation_profile};
+        assert!(
+            validate_operation_profile(&resolved, &entry, CommandOperationProfile::FilesystemV1)
+                .is_err()
+        );
         validate_operation_profile(&resolved, &entry, CommandOperationProfile::FilesystemV2)
             .unwrap();
         let graph = crate::graph::to_json(&source).unwrap();
@@ -219,11 +240,13 @@ permit { fs.read, fs.write }
         assert_eq!(value["schema"], "semaprax.graph.v42");
         assert_eq!(value["filesystem"]["schema"], "semaprax.filesystem.v2");
         crate::graph::verify_json(&source, &graph).unwrap();
-        assert!(crate::graph::verify_json(
-            &source,
-            &graph.replacen("semaprax.graph.v42", "semaprax.graph.v41", 1)
-        )
-        .is_err());
+        assert!(
+            crate::graph::verify_json(
+                &source,
+                &graph.replacen("semaprax.graph.v42", "semaprax.graph.v41", 1)
+            )
+            .is_err()
+        );
         let mut forged = value;
         forged["filesystem"]["stat_encoding"] = json!("unchecked");
         assert!(
@@ -239,11 +262,13 @@ permit { fs.read, fs.write }
         assert_eq!(value["filesystem"]["calls"].as_array().unwrap().len(), 2);
         crate::graph::verify_json(&source, &graph).unwrap();
         assert!(crate::graph::to_legacy_json(&source).is_err());
-        assert!(crate::graph::verify_json(
-            &source,
-            &graph.replacen("semaprax.graph.v41", "semaprax.graph.v19", 1)
-        )
-        .is_err());
+        assert!(
+            crate::graph::verify_json(
+                &source,
+                &graph.replacen("semaprax.graph.v41", "semaprax.graph.v19", 1)
+            )
+            .is_err()
+        );
         for (field, replacement) in [
             ("max_path_bytes", serde_json::json!(4097)),
             ("max_total_bytes", serde_json::json!(1048577)),

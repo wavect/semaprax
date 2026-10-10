@@ -1,5 +1,14 @@
 # Changelog
 
+- Intersect retained loan-plan backing keys with a bounded full HIR walk,
+  reserving complete scratch capacities for distinct proof candidates while
+  preserving legacy receipts and the unchanged builder cap. Align finite
+  owning-match cleanup, projected String reads and byte-range failure status
+  replay. Repair generated JSON ownership patterns, genuine stdin bootstrap
+  readers and direct nested-type imports; derive authenticated concrete record
+  Vec defaults and check nonallocating response reads on the actual HIR surface.
+  Grouped executable verification and live efficiency measurement remain pending.
+
 - Pre-size retained loan-census scratch once per module, keeping complete
   reservations and the 64-MiB builder limit. Compose finite owned collection
   matches, Copy-record loop renewal and nested record layouts across source,

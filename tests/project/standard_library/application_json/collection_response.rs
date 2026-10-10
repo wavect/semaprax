@@ -208,9 +208,9 @@ while at<257usize{rows=vec_push<Item>(rows,row());at=at+1usize;at<257usize}
 let too_many=Report{stats:Metrics{selected:257usize,total:0,live:true},entries:rows};
 let refused=encode(too_many,131072usize);let count_ok=match own refused{Encoded::Refused{required}=>required==18446744073709551615usize,Encoded::Encoded{text}=>false,};
 let empty=Report{stats:Metrics{selected:0usize,total:0,live:true},entries:vec_with_capacity<Item>(0usize)};
-let needed=encoded_len(empty);let result=encode(empty,needed);
+let needed=encoded_len(empty);let outcome=encode(empty,needed);
 let expected="{\"stats\":{\"selected\":0,\"total\":0,\"live\":true},\"entries\":[]}";
-let empty_ok=match own result{Encoded::Refused{required}=>false,Encoded::Encoded{text}=>equal(string_as_str(text),string_as_str(expected)),};
+let empty_ok=match own outcome{Encoded::Refused{required}=>false,Encoded::Encoded{text}=>equal(string_as_str(text),string_as_str(expected)),};
 if bad_ok && count_ok && empty_ok{728}else{0}
 }
 "#;
@@ -275,8 +275,8 @@ let seeds=vec_push<Item>(vec_with_capacity<Item>(1usize),seed);
 let mut rows=vec_with_capacity<Item>(256usize);let mut at=0usize;
 while at<256usize{let row=vec_clone_at<Item>(seeds,0usize);rows=vec_push<Item>(rows,row);at=at+1usize;at<256usize}
 let report=Report{stats:Metrics{selected:256usize,total:0,live:true},entries:rows};
-let required=encoded_len(report);let result=encode(report,18446744073709551615usize);
-let refused=match own result{Encoded::Refused{required}=>required==18446744073709551615usize,Encoded::Encoded{text}=>false,};
+let required=encoded_len(report);let outcome=encode(report,18446744073709551615usize);
+let refused=match own outcome{Encoded::Refused{required}=>required==18446744073709551615usize,Encoded::Encoded{text}=>false,};
 if required==18446744073709551615usize && refused{728}else{0}
 }
 "#;

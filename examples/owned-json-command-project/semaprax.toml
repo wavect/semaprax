@@ -21,8 +21,8 @@ input = "argv-utf8+stdin-stream.v1"
 required = ["process.args.read", "process.stderr.write", "process.stdin.read", "process.stdout.write"]
 
 [dependencies]
+std.data.json.digits = "=0.1.0"
+std.data.json.query = "=0.1.0"
 std.data.json.scan = "=0.1.0"
 std.data.json.token = "=0.1.0"
-std.data.json.digits = "=0.1.0"
 std.data.json.write = "=0.1.0"
-std.data.json.query = "=0.1.0"

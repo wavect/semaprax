@@ -8,10 +8,7 @@ use super::*;
 const PERMITS: &str = "permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }\n";
 
 fn manifest() -> String {
-    MANIFEST
-        .replace("owned-data-api.v1", "language-command-io.stream-data.v2")
-        .replace("web = []", "web = [\"consumer.command\"]")
-        + "\n[command]\nfunction = \"consumer.command\"\ninput = \"argv-utf8+stdin-stream.v1\"\n\n[capabilities]\nrequired = [\"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]\n"
+    command_manifest("language-command-io.stream-data.v2")
 }
 
 fn command_source() -> String {

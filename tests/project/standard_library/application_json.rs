@@ -31,19 +31,29 @@ profile = "owned-data-api.v1"
 
 [modules]
 entry = "consumer.app"
-sources = ["src/schema.spx", "src/app.spx", "src/tests.spx"]
+sources = ["src/app.spx", "src/schema.spx", "src/tests.spx"]
 tests = ["consumer.tests"]
 
 [exports]
 web = []
 
 [dependencies]
+std.data.json.digits = "=0.1.0"
+std.data.json.query = "=0.1.0"
 std.data.json.scan = "=0.1.0"
 std.data.json.token = "=0.1.0"
-std.data.json.digits = "=0.1.0"
 std.data.json.write = "=0.1.0"
-std.data.json.query = "=0.1.0"
 "#;
+
+fn command_manifest(profile: &str) -> String {
+    MANIFEST
+        .replace("owned-data-api.v1", profile)
+        .replace("web = []", "web = [\"consumer.command\"]")
+        .replace(
+            "[dependencies]",
+            "[command]\nfunction = \"consumer.command\"\ninput = \"argv-utf8+stdin-stream.v1\"\n\n[capabilities]\nrequired = [\"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]\n\n[dependencies]",
+        )
+}
 
 const SCHEMA: &str = r#"module consumer.schema;
 @id("application.patient") record Patient {
@@ -62,6 +72,7 @@ fn canonical(source: &str) -> String {
 fn fixture(label: &str, schema: &str) -> std::path::PathBuf {
     let root = super::temporary(label);
     std::fs::create_dir_all(root.join("src")).unwrap();
+    assert_eq!(project::ProjectManifest::parse(MANIFEST).unwrap().to_canonical_toml(), MANIFEST);
     std::fs::write(root.join("semaprax.toml"), MANIFEST).unwrap();
     std::fs::write(root.join("src/schema.spx"), canonical(schema)).unwrap();
     std::fs::write(

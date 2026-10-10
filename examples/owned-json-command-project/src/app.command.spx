@@ -31,8 +31,8 @@ fn adjust(value: own Stock) -> Stock {
 
 @id("warehouse.command")
 fn command() -> i64 uses { process.stdin.read, process.stdout.write } {
-    let result = receive();
-    match own result {
+    let outcome = receive();
+    match own outcome {
         Outcome::Error { code, offset, field } => 2,
         Outcome::Decoded { locations, stock } => {
             let locations = vec_sort_owned<string>(locations);

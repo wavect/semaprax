@@ -32,8 +32,8 @@ fn test_tie_eight_workers() -> i64
     let patients = vec_push<Patient>(patients1, Patient {
         priority: 1, arrival: 0, id: "P0", service: 1, deadline: 10,
     });
-    let result = run(Request { servers, patients });
-    match own result {
+    let outcome = run(Request { servers, patients });
+    match own outcome {
         ScheduleResult { valid: false, report: _report } => 1,
         ScheduleResult { valid: true, report } => {
             let expected_first_id = "P0";
@@ -80,8 +80,8 @@ fn test_max256_serial() -> i64
         0
     }
     let servers = vec_push<string>(vec_with_capacity<string>(1usize), "S0");
-    let result = run(Request { servers, patients });
-    match own result {
+    let outcome = run(Request { servers, patients });
+    match own outcome {
         ScheduleResult { valid: false, report: _report } => 1,
         ScheduleResult { valid: true, report } => {
             if vec_len<Assignment>(report.assignments) == 256usize

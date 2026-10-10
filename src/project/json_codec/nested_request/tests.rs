@@ -17,7 +17,6 @@ fn nested_request_is_deterministic_canonical_and_constructs_only_after_validatio
     assert_ne!(source, generate(SCHEMA, 16, 7).unwrap());
     assert!(source.contains("fn json_OrderRequest_nested_decode(input:borrow Slice<u8>,input_limit:usize)->OrderRequestJsonNestedDecode"));
     assert!(source.contains(".json.nested.decode-result"));
-    assert!(!source.contains(".json.utf8."));
     assert!(!source.contains("stdin"));
     assert!(!source.contains("_identifier_valid"));
     let api = source
@@ -34,6 +33,36 @@ fn nested_request_is_deterministic_canonical_and_constructs_only_after_validatio
     assert!(!api.contains("vec_with_capacity"));
     assert!(!api.contains("string_concat"));
     let parsed = crate::parse(&source, "generated.spx").unwrap();
+    // Imported JSON UTF-8 identities remain authoritative; only generated
+    // declarations belong to the nested-codec namespace.
+    assert!(parsed.module_uses.iter().any(|import| {
+        import.persistent_id == "std.data.json.utf8.scalar_at"
+            && import.target_module == "std.data.json.utf8"
+            && import.alias == "ju_raw_scalar"
+    }));
+    for function in &parsed.functions {
+        assert!(function.stable_id.starts_with("orders.request.json.nested."));
+        assert!(!function.stable_id.contains(".json.utf8."));
+    }
+    for declaration in &parsed.types {
+        assert!(declaration.stable_id.starts_with("orders.request.json.nested."));
+        match &declaration.kind {
+            TypeDeclarationKind::Record { fields } => {
+                for field in fields {
+                    assert!(field.stable_id.starts_with("orders.request.json.nested."));
+                }
+            }
+            TypeDeclarationKind::Variant { cases } => {
+                for case in cases {
+                    assert!(case.stable_id.starts_with("orders.request.json.nested."));
+                    for field in &case.fields {
+                        assert!(field.stable_id.starts_with("orders.request.json.nested."));
+                    }
+                }
+            }
+            _ => panic!("only ordinary codec records and variants"),
+        }
+    }
     assert!(parsed.permits.is_empty());
     assert!(parsed.functions.iter().all(|f| f.effects.is_empty()));
     let outcome = parsed
@@ -176,7 +205,14 @@ fn nested_codec_keeps_marker_like_authored_names_and_identities_opaque() {
                 format!("json_{name}_response_utf8_quote"),
             ),
         ] {
-            let parsed = crate::parse(&fragment, "marker.spx").unwrap();
+            // response_text is a declaration fragment, whereas derive already
+            // includes the module/import header.
+            let source = if fragment.starts_with("module ") {
+                fragment
+            } else {
+                format!("module marker;\n{fragment}")
+            };
+            let parsed = crate::parse(&source, "marker.spx").unwrap();
             let function = parsed
                 .functions
                 .iter()

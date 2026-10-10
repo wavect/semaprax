@@ -7,7 +7,8 @@ profile = "language-command-io.nested-outcome.v1"
 
 [modules]
 entry = "orders.app"
-sources = ["src/app.spx", "src/schema.spx"]
+sources = ["src/app.spx", "src/schema.spx", "src/tests.spx"]
+tests = ["orders.tests"]
 
 [exports]
 web = ["orders.command"]

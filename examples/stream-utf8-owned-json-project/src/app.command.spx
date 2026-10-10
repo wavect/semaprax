@@ -28,8 +28,8 @@ fn bump(value: own Row) -> Row {
 
 @id("catalog.command")
 fn command() -> i64 uses { process.stdin.read, process.stdout.write } {
-    let result = receive();
-    match own result {
+    let outcome = receive();
+    match own outcome {
         Outcome::Error { code, offset, field } => 2,
         Outcome::Decoded { labels, rows } => {
             if vec_len<Row>(rows) == 0usize { 2 } else {

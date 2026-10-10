@@ -905,7 +905,21 @@ fn fused_owned_string_byte_view_agrees_across_interpreter_native_and_core_wasm()
 
     let native_o0 = run_native(&generated, &root, "-O0", &FUSED_OWNED_STRING_VIEW_CASES);
     let native_o2 = run_native(&generated, &root, "-O2", &FUSED_OWNED_STRING_VIEW_CASES);
-    let wasm_main = run_core_wasm_aggregate(&program, &root);
+    // Preserve the closed legacy Web refusal; this String/Option witness uses
+    // only the explicitly selected private HIR artifact and strict owning host.
+    let public = root.join("public-web-refused");
+    assert_eq!(wasm::build_web(&program, &public).unwrap_err().code, "SPX-W116");
+    assert!(!public.exists());
+    let resolved = semaprax::hir::resolve(&program).unwrap();
+    let private = wasm::emit_resolved_module(&resolved).unwrap();
+    wasmparser::Validator::new().validate_all(&private).unwrap();
+    let path = root.join("private-string-view.wasm");
+    fs::write(&path, private).unwrap();
+    let host = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/owned_data/owned_leaf_vec/host.js");
+    let output = Command::new("node").arg(host).arg(path)
+        .args(["0", "2", "scalar-view", "ok"]).output().unwrap();
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
     let interpreter_path = root.join("interpret-fused-owned-string-view.spx");
     fs::write(&interpreter_path, FUSED_OWNED_STRING_VIEW_SOURCE).unwrap();
     let interpreter_values = run_interpreter(&interpreter_path, &FUSED_OWNED_STRING_VIEW_CASES);
@@ -916,7 +930,8 @@ fn fused_owned_string_byte_view_agrees_across_interpreter_native_and_core_wasm()
         interpreter_values.len(),
         FUSED_OWNED_STRING_VIEW_CASES.len()
     );
-    assert_eq!(wasm_main, 2, "Core Wasm must run both fused-view scopes");
+    // The host checks the aggregate value 2 on three invocations and requires
+    // every String/Bytes owner to settle after each invocation.
     for (index, (case_id, expected)) in FUSED_OWNED_STRING_VIEW_CASES.iter().enumerate() {
         assert_eq!(native_o0[index].0, *case_id);
         assert_eq!(native_o2[index].0, *case_id);

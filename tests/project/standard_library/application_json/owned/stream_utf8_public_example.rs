@@ -13,6 +13,7 @@ fn copy_example(source: &std::path::Path, destination: &std::path::Path) {
         "src/schema.spx",
         "src/app.spx",
         "src/app.command.spx",
+        "src/tests.spx",
         "fixtures/request.json",
         "fixtures/malformed.json",
         "fixtures/wrong-type.json",

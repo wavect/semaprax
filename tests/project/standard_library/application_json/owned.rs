@@ -35,7 +35,7 @@ let raw={};let input=bytes_copy(array_as_slice(raw));decode(bytes_as_slice(input
 match own value {{Patient{{id,arrival,service,priority,deadline}}=>Patient{{id:id,arrival:arrival+1,service:service,priority:priority,deadline:deadline}},}}
 }}
 @id("consumer.error") fn error(input:borrow Slice<u8>,wanted:i64,at:usize,field:i64)->i64 {{
-let result=decode(input);match own result {{Outcome::Decoded{{servers,patients}}=>1,Outcome::Error{{code,offset,field:actual}}=>if code==wanted && offset==at && actual==field{{0}}else{{1}},}}
+let outcome=decode(input);match own outcome {{Outcome::Decoded{{servers,patients}}=>1,Outcome::Error{{code,offset,field:actual}}=>if code==wanted && offset==at && actual==field{{0}}else{{1}},}}
 }}
 @id("consumer.main") fn main()->i64 {{
 let mut failures=0;
@@ -75,8 +75,8 @@ let invalid_ok=duplicate_ok && bad_ok && repeated_ok;
     } else {
         "let invalid_ok=true;\n"
     };
-    source.push_str(&format!(r#"let result=detached();
-failures=failures+match own result {{Outcome::Error{{code,offset,field}}=>1,
+    source.push_str(&format!(r#"let outcome=detached();
+failures=failures+match own outcome {{Outcome::Error{{code,offset,field}}=>1,
 Outcome::Decoded{{servers,patients}}=>{{
 let sorted=vec_sort_owned<Patient>(patients);let words=vec_sort_owned<string>(servers);
 let first=vec_clone_at<Patient>(sorted,0usize);let changed=change(first);
@@ -237,8 +237,8 @@ use type @id("catalog.input.json.owned-result") from consumer.schema as Outcome;
 use type @id("catalog.item.json.view-encode") from consumer.schema as Encoded;
 use function @id("catalog.input.json.owned.decode") from consumer.schema as decode;
 use function @id("catalog.input.json.owned.encode") from consumer.schema as encode;
-@id("consumer.main") fn main()->i64{{let raw={};let result=decode(array_as_slice(raw));
-match own result{{Outcome::Error{{code,offset,field}}=>0,Outcome::Decoded{{labels,items}}=>{{
+@id("consumer.main") fn main()->i64{{let raw={};let outcome=decode(array_as_slice(raw));
+match own outcome{{Outcome::Error{{code,offset,field}}=>0,Outcome::Decoded{{labels,items}}=>{{
 let rendered=encode(labels,items,{}usize);match own rendered{{Encoded::Refused{{required}}=>0,Encoded::Encoded{{text}}=>if text=={}{{726}}else{{0}},}}
 }},}}
 }}
@@ -277,7 +277,7 @@ fn owned_request_partial_materialization_and_encoder_clone_failures_settle_every
             r#"
 @id("consumer.main") fn main()->i64 {{let raw={};let decoded=decode(array_as_slice(raw));
 match own decoded{{Outcome::Error{{code,offset,field}}=>0,Outcome::Decoded{{servers,patients}}=>{{
-let result=encode(servers,patients,131072usize);match own result{{Encoded::Refused{{required}}=>0,Encoded::Encoded{{text}}=>726,}}
+let outcome=encode(servers,patients,131072usize);match own outcome{{Encoded::Refused{{required}}=>0,Encoded::Encoded{{text}}=>726,}}
 }},}}
 }}
 "#,

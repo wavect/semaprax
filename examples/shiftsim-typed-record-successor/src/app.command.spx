@@ -44,8 +44,8 @@ fn command() -> i64 uses { process.stdin.read, process.stdout.write, process.std
     match own decoded {
         Decode::Error { code: _error_code, offset: _error_offset, field: _error_field } => reject(),
         Decode::Decoded { servers, patients } => {
-            let result = run(Request { servers, patients });
-            match own result {
+            let outcome = run(Request { servers, patients });
+            match own outcome {
                 ScheduleResult { valid: false, report: _invalid_report } => reject(),
                 ScheduleResult { valid: true, report } => {
                     let encoded = encode(report, 131071usize);

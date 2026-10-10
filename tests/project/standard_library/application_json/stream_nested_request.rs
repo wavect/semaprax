@@ -10,7 +10,7 @@ fn install() -> std::path::PathBuf {
     let root = super::super::temporary("stream-nested-orders");
     std::fs::create_dir_all(root.join("src")).unwrap();
     let source = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(EXAMPLE);
-    for path in ["semaprax.toml", "src/schema.spx", "src/app.spx"] {
+    for path in ["semaprax.toml", "src/schema.spx", "src/app.spx", "src/tests.spx"] {
         std::fs::copy(source.join(path), root.join(path)).unwrap();
     }
     let original = std::fs::read(root.join("src/schema.spx")).unwrap();

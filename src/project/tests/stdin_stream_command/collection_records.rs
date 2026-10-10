@@ -332,7 +332,7 @@ permit {process.args.read,process.stderr.write,process.stdin.read,process.stdout
  @id("n.Outcome.error") Error { @id("n.Outcome.code") code:i64, @id("n.Outcome.offset") offset:usize, @id("n.Outcome.field") field:i64, },
 }
 @id("n.forward") fn forward(value:own Outcome)->Outcome {value}
-@id("n.decide") fn decide()->i64 {let result=forward(Outcome::Error{code:12,offset:0usize,field:0}); match own result {Outcome::Ready{value}=>0,Outcome::Error{code,offset,field}=>code,}}
+@id("n.decide") fn decide()->i64 {let outcome=forward(Outcome::Error{code:12,offset:0usize,field:0}); match own outcome {Outcome::Ready{value}=>0,Outcome::Error{code,offset,field}=>code,}}
 "#;
     let tests = r#"module collection.tests;
 use function @id("n.decide") from collection.data as decide;

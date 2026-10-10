@@ -136,7 +136,7 @@ fn qualify(root: &std::path::Path) {
 fn roundtrip(input: &[u8], expected: &[u8]) -> String {
     format!(
         r#"@id("consumer.detached") fn detached()->Outcome {{let raw={};let owner=bytes_copy(array_as_slice(raw));decode(bytes_as_slice(owner))}}
-@id("consumer.main") fn main()->i64 {{let result=detached();match own result{{
+@id("consumer.main") fn main()->i64 {{let outcome=detached();match own outcome{{
 Outcome::Error{{code,offset,field}}=>0,
 Outcome::Decoded{{labels,rows}}=>{{let required=encoded_len(labels,rows);
 let short=encode(labels,rows,{}usize);let short_ok=match own short{{Encoded::Refused{{required:count}}=>count=={}usize,Encoded::Encoded{{text}}=>false,}};
@@ -174,7 +174,7 @@ fn utf8_owned_request_roundtrips_nul_raw_and_escaped_scalars_and_repeated_empty_
 fn utf8_owned_request_preserves_grammar_priority_and_exact_schema_offsets() {
     let mut app = imports().to_owned()
         + r#"@id("consumer.error") fn error(input:borrow Slice<u8>,wanted:i64,at:usize,field:i64)->i64 {
-let result=decode(input);match own result{Outcome::Decoded{labels,rows}=>1,Outcome::Error{code,offset,field:actual}=>if code==wanted && offset==at && actual==field{0}else{1},}}
+let outcome=decode(input);match own outcome{Outcome::Decoded{labels,rows}=>1,Outcome::Error{code,offset,field:actual}=>if code==wanted && offset==at && actual==field{0}else{1},}}
 @id("consumer.main") fn main()->i64{let mut bad=0;
 "#;
     for (index, (bytes, code, offset, field)) in [
@@ -205,7 +205,7 @@ let result=decode(input);match own result{Outcome::Decoded{labels,rows}=>1,Outco
         app.push_str(&format!("let raw_{index}={};bad=bad+error(array_as_slice(raw_{index}),{code},{offset}usize,{field});\n",array(bytes)));
     }
     // A nonempty record array with an empty first array is plain data here.
-    app.push_str(&format!("let valid={};let result=decode(array_as_slice(valid));bad=bad+match own result{{Outcome::Error{{code,offset,field}}=>1,Outcome::Decoded{{labels,rows}}=>if vec_len<Row>(rows)==1usize && vec_len<string>(labels)==0usize{{0}}else{{1}},}};if bad==0{{727}}else{{0-bad}}}}",array(br#"{"labels":[],"rows":[{"text":"","number":0}]}"#)));
+    app.push_str(&format!("let valid={};let outcome=decode(array_as_slice(valid));bad=bad+match own outcome{{Outcome::Error{{code,offset,field}}=>1,Outcome::Decoded{{labels,rows}}=>if vec_len<Row>(rows)==1usize && vec_len<string>(labels)==0usize{{0}}else{{1}},}};if bad==0{{727}}else{{0-bad}}}}",array(br#"{"labels":[],"rows":[{"text":"","number":0}]}"#)));
     let root = install("utf8-json-errors", &app, 4);
     qualify(&root);
     std::fs::remove_dir_all(root).unwrap();
@@ -244,8 +244,8 @@ let buffer=witness({escaped});let canonical=witness(false);let input=bytes_as_sl
 match own decoded{{Outcome::Error{{code,offset,field}}=>0,Outcome::Decoded{{labels,rows}}=>{{
 let first=vec_clone_at<string>(labels,0usize);let last=vec_clone_at<Row>(rows,255usize);
 let count_ok=vec_len<string>(labels)==8usize && vec_len<Row>(rows)==256usize && string_len(first)==64 && string_len(last.text)==64;
-let required=encoded_len(labels,rows);let result=encode(labels,rows,{canonical_length}usize);
-match own result{{Encoded::Refused{{required}}=>0,Encoded::Encoded{{text}}=>{{let output=str_as_bytes(string_as_str(text));
+let required=encoded_len(labels,rows);let outcome=encode(labels,rows,{canonical_length}usize);
+match own outcome{{Encoded::Refused{{required}}=>0,Encoded::Encoded{{text}}=>{{let output=str_as_bytes(string_as_str(text));
 let mut same=byte_len(output)==byte_len(expected);let mut index=0usize;
 while same && index<byte_len(expected){{same=match byte_get(expected,index){{Option::Some{{value:a}}=>match byte_get(output,index){{Option::Some{{value:b}}=>a==b,Option::None{{}}=>false,}},Option::None{{}}=>false,}};index=index+1usize;same && index<byte_len(expected)}}
 if count_ok && required=={canonical_length}usize && same{{727}}else{{0}}
@@ -291,7 +291,7 @@ fn utf8_owned_request_partial_push_and_encoder_clone_refusals_leave_no_owners() 
     let app = imports().to_owned()
         + &format!(
             r#"@id("consumer.main") fn main()->i64{{let raw={};let decoded=decode(array_as_slice(raw));
-match own decoded{{Outcome::Error{{code,offset,field}}=>0,Outcome::Decoded{{labels,rows}}=>{{let result=encode(labels,rows,131072usize);match own result{{Encoded::Refused{{required}}=>0,Encoded::Encoded{{text}}=>727,}}}},}}}}
+match own decoded{{Outcome::Error{{code,offset,field}}=>0,Outcome::Decoded{{labels,rows}}=>{{let outcome=encode(labels,rows,131072usize);match own outcome{{Encoded::Refused{{required}}=>0,Encoded::Encoded{{text}}=>727,}}}},}}}}
 "#,
             array(input)
         );
@@ -362,7 +362,7 @@ fn utf8_quote_bulk_copy_preserves_escaped_scalars_and_private_input_bounds() {
         + r#"use function @id("unicode.row.json.utf8.quoted-render") from consumer.schema as quote;
 use function @id("unicode.row.json.utf8.quoted-len") from consumer.schema as quote_len;
 @id("consumer.quote-check") fn check(text:borrow str,wanted:borrow Slice<u8>,required:usize)->bool {
-let length=quote_len(text);let result=quote(text);let actual=str_as_bytes(string_as_str(result));
+let length=quote_len(text);let outcome=quote(text);let actual=str_as_bytes(string_as_str(outcome));
 let mut equal=length==required && byte_len(actual)==byte_len(wanted);let mut at=0usize;
 while equal && at<byte_len(actual){equal=match byte_get(actual,at){Option::Some{value:a}=>match byte_get(wanted,at){Option::Some{value:b}=>a==b,Option::None{}=>false,},Option::None{}=>false,};at=at+1usize;equal && at<byte_len(actual)}
 equal

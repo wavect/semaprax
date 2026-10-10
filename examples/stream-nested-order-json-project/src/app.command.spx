@@ -31,8 +31,8 @@ fn summarize(lines: borrow Vec<Line>) -> Summary {
 
 @id("orders.command")
 fn command() -> i64 uses { process.stdin.read, process.stdout.write, process.stderr.write } {
-    let result = receive();
-    match own result {
+    let outcome = receive();
+    match own outcome {
         Outcome::Error { code, offset, field } => {
             let message = string_format("error:{}:{}:{}", code, offset, field);
             let diagnostic = str_as_bytes(string_as_str(message));

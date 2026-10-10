@@ -1,0 +1,14 @@
+module orders.tests;
+use function @id("orders.schema.anchor") from orders.schema as schema_anchor;
+
+@id("orders.tests.main")
+fn main() -> i64
+{
+    schema_anchor()
+}
+
+@id("orders.tests.schema_anchor")
+fn test_schema_anchor() -> i64
+{
+    schema_anchor()
+}

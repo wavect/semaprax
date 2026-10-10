@@ -18,7 +18,7 @@ fn install_named(label: &str, record_name: &str, record_id: &str) -> std::path::
     let root = super::super::temporary(label);
     std::fs::create_dir_all(root.join("src")).unwrap();
     let source = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(EXAMPLE);
-    for path in ["semaprax.toml", "src/schema.spx", "src/app.spx"] {
+    for path in ["semaprax.toml", "src/schema.spx", "src/app.spx", "src/tests.spx"] {
         std::fs::copy(source.join(path), root.join(path)).unwrap();
     }
     let rename = |source: &str| {
@@ -168,7 +168,7 @@ fn nested_order_errors_and_exact_schema_capacities_agree_on_three_backends() {
 use type @id("orders.request.json.nested.decode-result") from orders.schema as Outcome;
 use function @id("orders.request.json.nested.decode") from orders.schema as decode;
 @id("orders.error") fn error(input:borrow Slice<u8>,limit:usize,wanted:i64,at:usize,target:i64)->i64 {
-let result=decode(input,limit);match own result {
+let outcome=decode(input,limit);match own outcome {
 Outcome::Ready{value}=>1,
 Outcome::Error{code,offset,field}=>if code==wanted && offset==at && field==target{0}else{1},
 }}

@@ -35,12 +35,7 @@ fn command() -> i64
         0
     }
     let score = verify();
-    if score == 12 && saw_input {
-        let output = string_from_i64(score);
-        let view = string_as_str(output);
-        let ignored = stdout_write(str_as_bytes(view));
-        0
-    } else { 1 }
+    if score == 12 && saw_input { let output = string_from_i64(score); let view = string_as_str(output); let ignored = stdout_write(str_as_bytes(view)); 0 } else { 1 }
 }
 
 @id("{{name}}.app.main")
@@ -53,12 +48,17 @@ fn main() -> i64
 pub(super) const CORE: &str = r#"module {{module}}.core;
 
 @id("{{name}}.metrics")
-record Metrics { @id("{{name}}.metrics.selected") selected: i64, }
+record Metrics {
+    @id("{{name}}.metrics.selected")
+    selected: i64,
+}
 
 @id("{{name}}.report")
 record Report {
-    @id("{{name}}.report.items") items: Vec<string>,
-    @id("{{name}}.report.metrics") metrics: Metrics,
+    @id("{{name}}.report.items")
+    items: Vec<string>,
+    @id("{{name}}.report.metrics")
+    metrics: Metrics,
 }
 
 @id("{{name}}.inspect")

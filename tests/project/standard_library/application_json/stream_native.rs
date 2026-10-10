@@ -124,7 +124,7 @@ fn request(count: usize, servers: usize, escaped_wire: bool) -> Vec<u8> {
 #[test]
 fn streamed_request_codecs_accept_full_raw_domain_and_preserve_late_grammar_priority() {
     let root = fixture("json-full-stream", views::SCHEMA);
-    let manifest=MANIFEST.replace("owned-data-api.v1","language-command-io.stream-data.v2").replace("web = []","web = [\"consumer.command\"]")+"\n[command]\nfunction = \"consumer.command\"\ninput = \"argv-utf8+stdin-stream.v1\"\n\n[capabilities]\nrequired = [\"process.args.read\",\"process.stderr.write\",\"process.stdin.read\",\"process.stdout.write\"]\n";
+    let manifest = command_manifest("language-command-io.stream-data.v2");
     std::fs::write(root.join("semaprax.toml"), manifest).unwrap();
     let schema = views::SCHEMA.replace(
         "module consumer.schema;",

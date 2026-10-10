@@ -18,8 +18,8 @@ fn test_empty_tags_select_all() -> i64
     let first = InputItem { id: "B", department: 2, priority: 1, stock: 10, topup: 5, mark: 7u8 };
     let second = InputItem { id: "A", department: 1, priority: 9, stock: 3, topup: 2, mark: 255u8 };
     let items = vec_push<InputItem>(vec_push<InputItem>(vec_with_capacity<InputItem>(2usize), first), second);
-    let result = run(Request { tags: vec_with_capacity<string>(0usize), items: items });
-    match own result {
+    let outcome = run(Request { tags: vec_with_capacity<string>(0usize), items: items });
+    match own outcome {
         Result { valid: false, report: _report } => 1,
         Result { valid: true, report } => {
             let first_id = vec_field<Item>(report.items, 0usize, "id");

@@ -28,10 +28,7 @@ fn owned_stream_request_drops_input_before_native_decision_and_output() {
         &format!("module consumer.schema;\n{PERMITS}"),
     );
     let root = fixture("owned-json-stream", &schema);
-    let manifest = MANIFEST
-        .replace("owned-data-api.v1", "language-command-io.owned-data.v1")
-        .replace("web = []", "web = [\"consumer.command\"]")
-        + "\n[command]\nfunction=\"consumer.command\"\ninput=\"argv-utf8+stdin-stream.v1\"\n[capabilities]\nrequired=[\"process.args.read\",\"process.stderr.write\",\"process.stdin.read\",\"process.stdout.write\"]\n";
+    let manifest = command_manifest("language-command-io.owned-data.v1");
     std::fs::write(root.join("semaprax.toml"), &manifest).unwrap();
     std::fs::write(root.join("src/app.spx"), canonical(&("module consumer.app;\n".to_owned() + PERMITS + "@id(\"consumer.command\") fn command()->i64{0}\n@id(\"consumer.main\") fn main()->i64{0}"))).unwrap();
     let generated = project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
@@ -59,7 +56,7 @@ Input::Ready{bytes,length}=>decode(byte_range(bytes_as_slice(bytes),0usize,lengt
 @id("consumer.change") fn change(value:own Patient)->Patient{
 match own value{Patient{id,arrival,service,priority,deadline}=>Patient{id:id,arrival:arrival+1,service:service,priority:priority,deadline:deadline},}}
 @id("consumer.command") fn command()->i64 uses{process.stdin.read,process.stdout.write}{
-let result=receive();match own result{
+let outcome=receive();match own outcome{
 Outcome::Error{code,offset,field}=>2,
 Outcome::Decoded{servers,patients}=>{
 let words=vec_sort_owned<string>(servers);let sorted=vec_sort_owned<Patient>(patients);

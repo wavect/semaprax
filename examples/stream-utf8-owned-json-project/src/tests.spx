@@ -1,0 +1,14 @@
+module catalog.tests;
+use function @id("catalog.schema.anchor") from catalog.schema as schema_anchor;
+
+@id("catalog.tests.main")
+fn main() -> i64
+{
+    schema_anchor()
+}
+
+@id("catalog.tests.schema_anchor")
+fn test_schema_anchor() -> i64
+{
+    schema_anchor()
+}

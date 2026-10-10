@@ -60,8 +60,8 @@ let row=Item{id:"a",server:"xy",arrival:0,start:0,finish:1,wait:0,late:false};
 let entries=vec_push<Item>(vec_with_capacity<Item>(1usize),row);
 let report=Report{stats:Metrics{selected:1usize,total:1,live:true},entries};
 let required=encoded_len(report);
-let result=encode(report,131072usize);
-let refused=match own result{Encoded::Refused{required:actual}=>actual==18446744073709551615usize,Encoded::Encoded{text}=>false,};
+let outcome=encode(report,131072usize);
+let refused=match own outcome{Encoded::Refused{required:actual}=>actual==18446744073709551615usize,Encoded::Encoded{text}=>false,};
 if required==18446744073709551615usize && refused{728}else{0}
 }
 "#;

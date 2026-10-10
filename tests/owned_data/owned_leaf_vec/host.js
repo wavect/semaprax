@@ -7,6 +7,11 @@ const moduleBytes = fs.readFileSync(process.argv[2]);
 const expectedStatus = Number(process.argv[3]);
 const expectedValue = BigInt(process.argv[4]);
 const refusal = process.argv[5] || '';
+// Dedicated private scalar String/Bytes witness, not a public Web adapter.
+const scalarView = refusal === 'scalar-view';
+const expectedDomain = scalarView ? process.argv[6] : null;
+if (scalarView && !['ok', 'semaprax.convert.v1'].includes(expectedDomain))
+  throw Error('scalar-view requires an exact admitted normalized status domain');
 const codecPushFailure = /^codec-push-([1-4])$/.exec(refusal);
 let codecPushAttempts = 0;
 let instance, fieldOutput, nextPayload = 1, nextVec = 1n, nextIter = 1n << 62n, copies = 0, drops = 0;
@@ -569,11 +574,18 @@ const env = {
   },
 };
 (async()=>{
+  if(scalarView){
+    const imports=WebAssembly.Module.imports(new WebAssembly.Module(moduleBytes));
+    if(imports.some(entry=>/^spx_(vec|iter)_/.test(entry.name)) ||
+       !imports.some(entry=>/^spx_(string|bytes)_/.test(entry.name)))
+      throw Error('scalar-view fixture has a collection boundary or no owned payload import');
+  }else{
   const missing={...env};delete missing.spx_vec_leaf_clone_at_v1;
   let refused=false;
   try{await WebAssembly.instantiate(moduleBytes,{env:missing})}
   catch(error){if(!(error instanceof WebAssembly.LinkError))throw error;refused=true}
   if(!refused)throw Error('private boundary linked without clone import');
+  }
   if(refusal==='field-no-allocation'){
     const withoutRead={...env};delete withoutRead.spx_vec_leaf_field_read_v1;
     let absent=false;
@@ -626,7 +638,13 @@ const env = {
     let selected=0,returned;
     try{returned=instance.exports.semaprax_main()}
     catch(error){if(!error.message.startsWith('status:'))throw error;selected=Number(error.message.slice(7))}
-    if(selected!==expectedStatus)throw Error(`status ${selected}, expected ${expectedStatus}`);
+    if(scalarView){
+      const domain=selected===0?'ok':selected===21||selected===22?'semaprax.convert.v1':null;
+      const code=selected===21||selected===22?selected-20:selected;
+      if(domain!==expectedDomain||code!==expectedStatus)
+        throw Error(`normalized status ${domain}|${code}, expected ${expectedDomain}|${expectedStatus}`);
+      if(selected&&returned!==undefined)throw Error('failed scalar view published a result');
+    }else if(selected!==expectedStatus)throw Error(`status ${selected}, expected ${expectedStatus}`);
     if(!selected&&returned!==expectedValue)throw Error(`value ${returned}, expected ${expectedValue}`);
     if(vectors.size||iterators.size||payloads.size||copies!==drops)
       throw Error(`leaks vec=${vectors.size} iter=${iterators.size} payload=${payloads.size} copies=${copies} drops=${drops}`);

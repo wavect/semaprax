@@ -1,5 +1,12 @@
 # Changelog
 
+- Pre-size retained loan-census scratch once per module, keeping complete
+  reservations and the 64-MiB builder limit. Compose finite owned collection
+  matches, Copy-record loop renewal and nested record layouts across source,
+  HIR, cleanup replay, native and Wasm paths. Correct shared Node fixture
+  arguments and bound the JSON help card. Grouped executable verification
+  remains pending; no token-efficiency gain is claimed from static checks.
+
 - Hoist generated JSON key views before loops and authenticate finite imported
   decode/encode result shapes and flat Vec element aliases. Correct authored
   example identities and native UTF-8 fixture roots/readers while preserving

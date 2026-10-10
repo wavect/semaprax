@@ -54,6 +54,12 @@ semaprax build . --output catalog-native
 ./catalog-native < fixtures/request.json
 ```
 
+The shared [typed application setup operator](../../benchmarks/typed_application_setup_support/README.md)
+retains the authored schemas before generation, binds the actual compiler-bundled
+library closure, replays both outputs against the unchanged bootstrap, and returns
+a regular complete source tree with explicit build/test/run scripts. It does not
+qualify the 23 cases itself or seed paid trial candidates.
+
 The owning Project test derives/replays both candidates against the unchanged
 bootstrap, checks canonical source, runs the two source tests, and compares the
 native build plus C11 O0/O2 against all 23 exact retained rows (including 256

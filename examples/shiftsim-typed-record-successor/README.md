@@ -10,15 +10,16 @@ completed assignment becomes part of the owned report.
 
 The request and response schemas are authored in `src/request.spx` and
 `src/response.spx`. Bootstrap the ordinary compiler-generated helpers in a
-copy of this directory:
+copy of this directory. Derive **both** complete replacements against the same
+unchanged bootstrap before installing either one:
 
 ```sh
 semaprax json-codec . --source src/request.spx --type shiftsim.request \
   --output src/request.generated.spx --profile stream-owned-request.v1
-cp src/request.generated.spx src/request.spx
 semaprax json-codec . --source src/response.spx --type shiftsim.report \
   --output src/response.generated.spx --profile bounded-collection-response.v1 \
   --max-string-bytes 16
+cp src/request.generated.spx src/request.spx
 cp src/response.generated.spx src/response.spx
 cp src/app.command.spx src/app.spx
 semaprax check .
@@ -26,6 +27,12 @@ semaprax test .
 semaprax build . --target native -o shiftsim
 ./shiftsim < fixtures/request.json
 ```
+
+For retained schema snapshots, exact compiler/build-log bindings, replay of
+both derivations and a regular installation tree, use the shared
+[typed application setup operator](../../benchmarks/typed_application_setup_support/README.md).
+It also installs explicit build/test/run scripts for the unpaid v31 qualification
+route. It never copies this application into a paid trial or changes trial prompts.
 
 The request generator supplies the existing stream normalizer and owned
 decoder for `{servers:Vec<string>, patients:Vec<Patient>}`. The response

@@ -135,6 +135,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         }
         if matches!(expression.ty, ResolvedType::Bytes | ResolvedType::String)
             || crate::map_ops::is_collection(&expression.ty)
+            || hir::owned_collection_record::vector(&self.program.declarations, &expression.ty)
         {
             let plan = self.bytes_plan.expect("owned match plan checked above");
             // Own String place reads are producers: their clone already

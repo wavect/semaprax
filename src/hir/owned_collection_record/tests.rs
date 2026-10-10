@@ -234,3 +234,46 @@ fn collection_records_keep_the_existing_depth_leaf_and_field_limits() {
         assert!(crate::check(&source(depth, owners, scalars), "excessive-collection.spx").is_err());
     }
 }
+
+#[test]
+fn direct_native_stream_apis_keep_nested_scalar_vec_helpers_out_of_frozen_profiles() {
+    fn checked(helper: &str, command_type: &str, result: &str) -> ResolvedProgram {
+        let source = format!(
+            r#"module nested.native.profile;
+permit {{process.args.read,process.stderr.write,process.stdin.read,process.stdout.write}}
+@id("metrics") record Metrics {{@id("metrics.total") total:i64,}}
+@id("report") record Report {{@id("report.items") items:Vec<i64>,@id("report.metrics") metrics:Metrics,}}
+{helper}
+@id("command") fn command()->{command_type} {{{result}}}
+@id("app.main") fn main()->i64 {{0}}
+"#
+        );
+        hir::resolve(&crate::check(&source, "nested-native-profile.spx").unwrap()).unwrap()
+    }
+    // Both unused signatures and body-only carriers require the successor.
+    for helper in [
+        "@id(\"unused\") fn unused(value:borrow Report)->i64 {i64_from_usize(vec_len<i64>(value.items))}",
+        "@id(\"unused\") fn unused()->i64 {let value=Report{items:vec_with_capacity<i64>(0usize),metrics:Metrics{total:0}};i64_from_usize(vec_len<i64>(value.items))}",
+    ] {
+        let program = checked(helper, "i64", "0");
+        crate::codegen::emit_hir_c_with_stdin_stream_collection_records(&program, "command")
+            .expect("explicit v31 admits the independently authenticated closure");
+        for error in [
+            crate::codegen::emit_hir_c_with_stdin_stream_exit_status(&program, "command"),
+            crate::codegen::emit_hir_c_with_stdin_stream_text(&program, "command"),
+            crate::codegen::emit_hir_c_with_stdin_stream_data(&program, "command"),
+        ] {
+            assert!(error.unwrap_err().message.contains("nested collection records"));
+        }
+        assert!(crate::codegen::emit_hir_c_with_stdin_stream_records(&program, "command").is_err());
+        assert!(crate::codegen::emit_hir_c_with_stdin_stream_owned_data(&program, "command").unwrap_err().message.contains("nested collection records"));
+        let boolean = checked(helper, "bool", "true");
+        assert!(crate::codegen::emit_hir_c_with_stdin_stream(&boolean, "command").unwrap_err().message.contains("nested collection records"));
+    }
+    let ordinary = checked("", "i64", "0");
+    crate::codegen::emit_hir_c_with_stdin_stream_data(&ordinary, "command")
+        .expect("logical declarations alone do not require the successor");
+    let boolean = checked("", "bool", "true");
+    crate::codegen::emit_hir_c_with_stdin_stream(&boolean, "command")
+        .expect("the exact old Boolean root and permit inventory remain admitted");
+}

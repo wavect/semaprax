@@ -129,7 +129,7 @@ is a proxy; no live agent cost or token advantage follows from this slice.
 
 Focused owning selectors authored with this batch:
 
-- `--lib hir::owned_collection_record::tests::` (7 tests).
+- `--lib hir::owned_collection_record::tests::` (8 tests).
 - `--test owned_data nested_collection_record::` (3 tests, two success corpora
   and seven failure positions including provisional-result postcondition).
 - Existing `codegen::native_bytes::projected_vec_tests` and Project v31 routing

@@ -385,7 +385,8 @@ fn retained_output_reuses_only_complete_exact_carriers_and_charges_all_sidecars(
     let pointer = original.as_ptr();
     let (retained, overflow, debit) =
         crate::bounded_output::with_limit_usage(0, || filter_owned_vec(original, |_| true, true));
-    assert_eq!(retained.unwrap().as_ptr(), pointer);
+    let retained = retained.unwrap();
+    assert_eq!(retained.as_ptr(), pointer);
     assert!(!overflow);
     assert_eq!(debit, 0);
     for final_retry in [false, true] {

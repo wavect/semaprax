@@ -39,6 +39,19 @@ pub(super) struct RetentionScratch {
 }
 
 impl RetentionScratch {
+    fn prepare<'a>(&mut self, functions: impl Iterator<Item = &'a ResolvedFunction>) -> Result<()> {
+        let mut maximum = 0;
+        for function in functions {
+            if let Some(count) = inventory_count(function)? {
+                maximum = maximum.max(count);
+            }
+        }
+        if maximum > self.keys.capacity() {
+            self.keys = allocate_keys(maximum)?;
+        }
+        Ok(())
+    }
+
     pub(super) fn measure(&mut self, function: &ResolvedFunction) -> Result<usize> {
         self.keys.clear();
         let Some(count) = inventory_count(function)? else {
@@ -49,6 +62,35 @@ impl RetentionScratch {
         }
         inventory_bytes(function, &mut self.keys)
     }
+}
+
+pub(super) fn authored_function(
+    function: &ResolvedFunction,
+    program: &crate::ast::Program,
+    authored: &std::collections::BTreeMap<&str, super::AuthoredDeclaration<'_>>,
+) -> bool {
+    authored
+        .get(function.id.as_str())
+        .is_some_and(|owner| owner.module == program.module)
+}
+
+/// Reserve the largest selected census once before consuming this module.
+/// The physical carrier is reused; each later module still charges any complete
+/// replacement before allocation. Legacy retention takes its original path.
+pub(super) fn prepare_functions(
+    functions: Vec<ResolvedFunction>,
+    scratch: Option<&mut RetentionScratch>,
+    program: &crate::ast::Program,
+    authored: &std::collections::BTreeMap<&str, super::AuthoredDeclaration<'_>>,
+) -> Result<Vec<ResolvedFunction>> {
+    if let Some(scratch) = scratch {
+        scratch.prepare(
+            functions
+                .iter()
+                .filter(|function| authored_function(function, program, authored)),
+        )?;
+    }
+    Ok(functions)
 }
 
 pub(super) fn retained_function_loan_bytes(function: &ResolvedFunction) -> Result<usize> {

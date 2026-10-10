@@ -4520,17 +4520,18 @@ fn retain_workspace_module(
         retained_output_only,
     )?;
     let functions = filter_owned_vec_accounted(
-        resolved.functions,
+        loan_retention::prepare_functions(
+            resolved.functions,
+            loan_scratch.as_deref_mut(),
+            program,
+            authored,
+        )?,
         GRAPH_ACCOUNTED_RESOLVED_FUNCTION_BYTES,
         |function| match loan_scratch.as_deref_mut() {
             Some(scratch) => scratch.measure(function),
             None => retained_function_loan_bytes(function),
         },
-        |item| {
-            authored
-                .get(item.id.as_str())
-                .is_some_and(|owner| owner.module == program.module)
-        },
+        |item| loan_retention::authored_function(item, program, authored),
         retained_output_only,
     )?;
     let function_templates = filter_owned_vec(

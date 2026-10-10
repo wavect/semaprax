@@ -65,10 +65,19 @@ impl<O: COutput> CEmitter<'_, O> {
             }
             crate::vec_ops::VecOp::WithCapacity => {
                 self.require_type(&values[0].ty, &ResolvedType::Usize, "Vec capacity")?;
-                self.line(&format!(
-                    "spx_status = spx_vec_record_with_capacity(spx_ctx, {}, &{destination});",
-                    values[0].code
-                ));
+                if crate::codegen::native_vec::owned_leaf::program_uses_field_reads(self.program) {
+                    let layout = crate::codegen::native_vec::owned_leaf::layout(self.program, element)
+                        .ok_or_else(|| backend_error("legacy Vec constructor lacks nominal descriptor"))?;
+                    self.line(&format!(
+                        "spx_status = spx_leaf_legacy_new(spx_ctx, &{}, {}, &{destination});",
+                        layout.symbol, values[0].code
+                    ));
+                } else {
+                    self.line(&format!(
+                        "spx_status = spx_vec_record_with_capacity(spx_ctx, {}, &{destination});",
+                        values[0].code
+                    ));
+                }
                 self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
             }
             crate::vec_ops::VecOp::Push => {

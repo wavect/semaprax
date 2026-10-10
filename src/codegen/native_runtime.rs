@@ -13,15 +13,17 @@ pub(super) fn emit_status_runtime(output: &mut impl super::COutput) {
     output.push_str(STATUS_RUNTIME_C);
 }
 
+#[allow(clippy::too_many_arguments)] // Independent closed runtime-profile switches.
 pub(super) fn emit_status_runtime_for_profile(
     output: &mut impl super::COutput,
+    vec_fields: bool,
     borrowed_str: bool,
     vec_authority: bool,
     box_authority: bool,
     owned_iterator: bool,
     immutable_list: bool,
 ) {
-    if owned_iterator {
+    if owned_iterator || vec_fields {
         let mut runtime = String::new();
         emit_status_runtime_profile(
             &mut runtime,
@@ -30,11 +32,18 @@ pub(super) fn emit_status_runtime_for_profile(
             box_authority,
             immutable_list,
         );
-        output.push_str(&runtime.replacen(
-            "    uint32_t type_tag;\n    bool live;",
-            "    uint32_t type_tag;\n    bool live;\n    uint64_t iterator_end;",
-            1,
-        ));
+        let anchor = "    uint64_t capacity;\n    uint64_t generation;\n    uint32_t type_tag;\n    bool live;";
+        if owned_iterator {
+            assert!(vec_authority);
+            assert_eq!(runtime.matches(anchor).count(), 1);
+            runtime = runtime.replacen(anchor, &format!("{anchor}\n    uint64_t iterator_end;"), 1);
+        }
+        if vec_fields {
+            assert!(vec_authority);
+            assert_eq!(runtime.matches(anchor).count(), 1);
+            runtime = runtime.replacen(anchor, &format!("{anchor}\n    const void *owned_leaf_layout;"), 1);
+        }
+        output.push_str(&runtime);
     } else {
         emit_status_runtime_profile(
             output,

@@ -11,6 +11,21 @@ pub(in crate::codegen) struct Layout {
     identity: String,
 }
 
+pub(in crate::codegen) fn program_uses_field_reads(program: &ResolvedProgram) -> bool {
+    program.functions.iter().chain(program.function_instances.iter().map(|i| &i.function))
+        .any(|function| std::iter::once(&function.body).chain(&function.requires).chain(&function.ensures)
+            .any(|root| {
+                let mut pending = vec![root];
+                while let Some(expression) = pending.pop() {
+                    if matches!(expression.kind, crate::hir::ResolvedExprKind::VecFieldRead { .. }) {
+                        return true;
+                    }
+                    crate::hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
+                }
+                false
+            }))
+}
+
 pub(in crate::codegen) fn layout(
     program: &ResolvedProgram,
     element: &ResolvedType,
@@ -85,7 +100,18 @@ pub(in crate::codegen) fn layout(
 }
 
 pub(super) fn emit_runtime(output: &mut impl super::super::COutput, program: &ResolvedProgram) {
-    output.push_str(include_str!("owned_leaf.c"));
+    if program_uses_field_reads(program) {
+        // Additive programs bind tag-10 descriptors at construction. Keep the
+        // legacy runtime text and context layout exact for all older programs.
+        let runtime = include_str!("owned_leaf.c");
+        let anchor = "    return e;\n}";
+        assert_eq!(runtime.matches(anchor).count(), 1);
+        output.push_str(&runtime.replacen(anchor,
+            "    if (d->tag == 10 && e->owned_leaf_layout != d)\n        spx_runtime_invariant_failure(\"legacy owned record descriptor mismatch\");\n    return e;\n}", 1));
+        output.push_str(include_str!("legacy_field.c"));
+    } else {
+        output.push_str(include_str!("owned_leaf.c"));
+    }
     let mut layouts = std::collections::BTreeMap::new();
     for f in program
         .functions

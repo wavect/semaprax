@@ -491,6 +491,7 @@ fn emit_native_prelude_inner(
         || program_uses_borrowed_str(program, strings.include_instances);
     native_runtime::emit_status_runtime_for_profile(
         output,
+        native_vec::owned_leaf::program_uses_field_reads(program),
         needs_borrowed_str || owned_carrier::uses_bytes(program) || strings.provider_carriers,
         native_vec::program_uses_vec(program) || native_iter::program_uses_iterator(program),
         native_box::program_uses_box(program),
@@ -515,8 +516,7 @@ fn emit_native_prelude_inner(
         narrow_remainder::emit_runtime(output, program);
     }
     if closure::enabled(program) || program_uses_usize_arithmetic(program) {
-        // Portable usize is semantic u64 on every target. Keep its helpers
-        // reachability-gated so programs without usize preserve exact bytes.
+        // Gate portable u64 usize helpers so programs without usize retain exact bytes.
         output.push_str(NATIVE_USIZE_RUNTIME_C);
     }
     if owned_carrier::needs_string_runtime(program, strings.include_instances) {

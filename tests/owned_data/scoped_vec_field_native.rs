@@ -151,3 +151,87 @@ fn out_of_bounds_field_read_keeps_selected_status_and_settles_source() {
         0,
     );
 }
+
+#[test]
+fn legacy_field_reads_reject_substituted_descriptors_and_stale_generations() {
+    let source = r#"module test.scoped_descriptor;
+@id("row.a") record A {
+ @id("row.a.left") left:Bytes,@id("row.a.right") right:Bytes,@id("row.a.marker") marker:i64,
+}
+@id("row.b") record B {
+ @id("row.b.left") left:Bytes,@id("row.b.right") right:Bytes,@id("row.b.marker") marker:i64,
+}
+@id("app.other") fn other(rows:borrow Vec<B>)->i64 {vec_field<B>(rows,0usize,"marker")}
+@id("app.main") fn main()->i64 {
+ let rows=vec_push<A>(vec_with_capacity<A>(1usize),A{left:bytes_zeroed(0usize),right:bytes_zeroed(0usize),marker:-17});
+ vec_field<A>(rows,0usize,"marker")
+}
+"#;
+    let checked = semaprax::check(source, "scoped-descriptor.spx").unwrap();
+    let generated = semaprax::codegen::emit_hir_c(&checked).unwrap();
+    assert!(generated.contains("spx_leaf_legacy_new(spx_ctx, &spx_record_726f772e61_leaf_v1"));
+    let old_source = source
+        .replace("vec_field<A>(rows,0usize,\"marker\")", "1")
+        .replace("vec_field<B>(rows,0usize,\"marker\")", "1");
+    let old = semaprax::codegen::emit_hir_c(
+        &semaprax::check(&old_source, "unscoped-descriptor.spx").unwrap(),
+    ).unwrap();
+    assert!(!old.contains("owned_leaf_layout"));
+    assert!(!old.contains("spx_leaf_legacy_new"));
+    assert!(old.contains("spx_vec_record_with_capacity(spx_ctx,"));
+    // Turn only the two expected fail-stop reasons into observable exit codes.
+    // A different failure, early successful return or silent repair cannot pass.
+    let mismatch = "spx_runtime_invariant_failure(\"legacy owned record descriptor mismatch\");";
+    let stale = "spx_runtime_invariant_failure(\"stale or forged owned bounded Vec Bytes carrier\");";
+    assert_eq!(generated.matches(mismatch).count(), 1);
+    assert_eq!(generated.matches(stale).count(), 1);
+    let tracked = generated.replace(mismatch, "exit(73);").replace(stale, "exit(74);");
+    let probe = r#"
+int main(int argc,char **argv) {
+ if(argc!=2)return 1;
+ struct spx_status_entry entries[8]; struct spx_context context={0};
+ if(!spx_context_init(&context,17,entries,8,NULL,NULL,NULL))return 2;
+ spx_vec_v1 empty={0},rows={0},cleared={0};
+ const spx_leaf_layout_v1 *a=&spx_record_726f772e61_leaf_v1;
+ const spx_leaf_layout_v1 *b=&spx_record_726f772e62_leaf_v1;
+ int mode=atoi(argv[1]);
+ if(mode==4){if(spx_vec_record_with_capacity(&context,1,&empty)!=SPX_STATUS_SUCCESS)return 3;}
+ else if(spx_leaf_legacy_new(&context,a,1,&empty)!=SPX_STATUS_SUCCESS)return 4;
+ spx_vec_record_v1 row={0};row.spx_scalar=(uint64_t)INT64_C(-17);
+ if(spx_vec_record_push(&context,&empty,&row,&rows)!=SPX_STATUS_SUCCESS)return 5;
+ const unsigned char *selected=NULL;
+ if(mode==3){
+  spx_vec_v1 stale=rows;
+  if(spx_vec_record_clear(&context,&rows,&cleared)!=SPX_STATUS_SUCCESS)return 6;
+  (void)spx_leaf_read_field(&context,&stale,a,0,2,&selected);return 7;
+ }
+ spx_leaf_layout_v1 copy=*a;
+ const spx_leaf_layout_v1 *requested=mode==1?b:mode==2?&copy:a;
+ uint64_t generation=rows.generation;uint32_t authority=rows.authority;
+ if(spx_leaf_read_field(&context,&rows,requested,0,2,&selected)!=SPX_STATUS_SUCCESS)return 8;
+ uint64_t bits=0;memcpy(&bits,selected,sizeof(bits));
+ if(mode!=0||bits!=(uint64_t)INT64_C(-17)||rows.generation!=generation
+    ||rows.authority!=authority||context.vec_authority[authority-1].owned_leaf_layout!=a)return 9;
+ spx_vec_drop(&context,&rows);
+ if(context.vec_authority[authority-1].live||context.vec_authority[authority-1].owned_leaf_layout!=NULL)return 10;
+ return 0;
+}
+"#;
+    for optimization in ["-O0", "-O2"] {
+        let base = std::env::temp_dir().join(format!("spx-field-descriptor-{}-{}",
+            std::process::id(), SEQUENCE.fetch_add(1, Ordering::Relaxed)));
+        let c = base.with_extension("c");
+        let binary = base.with_extension(std::env::consts::EXE_EXTENSION);
+        std::fs::write(&c, format!("{tracked}\n{probe}")).unwrap();
+        let output = Command::new("clang")
+            .args(["-std=c11", optimization, "-Wall", "-Wextra", "-Werror", "-DSPX_NO_ENTRY_WRAPPER"])
+            .arg(&c).arg("-o").arg(&binary).output().unwrap();
+        assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+        for (mode, expected) in [(0,0),(1,73),(2,73),(3,74),(4,73)] {
+            let result = Command::new(&binary).arg(mode.to_string()).status().unwrap();
+            assert_eq!(result.code(), Some(expected), "{optimization}: mode {mode}");
+        }
+        let _ = std::fs::remove_file(c);
+        let _ = std::fs::remove_file(binary);
+    }
+}

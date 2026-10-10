@@ -1,27 +1,32 @@
 module shiftsim.model;
-
 use type @id("shiftsim.report") from shiftsim.response_schema as Report;
 
 @id("shiftsim.server")
 record Server {
-    @id("shiftsim.server.id") id: string,
+    @id("shiftsim.server.id")
+    id: string,
 }
 
 @id("shiftsim.patient_state")
 record PatientState {
-    @id("shiftsim.patient_state.arrival") arrival: i64,
-    @id("shiftsim.patient_state.assigned") assigned: bool,
+    @id("shiftsim.patient_state.arrival")
+    arrival: i64,
+    @id("shiftsim.patient_state.assigned")
+    assigned: bool,
 }
 
 @id("shiftsim.worker_state")
 record WorkerState {
-    @id("shiftsim.worker_state.free_at") free_at: i64,
+    @id("shiftsim.worker_state.free_at")
+    free_at: i64,
 }
 
 @id("shiftsim.schedule_result")
 record ScheduleResult {
-    @id("shiftsim.schedule_result.valid") valid: bool,
-    @id("shiftsim.schedule_result.report") report: Report,
+    @id("shiftsim.schedule_result.valid")
+    valid: bool,
+    @id("shiftsim.schedule_result.report")
+    report: Report,
 }
 
 @id("shiftsim.model.anchor")

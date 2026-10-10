@@ -20,6 +20,24 @@ import cli_typescript_bootstrap as ts_bootstrap
 
 
 class LiveCampaignTests(unittest.TestCase):
+    def test_json_codec_capture_profile_bound_matches_closed_cli_grammar(self):
+        base = ["json-codec", "semaprax.toml", "--source", "src/schema.spx",
+                "--type", "app.request", "--output", "derived.spx"]
+        good = [*base, "--profile", "utf8-owned-request.v1", "--max-string-bytes", "64"]
+        self.assertEqual(compiler_capture._options(good)["--max-string-bytes"], "64")
+        for bound in ("0", "65", "01", "+1", " 1", ""):
+            with self.subTest(bound=bound):
+                args = [*base, "--profile", "utf8-owned-request.v1", "--max-string-bytes", bound]
+                self.assertIsNone(compiler_capture._options(args))
+        self.assertIsNone(compiler_capture._options([*base, "--profile", "utf8-owned-request.v1"]))
+        self.assertIsNone(compiler_capture._options([
+            *base, "--profile", "owned-request.v1", "--max-string-bytes", "8"
+        ]))
+        for profile in compiler_capture.PROFILES - {"utf8-owned-request.v1"}:
+            self.assertIsNone(compiler_capture._options([
+                *base, "--profile", profile, "--max-string-bytes", "8"
+            ]))
+
     def _codec_capture_fixture(self, root):
         candidate = root / "candidate"
         (candidate / "src").mkdir(parents=True)
@@ -48,6 +66,8 @@ class LiveCampaignTests(unittest.TestCase):
                     candidate, compiler, broker, config, args = self._codec_capture_fixture(root)
                     if profile is not None:
                         args.extend(["--profile", profile])
+                        if profile == "utf8-owned-request.v1":
+                            args.extend(["--max-string-bytes", "64"])
                     authored = (candidate / "src/schema.spx").read_bytes()
                     mixed = authored + b"compiler-authored helpers\n"
 

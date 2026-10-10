@@ -1344,15 +1344,23 @@ number spans use borrowed bytes. See [Strict JSON Scan v1](STRICT-JSON-SCAN-V1.m
 `stream-owned-request.v1`. A request has `Vec<string>` identifiers (≤8) and
 `Vec<Row>` (≤256). A flat stable-ID `Row` has a `string` identifier plus
 0–6 `i64`, `u8`, `usize` or `bool` fields; each field has an ID and order may
-vary. Identifier strings are unique, 1–16 ASCII
-letters, digits, `_` or `-`; nonempty rows need an identifier. Encoders borrow
+vary. In the ASCII owned profiles, identifiers are unique, 1–16 ASCII
+letters, digits, `_` or `-`, and nonempty rows need an identifier. Encoders borrow
 both vectors and `output_limit`. `json_<Request>_owned_decode` returns
 independent Strings, so completed decode permits release of normalized input
 Bytes. Streaming errors before Ready use raw offsets; later errors use
-normalized-buffer offsets. Owned runtime support is private to
+normalized-buffer offsets. The ASCII owned profile accepts only its identifier
+policy. The separate `utf8-owned-request.v1` selector requires
+`--max-string-bytes N` (canonical 1..64 decoded UTF-8 bytes per string); it
+accepts empty and duplicate values, including Unicode and NUL, in the same
+0..8 and 0..256 array bounds. The second array may be nonempty when the first
+is empty. Raw input remains subject to the existing 65,536-byte borrowed-root
+limit; the profile does not raise it. Source field identifiers stay ASCII.
+This is not a stream selector; see `help language author:json-utf8-owned-request`.
+Owned runtime support is private to
 `owned-data-api.v1` or native v30; v29 views keep Copy tokens tied to source
 lifetime. Source and current-head qualification remain pending; this is not
-full #724 or arbitrary-Unicode support.
+full #724.
 
 ## Where the rules live
 

@@ -1,5 +1,7 @@
 //! Explicit checked-source codec derivation; publication never overwrites a file.
 
+mod profile;
+
 use std::fs::{self, OpenOptions};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
@@ -9,8 +11,8 @@ use semaprax::diagnostic::Diagnostic;
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
 const USAGE: &str =
-    "json-codec <project> --source <module-path> --type <record-id> --output <new-file> [--profile identifier-views.v1|request-views.v1|stream-request-views.v1|owned-request.v1|stream-owned-request.v1]";
-pub(crate) const HELP: &str = "Derives checked ordinary source for explicit scalar records; opt-in identifier-views.v1, request-views.v1 and stream-request-views.v1 add bounded identifier/array views; owned-request.v1 and stream-owned-request.v1 materialize bounded identifier String/record collections under an owning runtime profile.\nRequires declared std.data.json scan/token/digits/write dependencies. Publishes a new complete module replacement; never overwrites source.\nContract and typed failure codes: docs/APPLICATION-JSON-CODECS-V1.md\n";
+    "json-codec <project> --source <module-path> --type <record-id> --output <new-file> [--profile <selector>] [--max-string-bytes <1..64>]";
+pub(crate) const HELP: &str = "Derives checked ordinary source for explicit scalar records; opt-in identifier-views.v1, request-views.v1 and stream-request-views.v1 add bounded identifier/array views; owned-request.v1 and stream-owned-request.v1 materialize bounded identifier String/record collections under an owning runtime profile. utf8-owned-request.v1 bounds each decoded string with --max-string-bytes (1..64 UTF-8 bytes).\nRequires declared std.data.json scan/token/digits/write dependencies. Publishes a new complete module replacement; never overwrites source.\nContract and typed failure codes: docs/APPLICATION-JSON-CODECS-V1.md\n";
 
 pub(crate) struct Options {
     project: PathBuf,
@@ -25,13 +27,14 @@ pub(crate) fn parse(args: &[String]) -> Result<Options, u8> {
         eprintln!("{USAGE}");
         2
     };
-    if !matches!(args.len(), 7 | 9) || args[0].is_empty() || args[0].starts_with('-') {
+    if !matches!(args.len(), 7 | 9 | 11) || args[0].is_empty() || args[0].starts_with('-') {
         return Err(fail());
     }
     let mut source = None;
     let mut record = None;
     let mut output = None;
     let mut profile = None;
+    let mut max_string_bytes = None;
     for pair in args[1..].chunks_exact(2) {
         if pair[1].starts_with('-') || pair[1].is_empty() {
             return Err(fail());
@@ -40,19 +43,9 @@ pub(crate) fn parse(args: &[String]) -> Result<Options, u8> {
             "--source" if source.is_none() => source = Some(pair[1].clone()),
             "--type" if record.is_none() => record = Some(pair[1].clone()),
             "--output" if output.is_none() => output = Some(PathBuf::from(&pair[1])),
-            "--profile" if profile.is_none() => {
-                profile = Some(match pair[1].as_str() {
-                    "identifier-views.v1" => semaprax::project::JsonCodecProfile::IdentifierViews,
-                    "request-views.v1" => semaprax::project::JsonCodecProfile::RequestViews,
-                    "stream-request-views.v1" => {
-                        semaprax::project::JsonCodecProfile::StreamRequestViews
-                    }
-                    "owned-request.v1" => semaprax::project::JsonCodecProfile::OwnedRequest,
-                    "stream-owned-request.v1" => {
-                        semaprax::project::JsonCodecProfile::StreamOwnedRequest
-                    }
-                    _ => return Err(fail()),
-                })
+            "--profile" if profile.is_none() => profile = Some(pair[1].as_str()),
+            "--max-string-bytes" if max_string_bytes.is_none() => {
+                max_string_bytes = Some(pair[1].as_str())
             }
             _ => return Err(fail()),
         }
@@ -62,7 +55,7 @@ pub(crate) fn parse(args: &[String]) -> Result<Options, u8> {
         source: source.ok_or_else(fail)?,
         record: record.ok_or_else(fail)?,
         output: output.ok_or_else(fail)?,
-        profile: profile.unwrap_or(semaprax::project::JsonCodecProfile::FlatScalars),
+        profile: profile::parse(profile, max_string_bytes).ok_or_else(fail)?,
     })
 }
 
@@ -163,6 +156,29 @@ mod tests {
             args.extend(["--profile".to_owned(), profile.to_owned()]);
             assert!(parse(&args).is_ok());
         }
+        let mut utf8 = strings(&good);
+        utf8.extend([
+            "--profile".to_owned(), "utf8-owned-request.v1".to_owned(),
+            "--max-string-bytes".to_owned(), "64".to_owned(),
+        ]);
+        assert!(parse(&utf8).is_ok());
+        for invalid in ["0", "65", "01", "+1", " 1"] {
+            let mut args = strings(&good);
+            args.extend([
+                "--profile".to_owned(), "utf8-owned-request.v1".to_owned(),
+                "--max-string-bytes".to_owned(), invalid.to_owned(),
+            ]);
+            assert!(parse(&args).is_err());
+        }
+        let mut missing_bound = strings(&good);
+        missing_bound.extend(["--profile".to_owned(), "utf8-owned-request.v1".to_owned()]);
+        assert!(parse(&missing_bound).is_err());
+        let mut old_with_bound = strings(&good);
+        old_with_bound.extend([
+            "--profile".to_owned(), "owned-request.v1".to_owned(),
+            "--max-string-bytes".to_owned(), "8".to_owned(),
+        ]);
+        assert!(parse(&old_with_bound).is_err());
         let mut unknown = strings(&good);
         unknown.extend(["--profile".to_owned(), "open-json".to_owned()]);
         assert!(parse(&unknown).is_err());

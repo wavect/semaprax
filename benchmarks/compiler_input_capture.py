@@ -35,7 +35,7 @@ MAX_RETAINED_BYTES = 64 * 1024 * 1024
 MAX_SELECTION_BYTES = 8 * 1024 * 1024
 WAIT_SECONDS = 30
 PROFILES = {"identifier-views.v1", "request-views.v1", "stream-request-views.v1",
-            "owned-request.v1", "stream-owned-request.v1"}
+            "owned-request.v1", "stream-owned-request.v1", "utf8-owned-request.v1"}
 
 
 def _json(path: Path, document: dict[str, Any], limit: int = MAX_MESSAGE_BYTES) -> None:
@@ -68,20 +68,29 @@ def _json_at(directory_fd: int, name: str, document: dict[str, Any], limit: int 
 
 def _options(argv: list[str]) -> dict[str, str] | None:
     """Mirror the closed CLI grammar only; malformed calls reach ordinary CLI."""
-    if not argv or argv[0] != "json-codec" or len(argv) not in (8, 10):
+    if not argv or argv[0] != "json-codec" or len(argv) not in (8, 10, 12):
         return None
     if not argv[1] or argv[1].startswith("-"):
         return None
     values = {"project": argv[1]}
     for key, value in zip(argv[2::2], argv[3::2]):
-        if key not in ("--source", "--type", "--output", "--profile") or key in values:
+        if key not in ("--source", "--type", "--output", "--profile", "--max-string-bytes") or key in values:
             return None
         if not value or value.startswith("-"):
             return None
         values[key] = value
     if not all(key in values for key in ("--source", "--type", "--output")):
         return None
-    if "--profile" in values and values["--profile"] not in PROFILES:
+    profile = values.get("--profile")
+    bound = values.get("--max-string-bytes")
+    if profile not in PROFILES and profile is not None:
+        return None
+    if profile == "utf8-owned-request.v1":
+        if bound is None or not bound.isascii() or not bound.isdigit():
+            return None
+        if str(int(bound)) != bound or not 1 <= int(bound) <= 64:
+            return None
+    elif bound is not None:
         return None
     return values
 

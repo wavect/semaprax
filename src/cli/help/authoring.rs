@@ -2,7 +2,7 @@
 use std::fmt::Write as _;
 
 const MAX_BYTES: usize = 2_048;
-const ROUTES: &str = "Authoring routes (complete):\n  author:stdin-json               v27 bounded native stream command\n  author:stream-data-v2           v29 private record/Vec stream command\n  author:owned-data               v30 private owned-leaf collections\n  author:file-text                native UTF-8 file command\n  author:source-web               single-source web build\n  author:literal-format           checked literal String rendering\n  author:copy-record-vec          flat Copy-record vectors\n  author:json-codec               checked source JSON codec derivation\n  author:json-identifier-views    one identifier as a token view\n  author:json-request-views       bounded identifier and record arrays\n  author:json-stream-request-views bounded native stream request view\n  author:json-owned-request      bounded owning request collections\nLibrary-only search: help language find:<word>:0\nExact card sections: help language topics\n";
+const ROUTES: &str = "Authoring routes (complete):\n  author:stdin-json               v27 bounded native stream command\n  author:stream-data-v2           v29 private record/Vec stream command\n  author:owned-data               v30 private owned-leaf collections\n  author:file-text                native UTF-8 file command\n  author:source-web               single-source web build\n  author:literal-format           checked literal String rendering\n  author:copy-record-vec          flat Copy-record vectors\n  author:json-codec               checked source JSON codec derivation\n  author:json-identifier-views    one identifier as a token view\n  author:json-request-views       bounded identifier and record arrays\n  author:json-stream-request-views bounded native stream request view\n  author:json-owned-request      bounded owning request collections\n  author:json-utf8-owned-request bounded UTF-8 string values\nLibrary-only search: help language find:<word>:0\nExact card sections: help language topics\n";
 
 #[cfg(test)]
 pub(super) fn assert_guide_contract() {
@@ -67,7 +67,8 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
         ).to_owned()),
         "author:json-codec" => Ok(concat!(
             "Checked source generator implementation; focused/application qualification pending.\n",
-            "semaprax json-codec <project> --source <module-path> --type <record-id> --output <new-file> [--profile identifier-views.v1|request-views.v1|stream-request-views.v1]\n",
+            "semaprax json-codec <project> --source <module-path> --type <record-id> --output <new-file> [--profile <selector>]\n",
+            "utf8-owned-request.v1 also requires --max-string-bytes 1..64; see author:json-utf8-owned-request.\n",
             "Omit --profile for the default flat scalar record (1..8 i64/u8/usize/bool fields). Choose by source shape: help language author:json-identifier-views, author:json-request-views or author:json-stream-request-views.\n",
             "Declare std.data.json.scan/token/digits/write. Output is a new complete module, never an overwrite. Generated helpers are ordinary checked source.\n",
             "Declared Vec<string> in a request-view schema is description only: runtime carries Copy views and Vec<View>, not owned String collections. For owning requests: help language author:json-owned-request. This is not a generic JSON codec.\n",
@@ -86,6 +87,13 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
         "author:json-stream-request-views" => Ok(concat!(
             "Select --profile stream-request-views.v1 for request views used by a native v29 streaming command. The original schema module must already declare process.stdin.read; derivation grants no capability.\n",
             "The source implementation exists; owning composition gates remain pending. The current composition fixture rejects extra chunks. Exact requirements: docs/APPLICATION-JSON-CODECS-V1.md.\n"
+        ).to_owned()),
+        "author:json-utf8-owned-request" => Ok(concat!(
+            "UTF-8 owned request source implementation; focused current-head qualification pending.\n",
+            "Select --profile utf8-owned-request.v1 and --max-string-bytes N, canonical decimal 1..64 per decoded string in either array. It is not a stream selector.\n",
+            "Use Vec<string> (0..8) then Vec<Row> (0..256); Row has one string identifier and up to six i64/u8/usize/bool fields with explicit IDs. Empty and duplicate values are accepted; the second array may be nonempty when the first is empty.\n",
+            "Values may contain Unicode, including NUL. Raw input remains subject to the existing 65,536-byte borrowed-root limit; this profile does not raise it. Source field identifiers remain ASCII. Runtime owns decoded strings independently; retain declared JSON dependencies and select private owned-data-api.v1 or native v30.\n",
+            "Invocation and exact source policy: help language author:json-codec and docs/APPLICATION-JSON-CODECS-V1.md.\n"
         ).to_owned()),
         "author:json-owned-request" => Ok(concat!(
             "Owned request source implementation; focused cross-backend and application qualification pending.\n",
@@ -241,6 +249,7 @@ mod tests {
             "author:json-request-views",
             "author:json-stream-request-views",
             "author:json-owned-request",
+            "author:json-utf8-owned-request",
         ] {
             let output = lookup(route).unwrap();
             assert!(output.len() <= MAX_BYTES);
@@ -260,7 +269,8 @@ mod tests {
         }
         let codec = lookup("author:json-codec").unwrap();
         assert!(codec
-            .contains("--profile identifier-views.v1|request-views.v1|stream-request-views.v1"));
+            .contains("--profile <selector>"));
+        assert!(codec.contains("--max-string-bytes 1..64"));
         assert!(codec.contains("Omit --profile for the default flat scalar record"));
         assert!(codec.contains("author:json-identifier-views"));
         assert!(codec.contains("Declared Vec<string> in a request-view schema is description only"));
@@ -274,6 +284,17 @@ mod tests {
         let stream_request_views = lookup("author:json-stream-request-views").unwrap();
         assert!(stream_request_views.contains("process.stdin.read"));
         assert!(stream_request_views.contains("composition fixture rejects extra chunks"));
+        let utf8_request = lookup("author:json-utf8-owned-request").unwrap();
+        for fact in [
+            "utf8-owned-request.v1",
+            "--max-string-bytes",
+            "per decoded string",
+            "0..8",
+            "0..256",
+            "Unicode",
+        ] {
+            assert!(utf8_request.contains(fact), "UTF-8 request guidance omits {fact}");
+        }
         let owned_request = lookup("author:json-owned-request").unwrap();
         for fact in [
             "owned-request.v1",
@@ -304,6 +325,7 @@ mod tests {
             "author:json-request-views",
             "author:json-stream-request-views",
             "author:json-owned-request",
+            "author:json-utf8-owned-request",
         ] {
             assert!(routes.contains(selector), "route list omits {selector}");
         }

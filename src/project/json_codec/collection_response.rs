@@ -40,6 +40,7 @@ pub(super) fn source(
     }
     out.push_str(&super::utf8::response_text(shape.row, max_string_bytes));
     out.push_str(&record::source(shape.row));
+    out.push_str(&record::indexed_source(shape.row));
     out.push_str(&record::source(shape.metrics));
     out.push_str(&emit::source(root, &shape));
     Ok(out)

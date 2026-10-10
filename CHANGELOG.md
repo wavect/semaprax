@@ -1,5 +1,11 @@
 # Changelog
 
+- Generate scoped Vec-field reads for collection-response preflight and rendering,
+  preserving direct Row helper APIs, complete validation, wire bytes and limits.
+  Retain explicit owning-clone failure coverage and add a clone-refusing positive
+  witness for the generated two-String path. Avoided deep copies are a source
+  finding; grouped execution and measured efficiency remain pending.
+
 - Repair nested-outcome admission for the documented pure, no-export Project v8
   JSON-codec route using the actual selected export roots. Preserve public and
   older command refusals before unused-helper cropping and all ordinary source,

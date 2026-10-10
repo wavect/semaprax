@@ -55,18 +55,31 @@ long field names fits the output cap: such a value is refused explicitly.
 No physical, fuel, borrowed-root or ownership bound is increased.
 
 The helper borrows the actual Report owner for the complete call. Its ordinary
-projected vector reads independently authenticate the full field path;
-`vec_clone_at` produces one independent owning Row per read. It never clones the
-Report or stored Vec. Row String length/quoting reads use the ordinary authenticated
-`string_as_str(value.<field>)` projection from its named `borrow Row` parameter.
-The full field path and live owner remain compiler proof obligations; no emitted
-borrow-match alias, generated origin or implicit String clone grants authority.
-This source form depends on the rooted projected String-view contract and its
-owning executable gate. Metrics is Copy and passed by value. Preflight itself can
-allocate temporary Row deep copies, so it is not allocation-free. Clone/String
-allocation failures retain their ordinary checked status, argument staging,
-group commit, sticky failure selection and partial-owner cleanup; they are not
-converted into a JSON refusal or published partial output.
+projected vector reads independently authenticate the full field path. Both
+preflight and rendering call indexed Row helpers over `borrow Vec<Row>` and a
+Copy index; `vec_field<Row>(values, at, "field")` reads scalars or nonescaping Str
+views from the retained vector generation. Exact field identities and full
+parent paths remain ordinary compiler and loan-replay obligations. Neither pass
+clones the Report, Vec or stored Row. The existing direct `borrow Row` helper
+signatures and source remain available; the root encoder selects the indexed
+helpers with deterministic `.object-len-at` and `.object-render-at` identities.
+Metrics is Copy and passed by value.
+
+Preflight creates no owned Row or String result. Rendering still performs its
+ordinary checked String construction after the complete preflight and caller
+limit check. The old source made two Row deep copies per encoded element: at
+256 rows that is 512 Row clones, or up to 1,024 String leaf clones for two-String
+rows. These are source-derived avoided operations, not measured allocation,
+latency, token or cost savings. The scoped read contract adds no authority or
+profile widening. Explicit caller `vec_clone_at` remains an allocating owning
+operation, with its original failure and cleanup semantics.
+
+String allocation failures retain their ordinary checked status, argument
+staging, group commit, sticky failure selection and partial-owner cleanup; they
+are not converted into a JSON refusal or published partial output. The owning
+regression keeps an explicit post-preflight Row clone and its injected status15
+failure, while a separate positive witness forbids deep String clones during
+repeated preflight and successful encoding of two-String rows.
 
 Derivation and replay rebuild the caller's unchanged Project from its exact
 authenticated revision, selected stable type identity, policy and bound.
@@ -78,12 +91,12 @@ special helper-origin rule. Nested collection runtime support belongs to the
 independent ordinary compiler carrier contract; this selector cannot broaden
 frozen v29/v30 command profiles.
 
-Owning source gates are `project::json_codec::collection_response::tests::` and
+Owning source gates are `project::json_codec::collection_response::tests::` (4) and
 the Project harness's
-`standard_library::application_json::collection_response::`. They cover exact
+`standard_library::application_json::collection_response::` (7). They cover exact
 source/policy replay, wrong schema refusal, declaration/wire order, Unicode/NUL,
 all scalar boundaries, exact/one-short output, full cardinality, malformed
-values and strict partial-clone cleanup, with the same admitted application
+values, allocation-free Row reads and strict explicit-clone cleanup, with the same admitted application
 source on interpreter, native C11 O0/O2 and strict Core Wasm. No executable
 acceptance, tokenizer saving or causal cost result is claimed before those
 gates and a fresh source/binary-bound application qualification.

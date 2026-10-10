@@ -2222,7 +2222,9 @@ replays its exact private helper/carrier closure; command roots remain
 `fn () -> i64` and use the existing explicit process grants and provider caps.
 `workspace_graph/retained_validation/stream_admission.rs` checks every selected
 source module for new owned-collection use before old-profile reachability
-cropping. HIR and native entry replay also reject body-only new carriers under
+cropping. Its nested-outcome guard receives the actual selected export roots:
+only v8 with an empty selection keeps the existing pure internal-library route,
+without a public descriptor or weaker source/HIR checks. HIR and native entry replay also reject body-only new carriers under
 frozen stream profiles. Neither an unused logical schema, a cached descriptor,
 generated codec name nor successful private lowering grants public runtime
 authority. `project::tests::stdin_stream_command::owned_data` owns the authored

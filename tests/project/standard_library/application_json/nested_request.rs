@@ -1,6 +1,8 @@
 //! Independent configuration/order schema; actual checked-source CLI, no host codec.
 use super::*;
 
+#[path = "nested_request/profile_admission.rs"]
+mod profile_admission;
 #[path = "nested_request/template_names.rs"]
 mod template_names;
 
@@ -18,7 +20,12 @@ fn install_named(label: &str, record_name: &str, record_id: &str) -> std::path::
     let root = super::super::temporary(label);
     std::fs::create_dir_all(root.join("src")).unwrap();
     let source = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(EXAMPLE);
-    for path in ["semaprax.toml", "src/schema.spx", "src/app.spx", "src/tests.spx"] {
+    for path in [
+        "semaprax.toml",
+        "src/schema.spx",
+        "src/app.spx",
+        "src/tests.spx",
+    ] {
         std::fs::copy(source.join(path), root.join(path)).unwrap();
     }
     let rename = |source: &str| {

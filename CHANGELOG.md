@@ -1,5 +1,11 @@
 # Changelog
 
+- Repair nested-outcome admission for the documented pure, no-export Project v8
+  JSON-codec route using the actual selected export roots. Preserve public and
+  older command refusals before unused-helper cropping and all ordinary source,
+  HIR and cleanup checks. The real derived-project regression is source-authored;
+  grouped execution remains pending.
+
 - Route Graph v73 projected String views and v74 nested owning outcomes through
   concrete ownership rendering even without incidental Vec or loan features.
   Preserve exact additive schemas, source replay and frozen legacy refusals;

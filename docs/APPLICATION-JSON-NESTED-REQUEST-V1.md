@@ -123,7 +123,8 @@ representation, rather than a larger buffer or silent raw cap.
 Derivation rebuilds the original Project profile against its exact authored
 schema and explicit dependencies. Installation and retained/cache/graph replay
 use ordinary source and independently authenticated compiler admission.
-`owned-data-api.v1` is a pure owning test route; a process command requiring the
+`owned-data-api.v1` with an empty authenticated export selection is a pure
+owning test route with no public descriptor; a process command requiring the
 nested outcome selects `language-command-io.nested-outcome.v1` (v32). Earlier
 stream command profiles remain closed. The source helpers require the existing
 `std.data.json.scan`, `token`, `digits`, `write`, query and UTF-8 closure supplied
@@ -146,6 +147,10 @@ derivation-time envelope and owning gates; application acceptance still requires
 - `--test project standard_library::application_json::nested_request::template_names::`
   (1) derives a marker-named schema through the actual CLI, retains exact IDs and
   policy replay, and exercises detached owners on all three backends.
+- `--test project standard_library::application_json::nested_request::profile_admission::`
+  (1) starts from the actual CLI-derived pure fixture, checks that no public
+  descriptor is available, and preserves exact public/v31 refusal for unused
+  generated helpers and unchanged source bytes.
 - The independent nested order/configuration Project corpus qualifies the real
   CLI derivation and exact typed malformed outcomes, input-owner retirement,
   Unicode/NUL/numeric extrema, exact/over string and array limits, input budgets,

@@ -215,9 +215,16 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 }
                 // Slice authority/range came from ordinary argument replay; do
                 // not reapply a foreign-root byte limit to an internal view.
-                self.line(&format!("if (({operand}).len > (uint64_t)SIZE_MAX || (({operand}).len != UINT64_C(0) && ({operand}).data == NULL)) spx_runtime_invariant_failure(\"invalid UTF-8 input slice\");"));
-                self.line(&format!("if (!spx_status_domain_is_utf8((const char *)({operand}).data, (size_t)({operand}).len)) {{ if (!spx_status_record_adapter(spx_ctx, \"{}\", UINT32_C(1), SPX_STATUS_CLASS_ADAPTER, SPX_RETRYABILITY_FALSE, &spx_status)) spx_runtime_invariant_failure(\"conversion status could not be recorded\"); goto spx_epilogue; }}", crate::string_ops::CONVERT_STATUS_DOMAIN));
-                self.line(&format!("{temporary} = spx_string_from_literal((const char *)({operand}).data, ({operand}).len);"));
+                // Stream places retain their descriptor, so authenticate its
+                // current epoch and owned-view shape before any pointed read.
+                if self.output_profile.string_runtime().stream_epochs {
+                    self.line(&format!(
+                        "spx_slice_u8_require_owned_view_valid({operand});"
+                    ));
+                }
+                self.line(&format!("if (({operand}).len > (uint64_t)SIZE_MAX || (({operand}).len != UINT64_C(0) && ({operand}).ptr == NULL)) spx_runtime_invariant_failure(\"invalid UTF-8 input slice\");"));
+                self.line(&format!("if (!spx_status_domain_is_utf8((const char *)({operand}).ptr, (size_t)({operand}).len)) {{ if (!spx_status_record_adapter(spx_ctx, \"{}\", UINT32_C(1), SPX_STATUS_CLASS_ADAPTER, SPX_RETRYABILITY_FALSE, &spx_status)) spx_runtime_invariant_failure(\"conversion status could not be recorded\"); goto spx_epilogue; }}", crate::string_ops::CONVERT_STATUS_DOMAIN));
+                self.line(&format!("{temporary} = spx_string_from_literal((const char *)({operand}).ptr, ({operand}).len);"));
                 return Ok(());
             }
             StringOp::FromStr => {

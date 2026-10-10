@@ -140,7 +140,7 @@ Outcome::Decoded{labels,rows}=>{let mut same=vec_len<string>(labels)==8usize && 
 while same && at<8usize{let value=vec_clone_at<string>(labels,at);same=equal(string_as_str(value));at=at+1usize;same && at<8usize}
 let mut index=0usize;while same && index<256usize{let value=vec_clone_at<Row>(rows,index);same=value.number==7 && equal(string_as_str(value.text));index=index+1usize;same && index<256usize}
 if same{264}else{0}},}}
-@id("consumer.main") fn main()->i64{full()}
+@id("consumer.main") fn main()->i64{let raw=[34u8,65u8,34u8];let copied=copy(array_as_slice(raw));let rendered=render(array_as_slice(raw));if string_len(copied)==1 && string_len(rendered)==3{full()}else{0}}
 "#);
     canonical(&app)
 }

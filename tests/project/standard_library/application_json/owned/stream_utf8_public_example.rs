@@ -25,7 +25,7 @@ fn copy_example(source: &std::path::Path, destination: &std::path::Path) {
 fn public_stream_utf8_owned_request_bootstraps_and_runs_native_stdin() {
     let source = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("examples/stream-utf8-owned-json-project");
-    let root = temporary("stream-utf8-owned-json-public-example");
+    let root = crate::standard_library::temporary("stream-utf8-owned-json-public-example");
     copy_example(&source, &root);
     let generated = root.join("src/schema.generated.spx");
     assert!(!generated.exists());

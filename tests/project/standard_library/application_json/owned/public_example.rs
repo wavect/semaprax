@@ -64,7 +64,7 @@ pub(super) fn execute(binary: &std::path::Path, input: &[u8]) -> std::process::O
 fn public_owned_json_command_bootstraps_and_runs_valid_and_malformed_stdin() {
     let source = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("examples/owned-json-command-project");
-    let root = temporary("owned-json-public-example");
+    let root = crate::standard_library::temporary("owned-json-public-example");
     copy_example(&source, &root);
     let generated = root.join("src/schema.generated.spx");
     assert!(!generated.exists());

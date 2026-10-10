@@ -2232,7 +2232,7 @@ impl WorkspaceGraphBuild {
                 }
             }
         }
-        if !profile.is_owned_api()
+        if !retained_validation::project_type_imports_admitted(profile)
             && self.edges.iter().any(|edge| {
                 edge.kind == "type_import"
                     && !(profile == crate::project::ProjectProfile::UsefulDataV1

@@ -521,7 +521,15 @@ fn whole_report_sha_kats_cover_patch_v1_v2_v3() {
         Fixture::rename("kat-v2"),
         Fixture::rebase_v3("kat-v3"),
     ]
-    .map(|fixture| target_evidence::preview(&fixture.source, &fixture.patch).unwrap());
+    .map(|fixture| {
+        let report = target_evidence::preview(&fixture.source, &fixture.patch).unwrap();
+        assert!(
+            report.len() <= 1024 * 1024,
+            "target evidence byte audit is bounded"
+        );
+        println!("SEMAPRAX_TARGET_EVIDENCE_BYTE_AUDIT={report}");
+        report
+    });
     // The validator upgrade changes only the version fact, not target bytes.
     assert_eq!(
         reports

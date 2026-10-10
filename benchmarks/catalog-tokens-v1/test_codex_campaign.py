@@ -244,7 +244,7 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
 
             with patch.object(catalog.subprocess, "run", side_effect=fail_tsc):
                 failed = catalog.check_program(candidate, 10, env,
-                    harness_output=root / "harness/typescript-failed", arm="typescript",
+                    harness_output=root / "typescript-failed-harness/catalog", arm="typescript",
                     exclude_verified_node_modules=True)
             self.assertFalse(failed["accepted"])
             self.assertEqual(failed["pinned_typescript_build"]["status"], "failed")

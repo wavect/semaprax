@@ -521,7 +521,8 @@ fn main() -> i64
   copies exact strict UTF-8 into a detached owner: `let text =
   string_from_utf8(bytes_as_slice(bytes));`. NUL, BOM and noncharacters stay.
   Malformed UTF-8 fails with `semaprax.convert.v1` code 1; it never replaces or
-  normalizes input and does not widen profile admission.
+  normalizes input. This adds no public ABI or capability; closed public
+  adapters still require their own admitted operations.
 - Build a bounded byte buffer in one write-once expression: `bytes_zeroed`
   requires a literal `usize` capacity; each `bytes_set` takes the prior link,
   a `usize` index expression, and a byte. Binding freezes it for borrowed reads.

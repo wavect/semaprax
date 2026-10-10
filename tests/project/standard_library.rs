@@ -1,5 +1,4 @@
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use semaprax::{codegen, format, project, verify, wasm};
 

@@ -224,13 +224,13 @@ fn full_bound_app(escaped: bool, canonical_length: usize) -> String {
     let escaped_length = canonical_length + 264 * 64 * 5;
     let mut app = imports().to_owned()+&format!("@id(\"consumer.witness\") fn witness(escaped:bool)->Bytes{{let length=if escaped{{{escaped_length}usize}}else{{{canonical_length}usize}};let mut buffer=bytes_zeroed(length);let mut cursor=0usize;\n");
     write_fixed(&mut app, b"{\"labels\":[");
-    app.push_str("let mut label=0usize;while label<8usize{if label>0usize{buffer=bytes_set(buffer,cursor,44u8);cursor=cursor+1usize;true}else{true};buffer=bytes_set(buffer,cursor,34u8);cursor=cursor+1usize;let mut part=0usize;while part<64usize{if escaped{\n");
+    app.push_str("let mut label=0usize;while label<8usize{let _ = if label>0usize{buffer=bytes_set(buffer,cursor,44u8);cursor=cursor+1usize;true}else{true};buffer=bytes_set(buffer,cursor,34u8);cursor=cursor+1usize;let mut part=0usize;while part<64usize{let _ = if escaped{\n");
     write_fixed(&mut app, br"\u0041");
     app.push_str("true}else{buffer=bytes_set(buffer,cursor,65u8);cursor=cursor+1usize;true};part=part+1usize;part<64usize}buffer=bytes_set(buffer,cursor,34u8);cursor=cursor+1usize;label=label+1usize;label<8usize}\n");
     write_fixed(&mut app, b"],\"rows\":[");
-    app.push_str("let mut row=0usize;while row<256usize{if row>0usize{buffer=bytes_set(buffer,cursor,44u8);cursor=cursor+1usize;true}else{true};\n");
+    app.push_str("let mut row=0usize;while row<256usize{let _ = if row>0usize{buffer=bytes_set(buffer,cursor,44u8);cursor=cursor+1usize;true}else{true};\n");
     write_fixed(&mut app, b"{\"number\":0,\"text\":\"");
-    app.push_str("let mut part=0usize;while part<64usize{if escaped{\n");
+    app.push_str("let mut part=0usize;while part<64usize{let _ = if escaped{\n");
     write_fixed(&mut app, br"\u0041");
     app.push_str("true}else{buffer=bytes_set(buffer,cursor,65u8);cursor=cursor+1usize;true};part=part+1usize;part<64usize}\n");
     write_fixed(&mut app, b"\"}");

@@ -146,6 +146,28 @@ from model-authored source bytes/tokens in any efficiency comparison. No token
 savings, current-head acceptance, broader application profile or cost advantage
 is established before the required fresh matched campaign and full #724 gates.
 
+## UTF-8 request storage bounds
+
+The selected `Utf8OwnedRequest { max_string_bytes }` policy admits plain String
+values with an explicit decoded UTF-8 byte limit from 1 through 64, up to eight
+first-array values and 256 rows. Its schema admission checks the canonical
+**output** maximum: authored identifier field names emit literally, while each
+decoded String byte can require six JSON bytes for a control escape. It does
+not charge six escaped spelling bytes per field-name byte as canonical output.
+Empty and repeated values remain valid under this generic policy.
+
+This output bound is separate from actual input storage. A direct decoder
+borrows the caller's immutable bytes under the ordinary target's byte limits.
+The streaming normalizer keeps its unchanged 131072-byte physical buffer.
+Equivalent escaped key/value spellings can exceed that buffer even when their
+decoded values would fit the schema: the complete raw grammar is still checked,
+and a grammatically valid oversized normalized input returns code 9 at the
+first unstored raw byte. It never truncates input or converts a later grammar
+fault into a capacity error. Exact-capacity, one-more-byte and late malformed
+tail cases belong to the native stream harness. The existing full 264-by-64-byte
+raw and escaped String witness remains an independent three-backend obligation;
+schema arithmetic alone establishes no fuel or allocator acceptance claim.
+
 ## Owned identifier request successor
 
 The additive `OwnedRequest` (`owned-request.v1`) and `StreamOwnedRequest`

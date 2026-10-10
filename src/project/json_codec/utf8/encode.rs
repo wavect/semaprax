@@ -72,14 +72,14 @@ let mut valid=count<=8usize && row_count<=256usize;
 let mut total={punctuation}usize;let mut index=0usize;
 while valid && index<count {{
 let word=vec_clone_at<string>(words,index);valid=json_{row_name}_owned_valid(string_as_str(word));
-if valid {{total=total+json_{row_name}_utf8_quoted_len(string_as_str(word))+(if index>0usize{{1usize}}else{{0usize}});true}}else{{false}};
+let _ = if valid {{total=total+json_{row_name}_utf8_quoted_len(string_as_str(word))+(if index>0usize{{1usize}}else{{0usize}});true}}else{{false}};
 index=index+1usize;valid && index<count
 }}
 let mut at=0usize;
 while valid && at<row_count {{
 let row=vec_clone_at<{row_name}>(rows,at);let size=json_{row_name}_owned_row_len(row);
 let comma=if at>0usize{{1usize}}else{{0usize}};
-if !valid || size==18446744073709551615usize || total>131072usize-comma || size>131072usize-total-comma {{valid=false;false}}else{{total=total+size+comma;true}};
+let _ = if !valid || size==18446744073709551615usize || total>131072usize-comma || size>131072usize-total-comma {{valid=false;false}}else{{total=total+size+comma;true}};
 at=at+1usize;valid && at<row_count
 }}
 if valid{{total}}else{{18446744073709551615usize}}
@@ -90,14 +90,14 @@ let required=json_{name}_utf8_owned_encoded_len(words,rows);
 if required==18446744073709551615usize || required>output_limit {{{row_name}JsonViewEncode::Refused{{required:required}}}}else{{
 let mut text={};let mut index=0usize;
 while index<vec_len<string>(words) {{
-if index>0usize{{text=string_concat(text,\",\");true}}else{{true}};
+let _ = if index>0usize{{text=string_concat(text,\",\");true}}else{{true}};
 let word=vec_clone_at<string>(words,index);
 text=string_concat(text,json_{row_name}_utf8_quote(string_as_str(word)));
 index=index+1usize;index<vec_len<string>(words)
 }}
 text=string_concat(text,{});let mut at=0usize;
 while at<vec_len<{row_name}>(rows) {{
-if at>0usize{{text=string_concat(text,\",\");true}}else{{true}};
+let _ = if at>0usize{{text=string_concat(text,\",\");true}}else{{true}};
 let row=vec_clone_at<{row_name}>(rows,at);text=string_concat(text,json_{row_name}_owned_row_render(row));
 at=at+1usize;at<vec_len<{row_name}>(rows)
 }}

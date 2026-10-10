@@ -64,13 +64,16 @@ pub(super) fn source(
             "UTF-8 request policy declares String array first, record array second",
         ));
     }
-    // A source-derived bound on every semantically admissible raw non-space
-    // token: six ASCII escape bytes per key/String byte, signed i64 width
-    // twenty, fixed punctuation. Outside-string whitespace is not counted.
+    // This is a canonical OUTPUT bound, not a bound on every possible raw
+    // spelling. Authored identifier keys need no JSON escaping on output;
+    // decoded String bytes can each require six bytes (e.g. NUL -> \u0000).
+    // Raw keys/values can use longer equivalent escape spellings. A direct
+    // decoder borrows that actual input; the stream normalizer independently
+    // validates all grammar and selects its existing physical-buffer refusal.
     let per_record = 2 + fields(record)
         .iter()
         .map(|field| {
-            6 * field.name.len()
+            field.name.len()
                 + 4
                 + if field.ty == Type::String {
                     6 * max_string_bytes + 2
@@ -79,18 +82,16 @@ pub(super) fn source(
                 }
         })
         .sum::<usize>();
-    let upper = 256usize
+    let canonical_output_upper = 256usize
         .checked_mul(per_record)
         .and_then(|bytes| {
             bytes.checked_add(
-                8 * (6 * max_string_bytes + 3)
-                    + 6 * (servers.name.len() + patients.name.len())
-                    + 32,
+                8 * (6 * max_string_bytes + 3) + servers.name.len() + patients.name.len() + 32,
             )
         })
-        .ok_or_else(|| refusal("request normalized source bound overflow"))?;
-    if upper > 131072 {
-        return Err(refusal("request schema exceeds the existing owned byte capacity even after outside-string whitespace normalization"));
+        .ok_or_else(|| refusal("UTF-8 request canonical output bound overflow"))?;
+    if canonical_output_upper > 131072 {
+        return Err(refusal("UTF-8 request schema exceeds the existing canonical output capacity at maximum cardinality"));
     }
     let name = &root.name;
     let id = &root.stable_id;
@@ -109,7 +110,7 @@ pub(super) fn source(
 let length=byte_len(input);let checked=jv_strict_end(input,32usize,0);
 let mut error=if checked>length{{1}}else{{0}};let mut offset=if checked>length{{checked-length-1usize}}else{{0usize}};let mut field=0;
 let root=if error==0{{jv_root(input)}}else{{0usize}};
-if error==0 && jv_kind(input,root)!=1{{error=5;offset=root;false}}else{{true}};
+let _ = if error==0 && jv_kind(input,root)!=1{{error=5;offset=root;false}}else{{true}};
 let mut servers=vec_with_capacity<{name}JsonIdentifierSpan>(8usize);let mut patients=vec_with_capacity<{row}JsonView>(256usize);
 let mut seen_servers=false;let mut seen_patients=false;
 let mut key=if error==0{{jv_first_member(input,root)}}else{{length}};
@@ -117,14 +118,14 @@ while error==0 && key<length{{
 let servers_key={};let patients_key={};
 let selected=if jv_key_eq(input,key,array_as_slice(servers_key)){{1}}else{{if jv_key_eq(input,key,array_as_slice(patients_key)){{2}}else{{0}}}};
 let start=jv_member_value(input,key);
-if selected==0{{error=4;offset=key;field=0;false}}else{{field=selected;
+let _ = if selected==0{{error=4;offset=key;field=0;false}}else{{field=selected;
 let repeated=if selected==1{{seen_servers}}else{{seen_patients}};
 if repeated{{error=2;offset=key;false}}else{{
 seen_servers=seen_servers || selected==1;seen_patients=seen_patients || selected==2;
 if jv_kind(input,start)!=2{{error=5;offset=start;false}}else{{
 let mut cursor=jv_first_element(input,start);
 while error==0 && cursor<length{{
-if selected==1{{
+let _ = if selected==1{{
 if vec_len<{name}JsonIdentifierSpan>(servers)>=8usize{{error=8;offset=cursor;false}}else{{
 let end=if jv_kind(input,cursor)==3{{jv_scan_string(input,cursor,false)}}else{{cursor}};
 if jv_kind(input,cursor)!=3{{error=5;offset=cursor;false}}else{{
@@ -163,8 +164,8 @@ true
 }};
 key=if error==0{{jv_next_member(input,key,32usize)}}else{{length}};error==0 && key<length
 }}
-if error==0 && !seen_servers{{error=3;offset=length;field=1;false}}else{{true}};
-if error==0 && !seen_patients{{error=3;offset=length;field=2;false}}else{{true}};
+let _ = if error==0 && !seen_servers{{error=3;offset=length;field=1;false}}else{{true}};
+let _ = if error==0 && !seen_patients{{error=3;offset=length;field=2;false}}else{{true}};
 if error==0{{{name}JsonRequestDecode::Decoded{{servers:servers,patients:patients}}}}else{{{name}JsonRequestDecode::Error{{code:error,offset:offset,field:field}}}}
 }}").unwrap();
     Ok(out)

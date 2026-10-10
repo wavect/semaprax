@@ -21,7 +21,7 @@ let mut text="";let mut at=start+1usize;
 while at<end-1usize {
 let escaped=match byte_get(input,at){Option::Some{value}=>value==92u8,Option::None{}=>false,};
 let scalar=if escaped{ju_escape_scalar(input,at)}else{ju_raw_scalar(input,at)};
-if scalar>=0 && scalar<=1114111 && !(scalar>=55296 && scalar<=57343){text=string_concat(text,string_from_char(char_from_i64(scalar)));true}else{false};
+let _ = if scalar>=0 && scalar<=1114111 && !(scalar>=55296 && scalar<=57343){text=string_concat(text,string_from_char(char_from_i64(scalar)));true}else{false};
 at=if escaped{jv_token_end(input,at)}else{ju_raw_end(input,at)};at<end-1usize
 }
 text

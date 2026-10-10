@@ -92,7 +92,7 @@ pub(super) fn source(program: &Program, root: &TypeDeclaration) -> Result<String
 let length=byte_len(input);let checked=jv_strict_end(input,32usize,0);
 let mut error=if checked>length{{1}}else{{0}};let mut offset=if checked>length{{checked-length-1usize}}else{{0usize}};let mut field=0;
 let root=if error==0{{jv_root(input)}}else{{0usize}};
-if error==0 && jv_kind(input,root)!=1{{error=5;offset=root;false}}else{{true}};
+let _ = if error==0 && jv_kind(input,root)!=1{{error=5;offset=root;false}}else{{true}};
 let mut servers=vec_with_capacity<{name}JsonIdentifierSpan>(8usize);let mut patients=vec_with_capacity<{row}JsonView>(256usize);
 let mut seen_servers=false;let mut seen_patients=false;
 let mut key=if error==0{{jv_first_member(input,root)}}else{{length}};
@@ -100,14 +100,14 @@ while error==0 && key<length{{
 let servers_key={};let patients_key={};
 let selected=if jv_key_eq(input,key,array_as_slice(servers_key)){{1}}else{{if jv_key_eq(input,key,array_as_slice(patients_key)){{2}}else{{0}}}};
 let start=jv_member_value(input,key);
-if selected==0{{error=4;offset=key;field=0;false}}else{{field=selected;
+let _ = if selected==0{{error=4;offset=key;field=0;false}}else{{field=selected;
 let repeated=if selected==1{{seen_servers}}else{{seen_patients}};
 if repeated{{error=2;offset=key;false}}else{{
 seen_servers=seen_servers || selected==1;seen_patients=seen_patients || selected==2;
 if jv_kind(input,start)!=2{{error=5;offset=start;false}}else{{
 let mut cursor=jv_first_element(input,start);
 while error==0 && cursor<length{{
-if selected==1{{
+let _ = if selected==1{{
 if vec_len<{name}JsonIdentifierSpan>(servers)>=8usize{{error=8;offset=cursor;false}}else{{
 let end=if jv_kind(input,cursor)==3{{jv_scan_string(input,cursor,false)}}else{{cursor}};
 if jv_kind(input,cursor)!=3{{error=5;offset=cursor;false}}else{{
@@ -152,9 +152,9 @@ true
 }};
 key=if error==0{{jv_next_member(input,key,32usize)}}else{{length}};error==0 && key<length
 }}
-if error==0 && !seen_servers{{error=3;offset=length;field=1;false}}else{{true}};
-if error==0 && !seen_patients{{error=3;offset=length;field=2;false}}else{{true}};
-if error==0 && vec_len<{name}JsonIdentifierSpan>(servers)==0usize && vec_len<{row}JsonView>(patients)>0usize{{error=11;offset=length;field=1;false}}else{{true}};
+let _ = if error==0 && !seen_servers{{error=3;offset=length;field=1;false}}else{{true}};
+let _ = if error==0 && !seen_patients{{error=3;offset=length;field=2;false}}else{{true}};
+let _ = if error==0 && vec_len<{name}JsonIdentifierSpan>(servers)==0usize && vec_len<{row}JsonView>(patients)>0usize{{error=11;offset=length;field=1;false}}else{{true}};
 if error==0{{{name}JsonRequestDecode::Decoded{{servers:servers,patients:patients}}}}else{{{name}JsonRequestDecode::Error{{code:error,offset:offset,field:field}}}}
 }}",string.name,string.name,string.name).unwrap();
     // Encoder receives the exact caller-selected immutable source and every
@@ -177,13 +177,13 @@ fn encoder(
     let punctuation = servers.name.len() + patients.name.len() + 11;
     format!("@id(\"{id}.json.request.encode\") fn json_{name}_request_encode(input:borrow Slice<u8>,servers:borrow Vec<{name}JsonIdentifierSpan>,patients:borrow Vec<{row}JsonView>,output_limit:usize)->{row}JsonViewEncode{{
 let mut required={punctuation}usize;let mut index=0usize;let mut valid=vec_len<{name}JsonIdentifierSpan>(servers)<=8usize && (vec_len<{name}JsonIdentifierSpan>(servers)>0usize || vec_len<{row}JsonView>(patients)==0usize);
-while valid && index<vec_len<{name}JsonIdentifierSpan>(servers){{let span=vec_get<{name}JsonIdentifierSpan>(servers,index);valid=json_{row}_identifier_valid(input,span.start,span.end);let mut prior=0usize;while valid && prior<index{{let other=vec_get<{name}JsonIdentifierSpan>(servers,prior);valid=!jv_decoded_token_eq(input,other.start,span.start);prior=prior+1usize;valid && prior<index}}if valid{{required=required+2usize+jv_decoded_len(input,span.start);if index>0usize{{required=required+1usize;true}}else{{true}}}}else{{false}};index=index+1usize;valid && index<vec_len<{name}JsonIdentifierSpan>(servers)}}
+while valid && index<vec_len<{name}JsonIdentifierSpan>(servers){{let span=vec_get<{name}JsonIdentifierSpan>(servers,index);valid=json_{row}_identifier_valid(input,span.start,span.end);let mut prior=0usize;while valid && prior<index{{let other=vec_get<{name}JsonIdentifierSpan>(servers,prior);valid=!jv_decoded_token_eq(input,other.start,span.start);prior=prior+1usize;valid && prior<index}}let _ = if valid{{required=required+2usize+jv_decoded_len(input,span.start);if index>0usize{{required=required+1usize;true}}else{{true}}}}else{{false}};index=index+1usize;valid && index<vec_len<{name}JsonIdentifierSpan>(servers)}}
 let patient_size=if valid{{json_{row}_view_array_encoded_len(input,patients)}}else{{18446744073709551615usize}};
 valid=valid && patient_size!=18446744073709551615usize;
 required=if valid{{required+patient_size}}else{{18446744073709551615usize}};
 if !valid || required>output_limit{{{row}JsonViewEncode::Refused{{required:required}}}}else{{
 let mut text={head};let mut at=0usize;
-while at<vec_len<{name}JsonIdentifierSpan>(servers){{if at>0usize{{text=string_concat(text,\",\");true}}else{{true}};let span=vec_get<{name}JsonIdentifierSpan>(servers,at);text=string_concat(text,json_{row}_identifier_render(input,span.start,span.end));at=at+1usize;at<vec_len<{name}JsonIdentifierSpan>(servers)}}
+while at<vec_len<{name}JsonIdentifierSpan>(servers){{let _ = if at>0usize{{text=string_concat(text,\",\");true}}else{{true}};let span=vec_get<{name}JsonIdentifierSpan>(servers,at);text=string_concat(text,json_{row}_identifier_render(input,span.start,span.end));at=at+1usize;at<vec_len<{name}JsonIdentifierSpan>(servers)}}
 let prefix=string_concat(text,{middle});let rendered=json_{row}_view_array_encode(input,patients,131072usize);
 match own rendered{{{row}JsonViewEncode::Refused{{required:count}}=>{row}JsonViewEncode::Refused{{required:count}},{row}JsonViewEncode::Encoded{{text:items}}=>{{let whole=string_concat(prefix,items);{row}JsonViewEncode::Encoded{{text:string_concat(whole,\"}}\")}}}},}}
 }}

@@ -74,9 +74,9 @@ pub(super) fn source(program: &Program, record: &TypeDeclaration) -> String {
             .join(", ");
         writeln!(out, "let key_{index} = [{bytes}];\nselected = if jc_key_eq(input, key, array_as_slice(key_{index})) {{ {} }} else {{ selected }};", index + 1).unwrap();
     }
-    out.push_str("if selected == 0 { error = 4; offset = key; field = 0; false } else {\nfield = selected;\n");
+    out.push_str("let _ = if selected == 0 { error = 4; offset = key; field = 0; false } else {\nfield = selected;\n");
     for (index, f) in fields.iter().enumerate() {
-        writeln!(out, "if selected == {} {{\nif seen_{index} {{ error = 2; offset = key; false }} else {{\nseen_{index} = true;\nlet kind = jc_kind(input, start);", index + 1).unwrap();
+        writeln!(out, "let _ = if selected == {} {{\nif seen_{index} {{ error = 2; offset = key; false }} else {{\nseen_{index} = true;\nlet kind = jc_kind(input, start);", index + 1).unwrap();
         if f.ty == Type::Bool {
             writeln!(out, "if kind == 5 || kind == 6 {{ value_{index} = kind == 5; true }} else {{ error = 5; offset = start; false }}").unwrap();
         } else {
@@ -108,7 +108,7 @@ pub(super) fn source(program: &Program, record: &TypeDeclaration) -> String {
     }
     out.push_str("true\n};\nkey = if error == 0 { jc_next_member(input, key, 32usize) } else { length };\nerror == 0 && key < length\n}\n");
     for (index, _) in fields.iter().enumerate() {
-        writeln!(out, "if error == 0 && !seen_{index} {{ error = 3; offset = length; field = {}; false }} else {{ true }};", index + 1).unwrap();
+        writeln!(out, "let _ = if error == 0 && !seen_{index} {{ error = 3; offset = length; field = {}; false }} else {{ true }};", index + 1).unwrap();
     }
     write!(
         out,

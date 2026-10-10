@@ -13,12 +13,12 @@ let length=byte_len(input);let checked=if length<=input_limit{{jv_strict_end(inp
 let mut error=if length>input_limit{{7}}else{{if checked>length{{1}}else{{0}}}};
 let mut offset=if checked>length{{checked-length-1usize}}else{{0usize}};let mut field=0;
 let root=if error==0{{jv_root(input)}}else{{0usize}};
-if error==0 && jv_kind(input,root)!=2{{error=5;offset=root;false}}else{{true}};
+let _ = if error==0 && jv_kind(input,root)!=2{{error=5;offset=root;false}}else{{true}};
 let mut values=vec_with_capacity<{name}JsonView>(256usize);
 let limit=if count_limit<=256usize{{count_limit}}else{{256usize}};
 let mut cursor=if error==0{{jv_first_element(input,root)}}else{{length}};
 while error==0 && cursor<length{{
-if vec_len<{name}JsonView>(values)>=limit{{error=8;offset=cursor;false}}else{{
+let _ = if vec_len<{name}JsonView>(values)>=limit{{error=8;offset=cursor;false}}else{{
 let end=jv_value_end(input,cursor,32usize);
 let item=byte_range(input,cursor,end);
 let decoded=json_{name}_view_decode(item,byte_len(item));
@@ -65,7 +65,7 @@ let value=vec_get<{name}JsonView>(values,index);let size=json_{name}_view_encode
 let mut prior=0usize;let mut duplicate=false;
 while size!=18446744073709551615usize && !duplicate && prior<index{{let other=vec_get<{name}JsonView>(values,prior);duplicate=jv_decoded_token_eq(input,other.__IDENTITY___start,value.__IDENTITY___start);prior=prior+1usize;!duplicate && prior<index}}
 let comma=if index>0usize{{1usize}}else{{0usize}};
-if duplicate || size==18446744073709551615usize || total>131072usize-comma || size>131072usize-total-comma{{total=18446744073709551615usize;false}}else{{total=total+size+comma;true}};
+let _ = if duplicate || size==18446744073709551615usize || total>131072usize-comma || size>131072usize-total-comma{{total=18446744073709551615usize;false}}else{{total=total+size+comma;true}};
 index=index+1usize;total!=18446744073709551615usize && index<count
 }}
 total
@@ -75,7 +75,7 @@ let required=json_{name}_view_array_encoded_len(input,values);
 if required==18446744073709551615usize || required>output_limit{{{name}JsonViewEncode::Refused{{required:required}}}}else{{
 let mut text=\"[\";let mut index=0usize;
 while index<vec_len<{name}JsonView>(values){{
-if index>0usize{{text=string_concat(text,\",\");true}}else{{true}};
+let _ = if index>0usize{{text=string_concat(text,\",\");true}}else{{true}};
 let value=vec_get<{name}JsonView>(values,index);
 text=string_concat(text,json_{name}_view_render(input,value));
 index=index+1usize;index<vec_len<{name}JsonView>(values)

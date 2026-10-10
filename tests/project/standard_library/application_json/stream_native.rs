@@ -231,6 +231,29 @@ fn streamed_request_codecs_accept_full_raw_domain_and_preserve_late_grammar_prio
     assert_eq!(output.status.code(), Some(2));
     assert!(output.stdout.is_empty());
     assert_eq!(output.stderr, format!("stream:1:{at}\n").as_bytes());
+    // Distinguish physical normalization storage from decoded schema shape.
+    // Exact buffer capacity validates fully and reaches the unknown-key schema
+    // diagnostic; one additional non-space byte selects storage refusal.
+    for (length, diagnostic) in [
+        (131_072, b"schema:4:1\n".as_slice()),
+        (131_073, b"stream:9:131072\n".as_slice()),
+    ] {
+        let mut input = b"{\"x\":\"".to_vec();
+        input.extend(std::iter::repeat_n(b'A', length - 8));
+        input.extend_from_slice(b"\"}");
+        assert_eq!(input.len(), length);
+        let output = execute(&binary, &input);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+        assert_eq!(output.stderr, diagnostic);
+        // Continue grammar validation after pending capacity refusal.
+        let at = input.len() - 1;
+        input[at] = b']';
+        let malformed = execute(&binary, &input);
+        assert_eq!(malformed.status.code(), Some(2));
+        assert!(malformed.stdout.is_empty());
+        assert_eq!(malformed.stderr, format!("stream:1:{at}\n").as_bytes());
+    }
     let mut valid_overflow = b"{\"oversized\":".to_vec();
     valid_overflow.extend(std::iter::repeat_n(b'1', 140000));
     valid_overflow.push(b'}');

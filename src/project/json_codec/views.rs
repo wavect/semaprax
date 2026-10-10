@@ -227,7 +227,7 @@ let length=byte_len(input); let mut error=if length>input_limit {{7}}else{{0}};l
 let checked=if error==0 {{jv_strict_end(input,32usize,0)}}else{{length}};
 error=if checked>length {{1}}else{{error}};offset=if checked>length {{checked-length-1usize}}else{{offset}};
 let object=if error==0 {{jv_root(input)}}else{{0usize}};
-if error==0 && jv_kind(input,object)!=1 {{error=5;offset=object;false}}else{{true}};").unwrap();
+let _ = if error==0 && jv_kind(input,object)!=1 {{error=5;offset=object;false}}else{{true}};").unwrap();
     for (i, f) in fs.iter().enumerate() {
         writeln!(out, "let mut seen_{i}=false;").unwrap();
         if f.ty == Type::String {
@@ -250,9 +250,9 @@ if error==0 && jv_kind(input,object)!=1 {{error=5;offset=object;false}}else{{tru
     for (i, f) in fs.iter().enumerate() {
         writeln!(out,"let key_{i}={};selected=if jv_key_eq(input,key,array_as_slice(key_{i})){{{}}}else{{selected}};",key_array(&f.name),i+1).unwrap();
     }
-    out.push_str("if selected==0{error=4;offset=key;field=0;false}else{field=selected;\n");
+    out.push_str("let _ = if selected==0{error=4;offset=key;field=0;false}else{field=selected;\n");
     for (i, f) in fs.iter().enumerate() {
-        writeln!(out,"if selected=={}{{if seen_{i}{{error=2;offset=key;false}}else{{seen_{i}=true;let kind=jv_kind(input,start);",i+1).unwrap();
+        writeln!(out,"let _ = if selected=={}{{if seen_{i}{{error=2;offset=key;false}}else{{seen_{i}=true;let kind=jv_kind(input,start);",i+1).unwrap();
         if f.ty == Type::String {
             writeln!(out,"if kind!=3{{error=5;offset=start;false}}else{{let end=jv_scan_string(input,start,false);if !json_{name}_identifier_valid(input,start,end){{error=6;offset=start;false}}else{{value_{i}_start=start;value_{i}_end=end;true}}}}").unwrap();
         } else {
@@ -264,7 +264,7 @@ if error==0 && jv_kind(input,object)!=1 {{error=5;offset=object;false}}else{{tru
     for (i, _) in fs.iter().enumerate() {
         writeln!(
             out,
-            "if error==0 && !seen_{i}{{error=3;offset=length;field={};false}}else{{true}};",
+            "let _ = if error==0 && !seen_{i}{{error=3;offset=length;field={};false}}else{{true}};",
             i + 1
         )
         .unwrap();
@@ -306,7 +306,7 @@ fn scalar(i: usize, ty: &Type) -> String {
     let mut out=String::from("if kind!=4{error=5;offset=start;false}else{let end=jv_decimal_end(input,start);if jv_integer_end(input,start)!=end{error=6;offset=start;false}else{\n");
     if *ty == Type::Usize {
         writeln!(out,"let negative=match byte_get(input,start){{Option::Some{{value:byte}}=>byte==45u8,Option::None{{}}=>false,}};let mut number=0usize;let mut cursor=start;
-if negative{{error=6;offset=start;false}}else{{while error==0 && cursor<end{{let digit=match byte_get(input,cursor){{Option::Some{{value:byte}}=>usize_from_u8(byte-48u8),Option::None{{}}=>0usize,}};
+let _ = if negative{{error=6;offset=start;false}}else{{while error==0 && cursor<end{{let digit=match byte_get(input,cursor){{Option::Some{{value:byte}}=>usize_from_u8(byte-48u8),Option::None{{}}=>0usize,}};
 if number>1844674407370955161usize || number==1844674407370955161usize && digit>5usize{{error=6;offset=start;false}}else{{number=number*10usize+digit;cursor=cursor+1usize;true}}
 }}true}};value_{i}=if error==0{{number}}else{{value_{i}}};true").unwrap();
     } else {

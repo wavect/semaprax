@@ -47,7 +47,7 @@ fn json___R___stream_normalize()->__R__JsonStreamInput uses {process.stdin.read}
     let mut raw=0usize;
     let mut reader=stdin_stream_open();
     while !stdin_stream_eof(reader) {
-        {
+        let _ = {
             let chunk=stdin_stream_chunk(reader);
             let chunk_length=byte_len(chunk);
             let mut index=0usize;
@@ -59,7 +59,7 @@ fn json___R___stream_normalize()->__R__JsonStreamInput uses {process.stdin.read}
                 let was_quoted=quoted;
                 let was_skip=skip;
                 let mut consumed=true;
-                if grammar!=0 || was_quoted && lexical {true} else {
+                let _ = if grammar!=0 || was_quoted && lexical {true} else {
                     if lex==10 {
                         if code>=128 {true}else{
                             if code==34 {lex=0;true}else{
@@ -71,27 +71,27 @@ fn json___R___stream_normalize()->__R__JsonStreamInput uses {process.stdin.read}
                     }else{
                         if lex==11 {
                             if code==117 {lex=12;hex_at=0;unit=0;true}else{
-                                if code==34 || code==92 || code==47 || code==98 || code==102 || code==110 || code==114 || code==116 {lex=10;true}else{if !lexical {lexical=true;lexical_at=escape_at;true}else{true};lex=10;true}
+                                if code==34 || code==92 || code==47 || code==98 || code==102 || code==110 || code==114 || code==116 {lex=10;true}else{let _ = if !lexical {lexical=true;lexical_at=escape_at;true}else{true};lex=10;true}
                             }
                         }else{
                             if lex==12 || lex==15 {
                                 let hex=if code>=48 && code<=57 {code-48}else{if code>=65 && code<=70 {code-55}else{if code>=97 && code<=102 {code-87}else{-1}}};
-                                if hex<0 {if !lexical {lexical=true;lexical_at=escape_at;true}else{true};lex=10;true}else{
+                                if hex<0 {let _ = if !lexical {lexical=true;lexical_at=escape_at;true}else{true};lex=10;true}else{
                                     unit=unit*16+hex;
                                     hex_at=hex_at+1;
                                     if hex_at==4 {
                                         if lex==15 {
-                                            if unit>=56320 && unit<=57343 {lex=10;true}else{if !lexical {lexical=true;lexical_at=escape_at;true}else{true};lex=10;true}
+                                            if unit>=56320 && unit<=57343 {lex=10;true}else{let _ = if !lexical {lexical=true;lexical_at=escape_at;true}else{true};lex=10;true}
                                         }else{
                                             if unit>=55296 && unit<=56319 {lex=13;true}else{
-                                                if unit>=56320 && unit<=57343 {if !lexical {lexical=true;lexical_at=escape_at;true}else{true};lex=10;true}else{lex=10;true}
+                                                if unit>=56320 && unit<=57343 {let _ = if !lexical {lexical=true;lexical_at=escape_at;true}else{true};lex=10;true}else{lex=10;true}
                                             }
                                         }
                                     }else{true}
                                 }
                             }else{
-                                if lex==13 {if code==92 {lex=14;true}else{if !lexical {lexical=true;lexical_at=escape_at;true}else{true};lex=10;true}}else{
-                                    if lex==14 {if code==117 {lex=15;hex_at=0;unit=0;true}else{if !lexical {lexical=true;lexical_at=escape_at;true}else{true};lex=10;true}}else{
+                                if lex==13 {if code==92 {lex=14;true}else{let _ = if !lexical {lexical=true;lexical_at=escape_at;true}else{true};lex=10;true}}else{
+                                    if lex==14 {if code==117 {lex=15;hex_at=0;unit=0;true}else{let _ = if !lexical {lexical=true;lexical_at=escape_at;true}else{true};lex=10;true}}else{
                                         if lex>=20 && lex<=22 {
                                             let expected=if lex==20 {if literal_at==1 {114}else{if literal_at==2 {117}else{101}}}else{
                                                 if lex==21 {if literal_at==1 {97}else{if literal_at==2 {108}else{if literal_at==3 {115}else{101}}}}else{if literal_at==1 {117}else{108}}
@@ -155,7 +155,7 @@ fn json___R___stream_normalize()->__R__JsonStreamInput uses {process.stdin.read}
                         }
                     }
                 };
-                if was_quoted && grammar==0 {
+                let _ = if was_quoted && grammar==0 {
                     if was_skip {skip=false;true}else{
                         if code==34 {quoted=false;lex=0;if key {phase=2;true}else{__FINISH_VALUE__}}else{
                             if code==92 {skip=true;structural_escape=raw;true}else{
@@ -164,12 +164,12 @@ fn json___R___stream_normalize()->__R__JsonStreamInput uses {process.stdin.read}
                         }
                     }
                 }else{true};
-                if consumed {
-                    if utf8_left>0 && (code<128 || code>191) {
-                        if !unicode {unicode=true;unicode_at=utf8_at;true}else{true};
+                let _ = if consumed {
+                    let _ = if utf8_left>0 && (code<128 || code>191) {
+                        let _ = if !unicode {unicode=true;unicode_at=utf8_at;true}else{true};
                         utf8_left=0;true
                     }else{true};
-                    if code>=128 {
+                    let _ = if code>=128 {
                         if utf8_left>0 {
                             utf8_code=utf8_code*64+code-128;utf8_left=utf8_left-1;
                             if utf8_left==0 && (utf8_code<utf8_min || utf8_code>1114111 || utf8_code>=55296 && utf8_code<=57343) {
@@ -186,12 +186,12 @@ fn json___R___stream_normalize()->__R__JsonStreamInput uses {process.stdin.read}
                             }
                         }
                     }else{true};
-                    if grammar==0 && copy {
+                    let _ = if grammar==0 && copy {
                         if length<131072usize && !overflow {buffer=bytes_set(buffer,length,byte);length=length+1usize;true}else{
                             if !overflow {overflow=true;overflow_at=raw;true}else{true}
                         }
                     }else{true};
-                    if raw<18446744073709551615usize {raw=raw+1usize;true}else{if !overflow {overflow=true;overflow_at=raw;true}else{true}};
+                    let _ = if raw<18446744073709551615usize {raw=raw+1usize;true}else{if !overflow {overflow=true;overflow_at=raw;true}else{true}};
                     index=index+1usize;
                     true
                 }else{true};
@@ -202,15 +202,15 @@ fn json___R___stream_normalize()->__R__JsonStreamInput uses {process.stdin.read}
         reader=stdin_stream_next(reader);
         !stdin_stream_eof(reader)
     }
-    if grammar==0 {
-        if lex==2 || lex==3 || lex==5 || lex==8 {lex=0;__FINISH_VALUE__}else{true};
+    let _ = if grammar==0 {
+        let _ = if lex==2 || lex==3 || lex==5 || lex==8 {lex=0;__FINISH_VALUE__}else{true};
         if quoted {grammar=1;grammar_at=if skip {structural_escape}else{raw};false}else{
             if lex>=20 && lex<=22 {grammar=1;grammar_at=token_at;false}else{
                 if lex!=0 || phase!=9 || depth!=0usize {grammar=1;grammar_at=raw;false}else{true}
             }
         }
     }else{true};
-    if utf8_left>0 && !unicode {unicode=true;unicode_at=utf8_at;true}else{true};
+    let _ = if utf8_left>0 && !unicode {unicode=true;unicode_at=utf8_at;true}else{true};
     if grammar!=0 {__R__JsonStreamInput::Error{code:1,offset:grammar_at,field:0}}else{
         if lexical && (!unicode || lexical_at<unicode_at) {__R__JsonStreamInput::Error{code:1,offset:lexical_at,field:0}}else{
             if unicode {__R__JsonStreamInput::Error{code:1,offset:unicode_at,field:0}}else{

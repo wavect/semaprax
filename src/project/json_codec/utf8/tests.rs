@@ -115,3 +115,45 @@ fn utf8_stream_policy_requires_original_permit_and_reuses_exact_grammar_normaliz
         crate::format::canonical(&crate::parse(&canonical, "utf8-stream-roundtrip.spx").unwrap())
     );
 }
+
+#[test]
+fn utf8_schema_admission_bounds_canonical_output_not_longer_raw_key_spellings() {
+    let program = crate::parse(SCHEMA, "utf8-schema.spx").unwrap();
+    let generated = source(&program, &program.types[1], 64).unwrap();
+    crate::parse(&generated, "utf8-capacity.spx").unwrap();
+    // NUL is the worst escaping expansion per decoded UTF-8 byte. Keep all
+    // 264 strings at the advertised bound, with complete scalar ranges.
+    let rows = (0..256)
+        .map(|_| {
+            serde_json::json!({
+                "number": i64::MIN, "message": "\0".repeat(64), "live": false
+            })
+        })
+        .collect::<Vec<_>>();
+    let canonical = serde_json::to_vec(&serde_json::json!({
+        "names": vec!["\0".repeat(64); 8], "rows": rows
+    }))
+    .unwrap();
+    assert!(canonical.len() > 100_000);
+    assert!(canonical.len() <= 131_072);
+    // Equivalent escaped ASCII key spellings may be physically larger. They
+    // do not change the descriptor's decoded values or canonical output bound.
+    let raw = canonical
+        .windows(9)
+        .filter(|key| *key == b"\"message\"")
+        .count();
+    assert_eq!(raw, 256);
+    let escaped_keys_upper = canonical.len() + 256 * (6 + 7 + 4) * 5;
+    assert!(escaped_keys_upper > 131_072);
+    assert!(generated.contains("jv_strict_end(input,32usize,0)"));
+    // A truly unrepresentable canonical maximum still refuses derivation.
+    let long_keys = SCHEMA
+        .replace("message:string", &format!("{}:string", "m".repeat(64)))
+        .replace("number:i64", &format!("{}:i64", "n".repeat(64)))
+        .replace("live:bool", &format!("{}:bool", "l".repeat(64)));
+    let bad = crate::parse(&long_keys, "long-keys.spx").unwrap();
+    assert_eq!(
+        source(&bad, &bad.types[1], 64).unwrap_err()[0].code,
+        "SPX-J180"
+    );
+}

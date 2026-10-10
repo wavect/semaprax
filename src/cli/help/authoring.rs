@@ -2,7 +2,7 @@
 use std::fmt::Write as _;
 
 const MAX_BYTES: usize = 2_048;
-const ROUTES: &str = "Authoring routes (complete):\n  author:stdin-json               v27 bounded native stream command\n  author:stream-data-v2           v29 private record/Vec stream command\n  author:owned-data               v30 private owned-leaf collections\n  author:collection-records       v31 nested records containing Vec\n  author:file-text                native UTF-8 file command\n  author:source-web               single-source web build\n  author:literal-format           checked literal String rendering\n  author:copy-record-vec          flat Copy-record vectors\n  author:json-codec               checked source JSON codec derivation\n  author:json-identifier-views    one identifier as a token view\n  author:json-request-views       bounded identifier and record arrays\n  author:json-stream-request-views bounded native stream request view\n  author:json-owned-request      bounded owning request collections\n  author:json-utf8-owned-request bounded UTF-8 string values\n  author:json-stream-utf8-owned-request bounded UTF-8 stdin requests\n  author:json-collection-response bounded nested collection encoder\n  author:json-nested-request      bounded finite nested request decoder\n  author:json-stream-nested-request bounded finite nested stdin decoder\nLibrary-only search: help language find:<word>:0\nExact card sections: help language topics\n";
+const ROUTES: &str = "Authoring routes (complete):\n  author:stdin-json               v27 bounded native stream command\n  author:stream-data-v2           v29 private record/Vec stream command\n  author:owned-data               v30 private owned-leaf collections\n  author:collection-records       v31 nested records containing Vec\n  author:file-text                native UTF-8 file command\n  author:source-web               single-source web build\n  author:literal-format           checked literal String rendering\n  author:copy-record-vec          flat Copy-record vectors\n  author:json-codec               checked source JSON codec derivation\n  author:json-identifier-views    one identifier as a token view\n  author:json-request-views       bounded identifier and record arrays\n  author:json-stream-request-views bounded native stream request view\n  author:json-owned-request      bounded owning request collections\n  author:json-utf8-owned-request bounded UTF-8 string values\n  author:json-stream-utf8-owned-request bounded UTF-8 stdin requests\n  author:json-collection-response bounded nested collection encoder\n  author:json-nested-request      bounded finite nested request decoder\n  author:json-stream-nested-request bounded finite nested stdin decoder\n  author:json-request-response    typed request/response composition boundaries\nLibrary-only search: help language find:<word>:0\nExact card sections: help language topics\n";
 
 #[cfg(test)]
 pub(super) fn assert_guide_contract() {
@@ -136,6 +136,14 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
             "Derivation proves the worst fully escaped valid normalized spelling fits the existing 131072-byte owned buffer. Raw input and whitespace have no byte cap; grammar validation continues after semantic-buffer refusal. Unsupported envelopes fail before publication.\n",
             "json_Root_nested_stream_decode() returns RootJsonNestedDecode::Ready { value: Root } or Error { code, offset, field }. Input Bytes retire only after independent owners are decoded. Stream grammar offsets are raw; downstream schema offsets are normalized.\n",
             "Direct nested decoding remains unchanged. Contract: docs/APPLICATION-JSON-NESTED-REQUEST-V1.md; caller route language-command-io.nested-outcome.v1 remains independently checked.\n"
+        ).to_owned()),
+        "author:json-request-response" => Ok(concat!(
+            "Typed request/response composition sketch; current qualification is pending. Run one selector per invocation; each output is a new complete module replacement. In examples/shiftsim-typed-record-successor, from that directory:\n",
+            "semaprax json-codec . --source src/request.spx --type shiftsim.request --output src/request.generated.spx --profile stream-owned-request.v1\n",
+            "semaprax json-codec . --source src/response.spx --type shiftsim.report --output src/response.generated.spx --profile bounded-collection-response.v1 --max-string-bytes 16\n",
+            "Review/install each generated source through the documented example workflow. This CLI has no combined request/response profile. The streaming request schema and Project manifest must already permit and grant process.stdin.read; derivation adds no capability.\n",
+            "The request helper owns decoded strings and rows; ordinary `vec_field<Patient>(request.patients,index,\"priority\")` reads a selected Copy field (a String field is borrowed through last use). The response selector only encodes `Report { assignments: Vec<Assignment>, metrics: Metrics }`; it does not decode or map business data.\n",
+            "Generated helpers are ordinary checked source. v31 command admission and current-head/application qualification remain separate; this draft claims no runtime qualification or general JSON-tree codec. See examples/shiftsim-typed-record-successor/README.md, author:json-owned-request, author:json-collection-response and author:collection-records.\n"
         ).to_owned()),
         "author:json-owned-request" => Ok(concat!(
             "Owned request source implementation; focused cross-backend and application qualification pending.\n",
@@ -297,6 +305,7 @@ mod tests {
             "author:json-collection-response",
             "author:json-nested-request",
             "author:json-stream-nested-request",
+            "author:json-request-response",
         ] {
             let output = lookup(route).unwrap();
             assert!(output.len() <= MAX_BYTES);
@@ -400,6 +409,26 @@ mod tests {
             "normalized", "independently checked", "qualification pending"] {
             assert!(stream_nested.contains(fact), "stream nested guidance omits {fact}");
         }
+        let request_response = lookup("author:json-request-response").unwrap();
+        for fact in [
+            "one selector per invocation",
+            "no combined request/response profile",
+            "stream-owned-request.v1",
+            "bounded-collection-response.v1",
+            "--max-string-bytes 16",
+            "vec_field<Patient>(request.patients,index,\"priority\")",
+            "only encodes",
+            "does not decode or map business data",
+            "process.stdin.read",
+            "derivation adds no capability",
+            "v31 command admission",
+            "claims no runtime qualification",
+        ] {
+            assert!(
+                request_response.contains(fact),
+                "request/response guidance omits {fact}"
+            );
+        }
         let owned_request = lookup("author:json-owned-request").unwrap();
         for fact in [
             "owned-request.v1",
@@ -468,6 +497,7 @@ mod tests {
             "author:json-collection-response",
             "author:json-nested-request",
             "author:json-stream-nested-request",
+            "author:json-request-response",
         ] {
             assert!(routes.contains(selector), "route list omits {selector}");
         }

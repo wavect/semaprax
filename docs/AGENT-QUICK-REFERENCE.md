@@ -1365,6 +1365,29 @@ Owned runtime support is private to
 lifetime. Source and current-head qualification remain pending; this is not
 full #724.
 
+For a typed request/response source sketch, open
+`help language author:json-request-response` or the
+[ShiftSim successor README](../examples/shiftsim-typed-record-successor/README.md).
+The CLI selects one profile per call and writes a new complete module:
+
+```sh
+cd examples/shiftsim-typed-record-successor
+semaprax json-codec . --source src/request.spx --type shiftsim.request \
+  --output src/request.generated.spx --profile stream-owned-request.v1
+semaprax json-codec . --source src/response.spx --type shiftsim.report \
+  --output src/response.generated.spx --profile bounded-collection-response.v1 \
+  --max-string-bytes 16
+```
+
+After an owned `Request` is decoded, ordinary code can inspect a row with
+`vec_field<Patient>(request.patients,index,"priority")`; a selected String is
+a borrow that keeps the named vector live through its last use. The response
+selector only encodes `Report { assignments: Vec<Assignment>, metrics: Metrics }`;
+it does not decode requests or map business data. Helpers are ordinary checked
+source, and the caller's admitted Project profile still controls runtime
+support. The ShiftSim source composition and current-head qualification remain
+pending; it does not establish application acceptance or a general JSON codec.
+
 ## Where the rules live
 
 For an application-defined exit status, select Project v24 profile

@@ -8,7 +8,7 @@ fn function_requires(function: &ResolvedFunction) -> bool {
         .chain(function.ensures.iter())
         .any(crate::vec_field::expression_uses)
 }
-fn requires(program: &ResolvedProgram) -> bool {
+pub(super) fn requires(program: &ResolvedProgram) -> bool {
     program
         .functions
         .iter()

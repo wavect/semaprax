@@ -21,7 +21,7 @@ fn copy_example(source: &std::path::Path, destination: &std::path::Path) {
     }
 }
 
-fn compile_native(
+pub(super) fn compile_native(
     source: &str,
     directory: &std::path::Path,
     optimization: &str,
@@ -45,7 +45,7 @@ fn compile_native(
     binary
 }
 
-fn execute(binary: &std::path::Path, input: &[u8]) -> std::process::Output {
+pub(super) fn execute(binary: &std::path::Path, input: &[u8]) -> std::process::Output {
     let mut child = Command::new(binary)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())

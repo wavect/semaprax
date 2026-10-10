@@ -1,0 +1,8 @@
+{
+  "rows": [
+    {"text": "é\u0000😀", "number": 4},
+    {"number": 4, "text": ""},
+    {"number": 4, "text": ""}
+  ],
+  "labels": ["", "\u0000", "é", "é"]
+}

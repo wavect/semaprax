@@ -1,0 +1,9 @@
+module catalog.app;
+
+permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
+
+@id("catalog.app.main")
+fn main() -> i64 { 0 }
+
+@id("catalog.command")
+fn command() -> i64 uses { process.stdin.read, process.stdout.write } { 0 }

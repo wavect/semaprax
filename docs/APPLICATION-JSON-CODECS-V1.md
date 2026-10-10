@@ -210,6 +210,44 @@ partial materialization push and encoder clone, plus a v30 native stream above
 65 KiB raw whitespace. These are staged regressions, not executed evidence or
 completion of full ShiftSim, arbitrary nested codecs or agent efficiency.
 
+## Streamed UTF-8 owned request successor
+
+`utf8-owned-request.v1` decodes bounded Unicode String values from a direct
+borrowed slice. Its additive stream counterpart,
+`stream-utf8-owned-request.v1`, composes the same owned request codec with the
+existing bounded stdin normalizer. Select it with canonical
+`--max-string-bytes N` from 1 through 64; the limit applies separately to each
+decoded String in the first array and each row. It keeps the UTF-8 profile's
+0..8 first-array and 0..256 row bounds and accepts empty or repeated values,
+including Unicode and NUL, and a nonempty row array when the first array is
+empty. It does not widen the 65,536-byte foreign borrowed-root limit or the
+131,072-byte owned-buffer capacity.
+
+For `Request { words: Vec<string>, rows: Vec<Row> }`, the generated calls are:
+
+```text
+json_Request_stream_normalize() -> RequestJsonStreamInput
+json_Request_utf8_owned_decode(input: borrow Slice<u8>) -> RequestJsonUtf8OwnedDecode
+json_Request_utf8_owned_encoded_len(words: borrow Vec<string>, rows: borrow Vec<Row>) -> usize
+json_Request_utf8_owned_encode(words: borrow Vec<string>, rows: borrow Vec<Row>, output_limit: usize) -> RowJsonViewEncode
+```
+
+The source schema must already declare `process.stdin.read`; codec derivation
+does not add a permit or manifest capability, and the v30 command manifest must
+grant that capability. The generated
+`json_<Request>_stream_normalize` returns
+`RequestJsonStreamInput::Ready { bytes, length }` or
+`RequestJsonStreamInput::Error { code, offset, field }`. Pass only the Ready
+slice to `json_<Request>_utf8_owned_decode`. The result owns its Strings and
+rows, so the caller can settle Ready's Bytes after decoding and then make its
+application decision and call the UTF-8 owned encoder.
+
+Offset domains remain separate: normalization errors identify raw stdin bytes;
+request/schema errors after Ready identify normalized bytes. The stream profile
+requires the v30 native owned-data command route. Its public example and grouped
+current-head qualification are pending; source generation alone does not prove
+execution or full #724 completion.
+
 ## Identifier, request and incremental stream views
 
 The additional closed CLI selectors are `--profile identifier-views.v1`,

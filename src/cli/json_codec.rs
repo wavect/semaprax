@@ -151,7 +151,6 @@ mod tests {
             "stream-request-views.v1",
             "owned-request.v1",
             "stream-owned-request.v1",
-            "stream-utf8-owned-request.v1",
         ] {
             let mut args = strings(&good);
             args.extend(["--profile".to_owned(), profile.to_owned()]);

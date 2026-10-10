@@ -1,0 +1,27 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "stream-utf8-owned-json-command"
+version = "0.1.0"
+profile = "language-command-io.owned-data.v1"
+
+[modules]
+entry = "catalog.app"
+sources = ["src/app.spx", "src/schema.spx"]
+
+[exports]
+web = ["catalog.command"]
+
+[command]
+function = "catalog.command"
+input = "argv-utf8+stdin-stream.v1"
+
+[capabilities]
+required = ["process.args.read", "process.stderr.write", "process.stdin.read", "process.stdout.write"]
+
+[dependencies]
+std.data.json.scan = "=0.1.0"
+std.data.json.token = "=0.1.0"
+std.data.json.digits = "=0.1.0"
+std.data.json.write = "=0.1.0"
+std.data.json.query = "=0.1.0"

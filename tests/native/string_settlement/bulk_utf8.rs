@@ -129,11 +129,13 @@ fn derived_decoder() -> String {
     fs::write(root.join("src/app.spx"), canonical(APP)).unwrap();
     // Compile the actual checked derivation and linked scanner; no copied or
     // guessed generated body is accepted as the fast-path witness.
-    project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
+    let emitted = project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
         hir::validate(snapshot.entry_program()).map_err(|error| vec![error])?;
         codegen::emit_hir_c(snapshot.entry_program()).map_err(|error| vec![error])
     })
-    .unwrap()
+    .unwrap();
+    super::remove_successful_fixture(&root);
+    emitted
 }
 
 #[test]

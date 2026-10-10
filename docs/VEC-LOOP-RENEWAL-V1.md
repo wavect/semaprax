@@ -6,7 +6,7 @@ Status: implemented additive private profile with focused local interpreter, nat
 
 Audience: compiler contributors maintaining vector ownership and loop cleanup plans.
 
-This profile admits same-cell renewal of a mutable concrete scalar `Vec<T>`
+This profile admits same-cell renewal of a mutable concrete admitted `Vec<T>`
 inside an ordinary `while` body, including updates inside its `if` branches.
 An untouched second owner no longer changes whether that exact update is
 admitted. It uses the existing Vec operations and status domains; it adds no
@@ -14,14 +14,20 @@ source syntax, prelude operations, ABI, allocation authority, or capacity.
 
 ## Exact admission
 
-`T` is exactly `i64`, `i32`, `u8`, `usize`, `char`, `f32`, `f64`, or `bool`.
+`T` is an existing admitted scalar, independently authenticated Copy record,
+or existing owned-leaf collection element (`string` or the admitted flat record
+with owned String/Bytes leaves). The older owned-record collection family also
+retains its independently admitted operation surface. This composition adds no
+new element layout or operation admission.
 The destination is a whole local declared with `let mut`; its type and owned
 mode equal the right-hand side. The RHS is a direct compiler-owned
 `vec_push<T>`, `vec_set<T>`, `vec_clear<T>`, or `vec_reserve_exact<T>` call with
 exact arity and explicit concrete type argument. Argument zero is the same
 whole owned binding, without projections. Other arguments have the operation's
-exact Copy types. User calls, wrapper instances, different source owners,
-owned payloads, arbitrary RHS blocks, and projected assignments do not select
+exact types and ownership modes: owned elements stage and transfer at the
+existing call commit boundary; Copy elements remain values. Only operations
+independently admitted for the element family can select renewal. User calls,
+wrapper instances, different source owners, arbitrary RHS blocks, and projected assignments do not select
 this profile. Existing source/HIR type, effect, loan and loop checks still apply.
 
 ```spx
@@ -87,3 +93,11 @@ native O0/O2 and repeated Wasm settlement) and library
 `cleanup_plan::replay::renewal::tests` (v15 hostile proofs and frozen v12 control).
 They cover untouched versus updated secondary owners, conditional and skipped
 updates, all four operations and failure settlement. Those focused gates pass locally; this evidence does not claim hosted cross-target execution.
+
+The owned-element composition adds regression definitions in
+`hir::vec_loop_renewal::tests` for two live vector cells, conditional updates,
+body-scoped String temporaries, exact argument modes and forged renewal proofs.
+These new definitions have not been executed as part of the implementation batch.
+Loop refusal diagnostics retain their stable code and message prefix, then
+identify the declaration, condition and body expression (each capped at 160
+Unicode scalars) without exposing a full ownership inventory.

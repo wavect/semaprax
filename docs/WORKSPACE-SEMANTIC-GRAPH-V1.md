@@ -224,6 +224,16 @@ and their existing runtime charges. The new fallback keeps all retained
 structure, string, identity, and runtime costs, and the same 64 MiB limit;
 earlier successful receipts remain unchanged.
 
+The final output-carrier profile reserves the complete compile-time asserted
+expression HIR/cleanup bundle directly, retaining all eight bookkeeping
+footprints. Its audited single-root resolver branches retain one identity
+heap carrier; default bodies, generic expansions and traversal synthesis keep
+their independent ceilings. Other profiles retain their historical receipts.
+Independent call replay borrows the final core's immutable edges, reconstructs
+all ten fields from authenticated AST occurrences, rejects missing, extra and
+duplicate occurrences, then checks retained HIR and capability projections.
+Every allocation still consumes the live ledger; the 64 MiB cap is unchanged.
+
 Only an uncached core may use this final sequential-AST peak. The builder
 receipt begins after the authored source programs have been parsed and retained,
 and covers the core's synthetic AST/HIR construction; it does not re-charge

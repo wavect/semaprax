@@ -32,10 +32,10 @@ pub(in crate::workspace_graph) fn uncached_output_layout(
         order[index] = index;
         let maximum = Some(dependency_identity_max(program, authored, programs)?);
         full_costs[index] =
-            synthetic_builder_bytes_scoped(program, authored, programs, maximum, 4, true)?
+            synthetic_builder_bytes_scoped(program, authored, programs, maximum, 5, true)?
                 .retained_hir;
         retained_costs[index] =
-            synthetic_builder_bytes_scoped(program, authored, programs, maximum, 4, false)?
+            synthetic_builder_bytes_scoped(program, authored, programs, maximum, 5, false)?
                 .retained_hir;
     }
     order[..programs.len()].sort_unstable_by(|left, right| {

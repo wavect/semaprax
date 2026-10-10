@@ -10,6 +10,7 @@ use crate::hir;
 use std::collections::{BTreeMap, BTreeSet};
 
 mod capability_projection;
+mod compact_calls;
 mod dependency_closure;
 mod edge_projection;
 mod profile_names;
@@ -37,6 +38,36 @@ pub(super) fn validate_retained_facts(
     programs: &[Program],
     modules: &[WorkspaceResolvedModule],
     edges: &[WorkspaceEdge],
+) -> Result<(), Vec<Diagnostic>> {
+    validate_retained_facts_inner(programs, modules, edges, false)
+}
+
+pub(super) fn validate_core_facts(
+    programs: &[Program],
+    modules: &[WorkspaceResolvedModule],
+    edges: &[WorkspaceEdge],
+    compact: bool,
+) -> Result<(), Vec<Diagnostic>> {
+    if compact {
+        validate_retained_facts_inner(programs, modules, edges, true)
+    } else {
+        validate_retained_facts(programs, modules, edges)
+    }
+}
+
+pub(super) fn validate_retained_facts_compact(
+    programs: &[Program],
+    modules: &[WorkspaceResolvedModule],
+    edges: &[WorkspaceEdge],
+) -> Result<(), Vec<Diagnostic>> {
+    validate_retained_facts_inner(programs, modules, edges, true)
+}
+
+fn validate_retained_facts_inner(
+    programs: &[Program],
+    modules: &[WorkspaceResolvedModule],
+    edges: &[WorkspaceEdge],
+    compact: bool,
 ) -> Result<(), Vec<Diagnostic>> {
     for program in programs {
         let resolved = modules
@@ -166,6 +197,12 @@ pub(super) fn validate_retained_facts(
             "workspace explicit type-reference facts disagree with retained HIR",
         )]);
     }
+    if compact {
+        let calls = compact_calls::reconstruct(programs, modules, edges)?;
+        validate_retained_call_projection(programs, modules, calls.iter().copied())?;
+        validate_effect_and_capability_edges_against_calls(modules, edges, calls.iter().copied())?;
+        return Ok(());
+    }
     let authenticated_calls = reconstruct_authenticated_call_edges(programs, modules)?;
     validate_retained_call_projection(programs, modules, &authenticated_calls)?;
     let mut emitted_calls = Vec::new();
@@ -264,10 +301,10 @@ fn reconstruct_authenticated_call_edges(
     Ok(calls)
 }
 
-fn validate_retained_call_projection(
+fn validate_retained_call_projection<'a>(
     programs: &[Program],
     modules: &[WorkspaceResolvedModule],
-    authenticated_calls: &[WorkspaceEdge],
+    authenticated_calls: impl IntoIterator<Item = &'a WorkspaceEdge>,
 ) -> Result<(), Vec<Diagnostic>> {
     let mut actual = Vec::new();
     for module in modules {

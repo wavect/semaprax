@@ -45,6 +45,61 @@ pub(in crate::workspace_graph) struct StructuralCost {
     pub(super) scalar_identity_discount: usize,
     pub(super) literal_fixed_discount: usize,
     pub(super) identity_carriers: usize,
+    pub(super) single_identity_carriers: usize,
+    pub(super) exact_fixed_discount: usize,
+}
+
+// The final uncached profile uses the complete asserted expression bundle,
+// retaining every map/tree allowance, literal exclusion and live debit.
+pub(super) fn fixed_hir_discount(
+    mode: u8,
+    raw: &StructuralCost,
+    runtime: &StructuralCost,
+) -> Result<usize, Vec<Diagnostic>> {
+    if mode < 5 {
+        return Ok(raw.literal_fixed_discount);
+    }
+    checked_usage(
+        raw.literal_fixed_discount,
+        checked_usage(
+            raw.exact_fixed_discount,
+            runtime.exact_fixed_discount,
+            "builder_bytes",
+            active_builder_limit(),
+        )?,
+        "builder_bytes",
+        active_builder_limit(),
+    )
+}
+
+pub(super) fn identity_carriers(
+    mode: u8,
+    raw: &StructuralCost,
+    runtime: &StructuralCost,
+) -> Result<usize, Vec<Diagnostic>> {
+    let total = checked_usage(
+        raw.identity_carriers,
+        runtime.identity_carriers,
+        "builder_bytes",
+        active_builder_limit(),
+    )?;
+    if mode < 5 {
+        return Ok(total);
+    }
+    let single = checked_usage(
+        raw.single_identity_carriers,
+        runtime.single_identity_carriers,
+        "builder_bytes",
+        active_builder_limit(),
+    )?;
+    Ok(total
+        .checked_sub(single.checked_mul(2).ok_or_else(|| {
+            vec![super::super::limit_error(
+                "builder_bytes",
+                active_builder_limit(),
+            )]
+        })?)
+        .expect("single-root branches retain their independently charged root"))
 }
 
 impl StructuralCost {
@@ -57,6 +112,8 @@ impl StructuralCost {
             scalar_identity_discount: 0,
             literal_fixed_discount: 0,
             identity_carriers: 0,
+            single_identity_carriers: 0,
+            exact_fixed_discount: 0,
         }
     }
 
@@ -79,6 +136,29 @@ impl StructuralCost {
     pub(super) fn with_inline_values(mut self, enabled: bool) -> Self {
         self.inline_values = enabled;
         self
+    }
+
+    pub(super) fn note_exact_expr_fixed_bundle(&mut self) -> Result<(), Vec<Diagnostic>> {
+        let slack = super::super::HIR_FIXED_EXPANSION_FACTOR
+            * std::mem::size_of::<crate::ast::Expr>()
+            - super::super::HIR_EXPR_FIXED_BUNDLE;
+        self.exact_fixed_discount = checked_usage(
+            self.exact_fixed_discount,
+            slack,
+            "builder_bytes",
+            active_builder_limit(),
+        )?;
+        Ok(())
+    }
+
+    pub(super) fn note_single_identity_carrier(&mut self) -> Result<(), Vec<Diagnostic>> {
+        self.single_identity_carriers = checked_usage(
+            self.single_identity_carriers,
+            1,
+            "builder_bytes",
+            active_builder_limit(),
+        )?;
+        Ok(())
     }
 
     pub(super) fn add_identity_carriers(&mut self, count: usize) -> Result<(), Vec<Diagnostic>> {
@@ -196,6 +276,8 @@ impl StructuralCost {
             scalar_identity_discount: 0,
             literal_fixed_discount: 0,
             identity_carriers: 0,
+            single_identity_carriers: 0,
+            exact_fixed_discount: 0,
         }
     }
 
@@ -645,4 +727,41 @@ fn identity_prebound_carriers_include_transient_super_receivers_in_wide_calls() 
     // allowance supplied by the enclosing ordinary call's single constructor.
     assert_eq!(cost.identity_carriers, 3 + 6 * 4);
     assert!(cost.identity_carriers > 6 * 4);
+}
+
+#[cfg(test)]
+mod exact_bundle_tests {
+    use super::*;
+
+    #[test]
+    fn final_profile_retains_complete_fixed_bundle_and_single_root_carrier() {
+        let program = crate::parse(
+            "module exact; @id(\"exact.main\") fn main() -> i64 { 1 }",
+            std::path::Path::new("exact.spx"),
+        )
+        .unwrap();
+        let expression = match &program.functions[0].body.kind {
+            crate::ast::ExprKind::Block {
+                tail: Some(tail), ..
+            } => tail.as_ref(),
+            _ => panic!("literal fixture has a block tail"),
+        };
+        let mut raw = StructuralCost::raw_ast(true).with_inline_values(true);
+        super::super::declaration_cost::ast_expr_cost(expression, &mut raw).unwrap();
+        let runtime = StructuralCost::new();
+        assert_eq!(identity_carriers(4, &raw, &runtime).unwrap(), 3);
+        assert_eq!(identity_carriers(5, &raw, &runtime).unwrap(), 1);
+        let discount = super::super::HIR_FIXED_EXPANSION_FACTOR
+            * std::mem::size_of::<crate::ast::Expr>()
+            - super::super::HIR_EXPR_FIXED_BUNDLE;
+        assert_eq!(raw.exact_fixed_discount, discount);
+        assert_eq!(
+            fixed_hir_discount(4, &raw, &runtime).unwrap(),
+            raw.literal_fixed_discount
+        );
+        assert_eq!(
+            fixed_hir_discount(5, &raw, &runtime).unwrap(),
+            raw.literal_fixed_discount + discount
+        );
+    }
 }

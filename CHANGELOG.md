@@ -1,5 +1,10 @@
 # Changelog
 
+- Fix the unchanged 64 MiB pattern workspace gate with a final uncached profile
+  that reserves the complete asserted expression footprint and audited identity
+  carriers, then independently replays call facts against borrowed immutable
+  edges. Keep all live debits, hostile checks and earlier profile receipts.
+
 - Refresh workspace artifact KATs only after exact byte reconstruction of 62
   complete historical documents, including nested operations and review inputs;
   retain every limit, domain, replay, no-write and hostile assertion.

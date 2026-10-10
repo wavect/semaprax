@@ -118,6 +118,25 @@ pub(super) fn ast_expr_cost(
     } else {
         3
     })?;
+    // These resolver branches construct one root ExpressionId. Child trees,
+    // imported defaults, generic expansions, and desugared statements keep
+    // their independent bounds; other shapes keep the three-carrier ceiling.
+    if matches!(
+        expression.kind,
+        ExprKind::Int(_)
+            | ExprKind::String(_)
+            | ExprKind::Float32(_)
+            | ExprKind::Float64(_)
+            | ExprKind::Bool(_)
+            | ExprKind::Var(_)
+            | ExprKind::Unary { .. }
+            | ExprKind::Binary { .. }
+            | ExprKind::If { .. }
+            | ExprKind::Block { .. }
+    ) {
+        cost.note_single_identity_carrier()?;
+    }
+    cost.note_exact_expr_fixed_bundle()?;
     cost.account_scalar_identity(&expression.kind)?;
     match &expression.kind {
         ExprKind::Closure {

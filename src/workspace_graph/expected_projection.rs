@@ -226,14 +226,14 @@ pub(super) fn synthetic_builder_bytes_scoped(
             .unwrap_or(0)
     });
     let fixed_hir_upper = fixed_hir_upper
-        .checked_sub(raw.literal_fixed_discount)
+        .checked_sub(cost::fixed_hir_discount(layout_mode, &raw, &runtime)?)
         .expect("literal storage discount retains the complete reduced fixed bundle");
     let identity_occurrence_upper = identity_slots
         .checked_mul(maximum_identity_bytes)
         .and_then(|bytes| bytes.checked_mul(HIR_IDENTITY_COPY_FACTOR))
         .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
     // Heap carriers are prebound independently of inline layouts and shared clones.
-    let identity_carriers = checked_builder_sum(raw.identity_carriers, runtime.identity_carriers)?;
+    let identity_carriers = cost::identity_carriers(layout_mode, &raw, &runtime)?;
     let identity_carriers =
         checked_builder_sum(identity_carriers, generic_instances.identity_carriers)?;
     let identity_carrier_bytes = identity_carriers

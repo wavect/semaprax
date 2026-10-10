@@ -49,6 +49,7 @@ pub(crate) use operation_sidecar::project_operation_sidecar;
 use project_render::render_project_graph_json;
 #[cfg(test)]
 use retained_validation::validate_effect_and_capability_edges;
+#[cfg(test)]
 use retained_validation::validate_retained_facts;
 use retained_vectors::{
     filter_owned_vec, filter_owned_vec_accounted, reserve_workspace_module_carrier,
@@ -4452,7 +4453,12 @@ fn build_resolved_core(
         declarations
     };
     owned_generics::attach_imported_vec_instances(&mut modules, imported_vec_instances)?;
-    validate_retained_facts(programs, &modules, &expected_edges)?;
+    retained_validation::validate_core_facts(
+        programs,
+        &modules,
+        &expected_edges,
+        compact_order.is_some(),
+    )?;
     validate_retained_declaration_shapes(&modules, &declarations)?;
     let owned_module_paths = module_paths
         .iter()

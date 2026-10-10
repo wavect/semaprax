@@ -38,6 +38,21 @@ pub(super) fn stream_request_source(
     Ok(source)
 }
 
+/// Reuse the exact incremental grammar template without selecting identifier policy.
+pub(super) fn stream_normalizer_source(
+    program: &Program,
+    root: &TypeDeclaration,
+) -> Result<String, Vec<Diagnostic>> {
+    if !program
+        .permits
+        .iter()
+        .any(|permit| permit == "process.stdin.read")
+    {
+        return Err(refusal("stream request derivation requires the original schema module's explicit process.stdin.read permit"));
+    }
+    Ok(stream::source(root))
+}
+
 fn fields(record: &TypeDeclaration) -> &[crate::ast::FieldDeclaration] {
     match &record.kind {
         TypeDeclarationKind::Record { fields } => fields,

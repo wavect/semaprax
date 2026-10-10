@@ -29,6 +29,19 @@ fn key_array(value: &str) -> String {
     )
 }
 
+pub(super) fn stream_source(
+    program: &Program,
+    root: &TypeDeclaration,
+    max_string_bytes: usize,
+) -> Result<String, Vec<Diagnostic>> {
+    // The unchanged normalizer selects raw grammar faults; the decoder selects
+    // schema faults in the normalized immutable bytes supplied by its caller.
+    let normalization = super::views::stream_normalizer_source(program, root)?;
+    let mut result = source(program, root, max_string_bytes)?;
+    result.push_str(&normalization);
+    Ok(result)
+}
+
 pub(super) fn source(
     program: &Program,
     root: &TypeDeclaration,

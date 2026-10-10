@@ -80,3 +80,38 @@ fn utf8_successor_does_not_change_identifier_policy_or_admit_unbounded_schema() 
         "SPX-J180"
     );
 }
+
+#[test]
+fn utf8_stream_policy_requires_original_permit_and_reuses_exact_grammar_normalizer() {
+    let mut program = crate::parse(SCHEMA, "utf8-schema.spx").unwrap();
+    assert_eq!(
+        stream_source(&program, &program.types[1], 16).unwrap_err()[0].code,
+        "SPX-J180"
+    );
+    assert!(program.permits.is_empty());
+    program.permits.push("process.stdin.read".to_owned());
+    let pure = source(&program, &program.types[1], 16).unwrap();
+    let normalizer =
+        super::super::views::stream_normalizer_source(&program, &program.types[1]).unwrap();
+    let stream = stream_source(&program, &program.types[1], 16).unwrap();
+    assert_eq!(stream, pure + &normalizer);
+    assert!(normalizer.contains("fn json_Request_stream_normalize()"));
+    assert!(normalizer.contains("bytes_zeroed(131072usize)"));
+    assert!(!normalizer.contains("error=11"));
+    assert!(!stream.contains("let mut duplicate"));
+    assert!(!stream.contains("error=11"));
+    assert_eq!(
+        stream_source(&program, &program.types[1], 0).unwrap_err()[0].code,
+        "SPX-J180"
+    );
+    let parsed = crate::parse(&stream, "utf8-stream-generated.spx").unwrap();
+    assert!(parsed.functions.iter().any(|function| function
+        .effects
+        .iter()
+        .any(|effect| effect == "process.stdin.read")));
+    let canonical = crate::format::canonical(&parsed);
+    assert_eq!(
+        canonical,
+        crate::format::canonical(&crate::parse(&canonical, "utf8-stream-roundtrip.spx").unwrap())
+    );
+}

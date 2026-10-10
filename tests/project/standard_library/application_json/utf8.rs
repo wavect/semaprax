@@ -1,6 +1,9 @@
 //! Plain UTF-8 owned values, exact policy replay, and independent backend gates.
 use super::*;
 
+#[path = "utf8/stream.rs"]
+mod stream;
+
 const SCHEMA: &str = r#"module consumer.schema;
 @id("unicode.row") record Row {
  @id("unicode.row.number") number:i64,

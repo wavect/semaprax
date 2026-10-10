@@ -35,6 +35,10 @@ pub enum JsonCodecProfile {
     Utf8OwnedRequest {
         max_string_bytes: usize,
     },
+    /// Original stdin permit plus normalization and plain UTF-8 owning values.
+    StreamUtf8OwnedRequest {
+        max_string_bytes: usize,
+    },
 }
 
 pub(super) fn refusal(message: impl Into<String>) -> Vec<Diagnostic> {
@@ -107,6 +111,9 @@ pub fn derive_json_codec_source_with_profile(
         JsonCodecProfile::StreamOwnedRequest => owned::source(&program, declaration, true)?,
         JsonCodecProfile::Utf8OwnedRequest { max_string_bytes } => {
             utf8::source(&program, declaration, max_string_bytes)?
+        }
+        JsonCodecProfile::StreamUtf8OwnedRequest { max_string_bytes } => {
+            utf8::stream_source(&program, declaration, max_string_bytes)?
         }
     };
     if fragment.len() > MAX_GENERATED_BYTES {

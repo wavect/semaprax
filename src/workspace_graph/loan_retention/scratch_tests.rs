@@ -128,3 +128,104 @@ fn scratch_uncertain_inventory_keeps_full_charge_and_missing_backing_refuses() {
     assert_eq!(scratch.measure(&function).unwrap_err()[0].code, "SPX-G171");
     assert!(scratch.keys.is_empty());
 }
+
+#[test]
+fn generic_instances_reuse_one_scratch_and_refuse_one_short() {
+    let program = crate::parse(
+        r#"
+module generic.scratch;
+@id("generic.consume") fn consume(bytes: own Bytes) -> i64 { 0 }
+@id("generic.keep") fn keep<T>(value: T, input: borrow Slice<u8>) -> T {
+    let owned = bytes_copy(input);
+    consume(owned);
+    value
+}
+@id("generic.main") fn main(input: borrow Slice<u8>) -> i64 {
+    let number = keep<i64>(1, input);
+    if keep<bool>(true, input) { number } else { 0 }
+}
+"#,
+        std::path::Path::new("generic-scratch.spx"),
+    )
+    .unwrap();
+    let instances = crate::hir::resolve(&program).unwrap().function_instances;
+    assert_eq!(instances.len(), 2);
+    assert!(instances
+        .iter()
+        .all(|instance| !instance.function.loan_plan.loans.is_empty()));
+    let programs = vec![program];
+    let authored = super::super::index_authored(&programs).unwrap();
+    let wires = instances
+        .iter()
+        .map(|instance| crate::cache_codec::encode(&instance.function.loan_plan).unwrap())
+        .collect::<Vec<_>>();
+
+    let (reused, overflow, exact) = bounded_output::with_limit_usage(usize::MAX, || {
+        let mut scratch = RetentionScratch::default();
+        super::super::owned_generics::retain_module_instances(
+            &programs[0],
+            &programs,
+            &authored,
+            instances.clone(),
+            Some(&mut scratch),
+        )
+    });
+    assert!(!overflow);
+    let (retained, imported) = reused.unwrap();
+    assert_eq!(retained.len(), 2);
+    assert!(imported.is_empty());
+    assert_eq!(
+        retained
+            .iter()
+            .map(|instance| crate::cache_codec::encode(&instance.function.loan_plan).unwrap())
+            .collect::<Vec<_>>(),
+        wires
+    );
+
+    let (separate, overflow, separate_debit) = bounded_output::with_limit_usage(usize::MAX, || {
+        for instance in &instances {
+            let mut scratch = RetentionScratch::default();
+            super::super::owned_generics::retain_module_instances(
+                &programs[0],
+                &programs,
+                &authored,
+                vec![instance.clone()],
+                Some(&mut scratch),
+            )?;
+        }
+        Ok::<_, Vec<Diagnostic>>(())
+    });
+    separate.unwrap();
+    assert!(!overflow);
+    assert!(
+        exact < separate_debit,
+        "one compact instance pass reuses its retained census scratch"
+    );
+
+    let (exact_result, overflow, debit) = bounded_output::with_limit_usage(exact, || {
+        let mut scratch = RetentionScratch::default();
+        super::super::owned_generics::retain_module_instances(
+            &programs[0],
+            &programs,
+            &authored,
+            instances.clone(),
+            Some(&mut scratch),
+        )
+    });
+    assert!(exact_result.is_ok());
+    assert!(!overflow);
+    assert_eq!(debit, exact);
+
+    let (one_short, overflow, _) = bounded_output::with_limit_usage(exact - 1, || {
+        let mut scratch = RetentionScratch::default();
+        super::super::owned_generics::retain_module_instances(
+            &programs[0],
+            &programs,
+            &authored,
+            instances.clone(),
+            Some(&mut scratch),
+        )
+    });
+    assert_eq!(one_short.unwrap_err()[0].code, "SPX-G171");
+    assert!(overflow);
+}

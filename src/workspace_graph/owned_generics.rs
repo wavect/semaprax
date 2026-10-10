@@ -14,8 +14,9 @@ use crate::diagnostic::Diagnostic;
 use crate::{ast::Program, hir};
 
 use super::{
-    graph_error, retained_function_loan_bytes, AuthoredDeclaration, WorkspaceDeclarationFact,
-    WorkspaceResolvedModule, GRAPH_ACCOUNTED_RESOLVED_FUNCTION_INSTANCE_BYTES,
+    graph_error, loan_retention::RetentionScratch, retained_function_loan_bytes,
+    AuthoredDeclaration, WorkspaceDeclarationFact, WorkspaceResolvedModule,
+    GRAPH_ACCOUNTED_RESOLVED_FUNCTION_INSTANCE_BYTES,
 };
 
 /// Retain only authored nominal declarations reached by an already selected
@@ -104,7 +105,7 @@ pub(super) fn retain_module_instances(
     programs: &[Program],
     authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
     instances: Vec<hir::ResolvedFunctionInstance>,
-    retained_output_only: bool,
+    mut loan_scratch: Option<&mut RetentionScratch>,
 ) -> Result<
     (
         Vec<hir::ResolvedFunctionInstance>,
@@ -112,10 +113,14 @@ pub(super) fn retain_module_instances(
     ),
     Vec<Diagnostic>,
 > {
+    let retained_output_only = loan_scratch.is_some();
     let retained = super::filter_owned_vec_accounted(
         instances,
         GRAPH_ACCOUNTED_RESOLVED_FUNCTION_INSTANCE_BYTES,
-        |item| retained_function_loan_bytes(&item.function),
+        |item| match loan_scratch.as_deref_mut() {
+            Some(scratch) => scratch.measure(&item.function),
+            None => retained_function_loan_bytes(&item.function),
+        },
         |item| {
             authored
                 .get(item.template.as_str())

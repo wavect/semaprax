@@ -25,6 +25,15 @@ claims a particular artifact was generated from a particular immutable revision.
 Editing generated source removes that derivation claim; ordinary compiler
 checking still applies.
 
+The additive `bounded-collection-response.v1` selector is encode-only. It accepts
+one `Vec<Row>` plus one flat scalar metrics record and requires
+`--max-string-bytes 1..64`. Its complete owning signatures, declaration-order
+wire contract, preflight refusals and executable gates live in
+[Bounded collection response v1](APPLICATION-JSON-COLLECTION-RESPONSE-V1.md).
+Nested collection runtime admission is independent; a native command selects
+the explicit [Project v31 profile](PROJECT-V31-COLLECTION-RECORD-COMMAND-V1.md).
+The source implementation is integrated; current-head qualification is pending.
+
 ## Admitted data contract
 
 The first slice admits a monomorphic flat record with 1 through 8 directly

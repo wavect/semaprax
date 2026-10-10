@@ -114,7 +114,7 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
         "author:json-collection-response" => Ok(concat!(
             "Source-generation selector bounded-collection-response.v1 requires --max-string-bytes N, canonical decimal 1..64. It derives an encode-only view for one Vec<Row> plus one nested flat Copy Metrics record; Row has one string and up to six scalar fields, Metrics has 1..8 Copy scalars.\n",
             "Each stored Row string is bounded by UTF-8 byte length; complete encoded output remains separately bounded by 131072 bytes and output_limit. The caller's independently checked Project profile must admit the generated helpers. Nested-carrier runtime admission and execution qualification are pending; this is not a v30 command route. No decoder or stream normalizer is generated.\n",
-            "Exact signatures and limits: docs/APPLICATION-JSON-CODECS-V1.md.\n"
+            "Exact signatures and limits: docs/APPLICATION-JSON-COLLECTION-RESPONSE-V1.md. Runtime profile: author:collection-records.\n"
         ).to_owned()),
         "author:json-owned-request" => Ok(concat!(
             "Owned request source implementation; focused cross-backend and application qualification pending.\n",

@@ -1,6 +1,6 @@
 # Project v31 Collection-Record Command v1
 
-Status: Project routing and owning regression source implemented; carrier integration and current-head execution qualification are pending.
+Status: Project routing, compiler carriers and owning regression source integrated; current-head execution qualification is pending.
 
 Audience: Project profile authors, compiler contributors, and reviewers.
 
@@ -20,6 +20,6 @@ Names, generated identities, schema-only declarations, and source provenance gra
 
 ## Evidence status
 
-This source batch adds profile/schema metadata, separate command admission and backend/interpreter routes, and owning Project cases for execution plus older-profile refusal before source cropping. Nested carrier execution and native settlement remain pending compiler integration and focused current-head qualification. Source presence alone is not a completion claim.
+This source batch adds profile/schema metadata, separate command admission and backend/interpreter routes, and owning Project cases for execution plus older-profile refusal before source cropping. The ordinary compiler carrier contract is [Nested owned collection records v1](NESTED-OWNED-COLLECTION-RECORDS-V1.md). Nested carrier execution and native settlement remain pending focused current-head qualification. Source presence alone is not a completion claim.
 
 Use `semaprax help language author:collection-records` for bounded profile guidance. The response-codec selector has its own card, `author:json-collection-response`; neither a schema nor a generator selection grants runtime admission.

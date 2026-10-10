@@ -82,10 +82,10 @@ pub(super) fn source(program: &Program, record: &TypeDeclaration) -> String {
         } else {
             out.push_str("if kind != 4 { error = 5; offset = start; false } else {\nlet end = jc_decimal_end(input, start);\nif jc_integer_end(input, start) != end { error = 6; offset = start; false } else {\n");
             if f.ty == Type::Usize {
-                out.push_str("let negative = match byte_get(input, start) { Option::Some { value: byte } => byte == 45u8, Option::None {} => false, };\nlet mut number = 0usize;\nlet mut digit_index = start;\nif negative { error = 6; offset = start; false } else {\nwhile error == 0 && digit_index < end {\nlet digit = match byte_get(input, digit_index) { Option::Some { value: byte } => usize_from_u8(byte - 48u8), Option::None {} => 0usize, };\nlet over = number > 1844674407370955161usize || number == 1844674407370955161usize && digit > 5usize;\nif over { error = 6; offset = start; false } else { number = number * 10usize + digit; digit_index = digit_index + 1usize; true }\n}\ntrue\n}\n");
+                out.push_str("let negative = match byte_get(input, start) { Option::Some { value: byte } => byte == 45u8, Option::None {} => false, };\nlet mut number = 0usize;\nlet mut digit_index = start;\nlet _ = if negative { error = 6; offset = start; false } else {\nwhile error == 0 && digit_index < end {\nlet digit = match byte_get(input, digit_index) { Option::Some { value: byte } => usize_from_u8(byte - 48u8), Option::None {} => 0usize, };\nlet over = number > 1844674407370955161usize || number == 1844674407370955161usize && digit > 5usize;\nif over { error = 6; offset = start; false } else { number = number * 10usize + digit; digit_index = digit_index + 1usize; true }\n}\ntrue\n};\n");
                 writeln!(
                     out,
-                    "value_{index} = if error == 0 {{ number }} else {{ value_{index} }};"
+                    "value_{index} = if error == 0 {{ number }} else {{ value_{index} }};\nerror == 0"
                 )
                 .unwrap();
             } else {

@@ -71,8 +71,19 @@ fn codec_source_is_deterministic_ordinary_ast_and_has_no_authority_escape() {
     );
     assert!(source.contains("jc_strict_end(input, 32usize, 0)"));
     assert!(source.contains("1844674407370955161usize"));
+    assert!(source.contains("let _ = if negative { error = 6; offset = start; false } else {"));
+    assert!(source.contains("value_1 = if error == 0 { number } else { value_1 };\nerror == 0\n}"));
     assert!(source.contains("number != other || number < 0 || number > 255"));
     assert!(source.contains("required > output_limit"));
     assert!(!source.contains("serde"));
     assert!(source.len() <= MAX_GENERATED_BYTES);
+    // Every admitted field position can select the unsigned conversion branch;
+    // it must end with a value rather than the preceding assignment statement.
+    let unsigned = parse_schema("module schema; @id(\"unsigned.row\") record Row { @id(\"u.a\") a:usize, @id(\"u.b\") b:usize, @id(\"u.c\") c:usize, @id(\"u.d\") d:usize, @id(\"u.e\") e:usize, @id(\"u.f\") f:usize, @id(\"u.g\") g:usize, @id(\"u.h\") h:usize, }");
+    let generated = emit::source(&unsigned, &unsigned.types[0]);
+    let canonical = crate::format::canonical(&crate::parse(&generated, "unsigned.spx").unwrap());
+    assert_eq!(
+        canonical,
+        crate::format::canonical(&crate::parse(&canonical, "unsigned-canonical.spx").unwrap())
+    );
 }

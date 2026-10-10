@@ -70,10 +70,76 @@ fn collection_response_is_closed_ordered_and_canonical_without_source_authority(
     assert!(output.contains("required>output_limit"));
     assert!(output.contains("size>131072usize-total-comma"));
     assert!(!output.contains("ju_escape_scalar"));
-    assert!(!output.contains(".json.utf8."));
     assert!(!output.contains("vec_sort"));
     assert!(!output.contains("stdin"));
     let parsed = crate::parse(&output, "response.spx").unwrap();
+    // Imported library identities retain their exact owning namespaces. Only
+    // generated declarations belong to this response profile's namespace.
+    assert!(parsed
+        .module_uses
+        .iter()
+        .all(|import| { import.kind == crate::ast::ModuleUseKind::Function }));
+    let imports: Vec<_> = parsed
+        .module_uses
+        .iter()
+        .map(|import| {
+            (
+                import.persistent_id.as_str(),
+                import.target_module.as_str(),
+                import.alias.as_str(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        imports,
+        vec![
+            (
+                "std.data.json.digits.i64_len",
+                "std.data.json.digits",
+                "jv_i64_len"
+            ),
+            (
+                "std.data.json.write.usize_len",
+                "std.data.json.write",
+                "jv_usize_len"
+            ),
+            (
+                "std.data.json.utf8.scalar_at",
+                "std.data.json.utf8",
+                "ju_raw_scalar"
+            ),
+            (
+                "std.data.json.utf8.sequence_end",
+                "std.data.json.utf8",
+                "ju_raw_end"
+            ),
+            (
+                "std.data.json.utf8.utf8_end",
+                "std.data.json.utf8",
+                "ju_raw_utf8_end"
+            ),
+        ]
+    );
+    for function in &parsed.functions {
+        assert!(!function.stable_id.contains(".json.utf8."));
+        assert!(function.stable_id.starts_with("response."));
+        assert!(function.stable_id.contains(".json.collection-response."));
+    }
+    for declaration in &parsed.types {
+        assert!(!declaration.stable_id.contains(".json.utf8."));
+        assert!(declaration.stable_id.contains(".json.collection-response."));
+        let TypeDeclarationKind::Variant { cases } = &declaration.kind else {
+            panic!("response-generated variant")
+        };
+        for case in cases {
+            assert!(!case.stable_id.contains(".json.utf8."));
+            assert!(case.stable_id.contains(".json.collection-response."));
+            for field in &case.fields {
+                assert!(!field.stable_id.contains(".json.utf8."));
+                assert!(field.stable_id.contains(".json.collection-response."));
+            }
+        }
+    }
     assert!(parsed.permits.is_empty());
     assert!(parsed.functions.iter().all(|f| f.effects.is_empty()));
     let encode = parsed

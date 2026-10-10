@@ -55,6 +55,7 @@ pub(super) fn validate_core_facts(
     }
 }
 
+#[cfg(test)]
 pub(super) fn validate_retained_facts_compact(
     programs: &[Program],
     modules: &[WorkspaceResolvedModule],

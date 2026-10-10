@@ -113,6 +113,8 @@ const CODE_TARGET_OUTSIDE_MATRIX: &str = "SPX-J122";
 const LABEL: &str = "Package Manifest v1";
 const MAX_RANGE_BYTES: usize = 33;
 const SCAFFOLD_HELP: &str = "start from `semaprax new <destination>` or render a canonical template with `semaprax project-scaffold --name <name> --layout tables`";
+const QUOTED_DEPENDENCY_KEY_HELP: &str = "write a bare stable dependency key, for example `std.text = \"=0.1.0\"`";
+const UNSORTED_SOURCES_HELP: &str = "sort `[modules] sources` in strictly increasing byte order and remove duplicates; after correcting the list, `semaprax fmt --manifest semaprax.toml` canonicalizes the valid manifest";
 
 /// Which source layout a manifest was parsed from. The frozen layouts and the
 /// table layout lower to the same profile contract and differ only in bytes.
@@ -641,9 +643,13 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
             });
         }
         if !sources.windows(2).all(|pair| pair[0] < pair[1]) {
-            diagnostics.push(scaffold_diagnostic(format!(
-                "{LABEL} source paths must be strictly byte-sorted and unique"
-            )));
+            diagnostics.push(
+                Diagnostic::io(
+                    "SPX-J100",
+                    format!("{LABEL} source paths must be strictly byte-sorted and unique"),
+                )
+                .with_help(UNSORTED_SOURCES_HELP),
+            );
         }
         if sources.iter().any(|path| {
             path.len() > super::MAX_PATH_BYTES
@@ -1317,9 +1323,17 @@ fn parse_assignment<'a>(line: &'a str, table: &str) -> Result<(&'a str, Value), 
             byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'-' | b'_' | b'.')
         })
     {
-        return Err(grammar(format!(
+        let message = format!(
             "{LABEL} keys are lowercase [a-z0-9._-]+; found `{key}` in `[{table}]`"
-        )));
+        );
+        if table == "dependencies"
+            && ((key.starts_with('\"') && key.ends_with('\"'))
+                || (key.starts_with('\'') && key.ends_with('\'')))
+        {
+            return Err(vec![Diagnostic::io("SPX-J100", message)
+                .with_help(QUOTED_DEPENDENCY_KEY_HELP)]);
+        }
+        return Err(grammar(message));
     }
     if value.starts_with('[') {
         Ok((key, Value::List(super::parse_array_assignment(line, key)?)))

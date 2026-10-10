@@ -504,6 +504,23 @@ fn non_canonical_bytes_name_the_first_differing_line() {
     assert!(reject(CALCULATOR_TABLES.trim_end())[0]
         .message
         .contains("must end with one terminal LF"));
+
+    let unsorted_sources = CALCULATOR_TABLES.replace(
+        "sources = [\"src/app.spx\", \"src/core.spx\", \"src/tests.spx\"]",
+        "sources = [\"src/core.spx\", \"src/app.spx\", \"src/tests.spx\"]",
+    );
+    let errors = reject(&unsorted_sources);
+    assert_eq!(codes(&errors), ["SPX-J100"]);
+    assert_eq!(
+        errors[0].message,
+        "Package Manifest v1 source paths must be strictly byte-sorted and unique"
+    );
+    assert_eq!(
+        errors[0].help.as_deref(),
+        Some(
+            "sort `[modules] sources` in strictly increasing byte order and remove duplicates; after correcting the list, `semaprax fmt --manifest semaprax.toml` canonicalizes the valid manifest"
+        )
+    );
 }
 
 #[test]
@@ -566,6 +583,19 @@ fn dependency_grammar_is_admitted_and_ordinary_builds_fail_closed_with_spx_j121(
             errors[0].message
         );
     }
+
+    let quoted_key = reject(&format!(
+        "{CALCULATOR_TABLES}\n[dependencies]\n\"std.text\" = \"=0.1.0\"\n"
+    ));
+    assert_eq!(codes(&quoted_key), ["SPX-J100"]);
+    assert_eq!(
+        quoted_key[0].message,
+        "Package Manifest v1 keys are lowercase [a-z0-9._-]+; found `\"std.text\"` in `[dependencies]`"
+    );
+    assert_eq!(
+        quoted_key[0].help.as_deref(),
+        Some("write a bare stable dependency key, for example `std.text = \"=0.1.0\"`")
+    );
 
     let fixture = calculator_fixture("dependencies", &source);
     let output = cli(&fixture.root, &["check", "semaprax.toml"]);

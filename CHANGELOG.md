@@ -1,5 +1,11 @@
 # Changelog
 
+- Correct native borrowed-root charging to identify actual external function
+  entry rather than the first private borrowed frame. Internal owned Bytes
+  forwarding preserves its existing 131,072-byte capacity, while external
+  Slice/str input retains the cumulative 65,536-byte bound. Stage interpreter,
+  native O0/O2 and strict Wasm capacity/root-bound regression; execution pending.
+
 - Close the reserved String/conversion identity alias gap: authored declarations
   and retained HIR cannot impersonate compiler intrinsics by stable ID or
   executable function name. Add independent source/HIR guards and hostile

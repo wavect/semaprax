@@ -73,6 +73,8 @@ mod owned_record_vec_runtime;
 mod owned_leaf_vec;
 #[path = "owned_data/projected_bytes_borrowed_call_native.rs"]
 mod projected_bytes_borrowed_call_native;
+#[path = "owned_data/internal_owned_slice_boundary.rs"]
+mod internal_owned_slice_boundary;
 #[path = "owned_data/public_utf8_api.rs"]
 mod public_utf8_api;
 #[path = "owned_data/useful_data_usize.rs"]

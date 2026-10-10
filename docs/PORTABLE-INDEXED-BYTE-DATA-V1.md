@@ -165,6 +165,14 @@ or JavaScript object twice. Borrowed `str` and `Slice<u8>` parameters share
 one counter: one invocation admits at most 65,536 cumulative external root
 bytes across both carrier kinds.
 
+The native entry guard uses the actual runtime call depth before entering the
+function. The first private helper with borrowed parameters is not an external
+entry merely because its caller had no borrowed parameters. In particular,
+an internally created owned buffer retains its existing 131,072-byte bound
+when forwarded to such a helper. Borrowed-frame depth still tracks balanced
+entry and cleanup; it does not establish foreign-input authority. The source
+repair and focused cross-backend/root-bound regressions await execution.
+
 The exact source composition
 `str_as_bytes(string_as_str(owner))` is also admitted when `owner` is one
 available, unprojected named owning `string`. Resolution fuses this pair into

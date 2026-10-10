@@ -1354,8 +1354,9 @@ policy. The separate `utf8-owned-request.v1` selector requires
 `--max-string-bytes N` (canonical 1..64 decoded UTF-8 bytes per string); it
 accepts empty and duplicate values, including Unicode and NUL, in the same
 0..8 and 0..256 array bounds. The second array may be nonempty when the first
-is empty. Raw input remains subject to the existing 65,536-byte borrowed-root
-limit; the profile does not raise it. Source field identifiers stay ASCII.
+is empty. External input retains the existing 65,536-byte borrowed-root
+limit; internal owned Bytes views retain their 131,072-byte bound. Neither
+limit is increased. Source field identifiers stay ASCII.
 This is not a stream selector; see `help language author:json-utf8-owned-request`.
 Owned runtime support is private to
 `owned-data-api.v1` or native v30; v29 views keep Copy tokens tied to source

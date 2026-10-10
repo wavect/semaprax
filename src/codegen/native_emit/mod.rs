@@ -1954,7 +1954,7 @@ fn emit_function(
         .collect::<Vec<_>>();
     if !borrowed_params.is_empty() || !borrowed_byte_params.is_empty() {
         emitter
-            .line("const bool spx_borrowed_str_root = spx_ctx->borrowed_str_depth == UINT32_C(0);");
+            .line("const bool spx_borrowed_str_root = spx_ctx->call_depth == UINT32_C(0);");
         emitter.line("if (spx_ctx->borrowed_str_depth == UINT32_MAX) spx_runtime_invariant_failure(\"borrowed str call depth exhausted\");");
         emitter.line("if (spx_borrowed_str_root) {");
         emitter.indent += 1;

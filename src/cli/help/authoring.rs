@@ -92,7 +92,7 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
             "UTF-8 owned request source implementation; focused current-head qualification pending.\n",
             "Select --profile utf8-owned-request.v1 and --max-string-bytes N, canonical decimal 1..64 per decoded string in either array. It is not a stream selector.\n",
             "Use Vec<string> (0..8) then Vec<Row> (0..256); Row has one string identifier and up to six i64/u8/usize/bool fields with explicit IDs. Empty and duplicate values are accepted; the second array may be nonempty when the first is empty.\n",
-            "Values may contain Unicode, including NUL. Raw input remains subject to the existing 65,536-byte borrowed-root limit; this profile does not raise it. Source field identifiers remain ASCII. Runtime owns decoded strings independently; retain declared JSON dependencies and select private owned-data-api.v1 or native v30.\n",
+            "Values may contain Unicode, including NUL. External borrowed input shares the existing 65,536-byte root limit; internal owned Bytes views retain their 131,072-byte bound. This profile raises neither limit. Source field identifiers remain ASCII. Runtime owns decoded strings independently; retain declared JSON dependencies and select private owned-data-api.v1 or native v30.\n",
             "Invocation and exact source policy: help language author:json-codec and docs/APPLICATION-JSON-CODECS-V1.md.\n"
         ).to_owned()),
         "author:json-owned-request" => Ok(concat!(

@@ -35,7 +35,8 @@ MAX_RETAINED_BYTES = 64 * 1024 * 1024
 MAX_SELECTION_BYTES = 8 * 1024 * 1024
 WAIT_SECONDS = 30
 PROFILES = {"identifier-views.v1", "request-views.v1", "stream-request-views.v1",
-            "owned-request.v1", "stream-owned-request.v1", "utf8-owned-request.v1"}
+            "owned-request.v1", "stream-owned-request.v1", "utf8-owned-request.v1",
+            "stream-utf8-owned-request.v1"}
 
 
 def _json(path: Path, document: dict[str, Any], limit: int = MAX_MESSAGE_BYTES) -> None:
@@ -85,7 +86,7 @@ def _options(argv: list[str]) -> dict[str, str] | None:
     bound = values.get("--max-string-bytes")
     if profile not in PROFILES and profile is not None:
         return None
-    if profile == "utf8-owned-request.v1":
+    if profile in ("utf8-owned-request.v1", "stream-utf8-owned-request.v1"):
         if bound is None or not bound.isascii() or not bound.isdigit():
             return None
         if str(int(bound)) != bound or not 1 <= int(bound) <= 64:

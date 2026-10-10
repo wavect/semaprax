@@ -23,17 +23,19 @@ class LiveCampaignTests(unittest.TestCase):
     def test_json_codec_capture_profile_bound_matches_closed_cli_grammar(self):
         base = ["json-codec", "semaprax.toml", "--source", "src/schema.spx",
                 "--type", "app.request", "--output", "derived.spx"]
-        good = [*base, "--profile", "utf8-owned-request.v1", "--max-string-bytes", "64"]
-        self.assertEqual(compiler_capture._options(good)["--max-string-bytes"], "64")
-        for bound in ("0", "65", "01", "+1", " 1", ""):
-            with self.subTest(bound=bound):
-                args = [*base, "--profile", "utf8-owned-request.v1", "--max-string-bytes", bound]
-                self.assertIsNone(compiler_capture._options(args))
-        self.assertIsNone(compiler_capture._options([*base, "--profile", "utf8-owned-request.v1"]))
+        utf8_profiles = ("utf8-owned-request.v1", "stream-utf8-owned-request.v1")
+        for profile in utf8_profiles:
+            good = [*base, "--profile", profile, "--max-string-bytes", "64"]
+            self.assertEqual(compiler_capture._options(good)["--max-string-bytes"], "64")
+            for bound in ("0", "65", "01", "+1", " 1", ""):
+                with self.subTest(profile=profile, bound=bound):
+                    args = [*base, "--profile", profile, "--max-string-bytes", bound]
+                    self.assertIsNone(compiler_capture._options(args))
+            self.assertIsNone(compiler_capture._options([*base, "--profile", profile]))
         self.assertIsNone(compiler_capture._options([
             *base, "--profile", "owned-request.v1", "--max-string-bytes", "8"
         ]))
-        for profile in compiler_capture.PROFILES - {"utf8-owned-request.v1"}:
+        for profile in compiler_capture.PROFILES - set(utf8_profiles):
             self.assertIsNone(compiler_capture._options([
                 *base, "--profile", profile, "--max-string-bytes", "8"
             ]))
@@ -66,7 +68,7 @@ class LiveCampaignTests(unittest.TestCase):
                     candidate, compiler, broker, config, args = self._codec_capture_fixture(root)
                     if profile is not None:
                         args.extend(["--profile", profile])
-                        if profile == "utf8-owned-request.v1":
+                        if profile in ("utf8-owned-request.v1", "stream-utf8-owned-request.v1"):
                             args.extend(["--max-string-bytes", "64"])
                     authored = (candidate / "src/schema.spx").read_bytes()
                     mixed = authored + b"compiler-authored helpers\n"
@@ -94,6 +96,7 @@ class LiveCampaignTests(unittest.TestCase):
                     before = json.loads((root / "evidence" / ("0" * 31 + "1") / "receipt.json").read_text())
                     after = json.loads((root / "evidence" / ("0" * 31 + "2") / "receipt.json").read_text())
                     self.assertEqual(before["compiler"], config["compiler"])
+                    self.assertEqual(before["argv"], args)
                     self.assertFalse(before["input_closure_complete"])
                     self.assertFalse(before["exact_compiler_input_binding"])
                     self.assertIsNone(before["generated_source_classification"])

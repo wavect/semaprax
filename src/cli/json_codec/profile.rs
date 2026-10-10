@@ -17,6 +17,15 @@ pub(super) fn parse(profile: Option<&str>, max_string_bytes: Option<&str>) -> Op
                 max_string_bytes: bytes,
             })
         }
+        (Some("stream-utf8-owned-request.v1"), Some(raw)) => {
+            let bytes = raw.parse::<usize>().ok()?;
+            if !(1..=64).contains(&bytes) || bytes.to_string() != raw {
+                return None;
+            }
+            Some(JsonCodecProfile::StreamUtf8OwnedRequest {
+                max_string_bytes: bytes,
+            })
+        }
         _ => None,
     }
 }

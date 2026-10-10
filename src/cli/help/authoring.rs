@@ -2,7 +2,7 @@
 use std::fmt::Write as _;
 
 const MAX_BYTES: usize = 2_048;
-const ROUTES: &str = "Authoring routes (complete):\n  author:stdin-json               v27 bounded native stream command\n  author:stream-data-v2           v29 private record/Vec stream command\n  author:owned-data               v30 private owned-leaf collections\n  author:file-text                native UTF-8 file command\n  author:source-web               single-source web build\n  author:literal-format           checked literal String rendering\n  author:copy-record-vec          flat Copy-record vectors\n  author:json-codec               checked source JSON codec derivation\n  author:json-identifier-views    one identifier as a token view\n  author:json-request-views       bounded identifier and record arrays\n  author:json-stream-request-views bounded native stream request view\n  author:json-owned-request      bounded owning request collections\n  author:json-utf8-owned-request bounded UTF-8 string values\nLibrary-only search: help language find:<word>:0\nExact card sections: help language topics\n";
+const ROUTES: &str = "Authoring routes (complete):\n  author:stdin-json               v27 bounded native stream command\n  author:stream-data-v2           v29 private record/Vec stream command\n  author:owned-data               v30 private owned-leaf collections\n  author:file-text                native UTF-8 file command\n  author:source-web               single-source web build\n  author:literal-format           checked literal String rendering\n  author:copy-record-vec          flat Copy-record vectors\n  author:json-codec               checked source JSON codec derivation\n  author:json-identifier-views    one identifier as a token view\n  author:json-request-views       bounded identifier and record arrays\n  author:json-stream-request-views bounded native stream request view\n  author:json-owned-request      bounded owning request collections\n  author:json-utf8-owned-request bounded UTF-8 string values\n  author:json-stream-utf8-owned-request bounded UTF-8 stdin requests\nLibrary-only search: help language find:<word>:0\nExact card sections: help language topics\n";
 
 #[cfg(test)]
 pub(super) fn assert_guide_contract() {
@@ -94,6 +94,13 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
             "Use Vec<string> (0..8) then Vec<Row> (0..256); Row has one string identifier and up to six i64/u8/usize/bool fields with explicit IDs. Empty and duplicate values are accepted; the second array may be nonempty when the first is empty.\n",
             "Values may contain Unicode, including NUL. External borrowed input shares the existing 65,536-byte root limit; internal owned Bytes views retain their 131,072-byte bound. This profile raises neither limit. Source field identifiers remain ASCII. Runtime owns decoded strings independently; retain declared JSON dependencies and select private owned-data-api.v1 or native v30.\n",
             "Invocation and exact source policy: help language author:json-codec and docs/APPLICATION-JSON-CODECS-V1.md.\n"
+        ).to_owned()),
+        "author:json-stream-utf8-owned-request" => Ok(concat!(
+            "Streaming UTF-8 owned JSON request source implementation; focused qualification pending.\n",
+            "Select --profile stream-utf8-owned-request.v1 and --max-string-bytes N, canonical decimal 1..64 per decoded string; the request shape matches author:json-utf8-owned-request.\n",
+            "The schema must already declare process.stdin.read; derivation grants no capability. Decode only the Ready Bytes from the existing bounded stream normalizer.\n",
+            "Raw normalizer errors use raw-input offsets; post-Ready request/schema errors use normalized-input offsets. This is a native stream selector.\n",
+            "The selector does not widen the foreign 65,536-byte input bound. Exact contract: docs/APPLICATION-JSON-CODECS-V1.md.\n"
         ).to_owned()),
         "author:json-owned-request" => Ok(concat!(
             "Owned request source implementation; focused cross-backend and application qualification pending.\n",
@@ -250,6 +257,7 @@ mod tests {
             "author:json-stream-request-views",
             "author:json-owned-request",
             "author:json-utf8-owned-request",
+            "author:json-stream-utf8-owned-request",
         ] {
             let output = lookup(route).unwrap();
             assert!(output.len() <= MAX_BYTES);
@@ -295,6 +303,21 @@ mod tests {
         ] {
             assert!(utf8_request.contains(fact), "UTF-8 request guidance omits {fact}");
         }
+        let stream_utf8_request = lookup("author:json-stream-utf8-owned-request").unwrap();
+        for fact in [
+            "stream-utf8-owned-request.v1",
+            "--max-string-bytes N",
+            "process.stdin.read",
+            "Ready Bytes",
+            "raw-input offsets",
+            "normalized-input offsets",
+            "qualification pending",
+        ] {
+            assert!(
+                stream_utf8_request.contains(fact),
+                "stream UTF-8 request guidance omits {fact}"
+            );
+        }
         let owned_request = lookup("author:json-owned-request").unwrap();
         for fact in [
             "owned-request.v1",
@@ -326,6 +349,7 @@ mod tests {
             "author:json-stream-request-views",
             "author:json-owned-request",
             "author:json-utf8-owned-request",
+            "author:json-stream-utf8-owned-request",
         ] {
             assert!(routes.contains(selector), "route list omits {selector}");
         }

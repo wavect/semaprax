@@ -1,0 +1,46 @@
+module shiftsim.fixtures;
+use type @id("shiftsim.patient") from shiftsim.model as Patient;
+use type @id("shiftsim.server") from shiftsim.model as Server;
+use type @id("shiftsim.request") from shiftsim.model as Request;
+use function @id("shiftsim.schedule.run") from shiftsim.schedule as run;
+use function @id("shiftsim.render.report") from shiftsim.render as render;
+
+@id("shiftsim.fixtures.tied_request")
+fn tied_request() -> Request
+{
+    let empty_people = vec_with_capacity<Patient>(3usize);
+    let first_person = vec_push<Patient>(empty_people, Patient {
+        priority: 1,
+        arrival: 0,
+        id: "zeta",
+        service: 2,
+        deadline: 5,
+        assigned: false,
+    });
+    let second_person = vec_push<Patient>(first_person, Patient {
+        priority: 1,
+        arrival: 0,
+        id: "alpha",
+        service: 1,
+        deadline: 0,
+        assigned: false,
+    });
+    let people = vec_push<Patient>(second_person, Patient {
+        priority: 2,
+        arrival: 1,
+        id: "later",
+        service: 3,
+        deadline: 2,
+        assigned: false,
+    });
+    let empty_workers = vec_with_capacity<Server>(2usize);
+    let first_worker = vec_push<Server>(empty_workers, Server { id: "worker-b", free_at: 0 });
+    let workers = vec_push<Server>(first_worker, Server { id: "worker-a", free_at: 0 });
+    Request { patients: people, servers: workers }
+}
+
+@id("shiftsim.fixtures.tied_output")
+fn tied_output() -> string
+{
+    render(run(tied_request()))
+}

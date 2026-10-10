@@ -1,0 +1,8 @@
+module shiftsim.tests;
+use function @id("shiftsim.fixtures.tied_output") from shiftsim.fixtures as tied_output;
+
+@id("shiftsim.tests.main")
+fn main() -> i64
+{
+    if tied_output() == "{\"assignments\":[{\"id\":\"alpha\",\"server\":\"worker-a\",\"arrival\":0,\"start\":0,\"finish\":1,\"wait\":0,\"late\":true},{\"id\":\"zeta\",\"server\":\"worker-b\",\"arrival\":0,\"start\":0,\"finish\":2,\"wait\":0,\"late\":false},{\"id\":\"later\",\"server\":\"worker-a\",\"arrival\":1,\"start\":1,\"finish\":4,\"wait\":0,\"late\":true}],\"metrics\":{\"patients\":3,\"total_wait\":0,\"max_wait\":0,\"late\":2,\"busy_time\":6,\"makespan\":4,\"peak_queue\":2,\"utilization_ppm\":750000}}\n" { 0 } else { 1 }
+}

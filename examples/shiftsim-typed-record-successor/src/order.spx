@@ -1,0 +1,15 @@
+module shiftsim.order;
+use type @id("shiftsim.patient") from shiftsim.model as Patient;
+use type @id("shiftsim.server") from shiftsim.model as Server;
+
+@id("shiftsim.order.patients")
+fn patients_by_dispatch_key(patients: own Vec<Patient>) -> Vec<Patient>
+{
+    vec_sort_owned<Patient>(patients)
+}
+
+@id("shiftsim.order.servers")
+fn servers_by_id(servers: own Vec<Server>) -> Vec<Server>
+{
+    vec_sort_owned<Server>(servers)
+}

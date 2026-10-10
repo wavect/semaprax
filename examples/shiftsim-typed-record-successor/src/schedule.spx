@@ -1,0 +1,196 @@
+module shiftsim.schedule;
+use type @id("shiftsim.patient") from shiftsim.model as Patient;
+use type @id("shiftsim.server") from shiftsim.model as Server;
+use type @id("shiftsim.assignment") from shiftsim.model as Assignment;
+use type @id("shiftsim.metrics") from shiftsim.model as Metrics;
+use type @id("shiftsim.request") from shiftsim.model as Request;
+use type @id("shiftsim.report") from shiftsim.model as Report;
+use function @id("shiftsim.order.patients") from shiftsim.order as patients_by_dispatch_key;
+use function @id("shiftsim.order.servers") from shiftsim.order as servers_by_id;
+
+@id("shiftsim.schedule.run")
+fn run(request: own Request) -> Report
+{
+    match own request {
+        Request { patients, servers } => {
+            let patient_count = vec_len<Patient>(patients);
+            let server_count = vec_len<Server>(servers);
+            let mut assignments = vec_with_capacity<Assignment>(256usize);
+            let mut total_wait = 0;
+            let mut max_wait = 0;
+            let mut late_count = 0;
+            let mut busy_time = 0;
+            let mut makespan = 0;
+            let mut peak_queue = 0;
+            let mut time = 0;
+            let mut dispatched = 0usize;
+            let mut people = patients;
+            let mut workers = servers;
+
+            while dispatched < patient_count {
+                people = patients_by_dispatch_key(people);
+                workers = servers_by_id(workers);
+
+                let mut waiting = 0i64;
+                let mut count_index = 0usize;
+                while count_index < patient_count {
+                    let inspected_patient = vec_clone_at<Patient>(people, count_index);
+                    match own inspected_patient {
+                        Patient { priority: _count_priority, arrival: count_arrival, id: _count_id, service: _count_service, deadline: _count_deadline, assigned: count_assigned } => {
+                            if !count_assigned && count_arrival <= time { waiting = waiting + 1; }
+                            0
+                        },
+                    }
+                    count_index = count_index + 1usize;
+                    0
+                }
+                if waiting > peak_queue { peak_queue = waiting; }
+
+                let mut dispatching = true;
+                while dispatching {
+                    let mut patient_index = patient_count;
+                    let mut search_patient = 0usize;
+                    let mut patient_searching = true;
+                    while search_patient < patient_count && patient_searching {
+                        let candidate_patient = vec_clone_at<Patient>(people, search_patient);
+                        match own candidate_patient {
+                            Patient { priority: _candidate_priority, arrival: candidate_arrival, id: _candidate_id, service: _candidate_service, deadline: _candidate_deadline, assigned: candidate_assigned } => {
+                                if !candidate_assigned && candidate_arrival <= time {
+                                    patient_index = search_patient;
+                                    patient_searching = false;
+                                }
+                                0
+                            },
+                        }
+                        search_patient = search_patient + 1usize;
+                        0
+                    }
+
+                    let mut server_index = server_count;
+                    let mut search_server = 0usize;
+                    let mut server_searching = true;
+                    while search_server < server_count && server_searching {
+                        let candidate_server = vec_clone_at<Server>(workers, search_server);
+                        match own candidate_server {
+                            Server { id: _candidate_server_id, free_at: candidate_free_at } => {
+                                if candidate_free_at <= time {
+                                    server_index = search_server;
+                                    server_searching = false;
+                                }
+                                0
+                            },
+                        }
+                        search_server = search_server + 1usize;
+                        0
+                    }
+
+                    if patient_index == patient_count || server_index == server_count {
+                        dispatching = false;
+                    } else {
+                        let selected_patient = vec_clone_at<Patient>(people, patient_index);
+                        match own selected_patient {
+                            Patient { priority: _selected_priority, arrival: selected_arrival, id: selected_id, service: selected_service, deadline: selected_deadline, assigned: _selected_assigned } => {
+                                let finish = time + selected_service;
+                                let wait = time - selected_arrival;
+                                let late = finish > selected_deadline;
+                                let replacement_patient = vec_clone_at<Patient>(people, patient_index);
+                                let renewed_patient = match own replacement_patient {
+                                    Patient { priority: replacement_priority, arrival: replacement_arrival, id: replacement_id, service: replacement_service, deadline: replacement_deadline, assigned: _replacement_assigned } => Patient {
+                                        priority: replacement_priority,
+                                        arrival: replacement_arrival,
+                                        id: replacement_id,
+                                        service: replacement_service,
+                                        deadline: replacement_deadline,
+                                        assigned: true,
+                                    },
+                                };
+                                people = vec_replace<Patient>(people, patient_index, renewed_patient);
+
+                                let selected_server = vec_clone_at<Server>(workers, server_index);
+                                match own selected_server {
+                                    Server { id: selected_server_id, free_at: _selected_free_at } => {
+                                        let replacement_server = vec_clone_at<Server>(workers, server_index);
+                                        let renewed_server = match own replacement_server {
+                                            Server { id: replacement_server_id, free_at: _replacement_free_at } => Server { id: replacement_server_id, free_at: finish },
+                                        };
+                                        workers = vec_replace<Server>(workers, server_index, renewed_server);
+                                        assignments = vec_push<Assignment>(assignments, Assignment {
+                                            id: selected_id,
+                                            server: selected_server_id,
+                                            arrival: selected_arrival,
+                                            start: time,
+                                            finish,
+                                            wait,
+                                            late,
+                                        });
+                                        total_wait = total_wait + wait;
+                                        if wait > max_wait { max_wait = wait; }
+                                        if late { late_count = late_count + 1; }
+                                        busy_time = busy_time + selected_service;
+                                        if finish > makespan { makespan = finish; }
+                                        dispatched = dispatched + 1usize;
+                                        0
+                                    },
+                                }
+                                0
+                            },
+                        }
+                        0
+                    }
+                    0
+                }
+
+                if dispatched < patient_count {
+                    let mut next_time = 9223372036854775807;
+                    let mut next_patient_index = 0usize;
+                    while next_patient_index < patient_count {
+                        let next_patient = vec_clone_at<Patient>(people, next_patient_index);
+                        match own next_patient {
+                            Patient { priority: _next_priority, arrival: next_arrival, id: _next_id, service: _next_service, deadline: _next_deadline, assigned: next_assigned } => {
+                                if !next_assigned && next_arrival > time && next_arrival < next_time { next_time = next_arrival; }
+                                0
+                            },
+                        }
+                        next_patient_index = next_patient_index + 1usize;
+                        0
+                    }
+                    let mut next_server_index = 0usize;
+                    while next_server_index < server_count {
+                        let next_server = vec_clone_at<Server>(workers, next_server_index);
+                        match own next_server {
+                            Server { id: _next_server_id, free_at: next_free_at } => {
+                                if next_free_at > time && next_free_at < next_time { next_time = next_free_at; }
+                                0
+                            },
+                        }
+                        next_server_index = next_server_index + 1usize;
+                        0
+                    }
+                    time = next_time;
+                    0
+                } else {
+                    0
+                }
+            }
+
+            let utilization_ppm = if patient_count == 0usize || server_count == 0usize || makespan == 0 {
+                0
+            } else {
+                busy_time * 1000000 / (i64_from_usize(server_count) * makespan)
+            };
+            Report {
+                assignments,
+                metrics: Metrics {
+                    patients: i64_from_usize(patient_count),
+                    total_wait,
+                    max_wait,
+                    late: late_count,
+                    busy_time,
+                    makespan,
+                    peak_queue,
+                    utilization_ppm,
+                },
+            }
+        },
+    }
+}

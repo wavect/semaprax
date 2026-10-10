@@ -45,7 +45,7 @@ const LANGUAGE_TOPICS: &str = concat!(
 );
 const DIAGNOSTIC_CODES: &str = concat!(
     "Common diagnostic codes:\n",
-    "  SPX-P106 SPX-H006 SPX-T252 SPX-T203 SPX-G170 SPX-P003 SPX-P201 SPX-T205 SPX-T266 SPX-B104 SPX-F102 SPX-G172\n",
+    "  SPX-P106 SPX-H006 SPX-T252 SPX-T203 SPX-G170 SPX-P003 SPX-P201 SPX-T205 SPX-T266 SPX-B104 SPX-F102 SPX-G171\n",
     "Fix: semaprax help diagnostic <code>\n",
     "All: semaprax help language mistakes-index\n",
 );
@@ -53,6 +53,11 @@ const DIAGNOSTIC_T208: &str = concat!(
     "SPX-T208\n",
     "wrote: index + 1 when index: usize\n",
     "fix: Literals default to i64; use index + 1usize\n",
+);
+const DIAGNOSTIC_G171: &str = concat!(
+    "SPX-G171\n",
+    "wrote: resolved-core builder ledger refusal\n",
+    "fix: Use requested/remaining/floor plus the compiler-owned stage to choose a smaller graph; those are cumulative ledger bytes, not RSS/peak forecast; unknown is not inferred\n",
 );
 
 /// The command named by every indented entry of the guided overview.
@@ -435,16 +440,40 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     assert!(diagnostic.stderr.is_empty());
     assert_eq!(diagnostic.stdout, DIAGNOSTIC_T208.as_bytes());
     assert!(diagnostic.stdout.len() <= 256);
-    let mistakes = invoke(&["help", "language", "mistakes-index"]);
-    assert!(diagnostic.stdout.len() * 20 < mistakes.0.stdout.len());
+    let (mistakes, mistakes_dir) = invoke(&["help", "language", "mistakes-index"]);
+    assert!(mistakes.status.success());
+    assert!(mistakes.stderr.is_empty());
+    assert!(
+        mistakes
+            .stdout
+            .starts_with(b"## Habits from other languages: diagnostic index\n")
+    );
+    let (reference, reference_dir) = invoke(&["help", "language", "all"]);
+    assert!(reference.status.success());
+    assert!(reference.stderr.is_empty());
+    let reference = std::str::from_utf8(&reference.stdout).unwrap();
+    let marker = "## Habits from other languages: diagnostic index\n";
+    let index = reference
+        .split_once(marker)
+        .unwrap()
+        .1
+        .split("\n## ")
+        .next()
+        .unwrap();
+    assert!(diagnostic.stdout.len() * 20 < index.len());
     assert!(
         semaprax::agent_economics::lexical_tokens(DIAGNOSTIC_T208) * 20
-            < semaprax::agent_economics::lexical_tokens(
-                std::str::from_utf8(&mistakes.0.stdout).unwrap()
-            )
+            < semaprax::agent_economics::lexical_tokens(index)
     );
-    std::fs::remove_dir(mistakes.1).unwrap();
+    std::fs::remove_dir(reference_dir).unwrap();
+    std::fs::remove_dir(mistakes_dir).unwrap();
     std::fs::remove_dir(diagnostic_dir).unwrap();
+    let (g171, g171_dir) = invoke(&["help", "diagnostic", "SPX-G171"]);
+    assert!(g171.status.success());
+    assert!(g171.stderr.is_empty());
+    assert_eq!(g171.stdout, DIAGNOSTIC_G171.as_bytes());
+    assert!(g171.stdout.len() <= 256);
+    std::fs::remove_dir(g171_dir).unwrap();
     let (p106, p106_dir) = invoke(&["help", "diagnostic", "SPX-P106"]);
     assert!(p106.status.success());
     assert!(p106.stderr.is_empty());

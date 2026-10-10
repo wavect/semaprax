@@ -7,7 +7,7 @@ use std::collections::BTreeSet;
 
 use crate::variant_layout::{VariantFieldValueKind, VariantLayout, VariantLayoutCache};
 
-use super::{backend_error, c_case_symbol, c_field_symbol, variant_declaration_id, COutput};
+use super::{COutput, backend_error, c_case_symbol, c_field_symbol, variant_declaration_id};
 
 pub(super) fn borrowed_aggregate_byte_paths(
     program: &ResolvedProgram,
@@ -23,16 +23,32 @@ pub(super) fn borrowed_aggregate_byte_paths(
     if variant_declaration_id(program, ty)?.is_some() {
         let layout = variant_layouts.layout(ty)?;
         layout.validate(program)?;
-        return Ok(layout
-            .cases
-            .iter()
-            .flat_map(|case| {
-                case.fields
-                    .iter()
-                    .filter(|field| matches!(field.ty, ResolvedType::Bytes))
-                    .map(|field| vec![case.case.clone(), field.field.clone()])
-            })
-            .collect());
+        let mut output = Vec::new();
+        for case in &layout.cases {
+            for field in &case.fields {
+                let prefix = vec![case.case.clone(), field.field.clone()];
+                if matches!(field.ty, ResolvedType::Bytes | ResolvedType::String)
+                    || crate::hir::owned_collection_record::vector(&program.declarations, &field.ty)
+                {
+                    output.push(prefix);
+                } else if crate::cleanup::variant_record_field(
+                    program,
+                    ty,
+                    &case.case,
+                    &field.field,
+                    &field.ty,
+                ) {
+                    let mut leaves = Vec::new();
+                    collect_record_paths(program, record_layouts, &field.ty, &mut leaves)?;
+                    output.extend(
+                        leaves
+                            .into_iter()
+                            .map(|path| [prefix.clone(), path].concat()),
+                    );
+                }
+            }
+        }
+        return Ok(output);
     }
     Ok(Vec::new())
 }
@@ -341,8 +357,8 @@ pub(super) fn borrowed_leaf_pointer_type(
     path: &[DeclarationId],
 ) -> Result<&'static str, Diagnostic> {
     let mut ty = root.clone();
-    if variant_declaration_id(program, &ty)?.is_some() {
-        let [case, field] = path else {
+    let remainder = if variant_declaration_id(program, &ty)?.is_some() {
+        let [case, field, remainder @ ..] = path else {
             return Err(backend_error("invalid borrowed variant leaf path"));
         };
         ty = variants
@@ -352,15 +368,17 @@ pub(super) fn borrowed_leaf_pointer_type(
             .ok_or_else(|| backend_error("borrowed variant leaf is absent"))?
             .ty
             .clone();
+        remainder
     } else {
-        for field in path {
-            ty = layouts
-                .layout(&ty)?
-                .field(field)
-                .ok_or_else(|| backend_error("borrowed record leaf is absent"))?
-                .ty
-                .clone();
-        }
+        path
+    };
+    for field in remainder {
+        ty = layouts
+            .layout(&ty)?
+            .field(field)
+            .ok_or_else(|| backend_error("borrowed record leaf is absent"))?
+            .ty
+            .clone();
     }
     match ty {
         ResolvedType::Bytes => Ok("const spx_bytes_v1 *"),

@@ -14,9 +14,9 @@ use crate::diagnostic::Diagnostic;
 use crate::{ast::Program, hir};
 
 use super::{
-    graph_error, loan_retention::RetentionScratch, retained_function_loan_bytes,
-    AuthoredDeclaration, WorkspaceDeclarationFact, WorkspaceResolvedModule,
-    GRAPH_ACCOUNTED_RESOLVED_FUNCTION_INSTANCE_BYTES,
+    AuthoredDeclaration, GRAPH_ACCOUNTED_RESOLVED_FUNCTION_INSTANCE_BYTES,
+    WorkspaceDeclarationFact, WorkspaceResolvedModule, graph_error,
+    loan_retention::RetentionScratch, retained_function_loan_bytes,
 };
 
 /// Retain only authored nominal declarations reached by an already selected
@@ -868,7 +868,36 @@ impl super::WorkspaceGraphBuild {
             .map(|function| function.id.as_str().to_owned())
             .collect::<Vec<_>>();
         let mut linked = self.linked_owned_data_api_program_with_roots(test_module, &roots)?;
-        hir::validate_stream_collection_record_program(&linked, None).map_err(|error| vec![error])?;
+        hir::validate_stream_collection_record_program(&linked, None)
+            .map_err(|error| vec![error])?;
+        self.attach_project_agents(&mut linked)?;
+        Ok(linked)
+    }
+
+    pub(super) fn linked_stream_nested_outcome_test_program(
+        &self,
+        test_module: &str,
+    ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
+        let roots = self
+            .hir
+            .modules
+            .iter()
+            .filter(|module| module.module == test_module)
+            .flat_map(|module| &module.functions)
+            .filter(|function| {
+                function.name.starts_with(crate::project::TEST_CASE_PREFIX)
+                    && function.params.is_empty()
+                    && function.return_type == hir::ResolvedType::I64
+                    && self
+                        .hir
+                        .declarations
+                        .get(function.id.as_str())
+                        .is_some_and(|fact| fact.origin == hir::IdentityOrigin::Explicit)
+            })
+            .map(|function| function.id.as_str().to_owned())
+            .collect::<Vec<_>>();
+        let mut linked = self.linked_owned_data_api_program_with_roots(test_module, &roots)?;
+        hir::validate_stream_nested_outcome_program(&linked, None).map_err(|error| vec![error])?;
         self.attach_project_agents(&mut linked)?;
         Ok(linked)
     }

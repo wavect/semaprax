@@ -13,11 +13,22 @@ pub(super) fn source(root: &TypeDeclaration, record: &Record<'_>, bound: usize) 
     writeln!(out,"@id(\"{id}.json.nested.check.{ordinal}\") fn json_{name}_nested_check_{ordinal}(input:borrow Slice<u8>,object:usize)->{name}JsonNestedStatus {{\nlet length=byte_len(input);let mut error=if jv_kind(input,object)==1{{0}}else{{5}};let mut offset=if error==0{{0usize}}else{{object}};let mut field={ordinal};").unwrap();
     for field in &record.fields {
         writeln!(out, "let mut seen_{}=false;", field.ordinal).unwrap();
+        writeln!(
+            out,
+            "let key_{}={};",
+            field.ordinal,
+            key_array(&field.declaration.name)
+        )
+        .unwrap();
     }
     out.push_str("let mut key=if error==0{jv_first_member(input,object)}else{length};\nwhile error==0 && key<length{\nlet start=jv_member_value(input,key);let mut selected=0;\n");
     for field in &record.fields {
         let n = field.ordinal;
-        writeln!(out,"let key_{n}={};selected=if jv_key_eq(input,key,array_as_slice(key_{n})){{{n}}}else{{selected}};",key_array(&field.declaration.name)).unwrap();
+        writeln!(
+            out,
+            "selected=if jv_key_eq(input,key,array_as_slice(key_{n})){{{n}}}else{{selected}};"
+        )
+        .unwrap();
     }
     out.push_str("let _ = if selected==0{error=4;offset=key;field=0;false}else{field=selected;\n");
     for f in &record.fields {

@@ -1,9 +1,14 @@
 module owned.tests;
-
 use function @id("owned.data.verify") from owned.data as verify;
 
 @id("owned.tests.main")
-fn main() -> i64 { verify() }
+fn main() -> i64
+{
+    verify()
+}
 
 @id("owned.tests.collections")
-fn test_collections() -> i64 { verify() }
+fn test_collections() -> i64
+{
+    verify()
+}

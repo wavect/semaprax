@@ -4,22 +4,32 @@ permit { process.stdin.read }
 
 @id("orders.configuration")
 record Configuration {
-    @id("orders.configuration.label") label: string,
-    @id("orders.configuration.retry") retry: usize,
+    @id("orders.configuration.label")
+    label: string,
+    @id("orders.configuration.retry")
+    retry: usize,
 }
 
 @id("orders.line")
 record Line {
-    @id("orders.line.sku") sku: string,
-    @id("orders.line.quantity") quantity: u8,
+    @id("orders.line.sku")
+    sku: string,
+    @id("orders.line.quantity")
+    quantity: u8,
 }
 
 @id("orders.request")
 record OrderRequest {
-    @id("orders.request.configuration") configuration: Configuration,
-    @id("orders.request.lines") lines: Vec<Line>,
-    @id("orders.request.urgent") urgent: bool,
+    @id("orders.request.configuration")
+    configuration: Configuration,
+    @id("orders.request.lines")
+    lines: Vec<Line>,
+    @id("orders.request.urgent")
+    urgent: bool,
 }
 
 @id("orders.schema.anchor")
-fn schema_anchor() -> i64 { 0 }
+fn schema_anchor() -> i64
+{
+    0
+}

@@ -95,9 +95,9 @@ let root=if error==0{{jv_root(input)}}else{{0usize}};
 let _ = if error==0 && jv_kind(input,root)!=1{{error=5;offset=root;false}}else{{true}};
 let mut servers=vec_with_capacity<{name}JsonIdentifierSpan>(8usize);let mut patients=vec_with_capacity<{row}JsonView>(256usize);
 let mut seen_servers=false;let mut seen_patients=false;
+let servers_key={};let patients_key={};
 let mut key=if error==0{{jv_first_member(input,root)}}else{{length}};
 while error==0 && key<length{{
-let servers_key={};let patients_key={};
 let selected=if jv_key_eq(input,key,array_as_slice(servers_key)){{1}}else{{if jv_key_eq(input,key,array_as_slice(patients_key)){{2}}else{{0}}}};
 let start=jv_member_value(input,key);
 let _ = if selected==0{{error=4;offset=key;field=0;false}}else{{field=selected;

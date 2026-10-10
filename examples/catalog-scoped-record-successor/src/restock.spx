@@ -1,5 +1,4 @@
 module catalog.restock;
-
 use type @id("catalog.input_item") from catalog.request_schema as InputItem;
 use type @id("catalog.request") from catalog.request_schema as Request;
 use type @id("catalog.output_item") from catalog.response_schema as Item;
@@ -15,66 +14,12 @@ use function @id("catalog.selected") from catalog.order as selected;
 @id("catalog.empty_report")
 fn empty_report() -> Report
 {
-    Report { items: vec_with_capacity<Item>(0usize), metrics: Metrics {
-        selected: 0, stock: 0, checksum: 0,
-    } }
+    Report { items: vec_with_capacity<Item>(0usize), metrics: Metrics { selected: 0, stock: 0, checksum: 0 } }
 }
 
 @id("catalog.run")
 fn run(request: own Request) -> Result
 {
-    match own request {
-        Request { tags: input_tags, items: input_items } => {
-            let mut tags = vec_with_capacity<Tag>(vec_len<string>(input_tags));
-            for own tag in vec_into_iter<string>(input_tags) {
-                tags = vec_push<Tag>(tags, Tag { id: tag });
-                0
-            }
-            let tags = vec_sort_owned<Tag>(tags);
-            let input_items = vec_sort_owned<InputItem>(input_items);
-            // Validate every item before selection, including excluded items.
-            if !valid_sorted_tags(tags) || !valid_sorted_items(input_items) {
-                Result { valid: false, report: empty_report() }
-            } else {
-                let mut selected_items = vec_with_capacity<SortItem>(vec_len<InputItem>(input_items));
-                for own item in vec_into_iter<InputItem>(input_items) {
-                    let _ = match own item {
-                        InputItem { id, department, priority, stock, topup, mark } => {
-                            let include = selected(string_as_str(id), tags);
-                            if include {
-                                selected_items = vec_push<SortItem>(selected_items, SortItem {
-                                    department: department, priority: priority, id: id,
-                                    stock: stock + topup, mark: mark,
-                                });
-                            }
-                            0
-                        },
-                    };
-                    0
-                }
-                let ordered = vec_sort_owned<SortItem>(selected_items);
-                let count = vec_len<SortItem>(ordered);
-                let mut output = vec_with_capacity<Item>(count);
-                let mut total = 0;
-                let mut checksum = 0;
-                for own item in vec_into_iter<SortItem>(ordered) {
-                    let _ = match own item {
-                        SortItem { department, priority, id, stock, mark } => {
-                            total = total + stock;
-                            checksum = checksum + i64_from_u8(mark);
-                            output = vec_push<Item>(output, Item {
-                                id: id, department: department, priority: priority,
-                                stock: stock, mark: mark,
-                            });
-                            0
-                        },
-                    };
-                    0
-                }
-                Result { valid: true, report: Report { items: output, metrics: Metrics {
-                    selected: i64_from_usize(count), stock: total, checksum: checksum,
-                } } }
-            }
-        },
-    }
+    // Validate every item before selection, including excluded items.
+    match own request { Request { tags: input_tags, items: input_items } => { let mut tags = vec_with_capacity<Tag>(vec_len<string>(input_tags)); for own tag in vec_into_iter<string>(input_tags) { tags = vec_push<Tag>(tags, Tag { id: tag }); 0 } let tags = vec_sort_owned<Tag>(tags); let input_items = vec_sort_owned<InputItem>(input_items); if !valid_sorted_tags(tags) || !valid_sorted_items(input_items) { Result { valid: false, report: empty_report() } } else { let mut selected_items = vec_with_capacity<SortItem>(vec_len<InputItem>(input_items)); for own item in vec_into_iter<InputItem>(input_items) { let _ = match own item { InputItem { id, department, priority, stock, topup, mark } => { let include = selected(string_as_str(id), tags); if include { selected_items = vec_push<SortItem>(selected_items, SortItem { department: department, priority: priority, id: id, stock: stock + topup, mark: mark }); } 0 }, }; 0 } let ordered = vec_sort_owned<SortItem>(selected_items); let count = vec_len<SortItem>(ordered); let mut output = vec_with_capacity<Item>(count); let mut total = 0; let mut checksum = 0; for own item in vec_into_iter<SortItem>(ordered) { let _ = match own item { SortItem { department, priority, id, stock, mark } => { total = total + stock; checksum = checksum + i64_from_u8(mark); output = vec_push<Item>(output, Item { id: id, department: department, priority: priority, stock: stock, mark: mark }); 0 }, }; 0 } Result { valid: true, report: Report { items: output, metrics: Metrics { selected: i64_from_usize(count), stock: total, checksum: checksum } } } } }, }
 }

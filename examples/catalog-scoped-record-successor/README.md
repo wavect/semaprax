@@ -59,6 +59,9 @@ retains the authored schemas before generation, binds the actual compiler-bundle
 library closure, replays both outputs against the unchanged bootstrap, and returns
 a regular complete source tree with explicit build/test/run scripts. It does not
 qualify the 23 cases itself or seed paid trial candidates.
+Its read-only `--verify-installation` action rechecks a completed tree against the
+same compiler/source/build bindings and retained source inventories before the
+independent qualification runner; edited or incomplete trees are refused.
 
 The owning Project test derives/replays both candidates against the unchanged
 bootstrap, checks canonical source, runs the two source tests, and compares the

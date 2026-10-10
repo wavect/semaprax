@@ -24,27 +24,53 @@ const PREFIX: &str = r#"module failure.nested_collection;
 #[test]
 fn every_nested_constructor_prefix_and_owned_call_failure_preserves_status_and_settles() {
     for (label, body) in [
-        ("first", "let v=Envelope{text:text(),report:make(),bytes:bytes_zeroed(2usize),tail:1};0"),
-        ("report", "let v=Envelope{text:\"owned\",report:report_fail(),bytes:bytes_zeroed(2usize),tail:1};0"),
-        ("bytes", "let v=Envelope{text:\"owned\",report:make(),bytes:bytes(),tail:1};0"),
-        ("tail", "let v=Envelope{text:\"owned\",report:make(),bytes:bytes_zeroed(2usize),tail:boom()};0"),
+        (
+            "first",
+            "let v=Envelope{text:text(),report:make(),bytes:bytes_zeroed(2usize),tail:1};0",
+        ),
+        (
+            "report",
+            "let v=Envelope{text:\"owned\",report:report_fail(),bytes:bytes_zeroed(2usize),tail:1};0",
+        ),
+        (
+            "bytes",
+            "let v=Envelope{text:\"owned\",report:make(),bytes:bytes(),tail:1};0",
+        ),
+        (
+            "tail",
+            "let v=Envelope{text:\"owned\",report:make(),bytes:bytes_zeroed(2usize),tail:boom()};0",
+        ),
         ("staging", "let r=make();consume(r,boom())"),
         ("callee", "let r=make();consume(r,1)"),
         ("postcondition", "let r=make();let unpublished=guarded(r);0"),
     ] {
         let contract = label == "postcondition";
-        let domain = if contract {"semaprax.contract.v1"} else {"semaprax.arithmetic.v1"};
-        let code = if contract {2} else {1};
+        let domain = if contract {
+            "semaprax.contract.v1"
+        } else {
+            "semaprax.arithmetic.v1"
+        };
+        let code = if contract { 2 } else { 1 };
         let root = directory(label);
         let path = root.join("app.spx");
         let source = format!("{PREFIX}@id(\"app.main\") fn main()->i64 {{{body}}}");
         std::fs::write(&path, &source).unwrap();
         let ast = semaprax::check(&source, &path).unwrap();
         for _ in 0..3 {
-            let observed = interpreter::interpret(&path, "app.main", &[], &InterpreterOptions::default()).unwrap();
+            let observed = interpreter::internal_strings::interpret(
+                &path,
+                "app.main",
+                &[],
+                &InterpreterOptions::default(),
+            )
+            .unwrap();
             assert!(!observed.returned, "{}", observed.envelope);
-            interpreter::verify_envelope(&observed.envelope).unwrap();
-            assert!(observed.envelope.contains(&format!("\"domain_id\":\"{domain}\"")));
+            interpreter::internal_strings::verify_envelope(&observed.envelope).unwrap();
+            assert!(
+                observed
+                    .envelope
+                    .contains(&format!("\"domain_id\":\"{domain}\""))
+            );
             assert!(observed.envelope.contains(&format!("\"code\":{code}")));
         }
         native_failure(&ast, &root, domain, code);
@@ -52,8 +78,19 @@ fn every_nested_constructor_prefix_and_owned_call_failure_preserves_status_and_s
         wasmparser::Validator::new().validate_all(&wasm).unwrap();
         let module = root.join("app.wasm");
         std::fs::write(&module, wasm).unwrap();
-        let output = Command::new("node").arg("-e").arg(include_str!("../owned_leaf_vec/host.js")).arg(module).args([if contract {"10"} else {"1"}, "0", "prefix-failure"]).output().unwrap();
-        assert!(output.status.success(), "{label}: {}", String::from_utf8_lossy(&output.stderr));
+        let host = root.join("owned-leaf-host.js");
+        std::fs::write(&host, include_str!("../owned_leaf_vec/host.js")).unwrap();
+        let output = Command::new("node")
+            .arg(host)
+            .arg(module)
+            .args([if contract { "10" } else { "1" }, "0", "prefix-failure"])
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{label}: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
         std::fs::remove_dir_all(root).unwrap();
     }
 }

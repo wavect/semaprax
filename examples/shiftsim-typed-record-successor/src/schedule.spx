@@ -151,7 +151,7 @@ fn run(request: own Request) -> ScheduleResult
                 let mut dispatched = 0usize;
 
                 while dispatched < patient_count {
-                    let mut waiting = 0i64;
+                    let mut waiting = 0;
                     let mut waiting_index = 0usize;
                     while waiting_index < patient_count {
                         let waiting_state = vec_get<PatientState>(patient_states, waiting_index);

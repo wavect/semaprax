@@ -1,18 +1,17 @@
 module warehouse.tests;
-
 use type @id("warehouse.stock") from warehouse.schema as Stock;
 use function @id("warehouse.adjust") from warehouse.app as adjust;
 
 @id("warehouse.tests.main")
-fn main() -> i64 { 0 }
+fn main() -> i64
+{
+    0
+}
 
 @id("warehouse.tests.adjust_positive_quantity")
-fn test_adjust_positive_quantity() -> i64 {
+fn test_adjust_positive_quantity() -> i64
+{
     let value = Stock { sku: "TEST-1", quantity: 2, available: true };
     let adjusted = adjust(value);
-    match own adjusted {
-        Stock { sku, quantity, available } => {
-            if sku == "TEST-1" && quantity == 1 && available { 0 } else { 1 }
-        },
-    }
+    match own adjusted { Stock { sku, quantity, available } => { if sku == "TEST-1" && quantity == 1 && available { 0 } else { 1 } }, }
 }

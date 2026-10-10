@@ -152,3 +152,53 @@ fn unary(value: i64) -> i64 {
     let canonical = format::canonical(&parsed);
     assert!(canonical.contains("match borrow -value { _ => 2, }"));
 }
+
+#[test]
+fn constructor_call_scrutinees_preserve_explicit_modes_and_legacy_call_names() {
+    let source = r#"
+module syntax.match_mode_constructor_calls;
+
+record Leaf { value: i64, }
+record Request { leaf: Leaf, }
+
+fn owned() -> i64 {
+    match own run(Request { leaf: Leaf { value: 1 } }) { _ => 1, }
+}
+
+fn borrowed() -> i64 {
+    match borrow inspect<Request>(Request { leaf: Leaf { value: 2 } }) { _ => 2, }
+}
+
+fn own_call() -> i64 {
+    match own(Request { leaf: Leaf { value: 3 } }) { _ => 3, }
+}
+
+fn borrow_call() -> i64 {
+    match borrow(Request { leaf: Leaf { value: 4 } }) { _ => 4, }
+}
+"#;
+    let parsed = parse(source, Path::new("match-mode-constructor-calls.spx")).unwrap();
+    let modes = [
+        MatchMode::Own,
+        MatchMode::Borrow,
+        MatchMode::Value,
+        MatchMode::Value,
+    ];
+    for (index, mode) in modes.iter().enumerate() {
+        assert_eq!(tail_match_mode(&parsed, index), *mode);
+    }
+    let canonical = format::canonical(&parsed);
+    assert!(canonical.contains("match own run(Request { leaf: Leaf { value: 1 } })"));
+    assert!(canonical.contains("match borrow inspect<Request>(Request { leaf: Leaf { value: 2 } })"));
+    assert!(canonical.contains("match (own(Request { leaf: Leaf { value: 3 } }))"));
+    assert!(canonical.contains("match (borrow(Request { leaf: Leaf { value: 4 } }))"));
+    let reparsed = parse(
+        &canonical,
+        Path::new("match-mode-constructor-calls-canonical.spx"),
+    )
+    .unwrap();
+    assert_eq!(canonical, format::canonical(&reparsed));
+    for (index, mode) in modes.iter().enumerate() {
+        assert_eq!(tail_match_mode(&reparsed, index), *mode);
+    }
+}

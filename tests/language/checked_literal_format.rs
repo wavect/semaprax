@@ -192,7 +192,7 @@ fn checked_literal_format_native_join_failure_is_sticky_after_commit() {
         "struct spx_string_v10 *value = (struct spx_string_v10 *)spx_test_malloc(",
         2,
     );
-    let injected = format!("{before}static unsigned spx_test_malloc_count;\nstatic void *spx_test_malloc(size_t bytes) {{ if (++spx_test_malloc_count == 3) return NULL; return malloc(bytes); }}\n{marker}{after}");
+    let injected = format!("{before}static unsigned spx_test_malloc_count;\nstatic void *spx_test_malloc(size_t bytes) {{ if (++spx_test_malloc_count == 2) return NULL; return malloc(bytes); }}\n{marker}{after}");
     let mut fixture = Fixture::new(source);
     let c = fixture.write("format-failure.c", injected);
     let binary = fixture

@@ -294,10 +294,10 @@ pub(super) fn run_strict_wasm(ast: &semaprax::ast::Program, root: &std::path::Pa
         .expect("strict Core Wasm validation");
     let module = root.join("outcome.wasm");
     std::fs::write(&module, bytes).unwrap();
-    let host = include_str!("owned_leaf_vec/host.js");
+    let host = root.join("owned-leaf-host.js");
+    std::fs::write(&host, include_str!("owned_leaf_vec/host.js")).unwrap();
     let output = Command::new("node")
-        .arg("-e")
-        .arg(host)
+        .arg(&host)
         .arg(&module)
         .arg("0")
         .arg("42")

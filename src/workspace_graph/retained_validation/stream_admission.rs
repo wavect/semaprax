@@ -68,7 +68,9 @@ pub(in crate::workspace_graph) fn owned_stream_command(
         crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => "data",
         crate::project::ProjectProfile::StdinStreamDataCommandIoV2 => "records",
         crate::project::ProjectProfile::StdinStreamOwnedDataCommandIoV1 => "owned data",
-        crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1 => "collection records",
+        crate::project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1 => {
+            "collection records"
+        }
         crate::project::ProjectProfile::StdinStreamNestedOutcomeCommandIoV1 => "nested outcomes",
         _ => return Ok(None),
     };
@@ -131,10 +133,7 @@ pub(in crate::workspace_graph) fn stream_test_program(
             build.linked_stream_collection_record_test_program(test_module)
         }
         crate::project::ProjectProfile::StdinStreamNestedOutcomeCommandIoV1 => {
-            let linked = build.linked_stream_collection_record_test_program(test_module)?;
-            hir::validate_stream_nested_outcome_program(&linked, None)
-                .map_err(|error| vec![error])?;
-            Ok(linked)
+            build.linked_stream_nested_outcome_test_program(test_module)
         }
         crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
             build.linked_stream_data_test_program(test_module)
@@ -174,7 +173,7 @@ pub(in crate::workspace_graph) fn command_link(
             return Err(super::super::graph_error(
                 "SPX-G172",
                 "stream record linking requires authenticated declaration facts",
-            ))
+            ));
         }
 
         crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
@@ -207,7 +206,7 @@ pub(in crate::workspace_graph) fn entry_link(
             return Err(super::super::graph_error(
                 "SPX-G172",
                 "stream record linking requires authenticated declaration facts",
-            ))
+            ));
         }
 
         crate::project::ProjectProfile::StdinStreamDataCommandIoV1 => {
@@ -373,15 +372,24 @@ pub(in crate::workspace_graph) fn nested_outcome_command_program(
 /// Logical schema declarations alone carry no runtime authority.
 pub(in crate::workspace_graph) fn reject_unselected_owned_collections(
     profile: crate::project::ProjectProfile,
+    exports: &[String],
     modules: &[super::WorkspaceResolvedModule],
 ) -> Result<(), Vec<crate::diagnostic::Diagnostic>> {
-    if profile != crate::project::ProjectProfile::StdinStreamNestedOutcomeCommandIoV1 {
+    // This is the existing pure internal-library route, not an export ABI.
+    // Bind it to the actual selected roots before cropping unused functions.
+    let pure_owned_library =
+        profile == crate::project::ProjectProfile::OwnedDataApiV1 && exports.is_empty();
+    if profile != crate::project::ProjectProfile::StdinStreamNestedOutcomeCommandIoV1
+        && !pure_owned_library
+    {
         for module in modules {
             for function in &module.functions {
-                if hir::collection_outcome::nested::function_requires_profile_by(
-                    function,
-                    |id| modules.iter().flat_map(|provider| &provider.types).find(|ty| &ty.id == id),
-                ) {
+                if hir::collection_outcome::nested::function_requires_profile_by(function, |id| {
+                    modules
+                        .iter()
+                        .flat_map(|provider| &provider.types)
+                        .find(|ty| &ty.id == id)
+                }) {
                     return Err(vec![super::super::project_function_error(
                         module,
                         "nested outcome runtime requires the explicitly selected language-command-io.nested-outcome.v1 profile",
@@ -399,7 +407,10 @@ pub(in crate::workspace_graph) fn reject_unselected_owned_collections(
         for module in modules {
             for function in &module.functions {
                 if hir::owned_collection_record::function_requires_profile_by(function, |id| {
-                    modules.iter().flat_map(|provider| &provider.types).find(|ty| &ty.id == id)
+                    modules
+                        .iter()
+                        .flat_map(|provider| &provider.types)
+                        .find(|ty| &ty.id == id)
                 }) {
                     return Err(vec![super::super::project_function_error(
                         module,

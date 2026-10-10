@@ -1,26 +1,38 @@
 module catalog.model;
-
 use type @id("catalog.report") from catalog.response_schema as Report;
 
 @id("catalog.tag")
-record Tag { @id("catalog.tag.id") id: string, }
+record Tag {
+    @id("catalog.tag.id")
+    id: string,
+}
 
 // Sorting this independent runtime carrier gives the business key, while
 // response Item retains the required wire member order.
 @id("catalog.sort_item")
 record SortItem {
-    @id("catalog.sort_item.department") department: i64,
-    @id("catalog.sort_item.priority") priority: i64,
-    @id("catalog.sort_item.id") id: string,
-    @id("catalog.sort_item.stock") stock: i64,
-    @id("catalog.sort_item.mark") mark: u8,
+    @id("catalog.sort_item.department")
+    department: i64,
+    @id("catalog.sort_item.priority")
+    priority: i64,
+    @id("catalog.sort_item.id")
+    id: string,
+    @id("catalog.sort_item.stock")
+    stock: i64,
+    @id("catalog.sort_item.mark")
+    mark: u8,
 }
 
 @id("catalog.result")
 record Result {
-    @id("catalog.result.valid") valid: bool,
-    @id("catalog.result.report") report: Report,
+    @id("catalog.result.valid")
+    valid: bool,
+    @id("catalog.result.report")
+    report: Report,
 }
 
 @id("catalog.model.anchor")
-fn model_anchor() -> i64 { 0 }
+fn model_anchor() -> i64
+{
+    0
+}

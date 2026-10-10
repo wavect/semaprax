@@ -445,12 +445,7 @@ fn unselected(value: i64) -> i64 { value + 1 }
     );
     let build = build_owned(vec![app, test, exports]).unwrap();
     build
-        .validate_entire_project_workspace(
-            "app.main",
-            "test.main",
-            crate::project::ProjectProfile::UsefulDataV1,
-            false,
-        )
+        .validate_entire_project_workspace("app.main", "test.main", P::UsefulDataV1, &[], false)
         .unwrap();
     build
         .linked_scalar_program_with_roots(
@@ -461,12 +456,7 @@ fn unselected(value: i64) -> i64 { value + 1 }
         )
         .unwrap();
     build
-        .validate_entire_project_workspace(
-            "app.main",
-            "test.main",
-            crate::project::ProjectProfile::LineCommandIoV1,
-            false,
-        )
+        .validate_entire_project_workspace("app.main", "test.main", P::LineCommandIoV1, &[], false)
         .unwrap();
 }
 #[test]
@@ -2310,11 +2300,6 @@ fn total() -> i64 {
     );
     let build = build_owned(vec![app, test, kept, totals]).unwrap();
     build
-        .validate_entire_project_workspace(
-            "app.main",
-            "test.main",
-            crate::project::ProjectProfile::UsefulDataV1,
-            false,
-        )
+        .validate_entire_project_workspace("app.main", "test.main", P::UsefulDataV1, &[], false)
         .unwrap();
 }

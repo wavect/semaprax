@@ -19,6 +19,13 @@ fn nested_request_is_deterministic_canonical_and_constructs_only_after_validatio
     assert!(source.contains(".json.nested.decode-result"));
     assert!(!source.contains("stdin"));
     assert!(!source.contains("_identifier_valid"));
+    let checker = source
+        .split("fn json_OrderRequest_nested_check_0")
+        .nth(1)
+        .unwrap();
+    assert!(
+        checker.find("let key_1=").unwrap() < checker.find("while error==0 && key<length").unwrap()
+    );
     let api = source
         .split("fn json_OrderRequest_nested_decode")
         .nth(1)
@@ -41,11 +48,15 @@ fn nested_request_is_deterministic_canonical_and_constructs_only_after_validatio
             && import.alias == "ju_raw_scalar"
     }));
     for function in &parsed.functions {
-        assert!(function.stable_id.starts_with("orders.request.json.nested."));
+        assert!(function
+            .stable_id
+            .starts_with("orders.request.json.nested."));
         assert!(!function.stable_id.contains(".json.utf8."));
     }
     for declaration in &parsed.types {
-        assert!(declaration.stable_id.starts_with("orders.request.json.nested."));
+        assert!(declaration
+            .stable_id
+            .starts_with("orders.request.json.nested."));
         match &declaration.kind {
             TypeDeclarationKind::Record { fields } => {
                 for field in fields {

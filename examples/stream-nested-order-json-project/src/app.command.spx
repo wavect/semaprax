@@ -1,5 +1,4 @@
 module orders.app;
-
 use type @id("orders.configuration") from orders.schema as Configuration;
 use type @id("orders.line") from orders.schema as Line;
 use type @id("orders.request") from orders.schema as OrderRequest;
@@ -10,12 +9,15 @@ permit { process.args.read, process.stderr.write, process.stdin.read, process.st
 
 @id("orders.summary")
 record Summary {
-    @id("orders.summary.quantity") quantity: i64,
-    @id("orders.summary.sku-bytes") sku_bytes: i64,
+    @id("orders.summary.quantity")
+    quantity: i64,
+    @id("orders.summary.sku-bytes")
+    sku_bytes: i64,
 }
 
 @id("orders.summarize")
-fn summarize(lines: borrow Vec<Line>) -> Summary {
+fn summarize(lines: borrow Vec<Line>) -> Summary
+{
     let mut quantity = 0;
     let mut sku_bytes = 0;
     let mut at = 0usize;
@@ -30,28 +32,15 @@ fn summarize(lines: borrow Vec<Line>) -> Summary {
 }
 
 @id("orders.command")
-fn command() -> i64 uses { process.stdin.read, process.stdout.write, process.stderr.write } {
+fn command() -> i64
+    uses { process.stdin.read, process.stdout.write, process.stderr.write }
+{
     let outcome = receive();
-    match own outcome {
-        Outcome::Error { code, offset, field } => {
-            let message = string_format("error:{}:{}:{}", code, offset, field);
-            let diagnostic = str_as_bytes(string_as_str(message));
-            let _ = stderr_write(diagnostic);
-            2
-        },
-        Outcome::Ready { value } => match own value {
-            OrderRequest { configuration, lines, urgent } => match own configuration {
-                Configuration { label, retry } => {
-                    let summary = summarize(lines);
-                    let text = string_format("{}:{}:{}:{}:{}:{}", string_len(label), retry, urgent, vec_len<Line>(lines), summary.quantity, summary.sku_bytes);
-                    let payload = str_as_bytes(string_as_str(text));
-                    let written = stdout_write(payload);
-                    if written == byte_len(payload) { 0 } else { 1 }
-                },
-            },
-        },
-    }
+    match own outcome { Outcome::Error { code, offset, field } => { let message = string_format("error:{}:{}:{}", code, offset, field); let diagnostic = str_as_bytes(string_as_str(message)); let _ = stderr_write(diagnostic); 2 }, Outcome::Ready { value } => match own value { OrderRequest { configuration, lines, urgent } => match own configuration { Configuration { label, retry } => { let summary = summarize(lines); let text = string_format("{}:{}:{}:{}:{}:{}", string_len(label), retry, urgent, vec_len<Line>(lines), summary.quantity, summary.sku_bytes); let payload = str_as_bytes(string_as_str(text)); let written = stdout_write(payload); if written == byte_len(payload) { 0 } else { 1 } }, }, }, }
 }
 
 @id("orders.main")
-fn main() -> i64 { 0 }
+fn main() -> i64
+{
+    0
+}

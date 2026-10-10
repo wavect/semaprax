@@ -155,7 +155,12 @@ fn generated_unescaped_json_decode_uses_one_copy_per_materialized_string() {
 
 #[test]
 fn stream_bulk_copy_rechecks_epoch_and_preserves_internal_and_foreign_bounds() {
-    let program = hir::resolve(&checked(SOURCE)).unwrap();
+    let stream_source = SOURCE.replacen(
+        "module native.bulk_utf8;",
+        "module native.bulk_utf8;\npermit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }",
+        1,
+    );
+    let program = hir::resolve(&checked(&stream_source)).unwrap();
     let generated = codegen::emit_hir_c_with_stdin_stream_text(&program, "s.main").unwrap();
     let source = format!(
         "{}\n#define FIXTURE_COPY {}\n{}",

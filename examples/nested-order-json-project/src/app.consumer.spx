@@ -1,5 +1,4 @@
 module orders.app;
-
 use type @id("orders.configuration") from orders.schema as Configuration;
 use type @id("orders.line") from orders.schema as Line;
 use type @id("orders.request") from orders.schema as OrderRequest;
@@ -7,14 +6,16 @@ use type @id("orders.request.json.nested.decode-result") from orders.schema as O
 use function @id("orders.request.json.nested.decode") from orders.schema as decode;
 
 @id("orders.read-fixture")
-fn read_fixture() -> Outcome {
-    let raw = [123u8,34u8,99u8,111u8,110u8,102u8,105u8,103u8,117u8,114u8,97u8,116u8,105u8,111u8,110u8,34u8,58u8,123u8,34u8,108u8,97u8,98u8,101u8,108u8,34u8,58u8,34u8,92u8,117u8,48u8,48u8,101u8,57u8,92u8,117u8,48u8,48u8,48u8,48u8,34u8,44u8,34u8,114u8,101u8,116u8,114u8,121u8,34u8,58u8,51u8,125u8,44u8,34u8,108u8,105u8,110u8,101u8,115u8,34u8,58u8,91u8,123u8,34u8,115u8,107u8,117u8,34u8,58u8,34u8,65u8,45u8,49u8,34u8,44u8,34u8,113u8,117u8,97u8,110u8,116u8,105u8,116u8,121u8,34u8,58u8,50u8,125u8,44u8,123u8,34u8,113u8,117u8,97u8,110u8,116u8,105u8,116u8,121u8,34u8,58u8,52u8,44u8,34u8,115u8,107u8,117u8,34u8,58u8,34u8,65u8,45u8,50u8,34u8,125u8,93u8,44u8,34u8,117u8,114u8,103u8,101u8,110u8,116u8,34u8,58u8,116u8,114u8,117u8,101u8,125u8,10u8];
+fn read_fixture() -> Outcome
+{
+    let raw = [123u8, 34u8, 99u8, 111u8, 110u8, 102u8, 105u8, 103u8, 117u8, 114u8, 97u8, 116u8, 105u8, 111u8, 110u8, 34u8, 58u8, 123u8, 34u8, 108u8, 97u8, 98u8, 101u8, 108u8, 34u8, 58u8, 34u8, 92u8, 117u8, 48u8, 48u8, 101u8, 57u8, 92u8, 117u8, 48u8, 48u8, 48u8, 48u8, 34u8, 44u8, 34u8, 114u8, 101u8, 116u8, 114u8, 121u8, 34u8, 58u8, 51u8, 125u8, 44u8, 34u8, 108u8, 105u8, 110u8, 101u8, 115u8, 34u8, 58u8, 91u8, 123u8, 34u8, 115u8, 107u8, 117u8, 34u8, 58u8, 34u8, 65u8, 45u8, 49u8, 34u8, 44u8, 34u8, 113u8, 117u8, 97u8, 110u8, 116u8, 105u8, 116u8, 121u8, 34u8, 58u8, 50u8, 125u8, 44u8, 123u8, 34u8, 113u8, 117u8, 97u8, 110u8, 116u8, 105u8, 116u8, 121u8, 34u8, 58u8, 52u8, 44u8, 34u8, 115u8, 107u8, 117u8, 34u8, 58u8, 34u8, 65u8, 45u8, 50u8, 34u8, 125u8, 93u8, 44u8, 34u8, 117u8, 114u8, 103u8, 101u8, 110u8, 116u8, 34u8, 58u8, 116u8, 114u8, 117u8, 101u8, 125u8, 10u8];
     let input = bytes_copy(array_as_slice(raw));
     decode(bytes_as_slice(input), 131usize)
 }
 
 @id("orders.lines-total")
-fn lines_total(lines: borrow Vec<Line>) -> i64 {
+fn lines_total(lines: borrow Vec<Line>) -> i64
+{
     let mut total = 0;
     let mut valid = true;
     let mut at = 0usize;
@@ -34,21 +35,9 @@ fn lines_total(lines: borrow Vec<Line>) -> i64 {
 }
 
 @id("orders.main")
-fn main() -> i64 {
+fn main() -> i64
+{
     let outcome = read_fixture();
-    let valid = match own outcome {
-        Outcome::Error { code, offset, field } => false,
-        Outcome::Ready { value } => match own value {
-            OrderRequest { configuration, lines, urgent } => match own configuration {
-                Configuration { label, retry } => {
-                    let bytes = str_as_bytes(string_as_str(label));
-                    let unicode = match byte_get(bytes, 0usize) { Option::Some { value } => value == 195u8, Option::None {} => false, };
-                    let continuation = match byte_get(bytes, 1usize) { Option::Some { value } => value == 169u8, Option::None {} => false, };
-                    let nul = match byte_get(bytes, 2usize) { Option::Some { value } => value == 0u8, Option::None {} => false, };
-                    byte_len(bytes) == 3usize && unicode && continuation && nul && retry == 3usize && urgent && vec_len<Line>(lines) == 2usize && lines_total(lines) == 6
-                },
-            },
-        },
-    };
+    let valid = match own outcome { Outcome::Error { code, offset, field } => false, Outcome::Ready { value } => match own value { OrderRequest { configuration, lines, urgent } => match own configuration { Configuration { label, retry } => { let bytes = str_as_bytes(string_as_str(label)); let unicode = match byte_get(bytes, 0usize) { Option::Some { value } => value == 195u8, Option::None {} => false, }; let continuation = match byte_get(bytes, 1usize) { Option::Some { value } => value == 169u8, Option::None {} => false, }; let nul = match byte_get(bytes, 2usize) { Option::Some { value } => value == 0u8, Option::None {} => false, }; byte_len(bytes) == 3usize && unicode && continuation && nul && retry == 3usize && urgent && vec_len<Line>(lines) == 2usize && lines_total(lines) == 6 }, }, }, };
     if valid { 729 } else { 0 }
 }

@@ -146,6 +146,8 @@ pub fn derive_json_codec_source_with_profile(
             nested_request::derive_stream(&program, declaration, max_string_bytes, max_array_items)?
         }
     };
+    let fragment = template::discard_bindings(&fragment, source.source(), source_path)
+        .map_err(|error| vec![error])?;
     if fragment.len() > MAX_GENERATED_BYTES {
         return Err(refusal(
             "JSON codec generated source exceeds its fixed 131072-byte bound",

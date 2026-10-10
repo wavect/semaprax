@@ -1,6 +1,6 @@
 use super::*;
 
-const MULTI_STRING_SCHEMA: &str = r#"module consumer.schema;
+pub(super) const MULTI_STRING_SCHEMA: &str = r#"module consumer.schema;
 @id("response.item") record Item {
  @id("response.item.id") id:string,
  @id("response.item.server") server:string,

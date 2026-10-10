@@ -1120,6 +1120,7 @@ Use `u8_from_i64(value)` then `char_from_u8(byte)` for byte conversion; use
 | x as i64|`SPX-P106`|Checked named conversion/suffixed literal|
 | Rust/JS closure|`SPX-P201`|fn(x: i64) -> i64 { x + 1 }|
 | use std::io;|`SPX-G170`|Built-ins need no import. std.* packages: declare its Project dependency; import by stable ID|
+| resolved-core builder ledger refusal|`SPX-G171`|Use requested/remaining/floor plus the compiler-owned stage to choose a smaller graph; those are cumulative ledger bytes, not RSS/peak forecast; unknown is not inferred|
 | factory import lacks exact type|`SPX-G172`|Add the direct use type @id("…") from module as Type shown in help, including nested exposed types; inferred results grant no import authority|
 | noncanonical Project source|`SPX-G170`|semaprax fmt <manifest>; if manifest layout blocks discovery, first semaprax fmt --manifest <manifest>, then retry|
 | interpreter: source-command.v1/v28 Project|`SPX-F102`|Interpreter lacks argv/file provider; build: semaprax build <manifest> --target native -o <fresh-path>, run in Project directory. Declared tests: semaprax test <project> --target native [Native Tests](PROJECT-NATIVE-TEST-V1.md)|
@@ -1244,9 +1245,8 @@ fn order_status(paid: bool) -> string
 
 ## Projects
 
-`str_byte_at(text, 0usize)` reads borrowed UTF-8 bytes; match its `Option<u8>`
-and widen `Some` with `i64_from_u8`. `std.bytes.get_or` is available in
-`useful-data.v1` (`semaprax help library std.bytes.get_or`).
+`str_byte_at(text,index)` returns `Option<u8>`; match `Some`, then `i64_from_u8`.
+`std.bytes.get_or`: `useful-data.v1` (`help library std.bytes.get_or`).
 
 Keep `semaprax.toml` beside `src/`. Tables are canonical; the frozen
 one-line-per-key `semaprax.project.v1` layout remains admitted.

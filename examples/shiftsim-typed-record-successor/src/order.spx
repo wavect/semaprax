@@ -25,8 +25,7 @@ fn sorted_servers_have_unique_ids(servers: borrow Vec<Server>) -> bool
     while valid && index < length {
         let previous = vec_field<Server>(servers, index - 1usize, "id");
         let current = vec_field<Server>(servers, index, "id");
-        valid = str_len_bytes(previous) != str_len_bytes(current)
-            || !str_starts_with(current, previous);
+        valid = str_len_bytes(previous) != str_len_bytes(current) || !str_starts_with(current, previous);
         index = index + 1usize;
         valid && index < length
     }

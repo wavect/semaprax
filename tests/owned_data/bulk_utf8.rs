@@ -88,15 +88,29 @@ fn run(source: &str, expected: i64, failure: Option<(&str, u32, u32)>, allocatio
     let path = root.join("app.spx");
     std::fs::write(&path, source).unwrap();
     let ast = semaprax::check(source, &path).unwrap();
+    // This owner exercises the explicit private String evaluator. The public
+    // legacy evaluator must continue refusing String-returning helper calls.
+    let legacy = interpreter::interpret(
+        &path,
+        "app.main",
+        &[],
+        &interpreter::InterpreterOptions::default(),
+    );
+    if source.contains("fn copy(") {
+        assert!(legacy
+            .unwrap_err()
+            .iter()
+            .any(|error| error.code == "SPX-F102"));
+    }
     for _ in 0..3 {
-        let result = interpreter::interpret(
+        let result = interpreter::internal_strings::interpret(
             &path,
             "app.main",
             &[],
             &interpreter::InterpreterOptions::default(),
         )
         .unwrap();
-        interpreter::verify_envelope(&result.envelope).unwrap();
+        interpreter::internal_strings::verify_envelope(&result.envelope).unwrap();
         if let Some((domain, code, _)) = failure {
             assert!(!result.returned, "{}", result.envelope);
             assert!(result

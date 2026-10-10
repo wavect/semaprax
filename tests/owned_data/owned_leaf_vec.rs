@@ -105,7 +105,8 @@ fn element_capacity_uses_existing_carrier_envelopes() {
     );
     run_wasm(
         r#"@id("app.main") fn main()->i64 {
- let a=vec_with_capacity<string>(8193usize);
+ let requested=8192usize+1usize;
+ let a=vec_with_capacity<string>(requested);
  if vec_capacity<string>(a)==8193usize {29}else{0}
 }
 "#,

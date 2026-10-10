@@ -53,7 +53,9 @@ fn collection_response_is_closed_ordered_and_canonical_without_source_authority(
     assert_eq!(output, source(&program, root, 64).unwrap());
     assert_ne!(output, source(&program, root, 63).unwrap());
     assert!(output.contains("vec_len<Row>(value.entries)"));
-    assert!(output.contains("vec_clone_at<Row>(value.entries,at)"));
+    assert!(!output.contains("vec_clone_at"));
+    assert!(output.contains("json_Row_response_object_len_at(value.entries,at)"));
+    assert!(output.contains("json_Row_response_object_render_at(value.entries,at)"));
     assert!(output.contains("fn json_Metrics_response_object_len(value:Metrics)"));
     assert!(output.contains("fn json_Row_response_object_len(value:borrow Row)"));
     assert!(output.contains("string_as_str(value.label)"));
@@ -222,8 +224,10 @@ fn collection_response_checks_and_encodes_each_bounded_string_in_row_order() {
     let program = crate::parse(MULTI_STRING_SCHEMA, "multi-string-schema.spx").unwrap();
     let output = source(&program, &program.types[2], 64).unwrap();
     let row = record::source(&program.types[0]);
-    let first_check = "let response_string_valid_0=json_Item_response_owned_valid(string_as_str(value.id));";
-    let second_check = "let response_string_valid_1=json_Item_response_owned_valid(string_as_str(value.server));";
+    let first_check =
+        "let response_string_valid_0=json_Item_response_owned_valid(string_as_str(value.id));";
+    let second_check =
+        "let response_string_valid_1=json_Item_response_owned_valid(string_as_str(value.server));";
     assert!(row.contains(first_check));
     assert!(row.contains(second_check));
     assert!(row.contains("if !(response_string_valid_0&&response_string_valid_1)"));
@@ -246,5 +250,53 @@ fn collection_response_checks_and_encodes_each_bounded_string_in_row_order() {
         "@id(\"response.item.server\") server:string,\n @id(\"response.item.region\") region:string,",
     );
     let malformed = crate::parse(&too_many_strings, "too-many-strings.spx").unwrap();
-    assert_eq!(source(&malformed, &malformed.types[2], 64).unwrap_err()[0].code, "SPX-J180");
+    assert_eq!(
+        source(&malformed, &malformed.types[2], 64).unwrap_err()[0].code,
+        "SPX-J180"
+    );
+}
+
+#[test]
+fn collection_response_scoped_rows_keep_direct_helpers_and_exact_field_selectors() {
+    let schema = MULTI_STRING_SCHEMA
+        .replace("id:string", "values:string")
+        .replace("server:string", "at:string")
+        .replace("arrival:i64", "output_0:i64");
+    let program = crate::parse(&schema, "scoped-row-fields.spx").unwrap();
+    let row = &program.types[0];
+    let indexed = record::indexed_source(row);
+    assert!(
+        indexed.contains("fn json_Item_response_object_len_at(values:borrow Vec<Item>,at:usize)")
+    );
+    assert!(indexed
+        .contains("fn json_Item_response_object_render_at(values:borrow Vec<Item>,at:usize)"));
+    assert!(indexed.contains("response.item.json.collection-response.object-len-at"));
+    assert!(indexed.contains("response.item.json.collection-response.object-render-at"));
+    for field in fields(row) {
+        assert!(
+            indexed.contains(&format!("vec_field<Item>(values,at,\"{}\")", field.name)),
+            "{}",
+            field.name
+        );
+    }
+    let first = indexed.find("let response_string_valid_0=json_Item_response_owned_valid(vec_field<Item>(values,at,\"values\"));").unwrap();
+    let second = indexed.find("let response_string_valid_1=json_Item_response_owned_valid(vec_field<Item>(values,at,\"at\"));").unwrap();
+    assert!(first < second);
+    assert!(!indexed.contains("string_as_str"));
+    assert!(!indexed.contains("vec_clone_at"));
+    let output = source(&program, &program.types[2], 64).unwrap();
+    // Keep the original direct Row helpers byte-for-byte while the root's two
+    // passes choose only independently authenticated indexed reads.
+    assert!(output.contains(&record::source(row)));
+    assert!(output.contains(&indexed));
+    assert!(!output.contains("vec_clone_at"));
+    let parsed = crate::parse(&output, "scoped-response.spx").unwrap();
+    let canonical = crate::format::canonical(&parsed);
+    assert_eq!(
+        canonical,
+        crate::format::canonical(
+            &crate::parse(&canonical, "scoped-response-canonical.spx").unwrap()
+        )
+    );
+    assert!(canonical.len() < super::super::MAX_GENERATED_BYTES);
 }

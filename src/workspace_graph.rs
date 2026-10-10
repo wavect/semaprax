@@ -1804,6 +1804,7 @@ impl WorkspaceGraphBuild {
             entry_module,
             test_module,
             web_roots.profile,
+            web_roots.stable_ids,
             web_roots.dependency_anchors,
         )?;
         if retained_validation::has_separate_command_root(web_roots.profile) {
@@ -1987,11 +1988,13 @@ impl WorkspaceGraphBuild {
         entry_module: &str,
         test_module: &str,
         profile: crate::project::ProjectProfile,
+        exports: &[String],
         dependency_anchors: bool,
     ) -> Result<(), Vec<Diagnostic>> {
         validate_entry_module(entry_module)?;
         validate_entry_module(test_module)?;
-        retained_validation::reject_unselected_owned_collections(profile, &self.hir.modules)?;
+        let modules = &self.hir.modules;
+        retained_validation::reject_unselected_owned_collections(profile, exports, modules)?;
         let roots = BTreeSet::from([entry_module, test_module]);
         let natives = retained_validation::scalar_native_imports(
             profile,
@@ -2229,7 +2232,7 @@ impl WorkspaceGraphBuild {
                 }
             }
         }
-        if !profile.is_owned_api()
+        if !retained_validation::project_type_imports_admitted(profile)
             && self.edges.iter().any(|edge| {
                 edge.kind == "type_import"
                     && !(profile == crate::project::ProjectProfile::UsefulDataV1
@@ -2256,6 +2259,7 @@ impl WorkspaceGraphBuild {
             entry_module,
             test_module,
             crate::project::ProjectProfile::ScalarV1,
+            &[],
             false,
         )
     }
@@ -4543,7 +4547,7 @@ fn retain_workspace_module(
         programs,
         authored,
         resolved.function_instances,
-        loan_scratch.as_deref_mut(),
+        loan_scratch,
     )?;
     let signature_types = retained_signature_type_facts(&functions, &resolved.declarations)?;
     let agents = filter_owned_vec(resolved.agents, |_| true, retained_output_only)?;

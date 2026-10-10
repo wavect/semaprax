@@ -160,7 +160,7 @@ fn failed_clone_replace_push_and_reserve_keep_first_status_and_settle() {
         ),
         (
             format!(
-                "{populated} rows = vec_reserve_owned<Entry>(rows, 18446744073709551615usize); 42"
+                "{populated} let additional = 18446744073709551615usize; rows = vec_reserve_owned<Entry>(rows, additional); 42"
             ),
             3,
         ),
@@ -169,7 +169,7 @@ fn failed_clone_replace_push_and_reserve_keep_first_status_and_settle() {
             3,
         ),
         (
-            "let rows = vec_with_capacity<Entry>(4097usize); 42".to_owned(),
+            "let requested = 4096usize + 1usize; let rows = vec_with_capacity<Entry>(requested); 42".to_owned(),
             3,
         ),
         // Index evaluation fails while the outer vector is staged. The final

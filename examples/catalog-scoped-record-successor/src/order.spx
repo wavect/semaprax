@@ -1,5 +1,4 @@
 module catalog.order;
-
 use type @id("catalog.input_item") from catalog.request_schema as InputItem;
 use type @id("catalog.tag") from catalog.model as Tag;
 use function @id("std.text.equals") from std.text as equals;
@@ -12,12 +11,7 @@ fn identifier(value: borrow str) -> bool
     let mut valid = length > 0usize && length <= 16usize;
     let mut index = 0usize;
     while valid && index < length {
-        valid = match byte_get(bytes, index) {
-            Option::Some { value: byte } => (byte >= 65u8 && byte <= 90u8)
-                || (byte >= 97u8 && byte <= 122u8)
-                || (byte >= 48u8 && byte <= 57u8) || byte == 95u8 || byte == 45u8,
-            Option::None {} => false,
-        };
+        valid = match byte_get(bytes, index) { Option::Some { value: byte } => byte >= 65u8 && byte <= 90u8 || byte >= 97u8 && byte <= 122u8 || byte >= 48u8 && byte <= 57u8 || byte == 95u8 || byte == 45u8, Option::None {} => false, };
         index = index + 1usize;
         valid && index < length
     }
@@ -33,10 +27,7 @@ fn valid_sorted_tags(tags: borrow Vec<Tag>) -> bool
     while valid && index < length {
         let current = vec_field<Tag>(tags, index, "id");
         valid = identifier(current);
-        if valid && index > 0usize {
-            let previous = vec_field<Tag>(tags, index - 1usize, "id");
-            valid = !equals(previous, current);
-        }
+        if valid && index > 0usize { let previous = vec_field<Tag>(tags, index - 1usize, "id"); valid = !equals(previous, current); }
         index = index + 1usize;
         valid && index < length
     }
@@ -55,13 +46,8 @@ fn valid_sorted_items(items: borrow Vec<InputItem>) -> bool
         let priority = vec_field<InputItem>(items, index, "priority");
         let stock = vec_field<InputItem>(items, index, "stock");
         let topup = vec_field<InputItem>(items, index, "topup");
-        valid = identifier(current) && department >= 0 && department <= 9
-            && priority >= 0 && priority <= 9 && stock >= 0 && stock <= 1000
-            && topup >= 0 && topup <= 1000;
-        if valid && index > 0usize {
-            let previous = vec_field<InputItem>(items, index - 1usize, "id");
-            valid = !equals(previous, current);
-        }
+        valid = identifier(current) && department >= 0 && department <= 9 && priority >= 0 && priority <= 9 && stock >= 0 && stock <= 1000 && topup >= 0 && topup <= 1000;
+        if valid && index > 0usize { let previous = vec_field<InputItem>(items, index - 1usize, "id"); valid = !equals(previous, current); }
         index = index + 1usize;
         valid && index < length
     }

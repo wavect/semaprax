@@ -29,8 +29,7 @@ let mut valid=count<=256usize;
 let mut total={punctuation}usize+json_{metrics}_response_object_len(value.{metrics_field});
 let mut at=0usize;
 while valid && at<count {{
-let row=vec_clone_at<{row}>(value.{items},at);
-let size=json_{row}_response_object_len(row);
+let size=json_{row}_response_object_len_at(value.{items},at);
 let comma=if at>0usize{{1usize}}else{{0usize}};
 let _ = if size==18446744073709551615usize || total>131072usize-comma || size>131072usize-total-comma {{valid=false;false}}else{{total=total+size+comma;true}};
 at=at+1usize;valid && at<count
@@ -56,8 +55,7 @@ let mut text=\"{{\";");
                 "text=string_concat(text,\"[\");let mut at=0usize;
 while at<vec_len<{row}>(value.{items}) {{
 let _ = if at>0usize{{text=string_concat(text,\",\");true}}else{{true}};
-let row=vec_clone_at<{row}>(value.{items},at);
-text=string_concat(text,json_{row}_response_object_render(row));
+text=string_concat(text,json_{row}_response_object_render_at(value.{items},at));
 at=at+1usize;at<vec_len<{row}>(value.{items})
 }}
 text=string_concat(text,\"]\");"

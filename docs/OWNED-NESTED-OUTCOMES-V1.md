@@ -60,9 +60,14 @@ private helpers and adds the authenticated owning outcome and its record helper
 signatures. Nested Copy helper records use the same independent explicit closure
 walk and pass by value; cached Copy facts alone do not admit them. Selected entry/command roots remain `fn() -> i64`; process effects,
 module permits, manifest grants, provider quotas, and public ABI stay unchanged.
-Older profiles reject the new carrier, including unused functions before source
-closure cropping and body-local constructions behind scalar signatures. Direct
-native adapters perform the same negative and independent positive validation.
+Older command and public export profiles reject the new carrier, including unused
+functions before source closure cropping and body-local constructions behind
+scalar signatures. The existing pure `owned-data-api.v1` internal-library route
+with an empty authenticated export selection admits ordinary nested outcomes; it
+produces no public descriptor or package. Source, declaration, cleanup and retained
+HIR validation still apply. A nonempty export selection retains the frozen public
+refusal, even when all nested-outcome helpers are unused. Direct native command
+adapters perform the same negative and independent positive validation.
 
 Graph v74 projects `semaprax.owned-nested-outcomes.v1` with `authority:false`.
 Source revision, case/field ordering, explicit identity provenance, exact types,

@@ -284,8 +284,11 @@ pub(crate) fn cleanup_shape_profile(
                     .owned_leaves
                     .checked_add(1)
                     .ok_or_else(|| cleanup_error("cleanup owned-leaf count overflowed"))?;
-                profile.has_nested_owned_bytes |=
-                    record_depth >= 2 && lifecycle.as_str() == BYTES_DROP_LIFECYCLE_ID;
+                profile.has_nested_owned_bytes |= record_depth >= 2
+                    && matches!(
+                        lifecycle.as_str(),
+                        BYTES_DROP_LIFECYCLE_ID | STRING_DROP_LIFECYCLE_ID
+                    );
             }
             FieldLivenessShape::Record { fields, .. } => {
                 let child_depth = record_depth

@@ -1,6 +1,8 @@
 //! Finite nested response source, independent wire oracle and physical owner gates.
 #[path = "collection_response/multi_string.rs"]
 mod multi_string;
+#[path = "collection_response/scoped_reads.rs"]
+mod scoped_reads;
 
 use super::*;
 
@@ -129,7 +131,7 @@ fn qualify(root: &std::path::Path) {
         assert!(graph
             .semantic_graph()
             .contains("response.report.json.collection-response.encode"));
-        assert!(graph.semantic_graph().contains("core.vec.clone-at"));
+        assert!(graph.semantic_graph().contains("vec_field_read"));
         let options = project::ProjectExecutionOptions::new(16 * 1024 * 1024, 160_000_000)
             .map_err(|e| vec![e])?;
         assert_eq!(
@@ -161,11 +163,14 @@ let nul=string_from_char(char_from_i64(0));let prefix=string_concat("é",nul);le
 let item=Item{{number:-9223372036854775808,label:text,byte:255u8,count:18446744073709551615usize,active:false}};
 let first=vec_push<Item>(vec_with_capacity<Item>(3usize),item);let second=vec_push<Item>(first,empty());let rows=vec_push<Item>(second,empty());
 let report=Report{{stats:Metrics{{selected:3usize,total:-9223372036854775808,live:false}},entries:rows}};
-let required=encoded_len(report);let short=encode(report,{}usize);
+let required=encoded_len(report);
+let clone_probe=vec_clone_at<Item>(report.entries,0usize);
+let clone_ok=clone_probe.number==-9223372036854775808;
+let short=encode(report,{}usize);
 let short_ok=match own short{{Encoded::Refused{{required:count}}=>count=={}usize,Encoded::Encoded{{text}}=>false,}};
 let full=encode(report,{}usize);let expected={};
 let same=match own full{{Encoded::Refused{{required}}=>false,Encoded::Encoded{{text}}=>equal(string_as_str(text),string_as_str(expected)),}};
-if required=={}usize && short_ok && same{{728}}else{{0}}
+if clone_ok && required=={}usize && short_ok && same{{728}}else{{0}}
 }}
 "#,
             expected.len() - 1,
@@ -176,9 +181,9 @@ if required=={}usize && short_ok && same{{728}}else{{0}}
         );
     let root = install("response-unicode", &app, 64);
     qualify(&root);
-    // The first vector deep clone is in preflight, before response publication.
-    // The strict host refuses that String leaf allocation and asserts all
-    // payload/vector authority is retired, preserving the selected status.
+    // Preserve the hostile owning-clone path explicitly: after nonallocating
+    // preflight the caller requests an independent Row before publication.
+    // The strict host refuses that allocation and checks sticky cleanup.
     wasm_run(&root, 15, 0, "string-clone-allocation");
     std::fs::remove_dir_all(root).unwrap();
 }

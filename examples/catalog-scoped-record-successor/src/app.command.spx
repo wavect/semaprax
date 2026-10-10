@@ -1,5 +1,4 @@
 module catalog.app;
-
 use type @id("catalog.request") from catalog.request_schema as Request;
 use type @id("catalog.request.json.stream-input") from catalog.request_schema as StreamInput;
 use type @id("catalog.request.json.utf8.owned-result") from catalog.request_schema as Decode;
@@ -15,19 +14,16 @@ use function @id("catalog.publish") from catalog.publication as publish;
 permit { process.stdin.read, process.stderr.write, process.stdout.write }
 
 @id("catalog.receive")
-fn receive() -> Decode uses { process.stdin.read }
+fn receive() -> Decode
+    uses { process.stdin.read }
 {
     let normalized = normalize();
-    match own normalized {
-        StreamInput::Error { code, offset, field } => Decode::Error {
-            code: code, offset: offset, field: field,
-        },
-        StreamInput::Ready { bytes, length } => decode(byte_range(bytes_as_slice(bytes), 0usize, length)),
-    }
+    match own normalized { StreamInput::Error { code, offset, field } => Decode::Error { code: code, offset: offset, field: field }, StreamInput::Ready { bytes, length } => decode(byte_range(bytes_as_slice(bytes), 0usize, length)), }
 }
 
 @id("catalog.reject")
-fn reject() -> i64 uses { process.stderr.write }
+fn reject() -> i64
+    uses { process.stderr.write }
 {
     let message = "invalid catalog request\n";
     let diagnostic = str_as_bytes(string_as_str(message));
@@ -36,25 +32,14 @@ fn reject() -> i64 uses { process.stderr.write }
 }
 
 @id("catalog.command")
-fn command() -> i64 uses { process.stdin.read, process.stderr.write, process.stdout.write }
+fn command() -> i64
+    uses { process.stdin.read, process.stderr.write, process.stdout.write }
 {
-    match own receive() {
-        Decode::Error { code: _code, offset: _offset, field: _field } => reject(),
-        Decode::Decoded { tags, items } => {
-            let outcome = run(Request { tags, items });
-            match own outcome {
-                Result { valid: false, report: _invalid } => reject(),
-                Result { valid: true, report } => {
-                    let encoded = encode(report, 65535usize);
-                    match own encoded {
-                        Encoded::Refused { required: _required } => 1,
-                        Encoded::Encoded { text } => publish(ReportParts { body: text, trailer: "\n" }),
-                    }
-                },
-            }
-        },
-    }
+    match own receive() { Decode::Error { code: _code, offset: _offset, field: _field } => reject(), Decode::Decoded { tags, items } => { let outcome = run(Request { tags: tags, items: items }); match own outcome { Result { valid: false, report: _invalid } => reject(), Result { valid: true, report } => { let encoded = encode(report, 65535usize); match own encoded { Encoded::Refused { required: _required } => 1, Encoded::Encoded { text } => publish(ReportParts { body: text, trailer: "\n" }), } }, } }, }
 }
 
 @id("catalog.app.main")
-fn main() -> i64 { 0 }
+fn main() -> i64
+{
+    0
+}

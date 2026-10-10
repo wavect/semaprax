@@ -4,15 +4,22 @@ permit { process.stdin.read }
 
 @id("catalog.row")
 record Row {
-    @id("catalog.row.number") number: i64,
-    @id("catalog.row.text") text: string,
+    @id("catalog.row.number")
+    number: i64,
+    @id("catalog.row.text")
+    text: string,
 }
 
 @id("catalog.request")
 record Request {
-    @id("catalog.request.labels") labels: Vec<string>,
-    @id("catalog.request.rows") rows: Vec<Row>,
+    @id("catalog.request.labels")
+    labels: Vec<string>,
+    @id("catalog.request.rows")
+    rows: Vec<Row>,
 }
 
 @id("catalog.schema.anchor")
-fn schema_anchor() -> i64 { 0 }
+fn schema_anchor() -> i64
+{
+    0
+}

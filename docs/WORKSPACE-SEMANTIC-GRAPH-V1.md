@@ -283,19 +283,27 @@ spare capacity keep the existing compact-copy path and its complete reservation,
 and earlier attempts retain their established receipts. No source prebound,
 capacity factor or retained-closure forecast is reduced.
 
-In that final uncached retention attempt, the HIR allocation-key inventory
-used to prove loan-sidecar sharing reuses one temporary vector across functions
-and modules. Before consuming a module, it reserves the largest selected
-ordinary-function census once, avoiding intermediate replacement allocations.
-Every replacement reserves its entire capacity before allocation, including
-capacity excess; earlier allocations remain charged in
-the cumulative ledger. The vector is cleared before each function, so a previous
-function's keys cannot exclude independent or foreign proof storage. Proof
-carriers, unmatched identities, full-census fallbacks and earlier attempt
-receipts are unchanged. Reuse removes actual repeated temporary allocations;
-it does not subtract a charge for an allocation that still occurs or raise the
-builder limit. The full pattern bundle and exact-limit/one-short hostile
-inventory gates remain required.
+In that final uncached retention attempt, the sharing census starts with
+loan-plan identity backing keys, including repeated candidate references in its
+capacity reservation. It sorts and deduplicates those candidates, then walks
+and validates every retained HIR identity and marks only exact backing-key
+matches. It compacts the matched keys in sorted order before the unchanged
+loan-sidecar capacity census. Unreferenced HIR identities consume no inventory
+entry; equal text in distinct allocations never establishes sharing.
+
+One key vector and one byte-per-candidate match vector are reused across
+functions and modules. Before consuming a module, both carriers reserve the
+largest selected ordinary-function candidate census once, avoiding intermediate
+replacement allocations. Every replacement reserves both entire requested
+capacities before allocation and charges any allocator capacity excess; earlier
+allocations remain charged in the cumulative ledger. Both vectors are cleared
+before each function, so a previous function's keys cannot exclude independent
+or foreign proof storage. Missing HIR or proof backing refuses before scratch
+allocation. The bounded HIR walk, full-census fallbacks, proof carriers, unmatched
+identities and earlier-attempt per-HIR-key receipts are unchanged. Reuse and
+candidate intersection remove actual temporary storage; they do not discount
+any allocation that still occurs or raise the builder limit. The full pattern
+bundle and exact-limit/one-short hostile inventory gates remain required.
 
 Cross-file edge reconstruction does not traverse an import-free module to
 materialize paths whose output set is necessarily empty. Capability edges

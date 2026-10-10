@@ -148,7 +148,7 @@ fn shared_identity_bytes(plan: &LoanPlan, covered_hir_keys: &[usize]) -> Option<
     Some(bytes)
 }
 
-fn proof_identities(plan: &LoanPlan) -> impl Iterator<Item = &ExpressionId> {
+pub(crate) fn proof_identities(plan: &LoanPlan) -> impl Iterator<Item = &ExpressionId> {
     plan.loans
         .iter()
         .flat_map(|loan| {

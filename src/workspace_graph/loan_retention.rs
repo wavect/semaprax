@@ -36,31 +36,78 @@ pub(super) fn retained_loan_plan_bytes(plan: &LoanPlan) -> Result<usize> {
 #[derive(Default)]
 pub(super) struct RetentionScratch {
     keys: Vec<usize>,
+    matched: Vec<u8>,
 }
 
 impl RetentionScratch {
     fn prepare<'a>(&mut self, functions: impl Iterator<Item = &'a ResolvedFunction>) -> Result<()> {
         let mut maximum = 0;
         for function in functions {
-            if let Some(count) = inventory_count(function)? {
+            if let Some(count) = candidate_count(function)? {
                 maximum = maximum.max(count);
             }
         }
-        if maximum > self.keys.capacity() {
-            self.keys = allocate_keys(maximum)?;
+        if maximum > self.capacity() {
+            *self = allocate_candidates(maximum)?;
         }
         Ok(())
     }
 
+    fn capacity(&self) -> usize {
+        self.keys.capacity().min(self.matched.capacity())
+    }
+
     pub(super) fn measure(&mut self, function: &ResolvedFunction) -> Result<usize> {
         self.keys.clear();
-        let Some(count) = inventory_count(function)? else {
+        self.matched.clear();
+        let Some(count) = candidate_count(function)? else {
             return retained_loan_plan_bytes(&function.loan_plan);
         };
-        if count > self.keys.capacity() {
-            self.keys = allocate_keys(count)?;
+        if count > self.capacity() {
+            *self = allocate_candidates(count)?;
         }
-        inventory_bytes(function, &mut self.keys)
+        for identity in crate::loan_plan::owned_capacity::proof_identities(&function.loan_plan) {
+            self.keys
+                .push(identity.shared_allocation_key().ok_or_else(refusal)?);
+        }
+        self.keys.sort_unstable();
+        self.keys.dedup();
+        self.matched.resize(self.keys.len(), 0);
+        // Only live HIR backing may authorize an exclusion. Check every HIR
+        // identity, but retain no key that the loan sidecar cannot reference.
+        let visited = visit_function(function, &mut |identity| {
+            let key = identity.shared_allocation_key().ok_or(WalkError::Invalid)?;
+            identity
+                .shared_allocation_bytes()
+                .ok_or(WalkError::Invalid)?;
+            if let Ok(index) = self.keys.binary_search(&key) {
+                self.matched[index] = 1;
+            }
+            Ok(())
+        });
+        if let Err(error) = visited {
+            self.keys.clear();
+            self.matched.clear();
+            return match error {
+                WalkError::Uncertain => retained_loan_plan_bytes(&function.loan_plan),
+                WalkError::Invalid => Err(refusal()),
+            };
+        }
+        let mut length = 0;
+        for index in 0..self.keys.len() {
+            if self.matched[index] != 0 {
+                self.keys[length] = self.keys[index];
+                length += 1;
+            }
+        }
+        self.keys.truncate(length);
+        self.matched.clear();
+        crate::loan_plan::owned_capacity::owned_capacity_bytes_excluding(
+            &function.loan_plan,
+            &self.keys,
+        )
+        .and_then(|owned| std::mem::size_of::<LoanPlan>().checked_add(owned))
+        .ok_or_else(refusal)
     }
 }
 
@@ -123,6 +170,41 @@ fn inventory_count(function: &ResolvedFunction) -> Result<Option<usize>> {
         Err(WalkError::Uncertain) => Ok(None),
         Err(WalkError::Invalid) => Err(refusal()),
     }
+}
+
+/// Count all candidate references, including duplicates, before allocation.
+/// The legacy HIR walk preserves its bounded/invalid-backing fallback contract.
+fn candidate_count(function: &ResolvedFunction) -> Result<Option<usize>> {
+    // Validate the full proof even when the HIR census will fall back.
+    let mut count = 0usize;
+    for identity in crate::loan_plan::owned_capacity::proof_identities(&function.loan_plan) {
+        identity.shared_allocation_key().ok_or_else(refusal)?;
+        identity.shared_allocation_bytes().ok_or_else(refusal)?;
+        count = count.checked_add(1).ok_or_else(refusal)?;
+    }
+    if inventory_count(function)?.is_none() {
+        return Ok(None);
+    }
+    Ok(Some(count))
+}
+
+fn allocate_candidates(count: usize) -> Result<RetentionScratch> {
+    // Reserve both requested carriers before either is allocated. Charge any
+    // allocator capacity excess too; replacing them never refunds old charges.
+    let bytes = count
+        .checked_mul(std::mem::size_of::<usize>() + std::mem::size_of::<u8>())
+        .ok_or_else(refusal)?;
+    super::reserve_builder_structure(bytes)?;
+    let keys = Vec::<usize>::with_capacity(count);
+    let matched = Vec::<u8>::with_capacity(count);
+    let excess = keys
+        .capacity()
+        .checked_sub(count)
+        .and_then(|extra| extra.checked_mul(std::mem::size_of::<usize>()))
+        .and_then(|bytes| bytes.checked_add(matched.capacity().checked_sub(count)?))
+        .ok_or_else(refusal)?;
+    super::reserve_builder_structure(excess)?;
+    Ok(RetentionScratch { keys, matched })
 }
 
 fn allocate_keys(count: usize) -> Result<Vec<usize>> {

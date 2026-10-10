@@ -3,7 +3,20 @@ use super::*;
 use crate::bounded_output;
 
 fn count(function: &ResolvedFunction) -> usize {
-    inventory_count(function).unwrap().unwrap()
+    candidate_count(function).unwrap().unwrap()
+}
+
+fn metadata(function: &ResolvedFunction) -> usize {
+    count(function) * (std::mem::size_of::<usize>() + std::mem::size_of::<u8>())
+}
+
+fn larger_proof(function: &ResolvedFunction) -> ResolvedFunction {
+    let mut larger = function.clone();
+    larger
+        .loan_plan
+        .endpoints
+        .push(larger.loan_plan.endpoints[0].clone());
+    larger
 }
 
 #[test]
@@ -11,8 +24,10 @@ fn reused_census_allocates_once_and_preserves_legacy_receipts_and_proof() {
     let function = tests::function();
     let expected = retained_function_loan_bytes(&function).unwrap();
     let wire = crate::cache_codec::encode(&function.loan_plan).unwrap();
-    let metadata = count(&function) * std::mem::size_of::<usize>();
-    let (legacy, overflow, debit) = bounded_output::with_limit_usage(2 * metadata, || {
+    let legacy_metadata =
+        inventory_count(&function).unwrap().unwrap() * std::mem::size_of::<usize>();
+    let metadata = metadata(&function);
+    let (legacy, overflow, debit) = bounded_output::with_limit_usage(2 * legacy_metadata, || {
         [
             retained_function_loan_bytes(&function),
             retained_function_loan_bytes(&function),
@@ -20,7 +35,7 @@ fn reused_census_allocates_once_and_preserves_legacy_receipts_and_proof() {
     });
     assert!(legacy.into_iter().all(|value| value.unwrap() == expected));
     assert!(!overflow);
-    assert_eq!(debit, 2 * metadata);
+    assert_eq!(debit, 2 * legacy_metadata);
     let mut scratch = RetentionScratch::default();
     let (retained, overflow, debit) = bounded_output::with_limit_usage(metadata, || {
         let first = scratch.measure(&function)?;
@@ -47,23 +62,12 @@ fn reused_census_allocates_once_and_preserves_legacy_receipts_and_proof() {
 #[test]
 fn scratch_growth_reserves_the_whole_new_carrier_and_refuses_one_short() {
     let small = tests::function();
-    let mut larger = small.clone();
-    let body = larger.body;
-    larger.body = ResolvedExpr {
-        id: body.id.clone(),
-        ty: body.ty.clone(),
-        ownership: body.ownership,
-        span: body.span,
-        kind: E::Unary {
-            op: crate::ast::UnaryOp::Neg,
-            value: Box::new(body),
-        },
-    };
+    let larger = larger_proof(&small);
     let expected = retained_function_loan_bytes(&larger).unwrap();
     let small_count = count(&small);
     let large_count = count(&larger);
     assert_eq!(large_count, small_count + 1);
-    let bytes = (small_count + large_count) * std::mem::size_of::<usize>();
+    let bytes = metadata(&small) + metadata(&larger);
     for limit in [bytes, bytes - 1] {
         let mut scratch = RetentionScratch::default();
         let (value, overflow, debit) = bounded_output::with_limit_usage(limit, || {
@@ -80,10 +84,7 @@ fn scratch_growth_reserves_the_whole_new_carrier_and_refuses_one_short() {
             assert!(overflow);
             // The refused replacement allocates no keys. Its diagnostic still
             // appends the complete message to the same cumulative ledger.
-            assert_eq!(
-                debit,
-                small_count * std::mem::size_of::<usize>() + errors[0].message.len()
-            );
+            assert_eq!(debit, metadata(&small) + errors[0].message.len());
         }
     }
 }
@@ -138,25 +139,14 @@ fn scratch_uncertain_inventory_keeps_full_charge_and_missing_backing_refuses() {
 #[test]
 fn prepared_module_census_avoids_intermediate_allocations_at_exact_limits() {
     let small = tests::function();
-    let mut large = small.clone();
-    let body = large.body;
-    large.body = ResolvedExpr {
-        id: body.id.clone(),
-        ty: body.ty.clone(),
-        ownership: body.ownership,
-        span: body.span,
-        kind: E::Unary {
-            op: crate::ast::UnaryOp::Neg,
-            value: Box::new(body),
-        },
-    };
+    let large = larger_proof(&small);
     let expected = [
         retained_function_loan_bytes(&small).unwrap(),
         retained_function_loan_bytes(&large).unwrap(),
     ];
     let wires =
         [&small, &large].map(|function| crate::cache_codec::encode(&function.loan_plan).unwrap());
-    let maximum = count(&large) * std::mem::size_of::<usize>();
+    let maximum = metadata(&large);
     let mut scratch = RetentionScratch::default();
     let (result, overflow, debit) = bounded_output::with_limit_usage(maximum, || {
         scratch.prepare([&small, &large].into_iter())?;
@@ -189,10 +179,7 @@ fn prepared_module_census_avoids_intermediate_allocations_at_exact_limits() {
     });
     assert_eq!(legacy.unwrap(), expected[1]);
     assert!(!overflow);
-    assert_eq!(
-        debit,
-        maximum + count(&small) * std::mem::size_of::<usize>()
-    );
+    assert_eq!(debit, maximum + metadata(&small));
 }
 
 #[test]
@@ -204,8 +191,8 @@ module generic.scratch;
 @id("generic.keep") fn keep<T>(value: T) -> T {
     let owned = bytes_zeroed(1usize);
     let view = bytes_as_slice(owned);
-    let _ = byte_len(view);
-    let _ = consume(owned);
+    let observed_length = byte_len(view);
+    let consumed_status = consume(owned);
     value
 }
 @id("generic.main") fn main() -> i64 {
@@ -220,11 +207,9 @@ module generic.scratch;
     crate::hir::validate(&resolved).unwrap();
     let instances = resolved.function_instances;
     assert_eq!(instances.len(), 2);
-    assert!(
-        instances
-            .iter()
-            .all(|instance| !instance.function.loan_plan.loans.is_empty())
-    );
+    assert!(instances
+        .iter()
+        .all(|instance| !instance.function.loan_plan.loans.is_empty()));
     let programs = vec![program];
     let authored = super::super::index_authored(&programs).unwrap();
     let wires = instances
@@ -300,4 +285,132 @@ module generic.scratch;
     });
     assert_eq!(one_short.unwrap_err()[0].code, "SPX-G171");
     assert!(overflow);
+}
+
+#[test]
+fn candidate_intersection_does_not_allocate_for_unreferenced_hir_identities() {
+    let function = tests::function();
+    let mut wide = function.clone();
+    let E::Block { statements, .. } = &mut wide.body.kind else {
+        panic!("body");
+    };
+    let statement = statements[0].clone();
+    for index in 0..500 {
+        let mut extra = statement.clone();
+        let crate::hir::ResolvedStatement::Let { value, .. } = &mut extra else {
+            panic!("fixture first let");
+        };
+        value.id = ExpressionId::from_owned(format!("unreferenced-wide-{index}"));
+        statements.push(extra);
+    }
+    let full_hir_count = inventory_count(&wide).unwrap().unwrap();
+    let candidate_count = count(&wide);
+    assert!(full_hir_count > candidate_count * 2);
+    assert_eq!(candidate_count, count(&function));
+    let expected = retained_function_loan_bytes(&wide).unwrap();
+    let proof = crate::cache_codec::encode(&wide.loan_plan).unwrap();
+    let mut scratch = RetentionScratch::default();
+    let (result, overflow, debit) =
+        bounded_output::with_limit_usage(metadata(&wide), || scratch.measure(&wide));
+    assert_eq!(result.unwrap(), expected);
+    assert!(!overflow);
+    assert_eq!(debit, metadata(&wide));
+    assert_eq!(scratch.keys.capacity(), candidate_count);
+    assert_eq!(scratch.matched.capacity(), candidate_count);
+    assert_eq!(crate::cache_codec::encode(&wide.loan_plan).unwrap(), proof);
+    let mut scratch = RetentionScratch::default();
+    let (result, overflow, _) =
+        bounded_output::with_limit_usage(metadata(&wide) - 1, || scratch.measure(&wide));
+    assert_eq!(result.unwrap_err()[0].code, "SPX-G171");
+    assert!(overflow);
+    assert_eq!(scratch.keys.capacity(), 0);
+    assert_eq!(scratch.matched.capacity(), 0);
+}
+
+#[test]
+fn candidate_intersection_checks_unmatched_hir_and_proof_backing_before_allocation() {
+    for corrupt_proof in [false, true] {
+        let mut function = tests::function();
+        let (missing, overflow, _) = bounded_output::with_limit_usage(0, || {
+            ExpressionId::from_owned("missing-unmatched-backing".to_owned())
+        });
+        assert!(overflow);
+        if corrupt_proof {
+            function.loan_plan.loans[0].site = missing;
+        } else {
+            function.body.id = missing;
+        }
+        let mut scratch = RetentionScratch::default();
+        let (result, overflow, debit) =
+            bounded_output::with_limit_usage(usize::MAX, || scratch.measure(&function));
+        let errors = result.unwrap_err();
+        assert_eq!(errors[0].code, "SPX-G171");
+        assert!(!overflow);
+        assert_eq!(
+            debit,
+            errors[0].message.len(),
+            "only refusal text is allocated"
+        );
+        assert_eq!(scratch.keys.capacity(), 0);
+        assert_eq!(scratch.matched.capacity(), 0);
+    }
+}
+
+#[test]
+fn candidate_intersection_keeps_equal_text_distinct_full_capacity_and_exact_unmatched_debit() {
+    let mut function = tests::function();
+    let mut scratch = RetentionScratch::default();
+    let before = scratch.measure(&function).unwrap();
+    let index = function
+        .loan_plan
+        .endpoints
+        .iter()
+        .position(|endpoint| {
+            scratch
+                .keys
+                .binary_search(&endpoint.point.expression.shared_allocation_key().unwrap())
+                .is_ok()
+        })
+        .unwrap();
+    let original = function.loan_plan.endpoints[index].point.expression.clone();
+    let mut text = String::with_capacity(original.as_str().len() + 4096);
+    text.push_str(original.as_str());
+    let independent = ExpressionId::from_owned(text);
+    assert_eq!(independent, original);
+    assert_ne!(
+        independent.shared_allocation_key(),
+        original.shared_allocation_key()
+    );
+    let independent_key = independent.shared_allocation_key().unwrap();
+    let extra = independent.shared_allocation_bytes().unwrap();
+    assert!(
+        extra > original.as_str().len() + 4096,
+        "include retained carrier and complete String capacity"
+    );
+    function.loan_plan.endpoints[index].point.expression = independent;
+    let wire = crate::cache_codec::encode(&function.loan_plan).unwrap();
+    assert_eq!(
+        retained_function_loan_bytes(&function).unwrap(),
+        before + extra
+    );
+    let exact = metadata(&function) + std::mem::size_of::<&ExpressionId>();
+    for limit in [exact, exact - 1] {
+        let mut scratch = RetentionScratch::default();
+        let (result, overflow, debit) =
+            bounded_output::with_limit_usage(limit, || scratch.measure(&function));
+        if limit == exact {
+            assert_eq!(result.unwrap(), before + extra);
+            assert!(!overflow);
+            assert_eq!(debit, exact);
+            assert!(scratch.keys.binary_search(&independent_key).is_err());
+        } else {
+            assert_eq!(result.unwrap_err()[0].code, "SPX-G171");
+            assert!(overflow);
+            assert!(debit >= metadata(&function));
+        }
+        assert_eq!(
+            crate::cache_codec::encode(&function.loan_plan).unwrap(),
+            wire
+        );
+    }
 }

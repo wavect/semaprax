@@ -1,16 +1,19 @@
 name: Focused implementation-batch 706-730 verification
-# Source-frozen authoring/compiler batch; execution results are recorded by this workflow.
+# DRAFT proposal only: final joined source census; the selectors below have not been executed.
+# Census bound statically to joined source 1ff4c4580d8c171711afa8abda16c50cdcf538d1; SOURCE_SUBJECT must select these exact source bytes.
+# Focused checks and generators remain unexecuted by this draft preparation; no full gates are selected.
 
 on:
   workflow_dispatch:
     inputs:
       profile:
-        description: Focused source verification or a separate exact-source macOS compiler build
+        description: Authentic candidate production, focused source verification, or exact-source macOS compiler build
         required: true
         type: choice
         default: verify
         options:
           - verify
+          - produce
           - macos-compiler
       source_subject:
         description: Final exact source SHA after compiler, codec, v31 routing and benchmark-profile batch integration
@@ -28,11 +31,12 @@ concurrency:
   cancel-in-progress: false
 jobs:
   focused:
-    if: ${{ inputs.profile == 'verify' }}
+    if: ${{ inputs.profile == 'verify' || inputs.profile == 'produce' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     env:
-      SOURCE_SUBJECT: ${{ inputs.source_subject }} # exact frozen source subject
+      SOURCE_SUBJECT: ${{ inputs.source_subject }} # exact joined source 1ff4c4580d8c171711afa8abda16c50cdcf538d1
+      PRODUCER_ONLY: ${{ inputs.profile == 'produce' }}
       SEMAPRAX_REQUIRE_VIEW_OWNERSHIP_COMPOSITION: "1"
       CARGO_BUILD_JOBS: "1"
       CARGO_INCREMENTAL: "0"
@@ -92,6 +96,7 @@ jobs:
           import difflib, hashlib, json, pathlib, re, subprocess, sys, time
           out = pathlib.Path("focused-evidence")
           out.mkdir(exist_ok=True)
+          producer_only = __import__("os").environ.get("PRODUCER_ONLY") == "true"
           commands = [
               ["python3", "-m", "unittest", "discover", "-s", "benchmarks", "-p", "test_typed_application_setup.py"],
               ["cargo", "test", "--locked", "--offline", "-p", "semaprax", "--lib", "workspace_graph::loan_retention::scratch_tests::", "--", "--nocapture", "--test-threads=1"],
@@ -119,7 +124,6 @@ jobs:
               ["python3", "benchmarks/event-sim-tokens-v1/test_campaign_adapter.py", "ShiftSimCampaignTests.test_round_four_requires_explicit_fresh_v30_all_fifteen_qualification", "ShiftSimCampaignTests.test_v30_context_changes_only_sem_setup_and_preserves_ts_prompt", "ShiftSimCampaignTests.test_v30_qualification_builder_accepts_only_its_harness_native_subject", "ShiftSimCampaignTests.test_v30_claude_dispatch_refuses_unqualified_setup_before_worktree_or_paid_call", "ShiftSimCampaignTests.test_round_three_requires_explicit_profile_and_v3_source_manifest_binding", "ShiftSimCampaignTests.test_v27_check_builds_and_accepts_only_the_harness_native_binary", "ShiftSimCampaignTests.test_v3_qualification_builder_binds_the_binary_actually_passed_to_acceptance", "ShiftSimCampaignTests.test_v32_qualification_builder_accepts_only_its_harness_native_subject", "ShiftSimCampaignTests.test_v32_round_and_prompt_preserve_original_contract_and_refuse_old_profiles", "ShiftSimCampaignTests.test_v31_round_and_prompt_preserve_original_contract_and_refuse_old_profiles", "ShiftSimCampaignTests.test_v31_qualification_builder_binds_fresh_native_subject_and_all_original_cases", "ShiftSimCampaignTests.test_v31_claude_dispatch_refuses_unqualified_setup_before_worktree_or_paid_call"],
               ["python3", "benchmarks/event-sim-tokens-v1/test_codex_campaign.py", "CodexShiftSimTests.test_v30_unqualified_or_stale_setup_refuses_all_paid_endpoints_before_worktree", "CodexShiftSimTests.test_v30_codex_plan_keeps_matched_model_denominator_and_fresh_source_binding", "CodexShiftSimTests.test_compiler_or_qualification_drift_refuses_before_worktree_or_paid_dispatch", "CodexShiftSimTests.test_v32_unqualified_or_stale_setup_refuses_all_paid_endpoints_before_worktree", "CodexShiftSimTests.test_v32_codex_plan_keeps_matched_model_denominator_and_fresh_source_binding", "CodexShiftSimTests.test_v31_codex_plan_requires_fresh_v31_evidence_and_pinned_typescript", "CodexShiftSimTests.test_v31_codex_dispatch_refuses_unqualified_setup_before_worktree_or_paid_call"],
               ["python3", "benchmarks/catalog-tokens-v1/test_codex_campaign.py", "CatalogCampaignTests"],
-              ["cargo", "test", "--locked", "--offline", "-p", "semaprax", "--test", "owned_data", "copy_record_vec::outcome::bounded_collection_outcome_graph_and_hostile_ownership_are_authenticated", "--", "--exact", "--nocapture", "--test-threads=1"],
               ["cargo", "test", "--locked", "--offline", "-p", "semaprax", "--test", "owned_data", "owned_collection_outcome::", "--", "--nocapture", "--test-threads=1"],
               ["cargo", "test", "--locked", "--offline", "-p", "semaprax", "--lib", "project::json_codec::", "--", "--nocapture", "--test-threads=1"],
               ["cargo", "test", "--locked", "--offline", "-p", "semaprax", "--lib", "hir::owned_collection_record::tests::", "--", "--nocapture", "--test-threads=1"],
@@ -225,6 +229,12 @@ jobs:
               ["cargo", "test", "--locked", "--offline", "-p", "semaprax-toolchain", "--test", "cli_new_project_v1", "stdin_stream_collection_record_template_has_exact_bytes_and_passes_check", "--", "--exact", "--nocapture", "--test-threads=1"],
               ["cargo", "test", "--locked", "--offline", "-p", "semaprax-toolchain", "--test", "cli_new_project_v1", "generated_project_validation_never_reopens_the_ambient_staging_tree", "--", "--exact", "--nocapture", "--test-threads=1"],
               ["cargo", "test", "--locked", "--offline", "-p", "semaprax-toolchain", "--test", "cli_help_surface_v1", "full_scoped_help_is_exhaustive_exact_capability_aware_and_inert", "--", "--exact", "--nocapture", "--test-threads=1"],
+              ["cargo", "test", "--locked", "--offline", "-p", "semaprax", "--lib", "workspace_graph::retained_vectors::carrier_tests::full_carrier_spare_slots_reuse_storage_at_exact_limit_and_refuse_one_short", "--", "--exact", "--nocapture", "--test-threads=1"],
+              ["cargo", "test", "--locked", "--offline", "-p", "semaprax", "--lib", "cleanup_plan::replay::schema_tests::nested_string_cleanup_selects_nested_schema_and_rejects_flat_replay", "--", "--exact", "--nocapture", "--test-threads=1"],
+              ["cargo", "test", "--locked", "--offline", "-p", "semaprax", "--lib", "workspace_graph::owned_function_import::text_collections::tests::nested_outcome_imports_rederive_vector_elements_and_direct_types", "--", "--exact", "--nocapture", "--test-threads=1"],
+              ["cargo", "test", "--locked", "--offline", "-p", "semaprax", "--lib", "workspace_graph::retained_validation::profile_join_tests::type_import_join_preserves_frozen_scalar_and_stream_profiles", "--", "--exact", "--nocapture", "--test-threads=1"],
+              ["cargo", "test", "--locked", "--offline", "-p", "semaprax", "--test", "language", "match_modes_syntax::constructor_call_scrutinees_preserve_explicit_modes_and_legacy_call_names", "--", "--exact", "--nocapture", "--test-threads=1"],
+              ["cargo", "test", "--locked", "--offline", "-p", "semaprax", "--lib", "cleanup_plan::deferred_commit::tests::owned_leaf_iterator_allocation_failure_retains_staged_vector", "--", "--exact", "--nocapture", "--test-threads=1"],
               ["cargo", "clippy", "--locked", "--offline", "-p", "semaprax-toolchain", "--lib", "--bin", "semaprax-full", "--", "-D", "warnings"],
               ["cargo", "clippy", "--locked", "--offline", "-p", "semaprax", "--lib", "--bin", "semaprax", "--bench", "interpreter", "--", "-D", "warnings"],
               ["cargo", "clippy", "--locked", "--offline", "-p", "semaprax-native-rust-interop", "--lib", "--", "-D", "warnings"],
@@ -247,6 +257,8 @@ jobs:
           if build_result.returncode:
               (out / "results.json").write_text(json.dumps({"source_subject": __import__("os").environ["SOURCE_SUBJECT"],
                   "workflow_head": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+                  "profile": "produce" if producer_only else "verify",
+                  "qualification": False, "owner_checks_executed": False,
                   "full_gates": False, "cargo_jobs": 1, "rows": rows}, indent=2) + "\n")
               print(build_data.decode(errors="replace")[-8000:], flush=True)
               raise SystemExit(1)
@@ -264,6 +276,8 @@ jobs:
           if b"could not compile" in data or b"error[E" in data:
               (out / "results.json").write_text(json.dumps({"source_subject": __import__("os").environ["SOURCE_SUBJECT"],
                   "workflow_head": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+                  "profile": "produce" if producer_only else "verify",
+                  "qualification": False, "owner_checks_executed": False,
                   "full_gates": False, "cargo_jobs": 1, "rows": rows}, indent=2) + "\n")
               print(data.decode(errors="replace")[-8000:], flush=True)
               raise SystemExit(1)
@@ -341,7 +355,7 @@ jobs:
               "compiler_path": str(compiler), "compiler_sha256": compiler_hash,
               "production_build": build_row,
               "evidence_only": True, "committed_inputs_modified": False,
-              "owning_checks_use_committed_inputs": True, "roots": canonical_roots,
+              "owning_checks_use_committed_inputs": not producer_only, "roots": canonical_roots,
               "files": [],
           }
           canonical_originals = {}
@@ -411,6 +425,25 @@ jobs:
                            "receipt_path": str(receipt_path), "receipt_sha256": hashlib.sha256(receipt_path.read_bytes()).hexdigest(),
                            "selected_sources": len(canonical_originals), "evidence_only": True})
               required_failures |= not canonical_receipt["success"]
+          if producer_only:
+              # Producers retain candidates, then restore the frozen inputs.
+              # This successful evidence run is never owning-check qualification.
+              pins_restored = all(pathlib.Path(name).read_bytes() == (before_dir / name).read_bytes() for name in pin_paths)
+              pin_check = subprocess.run(["git", "diff", "--exit-code", "--", *pin_paths], capture_output=True)
+              pins_restored = pins_restored and pin_check.returncode == 0
+              if not pins_restored:
+                  (out / "producer-pin-restoration-error.log").write_bytes(pin_check.stdout + pin_check.stderr)
+              failed = required_failures or not pins_restored or not canonical_receipt["success"]
+              (out / "results.json").write_text(json.dumps({
+                  "source_subject": subject,
+                  "workflow_head": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+                  "compiler_path": str(compiler), "compiler_sha256": compiler_hash,
+                  "profile": "produce", "qualification": False, "owner_checks_executed": False,
+                  "pins_restored": pins_restored, "full_gates": False, "cargo_jobs": 1, "rows": rows,
+              }, indent=2) + "\n")
+              with open(__import__("os").environ["GITHUB_OUTPUT"], "a") as output:
+                  output.write("required_passed=false\n")
+              raise SystemExit(int(failed))
           if not canonical_receipt["compiler_unchanged"] or not canonical_receipt["committed_inputs_restored"]:
               raise RuntimeError("canonical producer drift: refusing owning checks against changed inputs")
           failed_harnesses = {}
@@ -464,7 +497,7 @@ jobs:
               if command[0] == "python3" and "test_typed_application_setup.py" in command:
                   observed = re.findall(rb"(?m)^Ran ([0-9]+) test", data)
                   row["selected_observed"] = sum(map(int, observed))
-                  row["expected_selected"] = 14
+                  row["expected_selected"] = 23
               if command[0] == "python3" and command[1] == "benchmarks/catalog-tokens-v1/test_codex_campaign.py":
                   observed = re.findall(rb"(?m)^Ran ([0-9]+) test", data)
                   row["selected_observed"] = sum(map(int, observed))
@@ -490,6 +523,14 @@ jobs:
                       if observed != expected:
                           row["covered_group_count_error"] = True
                           required_failures = True
+              if command[1] == "test" and "copy_record_vec" in command and "--test" in command and "owned_data" in command:
+                  # The eight-test owner includes this required hostile ownership case.
+                  selector = "copy_record_vec::outcome::bounded_collection_outcome_graph_and_hostile_ownership_are_authenticated"
+                  observed = len(re.findall(rb"(?m)^test " + re.escape(selector.encode()) + rb" ", data))
+                  row["covered_group_counts"] = {selector: {"expected_selected": 1, "selected_observed": observed}}
+                  if observed != 1:
+                      row["covered_group_count_error"] = True
+                      required_failures = True
               if command[1] == "test" and "literal_format" in command and "--lib" in command:
                   row["covered_group_counts"] = {}
                   for selector, expected in [("literal_format::move_tests::", 2),
@@ -568,14 +609,18 @@ jobs:
                   "noncanonical_workspace_source_reports_project_format_repair": 1,
               }
               exact_expected.update({"hir::projected_string_view::tests::": 4, "interpreter::projected_string_view::tests::repeated_projected_views_do_not_charge_a_string_materialization": 1, "projected_string_views::": 2, "hir::owned_leaf_collection::native_identity_tests::native_emission_replays_owned_leaf_identity_layout_and_source_authority": 1})
-              exact_expected.update({"scaffold::stdin_stream_collection_record_template_selects_project_v31_and_replays": 1, "cli_driver::cli::new_project::tests::grammar_is_closed_and_names_default_to_the_destination_leaf": 1, "new_cli::standalone_new_refuses_existing_invalid_and_parentless_destinations": 1, "new_cli::standalone_new_is_listed_by_help_and_describes_its_grammar": 1, "stdin_stream_collection_record_template_has_exact_bytes_and_passes_check": 1, "generated_project_validation_never_reopens_the_ambient_staging_tree": 1, "full_scoped_help_is_exhaustive_exact_capability_aware_and_inert": 1, "project::json_codec::": 25, "hir::owned_collection_record::tests::": 8, "nested_collection_record::": 3, "codegen::native_bytes::projected_vec_tests::owned_outcome_vectors_have_case_qualified_move_and_drop_slots": 1, "project::tests::stdin_stream_command::collection_records::": 5, "project::manifest::tables::profiles::tests::": 1, "project::json_codec::utf8::tests::": 4, "string_builtin_calls::arity_types_names_and_source_identity_collisions_remain_closed": 1, "borrowed_str_native::native_borrowed_str_is_length_aware_utf8_and_cleanup_inert_at_o0_o2": 1, "portable_indexed_byte_data::native_slice_carrier_and_total_get_are_exact_at_o0_and_o2": 1, "hir::validation::string_intrinsic::tests::": 7, "internal_owned_slice_boundary::": 2, "standard_library::application_json::": 34, "string_ops::unicode_scalar_tests::": 3, "source_verify::iterative_verifier_tests::unicode_scalar_conversion_matches_recursive_oracle": 1, "integer_profiles::unicode_scalar::": 2, "project::json_codec::owned::tests::": 2, "owned_collection_outcome::": 1, "hir::collection_outcome::owned::tests::": 3, "hir::owned_leaf_collection::tests::": 11, "interpreter::owned_vec::owned_leaf::tests::": 3, "owned_leaf_collections": 6, "owned_leaf_vec::": 25, "project::tests::stdin_stream_command::owned_data::": 4, "workspace_graph::diagnostics::refusal_tests::": 2})
+              exact_expected.update({"scaffold::stdin_stream_collection_record_template_selects_project_v31_and_replays": 1, "cli_driver::cli::new_project::tests::grammar_is_closed_and_names_default_to_the_destination_leaf": 1, "new_cli::standalone_new_refuses_existing_invalid_and_parentless_destinations": 1, "new_cli::standalone_new_is_listed_by_help_and_describes_its_grammar": 1, "stdin_stream_collection_record_template_has_exact_bytes_and_passes_check": 1, "generated_project_validation_never_reopens_the_ambient_staging_tree": 1, "full_scoped_help_is_exhaustive_exact_capability_aware_and_inert": 1, "project::json_codec::": 28, "hir::owned_collection_record::tests::": 8, "nested_collection_record::": 3, "codegen::native_bytes::projected_vec_tests::owned_outcome_vectors_have_case_qualified_move_and_drop_slots": 1, "project::tests::stdin_stream_command::collection_records::": 5, "project::manifest::tables::profiles::tests::": 1, "project::json_codec::utf8::tests::": 4, "string_builtin_calls::arity_types_names_and_source_identity_collisions_remain_closed": 1, "borrowed_str_native::native_borrowed_str_is_length_aware_utf8_and_cleanup_inert_at_o0_o2": 1, "portable_indexed_byte_data::native_slice_carrier_and_total_get_are_exact_at_o0_and_o2": 1, "hir::validation::string_intrinsic::tests::": 7, "internal_owned_slice_boundary::": 2, "standard_library::application_json::": 36, "string_ops::unicode_scalar_tests::": 3, "source_verify::iterative_verifier_tests::unicode_scalar_conversion_matches_recursive_oracle": 1, "integer_profiles::unicode_scalar::": 2, "project::json_codec::owned::tests::": 2, "owned_collection_outcome::": 1, "hir::collection_outcome::owned::tests::": 3, "hir::owned_leaf_collection::tests::": 11, "interpreter::owned_vec::owned_leaf::tests::": 3, "owned_leaf_collections": 6, "owned_leaf_vec::": 25, "project::tests::stdin_stream_command::owned_data::": 4, "workspace_graph::diagnostics::refusal_tests::": 2})
               exact_expected.update({"hir::collection_outcome::nested::tests::": 6, "owned_nested_outcome::": 3})
-              exact_expected["copy_record_vec::outcome::bounded_collection_outcome_graph_and_hostile_ownership_are_authenticated"] = 1
+              exact_expected["copy_record_vec"] = 8
               exact_expected.update({"graph::scoped_vec_field::tests::": 3, "patch::source_index::scoped_vec_field_tests::": 1, "scoped_vec_field_native::": 4})
               exact_expected.update({"hir::vec_field::tests::": 6, "interpreter::vec_field::tests::": 1, "project::incremental::snapshot::vec_field::tests::": 1})
               exact_expected.update({"installed_diagnostics::": 5})
+              exact_expected["cleanup_plan::deferred_commit::tests::owned_leaf_iterator_allocation_failure_retains_staged_vector"] = 1
+              exact_expected["match_modes_syntax::constructor_call_scrutinees_preserve_explicit_modes_and_legacy_call_names"] = 1
+              exact_expected.update({"cleanup_plan::replay::schema_tests::nested_string_cleanup_selects_nested_schema_and_rejects_flat_replay": 1, "workspace_graph::owned_function_import::text_collections::tests::nested_outcome_imports_rederive_vector_elements_and_direct_types": 1, "workspace_graph::retained_validation::profile_join_tests::type_import_join_preserves_frozen_scalar_and_stream_profiles": 1})
+              exact_expected["workspace_graph::retained_vectors::carrier_tests::full_carrier_spare_slots_reuse_storage_at_exact_limit_and_refuse_one_short"] = 1
               # Future selector receipt only; counts are source-derived, none are executed here.
-              # application_json=34 (stream=2, ShiftSim=1, marker names=1, Catalog23=1, bulk quote=1); capture=18; native field read=4; graph=3; source-index=1; owned_leaf_vec=25 (17+8 field reads).
+              # application_json=36; codec lib=28 (includes two freshener regressions); Python setup=23; carrier exact-limit owner=1; capture=18; native field read=4; graph=3; source-index=1; owned_leaf_vec=25 (17+8 field reads).
               for selector, expected in exact_expected.items():
                   if selector in command:
                       row["expected_selected"] = expected
@@ -698,7 +743,7 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 45
     env:
-      SOURCE_SUBJECT: ${{ inputs.source_subject }} # exact frozen source subject
+      SOURCE_SUBJECT: ${{ inputs.source_subject }} # exact joined source 1ff4c4580d8c171711afa8abda16c50cdcf538d1
       VERIFICATION_RUN_ID: ${{ inputs.verification_run_id }}
       WORKFLOW_SHA: ${{ github.sha }}
       CARGO_BUILD_JOBS: "1"

@@ -65,7 +65,7 @@ mod tests {
 @id("forward") fn forward(value:own O)->O {value}
 @id("app.main") fn main()->i64 {
  let outcome=forward(O::Error{code:4,offset:2usize,field:3});
- match own outcome { O::Decoded{a,b}=>0, O::Error{code,offset,field}=>code }
+ match own outcome { O::Decoded{a,b}=>0, O::Error{code,offset,field}=>code, }
 }
 "#;
     fn program() -> ResolvedProgram {

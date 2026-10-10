@@ -72,7 +72,7 @@ fn source_rejects_dynamic_missing_temporary_and_mutating_index_reads() {
     for source in [
         SOURCE.replacen("0usize,\"text\"","0usize,string_from_i64(1)",1),
         SOURCE.replacen("0usize,\"text\"","0usize,\"absent\"",1),
-        SOURCE.replacen("value.rows,0usize,\"text\"","vec_new<Row>(1usize),0usize,\"text\"",1),
+        SOURCE.replacen("value.rows,0usize,\"text\"","vec_with_capacity<Row>(1usize),0usize,\"text\"",1),
         SOURCE.replace("@id(\"scoped.inspect\")", "@id(\"scoped.steal\") fn steal(value:own Envelope)->usize {0usize}\n@id(\"scoped.inspect\")")
             .replacen("value.rows,0usize,\"text\"","value.rows,steal(value),\"text\"",1),
     ] {
@@ -186,12 +186,12 @@ fn loans_end_after_last_use_but_prevent_view_escape_and_grouped_parent_transfer(
 @id("sink") fn sink(rows:own Vec<Row>)->i64{0}
 @id("app.main") fn main()->i64 {0}
 "#;
-    let valid=format!("{prefix}\n@id(\"read\") fn read(rows:own Vec<Row>)->i64 {{ let view=vec_field<Row>(rows,0usize,\"text\");let length=str_len_bytes(view);let rows=vec_sort_owned<Row>(rows);length+sink(rows) }}");
+    let valid=format!("{prefix}\n@id(\"read\") fn read(rows:own Vec<Row>)->i64 {{ let view=vec_field<Row>(rows,0usize,\"text\");let length=str_len_bytes(view);let sorted=vec_sort_owned<Row>(rows);length+sink(sorted) }}");
     let program = checked(&valid);
     hir::validate(&program).unwrap();
     let live = valid.replace(
-        "let rows=vec_sort_owned<Row>(rows);length+sink(rows)",
-        "let rows=vec_sort_owned<Row>(rows);str_len_bytes(view)+sink(rows)",
+        "let sorted=vec_sort_owned<Row>(rows);length+sink(sorted)",
+        "let sorted=vec_sort_owned<Row>(rows);str_len_bytes(view)+sink(sorted)",
     );
     assert!(crate::check(&live, "live.spx")
         .unwrap_err()

@@ -198,6 +198,10 @@ fn source_refuses_temporary_roots_and_moves_during_projected_loans() {
         .replace("sink(value,count)","bad(string_as_str(value.inner.text),value)");
     let errors = crate::check(&source, "grouped.spx").unwrap_err();
     assert!(errors.iter().any(|e| e.code == "SPX-T265"), "{errors:?}");
+    let source=SOURCE.replace("@id(\"view.sink\")", "@id(\"view.bad_record\") fn bad_record(view:borrow Outer,value:own Outer)->i64 {0}\n@id(\"view.sink\")")
+        .replace("sink(value,count)","bad_record(value,value)");
+    let errors = crate::check(&source, "grouped-record.spx").unwrap_err();
+    assert!(errors.iter().any(|e| e.code == "SPX-T265"), "{errors:?}");
 }
 
 #[test]

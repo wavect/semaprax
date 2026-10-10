@@ -179,11 +179,11 @@ for(let i=0;i<3;i++){{
 fn bulk_utf8_copies_exact_unicode_ranges_once_and_detaches_from_input() {
     // Invalid prefix/suffix prove that only the authenticated range is read.
     let source = r#"module bulk.valid;
-@id("copy") fn copy()->string {let raw=[255u8,0u8,239u8,187u8,191u8,127u8,194u8,128u8,224u8,160u8,128u8,239u8,191u8,191u8,244u8,143u8,191u8,191u8,255u8];string_from_utf8(byte_range(array_as_slice(raw),1usize,18usize))}
+@id("copy") fn copy()->string {let raw=[255u8,0u8,239u8,187u8,191u8,127u8,194u8,128u8,224u8,160u8,128u8,239u8,191u8,191u8,244u8,143u8,191u8,191u8,255u8];let input=array_as_slice(raw);string_from_utf8(byte_range(input,1usize,18usize))}
 @id("app.main") fn main()->i64 {let text=copy();let bytes=str_as_bytes(string_as_str(text));let first=match byte_get(bytes,0usize){Option::Some{value}=>value==0u8,Option::None{}=>false,};let last=match byte_get(bytes,16usize){Option::Some{value}=>value==191u8,Option::None{}=>false,};if first && last && byte_len(bytes)==17usize{42}else{0}}
 "#;
     run(source, 42, None, 1);
-    let empty="module bulk.empty;@id(\"app.main\") fn main()->i64{let raw=[255u8];let text=string_from_utf8(byte_range(array_as_slice(raw),0usize,0usize));str_len_bytes(string_as_str(text))}";
+    let empty="module bulk.empty;@id(\"app.main\") fn main()->i64{let raw=[255u8];let input=array_as_slice(raw);let text=string_from_utf8(byte_range(input,0usize,0usize));str_len_bytes(string_as_str(text))}";
     run(empty, 0, None, 1);
     // Named borrowed slices remain valid across iterations; each conversion
     // owns one independent result and settles it before the next iteration.

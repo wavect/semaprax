@@ -445,7 +445,7 @@ fn layout_case(
             // every admitted scalar, independent of the scalar's load width.
             (8, 8, VariantFieldValueKind::Copy)
         } else if compiler_iterator_item
-            && crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+            && crate::hir::owned_leaf_collection::runtime_element(
                 &program.declarations,
                 &concrete_ty,
             )

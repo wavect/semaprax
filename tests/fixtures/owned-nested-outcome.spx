@@ -17,14 +17,15 @@ module test.owned_nested_outcome;
 }
 @id("n.forward") fn forward(value:own Outcome)->Outcome {value}
 @id("n.inspect_payload") fn inspect_payload(value:borrow Payload)->i64 {
- i64_from_usize(vec_len<string>(value.items))+value.config.seed+str_len_bytes(string_as_str(value.config.label))+i64_from_usize(byte_len(bytes_as_slice(value.bytes)))
+ let length=match borrow value {Payload{items:borrowed_items,config:Config{label:borrowed_label,seed:borrowed_seed},bytes:borrowed_bytes}=>i64_from_usize(byte_len(bytes_as_slice(borrowed_bytes))),};
+ i64_from_usize(vec_len<string>(value.items))+value.config.seed+str_len_bytes(string_as_str(value.config.label))+length
 }
 @id("n.inspect") fn inspect(value:borrow Outcome)->i64 {
- match borrow value {Outcome::Ready{value}=>inspect_payload(value),Outcome::Error{code,offset,field}=>code+i64_from_usize(offset)+field,}
+ match borrow value {Outcome::Ready{value:payload}=>inspect_payload(payload),Outcome::Error{code,offset,field}=>code+i64_from_usize(offset)+field,}
 }
 @id("n.finish") fn finish(value:own Outcome)->i64 {
  match own value {
-  Outcome::Ready{value}=>match own value {Payload{items,config:Config{label,seed},bytes}=>i64_from_usize(vec_len<string>(items))+seed+string_len(label)+i64_from_usize(byte_len(bytes_as_slice(bytes))),},
+  Outcome::Ready{value:payload}=>match own payload {Payload{items,config:Config{label,seed},bytes}=>i64_from_usize(vec_len<string>(items))+seed+string_len(label)+i64_from_usize(byte_len(bytes_as_slice(bytes))),},
   Outcome::Error{code,offset,field}=>code+i64_from_usize(offset)+field,
  }
 }

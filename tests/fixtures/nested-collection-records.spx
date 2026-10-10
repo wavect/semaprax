@@ -12,12 +12,13 @@ module test.nested_collection_record;
  @id("collection.report.metrics") metrics:Metrics,
 }
 @id("collection.forward") fn forward(value:own Report)->Report {value}
+@id("collection.score") fn score(value:own Row)->i64 {match own value {Row{label,rank}=>rank+string_len(label),}}
 @id("collection.inspect") fn inspect(value:borrow Report)->i64 {
  let mut at=0usize;
  let mut total=value.metrics.base;
  while at<vec_len<Row>(value.items) {
   let row=vec_clone_at<Row>(value.items,at);
-  total=total+match own row {Row{label,rank}=>rank+string_len(label),};
+  total=total+score(row);
   at=at+1usize;
   at<vec_len<Row>(value.items)
  }

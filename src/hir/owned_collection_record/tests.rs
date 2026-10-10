@@ -244,7 +244,7 @@ permit {{process.args.read,process.stderr.write,process.stdin.read,process.stdou
 @id("metrics") record Metrics {{@id("metrics.total") total:i64,}}
 @id("report") record Report {{@id("report.items") items:Vec<i64>,@id("report.metrics") metrics:Metrics,}}
 {helper}
-@id("command") fn command()->{command_type} {{{result}}}
+@id("command") fn command()->{command_type} uses{{process.stdin.read}} {{let reader=stdin_stream_open();{result}}}
 @id("app.main") fn main()->i64 {{0}}
 "#
         );

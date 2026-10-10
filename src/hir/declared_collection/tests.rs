@@ -53,26 +53,34 @@ fn logical_collection_declarations_keep_source_graph_and_affine_facts() {
             &ty
         ));
     }
-    assert!(contains(&program.declarations, &nominal("wrapper")));
+    assert!(!contains(&program.declarations, &nominal("wrapper")));
+    assert!(super::super::owned_collection_record::admitted(
+        &nominal("wrapper"),
+        &program.declarations
+    ));
     // The profile considers only authenticated runtime closure; logical type names
     // confer no exception when someone actually places one in that closure.
     super::super::validate_stream_record_program(&program, None).unwrap();
 }
 #[test]
-fn logical_collection_declarations_refuse_all_unused_runtime_uses() {
+fn logical_collection_declarations_keep_unused_runtime_uses_out_of_frozen_profiles() {
     for suffix in [
         "@id(\"unused\") fn unused(input:own Request)->i64 {0}",
         "@id(\"unused\") fn unused(input:borrow Wrapper)->i64 {0}",
         "@id(\"unused\") fn unused()->i64 {let r=Request{servers:vec_with_capacity<string>(0usize),patients:vec_with_capacity<Patient>(0usize)};0}",
-        "@id(\"unused\") fn unused()->i64 {let r:Request=0;0}",
     ] {
-        let diagnostics =
-            crate::check(&format!("{SOURCE}{suffix}"), "unused-logical.spx").unwrap_err();
-        assert!(
-            diagnostics.iter().any(|d| d.code == "SPX-T281"),
-            "{diagnostics:?}"
-        );
+        let ast = crate::check(&format!("{SOURCE}{suffix}"), "unused-logical.spx").unwrap();
+        let program = resolve(&ast).unwrap();
+        assert!(super::super::validate_stream_record_program(&program, None).is_err());
+        assert!(super::super::validate_stream_owned_program(&program, None).is_err());
+        super::super::validate_stream_collection_record_program(&program, None).unwrap();
     }
+    let errors = crate::check(
+        &format!("{SOURCE}@id(\"unused\") fn unused()->i64 {{let r:Request=0;0}}"),
+        "wrong-runtime.spx",
+    )
+    .unwrap_err();
+    assert!(errors.iter().any(|d| d.code == "SPX-T232"), "{errors:?}");
 }
 #[test]
 fn logical_collection_hir_replays_declaration_identity_and_refuses_runtime_authority() {

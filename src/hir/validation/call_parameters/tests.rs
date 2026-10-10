@@ -403,6 +403,7 @@ fn borrowed_user_signatures_keep_recursive_calls_and_hostile_argument_refusals_e
         unreachable!()
     };
     args[0].ownership = OwnershipMode::Borrow;
+    let forged_argument = args[0].clone();
     let error = compare_expression(&program, function, &hostile).unwrap_err();
     assert_eq!(error.code, "SPX-H006");
     let target = program
@@ -410,8 +411,22 @@ fn borrowed_user_signatures_keep_recursive_calls_and_hostile_argument_refusals_e
         .iter()
         .find(|function| function.id.as_str() == "payload.identity")
         .unwrap();
+    // Full expression replay rejects the forged Place ownership before the
+    // caller signature is consulted. The isolated signature check still pins
+    // the target parameter identity and its own diagnostic.
     assert_eq!(
         error.message,
+        format!(
+            "expression `{}` has inconsistent ownership",
+            forged_argument.id
+        )
+    );
+    let validator = HirValidator::new(&program).unwrap();
+    let direct = validator
+        .validate_argument_ownership(&forged_argument, &target.params[0])
+        .unwrap_err();
+    assert_eq!(
+        direct.message,
         format!(
             "argument ownership is incompatible with parameter `{}`",
             target.params[0].id
@@ -574,7 +589,7 @@ fn string_signature_views_keep_recursive_order_and_call_shape_refusals_exact() {
     let ResolvedExprKind::Call { args, .. } = &mut tail.kind else {
         unreachable!()
     };
-    args[1] = args[0].clone();
+    args[1].kind = args[0].kind.clone();
     let error = compare_expression(&program, function, &hostile).unwrap_err();
     assert_eq!(error.code, "SPX-H006");
     assert!(
@@ -631,6 +646,6 @@ fn string_signature_views_preserve_exact_owned_and_scalar_parameter_error_identi
     assert_eq!(actual.span, Some(argument.span));
     assert_eq!(
         actual.message,
-        "argument ownership is incompatible with parameter `core.str.byte_at.param.1`"
+        "argument ownership is incompatible with parameter `core.str.byte-at.param.1`"
     );
 }

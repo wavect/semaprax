@@ -587,9 +587,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         let diagnostic = error(
                             self.program,
                             "SPX-T266",
-                            format!(
-                                "borrowed view `{name}` requires an exact admitted storage place"
-                            ),
+                            if matches!(
+                                op,
+                                crate::byte_ops::ByteOp::StringAsStr
+                                    | crate::byte_ops::ByteOp::StrAsBytes
+                            ) {
+                                format!("borrowed view `{name}` requires a named String owner or an authenticated named-record path to a String field")
+                            } else {
+                                format!("borrowed view `{name}` requires an exact admitted storage place")
+                            },
                             expression.span,
                         );
                         self.diagnostics.push(match args.first() {
@@ -1032,7 +1038,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         |place| {
                             !crate::source_verify::declared_type::owned_leaf_collection::copy_or_leaf_admitted(
                                 self.types, &place.ty,
-                            )
+                            ) && !crate::source_verify::declared_type::collection_record::admitted(&place.ty, self.types)
                         },
                     )
                 {

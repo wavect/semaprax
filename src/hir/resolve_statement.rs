@@ -356,7 +356,9 @@ impl Resolver<'_> {
                         name: type_name.clone(),
                         arguments: type_arguments.clone(),
                     };
-                    if !crate::source_verify::copy_record_source_admitted(self.program, &ty) {
+                    if !crate::source_verify::copy_record_source_admitted(self.program, &ty)
+                        && !crate::source_verify::owned_leaf_source_admitted(self.program, &ty)
+                    {
                         return Err(self.error(
                             "SPX-T252",
                             "record construction is not yet admitted in while bodies",

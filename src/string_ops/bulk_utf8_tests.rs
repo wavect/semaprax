@@ -55,7 +55,7 @@ fn bulk_utf8_source_graph_cache_and_signature_roundtrip() {
     // Selecting an existing map adapter must not bypass the frozen scalar
     // export refusal through its additive internal aggregate implementation.
     let map = crate::check(
-        &SOURCE.replace("let raw=", "let values=string_map_new();let raw="),
+        &SOURCE.replace("let raw=", "let values=map_new(1usize);let raw="),
         "map.spx",
     )
     .unwrap();

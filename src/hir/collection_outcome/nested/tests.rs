@@ -244,7 +244,7 @@ fn nested_outcome_preserves_variant_inclusive_depth_and_leaf_bounds() {
             }
             source.push_str("}\n");
         }
-        source.push_str("@id(\"o\") variant O {@id(\"o.ok\") Ready{@id(\"o.value\") value:R0,},@id(\"o.err\") Error{@id(\"o.code\") code:i64,@id(\"o.offset\") offset:usize,@id(\"o.field\") field:i64,},}\n@id(\"forward\") fn forward(value:own O)->O{value}\n@id(\"app.main\") fn main()->i64{let value=forward(O::Error{code:42,offset:0usize,field:0});match own value {O::Ready{value}=>0,O::Error{code,offset,field}=>code,}}\n");
+        source.push_str("@id(\"o\") variant O {@id(\"o.ok\") Ready{@id(\"o.value\") value:R0,},@id(\"o.err\") Error{@id(\"o.code\") code:i64,@id(\"o.offset\") offset:usize,@id(\"o.field\") field:i64,},}\n@id(\"forward\") fn forward(value:own O)->O{value}\n@id(\"app.main\") fn main()->i64{let value=forward(O::Error{code:42,offset:0usize,field:0});match own value {O::Ready{value:payload}=>0,O::Error{code,offset,field}=>code,}}\n");
         source
     }
     for source in [bounded(63, 1), bounded(1, 256)] {

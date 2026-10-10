@@ -18,6 +18,27 @@ fn native_emission_replays_owned_leaf_identity_layout_and_source_authority() {
     .unwrap();
     assert!(graph::verify_json(&changed, &graph).is_err());
     let resolved = hir::resolve(&ast).unwrap();
+    let item = hir::ResolvedType::Nominal {
+        declaration: hir::DeclarationId::new("owned.leaf.entry"),
+        arguments: vec![],
+    };
+    for target in [
+        crate::variant_layout::VariantTarget::Native64,
+        crate::variant_layout::VariantTarget::Wasm32,
+    ] {
+        let step = crate::iterator_ops::resolved_iter_step(item.clone());
+        let layout =
+            crate::variant_layout::VariantLayout::for_type(&resolved, target, &step).unwrap();
+        let field = layout
+            .case(&hir::DeclarationId::new(crate::iterator_ops::YIELD_ID))
+            .unwrap()
+            .field(&hir::DeclarationId::new(crate::iterator_ops::ITEM_ID))
+            .unwrap();
+        assert_eq!(
+            field.value_kind,
+            crate::variant_layout::VariantFieldValueKind::OwnedRecord
+        );
+    }
     for drift in 0..3 {
         let mut forged = resolved.clone();
         if drift == 0 {

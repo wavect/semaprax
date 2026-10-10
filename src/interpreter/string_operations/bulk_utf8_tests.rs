@@ -27,7 +27,7 @@ fn evaluate(body: &str, budget: Utf8MaterializationBudget) -> (Result<Value, Flo
 
 #[test]
 fn bulk_utf8_one_materialization_checks_slice_extent_and_both_fixed_caps() {
-    let body="let raw=[255u8,65u8,0u8,195u8,169u8,255u8];let text=copy(byte_range(array_as_slice(raw),1usize,5usize));str_len_bytes(string_as_str(text))";
+    let body="let raw=[255u8,65u8,0u8,195u8,169u8,255u8];let input=array_as_slice(raw);let text=copy(byte_range(input,1usize,5usize));str_len_bytes(string_as_str(text))";
     for (remaining_count, remaining_bytes, accepted) in [(1, 4, true), (0, 4, false), (1, 3, false)]
     {
         let initial = (
@@ -84,7 +84,7 @@ fn bulk_utf8_rejection_precedes_materialization_and_helpers_share_the_meter() {
         })
     ));
     assert_eq!(usage, (MAX_OWNED_UTF8_LOGICAL_ALLOCATIONS, 1));
-    let (result,usage)=evaluate("let raw=[0u8];let empty=copy(byte_range(array_as_slice(raw),0usize,0usize));str_len_bytes(string_as_str(empty))",Utf8MaterializationBudget::fixed());
+    let (result,usage)=evaluate("let raw=[0u8];let input=array_as_slice(raw);let empty=copy(byte_range(input,0usize,0usize));str_len_bytes(string_as_str(empty))",Utf8MaterializationBudget::fixed());
     assert!(matches!(result, Ok(Value::Int(0))));
     assert_eq!(usage, (1, 0));
 }

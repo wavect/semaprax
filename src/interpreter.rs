@@ -2305,11 +2305,13 @@ fn variant_constructor_is_admitted(
         seen.insert(field.field.clone())
             && field.value.ty == *declared_ty
             && field.value.ownership
-                == if *declared_ty == ResolvedType::Bytes
-                    || *declared_ty == ResolvedType::String
-                    || crate::iterator_ops::is_iter(declared_ty)
-                    || hir::copy_record_collection::is_vec(declarations, declared_ty)
-                {
+                == if variant_admission::field_is_owned(
+                    declarations,
+                    &expression.ty,
+                    case,
+                    &field.field,
+                    declared_ty,
+                ) {
                     hir::OwnershipMode::Own
                 } else {
                     hir::OwnershipMode::Value
@@ -2324,7 +2326,6 @@ fn variant_pattern_is_admitted(
     arms: &[hir::ResolvedMatchArm],
 ) -> bool {
     let list_step = crate::list_ops::step_shape(declarations, ty);
-    let record_iterator_step = crate::iterator_ops::step_shape(declarations, ty);
     if !(is_admitted_owned_variant(declarations, ty)
         || variant_admission::is_admitted_copy_scalar_variant(declarations, ty)
         || list_step)
@@ -2405,16 +2406,13 @@ fn variant_pattern_is_admitted(
                 {
                     return false;
                 }
-                let expected_ownership = if *declared_ty == ResolvedType::Bytes
-                    || *declared_ty == ResolvedType::String
-                    || crate::iterator_ops::is_iter(declared_ty)
-                    || hir::copy_record_collection::is_vec(declarations, declared_ty)
-                    || (record_iterator_step
-                        && hir::owned_record_collection::is_admitted_owned_record_collection_element(
-                            declarations,
-                            declared_ty,
-                        ))
-                {
+                let expected_ownership = if variant_admission::field_is_owned(
+                    declarations,
+                    ty,
+                    case,
+                    &field.field,
+                    declared_ty,
+                ) {
                     match mode {
                         hir::ResolvedMatchMode::Own => hir::OwnershipMode::Own,
                         hir::ResolvedMatchMode::Borrow => hir::OwnershipMode::Borrow,

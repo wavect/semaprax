@@ -43,6 +43,9 @@ pub(crate) fn vector(index: &DeclarationIndex, ty: &ResolvedType) -> bool {
 }
 /// Transitive refusal, independent of selected entry/reachability and cache facts.
 pub(crate) fn contains(index: &DeclarationIndex, root: &ResolvedType) -> bool {
+    if super::collection_outcome::runtime_admitted(index, root) {
+        return false;
+    }
     // v14 gives this direct carrier independent runtime authority. A record
     // containing such a vector remains a logical schema, never an implicit ABI.
     if super::owned_leaf_collection::is_vec(index, root) {

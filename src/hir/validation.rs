@@ -111,8 +111,8 @@ impl<'a> HirValidator<'a> {
     pub(super) fn new(program: &'a ResolvedProgram) -> Result<Self, Diagnostic> {
         validate_nul_free_identities(program)?;
         stdin_stream::reject_sealed_escape(program)?;
-        box_intrinsic::reject_reserved_identities(program)?;
         string_intrinsic::reject_reserved_identities(program)?;
+        box_intrinsic::reject_reserved_identities(program)?;
         super::closure::once::reject_reserved_identities(program)?;
         generic_template::validate_call_graph(program)?;
         for declaration in program.declarations.declarations() {

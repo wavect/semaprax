@@ -31,6 +31,9 @@ pub(in crate::source_verify) fn vector(types: &TypeTable<'_>, ty: &Type) -> bool
         && matches!(arguments.as_slice(),[element] if text_element(types,element)))
 }
 fn contains(types: &TypeTable<'_>, root: &Type) -> bool {
+    if super::collection_outcome::runtime_admitted(types, root) {
+        return false;
+    }
     if matches!(root, Type::Named { name, arguments } if name == "Vec" && matches!(arguments.as_slice(), [element] if super::owned_leaf_collection::admitted(types, element)))
     {
         return false;

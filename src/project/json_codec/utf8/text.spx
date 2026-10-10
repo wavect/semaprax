@@ -47,7 +47,13 @@ size
 @id("__ROW_ID__.json.utf8.quoted-render")
 fn json___ROW___utf8_quote(text:borrow str)->string {
 if !json___ROW___owned_valid(text){""}else{
-let bytes=str_as_bytes(text);let mut output="\"";let mut at=0usize;
+let bytes=str_as_bytes(text);let mut escaped=false;let mut probe=0usize;
+while !escaped && probe<byte_len(bytes) {
+let byte=match byte_get(bytes,probe){Option::Some{value}=>i64_from_u8(value),Option::None{}=>0,};
+escaped=byte<32 || byte==34 || byte==92;probe=probe+1usize;!escaped && probe<byte_len(bytes)
+}
+if !escaped{string_concat(string_concat("\"",string_from_str(text)),"\"")}else{
+let mut output="\"";let mut at=0usize;
 while at<byte_len(bytes) {
 let scalar=ju_raw_scalar(bytes,at);
 let piece=if scalar==34{"\\\""}else{if scalar==92{"\\\\"}else{if scalar==8{"\\b"}else{if scalar==12{"\\f"}else{if scalar==10{"\\n"}else{if scalar==13{"\\r"}else{if scalar==9{"\\t"}else{
@@ -61,5 +67,6 @@ string_concat(string_concat("\\u00",first),second)
 output=string_concat(output,piece);at=ju_raw_end(bytes,at);at<byte_len(bytes)
 }
 string_concat(output,"\"")
+}
 }
 }

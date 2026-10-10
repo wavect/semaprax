@@ -165,6 +165,13 @@ decoded String byte can require six JSON bytes for a control escape. It does
 not charge six escaped spelling bytes per field-name byte as canonical output.
 Empty and repeated values remain valid under this generic policy.
 
+The private quote helper validates the same UTF-8 and decoded byte bound before
+either rendering path. Values without controls, quotation marks or backslashes
+use the existing `string_from_str` bulk copy between fixed JSON quotes. All
+other values retain the scalar escape renderer, including NUL and short control
+escapes. Both paths produce the same quoted byte length and preserve the
+encoder's exact-size preflight; ordinary allocation failure remains sticky.
+
 This output bound is separate from actual input storage. A direct decoder
 borrows the caller's immutable bytes under the ordinary target's byte limits.
 The streaming normalizer keeps its unchanged 131072-byte physical buffer.

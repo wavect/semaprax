@@ -353,3 +353,42 @@ match own encoded{Encoded::Encoded{text}=>0,Encoded::Refused{required}=>if lengt
     qualify(&root);
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn utf8_quote_bulk_copy_preserves_escaped_scalars_and_private_input_bounds() {
+    let mut app = imports().to_owned()
+        + r#"use function @id("unicode.row.json.utf8.quoted-render") from consumer.schema as quote;
+use function @id("unicode.row.json.utf8.quoted-len") from consumer.schema as quote_len;
+@id("consumer.quote-check") fn check(text:borrow str,wanted:borrow Slice<u8>,required:usize)->bool {
+let length=quote_len(text);let result=quote(text);let actual=str_as_bytes(string_as_str(result));
+let mut equal=length==required && byte_len(actual)==byte_len(wanted);let mut at=0usize;
+while equal && at<byte_len(actual){equal=match byte_get(actual,at){Option::Some{value:a}=>match byte_get(wanted,at){Option::Some{value:b}=>a==b,Option::None{}=>false,},Option::None{}=>false,};at=at+1usize;equal && at<byte_len(actual)}
+equal
+}
+@id("consumer.main") fn main()->i64{let mut bad=0;
+"#;
+    let plain_limit = "x".repeat(64);
+    let over_limit = "x".repeat(65);
+    let cases = [
+        ("\"\"".to_owned(), b"\"\"".to_vec(), 2usize),
+        ("\"ordinary ASCII\"".to_owned(), b"\"ordinary ASCII\"".to_vec(), 16),
+        ("\"é😀\"".to_owned(), "\"é😀\"".as_bytes().to_vec(), 8),
+        ("string_from_char(char_from_i64(65279))".to_owned(), "\"\u{feff}\"".as_bytes().to_vec(), 5),
+        ("string_from_char(char_from_i64(0))".to_owned(), br#""\u0000""#.to_vec(), 8),
+        ("string_from_char(char_from_i64(31))".to_owned(), br#""\u001f""#.to_vec(), 8),
+        ("string_from_char(char_from_i64(34))".to_owned(), br#""\"""#.to_vec(), 4),
+        ("string_from_char(char_from_i64(92))".to_owned(), br#""\\""#.to_vec(), 4),
+        ("string_from_char(char_from_i64(10))".to_owned(), br#""\n""#.to_vec(), 4),
+        ("string_concat(\"é😀\",string_from_char(char_from_i64(0)))".to_owned(), "\"é😀\\u0000\"".as_bytes().to_vec(), 14),
+        (format!("\"{plain_limit}\""), format!("\"{plain_limit}\"").into_bytes(), 66),
+        (format!("\"{over_limit}\""), Vec::new(), usize::MAX),
+        (format!("\"{}\"", "é".repeat(33)), Vec::new(), usize::MAX),
+    ];
+    for (index, (text, expected, length)) in cases.into_iter().enumerate() {
+        app.push_str(&format!("let value_{index}={text};bad=bad+(if check(string_as_str(value_{index}),array_as_slice({}),{length}usize){{0}}else{{1}});\n", array(&expected)));
+    }
+    app.push_str("if bad==0{727}else{0}}\n");
+    let root = install("utf8-json-quote-bulk", &app, 64);
+    qualify(&root);
+    std::fs::remove_dir_all(root).unwrap();
+}

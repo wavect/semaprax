@@ -3,6 +3,7 @@ use semaprax::project::{
     derive_project_scaffold_v1, derive_project_scaffold_v1_with_layout, replay_project_scaffold_v1,
     with_authenticated_project, ScaffoldLayout, PROJECT_SCAFFOLD_TEMPLATES,
     PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT,
+    PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_COLLECTION_RECORD,
     PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA,
 };
 use sha2::{Digest, Sha256};
@@ -43,7 +44,8 @@ fn every_shipped_template_walks_the_documented_quickstart_journey() {
     for template in PROJECT_SCAFFOLD_TEMPLATES {
         let layout = if matches!(
             template,
-            "service" | "stdin-stream-text" | "stdin-stream-data" | "source-command-file-text"
+            "service" | "stdin-stream-text" | "stdin-stream-data"
+                | "stdin-stream-collection-record" | "source-command-file-text"
         ) {
             ScaffoldLayout::Tables
         } else {
@@ -130,7 +132,8 @@ fn every_shipped_template_fits_the_default_assurance_budget() {
     for template in PROJECT_SCAFFOLD_TEMPLATES {
         let layout = if matches!(
             template,
-            "service" | "stdin-stream-text" | "stdin-stream-data" | "source-command-file-text"
+            "service" | "stdin-stream-text" | "stdin-stream-data"
+                | "stdin-stream-collection-record" | "source-command-file-text"
         ) {
             ScaffoldLayout::Tables
         } else {
@@ -788,6 +791,62 @@ fn stdin_stream_data_template_selects_one_native_v27_command_and_borrowed_vec_he
     let replayed = replay_project_scaffold_v1(
         NAME,
         "stdin-stream-data",
+        &derived.canonical_bytes(),
+        derived.digest(),
+    )
+    .unwrap();
+    assert_eq!(replayed.canonical_bytes(), derived.canonical_bytes());
+}
+
+#[test]
+fn stdin_stream_collection_record_template_selects_project_v31_and_replays() {
+    let frozen = derive_project_scaffold_v1_with_layout(
+        NAME,
+        PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_COLLECTION_RECORD,
+        ScaffoldLayout::Frozen,
+    )
+    .unwrap_err();
+    assert_eq!(frozen[0].code, "SPX-J115");
+
+    let derived = derive_project_scaffold_v1_with_layout(
+        NAME,
+        PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_COLLECTION_RECORD,
+        ScaffoldLayout::Tables,
+    )
+    .unwrap();
+    assert_eq!(derived.schema(), "semaprax.project-scaffold.v7");
+    assert_eq!(derived.project_schema(), "semaprax.project.v31");
+    assert_eq!(
+        derived
+            .files()
+            .iter()
+            .map(|file| file.path())
+            .collect::<Vec<_>>(),
+        [
+            "README.md",
+            "AGENTS.md",
+            "semaprax.toml",
+            "src/app.spx",
+            "src/core.spx",
+            "src/tests.spx",
+        ]
+    );
+    let manifest = derived.files()[2].utf8();
+    assert!(manifest.contains("profile = \"language-command-io.collection-record.v1\""));
+    assert!(manifest.contains("input = \"argv-utf8+stdin-stream.v1\""));
+    assert!(manifest.contains("matrix = [\"native64\"]"));
+    assert!(manifest.contains("required = [\"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]"));
+    let core = derived.files()[4].utf8();
+    assert!(core.contains("fn inspect(value: borrow Report) -> i64"));
+    assert!(core.contains("vec_len<string>(value.items)"));
+    assert!(core.contains("metrics: Metrics"));
+    let guide = derived.files()[1].utf8();
+    assert!(guide.contains("current-head execution qualification is pending"));
+    assert!(guide.contains("native64"));
+
+    let replayed = replay_project_scaffold_v1(
+        NAME,
+        PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_COLLECTION_RECORD,
         &derived.canonical_bytes(),
         derived.digest(),
     )

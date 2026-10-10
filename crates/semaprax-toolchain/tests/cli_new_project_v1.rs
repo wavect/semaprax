@@ -300,6 +300,59 @@ fn source_command_file_text_template_has_exact_bytes_and_passes_check() {
 }
 
 #[test]
+fn stdin_stream_collection_record_template_has_exact_bytes_and_passes_check() {
+    let fixture = Fixture::new("stdin-stream-collection-record");
+    let created = cli(
+        &fixture.root,
+        &[
+            "new",
+            "collection-command",
+            "--template",
+            "stdin-stream-collection-record",
+        ],
+    );
+    assert_success(&created);
+    assert_eq!(
+        String::from_utf8(created.stdout).unwrap(),
+        "created stdin-stream-collection-record project collection-command\n"
+    );
+
+    let files = read_tree(&fixture.root.join("collection-command"));
+    assert_eq!(
+        files.keys().map(String::as_str).collect::<Vec<_>>(),
+        [
+            "AGENTS.md",
+            "README.md",
+            "semaprax.toml",
+            "src/app.spx",
+            "src/core.spx",
+            "src/tests.spx",
+        ]
+    );
+    let scaffold = semaprax::project::derive_project_scaffold_v1_with_layout(
+        "collection-command",
+        "stdin-stream-collection-record",
+        semaprax::project::ScaffoldLayout::Tables,
+    )
+    .unwrap();
+    assert_eq!(
+        scaffold
+            .files()
+            .iter()
+            .map(|file| (file.path().to_owned(), file.bytes().to_vec()))
+            .collect::<BTreeMap<_, _>>(),
+        files
+    );
+    let manifest = String::from_utf8(files["semaprax.toml"].clone()).unwrap();
+    assert!(manifest.contains("profile = \"language-command-io.collection-record.v1\""));
+    assert!(manifest.contains("matrix = [\"native64\"]"));
+    assert_success(&cli(
+        &fixture.root,
+        &["check", "collection-command/semaprax.toml"],
+    ));
+}
+
+#[test]
 fn generated_project_validation_never_reopens_the_ambient_staging_tree() {
     let implementation = include_str!("../src/new_project.rs");
     let scaffold = concat!(

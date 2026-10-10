@@ -12,13 +12,22 @@ use serde_json::Value;
 
 #[path = "scaffold/service_config.rs"]
 mod service_config;
+#[path = "scaffold/collection_records.rs"]
+mod collection_records;
+use collection_records::{APP as COLLECTION_RECORD_APP, CORE as COLLECTION_RECORD_CORE};
 use sha2::{Digest, Sha256};
 
 use crate::agent_skill_bundle::generate_agent_skill_bundle;
 use crate::diagnostic::{quote_json, Diagnostic};
 
 use super::service_host_adapter_request::ServiceHostAdapterRequestV1;
-use super::{validate_owned_project_test, ProjectExecutionOptions, PROJECT_SCHEMA};
+use super::{
+    validate_owned_project_test, ProjectExecutionOptions, PROJECT_SCHEMA, PROJECT_SCHEMA_V31,
+};
+
+pub use collection_records::{
+    TEMPLATE as PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_COLLECTION_RECORD,
+};
 
 /// Decode a canonical service configuration and independently replay its
 /// bounded host-adapter handoff. This returns requirements only: it never
@@ -45,6 +54,8 @@ pub const PROJECT_SCAFFOLD_SCHEMA_V5: &str = "semaprax.project-scaffold.v5";
 /// Capsule schema for the Project v27 native stream-data command template.
 /// Its digest domain is independent of every earlier capsule.
 pub const PROJECT_SCAFFOLD_SCHEMA_V6: &str = "semaprax.project-scaffold.v6";
+/// Capsule schema for the additive Project v31 collection-record command.
+pub const PROJECT_SCAFFOLD_SCHEMA_V7: &str = "semaprax.project-scaffold.v7";
 pub const PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR: &str = "calculator";
 pub const PROJECT_SCAFFOLD_TEMPLATE_LIBRARY: &str = "library";
 /// A multi-user service composed from bounded bundled standard-library decision
@@ -65,12 +76,13 @@ pub const PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA: &str = "stdin-stream-data
 /// A native Project v26 command that reads one UTF-8 file and imports the
 /// bundled `std.int.decimal` source package through an exact dependency.
 pub const PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT: &str = "source-command-file-text";
-pub const PROJECT_SCAFFOLD_TEMPLATES: [&str; 6] = [
+pub const PROJECT_SCAFFOLD_TEMPLATES: [&str; 7] = [
     PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR,
     PROJECT_SCAFFOLD_TEMPLATE_LIBRARY,
     PROJECT_SCAFFOLD_TEMPLATE_SERVICE,
     PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_TEXT,
     PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA,
+    PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_COLLECTION_RECORD,
     PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT,
 ];
 pub const PROJECT_SCAFFOLD_FILE_COUNT: usize = 5;
@@ -79,6 +91,8 @@ pub const PROJECT_SCAFFOLD_LIBRARY_FILE_COUNT: usize = 6;
 pub const PROJECT_SCAFFOLD_SERVICE_FILE_COUNT: usize = 9;
 pub const PROJECT_SCAFFOLD_STDIN_STREAM_TEXT_FILE_COUNT: usize = 6;
 pub const PROJECT_SCAFFOLD_STDIN_STREAM_DATA_FILE_COUNT: usize = 6;
+pub const PROJECT_SCAFFOLD_STDIN_STREAM_COLLECTION_RECORD_FILE_COUNT: usize =
+    collection_records::FILE_COUNT;
 pub const PROJECT_SCAFFOLD_SOURCE_COMMAND_FILE_TEXT_FILE_COUNT: usize = 6;
 pub const MAX_PROJECT_SCAFFOLD_NAME_BYTES: usize = 64;
 pub const MAX_PROJECT_SCAFFOLD_DESCRIPTOR_BYTES: usize = 65_536;
@@ -142,6 +156,8 @@ pub const PROJECT_SCAFFOLD_STDIN_STREAM_DATA_INVENTORY: [&str;
     "src/input.spx",
     "src/tests.spx",
 ];
+pub const PROJECT_SCAFFOLD_STDIN_STREAM_COLLECTION_RECORD_INVENTORY: [&str;
+    PROJECT_SCAFFOLD_STDIN_STREAM_COLLECTION_RECORD_FILE_COUNT] = collection_records::INVENTORY;
 pub const PROJECT_SCAFFOLD_SOURCE_COMMAND_FILE_TEXT_INVENTORY: [&str;
     PROJECT_SCAFFOLD_SOURCE_COMMAND_FILE_TEXT_FILE_COUNT] = [
     "README.md",
@@ -163,6 +179,8 @@ pub fn project_scaffold_inventory(template: &str) -> &'static [&'static str] {
         &PROJECT_SCAFFOLD_STDIN_STREAM_TEXT_INVENTORY
     } else if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA {
         &PROJECT_SCAFFOLD_STDIN_STREAM_DATA_INVENTORY
+    } else if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_COLLECTION_RECORD {
+        &PROJECT_SCAFFOLD_STDIN_STREAM_COLLECTION_RECORD_INVENTORY
     } else if template == PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT {
         &PROJECT_SCAFFOLD_SOURCE_COMMAND_FILE_TEXT_INVENTORY
     } else {
@@ -184,6 +202,8 @@ pub fn project_scaffold_inventory_with_layout(
         &PROJECT_SCAFFOLD_STDIN_STREAM_TEXT_INVENTORY
     } else if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA {
         &PROJECT_SCAFFOLD_STDIN_STREAM_DATA_INVENTORY
+    } else if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_COLLECTION_RECORD {
+        &PROJECT_SCAFFOLD_STDIN_STREAM_COLLECTION_RECORD_INVENTORY
     } else if template == PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT {
         &PROJECT_SCAFFOLD_SOURCE_COMMAND_FILE_TEXT_INVENTORY
     } else if layout == ScaffoldLayout::Tables {
@@ -198,6 +218,7 @@ const DIGEST_DOMAIN_V3: &[u8] = b"semaprax.project-scaffold.digest.v3\0";
 const DIGEST_DOMAIN_V4: &[u8] = b"semaprax.project-scaffold.digest.v4\0";
 const DIGEST_DOMAIN_V5: &[u8] = b"semaprax.project-scaffold.digest.v5\0";
 const DIGEST_DOMAIN_V6: &[u8] = b"semaprax.project-scaffold.digest.v6\0";
+const DIGEST_DOMAIN_V7: &[u8] = b"semaprax.project-scaffold.digest.v7\0";
 
 /// Which `semaprax.toml` layout a scaffold emits. `Frozen` is the frozen
 /// `semaprax.project.v1` line layout under capsule schema v2 (byte-identical to
@@ -234,7 +255,8 @@ impl ScaffoldLayout {
             PROJECT_SCAFFOLD_SCHEMA_V3
             | PROJECT_SCAFFOLD_SCHEMA_V4
             | PROJECT_SCAFFOLD_SCHEMA_V5
-            | PROJECT_SCAFFOLD_SCHEMA_V6 => Some(Self::Tables),
+            | PROJECT_SCAFFOLD_SCHEMA_V6
+            | PROJECT_SCAFFOLD_SCHEMA_V7 => Some(Self::Tables),
             _ => None,
         }
     }
@@ -453,6 +475,8 @@ pub fn derive_project_scaffold_v1_with_layout(
     let is_service = template == PROJECT_SCAFFOLD_TEMPLATE_SERVICE;
     let is_stdin_stream_text = template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_TEXT;
     let is_stdin_stream_data = template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA;
+    let is_stdin_stream_collection_record =
+        template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_COLLECTION_RECORD;
     let is_source_command_file_text =
         template == PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT;
     if is_service && layout == ScaffoldLayout::Frozen {
@@ -468,6 +492,11 @@ pub fn derive_project_scaffold_v1_with_layout(
     if is_stdin_stream_data && layout == ScaffoldLayout::Frozen {
         return Err(scaffold_error(
             "the stdin-stream-data template uses the [package], [command], and [capabilities] tables, so it needs the tables manifest layout",
+        ));
+    }
+    if is_stdin_stream_collection_record && layout == ScaffoldLayout::Frozen {
+        return Err(scaffold_error(
+            "the stdin-stream-collection-record template uses the [package], [command], and [capabilities] tables, so it needs the tables manifest layout",
         ));
     }
     if is_source_command_file_text && layout == ScaffoldLayout::Frozen {
@@ -492,7 +521,9 @@ pub fn derive_project_scaffold_v1_with_layout(
             ));
         }
     }
-    let manifest = if is_source_command_file_text {
+    let manifest = if is_stdin_stream_collection_record {
+        collection_records::MANIFEST
+    } else if is_source_command_file_text {
         SOURCE_COMMAND_FILE_TEXT_MANIFEST
     } else if is_stdin_stream_data {
         STDIN_STREAM_DATA_MANIFEST
@@ -508,7 +539,16 @@ pub fn derive_project_scaffold_v1_with_layout(
             (false, ScaffoldLayout::Tables) => MANIFEST_TABLES,
         }
     };
-    let sources: Vec<&str> = if is_source_command_file_text {
+    let sources: Vec<&str> = if is_stdin_stream_collection_record {
+        vec![
+            collection_records::README,
+            AGENTS,
+            manifest,
+            COLLECTION_RECORD_APP,
+            COLLECTION_RECORD_CORE,
+            collection_records::TESTS,
+        ]
+    } else if is_source_command_file_text {
         vec![
             SOURCE_COMMAND_FILE_TEXT_README,
             AGENTS,
@@ -609,6 +649,13 @@ pub fn derive_project_scaffold_v1_with_layout(
                     "- `semaprax build --manifest-path semaprax.toml --target native --output app` builds the command.",
                 );
                 combined.push_str(STDIN_STREAM_DATA_GUIDE);
+            }
+            if *path == "AGENTS.md" && is_stdin_stream_collection_record {
+                combined = combined.replace(
+                    "- `semaprax build . --target web -o dist/web` emits a browser package.",
+                    "- `semaprax build --manifest-path semaprax.toml --target native --output app` builds the command.",
+                );
+                combined.push_str(collection_records::GUIDE);
             }
             if *path == "AGENTS.md" && is_source_command_file_text {
                 combined = combined.replace(
@@ -785,6 +832,7 @@ fn validate_rendered_project(
                 template,
                 PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT
                     | PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA
+                    | PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_COLLECTION_RECORD
             ) && diagnostics.len() == 1
                 && diagnostics[0].code == "SPX-F102" =>
         {
@@ -867,7 +915,9 @@ fn render_descriptor_tail(artifact: &ProjectScaffoldV1) -> String {
 }
 
 fn capsule_schema(template: &str, layout: ScaffoldLayout) -> &'static str {
-    if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA {
+    if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_COLLECTION_RECORD {
+        PROJECT_SCAFFOLD_SCHEMA_V7
+    } else if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA {
         PROJECT_SCAFFOLD_SCHEMA_V6
     } else if template == PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT {
         PROJECT_SCAFFOLD_SCHEMA_V5
@@ -879,7 +929,9 @@ fn capsule_schema(template: &str, layout: ScaffoldLayout) -> &'static str {
 }
 
 fn project_schema(template: &str) -> &'static str {
-    if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA {
+    if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_COLLECTION_RECORD {
+        PROJECT_SCHEMA_V31
+    } else if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA {
         super::PROJECT_SCHEMA_V27
     } else if template == PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT {
         super::PROJECT_SCHEMA_V26
@@ -896,7 +948,9 @@ fn artifact_digest(
     canonical_without_digest: &str,
 ) -> String {
     let mut hash = Sha256::new();
-    hash.update(if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA {
+    hash.update(if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_COLLECTION_RECORD {
+        DIGEST_DOMAIN_V7
+    } else if template == PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_DATA {
         DIGEST_DOMAIN_V6
     } else if template == PROJECT_SCAFFOLD_TEMPLATE_SOURCE_COMMAND_FILE_TEXT {
         DIGEST_DOMAIN_V5

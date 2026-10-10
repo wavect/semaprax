@@ -75,9 +75,15 @@ fn scratch_growth_reserves_the_whole_new_carrier_and_refuses_one_short() {
             assert!(!overflow);
             assert_eq!(debit, bytes);
         } else {
-            assert_eq!(value.unwrap_err()[0].code, "SPX-G171");
+            let errors = value.unwrap_err();
+            assert_eq!(errors[0].code, "SPX-G171");
             assert!(overflow);
-            assert_eq!(debit, small_count * std::mem::size_of::<usize>());
+            // The refused replacement allocates no keys. Its diagnostic still
+            // appends the complete message to the same cumulative ledger.
+            assert_eq!(
+                debit,
+                small_count * std::mem::size_of::<usize>() + errors[0].message.len()
+            );
         }
     }
 }
@@ -137,7 +143,7 @@ module generic.scratch;
 @id("generic.consume") fn consume(bytes: own Bytes) -> i64 { 0 }
 @id("generic.keep") fn keep<T>(value: T, input: borrow Slice<u8>) -> T {
     let owned = bytes_copy(input);
-    consume(owned);
+    let _ = consume(owned);
     value
 }
 @id("generic.main") fn main(input: borrow Slice<u8>) -> i64 {

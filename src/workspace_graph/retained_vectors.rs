@@ -52,14 +52,45 @@ fn output_carrier<T>(
     Ok(retained)
 }
 
+/// The input's live entries have already been charged by the core prebound.
+/// Moving its entire allocation creates no replacement. Charge every spare
+/// slot at the full physical T size, including sidecar headers in unused slots;
+/// the caller's legacy fixed-element allowance is only the replacement price.
+fn reuse_full_carrier<T>(
+    length: usize,
+    capacity: usize,
+    selected: usize,
+    replacement_element_bytes: usize,
+) -> Result<bool, Vec<Diagnostic>> {
+    if selected != length {
+        return Ok(false);
+    }
+    let spare = capacity.checked_sub(length).ok_or_else(limit_error)?;
+    if spare == 0 {
+        return Ok(true);
+    }
+    let bytes = spare
+        .checked_mul(std::mem::size_of::<T>())
+        .ok_or_else(limit_error)?;
+    let replacement = selected
+        .checked_mul(replacement_element_bytes)
+        .ok_or_else(limit_error)?;
+    if bytes >= replacement {
+        return Ok(false);
+    }
+    reserve_builder_structure(bytes)?;
+    Ok(true)
+}
+
 /// Move selected entries into a retained output carrier.
 ///
 /// Normal core attempts retain the established full-carrier receipt. The final
 /// uncached retry keeps the complete input carrier live and charged until this
 /// move finishes, then charges only the new output carrier. When every entry
 /// is selected and capacity is exact, move the already-charged carrier itself:
-/// no second allocation occurs. Excess capacity always takes the compacting
-/// path, so retention cannot keep unaccounted spare/imported slots. `keep` is an `Fn`:
+/// no second allocation occurs. Small spare capacity may also retain that
+/// carrier when its complete physical slots are explicitly charged for less
+/// than a replacement. Unselected entries always compact. `keep` is an `Fn`:
 /// the final retry counts and moves the same selection without accepting a
 /// stateful predicate as accounting evidence.
 pub(super) fn filter_owned_vec<T>(
@@ -78,7 +109,12 @@ pub(super) fn filter_owned_vec<T>(
     }
 
     let selected = items.iter().filter(|item| keep(*item)).count();
-    if selected == items.len() && items.capacity() == selected {
+    if reuse_full_carrier::<T>(
+        items.len(),
+        items.capacity(),
+        selected,
+        std::mem::size_of::<T>(),
+    )? {
         return Ok(items);
     }
     let mut retained = output_carrier::<T>(selected, std::mem::size_of::<T>())?;
@@ -125,7 +161,7 @@ pub(super) fn filter_owned_vec_accounted<T>(
         }
     }
     reserve_builder_structure(sidecars)?;
-    if selected == items.len() && items.capacity() == selected {
+    if reuse_full_carrier::<T>(items.len(), items.capacity(), selected, fixed_element_bytes)? {
         return Ok(items);
     }
     let mut retained = output_carrier::<T>(selected, fixed_element_bytes)?;
@@ -280,3 +316,7 @@ mod agent_execution_tests {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "retained_vectors/carrier_tests.rs"]
+mod carrier_tests;

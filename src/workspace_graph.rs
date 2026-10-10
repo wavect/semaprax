@@ -4547,7 +4547,7 @@ fn retain_workspace_module(
         programs,
         authored,
         resolved.function_instances,
-        loan_scratch.as_deref_mut(),
+        loan_scratch,
     )?;
     let signature_types = retained_signature_type_facts(&functions, &resolved.declarations)?;
     let agents = filter_owned_vec(resolved.agents, |_| true, retained_output_only)?;

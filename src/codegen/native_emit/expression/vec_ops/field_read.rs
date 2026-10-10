@@ -62,9 +62,10 @@ impl<O: COutput> CEmitter<'_, O> {
         let source_value = self.emit_place(place)?;
         self.require_type(&source_value.ty, &source.ty, "Vec field source place")?;
         let index_value = self.emit_expr(index)?;
-        self.bytes_plan
-            .ok_or_else(|| backend_error("Vec field read lacks canonical cleanup plan"))?
-            .authenticate_vec_field_commit(&expr.id)?;
+        crate::codegen::native_bytes::NativeBytesPlan::authenticate_vec_field_commit(
+            self.function,
+            &expr.id,
+        )?;
         let suffix = self.next_local;
         self.next_local += 1;
         let slot = format!("spx_leaf_field_{suffix}");

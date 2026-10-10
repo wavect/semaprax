@@ -7,10 +7,13 @@ const PERMITS: &str =
 fn command_manifest(root: &std::path::Path) {
     // Match the existing maximum-shape owner: private internal Bytes views,
     // unchanged v30 command admission and unchanged physical/fuel ceilings.
-    let manifest = MANIFEST
-        .replace("owned-data-api.v1", "language-command-io.owned-data.v1")
-        .replace("web = []", "web = [\"consumer.command\"]")
-        + "\n[command]\nfunction=\"consumer.command\"\ninput=\"argv-utf8+stdin-stream.v1\"\n[capabilities]\nrequired=[\"process.args.read\",\"process.stderr.write\",\"process.stdin.read\",\"process.stdout.write\"]\n";
+    let manifest = super::super::command_manifest("language-command-io.owned-data.v1");
+    assert_eq!(
+        project::ProjectManifest::parse(&manifest)
+            .unwrap()
+            .to_canonical_toml(),
+        manifest
+    );
     std::fs::write(root.join("semaprax.toml"), manifest).unwrap();
 }
 

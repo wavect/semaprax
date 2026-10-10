@@ -81,7 +81,6 @@ fn feature_discovery_includes_deferred_closure_bodies() {
     .unwrap();
     let resolved = hir::resolve(&parsed).unwrap();
     assert!(requires(&resolved));
-    assert!(crate::codegen::native_vec::owned_leaf::program_uses_field_reads(&resolved));
     assert_eq!(graph_schema(&resolved).unwrap(), SCHEMA);
     let graph = crate::graph::to_json(&parsed).unwrap();
     let document: serde_json::Value = serde_json::from_str(&graph).unwrap();

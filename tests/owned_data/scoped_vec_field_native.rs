@@ -5,7 +5,8 @@ static SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 fn run(source: &str, expected_code: u32, expected_value: i64) {
     let program = semaprax::check(source, "scoped-vec-field-native.spx").unwrap();
-    let generated = semaprax::codegen::emit_hir_c(&program).unwrap();
+    let resolved = semaprax::hir::resolve(&program).unwrap();
+    let generated = semaprax::codegen::emit_hir_c(&resolved).unwrap();
     assert!(generated.contains("spx_leaf_read_field(spx_ctx, &"));
     let boundary = "    (void)spx_leaf_check(c, s, d);\n    if (!r || field >= d->count)";
     assert_eq!(generated.matches(boundary).count(), 1);
@@ -168,24 +169,30 @@ fn legacy_field_reads_reject_substituted_descriptors_and_stale_generations() {
 }
 "#;
     let checked = semaprax::check(source, "scoped-descriptor.spx").unwrap();
-    let generated = semaprax::codegen::emit_hir_c(&checked).unwrap();
+    let resolved = semaprax::hir::resolve(&checked).unwrap();
+    let generated = semaprax::codegen::emit_hir_c(&resolved).unwrap();
     assert!(generated.contains("spx_leaf_legacy_new(spx_ctx, &spx_record_726f772e61_leaf_v1"));
     let old_source = source
         .replace("vec_field<A>(rows,0usize,\"marker\")", "1")
         .replace("vec_field<B>(rows,0usize,\"marker\")", "1");
     let old = semaprax::codegen::emit_hir_c(
-        &semaprax::check(&old_source, "unscoped-descriptor.spx").unwrap(),
-    ).unwrap();
+        &semaprax::hir::resolve(&semaprax::check(&old_source, "unscoped-descriptor.spx").unwrap())
+            .unwrap(),
+    )
+    .unwrap();
     assert!(!old.contains("owned_leaf_layout"));
     assert!(!old.contains("spx_leaf_legacy_new"));
     assert!(old.contains("spx_vec_record_with_capacity(spx_ctx,"));
     // Turn only the two expected fail-stop reasons into observable exit codes.
     // A different failure, early successful return or silent repair cannot pass.
     let mismatch = "spx_runtime_invariant_failure(\"legacy owned record descriptor mismatch\");";
-    let stale = "spx_runtime_invariant_failure(\"stale or forged owned bounded Vec Bytes carrier\");";
+    let stale =
+        "spx_runtime_invariant_failure(\"stale or forged owned bounded Vec Bytes carrier\");";
     assert_eq!(generated.matches(mismatch).count(), 1);
     assert_eq!(generated.matches(stale).count(), 1);
-    let tracked = generated.replace(mismatch, "exit(73);").replace(stale, "exit(74);");
+    let tracked = generated
+        .replace(mismatch, "exit(73);")
+        .replace(stale, "exit(74);");
     let probe = r#"
 int main(int argc,char **argv) {
  if(argc!=2)return 1;
@@ -218,17 +225,38 @@ int main(int argc,char **argv) {
 }
 "#;
     for optimization in ["-O0", "-O2"] {
-        let base = std::env::temp_dir().join(format!("spx-field-descriptor-{}-{}",
-            std::process::id(), SEQUENCE.fetch_add(1, Ordering::Relaxed)));
+        let base = std::env::temp_dir().join(format!(
+            "spx-field-descriptor-{}-{}",
+            std::process::id(),
+            SEQUENCE.fetch_add(1, Ordering::Relaxed)
+        ));
         let c = base.with_extension("c");
         let binary = base.with_extension(std::env::consts::EXE_EXTENSION);
         std::fs::write(&c, format!("{tracked}\n{probe}")).unwrap();
         let output = Command::new("clang")
-            .args(["-std=c11", optimization, "-Wall", "-Wextra", "-Werror", "-DSPX_NO_ENTRY_WRAPPER"])
-            .arg(&c).arg("-o").arg(&binary).output().unwrap();
-        assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
-        for (mode, expected) in [(0,0),(1,73),(2,73),(3,74),(4,73)] {
-            let result = Command::new(&binary).arg(mode.to_string()).status().unwrap();
+            .args([
+                "-std=c11",
+                optimization,
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "-DSPX_NO_ENTRY_WRAPPER",
+            ])
+            .arg(&c)
+            .arg("-o")
+            .arg(&binary)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        for (mode, expected) in [(0, 0), (1, 73), (2, 73), (3, 74), (4, 73)] {
+            let result = Command::new(&binary)
+                .arg(mode.to_string())
+                .status()
+                .unwrap();
             assert_eq!(result.code(), Some(expected), "{optimization}: mode {mode}");
         }
         let _ = std::fs::remove_file(c);

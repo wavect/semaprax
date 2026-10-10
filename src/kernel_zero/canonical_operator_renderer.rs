@@ -133,13 +133,13 @@ impl Renderer {
             return Err(RendererRefusal::InvalidLength);
         }
         let mut bytes = [0; MAX_RENDERED_BYTES];
-        for index in 0..length {
+        for (index, destination) in bytes.iter_mut().take(length).enumerate() {
             let byte = self.int(
                 program,
                 "format.operator-render-byte",
                 &[Value::Int(opcode), Value::Int(index as i64)],
             )?;
-            bytes[index] = u8::try_from(byte).map_err(|_| RendererRefusal::InvalidByte)?;
+            *destination = u8::try_from(byte).map_err(|_| RendererRefusal::InvalidByte)?;
         }
         Ok((bytes, length))
     }

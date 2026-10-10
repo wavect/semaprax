@@ -87,7 +87,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             | crate::vec_ops::VecOp::Replace
             | crate::vec_ops::VecOp::ReserveOwned
             | crate::vec_ops::VecOp::SortOwned => {
-                return Err(backend_error("owned operation reached scalar Vec lowering"));
+                Err(backend_error("owned operation reached scalar Vec lowering"))
             }
             crate::vec_ops::VecOp::WithCapacity => {
                 self.require_type(&values[0].ty, &ResolvedType::Usize, "Vec capacity")?;

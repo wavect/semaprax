@@ -53,16 +53,15 @@ use crate::project::profile::{
     PROJECT_PROFILE_OWNED_UTF8_API_V1, PROJECT_PROFILE_PROCESS_IO_V1,
     PROJECT_PROFILE_PUBLIC_GENERIC_WASM_PROVIDER_V1,
     PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_INDEXED_RUST_V1, PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_V1,
+    PROJECT_PROFILE_STDIN_STREAM_COLLECTION_RECORD_COMMAND_IO_V1,
     PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V1, PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2,
     PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V1,
     PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V2,
-    PROJECT_PROFILE_STDIN_STREAM_OWNED_DATA_COMMAND_IO_V1,
-    PROJECT_PROFILE_STDIN_STREAM_COLLECTION_RECORD_COMMAND_IO_V1,
     PROJECT_PROFILE_STDIN_STREAM_NESTED_OUTCOME_COMMAND_IO_V1,
-    PROJECT_SCHEMA_V31,
+    PROJECT_PROFILE_STDIN_STREAM_OWNED_DATA_COMMAND_IO_V1,
     PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1,
     PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2, PROJECT_PROFILE_USEFUL_DATA_V1,
-    PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
+    PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1, PROJECT_SCHEMA_V31,
 };
 use crate::project::profile::{
     PROJECT_FILESYSTEM_CAPABILITIES_V1, PROJECT_PROFILE_FILESYSTEM_IO_V1,
@@ -113,7 +112,8 @@ const CODE_TARGET_OUTSIDE_MATRIX: &str = "SPX-J122";
 const LABEL: &str = "Package Manifest v1";
 const MAX_RANGE_BYTES: usize = 33;
 const SCAFFOLD_HELP: &str = "start from `semaprax new <destination>` or render a canonical template with `semaprax project-scaffold --name <name> --layout tables`";
-const QUOTED_DEPENDENCY_KEY_HELP: &str = "write a bare stable dependency key, for example `std.text = \"=0.1.0\"`";
+const QUOTED_DEPENDENCY_KEY_HELP: &str =
+    "write a bare stable dependency key, for example `std.text = \"=0.1.0\"`";
 const UNSORTED_SOURCES_HELP: &str = "sort `[modules] sources` in strictly increasing byte order and remove duplicates; after correcting the list, `semaprax fmt --manifest semaprax.toml` canonicalizes the valid manifest";
 
 /// Which source layout a manifest was parsed from. The frozen layouts and the
@@ -504,6 +504,7 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
             | PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2
             | PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1
             | PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V1
+            | PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V2
             | PROJECT_PROFILE_STDIN_STREAM_OWNED_DATA_COMMAND_IO_V1
             | PROJECT_PROFILE_STDIN_STREAM_COLLECTION_RECORD_COMMAND_IO_V1
             | PROJECT_PROFILE_STDIN_STREAM_NESTED_OUTCOME_COMMAND_IO_V1
@@ -559,6 +560,7 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
             | PROJECT_PROFILE_STDIN_STREAM_COMMAND_IO_V2
             | PROJECT_PROFILE_STDIN_STREAM_TEXT_COMMAND_IO_V1
             | PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V1
+            | PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V2
             | PROJECT_PROFILE_STDIN_STREAM_OWNED_DATA_COMMAND_IO_V1
             | PROJECT_PROFILE_STDIN_STREAM_COLLECTION_RECORD_COMMAND_IO_V1
             | PROJECT_PROFILE_STDIN_STREAM_NESTED_OUTCOME_COMMAND_IO_V1 => {
@@ -1323,15 +1325,15 @@ fn parse_assignment<'a>(line: &'a str, table: &str) -> Result<(&'a str, Value), 
             byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'-' | b'_' | b'.')
         })
     {
-        let message = format!(
-            "{LABEL} keys are lowercase [a-z0-9._-]+; found `{key}` in `[{table}]`"
-        );
+        let message =
+            format!("{LABEL} keys are lowercase [a-z0-9._-]+; found `{key}` in `[{table}]`");
         if table == "dependencies"
             && ((key.starts_with('\"') && key.ends_with('\"'))
                 || (key.starts_with('\'') && key.ends_with('\'')))
         {
-            return Err(vec![Diagnostic::io("SPX-J100", message)
-                .with_help(QUOTED_DEPENDENCY_KEY_HELP)]);
+            return Err(vec![
+                Diagnostic::io("SPX-J100", message).with_help(QUOTED_DEPENDENCY_KEY_HELP)
+            ]);
         }
         return Err(grammar(message));
     }

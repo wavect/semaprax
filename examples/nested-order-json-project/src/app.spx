@@ -1,0 +1,4 @@
+module orders.app;
+
+@id("orders.main")
+fn main() -> i64 { 0 }

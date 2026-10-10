@@ -2,6 +2,7 @@
 
 mod collection_response;
 mod emit;
+mod nested_request;
 mod owned;
 #[cfg(test)]
 mod tests;
@@ -43,6 +44,11 @@ pub enum JsonCodecProfile {
     /// Finite nested response: one Row vector and one flat scalar metrics record.
     CollectionResponse {
         max_string_bytes: usize,
+    },
+    /// Direct finite nested decoding with one existing vector carrier.
+    NestedRequest {
+        max_string_bytes: usize,
+        max_array_items: usize,
     },
 }
 
@@ -123,6 +129,10 @@ pub fn derive_json_codec_source_with_profile(
         JsonCodecProfile::CollectionResponse { max_string_bytes } => {
             collection_response::source(&program, declaration, max_string_bytes)?
         }
+        JsonCodecProfile::NestedRequest {
+            max_string_bytes,
+            max_array_items,
+        } => nested_request::derive(&program, declaration, max_string_bytes, max_array_items)?,
     };
     if fragment.len() > MAX_GENERATED_BYTES {
         return Err(refusal(

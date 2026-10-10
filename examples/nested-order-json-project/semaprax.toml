@@ -1,0 +1,20 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "nested-order-json"
+version = "0.1.0"
+profile = "owned-data-api.v1"
+
+[modules]
+entry = "orders.app"
+sources = ["src/schema.spx", "src/app.spx"]
+
+[exports]
+web = []
+
+[dependencies]
+"std.data.json.scan" = "=0.1.0"
+"std.data.json.token" = "=0.1.0"
+"std.data.json.digits" = "=0.1.0"
+"std.data.json.write" = "=0.1.0"
+"std.data.json.query" = "=0.1.0"

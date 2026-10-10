@@ -11,8 +11,8 @@ use semaprax::diagnostic::Diagnostic;
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
 const USAGE: &str =
-    "json-codec <project> --source <module-path> --type <record-id> --output <new-file> [--profile <selector>] [--max-string-bytes <1..64>]";
-pub(crate) const HELP: &str = "Derives checked ordinary source for explicit scalar records; opt-in identifier-views.v1, request-views.v1 and stream-request-views.v1 add bounded identifier/array views; owned-request.v1 and stream-owned-request.v1 materialize bounded identifier String/record collections under an owning runtime profile. UTF-8 owned request profiles bound each decoded string with --max-string-bytes (1..64 UTF-8 bytes). bounded-collection-response.v1 selects an encode-only nested collection view and also requires that bound.\nRequires declared std.data.json scan/token/digits/write dependencies. Publishes a new complete module replacement; never overwrites source.\nContract and typed failure codes: docs/APPLICATION-JSON-CODECS-V1.md\n";
+    "json-codec <project> --source <module-path> --type <record-id> --output <new-file> [--profile <selector>] [--max-string-bytes <1..64>] [--max-array-items <1..256>]";
+pub(crate) const HELP: &str = "Derives checked ordinary source for explicit scalar records; opt-in identifier-views.v1, request-views.v1 and stream-request-views.v1 add bounded identifier/array views; owned-request.v1 and stream-owned-request.v1 materialize bounded identifier String/record collections under an owning runtime profile. UTF-8 owned request profiles bound each decoded string with --max-string-bytes (1..64 UTF-8 bytes). bounded-collection-response.v1 selects an encode-only nested collection view and also requires that bound. bounded-nested-request.v1 requires both --max-string-bytes (1..64) and --max-array-items (1..256); direct decoding only, under the independently admitted caller Project profile.\nRequires declared std.data.json scan/token/digits/write dependencies. Publishes a new complete module replacement; never overwrites source.\nContract and typed failure codes: docs/APPLICATION-JSON-CODECS-V1.md\n";
 
 pub(crate) struct Options {
     project: PathBuf,
@@ -27,7 +27,7 @@ pub(crate) fn parse(args: &[String]) -> Result<Options, u8> {
         eprintln!("{USAGE}");
         2
     };
-    if !matches!(args.len(), 7 | 9 | 11) || args[0].is_empty() || args[0].starts_with('-') {
+    if !matches!(args.len(), 7 | 9 | 11 | 13) || args[0].is_empty() || args[0].starts_with('-') {
         return Err(fail());
     }
     let mut source = None;
@@ -35,6 +35,7 @@ pub(crate) fn parse(args: &[String]) -> Result<Options, u8> {
     let mut output = None;
     let mut profile = None;
     let mut max_string_bytes = None;
+    let mut max_array_items = None;
     for pair in args[1..].chunks_exact(2) {
         if pair[1].starts_with('-') || pair[1].is_empty() {
             return Err(fail());
@@ -47,6 +48,9 @@ pub(crate) fn parse(args: &[String]) -> Result<Options, u8> {
             "--max-string-bytes" if max_string_bytes.is_none() => {
                 max_string_bytes = Some(pair[1].as_str())
             }
+            "--max-array-items" if max_array_items.is_none() => {
+                max_array_items = Some(pair[1].as_str())
+            }
             _ => return Err(fail()),
         }
     }
@@ -55,7 +59,7 @@ pub(crate) fn parse(args: &[String]) -> Result<Options, u8> {
         source: source.ok_or_else(fail)?,
         record: record.ok_or_else(fail)?,
         output: output.ok_or_else(fail)?,
-        profile: profile::parse(profile, max_string_bytes).ok_or_else(fail)?,
+        profile: profile::parse(profile, max_string_bytes, max_array_items).ok_or_else(fail)?,
     })
 }
 
@@ -125,6 +129,97 @@ mod tests {
     use super::*;
 
     #[test]
+    fn nested_codec_cli_bounds_are_canonical_closed_and_profile_specific() {
+        let args = |bytes: &str, items: &str| {
+            [
+                "semaprax.toml",
+                "--source",
+                "src/schema.spx",
+                "--type",
+                "app.root",
+                "--output",
+                "derived.spx",
+                "--profile",
+                "bounded-nested-request.v1",
+                "--max-string-bytes",
+                bytes,
+                "--max-array-items",
+                items,
+            ]
+            .map(str::to_owned)
+            .to_vec()
+        };
+        for (bytes, items) in [("1", "1"), ("64", "256"), ("16", "8")] {
+            let parsed =
+                parse(&args(bytes, items)).unwrap_or_else(|_| panic!("valid nested bounds"));
+            assert_eq!(
+                parsed.profile,
+                semaprax::project::JsonCodecProfile::NestedRequest {
+                    max_string_bytes: bytes.parse().unwrap(),
+                    max_array_items: items.parse().unwrap(),
+                }
+            );
+        }
+        for (bytes, items) in [
+            ("0", "1"),
+            ("65", "1"),
+            ("1", "0"),
+            ("1", "257"),
+            ("01", "1"),
+            ("1", "0256"),
+            ("+1", "1"),
+            ("1", "+1"),
+            (" 1", "1"),
+            ("1", "1 "),
+            ("١", "1"),
+            ("1", "２５６"),
+            ("18446744073709551616", "1"),
+            ("1", "18446744073709551616"),
+        ] {
+            assert!(parse(&args(bytes, items)).is_err(), "{bytes}/{items}");
+        }
+        for removed in [7, 9, 11] {
+            let mut incomplete = args("64", "256");
+            incomplete.drain(removed..removed + 2);
+            assert!(parse(&incomplete).is_err());
+        }
+        let mut reordered = args("64", "256");
+        reordered.swap(9, 11);
+        reordered.swap(10, 12);
+        assert!(parse(&reordered).is_ok());
+        let mut duplicate = args("64", "256");
+        duplicate[11] = "--max-string-bytes".to_owned();
+        assert!(parse(&duplicate).is_err());
+        let mut unknown = args("64", "256");
+        unknown[11] = "--maximum-array-items".to_owned();
+        assert!(parse(&unknown).is_err());
+        // Usage rejection must precede Project access and generation, even
+        // when the positional Project path does not exist.
+        let mut refused = args("64", "257");
+        refused[0] = "not-an-existing-authorized-project".to_owned();
+        assert_eq!(
+            dispatch(super::super::help::CommandId::JsonCodec, &refused, |_| {
+                panic!("malformed bounds reached authoritative generation")
+            }),
+            Err(2)
+        );
+        for old in [
+            "identifier-views.v1",
+            "request-views.v1",
+            "stream-request-views.v1",
+            "owned-request.v1",
+            "stream-owned-request.v1",
+            "utf8-owned-request.v1",
+            "stream-utf8-owned-request.v1",
+            "bounded-collection-response.v1",
+        ] {
+            let mut wrong_profile = args("64", "256");
+            wrong_profile[8] = old.to_owned();
+            assert!(parse(&wrong_profile).is_err(), "{old}");
+        }
+    }
+
+    #[test]
     fn codec_cli_grammar_is_exact_and_publication_never_overwrites() {
         assert!(super::super::help::scoped("json-codec", false)
             .unwrap()
@@ -158,20 +253,26 @@ mod tests {
         }
         let mut utf8 = strings(&good);
         utf8.extend([
-            "--profile".to_owned(), "utf8-owned-request.v1".to_owned(),
-            "--max-string-bytes".to_owned(), "64".to_owned(),
+            "--profile".to_owned(),
+            "utf8-owned-request.v1".to_owned(),
+            "--max-string-bytes".to_owned(),
+            "64".to_owned(),
         ]);
         assert!(parse(&utf8).is_ok());
         let mut stream_utf8 = strings(&good);
         stream_utf8.extend([
-            "--profile".to_owned(), "stream-utf8-owned-request.v1".to_owned(),
-            "--max-string-bytes".to_owned(), "64".to_owned(),
+            "--profile".to_owned(),
+            "stream-utf8-owned-request.v1".to_owned(),
+            "--max-string-bytes".to_owned(),
+            "64".to_owned(),
         ]);
         assert!(parse(&stream_utf8).is_ok());
         let mut collection_response = strings(&good);
         collection_response.extend([
-            "--profile".to_owned(), "bounded-collection-response.v1".to_owned(),
-            "--max-string-bytes".to_owned(), "64".to_owned(),
+            "--profile".to_owned(),
+            "bounded-collection-response.v1".to_owned(),
+            "--max-string-bytes".to_owned(),
+            "64".to_owned(),
         ]);
         assert!(parse(&collection_response).is_ok());
         for invalid in ["0", "65", "01", "+1", " 1"] {
@@ -182,8 +283,10 @@ mod tests {
             ] {
                 let mut args = strings(&good);
                 args.extend([
-                    "--profile".to_owned(), profile.to_owned(),
-                    "--max-string-bytes".to_owned(), invalid.to_owned(),
+                    "--profile".to_owned(),
+                    profile.to_owned(),
+                    "--max-string-bytes".to_owned(),
+                    invalid.to_owned(),
                 ]);
                 assert!(parse(&args).is_err());
             }
@@ -193,18 +296,22 @@ mod tests {
         assert!(parse(&missing_bound).is_err());
         let mut stream_missing_bound = strings(&good);
         stream_missing_bound.extend([
-            "--profile".to_owned(), "stream-utf8-owned-request.v1".to_owned(),
+            "--profile".to_owned(),
+            "stream-utf8-owned-request.v1".to_owned(),
         ]);
         assert!(parse(&stream_missing_bound).is_err());
         let mut collection_response_missing_bound = strings(&good);
         collection_response_missing_bound.extend([
-            "--profile".to_owned(), "bounded-collection-response.v1".to_owned(),
+            "--profile".to_owned(),
+            "bounded-collection-response.v1".to_owned(),
         ]);
         assert!(parse(&collection_response_missing_bound).is_err());
         let mut old_with_bound = strings(&good);
         old_with_bound.extend([
-            "--profile".to_owned(), "owned-request.v1".to_owned(),
-            "--max-string-bytes".to_owned(), "8".to_owned(),
+            "--profile".to_owned(),
+            "owned-request.v1".to_owned(),
+            "--max-string-bytes".to_owned(),
+            "8".to_owned(),
         ]);
         assert!(parse(&old_with_bound).is_err());
         let mut unknown = strings(&good);

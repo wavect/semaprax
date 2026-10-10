@@ -20,6 +20,38 @@ import cli_typescript_bootstrap as ts_bootstrap
 
 
 class LiveCampaignTests(unittest.TestCase):
+    def test_nested_codec_capture_requires_both_canonical_profile_bounds(self):
+        base = ["json-codec", "semaprax.toml", "--source", "src/schema.spx",
+                "--type", "app.root", "--output", "derived.spx"]
+        arguments = lambda byte_bound, item_bound: [*base, "--profile", "bounded-nested-request.v1",
+            "--max-string-bytes", byte_bound, "--max-array-items", item_bound]
+        for byte_bound, item_bound in (("1", "1"), ("64", "256"), ("16", "8")):
+            parsed = compiler_capture._options(arguments(byte_bound, item_bound))
+            self.assertEqual(parsed["--max-string-bytes"], byte_bound)
+            self.assertEqual(parsed["--max-array-items"], item_bound)
+        for byte_bound, item_bound in (("0", "1"), ("65", "1"), ("1", "0"), ("1", "257"),
+            ("01", "1"), ("1", "0256"), ("+1", "1"), ("1", "+1"), (" 1", "1"),
+            ("1", "1 "), ("١", "1"), ("1", "２５６"), ("9" * 5000, "1"), ("1", "9" * 5000)):
+            with self.subTest(byte_bound=byte_bound, item_bound=item_bound):
+                self.assertIsNone(compiler_capture._options(arguments(byte_bound, item_bound)))
+        for removed in (8, 10, 12):
+            partial = arguments("64", "256")
+            del partial[removed:removed + 2]
+            self.assertIsNone(compiler_capture._options(partial))
+        reordered = arguments("64", "256")
+        reordered[10:14] = ["--max-array-items", "256", "--max-string-bytes", "64"]
+        self.assertIsNotNone(compiler_capture._options(reordered))
+        duplicate = arguments("64", "256")
+        duplicate[12] = "--max-string-bytes"
+        self.assertIsNone(compiler_capture._options(duplicate))
+        unknown = arguments("64", "256")
+        unknown[12] = "--maximum-array-items"
+        self.assertIsNone(compiler_capture._options(unknown))
+        for profile in compiler_capture.PROFILES - {"bounded-nested-request.v1"}:
+            stale = arguments("64", "256")
+            stale[9] = profile
+            self.assertIsNone(compiler_capture._options(stale))
+
     def test_json_codec_capture_profile_bound_matches_closed_cli_grammar(self):
         base = ["json-codec", "semaprax.toml", "--source", "src/schema.spx",
                 "--type", "app.request", "--output", "derived.spx"]
@@ -70,8 +102,10 @@ class LiveCampaignTests(unittest.TestCase):
                     if profile is not None:
                         args.extend(["--profile", profile])
                         if profile in ("utf8-owned-request.v1", "stream-utf8-owned-request.v1",
-                                       "bounded-collection-response.v1"):
+                                       "bounded-collection-response.v1", "bounded-nested-request.v1"):
                             args.extend(["--max-string-bytes", "64"])
+                        if profile == "bounded-nested-request.v1":
+                            args.extend(["--max-array-items", "256"])
                     authored = (candidate / "src/schema.spx").read_bytes()
                     mixed = authored + b"compiler-authored helpers\n"
 

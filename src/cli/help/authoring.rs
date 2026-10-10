@@ -2,7 +2,7 @@
 use std::fmt::Write as _;
 
 const MAX_BYTES: usize = 2_048;
-const ROUTES: &str = "Authoring routes (complete):\n  author:stdin-json               v27 bounded native stream command\n  author:stream-data-v2           v29 private record/Vec stream command\n  author:owned-data               v30 private owned-leaf collections\n  author:collection-records       v31 nested records containing Vec\n  author:file-text                native UTF-8 file command\n  author:source-web               single-source web build\n  author:literal-format           checked literal String rendering\n  author:copy-record-vec          flat Copy-record vectors\n  author:json-codec               checked source JSON codec derivation\n  author:json-identifier-views    one identifier as a token view\n  author:json-request-views       bounded identifier and record arrays\n  author:json-stream-request-views bounded native stream request view\n  author:json-owned-request      bounded owning request collections\n  author:json-utf8-owned-request bounded UTF-8 string values\n  author:json-stream-utf8-owned-request bounded UTF-8 stdin requests\n  author:json-collection-response bounded nested collection encoder\nLibrary-only search: help language find:<word>:0\nExact card sections: help language topics\n";
+const ROUTES: &str = "Authoring routes (complete):\n  author:stdin-json               v27 bounded native stream command\n  author:stream-data-v2           v29 private record/Vec stream command\n  author:owned-data               v30 private owned-leaf collections\n  author:collection-records       v31 nested records containing Vec\n  author:file-text                native UTF-8 file command\n  author:source-web               single-source web build\n  author:literal-format           checked literal String rendering\n  author:copy-record-vec          flat Copy-record vectors\n  author:json-codec               checked source JSON codec derivation\n  author:json-identifier-views    one identifier as a token view\n  author:json-request-views       bounded identifier and record arrays\n  author:json-stream-request-views bounded native stream request view\n  author:json-owned-request      bounded owning request collections\n  author:json-utf8-owned-request bounded UTF-8 string values\n  author:json-stream-utf8-owned-request bounded UTF-8 stdin requests\n  author:json-collection-response bounded nested collection encoder\n  author:json-nested-request      bounded finite nested request decoder\nLibrary-only search: help language find:<word>:0\nExact card sections: help language topics\n";
 
 #[cfg(test)]
 pub(super) fn assert_guide_contract() {
@@ -81,6 +81,7 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
             "Checked source generator implementation; focused/application qualification pending.\n",
             "semaprax json-codec <project> --source <module-path> --type <record-id> --output <new-file> [--profile <selector>]\n",
             "UTF-8 owned request and bounded-collection-response.v1 profiles require --max-string-bytes 1..64. See their authoring cards.\n",
+            "bounded-nested-request.v1 additionally requires --max-array-items 1..256; see author:json-nested-request.\n",
             "Omit --profile for the default flat scalar record (1..8 i64/u8/usize/bool fields). Choose by source shape: help language author:json-identifier-views, author:json-request-views or author:json-stream-request-views.\n",
             "Declare std.data.json.scan/token/digits/write. Output is a new complete module, never an overwrite. Generated helpers are ordinary checked source.\n",
             "Declared Vec<string> in a request-view schema is description only: runtime carries Copy views and Vec<View>, not owned String collections. For owning requests: help language author:json-owned-request. This is not a generic JSON codec.\n",
@@ -118,6 +119,14 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
             "Source-generation selector bounded-collection-response.v1 requires --max-string-bytes N, canonical decimal 1..64. It derives an encode-only view for one Vec<Row> plus one nested flat Copy Metrics record; Row has one string and up to six scalar fields, Metrics has 1..8 Copy scalars.\n",
             "Each stored Row string is bounded by UTF-8 byte length; complete encoded output remains separately bounded by 131072 bytes and output_limit. The caller's independently checked Project profile must admit the generated helpers. Nested-carrier runtime admission and execution qualification are pending; this is not a v30 command route. No decoder or stream normalizer is generated.\n",
             "Exact signatures and limits: docs/APPLICATION-JSON-COLLECTION-RESPONSE-V1.md. Runtime profile: author:collection-records.\n"
+        ).to_owned()),
+        "author:json-nested-request" => Ok(concat!(
+            "Bounded nested JSON request source implementation; current-head qualification pending.\n",
+            "Select --profile bounded-nested-request.v1 with both --max-string-bytes N (canonical decimal 1..64 per decoded String) and --max-array-items M (canonical decimal 1..256). Older codec selectors reject --max-array-items.\n",
+            "The finite schema uses explicit monomorphic acyclic records with string/i64/u8/usize/bool fields, nested records and at most one transitive already-admitted Vec. No optional/variant schema, new vector element shape or unbounded JSON tree is admitted.\n",
+            "Direct borrowed-input decoding only; no stream normalizer or capability is generated. Helpers are ordinary checked source, and malformed usage refuses before derivation. The caller's Project profile and existing input/fuel/owner bounds remain authoritative.\n",
+            "Native nested-outcome command source route: language-command-io.nested-outcome.v1; v29/v30/v31 stay frozen. Route qualification is pending; docs/PROJECT-V32-NESTED-OUTCOME-COMMAND-V1.md.\n",
+            "Publication, source replay and declared dependencies: help language author:json-codec.\n"
         ).to_owned()),
         "author:json-owned-request" => Ok(concat!(
             "Owned request source implementation; focused cross-backend and application qualification pending.\n",
@@ -277,6 +286,7 @@ mod tests {
             "author:json-utf8-owned-request",
             "author:json-stream-utf8-owned-request",
             "author:json-collection-response",
+            "author:json-nested-request",
         ] {
             let output = lookup(route).unwrap();
             assert!(output.len() <= MAX_BYTES);
@@ -299,9 +309,7 @@ mod tests {
         assert!(codec.contains("--max-string-bytes 1..64"));
         assert!(codec.contains("Omit --profile for the default flat scalar record"));
         assert!(codec.contains("author:json-identifier-views"));
-        assert!(
-            codec.contains("Declared Vec<string> in a request-view schema is description only")
-        );
+        assert!(codec.contains("Declared Vec<string> in a request-view schema is description only"));
         assert!(codec.contains("post-Ready request/schema errors use normalized-input offsets"));
         let identifier_views = lookup("author:json-identifier-views").unwrap();
         assert!(identifier_views.contains("exactly one string identifier"));
@@ -353,6 +361,25 @@ mod tests {
             assert!(
                 collection_response.contains(fact),
                 "collection response guidance omits {fact}"
+            );
+        }
+        let nested_request = lookup("author:json-nested-request").unwrap();
+        for fact in [
+            "bounded-nested-request.v1",
+            "--max-string-bytes N",
+            "1..64",
+            "--max-array-items M",
+            "1..256",
+            "Direct borrowed-input",
+            "no stream normalizer",
+            "qualification pending",
+            "language-command-io.nested-outcome.v1",
+            "at most one transitive",
+            "Older codec selectors reject",
+        ] {
+            assert!(
+                nested_request.contains(fact),
+                "nested request guidance omits {fact}"
             );
         }
         let owned_request = lookup("author:json-owned-request").unwrap();
@@ -411,6 +438,7 @@ mod tests {
             "author:json-utf8-owned-request",
             "author:json-stream-utf8-owned-request",
             "author:json-collection-response",
+            "author:json-nested-request",
         ] {
             assert!(routes.contains(selector), "route list omits {selector}");
         }

@@ -98,6 +98,7 @@ fn repeated_scalar_and_utf8_byte_reads_never_materialize_owners() {
 @id("row") record Row {
  @id("row.title") title:string, @id("row.payload") payload:Bytes, @id("row.marker") marker:i64,
 }
+@id("app.marker") fn marker(rows:borrow Vec<Row>)->i64 {vec_field<Row>(rows,0usize,"marker")}
 @id("app.main") fn main()->i64 {
  let empty=vec_with_capacity<Row>(1usize);
  let rows=vec_push<Row>(empty,Row{title:"é\u{0}",payload:bytes_zeroed(3usize),marker:-17});
@@ -105,7 +106,7 @@ fn repeated_scalar_and_utf8_byte_reads_never_materialize_owners() {
  while index<5000usize {
   let text=str_as_bytes(vec_field<Row>(rows,0usize,"title"));
   let bytes=vec_field<Row>(rows,0usize,"payload");
-  if byte_len(text)==3usize && byte_len(bytes)==3usize && str_len_bytes(vec_field<Row>(rows,0usize,"title"))==3 && vec_field<Row>(rows,0usize,"marker")==-17 {total=total+1;}
+  if byte_len(text)==3usize && byte_len(bytes)==3usize && str_len_bytes(vec_field<Row>(rows,0usize,"title"))==3 && marker(rows)==-17 {total=total+1;}
   index=index+1usize;
  }
  total

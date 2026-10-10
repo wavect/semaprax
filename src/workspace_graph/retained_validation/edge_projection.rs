@@ -4,6 +4,13 @@ use crate::workspace_graph::{
     limit_error, reserve_builder_structure, WorkspaceEdge, MAX_CROSS_FILE_EDGES,
 };
 
+pub(super) fn call_projection_mismatch() -> Vec<Diagnostic> {
+    vec![crate::workspace_graph::graph_error(
+        "SPX-G173",
+        "emitted workspace call edges disagree with authenticated AST/HIR occurrences",
+    )]
+}
+
 pub(super) fn push_edge_reference<'a>(
     edges: &mut Vec<&'a WorkspaceEdge>,
     edge: &'a WorkspaceEdge,

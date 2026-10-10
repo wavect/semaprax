@@ -111,8 +111,5 @@ fn edge_key(edge: &WorkspaceEdge) -> (&str, &str, &str, &str, &str, &str, &str, 
     )
 }
 fn mismatch() -> Vec<Diagnostic> {
-    vec![graph_error(
-        "SPX-G173",
-        "emitted workspace call edges disagree with authenticated AST/HIR occurrences",
-    )]
+    super::edge_projection::call_projection_mismatch()
 }

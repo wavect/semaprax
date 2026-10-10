@@ -24,6 +24,7 @@ mod owned_result_try;
 mod owner_renewal;
 mod proof_return;
 mod stdin_stream;
+mod string_intrinsic;
 mod type_profiles;
 mod unsafe_scan;
 mod vec_intrinsic;
@@ -111,6 +112,7 @@ impl<'a> HirValidator<'a> {
         validate_nul_free_identities(program)?;
         stdin_stream::reject_sealed_escape(program)?;
         box_intrinsic::reject_reserved_identities(program)?;
+        string_intrinsic::reject_reserved_identities(program)?;
         super::closure::once::reject_reserved_identities(program)?;
         generic_template::validate_call_graph(program)?;
         for declaration in program.declarations.declarations() {

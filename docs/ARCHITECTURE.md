@@ -1041,6 +1041,13 @@ only the target's availability after RHS ownership checking.
 `src/graph/string_replacement.rs` composes Graph v68 without dropping preceding
 facts. [Whole String Replacement v1](STRING-REPLACEMENT-V1.md) owns the contract.
 
+`src/source_verify/diagnostics.rs` reserves the exact String/conversion intrinsic
+identities against authored declarations. The independent
+`src/hir/validation/string_intrinsic.rs` guard checks declaration-index IDs and
+function names, executable headers, generic templates and attached instances.
+Retained origin labels do not authorize an intrinsic or exempt an alias from
+this check; cache decoding must repeat ordinary HIR validation before dispatch.
+
 `src/byte_ops.rs` independently derives the four authenticated same-owner byte
 updates. `src/cleanup_plan/renewal_profile.rs` supplies those exact sites to the
 builder and replay; CleanupPlan v17 restores the binding's reserved history

@@ -1,5 +1,10 @@
 # Changelog
 
+- Close the reserved String/conversion identity alias gap: authored declarations
+  and retained HIR cannot impersonate compiler intrinsics by stable ID or
+  executable function name. Add independent source/HIR guards and hostile
+  cache-origin/template/instance regression sources; execution is pending.
+
 - Author OPT-725 checked `char_from_i64` Unicode scalar conversion across the
   source/HIR intrinsic contract, interpreter, C11 and scalar/aggregate Wasm.
   Preserve byte conversion behavior and existing failure status; stage exact

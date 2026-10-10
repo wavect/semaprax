@@ -26,8 +26,14 @@ The operation is a reserved compiler intrinsic represented by the existing
 ordinary monomorphic Call AST/HIR. No new parser grammar, graph/cache schema,
 prelude catalog, public ABI or host import is introduced. Source checks the
 single i64 operand (`SPX-T204` for arity, `SPX-T205` for type), refuses explicit
-type arguments (`SPX-T225`), and reserves the authored function name
-(`SPX-S113`). HIR independently checks exact operand/result types, ownership,
+type arguments (`SPX-T225`), and reserves the authored function name and exact
+stable identity (`SPX-S113`). The shared String operation table's identities
+are unavailable to every authored declaration kind, including fields and
+variant cases. HIR independently checks declaration IDs and function names in
+the index, executable headers, generic templates and attached instances before
+any operation can dispatch. An origin label, including `CompilerOwned` in
+retained metadata, cannot confer intrinsic authority. Namespaced lookalikes and
+ordinary nonfunction field names remain valid. HIR also checks operand/result types, ownership,
 arity and absence of generic metadata (`SPX-H006`). Graph verification binds
 the source and reserved identity; retained HIR must pass the same independent
 validation after cache decoding.
@@ -46,6 +52,9 @@ Owning executable gates (authored, not yet executed for this change):
 
 - `--lib string_ops::unicode_scalar_tests`: canonical source/graph/cache
   roundtrip, source drift, forged retained calls, exact source diagnostics.
+- `--lib hir::validation::string_intrinsic::tests`: every reserved String
+  operation identity, authored declaration aliases, hostile retained origins,
+  function/template/instance impersonation and admitted ordinary names.
 - `--lib source_verify::iterative_verifier_tests::unicode_scalar_conversion_matches_recursive_oracle`:
   iterative and recursive source checking agree on valid and invalid domains.
 - `--lib hir::validation::call_parameters::tests::string_signature_views_match_all_materialized_descriptors_at_zero_identity_budget`:

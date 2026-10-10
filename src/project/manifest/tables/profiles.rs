@@ -1,6 +1,9 @@
 //! Closed profile lowering for the canonical table manifest.
 use super::*;
 
+#[cfg(test)]
+mod tests;
+
 /// Check the profile-specific rules the frozen schemas encode positionally and
 /// return the frozen profile contract the manifest lowers to.
 pub(super) fn lower_profile(
@@ -100,6 +103,11 @@ pub(super) fn lower_profile(
                 Some(PROJECT_LANGUAGE_COMMAND_STREAM_INPUT_V1),
                 &PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2,
             ),
+            ProjectProfile::StdinStreamCollectionRecordCommandIoV1 => (
+                PROJECT_SCHEMA_V31,
+                Some(PROJECT_LANGUAGE_COMMAND_STREAM_INPUT_V1),
+                &PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2,
+            ),
             ProjectProfile::LineCommandIoV1 => (
                 PROJECT_SCHEMA_V7,
                 Some(PROJECT_LANGUAGE_COMMAND_INPUT_V1),
@@ -194,6 +202,9 @@ pub(super) fn profile_by_name(name: &str) -> Option<ProjectProfile> {
         }
         PROJECT_PROFILE_STDIN_STREAM_OWNED_DATA_COMMAND_IO_V1 => {
             ProjectProfile::StdinStreamOwnedDataCommandIoV1
+        }
+        PROJECT_PROFILE_STDIN_STREAM_COLLECTION_RECORD_COMMAND_IO_V1 => {
+            ProjectProfile::StdinStreamCollectionRecordCommandIoV1
         }
         PROJECT_PROFILE_STDIN_STREAM_DATA_COMMAND_IO_V1 => {
             ProjectProfile::StdinStreamDataCommandIoV1

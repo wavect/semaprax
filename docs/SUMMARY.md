@@ -424,6 +424,7 @@ Audience: all documentation readers.
 - [Bounded Standard Input Streaming v1](BOUNDED-STDIN-STREAM-V1.md)
 - [Bounded Stdin Command Exit Status v1](BOUNDED-STDIN-COMMAND-EXIT-V1.md)
 - [Project v23: Native Streaming Standard Input](PROJECT-V23-STDIN-STREAM-V1.md)
+- [Project v31: Collection-Record Command v1](PROJECT-V31-COLLECTION-RECORD-COMMAND-V1.md)
 - [Draft: Bounded Streaming Standard Input](DRAFT-STDIN-STREAM-V1.md)
 - [Bounded Language Network I/O](BOUNDED-LANGUAGE-NETWORK-IO-V1.md)
 - [Bounded Network Services](BOUNDED-NETWORK-SERVICES-V1.md)

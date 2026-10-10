@@ -1,19 +1,20 @@
-name: Focused implementation-batch 706-730 verification
+name: Focused canonical source repair
 # DRAFT proposal only: final joined source census; the selectors below have not been executed.
-# Census bound statically to joined source 1ff4c4580d8c171711afa8abda16c50cdcf538d1; SOURCE_SUBJECT must select these exact source bytes.
+# Census bound statically to joined source 0f7e30903c103afe7078b084dca501fb6de8d87a; SOURCE_SUBJECT must select these exact source bytes.
 # Focused checks and generators remain unexecuted by this draft preparation; no full gates are selected.
 
 on:
   workflow_dispatch:
     inputs:
       profile:
-        description: Authentic candidate production, focused source verification, or exact-source macOS compiler build
+        description: Canonical source repair, authentic candidate production, focused verification, or exact-source macOS compiler build
         required: true
         type: choice
         default: verify
         options:
           - verify
           - produce
+          - canonical
           - macos-compiler
       source_subject:
         description: Final exact source SHA after compiler, codec, v31 routing and benchmark-profile batch integration
@@ -31,12 +32,13 @@ concurrency:
   cancel-in-progress: false
 jobs:
   focused:
-    if: ${{ inputs.profile == 'verify' || inputs.profile == 'produce' }}
+    if: ${{ inputs.profile == 'verify' || inputs.profile == 'produce' || inputs.profile == 'canonical' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     env:
-      SOURCE_SUBJECT: ${{ inputs.source_subject }} # exact joined source 1ff4c4580d8c171711afa8abda16c50cdcf538d1
-      PRODUCER_ONLY: ${{ inputs.profile == 'produce' }}
+      SOURCE_SUBJECT: ${{ inputs.source_subject }} # exact joined source 0f7e30903c103afe7078b084dca501fb6de8d87a
+      PRODUCER_ONLY: ${{ inputs.profile == 'produce' || inputs.profile == 'canonical' }}
+      CANONICAL_ONLY: ${{ inputs.profile == 'canonical' }}
       SEMAPRAX_REQUIRE_VIEW_OWNERSHIP_COMPOSITION: "1"
       CARGO_BUILD_JOBS: "1"
       CARGO_INCREMENTAL: "0"
@@ -97,6 +99,7 @@ jobs:
           out = pathlib.Path("focused-evidence")
           out.mkdir(exist_ok=True)
           producer_only = __import__("os").environ.get("PRODUCER_ONLY") == "true"
+          canonical_only = __import__("os").environ.get("CANONICAL_ONLY") == "true"
           commands = [
               ["python3", "-m", "unittest", "discover", "-s", "benchmarks", "-p", "test_typed_application_setup.py"],
               ["cargo", "test", "--locked", "--offline", "-p", "semaprax", "--lib", "workspace_graph::loan_retention::scratch_tests::", "--", "--nocapture", "--test-threads=1"],
@@ -240,6 +243,38 @@ jobs:
               ["cargo", "clippy", "--locked", "--offline", "-p", "semaprax-native-rust-interop", "--lib", "--", "-D", "warnings"],
           ]
           rows = []
+          if canonical_only:
+              import atexit
+              canonical_early_error = {"kind": "incomplete_execution", "message": "canonical execution ended before results publication"}
+              original_excepthook = sys.excepthook
+              def canonical_excepthook(kind, error, traceback):
+                  canonical_early_error.update({"kind": kind.__name__, "message": str(error)})
+                  original_excepthook(kind, error, traceback)
+              sys.excepthook = canonical_excepthook
+              def record_canonical_early_failure():
+                  if (out / "results.json").exists():
+                      return
+                  snapshots = out / "pins-before"
+                  names = ["std/catalog.json", "docs/STANDARD-LIBRARY-CATALOG.md",
+                           "docs/AGENT-DIAGNOSTIC-HELP.json", "docs/AGENT-SKILL-BUNDLE-V1.json"]
+                  pins_restored = False
+                  try:
+                      pins_restored = all((snapshots / name).is_file() and
+                          pathlib.Path(name).read_bytes() == (snapshots / name).read_bytes() for name in names)
+                      if pins_restored:
+                          pins_restored = subprocess.run(["git", "diff", "--exit-code", "--", *names], capture_output=True).returncode == 0
+                  except Exception as error:
+                      canonical_early_error["restoration_check_error"] = str(error)
+                  (out / "results.json").write_text(json.dumps({
+                      "source_subject": __import__("os").environ.get("SOURCE_SUBJECT"),
+                      "workflow_head": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+                      "profile": "canonical", "qualification": False, "owner_checks_executed": False,
+                      "early_failure": canonical_early_error, "success": False,
+                      "pins_restored": pins_restored, "full_gates": False, "cargo_jobs": 1, "rows": rows,
+                  }, indent=2) + "\n")
+                  with open(__import__("os").environ["GITHUB_OUTPUT"], "a") as output:
+                      output.write("required_passed=false\n")
+              atexit.register(record_canonical_early_failure)
           graph_wire_pin_failed = False
           required_failures = False
           # Build the production binary first so test-only cfg(test) visibility
@@ -257,30 +292,31 @@ jobs:
           if build_result.returncode:
               (out / "results.json").write_text(json.dumps({"source_subject": __import__("os").environ["SOURCE_SUBJECT"],
                   "workflow_head": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
-                  "profile": "produce" if producer_only else "verify",
+                  "profile": "canonical" if canonical_only else ("produce" if producer_only else "verify"),
                   "qualification": False, "owner_checks_executed": False,
                   "full_gates": False, "cargo_jobs": 1, "rows": rows}, indent=2) + "\n")
               print(build_data.decode(errors="replace")[-8000:], flush=True)
               raise SystemExit(1)
           print("DONE production binary build", build_row, flush=True)
-          # Compile the owning library test harness without running a selector;
-          # the loan replay group runs once in the ordered command list below.
-          precheck = ["cargo", "test", "--no-run", "--locked", "--offline", "-p", "semaprax", "--lib"]
-          log = out / "compile-library-tests.log"
-          with log.open("wb") as stream:
-              result = subprocess.run(precheck, stdout=stream, stderr=subprocess.STDOUT)
-          data = log.read_bytes()
-          rows.append({"command": precheck, "exit_code": result.returncode, "log_path": log.name,
-                       "compile_only": True, "log_sha256": hashlib.sha256(data).hexdigest()})
-          required_failures |= bool(result.returncode)
-          if b"could not compile" in data or b"error[E" in data:
-              (out / "results.json").write_text(json.dumps({"source_subject": __import__("os").environ["SOURCE_SUBJECT"],
-                  "workflow_head": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
-                  "profile": "produce" if producer_only else "verify",
-                  "qualification": False, "owner_checks_executed": False,
-                  "full_gates": False, "cargo_jobs": 1, "rows": rows}, indent=2) + "\n")
-              print(data.decode(errors="replace")[-8000:], flush=True)
-              raise SystemExit(1)
+          if not canonical_only:
+              # Compile the owning library test harness without running a selector;
+              # the loan replay group runs once in the ordered command list below.
+              precheck = ["cargo", "test", "--no-run", "--locked", "--offline", "-p", "semaprax", "--lib"]
+              log = out / "compile-library-tests.log"
+              with log.open("wb") as stream:
+                  result = subprocess.run(precheck, stdout=stream, stderr=subprocess.STDOUT)
+              data = log.read_bytes()
+              rows.append({"command": precheck, "exit_code": result.returncode, "log_path": log.name,
+                           "compile_only": True, "log_sha256": hashlib.sha256(data).hexdigest()})
+              required_failures |= bool(result.returncode)
+              if b"could not compile" in data or b"error[E" in data:
+                  (out / "results.json").write_text(json.dumps({"source_subject": __import__("os").environ["SOURCE_SUBJECT"],
+                      "workflow_head": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+                      "profile": "canonical" if canonical_only else ("produce" if producer_only else "verify"),
+                      "qualification": False, "owner_checks_executed": False,
+                      "full_gates": False, "cargo_jobs": 1, "rows": rows}, indent=2) + "\n")
+                  print(data.decode(errors="replace")[-8000:], flush=True)
+                  raise SystemExit(1)
           pin_paths = ["std/catalog.json", "docs/STANDARD-LIBRARY-CATALOG.md",
                        "docs/AGENT-DIAGNOSTIC-HELP.json", "docs/AGENT-SKILL-BUNDLE-V1.json"]
           before_dir = out / "pins-before"
@@ -294,23 +330,24 @@ jobs:
               ["cargo", "test", "--locked", "--offline", "-p", "semaprax", "--lib", "regenerate_committed_bundle", "--", "--ignored", "--nocapture", "--test-threads=1"],
               ["cargo", "test", "--locked", "--offline", "-p", "semaprax", "--test", "project", "standard_library::regenerate_catalogs", "--", "--ignored", "--nocapture", "--test-threads=1"],
           ]
-          for i, command in enumerate(generators):
-              log = out / f"generator-{i:02}.log"
-              print("START generator", i, " ".join(command), flush=True)
-              with log.open("wb") as stream:
-                  result = subprocess.run(command, stdout=stream, stderr=subprocess.STDOUT)
-              data = log.read_bytes()
-              matches = re.findall(rb"test result: ok\. ([0-9]+) passed", data) if result.returncode == 0 else []
-              selected = sum(map(int, matches))
-              row = {"command": command, "exit_code": result.returncode,
-                     "selected_passed": selected, "log_path": log.name,
-                     "log_sha256": hashlib.sha256(data).hexdigest()}
-              if not selected: row["zero_selected_error"] = True
-              rows.append(row)
-              required_failures |= bool(result.returncode or row.get("zero_selected_error"))
-              print("DONE generator", i, row, flush=True)
-              if result.returncode or not selected:
-                  print(data.decode(errors="replace")[-4000:], flush=True)
+          if not canonical_only:
+              for i, command in enumerate(generators):
+                  log = out / f"generator-{i:02}.log"
+                  print("START generator", i, " ".join(command), flush=True)
+                  with log.open("wb") as stream:
+                      result = subprocess.run(command, stdout=stream, stderr=subprocess.STDOUT)
+                  data = log.read_bytes()
+                  matches = re.findall(rb"test result: ok\. ([0-9]+) passed", data) if result.returncode == 0 else []
+                  selected = sum(map(int, matches))
+                  row = {"command": command, "exit_code": result.returncode,
+                         "selected_passed": selected, "log_path": log.name,
+                         "log_sha256": hashlib.sha256(data).hexdigest()}
+                  if not selected: row["zero_selected_error"] = True
+                  rows.append(row)
+                  required_failures |= bool(result.returncode or row.get("zero_selected_error"))
+                  print("DONE generator", i, row, flush=True)
+                  if result.returncode or not selected:
+                      print(data.decode(errors="replace")[-4000:], flush=True)
           pin_diff = bytearray()
           for name in pin_paths:
               target = after_dir / name
@@ -358,12 +395,16 @@ jobs:
               "owning_checks_use_committed_inputs": not producer_only, "roots": canonical_roots,
               "files": [],
           }
+          if canonical_only:
+              canonical_receipt["profile"] = "canonical"
           canonical_originals = {}
           try:
               selected_files = subprocess.check_output(["git", "ls-files", "-z", "--", *canonical_roots]).split(b"\0")
               selected_files = sorted(name.decode("utf-8") for name in selected_files if name and name.endswith(b".spx"))
               if any(not any(name.startswith(root + "/") for name in selected_files) for root in canonical_roots):
                   raise RuntimeError("canonical source inventory omits an explicitly selected example root")
+              if canonical_only and len(selected_files) != 39:
+                  raise RuntimeError("canonical repair requires exactly 39 selected sources")
               if not selected_files or len(selected_files) > 128:
                   raise RuntimeError("canonical example source inventory is empty or exceeds its bound")
               # Retain every committed input before invoking any formatter.
@@ -434,11 +475,13 @@ jobs:
               if not pins_restored:
                   (out / "producer-pin-restoration-error.log").write_bytes(pin_check.stdout + pin_check.stderr)
               failed = required_failures or not pins_restored or not canonical_receipt["success"]
+              if canonical_only:
+                  failed |= len(rows) != 2 or len(canonical_originals) != 39
               (out / "results.json").write_text(json.dumps({
                   "source_subject": subject,
                   "workflow_head": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
                   "compiler_path": str(compiler), "compiler_sha256": compiler_hash,
-                  "profile": "produce", "qualification": False, "owner_checks_executed": False,
+                  "profile": "canonical" if canonical_only else "produce", "qualification": False, "owner_checks_executed": False,
                   "pins_restored": pins_restored, "full_gates": False, "cargo_jobs": 1, "rows": rows,
               }, indent=2) + "\n")
               with open(__import__("os").environ["GITHUB_OUTPUT"], "a") as output:
@@ -743,7 +786,7 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 45
     env:
-      SOURCE_SUBJECT: ${{ inputs.source_subject }} # exact joined source 1ff4c4580d8c171711afa8abda16c50cdcf538d1
+      SOURCE_SUBJECT: ${{ inputs.source_subject }} # exact joined source 0f7e30903c103afe7078b084dca501fb6de8d87a
       VERIFICATION_RUN_ID: ${{ inputs.verification_run_id }}
       WORKFLOW_SHA: ${{ github.sha }}
       CARGO_BUILD_JOBS: "1"

@@ -208,16 +208,29 @@ pub(super) fn schema(
             .iter()
             .map(|instance| &instance.function),
     ) {
-        let expected = authority(function)
-            && !crate::byte_ops::requires_same_owner_set(function)
-            && !crate::string_ops::replacement::requires(function);
-        if (function.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V15)
-            != expected
-        {
-            return Err(vec![graph_error(
-                "SPX-G410",
+        let byte = crate::byte_ops::requires_same_owner_set(function);
+        let string = !byte && crate::string_ops::replacement::requires(function);
+        let ordinary = !byte && !string && authority(function);
+        for (schema, expected, message) in [
+            (
+                crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V17,
+                byte,
+                "byte-buffer renewal cleanup schema disagrees",
+            ),
+            (
+                crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V16,
+                string,
+                "String replacement cleanup schema disagrees",
+            ),
+            (
+                crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V15,
+                ordinary,
                 "ordinary Vec renewal cleanup schema disagrees",
-            )]);
+            ),
+        ] {
+            if (function.cleanup_plan.schema == schema) != expected {
+                return Err(vec![graph_error("SPX-G410", message)]);
+            }
         }
     }
     if !module
@@ -265,6 +278,10 @@ mod tests {
  if vec_len<Row>(rows)==2usize {7}else{0}
 }
 "#;
+        build_source(source)
+    }
+
+    fn build_source(source: &str) -> WorkspaceGraphBuild {
         let sources = [
             ("app/main.spx", source),
             (
@@ -348,6 +365,45 @@ mod tests {
                 build.source_graph_schemas().unwrap_err()[0].code,
                 "SPX-G410",
                 "mutation {mutation}"
+            );
+        }
+    }
+
+    #[test]
+    fn higher_scoped_field_schema_cannot_mask_forged_string_or_byte_renewal() {
+        let source = r#"module app.main;
+@id("row") record Row { @id("row.title") title:string, @id("row.marker") marker:i64, }
+@id("inspect") fn inspect(values:borrow Vec<Row>,index:usize)->i64 {
+ let view=str_as_bytes(vec_field<Row>(values,index,"title"));
+ let marker=vec_field<Row>(values,index,"marker");
+ marker+i64_from_usize(byte_len(view))
+}
+@id("main") fn main()->i64 {
+ let mut rows=vec_with_capacity<Row>(2usize);
+ let mut i=0;
+ while i<2 { rows=vec_push<Row>(rows,Row{title:"row",marker:i}); i=i+1; 0 }
+ inspect(rows,0usize)
+}
+"#;
+        for forged in [
+            crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V16,
+            crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V17,
+        ] {
+            let mut build = build_source(source);
+            assert_eq!(
+                build.source_graph_schemas().unwrap()["app/main.spx"],
+                "semaprax.graph.v75"
+            );
+            build.hir.modules[0]
+                .functions
+                .iter_mut()
+                .find(|function| function.id.as_str() == "inspect")
+                .unwrap()
+                .cleanup_plan
+                .schema = forged;
+            assert_eq!(
+                build.source_graph_schemas().unwrap_err()[0].code,
+                "SPX-G410"
             );
         }
     }

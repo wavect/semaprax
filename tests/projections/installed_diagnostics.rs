@@ -271,8 +271,8 @@ fn catalog_exactly_covers_static_tokens_and_reports_unresolved_dynamic_sites() {
 
 #[test]
 fn explanation_is_deterministic_digest_bound_and_exactly_replayable() {
-    let explanation = explain_installed_diagnostic("SPX-T001").unwrap();
-    let repeated = explain_installed_diagnostic("SPX-T001").unwrap();
+    let explanation = explain_installed_diagnostic("SPX-T310").unwrap();
+    let repeated = explain_installed_diagnostic("SPX-T310").unwrap();
     assert_eq!(explanation, repeated);
     let value = envelope(
         explanation.to_json(),
@@ -280,15 +280,23 @@ fn explanation_is_deterministic_digest_bound_and_exactly_replayable() {
         b"semaprax.installed-diagnostic-explanation.payload.digest.v1\0",
         MAX_INSTALLED_DIAGNOSTIC_EXPLANATION_BYTES,
     );
-    assert_eq!(value["payload"]["code"], "SPX-T001");
+    assert_eq!(value["payload"]["code"], "SPX-T310");
     assert_eq!(value["payload"]["explanation"]["namespace"], "T");
+    assert_eq!(
+        value["payload"]["explanation"]["code_specific_guidance"]["required_shape"],
+        "vec_field<Row>(rows, index, \"field\")"
+    );
+    assert!(value["payload"]["explanation"]["code_specific_guidance"]["repair"]
+        .as_str()
+        .unwrap()
+        .contains("declared fields"));
     assert_eq!(value["payload"]["concise"], explanation.to_text());
     assert!(explanation.to_text().ends_with('\n'));
-    assert_eq!(explanation.code(), "SPX-T001");
+    assert_eq!(explanation.code(), "SPX-T310");
     assert_eq!(value["digest"], explanation.digest());
     assert_eq!(
         InstalledDiagnosticExplanation::replay(
-            "SPX-T001",
+            "SPX-T310",
             explanation.digest(),
             explanation.to_json().as_bytes(),
         )
@@ -300,11 +308,11 @@ fn explanation_is_deterministic_digest_bound_and_exactly_replayable() {
 #[test]
 fn explain_cli_is_exact_core_projection_and_has_no_working_directory_authority() {
     let root = EmptyRoot::new();
-    let explanation = explain_installed_diagnostic("SPX-T001").unwrap();
+    let explanation = explain_installed_diagnostic("SPX-T310").unwrap();
     for (arguments, expected) in [
-        (&["explain", "SPX-T001"][..], explanation.to_text()),
+        (&["explain", "SPX-T310"][..], explanation.to_text()),
         (
-            &["explain", "SPX-T001", "--json"][..],
+            &["explain", "SPX-T310", "--json"][..],
             explanation.to_json(),
         ),
     ] {

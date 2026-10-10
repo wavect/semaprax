@@ -205,10 +205,34 @@ pub fn explain_installed_diagnostic(code: &str) -> Result<InstalledDiagnosticExp
         .map_err(|_| unknown("diagnostic code is not in the installed static catalog"))?;
     let (installed, occurrences) = GENERATED_CODES[index];
     let occurrence_count = occurrences.len();
+    let guidance = match installed {
+        "SPX-T310" => Some(json!({
+            "summary": "scoped Vec record-field read has an unsupported operand or field selector",
+            "required_shape": "vec_field<Row>(rows, index, \"field\")",
+            "requirements": [
+                "Row is one admitted owned record type",
+                "rows is a named Vec value",
+                "index has type usize",
+                "field is an exact string-literal selector naming a field of Row",
+            ],
+            "result_behavior": [
+                "copyable scalar fields are returned by value",
+                "String fields are borrowed as str",
+                "Bytes fields are borrowed as Slice<u8>",
+                "a borrowed field view prevents moving or mutating its owner through the view's last use",
+            ],
+            "repair": "Use the exact generic type and argument shape, check the selector against Row's declared fields, and keep any String or Bytes view within the owner's borrow scope.",
+        })),
+        _ => None,
+    };
     let text = format!(
-        "{installed}: installed {} diagnostic ({occurrence_count} static source occurrence{}); emitted message and help are site-specific.\n",
+        "{installed}: installed {} diagnostic ({occurrence_count} static source occurrence{}); emitted message and help are site-specific.{}\n",
         namespace(installed),
         if occurrence_count == 1 { "" } else { "s" },
+        guidance
+            .as_ref()
+            .map(|_| " See the code-specific explanation for the admitted shape and repair guidance.")
+            .unwrap_or(""),
     );
     let payload = json!({
         "authority": false,
@@ -218,6 +242,7 @@ pub fn explain_installed_diagnostic(code: &str) -> Result<InstalledDiagnosticExp
         "explanation": {
             "classification": "installed_static_diagnostic_identifier",
             "message_contract": "emission_site_specific; inspect the emitted message and optional help",
+            "code_specific_guidance": guidance,
             "namespace": namespace(installed),
             "occurrences": occurrences.iter().map(|(path,line)|json!({
                 "line":line,"path":path,"scope":scope(path)

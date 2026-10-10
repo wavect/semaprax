@@ -2,7 +2,7 @@
 use super::*;
 use super::public_example::{compile_native, execute};
 
-const EXPECTED: &[u8] = br#"{"labels":["","\u0000","é","é"],"rows":[{"number":5,"text":"é\u0000😀"},{"number":4,"text":""},{"number":4,"text":""}]}"#;
+const EXPECTED: &[u8] = r#"{"labels":["","\u0000","é","é"],"rows":[{"number":5,"text":"é\u0000😀"},{"number":4,"text":""},{"number":4,"text":""}]}"#.as_bytes();
 
 fn copy_example(source: &std::path::Path, destination: &std::path::Path) {
     for directory in ["src", "fixtures"] {

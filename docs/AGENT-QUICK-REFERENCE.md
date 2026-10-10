@@ -1068,9 +1068,14 @@ result to a `Slice<u8>` before using it as a loop-carried view. Within a loop
 body, [Owned String Loops v2](OWNED-STRING-LOOPS-V2.md#immutable-input-and-borrowed-views-590)
 also permits named local views over one exact named String owner:
 `let view = string_as_str(line); let bytes = str_as_bytes(view);`. Keep the
-owner alive through the last use; `string_as_str` still takes a named binding,
-not a literal, and temporary or projected String roots remain rejected
-(`SPX-T266`).
+owner alive through the last use. The additive projected-string-view work
+extends this to `string_as_str(record.text)` and nested named record paths
+ending in a String field, rooted in a live named own/borrow record with no
+invariants. The fused form `str_as_bytes(string_as_str(record.inner.text))`
+also works in a nonescaping borrowed call or loop. It preserves the full owner
+and field path; it does not clone or move the String. Literal, temporary, call,
+and constructor roots remain refused. Source implementation and qualification
+are pending; see [Projected String Views v1](PROJECTED-STRING-VIEWS-V1.md).
 
 Use `u8_from_i64(value)` then `char_from_u8(byte)` for byte conversion; use
 `char_from_i64(value)` for arbitrary Unicode code points.

@@ -8,6 +8,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/hir/validation/nominal_facts.rs"),
         include_str!("../src/hir/validation/nominal_facts/tests.rs"),
         include_str!("../src/hir/validation/borrowed_argument.rs"),
+        include_str!("../src/hir/projected_string_view.rs"),
         include_str!("../src/hir/validation/stdin_stream.rs"),
         include_str!("../src/stdin_stream_ops/analysis.rs"),
         include_str!("../src/hir/validation/borrowed_bytes_call_tests.rs"),

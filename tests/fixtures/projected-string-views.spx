@@ -1,0 +1,38 @@
+module test.projected_string_views;
+@id("view.inner") record Inner {
+ @id("view.inner.text") text:string,
+ @id("view.inner.sibling") sibling:string,
+}
+@id("view.outer") record Outer {
+ @id("view.outer.bytes") bytes:Bytes,
+ @id("view.outer.inner") inner:Inner,
+ @id("view.outer.words") words:Vec<string>,
+}
+@id("view.make") fn make()->Outer {
+ Outer{bytes:bytes_zeroed(3usize),inner:Inner{text:"A\u{0}é",sibling:"tail"},words:vec_with_capacity<string>(0usize)}
+}
+@id("view.measure") fn measure(value:borrow Outer)->i64 {
+ let mut at=0;
+ let mut total=0;
+ while at<4 {
+  let text=string_as_str(value.inner.text);
+  let bytes=str_as_bytes(string_as_str(value.inner.text));
+  total=total+str_len_bytes(text)+i64_from_usize(byte_len(bytes));
+  at=at+1;
+ }
+ total
+}
+@id("view.sink") fn sink(value:own Outer, observed:i64)->i64 {observed}
+@id("view.inspect") fn inspect(value:own Outer)->i64 {
+ let text=string_as_str(value.inner.text);
+ let alias=text;
+ let bytes=str_as_bytes(string_as_str(value.inner.text));
+ let count=str_len_bytes(alias)+i64_from_usize(byte_len(bytes));
+ sink(value,count)
+}
+@id("app.main") fn main()->i64 {
+ let value=make();
+ let first=measure(value);
+ let last=inspect(value);
+ if first==32 && last==8 {42}else{0}
+}

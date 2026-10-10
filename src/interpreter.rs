@@ -80,6 +80,7 @@ mod owned_buffer;
 mod owned_try;
 mod owned_vec;
 mod prepared;
+mod projected_string_view;
 mod public_api_argument;
 pub use public_api_argument::PublicApiArgument;
 mod map_collections;
@@ -3966,6 +3967,18 @@ impl Evaluator<'_> {
             ResolvedExprKind::BorrowPlace { operation, place } => {
                 let op = crate::byte_ops::by_id(operation.as_str())
                     .ok_or(Flow::Guard("unknown compiler-owned byte view"))?;
+                if !place.projections.is_empty()
+                    && matches!(
+                        op,
+                        crate::byte_ops::ByteOp::StringAsStr | crate::byte_ops::ByteOp::StrAsBytes
+                    )
+                {
+                    return projected_string_view::read(
+                        environment,
+                        place,
+                        op == crate::byte_ops::ByteOp::StrAsBytes,
+                    );
+                }
                 let source = self
                     .lookup_place(environment, place)?
                     .ok_or(Flow::Guard("unresolved byte view storage root"))?;

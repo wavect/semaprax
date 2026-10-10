@@ -58,7 +58,7 @@ pub(super) fn check_call(
             expression.span,
         ));
     }
-    let loans = activate_borrowed_bytes_call_loans(args, &params, variables, types);
+    let loans = activate_borrowed_bytes_call_loans(program, args, &params, variables, types);
     for (index, argument) in args.iter().enumerate() {
         let actual = check_expr(
             program,

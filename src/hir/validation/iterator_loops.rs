@@ -126,12 +126,14 @@ impl HirValidator<'_> {
                     if !exact_view
                         || expression.ownership != OwnershipMode::Borrow
                         || (!place.projections.is_empty()
-                            && !(operation.as_str() == crate::byte_ops::STRING_AS_STR_ID
-                                && crate::hir::owned_leaf_collection::projected_leaf_admitted(
-                                    &self.program.declarations,
-                                    place,
-                                    &ResolvedType::String,
-                                )))
+                            && !(matches!(
+                                operation.as_str(),
+                                crate::byte_ops::STRING_AS_STR_ID
+                                    | crate::byte_ops::STR_AS_BYTES_ID
+                            ) && crate::hir::projected_string_view::path_admitted(
+                                &self.program.declarations,
+                                &place.projections,
+                            )))
                     {
                         return Err(hir_error("while loops cannot construct byte views"));
                     }

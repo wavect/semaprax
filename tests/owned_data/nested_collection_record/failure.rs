@@ -58,7 +58,12 @@ fn every_nested_constructor_prefix_and_owned_call_failure_preserves_status_and_s
     }
 }
 
-fn native_failure(ast: &semaprax::ast::Program, root: &std::path::Path, domain: &str, code: u32) {
+pub(crate) fn native_failure(
+    ast: &semaprax::ast::Program,
+    root: &std::path::Path,
+    domain: &str,
+    code: u32,
+) {
     let generated = semaprax::codegen::emit_c(ast)
         .unwrap()
         .replace("malloc(", "probe_malloc(")

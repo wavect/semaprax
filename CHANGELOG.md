@@ -1,5 +1,10 @@
 # Changelog
 
+- Author OPT-728 rooted record-field String views: exact source/HIR path and
+  loan authentication, fused byte provenance, no-copy interpreter reads and
+  Graph v73. Stage no-clone and failure-settlement regressions on interpreter,
+  native O0/O2 and Core Wasm; execution and application adoption remain pending.
+
 - Author OPT-727 bounded nested record composition with existing Vec owners,
   authenticated projected reads, fieldwise cleanup, distinct native/Wasm
   layouts and Graph v72 replay. Stage same-source success/failure, structural

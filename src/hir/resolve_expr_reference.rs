@@ -428,8 +428,7 @@ impl Resolver<'_> {
                             ResolvedExprKind::Place(place) => place,
                             ResolvedExprKind::BorrowPlace { operation, place }
                                 if op == crate::byte_ops::ByteOp::StrAsBytes
-                                    && operation.as_str() == crate::byte_ops::STRING_AS_STR_ID
-                                    && place.projections.is_empty() =>
+                                    && operation.as_str() == crate::byte_ops::STRING_AS_STR_ID =>
                             {
                                 place
                             }

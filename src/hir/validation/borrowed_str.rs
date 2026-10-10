@@ -17,8 +17,7 @@ impl HirValidator<'_> {
                     hir_error("borrowed-str local alias lacks authenticated root provenance")
                 }),
             ResolvedExprKind::BorrowPlace { operation, place }
-                if operation.as_str() == crate::byte_ops::STRING_AS_STR_ID
-                    && place.projections.is_empty() =>
+                if operation.as_str() == crate::byte_ops::STRING_AS_STR_ID =>
             {
                 Ok((place.clone(), true))
             }

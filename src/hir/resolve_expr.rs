@@ -23,6 +23,7 @@ use super::resolve_expr_frame::{take_results, Frame};
 use super::type_reachability::record_args_ok;
 use super::{Binding, Place, PlaceProjection, Resolver};
 
+mod byte_view;
 #[cfg(test)]
 mod capacity;
 mod literal_format;
@@ -230,7 +231,14 @@ impl Resolver<'_> {
                                 segment: "native-rust-arg",
                             });
                         } else if name == crate::literal_format::NAME {
-                            frames.extend(self.literal_format_frames(function, expr, type_arguments, args, bindings, path)?);
+                            frames.extend(self.literal_format_frames(
+                                function,
+                                expr,
+                                type_arguments,
+                                args,
+                                bindings,
+                                path,
+                            )?);
                         } else if let Some(op) = crate::string_ops::by_name(name).filter(|_| {
                             crate::map_ops::by_generic_name(name, type_arguments).is_none()
                         }) {
@@ -923,11 +931,22 @@ impl Resolver<'_> {
                         span,
                     });
                 }
-                Frame::FinishLiteralFormat { span, path, template, argument_count } => {
+                Frame::FinishLiteralFormat {
+                    span,
+                    path,
+                    template,
+                    argument_count,
+                } => {
                     let args = take_results(&mut results, argument_count);
-                    results.push(self.finish_literal_format(function, span, &path, template, args)?);
+                    results
+                        .push(self.finish_literal_format(function, span, &path, template, args)?);
                 }
-                Frame::LiteralFormatArgNext { args, index, bindings, path } => {
+                Frame::LiteralFormatArgNext {
+                    args,
+                    index,
+                    bindings,
+                    path,
+                } => {
                     Self::queue_literal_format_argument(&mut frames, args, index, bindings, path);
                 }
                 Frame::FinishStrOp {
@@ -1019,26 +1038,7 @@ impl Resolver<'_> {
                         continue;
                     }
                     if op.is_view() {
-                        let place = match &args[0].kind {
-                            ResolvedExprKind::Place(place) => place,
-                            ResolvedExprKind::BorrowPlace { operation, place }
-                                if op == crate::byte_ops::ByteOp::StrAsBytes
-                                    && operation.as_str() == crate::byte_ops::STRING_AS_STR_ID
-                                    && place.projections.is_empty() =>
-                            {
-                                place
-                            }
-                            _ => {
-                                return Err(self.error(
-                                    "SPX-T266",
-                                    format!(
-                                        "borrowed view `{}` requires an exact named storage root",
-                                        op.name()
-                                    ),
-                                    args[0].span,
-                                ));
-                            }
-                        };
+                        let place = self.resolved_view_place(op, &args[0])?;
                         results.push(ResolvedExpr {
                             id: ExpressionId::new(function, &path),
                             ty,

@@ -856,7 +856,7 @@ pub(super) fn oracle_call(
         validation_specialize_function(target, type_arguments)
     });
     let borrowed_bytes_loans = specialized_target.as_ref().map_or_else(Vec::new, |target| {
-        activate_borrowed_bytes_call_loans(args, &target.params, variables, types)
+        activate_borrowed_bytes_call_loans(program, args, &target.params, variables, types)
     });
     for (index, arg) in args.iter().enumerate() {
         let actual = check_expr(

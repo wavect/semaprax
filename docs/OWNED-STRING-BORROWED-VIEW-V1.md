@@ -8,6 +8,10 @@ separately gated.
 
 Audience: language users, compiler contributors, and ownership reviewers.
 
+The separate [Rooted String Views v1](PROJECTED-STRING-VIEWS-V1.md) successor
+authors authenticated record-field operands and Graph v73. Its source-only
+status does not inherit this older profile's hosted evidence.
+
 `string_as_str(value)` is compiler-owned `core.string.as-str`. It takes one
 unprojected named owning `string` place and returns a non-escaping `borrow str`
 view. It does not transfer, clone, drop, or settle the owner, which remains the

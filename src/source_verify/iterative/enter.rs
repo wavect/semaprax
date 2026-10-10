@@ -723,6 +723,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     VerifierCallTarget::Ordinary(Some(VerifierFunctionSignature::Borrowed(
                         function,
                     ))) => activate_borrowed_bytes_call_loans(
+                        self.program,
                         args,
                         &function.params,
                         &mut self.scopes[scope].bindings,
@@ -737,6 +738,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     }) =>
                     {
                         activate_borrowed_bytes_call_loans(
+                            self.program,
                             args,
                             params,
                             &mut self.scopes[scope].bindings,
@@ -989,7 +991,19 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 });
             }
             ExprKind::Project { base, field, .. } => {
-                if self.loop_depth != 0
+                let rooted_string_view = matches!(
+                    self.frames.last(),
+                    Some(VerifierFrame::ResumeCallArgument {
+                        target: VerifierCallTarget::Byte(crate::byte_ops::ByteOp::StringAsStr),
+                        ..
+                    })
+                ) && source_byte_view_place_is_admitted(
+                    crate::byte_ops::ByteOp::StringAsStr,
+                    expression,
+                    &self.scopes[scope].bindings,
+                    self.types,
+                );
+                if self.loop_depth != 0 && !rooted_string_view
                     && source_place(base, &self.scopes[scope].bindings, self.types).is_some_and(
                         |place| {
                             !crate::source_verify::declared_type::owned_leaf_collection::copy_or_leaf_admitted(

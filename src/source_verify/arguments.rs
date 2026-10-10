@@ -9,6 +9,7 @@ use super::type_table::TypeTable;
 use crate::ast::{Expr, ExprKind, Function, Param, ParamMode, Program, Type};
 use crate::diagnostic::Diagnostic;
 use std::collections::HashMap;
+mod projected_string_view;
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn check_argument_ownership(
@@ -221,6 +222,7 @@ pub(super) fn source_borrowed_bytes_call_place_is_admitted(
 }
 
 pub(super) fn activate_borrowed_bytes_call_loans(
+    program: &Program,
     arguments: &[Expr],
     parameters: &[Param],
     variables: &mut HashMap<String, Binding>,
@@ -232,8 +234,21 @@ pub(super) fn activate_borrowed_bytes_call_loans(
             && matches!(&borrowed.kind, ExprKind::Var(name) if variables.get(name).is_some_and(|binding| crate::stdin_stream_ops::ast_is_reader(&binding.ty)));
         let collection = super::declared_type::collection_record::vector(types, &parameter.ty)
             && source_collection_field_is_admitted(borrowed, variables, types);
+        let text_view = matches!(parameter.ty, Type::Str | Type::SliceU8)
+            .then(|| {
+                super::loans::local_borrow_origin(
+                    program,
+                    borrowed,
+                    "call view",
+                    borrowed.span,
+                    variables,
+                    types,
+                )
+            })
+            .flatten();
         if parameter.mode != ParamMode::Borrow
             || (!reader
+                && text_view.is_none()
                 && !collection
                 && (parameter.ty != Type::Bytes
                     || !source_borrowed_bytes_call_place_is_admitted(
@@ -242,7 +257,10 @@ pub(super) fn activate_borrowed_bytes_call_loans(
         {
             continue;
         }
-        let Some(origin) = source_place(borrowed, variables, types) else {
+        let origin = text_view
+            .map(|origin| (origin.root, origin.projections))
+            .or_else(|| source_place(borrowed, variables, types).map(|p| (p.root, p.projections)));
+        let Some((root, projections)) = origin else {
             continue;
         };
         let id = SourceLoanId {
@@ -250,12 +268,12 @@ pub(super) fn activate_borrowed_bytes_call_loans(
             start: borrowed.span.start,
             end: borrowed.span.end,
         };
-        if let Some(owner) = variables.get_mut(&origin.root) {
+        if let Some(owner) = variables.get_mut(&root) {
             owner.active_loans.insert(SourceLoan {
                 id: id.clone(),
-                projections: origin.projections,
+                projections,
             });
-            active.push((origin.root, id));
+            active.push((root, id));
         }
     }
     active
@@ -292,10 +310,11 @@ pub(super) fn source_byte_view_place_is_admitted(
                     return false;
                 };
                 return source_place(owner, variables, types).is_some_and(|place| {
-                    place.projections.is_empty()
+                    (place.projections.is_empty()
                         && place.ty == Type::String
                         && place.mode == ParamMode::Own
-                        && matches!(owner.kind, ExprKind::Var(_))
+                        && matches!(owner.kind, ExprKind::Var(_)))
+                        || projected_string_view::admitted(&place, variables, types)
                 });
             }
         }
@@ -305,6 +324,9 @@ pub(super) fn source_byte_view_place_is_admitted(
     };
     if place.projections.is_empty() {
         return matches!(expression.kind, ExprKind::Var(_));
+    }
+    if operation == crate::byte_ops::ByteOp::StringAsStr {
+        return projected_string_view::admitted(&place, variables, types);
     }
     operation == crate::byte_ops::ByteOp::BytesAsSlice
         && !place.projections.is_empty()

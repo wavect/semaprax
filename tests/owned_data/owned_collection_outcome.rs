@@ -216,7 +216,10 @@ fn owned_collection_outcome_return_match_executes_on_interpreter_native_and_stri
 }
 
 pub(super) fn run_native(ast: &semaprax::ast::Program, root: &std::path::Path) {
-    let generated = codegen::emit_c(ast).expect("native C emission");
+    run_native_generated(codegen::emit_c(ast).expect("native C emission"), root);
+}
+
+pub(super) fn run_native_generated(generated: String, root: &std::path::Path) {
     let tracked = generated
         .replace("malloc(", "outcome_malloc(")
         .replace("calloc(", "outcome_calloc(")

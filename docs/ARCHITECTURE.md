@@ -1080,6 +1080,16 @@ nested collection-record uses and binds ordinary layout/cleanup/loan facts.
 Its descriptive marker carries no authority; legacy projections fail closed.
 `graph/operator_text.rs` owns the unchanged small operator/match text helpers.
 
+`hir/projected_string_view.rs` and the independent source
+`arguments/projected_string_view.rs` authenticate rooted record-field String
+views. They retain the complete field path in BorrowPlace and ordinary loan
+replay. `interpreter/projected_string_view.rs` reads the leaf without semantic
+String copying; native canonical leaf aliases and Wasm borrowed carriers keep
+ownership unchanged. `graph/projected_string_view.rs` owns Graph v73 selection
+and its non-authoritative marker; `graph/evidence_schema.rs` owns the unchanged
+frozen-evidence refusals plus the new schema refusal. The staged contract and
+required gates live in [Rooted String Views v1](PROJECTED-STRING-VIEWS-V1.md).
+
 The additive owned-payload iterator is split across
 `src/interpreter/iterator.rs`, which validates the initialized suffix and uses a
 detached-prefix sentinel for the moved slot, and

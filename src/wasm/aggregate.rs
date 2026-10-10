@@ -8433,8 +8433,8 @@ impl Emitter<'_> {
     }
 }
 
-/// Acyclic Nested Owned-Byte Records v1 admits a `bytes_as_slice` borrow of a
-/// transitive `Bytes` leaf through a stable field-ID path. Such a path enters
+/// Authenticated owned records admit Bytes slices and projected String views
+/// through a stable field-ID path. Such a path enters
 /// each owning record declaration at most once, so a field ID cannot repeat
 /// along it: a repeated or variant projection is a forged path, not a deeper
 /// legal one, and stays rejected here.
@@ -8452,7 +8452,12 @@ fn borrow_place_shape_is_admitted(operation: &DeclarationId, place: &crate::hir:
         }
         walked.push(field);
     }
-    operation.as_str() == crate::byte_ops::BYTES_AS_SLICE_ID
+    matches!(
+        operation.as_str(),
+        crate::byte_ops::BYTES_AS_SLICE_ID
+            | crate::byte_ops::STRING_AS_STR_ID
+            | crate::byte_ops::STR_AS_BYTES_ID
+    )
 }
 
 use function_value::value_type;

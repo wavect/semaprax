@@ -50,12 +50,13 @@ mod generic_instances;
 mod generic_mapping;
 mod owned_collection_records;
 mod owned_string_byte_view;
+mod projected_string_view;
 use filesystem::string_array;
 use generic_instances::legacy_graph_json;
 pub(crate) use generic_instances::to_legacy_hir_json;
 pub use generic_instances::{legacy_context_json, to_legacy_json, verify_json};
 pub(crate) use generic_mapping::requires_v35;
-use owned_collection_records::graph_json;
+use projected_string_view::graph_json;
 
 #[path = "graph/native_import.rs"]
 mod native_import;
@@ -67,13 +68,13 @@ mod prelude_binding;
 mod revision_digest;
 use nested_owned::{
     graph_schema_includes_loans, graph_schema_includes_modern_composite_facts,
-    graph_schema_includes_projected_provenance, rejected_evidence_schema,
+    graph_schema_includes_projected_provenance,
 };
 pub(crate) use prelude_binding::revision_from_canonical_program;
 
 pub(crate) use native_import::view_relation as native_view_relation;
 pub(crate) use native_import::{reject_native_rust_imports, reject_source_native_rust_imports};
-pub(crate) use owned_collection_records::{
+pub(crate) use projected_string_view::{
     graph_schema, graph_schema_from_parts_and_instances, legacy_graph_schema,
 };
 
@@ -1205,94 +1206,8 @@ pub fn reject_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
     reject_while_loop_evidence_schema(schema)
 }
 
-pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
-    if matches!(
-        schema,
-        "semaprax.graph.v34"
-            | "semaprax.graph.v35"
-            | "semaprax.graph.v36"
-            | "semaprax.graph.v37"
-            | "semaprax.graph.v38"
-            | "semaprax.graph.v39"
-            | "semaprax.graph.v40"
-            | "semaprax.graph.v41"
-            | "semaprax.graph.v42"
-            | "semaprax.graph.v43"
-            | "semaprax.graph.v44"
-            | "semaprax.graph.v45"
-            | "semaprax.graph.v46"
-            | "semaprax.graph.v65"
-            | "semaprax.graph.v66"
-            | "semaprax.graph.v67"
-            | "semaprax.graph.v68"
-            | "semaprax.graph.v69"
-            | "semaprax.graph.v70"
-            | "semaprax.graph.v71"
-            | "semaprax.graph.v72"
-    ) {
-        return Err(Diagnostic::io(
-            "SPX-G410",
-            "Graph v34 is outside frozen evidence admission",
-        ));
-    }
-    if let Some(error) = rejected_evidence_schema(schema) {
-        Err(error)
-    } else if schema == "semaprax.graph.v24" {
-        Err(Diagnostic::io(
-            "SPX-G410",
-            "projected shared-loan programs select `semaprax.graph.v24`, which is outside this evidence flow's admission",
-        ))
-    } else if schema == "semaprax.graph.v23" {
-        Err(Diagnostic::io(
-            "SPX-G410",
-            "shared-loan programs select `semaprax.graph.v23`, which is outside this evidence flow's admission",
-        ))
-    } else if schema == "semaprax.graph.v22" {
-        Err(Diagnostic::io(
-            "SPX-G410",
-            "owned variant programs select `semaprax.graph.v22`, which is outside this evidence flow's admission",
-        ))
-    } else if schema == "semaprax.graph.v21" {
-        Err(Diagnostic::io(
-            "SPX-G410",
-            "ownership-aware match programs select `semaprax.graph.v21`, which is outside this evidence flow's admission",
-        ))
-    } else if schema == "semaprax.graph.v20" {
-        Err(Diagnostic::io(
-            "SPX-G410",
-            "dynamic byte-range programs select `semaprax.graph.v20`, which is outside this evidence flow's admission",
-        ))
-    } else if schema == "semaprax.graph.v19" {
-        Err(Diagnostic::io(
-            "SPX-G410",
-            "bounded language-command I/O programs select `semaprax.graph.v19`, which is outside this evidence flow's admission",
-        ))
-    } else if schema == "semaprax.graph.v18" {
-        Err(Diagnostic::io(
-            "SPX-G410",
-            "bounded-stdout-transcript programs select `semaprax.graph.v18`, which is outside this evidence flow's admission",
-        ))
-    } else if schema == "semaprax.graph.v17" {
-        Err(Diagnostic::io(
-            "SPX-G410",
-            "portable-indexed-byte-data programs select `semaprax.graph.v17`, which is outside this evidence flow's admission",
-        ))
-    } else if let Some(error) = native_import::evidence_refusal(schema) {
-        Err(error)
-    } else if schema == "semaprax.graph.v15" {
-        Err(Diagnostic::io(
-            "SPX-G410",
-            "while-loop programs select `semaprax.graph.v15`, which is outside this evidence flow's admission",
-        ))
-    } else if schema == "semaprax.graph.v16" {
-        Err(Diagnostic::io(
-            "SPX-G410",
-            "refutable-match programs select `semaprax.graph.v16`, which is outside this evidence flow's admission",
-        ))
-    } else {
-        Ok(())
-    }
-}
+mod evidence_schema;
+pub(crate) use evidence_schema::reject_while_loop_evidence_schema;
 
 fn expression_has_byte_range(expression: &ResolvedExpr) -> bool {
     let mut pending = vec![expression];

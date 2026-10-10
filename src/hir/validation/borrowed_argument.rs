@@ -57,10 +57,26 @@ impl<'a> HirValidator<'a> {
             }
             return Ok(());
         }
-        if operation == crate::byte_ops::ByteOp::StringAsStr {
+        if matches!(
+            operation,
+            crate::byte_ops::ByteOp::StringAsStr | crate::byte_ops::ByteOp::StrAsBytes
+        ) {
+            if matches!(
+                binding.ownership,
+                OwnershipMode::Own | OwnershipMode::Borrow
+            ) && matches!(place_ownership, OwnershipMode::Own | OwnershipMode::Borrow)
+                && place_ty == ResolvedType::String
+                && crate::hir::projected_string_view::admitted(
+                    &self.program.declarations,
+                    &binding.ty,
+                    &place.projections,
+                )
+            {
+                return Ok(());
+            }
             return Err(hir_error_at_span(
                 span,
-                "owned String view requires one unprojected named storage root",
+                "projected String view requires an authenticated live record field path",
             ));
         }
         if operation != crate::byte_ops::ByteOp::BytesAsSlice

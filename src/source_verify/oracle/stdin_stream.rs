@@ -34,7 +34,7 @@ pub(super) fn check_call(
         ));
     }
     let loans = crate::source_verify::arguments::activate_borrowed_bytes_call_loans(
-        args, &params, variables, types,
+        program, args, &params, variables, types,
     );
     for (index, arg) in args.iter().enumerate() {
         let actual = check_expr(

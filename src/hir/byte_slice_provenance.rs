@@ -548,16 +548,22 @@ pub(super) fn derive_byte_slice_provenance(
                     ResolvedType::Nominal { arguments, .. }
                         if arguments.is_empty() && !place.projections.is_empty() =>
                     {
-                        if projected_field_type(declarations, root_ty, &place.projections)
-                            != Some(ResolvedType::Bytes)
+                        let projected =
+                            projected_field_type(declarations, root_ty, &place.projections);
+                        let (kind, ty) = if projected == Some(ResolvedType::Bytes) {
+                            (ByteSliceRootKind::OwnedBytes, ResolvedType::Bytes)
+                        } else if operation.as_str() == crate::byte_ops::STR_AS_BYTES_ID
+                            && super::projected_string_view::admitted(
+                                declarations,
+                                root_ty,
+                                &place.projections,
+                            )
                         {
+                            (ByteSliceRootKind::OwnedString, ResolvedType::String)
+                        } else {
                             return true;
-                        }
-                        (
-                            ByteSliceRootKind::OwnedBytes,
-                            ByteSliceExtent::ValueLength,
-                            ResolvedType::Bytes,
-                        )
+                        };
+                        (kind, ByteSliceExtent::ValueLength, ty)
                     }
                     _ => return true,
                 };

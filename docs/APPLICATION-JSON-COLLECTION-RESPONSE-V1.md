@@ -55,7 +55,12 @@ No physical, fuel, borrowed-root or ownership bound is increased.
 The helper borrows the actual Report owner for the complete call. Its ordinary
 projected vector reads independently authenticate the full field path;
 `vec_clone_at` produces one independent owning Row per read. It never clones the
-Report or stored Vec. Metrics is Copy and passed by value. Preflight itself can
+Report or stored Vec. Row String length/quoting reads use the ordinary authenticated
+`string_as_str(value.<field>)` projection from its named `borrow Row` parameter.
+The full field path and live owner remain compiler proof obligations; no emitted
+borrow-match alias, generated origin or implicit String clone grants authority.
+This source form depends on the rooted projected String-view contract and its
+owning executable gate. Metrics is Copy and passed by value. Preflight itself can
 allocate temporary Row deep copies, so it is not allocation-free. Clone/String
 allocation failures retain their ordinary checked status, argument staging,
 group commit, sticky failure selection and partial-owner cleanup; they are not

@@ -14,6 +14,18 @@ const SCHEMA: &str = r#"module schema;
 @id("schema.anchor") fn anchor()->i64{0}
 "#;
 
+const ROW_SOURCE: &str = r#"@id("response.row.json.collection-response.object-len")
+fn json_Row_response_object_len(value:borrow Row)->usize {
+if !(json_Row_response_owned_valid(string_as_str(value.label))){18446744073709551615usize}else{30usize+(usize_from_i64(jv_i64_len(value.number)))+(json_Row_response_utf8_quoted_len(string_as_str(value.label)))+(if value.active{4usize}else{5usize})}}
+@id("response.row.json.collection-response.object-render")
+fn json_Row_response_object_render(value:borrow Row)->string {
+if !(json_Row_response_owned_valid(string_as_str(value.label))){""}else{let output_0="{";
+let label_0=string_concat(output_0,"\"number\":");let rendered_0=string_from_i64(value.number);let output_1=string_concat(label_0,rendered_0);
+let label_1=string_concat(output_1,",\"label\":");let rendered_1=json_Row_response_utf8_quote(string_as_str(value.label));let output_2=string_concat(label_1,rendered_1);
+let label_2=string_concat(output_2,",\"active\":");let rendered_2=if value.active{"true"}else{"false"};let output_3=string_concat(label_2,rendered_2);
+string_concat(output_3,"}")}}
+"#;
+
 #[test]
 fn collection_response_is_closed_ordered_and_canonical_without_source_authority() {
     let program = crate::parse(SCHEMA, "schema.spx").unwrap();
@@ -25,9 +37,34 @@ fn collection_response_is_closed_ordered_and_canonical_without_source_authority(
     assert!(output.contains("vec_clone_at<Row>(value.entries,at)"));
     assert!(output.contains("fn json_Metrics_response_object_len(value:Metrics)"));
     assert!(output.contains("fn json_Row_response_object_len(value:borrow Row)"));
-    assert!(output.contains("match borrow value {Row{number:response_field_0,label:response_field_1,active:response_field_2}=>{"));
-    assert!(output.contains("string_as_str(response_field_1)"));
-    assert!(!output.contains("string_as_str(value.label)"));
+    assert!(output.contains("string_as_str(value.label)"));
+    assert!(output.contains("json_Row_response_utf8_quoted_len(string_as_str(value.label))"));
+    assert!(output.contains("json_Row_response_utf8_quote(string_as_str(value.label))"));
+    assert!(!output.contains("match borrow value"));
+    assert!(!output.contains("response_field_"));
+    // Independent exact projection contract: no borrow-match wrapper or synthetic
+    // String binding, and identical validity/length/render ordering.
+    assert_eq!(record::source(&program.types[0]), ROW_SOURCE);
+    // Authored fields can resemble helper locals; direct roots must retain the
+    // actual declaration field, not accidentally read a generated local.
+    let field_names = SCHEMA
+        .replace("number:i64", "value:i64")
+        .replace("label:string", "output_0:string")
+        .replace("active:bool", "response_field_1:bool");
+    let renamed_fields = crate::parse(&field_names, "field-names.spx").unwrap();
+    let field_output = record::source(&renamed_fields.types[0]);
+    assert!(field_output.contains("string_as_str(value.output_0)"));
+    assert!(field_output.contains("jv_i64_len(value.value)"));
+    assert!(field_output.contains("if value.response_field_1"));
+    let field_generated = source(&renamed_fields, &renamed_fields.types[2], 64).unwrap();
+    let field_parsed = crate::parse(&field_generated, "field-projection.spx").unwrap();
+    let field_canonical = crate::format::canonical(&field_parsed);
+    assert_eq!(
+        field_canonical,
+        crate::format::canonical(&crate::parse(&field_canonical, "field-canonical.spx").unwrap())
+    );
+    // Full generator canonical round-trip below remains the authority-neutral
+    // source gate; the declaration field assertions exercise the renamed shape.
     assert!(output.contains("count<=256usize"));
     assert!(output.contains("length<=64usize"));
     assert!(output.contains("required>output_limit"));

@@ -1,6 +1,6 @@
 //! Byte assertions compose through ordinary owned Reader values and test codes.
-use std::process::Command;
 use semaprax::diagnostic::Diagnostic;
+use std::process::Command;
 
 use super::*;
 
@@ -299,7 +299,9 @@ std.agent = "=0.1.0"
     )
     .unwrap();
     for (index, epoch) in ["-1", "9223372036854775807"].into_iter().enumerate() {
-        let source = format!("module consumer.tests;\nuse type @id(\"std.agent.context\") from std.agent as Context;\nuse function @id(\"std.agent.advance\") from std.agent as advance;\n@id(\"consumer.tests.main\") fn main() -> i64 {{ let context = Context {{ objective: bytes_zeroed(0usize), budget: 0, epoch: {epoch} }}; let next = advance(context); next.epoch }}");
+        let source = format!(
+            "module consumer.tests;\nuse type @id(\"std.agent.context\") from std.agent as Context;\nuse function @id(\"std.agent.advance\") from std.agent as advance;\n@id(\"consumer.tests.main\") fn main() -> i64 {{ let context = Context {{ objective: bytes_zeroed(0usize), budget: 0, epoch: {epoch} }}; let next = advance(context); next.epoch }}"
+        );
         let parsed = semaprax::parse(&source, "agent-advance-contract.spx").unwrap();
         std::fs::write(directory.join("src/tests.spx"), format::canonical(&parsed)).unwrap();
         project::with_authenticated_project(&directory.join("semaprax.toml"), |snapshot| {

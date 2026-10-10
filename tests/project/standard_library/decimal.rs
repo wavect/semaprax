@@ -1,7 +1,7 @@
 //! Exact unsigned decimal source arithmetic; no machine-integer operand limit.
-use std::process::Command;
 use super::*;
 use semaprax::project::{ProjectExecutionOptions, ProjectExecutionOutcome};
+use std::process::Command;
 
 pub(super) fn run_conformance() {
     let metadata = packages()
@@ -129,7 +129,9 @@ use function @id("std.int.decimal.divide") from std.int.decimal as divide;
 #[test]
 fn decimal_does_not_claim_the_frozen_standalone_string_wasm_profile() {
     let library = include_str!("../../../std/int-decimal/src/decimal.spx");
-    let source = format!("{library}\n@id(\"decimal.probe\") fn main() -> i64 {{ let divisor = \"3\"; string_len(divide(\"1000\", string_as_str(divisor))) }}\n");
+    let source = format!(
+        "{library}\n@id(\"decimal.probe\") fn main() -> i64 {{ let divisor = \"3\"; string_len(divide(\"1000\", string_as_str(divisor))) }}\n"
+    );
     let program = semaprax::parse(&source, "decimal-wasm.spx").unwrap();
     let error = wasm::internal_strings::emit_module(
         &program,

@@ -905,9 +905,16 @@ fn fused_owned_string_byte_view_agrees_across_interpreter_native_and_core_wasm()
 
     let native_o0 = run_native(&generated, &root, "-O0", &FUSED_OWNED_STRING_VIEW_CASES);
     let native_o2 = run_native(&generated, &root, "-O2", &FUSED_OWNED_STRING_VIEW_CASES);
-    let wasm_main = run_core_wasm_aggregate(&program, &root);
     let interpreter_path = root.join("interpret-fused-owned-string-view.spx");
     fs::write(&interpreter_path, FUSED_OWNED_STRING_VIEW_SOURCE).unwrap();
+    // The full owned-String SliceView belongs to the explicitly selected
+    // Toolkit profile; the default scalar Web route remains closed.
+    let refused_package = root.join("default-web");
+    let refusal = wasm::build_web(&program, &refused_package).unwrap_err();
+    assert_eq!(refusal.code, "SPX-W116");
+    assert!(!refused_package.exists());
+    let wasm_values = run_fused_string_toolkit(&interpreter_path, &root);
+    let wasm_main = wasm_values[1].1;
     let interpreter_values = run_interpreter(&interpreter_path, &FUSED_OWNED_STRING_VIEW_CASES);
 
     assert_eq!(native_o0.len(), FUSED_OWNED_STRING_VIEW_CASES.len());
@@ -916,17 +923,56 @@ fn fused_owned_string_byte_view_agrees_across_interpreter_native_and_core_wasm()
         interpreter_values.len(),
         FUSED_OWNED_STRING_VIEW_CASES.len()
     );
+    assert_eq!(wasm_values.len(), FUSED_OWNED_STRING_VIEW_CASES.len());
     assert_eq!(wasm_main, 2, "Core Wasm must run both fused-view scopes");
     for (index, (case_id, expected)) in FUSED_OWNED_STRING_VIEW_CASES.iter().enumerate() {
         assert_eq!(native_o0[index].0, *case_id);
         assert_eq!(native_o2[index].0, *case_id);
         assert_eq!(interpreter_values[index].0, *case_id);
+        assert_eq!(wasm_values[index].0, *case_id);
+        assert_eq!(wasm_values[index].1, *expected, "Core Wasm: {case_id}");
         assert_eq!(interpreter_values[index].1, *expected, "{case_id}");
         assert_eq!(native_o0[index].1, *expected, "native O0: {case_id}");
         assert_eq!(native_o2[index].1, *expected, "native O2: {case_id}");
     }
 
     let _ = fs::remove_dir_all(root);
+}
+
+fn run_fused_string_toolkit(source: &Path, root: &Path) -> Vec<(String, i64)> {
+    let package = root.join("toolkit-web");
+    let ids = FUSED_OWNED_STRING_VIEW_CASES
+        .iter()
+        .map(|(id, _)| (*id).to_owned())
+        .collect::<Vec<_>>();
+    wasm::internal_strings::build_toolkit_web_from_source(source, &package, &ids).unwrap();
+    let script = package.join("observe-toolkit.mjs");
+    fs::write(
+        &script,
+        r#"import {readFile} from 'node:fs/promises';
+import {webcrypto} from 'node:crypto';
+if(globalThis.crypto===undefined)Object.defineProperty(globalThis,'crypto',{value:webcrypto});
+import {instantiate} from './semaprax.js';
+const bytes=new Uint8Array(await readFile('./app.wasm'));
+const runtime=await instantiate(bytes);
+const cases=[['voc.fused_owned_string_byte_view',1n],['app.main',2n]];
+for(let repeat=0;repeat<8;repeat++)for(const [id,expected] of cases){
+ const result=runtime.call(id);
+ if(result.kind!=='success'||result.value!==expected)throw Error('fused String view result '+id);
+ if(repeat===7)process.stdout.write(JSON.stringify({id,value:Number(result.value)})+'\n');
+}
+"#,
+    )
+    .unwrap();
+    let stdout = normalized_stdout(
+        Command::new("node")
+            .arg(&script)
+            .current_dir(&package)
+            .output()
+            .unwrap(),
+        "Toolkit Core-Wasm Node observer",
+    );
+    parse_json_lines(&stdout)
 }
 
 /// The native/interpreter ownership-transfer row is intentionally not counted

@@ -99,12 +99,20 @@ int main(int argc, char **argv) {
             let output = command.output().unwrap();
             assert!(output.status.success(), "{argument:?}: {output:?}");
         }
-        for argument in ["slice-plus-one", "pair-plus-one"] {
+        for (argument, diagnostic) in [
+            (
+                "slice-plus-one",
+                "borrowed byte slice exceeds the exact length bound",
+            ),
+            (
+                "pair-plus-one",
+                "borrowed byte invocation exceeds the cumulative root bound",
+            ),
+        ] {
             let output = Command::new(&binary).arg(argument).output().unwrap();
             assert!(!output.status.success(), "foreign root +1 admitted");
             assert!(
-                String::from_utf8_lossy(&output.stderr)
-                    .contains("borrowed byte invocation exceeds the cumulative root bound"),
+                String::from_utf8_lossy(&output.stderr).contains(diagnostic),
                 "{output:?}"
             );
         }

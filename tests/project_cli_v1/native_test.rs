@@ -182,6 +182,77 @@ fn native_cli_selects_main_and_named_cases_and_reports_untruncated_result() {
 
 #[test]
 #[cfg_attr(windows, ignore = "native SourceCommand adapter is Unix-only")]
+fn native_cli_checked_trap_has_no_result_and_settles_before_next_case() {
+    let tests = r#"module decimal.tests;
+@id("decimal.tests.main") fn main() -> i64 { 0 }
+@id("decimal.tests.divide") fn divide(value: i64) -> i64 { 7 / value }
+@id("decimal.tests.test_a_trap") fn test_a_trap() -> i64 {
+    let divisor = 0;
+    divide(divisor)
+}
+@id("decimal.tests.test_z_after") fn test_z_after() -> i64 { 0 }
+"#;
+    let fixture = NativeFixture::new("checked-trap", tests);
+    let cwd = std::env::current_dir().unwrap();
+    let source_before = ["semaprax.toml", "app.spx", "tests.spx"]
+        .map(|name| (name, std::fs::read(fixture.root.join(name)).unwrap()));
+    let inventory = || {
+        let mut names = std::fs::read_dir(&fixture.root)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name())
+            .collect::<Vec<_>>();
+        names.sort();
+        names
+    };
+    let inventory_before = inventory();
+    let output = fixture.cli(&["test", "--target", "native", "--json"]);
+    assert_eq!(output.status.code(), Some(1), "{}", stderr(&output));
+    let envelope = json(&output);
+    assert_eq!(envelope["target"], "native");
+    assert_eq!(envelope["passed"], false);
+    let cases = envelope["cases"].as_array().unwrap();
+    assert_eq!(cases.len(), 3);
+    assert_eq!(
+        cases
+            .iter()
+            .map(|case| case["stable_id"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        [
+            "decimal.tests.main",
+            "decimal.tests.test_a_trap",
+            "decimal.tests.test_z_after"
+        ]
+    );
+    assert_eq!(cases[0]["passed"], true);
+    // This is the checked arithmetic runtime status, not a synthetic child
+    // failure or a hardware signal. A failed pure root publishes no i64 line.
+    let trapped = &cases[1];
+    assert_eq!(trapped["passed"], false);
+    assert!(trapped["result"].is_null());
+    assert_eq!(trapped["exit_code"], 71);
+    assert_eq!(trapped["outcome"], "native process exited with code 71");
+    assert_eq!(trapped["stdout"], "");
+    assert_eq!(
+        trapped["stderr"],
+        "SEMAPRAX checked arithmetic failure: invalid division\n"
+    );
+    let following = &cases[2];
+    assert_eq!(following["passed"], true);
+    assert_eq!(following["result"], 0);
+    assert_eq!(following["exit_code"], 0);
+    assert_eq!(following["stdout"], "0\n");
+    assert_eq!(following["stderr"], "");
+    fixture.scratch_empty();
+    assert_eq!(std::fs::read_dir(&fixture.scratch).unwrap().count(), 0);
+    assert_eq!(std::env::current_dir().unwrap(), cwd);
+    assert_eq!(inventory(), inventory_before);
+    for (name, bytes) in source_before {
+        assert_eq!(std::fs::read(fixture.root.join(name)).unwrap(), bytes);
+    }
+}
+
+#[test]
+#[cfg_attr(windows, ignore = "native SourceCommand adapter is Unix-only")]
 fn native_cli_runs_with_zero_arguments_and_project_relative_file_access() {
     let tests = r#"module decimal.tests;
 permit { fs.read, process.args.read }

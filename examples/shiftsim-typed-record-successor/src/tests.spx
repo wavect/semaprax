@@ -36,16 +36,26 @@ fn test_tie_eight_workers() -> i64
     match own result {
         ScheduleResult { valid: false, report: _report } => 1,
         ScheduleResult { valid: true, report } => {
-            let first = vec_clone_at<Assignment>(report.assignments, 0usize);
-            let second = vec_clone_at<Assignment>(report.assignments, 1usize);
-            let first_ok = match own first {
-                Assignment { id, server, arrival: _arrival, start, finish: _finish, wait: _wait, late: _late } =>
-                    id == "P0" && server == "S0" && start == 0,
-            };
-            let second_ok = match own second {
-                Assignment { id, server, arrival: _arrival, start, finish: _finish, wait: _wait, late: _late } =>
-                    id == "P1" && server == "S1" && start == 0,
-            };
+            let expected_first_id = "P0";
+            let expected_first_server = "S0";
+            let expected_second_id = "P1";
+            let expected_second_server = "S1";
+            let first_id = vec_field<Assignment>(report.assignments, 0usize, "id");
+            let first_server = vec_field<Assignment>(report.assignments, 0usize, "server");
+            let first_start = vec_field<Assignment>(report.assignments, 0usize, "start");
+            let second_id = vec_field<Assignment>(report.assignments, 1usize, "id");
+            let second_server = vec_field<Assignment>(report.assignments, 1usize, "server");
+            let second_start = vec_field<Assignment>(report.assignments, 1usize, "start");
+            let first_ok = str_len_bytes(first_id) == 2
+                && str_starts_with(first_id, string_as_str(expected_first_id))
+                && str_len_bytes(first_server) == 2
+                && str_starts_with(first_server, string_as_str(expected_first_server))
+                && first_start == 0;
+            let second_ok = str_len_bytes(second_id) == 2
+                && str_starts_with(second_id, string_as_str(expected_second_id))
+                && str_len_bytes(second_server) == 2
+                && str_starts_with(second_server, string_as_str(expected_second_server))
+                && second_start == 0;
             if vec_len<Assignment>(report.assignments) == 2usize
                 && first_ok && second_ok
                 && report.metrics.patients == 2 && report.metrics.peak_queue == 2

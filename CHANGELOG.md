@@ -1,5 +1,9 @@
 # Changelog
 
+- Refresh workspace artifact KATs only after exact byte reconstruction of 62
+  complete historical documents, including nested operations and review inputs;
+  retain every limit, domain, replay, no-write and hostile assertion.
+
 - Bind the hostile cleanup capacity pin to the measured shared-identity layout;
   complete canonical HIR, cleanup, and loan proof bytes remain unchanged.
 

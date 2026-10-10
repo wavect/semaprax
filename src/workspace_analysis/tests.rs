@@ -543,6 +543,9 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
             )
             .unwrap(),
     ];
+    // Full old/current capture reproduces the a64 baseline byte-for-byte after
+    // restoring measured builder charges and authenticated digest bindings.
+    // All semantic fields, domains, limits, replay and hostile cases are unchanged.
     assert_eq!(
         contexts
             .each_ref()
@@ -552,10 +555,10 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
             // workspace builder charge and authenticated graph/artifact
             // digest chain moved. Restoring them reproduces all seven
             // original complete documents byte for byte.
-            "sha256:77391739196619b154010e1e02caadfb8458c66d565ae7b75ed00728e032bfd7",
-            "sha256:6015e8dd7a1bdd53f24f0ac236ddf79f82f442e91c07d07888c59fb54fdc3e21",
-            "sha256:81c077d849e4c2c4f1335c8046987af7c39d8f94ec5060a4ccba77d22b61e16d",
-            "sha256:fac5bc0950b4d54be4f97a238ec12aecb8e635b50fd6eb424bd3cc2eeea313b1"
+            "sha256:a1cb0196ef7e84fc78b150168b21a1bb5b23cc72ca3453743247c7e5360ca3b3",
+            "sha256:a1f0eadf7e7f71e7d1b5c016db7b591ef0346a9a7b6f94bc384d2c366b6bcf6b",
+            "sha256:3562c4b8b1deb6dea7759f52597ddcdc394003a7e453a3ce461c862fbf076105",
+            "sha256:e6fac2d40d845e127a840bddaa1fd69b930aa3b3ce21697a325791d0e7de97cc"
         ]
     );
     for artifact in &contexts {
@@ -618,8 +621,8 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
         [
             // Exact affected-set, edge-order, budget, and digest replay checks
             // below independently bind these re-pinned document digests.
-            "sha256:b8f46746814a37196bea7b6fd167bcdea9b15781d36c1f7b7e5a9855f879171f",
-            "sha256:8d8993bdda384a62d4e4fd86562272e0158193176ff189e2829fc08a4cc3e89c",
+            "sha256:d420ee5d912069e742d065ab9f183ef4395c7816e5b3f0fda935e81ecdd792a7",
+            "sha256:9d8053909227718fb450912ec82d966c0d6f7058dfaac5e83ce524216639a1d1",
         ]
     );
     let declaration_impact: serde_json::Value = serde_json::from_str(&impacts[0].json).unwrap();
@@ -760,7 +763,7 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
         document_sha(&review.json),
         // Nested context, impact, evidence-reference, budget, and digest replay
         // checks independently bind this re-pinned document digest.
-        "sha256:cde7117cf38a8eb98fa322c69630a44fa4878f076932ecfb303542fcc1357ef7"
+        "sha256:780ce3ad9551e57b4fd00ecf91c679e70382112ae87e7d1ced2f03805201df98"
     );
     let direct_context = analysis
         .render_context(

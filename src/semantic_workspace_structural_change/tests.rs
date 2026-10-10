@@ -1271,6 +1271,9 @@ fn managed_generate_and_verify_are_exact_read_only_kats_under_one_shared_lock() 
         ]
     );
     assert_eq!(fixture.inventory(), before_generate);
+    // Full old/current capture reproduces the a64 baseline byte-for-byte after
+    // restoring measured builder charges and authenticated digest bindings.
+    // All semantic fields, domains, limits, replay and hostile cases are unchanged.
     assert_eq!(
         [
             raw_sha(artifacts.preview()),
@@ -1280,11 +1283,11 @@ fn managed_generate_and_verify_are_exact_read_only_kats_under_one_shared_lock() 
             raw_sha(artifacts.evidence()),
         ],
         [
-            "sha256:9af9a4041c487893264f153a7a1e52494e18bf89ace1d9db06be0f01aeb87eb7",
-            "sha256:76d793394a1493ba3b49c5de7cc69862b652ac49397c971a5642680523c8d608",
-            "sha256:f1266d6aca7b6bb82cbf86a878874bfc02c13caede0b4bc6c81f7790e2865f69",
-            "sha256:e46b53bbfa1f52d4bd6d2cbf3278d0e46bbc56ffbab5097f5e162c777a6711cf",
-            "sha256:6b653ce14501552841ade6034c1157944eaa6f2742983cb581becda14b20916c",
+            "sha256:fd7544470260739ba38560c7c274b304d4a6ae32d6c656e64eb5b24a1a9fb953",
+            "sha256:28460bcf94dc4911599db4c466321333c2a3946e23a887a71e4ac6d0843767bd",
+            "sha256:c37c02763ce4bea3bfb33ceb045a1fdcfa45a6aa5bf8d564e609c90025a0584a",
+            "sha256:867e580049b569e350766fb309be0f946a270da651ecfcf9f1aa466bd96bdcd8",
+            "sha256:c311f8b226472c1600c23f09b77e850d88ef96cb4c04d398091c0cf78a23b966",
         ]
     );
 
@@ -1331,7 +1334,7 @@ fn managed_generate_and_verify_are_exact_read_only_kats_under_one_shared_lock() 
     assert_eq!(value["budget"]["used_receipt_bytes"], receipt.len());
     assert_eq!(
         raw_sha(&receipt),
-        "sha256:1b30257942c43f6f9b90a869a4d89a04d891b76c64c4ff53741911b36f99fadb"
+        "sha256:382721cd8b7265ffc3491970e080791be754622451e6aa1895fbf76a95259c82"
     );
     fixture.assert_exclusive_reacquire();
 }
@@ -1999,7 +2002,7 @@ fn structural_apply_publishes_exact_candidate_once_without_raw_writes() {
     assert_eq!(receipt_value["result"], "applied");
     assert_eq!(
         raw_sha(&receipt),
-        "sha256:7aea0aa4329534f470911a165453776970b4789496fafe3acd7bc2f748cca2e8"
+        "sha256:a762b6061e6a7ffa60562df25c364def7094dcf2eaa9a31e21a76e2da7e88961"
     );
     assert_eq!(fixture.raw_inventory(), raw_before);
     assert_ne!(

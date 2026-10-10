@@ -150,7 +150,7 @@ fn public_api_cli_getters_kats_and_no_write_are_exact() {
         bundle.derivation_digest(),
         // Parsed derivation fields and fixed-point replay independently bind
         // this re-pinned whole-document digest.
-        "sha256:adcf92205096f2bc9668fad00b02fb0274ccd44b5e8cf20e5cf53533c57dc39f"
+        "sha256:6b4aff6f4a51fe0e8dd384e48ed8047e7fe730a48611e94caf70553e38f0c768"
     );
     assert!(bundle.derivation().ends_with('\n'));
     assert!(bundle.derived_change_proposal().ends_with('\n'));
@@ -293,7 +293,7 @@ fn public_operations_evidence_verify_apply_api_cli_are_exact() {
         bundle.derivation_digest(),
         // Parsed derivation fields and fixed-point replay independently bind
         // this re-pinned whole-document digest.
-        "sha256:adcf92205096f2bc9668fad00b02fb0274ccd44b5e8cf20e5cf53533c57dc39f"
+        "sha256:6b4aff6f4a51fe0e8dd384e48ed8047e7fe730a48611e94caf70553e38f0c768"
     );
     assert_eq!(
         bundle.derived_change_proposal_digest(),
@@ -303,13 +303,13 @@ fn public_operations_evidence_verify_apply_api_cli_are_exact() {
         raw_sha256(bundle.workspace_change_evidence().as_bytes()),
         // Evidence reference and replay assertions independently bind this
         // re-pinned whole-document digest.
-        "sha256:ab706bd5e9873cfcb836c1cc329abb8a1f6eb289b2afd2529e89ce066ecd3de8"
+        "sha256:c3a7834f9a9c41b7000cd4707ede5aa438bc88e30d88f807e5e63a2cfdfa37f9"
     );
     assert_eq!(
         raw_sha256(bundle.operations_evidence().as_bytes()),
         // Evidence reference and replay assertions independently bind this
         // re-pinned whole-document digest.
-        "sha256:c8d5852c2108f3d49b1c316b81df47a3de0e36ef886409f947565fe475939e08"
+        "sha256:8c16f86e0a668ef523f2a4d4d3cc7a74d803ab8102726baf117e4d7a6e84f7f1"
     );
     assert!(bundle
         .workspace_change_evidence_digest()
@@ -336,7 +336,7 @@ fn public_operations_evidence_verify_apply_api_cli_are_exact() {
     assert_eq!(
         raw_sha256(verification.as_bytes()),
         // Parsed receipt fields independently bind this re-pinned digest.
-        "sha256:46bd2687b058ab642baee35009ec9de1b7764cfb5f3e803fd1c048a95df2b3bb"
+        "sha256:9faff8393c8f2911cc59c09109a031d6cefbb33ec1b4d0beeaa945a2f731f034"
     );
     let cli_verify = Command::new(env!("CARGO_BIN_EXE_semaprax"))
         .arg("verify-semantic-workspace-operations-evidence")
@@ -366,7 +366,7 @@ fn public_operations_evidence_verify_apply_api_cli_are_exact() {
     assert_eq!(
         raw_sha256(application.as_bytes()),
         // Parsed receipt fields independently bind this re-pinned digest.
-        "sha256:6aadb99662cd246f3e00336281e45718a264b2cea855c525171c9d88f514498f"
+        "sha256:7bcd3cbd739609fee3784a07643e3d94c06c068c4e35c6881ec1bc99c796b52f"
     );
     apply_fixture.assert_exclusive_reacquire();
 

@@ -101,6 +101,9 @@ fn literal_kats_wire_order_domains_and_reference_parity() {
         assert_ne!(artifact.digest, digest(domain, &mutated));
     }
 
+    // Full old/current capture reproduces the a64 baseline byte-for-byte after
+    // restoring measured builder charges and authenticated digest bindings.
+    // All semantic fields, domains, limits, replay and hostile cases are unchanged.
     assert_eq!(
         [
             raw_sha(artifacts.preview()),
@@ -113,11 +116,11 @@ fn literal_kats_wire_order_domains_and_reference_parity() {
             // The expanded Project graph and limits change the bound documents;
             // the domain, reference, wire-order, and tamper checks above and
             // below still bind these literal whole-document digests.
-            "sha256:3da3412f8f0ae85864ccf22e272d67960187adaea24b82e3ecd87287becbb747",
-            "sha256:cb03ae6f783cc729f7707a017c7b475a1c6db82bfde551ab1f4f02a5a0e98aa3",
-            "sha256:7417a6e18e0a3ef53fdc4ce9e9e5f5187dfeac66d023d66a2b85467be1cfbfad",
-            "sha256:a97aa98a230395642b113788d2c679ebf152abf5cd1505522b148a4ba3f00523",
-            "sha256:62d0c1fa3fc639d23ee10d66fde3072ad3f50fce2f7a82def7b6a1046650c907"
+            "sha256:1a8aa6c12947c96d1adb1ff01bf0df47b44ae3da6a7a7c00de294008e1ff3f3d",
+            "sha256:19b5d32b46a89d5db591037d56d4e56051827eefda2a4efca086e2cc9e353822",
+            "sha256:fb442feaa785f66b280e98e019e6b84ae0626d76643ed2d7fe3f4675f36a703b",
+            "sha256:8b916f85723b506089076716d00ba18c5dead37fc990bec42a7a82bad7935d7b",
+            "sha256:6168a7d5ca2d0d76828f9a94f5b36e283d3a2eb4a855c8b32210ae80fa887a03"
         ]
     );
 

@@ -163,9 +163,10 @@ mod tests {
     #[test]
     fn default_is_a_complete_module_index_and_all_selects_the_full_catalog() {
         let index = library_help(None).unwrap();
-        assert!(index.starts_with("Standard library modules (51):\n"));
+        assert!(index.starts_with("Standard library modules (52):\n"));
         assert!(index.contains("\n  std.int.decimal\n"));
         assert!(index.contains("\n  std.data.json.scan\n"));
+        assert!(index.contains("\n  std.pattern\n"));
         assert!(index.contains("semaprax help library <module|name|stable-id>"));
         assert!(index.contains("semaprax help library all"));
         assert!(index.len() <= 2_048);
@@ -175,7 +176,7 @@ mod tests {
                 .lines()
                 .filter(|line| line.starts_with("  std."))
                 .count(),
-            51
+            52
         );
         assert_eq!(library_help(Some("all")).unwrap(), LIBRARY_CATALOG);
     }

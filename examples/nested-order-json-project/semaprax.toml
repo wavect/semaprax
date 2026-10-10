@@ -7,14 +7,14 @@ profile = "owned-data-api.v1"
 
 [modules]
 entry = "orders.app"
-sources = ["src/schema.spx", "src/app.spx"]
+sources = ["src/app.spx", "src/schema.spx"]
 
 [exports]
 web = []
 
 [dependencies]
-"std.data.json.scan" = "=0.1.0"
-"std.data.json.token" = "=0.1.0"
-"std.data.json.digits" = "=0.1.0"
-"std.data.json.write" = "=0.1.0"
-"std.data.json.query" = "=0.1.0"
+std.data.json.digits = "=0.1.0"
+std.data.json.query = "=0.1.0"
+std.data.json.scan = "=0.1.0"
+std.data.json.token = "=0.1.0"
+std.data.json.write = "=0.1.0"

@@ -1022,6 +1022,15 @@ normalized input only until the owned decoder returns. Original schema permits
 and ordinary Project capability checks remain authoritative. Both selectors and
 their independent owning Project corpora are source-only pending qualification.
 
+`project/json_codec/nested_response` owns the finite borrowed response selector;
+it reuses the checked nested descriptor with its separate response policy.
+Its `emit` module computes exact escaped lengths and punctuation before rendering,
+checks the complete output against the ordinary String bound and caller limit,
+and emits ordinary source for the same Project rebuild. Copy-record vector reads
+use `vec_get`; owning-record reads use scoped `vec_field` borrows. Nested helpers
+keep the admitted root borrow and exact field paths rather than staging a
+projected nominal record argument. Generated helper names grant no HIR authority.
+
 ### Semantic graph
 
 `src/graph.rs` and `src/graph_cleanup.rs` project validated program and cleanup
@@ -1652,6 +1661,13 @@ own replacements-only evidence and publication. Operations and structural
 change are separate, bounded derivation layers in
 `src/semantic_workspace_operations.rs` and
 `src/semantic_workspace_structural_change.rs`.
+`workspace_graph/source_schema.rs` owns retained module schema selection. It
+borrows existing authored type declarations and exact origin/owner facts,
+replays field layouts against independently retained checked type facts, and
+passes renewal authority explicitly through the Graph classifiers for that
+invocation. It retains no additional declaration index. Cleanup selector
+equivalences are checked before higher Graph selectors can mask a mismatch;
+frozen from-parts routes without declaration provenance retain their refusal.
 `src/workspace_graph/session_protocol_decl.rs` owns issue #297's follow-on
 (R21) projection of declared `.spx` `session protocol`s into the Workspace
 Semantic Graph: `semaprax.workspace-semantic-graph.v2`, selected only for a

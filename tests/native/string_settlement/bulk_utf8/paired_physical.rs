@@ -266,16 +266,20 @@ fn matched_historical_current_codec_physical_work() {
             fs::write(root.join("src/schema.spx"), &source).unwrap();
             let application = app(&value, escaped);
             fs::write(root.join("src/app.spx"), &application).unwrap();
+            // Retain exact attempted inputs before checking or emitting. A
+            // refused arm remains reproducible instead of losing its source.
+            fs::write(arm_path.join("schema.spx"), &source).unwrap();
+            fs::write(arm_path.join("app.spx"), &application).unwrap();
+            fs::write(arm_path.join("input.json"), input(&value, escaped)).unwrap();
+            fs::copy(root.join("semaprax.toml"), arm_path.join("semaprax.toml")).unwrap();
+            fs::copy(root.join("src/tests.spx"), arm_path.join("tests.spx")).unwrap();
             let generated =
                 project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
                     hir::validate(snapshot.entry_program()).map_err(|e| vec![e])?;
                     codegen::emit_hir_c(snapshot.entry_program()).map_err(|e| vec![e])
                 })
                 .unwrap();
-            fs::write(arm_path.join("schema.spx"), &source).unwrap();
             fs::write(arm_path.join("generated.c"), &generated).unwrap();
-            fs::write(arm_path.join("app.spx"), application).unwrap();
-            fs::write(arm_path.join("input.json"), input(&value, escaped)).unwrap();
             let c = probe(&generated, &value, escaped);
             let path = arm_path.join("probe.c");
             fs::write(&path, &c).unwrap();

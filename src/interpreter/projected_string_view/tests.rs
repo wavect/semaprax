@@ -28,7 +28,7 @@ fn repeated_projected_views_do_not_charge_a_string_materialization() {
             used_bytes: MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES - 8,
         },
     );
-    assert!(matches!(outcome, Ok(Value::I64(42))), "{outcome:?}");
+    assert!(matches!(outcome, Ok(Value::Int(42))), "{outcome:?}");
     assert_eq!(
         usage,
         (

@@ -1,5 +1,8 @@
 # Changelog
 
+- Refresh freestanding artifact pins after byte-for-byte proof of the native
+  result initialization relocation and its authenticated envelope consequences.
+
 - Preserve exact cold/warm workspace graph accounting by measuring only loan
   capacities that can shrink on HIR clone. Keep immutable identity storage and
   full census scratch charged by their owning retention/replay paths; invalidate

@@ -70,14 +70,16 @@ const TRANSLATION_UNIT_DOMAIN: &[u8] = b"semaprax.freestanding.translation-unit.
 
 /// Golden envelope digest over the exact library bytes for the canonical
 /// example, emitted through the relative repository path so the fixture is
-/// machine-independent.
+/// machine-independent. Reversing only the two result initializers moved by
+/// 8d8f30824 reproduces both prior golden pins, including the envelope digest
+/// chain. All remaining translation-unit and envelope bytes are unchanged.
 #[test]
 fn golden_envelope_digest_is_pinned() {
     let envelope = freestanding_object::generate(Path::new(MEANING_PATH), &Default::default())
         .expect("envelope");
     assert_eq!(
         sha256_hex(envelope.as_bytes()),
-        "sha256:b1e68dae188175612dd7843e8cdcd22d5d00e9ec1a67cbdb425505192ec19e12"
+        "sha256:8de66b6f34058c0eb1bf86fa6c9e5fe9bafe4cc9bca3018658ec5ab13d24f8ce"
     );
     assert!(envelope.contains("\"schema\":\"semaprax.freestanding.v1\""));
     assert!(envelope.contains("\"no_runtime\":true"));
@@ -98,7 +100,7 @@ fn golden_translation_unit_digest_is_pinned_and_path_independent() {
     assert_eq!(from_examples, from_temp);
     assert_eq!(
         sha256_hex(from_examples.as_bytes()),
-        "sha256:af232e4c05ca552476597c37022f5568d0822fd5430cfb8e283225257ea4c56d"
+        "sha256:c68fc12e4dc27872bf911faee9b8b5b72e8208f8f578a367f6eddb44deb25c78"
     );
 }
 

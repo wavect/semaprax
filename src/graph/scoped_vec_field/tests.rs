@@ -61,3 +61,30 @@ fn feature_free_program_keeps_its_existing_graph_schema_and_wire() {
         before
     );
 }
+
+#[test]
+fn feature_discovery_includes_deferred_closure_bodies() {
+    let parsed = crate::check(
+        r#"module scoped.deferred;
+@id("row") record Row {@id("row.title") title:string,@id("row.marker") marker:i64,}
+@id("app.main") fn main()->i64 {
+ let reader=fn(offset:i64)->i64 {
+  let empty=vec_with_capacity<Row>(1usize);
+  let rows=vec_push<Row>(empty,Row{title:"deferred",marker:7});
+  vec_field<Row>(rows,0usize,"marker")+offset
+ };
+ reader(0)
+}
+"#,
+        "scoped-deferred.spx",
+    )
+    .unwrap();
+    let resolved = hir::resolve(&parsed).unwrap();
+    assert!(requires(&resolved));
+    assert!(crate::codegen::native_vec::owned_leaf::program_uses_field_reads(&resolved));
+    assert_eq!(graph_schema(&resolved).unwrap(), SCHEMA);
+    let graph = crate::graph::to_json(&parsed).unwrap();
+    let document: serde_json::Value = serde_json::from_str(&graph).unwrap();
+    assert_eq!(document["schema"], SCHEMA);
+    assert!(graph.contains("\"kind\":\"vec_field_read\""));
+}

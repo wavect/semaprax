@@ -74,6 +74,12 @@ pub(super) fn source(
         "@id(\"{row_id}.json.owned-identifier\")
 fn json_{row_name}_owned_identifier(input:borrow Slice<u8>,start:usize,end:usize)->string {{
 if !json_{row_name}_identifier_valid(input,start,end) {{\"\"}} else {{
+let mut unescaped=true;let mut raw_at=start+1usize;
+while unescaped && raw_at<end-1usize {{
+unescaped=match byte_get(input,raw_at){{Option::Some{{value}}=>value!=92u8,Option::None{{}}=>false,}};
+raw_at=raw_at+1usize;unescaped && raw_at<end-1usize
+}}
+if unescaped{{string_from_utf8(byte_range(input,start+1usize,end-1usize))}}else{{
 let mut text=\"\";let mut cursor=start+1usize;
 while cursor<end-1usize {{
 let byte=u8_from_i64(jv_emit_at(input,cursor,0usize));
@@ -81,6 +87,7 @@ text=string_concat(text,string_from_char(char_from_u8(byte)));
 cursor=jv_token_end(input,cursor);cursor<end-1usize
 }}
 text
+}}
 }}
 }}
 @id(\"{row_id}.json.owned-materialize\")

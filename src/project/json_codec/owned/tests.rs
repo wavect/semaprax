@@ -53,6 +53,10 @@ fn owned_request_materialization_uses_authored_field_names_and_record_order() {
     );
     assert!(source.contains("rank:value.rank"));
     assert!(source.contains("sku:json_Item_owned_identifier"));
+    assert!(source.contains("let mut unescaped=true"));
+    assert!(source.contains("string_from_utf8(byte_range(input,start+1usize,end-1usize))"));
+    assert!(source.contains("if unescaped{string_from_utf8"));
+    assert!(source.contains("jv_emit_at(input,cursor,0usize)"));
     assert!(source.contains("vec_push<Item>(rows,row)"));
     assert!(source.contains("string_compare(row.sku,other.sku)"));
     assert!(source.contains("required>output_limit"));

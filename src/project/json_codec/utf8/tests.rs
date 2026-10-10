@@ -29,6 +29,10 @@ fn utf8_owned_policy_is_explicit_bounded_and_uses_distinct_scalar_decoders() {
     assert!(derived.contains("total<=64usize"));
     assert!(derived.contains("scalar>=0 && scalar<=1114111"));
     assert!(derived.contains("char_from_i64(scalar)"));
+    assert!(derived.contains("let mut unescaped=true"));
+    assert!(derived.contains("string_from_utf8(byte_range(input,start+1usize,end-1usize))"));
+    assert!(derived.contains("if unescaped{string_from_utf8"));
+    assert!(derived.contains("if escaped{ju_escape_scalar(input,at)}else{ju_raw_scalar(input,at)}"));
     assert!(derived.contains("std.data.json.query.scalar_at"));
     assert!(derived.contains("std.data.json.utf8.scalar_at"));
     assert!(!derived.contains("char_from_u8("));

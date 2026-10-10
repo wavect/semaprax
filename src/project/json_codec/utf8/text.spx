@@ -17,6 +17,12 @@ valid
 @id("__ROW_ID__.json.utf8.materialize-text")
 fn json___ROW___utf8_text(input:borrow Slice<u8>,start:usize,end:usize)->string {
 if !json___ROW___identifier_valid(input,start,end){""}else{
+let mut unescaped=true;let mut raw_at=start+1usize;
+while unescaped && raw_at<end-1usize {
+unescaped=match byte_get(input,raw_at){Option::Some{value}=>value!=92u8,Option::None{}=>false,};
+raw_at=raw_at+1usize;unescaped && raw_at<end-1usize
+}
+if unescaped{string_from_utf8(byte_range(input,start+1usize,end-1usize))}else{
 let mut text="";let mut at=start+1usize;
 while at<end-1usize {
 let escaped=match byte_get(input,at){Option::Some{value}=>value==92u8,Option::None{}=>false,};
@@ -25,6 +31,7 @@ let _ = if scalar>=0 && scalar<=1114111 && !(scalar>=55296 && scalar<=57343){tex
 at=if escaped{jv_token_end(input,at)}else{ju_raw_end(input,at)};at<end-1usize
 }
 text
+}
 }
 }
 @id("__ROW_ID__.json.utf8.owned-valid")

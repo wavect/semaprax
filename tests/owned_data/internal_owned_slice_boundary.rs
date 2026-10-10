@@ -130,8 +130,9 @@ int main(int argc, char **argv) {
             "/tests/owned_data/owned_leaf_vec/host.js"
         ))
         .arg(&module)
-        .arg("0")
-        .arg("9")
+        // This witness owns Bytes but has no Vec boundary; the scalar host
+        // checks that import inventory and exact normalized success domain.
+        .args(["0", "9", "scalar-view", "ok"])
         .output()
         .unwrap();
     assert!(output.status.success(), "{output:?}");

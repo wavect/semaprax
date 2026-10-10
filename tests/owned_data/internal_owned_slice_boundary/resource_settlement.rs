@@ -109,7 +109,7 @@ int main(void) {{
         result = INT64_C(0x2525252525252525);
         spx_status_token status = {failure}(&context, &result);
         if (status == SPX_STATUS_SUCCESS) return 14;
-        const struct spx_status_entry *selected = spx_status_resolve(&context, status);
+        const struct spx_normalized_status *selected = spx_status_resolve(&context, status);
         if (selected == NULL || strcmp(selected->domain_id, "semaprax.contract.v1") != 0
             || selected->code != UINT32_C(2)) return 15;
         if (spx_test_allocations <= before || spx_test_frees <= frees_before

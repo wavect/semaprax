@@ -93,3 +93,13 @@ enclosing-file offset must add the line's start. Applying them through
 The bounded engine may refuse ambiguous searches before deciding a semantic match. Logical work and ordinary interpreter AST fuel are separate limits. No limit is raised here: final qualification must preserve the complete LogLens 49 obligations, independent header/key-value meanings, long valid and nonmatching records, exact work witnesses, hostile carrier controls, and interpreter/native C11/Core-Wasm settlement on these exact source bytes.
 
 `std.pattern.internal.*` declarations remain explicit, checked implementation source. API inventory selection controls supported interface documentation; it is not source privacy and conveys no capability.
+
+The three-backend conformance gate retains the original owned-String and
+concurrent-Matcher fixtures. Its full mixed-resource Wasm arena requires the
+authenticated cleanup inventory's four Matcher payloads plus four Strings for
+tests, and one String plus the renewed Matcher for examples. Both roles assert
+the actual live-entry peak, refuse the adjacent lower bound, and settle to an
+empty arena on four reentries. An additional borrowed-input conformance project
+uses the real library under the strict one-entry bound, retaining all diagnostic
+byte cases and result observers; its zero-entry negative reaches the actual
+allocation refusal. The original shipped source is unchanged.

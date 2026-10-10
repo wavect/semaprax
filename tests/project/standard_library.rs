@@ -28,6 +28,8 @@ mod formatting;
 mod logging;
 #[path = "standard_library/package_registry.rs"]
 mod package_registry;
+#[path = "standard_library/pattern_conformance.rs"]
+mod pattern_conformance;
 #[path = "standard_library/process.rs"]
 mod process;
 #[path = "standard_library/temporary.rs"]
@@ -38,6 +40,8 @@ mod testing;
 mod text;
 #[path = "standard_library/text_conformance.rs"]
 mod text_conformance;
+#[path = "standard_library/wasm_host.rs"]
+mod wasm_host;
 use package_registry::{packages, PackageMetadata};
 use temporary::temporary;
 use text_conformance::{
@@ -486,176 +490,214 @@ fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
             .join("std")
             .join(&package.directory)
             .join("semaprax.toml");
-        let manifests = logging::conformance_manifests(&scratch, &manifest, &package.module);
+        let manifests =
+            pattern_conformance::conformance_manifests(&scratch, &manifest, &package.module);
         for manifest in manifests {
             project::with_authenticated_project(&manifest, |snapshot| {
-            snapshot.check()?;
-            let options = project::ProjectExecutionOptions::default();
-            let entry = snapshot.execute_entry(&options)?;
-            let interpreter_examples_value = interpreter_i64(
-                entry.outcome(),
-                &format!("{}: examples failed on the interpreter", package.directory),
-            );
-            assert_eq!(
-                interpreter_examples_value, 0,
-                "{}: examples did not report success on the interpreter",
-                package.directory
-            );
-            let tests = snapshot.execute_test(&options)?;
-            let interpreter_tests_value = interpreter_i64(
-                tests.outcome(),
-                &format!(
-                    "{}: conformance failed on the interpreter",
+                snapshot.check()?;
+                let options = project::ProjectExecutionOptions::default();
+                let entry = snapshot.execute_entry(&options)?;
+                let interpreter_examples_value = interpreter_i64(
+                    entry.outcome(),
+                    &format!("{}: examples failed on the interpreter", package.directory),
+                );
+                assert_eq!(
+                    interpreter_examples_value, 0,
+                    "{}: examples did not report success on the interpreter",
                     package.directory
-                ),
-            );
-            assert_eq!(
-                interpreter_tests_value, 0,
-                "{}: conformance did not report success on the interpreter",
-                package.directory
-            );
-            if package.module == "std.collections" {
-                run_collections_backend_conformance(snapshot, &scratch)?;
-                return Ok(());
-            }
-            for (role, program) in [
-                ("examples", snapshot.entry_program()),
-                ("tests", snapshot.test_program()),
-            ] {
-                // Issue #102: compare the native backend's *actual* computed
-                // value against the interpreter's, rather than each backend
-                // independently asserting it returned the sentinel `0`.
-                // Three backends each self-reporting success proves nothing
-                // about equivalence between them; a real cross-backend
-                // comparison must read one backend's computed value and
-                // check it against another's.
-                let expected = if role == "examples" {
-                    interpreter_examples_value
-                } else {
-                    interpreter_tests_value
-                };
-                let c = codegen::emit_hir_c(program).map_err(|error| vec![error])?;
-                for optimization in ["-O0", "-O2"] {
-                    let binary = scratch.join(format!(
-                        "{}-{role}{}",
-                        package.directory,
-                        optimization.to_lowercase()
-                    ));
-                    compile_c(&c, &binary, optimization);
-                    let native_value = run_and_capture_i64(&binary);
-                    assert_eq!(
-                        native_value, expected,
-                        "{}: native {role} ({optimization}) returned {native_value}, the \
+                );
+                let tests = snapshot.execute_test(&options)?;
+                let interpreter_tests_value = interpreter_i64(
+                    tests.outcome(),
+                    &format!(
+                        "{}: conformance failed on the interpreter",
+                        package.directory
+                    ),
+                );
+                assert_eq!(
+                    interpreter_tests_value, 0,
+                    "{}: conformance did not report success on the interpreter",
+                    package.directory
+                );
+                if package.module == "std.collections" {
+                    run_collections_backend_conformance(snapshot, &scratch)?;
+                    return Ok(());
+                }
+                for (role, program) in [
+                    ("examples", snapshot.entry_program()),
+                    ("tests", snapshot.test_program()),
+                ] {
+                    // Issue #102: compare the native backend's *actual* computed
+                    // value against the interpreter's, rather than each backend
+                    // independently asserting it returned the sentinel `0`.
+                    // Three backends each self-reporting success proves nothing
+                    // about equivalence between them; a real cross-backend
+                    // comparison must read one backend's computed value and
+                    // check it against another's.
+                    let expected = if role == "examples" {
+                        interpreter_examples_value
+                    } else {
+                        interpreter_tests_value
+                    };
+                    let c = codegen::emit_hir_c(program).map_err(|error| vec![error])?;
+                    for optimization in ["-O0", "-O2"] {
+                        let binary = scratch.join(format!(
+                            "{}-{role}{}",
+                            package.directory,
+                            optimization.to_lowercase()
+                        ));
+                        compile_c(&c, &binary, optimization);
+                        let native_value = run_and_capture_i64(&binary);
+                        assert_eq!(
+                            native_value, expected,
+                            "{}: native {role} ({optimization}) returned {native_value}, the \
                          interpreter returned {expected} for the same closure — backends \
                          disagree",
-                        package.directory
-                    );
-                }
-            }
-            if package.module == "std.text" {
-                assert_text_interpreter_conformance(snapshot);
-                run_text_package_native_conformance(snapshot, &scratch)?;
-                run_text_package_wasm_conformance(snapshot, &scratch)?;
-                return Ok(());
-            }
-            // Issue #102: a package's Wasm claim must cover BOTH its
-            // examples (entry) and conformance (tests) closures, not only
-            // conformance. The reported gap was `byte_range` used solely in
-            // `std/bytes`'s examples module while this loop only ever built
-            // the tests module for Wasm, so that use never ran on Core Wasm
-            // despite the package's Wasm claim. The tuned narrow live-Bytes
-            // bounds below were derived from the conformance closure's own
-            // allocation count; the examples closure runs against the same
-            // generous default every untuned package's tests already use,
-            // since its allocation profile is not independently tuned here.
-            fn wasm_conformance_js(
-                wasm_filename: &str,
-                live_entry_bound: usize,
-                expected_value: i64,
-            ) -> String {
-                format!(
-                    r#"import assert from "node:assert/strict";
-import {{ readFile }} from "node:fs/promises";
-const bytes = await readFile("./{}");
-const checked = (operation) => (a, b) => {{ const value = operation(a, b); if (value < -(1n<<63n) || value > (1n<<63n)-1n) throw new RangeError(); return value; }};
-const entries = new Map(); let next = 1; const boxes = new Map(); let nextBox = 1n; let linked;
-const decode = carrier => {{ const word = BigInt.asUintN(64, carrier), length = Number(word & 0xffffffffn), root = Number((word >> 32n) & 0xffffffffn); return {{ word, length, root, tagged: (root & 0x80000000) !== 0, token: root & 0x7fffffff }}; }};
-const read = decoded => {{ if ((decoded.root & 0xc0000000) === 0x40000000) {{ const pointer = (decoded.root & 0xffff) * 8, key = (decoded.root >>> 16) & 0x1fff, view = new DataView((linked.instance.exports.__spx_byte_memory ?? linked.instance.exports.memory).buffer); if (pointer + 32 > view.byteLength || view.getUint32(pointer, true) !== key || view.getUint32(pointer + 4, true) !== pointer || Number(view.getBigUint64(pointer + 24, true)) !== decoded.length) throw new Error("corrupt range descriptor"); const root = view.getBigInt64(pointer + 8, true), offset = Number(view.getBigUint64(pointer + 16, true)), all = read(decode(root)); if (offset > all.length || decoded.length > all.length - offset) throw new Error("byte range"); return all.slice(offset, offset + decoded.length); }} if (decoded.tagged) {{ const value = entries.get(decoded.token); if (!(value instanceof Uint8Array) || value.length !== decoded.length) throw new Error("stale byte token"); return value; }} const memory = new Uint8Array((linked.instance.exports.__spx_byte_memory ?? linked.instance.exports.memory).buffer); if (decoded.root > memory.length - decoded.length) throw new Error("byte range"); return memory.slice(decoded.root, decoded.root + decoded.length); }};
-const allocate = bytes => {{ if (entries.size >= {}) throw new Error("owned Bytes live entry limit exceeded"); const token = next++, owned = new Uint8Array(bytes); entries.set(token, owned); return BigInt.asIntN(64, ((0x80000000n | BigInt(token)) << 32n) | BigInt(owned.length)); }};
-const boxKey = value => {{ if (typeof value !== "bigint" || value === 0n) throw new Error("invalid Box carrier"); return value.toString(); }};
-const readBox = (value, tag) => {{ const entry = boxes.get(boxKey(value)); if (!entry || entry.tag !== tag) throw new Error("stale or mistyped Box"); return entry; }};
-const setBytes = (carrier, index, values) => {{ const decoded = decode(carrier), target = read(decoded); if (!decoded.tagged || typeof index !== "bigint" || index < 0n || index > BigInt(target.length) || BigInt(target.length) - index < BigInt(values.length) || !values.every(value => Number.isInteger(value) && value >= 0 && value <= 255)) throw new Error("owned byte buffer interval invariant"); target.set(values, Number(index)); return BigInt.asIntN(64, decoded.word); }};
-const setChoice = (carrier, index, one, sourceCarrier, selector, wideWidth, extended) => {{ if (typeof selector !== "bigint" || !Number.isInteger(one) || one < 0 || one > 255) throw new Error("owned byte buffer choice invariant"); const bits = BigInt.asUintN(64, selector), copy = (bits & (1n << 63n)) !== 0n, wide = extended && (bits & (1n << 62n)) !== 0n, start = bits & ((1n << (extended ? 62n : 63n)) - 1n), source = read(decode(sourceCarrier)), width = copy ? (wide ? 48 : wideWidth) : 1, values = copy ? Array.from({{length: width}}, (_, offset) => {{ const at = start + BigInt(offset); return at < BigInt(source.length) ? source[Number(at)] : 0; }}) : [one]; return setBytes(carrier, index, values); }};
-const imports = {{env:{{spx_add:checked((a,b)=>a+b),spx_sub:checked((a,b)=>a-b),spx_mul:checked((a,b)=>a*b),spx_div:(a,b)=>a/b,spx_rem:(a,b)=>a%b,spx_neg:(a)=>-a,spx_contract_fail:()=>{{throw new Error();}},
-spx_bytes_copy:c=>allocate(read(decode(c))),spx_bytes_get:(c,i)=>{{ const b = read(decode(c)), u = BigInt.asUintN(64, i); return u >= BigInt(b.length) ? -1 : b[Number(u)]; }},spx_bytes_drop:c=>{{ const d = decode(c); read(d); entries.delete(d.token); }},spx_bytes_as_slice:c=>{{ const d = decode(c); read(d); return BigInt.asIntN(64, d.word); }},spx_bytes_zeroed:count=>{{ if (typeof count !== "bigint" || count < 0n || count > 131072n) throw new Error("owned byte buffer capacity invariant"); return allocate(new Uint8Array(Number(count))); }},spx_bytes_set:(c,i,v)=>{{ const d = decode(c), b = read(d); if (typeof i !== "bigint" || i < 0n || i >= BigInt(b.length) || !Number.isInteger(v) || v < 0 || v > 255) throw new Error("owned byte buffer element invariant"); b[Number(i)] = v; return BigInt.asIntN(64, d.word); }},spx_bytes_set5:(c,i,a,b,d,e,f)=>setBytes(c,i,[a,b,d,e,f]),spx_bytes_set1_or5:(c,i,one,source,selector)=>setChoice(c,i,one,source,selector,5,false),spx_bytes_set1_or6_or48:(c,i,one,source,selector)=>setChoice(c,i,one,source,selector,6,true),spx_box_new:(tag,bits)=>{{ if (boxes.size >= 4096) return 0n; const token=nextBox++; boxes.set(boxKey(token),{{tag,bits}}); return token; }},spx_box_get:(value,tag)=>readBox(value,tag).bits,spx_box_into_inner:(value,tag)=>{{ const entry=readBox(value,tag); boxes.delete(boxKey(value)); return entry.bits; }},spx_box_drop:value=>{{ if (!boxes.delete(boxKey(value))) throw new Error("double Box drop"); }}}}}};
-linked = await WebAssembly.instantiate(bytes, imports);
-// Re-entry observes an owned buffer that outlived one call as a live entry.
-// Issue #102: assert against the *other backends'* actual computed value
-// (`expected_value`, the interpreter's real `Returned(n)`), not a hardcoded
-// `0n` literal every backend could vacuously agree on independent of what
-// it actually computed.
-for (let r = 0; r < 4; ++r) {{ assert.equal(linked.instance.exports.semaprax_main(), {}n); assert.equal(entries.size, 0); assert.equal(boxes.size, 0); }}
-"#,
-                    wasm_filename, live_entry_bound, expected_value
-                )
-            }
-            for (role, module_bytes) in [
-                ("tests", snapshot.test_wasm_module()?),
-                (
-                    "examples",
-                    wasm::emit_resolved_module(snapshot.entry_program())
-                        .map_err(|error| vec![error])?,
-                ),
-            ] {
-                let cursor_case = json_cursors::is_cursor_case(&manifest);
-                // Each fixture must balance its declared live Bytes bound.
-                let arena = package.module == "std.pattern" || role == "tests" && (cursor_case || matches!(package.module.as_str(), "std.data.json.dec" | "std.data.csv" | "std.encoding.base64" | "std.io" | "std.io.lines" | "std.path.value" | "std.path.normalize" | "std.pattern" | "std.log.redact" | "std.email" | "std.webhook" | "std.tracing" | "std.metrics" | "std.http") || (package.module == "std.format" && formatting::uses_byte_arena(&manifest)) || (package.module == "std.log" && logging::uses_byte_writes(&manifest)));
-                if role == "tests" || package.module == "std.pattern" {
-                    for name in ["spx_bytes_zeroed", "spx_bytes_set"] {
-                        let present = module_bytes.windows(name.len()).any(|w| w == name.as_bytes());
-                        // Individual typed-Path observation cases allocate via copy
-                        // without importing the buffer-writing operations.
-                        if package.module != "std.path.value" && !cursor_case {
-                            assert_eq!(present, arena, "{}: `{name}` import", package.directory);
-                        }
+                            package.directory
+                        );
                     }
                 }
-                let live_entry_bound = if package.module == "std.pattern" { 1 } else if role == "examples" { 4096 } else if package.module == "std.log" { logging::live_byte_bound(&manifest) } else if package.module == "std.io.lines" { io_lines::live_byte_bound(&manifest) } else if package.module == "std.path.normalize" { path_normalize::live_byte_bound(&manifest) } else if cursor_case || matches!(package.module.as_str(), "std.format" | "std.data.csv") { 2 } else if package.module == "std.path.value" || package.module == "std.encoding.base64" { 3 } else if arena { 1 } else { 4096 };
-                // Issue #102: the value Core Wasm must reproduce is the
-                // interpreter's actual computed value for this same role,
-                // not an independent `0` sentinel.
-                let expected_value = if role == "examples" {
-                    interpreter_examples_value
-                } else {
-                    interpreter_tests_value
-                };
-                let wasm_path = scratch.join(format!("{}-{role}.wasm", package.directory));
-                std::fs::write(&wasm_path, module_bytes).unwrap();
-                let script = scratch.join(format!("{}-{role}.mjs", package.directory));
-                std::fs::write(
-                    &script,
-                    wasm_conformance_js(
-                        &wasm_path.file_name().unwrap().to_string_lossy(),
-                        live_entry_bound,
-                        expected_value,
+                if package.module == "std.text" {
+                    assert_text_interpreter_conformance(snapshot);
+                    run_text_package_native_conformance(snapshot, &scratch)?;
+                    run_text_package_wasm_conformance(snapshot, &scratch)?;
+                    return Ok(());
+                }
+                // Issue #102: a package's Wasm claim must cover BOTH its
+                // examples (entry) and conformance (tests) closures, not only
+                // conformance. The reported gap was `byte_range` used solely in
+                // `std/bytes`'s examples module while this loop only ever built
+                // the tests module for Wasm, so that use never ran on Core Wasm
+                // despite the package's Wasm claim. The tuned narrow live-Bytes
+                // bounds below were derived from the conformance closure's own
+                // allocation count; the examples closure runs against the same
+                // generous default every untuned package's tests already use,
+                // since its allocation profile is not independently tuned here.
+                for (role, module_bytes) in [
+                    ("tests", snapshot.test_wasm_module()?),
+                    (
+                        "examples",
+                        wasm::emit_resolved_module(snapshot.entry_program())
+                            .map_err(|error| vec![error])?,
                     ),
-                )
-                .unwrap();
-                let node = Command::new("node")
-                    .arg(script.file_name().unwrap())
-                    .current_dir(&scratch)
-                    .output()
+                ] {
+                    let cursor_case = json_cursors::is_cursor_case(&manifest);
+                    // Each fixture must balance its declared live Bytes bound.
+                    let arena = package.module == "std.pattern"
+                        || role == "tests"
+                            && (cursor_case
+                                || matches!(
+                                    package.module.as_str(),
+                                    "std.data.json.dec"
+                                        | "std.data.csv"
+                                        | "std.encoding.base64"
+                                        | "std.io"
+                                        | "std.io.lines"
+                                        | "std.path.value"
+                                        | "std.path.normalize"
+                                        | "std.pattern"
+                                        | "std.log.redact"
+                                        | "std.email"
+                                        | "std.webhook"
+                                        | "std.tracing"
+                                        | "std.metrics"
+                                        | "std.http"
+                                )
+                                || (package.module == "std.format"
+                                    && formatting::uses_byte_arena(&manifest))
+                                || (package.module == "std.log"
+                                    && logging::uses_byte_writes(&manifest)));
+                    if role == "tests" || package.module == "std.pattern" {
+                        for name in ["spx_bytes_zeroed", "spx_bytes_set"] {
+                            let present = module_bytes
+                                .windows(name.len())
+                                .any(|w| w == name.as_bytes());
+                            // Individual typed-Path observation cases allocate via copy
+                            // without importing the buffer-writing operations.
+                            if package.module != "std.path.value" && !cursor_case {
+                                assert_eq!(
+                                    present, arena,
+                                    "{}: `{name}` import",
+                                    package.directory
+                                );
+                            }
+                        }
+                    }
+                    let live_entry_bound = if package.module == "std.pattern" {
+                        pattern_conformance::live_bound(
+                            &manifest,
+                            role,
+                            if role == "tests" {
+                                snapshot.test_program()
+                            } else {
+                                snapshot.entry_program()
+                            },
+                        )
+                    } else if role == "examples" {
+                        4096
+                    } else if package.module == "std.log" {
+                        logging::live_byte_bound(&manifest)
+                    } else if package.module == "std.io.lines" {
+                        io_lines::live_byte_bound(&manifest)
+                    } else if package.module == "std.path.normalize" {
+                        path_normalize::live_byte_bound(&manifest)
+                    } else if cursor_case
+                        || matches!(package.module.as_str(), "std.format" | "std.data.csv")
+                    {
+                        2
+                    } else if package.module == "std.path.value"
+                        || package.module == "std.encoding.base64"
+                    {
+                        3
+                    } else if arena {
+                        1
+                    } else {
+                        4096
+                    };
+                    // Issue #102: the value Core Wasm must reproduce is the
+                    // interpreter's actual computed value for this same role,
+                    // not an independent `0` sentinel.
+                    let expected_value = if role == "examples" {
+                        interpreter_examples_value
+                    } else {
+                        interpreter_tests_value
+                    };
+                    let wasm_path = scratch.join(format!("{}-{role}.wasm", package.directory));
+                    std::fs::write(&wasm_path, module_bytes).unwrap();
+                    let script = scratch.join(format!("{}-{role}.mjs", package.directory));
+                    std::fs::write(
+                        &script,
+                        wasm_host::wasm_conformance_js(
+                            &wasm_path.file_name().unwrap().to_string_lossy(),
+                            live_entry_bound,
+                            expected_value,
+                            (package.module == "std.pattern").then_some(live_entry_bound),
+                        ),
+                    )
                     .unwrap();
-                assert!(
-                    node.status.success(),
-                    "{}: Node {role} conformance closure failed: {}",
-                    package.directory,
-                    String::from_utf8_lossy(&node.stderr)
-                );
-            }
-            Ok(())
-        })
-        .unwrap();
+                    let node = Command::new("node")
+                        .arg(script.file_name().unwrap())
+                        .current_dir(&scratch)
+                        .output()
+                        .unwrap();
+                    assert!(
+                        node.status.success(),
+                        "{}: Node {role} conformance closure failed: {}",
+                        package.directory,
+                        String::from_utf8_lossy(&node.stderr)
+                    );
+                    if package.module == "std.pattern" {
+                        pattern_conformance::assert_adjacent_refusal(
+                            &scratch,
+                            &wasm_path,
+                            live_entry_bound,
+                            expected_value,
+                        );
+                    }
+                }
+                Ok(())
+            })
+            .unwrap();
         }
     }
     let _ = std::fs::remove_dir_all(scratch);

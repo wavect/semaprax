@@ -16,7 +16,11 @@ const VIEW_OWNERSHIP: &str =
 const VIEW_CALL_BOUNDARY: &str =
     include_str!("../../scalar_status_backend_equivalence/view_call_boundary_composition.rs");
 
-const PROJECT_HARNESS: &str = include_str!("../standard_library.rs");
+const PROJECT_HARNESS: &str = concat!(
+    include_str!("../standard_library.rs"),
+    include_str!("wasm_host.rs"),
+    include_str!("pattern_conformance.rs")
+);
 const IMPORTED_VIEW: &str = include_str!("imported_view_composition.rs");
 const OWNED_FAILURE: &str = include_str!("owned_failure_composition.rs");
 

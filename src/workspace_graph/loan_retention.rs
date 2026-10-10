@@ -67,8 +67,10 @@ impl RetentionScratch {
             *self = allocate_candidates(count)?;
         }
         for identity in crate::loan_plan::owned_capacity::proof_identities(&function.loan_plan) {
-            self.keys
-                .push(identity.shared_allocation_key().ok_or_else(refusal)?);
+            let key = identity.shared_allocation_key().ok_or_else(refusal)?;
+            if !self.keys.contains(&key) {
+                self.keys.push(key);
+            }
         }
         self.keys.sort_unstable();
         self.keys.dedup();
@@ -172,19 +174,59 @@ fn inventory_count(function: &ResolvedFunction) -> Result<Option<usize>> {
     }
 }
 
-/// Count all candidate references, including duplicates, before allocation.
-/// The legacy HIR walk preserves its bounded/invalid-backing fallback contract.
+/// Validate full HIR without retaining its keys. This walk uses the existing
+/// expression-work bound, rather than the loan-endpoint bound: most HIR nodes
+/// never become loan points. The legacy per-HIR-key receipt remains unchanged.
 fn candidate_count(function: &ResolvedFunction) -> Result<Option<usize>> {
-    // Validate the full proof even when the HIR census will fall back.
-    let mut count = 0usize;
-    for identity in crate::loan_plan::owned_capacity::proof_identities(&function.loan_plan) {
+    let identities = || crate::loan_plan::owned_capacity::proof_identities(&function.loan_plan);
+    let mut references = 0usize;
+    for identity in identities() {
         identity.shared_allocation_key().ok_or_else(refusal)?;
         identity.shared_allocation_bytes().ok_or_else(refusal)?;
-        count = count.checked_add(1).ok_or_else(refusal)?;
+        references = references.checked_add(1).ok_or_else(refusal)?;
     }
-    if inventory_count(function)?.is_none() {
+    if function.loan_plan.loans.is_empty() {
         return Ok(None);
     }
+    let mut visits = 0usize;
+    match visit_function(function, &mut |identity| {
+        identity.shared_allocation_key().ok_or(WalkError::Invalid)?;
+        identity
+            .shared_allocation_bytes()
+            .ok_or(WalkError::Invalid)?;
+        visits = visits.checked_add(1).ok_or(WalkError::Invalid)?;
+        if visits > crate::loan_plan::MAX_LOAN_PLAN_WORK_V1 {
+            return Err(WalkError::Uncertain);
+        }
+        Ok(())
+    }) {
+        Err(WalkError::Invalid) => return Err(refusal()),
+        Err(WalkError::Uncertain) => return Ok(None),
+        Ok(()) => {}
+    }
+    // Optional sharing proof stays bounded. Counting distinct candidates needs
+    // no allocation; repeated loan sites/endpoints need only one real key slot.
+    // The comparison budget is explicit work, never a storage or ledger debit.
+    let mut comparisons = 0usize;
+    let mut count = 0usize;
+    for (index, identity) in identities().enumerate() {
+        let key = identity.shared_allocation_key().ok_or_else(refusal)?;
+        let mut repeated = false;
+        for prior in identities().take(index) {
+            comparisons = comparisons.checked_add(1).ok_or_else(refusal)?;
+            if comparisons > crate::loan_plan::MAX_LOAN_PLAN_WORK_V1.saturating_mul(64) {
+                return Ok(None);
+            }
+            if prior.shared_allocation_key() == Some(key) {
+                repeated = true;
+                break;
+            }
+        }
+        if !repeated {
+            count = count.checked_add(1).ok_or_else(refusal)?;
+        }
+    }
+    debug_assert!(count <= references);
     Ok(Some(count))
 }
 

@@ -12,10 +12,21 @@ fn metadata(function: &ResolvedFunction) -> usize {
 
 fn larger_proof(function: &ResolvedFunction) -> ResolvedFunction {
     let mut larger = function.clone();
-    larger
-        .loan_plan
-        .endpoints
-        .push(larger.loan_plan.endpoints[0].clone());
+    let body = larger.body;
+    let id = ExpressionId::from_owned(format!("{}-larger", body.id.as_str()));
+    let mut endpoint = larger.loan_plan.endpoints[0].clone();
+    endpoint.point.expression = id.clone();
+    larger.loan_plan.endpoints.push(endpoint);
+    larger.body = ResolvedExpr {
+        id,
+        ty: body.ty.clone(),
+        ownership: body.ownership,
+        span: body.span,
+        kind: E::Unary {
+            op: crate::ast::UnaryOp::Neg,
+            value: Box::new(body),
+        },
+    };
     larger
 }
 
@@ -295,7 +306,7 @@ fn candidate_intersection_does_not_allocate_for_unreferenced_hir_identities() {
         panic!("body");
     };
     let statement = statements[0].clone();
-    for index in 0..500 {
+    for index in 0..2500 {
         let mut extra = statement.clone();
         let crate::hir::ResolvedStatement::Let { value, .. } = &mut extra else {
             panic!("fixture first let");
@@ -303,11 +314,21 @@ fn candidate_intersection_does_not_allocate_for_unreferenced_hir_identities() {
         value.id = ExpressionId::from_owned(format!("unreferenced-wide-{index}"));
         statements.push(extra);
     }
-    let full_hir_count = inventory_count(&wide).unwrap().unwrap();
+    let mut full_hir_count = 0;
+    visit_function(&wide, &mut |_| {
+        full_hir_count += 1;
+        Ok(())
+    })
+    .unwrap_or_else(|_| panic!("wide shallow fixture"));
+    assert!(full_hir_count > crate::loan_plan::MAX_LOAN_ENDPOINTS_V1);
+    assert!(
+        inventory_count(&wide).unwrap().is_none(),
+        "legacy bounded receipt still falls back"
+    );
     let candidate_count = count(&wide);
     assert!(full_hir_count > candidate_count * 2);
     assert_eq!(candidate_count, count(&function));
-    let expected = retained_function_loan_bytes(&wide).unwrap();
+    let expected = inventory_bytes(&wide, &mut Vec::new()).unwrap();
     let proof = crate::cache_codec::encode(&wide.loan_plan).unwrap();
     let mut scratch = RetentionScratch::default();
     let (result, overflow, debit) =

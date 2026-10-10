@@ -284,8 +284,9 @@ and earlier attempts retain their established receipts. No source prebound,
 capacity factor or retained-closure forecast is reduced.
 
 In that final uncached retention attempt, the sharing census starts with
-loan-plan identity backing keys, including repeated candidate references in its
-capacity reservation. It sorts and deduplicates those candidates, then walks
+distinct loan-plan identity backing keys. An allocation-free comparison census
+counts the exact distinct candidates before reserving either carrier. It sorts
+those candidates, then walks
 and validates every retained HIR identity and marks only exact backing-key
 matches. It compacts the matched keys in sorted order before the unchanged
 loan-sidecar capacity census. Unreferenced HIR identities consume no inventory
@@ -299,7 +300,10 @@ capacities before allocation and charges any allocator capacity excess; earlier
 allocations remain charged in the cumulative ledger. Both vectors are cleared
 before each function, so a previous function's keys cannot exclude independent
 or foreign proof storage. Missing HIR or proof backing refuses before scratch
-allocation. The bounded HIR walk, full-census fallbacks, proof carriers, unmatched
+allocation. The successor HIR walk retains the existing depth bound and uses
+the existing one-million expression-work bound, rather than the 4096 loan
+endpoint bound: HIR-only nodes are not loan points. The optional distinct-key
+census falls back after 64 million key comparisons. Full-census fallbacks, proof carriers, unmatched
 identities and earlier-attempt per-HIR-key receipts are unchanged. Reuse and
 candidate intersection remove actual temporary storage; they do not discount
 any allocation that still occurs or raise the builder limit. The full pattern

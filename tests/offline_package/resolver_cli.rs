@@ -49,7 +49,7 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     // a collection-record template; `new` became public; `fmt --manifest`, `doc`, `verify`,
     // `agent`, `query`, `change`, `package`, `add`, `fetch`, `service`, and
     // `review` were added; and `doctor` became standalone.
-    const RESTORED: [(&str, &str); 46] = [
+    const RESTORED: [(&str, &str); 47] = [
         ("semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n", ""),
         ("semaprax agent run <definition.json> <task.json> <transcript.json> [--evidence|--trace]\n", ""),
         ("semaprax agent replay <definition.json> <task.json> <transcript.json> <evidence.json>\n", ""),
@@ -133,8 +133,12 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
             "",
         ),
         (
-            "semaprax test [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n",
+            "semaprax test [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N] [--target interpreter]\n",
             "semaprax test [semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n",
+        ),
+        (
+            "semaprax test [<dir>|semaprax.toml|--manifest-path path] [--json] --target native [--native-timeout-ms N] [--native-max-output-bytes N]\n",
+            "",
         ),
         (
             "semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text|stdin-stream-data|stdin-stream-collection-record|source-command-file-text]\n",

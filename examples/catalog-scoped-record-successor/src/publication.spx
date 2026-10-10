@@ -1,0 +1,55 @@
+module catalog.publication;
+
+permit { process.stdout.write }
+
+@id("catalog.report_parts")
+record ReportParts {
+    @id("catalog.report_parts.body") body: string,
+    @id("catalog.report_parts.trailer") trailer: string,
+}
+
+@id("catalog.publication")
+record Publication {
+    @id("catalog.publication.order") order: i64,
+    @id("catalog.publication.label") label: string,
+    @id("catalog.publication.payload") payload: Bytes,
+}
+
+@id("catalog.fragment")
+fn fragment(order: i64, label: own string, text: borrow str) -> Publication
+{
+    Publication { order: order, label: label, payload: bytes_copy(str_as_bytes(text)) }
+}
+
+@id("catalog.publish_fragment")
+fn publish_fragment(part: own Publication) -> i64 uses { process.stdout.write }
+{
+    match own part {
+        Publication { order: _order, label: _label, payload } => {
+            let bytes = bytes_as_slice(payload);
+            let written = stdout_write(bytes);
+            if written == byte_len(bytes) { 0 } else { 1 }
+        },
+    }
+}
+
+@id("catalog.publish")
+fn publish(parts: own ReportParts) -> i64 uses { process.stdout.write }
+{
+    match own parts {
+        ReportParts { body, trailer } => {
+            // Bytes allocation/clone/replacement stays outside every loop.
+            let first = fragment(0, "report", string_as_str(body));
+            let second = fragment(1, "newline", string_as_str(trailer));
+            let backwards = vec_push<Publication>(vec_with_capacity<Publication>(2usize), second);
+            let all = vec_push<Publication>(backwards, first);
+            let ordered = vec_sort_owned<Publication>(all);
+            let snapshot = vec_clone_at<Publication>(ordered, 0usize);
+            let committed = vec_replace<Publication>(ordered, 0usize, snapshot);
+            let report = vec_clone_at<Publication>(committed, 0usize);
+            let newline = vec_clone_at<Publication>(committed, 1usize);
+            let status = publish_fragment(report);
+            if status == 0 { publish_fragment(newline) } else { status }
+        },
+    }
+}

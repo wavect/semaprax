@@ -1,0 +1,27 @@
+module catalog.response_schema;
+
+// These declaration orders are the exact output object member orders.
+@id("catalog.output_item")
+record Item {
+    @id("catalog.output_item.id") id: string,
+    @id("catalog.output_item.department") department: i64,
+    @id("catalog.output_item.priority") priority: i64,
+    @id("catalog.output_item.stock") stock: i64,
+    @id("catalog.output_item.mark") mark: u8,
+}
+
+@id("catalog.metrics")
+record Metrics {
+    @id("catalog.metrics.selected") selected: i64,
+    @id("catalog.metrics.stock") stock: i64,
+    @id("catalog.metrics.checksum") checksum: i64,
+}
+
+@id("catalog.report")
+record Report {
+    @id("catalog.report.items") items: Vec<Item>,
+    @id("catalog.report.metrics") metrics: Metrics,
+}
+
+@id("catalog.response.anchor")
+fn response_anchor() -> i64 { 0 }

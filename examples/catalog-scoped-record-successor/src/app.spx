@@ -1,0 +1,8 @@
+module catalog.app;
+
+// Bootstrap only: both schema derivations run before installing app.command.spx.
+@id("catalog.command")
+fn command() -> i64 { 0 }
+
+@id("catalog.app.main")
+fn main() -> i64 { 0 }

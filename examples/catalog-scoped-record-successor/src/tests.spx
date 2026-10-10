@@ -1,0 +1,47 @@
+module catalog.tests;
+
+use type @id("catalog.input_item") from catalog.request_schema as InputItem;
+use type @id("catalog.request") from catalog.request_schema as Request;
+use type @id("catalog.output_item") from catalog.response_schema as Item;
+use type @id("catalog.result") from catalog.model as Result;
+use function @id("catalog.run") from catalog.restock as run;
+
+@id("catalog.tests.main")
+fn main() -> i64
+{
+    if test_empty_tags_select_all() == 0 && test_excluded_invalid_item() == 0 { 0 } else { 1 }
+}
+
+@id("catalog.tests.empty_tags")
+fn test_empty_tags_select_all() -> i64
+{
+    let first = InputItem { id: "B", department: 2, priority: 1, stock: 10, topup: 5, mark: 7u8 };
+    let second = InputItem { id: "A", department: 1, priority: 9, stock: 3, topup: 2, mark: 255u8 };
+    let items = vec_push<InputItem>(vec_push<InputItem>(vec_with_capacity<InputItem>(2usize), first), second);
+    let result = run(Request { tags: vec_with_capacity<string>(0usize), items: items });
+    match own result {
+        Result { valid: false, report: _report } => 1,
+        Result { valid: true, report } => {
+            let first_id = vec_field<Item>(report.items, 0usize, "id");
+            let expected = "A";
+            if vec_len<Item>(report.items) == 2usize && str_len_bytes(first_id) == 1
+                && str_starts_with(first_id, string_as_str(expected))
+                && vec_field<Item>(report.items, 0usize, "stock") == 5
+                && report.metrics.selected == 2 && report.metrics.stock == 20
+                && report.metrics.checksum == 262 { 0 } else { 1 }
+        },
+    }
+}
+
+@id("catalog.tests.excluded_invalid")
+fn test_excluded_invalid_item() -> i64
+{
+    let tags = vec_push<string>(vec_with_capacity<string>(1usize), "keep");
+    let items = vec_push<InputItem>(vec_with_capacity<InputItem>(1usize), InputItem {
+        id: "excluded", department: 0, priority: 0, stock: 1001, topup: 0, mark: 0u8,
+    });
+    match own run(Request { tags, items }) {
+        Result { valid: false, report: _report } => 0,
+        Result { valid: true, report: _report } => 1,
+    }
+}

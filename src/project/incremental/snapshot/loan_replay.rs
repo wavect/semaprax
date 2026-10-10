@@ -136,8 +136,7 @@ module loan_snapshot;
         let resolved = crate::hir::resolve(&ast).unwrap();
         crate::hir::validate(&resolved).unwrap();
         let wire = crate::cache_codec::encode(&resolved).unwrap();
-        let decoded = crate::cache_codec::decode(&wire).unwrap();
-        decoded
+        crate::cache_codec::decode(&wire).unwrap()
     }
 
     #[test]

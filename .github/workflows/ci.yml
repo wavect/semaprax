@@ -596,6 +596,8 @@ jobs:
           cargo test --locked -p semaprax --test project standard_library::csv -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::dependency_registry -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::decimal -- --nocapture
+          cargo test --locked -p semaprax --test project standard_library::api_inventory -- --nocapture
+          cargo test --locked -p semaprax --test project standard_library::cross_backend_capture -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::execution_matrix -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::filesystem_v2 -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::filesystem_v3 -- --nocapture

@@ -5,16 +5,18 @@ use std::process::Command;
 use semaprax::{codegen, format, parse, project, wasm};
 use sha2::{Digest, Sha256};
 
+#[path = "application_json/collection_response.rs"]
+mod collection_response;
 #[path = "application_json/owned.rs"]
 mod owned;
 #[path = "application_json/stream.rs"]
 mod stream;
 #[path = "application_json/stream_native.rs"]
 mod stream_native;
-#[path = "application_json/views.rs"]
-mod views;
 #[path = "application_json/utf8.rs"]
 mod utf8;
+#[path = "application_json/views.rs"]
+mod views;
 
 const MANIFEST: &str = r#"schema = "semaprax.manifest.v1"
 
@@ -171,14 +173,12 @@ fn checked_application_json_derivation_replays_and_refuses_mutated_or_missing_co
     )
     .unwrap();
     project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
-        assert!(
-            project::derive_json_codec_source(
-                &snapshot.retain_revision(),
-                "src/schema.spx",
-                "application.config"
-            )
-            .is_err()
-        );
+        assert!(project::derive_json_codec_source(
+            &snapshot.retain_revision(),
+            "src/schema.spx",
+            "application.config"
+        )
+        .is_err());
         Ok(())
     })
     .unwrap();

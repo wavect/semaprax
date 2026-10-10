@@ -1,7 +1,7 @@
 //! Checked, ordinary-source application JSON codecs. Generated names confer no authority.
 
-mod emit;
 mod collection_response;
+mod emit;
 mod owned;
 #[cfg(test)]
 mod tests;

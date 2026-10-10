@@ -36,25 +36,39 @@ fn collection_response_is_closed_ordered_and_canonical_without_source_authority(
     let parsed = crate::parse(&output, "response.spx").unwrap();
     assert!(parsed.permits.is_empty());
     assert!(parsed.functions.iter().all(|f| f.effects.is_empty()));
-    let encode = parsed.functions.iter().find(|f| f.name == "json_Report_collection_response_encode").unwrap();
-    assert!(encode.stable_id.ends_with(".json.collection-response.encode"));
+    let encode = parsed
+        .functions
+        .iter()
+        .find(|f| f.name == "json_Report_collection_response_encode")
+        .unwrap();
+    assert!(encode
+        .stable_id
+        .ends_with(".json.collection-response.encode"));
     let canonical = crate::format::canonical(&parsed);
-    assert_eq!(canonical, crate::format::canonical(&crate::parse(&canonical, "canonical.spx").unwrap()));
+    assert_eq!(
+        canonical,
+        crate::format::canonical(&crate::parse(&canonical, "canonical.spx").unwrap())
+    );
     assert!(canonical.len() < super::super::MAX_GENERATED_BYTES);
     // Source field/type names can resemble generated templates. Substitution
     // must only rewrite the template, never authored identity bytes.
-    let renamed = SCHEMA.replace("Row", "json_Test_utf8_Row").replace("response.row", "response.json.utf8.row");
+    let renamed = SCHEMA
+        .replace("Row", "json_Test_utf8_Row")
+        .replace("response.row", "response.json.utf8.row");
     let program = crate::parse(&renamed, "renamed.spx").unwrap();
     let output = source(&program, &program.types[2], 8).unwrap();
     assert!(output.contains("response.json.utf8.row.json.collection-response.owned-valid"));
-    assert!(output.contains("json_json_Test_utf8_Rowresponse_owned_valid"));
+    assert!(output.contains("json_json_Test_utf8_Row_response_owned_valid"));
 }
 
 #[test]
 fn collection_response_refuses_wrong_bound_nested_shapes_and_unchecked_identities() {
     for bound in [0, 65, usize::MAX] {
         let p = crate::parse(SCHEMA, "schema.spx").unwrap();
-        assert_eq!(source(&p, &p.types[2], bound).unwrap_err()[0].code, "SPX-J180");
+        assert_eq!(
+            source(&p, &p.types[2], bound).unwrap_err()[0].code,
+            "SPX-J180"
+        );
     }
     for schema in [
         SCHEMA.replace("stats:Metrics", "stats:Vec<Row>"),
@@ -69,7 +83,11 @@ fn collection_response_refuses_wrong_bound_nested_shapes_and_unchecked_identitie
         assert_eq!(source(&p, &p.types[2], 64).unwrap_err()[0].code, "SPX-J180");
     }
     let mut p = crate::parse(SCHEMA, "schema.spx").unwrap();
-    let invariant = crate::parse("module x;fn main()->bool{false}", "x.spx").unwrap().functions.remove(0).body;
+    let invariant = crate::parse("module x;fn main()->bool{false}", "x.spx")
+        .unwrap()
+        .functions
+        .remove(0)
+        .body;
     p.types[1].invariants = Some(Box::new(vec![invariant]));
     assert_eq!(source(&p, &p.types[2], 64).unwrap_err()[0].code, "SPX-J180");
 }

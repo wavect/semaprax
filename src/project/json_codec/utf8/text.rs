@@ -30,7 +30,7 @@ pub(super) fn response_source(record: &TypeDeclaration, bound: usize) -> String 
         .expect("owned UTF-8 encoder template")
         .1;
     format!("@id(\"__ROW_ID__.json.utf8.owned-valid\"){suffix}")
-        .replace("json___ROW___", "json___ROW___response")
+        .replace("json___ROW___", "json___ROW___response_")
         .replace(".json.utf8.", ".json.collection-response.")
         .replace("__ROW__", &record.name)
         .replace("__ROW_ID__", &record.stable_id)

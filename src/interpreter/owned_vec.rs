@@ -184,18 +184,7 @@ impl Evaluator<'_> {
                 )
             {
                 self.charge()?;
-                let ResolvedExprKind::Place(place) = &argument.kind else {
-                    return Err(Flow::Guard(
-                        "borrowed bounded Vec argument is not a named place",
-                    ));
-                };
-                if !place.projections.is_empty() {
-                    return Err(Flow::Guard("borrowed bounded Vec argument is projected"));
-                }
-                values.push(
-                    self.lookup(environment, &place.root)?
-                        .ok_or(Flow::Guard("borrowed bounded Vec owner is unavailable"))?,
-                );
+                values.push(self.borrow_nominal_call_argument(environment, argument)?);
             } else {
                 values.push(self.evaluate(argument, environment, depth)?);
             }

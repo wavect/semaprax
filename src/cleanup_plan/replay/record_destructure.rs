@@ -64,14 +64,21 @@ pub(super) fn admits_owned_match_result(
     };
     let ordinary_shape = ordinary
         && (crate::hir::is_admitted_nested_owned_byte_record(&program.declarations, &scrutinee.ty)
-            || crate::hir::owned_text_record::admitted(&scrutinee.ty, &program.declarations))
+            || crate::hir::owned_text_record::runtime_admitted(
+                &scrutinee.ty,
+                &program.declarations,
+            ))
         && (matches!(expression.ty, ResolvedType::Bytes | ResolvedType::String)
             || crate::map_ops::is_collection(&expression.ty)
+            || crate::hir::owned_collection_record::vector(&program.declarations, &expression.ty)
             || crate::hir::is_admitted_nested_owned_byte_record(
                 &program.declarations,
                 &expression.ty,
             )
-            || crate::hir::owned_text_record::admitted(&expression.ty, &program.declarations));
+            || crate::hir::owned_text_record::runtime_admitted(
+                &expression.ty,
+                &program.declarations,
+            ));
     *mode == ResolvedMatchMode::Own
         && expression.ty == arm.value.ty
         && expression.ownership == OwnershipMode::Own
@@ -259,8 +266,9 @@ pub(super) fn replay(
                             "nested record destructure replay binding is not canonical",
                         ));
                     }
-                    non_byte_owned_terminal |=
-                        needs_drop && !matches!(ty, ResolvedType::Bytes | ResolvedType::String);
+                    non_byte_owned_terminal |= needs_drop
+                        && !matches!(ty, ResolvedType::Bytes | ResolvedType::String)
+                        && !crate::hir::owned_collection_record::vector(&program.declarations, &ty);
                     if needs_drop
                         && mode == ResolvedMatchMode::Own
                         && (bindings.len() >= OWNED_LEAF_LIMIT

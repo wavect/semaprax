@@ -91,6 +91,11 @@ impl HirValidator<'_> {
                         );
                     if !whole_string
                         && !projected_text
+                        && !crate::hir::owned_collection_record::projected_field(
+                            &self.program.declarations,
+                            place,
+                            &expression.ty,
+                        )
                         && !named_str
                         && !cursor_borrow
                         && !self.is_owned_iterator_record_item(expression, owned_item)
@@ -465,7 +470,8 @@ impl HirValidator<'_> {
                         {
                             if parameter.ty != argument.ty
                                 || !matches!(&argument.kind, ResolvedExprKind::Place(place)
-                                    if place.projections.is_empty()
+                                    if (place.projections.is_empty()
+                                        || crate::hir::owned_collection_record::projected_field(&self.program.declarations, place, &argument.ty))
                                         && matches!(argument.ownership,
                                             OwnershipMode::Own | OwnershipMode::Borrow))
                             {
@@ -500,6 +506,9 @@ impl HirValidator<'_> {
                     if !crate::hir::owned_leaf_collection::copy_or_leaf_admitted(
                         &self.program.declarations,
                         &base.ty,
+                    ) && !crate::hir::owned_collection_record::admitted(
+                        &base.ty,
+                        &self.program.declarations,
                     ) {
                         return Err(hir_error("while loops cannot project record fields"));
                     }

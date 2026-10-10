@@ -8,7 +8,11 @@ use super::*;
 mod compiler_prelude;
 mod profile_diagnostics;
 mod stdin_stream;
+mod stream_collection_record;
 mod stream_owned;
+pub(crate) use stream_collection_record::{
+    stream_collection_record_signature_admitted, validate_stream_collection_record_program,
+};
 mod stream_record;
 pub(crate) use stdin_stream::{
     link_stdin_stream_command_workspace, link_stdin_stream_data_command_workspace,
@@ -1174,7 +1178,7 @@ fn resolved_function_uses_list(function: &ResolvedFunction) -> bool {
 mod tests {
     use std::path::Path;
 
-    use crate::workspace_graph::{WorkspaceSource, build_owned};
+    use crate::workspace_graph::{build_owned, WorkspaceSource};
 
     mod profile_tests;
 

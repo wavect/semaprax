@@ -180,7 +180,10 @@ const SOURCE_TWO_VEC_AND_STRING_ONLY: &str = r#"module app.outcome.two;
 fn owned_collection_outcome_return_match_executes_on_interpreter_native_and_strict_wasm() {
     for (label, source) in [
         ("one-vector", SOURCE),
-        ("two-vectors-and-string-only", SOURCE_TWO_VEC_AND_STRING_ONLY),
+        (
+            "two-vectors-and-string-only",
+            SOURCE_TWO_VEC_AND_STRING_ONLY,
+        ),
     ] {
         let sequence = NEXT.fetch_add(1, Ordering::Relaxed);
         let root = std::env::temp_dir().join(format!(
@@ -212,13 +215,16 @@ fn owned_collection_outcome_return_match_executes_on_interpreter_native_and_stri
     }
 }
 
-fn run_native(ast: &semaprax::ast::Program, root: &std::path::Path) {
+pub(super) fn run_native(ast: &semaprax::ast::Program, root: &std::path::Path) {
     let generated = codegen::emit_c(ast).expect("native C emission");
     let tracked = generated
         .replace("malloc(", "outcome_malloc(")
         .replace("calloc(", "outcome_calloc(")
         .replace("realloc(", "outcome_realloc(")
-        .replace("#define SPX_VEC_REALLOC realloc", "#define SPX_VEC_REALLOC outcome_realloc")
+        .replace(
+            "#define SPX_VEC_REALLOC realloc",
+            "#define SPX_VEC_REALLOC outcome_realloc",
+        )
         .replace("free(", "outcome_free(");
     let probe = r#"
 int main(void) {
@@ -278,7 +284,7 @@ static void outcome_free(void*p){if(p){if(!outcome_allocations)abort();--outcome
     }
 }
 
-fn run_strict_wasm(ast: &semaprax::ast::Program, root: &std::path::Path) {
+pub(super) fn run_strict_wasm(ast: &semaprax::ast::Program, root: &std::path::Path) {
     let bytes = wasm::emit_module(ast).expect("Core Wasm emission");
     wasmparser::Validator::new()
         .validate_all(&bytes)

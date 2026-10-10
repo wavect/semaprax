@@ -42,11 +42,15 @@ pub(super) fn match_result_is_admitted(
     };
     let ordinary_shape = ordinary
         && (hir::is_admitted_nested_owned_byte_record(&program.declarations, &scrutinee.ty)
-            || hir::owned_text_record::admitted(&scrutinee.ty, &program.declarations))
+            || hir::owned_text_record::runtime_admitted(&scrutinee.ty, &program.declarations))
         && (matches!(expression.ty, ResolvedType::Bytes | ResolvedType::String)
             || crate::map_ops::is_collection(&expression.ty)
+            || crate::hir::owned_collection_record::vector(&program.declarations, &expression.ty)
             || (hir::is_admitted_nested_owned_byte_record(&program.declarations, &expression.ty)
-                || hir::owned_text_record::admitted(&expression.ty, &program.declarations)));
+                || hir::owned_text_record::runtime_admitted(
+                    &expression.ty,
+                    &program.declarations,
+                )));
     *mode == hir::ResolvedMatchMode::Own
         && expression.ty == arm.value.ty
         && expression.ownership == OwnershipMode::Own

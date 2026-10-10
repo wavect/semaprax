@@ -97,6 +97,10 @@ fn collect_record_paths(
                     path.push(field.field.clone());
                     if matches!(field.ty, ResolvedType::Bytes | ResolvedType::String)
                         || crate::map_ops::is_collection(&field.ty)
+                        || crate::hir::owned_collection_record::vector(
+                            &program.declarations,
+                            &field.ty,
+                        )
                     {
                         pending.push(Frame::Bytes(path));
                     } else if is_exact_record(program, &field.ty)? {
@@ -137,6 +141,7 @@ pub(super) fn emit_owned_record_shell(
         Record(String, String, ResolvedType, usize),
         Bytes(String),
         String(String),
+        Vec(String),
         Scalar(String, String),
         Leave(String),
     }
@@ -183,7 +188,11 @@ pub(super) fn emit_owned_record_shell(
                     let symbol = c_field_symbol(&field.field);
                     let destination = format!("({destination}).{symbol}");
                     let source = format!("({source}).{symbol}");
-                    if field.ty == ResolvedType::String || crate::map_ops::is_collection(&field.ty)
+                    if crate::hir::owned_collection_record::vector(&program.declarations, &field.ty)
+                    {
+                        pending.push(Frame::Vec(destination));
+                    } else if field.ty == ResolvedType::String
+                        || crate::map_ops::is_collection(&field.ty)
                     {
                         pending.push(Frame::String(destination));
                     } else if field.ty == ResolvedType::Bytes {
@@ -206,6 +215,10 @@ pub(super) fn emit_owned_record_shell(
             }
             Frame::String(destination) => {
                 writeln!(output, "    {destination} = NULL;").expect("writing to string");
+            }
+            Frame::Vec(destination) => {
+                writeln!(output, "    {destination} = (spx_vec_v1) {{0}};")
+                    .expect("writing to string");
             }
             Frame::Bytes(destination) => {
                 leaves = leaves
@@ -295,7 +308,9 @@ pub(super) fn emit_owned_variant_shell(
 }
 
 fn is_exact_record(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
-    if crate::map_ops::is_collection(ty) {
+    if crate::map_ops::is_collection(ty)
+        || crate::hir::owned_collection_record::vector(&program.declarations, ty)
+    {
         return Ok(false);
     }
     let ResolvedType::Nominal {
@@ -352,6 +367,9 @@ pub(super) fn borrowed_leaf_pointer_type(
         ResolvedType::String => Ok("char * const *"),
         ResolvedType::StringMap => Ok("spx_map_v1 * const *"),
         ref ty if crate::map_ops::is_typed_collection(ty) => Ok("spx_map_v2 * const *"),
+        ref ty if crate::hir::owned_collection_record::vector(&program.declarations, ty) => {
+            Ok("const spx_vec_v1 *")
+        }
         _ => Err(backend_error(
             "borrowed aggregate path is not an owning leaf",
         )),

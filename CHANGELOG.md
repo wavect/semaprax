@@ -1,5 +1,11 @@
 # Changelog
 
+- Author OPT-727 bounded nested record composition with existing Vec owners,
+  authenticated projected reads, fieldwise cleanup, distinct native/Wasm
+  layouts and Graph v72 replay. Stage same-source success/failure, structural
+  boundary, cache/loan and frozen-profile regressions for the v31 private
+  command successor. Execution and application qualification remain pending.
+
 - Correct native borrowed-root charging to identify actual external function
   entry rather than the first private borrowed frame. Internal owned Bytes
   forwarding preserves its existing 131,072-byte capacity, while external

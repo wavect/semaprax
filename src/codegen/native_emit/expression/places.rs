@@ -25,7 +25,11 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 ))
             })?;
             field_path.push(field.field.clone());
-            code = if matches!(field.ty, ResolvedType::Bytes | ResolvedType::String) {
+            code = if matches!(field.ty, ResolvedType::Bytes | ResolvedType::String)
+                || crate::hir::owned_collection_record::vector(
+                    &self.program.declarations,
+                    &field.ty,
+                ) {
                 self.generic_projected_bytes_value(&place.root, &storage, &field_path)?
             } else if field.size == 0 {
                 self.emit_erased_record_field_value(&field.ty)?.code

@@ -883,8 +883,9 @@ fn evaluation_children(expression: &ResolvedExpr) -> Vec<&ResolvedExpr> {
         ResolvedExprKind::Invoke { callable, args } => std::iter::once(callable.as_ref())
             .chain(args.iter())
             .collect(),
-        ResolvedExprKind::Call { args, .. }
-        | ResolvedExprKind::LiteralFormat { args, .. } => args.iter().collect(),
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
+            args.iter().collect()
+        }
         ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().collect(),
         ResolvedExprKind::HostCommandCall(call) => call.args.iter().collect(),
         ResolvedExprKind::ByteRange {
@@ -1227,8 +1228,9 @@ fn push_children<'a>(expression: &'a ResolvedExpr, pending: &mut Vec<&'a Resolve
                 }
             }
         }
-        ResolvedExprKind::Call { args, .. }
-        | ResolvedExprKind::LiteralFormat { args, .. } => pending.extend(args.iter().rev()),
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
+            pending.extend(args.iter().rev())
+        }
         ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter().rev()),
         ResolvedExprKind::HostCommandCall(call) => pending.extend(call.args.iter().rev()),
         ResolvedExprKind::ByteRange {
@@ -1319,7 +1321,12 @@ fn borrowed_call_arguments<'a>(
                 .enumerate()
                 .filter(|(index, argument)| {
                     target.map_or_else(
-                        || argument.ownership == OwnershipMode::Borrow,
+                        || {
+                            argument.ownership == OwnershipMode::Borrow
+                                || crate::hir::owned_collection_record::borrowed_vec_argument(
+                                    program, expression, *index, argument,
+                                )
+                        },
                         |target| {
                             target
                                 .params

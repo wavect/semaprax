@@ -237,6 +237,12 @@ pub(super) fn validate_nested_update_base_shape(
     base: &ResolvedExpr,
     span: crate::ast::Span,
 ) -> Result<(), Diagnostic> {
+    if crate::hir::owned_collection_record::admitted(&base.ty, &program.declarations) {
+        return Err(hir_error_at_span(
+            span,
+            "Vec-bearing record update is outside the nested collection-record profile",
+        ));
+    }
     if (crate::hir::type_reachability::is_nested_nonflat_owned_byte_record(
         &program.declarations,
         &base.ty,
@@ -294,4 +300,10 @@ pub(super) fn resolved_type_is_direct_owned_variant(
 ) -> bool {
     crate::hir::is_admitted_owned_string_variant(&program.declarations, ty)
         || crate::hir::collection_outcome::runtime_admitted(&program.declarations, ty)
+}
+
+pub(super) fn requires_record_pattern(program: &ResolvedProgram, ty: &ResolvedType) -> bool {
+    !crate::hir::owned_collection_record::vector(&program.declarations, ty)
+        && matches!(ty, ResolvedType::Nominal { declaration, .. }
+            if program.declarations.declaration(declaration).is_some_and(|item| item.kind == DeclarationKind::Record))
 }

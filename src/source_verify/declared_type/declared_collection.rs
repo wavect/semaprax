@@ -34,17 +34,30 @@ fn contains(types: &TypeTable<'_>, root: &Type) -> bool {
     if super::collection_outcome::runtime_admitted(types, root) {
         return false;
     }
+    if super::collection_record::admitted(root, types) {
+        return false;
+    }
     if matches!(root, Type::Named { name, arguments } if name == "Vec" && matches!(arguments.as_slice(), [element] if super::owned_leaf_collection::admitted(types, element)))
+    {
+        return false;
+    }
+    if matches!(root, Type::Named { name, .. } if types.declaration(name).is_some_and(|d| d.stable_id == crate::prelude::VEC_ID))
     {
         return false;
     }
     if !matches!(root, Type::Named { .. } | Type::Function { .. }) {
         return false;
     }
+    let record_root = matches!(root, Type::Named { name, arguments }
+        if arguments.is_empty() && types.declaration(name).is_some_and(|d|
+            matches!(d.kind, TypeDeclarationKind::Record { .. })));
     let mut pending = vec![root.clone()];
     let mut seen = HashSet::new();
     while let Some(ty) = pending.pop() {
-        if vector(types, &ty) {
+        if vector(types, &ty)
+            || (record_root
+                && matches!(&ty, Type::Named { name, .. } if types.declaration(name).is_some_and(|d| d.stable_id == crate::prelude::VEC_ID)))
+        {
             return true;
         }
         if !matches!(&ty, Type::Named { .. } | Type::Function { .. }) {

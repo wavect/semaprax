@@ -13,7 +13,7 @@ use crate::source_verify::declared_type::{
 use crate::source_verify::diagnostics::{error, reject_native_unit_value};
 use crate::source_verify::hints;
 use crate::source_verify::oracle::check_expr;
-use crate::source_verify::type_table::{TypeTable, resolve_class_method};
+use crate::source_verify::type_table::{resolve_class_method, TypeTable};
 use std::collections::HashMap;
 
 #[allow(clippy::too_many_arguments, clippy::ptr_arg)]
@@ -855,11 +855,9 @@ pub(super) fn oracle_call(
         }
         validation_specialize_function(target, type_arguments)
     });
-    let borrowed_bytes_loans = target
-        .filter(|target| target.type_parameters.is_empty())
-        .map_or_else(Vec::new, |target| {
-            activate_borrowed_bytes_call_loans(args, &target.params, variables, types)
-        });
+    let borrowed_bytes_loans = specialized_target.as_ref().map_or_else(Vec::new, |target| {
+        activate_borrowed_bytes_call_loans(args, &target.params, variables, types)
+    });
     for (index, arg) in args.iter().enumerate() {
         let actual = check_expr(
             program,

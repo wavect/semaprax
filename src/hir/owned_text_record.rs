@@ -2,6 +2,12 @@
 use super::{DeclarationIndex, DeclarationKind, ResolvedType};
 use std::collections::BTreeSet;
 
+/// Ordinary internal record runtime only. Frozen Project selectors use
+/// `admitted` so a new composition cannot widen their private ABI silently.
+pub(crate) fn runtime_admitted(root: &ResolvedType, declarations: &DeclarationIndex) -> bool {
+    admitted(root, declarations) || super::owned_collection_record::admitted(root, declarations)
+}
+
 pub(crate) fn admitted(root: &ResolvedType, declarations: &DeclarationIndex) -> bool {
     if !matches!(root, ResolvedType::Nominal { .. }) {
         return false;
@@ -135,7 +141,7 @@ pub(crate) fn validate_use(
     root: &ResolvedType,
     declarations: &DeclarationIndex,
 ) -> Result<(), crate::diagnostic::Diagnostic> {
-    if contains_string(root, declarations) && !admitted(root, declarations) {
+    if contains_string(root, declarations) && !runtime_admitted(root, declarations) {
         return Err(super::hir_error(
             "String-bearing executable record is outside the bounded owned-text profile",
         ));

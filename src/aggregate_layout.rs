@@ -53,6 +53,7 @@ pub(crate) enum AggregateFieldValueKind {
     OwnedBytes,
     OwnedString,
     OwnedCollection,
+    OwnedVec,
     Resource,
     Aggregate,
 }
@@ -102,8 +103,15 @@ impl AggregateLayout {
             !arguments.is_empty() || contains_concrete_generic_record_descendant(program, instance);
         let owned_text_profile =
             crate::hir::owned_text_record::contains_string(instance, &program.declarations);
-        if (owned_text_profile && !bounded_layout_instance_is_admitted(program, instance, true))
+        let collection_profile =
+            crate::hir::owned_collection_record::admitted(instance, &program.declarations);
+        if (collection_profile
+            && !bounded_layout_instance_is_admitted(program, instance, true, true))
+            || (owned_text_profile
+                && !collection_profile
+                && !bounded_layout_instance_is_admitted(program, instance, true, false))
             || (!owned_text_profile
+                && !collection_profile
                 && nested_generic_profile
                 && !concrete_layout_instance_is_admitted(program, instance))
         {
@@ -239,6 +247,7 @@ enum ValueLayoutKind {
     OwnedBytes,
     OwnedString,
     OwnedCollection,
+    OwnedVec,
     Resource,
     Record { fields: Vec<AggregateFieldLayout> },
 }
@@ -250,6 +259,7 @@ impl ValueLayoutKind {
             Self::OwnedBytes => AggregateFieldValueKind::OwnedBytes,
             Self::OwnedString => AggregateFieldValueKind::OwnedString,
             Self::OwnedCollection => AggregateFieldValueKind::OwnedCollection,
+            Self::OwnedVec => AggregateFieldValueKind::OwnedVec,
             Self::Resource => AggregateFieldValueKind::Resource,
             Self::Record { .. } | Self::Variant => AggregateFieldValueKind::Aggregate,
         }
@@ -262,6 +272,19 @@ fn layout_type(
     ty: &ResolvedType,
     visiting: &mut BTreeSet<String>,
 ) -> Result<ValueLayout, Diagnostic> {
+    if crate::hir::owned_collection_record::vector(&program.declarations, ty) {
+        let size = if target == AggregateTarget::Native64 {
+            40
+        } else {
+            8
+        };
+        return Ok(ValueLayout {
+            size,
+            align: 8,
+            digest: digest_value(target, ty, size, 8, &[]),
+            kind: ValueLayoutKind::OwnedVec,
+        });
+    }
     if crate::map_ops::is_collection(ty) {
         return Ok(ValueLayout {
             size: 8,
@@ -483,7 +506,9 @@ fn contains_concrete_generic_record_descendant(
     let mut visited = BTreeSet::new();
     while let Some(ty) = pending.pop() {
         // Authenticated collection atoms are owning leaves, not generic record descendants.
-        if crate::map_ops::is_collection(&ty) {
+        if crate::map_ops::is_collection(&ty)
+            || crate::hir::owned_collection_record::vector(&program.declarations, &ty)
+        {
             continue;
         }
         let ResolvedType::Nominal {
@@ -535,7 +560,7 @@ fn concrete_layout_instance_is_admitted(
     program: &ResolvedProgram,
     instance: &ResolvedType,
 ) -> bool {
-    bounded_layout_instance_is_admitted(program, instance, false)
+    bounded_layout_instance_is_admitted(program, instance, false, false)
 }
 
 // The additive internal text/collection profile retains a separate record-only
@@ -544,6 +569,7 @@ fn bounded_layout_instance_is_admitted(
     program: &ResolvedProgram,
     instance: &ResolvedType,
     owned_text: bool,
+    owned_vectors: bool,
 ) -> bool {
     enum Frame<'a> {
         Type(ResolvedType, usize),
@@ -564,6 +590,15 @@ fn bounded_layout_instance_is_admitted(
 
     while let Some(frame) = pending.pop() {
         match frame {
+            Frame::Type(ty, _)
+                if owned_vectors
+                    && crate::hir::owned_collection_record::vector(&program.declarations, &ty) =>
+            {
+                owned_leaves += 1;
+                if owned_leaves > crate::cleanup::MAX_CLEANUP_OWNED_LEAVES {
+                    return false;
+                }
+            }
             Frame::Type(ty, _)
                 if owned_text
                     && (ty == ResolvedType::String || crate::map_ops::is_collection(&ty)) =>

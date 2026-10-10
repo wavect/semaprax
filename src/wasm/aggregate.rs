@@ -79,9 +79,9 @@ mod scalar_shape;
 pub(super) mod string_runtime;
 mod variant_equality;
 mod vec_copy_record;
+mod vec_owned_leaf;
 mod vec_owned_payload;
 mod vec_record_payload;
-mod vec_owned_leaf;
 use crate::wasm::vec_ops::is_wasm_owned_vec_type as owned_vec;
 use scalar_shape::{scalar_local, scalar_size_align, scalar_wasm_type, vec_element_tag};
 
@@ -650,17 +650,29 @@ impl FunctionPlan {
                 )));
             }
         }
-        if let ResolvedExprKind::Call { callee, type_arguments, .. } = &expr.kind {
-            if (matches!(crate::vec_ops::by_id(callee.as_str()), Some(crate::vec_ops::VecOp::CloneAt))
-                || callee.as_str() == crate::iterator_ops::NEXT_ID)
+        if let ResolvedExprKind::Call {
+            callee,
+            type_arguments,
+            ..
+        } = &expr.kind
+        {
+            if (matches!(
+                crate::vec_ops::by_id(callee.as_str()),
+                Some(crate::vec_ops::VecOp::CloneAt)
+            ) || callee.as_str() == crate::iterator_ops::NEXT_ID)
                 && matches!(type_arguments.as_slice(), [element]
                     if crate::hir::owned_leaf_collection::layout(&program.declarations, element).is_some()
                         && (callee.as_str() != crate::iterator_ops::NEXT_ID
                             || !crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
                                 &program.declarations, element)))
             {
-                let bytes = if callee.as_str() == crate::iterator_ops::NEXT_ID { 88 } else { 64 };
-                self.owned_leaf_scratch.insert(expr.id.clone(), frame.allocate(bytes, 8)?);
+                let bytes = if callee.as_str() == crate::iterator_ops::NEXT_ID {
+                    88
+                } else {
+                    64
+                };
+                self.owned_leaf_scratch
+                    .insert(expr.id.clone(), frame.allocate(bytes, 8)?);
             }
         }
 
@@ -1144,8 +1156,7 @@ fn aggregate_size_align(
             crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
                 &program.declarations,
                 element,
-            ) || crate::hir::owned_leaf_collection::layout(&program.declarations, element)
-                .is_some()
+            ) || crate::hir::owned_leaf_collection::layout(&program.declarations, element).is_some()
         }) {
             let layout = variant_layout(variant_layouts, ty)?;
             return Ok((layout.size, layout.align));
@@ -1459,13 +1470,16 @@ fn emit_byte_exports_profile(
             .any(|plan| plan.result == super::owned_data_exports::ResultLayout::Utf8)
         || executable_functions.iter().any(|(function, _)| {
             function.return_type == ResolvedType::String
-                || crate::hir::owned_text_record::admitted(
+                || crate::hir::owned_text_record::runtime_admitted(
                     &function.return_type,
                     &program.declarations,
                 )
                 || function.params.iter().any(|param| {
                     param.ty == ResolvedType::String
-                        || crate::hir::owned_text_record::admitted(&param.ty, &program.declarations)
+                        || crate::hir::owned_text_record::runtime_admitted(
+                            &param.ty,
+                            &program.declarations,
+                        )
                 })
         });
     let uses_str_ops = program_uses_str_ops(program);
@@ -2416,7 +2430,8 @@ fn emit_profile_with_scalar_exports(
             &mut type_indexes,
         )
     });
-    let owned_leaf_types = vec_owned_leaf::import_types(uses_owned_leaf_vec, &mut types, &mut type_indexes);
+    let owned_leaf_types =
+        vec_owned_leaf::import_types(uses_owned_leaf_vec, &mut types, &mut type_indexes);
     let (iter_into, iter_next, iter_drop, record_iter_next) = iterator_ops::intern_import_types(
         uses_owned_iterator,
         uses_record_iterator,
@@ -2566,7 +2581,11 @@ fn emit_profile_with_scalar_exports(
                         0
                     }
                     + map_count
-                    + if uses_owned_leaf_vec { vec_owned_leaf::IMPORT_COUNT } else { 0 }
+                    + if uses_owned_leaf_vec {
+                        vec_owned_leaf::IMPORT_COUNT
+                    } else {
+                        0
+                    }
                     + u32::try_from(index).unwrap_or(u32::MAX),
             )
         })
@@ -2617,7 +2636,11 @@ fn emit_profile_with_scalar_exports(
                 0
             }
             + map_count
-            + if uses_owned_leaf_vec { vec_owned_leaf::IMPORT_COUNT } else { 0 },
+            + if uses_owned_leaf_vec {
+                vec_owned_leaf::IMPORT_COUNT
+            } else {
+                0
+            },
     );
     for name in ["spx_add", "spx_sub", "spx_mul", "spx_div", "spx_rem"] {
         function_import(&mut imports, "env", name, binary_checked);
@@ -2937,7 +2960,13 @@ fn emit_profile_with_scalar_exports(
             })
         })
         .and_then(|value| value.checked_add(map_count))
-        .and_then(|value| value.checked_add(if uses_owned_leaf_vec { vec_owned_leaf::IMPORT_COUNT } else { 0 }))
+        .and_then(|value| {
+            value.checked_add(if uses_owned_leaf_vec {
+                vec_owned_leaf::IMPORT_COUNT
+            } else {
+                0
+            })
+        })
         .ok_or_else(|| error("aggregate wrapper import count overflows u32"))?
         .checked_add(
             u32::try_from(executable_functions.len()).map_err(|_| error("too many functions"))?,
@@ -3656,7 +3685,7 @@ impl Emitter<'_> {
         let crate::hir::ResolvedMatchPattern::Record { fields, .. } = pattern else {
             return Err(error("owned record match cleanup has a non-record pattern"));
         };
-        let storage = nested_owned::owned_record_pattern_anchors(fields)?;
+        let storage = nested_owned::owned_record_pattern_anchors(self.program, fields)?;
         if storage.is_empty() {
             return Err(error("owned record match has no Bytes bindings"));
         }
@@ -4915,7 +4944,7 @@ impl Emitter<'_> {
                     // any canonical transition vector.
                     let match_bindings = match &arm.pattern {
                         crate::hir::ResolvedMatchPattern::Record { fields, .. } => {
-                            nested_owned::owned_record_pattern_anchors(fields)?
+                            nested_owned::owned_record_pattern_anchors(self.program, fields)?
                         }
                         _ => BTreeSet::new(),
                     };
@@ -6343,10 +6372,12 @@ impl Emitter<'_> {
         if crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
             &self.program.declarations,
             element,
-        ) && !op.owned_leaf_only() {
+        ) && !op.owned_leaf_only()
+        {
             return self.emit_vec_record_payload(expr, op, element, args);
         }
-        if crate::hir::owned_leaf_collection::layout(&self.program.declarations, element).is_some() {
+        if crate::hir::owned_leaf_collection::layout(&self.program.declarations, element).is_some()
+        {
             return self.emit_owned_leaf_vec(expr, op, element, args);
         }
         if !crate::vec_ops::resolved_operation_element_is_admitted(op, element)
@@ -6634,7 +6665,9 @@ impl Emitter<'_> {
             crate::vec_ops::VecOp::CloneAt
             | crate::vec_ops::VecOp::Replace
             | crate::vec_ops::VecOp::ReserveOwned
-            | crate::vec_ops::VecOp::SortOwned => Err(error("owned-leaf Vec operation has no admitted element")),
+            | crate::vec_ops::VecOp::SortOwned => {
+                Err(error("owned-leaf Vec operation has no admitted element"))
+            }
         }
     }
 
@@ -6646,8 +6679,14 @@ impl Emitter<'_> {
         let ResolvedExprKind::Place(place) = &argument.kind else {
             return Err(error("borrowed Vec argument is not an exact place"));
         };
-        if !place.projections.is_empty() {
-            return Err(error("borrowed Vec projections are outside bounded Vec v1"));
+        if !place.projections.is_empty()
+            && !crate::hir::owned_collection_record::projected_field(
+                &self.program.declarations,
+                place,
+                &argument.ty,
+            )
+        {
+            return Err(error("borrowed Vec field path is unauthenticated"));
         }
         let value = self.place_value(place)?;
         require_type(
@@ -8253,11 +8292,7 @@ impl Emitter<'_> {
             value_type(destination),
             "borrowed record field alias",
         )?;
-        if !matches!(
-            value_type(source),
-            ResolvedType::Bytes | ResolvedType::String
-        ) && !crate::map_ops::is_collection(value_type(source))
-        {
+        if !nested_owned::borrowed_leaf_is_admitted(self.program, value_type(source)) {
             return Err(error(
                 "borrowed record field alias requires an exact Bytes or String carrier",
             ));

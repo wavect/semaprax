@@ -352,6 +352,19 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             return Ok(());
         };
         reject_native_unit_value(self.program, base, &base_value, self.diagnostics);
+        if crate::source_verify::declared_type::collection_record::admitted(
+            &base_value.ty,
+            self.types,
+        ) {
+            self.diagnostics.push(error(
+                self.program,
+                "SPX-T268",
+                "Vec-bearing record update is outside the nested collection-record profile",
+                expression.span,
+            ));
+            self.values.push(None);
+            return Ok(());
+        }
         let Some(declared_fields) = effective_record_fields(self.types, &base_value.ty) else {
             self.diagnostics.push(error(
                 self.program,

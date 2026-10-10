@@ -1,0 +1,40 @@
+module test.nested_collection_record;
+@id("collection.row") record Row {
+ @id("collection.row.label") label:string,
+ @id("collection.row.rank") rank:i64,
+}
+@id("collection.metrics") record Metrics {
+ @id("collection.metrics.count") count:usize,
+ @id("collection.metrics.base") base:i64,
+}
+@id("collection.report") record Report {
+ @id("collection.report.items") items:Vec<Row>,
+ @id("collection.report.metrics") metrics:Metrics,
+}
+@id("collection.forward") fn forward(value:own Report)->Report {value}
+@id("collection.inspect") fn inspect(value:borrow Report)->i64 {
+ let mut at=0usize;
+ let mut total=value.metrics.base;
+ while at<vec_len<Row>(value.items) {
+  let row=vec_clone_at<Row>(value.items,at);
+  total=total+match own row {Row{label,rank}=>rank+string_len(label),};
+  at=at+1usize;
+ }
+ if at==value.metrics.count {total}else{0}
+}
+@id("collection.take") fn take(value:own Report)->i64 {
+ match own value {
+  Report{items,metrics:Metrics{count,base}}=>
+   if vec_len<Row>(items)==count {base}else{0},
+ }
+}
+@id("app.main") fn main()->i64 {
+ let empty=vec_with_capacity<Row>(2usize);
+ let one=vec_push<Row>(empty,Row{label:"a",rank:7});
+ let two=vec_push<Row>(one,Row{label:"bc",rank:8});
+ let report=Report{items:two,metrics:Metrics{count:2usize,base:6}};
+ let first=inspect(report);
+ let second=inspect(report);
+ let last=take(forward(report));
+ if first==24 && second==24 && last==6 {42}else{0}
+}

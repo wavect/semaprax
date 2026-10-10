@@ -57,48 +57,52 @@ pub(super) fn program_uses_owned_leaf(program: &crate::hir::ResolvedProgram) -> 
             | crate::iterator_ops::ITER_ID | crate::iterator_ops::STEP_ID)
         && matches!(arguments.as_slice(), [element] if new_element(element)))
     };
-    program
-        .functions
-        .iter()
-        .chain(program.function_instances.iter().map(|i| &i.function))
-        .any(|f| {
-            if new_carrier(&f.return_type) || f.params.iter().any(|p| new_carrier(&p.ty)) {
-                return true;
-            }
-            std::iter::once(&f.body)
-                .chain(f.requires.iter())
-                .chain(f.ensures.iter())
-                .any(|root| {
-                    let mut pending = vec![root];
-                    while let Some(expression) = pending.pop() {
-                        if new_carrier(&expression.ty) {
-                            return true;
-                        }
-                        crate::hir::push_resolved_expression_children_in_authored_order(
-                            expression,
-                            &mut pending,
-                        );
-                    }
-                    let mut found = false;
-                    crate::hir::visit_resolved_calls(root, &mut |callee, instance, arguments| {
-                        if instance.is_none() {
-                            if let (Some(op), [element]) =
-                                (crate::vec_ops::by_id(callee.as_str()), arguments)
-                            {
-                                found |= new_element(element)
-                                    || matches!(
-                                        op,
-                                        crate::vec_ops::VecOp::CloneAt
-                                            | crate::vec_ops::VecOp::Replace
-                                            | crate::vec_ops::VecOp::ReserveOwned
-                                            | crate::vec_ops::VecOp::SortOwned
-                                    );
+    crate::hir::owned_collection_record::program_requires_profile(program)
+        || program
+            .functions
+            .iter()
+            .chain(program.function_instances.iter().map(|i| &i.function))
+            .any(|f| {
+                if new_carrier(&f.return_type) || f.params.iter().any(|p| new_carrier(&p.ty)) {
+                    return true;
+                }
+                std::iter::once(&f.body)
+                    .chain(f.requires.iter())
+                    .chain(f.ensures.iter())
+                    .any(|root| {
+                        let mut pending = vec![root];
+                        while let Some(expression) = pending.pop() {
+                            if new_carrier(&expression.ty) {
+                                return true;
                             }
+                            crate::hir::push_resolved_expression_children_in_authored_order(
+                                expression,
+                                &mut pending,
+                            );
                         }
-                    });
-                    found
-                })
-        })
+                        let mut found = false;
+                        crate::hir::visit_resolved_calls(
+                            root,
+                            &mut |callee, instance, arguments| {
+                                if instance.is_none() {
+                                    if let (Some(op), [element]) =
+                                        (crate::vec_ops::by_id(callee.as_str()), arguments)
+                                    {
+                                        found |= new_element(element)
+                                            || matches!(
+                                                op,
+                                                crate::vec_ops::VecOp::CloneAt
+                                                    | crate::vec_ops::VecOp::Replace
+                                                    | crate::vec_ops::VecOp::ReserveOwned
+                                                    | crate::vec_ops::VecOp::SortOwned
+                                            );
+                                    }
+                                }
+                            },
+                        );
+                        found
+                    })
+            })
 }
 
 pub(super) fn program_uses_vec(program: &crate::hir::ResolvedProgram) -> bool {

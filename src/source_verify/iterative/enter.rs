@@ -3,7 +3,6 @@
 
 use crate::ast::{Expr, ExprKind, ImportResult, ParamMode, Statement, Type, TypeDeclarationKind};
 use crate::diagnostic::Diagnostic;
-use crate::source_verify::IterativeVerifier;
 use crate::source_verify::arguments::{
     activate_borrowed_bytes_call_loans, source_byte_view_place_is_admitted,
 };
@@ -21,6 +20,7 @@ use crate::source_verify::scope::{
     VerifierCallTarget, VerifierFrame, VerifierFunctionSignature, VerifierScope,
 };
 use crate::source_verify::type_table::effective_record_fields;
+use crate::source_verify::IterativeVerifier;
 use std::collections::HashSet;
 
 impl<'a, 'p> IterativeVerifier<'a, 'p> {
@@ -728,6 +728,21 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         &mut self.scopes[scope].bindings,
                         self.types,
                     ),
+                    VerifierCallTarget::Ordinary(Some(
+                        VerifierFunctionSignature::Specialized { params, .. },
+                    )) if params.iter().any(|p| {
+                        crate::source_verify::declared_type::collection_record::vector(
+                            self.types, &p.ty,
+                        )
+                    }) =>
+                    {
+                        activate_borrowed_bytes_call_loans(
+                            args,
+                            params,
+                            &mut self.scopes[scope].bindings,
+                            self.types,
+                        )
+                    }
                     _ => Vec::new(),
                 };
                 if let Some(argument) = args.first() {

@@ -238,7 +238,11 @@ pub(super) fn derive(
                         ));
                     }
                     non_byte_owned_terminal |= needs_drop
-                        && !matches!(field_ty, ResolvedType::Bytes | ResolvedType::String);
+                        && !matches!(field_ty, ResolvedType::Bytes | ResolvedType::String)
+                        && !crate::hir::owned_collection_record::vector(
+                            &program.declarations,
+                            &field_ty,
+                        );
                     if needs_drop && mode == ResolvedMatchMode::Own {
                         if owned_bindings.len() >= MAX_OWNED_LEAVES {
                             return Err(super::plan_error(

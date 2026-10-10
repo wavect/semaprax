@@ -1,0 +1,26 @@
+module test.nested_collection_string_record;
+@id("collection.metrics") record Metrics { @id("collection.metrics.selected") selected:i64, }
+@id("collection.report") record Report {
+ @id("collection.report.items") items:Vec<string>,
+ @id("collection.report.metrics") metrics:Metrics,
+}
+@id("collection.inspect") fn inspect(value:borrow Report)->i64 {
+ i64_from_usize(vec_len<string>(value.items))+value.metrics.selected
+}
+@id("collection.inspect_borrow") fn inspect_borrow(value:borrow Report)->i64 {
+ match borrow value {Report{items,metrics:Metrics{selected}}=>i64_from_usize(vec_len<string>(items))+selected,}
+}
+@id("collection.take") fn take(value:own Report)->Vec<string> {
+ match own value { Report{items,metrics:Metrics{selected:_}}=>items, }
+}
+@id("app.main") fn main()->i64 {
+ let empty=vec_with_capacity<string>(2usize);
+ let one=vec_push<string>(empty,"left");
+ let two=vec_push<string>(one,"right");
+ let report=Report{items:two,metrics:Metrics{selected:10}};
+ let count=inspect(report);
+ let borrowed=inspect_borrow(report);
+ let words=take(report);
+ let first=vec_clone_at<string>(words,0usize);
+ if count==12 && borrowed==12 && first=="left" && vec_len<string>(words)==2usize {42}else{0}
+}

@@ -1,26 +1,35 @@
 //! Project v30 private runtime owned leaves; public command ABI remains scalar.
 use super::*;
 
+fn private_carrier(index: &DeclarationIndex, ty: &ResolvedType) -> bool {
+    super::super::owned_leaf_collection::layout(index, ty).is_some()
+        || super::super::collection_outcome::owned_admitted(index, ty)
+        || super::super::owned_leaf_collection::is_vec(index, ty)
+        || crate::iterator_ops::element(ty).is_some_and(|element| {
+            super::super::owned_leaf_collection::layout(index, element).is_some()
+        })
+}
+
+pub(super) fn return_admitted(index: &DeclarationIndex, ty: &ResolvedType) -> bool {
+    super::stream_record::stream_record_return_admitted(index, ty) || private_carrier(index, ty)
+}
+
+pub(super) fn parameter_admitted(index: &DeclarationIndex, parameter: &ResolvedParam) -> bool {
+    super::stream_record::stream_record_parameter_admitted(index, parameter)
+        || (matches!(
+            parameter.ownership,
+            OwnershipMode::Own | OwnershipMode::Borrow
+        ) && private_carrier(index, &parameter.ty))
+}
+
 pub(crate) fn stream_owned_signature_admitted(
     program: &ResolvedProgram,
     f: &ResolvedFunction,
 ) -> bool {
-    let index = &program.declarations;
-    let leaf = |ty| super::super::owned_leaf_collection::layout(index, ty).is_some();
-    let outcome = |ty| super::super::collection_outcome::owned_admitted(index, ty);
-    let collection = |ty| {
-        super::super::owned_leaf_collection::is_vec(index, ty)
-            || crate::iterator_ops::element(ty).is_some_and(|element| leaf(element))
-    };
-    (super::stream_record::stream_record_return_admitted(index, &f.return_type)
-        || leaf(&f.return_type)
-        || outcome(&f.return_type)
-        || collection(&f.return_type))
-        && f.params.iter().all(|p| {
-            super::stream_record::stream_record_parameter_admitted(index, p)
-                || (matches!(p.ownership, OwnershipMode::Own | OwnershipMode::Borrow)
-                    && (leaf(&p.ty) || collection(&p.ty) || outcome(&p.ty)))
-        })
+    return_admitted(&program.declarations, &f.return_type)
+        && f.params
+            .iter()
+            .all(|p| parameter_admitted(&program.declarations, p))
         && (!crate::stdin_stream_ops::is_reader(&f.return_type)
             || crate::stdin_stream_ops::resolved_forward_signature(f))
 }
@@ -81,6 +90,11 @@ pub(crate) fn validate_stream_owned_program(
     command: Option<&DeclarationId>,
 ) -> Result<(), Diagnostic> {
     validate(program)?;
+    if super::super::owned_collection_record::program_requires_profile(program) {
+        return Err(link_error(
+            "nested collection records require the collection-record successor profile",
+        ));
+    }
     if !program.interfaces.is_empty()
         || !program.function_templates.is_empty()
         || !program.function_instances.is_empty()

@@ -3,7 +3,6 @@
 
 use crate::ast::{Expr, Function, ImportResult, ParamMode, Type};
 use crate::diagnostic::Diagnostic;
-use crate::source_verify::IterativeVerifier;
 use crate::source_verify::arguments::{
     check_argument_ownership, release_borrowed_bytes_call_loans,
 };
@@ -14,6 +13,7 @@ use crate::source_verify::hints;
 use crate::source_verify::loans::mark_value_sources_moved;
 use crate::source_verify::scope::{VerifierCallTarget, VerifierFrame, VerifierFunctionSignature};
 use crate::source_verify::type_table::{effective_record_fields, resolve_class_method};
+use crate::source_verify::IterativeVerifier;
 
 impl<'a, 'p> IterativeVerifier<'a, 'p> {
     #[allow(clippy::too_many_arguments)]
@@ -655,6 +655,10 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             && !crate::source_verify::declared_type::owned_leaf_collection::copy_or_leaf_admitted(
                 self.types,
                 &base_value.ty,
+            )
+            && !crate::source_verify::declared_type::collection_record::admitted(
+                &base_value.ty,
+                self.types,
             )
         {
             self.diagnostics.push(error(

@@ -121,6 +121,16 @@ pub(super) fn check_argument_ownership(
             )
             .with_help("create or receive an explicitly shared resource before this call"),
         ),
+        ParamMode::Borrow if super::declared_type::collection_record::vector(types, &param.ty) => {
+            if !matches!(actual.mode, ParamMode::Own | ParamMode::Borrow)
+                || source_place(arg, variables, types).is_none_or(|place| {
+                    !place.projections.is_empty()
+                        && !source_collection_field_is_admitted(arg, variables, types)
+                })
+            {
+                diagnostics.push(error(program, "SPX-O118", "borrowed Vec requires a named carrier or an authenticated collection-record field", arg.span));
+            }
+        }
         // A bare `Bytes` leaf classifies as an admitted owned-byte record, so
         // exclude it here; the `param.ty == Type::Bytes` arm below owns it and
         // admits exact Bytes field paths of an admitted owned record.
@@ -220,8 +230,11 @@ pub(super) fn activate_borrowed_bytes_call_loans(
     for (index, (borrowed, parameter)) in arguments.iter().zip(parameters).enumerate() {
         let reader = crate::stdin_stream_ops::ast_is_reader(&parameter.ty)
             && matches!(&borrowed.kind, ExprKind::Var(name) if variables.get(name).is_some_and(|binding| crate::stdin_stream_ops::ast_is_reader(&binding.ty)));
+        let collection = super::declared_type::collection_record::vector(types, &parameter.ty)
+            && source_collection_field_is_admitted(borrowed, variables, types);
         if parameter.mode != ParamMode::Borrow
             || (!reader
+                && !collection
                 && (parameter.ty != Type::Bytes
                     || !source_borrowed_bytes_call_place_is_admitted(
                         borrowed, variables, types, true,
@@ -298,5 +311,22 @@ pub(super) fn source_byte_view_place_is_admitted(
         && place.ty == Type::Bytes
         && variables.get(&place.root).is_some_and(|binding| {
             binding.mode == ParamMode::Own && types.is_nested_owned_byte_record(&binding.ty)
+        })
+}
+
+fn source_collection_field_is_admitted(
+    expression: &Expr,
+    variables: &HashMap<String, Binding>,
+    types: &TypeTable<'_>,
+) -> bool {
+    let Some(place) = source_place(expression, variables, types) else {
+        return false;
+    };
+    !place.projections.is_empty()
+        && matches!(place.mode, ParamMode::Own | ParamMode::Borrow)
+        && super::declared_type::collection_record::vector(types, &place.ty)
+        && variables.get(&place.root).is_some_and(|root| {
+            matches!(root.mode, ParamMode::Own | ParamMode::Borrow)
+                && super::declared_type::collection_record::admitted(&root.ty, types)
         })
 }

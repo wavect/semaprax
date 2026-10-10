@@ -12,6 +12,7 @@ use super::{
 };
 
 pub(super) fn owned_record_pattern_anchors(
+    program: &crate::hir::ResolvedProgram,
     fields: &[crate::hir::ResolvedRecordMatchPatternField],
 ) -> Result<BTreeSet<crate::cleanup_plan::StorageId>, Diagnostic> {
     let mut pending = fields
@@ -37,7 +38,11 @@ pub(super) fn owned_record_pattern_anchors(
         match pattern {
             crate::hir::ResolvedRecordMatchFieldPattern::Binding(binding)
                 if matches!(binding.ty, ResolvedType::Bytes | ResolvedType::String)
-                    || crate::map_ops::is_collection(&binding.ty) =>
+                    || crate::map_ops::is_collection(&binding.ty)
+                    || crate::hir::owned_collection_record::vector(
+                        &program.declarations,
+                        &binding.ty,
+                    ) =>
             {
                 anchors.insert(crate::cleanup_plan::StorageId::Value(binding.id.clone()));
             }
@@ -133,7 +138,10 @@ pub(super) fn bind_record_match_pattern<O: COutput>(
                 emitter.require_type(&binding.ty, &layout_field.ty, "record pattern binding")?;
                 let name = if matches!(layout_field.ty, ResolvedType::Bytes | ResolvedType::String)
                     || crate::map_ops::is_collection(&layout_field.ty)
-                {
+                    || crate::hir::owned_collection_record::vector(
+                        &emitter.program.declarations,
+                        &layout_field.ty,
+                    ) {
                     match frame.binding_mode.mode {
                         hir::ResolvedMatchMode::Own
                             if binding.ownership == hir::OwnershipMode::Own =>
@@ -220,7 +228,11 @@ pub(super) fn bind_record_match_pattern<O: COutput>(
             hir::ResolvedRecordMatchFieldPattern::Wildcard => {
                 let nested = emitter.record_contains_owned_bytes(&layout_field.ty)?;
                 let direct = matches!(layout_field.ty, ResolvedType::Bytes | ResolvedType::String)
-                    || crate::map_ops::is_collection(&layout_field.ty);
+                    || crate::map_ops::is_collection(&layout_field.ty)
+                    || crate::hir::owned_collection_record::vector(
+                        &emitter.program.declarations,
+                        &layout_field.ty,
+                    );
                 // The resolver admits a wildcard over a direct droppable leaf
                 // under a borrow and rejects a nested owning subtree in either
                 // mode. Match it exactly, so a program the front end admits is
@@ -445,7 +457,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             return Ok(false);
         }
         if !crate::hir::resolved_type_contains_owned_bytes(self.program, ty)
-            && !crate::hir::owned_text_record::admitted(ty, &self.program.declarations)
+            && !crate::hir::owned_text_record::runtime_admitted(ty, &self.program.declarations)
         {
             return Ok(false);
         }
@@ -500,7 +512,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
     }
 
     fn is_exact_record(&self, ty: &ResolvedType) -> Result<bool, Diagnostic> {
-        if crate::map_ops::is_collection(ty) {
+        if crate::map_ops::is_collection(ty)
+            || crate::hir::owned_collection_record::vector(&self.program.declarations, ty)
+        {
             return Ok(false);
         }
         let ResolvedType::Nominal {
@@ -535,7 +549,11 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             match frame {
                 Frame::Enter(ty, _)
                     if matches!(ty, ResolvedType::Bytes | ResolvedType::String)
-                        || crate::map_ops::is_collection(&ty) =>
+                        || crate::map_ops::is_collection(&ty)
+                        || crate::hir::owned_collection_record::vector(
+                            &self.program.declarations,
+                            &ty,
+                        ) =>
                 {
                     contains = true;
                     leaves = leaves
@@ -630,6 +648,10 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 if field.size == 0
                     || matches!(field.ty, ResolvedType::Bytes | ResolvedType::String)
                     || crate::map_ops::is_collection(&field.ty)
+                    || crate::hir::owned_collection_record::vector(
+                        &self.program.declarations,
+                        &field.ty,
+                    )
                 {
                     continue;
                 }
@@ -655,6 +677,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             Record(String, ResolvedType),
             Bytes(String),
             String(String),
+            Vec(String),
         }
         let mut pending = vec![Action::Record(destination.to_owned(), ty.clone())];
         while let Some(action) = pending.pop() {
@@ -668,12 +691,23 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     self.line(&format!("{destination} = (spx_bytes_v1) {{0}};"));
                     continue;
                 }
+                Action::Vec(destination) => {
+                    self.line(&format!("{destination} = (spx_vec_v1) {{0}};"));
+                    continue;
+                }
             };
             let layout = self.record_layout(&ty)?;
             for field in layout.fields.into_iter().rev() {
                 let symbol = c_field_symbol(&field.field);
                 let target = format!("({destination}).{symbol}");
-                if field.ty == ResolvedType::String || crate::map_ops::is_collection(&field.ty) {
+                if crate::hir::owned_collection_record::vector(
+                    &self.program.declarations,
+                    &field.ty,
+                ) {
+                    pending.push(Action::Vec(target));
+                } else if field.ty == ResolvedType::String
+                    || crate::map_ops::is_collection(&field.ty)
+                {
                     pending.push(Action::String(target));
                 } else if field.ty == ResolvedType::Bytes {
                     pending.push(Action::Bytes(target));

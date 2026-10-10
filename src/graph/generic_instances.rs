@@ -124,6 +124,7 @@ pub(super) fn pre_filesystem_graph_json(
         && !generic_mapping::requires_v35(&program.function_templates)
         && !hir::function_value::requires_function_values(program)
         && !super::owned_text_record_loans::requires(program)
+        && !super::owned_collection_records::requires(program)
         && !program
             .declarations
             .byte_slice_provenances()

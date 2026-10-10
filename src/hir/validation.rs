@@ -607,7 +607,10 @@ impl<'a> HirValidator<'a> {
                             &self.program.declarations,
                             &root,
                         )
-                        && !super::owned_text_record::admitted(&root, &self.program.declarations)
+                        && !super::owned_text_record::runtime_admitted(
+                            &root,
+                            &self.program.declarations,
+                        )
                     {
                         return Err(hir_error(
                             "resolved owned-Bytes record is outside the bounded acyclic nested profile",
@@ -1421,7 +1424,9 @@ impl<'a> HirValidator<'a> {
                 ));
             }
             ResolvedExprKind::LiteralFormat { .. } => {
-                return Err(hir_error("generic templates cannot construct literal formats"));
+                return Err(hir_error(
+                    "generic templates cannot construct literal formats",
+                ));
             }
             ResolvedExprKind::Call {
                 callee,
@@ -1962,7 +1967,7 @@ impl<'a> HirValidator<'a> {
                             &self.program.declarations,
                             &expected,
                         )
-                        && !super::owned_text_record::admitted(
+                        && !super::owned_text_record::runtime_admitted(
                             &expected,
                             &self.program.declarations,
                         )
@@ -2057,15 +2062,7 @@ impl<'a> HirValidator<'a> {
                                     || hir_error("resolved record field has no exact type facts"),
                                 )?;
                             if exact_recursive
-                                && matches!(
-                                    &field_ty,
-                                    ResolvedType::Nominal { declaration, .. }
-                                        if self
-                                            .program
-                                            .declarations
-                                            .declaration(declaration)
-                                            .is_some_and(|item| item.kind == DeclarationKind::Record)
-                                )
+                                && type_profiles::requires_record_pattern(self.program, &field_ty)
                             {
                                 return Err(hir_error(
                                     "resolved nested owned-record field lacks a recursive record pattern",
@@ -3357,21 +3354,36 @@ impl<'a> HirValidator<'a> {
                             let pieces = crate::literal_format::scan(template)
                                 .map_err(|reason| hir_error(reason.message()))?;
                             if crate::literal_format::field_count(&pieces) != args.len() {
-                                return Err(hir_error("literal format field count does not match arguments"));
+                                return Err(hir_error(
+                                    "literal format field count does not match arguments",
+                                ));
                             }
-                            if args.iter().any(|arg| !crate::literal_format::accepts_hir_type(&arg.ty)) {
-                                return Err(hir_error("literal format has an unsupported argument type"));
+                            if args
+                                .iter()
+                                .any(|arg| !crate::literal_format::accepts_hir_type(&arg.ty))
+                            {
+                                return Err(hir_error(
+                                    "literal format has an unsupported argument type",
+                                ));
                             }
                             if function.instance().is_some()
-                                || function.monomorphic_declaration().is_none_or(|id| self.program.declarations.declaration(id).is_none())
+                                || function.monomorphic_declaration().is_none_or(|id| {
+                                    self.program.declarations.declaration(id).is_none()
+                                })
                             {
-                                return Err(hir_error("literal format is not admitted in generic or closure bodies"));
+                                return Err(hir_error(
+                                    "literal format is not admitted in generic or closure bodies",
+                                ));
                             }
                             frames.push(Frame::CallNext {
-                                expression, args, params: CallParameters::LiteralFormat(args),
+                                expression,
+                                args,
+                                params: CallParameters::LiteralFormat(args),
                                 return_type: ResolvedType::String,
                                 return_ownership: OwnershipMode::Own,
-                                index: 0, scope, path,
+                                index: 0,
+                                scope,
+                                path,
                             });
                         }
                         ResolvedExprKind::HostCommandCall(call) => {
@@ -3807,7 +3819,11 @@ impl<'a> HirValidator<'a> {
                             scope,
                             path: format!(
                                 "{path}.arg.{}",
-                                index + usize::from(matches!(expression.kind, ResolvedExprKind::LiteralFormat { .. }))
+                                index
+                                    + usize::from(matches!(
+                                        expression.kind,
+                                        ResolvedExprKind::LiteralFormat { .. }
+                                    ))
                             ),
                         });
                     }
@@ -6364,26 +6380,40 @@ impl<'a> HirValidator<'a> {
                 let pieces = crate::literal_format::scan(template)
                     .map_err(|reason| hir_error(reason.message()))?;
                 if crate::literal_format::field_count(&pieces) != args.len() {
-                    return Err(hir_error("literal format field count does not match arguments"));
+                    return Err(hir_error(
+                        "literal format field count does not match arguments",
+                    ));
                 }
                 if function.instance().is_some()
-                    || function.monomorphic_declaration().is_none_or(|id| self.program.declarations.declaration(id).is_none())
+                    || function
+                        .monomorphic_declaration()
+                        .is_none_or(|id| self.program.declarations.declaration(id).is_none())
                 {
-                    return Err(hir_error("literal format is not admitted in generic or closure bodies"));
+                    return Err(hir_error(
+                        "literal format is not admitted in generic or closure bodies",
+                    ));
                 }
                 let parameters = CallParameters::LiteralFormat(args);
                 for (index, argument) in args.iter().enumerate() {
                     if !crate::literal_format::accepts_hir_type(&argument.ty) {
                         return Err(hir_error("literal format has an unsupported argument type"));
                     }
-                    self.validate_expr_recursive_reference(function, argument, scope,
-                        &format!("{path}.arg.{}", index + 1), allow_moves, allowed_effects)?;
+                    self.validate_expr_recursive_reference(
+                        function,
+                        argument,
+                        scope,
+                        &format!("{path}.arg.{}", index + 1),
+                        allow_moves,
+                        allowed_effects,
+                    )?;
                     let parameter = parameters.parameter(index);
                     self.validate_argument_ownership_view(argument, parameter)?;
                     let parameter = parameters.parameter(index);
                     if self.is_owned_resource(parameter.ty, parameter.ownership)? {
                         if !allow_moves {
-                            return Err(hir_error("contract cannot transfer ownership to literal format"));
+                            return Err(hir_error(
+                                "contract cannot transfer ownership to literal format",
+                            ));
                         }
                         self.mark_value_sources_moved(argument, scope)?;
                     }
@@ -8767,29 +8797,7 @@ mod borrowed_bytes_call_tests;
 mod iterative_while_admission_tests;
 
 #[cfg(test)]
-#[test]
-fn literal_format_fresh_result_can_transfer_after_its_arguments_commit() {
-    let source = r#"
-module test.format_result_transfer;
-@id("format.take") fn take(value: string) -> string { value }
-@id("format.main") fn main() -> i64 {
-    let left = "a";
-    let right = "b";
-    let value = take(string_format("{}{}", left, right));
-    string_len(value)
-}
-"#;
-    let parsed = crate::check(source, "format-result-transfer.spx").unwrap();
-    let program = crate::hir::resolve(&parsed).unwrap();
-    crate::hir::validate(&program).unwrap();
-    let invalid = source.replace("string_len(value)", "string_len(left)");
-    assert!(
-        crate::check(&invalid, "format-result-reuse.spx")
-            .unwrap_err()
-            .iter()
-            .any(|diagnostic| diagnostic.code == "SPX-O101")
-    );
-}
+mod literal_format_result_tests;
 
 mod generic_variant;
 mod iterator_loops;

@@ -3,7 +3,6 @@
 
 use crate::ast::{Expr, ExprKind, MatchMode, MatchPattern, ParamMode, Type};
 use crate::diagnostic::Diagnostic;
-use crate::source_verify::IterativeVerifier;
 use crate::source_verify::declared_type::check_record_pattern;
 use crate::source_verify::diagnostics::{
     error, reject_loop_match_scrutinee, reject_native_unit_value,
@@ -11,9 +10,10 @@ use crate::source_verify::diagnostics::{
 use crate::source_verify::loans::{activate_match_loan, mark_value_sources_moved};
 use crate::source_verify::place::source_place;
 use crate::source_verify::scope::{
-    ScalarMatchState, VariantMatchState, VerifierFrame, VerifierScope, pattern_literal_type,
+    pattern_literal_type, ScalarMatchState, VariantMatchState, VerifierFrame, VerifierScope,
 };
 use crate::source_verify::variant_or::AGGREGATE_REFUTABLE_HELP;
+use crate::source_verify::IterativeVerifier;
 use std::collections::HashSet;
 
 impl<'a, 'p> IterativeVerifier<'a, 'p> {
@@ -226,7 +226,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             if match_mode != MatchMode::Value
                 && self.types.contains_owned_bytes(&scrutinee_value.ty)
                 && !(self.types.is_nested_owned_byte_record(&scrutinee_value.ty)
-                    || crate::source_verify::declared_type::string_record::admitted(
+                    || crate::source_verify::declared_type::string_record::runtime_admitted(
                         &scrutinee_value.ty,
                         self.types,
                     ))
@@ -252,7 +252,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 MatchMode::Own => {
                     let recursive_profile =
                         (self.types.is_nested_owned_byte_record(&scrutinee_value.ty)
-                            || crate::source_verify::declared_type::string_record::admitted(
+                            || crate::source_verify::declared_type::string_record::runtime_admitted(
                                 &scrutinee_value.ty,
                                 self.types,
                             ))
@@ -398,7 +398,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 owns_record_input: match_mode == MatchMode::Own
                     && scrutinee_value.mode == ParamMode::Own
                     && (self.types.is_nested_owned_byte_record(&scrutinee_value.ty)
-                        || crate::source_verify::declared_type::string_record::admitted(
+                        || crate::source_verify::declared_type::string_record::runtime_admitted(
                             &scrutinee_value.ty,
                             self.types,
                         )),

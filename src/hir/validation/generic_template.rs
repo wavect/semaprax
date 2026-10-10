@@ -232,14 +232,21 @@ fn admits_ordinary_record_result(
         && (super::super::type_reachability::is_admitted_nested_owned_byte_record(
             &program.declarations,
             &scrutinee.ty,
-        ) || super::super::owned_text_record::admitted(&scrutinee.ty, &program.declarations))
+        ) || super::super::owned_text_record::runtime_admitted(
+            &scrutinee.ty,
+            &program.declarations,
+        ))
         && (matches!(expression.ty, ResolvedType::Bytes | ResolvedType::String)
             || crate::map_ops::is_collection(&expression.ty)
+            || crate::hir::owned_collection_record::vector(&program.declarations, &expression.ty)
             || super::super::type_reachability::is_admitted_nested_owned_byte_record(
                 &program.declarations,
                 &expression.ty,
             )
-            || super::super::owned_text_record::admitted(&expression.ty, &program.declarations));
+            || super::super::owned_text_record::runtime_admitted(
+                &expression.ty,
+                &program.declarations,
+            ));
     copy || owns
 }
 

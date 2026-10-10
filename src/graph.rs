@@ -28,6 +28,8 @@ mod agent_query;
 mod byte_buffer_renewal;
 mod environment;
 mod expression;
+mod operator_text;
+use operator_text::{binary_text, explicit_match_mode_json, unary_text};
 mod filesystem;
 mod filesystem_outcome;
 mod function_facts;
@@ -46,13 +48,14 @@ pub(crate) use agent_execution::facts as agent_execution_facts;
 use expression::expr_json;
 mod generic_instances;
 mod generic_mapping;
+mod owned_collection_records;
 mod owned_string_byte_view;
 use filesystem::string_array;
 use generic_instances::legacy_graph_json;
 pub(crate) use generic_instances::to_legacy_hir_json;
 pub use generic_instances::{legacy_context_json, to_legacy_json, verify_json};
 pub(crate) use generic_mapping::requires_v35;
-use owned_string_byte_view::graph_json;
+use owned_collection_records::graph_json;
 
 #[path = "graph/native_import.rs"]
 mod native_import;
@@ -70,7 +73,7 @@ pub(crate) use prelude_binding::revision_from_canonical_program;
 
 pub(crate) use native_import::view_relation as native_view_relation;
 pub(crate) use native_import::{reject_native_rust_imports, reject_source_native_rust_imports};
-pub(crate) use owned_string_byte_view::{
+pub(crate) use owned_collection_records::{
     graph_schema, graph_schema_from_parts_and_instances, legacy_graph_schema,
 };
 
@@ -1225,6 +1228,7 @@ pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diag
             | "semaprax.graph.v69"
             | "semaprax.graph.v70"
             | "semaprax.graph.v71"
+            | "semaprax.graph.v72"
     ) {
         return Err(Diagnostic::io(
             "SPX-G410",
@@ -1304,7 +1308,9 @@ fn expression_has_byte_range(expression: &ResolvedExpr) -> bool {
                 pending.extend(args);
             }
             ResolvedExprKind::ByteRange { .. } => return true,
-            ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => pending.extend(args),
+            ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
+                pending.extend(args)
+            }
             ResolvedExprKind::NativeRustImportCall(call) => pending.extend(&call.args),
             ResolvedExprKind::HostCommandCall(call) => pending.extend(&call.args),
             ResolvedExprKind::Unary { value, .. }
@@ -1403,7 +1409,9 @@ fn expression_has_explicit_match_mode(expression: &ResolvedExpr) -> bool {
                         || expression_has_explicit_match_mode(&arm.value)
                 })
         }
-        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => args.iter().any(expression_has_explicit_match_mode),
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
+            args.iter().any(expression_has_explicit_match_mode)
+        }
         ResolvedExprKind::NativeRustImportCall(call) => {
             call.args.iter().any(expression_has_explicit_match_mode)
         }
@@ -1713,7 +1721,9 @@ fn expression_has_usize(expression: &ResolvedExpr) -> bool {
                     .any(|index| statement.child(index).is_some_and(expression_has_usize))
             }) || expression_has_usize(tail)
         }
-        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => args.iter().any(expression_has_usize),
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
+            args.iter().any(expression_has_usize)
+        }
         ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().any(expression_has_usize),
         ResolvedExprKind::HostCommandCall(call) => call.args.iter().any(expression_has_usize),
         ResolvedExprKind::ByteRange {
@@ -1799,7 +1809,9 @@ fn expression_has_while(expression: &ResolvedExpr) -> bool {
                     .any(|index| statement.child(index).is_some_and(expression_has_while)),
             }) || expression_has_while(tail)
         }
-        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => args.iter().any(expression_has_while),
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
+            args.iter().any(expression_has_while)
+        }
         ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().any(expression_has_while),
         ResolvedExprKind::HostCommandCall(call) => call.args.iter().any(expression_has_while),
         ResolvedExprKind::Unary { value, .. }
@@ -1854,7 +1866,9 @@ fn expression_has_while(expression: &ResolvedExpr) -> bool {
 
 fn expression_has_stdout_write(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
-        ResolvedExprKind::LiteralFormat { args, .. } => args.iter().any(expression_has_stdout_write),
+        ResolvedExprKind::LiteralFormat { args, .. } => {
+            args.iter().any(expression_has_stdout_write)
+        }
         ResolvedExprKind::Call { callee, args, .. } => {
             callee.as_str() == crate::host_io_ops::STDOUT_WRITE_ID
                 || args.iter().any(expression_has_stdout_write)
@@ -1937,7 +1951,9 @@ fn expression_has_command_io(expression: &ResolvedExpr) -> bool {
                 || expression_has_command_io(start)
                 || expression_has_command_io(end)
         }
-        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => args.iter().any(expression_has_command_io),
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
+            args.iter().any(expression_has_command_io)
+        }
         ResolvedExprKind::NativeRustImportCall(call) => {
             call.args.iter().any(expression_has_command_io)
         }
@@ -2042,7 +2058,9 @@ fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
                 || expression_has_record_pattern(start)
                 || expression_has_record_pattern(end)
         }
-        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => args.iter().any(expression_has_record_pattern),
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
+            args.iter().any(expression_has_record_pattern)
+        }
         ResolvedExprKind::NativeRustImportCall(call) => {
             call.args.iter().any(expression_has_record_pattern)
         }
@@ -2147,7 +2165,9 @@ fn expression_has_refutable_match(expression: &ResolvedExpr) -> bool {
                 })
             }) || expression_has_refutable_match(tail)
         }
-        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => args.iter().any(expression_has_refutable_match),
+        ResolvedExprKind::Call { args, .. } | ResolvedExprKind::LiteralFormat { args, .. } => {
+            args.iter().any(expression_has_refutable_match)
+        }
         ResolvedExprKind::NativeRustImportCall(call) => {
             call.args.iter().any(expression_has_refutable_match)
         }
@@ -5571,33 +5591,12 @@ fn ownership_text(ownership: OwnershipMode) -> &'static str {
     }
 }
 
-/// Additive match-mode projection. Value is intentionally absent because it
-/// was implicit in every graph through v20; emitting it would change legacy
-/// module, context, and agent-context bytes.
-fn explicit_match_mode_json(mode: ResolvedMatchMode) -> &'static str {
-    match mode {
-        ResolvedMatchMode::Value => "",
-        ResolvedMatchMode::Own => ",\"ownership_mode\":\"own\"",
-        ResolvedMatchMode::Borrow => ",\"ownership_mode\":\"borrow\"",
-    }
-}
-
-fn unary_text(op: UnaryOp) -> &'static str {
-    match op {
-        UnaryOp::Neg => "-",
-        UnaryOp::Not => "!",
-    }
-}
-
-fn binary_text(op: BinaryOp) -> &'static str {
-    op.text()
-}
-#[cfg(test)]
-#[path = "graph/tests.rs"]
-mod tests;
 #[cfg(test)]
 #[path = "graph/nested_owned_records_tests.rs"]
 mod nested_owned_records_tests;
+#[cfg(test)]
+#[path = "graph/tests.rs"]
+mod tests;
 
 #[cfg(test)]
 #[path = "graph/iterator_loop_tests.rs"]

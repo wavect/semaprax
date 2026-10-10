@@ -46,9 +46,16 @@ pub(crate) fn contains(index: &DeclarationIndex, root: &ResolvedType) -> bool {
     if super::collection_outcome::runtime_admitted(index, root) {
         return false;
     }
+    if super::owned_collection_record::admitted(root, index) {
+        return false;
+    }
     // v14 gives this direct carrier independent runtime authority. A record
-    // containing such a vector remains a logical schema, never an implicit ABI.
+    // containing it must independently qualify for the additive record profile.
     if super::owned_leaf_collection::is_vec(index, root) {
+        return false;
+    }
+    if matches!(root, ResolvedType::Nominal { declaration, .. } if declaration.as_str() == crate::prelude::VEC_ID)
+    {
         return false;
     }
     if !matches!(
@@ -57,10 +64,16 @@ pub(crate) fn contains(index: &DeclarationIndex, root: &ResolvedType) -> bool {
     ) {
         return false;
     }
+    let record_root = matches!(root, ResolvedType::Nominal { declaration, arguments }
+        if arguments.is_empty() && index.declaration(declaration).is_some_and(|d|
+            d.kind == DeclarationKind::Record && d.identity_origin != IdentityOrigin::CompilerOwned));
     let mut pending = vec![root.clone()];
     let mut seen = BTreeSet::new();
     while let Some(ty) = pending.pop() {
-        if vector(index, &ty) {
+        if vector(index, &ty)
+            || (record_root
+                && matches!(&ty, ResolvedType::Nominal { declaration, .. } if declaration.as_str() == crate::prelude::VEC_ID))
+        {
             return true;
         }
         if !matches!(

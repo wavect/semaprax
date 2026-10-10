@@ -1534,6 +1534,10 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     self.require_type(&value.ty, &field.ty, "record field initializer")?;
                     if matches!(field.ty, ResolvedType::Bytes | ResolvedType::String)
                         || crate::map_ops::is_collection(&field.ty)
+                        || crate::hir::owned_collection_record::vector(
+                            &self.program.declarations,
+                            &field.ty,
+                        )
                     {
                         let plan = self.bytes_plan.ok_or_else(|| {
                             backend_error("owned Bytes record field has no cleanup plan")
@@ -1704,7 +1708,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     };
                     let anchors = match &arm.pattern {
                         hir::ResolvedMatchPattern::Record { fields, .. } => {
-                            nested_owned::owned_record_pattern_anchors(fields)?
+                            nested_owned::owned_record_pattern_anchors(self.program, fields)?
                         }
                         _ => Default::default(),
                     };

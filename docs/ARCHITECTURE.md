@@ -960,6 +960,19 @@ without and with universally authenticated nested loans. Interpreter, native
 C11 and Core Wasm remain fieldwise. Dotted mutation, resources, variants,
 generics and public ABI surfaces remain closed.
 
+The source-authored [nested collection-record slice](NESTED-OWNED-COLLECTION-RECORDS-V1.md)
+is classified independently by `source_verify/declared_type/collection_record.rs`
+and `hir/owned_collection_record.rs`. Existing Vec element profiles remain
+atomic owning leaves within bounded record trees. Aggregate layout represents
+the full 40-byte native Vec carrier and the 8-byte Wasm token; nested-record
+backend children and interpreter `nested_owned` move those leaves through the
+canonical cleanup plan. Projected reads use authenticated field paths and
+call-local loans, never the cleared native record shell. The negative all-module
+profile scan grants no authority; `hir/workspace_link/stream_collection_record.rs`
+independently validates the v31 closure, while the v30 validator rejects the new
+carrier even in unused helpers. `interpreter/resolved_case` selects the matching
+private helper map. Owning source/backend regression execution is pending.
+
 ### Semantic graph
 
 `src/graph.rs` and `src/graph_cleanup.rs` project validated program and cleanup
@@ -1061,6 +1074,11 @@ Graph v70 and projects the exact function, expression, and binding identities.
 `src/graph/owned_string_byte_view.rs` selects additive Graph v71 only when
 validated byte-slice provenance has the exact fused owned-String root kind;
 otherwise it preserves the selected prior schema and payload.
+
+`src/graph/owned_collection_records.rs` selects Graph v72 for authenticated
+nested collection-record uses and binds ordinary layout/cleanup/loan facts.
+Its descriptive marker carries no authority; legacy projections fail closed.
+`graph/operator_text.rs` owns the unchanged small operator/match text helpers.
 
 The additive owned-payload iterator is split across
 `src/interpreter/iterator.rs`, which validates the initialized suffix and uses a

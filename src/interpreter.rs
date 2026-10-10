@@ -4548,16 +4548,7 @@ impl Evaluator<'_> {
                         // boundary authority: charge the argument node, then
                         // stage an alias without tombstoning its caller slot.
                         self.charge()?;
-                        let ResolvedExprKind::Place(place) = &argument.kind else {
-                            return Err(Flow::Guard(
-                                "borrowed record call argument is not a named place",
-                            ));
-                        };
-                        if !place.projections.is_empty() {
-                            return Err(Flow::Guard("borrowed record call argument is projected"));
-                        }
-                        self.lookup(environment, &place.root)?
-                            .ok_or(Flow::Guard("borrowed record call owner is unavailable"))?
+                        self.borrow_nominal_call_argument(environment, argument)?
                     } else {
                         self.evaluate(argument, environment, depth)?
                     };

@@ -23,7 +23,7 @@ use super::place::{
     check_source_place_availability, join_definitely_partial, join_moved_places,
     overlapping_place_state, source_place,
 };
-use super::type_table::{TypeTable, effective_record_fields};
+use super::type_table::{effective_record_fields, TypeTable};
 use crate::ast::{
     BinaryOp, Expr, ExprKind, Function, ParamMode, Program, Statement, Type, TypeDeclarationKind,
     UnaryOp,
@@ -869,6 +869,10 @@ pub(super) fn check_expr(
                 diagnostics,
             )?;
             reject_native_unit_value(program, base, &base_value, diagnostics);
+            if super::declared_type::collection_record::admitted(&base_value.ty, types) {
+                diagnostics.push(error(program, "SPX-T268", "Vec-bearing record update is outside the nested collection-record profile", expr.span));
+                return None;
+            }
             let declared_fields = effective_record_fields(types, &base_value.ty);
             if declared_fields.is_none() {
                 diagnostics.push(error(

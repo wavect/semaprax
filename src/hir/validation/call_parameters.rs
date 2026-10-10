@@ -34,7 +34,9 @@ enum ParameterIdentity<'a> {
 impl fmt::Display for ParameterIdentity<'_> {
     fn fmt(&self, output: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::LiteralFormat(index) => write!(output, "{}.param.{index}", crate::literal_format::ID),
+            Self::LiteralFormat(index) => {
+                write!(output, "{}.param.{index}", crate::literal_format::ID)
+            }
             Self::Owned(identity) => fmt::Display::fmt(identity, output),
             Self::Byte(operation, index) => write!(output, "{}.param.{index}", operation.id()),
             Self::String(operation, index) => write!(output, "{}.param.{index}", operation.id()),
@@ -58,7 +60,11 @@ impl CallParameters<'_> {
         match self {
             Self::LiteralFormat(args) => ParameterView {
                 ty: &args[index].ty,
-                ownership: if args[index].ty == ResolvedType::String { OwnershipMode::Own } else { OwnershipMode::Value },
+                ownership: if args[index].ty == ResolvedType::String {
+                    OwnershipMode::Own
+                } else {
+                    OwnershipMode::Value
+                },
                 identity: ParameterIdentity::LiteralFormat(index),
             },
             Self::Owned(parameters) => ParameterView::owned(&parameters[index]),
@@ -145,7 +151,12 @@ impl HirValidator<'_> {
                     if crate::stdin_stream_ops::is_reader(param.ty) {
                         matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow)
                             && matches!(&argument.kind, ResolvedExprKind::Place(place) if place.projections.is_empty())
-                    } else if *param.ty == ResolvedType::Bytes {
+                    } else if *param.ty == ResolvedType::Bytes
+                        || crate::hir::owned_collection_record::vector(
+                            &self.program.declarations,
+                            param.ty,
+                        )
+                    {
                         matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow) && exact_place
                     } else if crate::map_ops::is_collection(param.ty) {
                         // Compiler-owned nominal collections are leaves, not
@@ -158,7 +169,7 @@ impl HirValidator<'_> {
                                 &self.program.declarations,
                                 param.ty,
                             )
-                            || crate::hir::owned_text_record::admitted(
+                            || crate::hir::owned_text_record::runtime_admitted(
                                 param.ty,
                                 &self.program.declarations,
                             )
@@ -168,7 +179,7 @@ impl HirValidator<'_> {
                                 &argument.kind,
                                 ResolvedExprKind::Place(place) if place.projections.is_empty()
                             )
-                    } else if crate::hir::owned_text_record::admitted(
+                    } else if crate::hir::owned_text_record::runtime_admitted(
                         param.ty,
                         &self.program.declarations,
                     ) || resolved_type_is_direct_owned_variant(self.program, param.ty)

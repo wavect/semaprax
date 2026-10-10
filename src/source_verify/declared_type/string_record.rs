@@ -5,6 +5,10 @@ use super::super::type_table::TypeTable;
 use crate::ast::{Program, Span, Type, TypeDeclarationKind};
 use crate::diagnostic::Diagnostic;
 
+pub(in crate::source_verify) fn runtime_admitted(root: &Type, types: &TypeTable<'_>) -> bool {
+    admitted(root, types) || super::collection_record::admitted(root, types)
+}
+
 /// The first `string`-bearing field of a monomorphic authored record.
 fn string_field<'a>(ty: &Type, types: &TypeTable<'a>) -> Option<(&'a str, &'a str)> {
     let Type::Named { name, arguments } = ty else {
@@ -35,7 +39,7 @@ pub(in crate::source_verify) fn reject(
     types: &TypeTable<'_>,
     diagnostics: &mut Vec<Diagnostic>,
 ) -> bool {
-    if admitted(ty, types) {
+    if runtime_admitted(ty, types) {
         return false;
     }
     let Some((record, field)) = string_field(ty, types) else {

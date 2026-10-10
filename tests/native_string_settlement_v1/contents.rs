@@ -297,6 +297,8 @@ static void *fixture_concat_memcpy(void *output, const void *input, size_t lengt
 #undef free
 int main(void) {{
     REQUIRE(fixture_binary_stdout());
+    struct spx_status_entry entries[1]; struct spx_context context = {{0}};
+    REQUIRE(spx_context_init(&context, 91, entries, 1, NULL, NULL, NULL));
     const struct {{ const char *left; uint64_t left_len; const char *right; uint64_t right_len; bool same; }} cases[] = {{
         {{"", 0, "", 0, false}},
         {{"", 0, "\0tail", 5, false}},

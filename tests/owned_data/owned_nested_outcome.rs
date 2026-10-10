@@ -37,7 +37,7 @@ fn nested_outcome_partial_record_staging_callee_and_postcondition_keep_first_fai
 @id("n.guard") fn guard(value:own Outcome)->Outcome ensures false {value}
 "#;
     for (label,body) in [
-  ("partial", "let items=vec_push<string>(vec_with_capacity<string>(1usize),\"kept\");let result=Outcome::Ready{value:Payload{items:items,config:Config{label:\"prefix\",seed:boom()},bytes:bytes_zeroed(3usize)}};0"),
+  ("partial", "let items=vec_push<string>(vec_with_capacity<string>(1usize),\"kept\");let unpublished=Outcome::Ready{value:Payload{items:items,config:Config{label:\"prefix\",seed:boom()},bytes:bytes_zeroed(3usize)}};0"),
   ("staging", "let value=make(true);consume(value,boom())"),
   ("callee", "let value=make(true);consume(value,1)"),
   ("postcondition", "let value=make(true);let unpublished=guard(value);0"),

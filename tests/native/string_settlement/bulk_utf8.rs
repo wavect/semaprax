@@ -69,7 +69,7 @@ use type @id("probe.row") from consumer.schema as Row;
     materialize(input,0usize,byte_len(input))
 }
 @id("probe.decode") fn decode_size(input:borrow Slice<u8>)->i64 {
-    let result=decode(input);match own result {
+    let outcome=decode(input);match own outcome {
         Outcome::Error{code,offset,field}=>0,
         Outcome::Decoded{labels,rows}=>{
             if vec_len<string>(labels)==1usize && vec_len<Row>(rows)==1usize{42}else{0}

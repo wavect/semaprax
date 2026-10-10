@@ -364,6 +364,10 @@ fn main() -> i64
 
 ## Ownership and resources
 
+`SPX-H006` loan-work refusal names the function: split into helpers, not files
+or higher limits. For loop named-slice refusals, bind the view before the
+helper call and pass its name; keep its owner alive through last use.
+
 ```semaprax
 module app.resources;
 
@@ -472,10 +476,6 @@ fn main() -> i64
 Use `string_format` for literal templates such as `"id={}"`. See
 `help language author:literal-format` for fields, scope and pending gates.
 
-`SPX-H006` loan-work refusal names the function: split into helpers, not files
-or higher limits. For loop named-slice refusals, bind the view before the
-helper call and pass its name; keep its owner alive through last use.
-
 `text: string` transfers ownership. Do not write `own string`
 (`SPX-O002`). A read-only helper takes `text: borrow str`; pass
 `string_as_str(text)` before any consuming call.
@@ -517,15 +517,14 @@ fn main() -> i64
   `str_as_bytes`.
 - Byte functions take `borrow Slice<u8>`. Get one from `str_as_bytes(view)`,
   `array_as_slice(array_binding)`, or `bytes_as_slice(bytes_binding)`.
-- `string_from_utf8(bytes: borrow Slice<u8>) -> string` (`core.string.from_utf8`)
-  copies exact strict UTF-8 into a detached owner: `let text =
-  string_from_utf8(bytes_as_slice(bytes));`. NUL, BOM and noncharacters stay.
-  Malformed UTF-8 fails with `semaprax.convert.v1` code 1; it never replaces or
-  normalizes input. This adds no public ABI or capability; closed public
-  adapters still require their own admitted operations.
-- Build a bounded byte buffer in one write-once expression: `bytes_zeroed`
-  requires a literal `usize` capacity; each `bytes_set` takes the prior link,
-  a `usize` index expression, and a byte. Binding freezes it for borrowed reads.
+- `string_from_utf8(input: borrow Slice<u8>) -> string` (`core.string.from_utf8`)
+  copies strict UTF-8: `let text = string_from_utf8(bytes_as_slice(bytes));`.
+  The detached owner preserves NUL/BOM/noncharacters without normalization or
+  replacement. Malformed input fails with `semaprax.convert.v1` code 1.
+  No new public ABI/capability; closed public adapters keep their own admission.
+- Buffer chains: `bytes_zeroed` requires a literal `usize` capacity;
+  `bytes_set` takes the prior link, `usize` index, and byte. A bound chain
+  freezes for borrowed reads.
   Re-opening a named binding is `SPX-T271`; a literal index >= capacity is
   `SPX-T272`. A computed out-of-bounds index fails before writing with
   `semaprax.byte-buffer.v1` code 1.

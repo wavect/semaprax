@@ -46,8 +46,9 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("catalog pins gpt-6.1-sol/medium and1800 seconds for both arms")
     if isinstance(args.trials_per_arm, bool) or args.trials_per_arm < 5:
         raise ValueError("catalog requires at least five trials per arm")
-    if args.authoring_profile != catalog.AUTHORING_PROFILE_V30:
-        raise ValueError("catalog requires explicit v30 authoring-profile selection")
+    profile = catalog.AUTHORING_PROFILES.get(args.authoring_profile)
+    if profile is None:
+        raise ValueError("catalog requires explicit supported authoring-profile selection")
     if args.max_budget_usd is not None:
         raise ValueError("Codex has no strict per-attempt monetary cap")
     artifacts = Path(args.artifacts).resolve()
@@ -55,7 +56,7 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("catalog artifacts must be a new external directory")
     inputs = catalog.frozen_inputs(repo, commit)
     qualification = catalog.validate_qualification_evidence(Path(args.qualification_evidence), repo,
-        commit, catalog.common.digest(binary))
+        commit, catalog.common.digest(binary), args.authoring_profile)
     if not args.typescript_bootstrap_receipt:
         raise ValueError("strong Node/TypeScript baseline requires its pinned dependency-only receipt")
     receipt_path = catalog.regular(Path(args.typescript_bootstrap_receipt))
@@ -67,10 +68,10 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
     capabilities = codex.capabilities(args.codex_binary)
     if capabilities["status"] != "ready":
         raise ValueError("Codex isolation controls unavailable")
-    return {"schema": "semaprax.catalog-codex-campaign.v1", "benchmark": "catalog-tokens-v1",
-        "cohort": "catalog-owned-data-v1", "authoring_profile": args.authoring_profile,
+    return {"schema": profile["codex_campaign_schema"], "benchmark": "catalog-tokens-v1",
+        "cohort": profile["cohort"], "authoring_profile": args.authoring_profile,
         "repository_commit": commit, "compiler_source_commit": compiler_commit,
-        "source_binary_sha256": catalog.common.digest(binary), "native_project_route": catalog.ROUTE,
+        "source_binary_sha256": catalog.common.digest(binary), "native_project_route": profile["route"],
         "qualification_repository": str(repo), "qualification": qualification,
         "benchmark_inputs_sha256": inputs, "seed_files_sha256": {catalog.SPEC_RELATIVE: inputs[catalog.SPEC_RELATIVE]},
         "arms": list(ARMS), "trial_order": [arm for i in range(args.trials_per_arm)
@@ -469,13 +470,15 @@ def main() -> int:
     qualification.add_argument("--semaprax-bin", required=True)
     qualification.add_argument("--candidate", required=True)
     qualification.add_argument("--output", required=True)
+    qualification.add_argument("--authoring-profile", required=True,
+        choices=catalog.PINNED_AUTHORING_PROFILES)
     qualification.add_argument("--timeout-seconds", type=int, default=1800)
     for action in ("plan", "run"):
         p = sub.add_parser(action)
         p.add_argument("--repo", default=str(REPO)); p.add_argument("--base-ref", required=True)
         p.add_argument("--compiler-source-ref", required=True); p.add_argument("--semaprax-bin", required=True)
         p.add_argument("--qualification-evidence", required=True); p.add_argument("--artifacts", required=True)
-        p.add_argument("--authoring-profile", required=True, choices=(catalog.AUTHORING_PROFILE_V30,))
+        p.add_argument("--authoring-profile", required=True, choices=catalog.PINNED_AUTHORING_PROFILES)
         p.add_argument("--trials-per-arm", type=int, default=5)
         p.add_argument("--model", default=MODEL); p.add_argument("--effort", default=EFFORT)
         p.add_argument("--timeout-seconds", type=int, default=1800); p.add_argument("--max-budget-usd", type=float, default=None)
@@ -488,7 +491,8 @@ def main() -> int:
         if args.action == "qualify":
             repo = Path(args.repo).resolve(strict=True)
             result = catalog.qualify(Path(args.candidate), Path(args.semaprax_bin), repo,
-                catalog.resolve_commit(repo, args.compiler_source_ref), Path(args.output), args.timeout_seconds)
+                catalog.resolve_commit(repo, args.compiler_source_ref), Path(args.output), args.timeout_seconds,
+                args.authoring_profile)
         elif args.action == "plan":
             result = plan(args)
         else:

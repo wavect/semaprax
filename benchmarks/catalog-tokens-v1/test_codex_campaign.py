@@ -25,7 +25,8 @@ class CatalogCampaignTests(unittest.TestCase):
                 "input_bytes": len(bytes.fromhex(row["input_hex"])),
                 "input_sha256": catalog.sha_bytes(bytes.fromhex(row["input_hex"]))} for row in corpus["cases"]]}
 
-    def fixture(self, root):
+    def fixture(self, root, authoring_profile=catalog.AUTHORING_PROFILE_V30):
+        route = catalog.ROUTE_BY_PROFILE[authoring_profile]
         repo = root / "pinned"
         repo.mkdir()
         for relative in catalog.FROZEN_INPUTS:
@@ -39,9 +40,9 @@ class CatalogCampaignTests(unittest.TestCase):
         commit = catalog.resolve_commit(repo, "HEAD")
         candidate = root / "candidate"
         candidate.mkdir()
-        (candidate / "semaprax.toml").write_text('''schema = "semaprax.manifest.v1"
+        (candidate / "semaprax.toml").write_text(f'''schema = "semaprax.manifest.v1"
 [package]
-profile = "language-command-io.owned-data.v1"
+profile = "{route["project_profile"]}"
 [command]
 function = "run"
 input = "argv-utf8+stdin-stream.v1"
@@ -71,14 +72,20 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
             "acceptance_report_sha256": catalog.common.digest(report)}))
         def reference(path): return {"path": str(path), "sha256": catalog.common.digest(path)}
         evidence = root / "evidence.json"
-        evidence.write_text(json.dumps({"schema": catalog.QUALIFICATION_SCHEMA, "native_project_route": catalog.ROUTE,
+        evidence_document = {"schema": catalog.QUALIFICATION_SCHEMA,
+            "native_project_route": route,
             "benchmark_inputs_sha256": catalog.FROZEN_INPUTS, "compiler_source_commit": commit,
             "compiler_binary_sha256": catalog.common.digest(compiler), "qualification_subject": subject,
             "acceptance_report": reference(report), "candidate_source": {"inventory": reference(inventory), "manifest": reference(manifest)},
-            "qualified_native_binary": reference(native), "qualification_build_receipt": reference(receipt)}))
-        qualification = catalog.validate_qualification_evidence(evidence, repo, commit, catalog.common.digest(compiler))
-        settings = {"cohort": "catalog-owned-data-v1", "authoring_profile": catalog.AUTHORING_PROFILE_V30,
-            "native_project_route": catalog.ROUTE, "qualification_repository": str(repo), "repository_commit": commit,
+            "qualified_native_binary": reference(native), "qualification_build_receipt": reference(receipt)}
+        if authoring_profile != catalog.AUTHORING_PROFILE_V30:
+            evidence_document["authoring_profile"] = authoring_profile
+        evidence.write_text(json.dumps(evidence_document))
+        qualification = catalog.validate_qualification_evidence(
+            evidence, repo, commit, catalog.common.digest(compiler), authoring_profile)
+        profile = catalog.AUTHORING_PROFILES[authoring_profile]
+        settings = {"cohort": profile["cohort"], "authoring_profile": authoring_profile,
+            "native_project_route": route, "qualification_repository": str(repo), "repository_commit": commit,
             "compiler_source_commit": commit, "source_binary_sha256": catalog.common.digest(compiler), "qualification": qualification,
             "typescript_bootstrap": {"receipt_path": str(root / "tooling.json")}, "timeout_seconds": 1800,
             "model": adapter.MODEL, "effort": adapter.EFFORT, "codex_binary": "/fixture/codex", "authored_source_tokenizer": None}
@@ -171,6 +178,9 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
                  patch.object(catalog.common, "tokenizer_metadata", return_value=None), \
                  patch.object(adapter.subprocess, "run", side_effect=execute):
                 planned = adapter.plan(args)
+            self.assertEqual(planned["schema"], "semaprax.catalog-codex-campaign.v1")
+            self.assertEqual(planned["cohort"], "catalog-owned-data-v1")
+            self.assertEqual(planned["authoring_profile"], catalog.AUTHORING_PROFILE_V30)
             self.assertEqual((planned["model"], planned["effort"]), ("gpt-6.1-sol", "medium"))
             self.assertEqual(planned["attempt_denominator"], 10)
             self.assertEqual(planned["trial_order"].count("semaprax"), 5)
@@ -182,6 +192,66 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
             self.assertEqual(planned["seed_checkout"]["included_files"], list(catalog.SEED_FILES))
             self.assertFalse(planned["language_setup"]["reference_solution_supplied"])
             self.assertFalse((root / "artifacts").exists())
+
+    def test_v31_plan_requires_profile_bound_all23_qualification(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_name = catalog.AUTHORING_PROFILE_V31
+            self.assertNotIn(profile_name, catalog.shared.PINNED_AUTHORING_PROFILES)
+            settings, repo, compiler, candidate, evidence, _, _, _ = self.fixture(root, profile_name)
+            admission = catalog.candidate_authoring_admission(candidate, "semaprax", profile_name)
+            self.assertEqual(admission["status"], "passed")
+            self.assertEqual(admission["route"], catalog.ROUTE_BY_PROFILE[profile_name])
+            self.assertEqual(settings["qualification"]["acceptance_cases_passed"], 23)
+            with patch.object(catalog.ts_bootstrap, "verify_plan", return_value={}):
+                catalog.require_authoring_eligibility(settings, compiler)
+
+            tooling = root / "tooling.json"
+            tooling.write_text("{}")
+            receipt = {key: "a" * 64 for key in ("inventory_sha256", "package_json_sha256", "package_lock_sha256", "helper_sha256", "dependency_helper_sha256")}
+            receipt.update({"runtime": {"node_binary_sha256": "b" * 64}, "packages": {"typescript": "5.9.3"}})
+            args = Namespace(repo=str(repo), base_ref="HEAD", compiler_source_ref="HEAD", semaprax_bin=str(compiler),
+                qualification_evidence=str(evidence), artifacts=str(root / "artifacts"), authoring_profile=profile_name,
+                trials_per_arm=5, model=adapter.MODEL, effort=adapter.EFFORT, timeout_seconds=1800,
+                max_budget_usd=None, tokenizer_dir=None, codex_binary="/fixture/codex",
+                typescript_bootstrap_receipt=str(tooling), node_binary="node", npm_binary="npm")
+            original_run = subprocess.run
+            def execute(command, **kwargs):
+                if command == ["/fixture/codex", "--version"]:
+                    return subprocess.CompletedProcess(command, 0, "fixture-version\n", "")
+                return original_run(command, **kwargs)
+            with patch.object(adapter.codex, "capabilities", return_value={"status": "ready"}), \
+                 patch.object(catalog.ts_bootstrap, "validate", return_value=receipt), \
+                 patch.object(catalog.common, "tokenizer_metadata", return_value=None), \
+                 patch.object(adapter.subprocess, "run", side_effect=execute):
+                planned = adapter.plan(args)
+            self.assertEqual(planned["schema"], "semaprax.catalog-codex-campaign.v2")
+            self.assertEqual(planned["cohort"], "catalog-collection-record-v1")
+            self.assertEqual(planned["authoring_profile"], profile_name)
+            self.assertEqual(planned["native_project_route"]["project_schema"], "semaprax.project.v31")
+            self.assertEqual(planned["qualification"]["acceptance_cases_passed"], 23)
+            altered = json.loads(evidence.read_text())
+            altered["authoring_profile"] = catalog.AUTHORING_PROFILE_V30
+            evidence.write_text(json.dumps(altered))
+            with self.assertRaisesRegex(ValueError, "compiler/source/profile"):
+                catalog.validate_qualification_evidence(
+                    evidence, repo, settings["compiler_source_commit"], catalog.common.digest(compiler), profile_name)
+
+    def test_qualification_cli_requires_explicit_authoring_profile(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            missing_profile = ["codex_campaign", "qualify", "--repo", str(root),
+                "--compiler-source-ref", "HEAD", "--semaprax-bin", str(root / "compiler"),
+                "--candidate", str(root / "candidate"), "--output", str(root / "evidence")]
+            with patch.object(adapter.sys, "argv", missing_profile), self.assertRaises(SystemExit):
+                adapter.main()
+            selected_profile = missing_profile + ["--authoring-profile", catalog.AUTHORING_PROFILE_V31]
+            with patch.object(adapter.sys, "argv", selected_profile), \
+                 patch.object(catalog, "resolve_commit", return_value="source-commit"), \
+                 patch.object(catalog, "qualify", return_value={"status": "qualified"}) as qualify, \
+                 patch("builtins.print"):
+                self.assertEqual(adapter.main(), 0)
+            self.assertEqual(qualify.call_args.args[-1], catalog.AUTHORING_PROFILE_V31)
 
     def test_type_script_runtime_closure_is_pinned_and_deep_module_drift_refuses(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -316,6 +386,19 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
             native = output / "runtime/catalog"
             accepted = next(command for command in commands if "--command-json" in command)
             self.assertEqual(json.loads(accepted[accepted.index("--command-json") + 1]), [str(native)])
+            v31_root = root / "v31"
+            v31_root.mkdir()
+            v31_settings, v31_repo, v31_compiler, v31_candidate, _, _, _, _ = self.fixture(
+                v31_root, catalog.AUTHORING_PROFILE_V31)
+            v31_output = v31_root / "new-qualification"
+            with patch.object(catalog.subprocess, "run", side_effect=execute):
+                v31_result = catalog.qualify(v31_candidate, v31_compiler, v31_repo,
+                    v31_settings["compiler_source_commit"], v31_output, 10, catalog.AUTHORING_PROFILE_V31)
+            v31_qualification = catalog.validate_qualification_evidence(Path(v31_result["evidence"]),
+                v31_repo, v31_settings["compiler_source_commit"], catalog.common.digest(v31_compiler),
+                catalog.AUTHORING_PROFILE_V31)
+            self.assertEqual(v31_qualification["acceptance_cases_passed"], 23)
+            self.assertEqual(v31_qualification["native_project_route"], catalog.ROUTE_BY_PROFILE[catalog.AUTHORING_PROFILE_V31])
             failed_output = root / "failed-qualification"
             def fail(command, **kwargs):
                 if command[0] == "git":

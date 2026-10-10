@@ -54,6 +54,7 @@ NATIVE_PROJECT_ROUTE = {
 AUTHORING_PROFILE_V24 = "semaprax-project-v24-stream-v2"
 AUTHORING_PROFILE_V27 = "semaprax-project-v27-stream-data-v1"
 AUTHORING_PROFILE_V30 = "semaprax-project-v30-owned-data-v1"
+AUTHORING_PROFILE_CATALOG_V31 = "semaprax-project-v31-collection-record-v1"
 STREAM_DATA_CAPABILITIES = [
     "process.args.read", "process.stderr.write", "process.stdin.read", "process.stdout.write",
 ]
@@ -87,6 +88,16 @@ AUTHORING_PROFILES = {
     },
 }
 PINNED_AUTHORING_PROFILES = (AUTHORING_PROFILE_V27, AUTHORING_PROFILE_V30)
+# Route-only registry for explicit profiles consumed by the shared manifest
+# reader. The Catalog v31 route is not a ShiftSim campaign/qualification profile.
+AUTHORING_MANIFEST_ROUTES = {
+    profile: data["route"] for profile, data in AUTHORING_PROFILES.items()
+}
+AUTHORING_MANIFEST_ROUTES[AUTHORING_PROFILE_CATALOG_V31] = {
+    **NATIVE_PROJECT_ROUTE_V27,
+    "project_schema": "semaprax.project.v31",
+    "project_profile": "language-command-io.collection-record.v1",
+}
 SPEC_RELATIVE = "benchmarks/event-sim-tokens-v1/SPEC.md"
 CORPUS_RELATIVE = "benchmarks/event-sim-tokens-v1/acceptance/corpus.json"
 ORACLE_RELATIVE = "benchmarks/event-sim-tokens-v1/oracle.py"
@@ -164,7 +175,7 @@ def _sha256_value(value: Any, label: str) -> str:
 
 
 def _manifest_route(data: bytes, authoring_profile: str = AUTHORING_PROFILE_V27) -> dict[str, Any]:
-    expected = AUTHORING_PROFILES[authoring_profile]["route"]
+    expected = AUTHORING_MANIFEST_ROUTES[authoring_profile]
     try:
         manifest = tomllib.loads(data.decode("utf-8"))
     except (UnicodeError, tomllib.TOMLDecodeError) as error:
@@ -185,7 +196,10 @@ def _manifest_route(data: bytes, authoring_profile: str = AUTHORING_PROFILE_V27)
             or not isinstance(function, str) or not function
             or route["exports_web"] != [function]
             or capabilities != {"required": STREAM_DATA_CAPABILITIES}):
-        label = "v27 stream-data" if authoring_profile == AUTHORING_PROFILE_V27 else "v30 owned-data"
+        label = {
+            AUTHORING_PROFILE_V27: "v27 stream-data",
+            AUTHORING_PROFILE_V30: "v30 owned-data",
+        }.get(authoring_profile, authoring_profile)
         raise ValueError(f"candidate manifest does not match the exact {label} command route")
     return route
 

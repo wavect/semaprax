@@ -45,7 +45,8 @@ _bound_file = shared._bound_file
 MODEL, EFFORT = "gpt-6.1-sol", "medium"
 ARMS, MIN_TRIALS_PER_ARM = ("semaprax", "typescript"), 5
 AUTHORING_PROFILE_V30 = "semaprax-project-v30-owned-data-v1"
-PINNED_AUTHORING_PROFILES = (AUTHORING_PROFILE_V30,)
+AUTHORING_PROFILE_V31 = shared.AUTHORING_PROFILE_CATALOG_V31
+PINNED_AUTHORING_PROFILES = (AUTHORING_PROFILE_V30, AUTHORING_PROFILE_V31)
 SPEC_RELATIVE = "benchmarks/catalog-tokens-v1/SPEC.md"
 SEED_FILES = ("/" + SPEC_RELATIVE,)
 CANDIDATE_RELATIVE = "benchmarks/catalog-tokens-v1/candidate"
@@ -53,9 +54,18 @@ CALIBRATION_PROMPT = shared.CALIBRATION_PROMPT
 QUALIFICATION_SCHEMA = "semaprax.catalog-qualification.v1"
 BUILD_RECEIPT_SCHEMA = "semaprax.catalog-qualification-build.v1"
 REPORT_SCHEMA = "semaprax.catalog-acceptance.v1"
-ROUTE = shared.AUTHORING_PROFILES[shared.AUTHORING_PROFILE_V30]["route"]
-AUTHORING_PROFILES = {AUTHORING_PROFILE_V30: {
-    "route": ROUTE, "codex_campaign_schema": "semaprax.catalog-codex-campaign.v1"}}
+ROUTE_BY_PROFILE = {
+    AUTHORING_PROFILE_V30: shared.AUTHORING_MANIFEST_ROUTES[shared.AUTHORING_PROFILE_V30],
+    AUTHORING_PROFILE_V31: shared.AUTHORING_MANIFEST_ROUTES[AUTHORING_PROFILE_V31],
+}
+ROUTE = ROUTE_BY_PROFILE[AUTHORING_PROFILE_V30]
+AUTHORING_PROFILES = {
+    AUTHORING_PROFILE_V30: {"route": ROUTE, "cohort": "catalog-owned-data-v1",
+        "codex_campaign_schema": "semaprax.catalog-codex-campaign.v1", "project_label": "Project v30"},
+    AUTHORING_PROFILE_V31: {"route": ROUTE_BY_PROFILE[AUTHORING_PROFILE_V31],
+        "cohort": "catalog-collection-record-v1", "codex_campaign_schema": "semaprax.catalog-codex-campaign.v2",
+        "project_label": "Project v31"},
+}
 FROZEN_INPUTS = {'benchmarks/catalog-tokens-v1/SPEC.md': 'aa8073239954deb802bbd0278412a76fa8bb367f93d48ce91ecd09a1222893ad', 'benchmarks/catalog-tokens-v1/acceptance/corpus.json': 'd8469e9f91d832de41084ce12c97390c682f5b4aef30df075ec3b7f24db2ed73', 'benchmarks/catalog-tokens-v1/oracle.py': 'ed7532a00869333a06e6e5a242d1799f7a106db6fb47efd698ec822bed15590b'}
 
 
@@ -73,15 +83,25 @@ def frozen_inputs(repo: Path, commit: str) -> dict[str, str]:
 
 
 def candidate_authoring_admission(candidate: Path, arm: str, authoring_profile: str) -> dict[str, Any]:
-    if authoring_profile != AUTHORING_PROFILE_V30:
-        return {"status": "failed", "error": "catalog cohort requires explicit v30 owned-data profile"}
+    if authoring_profile not in AUTHORING_PROFILES:
+        return {"status": "failed", "error": "catalog cohort requires an explicit supported Project profile"}
     if arm == "typescript":
         if (candidate / "semaprax.toml").exists() or (candidate / "semaprax.toml").is_symlink():
             return {"status": "failed", "error": "TypeScript arm must not contain a SEMAPRAX manifest"}
         return {"status": "passed", "route": "pinned Node; authored TypeScript; retained dist/catalog.mjs closure"}
     if arm != "semaprax":
         return {"status": "failed", "error": "unknown catalog arm"}
-    return shared.candidate_authoring_admission(candidate, arm, authoring_profile)
+    if authoring_profile == AUTHORING_PROFILE_V30:
+        return shared.candidate_authoring_admission(candidate, arm, authoring_profile)
+    path = candidate / "semaprax.toml"
+    try:
+        if path.is_symlink() or not path.is_file():
+            raise ValueError("SEMAPRAX candidate must contain a regular semaprax.toml")
+        data = path.read_bytes()
+        route = shared._manifest_route(data, authoring_profile)
+        return {"status": "passed", "path": str(path), "sha256": sha_bytes(data), "route": route}
+    except (OSError, ValueError) as error:
+        return {"status": "failed", "path": str(path), "error": str(error)}
 
 
 def verify_report(data: bytes, expected_command: list[str] | None = None) -> dict[str, Any]:
@@ -107,11 +127,16 @@ def verify_report(data: bytes, expected_command: list[str] | None = None) -> dic
     return report
 
 
-def validate_qualification_evidence(path: Path, repo: Path, commit: str, compiler_hash: str) -> dict[str, Any]:
+def validate_qualification_evidence(path: Path, repo: Path, commit: str, compiler_hash: str,
+                                    authoring_profile: str = AUTHORING_PROFILE_V30) -> dict[str, Any]:
     regular(path)
     frozen_inputs(repo, commit)
+    route = ROUTE_BY_PROFILE.get(authoring_profile)
+    if route is None:
+        raise ValueError("unsupported catalog authoring profile")
     evidence = json.loads(path.read_bytes())
-    if (not isinstance(evidence, dict) or evidence.get("schema") != QUALIFICATION_SCHEMA or evidence.get("native_project_route") != ROUTE
+    if (not isinstance(evidence, dict) or evidence.get("schema") != QUALIFICATION_SCHEMA or evidence.get("native_project_route") != route
+            or evidence.get("authoring_profile", AUTHORING_PROFILE_V30) != authoring_profile
             or evidence.get("compiler_source_commit") != commit
             or evidence.get("compiler_binary_sha256") != compiler_hash
             or evidence.get("benchmark_inputs_sha256") != FROZEN_INPUTS):
@@ -131,7 +156,7 @@ def validate_qualification_evidence(path: Path, repo: Path, commit: str, compile
     inventory = json.loads(Path(binding["candidate_source_inventory_path"]).read_bytes())
     rows = shared._validate_closed_inventory_document(inventory)
     manifest = Path(binding["candidate_manifest_path"]).read_bytes()
-    shared._manifest_route(manifest, AUTHORING_PROFILE_V30)
+    shared._manifest_route(manifest, authoring_profile)
     if [row for row in rows if row["path"] == "semaprax.toml"] != [{
             "path": "semaprax.toml", "bytes": len(manifest), "sha256": sha_bytes(manifest)}]:
         raise ValueError("closed catalog inventory does not bind exact manifest")
@@ -146,19 +171,23 @@ def validate_qualification_evidence(path: Path, repo: Path, commit: str, compile
         raise ValueError("catalog build receipt does not bind the accepted source/native subject")
     report = verify_report(Path(binding["acceptance_report_path"]).read_bytes(),
                            [binding["qualified_native_binary_path"]])
-    return {"status": "evidence_gate_passed", "scored_trials_allowed": True,
+    result = {"status": "evidence_gate_passed", "scored_trials_allowed": True,
         "evidence_path": str(path.resolve()), "evidence_sha256": common.digest(path),
         "compiler_source_commit": commit, "compiler_binary_sha256": compiler_hash,
-        "native_project_route": ROUTE, "qualification_subject": subject,
+        "native_project_route": route, "qualification_subject": subject,
         "closed_authored_inventory_sha256": inventory["sha256"], "acceptance_cases_passed": len(report["cases"]),
         **binding}
+    if authoring_profile != AUTHORING_PROFILE_V30:
+        result["authoring_profile"] = authoring_profile
+    return result
 
 
 def require_authoring_eligibility(settings: dict[str, Any], compiler: Path) -> None:
     common.require_compiler_binding(settings, compiler)
-    if (settings.get("cohort") != "catalog-owned-data-v1"
-            or settings.get("authoring_profile") != AUTHORING_PROFILE_V30
-            or settings.get("native_project_route") != ROUTE):
+    authoring_profile = settings.get("authoring_profile", AUTHORING_PROFILE_V30)
+    profile = AUTHORING_PROFILES.get(authoring_profile)
+    if (profile is None or settings.get("cohort") != profile["cohort"]
+            or settings.get("native_project_route") != profile["route"]):
         raise ValueError("catalog dispatch requires its explicit independently qualified cohort/profile")
     qualified = settings.get("qualification", {})
     if (not isinstance(qualified, dict) or qualified.get("scored_trials_allowed") is not True
@@ -167,7 +196,8 @@ def require_authoring_eligibility(settings: dict[str, Any], compiler: Path) -> N
             or not isinstance(settings.get("compiler_source_commit"), str)):
         raise ValueError("catalog dispatch requires fresh closed source/compiler/profile all23 qualification")
     fresh = validate_qualification_evidence(Path(qualified.get("evidence_path", "")),
-        Path(settings["qualification_repository"]), settings["compiler_source_commit"], common.digest(compiler))
+        Path(settings["qualification_repository"]), settings["compiler_source_commit"], common.digest(compiler),
+        authoring_profile)
     artifact_keys = {"evidence_artifact": "evidence_sha256", "acceptance_report_artifact": "acceptance_report_sha256",
         "candidate_source_inventory_artifact": "candidate_source_inventory_sha256", "candidate_manifest_artifact": "candidate_manifest_sha256",
         "qualification_build_receipt_artifact": "qualification_build_receipt_sha256", "qualified_native_binary_artifact": "qualified_native_binary_sha256"}
@@ -192,7 +222,7 @@ def retain_fixed_harness_context(row: dict[str, Any], settings: dict[str, Any], 
 
 
 def prompt_for(arm: str, candidate: Path, compiler: Path, authoring_profile: str) -> str:
-    if arm not in ARMS or authoring_profile != AUTHORING_PROFILE_V30:
+    if arm not in ARMS or authoring_profile not in AUTHORING_PROFILES:
         raise ValueError("unsupported catalog authoring arm/profile")
     language = "SEMAPRAX native Project" if arm == "semaprax" else "idiomatic TypeScript on Node.js"
     base = f"""Implement the complete Catalog restock command in {language} according to
@@ -207,7 +237,10 @@ No application source, generated bodies or reference solution is supplied.
 Use built-in language/runtime help and the SPEC; do not read other materials.
 """
     if arm == "semaprax":
-        return base + f"""Use the compiler at `{compiler}` (also $SEMAPRAX_BIN), Project v30 profile
+        profile = AUTHORING_PROFILES[authoring_profile]
+        route = profile["route"]
+        if authoring_profile == AUTHORING_PROFILE_V30:
+            return base + f"""Use the compiler at `{compiler}` (also $SEMAPRAX_BIN), Project v30 profile
 `language-command-io.owned-data.v1`, input `argv-utf8+stdin-stream.v1`, a single
 external fn() -> i64 command/export, and exactly the sorted grants
 process.args.read, process.stderr.write, process.stdin.read, process.stdout.write.
@@ -215,6 +248,17 @@ Private admitted owned records/collections remain subject to ordinary checks.
 Read `$SEMAPRAX_BIN help language author:owned-data` for exact shapes and
 unchanged transitive Bytes allocation/deep-clone loop restrictions. Derivation
 is optional; discover checked commands from built-in help rather than assumed APIs.
+Build a native command and have run.sh execute it; ordinary `semaprax run`
+is not the selected command process adapter. Invalid application input is
+status 2 with the specified stderr, not a failed contract/runtime failure.
+"""
+        return base + f"""Use the compiler at `{compiler}` (also $SEMAPRAX_BIN), {profile['project_label']} profile
+`{route['project_profile']}`, input `{route['input_route']}`, a single
+external fn() -> i64 command/export, and exactly the sorted grants
+process.args.read, process.stderr.write, process.stdin.read, process.stdout.write.
+Private admitted records/collections remain subject to ordinary checks.
+Read `$SEMAPRAX_BIN help language author:collection-records` for the exact nested collection-record authoring shapes and ordinary checks.
+Derivation is optional; discover checked commands from built-in help rather than assumed APIs.
 Build a native command and have run.sh execute it; ordinary `semaprax run`
 is not the selected command process adapter. Invalid application input is
 status 2 with the specified stderr, not a failed contract/runtime failure.
@@ -378,9 +422,12 @@ def check_program(candidate, timeout, env, qualification_mode="evidence_gated_sc
     return result
 
 
-def qualify(candidate: Path, compiler: Path, repo: Path, commit: str, output: Path, timeout: int):
+def qualify(candidate: Path, compiler: Path, repo: Path, commit: str, output: Path, timeout: int,
+            authoring_profile: str = AUTHORING_PROFILE_V30):
     """Unpaid real build/all23 producer; failure retains diagnostics, never eligibility."""
     compiler = regular(compiler)
+    if authoring_profile not in AUTHORING_PROFILES:
+        raise ValueError("qualification requires an explicit supported authoring profile")
     candidate, output = candidate.resolve(strict=True), output.resolve()
     if timeout <= 0 or output.exists() or output.is_relative_to(candidate) or output.is_relative_to(repo.resolve()):
         raise ValueError("qualification requires positive timeout and a new external output directory")
@@ -393,7 +440,7 @@ def qualify(candidate: Path, compiler: Path, repo: Path, commit: str, output: Pa
     compiler_hash = common.digest(compiler)
     result = {"status": "failed", "compiler_source_commit": commit, "compiler_binary_sha256": compiler_hash}
     try:
-        checked = check_program(candidate, timeout, trial_environment(compiler), authoring_profile=AUTHORING_PROFILE_V30,
+        checked = check_program(candidate, timeout, trial_environment(compiler), authoring_profile=authoring_profile,
             harness_output=output / "runtime/catalog", compiler_binary_sha256=compiler_hash,
             expected_inventory=original, arm="semaprax")
         result["checks"] = checked
@@ -409,14 +456,17 @@ def qualify(candidate: Path, compiler: Path, repo: Path, commit: str, output: Pa
             "acceptance_report_sha256": report["sha256"]}, indent=2, sort_keys=True) + "\n")
         evidence = {"schema": QUALIFICATION_SCHEMA, "benchmark_inputs_sha256": hashes,
             "compiler_source_commit": commit, "compiler_binary_sha256": compiler_hash,
-            "native_project_route": ROUTE, "qualification_subject": subject, "acceptance_report": report,
+            "native_project_route": ROUTE_BY_PROFILE[authoring_profile],
+            "qualification_subject": subject, "acceptance_report": report,
             "candidate_source": {"inventory": {"path": str(inventory_path), "sha256": common.digest(inventory_path)},
                                  "manifest": {"path": str(manifest_path), "sha256": common.digest(manifest_path)}},
             "qualified_native_binary": {"path": native["path"], "sha256": native["sha256"]},
             "qualification_build_receipt": {"path": str(receipt), "sha256": common.digest(receipt)}}
+        if authoring_profile != AUTHORING_PROFILE_V30:
+            evidence["authoring_profile"] = authoring_profile
         evidence_path = output / "qualification-evidence.json"
         evidence_path.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n")
-        validate_qualification_evidence(evidence_path, repo, commit, compiler_hash)
+        validate_qualification_evidence(evidence_path, repo, commit, compiler_hash, authoring_profile)
         result.update({"status": "qualified", "evidence": str(evidence_path), "qualification_subject": subject})
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         result["error"] = str(error)

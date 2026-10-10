@@ -55,6 +55,7 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
         ).to_owned()),
         "author:collection-records" => Ok(concat!(
             "Project v31 source implementation; current-head execution qualification pending.\n",
+            "new app --template stdin-stream-collection-record\n",
             "Select [package] profile = \"language-command-io.collection-record.v1\" with input argv-utf8+stdin-stream.v1. Entry and selected command remain fn() -> i64; native64 uses the same four explicit command grants.\n",
             "Private helpers may use explicit monomorphic acyclic record trees containing admitted Vec elements, nested records, Copy scalars, string and Bytes. Existing Vec element shapes, capacities and byte limits remain in force; this profile does not admit arbitrary Vec elements.\n",
             "Borrow the root as value: borrow Report. Read vec_len(value.items) and value.metrics.selected; vec_clone_at(value.items, index) yields an independent owned element. Keep the root owner live while any projected borrow is live.\n",
@@ -379,6 +380,7 @@ mod tests {
         let nested = lookup("author:collection-records").unwrap();
         for fact in [
             "language-command-io.collection-record.v1",
+            "new app --template stdin-stream-collection-record",
             "current-head execution qualification pending",
             "value: borrow Report",
             "vec_len(value.items)",

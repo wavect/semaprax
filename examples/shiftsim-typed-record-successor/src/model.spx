@@ -23,3 +23,9 @@ record ScheduleResult {
     @id("shiftsim.schedule_result.valid") valid: bool,
     @id("shiftsim.schedule_result.report") report: Report,
 }
+
+@id("shiftsim.model.anchor")
+fn model_anchor() -> i64
+{
+    0
+}

@@ -644,5 +644,5 @@ fn identity_prebound_carriers_include_transient_super_receivers_in_wide_calls() 
     // Six independent four-constructor expansions defeat any apparent spare
     // allowance supplied by the enclosing ordinary call's single constructor.
     assert_eq!(cost.identity_carriers, 3 + 6 * 4);
-    assert!(cost.identity_carriers >= 1 + 6 * 4);
+    assert!(cost.identity_carriers > 6 * 4);
 }

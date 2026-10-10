@@ -473,6 +473,7 @@ jobs:
           set -euo pipefail
           cargo test --locked -p semaprax --lib public_generic_abi
       - name: Callable-boundary corpus, generated consumers, settlement and hostile replay
+        id: generic_callable_corpus
         shell: bash
         run: |
           # The step above runs the four-language *metadata* consumers, which
@@ -483,6 +484,23 @@ jobs:
           cargo test --locked -p semaprax --test public_generic_native_adapter_v1
           cargo test --locked -p semaprax --test public_generic_wasm_adapter_v1
           cargo test --locked -p semaprax --test projections public_generic_descriptor_carrier_hostile_replay
+
+      - name: Capture bounded generated Rust bytes after callable corpus failure
+        if: failure() && steps.generic_callable_corpus.outcome == 'failure'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --locked -p semaprax --test public_generic_native_adapter_v1 \
+            authenticated_handoff::same_subject::profile_rust::generated_profile_byte_audit \
+            -- --exact --ignored --nocapture > profile-byte-audit.log 2>&1
+      - name: Retain generated Rust byte audit
+        if: failure() && steps.generic_callable_corpus.outcome == 'failure'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: profile-byte-audit-${{ matrix.os }}-${{ github.sha }}
+          path: profile-byte-audit.log
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Native settlement sanitizer evidence and independent replay
         if: runner.os == 'Linux'
@@ -596,6 +614,8 @@ jobs:
           cargo test --locked -p semaprax --test project standard_library::csv -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::dependency_registry -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::decimal -- --nocapture
+          cargo test --locked -p semaprax --test project standard_library::api_inventory -- --nocapture
+          cargo test --locked -p semaprax --test project standard_library::cross_backend_capture -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::execution_matrix -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::filesystem_v2 -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::filesystem_v3 -- --nocapture

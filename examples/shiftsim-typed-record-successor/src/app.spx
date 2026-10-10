@@ -1,0 +1,7 @@
+module shiftsim.app;
+
+@id("shiftsim.command")
+fn command() -> i64 { 0 }
+
+@id("shiftsim.app.main")
+fn main() -> i64 { 0 }

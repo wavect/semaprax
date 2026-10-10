@@ -1,52 +1,25 @@
 module shiftsim.model;
 
-@id("shiftsim.patient")
-record Patient {
-    @id("shiftsim.patient.priority") priority: i64,
-    @id("shiftsim.patient.arrival") arrival: i64,
-    @id("shiftsim.patient.id") id: string,
-    @id("shiftsim.patient.service") service: i64,
-    @id("shiftsim.patient.deadline") deadline: i64,
-    @id("shiftsim.patient.assigned") assigned: bool,
-}
+use type @id("shiftsim.report") from shiftsim.response_schema as Report;
 
 @id("shiftsim.server")
 record Server {
     @id("shiftsim.server.id") id: string,
-    @id("shiftsim.server.free_at") free_at: i64,
 }
 
-@id("shiftsim.assignment")
-record Assignment {
-    @id("shiftsim.assignment.id") id: string,
-    @id("shiftsim.assignment.server") server: string,
-    @id("shiftsim.assignment.arrival") arrival: i64,
-    @id("shiftsim.assignment.start") start: i64,
-    @id("shiftsim.assignment.finish") finish: i64,
-    @id("shiftsim.assignment.wait") wait: i64,
-    @id("shiftsim.assignment.late") late: bool,
+@id("shiftsim.patient_state")
+record PatientState {
+    @id("shiftsim.patient_state.arrival") arrival: i64,
+    @id("shiftsim.patient_state.assigned") assigned: bool,
 }
 
-@id("shiftsim.metrics")
-record Metrics {
-    @id("shiftsim.metrics.patients") patients: i64,
-    @id("shiftsim.metrics.total_wait") total_wait: i64,
-    @id("shiftsim.metrics.max_wait") max_wait: i64,
-    @id("shiftsim.metrics.late") late: i64,
-    @id("shiftsim.metrics.busy_time") busy_time: i64,
-    @id("shiftsim.metrics.makespan") makespan: i64,
-    @id("shiftsim.metrics.peak_queue") peak_queue: i64,
-    @id("shiftsim.metrics.utilization_ppm") utilization_ppm: i64,
+@id("shiftsim.worker_state")
+record WorkerState {
+    @id("shiftsim.worker_state.free_at") free_at: i64,
 }
 
-@id("shiftsim.request")
-record Request {
-    @id("shiftsim.request.patients") patients: Vec<Patient>,
-    @id("shiftsim.request.servers") servers: Vec<Server>,
-}
-
-@id("shiftsim.report")
-record Report {
-    @id("shiftsim.report.assignments") assignments: Vec<Assignment>,
-    @id("shiftsim.report.metrics") metrics: Metrics,
+@id("shiftsim.schedule_result")
+record ScheduleResult {
+    @id("shiftsim.schedule_result.valid") valid: bool,
+    @id("shiftsim.schedule_result.report") report: Report,
 }

@@ -1,20 +1,43 @@
-# ShiftSim typed-record successor source
+# ShiftSim typed-record successor
 
-This isolated source draft carries scheduler values as named `Patient`,
-`Server`, `Assignment`, and `Metrics` records. `Patient` declaration order
-encodes the existing dispatch key `(priority, arrival, id)`; `Server` order
-encodes server-ID ordering. The helpers in `src/order.spx` use the admitted
-stable owned-record sort, so ordering is derived from declared fields rather
-than a hand-written comparator over parallel vectors.
+This source draft replaces the retained scheduler's six-slot scalar packing
+with named `Patient`, `Server`, `Assignment`, and `Metrics` records. The
+declared `Patient` field order is the dispatch key `(priority, arrival, id)`;
+the stable owned-record sort preserves those ties. Mutable scheduling state
+uses separate Copy records indexed alongside the sorted owners, so waiting and
+completion scans do not deep-clone patient IDs. IDs are cloned only when a
+completed assignment becomes part of the owned report.
 
-This is an application-source successor draft, not a benchmark candidate or a
-qualified result. It does not change the retained SEM03 candidate, its 15-case
-SPEC, corpus, oracle, accepted output, or qualification records. Input decoding
-and the full event loop are not yet bound: the nested-request codec and v32
-owned nested-outcome route must be available before this source can become the
-stdin application. Keep all original acceptance behavior and compare exact
-outputs when the owning current-head gate is run.
+The request and response schemas are authored in `src/request.spx` and
+`src/response.spx`. Bootstrap the ordinary compiler-generated helpers in a
+copy of this directory:
 
-The model follows the v31 private collection-record carrier boundary. It makes
-no claim that this example has passed compiler, backend, or benchmark
-qualification.
+```sh
+semaprax json-codec . --source src/request.spx --type shiftsim.request \
+  --output src/request.generated.spx --profile stream-owned-request.v1
+cp src/request.generated.spx src/request.spx
+semaprax json-codec . --source src/response.spx --type shiftsim.report \
+  --output src/response.generated.spx --profile bounded-collection-response.v1 \
+  --max-string-bytes 16
+cp src/response.generated.spx src/response.spx
+cp src/app.command.spx src/app.spx
+semaprax check .
+semaprax test .
+semaprax build . --target native -o shiftsim
+./shiftsim < fixtures/request.json
+```
+
+The request generator supplies the existing stream normalizer and owned
+decoder for `{servers:Vec<string>, patients:Vec<Patient>}`. The response
+generator emits the bounded encoder for `Report`, whose assignments contain
+both patient and server IDs. The command returns status 2 without output for a
+malformed request or a scheduler-range refusal; successful output is one
+canonical JSON line. `tests.spx` covers a tied two-patient/eight-server case
+and the full 256-patient serial boundary.
+
+The manifest selects the explicit v31 collection-record command profile.
+This is an application-source draft, not a qualified candidate: its
+compiler/backend execution and all 15 retained acceptance cases remain
+pending. The historical SEM03 candidate, SPEC, corpus, oracle, output, and
+qualification records are unchanged. This example makes no performance or
+token-savings claim.

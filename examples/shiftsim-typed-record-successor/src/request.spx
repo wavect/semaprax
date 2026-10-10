@@ -1,0 +1,21 @@
+module shiftsim.request_schema;
+
+permit { process.stdin.read }
+
+@id("shiftsim.patient")
+record Patient {
+    @id("shiftsim.patient.priority") priority: i64,
+    @id("shiftsim.patient.arrival") arrival: i64,
+    @id("shiftsim.patient.id") id: string,
+    @id("shiftsim.patient.service") service: i64,
+    @id("shiftsim.patient.deadline") deadline: i64,
+}
+
+@id("shiftsim.request")
+record Request {
+    @id("shiftsim.request.servers") servers: Vec<string>,
+    @id("shiftsim.request.patients") patients: Vec<Patient>,
+}
+
+@id("shiftsim.request.anchor")
+fn request_anchor() -> i64 { 0 }

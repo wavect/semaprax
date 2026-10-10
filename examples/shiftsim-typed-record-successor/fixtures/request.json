@@ -1,0 +1,1 @@
+{"servers":["S1","S0"],"patients":[{"id":"P1","arrival":0,"service":1,"priority":1,"deadline":10},{"id":"P0","arrival":0,"service":1,"priority":1,"deadline":10}]}

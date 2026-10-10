@@ -1,0 +1,31 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "shiftsim-typed-record-successor"
+version = "0.1.0"
+profile = "language-command-io.collection-record.v1"
+
+[modules]
+entry = "shiftsim.app"
+sources = ["src/app.spx", "src/request.spx", "src/response.spx", "src/model.spx", "src/order.spx", "src/schedule.spx", "src/tests.spx"]
+tests = ["shiftsim.tests"]
+
+[exports]
+web = ["shiftsim.command"]
+
+[command]
+function = "shiftsim.command"
+input = "argv-utf8+stdin-stream.v1"
+
+[capabilities]
+required = ["process.args.read", "process.stderr.write", "process.stdin.read", "process.stdout.write"]
+
+[dependencies]
+std.data.json.scan = "=0.1.0"
+std.data.json.token = "=0.1.0"
+std.data.json.digits = "=0.1.0"
+std.data.json.write = "=0.1.0"
+std.data.json.query = "=0.1.0"
+
+[targets]
+matrix = ["native64"]

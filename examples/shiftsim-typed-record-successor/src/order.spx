@@ -1,5 +1,5 @@
 module shiftsim.order;
-use type @id("shiftsim.patient") from shiftsim.model as Patient;
+use type @id("shiftsim.patient") from shiftsim.request_schema as Patient;
 use type @id("shiftsim.server") from shiftsim.model as Server;
 
 @id("shiftsim.order.patients")

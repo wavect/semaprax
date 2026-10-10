@@ -7,6 +7,8 @@ mod stream;
 mod public_example;
 #[path = "owned/stream_utf8_public_example.rs"]
 mod stream_utf8_public_example;
+#[path = "owned/shiftsim_typed_records.rs"]
+mod shiftsim_typed_records;
 
 const VALID: &[u8] = br#"{"patients":[{"id":"P2","arrival":2,"service":5,"priority":1,"deadline":8},{"id":"\u00501","arrival":1,"service":4,"priority":0,"deadline":9}],"servers":["S2","\u00531"]}"#;
 const EXPECTED: &[u8] = br#"{"servers":["S1","S2"],"patients":[{"id":"P1","arrival":2,"service":4,"priority":0,"deadline":9},{"id":"P2","arrival":2,"service":5,"priority":1,"deadline":8}]}"#;

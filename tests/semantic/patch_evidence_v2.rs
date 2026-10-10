@@ -511,6 +511,9 @@ fn v2_cli_arity_and_output_are_exact() {
 /// byte-identical again first.
 #[test]
 fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
+    // Reversing only native result initialization moved by 8d8f30824
+    // reproduces every prior target/capsule/receipt pin byte-for-byte through
+    // the original digest chain; all other artifact/report bytes are unchanged.
     let fixtures = [
         Fixture::v1("kat-v1"),
         Fixture::new("kat-v2"),
@@ -582,33 +585,33 @@ fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
     assert_eq!(
         previous_capsule_hashes,
         [
-            "7f678b6a9931d455f1fce03935e494c51de081aa0ecd03a7124985258a432768",
-            "0e4ce31db0d91d159e0f89d9bffd18968b1c0631420b80336a96bae0e1660aa0",
-            "e1495c29cd7d93fc239f42bef2a11ae8bc95fc07aeca276bdfe5ad0efa0c77a9",
+            "790904aedd533c4aea59a2307b0ab56d12b74b113b677d8e9b16905caf66bf46",
+            "20df271ddbbcf56a20fa451745deabf3a48cdcc4d0e814c1a8a1fca76312b603",
+            "51a98b0aab21bda7c39e0f4d9724e5a7c583f7447dd8636ffffd0d3edf6dcea2",
         ]
     );
     assert_eq!(
         previous_receipt_hashes,
         [
-            "d5697fd3c8056e80f28e13c51f1d8180161ed049bc532b0c02e63cfe8e89a0cc",
-            "49b670bcb568d7e657943c755f8809a4e00fa0fa70f824182a4a5f6ea11fba55",
-            "ca412699cda1e5aea87201bbddb6cc66809380bc921ebe7a9384db2378c0449c",
+            "e9e432f5cd723ebb8c34144eeca8fb3951cb11d645b92874ff2b0fbbc17dd7b8",
+            "e31f1db2e8fc380b320616687621b15a2299e63802e6b18e00fa9e5a767e892d",
+            "379bc1669311f3bb08e2e4d028d82b561fa03502eac81defc9efe041f8fe86a3",
         ]
     );
     assert_eq!(
         capsule_hashes,
         [
-            "93089618b1ef9f841f526f10c24fd51cc14e812bebdc5cb93a52d8e6a22e6e79",
-            "fa3e33dcf56eb1ad41009912b75d19aba4fdc36a7b646663b3ac7ae17dd2ebb7",
-            "d46d1c98d7017904c4727b0cdfeb64a525c210d22023fa77dc7685de50cb3b6f",
+            "15b7a5498114ed439bd59a859463f0b21ce7c9ce5037192454888bca3ff2a580",
+            "63ba569e82638b96f66e58e895919ff52f501105d6589a29867b0b8da777bcdb",
+            "589bd1817a5bfc9e58defb4c1e7b4d4368eced0ea5f1470a0fe786f422b6540e",
         ]
     );
     assert_eq!(
         receipt_hashes,
         [
-            "2c70ee808a5276eaa3bb8a4f14102a057b1ba7d229986a0fc9da24e227ae2812",
-            "0b42c0b839a2ef7d89c8d46f52679a99438ac39fa1e5e91fd96b9041cdd3608a",
-            "d35097a8cb6fc6d26d398d5498e5baec3a8dcb1f7b584d2c900a196186262f0c",
+            "8f1923c198ccd54913b4ff4d06f0c47ce7a5f0ebb9d4c189989d2b3058ec13ef",
+            "1698de1ae56067773403171b75cb1dd67b63f0f6557c3e780613bd5c253be0ae",
+            "9522729e30f236d03aaac8fe05ed8d5dfcfc9917e9f4666c4a1c6521d219b3e2",
         ]
     );
 }

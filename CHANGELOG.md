@@ -1,5 +1,9 @@
 # Changelog
 
+- Refresh target and patch-evidence KATs after full native-byte reconstruction
+  reproduces all 18 prior pins from only the result initialization relocation
+  and authenticated digest consequences; retain validator and replay hostiles.
+
 - Refresh freestanding artifact pins after byte-for-byte proof of the native
   result initialization relocation and its authenticated envelope consequences.
 

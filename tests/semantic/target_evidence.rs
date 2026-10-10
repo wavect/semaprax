@@ -530,23 +530,26 @@ fn whole_report_sha_kats_cover_patch_v1_v2_v3() {
         println!("SEMAPRAX_TARGET_EVIDENCE_BYTE_AUDIT={report}");
         report
     });
+    // Reversing only native result initialization moved by 8d8f30824
+    // reproduces every prior target/capsule/receipt pin byte-for-byte through
+    // the original digest chain; all other artifact/report bytes are unchanged.
     // The validator upgrade changes only the version fact, not target bytes.
     assert_eq!(
         reports
             .each_ref()
             .map(|report| sha256(&report.replace("0.259.0", "0.256.0"))),
         [
-            "e56cd9899f802904a852481c2d3ccaf1de2534598dee2a3d8600b2643b5ece76".to_owned(),
-            "e4c38f31ff3c6d7609b46399081092d3d21a290c4f539fe503151099a65996c1".to_owned(),
-            "1e54792c94a03de98389259feb8f80c61ac64e7c28860390a788c94d45d7339a".to_owned(),
+            "b3d6417d4ebdd50c007405030b60d7ddc26e05e7bf503c2a469c46d82f8bd3c0".to_owned(),
+            "5051b9c342761cf3990a1078adc50a81c044fe108e3c64ba40a3eba02b5461d3".to_owned(),
+            "9eb50a646b01df25b4ee0057520c7c2b9bb412f1ddc56b164ff0f21c774ee54f".to_owned(),
         ]
     );
     assert_eq!(
         reports.each_ref().map(|report| sha256(report)),
         [
-            "fd56977267b32d66d80ff3da9a632da562a26d1e80459e0ada67917db92c4c7b".to_owned(),
-            "3d05b636300e13b80c7f4e973294ea95d4db4ef4324a404703aa419dc1d2ac1c".to_owned(),
-            "cc839eed47b047040e9a5318159c518899dff9c2bdc46ff8936809b075753eef".to_owned(),
+            "f192bbd30d80416f47229850bb5cc4ba85ceddf2864fba63979c5a7f213cbbed".to_owned(),
+            "c9d6f9e58cc7c2c2604666873b1b152bc788e828828f03fbdf3d1c19a247c802".to_owned(),
+            "78de47706172a047e773a6d2fabb9b0bed736b85d80500efd489633a20eb6d75".to_owned(),
         ]
     );
 }

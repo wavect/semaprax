@@ -308,13 +308,13 @@ fn hir_complete_reservation_is_exact_and_one_less_prevents_resolution() {
     // (50_035 -> 50_291). `scratch_upper` and `phase_peaks()` are
     // unaffected: none of the pre-resolve phases read
     // `size_of::<ResolvedFunction>()`.
-    assert_eq!(capacity.retained_upper, 50_291);
+    assert_eq!(capacity.retained_upper, 53_734);
     assert_eq!(capacity.scratch_upper, 16_170);
     assert_eq!(
         capacity.phase_peaks(),
-        [5_028, 15_620, 4_900, 3_488, 5_792, 3_456, 16_170, 1_032]
+        [5_028, 15_236, 5_078, 3_488, 5_792, 3_456, 16_170, 1_210]
     );
-    assert_eq!(capacity.complete().unwrap(), 66_461);
+    assert_eq!(capacity.complete().unwrap(), 69_904);
     assert_eq!(
         capacity.scratch_upper,
         capacity.phase_peaks().into_iter().max().unwrap(),

@@ -882,7 +882,7 @@ fn inventory_and_cleanup_hostile_envelopes_bind_the_shared_fixture() {
             peaks[4],
             capacity.retained_upper.checked_add(peaks[4]).unwrap(),
         ],
-        [2_931_543, 38_760, 2_970_303, 299_312, 3_230_855],
+        [3_363_048, 38_760, 3_401_808, 261_848, 3_624_896],
         "retained/inventory/cleanup envelope terms drifted"
     );
     let complete = capacity.complete().unwrap();

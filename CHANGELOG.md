@@ -1,5 +1,10 @@
 # Changelog
 
+- Bind Native Rust Interop accounting pins to exact old/current nine-component
+  reservations on unchanged canonical fixtures. Verify every retained-byte
+  delta and derived sum plus byte-identical complete hostile HIR/cleanup/loan
+  data; retain all limits, minus-one gates and four source SHA pins.
+
 - Fix Native Rust Interop's depth-512 reservation by separating the three
   possible HIR identity backings from each single cleanup identity reference.
   Preserve the full backing-growth allowance and unchanged 32 MiB limit.

@@ -1,5 +1,8 @@
 # Changelog
 
+- Bind the hostile cleanup capacity pin to the measured shared-identity layout;
+  complete canonical HIR, cleanup, and loan proof bytes remain unchanged.
+
 - Refresh target and patch-evidence KATs after full native-byte reconstruction
   reproduces all 18 prior pins from only the result initialization relocation
   and authenticated digest consequences; retain validator and replay hostiles.

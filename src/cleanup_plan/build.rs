@@ -6564,9 +6564,13 @@ interface HostEcho permits { host.echo } {
             crate::cleanup::capacity_high_water(),
             super::lower_capacity_high_water(),
         ];
+        // ExpressionId sharing preserves all 303_665 canonical HIR/cleanup/loan
+        // bytes. Exact old/current peak terms decrease by 1_152 frame + 96
+        // result + 1_024 edge + 768 exit + 512 status + 17_152 nested bytes:
+        // 20_704 total, with every other peak component unchanged.
         assert_eq!(
             actual,
-            [9_224, 152_774],
+            [9_224, 132_070],
             "inventory/lowering owned-capacity high-water pins drifted"
         );
         assert!(actual[0] <= 6_492_084);

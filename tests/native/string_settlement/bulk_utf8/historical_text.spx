@@ -1,0 +1,65 @@
+@id("__ROW_ID__.json.utf8.valid")
+fn json___ROW___identifier_valid(input:borrow Slice<u8>,start:usize,end:usize)->bool {
+let length=byte_len(input);let mut valid=start<end && end<=length;
+let closed=if valid{jv_scan_string(input,start,false)}else{length+1usize};
+let total=if valid && closed==end{jv_decoded_len(input,start)}else{length+1usize};
+valid=valid && closed==end && total<=__BOUND__usize;
+let mut at=if valid{start+1usize}else{end};
+while valid && at<end-1usize {
+let escaped=match byte_get(input,at){Option::Some{value}=>value==92u8,Option::None{}=>false,};
+let scalar=if escaped{ju_escape_scalar(input,at)}else{ju_raw_scalar(input,at)};
+let next=if escaped{jv_token_end(input,at)}else{ju_raw_end(input,at)};
+valid=scalar>=0 && scalar<=1114111 && !(scalar>=55296 && scalar<=57343) && next>at && next<=end-1usize;
+at=if valid{next}else{end};valid && at<end-1usize
+}
+valid
+}
+@id("__ROW_ID__.json.utf8.materialize-text")
+fn json___ROW___utf8_text(input:borrow Slice<u8>,start:usize,end:usize)->string {
+if !json___ROW___identifier_valid(input,start,end){""}else{
+let mut text="";let mut at=start+1usize;
+while at<end-1usize {
+let escaped=match byte_get(input,at){Option::Some{value}=>value==92u8,Option::None{}=>false,};
+let scalar=if escaped{ju_escape_scalar(input,at)}else{ju_raw_scalar(input,at)};
+let _ = if scalar>=0 && scalar<=1114111 && !(scalar>=55296 && scalar<=57343){text=string_concat(text,string_from_char(char_from_i64(scalar)));true}else{false};
+at=if escaped{jv_token_end(input,at)}else{ju_raw_end(input,at)};at<end-1usize
+}
+text
+}
+}
+@id("__ROW_ID__.json.utf8.owned-valid")
+fn json___ROW___owned_valid(text:borrow str)->bool {
+let bytes=str_as_bytes(text);let length=byte_len(bytes);
+length<=__BOUND__usize && ju_raw_utf8_end(bytes,0usize)==length
+}
+@id("__ROW_ID__.json.utf8.quoted-len")
+fn json___ROW___utf8_quoted_len(text:borrow str)->usize {
+if !json___ROW___owned_valid(text){18446744073709551615usize}else{
+let bytes=str_as_bytes(text);let mut size=2usize;let mut at=0usize;
+while at<byte_len(bytes) {
+let byte=match byte_get(bytes,at){Option::Some{value}=>i64_from_u8(value),Option::None{}=>0,};
+size=size+(if byte==34 || byte==92 || byte==8 || byte==12 || byte==10 || byte==13 || byte==9{2usize}else{if byte<32{6usize}else{1usize}});
+at=at+1usize;at<byte_len(bytes)
+}
+size
+}
+}
+@id("__ROW_ID__.json.utf8.quoted-render")
+fn json___ROW___utf8_quote(text:borrow str)->string {
+if !json___ROW___owned_valid(text){""}else{
+let bytes=str_as_bytes(text);let mut output="\"";let mut at=0usize;
+while at<byte_len(bytes) {
+let scalar=ju_raw_scalar(bytes,at);
+let piece=if scalar==34{"\\\""}else{if scalar==92{"\\\\"}else{if scalar==8{"\\b"}else{if scalar==12{"\\f"}else{if scalar==10{"\\n"}else{if scalar==13{"\\r"}else{if scalar==9{"\\t"}else{
+if scalar<32 {
+let hi=scalar/16;let lo=scalar%16;
+let first=string_from_char(char_from_i64(if hi<10{48+hi}else{87+hi}));
+let second=string_from_char(char_from_i64(if lo<10{48+lo}else{87+lo}));
+string_concat(string_concat("\\u00",first),second)
+}else{string_from_char(char_from_i64(scalar))}
+}}}}}}};
+output=string_concat(output,piece);at=ju_raw_end(bytes,at);at<byte_len(bytes)
+}
+string_concat(output,"\"")
+}
+}

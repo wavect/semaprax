@@ -177,3 +177,6 @@ fn stream_bulk_copy_rechecks_epoch_and_preserves_internal_and_foreign_bounds() {
 
 #[path = "bulk_utf8/epoch.rs"]
 mod epoch;
+
+#[path = "bulk_utf8/paired_physical.rs"]
+mod paired_physical;

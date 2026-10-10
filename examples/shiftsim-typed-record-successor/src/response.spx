@@ -2,32 +2,52 @@ module shiftsim.response_schema;
 
 @id("shiftsim.assignment")
 record Assignment {
-    @id("shiftsim.assignment.id") id: string,
-    @id("shiftsim.assignment.server") server: string,
-    @id("shiftsim.assignment.arrival") arrival: i64,
-    @id("shiftsim.assignment.start") start: i64,
-    @id("shiftsim.assignment.finish") finish: i64,
-    @id("shiftsim.assignment.wait") wait: i64,
-    @id("shiftsim.assignment.late") late: bool,
+    @id("shiftsim.assignment.id")
+    id: string,
+    @id("shiftsim.assignment.server")
+    server: string,
+    @id("shiftsim.assignment.arrival")
+    arrival: i64,
+    @id("shiftsim.assignment.start")
+    start: i64,
+    @id("shiftsim.assignment.finish")
+    finish: i64,
+    @id("shiftsim.assignment.wait")
+    wait: i64,
+    @id("shiftsim.assignment.late")
+    late: bool,
 }
 
 @id("shiftsim.metrics")
 record Metrics {
-    @id("shiftsim.metrics.patients") patients: i64,
-    @id("shiftsim.metrics.total_wait") total_wait: i64,
-    @id("shiftsim.metrics.max_wait") max_wait: i64,
-    @id("shiftsim.metrics.late") late: i64,
-    @id("shiftsim.metrics.busy_time") busy_time: i64,
-    @id("shiftsim.metrics.makespan") makespan: i64,
-    @id("shiftsim.metrics.peak_queue") peak_queue: i64,
-    @id("shiftsim.metrics.utilization_ppm") utilization_ppm: i64,
+    @id("shiftsim.metrics.patients")
+    patients: i64,
+    @id("shiftsim.metrics.total_wait")
+    total_wait: i64,
+    @id("shiftsim.metrics.max_wait")
+    max_wait: i64,
+    @id("shiftsim.metrics.late")
+    late: i64,
+    @id("shiftsim.metrics.busy_time")
+    busy_time: i64,
+    @id("shiftsim.metrics.makespan")
+    makespan: i64,
+    @id("shiftsim.metrics.peak_queue")
+    peak_queue: i64,
+    @id("shiftsim.metrics.utilization_ppm")
+    utilization_ppm: i64,
 }
 
 @id("shiftsim.report")
 record Report {
-    @id("shiftsim.report.assignments") assignments: Vec<Assignment>,
-    @id("shiftsim.report.metrics") metrics: Metrics,
+    @id("shiftsim.report.assignments")
+    assignments: Vec<Assignment>,
+    @id("shiftsim.report.metrics")
+    metrics: Metrics,
 }
 
 @id("shiftsim.response.anchor")
-fn response_anchor() -> i64 { 0 }
+fn response_anchor() -> i64
+{
+    0
+}

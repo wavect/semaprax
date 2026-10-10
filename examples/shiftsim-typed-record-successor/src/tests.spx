@@ -1,5 +1,4 @@
 module shiftsim.tests;
-
 use type @id("shiftsim.patient") from shiftsim.request_schema as Patient;
 use type @id("shiftsim.request") from shiftsim.request_schema as Request;
 use type @id("shiftsim.assignment") from shiftsim.response_schema as Assignment;
@@ -24,46 +23,11 @@ fn test_tie_eight_workers() -> i64
     let servers6 = vec_push<string>(servers5, "S2");
     let servers7 = vec_push<string>(servers6, "S1");
     let servers = vec_push<string>(servers7, "S0");
-
     let patients0 = vec_with_capacity<Patient>(2usize);
-    let patients1 = vec_push<Patient>(patients0, Patient {
-        priority: 1, arrival: 0, id: "P1", service: 1, deadline: 10,
-    });
-    let patients = vec_push<Patient>(patients1, Patient {
-        priority: 1, arrival: 0, id: "P0", service: 1, deadline: 10,
-    });
-    let outcome = run(Request { servers, patients });
-    match own outcome {
-        ScheduleResult { valid: false, report: _report } => 1,
-        ScheduleResult { valid: true, report } => {
-            let expected_first_id = "P0";
-            let expected_first_server = "S0";
-            let expected_second_id = "P1";
-            let expected_second_server = "S1";
-            let first_id = vec_field<Assignment>(report.assignments, 0usize, "id");
-            let first_server = vec_field<Assignment>(report.assignments, 0usize, "server");
-            let first_start = vec_field<Assignment>(report.assignments, 0usize, "start");
-            let second_id = vec_field<Assignment>(report.assignments, 1usize, "id");
-            let second_server = vec_field<Assignment>(report.assignments, 1usize, "server");
-            let second_start = vec_field<Assignment>(report.assignments, 1usize, "start");
-            let first_ok = str_len_bytes(first_id) == 2
-                && str_starts_with(first_id, string_as_str(expected_first_id))
-                && str_len_bytes(first_server) == 2
-                && str_starts_with(first_server, string_as_str(expected_first_server))
-                && first_start == 0;
-            let second_ok = str_len_bytes(second_id) == 2
-                && str_starts_with(second_id, string_as_str(expected_second_id))
-                && str_len_bytes(second_server) == 2
-                && str_starts_with(second_server, string_as_str(expected_second_server))
-                && second_start == 0;
-            if vec_len<Assignment>(report.assignments) == 2usize
-                && first_ok && second_ok
-                && report.metrics.patients == 2 && report.metrics.peak_queue == 2
-                && report.metrics.busy_time == 2 && report.metrics.makespan == 1
-                && report.metrics.utilization_ppm == 250000
-            { 0 } else { 1 }
-        },
-    }
+    let patients1 = vec_push<Patient>(patients0, Patient { priority: 1, arrival: 0, id: "P1", service: 1, deadline: 10 });
+    let patients = vec_push<Patient>(patients1, Patient { priority: 1, arrival: 0, id: "P0", service: 1, deadline: 10 });
+    let outcome = run(Request { servers: servers, patients: patients });
+    match own outcome { ScheduleResult { valid: false, report: _report } => 1, ScheduleResult { valid: true, report } => { let expected_first_id = "P0"; let expected_first_server = "S0"; let expected_second_id = "P1"; let expected_second_server = "S1"; let first_id = vec_field<Assignment>(report.assignments, 0usize, "id"); let first_server = vec_field<Assignment>(report.assignments, 0usize, "server"); let first_start = vec_field<Assignment>(report.assignments, 0usize, "start"); let second_id = vec_field<Assignment>(report.assignments, 1usize, "id"); let second_server = vec_field<Assignment>(report.assignments, 1usize, "server"); let second_start = vec_field<Assignment>(report.assignments, 1usize, "start"); let first_ok = str_len_bytes(first_id) == 2 && str_starts_with(first_id, string_as_str(expected_first_id)) && str_len_bytes(first_server) == 2 && str_starts_with(first_server, string_as_str(expected_first_server)) && first_start == 0; let second_ok = str_len_bytes(second_id) == 2 && str_starts_with(second_id, string_as_str(expected_second_id)) && str_len_bytes(second_server) == 2 && str_starts_with(second_server, string_as_str(expected_second_server)) && second_start == 0; if vec_len<Assignment>(report.assignments) == 2usize && first_ok && second_ok && report.metrics.patients == 2 && report.metrics.peak_queue == 2 && report.metrics.busy_time == 2 && report.metrics.makespan == 1 && report.metrics.utilization_ppm == 250000 { 0 } else { 1 } }, }
 }
 
 @id("shiftsim.tests.max256_serial")
@@ -73,23 +37,11 @@ fn test_max256_serial() -> i64
     let mut index = 0usize;
     while index < 256usize {
         let person_id = string_concat("P", string_from_i64(i64_from_usize(index)));
-        patients = vec_push<Patient>(patients, Patient {
-            priority: 1, arrival: 0, id: person_id, service: 1, deadline: 1000000,
-        });
+        patients = vec_push<Patient>(patients, Patient { priority: 1, arrival: 0, id: person_id, service: 1, deadline: 1000000 });
         index = index + 1usize;
         0
     }
     let servers = vec_push<string>(vec_with_capacity<string>(1usize), "S0");
-    let outcome = run(Request { servers, patients });
-    match own outcome {
-        ScheduleResult { valid: false, report: _report } => 1,
-        ScheduleResult { valid: true, report } => {
-            if vec_len<Assignment>(report.assignments) == 256usize
-                && report.metrics.patients == 256 && report.metrics.total_wait == 32640
-                && report.metrics.max_wait == 255 && report.metrics.late == 0
-                && report.metrics.busy_time == 256 && report.metrics.makespan == 256
-                && report.metrics.peak_queue == 256 && report.metrics.utilization_ppm == 1000000
-            { 0 } else { 1 }
-        },
-    }
+    let outcome = run(Request { servers: servers, patients: patients });
+    match own outcome { ScheduleResult { valid: false, report: _report } => 1, ScheduleResult { valid: true, report } => { if vec_len<Assignment>(report.assignments) == 256usize && report.metrics.patients == 256 && report.metrics.total_wait == 32640 && report.metrics.max_wait == 255 && report.metrics.late == 0 && report.metrics.busy_time == 256 && report.metrics.makespan == 256 && report.metrics.peak_queue == 256 && report.metrics.utilization_ppm == 1000000 { 0 } else { 1 } }, }
 }

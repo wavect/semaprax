@@ -5,19 +5,30 @@ permit { process.stdin.read }
 // ID leads the declaration order so one stable sort makes duplicates adjacent.
 @id("catalog.input_item")
 record InputItem {
-    @id("catalog.input_item.id") id: string,
-    @id("catalog.input_item.department") department: i64,
-    @id("catalog.input_item.priority") priority: i64,
-    @id("catalog.input_item.stock") stock: i64,
-    @id("catalog.input_item.topup") topup: i64,
-    @id("catalog.input_item.mark") mark: u8,
+    @id("catalog.input_item.id")
+    id: string,
+    @id("catalog.input_item.department")
+    department: i64,
+    @id("catalog.input_item.priority")
+    priority: i64,
+    @id("catalog.input_item.stock")
+    stock: i64,
+    @id("catalog.input_item.topup")
+    topup: i64,
+    @id("catalog.input_item.mark")
+    mark: u8,
 }
 
 @id("catalog.request")
 record Request {
-    @id("catalog.request.tags") tags: Vec<string>,
-    @id("catalog.request.items") items: Vec<InputItem>,
+    @id("catalog.request.tags")
+    tags: Vec<string>,
+    @id("catalog.request.items")
+    items: Vec<InputItem>,
 }
 
 @id("catalog.request.anchor")
-fn request_anchor() -> i64 { 0 }
+fn request_anchor() -> i64
+{
+    0
+}

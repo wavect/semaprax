@@ -1998,9 +1998,6 @@ mod tests {
             raw_sha(prepared.proposal_source()),
             "sha256:b13dcbf801bdb0fe1cd05a5cff26b58085bc32a576d9a5b8fc7264755c5548f8"
         );
-        // Full old/current capture reproduces the a64 baseline byte-for-byte after
-        // restoring measured builder charges and authenticated digest bindings.
-        // All semantic fields, domains, limits, replay and hostile cases are unchanged.
         assert_eq!(
             [
                 raw_sha(artifacts.preview()),

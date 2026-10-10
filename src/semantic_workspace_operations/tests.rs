@@ -383,9 +383,6 @@ fn authenticated_derivation_kat_binds_refs_budget_nonclaims_and_build_counts() {
         output.derived_change_proposal_digest(),
         "sha256:5c7a67d42ef76b3a241c0dc98f3d8919a799d3745bb6ae54a1d0289a51ee3e86"
     );
-    // Full old/current capture reproduces the a64 baseline byte-for-byte after
-    // restoring measured builder charges and authenticated digest bindings.
-    // All semantic fields, domains, limits, replay and hostile cases are unchanged.
     assert_eq!(
         output.derivation_digest(),
         "sha256:6b4aff6f4a51fe0e8dd384e48ed8047e7fe730a48611e94caf70553e38f0c768"

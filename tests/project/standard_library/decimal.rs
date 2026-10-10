@@ -1,4 +1,5 @@
 //! Exact unsigned decimal source arithmetic; no machine-integer operand limit.
+use std::process::Command;
 use super::*;
 use semaprax::project::{ProjectExecutionOptions, ProjectExecutionOutcome};
 

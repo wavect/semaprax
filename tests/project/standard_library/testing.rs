@@ -1,4 +1,5 @@
 //! Byte assertions compose through ordinary owned Reader values and test codes.
+use std::process::Command;
 use semaprax::diagnostic::Diagnostic;
 
 use super::*;

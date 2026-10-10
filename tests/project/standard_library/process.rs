@@ -1,4 +1,5 @@
 //! Source-authored argv/cursor composition through all three process engines.
+use std::process::Command;
 use super::*;
 use semaprax::hosted_interpreter::HostedEnvironmentCommandInput;
 use semaprax::interpreter::CommandEvaluationOutcome;

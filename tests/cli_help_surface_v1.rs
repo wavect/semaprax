@@ -51,7 +51,7 @@ const DIAGNOSTIC_CODES: &str = concat!(
 const DIAGNOSTIC_T208: &str = concat!(
     "SPX-T208\n",
     "wrote: index + 1 when index: usize\n",
-    "fix: Literals default to i64; use index + 1usize\n",
+    "fix: Default i64; index + 1usize\n",
 );
 
 /// The command named by every indented entry of the guided overview.
@@ -92,14 +92,14 @@ fn cli_language_help_documents_run_string_fallback_and_json_schemas() {
     assert!(output.stderr.is_empty());
     let help = String::from_utf8(output.stdout).unwrap();
     for detail in [
-        "On the pure single-file interpreter route, `run` tries",
-        "then retries refusals with the internal String profile",
-        "parameters/results otherwise refused by `SPX-F102`",
+        "Pure single-file `run`: `semaprax.interpret.v1`, then internal Strings for owned",
+        "`string` parameters/results (`SPX-F102`). Both refuse: ordinary diagnostic.",
+        "Retry JSON `schema`: `semaprax.interpret.internal-strings.v1`.",
         "`semaprax.interpret.v1`",
         "`semaprax.interpret.internal-strings.v1`",
-        "Permit-selected command and stdout",
-        "runners skip this fallback.",
-        "refuse, report the\nordinary diagnostic.",
+        "Permit-selected",
+        "command/stdout skip fallback.",
+        "Both refuse: ordinary diagnostic.",
     ] {
         assert!(help.contains(detail), "missing help detail: {detail}");
     }
@@ -130,14 +130,14 @@ fn cli_language_projects_distinguishes_the_private_stream_data_profile() {
     assert!(output.stderr.is_empty());
     let help = String::from_utf8(output.stdout).unwrap();
     for detail in [
-        "The `stdin-stream-text` scaffold remains Project\nv25 for private owned-String helpers.",
+        "`stdin-stream-text` stays v25\nfor private owned-String helpers.",
         "`language-command-io.stream-data.v1`",
-        "immutable `borrow Vec<T>`\nparameters for the eight",
-        "(`i64`, `i32`, `u8`, `usize`, `char`,\n`f32`, `f64`, `bool`)",
-        "Pure `main` and test closures\nmay run in the authority-free Project interpreter",
-        "no stdin\nprovider or command adapter",
-        "v24/v25 retain their\nclosed helper boundaries",
-        "Web/npm refuse v27",
+        "V27 admits immutable `borrow Vec<T>` for\nall eight Copy scalars",
+        "(`i64`, `i32`, `u8`, `usize`, `char`, `f32`, `f64`, `bool`)",
+        "pure `main`/test closures may interpret without\nauthority",
+        "without\nauthority, stdin provider, or command adapter",
+        "v24/v25 retain closed helper boundaries",
+        "Web/Wasm/npm refuse v27",
     ] {
         assert!(
             help.contains(detail),

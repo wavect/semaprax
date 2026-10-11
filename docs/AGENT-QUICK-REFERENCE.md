@@ -1082,7 +1082,7 @@ Replace a 256-arm i64-to-byte or byte-to-char match with
 | native cleanup refusal postcheck|SPX-B104|Check cleanup; String-condition scalar match “parent is not canonical”: backend bug|
 | for range|SPX-P106|while; mut counter; discard tail|
 | assignment loop|SPX-P203|Scalar tail, e.g. 0|
-| local named result|SPX-S109, SPX-T201|Rename binding/uses to outcome; result denotes return only in ensures|
+| local named result|`SPX-S109`, `SPX-T201`|Rename binding/uses to outcome; result denotes return only in ensures|
 | statement call|SPX-P106|let _ = f(x) or tail result|
 | tuple|SPX-P106|Declare a record|
 | Option::Some { value: 1 }|SPX-T221|Option<i64>::Some { value: 1 }|
@@ -1116,21 +1116,21 @@ Replace a 256-arm i64-to-byte or byte-to-char match with
 | output exists|SPX-I307|Fresh --output; no overwrite; remove only confirmed own artifacts|
 | f()? in main|SPX-T218|Result-only; main matches|
 | array literal|SPX-T262|Byte arrays; Vec<i64> otherwise|
-| fn f() or -> ()|SPX-P106, SPX-P105|Result type required; no unit|
+| fn f() or -> ()|`SPX-P106`, `SPX-P105`|Result type required; no unit|
 | a[0]|SPX-P106|byte_get(array_as_slice(a), 0usize) (Option<u8>)|
-| Some(1), None|SPX-T203, SPX-T202|Option<i64>::Some { value: 1 }, Option<i64>::None {}|
+| Some(1), None|`SPX-T203`, `SPX-T202`|Option<i64>::Some { value: 1 }, Option<i64>::None {}|
 | s.len() on string|SPX-T203|string_len(s); only classes have methods|
-| str_as_bytes/nested string_as_str|SPX-T263, SPX-T266|Named String: str_as_bytes(string_as_str(text)); bind loop-carried slices beforehand|
+| str_as_bytes/nested string_as_str|`SPX-T263`, `SPX-T266`|Named String: str_as_bytes(string_as_str(text)); bind loop-carried slices beforehand|
 | direct output repeats per path / is loop-reachable|SPX-T269|Writes outside loops; profile caps: stdout+stderr ≤65536 bytes default; v28 appends ≤1 MiB|
 | string_as_str("literal")|SPX-T266|let s = "literal"; string_as_str(s)|
 | payload/generic ==|SPX-T207|Match; == only payload-free/nongeneric variants|
 | payload in or-pattern|SPX-M105|Payload-free only; split payload arms|
-| String/int/invalid Vec|SPX-T001/SPX-T281|String/scalars; explicit Copy Vec<T>; authenticated imports|
+| String/int/invalid Vec|`SPX-T001`/`SPX-T281`|String/scalars; explicit Copy Vec<T>; authenticated imports|
 | bad [modules]|SPX-J100|2–16 sorted sources; one bounded nonentry test module: entry="app", sources=["a.spx","b.spx"], tests=["app.tests"] [Manifest][manifest]|
 | generic while call|SPX-T252|vec_len<T>; imported generic aliases closed [While][while]|
 | rejected while helper|SPX-T252|Borrow compiler Copy-scalar Vec<T>; return scalar/flat Copy variant/string|
 | outer owner changes in while|SPX-T252|Keep outer ownership|
-| Bytes+usize renewal/input views|SPX-T252/SPX-T265|Pure nongeneric call; whole same-type owner return; whole named independent Slice/str borrows [renewal hook][renewal], executable gate pending|
+| Bytes+usize renewal/input views|`SPX-T252`/`SPX-T265`|Pure nongeneric call; whole same-type owner return; whole named independent Slice/str borrows [renewal hook][renewal], executable gate pending|
 | Vec capacity >8192|SPX-T282|Reduce vec_with_capacity<T>; Vec cap [Vec][vec]|
 | lookalike Vec wrapper|SPX-T283|Exact std.collections.vec.* ID only [Vec][vec]|
 | function: >256 shared loans|SPX-H006|Fewer loans; fixed cap [Loans][loans]|

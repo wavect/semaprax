@@ -50,7 +50,7 @@ const DIAGNOSTIC_CODES: &str = concat!(
 const DIAGNOSTIC_T208: &str = concat!(
     "SPX-T208\n",
     "wrote: index + 1 when index: usize\n",
-    "fix: Literals default to i64; use index + 1usize\n",
+    "fix: Default i64; index + 1usize\n",
 );
 
 fn guide_commands(guide: &str) -> Vec<&str> {

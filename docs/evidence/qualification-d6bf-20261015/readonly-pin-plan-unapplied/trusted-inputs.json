@@ -1,0 +1,9 @@
+{
+  "capture_head": "d6bf8151942190a956eb57350fa8b8892a8c68e5",
+  "later_root_head_at_preparation": "d6bf8151942190a956eb57350fa8b8892a8c68e5",
+  "build_receipt_sha256": "9fef9c7e57b48a23016bb1b45b32386780e679068ac0fc774244bca40442fa42",
+  "producer_receipt_sha256": "1fef1fa1d1a60576c283fc9280b4b92ce8c3a9712bfd492acadcccfeb229caf0",
+  "root": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+  "capture": "/Volumes/Semaprax/provenance/paid-route-pin-capture-d6bf-20261015",
+  "round": "/Volumes/Semaprax/lane-prompts/large-d6bf-qualification-20261015"
+}

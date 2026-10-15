@@ -1,0 +1,96 @@
+{
+  "source_basis": "8967ab82fbd11758c1b68e064cfd42f66cfb01c7",
+  "commands": [
+    {
+      "command": [
+        "python3",
+        "docs/evidence/incremental-source-composition-5f1fecd-20261015/prepare_next_packets.py"
+      ],
+      "exit_code": 0,
+      "log": "01-prepare_next_packets.log",
+      "sha256": "cecbe87032617132257df707d607ccba8533eec5cf98701ec1c9691fd7da6840",
+      "bytes": 53
+    },
+    {
+      "command": [
+        "python3",
+        "docs/evidence/incremental-source-composition-5f1fecd-20261015/prepare_starter_bindings.py",
+        "--basis",
+        "8967ab82fbd11758c1b68e064cfd42f66cfb01c7"
+      ],
+      "exit_code": 0,
+      "log": "02-prepare_starter_bindings.log",
+      "sha256": "199fb643530a398ef95de6620c86961bcf0c7fb3d1286b00b460dfb2e30b20a9",
+      "bytes": 72
+    },
+    {
+      "command": [
+        "python3",
+        "docs/evidence/incremental-source-composition-5f1fecd-20261015/prepare_receiver_bindings.py",
+        "--basis",
+        "8967ab82fbd11758c1b68e064cfd42f66cfb01c7"
+      ],
+      "exit_code": 0,
+      "log": "03-prepare_receiver_bindings.log",
+      "sha256": "6080f2583311e1ab6aa219683f417b08e404988d0a2d58d5bae01ece9391a8e3",
+      "bytes": 127
+    },
+    {
+      "command": [
+        "python3",
+        "docs/evidence/incremental-source-composition-5f1fecd-20261015/compose.py",
+        "--basis",
+        "8967ab82fbd11758c1b68e064cfd42f66cfb01c7"
+      ],
+      "exit_code": 0,
+      "log": "04-compose.log",
+      "sha256": "df6b214632d1815f35df6874902e0d258c3da17bb27e2203fcc1d8da274f4037",
+      "bytes": 116
+    },
+    {
+      "command": [
+        "python3",
+        "docs/evidence/incremental-source-composition-5f1fecd-20261015/compose.py",
+        "--verify-only",
+        "--basis",
+        "8967ab82fbd11758c1b68e064cfd42f66cfb01c7"
+      ],
+      "exit_code": 0,
+      "log": "05-compose-verify-only.log",
+      "sha256": "0b73dcf35e87a22daf83ee47d90de00db8c414aeac9b35a60664f725d906392c",
+      "bytes": 115
+    },
+    {
+      "command": [
+        "python3",
+        "docs/evidence/incremental-source-composition-5f1fecd-20261015/verify_joined.py",
+        "--basis",
+        "8967ab82fbd11758c1b68e064cfd42f66cfb01c7"
+      ],
+      "exit_code": 0,
+      "log": "06-verify_joined.log",
+      "sha256": "31c34ef2da33dc162cedbf3a989047bdefe03dfa925e0fca381b4519cc04fa6e",
+      "bytes": 2520
+    },
+    {
+      "command": [
+        "python3",
+        "docs/evidence/source36-main88884-merge-20261015/verify_source36.py"
+      ],
+      "exit_code": 0,
+      "log": "07-verify_source36.log",
+      "sha256": "17abff879a00f1fbfd0eead931829dc6f675c7dc7817d138ce9eda08e0161210",
+      "bytes": 246
+    },
+    {
+      "command": [
+        "python3",
+        "docs/evidence/weighted-storage-838-main2b5-adapter-20261015/verify_adapter.py"
+      ],
+      "exit_code": 0,
+      "log": "08-verify_adapter.log",
+      "sha256": "90a19961d246661e8a9375891e1764f3471808c584d581d68fed9c2962f91756",
+      "bytes": 544
+    }
+  ]
+}

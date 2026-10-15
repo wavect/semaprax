@@ -1,10 +1,11 @@
 //! Complete closed current source and independently retained originals.
+#[path = "source/compressed_fixture.rs"]
+mod compressed_fixture;
 #[test]
 fn finite_child_cut_sources_and_complete_old_receivers_stay_exact() {
-    let rows: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../../../../docs/evidence/selected-child-refusal-781/exact-source-inverses.json"
-    ))
-    .unwrap();
+    // Decode before the original JSON/source assertions, outside every measured route.
+    let decoded = compressed_fixture::load();
+    let rows: serde_json::Value = serde_json::from_str(&decoded).unwrap();
     assert_eq!(
         include_str!("../../paid_before_children.rs")
             .replacen(
@@ -236,6 +237,7 @@ fn finite_child_cut_sources_and_complete_old_receivers_stay_exact() {
     ];
     assert_eq!(rows.as_array().unwrap().len(), files.len());
     for (path, current) in files {
+        let current = compressed_fixture::prior_source(path, current);
         let matching = rows
             .as_array()
             .unwrap()

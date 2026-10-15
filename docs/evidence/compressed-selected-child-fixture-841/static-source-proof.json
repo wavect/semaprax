@@ -1,0 +1,20 @@
+{
+  "status": "SOURCE_ONLY_PASS",
+  "raw_fixture_unchanged": true,
+  "raw_bytes": 5196870,
+  "compressed_bytes": 483941,
+  "all_original_assertion_owner_bytes_restored": true,
+  "full_original_inverse_rows_replayed": 41,
+  "baseline851_preexisting_failed_inputs": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ],
+  "new_full_authenticated_views": 5,
+  "source_audit_joins": 3,
+  "lock_existing_versions_unchanged": true,
+  "Rust_execution": false,
+  "paired_compile_or_RSS_measurement": false,
+  "issue841": "OPEN_PENDING_RUNTIME_AND_MEANINGFUL_PAIRED_MEASUREMENT"
+}

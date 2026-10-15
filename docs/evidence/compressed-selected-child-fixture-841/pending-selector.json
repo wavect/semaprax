@@ -1,0 +1,7 @@
+{
+  "status": "AUTHORED_UNEXECUTED",
+  "package": "semaprax",
+  "harness": "lib",
+  "selector": "cleanup_plan::replay::selected_context::child::tests::source::finite_child_cut_sources_and_complete_old_receivers_stay_exact",
+  "new_decoder_controls": "same existing owner calls tiny boundary controls; no extra test function"
+}

@@ -6,6 +6,7 @@
   the full host's working directory, retaining all held no-follow reads and
   prepublication rechecks. Add relative/absolute exact-byte and symlink-refusal
   controls; source-only until focused qualification.
+- Author the bounded #841 test-only compressed-evidence pilot, preserving the raw fixture and all whole-source assertions. Source-only byte round-trip is verified; Rust qualification and paired compile-memory measurement remain pending.
 
 - Bind fresh application plan/activation reads (#837) to the existing no-follow bounded held regular-file owner, closing inspection/open symlink and FIFO replacement races. Add deterministic pre-open swap controls and small independent typed native-test selector owners. Source-only correction; execution remains pending.
 

@@ -211,6 +211,129 @@ pub(super) fn first_reusing<'a>(
     Ok(next)
 }
 
+pub(super) fn first_owned<'a>(
+    caller: &'a Program,
+    held: &mut Option<Census<'a>>,
+    work: &mut usize,
+) -> Result<u64, Vec<Diagnostic>> {
+    if !caller.interfaces.is_empty()
+        || !caller.protocols.is_empty()
+        || !caller.implementations.is_empty()
+        || !caller.session_protocols.is_empty()
+        || !caller.agents.is_empty()
+        || caller.types.iter().any(|t| {
+            matches!(
+                t.kind,
+                TypeDeclarationKind::Class { .. } | TypeDeclarationKind::Resource { .. }
+            )
+        })
+        || caller.functions.iter().any(|f| f.follows.is_some())
+    {
+        return Err(refusal());
+    }
+    reserve_builder_structure(
+        std::mem::size_of::<Result<u64, Vec<Diagnostic>>>()
+            + std::mem::size_of::<Result<(), Vec<Diagnostic>>>()
+            + std::mem::size_of::<&Program>()
+            + std::mem::size_of::<&mut Option<Census<'a>>>()
+            + std::mem::size_of::<&mut usize>()
+            + std::mem::size_of::<&mut Census<'a>>(),
+    )?;
+    // The existing registry owns this header; backing is acquired only here,
+    // after precisely the same unsupported-surface checks as the old census.
+    super::debit(work, 1)?;
+    if held.is_none() {
+        // Prepay this generation's eventual buffer teardown. Failure/drop does
+        // not borrow another owner's work or replace an already selected error.
+        super::debit(work, 1)?;
+        reserve_builder_structure(
+            std::mem::size_of::<Result<(), Vec<Diagnostic>>>()
+                + std::mem::size_of::<Result<Census<'a>, Vec<Diagnostic>>>()
+                + std::mem::size_of::<Option<Census<'a>>>(),
+        )?;
+        *held = Some(Census::new()?);
+    }
+    let census = held.as_mut().expect("acquired census scratch");
+    census.name(&caller.module)?;
+    for item in &caller.module_uses {
+        census.name(&item.alias)?;
+        census.name(&item.persistent_id)?;
+        census.name(&item.target_module)?;
+    }
+    for name in &caller.permits {
+        census.name(name)?;
+    }
+    for declaration in &caller.types {
+        census.name(&declaration.name)?;
+        census.name(&declaration.stable_id)?;
+        for p in &declaration.type_parameters {
+            census.name(&p.name)?;
+        }
+        if let Some(ty) = &declaration.extends {
+            census.ty(ty)?;
+        }
+        match &declaration.kind {
+            TypeDeclarationKind::Record { fields } => {
+                for f in fields {
+                    census.field(f)?;
+                }
+            }
+            TypeDeclarationKind::Variant { cases } => {
+                for case in cases {
+                    census.name(&case.name)?;
+                    census.name(&case.stable_id)?;
+                    for f in &case.fields {
+                        census.field(f)?;
+                    }
+                }
+            }
+            TypeDeclarationKind::Class { .. } | TypeDeclarationKind::Resource { .. } => {
+                return Err(refusal())
+            }
+        }
+        for e in declaration.invariants() {
+            census.expr(e)?;
+        }
+    }
+    for f in &caller.functions {
+        census.name(&f.name)?;
+        census.name(&f.stable_id)?;
+        for p in &f.type_parameters {
+            census.name(&p.name)?;
+        }
+        for p in &f.params {
+            census.name(&p.name)?;
+            census.ty(&p.ty)?;
+        }
+        census.ty(&f.return_type)?;
+        for name in &f.effects {
+            census.name(name)?;
+        }
+        if let Some(y) = &f.yields {
+            census.ty(&y.request_type)?;
+            census.ty(&y.response_type)?;
+        }
+        for e in f
+            .requires
+            .iter()
+            .chain(std::iter::once(&f.body))
+            .chain(&f.ensures)
+        {
+            census.expr(e)?;
+        }
+    }
+    let next = census.next.ok_or_else(refusal)?;
+    // All three traversal stacks are empty after a successful full walk. Pay
+    // the five new reset operations before clearing references and counters.
+    super::debit(work, 5)?;
+    census.expressions.clear();
+    census.types.clear();
+    census.patterns.clear();
+    census.remaining = WORK;
+    census.next = Some(0);
+    Ok(next)
+}
+
 fn refusal() -> Vec<Diagnostic> {
     vec![graph_error(
         "SPX-G172",

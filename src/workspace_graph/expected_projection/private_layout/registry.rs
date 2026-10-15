@@ -16,7 +16,8 @@ pub(in crate::workspace_graph) struct LayoutRegistry<'a> {
     slots: RefCell<Vec<Option<LayoutClosure<'a>>>>,
     ledger: RefCell<Option<std::rc::Rc<super::ledger::Ledger>>>,
     empty: RefCell<LayoutClosure<'a>>,
-    census: RefCell<Option<super::names::Census<'a>>>,
+    retained: RefCell<Option<storage::Storage<'a>>>,
+    has_storage: Cell<bool>,
     remaining: Cell<usize>,
     receipt: Cell<usize>,
     failed: Cell<bool>,
@@ -37,7 +38,8 @@ impl<'a> LayoutRegistry<'a> {
                 entries: Vec::new(),
                 owners: None,
             }),
-            census: RefCell::new(None),
+            retained: RefCell::new(None),
+            has_storage: Cell::new(false),
             remaining: Cell::new(WORK),
             receipt: Cell::new(0),
             failed: Cell::new(false),
@@ -53,10 +55,17 @@ impl<'a> LayoutRegistry<'a> {
     /// monotonic: dropping scratch grants no refund or authority. A later cold
     /// caller acquires and pays new backing at its ordinary census point.
     pub(in crate::workspace_graph) fn release_scratch(&self) {
-        self.census.borrow_mut().take();
+        if self.has_storage.replace(false) {
+            self.retained.borrow_mut().take();
+        }
     }
 
     fn fail(&self) {
+        if self.has_storage.get() {
+            if let Some(storage) = self.retained.borrow().as_ref() {
+                storage.reject();
+            }
+        }
         self.release_scratch();
         self.failed.set(true);
         self.remaining.set(0);
@@ -86,12 +95,22 @@ impl<'a> LayoutRegistry<'a> {
             self.remaining.set(remaining)
         }
     }
-    fn prepare<T>(
+    fn prepare(
         &self,
-        operation: impl FnOnce() -> Result<T, Vec<Diagnostic>>,
-    ) -> Result<T, Vec<Diagnostic>> {
+        operation: impl FnOnce() -> Result<(), Vec<Diagnostic>>,
+    ) -> Result<(), Vec<Diagnostic>> {
         if self.is_failed() {
             return Err(refusal());
+        }
+        if self.has_storage.get() {
+            let mut held = self.retained.borrow_mut();
+            let storage = held.as_mut().expect("held generation owns next-entry bank");
+            if !storage.enter(self.programs, self.authored, self.ledger.borrow().as_ref()) {
+                let error = storage.take_rejection();
+                drop(held);
+                self.fail();
+                return Err(error);
+            }
         }
         let available = super::super::super::active_builder_limit()
             .checked_sub(self.receipt.get())
@@ -106,6 +125,12 @@ impl<'a> LayoutRegistry<'a> {
         self.receipt.set(total);
         if overflowed || result.is_err() {
             self.fail()
+        } else if self.has_storage.get() {
+            self.retained
+                .borrow_mut()
+                .as_mut()
+                .expect("successful generation")
+                .bind_restored_parent();
         }
         if overflowed {
             result.and_then(|_| {
@@ -206,14 +231,33 @@ impl<'a> LayoutRegistry<'a> {
                 self.derivations.set(self.derivations.get() + 1);
                 DERIVATIONS.with(|count| count.set(count.get() + 1));
             }
+            // Actual current-child lease controls precede any new borrow.
+            super::reserve_builder_structure(storage::Storage::lease_controls())?;
+            if !self.has_storage.get() {
+                super::reserve_builder_structure(storage::Storage::acquisition_arguments())?;
+                let storage = storage::Storage::acquire(
+                    self.programs,
+                    self.authored,
+                    self.ledger.borrow().as_ref().expect("acquired work ledger"),
+                )?;
+                *self.retained.borrow_mut() = Some(storage);
+                self.has_storage.set(true);
+            } else {
+                // The previous child paid this entry. This child pays exactly
+                // one next entry, even if unused at release; no refund exists.
+                super::reserve_builder_structure(storage::Storage::entry_controls())?;
+            }
+            let mut held = self.retained.borrow_mut();
+            let storage = held.as_mut().expect("acquired storage generation");
+            storage.renew_entry();
             let mut work = self.work_remaining();
-            let layout = LayoutClosure::derive_with_scratch(
+            let layout = LayoutClosure::derive_with_owned_storage(
                 &self.programs[index],
                 self.authored,
                 self.programs,
                 &mut work,
                 self.ledger.borrow().as_ref(),
-                &mut self.census.borrow_mut(),
+                storage,
             );
             self.set_remaining(work);
             let layout = layout?;
@@ -250,3 +294,12 @@ fn observe_derivations<T>(operation: impl FnOnce() -> T) -> (T, usize) {
 #[cfg(test)]
 #[path = "registry/scratch_tests.rs"]
 mod scratch_tests;
+
+#[cfg(test)]
+#[path = "registry/before_retained.rs"]
+mod before_retained;
+#[cfg(test)]
+#[path = "registry/retained_tests.rs"]
+mod retained_tests;
+#[path = "registry/storage.rs"]
+pub(super) mod storage;

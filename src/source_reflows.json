@@ -1326,6 +1326,32 @@
     ]
   },
   {
+    "path": "src/source_verify/declaration/functions.rs",
+    "before_sha256": "66c5704c3d423fb73c790c34bf273b30ed21e835790e6034b42e299f0a71a474",
+    "after_sha256": "eac543ff2fda4e17dfd372f421d44ccdb337aeb27e30ea643d6ab86a890a2a44",
+    "inverse": [
+      {
+        "after": "        }\n    }\n}\n#[allow(\n    clippy::duplicate_mod,\n    reason = \"Run the same controls against independent receivers.\"\n)]\nmod traversal_scope;\nuse traversal_scope::static_binding;\nconst MAX_STATIC_MAPPING_DEPTH: usize = 128;\n",
+        "before": "        }\n    }\n}\nmod traversal_scope;\nuse traversal_scope::static_binding;\nconst MAX_STATIC_MAPPING_DEPTH: usize = 128;\n"
+      }
+    ]
+  },
+  {
+    "path": "src/source_verify/declaration/functions/public_signature_before.rs",
+    "before_sha256": "21cf514809f4f9d271d5497744d948203ecca1afbd924c4a22061884117bf129",
+    "after_sha256": "2ae5c2bbaf96bb273789f7431551ebae1a53bc458706e6ec20637d655e79f64b",
+    "inverse": [
+      {
+        "after": "        diagnostics.push(error.at_path(program.path()));\n    }\n}\n",
+        "before": "        diagnostics.push(error.at_path(program.path()));\n    }\n}\n\n"
+      },
+      {
+        "after": "    }\n}\n#[path = \"traversal_scope.rs\"]\n#[allow(\n    clippy::duplicate_mod,\n    reason = \"Run the same controls against independent receivers.\"\n)]\nmod traversal_scope;\nuse traversal_scope::static_binding;\nconst MAX_STATIC_MAPPING_DEPTH: usize = 128;\n",
+        "before": "    }\n}\n#[path = \"traversal_scope.rs\"]\nmod traversal_scope;\nuse traversal_scope::static_binding;\nconst MAX_STATIC_MAPPING_DEPTH: usize = 128;\n"
+      }
+    ]
+  },
+  {
     "path": "src/source_verify/iterative/calls/calls_before_components.rs",
     "before_sha256": "dc13235a22d94c36bbb726fad0fa93c4993ced6f25ef943f14e1562093d824ef",
     "after_sha256": "d66c04be8c658186decde992b398455c4e5384beaa3dd9e9735695aa1c3704ba",
@@ -1447,11 +1473,15 @@
   {
     "path": "src/workspace_graph/expected_projection/borrowed_imports.rs",
     "before_sha256": "cbea3d04790517cf7584fe1163000314dbf514990b5cd5ed4429564e59f23675",
-    "after_sha256": "af99934fd00043729c81059b50a045051ee6daf539a81b9a79c85a87e933b132",
+    "after_sha256": "63fb2d0a638c87533099d62e1de65988c92ebf37a1329e283c9f4cdccb338bbf",
     "inverse": [
       {
         "after": "\n#[cfg(test)]\n#[path = \"borrowed_imports/tests.rs\"]\n#[allow(\n    clippy::duplicate_mod,\n    reason = \"Run the same controls against independent receivers.\"\n)]\nmod tests;\n\n#[path = \"borrowed_imports/inline.rs\"]\n",
         "before": "\n#[cfg(test)]\n#[path = \"borrowed_imports/tests.rs\"]\nmod tests;\n\n#[path = \"borrowed_imports/inline.rs\"]\n"
+      },
+      {
+        "after": "//! Exact-source imported overlays, including ordinary classified retained\n//! wrappers and invariant/class roots. Views confer no import authority.\n#[path = \"borrowed_imports/alias_clone.rs\"]\n#[allow(\n    clippy::duplicate_mod,\n    reason = \"Run the same controls against independent receivers.\"\n)]\nmod alias_clone;\n#[path = \"borrowed_imports/receiving.rs\"]\n#[allow(\n    clippy::duplicate_mod,\n    reason = \"Run the same controls against independent receivers.\"\n)]\nmod receiving;\nuse super::{\n    active_builder_limit, ast_function_cost, ast_function_signature_cost,\n",
+        "before": "//! Exact-source imported overlays, including ordinary classified retained\n//! wrappers and invariant/class roots. Views confer no import authority.\n#[path = \"borrowed_imports/alias_clone.rs\"]\nmod alias_clone;\n#[path = \"borrowed_imports/receiving.rs\"]\nmod receiving;\nuse super::{\n    active_builder_limit, ast_function_cost, ast_function_signature_cost,\n"
       }
     ]
   },
@@ -1469,11 +1499,15 @@
   {
     "path": "src/workspace_graph/expected_projection/borrowed_imports_original.rs",
     "before_sha256": "0c4c18c12a4c617ed90103a3107e38a93e9590c27eb0514d9c6d81c21a92a9c7",
-    "after_sha256": "9fde22693b1cb549f5ed25316e380859e5a93796a79c26bd482df2c309b990c6",
+    "after_sha256": "f2c4873ebc9e093e5d837490cc5b5573a282c9b7efa9fd5bb258af81910917e2",
     "inverse": [
       {
         "after": "\n#[cfg(test)]\n#[path = \"borrowed_imports/tests.rs\"]\n#[allow(\n    clippy::duplicate_mod,\n    reason = \"Run the same controls against independent receivers.\"\n)]\nmod tests;\n",
         "before": "\n#[cfg(test)]\n#[path = \"borrowed_imports/tests.rs\"]\nmod tests;\n"
+      },
+      {
+        "after": "//! Exact-source imported overlays, including ordinary classified retained\n//! wrappers and invariant/class roots. Views confer no import authority.\n#[path = \"borrowed_imports/alias_clone.rs\"]\n#[allow(\n    clippy::duplicate_mod,\n    reason = \"Run the same controls against independent receivers.\"\n)]\nmod alias_clone;\n#[path = \"borrowed_imports/receiving.rs\"]\n#[allow(\n    clippy::duplicate_mod,\n    reason = \"Run the same controls against independent receivers.\"\n)]\nmod receiving;\nuse super::{\n    active_builder_limit, ast_function_cost, ast_function_signature_cost,\n",
+        "before": "//! Exact-source imported overlays, including ordinary classified retained\n//! wrappers and invariant/class roots. Views confer no import authority.\n#[path = \"borrowed_imports/alias_clone.rs\"]\nmod alias_clone;\n#[path = \"borrowed_imports/receiving.rs\"]\nmod receiving;\nuse super::{\n    active_builder_limit, ast_function_cost, ast_function_signature_cost,\n"
       }
     ]
   },

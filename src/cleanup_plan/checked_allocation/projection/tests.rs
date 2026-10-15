@@ -37,7 +37,7 @@ fn deferred_allocating_call_keeps_caller_epochs_until_both_successes_and_rejects
     let physical = plan
         .status_sources
         .iter()
-        .filter(|source| {
+        .rfind(|source| {
             matches!(
                 &source.producer,
                 StatusProducer::CheckedAllocation {
@@ -46,7 +46,6 @@ fn deferred_allocating_call_keeps_caller_epochs_until_both_successes_and_rejects
                 }
             )
         })
-        .next_back()
         .expect("the actual reserve backing source")
         .id
         .clone();

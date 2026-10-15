@@ -42,6 +42,37 @@ canonical replay, cache equality, failure priority, ceilings and forecasts are
 unchanged. Shared clones allocate no identity payload; existing conservative clone
 forecasts remain until a separate owner proves a reduction.
 
+## Ordinary empty-renewal branch clone
+
+The ordinary ActiveBuilder path-state branch receiver has a separate empty-map
+constructor. Before publishing a borrowed payload it proves the current renewal map empty and pays producer,
+outward-result and receiving borrowed-view controls and all cloned payload
+backing. Compound types keep the original type census scratch. Atomic type tags
+have no child containers and use a closed stackless clone census instead; no
+cursor is constructed or charged for those tags. Its affine borrowed view
+contains the other seven state fields and cannot name the renewal map. The
+receiving constructor creates `BTreeMap::new()` and copies every other field;
+it has no map to clone. Nonempty maps, selected reservations, independent oracle
+accounts and unobserved replay retain the complete original clone and census.
+
+This tightens a conservative reservation bound and avoids the atomic type
+census's fixed stack cursor. On the pinned standard library
+the original empty-map clone already makes no heap allocation, including after
+history removal; no runtime-allocation, RSS or speed improvement is claimed.
+The new constructor makes that absence explicit independently of map clone's
+internal representation. Its new borrowed controls remain charged. It neither
+subtracts from the old census nor refunds a debit, changes a ceiling, resets work
+or omits a semantic replay. The original branch-history work request remains at
+its original position before physical receiver selection.
+
+`cleanup_plan::replay::path_join::storage::empty_renewals::tests` owns full
+eight-field parity, all atomic type tags, both measurement orders, independent
+requested-layout counts, unchanged work, complete result/budget Drop, every reservation frontier,
+exact/short/zero and sticky retry. Selected and nonempty negative controls retain
+their old receiver. These current-source owning tests and whole-application fit
+remain unqualified until exact-head CI executes them. The small local standard
+library smoke exercise covers the copied constructor body and field parity only.
+
 Authored owning controls cover old owned-String trait/wire parity, all empty/NUL/
 Unicode distinctions, duplicate independent backings, static/shared equivalence,
 borrowed and already-owned overlap, zero/exact/one-short refusal, sticky same-ledger

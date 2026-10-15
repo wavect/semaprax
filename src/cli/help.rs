@@ -1464,7 +1464,7 @@ mod tests {
         assert!(t208.len() * 20 < full_index.len());
         assert!(
             semaprax::agent_economics::lexical_tokens(&t208) * 20
-                < semaprax::agent_economics::lexical_tokens(&full_index)
+                < semaprax::agent_economics::lexical_tokens(full_index)
         );
 
         let p106 = diagnostic_entry("SPX-P106").unwrap();

@@ -10,8 +10,8 @@ use semaprax::agent_runtime::AgentCancellation;
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{
     render_project_lock, with_authenticated_project, ExactProgramContext, ExactProgramContextV2,
-    ImageArtifactKind, InterfaceArtifactFacts, ProgramRootV2, ProjectFrontendSource,
-    ProjectRevision, SemanticWorkspaceService, WorkspaceExecutionBinding,
+    ImageArtifactKind, InterfaceArtifactFacts, ProgramRootV2, ProjectFrontendCache,
+    ProjectFrontendSource, ProjectRevision, SemanticWorkspaceService, WorkspaceExecutionBinding,
     WorkspaceExecutionRootVersion, MAX_IMAGE_ARTIFACT_BUILD_BYTES,
 };
 use serde_json::{json, Value};
@@ -341,7 +341,30 @@ fn workspace_execution_retains_historical_generation_across_exact_refresh() {
             &old_root,
             Arc::clone(&candidate_context),
         )
-        .unwrap();
+        .unwrap_or_else(|errors| {
+            // Keep the exact refresh refusal fatal. Report a separately rebuilt
+            // warm/cold comparison so a cache drift cannot hide behind G577.
+            let mut frontend = ProjectFrontendCache::new_with_semantic_cache();
+            frontend.build(current_project.manifest(), &current_sources).unwrap();
+            frontend.build(current_project.manifest(), &current_sources).unwrap();
+            let warm = frontend.build(candidate_project.manifest(), &candidate_sources).unwrap();
+            let warm = warm.revision();
+            let warm_graph: Value = serde_json::from_str(warm.semantic_graph()).unwrap();
+            let cold_graph: Value = serde_json::from_str(candidate_project.semantic_graph()).unwrap();
+            let comparison = json!({
+                "project_revision_equal": warm.project_revision() == candidate_project.project_revision(),
+                "workspace_revision_equal": warm.workspace_revision() == candidate_project.workspace_revision(),
+                "manifest_equal": warm.manifest().to_canonical_toml() == candidate_project.manifest().to_canonical_toml(),
+                "workspace_manifest_equal": warm.workspace_manifest() == candidate_project.workspace_manifest(),
+                "sources_equal": warm.sources() == candidate_project.sources(),
+                "graph_equal": warm.semantic_graph() == candidate_project.semantic_graph(),
+                "warm_graph_budget": warm_graph["budget"],
+                "cold_graph_budget": cold_graph["budget"],
+                "warm_graph_digest": warm_graph["graph_digest"],
+                "cold_graph_digest": cold_graph["graph_digest"],
+            });
+            panic!("exact refresh refused: {errors:?}; warm/cold comparison: {comparison}");
+        });
     assert!(!refresh.generation_reused());
     assert_refused(historical.require_current(&service));
     assert_refused(WorkspaceExecutionBinding::select(

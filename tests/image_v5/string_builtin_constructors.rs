@@ -163,13 +163,13 @@ fn payload(response: Value) -> Value {
 }
 fn metadata(catalog: &Value) {
     let rows = catalog["builtin_calls"].as_array().unwrap();
-    // Thirteen byte operations, including the fixed-width and tagged source owned writes,
+    // Fourteen byte operations, including bounded zeroing and the fixed-width/tagged writes,
     // and nine String-producing or String operations.
-    assert_eq!(rows.len(), 22);
-    assert!(rows[..13]
+    assert_eq!(rows.len(), 23);
+    assert!(rows[..14]
         .iter()
         .all(|row| row["evidence_owner"] == "compiler_byte_operations"));
-    assert!(rows[13..]
+    assert!(rows[14..]
         .iter()
         .all(|row| row["evidence_owner"] == "compiler_string_operations"));
     // The owned buffer operations publish their exact arity and the transfer that
@@ -178,6 +178,11 @@ fn metadata(catalog: &Value) {
     assert_eq!(zeroed["name"], "bytes_zeroed");
     assert_eq!(zeroed["arity"], 1);
     assert_eq!(zeroed["parameters"][0]["ownership"], "value");
+    let bounded = row_for(rows, "core.bytes.zeroed-bounded");
+    assert_eq!(bounded["name"], "bytes_zeroed_bounded");
+    assert_eq!(bounded["arity"], 2);
+    assert_eq!(bounded["parameters"][0]["ownership"], "value");
+    assert_eq!(bounded["parameters"][1]["ownership"], "value");
     let set = row_for(rows, "core.bytes.set");
     assert_eq!(set["name"], "bytes_set");
     assert_eq!(set["arity"], 3);
@@ -202,7 +207,7 @@ fn metadata(catalog: &Value) {
     assert_eq!(set1_or6_or48["parameters"][0]["ownership"], "own");
     assert_eq!(set1_or6_or48["parameters"][3]["ownership"], "borrow");
     for (index, (id, name, arity, ty, ownership, result)) in OPERATIONS.into_iter().enumerate() {
-        let row = &rows[index + 13];
+        let row = &rows[index + 14];
         assert_eq!(row.as_object().unwrap().len(), 9);
         assert_eq!(row["target"], id);
         assert_eq!(row["name"], name);
@@ -303,7 +308,7 @@ fn every_string_builtin_body_is_replayed_with_exact_selected_identity_and_no_cha
 }
 
 #[test]
-fn schemas_publish_twenty_two_exact_arity_branches_and_both_client_type_graphs() {
+fn schemas_publish_twenty_three_exact_arity_branches_and_both_client_type_graphs() {
     let fixture = Fixture::new();
     for diagnostics in [false, true] {
         let mut session = fixture.session(diagnostics);
@@ -321,7 +326,7 @@ fn schemas_publish_twenty_two_exact_arity_branches_and_both_client_type_graphs()
                 .iter()
                 .filter(|row| row["properties"]["kind"]["const"] == "builtin_call")
                 .count(),
-            22
+            23
         );
         assert!(forms
             .iter()
@@ -344,7 +349,7 @@ fn schemas_publish_twenty_two_exact_arity_branches_and_both_client_type_graphs()
             .iter()
             .find(|doc| doc["$id"] == "urn:semaprax.project-change-catalog.v1")
             .unwrap();
-        assert_eq!(catalogue["properties"]["builtin_calls"]["maxItems"], 22);
+        assert_eq!(catalogue["properties"]["builtin_calls"]["maxItems"], 23);
         let kinds = catalogue["properties"]["builtin_calls"]["items"]["oneOf"]
             .as_array()
             .unwrap();

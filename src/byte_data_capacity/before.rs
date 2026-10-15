@@ -1306,6 +1306,10 @@ fn flow_node_bound(function: &str) -> CapacityError {
 }
 
 #[path = "fused.rs"]
+#[allow(
+    clippy::duplicate_mod,
+    reason = "Run the same controls against independent receivers."
+)]
 mod fused;
 
 #[cfg(test)]
@@ -1318,4 +1322,8 @@ mod tests;
 
 #[cfg(test)]
 #[path = "fused_tests.rs"]
+#[allow(
+    clippy::duplicate_mod,
+    reason = "Run the same controls against independent receivers."
+)]
 mod fused_tests;

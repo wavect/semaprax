@@ -6,7 +6,7 @@ use super::{
 use super::super::{
     ResolvedExprKind, ResolvedMatchPattern, ResolvedStatement, ValueId, bare_place, receiver_shape,
 };
-use intervals::{Freeze, Kind};
+use super::intervals::{Freeze, Kind};
 #[derive(Clone, Copy)]
 struct Receiver<'a> {
     expression: &'a ResolvedExpr,

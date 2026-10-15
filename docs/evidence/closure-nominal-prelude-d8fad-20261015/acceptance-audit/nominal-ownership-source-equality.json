@@ -1,0 +1,68 @@
+{
+  "scope": "Complete owned nominal/index directories and owning resolver files only; not a blanket transitive compiler-equivalence claim",
+  "rows": [
+    {
+      "path": "src/hir/declaration_index",
+      "immutable_git_object": "e53996c1ce454066f9403d0e25900c20aa4f5367",
+      "equal_heads": [
+        "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+        "7a87b33115c0cd45b14cac64d7b37e5742503159",
+        "2bfd63d1610a89906bb6d4d03489aac7ed5c375b"
+      ]
+    },
+    {
+      "path": "src/hir/nominal_payload",
+      "immutable_git_object": "d929a5d1064e57ecacb23de5c708a060e8f9daa8",
+      "equal_heads": [
+        "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+        "7a87b33115c0cd45b14cac64d7b37e5742503159",
+        "2bfd63d1610a89906bb6d4d03489aac7ed5c375b"
+      ]
+    },
+    {
+      "path": "src/hir/nominal_payload.rs",
+      "immutable_git_object": "f4b1668987644855584c0e30c1183096d31c0228",
+      "equal_heads": [
+        "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+        "7a87b33115c0cd45b14cac64d7b37e5742503159",
+        "2bfd63d1610a89906bb6d4d03489aac7ed5c375b"
+      ]
+    },
+    {
+      "path": "src/hir/resolve_program.rs",
+      "immutable_git_object": "31829b10fe23851cfb206d9a08b6ed35f87d88a4",
+      "equal_heads": [
+        "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+        "7a87b33115c0cd45b14cac64d7b37e5742503159",
+        "2bfd63d1610a89906bb6d4d03489aac7ed5c375b"
+      ]
+    },
+    {
+      "path": "src/hir/identity_resolution/nominal.rs",
+      "immutable_git_object": "ab920c8bdac025a9b8d77b9130ff5280002e126a",
+      "equal_heads": [
+        "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+        "7a87b33115c0cd45b14cac64d7b37e5742503159",
+        "2bfd63d1610a89906bb6d4d03489aac7ed5c375b"
+      ]
+    },
+    {
+      "path": "src/hir/identity_resolution/nominal_original.rs",
+      "immutable_git_object": "a909460d8e2904a3fe7390972d4f6ae704986b74",
+      "equal_heads": [
+        "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+        "7a87b33115c0cd45b14cac64d7b37e5742503159",
+        "2bfd63d1610a89906bb6d4d03489aac7ed5c375b"
+      ]
+    },
+    {
+      "path": "src/hir/identity_resolution/nominal_tests.rs",
+      "immutable_git_object": "3b889b25973d6167a3f6d731c2fb93f71719d7d1",
+      "equal_heads": [
+        "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+        "7a87b33115c0cd45b14cac64d7b37e5742503159",
+        "2bfd63d1610a89906bb6d4d03489aac7ed5c375b"
+      ]
+    }
+  ]
+}

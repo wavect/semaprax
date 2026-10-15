@@ -1,0 +1,299 @@
+[
+  {
+    "selector": "cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+    "source_path": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+    "actual_head": "d8fadfb7cd5ece54504cda542575e5a154d3657c",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "dc0861b2c46d7b06b2f0396e409310a7de28fd133829c53a8756f24ea35638cf",
+    "current_body_sha256": "dc0861b2c46d7b06b2f0396e409310a7de28fd133829c53a8756f24ea35638cf"
+  },
+  {
+    "selector": "cleanup_plan::replay::live_oracle::source_custody::b::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+    "source_path": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+    "actual_head": "d8fadfb7cd5ece54504cda542575e5a154d3657c",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "45a1e89742e81db14e1bbcc4b8b8bc45857da19d82188917e0e701aa2d4ddada",
+    "current_body_sha256": "45a1e89742e81db14e1bbcc4b8b8bc45857da19d82188917e0e701aa2d4ddada"
+  },
+  {
+    "selector": "hir::declaration_index::leaf_drop_tests::nested_nominal_payloads_keep_iterative_depth_512_disposal_and_complete_settlement",
+    "source_path": "src/hir/declaration_index/leaf_drop_tests.rs",
+    "actual_head": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "5639003462f99d72e85aeebe23062dd9868576acc877ad36519537844441e751",
+    "current_body_sha256": "5639003462f99d72e85aeebe23062dd9868576acc877ad36519537844441e751"
+  },
+  {
+    "selector": "hir::declaration_index::leaf_drop_tests::sixteen_actual_leaf_fields_remove_only_the_original_literal_drop_queue",
+    "source_path": "src/hir/declaration_index/leaf_drop_tests.rs",
+    "actual_head": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "55d41e788981a5ab9829b230d54e1718b4f28b4c7d20fa455feb830fc3342a8d",
+    "current_body_sha256": "55d41e788981a5ab9829b230d54e1718b4f28b4c7d20fa455feb830fc3342a8d"
+  },
+  {
+    "selector": "hir::declaration_index::leaf_drop_tests::zero_argument_nominal_fields_do_not_allocate_drop_scratch",
+    "source_path": "src/hir/declaration_index/leaf_drop_tests.rs",
+    "actual_head": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "cbc3426242b271f27a7fad729840bea25c4e3de7dd3a713a72244984b5e07b98",
+    "current_body_sha256": "cbc3426242b271f27a7fad729840bea25c4e3de7dd3a713a72244984b5e07b98"
+  },
+  {
+    "selector": "hir::declaration_index::legacy_drop::tests::branching_unfunded_disposal_settles_every_allocation_and_original_sticky_ledger",
+    "source_path": "src/hir/declaration_index/legacy_drop/tests.rs",
+    "actual_head": "940fcf220e47d1975f757e76f0b3401691db9358",
+    "whole_source_exact": false,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "9f73e74ec4d70abd9eb6a05ce20338d671aadbb302235c1e97f8ad34c2ca2269",
+    "current_body_sha256": "9f73e74ec4d70abd9eb6a05ce20338d671aadbb302235c1e97f8ad34c2ca2269"
+  },
+  {
+    "selector": "hir::declaration_index::legacy_drop::tests::complete_previous_drop_and_existing_mixed_case_512_owner_remain_exact",
+    "source_path": "src/hir/declaration_index/legacy_drop/tests.rs",
+    "actual_head": "940fcf220e47d1975f757e76f0b3401691db9358",
+    "whole_source_exact": false,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "3f4a23c366e48b6ad03cf6de47a50d2ae6b400d945ef6f13af39c417a899aae5",
+    "current_body_sha256": "3f4a23c366e48b6ad03cf6de47a50d2ae6b400d945ef6f13af39c417a899aae5"
+  },
+  {
+    "selector": "hir::declaration_index::legacy_drop::tests::detached_legacy_case_roots_reuse_argument_backing_and_keep_complete_old_drop_independent",
+    "source_path": "src/hir/declaration_index/legacy_drop/tests.rs",
+    "actual_head": "940fcf220e47d1975f757e76f0b3401691db9358",
+    "whole_source_exact": false,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "55c2d7dfee22337363c5b7f01554d920bac8e94f14823c959f43b302a7d50aad",
+    "current_body_sha256": "55c2d7dfee22337363c5b7f01554d920bac8e94f14823c959f43b302a7d50aad"
+  },
+  {
+    "selector": "hir::declaration_index::legacy_drop::tests::multiple_case_record_roots_and_function_spines_drop_iteratively_without_new_backing",
+    "source_path": "src/hir/declaration_index/legacy_drop/tests.rs",
+    "actual_head": "d6bf8151942190a956eb57350fa8b8892a8c68e5",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "67488bfdac70c81e1e3139992faba900e850d7abda56c17e028b88caeff17d27",
+    "current_body_sha256": "67488bfdac70c81e1e3139992faba900e850d7abda56c17e028b88caeff17d27"
+  },
+  {
+    "selector": "hir::declaration_index::linked_owned_data::tests::legacy::legacy_final_case_coordinates_and_detached_children_drop_512_without_new_backing",
+    "source_path": "src/hir/declaration_index/linked_owned_data/tests/legacy.rs",
+    "actual_head": "d6bf8151942190a956eb57350fa8b8892a8c68e5",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "ead1a28f25b37f846fa428792f8e4ec2af0d30750a2f5fb21b86d692980cf6aa",
+    "current_body_sha256": "ead1a28f25b37f846fa428792f8e4ec2af0d30750a2f5fb21b86d692980cf6aa"
+  },
+  {
+    "selector": "hir::declaration_index::linked_owned_data::tests::legacy::legacy_final_constructor_observes_real_owned_baseline_and_whole_drop_both_orders",
+    "source_path": "src/hir/declaration_index/linked_owned_data/tests/legacy.rs",
+    "actual_head": "940fcf220e47d1975f757e76f0b3401691db9358",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "60eb7e40d60cb9a0c010fc0f8a45198567f0030042651025744fb887ad09da24",
+    "current_body_sha256": "60eb7e40d60cb9a0c010fc0f8a45198567f0030042651025744fb887ad09da24"
+  },
+  {
+    "selector": "hir::declaration_index::linked_owned_data::tests::legacy::legacy_final_constructor_preserves_complete_old_hir_wire_and_mutation_isolation",
+    "source_path": "src/hir/declaration_index/linked_owned_data/tests/legacy.rs",
+    "actual_head": "940fcf220e47d1975f757e76f0b3401691db9358",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "1eb2b7c0779bef6ed7d525f194861b5ef158a7b27fdea92aab703014fa204f70",
+    "current_body_sha256": "1eb2b7c0779bef6ed7d525f194861b5ef158a7b27fdea92aab703014fa204f70"
+  },
+  {
+    "selector": "hir::declaration_index::linked_owned_data::tests::legacy::legacy_final_constructor_retains_all_original_fact_errors_and_partial_map_order",
+    "source_path": "src/hir/declaration_index/linked_owned_data/tests/legacy.rs",
+    "actual_head": "828f258503ec98c6cc9b1b59d307ad604bcf681d",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "837a480586f2530a9f40276784230b77c34ac92499906f667a695bc1fe00f2ec",
+    "current_body_sha256": "837a480586f2530a9f40276784230b77c34ac92499906f667a695bc1fe00f2ec"
+  },
+  {
+    "selector": "hir::declaration_index::linked_owned_data::tests::linked_nominal_views_keep_full_old_errors_partial_maps_and_first_fact_order",
+    "source_path": "src/hir/declaration_index/linked_owned_data/tests.rs",
+    "actual_head": "828f258503ec98c6cc9b1b59d307ad604bcf681d",
+    "whole_source_exact": false,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "c5b0398b73170eb4298f780154999a2a23cc8d0c7e62c5cee88bafbd6bd1d2c0",
+    "current_body_sha256": "c5b0398b73170eb4298f780154999a2a23cc8d0c7e62c5cee88bafbd6bd1d2c0"
+  },
+  {
+    "selector": "hir::declaration_index::linked_owned_data::tests::linked_nominal_views_preserve_complete_old_maps_wire_and_owned_decoded_facts",
+    "source_path": "src/hir/declaration_index/linked_owned_data/tests.rs",
+    "actual_head": "828f258503ec98c6cc9b1b59d307ad604bcf681d",
+    "whole_source_exact": false,
+    "whole_test_body_exact": false,
+    "old_body_sha256": "a38d387f957c92fae0bf862c9f0075667923e553dd0dfaf05e9bbf7019cb28ba",
+    "current_body_sha256": "3c92a674928111e79146cdae2007583b4b290598112712162a715479ff6c85c2"
+  },
+  {
+    "selector": "hir::declaration_index::linked_owned_data::tests::linked_nominal_views_remove_actual_discarded_backing_and_retain_owner_until_drop",
+    "source_path": "src/hir/declaration_index/linked_owned_data/tests.rs",
+    "actual_head": "828f258503ec98c6cc9b1b59d307ad604bcf681d",
+    "whole_source_exact": false,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "9a01a448674d592eaa7362794a9f98ffb04fe1c7dc6b67e8761b9a6a1323f873",
+    "current_body_sha256": "9a01a448674d592eaa7362794a9f98ffb04fe1c7dc6b67e8761b9a6a1323f873"
+  },
+  {
+    "selector": "hir::declaration_index::linked_owned_data::tests::linked_shared_case_views_last_owner_drop_uses_prepaid_iterative_frontier",
+    "source_path": "src/hir/declaration_index/linked_owned_data/tests.rs",
+    "actual_head": "828f258503ec98c6cc9b1b59d307ad604bcf681d",
+    "whole_source_exact": false,
+    "whole_test_body_exact": false,
+    "old_body_sha256": "1d6dfe8082ac21bef3bf0f80fd288f03c05bdb72fed62c4d3e22c4753cfcca1f",
+    "current_body_sha256": "4708a92f533eb5ccedebf13510d5ddeeaaffeb979046eae76eb0000ce86362e9"
+  },
+  {
+    "selector": "hir::identity_resolution::nominal_tests::nominal_actual_paid_receiver_preserves_complete_old_hir_wire_and_shares_all_nominal_views",
+    "source_path": "src/hir/identity_resolution/nominal_tests.rs",
+    "actual_head": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "ebac472d46936354d3fd6985e4363cd0f3e0f638722550b9f135b2cbc35c5fbd",
+    "current_body_sha256": "ebac472d46936354d3fd6985e4363cd0f3e0f638722550b9f135b2cbc35c5fbd"
+  },
+  {
+    "selector": "hir::identity_resolution::nominal_tests::nominal_full_constructor_exact_short_zero_and_preselected_owner_refusal",
+    "source_path": "src/hir/identity_resolution/nominal_tests.rs",
+    "actual_head": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "7090a532bbf3f4309620bab40582828d45bd1645e40fb0d24863d169ada0265d",
+    "current_body_sha256": "7090a532bbf3f4309620bab40582828d45bd1645e40fb0d24863d169ada0265d"
+  },
+  {
+    "selector": "hir::identity_resolution::nominal_tests::nominal_full_constructor_keeps_complete_old_semantic_diagnostic_order",
+    "source_path": "src/hir/identity_resolution/nominal_tests.rs",
+    "actual_head": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "9f9dd16e0b1d1095ab9e3e73b35262ea1c927300134b124ccb0632c1f68fcdef",
+    "current_body_sha256": "9f9dd16e0b1d1095ab9e3e73b35262ea1c927300134b124ccb0632c1f68fcdef"
+  },
+  {
+    "selector": "hir::identity_resolution::nominal_tests::nominal_full_constructor_refuses_at_every_actual_acquisition_and_releases_all_partial_owners",
+    "source_path": "src/hir/identity_resolution/nominal_tests.rs",
+    "actual_head": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "eae96859c5fb085703ce138bb88d7898a924464af8f9ab132a0586575340c1f0",
+    "current_body_sha256": "eae96859c5fb085703ce138bb88d7898a924464af8f9ab132a0586575340c1f0"
+  },
+  {
+    "selector": "hir::nominal_payload::tests::actual_nominal_owner_moves_complete_vec_and_shares_without_backing_clone",
+    "source_path": "src/hir/nominal_payload/tests.rs",
+    "actual_head": "5b562965d2fc8e75c552f19e4f81ec7ab0835b68",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "a2bf81f45889319b19f57366770296a1b842cd0c39331a67917756f2b2f1c034",
+    "current_body_sha256": "a2bf81f45889319b19f57366770296a1b842cd0c39331a67917756f2b2f1c034"
+  },
+  {
+    "selector": "hir::nominal_payload::tests::nested_512_last_owner_drop_uses_only_its_preacquired_disposal_backing",
+    "source_path": "src/hir/nominal_payload/tests.rs",
+    "actual_head": "828f258503ec98c6cc9b1b59d307ad604bcf681d",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "e5e5a6368de45bde466062db3c10bf2798a5d9a2b4c6143a993db60c4f7f5581",
+    "current_body_sha256": "e5e5a6368de45bde466062db3c10bf2798a5d9a2b4c6143a993db60c4f7f5581"
+  },
+  {
+    "selector": "hir::nominal_payload::tests::shared_mutation_refuses_without_touching_either_full_owner",
+    "source_path": "src/hir/nominal_payload/tests.rs",
+    "actual_head": "828f258503ec98c6cc9b1b59d307ad604bcf681d",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "9a943130c295d8431d8ba158c388da1a407b8bb7c63fcf075fb1c9f1c1e2dfaa",
+    "current_body_sha256": "9a943130c295d8431d8ba158c388da1a407b8bb7c63fcf075fb1c9f1c1e2dfaa"
+  },
+  {
+    "selector": "hir::nominal_payload::tests::zero_one_short_exact_and_sticky_refusal_preserve_complete_input_before_allocation",
+    "source_path": "src/hir/nominal_payload/tests.rs",
+    "actual_head": "5b562965d2fc8e75c552f19e4f81ec7ab0835b68",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "c9a07948488955da7f25e6bf24d8e788efe9fd2431ebef6dc5444de01ca25113",
+    "current_body_sha256": "c9a07948488955da7f25e6bf24d8e788efe9fd2431ebef6dc5444de01ca25113"
+  },
+  {
+    "selector": "owned_bounded_box_runtime::owned_bounded_box_copy_scalars_interpret_with_exact_cleanup",
+    "source_path": "tests/owned_data/owned_bounded_box_runtime.rs",
+    "actual_head": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "b2707f371a8c49f92f516457c8214110b9281ac4a187d2a1dc2dfa08a9b03fb9",
+    "current_body_sha256": "b2707f371a8c49f92f516457c8214110b9281ac4a187d2a1dc2dfa08a9b03fb9"
+  },
+  {
+    "selector": "owned_iterator_payloads::owned_iterator_payloads_interpreter_and_native_transfer_and_settlement",
+    "source_path": "tests/owned_data/owned_iterator_payloads.rs",
+    "actual_head": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "d8f55a6e2fe6121bef6b4145f6a2ba0e494c0a511e12f45ab418bb17871235cf",
+    "current_body_sha256": "d8f55a6e2fe6121bef6b4145f6a2ba0e494c0a511e12f45ab418bb17871235cf"
+  },
+  {
+    "selector": "owned_record_vec_runtime::iterator::manual_next_and_for_own_execute_and_settle_on_all_backends",
+    "source_path": "tests/owned_data/owned_record_vec_runtime/iterator.rs",
+    "actual_head": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "907dcf50d50c22fab72f885c084a6693dae408c9d8283dd5d554f4af6e40132b",
+    "current_body_sha256": "907dcf50d50c22fab72f885c084a6693dae408c9d8283dd5d554f4af6e40132b"
+  },
+  {
+    "selector": "project::incremental::checked_hir::tests::lifecycle::actual_cold_warm_cache_core_and_publication_match_owned_receiver_through_drop",
+    "source_path": "src/project/incremental/checked_hir/tests/lifecycle.rs",
+    "actual_head": "7a87b33115c0cd45b14cac64d7b37e5742503159",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "5ab2ef596edd0154144096f4ecd51bc71ee1439f75d115570e5130888637a2fb",
+    "current_body_sha256": "5ab2ef596edd0154144096f4ecd51bc71ee1439f75d115570e5130888637a2fb"
+  },
+  {
+    "selector": "project::incremental::cold_source_tests::explicit_owner_siblings_match_legacy_selective_routes_and_body_reuse",
+    "source_path": "src/project/incremental/cold_source_tests.rs",
+    "actual_head": "7a87b33115c0cd45b14cac64d7b37e5742503159",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "4d3cb98d9589d2c3a6b52f5432d5db3952398da4fcbf94b1bbc624a0c5894d9a",
+    "current_body_sha256": "4d3cb98d9589d2c3a6b52f5432d5db3952398da4fcbf94b1bbc624a0c5894d9a"
+  },
+  {
+    "selector": "semantic_graph::public_api_cli_bytes_getters_and_read_only_locking_are_exact",
+    "source_path": "tests/workspace/semantic_graph.rs",
+    "actual_head": "d8fadfb7cd5ece54504cda542575e5a154d3657c",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "fc91304e49a417efbd65ba1a589d70fa421069a3559696986241e9a742ea86f3",
+    "current_body_sha256": "fc91304e49a417efbd65ba1a589d70fa421069a3559696986241e9a742ea86f3"
+  },
+  {
+    "selector": "semantic_graph::public_workspace_analysis_api_cli_kats_and_locking_are_exact",
+    "source_path": "tests/workspace/semantic_graph.rs",
+    "actual_head": "d8fadfb7cd5ece54504cda542575e5a154d3657c",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "3c91237b966e76526b5fc1cf0e23e0004881ebd88d837a9ffb982d1bb22f5e70",
+    "current_body_sha256": "3c91237b966e76526b5fc1cf0e23e0004881ebd88d837a9ffb982d1bb22f5e70"
+  },
+  {
+    "selector": "workspace_graph::type_proof_tests::projection_tests::rendered_document_has_literal_sha_exact_wire_order_and_digest_binding",
+    "source_path": "src/workspace_graph/type_proof_tests.rs",
+    "actual_head": "d8fadfb7cd5ece54504cda542575e5a154d3657c",
+    "whole_source_exact": true,
+    "whole_test_body_exact": true,
+    "old_body_sha256": "525ad74d42f5eda6aab2b5e76de0ba22f9fd2f97a4db53652632be4148895fe8",
+    "current_body_sha256": "525ad74d42f5eda6aab2b5e76de0ba22f9fd2f97a4db53652632be4148895fe8"
+  }
+]

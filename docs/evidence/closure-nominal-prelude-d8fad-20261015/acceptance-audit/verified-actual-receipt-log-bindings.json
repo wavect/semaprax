@@ -1,0 +1,982 @@
+{
+  "verified": [
+    {
+      "issue": 827,
+      "selector": "project::incremental::checked_hir::tests::lifecycle::actual_cold_warm_cache_core_and_publication_match_owned_receiver_through_drop",
+      "receipt": "docs/evidence/qualification-7a87-145-20261015/round/owning-selected-results.json",
+      "receipt_sha256": "6e8f85c6d9d5742e7e4fea362d0b28f66c90b9ed7475f7d18afe3510bb15efe4",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-7a87-145-20261015/round/owning-selected-144.log",
+      "log_sha256": "03206851b9584d6444a7770c8a9d9386bc0311f2c24053441478bab48ef78a4e",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "7a87b33115c0cd45b14cac64d7b37e5742503159",
+      "historical": false
+    },
+    {
+      "issue": 827,
+      "selector": "hir::declaration_index::legacy_drop::tests::multiple_case_record_roots_and_function_spines_drop_iteratively_without_new_backing",
+      "receipt": "docs/evidence/qualification-d6bf-20261015/qualification/owning-selected-results.json",
+      "receipt_sha256": "1d048441e26467a0c94bdcb67ee5dece0fa29cebfa54f7e9659b5bad926716e2",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-d6bf-20261015/qualification/owning-selected-12.log",
+      "log_sha256": "5970344f313a264f32b792bf76d0372e4f8126148b89e6c1434cd2d48fe678e3",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "d6bf8151942190a956eb57350fa8b8892a8c68e5",
+      "historical": true
+    },
+    {
+      "issue": 827,
+      "selector": "hir::declaration_index::leaf_drop_tests::zero_argument_nominal_fields_do_not_allocate_drop_scratch",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-189.log",
+      "log_sha256": "08d879826fa921fd4e6b199efdb323f4d614986c6597b8948eb8eb5391a63f0d",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 827,
+      "selector": "hir::declaration_index::linked_owned_data::tests::legacy::legacy_final_case_coordinates_and_detached_children_drop_512_without_new_backing",
+      "receipt": "docs/evidence/qualification-d6bf-20261015/qualification/owning-selected-results.json",
+      "receipt_sha256": "1d048441e26467a0c94bdcb67ee5dece0fa29cebfa54f7e9659b5bad926716e2",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-d6bf-20261015/qualification/owning-selected-81.log",
+      "log_sha256": "c9a335f66342a77ffc3aa1ae1907bd3339c9345c6c970e7dd91a9aa7e0f7a111",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "d6bf8151942190a956eb57350fa8b8892a8c68e5",
+      "historical": true
+    },
+    {
+      "issue": 827,
+      "selector": "hir::declaration_index::legacy_drop::tests::complete_previous_drop_and_existing_mixed_case_512_owner_remain_exact",
+      "receipt": "docs/evidence/qualification-940f-20261015/owning-selected-results.json",
+      "receipt_sha256": "86a188b607c195db7222fa2473f97cde394e7e6f017d78d933554fc5f8ce6ec6",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-940f-20261015/owning-selected-28.log",
+      "log_sha256": "b664065d7f8e61497999fecea16c11a02bcf88d962b98eeb16d3090180cba691",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "940fcf220e47d1975f757e76f0b3401691db9358",
+      "historical": true
+    },
+    {
+      "issue": 827,
+      "selector": "hir::declaration_index::linked_owned_data::tests::legacy::legacy_final_constructor_preserves_complete_old_hir_wire_and_mutation_isolation",
+      "receipt": "docs/evidence/qualification-940f-20261015/owning-selected-results.json",
+      "receipt_sha256": "86a188b607c195db7222fa2473f97cde394e7e6f017d78d933554fc5f8ce6ec6",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-940f-20261015/owning-selected-30.log",
+      "log_sha256": "61a8e14f409d2b5bcbe5ff8a45f072f06487eff68e92e34624b4b46d31b64c73",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "940fcf220e47d1975f757e76f0b3401691db9358",
+      "historical": true
+    },
+    {
+      "issue": 827,
+      "selector": "project::incremental::cold_source_tests::explicit_owner_siblings_match_legacy_selective_routes_and_body_reuse",
+      "receipt": "docs/evidence/qualification-7a87-145-20261015/round/owning-selected-results.json",
+      "receipt_sha256": "6e8f85c6d9d5742e7e4fea362d0b28f66c90b9ed7475f7d18afe3510bb15efe4",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-7a87-145-20261015/round/owning-selected-143.log",
+      "log_sha256": "129c943d05ad50f48fa8993cdf9b87cf5804851a0ba3ce414ab12233cbc211d1",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "7a87b33115c0cd45b14cac64d7b37e5742503159",
+      "historical": false
+    },
+    {
+      "issue": 827,
+      "selector": "hir::declaration_index::leaf_drop_tests::sixteen_actual_leaf_fields_remove_only_the_original_literal_drop_queue",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-188.log",
+      "log_sha256": "71926c0c942ff3d39492b81be0ac7ddd210bfda5dbf6c0a39568d989c7fe3fc4",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 827,
+      "selector": "hir::declaration_index::legacy_drop::tests::branching_unfunded_disposal_settles_every_allocation_and_original_sticky_ledger",
+      "receipt": "docs/evidence/qualification-940f-20261015/owning-selected-results.json",
+      "receipt_sha256": "86a188b607c195db7222fa2473f97cde394e7e6f017d78d933554fc5f8ce6ec6",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-940f-20261015/owning-selected-27.log",
+      "log_sha256": "1e176486cea7cb75be8e0565e3626920956ae715899e1d2099096a0f5e80561d",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "940fcf220e47d1975f757e76f0b3401691db9358",
+      "historical": true
+    },
+    {
+      "issue": 827,
+      "selector": "hir::declaration_index::leaf_drop_tests::nested_nominal_payloads_keep_iterative_depth_512_disposal_and_complete_settlement",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-187.log",
+      "log_sha256": "a0b5242a0a6b2605a8887b752eb5545da22ec5c538f0889271c3522cd61ee042",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 827,
+      "selector": "hir::declaration_index::linked_owned_data::tests::legacy::legacy_final_constructor_observes_real_owned_baseline_and_whole_drop_both_orders",
+      "receipt": "docs/evidence/qualification-940f-20261015/owning-selected-results.json",
+      "receipt_sha256": "86a188b607c195db7222fa2473f97cde394e7e6f017d78d933554fc5f8ce6ec6",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-940f-20261015/owning-selected-29.log",
+      "log_sha256": "5b33116f568ec1478bb46a1cc76a3245e59cfeaf6321b0b6a19c975a69f63def",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "940fcf220e47d1975f757e76f0b3401691db9358",
+      "historical": true
+    },
+    {
+      "issue": 827,
+      "selector": "hir::declaration_index::legacy_drop::tests::detached_legacy_case_roots_reuse_argument_backing_and_keep_complete_old_drop_independent",
+      "receipt": "docs/evidence/qualification-940f-20261015/owning-selected-results.json",
+      "receipt_sha256": "86a188b607c195db7222fa2473f97cde394e7e6f017d78d933554fc5f8ce6ec6",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-940f-20261015/owning-selected-25.log",
+      "log_sha256": "5d123d766115188bbc88fc1fb645885d51c519a4f745e673d481eb841309b1bc",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "940fcf220e47d1975f757e76f0b3401691db9358",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "semantic_graph::public_workspace_analysis_api_cli_kats_and_locking_are_exact",
+      "receipt": "docs/evidence/pin-consumer-d8fad-seven-20261015/round/owning-selected-results.json",
+      "receipt_sha256": "1ac115f07b73098ec4af5b1f1b3361d8fa84b3f511440e0dffcc99fcaa02049b",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/pin-consumer-d8fad-seven-20261015/round/owning-selected-04.log",
+      "log_sha256": "d806ff9e1acd53fecb325d3073708c6cd805379a9bf52aee7251d78f3a3dfe7d",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "d8fadfb7cd5ece54504cda542575e5a154d3657c",
+      "historical": false
+    },
+    {
+      "issue": 828,
+      "selector": "hir::prelude_bundle::tests::whole_owner_exact_one_short_zero_work_and_each_acquisition_refusal_drop_every_owner",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-252.log",
+      "log_sha256": "f6a3f22b1db73cdfe92e0d495d4989565956f1ce217c0e897a4bebf53f11ce04",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "project::incremental::checked_hir::tests::lifecycle::actual_cold_warm_cache_core_and_publication_match_owned_receiver_through_drop",
+      "receipt": "docs/evidence/qualification-7a87-145-20261015/round/owning-selected-results.json",
+      "receipt_sha256": "6e8f85c6d9d5742e7e4fea362d0b28f66c90b9ed7475f7d18afe3510bb15efe4",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-7a87-145-20261015/round/owning-selected-144.log",
+      "log_sha256": "03206851b9584d6444a7770c8a9d9386bc0311f2c24053441478bab48ef78a4e",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "7a87b33115c0cd45b14cac64d7b37e5742503159",
+      "historical": false
+    },
+    {
+      "issue": 828,
+      "selector": "hir::nominal_payload::tests::shared_mutation_refuses_without_touching_either_full_owner",
+      "receipt": "docs/evidence/focused-qualification-828f-20261015/owning-selected-results.json",
+      "receipt_sha256": "b90cd41e8d673a1cd06d18ca7073f1e39a17277434fbea9c063411b0187a6367",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/focused-qualification-828f-20261015/owning-selected-93.log",
+      "log_sha256": "8b154fdfa9c7b7f060883ba9dc24613021ae81bcf76388172ea49293b45f4779",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "828f258503ec98c6cc9b1b59d307ad604bcf681d",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "hir::nominal_payload::tests::zero_one_short_exact_and_sticky_refusal_preserve_complete_input_before_allocation",
+      "receipt": "docs/evidence/dense-receiving-first-qualification-5b56-20261015/owning-selected-results.json",
+      "receipt_sha256": "18db3c0a703eb5e0a7713b07f877ba74b2925b59a5220e60c7ddc4b69a1c74c5",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/dense-receiving-first-qualification-5b56-20261015/owning-selected-20.log",
+      "log_sha256": "05852ed0b8a4c1f56f12d8a079c3d79fa4512d0e0cddbaaeaccbe9af62d62ac9",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "5b562965d2fc8e75c552f19e4f81ec7ab0835b68",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "hir::prelude_bundle::vector_extension::tests::all_selected_prefixes_keep_full_old_index_wire_and_reuse_only_selected_vec_payload",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-264.log",
+      "log_sha256": "aeae1e364fb131289cd9e6640d9c6731e4e0a022d54d28778acc33a7278559c5",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "hir::prelude_bundle::tests::fixed_schema_counter_setup_and_byte_refusal_keep_exact_existing_owner_error",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-260.log",
+      "log_sha256": "f094065cec4df80222c93e8cce1c7c28422f06ff19773c3b8ae6a1108fd5a4c8",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "hir::prelude_bundle::tests::logical_declaration_export_has_exact_remaining_length_and_generic_merge_keeps_base_values",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-258.log",
+      "log_sha256": "3c15323f6700f40573dd4b9f646c2bf3b716698e90a66bbca01ca91f15448ca4",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "bounded_output::identity_reservation::base_prelude::tests::actual_counter_setup_byte_refusal_stays_primary_without_work_or_publication",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-262.log",
+      "log_sha256": "7f58e477a6ea08e49beda0e597e85ed19dd8e149fef6189e380d8b0610bb343c",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "owned_bounded_box_runtime::owned_bounded_box_copy_scalars_interpret_with_exact_cleanup",
+      "receipt": "docs/evidence/final-large-qualification-a417-20261015/owning-selected-results.json",
+      "receipt_sha256": "3e5b219c7076133895eaee7e8752f577056d82c36a49a5aea7d55538f3ae70f9",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/final-large-qualification-a417-20261015/owning-selected-48.log",
+      "log_sha256": "b6ad04d351f132b996b0fefe66c841d2497f50d579d534a1613ac494deed80c2",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "hir::prelude_bundle::vector_extension::tests::vector_every_byte_acquisition_and_whole_owner_exact_short_zero_are_sticky",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-266.log",
+      "log_sha256": "efd7bc9ab66e4937a9cba37fdebfe5a6e44e5f47c078a7b4dc8029a1c5305cba",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "hir::prelude_bundle::vector_extension::tests::vector_work_owner_foreign_then_restored_preserves_first_raw_detached",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-267.log",
+      "log_sha256": "60452bbeb2b4c6c76910c30b7c4ac30d0271d145fbb65f0c786cc3ee6f856965",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "workspace_graph::type_proof_tests::projection_tests::rendered_document_has_literal_sha_exact_wire_order_and_digest_binding",
+      "receipt": "docs/evidence/pin-consumer-d8fad-seven-20261015/round/owning-selected-results.json",
+      "receipt_sha256": "1ac115f07b73098ec4af5b1f1b3361d8fa84b3f511440e0dffcc99fcaa02049b",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/pin-consumer-d8fad-seven-20261015/round/owning-selected-02.log",
+      "log_sha256": "e91f8ec16fc37d590ee2dc461acc231a00de972892adb65155a50ba85851bd8f",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "d8fadfb7cd5ece54504cda542575e5a154d3657c",
+      "historical": false
+    },
+    {
+      "issue": 828,
+      "selector": "owned_iterator_payloads::owned_iterator_payloads_interpreter_and_native_transfer_and_settlement",
+      "receipt": "docs/evidence/final-large-qualification-a417-20261015/owning-selected-results.json",
+      "receipt_sha256": "3e5b219c7076133895eaee7e8752f577056d82c36a49a5aea7d55538f3ae70f9",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/final-large-qualification-a417-20261015/owning-selected-50.log",
+      "log_sha256": "6709649022f98b3b3779588ff50e997d8839bf601e3ee3ab39aa528faf5a6f9a",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "hir::identity_resolution::nominal_tests::nominal_full_constructor_keeps_complete_old_semantic_diagnostic_order",
+      "receipt": "docs/evidence/final-large-qualification-a417-20261015/owning-selected-results.json",
+      "receipt_sha256": "3e5b219c7076133895eaee7e8752f577056d82c36a49a5aea7d55538f3ae70f9",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/final-large-qualification-a417-20261015/owning-selected-08.log",
+      "log_sha256": "b828fc4b6d696026a611e7238d08e025c5690f9019898561d7fa29f175d587df",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "hir::prelude_bundle::tests::returned_type_materialization_shares_nominals_pays_only_new_name_and_receivers",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-257.log",
+      "log_sha256": "35fb016a652be74a2e628bf14035a38eaf02a6110bdf9e84e49bb44d5a5fd117",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "hir::prelude_bundle::tests::initializer_and_receiving_carriers_are_paid_before_any_producer_work",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-255.log",
+      "log_sha256": "1ae28421f3015db714c90b4aa8e63fe092ac6bed7ec2ac5570df2e02d00c2ad9",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "workspace_graph::identity_resolution::base::tests::actual_base_receiver_retains_one_payload_across_fresh_borrowed_and_selective_full_old_controls",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-275.log",
+      "log_sha256": "cf35d1ea7359198064be2b6f2157076051e92d5e21004e1d962f150bcf8f4189",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "workspace_graph::identity_resolution::base::tests::actual_base_work_failure_moves_original_prepaid_report_and_retains_exact_typed_first_error",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-276.log",
+      "log_sha256": "9fbc058a39a70b0af22f7d62352379c78830c90d051551fa75742bbafd41bc81",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "hir::nominal_payload::tests::nested_512_last_owner_drop_uses_only_its_preacquired_disposal_backing",
+      "receipt": "docs/evidence/focused-qualification-828f-20261015/owning-selected-results.json",
+      "receipt_sha256": "b90cd41e8d673a1cd06d18ca7073f1e39a17277434fbea9c063411b0187a6367",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/focused-qualification-828f-20261015/owning-selected-94.log",
+      "log_sha256": "edec604f0cbbf26e3445df740c73f1d17e3b2b0fcc7fa5253ac1c2709db40188",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "828f258503ec98c6cc9b1b59d307ad604bcf681d",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "workspace_graph::identity_resolution::base::affinity_tests::actual_base_foreign_then_restored_owner_cannot_construct_or_reset_first_detachment",
+      "receipt": "docs/evidence/qualification-7a87-145-20261015/round/owning-selected-results.json",
+      "receipt_sha256": "6e8f85c6d9d5742e7e4fea362d0b28f66c90b9ed7475f7d18afe3510bb15efe4",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-7a87-145-20261015/round/owning-selected-54.log",
+      "log_sha256": "c1fe73387ea96193ce6eb8664f6e901d7250318e3354339ce1aa6f0b21979912",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "7a87b33115c0cd45b14cac64d7b37e5742503159",
+      "historical": false
+    },
+    {
+      "issue": 828,
+      "selector": "hir::prelude_bundle::tests::complete_original_base_types_and_every_lookup_keep_exact_order_ids_and_payloads",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-250.log",
+      "log_sha256": "d9d8f0306962e639cf223e9c13e5fa50a9d405b9ec2f165221d29531f2b20037",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "hir::prelude_bundle::vector_extension::tests::complete_selected_suffix_every_byte_acquisition_exact_short_zero_and_sticky_drop",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-273.log",
+      "log_sha256": "eaa38ed4c20a1bc9298225936d91efad6c4fca3024dd451db8e855e4c08702d4",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "hir::prelude_bundle::vector_extension::tests::matching_foreign_ast_never_acquires_or_substitutes_extension_authority",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-268.log",
+      "log_sha256": "96306c882a8577f4c5b4e0b10cf56206b0f995405e394d24e0f30000977248b5",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "hir::identity_resolution::nominal_tests::nominal_actual_paid_receiver_preserves_complete_old_hir_wire_and_shares_all_nominal_views",
+      "receipt": "docs/evidence/final-large-qualification-a417-20261015/owning-selected-results.json",
+      "receipt_sha256": "3e5b219c7076133895eaee7e8752f577056d82c36a49a5aea7d55538f3ae70f9",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/final-large-qualification-a417-20261015/owning-selected-07.log",
+      "log_sha256": "087b60c0b1e2271faf2149961ede39f32337a6b283cba27f80199511d31887d7",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "hir::prelude_bundle::tests::fixed_schema_work_payer_covers_actual_producer_exactly_and_plus_one_is_sticky",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-259.log",
+      "log_sha256": "d8ec659f7671e98d0e19be94544afd97c6fa49485c9ca924cec5b4cab499593c",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "hir::prelude_bundle::vector_extension::tests::extension_failure_remains_whole_invocation_sticky_even_for_base_only_retry",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-269.log",
+      "log_sha256": "c250919213388df71c310bc5171168dc3f8fbc7ce8a46b749b75c01c670a6cfc",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "hir::prelude_bundle::vector_extension::tests::every_extension_slot_work_exact_short_zero_and_partial_roots_drop_without_allocation",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-272.log",
+      "log_sha256": "02386bd047bedb765478318095db798d364486952d11a7ddceb37e8af1a3ea73",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "workspace_graph::tests::builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal",
+      "receipt": "docs/evidence/qualification-7a87-145-20261015/round/owning-selected-results.json",
+      "receipt_sha256": "6e8f85c6d9d5742e7e4fea362d0b28f66c90b9ed7475f7d18afe3510bb15efe4",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-7a87-145-20261015/round/owning-selected-04.log",
+      "log_sha256": "b040f49b79df0e4bb579ff94168b2d92517352b799c3b1515fce5495ba71c89c",
+      "actual_summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ],
+      "source_subject": "7a87b33115c0cd45b14cac64d7b37e5742503159",
+      "historical": false
+    },
+    {
+      "issue": 828,
+      "selector": "hir::prelude_bundle::tests::lookup_iteration_and_lease_work_keep_the_same_sticky_invocation_account",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-253.log",
+      "log_sha256": "09276b4a10353bc4220f55c1f8e16b70bf3a340e747d13b284f4cfcc6f5be04c",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "workspace_graph::identity_resolution::base::vector_tests::actual_core_vec_receiver_keeps_full_old_fresh_borrowed_selective_hir_wire_and_last_drop",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-270.log",
+      "log_sha256": "81c41698a045f3361c5b9267db77eec02b292392c07f2373164b4eed578cbf4c",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "workspace_graph::identity_resolution::base::vector_tests::all_admitted_core_prefixes_keep_full_old_hir_wire_payload_owners_and_final_drop",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-274.log",
+      "log_sha256": "503d0ba9ee609b42ddb49280031b2a6fcbb7fe74312f4341293c0303110b2786",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+      "receipt": "docs/evidence/qualification-7a87-145-20261015/round/owning-selected-results.json",
+      "receipt_sha256": "6e8f85c6d9d5742e7e4fea362d0b28f66c90b9ed7475f7d18afe3510bb15efe4",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-7a87-145-20261015/round/owning-selected-05.log",
+      "log_sha256": "c6effd8656015074cfdb2b179839ab549bd50f532edc880c3fee92f0a607f9f1",
+      "actual_summary": [
+        "FAILED",
+        "0",
+        "1",
+        "0"
+      ],
+      "source_subject": "7a87b33115c0cd45b14cac64d7b37e5742503159",
+      "historical": false
+    },
+    {
+      "issue": 828,
+      "selector": "hir::prelude_bundle::tests::two_borrowed_module_overlays_and_explicit_lease_share_actual_payload_addresses",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-251.log",
+      "log_sha256": "b5b786be43ba8194e5347a7cf5f87f014ece99337a81cc847d9ef8b7adb65041",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "project::incremental::cold_source_tests::explicit_owner_siblings_match_legacy_selective_routes_and_body_reuse",
+      "receipt": "docs/evidence/qualification-7a87-145-20261015/round/owning-selected-results.json",
+      "receipt_sha256": "6e8f85c6d9d5742e7e4fea362d0b28f66c90b9ed7475f7d18afe3510bb15efe4",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-7a87-145-20261015/round/owning-selected-143.log",
+      "log_sha256": "129c943d05ad50f48fa8993cdf9b87cf5804851a0ba3ce414ab12233cbc211d1",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "7a87b33115c0cd45b14cac64d7b37e5742503159",
+      "historical": false
+    },
+    {
+      "issue": 828,
+      "selector": "workspace_graph::expected_projection::import_stub::core_proofs::tests::complete_original_forecast_constructor_ids_resolution_and_drop_match_reused_core",
+      "receipt": "docs/evidence/dense-receiving-first-qualification-5b56-20261015/owning-selected-results.json",
+      "receipt_sha256": "18db3c0a703eb5e0a7713b07f877ba74b2925b59a5220e60c7ddc4b69a1c74c5",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/dense-receiving-first-qualification-5b56-20261015/owning-selected-02.log",
+      "log_sha256": "6a87145274d9ab5de78db604416f70df825ac005a2d1590b9159e8b6e6c665d5",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "5b562965d2fc8e75c552f19e4f81ec7ab0835b68",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "hir::prelude_bundle::tests::unused_and_parser_only_overlapping_names_keep_unconditional_base_selection",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-254.log",
+      "log_sha256": "23bcbd249c185d3513736a1098fb2922b6b9e0d318d87c66b0ff4efc66d088c4",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "hir::identity_resolution::nominal_tests::nominal_full_constructor_refuses_at_every_actual_acquisition_and_releases_all_partial_owners",
+      "receipt": "docs/evidence/final-large-qualification-a417-20261015/owning-selected-results.json",
+      "receipt_sha256": "3e5b219c7076133895eaee7e8752f577056d82c36a49a5aea7d55538f3ae70f9",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/final-large-qualification-a417-20261015/owning-selected-02.log",
+      "log_sha256": "5de54e4a172b60523b4e6d81326d67cab3c75c75ba3ae239cdc035fca7371bff",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "owned_record_vec_runtime::iterator::manual_next_and_for_own_execute_and_settle_on_all_backends",
+      "receipt": "docs/evidence/final-large-qualification-a417-20261015/owning-selected-results.json",
+      "receipt_sha256": "3e5b219c7076133895eaee7e8752f577056d82c36a49a5aea7d55538f3ae70f9",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/final-large-qualification-a417-20261015/owning-selected-49.log",
+      "log_sha256": "496ef03fb2a68acecea736e9b79f520d719fed5b89447afd6413727697b64e97",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "workspace_graph::identity_resolution::base::vector_tests::actual_core_extension_work_refusal_publishes_full_distinct_report_and_never_reacquires",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-271.log",
+      "log_sha256": "5e9159db0e767985a31e558a4d8eb420a5bcc06158b065f3b86d172328ec0e3a",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "workspace_graph::identity_resolution::base::tests::actual_source_diagnostic_precedes_any_base_producer_activation",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-277.log",
+      "log_sha256": "c91b6d1356a3dd397a306878cb3caa3a87a8418a55bc161d60068f23e397e629",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "bounded_output::identity_reservation::base_prelude::tests::actual_typed_work_refusal_moves_original_paid_buffers_and_all_six_fields_through_drop",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-261.log",
+      "log_sha256": "32a83950eda6cc23a456a8ddfe4a933ebdaabfbd8e6de90ce353186236563bde",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "hir::nominal_payload::tests::actual_nominal_owner_moves_complete_vec_and_shares_without_backing_clone",
+      "receipt": "docs/evidence/dense-receiving-first-qualification-5b56-20261015/owning-selected-results.json",
+      "receipt_sha256": "18db3c0a703eb5e0a7713b07f877ba74b2925b59a5220e60c7ddc4b69a1c74c5",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/dense-receiving-first-qualification-5b56-20261015/owning-selected-19.log",
+      "log_sha256": "585666c4b442a23e7e10aa8fbaf5807583fb9c4f7995d62e8335dfcc7d63028b",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "5b562965d2fc8e75c552f19e4f81ec7ab0835b68",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "hir::identity_resolution::nominal_tests::nominal_full_constructor_exact_short_zero_and_preselected_owner_refusal",
+      "receipt": "docs/evidence/final-large-qualification-a417-20261015/owning-selected-results.json",
+      "receipt_sha256": "3e5b219c7076133895eaee7e8752f577056d82c36a49a5aea7d55538f3ae70f9",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/final-large-qualification-a417-20261015/owning-selected-03.log",
+      "log_sha256": "d54125a1361479a7fedf95bc1f6e2c3ba08d6ba0a960b861c093c0ac59adf8e2",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "hir::prelude_bundle::vector_extension::tests::vector_work_exact_short_zero_and_sticky_failure_keep_whole_producer_drop_paid",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-265.log",
+      "log_sha256": "becb98cd813deb6781090675b896dd0e6b49f750176a061e12121438e4225efd",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "workspace_graph::identity_resolution::base::affinity_tests::actual_base_foreign_then_restored_owner_cannot_reuse_cached_payload_or_reset_detachment",
+      "receipt": "docs/evidence/qualification-7a87-145-20261015/round/owning-selected-results.json",
+      "receipt_sha256": "6e8f85c6d9d5742e7e4fea362d0b28f66c90b9ed7475f7d18afe3510bb15efe4",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-7a87-145-20261015/round/owning-selected-55.log",
+      "log_sha256": "711b553bd794b537c008d543799351e4ca0c2a580e559b91af1052c22c44100c",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "7a87b33115c0cd45b14cac64d7b37e5742503159",
+      "historical": false
+    },
+    {
+      "issue": 828,
+      "selector": "hir::prelude_bundle::tests::fixed_base_unmetered_index_views_borrow_complete_old_facts_without_allocation",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-256.log",
+      "log_sha256": "0fc2f80549454097377e5cf66c65c001c5002aff087a124783f35ca096dfadc7",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "bounded_output::identity_reservation::base_prelude::tests::foreign_then_restored_byte_owner_keeps_exact_first_inline_error_without_requery",
+      "receipt": "docs/evidence/qualification-3d4b-20261015/owning-selected-results.json",
+      "receipt_sha256": "231202f3011e61fc52c953e12392d1878285cc61b180bf3217c7d87269f0dc78",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-3d4b-20261015/owning-selected-263.log",
+      "log_sha256": "41bf0950aacfe3f726e97b067eab6f2d556e139156bdc256487ac04d1d994921",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "historical": true
+    },
+    {
+      "issue": 828,
+      "selector": "semantic_graph::public_api_cli_bytes_getters_and_read_only_locking_are_exact",
+      "receipt": "docs/evidence/pin-consumer-d8fad-seven-20261015/round/owning-selected-results.json",
+      "receipt_sha256": "1ac115f07b73098ec4af5b1f1b3361d8fa84b3f511440e0dffcc99fcaa02049b",
+      "actual_log": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/pin-consumer-d8fad-seven-20261015/round/owning-selected-03.log",
+      "log_sha256": "4575c4ebeca6456177f9ab13c207958571f3ca04261b39f70bf2d5479775ba2b",
+      "actual_summary": [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ],
+      "source_subject": "d8fadfb7cd5ece54504cda542575e5a154d3657c",
+      "historical": false
+    }
+  ],
+  "unresolved": [],
+  "no_executions": true
+}

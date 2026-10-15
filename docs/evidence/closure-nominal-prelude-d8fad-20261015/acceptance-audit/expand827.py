@@ -1,0 +1,22 @@
+from pathlib import Path
+import json,hashlib,subprocess,re
+R=Path('/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang');D=Path(__file__).resolve().parent;m=json.loads((D/'required-owner-map.json').read_text());old=json.loads((D/'required-history-827.json').read_text());want=set(old)
+modules={'hir::identity_resolution::nominal_tests':['nominal_actual_paid_receiver_preserves_complete_old_hir_wire_and_shares_all_nominal_views','nominal_full_constructor_refuses_at_every_actual_acquisition_and_releases_all_partial_owners','nominal_full_constructor_keeps_complete_old_semantic_diagnostic_order','nominal_full_constructor_exact_short_zero_and_preselected_owner_refusal'],'hir::nominal_payload::tests':['actual_nominal_owner_moves_complete_vec_and_shares_without_backing_clone','zero_one_short_exact_and_sticky_refusal_preserve_complete_input_before_allocation','shared_mutation_refuses_without_touching_either_full_owner','nested_512_last_owner_drop_uses_only_its_preacquired_disposal_backing'],'hir::declaration_index::linked_owned_data::tests':['linked_nominal_views_preserve_complete_old_maps_wire_and_owned_decoded_facts','linked_nominal_views_keep_full_old_errors_partial_maps_and_first_fact_order','linked_nominal_views_remove_actual_discarded_backing_and_retain_owner_until_drop','linked_shared_case_views_last_owner_drop_uses_prepaid_iterative_frontier'],'hir::declaration_index::linked_owned_data::tests::legacy':['legacy_final_constructor_retains_all_original_fact_errors_and_partial_map_order']}
+for mod,names in modules.items():want.update(mod+'::'+n for n in names)
+assert len(want)==25
+extra=['owned_bounded_box_runtime::owned_bounded_box_copy_scalars_interpret_with_exact_cleanup','owned_record_vec_runtime::iterator::manual_next_and_for_own_execute_and_settle_on_all_backends','owned_iterator_payloads::owned_iterator_payloads_interpreter_and_native_transfer_and_settlement','workspace_graph::type_proof_tests::projection_tests::rendered_document_has_literal_sha_exact_wire_order_and_digest_binding','semantic_graph::public_api_cli_bytes_getters_and_read_only_locking_are_exact','semantic_graph::public_workspace_analysis_api_cli_kats_and_locking_are_exact','cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact','cleanup_plan::replay::live_oracle::source_custody::b::complete_original_sources_and_compiled_owning_receivers_remain_exact'];want.update(extra);assert len(want)==33
+order={h:i for i,h in enumerate(subprocess.check_output(['git','rev-list','7a87b331'],cwd=R,text=True).splitlines())};history={s:[] for s in want}
+for p in (R/'docs/evidence').glob('**/owning-selected-results.json'):
+ try:a=json.loads(p.read_text())
+ except Exception:continue
+ for row in a.get('results',[]):
+  if row['selector'] in want:
+   history[row['selector']].append(dict(head=a.get('source_subject',row.get('source_subject')),summary=row.get('summary'),receipt=str(p.relative_to(R)),log=row['log'],log_sha256=row['log_sha256']))
+rows=[]
+for s,rs in sorted(history.items()):
+ rs.sort(key=lambda r:-1 if r.get('head','').startswith('d8fad') else order.get(r.get('head',''),999999));last=rs[0] if rs else None;assert last and last['summary']==['ok','1','0','0'],(s,last)
+ p=R/last['receipt'];q=next((p for p in [p.parent/Path(last['log']).name,Path(last['log'])] if p.is_file() and hashlib.sha256(p.read_bytes()).hexdigest()==last['log_sha256']),None);assert q,s
+ kind='BACKEND_PARITY' if s in extra[:3] else ('GRAPH_DIGEST' if s in extra[3:6] else ('COMPLETE_SOURCE_CUSTODY' if s in extra[6:] else 'NOMINAL_HIR_DIAGNOSTIC_CACHE_PHYSICAL_REFUSAL_DROP'))
+ rows.append(dict(selector=s,latest_actual=last,classification=kind,actual_is_current_7a87_or_d8=last['head'].startswith(('7a87','d8fad')),not_relabelled_as_current=not last['head'].startswith(('7a87','d8fad')),verified_actual_log=str(q)))
+m['issues']['827']=rows;m['827_scope_correction']='Replaces incomplete12-tail-owner map: exact25 nominal owners (12prior+13core) +3backend +3graph/digest +2source-custody. No broad-prefix expansion.';(D/'required-owner-map.json').write_text(json.dumps(m,indent=2)+'\n');(D/'required-history-827-complete.json').write_text(json.dumps(history,indent=2)+'\n')
+print(json.dumps({'required827':len(rows),'nominal':25,'backend':3,'graph':3,'source':2,'current_actual':sum(x['actual_is_current_7a87_or_d8'] for x in rows),'historical_actual':sum(x['not_relabelled_as_current'] for x in rows),'all_latest_actual': 'PASS'},indent=2))

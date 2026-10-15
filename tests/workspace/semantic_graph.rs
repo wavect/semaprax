@@ -1337,13 +1337,19 @@ fn historical_projection_root_facade(current: &str) -> String {
     ))
     .unwrap();
     assert_eq!(
-        format!("{:x}", Sha256::digest(current.as_bytes())),
+        format!(
+            "{:x}",
+            semaprax::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
+        ),
         row["current_sha256"]
     );
     assert_eq!(current, row["edits"][0]["new"].as_str().unwrap());
     let original = row["edits"][0]["old"].as_str().unwrap();
     assert_eq!(
-        format!("{:x}", Sha256::digest(original.as_bytes())),
+        format!(
+            "{:x}",
+            semaprax::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))
+        ),
         row["original_sha256"]
     );
     original.to_owned()

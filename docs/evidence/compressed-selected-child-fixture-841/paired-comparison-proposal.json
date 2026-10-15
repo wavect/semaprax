@@ -1,0 +1,73 @@
+{
+  "status": "UNEXECUTED_PAIRED_COMPARISON_PROPOSAL",
+  "baseline_head": "85142274c2f3e73bc1a4e5150672150c4d17d95f",
+  "candidate_binding": "exact clean commit containing this packet, or fully source-bound integration successor; do not infer current HEAD",
+  "roles": [
+    "semaprax libtest no-run baseline",
+    "semaprax libtest no-run pilot"
+  ],
+  "common_environment": {
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_NET_OFFLINE": "true",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_DEV_CODEGEN_UNITS": "64",
+    "CARGO_PROFILE_DEV_OPT_LEVEL": "0",
+    "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+    "CARGO_PROFILE_DEV_LTO": "false",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_PROFILE_TEST_CODEGEN_UNITS": "64",
+    "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+    "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+    "CARGO_PROFILE_TEST_LTO": "false"
+  },
+  "common_command": [
+    "/Users/kevin/.cargo/bin/rustup",
+    "run",
+    "1.97.1",
+    "cargo",
+    "test",
+    "--locked",
+    "--offline",
+    "-p",
+    "semaprax",
+    "--lib",
+    "--no-run",
+    "--jobs",
+    "1",
+    "--message-format=json"
+  ],
+  "target_policy": "two separate private checkout target directories, both empty/new at admission; never share fingerprints",
+  "execution_policy": "serial only through unchanged parent-approved memory/disk guardian;7GiB build cap; no full suite, production build or Clippy expansion",
+  "profile_policy": "same rustc/toolchain, build profile, host, dependency cache availability and process-group sampler; preserve all source/lock/driver hashes",
+  "cache_policy": "dependencies pre-staged explicitly before both builds; CARGO_NET_OFFLINE=true for measurement; new dev-dependency compilation is real pilot overhead, do not omit it silently",
+  "metrics": [
+    "actual full command wall_seconds",
+    "sampled complete owned compiler process-group peak RSS and sampling interval",
+    "terminal exit/resource/source-binding/group-settlement status",
+    "exact produced libtest executable SHA256 and byte length from Cargo compiler-artifact JSON",
+    "whole target footprint only if separately labeled, never substituted for libtest size"
+  ],
+  "owning_runtime_command": [
+    "/Users/kevin/.cargo/bin/rustup",
+    "run",
+    "1.97.1",
+    "cargo",
+    "test",
+    "--locked",
+    "--offline",
+    "-p",
+    "semaprax",
+    "--lib",
+    "cleanup_plan::replay::selected_context::child::tests::source::finite_child_cut_sources_and_complete_old_receivers_stay_exact",
+    "--",
+    "--exact",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "baseline_runtime_note": "baseline851 has four known stale source inputs; do not claim baseline source test PASS. Baseline no-run remains genuine complete raw embedding, with every old assertion.",
+  "keep_only_after": "both same-profile no-run builds and exact pilot owner genuinely complete, all complete source custody is retained, parent judges actual memory/artifact improvement meaningful against real dependency/helper overhead; byte ratio alone never qualifies",
+  "if_incomplete": "preserve terminal failure/refusal and leave841OPEN; do not extrapolate RSS or amend caps"
+}

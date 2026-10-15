@@ -281,3 +281,49 @@ Related contracts: [Project v32 Nested-Outcome Command v1](PROJECT-V32-NESTED-OU
 The existing first-pass visit count bounds entry insertions: a second-pass callback inserts at most one entry and duplicate full stable IDs insert none. The entry buffer therefore uses the smaller of this occurrence count and the checked total workspace type count. The original checked fold, name allocation, work, diagnostic order and owner-index backing remain unchanged. The preceding receiver and full source archive remain available for independent comparison.
 
 The owning `private_layout::capacity_tests::` cases compare outcomes, all diagnostic fields, work and actual allocation/reservation/peak/release observations across sparse, dense, duplicate and imported-descendant layouts. These newly authored cases are unexecuted; issue #834 remains open pending consolidated qualification.
+
+
+## Retained cold-success storage owner (#833 successor, source authored)
+
+Distinct successful cold derivations now borrow the census, closure frames and
+ownership facts/frames from one registry-owned storage generation. Its real
+first acquisition occurs inside the existing preparation child, after ordinary
+source/work checks and before its physical vectors are constructed. The old
+child ledger is retained as acquisition evidence only: its remaining allowance
+is never read or spent by later children. Exact immutable source/index pointers
+and the same invocation work-ledger Rc bind storage independently of the registry's
+stack address, so moving the registry does not mint or invalidate permission.
+
+Every later cold entry consumes one specific receiving-control bank that the
+preceding real child prepaid. It checks source/work custody and its original
+parent association before the next child queries its prospective payer. The
+next actual child pays exactly one replacement bank and its current borrowed
+lease controls before touching storage. The bank is not a general allowance,
+never grants backing growth, and cannot be consumed twice. A refused renewal
+poisons/drops the generation. One unused next-entry bank remains charged through
+Drop; no refund or previous-layout credit exists. All ordinary independent child
+budgets, original declared work and vector/directory/String charges remain.
+
+New cold-parent rejection moves a separately acquired one-Diagnostic G172 Vec,
+with borrowed static message bytes matching every original public field. It
+allocates no replacement report under a foreign/exhausted payer. This is local
+publication of this new storage rejection, not certification of the existing
+constructor failure pipeline: original acquisition/traversal/semantic failure
+helpers and repeated terminal compatibility output remain explicit #825 legacy
+routes. The old cached-layout get remains byte exact and touches no retained
+storage or new scope authority; its existing source/work guards still apply.
+
+Successful traversals clear every child reference before a distinct derivation.
+Release at the existing pre-core boundary drops all retained storage and its
+preowned refusal slot without reducing the monotonic receipt. Held hits do not
+reacquire storage. A later cold derivation must pay a new generation under its
+actual current child; it receives no old ledger allowance. Nested floor,
+foreign/restored, stale-source, move, exact/short/zero work and byte, malformed
+six-field diagnostic and whole constructor-to-final-Drop controls are authored
+in registry::retained_tests. Complete immediate old registry and scratch owning
+bodies remain independently compiled and retain their old expectations.
+
+These definitions have not run. One-caller/header/refusal-slot/control costs and
+retained peak overlap must be reported honestly alongside distinct-caller actual
+reservation/allocation observations. No physical saving, application fit, agent
+token improvement or issue closure is established by this source checkpoint.

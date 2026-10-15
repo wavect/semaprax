@@ -1,0 +1,11 @@
+{
+  "status": "SOURCE_ONLY_PASS",
+  "whole_immediate_inverse": true,
+  "original11a_packet_unchanged": true,
+  "original_verifier_AST_unchanged_in_full_old_helper_view": true,
+  "original_full_assertion_rows": 41,
+  "raw_and_compressed_transport_share_all_other_code": true,
+  "one_literal_toggle_occurrences": 1,
+  "Rust_execution": false,
+  "paired_build_execution": false
+}

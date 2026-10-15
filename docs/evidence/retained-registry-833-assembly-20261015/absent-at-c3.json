@@ -1,0 +1,10 @@
+[
+  "src/cleanup_plan/replay/selected_context/child/tests/source/compressed_fixture.rs",
+  "src/workspace_graph/constructor_failure/before_publication.rs",
+  "src/workspace_graph/constructor_failure/before_publication/attempt.rs",
+  "src/workspace_graph/constructor_failure/before_publication/report.rs",
+  "src/workspace_graph/constructor_failure/publication_tests.rs",
+  "src/workspace_graph/identity_resolution/base/cache_billing.rs",
+  "src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs",
+  "src/workspace_graph/identity_resolution/base/cache_billing/tests.rs"
+]

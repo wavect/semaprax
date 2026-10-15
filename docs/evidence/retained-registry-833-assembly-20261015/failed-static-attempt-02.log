@@ -1,0 +1,19 @@
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/main927-integration-20261015/AI-Lang/docs/evidence/retained-registry-833-assembly-20261015/verify.py", line 43, in <module>
+    registry=replay('docs/evidence/retained-registry-storage-833/verify.py',views['current-to-c3'],C)
+  File "/Volumes/Semaprax/worktrees/main927-integration-20261015/AI-Lang/docs/evidence/retained-registry-833-assembly-20261015/verify.py", line 38, in replay
+    with contextlib.redirect_stdout(io.StringIO()) as out:exec(compile(code,str(path),'exec'),{'__file__':str(path),'__name__':'__main__'})
+                                                          ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Semaprax/worktrees/main927-integration-20261015/AI-Lang/docs/evidence/retained-registry-storage-833/verify.py", line 68, in <module>
+    with contextlib.redirect_stdout(io.StringIO()):exec(compile(source,str(script),'exec'),{'__file__':str(script),'__name__':'__main__'})
+                                                   ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Semaprax/worktrees/main927-integration-20261015/AI-Lang/docs/evidence/workspace-facade-hex-fix-9b-20261015/verify.py", line 25, in <module>
+    with contextlib.redirect_stdout(io.StringIO()):exec(compile(source,str(old),'exec'),{'__file__':str(old),'__name__':'__main__'})
+                                                   ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Semaprax/worktrees/main927-integration-20261015/AI-Lang/docs/evidence/final-ae91-mainf045-assembly-20261015/verify.py", line 17, in <module>
+    p=r['source'];raw=(R/p).read_bytes();before=apply(rows,p,raw);assert before==subprocess.check_output(['git','show',meta[v+'_branch']+':'+p])
+                                                ~~~~~^^^^^^^^^^^^
+  File "/Volumes/Semaprax/worktrees/main927-integration-20261015/AI-Lang/docs/evidence/final-ae91-mainf045-assembly-20261015/verify.py", line 9, in apply
+    r=rs[0];assert sha(b)==r['current_sha256'],p
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: CHANGELOG.md

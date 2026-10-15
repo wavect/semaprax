@@ -1,0 +1,15 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "base": "0e1a061e8ef09f786e2470b311ed7d4cb28e9d42",
+  "whole_original_inputs": 11,
+  "independent_complete_old_registry": true,
+  "old_scratch_assertions_unchanged": true,
+  "old_derivation_census_owner_bodies_exact": true,
+  "cached_get_body_exact": true,
+  "all_three_new_owners_in_all_three_audits": true,
+  "complete_frozen_source_proofs_replayed": true,
+  "new_behavior_tests": 6,
+  "new_source_tests": 1,
+  "old_issue825_failure_paths_remain_residual": true,
+  "measured_saving": null
+}

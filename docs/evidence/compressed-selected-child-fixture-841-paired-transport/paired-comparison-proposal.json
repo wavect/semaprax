@@ -1,0 +1,81 @@
+{
+  "status": "UNEXECUTED_PAIRED_COMPARISON_PROPOSAL",
+  "baseline_head": "SAME final clean source/lock/helper/guard views as pilot; only one include_bytes path literal toggled to immutable raw JSON",
+  "candidate_binding": "same final clean commit/profile for BOTH variants; derive raw overlay from exact final common HEAD",
+  "roles": [
+    "semaprax libtest no-run baseline",
+    "semaprax libtest no-run pilot"
+  ],
+  "common_environment": {
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_NET_OFFLINE": "true",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_DEV_CODEGEN_UNITS": "64",
+    "CARGO_PROFILE_DEV_OPT_LEVEL": "0",
+    "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+    "CARGO_PROFILE_DEV_LTO": "false",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_PROFILE_TEST_CODEGEN_UNITS": "64",
+    "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+    "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+    "CARGO_PROFILE_TEST_LTO": "false"
+  },
+  "common_command": [
+    "/Users/kevin/.cargo/bin/rustup",
+    "run",
+    "1.97.1",
+    "cargo",
+    "test",
+    "--locked",
+    "--offline",
+    "-p",
+    "semaprax",
+    "--lib",
+    "--no-run",
+    "--jobs",
+    "1",
+    "--message-format=json"
+  ],
+  "target_policy": "two separate private checkout target directories, both empty/new at admission; never share fingerprints",
+  "execution_policy": "serial only through unchanged parent-approved memory/disk guardian;7GiB build cap; no full suite, production build or Clippy expansion",
+  "profile_policy": "same rustc/toolchain, build profile, host, dependency cache availability and process-group sampler; preserve all source/lock/driver hashes",
+  "cache_policy": "all dependencies/helper code identical in both; same pre-staged cache; empty separate private target directories; no build-time network",
+  "metrics": [
+    "actual full command wall_seconds",
+    "sampled complete owned compiler process-group peak RSS and sampling interval",
+    "terminal exit/resource/source-binding/group-settlement status",
+    "exact produced libtest executable SHA256 and byte length from Cargo compiler-artifact JSON",
+    "whole target footprint only if separately labeled, never substituted for libtest size"
+  ],
+  "owning_runtime_command": [
+    "/Users/kevin/.cargo/bin/rustup",
+    "run",
+    "1.97.1",
+    "cargo",
+    "test",
+    "--locked",
+    "--offline",
+    "-p",
+    "semaprax",
+    "--lib",
+    "cleanup_plan::replay::selected_context::child::tests::source::finite_child_cut_sources_and_complete_old_receivers_stay_exact",
+    "--",
+    "--exact",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "baseline_runtime_note": "both variants contain identical four sourceguard fixes, helper, devdependency and tiny hostile decoder/raw controls; no851-vs-pilot comparison",
+  "keep_only_after": "both same-profile no-run builds and exact pilot owner genuinely complete, all complete source custody is retained, parent judges actual memory/artifact improvement meaningful against real dependency/helper overhead; byte ratio alone never qualifies",
+  "if_incomplete": "preserve terminal failure/refusal and leave841OPEN; do not extrapolate RSS or amend caps",
+  "toggle": {
+    "path": "src/cleanup_plan/replay/selected_context/child/tests/source/compressed_fixture.rs",
+    "compressed_literal": "/docs/evidence/compressed-selected-child-fixture-841/exact-source-inverses.json.gz",
+    "raw_literal": "/docs/evidence/selected-child-refusal-781/exact-source-inverses.json",
+    "occurrences": 1,
+    "all_other_files_modes_object_ids_identical": true
+  },
+  "supersedes": "original11a paired-comparison-proposal.json only; preserve it as historical superseded plan"
+}

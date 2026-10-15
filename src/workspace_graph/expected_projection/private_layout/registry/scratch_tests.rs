@@ -1,6 +1,6 @@
 //! Source-authored only: the parent batch must execute these owning controls.
 use super::super::{before_registry, LayoutClosure, WORK};
-use super::LayoutRegistry;
+use super::before_retained::LayoutRegistry;
 use crate::bounded_output::with_limit_usage_refusal;
 use crate::workspace_graph::index_authored;
 

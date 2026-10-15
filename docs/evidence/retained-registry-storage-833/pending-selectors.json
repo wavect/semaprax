@@ -1,0 +1,16 @@
+{
+  "status": "SOURCE_ONLY_PENDING_COMPILER_AND_RUNTIME",
+  "package": "semaprax",
+  "harness": "lib",
+  "new_exact_selectors": [
+    "workspace_graph::expected_projection::private_layout::registry::retained_tests::distinct_cold_storage_keeps_complete_old_layout_work_sites_and_empty_reference_stacks",
+    "workspace_graph::expected_projection::private_layout::registry::retained_tests::retained_storage_whole_constructor_to_drop_reports_old_current_bytes_and_real_distinct_savings",
+    "workspace_graph::expected_projection::private_layout::registry::retained_tests::retained_storage_release_late_cold_and_registry_moves_keep_real_generation_custody",
+    "workspace_graph::expected_projection::private_layout::registry::retained_tests::retained_storage_exact_short_zero_bytes_and_work_keep_terminal_receipts",
+    "workspace_graph::expected_projection::private_layout::registry::retained_tests::retained_storage_cold_parent_refusal_is_preowned_cache_path_unchanged_and_restoration_sticky",
+    "workspace_graph::expected_projection::private_layout::registry::retained_tests::retained_storage_nested_floor_and_malformed_diagnostic_match_complete_old",
+    "workspace_graph::expected_projection::private_layout::registry::retained_tests::complete_immediate_sources_and_old_owning_bodies_remain_independent"
+  ],
+  "do_not_drop_original_scratch_or_capacity_or_registry_controls": true,
+  "old_825_failure_paths_legacy": true
+}

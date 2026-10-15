@@ -1,0 +1,24 @@
+{
+  "status": "EXPLICIT_PREBUILD_NETWORK_ONLY_NO_BUILD_NETWORK",
+  "initial_python_tls_refusal": "CERTIFICATE_VERIFY_FAILED; no cache installation; curl OS certificate validation used without insecure flags",
+  "packages": [
+    {
+      "name": "flate2",
+      "version": "1.1.10",
+      "source": "https://static.crates.io/crates/flate2/flate2-1.1.10.crate",
+      "bytes": 80244,
+      "checksum": "6e634e2e0ebac1ee034020da1ca582e17ffe4e0f5e985823721e168928136dcb",
+      "status": "CHECKSUM_VERIFIED_ATOMIC_NO_OVERWRITE_INSTALL"
+    },
+    {
+      "name": "simd-adler32",
+      "version": "0.3.10",
+      "source": "https://static.crates.io/crates/simd-adler32/simd-adler32-0.3.10.crate",
+      "bytes": 18760,
+      "checksum": "3a219298ac11a56ea9a6d2120044824d6f01aeb034955e7af7bc16858527deea",
+      "status": "CHECKSUM_VERIFIED_ATOMIC_NO_OVERWRITE_INSTALL"
+    }
+  ],
+  "unrelated_fetch": false,
+  "existing_overwrite": false
+}

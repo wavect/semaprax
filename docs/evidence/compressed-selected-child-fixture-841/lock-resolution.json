@@ -1,0 +1,60 @@
+{
+  "command": [
+    "cargo",
+    "update",
+    "--workspace",
+    "--offline"
+  ],
+  "execution": "LOCK_METADATA_ONLY_NO_BUILD",
+  "existing_package_versions_unchanged": true,
+  "only_existing_dependency_list_change": "semaprax adds flate2 dev dependency",
+  "added": [
+    {
+      "name": "adler2",
+      "version": "2.0.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
+    },
+    {
+      "name": "crc32fast",
+      "version": "1.5.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "01a7799fd6b852db0e61728dde9a204c423b44d689dbd432522543614b490e78",
+      "dependencies": [
+        "cfg-if"
+      ]
+    },
+    {
+      "name": "flate2",
+      "version": "1.1.10",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "6e634e2e0ebac1ee034020da1ca582e17ffe4e0f5e985823721e168928136dcb",
+      "dependencies": [
+        "crc32fast",
+        "miniz_oxide"
+      ]
+    },
+    {
+      "name": "miniz_oxide",
+      "version": "0.9.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "b63fbc4a50860e98e7b2aa7804ded1db5cbc3aff9193adaff57a6931bf7c4b4c",
+      "dependencies": [
+        "adler2",
+        "simd-adler32"
+      ]
+    },
+    {
+      "name": "simd-adler32",
+      "version": "0.3.10",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "3a219298ac11a56ea9a6d2120044824d6f01aeb034955e7af7bc16858527deea"
+    }
+  ],
+  "missing_local_crate_cache_at_lock_resolution": [
+    "flate2-1.1.10",
+    "simd-adler32-0.3.10"
+  ],
+  "explicit_cache_preparation": "explicit-cache-preparation.json",
+  "all_five_new_locked_archives_present_checksum_verified_at_preparation": true
+}

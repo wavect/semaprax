@@ -1,0 +1,129 @@
+[package]
+name = "semaprax"
+version = "0.9.0"
+edition = "2021"
+rust-version = "1.88"
+default-run = "semaprax"
+description = "The agent-native systems programming language"
+license = "Apache-2.0"
+repository = "https://github.com/wavect/semaprax"
+homepage = "https://wavect.io/semaprax/"
+readme = "README.md"
+keywords = ["compiler", "agents", "systems-programming", "semantic-graph"]
+categories = ["compilers", "development-tools"]
+
+[workspace]
+members = [
+    "crates/semaprax-doctor-collector",
+    "crates/semaprax-doctor-capsule",
+    "crates/semaprax-doctor-release",
+    "crates/semaprax-offline-wasm-package",
+    "crates/semaprax-native-host",
+    "crates/semaprax-native-loader",
+    "crates/semaprax-native-rust-interop-platform",
+    "crates/semaprax-native-rust-interop-platform-sys",
+    "crates/semaprax-native-rust-owned-data-package",
+    "crates/semaprax-native-rust-interop-builder",
+    "crates/semaprax-rust-api-index",
+    "crates/semaprax-project-revision-store-windows-sys",
+    "crates/semaprax-toolchain",
+    "crates/semaprax-harness",
+    "crates/semaprax-decision-core",
+]
+default-members = ["."]
+resolver = "2"
+
+[lib]
+name = "semaprax"
+path = "src/lib.rs"
+
+[dependencies]
+argon2 = "=0.6.0"
+zeroize = "=1.9.1"
+hmac = "=0.13.0"
+same-file = "=1.0.6"
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.151"
+sha2 = "=0.11.0"
+ed25519-dalek = { version = "=2.2.0", default-features = false, features = ["std"] }
+rustls = { version = "=0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
+sigstore-verify = { version = "=0.14.0", default-features = false }
+x509-cert = { version = "=0.3.0", default-features = false }
+webpki-roots = "=1.0.9"
+wasmparser = { version = "=0.259.0", default-features = false, features = ["component-model", "features", "validate"] }
+wasm-encoder = { version = "=0.261.0", default-features = false, features = ["std", "component-model"] }
+
+[dev-dependencies]
+flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"] }
+criterion = { version = "0.8", features = ["html_reports"] }
+regex_alias = { package = "regex", version = "=1.13.1" }
+socket2 = "=0.6.5"
+tokio = { version = "=1.53.2", features = ["rt", "net", "time", "sync"] }
+
+[[bench]]
+name = "compiler"
+harness = false
+
+[[bench]]
+name = "interpreter"
+harness = false
+
+[[bench]]
+name = "project"
+harness = false
+
+[[bench]]
+name = "workflow_observer"
+harness = false
+required-features = ["unstable-workflow-profiling"]
+
+[features]
+default = []
+metal-device = ["dep:objc2", "dep:objc2-foundation", "dep:objc2-metal"]
+unstable-workflow-profiling = []
+unstable-native-host-internal = []
+unstable-wit-component-harness = []
+unstable-rust-source-lowering = []
+
+[target.'cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))'.dependencies]
+fs2 = "=0.4.3"
+getrandom = "=0.4.3"
+reqwest = { version = "=0.13.5", default-features = false, features = ["blocking", "http2", "rustls-no-provider"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "=0.2.190"
+rustix = { version = "=1.1.5", default-features = false, features = ["fs", "process", "std", "stdio"] }
+
+[target.'cfg(windows)'.dependencies]
+renamore = { version = "=0.3.2", default-features = false, features = ["always-supported"] }
+winapi-util = "=0.1.11"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = { version = "=0.6.5", optional = true }
+objc2-foundation = { version = "=0.3.2", optional = true }
+objc2-metal = { version = "=0.3.2", optional = true }
+
+[[bin]]
+name = "semaprax"
+path = "src/main.rs"
+
+[[bin]]
+name = "semapraxd"
+path = "src/bin/semapraxd.rs"
+
+[profile.release]
+lto = "thin"
+strip = true
+codegen-units = 1
+overflow-checks = true
+
+[lints.rust]
+unsafe_code = "deny"
+
+# REF-24 (#543): the compiler root no longer allows `clippy::all`, `unused` or
+# `dead_code`. The single crate-wide exception is named here: `Diagnostic` is
+# the compiler's error type by design and is larger than clippy's
+# `result_large_err` threshold at roughly 4,000 sites in 769 files. Every
+# other pre-existing finding is a named, per-module `allow` in `src/lib.rs`.
+[lints.clippy]
+result_large_err = "allow"

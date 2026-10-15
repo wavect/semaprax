@@ -208,6 +208,66 @@ impl ClassifierLedger {
             .as_ref()
             .and_then(|budget| budget.first_refusal.get())
     }
+    /// One-time fill of an already prepaid receiving slot after its acquiring
+    /// child restores. No returned ledger/Result is constructed by this gateway.
+    pub(crate) fn capture_into_controls() -> usize {
+        std::mem::size_of::<&mut Self>()
+            + std::mem::size_of::<std::cell::Ref<'_, Option<Rc<Budget>>>>()
+            + 2 * std::mem::size_of::<&Option<Rc<Budget>>>()
+            + std::mem::size_of::<&mut Option<Rc<Budget>>>()
+            + std::mem::size_of::<&std::cell::RefCell<Option<Rc<Budget>>>>()
+            + std::mem::size_of::<Option<Rc<Budget>>>()
+    }
+    pub(crate) fn capture_current_into(&mut self) {
+        super::ACTIVE.with(|active| self.0.clone_from(&*active.borrow()));
+    }
+    pub(crate) fn storage_terminal_receipt_controls() -> usize {
+        // Exactly two possible terminal owning sites: parent association and
+        // acquisition rejection. Each unchanged record_refusal may return the
+        // first Option, initialize the record, initialize Some, receive it in
+        // Cell::set, and return the stage Option. No old allowance is spent.
+        2 * (3 * std::mem::size_of::<Option<super::ReservationRefusal>>()
+            + std::mem::size_of::<super::ReservationRefusal>()
+            + std::mem::size_of::<Option<super::ReservationStage>>())
+    }
+    pub(crate) fn reject_storage(&self) {
+        if let Some(budget) = &self.0 {
+            super::record_refusal(budget, 0);
+            budget.overflowed.set(true);
+        }
+    }
+    pub(crate) fn storage_authentication_controls() -> usize {
+        // Parent identity by borrow, then immutable acquisition evidence.
+        2 * std::mem::size_of::<&Self>()
+            + std::mem::size_of::<&std::cell::RefCell<Option<Rc<Budget>>>>()
+            + std::mem::size_of::<std::cell::Ref<'_, Option<Rc<Budget>>>>()
+            + 2 * std::mem::size_of::<&Option<Rc<Budget>>>()
+            + 5 * std::mem::size_of::<&Rc<Budget>>()
+            + std::mem::size_of::<Option<&Rc<Budget>>>()
+            + 2 * std::mem::size_of::<bool>()
+    }
+    /// Retained storage evidence only: this never grants access to remaining
+    /// allowance and deliberately does not require the acquiring child current.
+    pub(crate) fn successful_storage_acquisition(&self) -> bool {
+        self.0
+            .as_ref()
+            .is_some_and(|budget| !budget.overflowed.get())
+    }
+    /// Identity and sticky state by borrow, without cloning a receiving Rc.
+    /// The containing paid storage owner supplies this fixed control context.
+    pub(crate) fn storage_parent_current(&self) -> bool {
+        super::ACTIVE.with(|active| match (&self.0, &*active.borrow()) {
+            (None, None) => true,
+            (Some(held), Some(current)) if Rc::ptr_eq(held, current) => !held.overflowed.get(),
+            _ => {
+                if let Some(held) = &self.0 {
+                    super::record_refusal(held, 0);
+                    held.overflowed.set(true);
+                }
+                false
+            }
+        })
+    }
     pub(crate) fn current(&self) -> bool {
         let current = active();
         let same = match (&self.0, current) {

@@ -193,8 +193,10 @@ fn complete_immediate_receiver_helpers_and_all_seven_original_controls_remain_ex
         )
         + "#[cfg(test)]\nmod tests;\n\n#[cfg(test)]\npub(super) mod app_census;\n";
     assert_eq!(restored, include_str!("../../../../../docs/evidence/singleton-target-receiving-layers-831/complete-receiver-before.rs.txt"));
-    assert_eq!(include_str!("singleton_target_tests.rs"), include_str!("../../../../../docs/evidence/singleton-target-receiving-layers-831/complete-seven-controls-before.rs.txt"));
-    let helpers = include_str!("successor_targets.rs")
+    let controls = crate::source_reflows_merge::consumer_input("receiving831", "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs", include_str!("singleton_target_tests.rs"));
+    assert_eq!(controls, include_str!("../../../../../docs/evidence/singleton-target-receiving-layers-831/complete-seven-controls-before.rs.txt"));
+    let helper_input = crate::source_reflows_merge::consumer_input("receiving831", "src/cleanup_plan/replay/factored/canonical_shared/successor_targets.rs", include_str!("successor_targets.rs"));
+    let helpers = helper_input
         .replacen("#[cfg(test)]\nuse super::{", "use super::{", 1)
         .replacen("use std::collections::BTreeMap;\n#[cfg(test)]\nuse std::mem::size_of;", "use std::{collections::BTreeMap, mem::size_of};", 1)
         .replacen("// Complete prior helpers qualify old receiving boundaries only.\n#[cfg(test)]\nimpl Targets {", "impl Targets {", 1);

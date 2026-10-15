@@ -247,6 +247,8 @@ fn typed_declaration_complete_old_receivers_actual_callers_and_full_source_inver
     let manifest = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_eq!(rows.as_array().unwrap().len(), sources.len());
     for (row, source) in rows.as_array().unwrap().iter().zip(sources) {
+        let projected = crate::source_reflows_merge::consumer_input("decl825", row["source"].as_str().unwrap(), source);
+        let source = projected.as_str();
         assert_eq!(
             format!(
                 "{:x}",

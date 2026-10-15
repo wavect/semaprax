@@ -378,7 +378,7 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     let projection_import_stub = semantic_graph_projection_child_source_inventory!(import_stub);
     let projection_uncached_peak = semantic_graph_projection_child_source_inventory!(uncached_peak);
     let projection_type_rewrite = semantic_graph_projection_child_source_inventory!(type_rewrite);
-    let projection_private_layout = semantic_graph_private_layout_source_inventory!();
+    let projection_private_layout = semantic_graph_private_layout_owned_source_inventory!();
     let projection = format!(
         "{projection_private_layout}\n{projection_type_rewrite}\n{projection_import_stub}\n{projection_uncached_peak}\n{projection_root}\n{projection_local_identity}\n{projection_call_identity}\n{projection_call_sites}\n{projection_cost}\n{projection_declaration_cost}\n{projection_identity_slots}\n{projection_statement_segment}\n{projection_defaults}"
     );

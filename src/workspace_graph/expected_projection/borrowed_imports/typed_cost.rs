@@ -963,6 +963,8 @@ mod tests {
         let rows = rows.as_array().unwrap();
         assert_eq!(rows.len(), sources.len());
         for (row, (current, original)) in rows.iter().zip(sources) {
+            let projected = crate::source_reflows_merge::consumer_input("cost825", row["source"].as_str().unwrap(), current);
+            let current = projected.as_str();
             assert_eq!(
                 format!(
                     "{:x}",

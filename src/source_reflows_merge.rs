@@ -143,8 +143,29 @@ pub(crate) fn main(source: &str, current: &str) -> String {
 
 // Actual corrective owners authenticate before the immutable d1bb source view.
 fn corrected_previous(source: &str, current: &str) -> String {
+    let baseline = consumer_previous(source, current);
+    let current = baseline.as_str();
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/d1bb-corrective-source-successor-20261015/current-to-d1bb.json")), source, current)
 }
 pub(crate) fn scalar_policy_input(source: &str, current: &str) -> String {
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/d1bb-corrective-source-successor-20261015/scalar-policy-inputs.json")), source, current)
+}
+
+// The consumer correction has one strict current→frozen3d4b predecessor.
+fn consumer_previous(source: &str, current: &str) -> String {
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/source-consumer-closure-fixes-20261015/current-to-3d4b.json")), source, current)
+}
+pub(crate) fn consumer_input(domain: &str, source: &str, current: &str) -> String {
+    let data = match domain {
+        "decl825" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/source-consumer-closure-fixes-20261015/decl825.json")),
+        "cost825" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/source-consumer-closure-fixes-20261015/cost825.json")),
+        "signature825" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/source-consumer-closure-fixes-20261015/signature825.json")),
+        "capacity834" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/source-consumer-closure-fixes-20261015/capacity834.json")),
+        "registry833" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/source-consumer-closure-fixes-20261015/registry833.json")),
+        "receiving831" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/source-consumer-closure-fixes-20261015/receiving831.json")),
+        "lexical832" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/source-consumer-closure-fixes-20261015/lexical832.json")),
+        "cold835" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/source-consumer-closure-fixes-20261015/cold835.json")),
+        _ => panic!("unknown complete source consumer domain"),
+    };
+    project(data, source, current)
 }

@@ -57,6 +57,8 @@ fn complete_old_receiver_source_and_all_new_joined_sources_stay_exact() {
     ];
     assert_eq!(files.len(), rows.as_array().unwrap().len());
     for (path, source) in files {
+        let projected = crate::source_reflows_merge::consumer_input("capacity834", path, source);
+        let source = projected.as_str();
         let row = rows
             .as_array()
             .unwrap()

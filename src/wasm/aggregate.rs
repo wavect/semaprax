@@ -6312,6 +6312,9 @@ impl Emitter<'_> {
         type_arguments: &[ResolvedType],
         args: &[ResolvedExpr],
     ) -> Result<Value, Diagnostic> {
+        if op == crate::vec_ops::VecOp::UpdateField {
+            return self.emit_field_update(expr);
+        }
         if op == crate::vec_ops::VecOp::StrAt {
             return self.emit_string_slot(expr);
         }
@@ -6624,7 +6627,8 @@ impl Emitter<'_> {
             | crate::vec_ops::VecOp::ReserveOwned
             | crate::vec_ops::VecOp::SortOwned
             | crate::vec_ops::VecOp::SortBy
-            | crate::vec_ops::VecOp::UniqueBy => {
+            | crate::vec_ops::VecOp::UniqueBy
+            | crate::vec_ops::VecOp::UpdateField => {
                 Err(error("owned-leaf Vec operation has no admitted element"))
             }
         }

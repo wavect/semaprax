@@ -193,7 +193,8 @@ impl Emitter<'_> {
             | VecOp::ReserveOwned
             | VecOp::SortOwned
             | VecOp::SortBy
-            | VecOp::UniqueBy => Err(error(
+            | VecOp::UniqueBy
+            | VecOp::UpdateField => Err(error(
                 "owned record Vec operation is outside the admitted profile",
             )),
         }

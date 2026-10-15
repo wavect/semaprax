@@ -1,0 +1,27 @@
+[
+  {
+    "source": "src/codegen/native_vec/owned_leaf.c",
+    "archive": "docs/evidence/record-copy-field-update-836-backends/original/src__codegen__native_vec__owned_leaf.c",
+    "sha256": "d7e9fa7f7d540e975525813d82985e9af55739485ce4fd495f01870aac13de9d"
+  },
+  {
+    "source": "src/codegen/native_vec/legacy_field.c",
+    "archive": "docs/evidence/record-copy-field-update-836-backends/original/src__codegen__native_vec__legacy_field.c",
+    "sha256": "e2c0c1835a8bf3125bfc0a3978949a99028a48d5bc7613349f88c76f94b4fe80"
+  },
+  {
+    "source": "src/codegen/native_vec/owned_payload.rs",
+    "archive": "docs/evidence/record-copy-field-update-836-backends/original/src__codegen__native_vec__owned_payload.rs",
+    "sha256": "1e1dac2b53f549c3306a04cfe1a8cde3a5bda831c56f4e83a0ddd369c67f9366"
+  },
+  {
+    "source": "tests/cleanup_backends/owned_leaf_collections/native.rs",
+    "archive": "docs/evidence/record-copy-field-update-836-backends/original/tests__cleanup_backends__owned_leaf_collections__native.rs",
+    "sha256": "37fdc67ca3eb0f66dea66501058f5f58781dc38cb192a56e051a0cfa3673b060"
+  },
+  {
+    "source": "tests/cleanup_backends/owned_leaf_collections/allocations.c",
+    "archive": "docs/evidence/record-copy-field-update-836-backends/original/tests__cleanup_backends__owned_leaf_collections__allocations.c",
+    "sha256": "f586b9219a894f520946200aea475412001b490cee543d0617a36fa24726b745"
+  }
+]

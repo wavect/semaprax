@@ -1,0 +1,17 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "source_basis": "d39fe676a7c1df3323888b25c9481f7bbb65feaa",
+  "prior_binding_file": "docs/evidence/final-source-composition-e30e017-20261015/starter-current-bindings.json",
+  "prior_binding_sha256": "a461b564a5cb021f334efa9ccf18f94b39c2dc318ea5cf16fa43c6fc59280a7c",
+  "bindings_verified": 38,
+  "all_old_inverse_hooks_retained": true,
+  "authenticated_added_joins": [
+    {
+      "owner": "starter-original",
+      "source": "crates/semaprax-toolchain/src/new_project.rs",
+      "checkpoint": "e30e017e503f8e0362a186ada126c48e6199d4d7",
+      "previous_sha256": "abf548c5c0029b254a210e125021bcc363c4794cd896fdcb83112bce0ee49cbf",
+      "current_sha256": "f4ebc2d7fc69a68ce5ea1a2da4a6eb3c2074bb15a9a2de41c80b8a56c3cc0a69"
+    }
+  ]
+}

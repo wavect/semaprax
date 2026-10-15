@@ -1,0 +1,17 @@
+{
+  "status": "PREPARED_ONLY_NO_COMPOSITION_EXECUTED",
+  "template": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/final-source-composition-e30e017-20261015/compose.py",
+  "template_sha256": "e8d4539a2be9a6a169691f3291dcd0480d69260b9ac468ebaaaa2e34e1eb2876",
+  "new_sha256": "cef8469063004f317c5a0f7f36ca1def1c37b48501f2150bf0083db801998656",
+  "prior_packets": 84,
+  "prior_rows": 774,
+  "new_direct_packets": 3,
+  "changes": [
+    "explicit exact immutable source basis and HEAD-drift guard",
+    "retain ALL84 previousactivepacketpaths includingoldderived836/formatter metadata",
+    "add11mechanical+1exactdiagnostic+2nativeclassification source rows plusexplicitnextadapterpacket",
+    "use explicit newfullSource36 runner; all36completechecks stillrequired",
+    "original16MiB128entrycandidateLRU,wholeoriginal reconstruction,alloldhookandfieldpreservation,staging/source/archiveguards unchanged"
+  ],
+  "execution_performed": false
+}

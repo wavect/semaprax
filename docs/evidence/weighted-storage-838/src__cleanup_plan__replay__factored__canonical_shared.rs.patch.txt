@@ -1,0 +1,225 @@
+--- before/src/cleanup_plan/replay/factored/canonical_shared.rs
++++ current/src/cleanup_plan/replay/factored/canonical_shared.rs
+@@ -2,22 +2,27 @@
+ //! Frames, open states and completed memo keys share only owned immutable
+ //! vectors. Label order, route weights, signature algebra and work debits keep
+ //! the complete original receiver in canonical_before.rs as an independent control.
+ use super::{
+-    physical_clone, replay_error, Automaton, BTreeMap, Diagnostic, Label, Rc, ReplayBudget,
+-    ResolvedFunction, Weighted,
++    Automaton, BTreeMap, Diagnostic, Label, Rc, ReplayBudget, ResolvedFunction, Weighted,
++    physical_clone, replay_error,
+ };
+ 
+ #[cfg(test)]
+ mod before_alias;
+ #[cfg(test)]
+ mod before_index;
+ #[cfg(test)]
++mod before_ordered;
++#[cfg(test)]
+ mod before_scratch;
+ #[cfg(test)]
+ mod before_targets;
++#[cfg(test)]
+ mod epsilon_alias;
+ mod memo;
++mod ordered_alias;
++mod ordered_weights;
+ #[cfg(test)]
+ mod scratch_tests;
+ #[cfg(test)]
+ mod singleton_target_tests;
+@@ -85,9 +90,9 @@
+ /// they accept every observation sequence the same number of times.
+ pub(super) struct Canonicalizer<'a> {
+     automaton: &'a Automaton,
+     sink: usize,
+-    closures: memo::RetainedMemo<Rc<BTreeMap<usize, u64>>>,
++    closures: memo::RetainedMemo<Rc<ordered_weights::OrderedWeights>>,
+     states: BTreeMap<SharedWeighted, usize>,
+     ids: BTreeMap<(u64, Vec<(Label, usize)>), usize>,
+     cursor: Vec<(usize, bool)>,
+     frames: Vec<CanonicalFrame>,
+@@ -116,9 +121,9 @@
+         &mut self,
+         function: &ResolvedFunction,
+         root: usize,
+         budget: &mut ReplayBudget,
+-    ) -> Result<Option<Rc<BTreeMap<usize, u64>>>, Diagnostic> {
++    ) -> Result<Option<Rc<ordered_weights::OrderedWeights>>, Diagnostic> {
+         self.closures.authenticate_retained(function, budget);
+         if self.closures.failed() {
+             return Err(self.closures.failure());
+         }
+@@ -131,9 +136,9 @@
+         }
+         if budget.pays_allocations() {
+             budget.reserve_bytes(
+                 function,
+-                std::mem::size_of::<Result<Option<Rc<BTreeMap<usize, u64>>>, Diagnostic>>()
++                std::mem::size_of::<Result<Option<Rc<ordered_weights::OrderedWeights>>, Diagnostic>>()
+                     + std::mem::size_of::<Result<(), Diagnostic>>()
+                     + std::mem::size_of::<usize>(),
+                 "factored closure scratch receiving",
+             )?;
+@@ -148,9 +153,9 @@
+         &mut self,
+         function: &ResolvedFunction,
+         root: usize,
+         budget: &mut ReplayBudget,
+-    ) -> Result<Option<Rc<BTreeMap<usize, u64>>>, Diagnostic> {
++    ) -> Result<Option<Rc<ordered_weights::OrderedWeights>>, Diagnostic> {
+         budget.reserve_vec(
+             function,
+             &mut self.cursor,
+             1,
+@@ -189,9 +194,9 @@
+                     return Err(replay_error(function, "cleanup CFG contains a cycle"));
+                 };
+                 #[cfg(test)]
+                 app_census::child_ready(inner.len());
+-                let shared = match epsilon_alias::share(function, inner, budget) {
++                let shared = match ordered_alias::share(function, inner, budget) {
+                     Ok(shared) => shared,
+                     Err(error) => {
+                         self.closures.reject_after_error();
+                         return Err(error);
+@@ -204,24 +209,31 @@
+                 #[cfg(test)]
+                 app_census::published();
+                 continue;
+             }
+-            let mut closure = BTreeMap::new();
++            if budget.pays_allocations() {
++                budget.reserve_bytes(
++                    function,
++                    ordered_weights::OrderedWeights::CONTROLS,
++                    "factored ordered closure controls",
++                )?;
++            }
++            let mut closure = ordered_weights::OrderedWeights::new();
+             if !state.moves.is_empty() || node == self.sink {
+-                budget.reserve_btree_node::<usize, u64>(function, "factored closure node")?;
+-                closure.insert(node, 1_u64);
++                closure.insert_new(function, budget, node, 1_u64)?;
+             }
+             for target in &state.epsilon {
+                 let Some(inner) = self.closures.get(target) else {
+                     return Err(replay_error(function, "cleanup CFG contains a cycle"));
+                 };
+                 for (inner_node, routes) in inner.iter() {
+                     budget.charge(function, 1, "factored closure route addition")?;
+-                    if !closure.contains_key(inner_node) {
+-                        budget
+-                            .reserve_btree_node::<usize, u64>(function, "factored closure node")?;
+-                    }
+-                    let slot = closure.entry(*inner_node).or_insert(0_u64);
++                    if closure.get(inner_node).is_none() {
++                        closure.insert_new(function, budget, *inner_node, 0_u64)?;
++                    }
++                    let slot = closure
++                        .get_mut(inner_node)
++                        .expect("inserted ordered weight");
+                     let Some(sum) = slot.checked_add(*routes) else {
+                         return Ok(None);
+                     };
+                     *slot = sum;
+@@ -233,9 +245,9 @@
+                 "factored skeleton closure",
+             )?;
+             budget.reserve_bytes(
+                 function,
+-                physical_clone::rc_backing_bytes::<BTreeMap<usize, u64>>(),
++                physical_clone::rc_backing_bytes::<ordered_weights::OrderedWeights>(),
+                 "factored closure shared header",
+             )?;
+             self.closures
+                 .insert_retained(function, node, budget, || Rc::new(closure))?;
+@@ -250,29 +262,61 @@
+         function: &ResolvedFunction,
+         state: &SharedWeighted,
+         budget: &mut ReplayBudget,
+     ) -> Result<Option<(u64, Vec<(Label, SharedWeighted)>)>, Diagnostic> {
+-        let mut closed = BTreeMap::<usize, u64>::new();
+-        for (node, weight) in state.iter() {
++        if budget.pays_allocations() {
++            budget.reserve_bytes(
++                function,
++                ordered_weights::Closed::CONTROLS,
++                "factored ordered closed receiving controls",
++            )?;
++        }
++        let closed = if let [(node, 1)] = state.as_slice() {
+             let Some(closure) = self.closure(function, *node, budget)? else {
+                 return Ok(None);
+             };
+-            for (inner, routes) in closure.iter() {
+-                let Some(sum) = routes.checked_mul(*weight).and_then(|product| {
+-                    closed.get(inner).copied().unwrap_or(0).checked_add(product)
+-                }) else {
++            // The old empty accumulator saw every unique closure entry once.
++            // Execute its checked arithmetic and EACH original work debit,
++            // before moving the authenticated immutable owner into the view.
++            for (_, routes) in closure.iter() {
++                let Some(_sum) = routes
++                    .checked_mul(1)
++                    .and_then(|product| 0_u64.checked_add(product))
++                else {
+                     return Ok(None);
+                 };
+                 budget.charge(function, 1, "factored weighted route addition")?;
+-                if !closed.contains_key(inner) {
+-                    budget.reserve_btree_node::<usize, u64>(
+-                        function,
+-                        "factored weighted closure node",
+-                    )?;
++            }
++            ordered_weights::Closed::Borrowed(closure)
++        } else {
++            if budget.pays_allocations() {
++                budget.reserve_bytes(
++                    function,
++                    ordered_weights::OrderedWeights::CONTROLS,
++                    "factored ordered accumulator controls",
++                )?;
++            }
++            let mut closed = ordered_weights::OrderedWeights::new();
++            for (node, weight) in state.iter() {
++                let Some(closure) = self.closure(function, *node, budget)? else {
++                    return Ok(None);
++                };
++                for (inner, routes) in closure.iter() {
++                    let Some(sum) = routes.checked_mul(*weight).and_then(|product| {
++                        closed.get(inner).copied().unwrap_or(0).checked_add(product)
++                    }) else {
++                        return Ok(None);
++                    };
++                    budget.charge(function, 1, "factored weighted route addition")?;
++                    if closed.get(inner).is_none() {
++                        closed.insert_new(function, budget, *inner, 0_u64)?;
++                    }
++                    *closed.get_mut(inner).expect("inserted ordered weight") = sum;
+                 }
+-                closed.insert(*inner, sum);
+-            }
+-        }
++            }
++            ordered_weights::Closed::Owned(closed)
++        };
++        let closed = closed.weights();
+         let accepted = closed.get(&self.sink).copied().unwrap_or(0);
+         if budget.pays_allocations() {
+             budget.reserve_bytes(
+                 function,
+@@ -281,9 +325,9 @@
+                 "factored successor label receiving controls",
+             )?;
+         }
+         let mut successors = BTreeMap::<Label, successor_targets::Targets>::new();
+-        for (node, weight) in &closed {
++        for (node, weight) in closed.iter() {
+             let moves = &self.automaton.nodes[*node].moves;
+             budget.charge(
+                 function,
+                 moves.len().saturating_add(1),

@@ -1,0 +1,30 @@
+--- before/docs/ARCHITECTURE.md
++++ current/docs/ARCHITECTURE.md
+@@ -147,13 +147,25 @@
+ actual layouts before construction. Sharing keeps the original len-plus-one
+ copy work and zero-byte sticky payer authentication. The complete original
+ receiver remains in test-only `factored/canonical_before.rs`; source-custody
+ inverses join its full interior and the HIR authority scan includes both owners
+-and their receiving controls. `canonical_shared/epsilon_alias.rs` owns the exact
++and their receiving controls. `canonical_shared/ordered_alias.rs` owns the exact
+ non-sink/no-moves/single-epsilon immutable closure receiver; it retains every
+ original route/skeleton work request and authenticates the same held memo owner.
+-The complete a33 receiver remains in test-only `canonical_shared/before_alias.rs`.
++The complete a33 receiver and BTree alias helper remain test-only controls in
++`canonical_shared/before_alias.rs` and `canonical_shared/epsilon_alias.rs`.
+ Qualification and application fit remain pending.
++
++`canonical_shared/ordered_weights.rs` owns the numeric closure/closed-accumulator
++AVL arena, with paid dense node backing and parent-linked ascending iteration.
++Numeric keys never index directory capacity. Published closures are immutable;
++a unit-singleton closed state borrows its authenticated closure, while general
++weighted states retain a separate paid arena. The original weighted traversal,
++checked arithmetic and exposed work requests remain unchanged. State/signature
++dictionaries and persistent successor payloads keep their preceding storage.
++The complete immediate BTree receiver is retained in `before_ordered.rs`; full
++source inverses and allocation-free comparison adapters preserve older controls.
++This source-only draft's focused qualification is pending.
+ 
+ `canonical_shared/successor_targets.rs` owns the ephemeral One/Many label-target
+ representation. New outer value/control layouts and both promotion inserts are
+ acquired before construction; existing checked accumulation stays in the

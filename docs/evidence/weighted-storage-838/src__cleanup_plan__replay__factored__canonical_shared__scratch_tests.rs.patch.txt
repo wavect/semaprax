@@ -1,0 +1,17 @@
+--- before/src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs
++++ current/src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs
+@@ -24,11 +24,11 @@
+         assert_eq!(budget.skeleton_remaining, old_budget.skeleton_remaining);
+         assert_eq!(&current.ids, old.signatures());
+         assert_eq!(&current.states, old.states());
+         assert!(current.frames.is_empty() && current.open.is_empty() && current.cursor.is_empty());
+-        assert_eq!(
+-            old.closure(&function, *root, &mut old_budget),
+-            current.closure(&function, *root, &mut budget),
++        super::ordered_weights::assert_closure_result(
++            &current.closure(&function, *root, &mut budget),
++            &old.closure(&function, *root, &mut old_budget),
+         );
+         assert_eq!(budget.remaining, old_budget.remaining);
+     }
+     // Overflow and cycle compare the complete Result/Diagnostic, not its code.

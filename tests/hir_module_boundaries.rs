@@ -439,6 +439,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/tests.rs"),
         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/receiver_tests.rs"),
         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/source.rs"),
+        include_str!("../src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/amortized_source.rs"),
         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/ordered_alias.rs"),
         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/before_ordered.rs"),
         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/successor_targets.rs"),

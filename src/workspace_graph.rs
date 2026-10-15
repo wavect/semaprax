@@ -4420,14 +4420,15 @@ fn build_resolved_core_current(
         }
         let synthetic = staged!(
             SyntheticModule,
-            constructor_failure::construct_transient_core(
+            constructor_failure::typed::construct_transient_core(
                 program,
                 authored,
                 programs,
                 layouts,
                 &mut core_proofs,
+                receiver.as_mut().expect("live constructor receiver"),
             )
-            .map_err(|failure| receiver.take().expect("first constructor error exits core").receive(failure))
+            .map_err(|failure| receiver.take().expect("first constructor error exits core").receive_typed(failure))
         )?;
         // Exact stubs/spans and the unconditional prebound govern hits.
         let cached = staged!(

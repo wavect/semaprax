@@ -199,6 +199,7 @@ pub(super) fn default_expr(
     super::defaults::default_expr(&function.return_type, declarations, allow_owned)
 }
 
+#[cfg(test)]
 pub(super) fn default_expr_inline(
     function: &Function,
     declarations: &[(&str, &crate::ast::TypeDeclaration)],
@@ -371,3 +372,6 @@ pub(super) fn default_expr_original(
     }
     super::defaults::original::default_expr(&function.return_type, declarations, allow_owned)
 }
+
+#[path = "import_stub/typed.rs"]
+pub(in crate::workspace_graph) mod typed;

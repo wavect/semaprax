@@ -47,3 +47,13 @@ The former complete limit_error, builder_bytes_help and live_builder_refusal bod
 3. Qualify the complete old/current default/import/receiving/core/final-report bodies with full six-field/error order, UTF8/NUL, dynamic paths/help and real Many controls; exact/short/zero/every acquired frontier, first sticky association, complete same-observer Drop, actual caller source binding and all corresponding source inverses. Existing application/cap failures remain disclosed.
 
 No private selected-replay781 or identity-report owner is reused. No work-unit/quota/cap/forecast change is authorized by this protocol.
+
+## Typed helper propagation (partial successor)
+
+The actual core passes the same affine Receiver by mutable borrow into a separate typed overlay/stub/default/field route. It captures the original builder maximum at acquisition and retains its first typed setup failure. Each reserve checks that saved failure before attempting any later charge; an unfunded foreign invocation cannot donate its active ledger. A physical field-capacity exit authenticates the original identity before recording the same inherited maximum-size refusal. It remains a builder-byte refusal and is never relabelled Allocation.
+
+Typed helper entries reserve their complete returned Result and borrowed receiving-reference layout before output acquisition; text construction additionally pays its String initializer and checks the bounded string helper's refusal sentinel before creating later backing. Field growth retains full replacement-array charges, evaluation order, and the original growth frontier. Extra fees are real and remain cumulative. The enlarged original owner and every unused receiving slot remain paid on success and all other branches.
+
+Semantic One still moves through the original slot and keeps all six selected fields even after a secondary sticky/detached association. A typed Budget moves inline to the existing attempt owner, which seals its original first receipt while the child is ACTIVE. No diagnostic/Vec formatting occurs at that propagation step. Complete previous helpers remain compiled under cfg(test), with whole-source inverses retaining their unchanged bodies. Existing G171 dynamic compatibility remains independent.
+
+This does not complete OPT825: registry, structural census/cost, layout, alias/type rewriting and provider-internal diagnostic producers still have legacy return ownership. Many keeps its real prior backing without paid reclassification. The public/no-owner outward Vec adapter remains explicitly allocating; no additive externally adopted typed outward API is claimed. New controls and source proofs require grouped compiler/runtime qualification before any funding claim.

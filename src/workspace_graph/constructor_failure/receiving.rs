@@ -21,6 +21,8 @@ pub(in crate::workspace_graph) struct Receiver {
     ledger: ClassifierLedger,
     report: Vec<Diagnostic>,
     detached: bool,
+    maximum: usize,
+    first: Option<Setup>,
 }
 impl std::fmt::Debug for Receiver {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -110,6 +112,13 @@ impl Receiver {
     pub(in crate::workspace_graph) fn setup_bytes() -> Option<usize> {
         [
             size_of::<Self>(),
+            // Fixed small refusal controls exist even when the first request
+            // refuses. Typed primitive adapters never return a large Failure.
+            size_of::<Result<(), Setup>>(),
+            size_of::<Setup>(),
+            size_of::<&mut Self>(),
+            size_of::<Option<Setup>>(),
+            size_of::<usize>(),
             size_of::<Option<Self>>(),
             size_of::<Result<Self, Setup>>(),
             size_of::<CoreFailure>(),
@@ -159,6 +168,8 @@ impl Receiver {
             ledger,
             report,
             detached: false,
+            maximum: super::super::active_builder_limit(),
+            first: None,
         })
     }
     /// A selected primary may move into existing backing even when the held
@@ -190,3 +201,5 @@ impl Receiver {
 pub(in crate::workspace_graph) mod before;
 #[cfg(test)]
 mod tests;
+
+mod typed;

@@ -1,0 +1,34 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_OR_CARGO_EXECUTION",
+  "preserved_authenticated_packets": [
+    {
+      "packet": "docs/evidence/constructor-inline-failure-825/exact-source-inverses.json",
+      "stage": 2,
+      "archive": "docs/evidence/integration-recovery-403d-20261015/inline-stage2.json",
+      "sha256": "f1eb90fb5c424ae3a44c952bc9cae6863200452e447311aafa4e080b00cf92ad",
+      "complete_original_reconstruction": true
+    },
+    {
+      "packet": "docs/evidence/constructor-inline-failure-825/exact-source-inverses.json",
+      "stage": 3,
+      "archive": "docs/evidence/integration-recovery-403d-20261015/inline-stage3.json",
+      "sha256": "e949e0dccbdb7bdba34d7c9445b92f61e5a904cb325b03a0b200c0746a50a780",
+      "complete_original_reconstruction": true
+    },
+    {
+      "packet": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "stage": 2,
+      "archive": "docs/evidence/integration-recovery-403d-20261015/report-stage2.json",
+      "sha256": "e8861666740a57101344e409794a98596bdb5267b6d73dc0930375c4249fcd75",
+      "complete_original_reconstruction": true
+    },
+    {
+      "packet": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "stage": 3,
+      "archive": "docs/evidence/integration-recovery-403d-20261015/report-stage3.json",
+      "sha256": "c5f9895cce0391b90f2d7e84cb1a4357896bb8a051545de00e9bfdf8be3adb56",
+      "complete_original_reconstruction": true
+    }
+  ],
+  "resolution": "Both complete authenticated chains archived intact; current active chains retain all original hooks and receive additive current-source preinverses."
+}

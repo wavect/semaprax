@@ -389,5 +389,9 @@ pub(in crate::workspace_graph) fn construct_using<'p, 'a>(
 #[path = "borrowed_imports/tests.rs"]
 mod tests;
 
+#[cfg(test)]
 #[path = "borrowed_imports/inline.rs"]
 pub(in crate::workspace_graph) mod inline;
+
+#[path = "borrowed_imports/typed.rs"]
+pub(in crate::workspace_graph) mod typed;

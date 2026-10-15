@@ -1,4 +1,5 @@
 //! Internal error custody only; it grants no report allowance or authority.
+#[cfg(test)]
 use super::{active_builder_limit, limit_error};
 use crate::diagnostic::Diagnostic;
 
@@ -12,9 +13,11 @@ pub(super) enum Failure {
     Many(Vec<Diagnostic>),
 }
 impl Failure {
+    #[cfg(test)]
     pub(super) fn one(diagnostic: Diagnostic) -> Self {
         Self::One(diagnostic)
     }
+    #[cfg(test)]
     pub(super) fn diagnostics(&self) -> &[Diagnostic] {
         match self {
             Self::One(diagnostic) => std::slice::from_ref(diagnostic),
@@ -40,7 +43,9 @@ impl From<Diagnostic> for Failure {
         Self::One(diagnostic)
     }
 }
+#[cfg(test)]
 pub(super) type Result<T> = std::result::Result<T, Failure>;
+#[cfg(test)]
 pub(super) fn reserve(bytes: usize) -> Result<()> {
     if crate::bounded_output::reserve_active(bytes) {
         Ok(())
@@ -54,6 +59,7 @@ pub(super) fn reserve(bytes: usize) -> Result<()> {
 
 /// Real resolved-core constructor chain. Legacy helper failures retain all
 /// diagnostics and backing; the default/stub/overlay chain carries One inline.
+#[cfg(test)]
 pub(super) fn construct_transient_core<'a>(
     program: &'a crate::ast::Program,
     authored: &'a std::collections::BTreeMap<&'a str, super::AuthoredDeclaration<'a>>,
@@ -82,3 +88,5 @@ pub(super) mod receiving;
 
 pub(super) mod report;
 pub(super) mod attempt;
+
+pub(super) mod typed;

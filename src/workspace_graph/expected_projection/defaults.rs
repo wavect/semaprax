@@ -550,11 +550,18 @@ pub(in crate::workspace_graph::expected_projection) use field_directory::project
 #[path = "defaults/error_custody_tests.rs"]
 mod error_custody_tests;
 
+#[cfg(test)]
 #[path = "defaults/inline.rs"]
 pub(in crate::workspace_graph) mod inline;
+#[cfg(test)]
 #[path = "defaults/inline_fields.rs"]
 mod inline_fields;
 
 #[cfg(test)]
 #[path = "defaults/inline_tests.rs"]
 mod inline_tests;
+
+#[path = "defaults/typed.rs"]
+pub(in crate::workspace_graph) mod typed;
+#[path = "defaults/typed_fields.rs"]
+mod typed_fields;

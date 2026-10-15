@@ -1,0 +1,220 @@
+Review actual finite patch below, source-only no tools/execution. Scope partial825: actual core uses explicit affineReceiver and typed helpers; old entirehelpers kept cfgtest, not overwritten. Existing report owner acquired before core, seals heldfirstreceipt while childACTIVE, moves alreadyfunded output afterrestore. No newbudget/refund/cap. Legacy registry/layout/cost/rewrite/provider Diagnostic producers and noowner/public fallback stillUNFUNDED residual. This is not wholeconstructorfunding claim.
+Contract: first selected semanticDiagnostic ALWAYS preserved evenifReceiverfirstBudget/Detached; secondaryassociation mustnot replace primary. firstSetup replay required onlytypedreservation failures, before touching foreignACTIVE. ClassifierLedger holds Option<Rc<Budget>>, no Drop hook; current compares Rcidentity and poisons original onforeign, neverforeign. New setup_bytes sums sizeofSelf/OptionSelf/ResultSelfSetup/CoreFailure/Vec/actualCoreResults+Diagnostic backing before initializing. Capturedmaximum/firstSetup fields includedby actualSelflayout. Everytypedhelperentry pays actualResult<T,TypedFailure>+borrowed&mutReceiver. Additionaltext helperpays String initializer+Result before bounded_clone; aftersentinel refuseszero before laterbacking. All fees cumulative, paidunused slot retained on every success, no oldheaderdiscount. ExistingphysicalforcedrequestusizeMAX preserved afterauth.
+Potential concern: entry/reserve methods use own return/control frames; evaluate whether existing explicit receiving prepayment covers newlyinitializedactualcarriers, don'tinvent exemptions. Receivinglayout/per-call references charge is at helperentry beforeallocations, sameexistingresultentry convention. Fullold/current semantic+actualcore+0..exactfivefieldwidths+foreign/restored+firstsemantic/Many+finalsamechildpublisher controls authored, unexecuted. Confirm concrete bugs not generic uncertainties.
+
+FILE src/workspace_graph/constructor_failure/receiving/typed.rs
+//! Borrowed original owner; no new ACTIVE handle, budget or report allocation.
+use super::{Receiver, Setup};
+use crate::workspace_graph::constructor_failure::typed::Failure;
+use std::mem::size_of;
+impl Receiver {
+    pub(in crate::workspace_graph) fn reserve(&mut self, bytes: usize) -> Result<(), Failure> {
+        if let Some(first) = self.first {
+            return Err(first.into());
+        }
+        let failure = if self.detached || !self.ledger.current() {
+            self.detached = true;
+            Some(Setup::Detached)
+        } else if !crate::bounded_output::reserve_active_required(bytes) {
+            Some(Setup::Budget {
+                maximum: self.maximum,
+            })
+        } else {
+            None
+        };
+        if let Some(failure) = failure {
+            self.first = Some(failure);
+            Err(failure.into())
+        } else {
+            Ok(())
+        }
+    }
+    /// Full initialized returned Result and borrowed owner argument per entry.
+    pub(in crate::workspace_graph) fn entry<T>(&mut self) -> Result<(), Failure> {
+        let bytes = size_of::<Result<T, Failure>>()
+            .checked_add(size_of::<&mut Self>())
+            .ok_or(Setup::Arithmetic)?;
+        self.reserve(bytes)
+    }
+    pub(in crate::workspace_graph) fn text(&mut self, value: &str) -> Result<String, Failure> {
+        self.entry::<String>()?;
+        self.reserve(size_of::<String>())?;
+        let text = crate::bounded_output::budgeted_clone(value);
+        // budgeted_clone's empty sentinel never licenses subsequent acquisition.
+        self.reserve(0)?;
+        Ok(text)
+    }
+    pub(in crate::workspace_graph) fn physical(&mut self) -> Failure {
+        if let Err(first) = self.reserve(0) {
+            return first;
+        }
+        // Same inherited physical-failure receipt, after original-owner auth.
+        crate::bounded_output::refuse_active_required(usize::MAX);
+        let first = Setup::Budget {
+            maximum: self.maximum,
+        };
+        self.first = Some(first);
+        first.into()
+    }
+}
+
+#[cfg(test)]
+mod tests;
+
+FILE src/workspace_graph/constructor_failure/typed.rs
+//! Explicit original receiver authority; old One/Many helpers remain independent.
+use super::receiving::{CoreFailure, Receiver, Setup};
+use crate::diagnostic::Diagnostic;
+#[derive(Debug)]
+#[allow(
+    clippy::large_enum_variant,
+    reason = "selected diagnostic stays inline after refusal"
+)]
+pub(in crate::workspace_graph) enum Failure {
+    One(Diagnostic),
+    Many(Vec<Diagnostic>),
+    Setup(Setup),
+}
+impl Failure {
+    pub(in crate::workspace_graph) fn one(diagnostic: Diagnostic) -> Self {
+        Self::One(diagnostic)
+    }
+}
+impl From<Vec<Diagnostic>> for Failure {
+    fn from(report: Vec<Diagnostic>) -> Self {
+        Self::Many(report)
+    }
+}
+impl From<Setup> for Failure {
+    fn from(failure: Setup) -> Self {
+        Self::Setup(failure)
+    }
+}
+impl From<Diagnostic> for Failure {
+    fn from(primary: Diagnostic) -> Self {
+        Self::One(primary)
+    }
+}
+pub(in crate::workspace_graph) fn construct_transient_core<'a>(
+    program: &'a crate::ast::Program,
+    authored: &'a std::collections::BTreeMap<&'a str, super::super::AuthoredDeclaration<'a>>,
+    programs: &'a [crate::ast::Program],
+    registry: &super::super::expected_projection::private_layout::registry::LayoutRegistry<'_>,
+    core: &mut super::super::expected_projection::CoreProviderProofs<'a>,
+    owner: &mut Receiver,
+) -> Result<super::super::expected_projection::borrowed_leaf::Input<'a>, Failure> {
+    use super::super::expected_projection::{borrowed_imports, borrowed_leaf};
+    use borrowed_leaf::Input;
+    owner.entry::<Input<'a>>()?;
+    if borrowed_leaf::eligible(program) {
+        borrowed_leaf::construct(program)
+            .map(Input::Borrowed)
+            .map_err(Failure::from)
+    } else if borrowed_imports::eligible(program, authored, programs) {
+        borrowed_imports::typed::construct_using(
+            program,
+            authored,
+            programs,
+            registry,
+            Some(core),
+            owner,
+        )
+        .map(Input::Borrowed)
+    } else {
+        // Explicit legacy dependency: its Vec producers are not recertified.
+        Input::construct_transient_core(program, authored, programs, registry, core)
+            .map_err(Failure::from)
+    }
+}
+impl Receiver {
+    /// Semantic selection precedes a secondary receiving/sticky association.
+    pub(in crate::workspace_graph) fn receive_typed(self, failure: Failure) -> CoreFailure {
+        match failure {
+            Failure::One(primary) => self.receive(super::Failure::One(primary)),
+            Failure::Many(report) => self.receive(super::Failure::Many(report)),
+            Failure::Setup(refusal) => {
+                drop(self);
+                CoreFailure::Setup(refusal)
+            }
+        }
+    }
+}
+
+FILE src/workspace_graph/expected_projection/defaults/typed_fields.rs
+//! Complete field evaluation and paid lazy Vec growth, with inline errors.
+use super::{FieldInitializer, Span, TypeDeclaration};
+use crate::ast::FieldDeclaration;
+use crate::workspace_graph::constructor_failure::{receiving::Receiver, typed::Failure};
+fn make(
+    field: &FieldDeclaration,
+    declarations: &[(&str, &TypeDeclaration)],
+    allow_owned: bool,
+    owner: &mut Receiver,
+) -> Result<FieldInitializer, Failure> {
+    let span = Span::default();
+    owner.entry::<FieldInitializer>()?;
+    owner.reserve(std::mem::size_of::<FieldInitializer>())?;
+    Ok(FieldInitializer {
+        name: owner.text(&field.name)?,
+        name_span: span,
+        value: super::typed::default_expr(&field.ty, declarations, allow_owned, owner)?,
+        span,
+    })
+}
+fn append(
+    output: &mut Vec<FieldInitializer>,
+    field: FieldInitializer,
+    owner: &mut Receiver,
+) -> Result<(), Failure> {
+    owner.entry::<()>()?;
+    owner.reserve(0)?;
+    if output.len() == output.capacity() {
+        // Same non-byte minimum4 and geometric growth as the old Result<Vec>
+        // collection. Acquire only after this full field succeeds, before push.
+        let capacity = output
+            .capacity()
+            .checked_mul(2)
+            .ok_or_else(|| owner.physical())?
+            .max(if std::mem::size_of::<FieldInitializer>() <= 1024 {
+                4
+            } else {
+                1
+            });
+        let layout = std::alloc::Layout::array::<FieldInitializer>(capacity)
+            .map_err(|_| owner.physical())?;
+        owner.reserve(layout.size())?;
+        output
+            .try_reserve_exact(capacity - output.len())
+            .map_err(|_| owner.physical())?;
+        if output.capacity() != capacity {
+            return Err(owner.physical());
+        }
+    }
+    output.push(field);
+    Ok(())
+}
+pub(in crate::workspace_graph) fn build(
+    fields: &[FieldDeclaration],
+    declarations: &[(&str, &TypeDeclaration)],
+    allow_owned: bool,
+    owner: &mut Receiver,
+) -> Result<Vec<FieldInitializer>, Failure> {
+    owner.entry::<Vec<FieldInitializer>>()?;
+    owner.reserve(0)?;
+    let Some((first, rest)) = fields.split_first() else {
+        owner.reserve(std::mem::size_of::<Vec<FieldInitializer>>())?;
+        return Ok(Vec::new());
+    };
+    // The old fallible iterator builds the complete first item before creating
+    // its Vec. Preserve that semantic/error frontier before the modeled carrier.
+    let first = make(first, declarations, allow_owned, owner)?;
+    owner.reserve(std::mem::size_of::<Vec<FieldInitializer>>())?;
+    let mut output = Vec::new();
+    append(&mut output, first, owner)?;
+    for field in rest {
+        let field = make(field, declarations, allow_owned, owner)?;
+        append(&mut output, field, owner)?;
+    }
+    owner.reserve(0)?;
+    Ok(output)
+}

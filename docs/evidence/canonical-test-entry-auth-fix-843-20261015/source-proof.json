@@ -1,0 +1,10 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED",
+  "source_basis": "ea9f3d93430f085c175bd1478a06b0ddb9e9c079",
+  "full_inverse_restores_git_original": true,
+  "outside_cfg_test_id_method_byte_exact": true,
+  "current_sha256": "43df43ad61648075dcc465d6af296891394fd6019eacd5a1105ed621c8b8da70",
+  "original_sha256": "df8d23dcd96f6002a3aec148ef663e2cc0543d32d30e6e34d5316fd3884b8e6c",
+  "original_singleton_test_unchanged": true,
+  "new_selectors": []
+}

@@ -148,6 +148,12 @@ impl<'a> Canonicalizer<'a> {
         root: Weighted,
         budget: &mut ReplayBudget,
     ) -> Result<Option<usize>, Diagnostic> {
+        // Preserve the old entry's owner rejection before a fresh test-only slot
+        // can query or charge a foreign payer. A valid call still pays acquisition.
+        self.closures.authenticate_retained(function, budget);
+        if self.closures.failed() {
+            return Err(self.closures.failure());
+        }
         let mut receiving = closure_receiving::ClosureReceiving::acquire(function, budget)?;
         self.id_with_receiving(function, root, budget, &mut receiving)
     }

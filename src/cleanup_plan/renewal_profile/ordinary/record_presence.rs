@@ -47,6 +47,13 @@ impl<'a> RecordPresence<'a> {
         // match binding, consuming parameter. get's own receiver is below.
         Self::transport_controls() + 5 * std::mem::size_of::<&Self>() + Self::read_controls()
     }
+    pub(crate) fn shared_caller_controls() -> usize {
+        // The same single transport payment now occurs in ModuleIndex, before
+        // its presence borrow/receiver exists. Its map_err is a new receiver.
+        Self::shared_transport_controls()
+            + std::mem::size_of::<Result<(), crate::diagnostic::Diagnostic>>()
+            + std::mem::size_of::<Refusal>()
+    }
     pub(crate) fn read_controls() -> usize {
         use std::mem::size_of;
         // get and its possible refuse forwarding Result, authentication reserve and

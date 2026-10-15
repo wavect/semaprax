@@ -254,6 +254,33 @@ fn full_original_collector_and_phase_source_inverses_remain_exact() {
             "/docs/evidence/record-presence-controls-850-20261016/runtime-inputs.json"
         )))
         .unwrap();
+        let caller_rows: serde_json::Value = serde_json::from_str(include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/record-presence-caller-frontier-850-20261016/runtime-inputs.json"
+        )))
+        .unwrap();
+        let previous;
+        let current = if let Some(row) = caller_rows.get(path) {
+            assert_eq!(row["current"].as_str().unwrap(), current);
+            assert_eq!(
+                format!(
+                    "{:x}",
+                    crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
+                ),
+                row["current_sha256"].as_str().unwrap()
+            );
+            previous = row["before"].as_str().unwrap().to_owned();
+            assert_eq!(
+                format!(
+                    "{:x}",
+                    crate::digest_hex::LowerHex(Sha256::digest(previous.as_bytes()))
+                ),
+                row["before_sha256"].as_str().unwrap()
+            );
+            previous.as_str()
+        } else {
+            current
+        };
         let row = &rows[path];
         assert_eq!(row["current"].as_str().unwrap(), current);
         assert_eq!(

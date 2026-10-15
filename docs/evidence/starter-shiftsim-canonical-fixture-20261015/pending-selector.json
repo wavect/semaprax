@@ -1,0 +1,6 @@
+{
+  "status": "AUTHORED_UNEXECUTED",
+  "package": "semaprax-toolchain",
+  "harness": "test:cli_new_project_v1",
+  "selector": "application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen"
+}

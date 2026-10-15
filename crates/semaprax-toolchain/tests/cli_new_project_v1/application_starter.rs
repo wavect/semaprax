@@ -290,6 +290,38 @@ fn expected_wire(value: &serde_json::Value) -> String {
 fn application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen() {
     let fixture = Fixture::new("application-typed");
     let source = repo().join("examples/shiftsim-typed-record-successor");
+    let raw_before = read_tree(&source);
+    let raw_output = fixture.root.join("raw-application");
+    let noncanonical = install(
+        &raw_output,
+        &source,
+        &source.join("codec-plan.json"),
+        "language-command-io.collection-record.v1",
+        Some(&source.join("src/app.command.spx")),
+    );
+    assert!(!noncanonical.status.success());
+    assert!(
+        String::from_utf8_lossy(&noncanonical.stderr).contains("SPX-G170"),
+        "{:?}",
+        noncanonical
+    );
+    assert!(!raw_output.exists());
+    assert_eq!(read_tree(&source), raw_before);
+    // Preserve every original fixture byte, then use the compiler's actual
+    // parser/formatter for the successful authored inventory (including command).
+    let authored = fixture.root.join("authored");
+    for (relative, bytes) in &raw_before {
+        let path = authored.join(relative);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, bytes).unwrap();
+        if relative.ends_with(".spx") {
+            let text = std::str::from_utf8(bytes).unwrap();
+            let parsed = semaprax::parse(text, relative).unwrap();
+            std::fs::write(&path, semaprax::format::canonical(&parsed)).unwrap();
+        }
+    }
+    assert_eq!(read_tree(&source), raw_before);
+    let source = authored;
     let before = read_tree(&source);
     let output = fixture.root.join("application");
     assert_success(&install(

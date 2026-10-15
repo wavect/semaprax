@@ -278,7 +278,7 @@ pub(in crate::cleanup_plan::replay) use metered::raw as raw_error_metered;
         );
     }
     {
-        let mut current = include_str!("../../factored.rs").to_owned(); undo(&mut current, "\n#[cfg(test)]\npub(super) use canonical_shared::app_census::Scope as EpsilonAppCensus;\n", ""); undo(&mut current, "        oracle_hook::cross_check_with_storage(\n            program,\n            function,\n            budget,\n            continuations,\n        )?;", "        oracle_hook::cross_check(program, function);"); undo(&mut current, "\n#[cfg(test)]\nmod continuation_receiver;\n", "");
+        let mut current = include_str!("../../factored.rs").to_owned(); undo(&mut current, "pub(crate) use canonical_shared::app_census::Scope as EpsilonAppCensus;", "pub(super) use canonical_shared::app_census::Scope as EpsilonAppCensus;"); undo(&mut current, "\n#[cfg(test)]\npub(super) use canonical_shared::app_census::Scope as EpsilonAppCensus;\n", ""); undo(&mut current, "        oracle_hook::cross_check_with_storage(\n            program,\n            function,\n            budget,\n            continuations,\n        )?;", "        oracle_hook::cross_check(program, function);"); undo(&mut current, "\n#[cfg(test)]\nmod continuation_receiver;\n", "");
         undo(&mut current, "#[cfg(test)]\nenum CanonicalFrame {\n    Enter(Weighted),\n    Exit(Weighted, u64, Vec<(Label, Weighted)>),\n}\n\n", "");
         // Join the complete relocated old receiver before the existing inverse.
         let before = include_str!("../../factored/canonical_before.rs");

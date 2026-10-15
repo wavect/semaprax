@@ -1,4 +1,4 @@
-//! Exact current-invocation storage; None ACTIVE retains the explicit ordinary
+//! Exact invocation storage; an unobserved caller retains the explicit ordinary
 //! unobserved API policy and is never described as funded. No quota is created.
 use crate::bounded_output::classifier_string::ClassifierLedger;
 use crate::bounded_output::{active_remaining, refuse_active_required, reserve_active_required};

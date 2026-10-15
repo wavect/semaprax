@@ -291,7 +291,7 @@ fn epsilon_full_canonical_ids_signatures_checked_weights_and_repeated_roots_matc
                     old.id(&function, vec![(*root, 1)], &mut old_budget),
                     current.id(&function, vec![(*root, 1)], &mut budget)
                 );
-                assert!(old.same_snapshot(&current));
+                assert!(old.same_closure_state(&current));
                 assert_eq!(old_budget.remaining, budget.remaining);
                 assert_eq!(old_budget.skeleton_remaining, budget.skeleton_remaining);
             }

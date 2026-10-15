@@ -340,7 +340,7 @@ impl Canonicalizer<'_> {
 }
 
 impl Canonicalizer<'_> {
-    pub(super) fn same_snapshot(&self, current: &super::Canonicalizer<'_>) -> bool {
+    pub(super) fn same_closure_state(&self, current: &super::Canonicalizer<'_>) -> bool {
         self.ids == current.ids && self.states.len() == current.states.len()
             && self.states.iter().all(|(state,id)| current.states.get(state)==Some(id))
     }

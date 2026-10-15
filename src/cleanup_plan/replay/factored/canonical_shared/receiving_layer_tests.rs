@@ -202,3 +202,69 @@ fn complete_immediate_receiver_helpers_and_all_seven_original_controls_remain_ex
         .replacen("// Complete prior helpers qualify old receiving boundaries only.\n#[cfg(test)]\nimpl Targets {", "impl Targets {", 1);
     assert_eq!(helpers, include_str!("../../../../../docs/evidence/singleton-target-receiving-layers-831/complete-target-helpers-before.rs.txt"));
 }
+
+#[test]
+fn branch_closed_full_current_sources_restore_every_immediate_e93f_byte() {
+    use sha2::{Digest, Sha256};
+    let rows: serde_json::Value = serde_json::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/branch-closed-receiving-831-20261015/current-to-e93f.json"
+    )))
+    .unwrap();
+    let sources = [
+        (
+            "src/cleanup_plan/replay/factored/canonical_shared.rs",
+            include_str!("../canonical_shared.rs"),
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/docs/evidence/branch-closed-receiving-831-20261015/before-0.txt"
+            )),
+        ),
+        (
+            "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights.rs",
+            include_str!("ordered_weights.rs"),
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/docs/evidence/branch-closed-receiving-831-20261015/before-1.txt"
+            )),
+        ),
+        (
+            "src/source_reflows_merge.rs",
+            include_str!("../../../../source_reflows_merge.rs"),
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/docs/evidence/branch-closed-receiving-831-20261015/before-2.txt"
+            )),
+        ),
+        (
+            "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+            include_str!("receiving_layer_tests.rs"),
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/docs/evidence/branch-closed-receiving-831-20261015/before-3.txt"
+            )),
+        ),
+    ];
+    assert_eq!(rows.as_array().unwrap().len(), sources.len());
+    for ((path, current, original), row) in sources.into_iter().zip(rows.as_array().unwrap()) {
+        assert_eq!(row["source"], path);
+        assert_eq!(
+            row["current_sha256"],
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
+            )
+        );
+        assert_eq!(
+            row["original_sha256"],
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))
+            )
+        );
+        let edits = row["edits"].as_array().unwrap();
+        assert_eq!(edits.len(), 1);
+        assert_eq!(edits[0]["new"], current);
+        assert_eq!(edits[0]["old"], original);
+    }
+}

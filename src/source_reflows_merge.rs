@@ -883,6 +883,15 @@ fn joined_feature_input(stage: &str, source: &str, current: &str) -> String {
 
 // Independent final raw fronts for MAIN integration versus retained alias owners.
 fn combined_ready_input(stage: &str, source: &str, current: &str) -> String {
+    let prior = project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/branch-closed-receiving-831-20261015/current-to-e93f.json"
+        )),
+        source,
+        current,
+    );
+    let current = prior.as_str();
     let previous = project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),

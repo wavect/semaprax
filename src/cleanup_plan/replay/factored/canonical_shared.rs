@@ -398,14 +398,19 @@ impl<'a> Canonicalizer<'a> {
         budget: &mut ReplayBudget,
         receiving: &mut closure_receiving::ClosureReceiving,
     ) -> Result<Option<(u64, Vec<(Label, SharedWeighted)>)>, Diagnostic> {
-        if budget.pays_allocations() {
-            budget.reserve_bytes(
-                function,
-                ordered_weights::Closed::CONTROLS,
-                "factored ordered closed receiving controls",
-            )?;
-        }
+        // Only the selected branch initializes its owner. The common view is
+        // a borrow, not a large enum containing both possible owner layouts.
+        let borrowed;
+        let mut owned;
         let closed = if let [(node, 1)] = state.as_slice() {
+            if budget.pays_allocations() {
+                budget.reserve_bytes(
+                    function,
+                    2 * std::mem::size_of::<Rc<ordered_weights::OrderedWeights>>()
+                        + 2 * std::mem::size_of::<&ordered_weights::OrderedWeights>(),
+                    "factored borrowed closed receiving controls",
+                )?;
+            }
             let Some(closure) = self.closure_with_receiving(function, *node, budget, receiving)?
             else {
                 return Ok(None);
@@ -422,16 +427,18 @@ impl<'a> Canonicalizer<'a> {
                 };
                 budget.charge(function, 1, "factored weighted route addition")?;
             }
-            ordered_weights::Closed::Borrowed(closure)
+            borrowed = closure;
+            &*borrowed
         } else {
             if budget.pays_allocations() {
                 budget.reserve_bytes(
                     function,
-                    ordered_weights::OrderedWeights::CONTROLS,
+                    ordered_weights::OrderedWeights::CONTROLS
+                        + 2 * std::mem::size_of::<&ordered_weights::OrderedWeights>(),
                     "factored ordered accumulator controls",
                 )?;
             }
-            let mut closed = ordered_weights::OrderedWeights::new();
+            owned = ordered_weights::OrderedWeights::new();
             for (node, weight) in state.iter() {
                 let Some(closure) =
                     self.closure_with_receiving(function, *node, budget, receiving)?
@@ -440,23 +447,22 @@ impl<'a> Canonicalizer<'a> {
                 };
                 for (inner, routes) in closure.iter() {
                     let Some(sum) = routes.checked_mul(*weight).and_then(|product| {
-                        closed.get(inner).copied().unwrap_or(0).checked_add(product)
+                        owned.get(inner).copied().unwrap_or(0).checked_add(product)
                     }) else {
                         return Ok(None);
                     };
                     budget.charge(function, 1, "factored weighted route addition")?;
-                    if closed.get(inner).is_none() {
-                        if closed.needs_capacity() {
-                            closed.grow(function, budget)?;
+                    if owned.get(inner).is_none() {
+                        if owned.needs_capacity() {
+                            owned.grow(function, budget)?;
                         }
-                        closed.insert_prepaid(*inner, 0_u64);
+                        owned.insert_prepaid(*inner, 0_u64);
                     }
-                    *closed.get_mut(inner).expect("inserted ordered weight") = sum;
+                    *owned.get_mut(inner).expect("inserted ordered weight") = sum;
                 }
             }
-            ordered_weights::Closed::Owned(closed)
+            &owned
         };
-        let closed = closed.weights();
         let accepted = closed.get(&self.sink).copied().unwrap_or(0);
         if budget.pays_allocations() {
             budget.reserve_bytes(

@@ -339,11 +339,13 @@ impl Eq for OrderedWeights {}
 
 // Both variants borrow the existing immutable closure or own one paid arena.
 // The singleton receiver moves its already-authenticated Rc, never clones a map.
+#[cfg(test)]
 #[derive(Debug)]
 pub(super) enum Closed {
     Borrowed(std::rc::Rc<OrderedWeights>),
     Owned(OrderedWeights),
 }
+#[cfg(test)]
 impl Closed {
     pub(super) const CONTROLS: usize = 2 * size_of::<Self>() + size_of::<&OrderedWeights>();
     pub(super) fn weights(&self) -> &OrderedWeights {

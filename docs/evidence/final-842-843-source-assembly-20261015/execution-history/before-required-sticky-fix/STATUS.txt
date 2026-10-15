@@ -1,0 +1,1 @@
+Historical SOURCE-ONLY assembly before required843 endpoint sticky correction. Not final frozen-source qualification. Full current-byte branch views retained; no Rust execution.

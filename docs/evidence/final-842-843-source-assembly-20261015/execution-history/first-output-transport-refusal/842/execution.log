@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/final-842-843-source-assembly-20261015/replay.py", line 43, in <module>
+    exec(compile(original,str(R/script),'exec'),{'__file__':str(R/script),'__name__':'__main__'})
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/inline-weighted-successor-842/verify_source.py", line 24, in <module>
+    (D/'source-inverses.json').write_text(json.dumps(rows,indent=2)+'\n')
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/final-842-843-source-assembly-20261015/replay.py", line 29, in wt
+    key=str(p.resolve().relative_to(R));dest=target/(key.replace('/','__'));writes[key]=sha(data.encode());return orig_wt(dest,data,*a,**kw)
+                                                                                                                  ~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py", line 809, in write_text
+    with self.open(mode='w', encoding=encoding, errors=errors, newline=newline) as f:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/final-842-843-source-assembly-20261015/replay.py", line 27, in op
+    raise AssertionError('undeclared old file write:'+str(p))
+AssertionError: undeclared old file write:/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/final-842-843-source-assembly-20261015/replays/842/docs__evidence__inline-weighted-successor-842__source-inverses.json

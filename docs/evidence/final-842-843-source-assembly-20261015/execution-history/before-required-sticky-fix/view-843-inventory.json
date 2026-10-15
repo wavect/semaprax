@@ -1,0 +1,48 @@
+{
+  "revision": "538673710c463b911c2e5a38d8f7fc9275f99c62",
+  "equal": [
+    {
+      "source": "src/cleanup_plan/replay/factored.rs",
+      "sha256": "cb67cd7f35b34f76228b3d72b99405fd5b62074bb56b0cbf7ce096bb3c63e4e0"
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/before_closure_invocation.rs",
+      "sha256": "a7ae1113a5ef03e8aedb9e842c6ae2ae09d7e0667190cb6ace342326b55558ce"
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/before_closure_receiver.rs",
+      "sha256": "17941a56ba96666a07977db9c9d3f31d6d3fbb27e4b6b4888b2f54e58186b2ff"
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving.rs",
+      "sha256": "77c3a4d7a6897bc33acf94c36c14812596f9ec0e47bce60de8146c758e64d92f"
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+      "sha256": "70ba83f609313187e5db9cc38c105b5c85c806192ff909777dcad35f29ff15a3"
+    }
+  ],
+  "absent": [
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs",
+      "current_sha256": "ee5a2e14326357df2e5359c8da6a99e93274ac3b89b668c8aea719fc511d726b",
+      "target_absent": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs",
+      "current_sha256": "ba2cbe772ecabcd29f519778201f842609f045294ef514ead976b737ec157b50",
+      "target_absent": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/source.rs",
+      "current_sha256": "23c1eb36f9d5e49c82e449ec6cca10f3fd518ae4a146057609efa1422d7f120f",
+      "target_absent": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/tests.rs",
+      "current_sha256": "32fc3e8d9cc41c9f64d8fa2f07ebc1e819448dc355b13500b773430588195ed8",
+      "target_absent": true
+    }
+  ],
+  "changed": 15
+}

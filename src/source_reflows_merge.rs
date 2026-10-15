@@ -57,10 +57,7 @@ pub(crate) fn ours(source: &str, current: &str) -> String {
     )
 }
 pub(crate) fn main(source: &str, current: &str) -> String {
-    let receiving_stage = closure_previous(source, current);
-    let current = receiving_stage.as_str();
-    let repaired = before_build_fix(source, current);
-    let predecessor = inline_weighted_previous(source, repaired.as_str());
+    let predecessor = assembled_previous(source, current);
     let current = predecessor.as_str();
     project(
         include_str!(concat!(
@@ -73,17 +70,14 @@ pub(crate) fn main(source: &str, current: &str) -> String {
 }
 
 pub(crate) fn held(source: &str, current: &str) -> String {
-    let receiving_stage = closure_previous(source, current);
-    let current = receiving_stage.as_str();
-    let repaired = before_build_fix(source, current);
-    let predecessor = inline_weighted_previous(source, repaired.as_str());
+    let predecessor = assembled_previous(source, current);
     let current = predecessor.as_str();
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/source-composition-f813-held-20261015/held-projections.json")), source, current)
 }
 
 pub(crate) fn weighted(path: &str, current: &str) -> String {
     if path == "../../../../../../docs/ARCHITECTURE.md" {
-        return inline_weighted_previous("docs/ARCHITECTURE.md", current);
+        return assembled_previous("docs/ARCHITECTURE.md", current);
     }
     if path != "../epsilon_alias/tests.rs" { return current.to_owned(); }
     project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/source-composition-f813-held-20261015/weighted-projections.json")), "src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias/tests.rs", current)
@@ -104,4 +98,27 @@ pub(crate) fn closure_previous(source: &str, current: &str) -> String {
         source,
         current,
     )
+}
+
+// Each isolated branch projector remains strict. Authenticate the actual final
+// input separately into its named branch before comparing complete base bytes.
+pub(crate) fn assembly_view(stage: &str, source: &str, current: &str) -> String {
+    let data = match stage {
+        "9d" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/final-842-843-source-assembly-20261015/view-9d.json")),
+        "842" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/final-842-843-source-assembly-20261015/view-842.json")),
+        "843" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/final-842-843-source-assembly-20261015/view-843.json")),
+        _ => panic!("unknown immutable assembly source domain"),
+    };
+    project(data, source, current)
+}
+fn assembled_previous(source: &str, current: &str) -> String {
+    let repaired = assembly_view("9d", source, current);
+    let repaired = before_build_fix(source, &repaired);
+    let inline = assembly_view("842", source, current);
+    let inline = inline_weighted_previous(source, &inline);
+    let closure = assembly_view("843", source, current);
+    let closure = closure_previous(source, &closure);
+    assert_eq!(repaired, inline, "independent branch sources must reach the same complete7800 input");
+    assert_eq!(repaired, closure, "held branch source must reach the same complete7800 input");
+    repaired
 }

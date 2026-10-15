@@ -1,0 +1,11 @@
+{
+  "observed_at_unix": 1792062261.798528,
+  "owned_pgids": [
+    60978,
+    65491,
+    73749
+  ],
+  "members": [],
+  "observation": "fresh ps after controller terminal; original failed group settlement receipt preserved unchanged",
+  "signals_sent_by_followup": []
+}

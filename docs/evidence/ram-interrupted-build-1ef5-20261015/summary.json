@@ -1,0 +1,68 @@
+{
+  "source_subject": "1ef5b001aac4f239f0cbe03ed8aad0b5f32f8e07",
+  "exit_code": 130,
+  "executed_test_bodies": 0,
+  "completed_unit_no_run": true,
+  "completed_production_lib": true,
+  "interrupted_role_command": [
+    "/Users/kevin/.cargo/bin/rustup",
+    "run",
+    "1.97.1",
+    "cargo",
+    "test",
+    "--locked",
+    "--offline",
+    "-p",
+    "semaprax",
+    "--bin",
+    "semaprax",
+    "--test",
+    "cleanup_backends",
+    "--test",
+    "hir_module_boundaries",
+    "--test",
+    "native",
+    "--test",
+    "owned_data",
+    "--test",
+    "project",
+    "--test",
+    "project_cli_v1",
+    "--test",
+    "projections",
+    "--test",
+    "workspace",
+    "--no-run",
+    "--jobs",
+    "1",
+    "--message-format=json"
+  ],
+  "compiler_error_count": 0,
+  "compiler_warning_count": 39,
+  "cause": "independent RAM guardian sent SIGINT to exact owned controller after kernel warning2 persisted20.188seconds",
+  "original_group_settlement": {
+    "owned_pgid": 73749,
+    "confirmed_empty": false,
+    "signals": [
+      15
+    ],
+    "operation_failures": [
+      {
+        "operation": "killpg",
+        "signal": 9,
+        "error_type": "PermissionError",
+        "errno": 1
+      }
+    ],
+    "observation_errors": [
+      "PermissionError: [Errno 1] Operation not permitted"
+    ],
+    "resource_refusal": "memory watchdog observation failed: KeyboardInterrupt",
+    "finished": 72457.131625208
+  },
+  "followup_groups_empty": true,
+  "qualification_passed": false,
+  "full_suite": false,
+  "no_live_benchmark": true,
+  "prior_runtime_remains": "d6bf106 checks/20 failures"
+}

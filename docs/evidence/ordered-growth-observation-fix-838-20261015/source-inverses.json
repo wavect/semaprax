@@ -1,0 +1,15 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/tests.rs",
+    "checkpoint_revision": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+    "archive": "docs/evidence/ordered-growth-observation-fix-838-20261015/ordered-tests.rs.before.txt",
+    "current_sha256": "4f2e45b389447291464f818cf8834880f7935e6578087e9bef7f96c89a16c8af",
+    "original_sha256": "75cb7782397334be2bd59b1b9cc5615f995c20271aec086911c2c92e5ef10ad1",
+    "edits": [
+      {
+        "new": "            let ((), physical) = measure(|| {\n                let at = current_metrics().allocated;\n                assert!(weights.grow(&function, &mut budget).is_err());\n                assert_eq!(current_metrics().allocated, at);\n            });\n            assert_eq!(physical.allocated, 0);\n            assert!(!physical.invalid && physical.live == 0);\n",
+        "old": "            let at = current_metrics().allocated;\n            assert!(weights.grow(&function, &mut budget).is_err());\n            assert_eq!(current_metrics().allocated, at);\n"
+      }
+    ]
+  }
+]

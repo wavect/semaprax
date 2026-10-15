@@ -248,9 +248,13 @@ fn ordered_growth_receiving_and_initializers_are_paid_then_warm_insertion_constr
                     "backing acquisition precedes the refused empty-node initializer payment"
                 );
             }
-            let at = current_metrics().allocated;
-            assert!(weights.grow(&function, &mut budget).is_err());
-            assert_eq!(current_metrics().allocated, at);
+            let ((), physical) = measure(|| {
+                let at = current_metrics().allocated;
+                assert!(weights.grow(&function, &mut budget).is_err());
+                assert_eq!(current_metrics().allocated, at);
+            });
+            assert_eq!(physical.allocated, 0);
+            assert!(!physical.invalid && physical.live == 0);
             assert_eq!(weights.get(&0), Some(&7));
             assert!(weights.iter().eq(std::iter::once((&0, &7))));
         }

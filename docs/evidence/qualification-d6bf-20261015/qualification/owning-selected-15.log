@@ -1,0 +1,6 @@
+
+running 1 test
+test workspace_graph::constructor_failure::receiving::tests::constructor_receiving_complete_old_core_body_and_actual_linked_programs_remain_independent ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8965 filtered out; finished in 0.89s
+

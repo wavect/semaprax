@@ -1,0 +1,6 @@
+
+running 1 test
+test workspace_graph::expected_projection::type_rewrite::receiving::tests::typed_signature_rewrite_complete_old_helpers_live_callers_and_whole_source_inverses_are_bound ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8965 filtered out; finished in 0.02s
+

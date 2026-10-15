@@ -1,0 +1,17 @@
+
+running 1 test
+test cleanup_plan::replay::selected_entry::tests::fact_errors::paid_fact_semantic_receipt_keeps_exact_shared_ids_and_driver_verdicts ... 
+thread 'cleanup_plan::replay::selected_entry::tests::fact_errors::paid_fact_semantic_receipt_keeps_exact_shared_ids_and_driver_verdicts' (6222450) panicked at src/cleanup_plan/replay/selected_entry/tests/fact_errors.rs:247:9:
+assertion `left == right` failed
+  left: (31999543, 403830)
+ right: (31999532, 404638)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::selected_entry::tests::fact_errors::paid_fact_semantic_receipt_keeps_exact_shared_ids_and_driver_verdicts
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8965 filtered out; finished in 0.08s
+

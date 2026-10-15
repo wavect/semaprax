@@ -1,0 +1,15 @@
+
+running 1 test
+test cleanup_plan::replay::expression_facts::receiving::return_operands::tests::empty_and_duplicate_absolute_frontiers_follow_actual_control_node_and_comparison_work ... 
+thread 'cleanup_plan::replay::expression_facts::receiving::return_operands::tests::empty_and_duplicate_absolute_frontiers_follow_actual_control_node_and_comparison_work' (6226537) panicked at src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs:201:27:
+index out of bounds: the len is 0 but the index is 0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::expression_facts::receiving::return_operands::tests::empty_and_duplicate_absolute_frontiers_follow_actual_control_node_and_comparison_work
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8965 filtered out; finished in 0.05s
+

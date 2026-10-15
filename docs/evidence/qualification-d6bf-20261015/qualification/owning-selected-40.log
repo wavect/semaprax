@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::structural_control::calls::custody_tests::complete_old_and_actual_typed_blocks_keep_call_errors_and_competing_owner_priority_through_drop ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8965 filtered out; finished in 0.01s
+

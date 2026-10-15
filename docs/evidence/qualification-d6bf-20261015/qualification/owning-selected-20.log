@@ -1,0 +1,17 @@
+
+running 1 test
+test cleanup_plan::replay::expression_facts::receiving::return_operands::tests::exact_one_short_zero_bytes_and_work_pay_actual_controls_and_first_node_through_drop ... 
+thread 'cleanup_plan::replay::expression_facts::receiving::return_operands::tests::exact_one_short_zero_bytes_and_work_pay_actual_controls_and_first_node_through_drop' (6223150) panicked at src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs:38:5:
+assertion `left == right` failed
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::expression_facts::receiving::return_operands::tests::exact_one_short_zero_bytes_and_work_pay_actual_controls_and_first_node_through_drop
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8965 filtered out; finished in 0.04s
+

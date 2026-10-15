@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::structural_control::calls::custody_tests::actual_call_controls_exact_short_zero_keep_same_first_ledger_without_refunding ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8965 filtered out; finished in 0.01s
+

@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::validation::scope_checkpoint::tests::actual_checkpoint_storage_and_publication_are_paid_through_drop_and_exact_short ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7731 filtered out; finished in 0.03s
+

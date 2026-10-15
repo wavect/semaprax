@@ -1,0 +1,5 @@
+
+running 1 test
+test hir::validation::generic_template::values::checkpoint_tests::nested_generic_block_depth_preserves_full_old_identity_state_and_late_error ... 
+thread 'hir::validation::generic_template::values::checkpoint_tests::nested_generic_block_depth_preserves_full_old_identity_state_and_late_error' (30652838) has overflowed its stack
+fatal runtime error: stack overflow, aborting

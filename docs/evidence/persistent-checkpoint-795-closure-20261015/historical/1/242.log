@@ -1,0 +1,15 @@
+
+running 1 test
+test hir::validation::function_scope::tests::persistent_requires_and_ensures_keep_hostile_flags_and_full_outer_metadata_isolated ... 
+thread 'hir::validation::function_scope::tests::persistent_requires_and_ensures_keep_hostile_flags_and_full_outer_metadata_isolated' (30946175) panicked at src/hir/validation/function_scope/tests.rs:278:17:
+assertion failed: actual.unwrap_err().message.contains("contract cannot transfer ownership into a local binding")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    hir::validation::function_scope::tests::persistent_requires_and_ensures_keep_hostile_flags_and_full_outer_metadata_isolated
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 7754 filtered out; finished in 0.05s
+

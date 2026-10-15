@@ -1,0 +1,38 @@
+[
+  {
+    "path": "src/hir/validation.rs",
+    "tree_listing_sha256": "0fdf35440b35ca1774a4e58a7d156076c15fe5d3cbe6040c417e43bd2aece2b8"
+  },
+  {
+    "path": "src/hir/validation/contract_owners.rs",
+    "tree_listing_sha256": "2b4d4d61ff7df49ab4ad5719cfa5d314fb29fae7c03b82a057e4164779baa332"
+  },
+  {
+    "path": "src/hir/validation/contract_owners",
+    "tree_listing_sha256": "2f0755871c4d573da08fd618df568b08a9037bbb9b3261e035cdc2d4944ac45e"
+  },
+  {
+    "path": "src/hir/validation/scope_checkpoint.rs",
+    "tree_listing_sha256": "39a76822ffda5ce203e9417a5afaf3b39c0cfe4385cc7c92ac1fd670b4136a45"
+  },
+  {
+    "path": "src/hir/validation/scope_checkpoint",
+    "tree_listing_sha256": "427cf92314afe1b412861b3eb225f6a27b44a9ea46eee4d74e21a684b1d1dd4f"
+  },
+  {
+    "path": "src/hir/validation/function_scope.rs",
+    "tree_listing_sha256": "f516df5015ab47d52857122bdb0f9811d34e0626bfd68e4011c0aaf62772b715"
+  },
+  {
+    "path": "src/hir/validation/function_scope",
+    "tree_listing_sha256": "efdb8f3a527da1d10a47638a00a7d15dd4af40f1aa6834686830ea55305b7bdd"
+  },
+  {
+    "path": "src/hir/validation/generic_template/values.rs",
+    "tree_listing_sha256": "a4f1067df040ae9226116aac240af34580aa32e30ab67960e85dce1e358fd520"
+  },
+  {
+    "path": "src/hir/validation/generic_template/values",
+    "tree_listing_sha256": "c38b943dc995b4c98ccd4841ee8631685f4fe23bb7741e5da510600eb513b12f"
+  }
+]

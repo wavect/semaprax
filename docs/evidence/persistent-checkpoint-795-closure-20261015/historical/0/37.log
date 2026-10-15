@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::validation::scope_checkpoint::tests::real_late_error_moves_the_last_published_full_binding_on_early_return ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7731 filtered out; finished in 0.00s
+

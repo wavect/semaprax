@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::validation::scope_checkpoint::refusal_tests::zero_scope_and_arithmetic_refusal_keep_original_full_diagnostics_without_message_backing ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7917 filtered out; finished in 0.00s
+

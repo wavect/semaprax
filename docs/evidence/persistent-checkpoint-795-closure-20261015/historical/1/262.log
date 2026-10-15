@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::validation::scope_checkpoint::transaction_tests::multi_node_unique_prefix_shared_suffix_preserves_full_fields_at_every_paid_boundary ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7754 filtered out; finished in 13.72s
+

@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::validation::function_scope::lifecycle::completed::tests::completed_roots_reduce_repeated_real_collection_backing_and_pay_receiving_drop ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8696 filtered out; finished in 0.02s
+

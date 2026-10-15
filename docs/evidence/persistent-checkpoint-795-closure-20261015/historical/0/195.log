@@ -1,0 +1,15 @@
+
+running 1 test
+test hir::validation::scope_checkpoint::refusal_tests::whole_rich_scope_exact_short_sticky_refusal_includes_error_clone_and_drop ... 
+thread 'hir::validation::scope_checkpoint::refusal_tests::whole_rich_scope_exact_short_sticky_refusal_includes_error_clone_and_drop' (30657498) panicked at src/hir/validation/scope_checkpoint/refusal_tests.rs:96:21:
+assertion failed: scope.iter().eq(input.iter())
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    hir::validation::scope_checkpoint::refusal_tests::whole_rich_scope_exact_short_sticky_refusal_includes_error_clone_and_drop
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 7731 filtered out; finished in 0.07s
+

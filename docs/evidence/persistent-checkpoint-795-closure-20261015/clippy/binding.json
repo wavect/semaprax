@@ -1,0 +1,18 @@
+[
+  {
+    "receipt": "clippy-production-result.json",
+    "subject": "7a87b33115c0cd45b14cac64d7b37e5742503159",
+    "receipt_sha256": "b878c57cbd5fa7c52b5c88396f129560f71da43ae5078947626df2b3a739ba4b",
+    "log": "clippy-production-result.log",
+    "log_sha256": "db7bd05a70038f0624fd4a47665ecbd3e9d5a7a61324063ab90b58acc18ddfce",
+    "exit_code": 0
+  },
+  {
+    "receipt": "clippy-production-toolchain-full-cli-result.json",
+    "subject": "7a87b33115c0cd45b14cac64d7b37e5742503159",
+    "receipt_sha256": "b30ff161011e5605f67d360fb743e3a3943136bed799c3e189ad47902bff522b",
+    "log": "clippy-production-toolchain-full-cli-result.log",
+    "log_sha256": "8c138bc5497dc1f26da33678a79764d4f09bea9de35c77fe9768d82dbdda252e",
+    "exit_code": 0
+  }
+]

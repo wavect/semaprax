@@ -1,0 +1,19 @@
+
+running 1 test
+test hir::validation::scope_checkpoint::tests::panic_unwind_restores_the_same_full_publication_as_the_original_owning_guard ... 
+thread 'hir::validation::scope_checkpoint::tests::panic_unwind_restores_the_same_full_publication_as_the_original_owning_guard' (30899422) panicked at src/hir/validation/scope_checkpoint/tests.rs:443:13:
+late isolated child panic
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'hir::validation::scope_checkpoint::tests::panic_unwind_restores_the_same_full_publication_as_the_original_owning_guard' (30899422) panicked at src/hir/validation/scope_checkpoint/tests.rs:460:13:
+late isolated child panic
+
+thread 'hir::validation::scope_checkpoint::tests::panic_unwind_restores_the_same_full_publication_as_the_original_owning_guard' (30899422) panicked at src/hir/validation/scope_checkpoint/tests.rs:443:13:
+late isolated child panic
+
+thread 'hir::validation::scope_checkpoint::tests::panic_unwind_restores_the_same_full_publication_as_the_original_owning_guard' (30899422) panicked at src/hir/validation/scope_checkpoint/tests.rs:460:13:
+late isolated child panic
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7754 filtered out; finished in 0.03s
+

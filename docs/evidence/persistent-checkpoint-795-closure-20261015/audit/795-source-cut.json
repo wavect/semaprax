@@ -1,0 +1,249 @@
+{
+  "artifact_subject": "d8fadfb7cd5ece54504cda542575e5a154d3657c",
+  "current_head": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+  "all_listed_modes_paths_blobs_exact": true,
+  "tree_listing_sha256": "9003dafcd47f6eed7176236c3324182469f19ed9fc5b66824fb8e56b37990c3e",
+  "paths": [
+    "src/hir/validation.rs",
+    "src/hir/validation/contract_owners.rs",
+    "src/hir/validation/contract_owners",
+    "src/hir/validation/scope_checkpoint.rs",
+    "src/hir/validation/scope_checkpoint",
+    "src/hir/validation/function_scope.rs",
+    "src/hir/validation/function_scope",
+    "src/hir/validation/generic_template/values.rs",
+    "src/hir/validation/generic_template/values"
+  ],
+  "blobs": [
+    {
+      "mode": "100644",
+      "git_blob": "ece9401fab83718c8d0dc0953ba287c19eab94b5",
+      "path": "src/hir/validation.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "553af340dc3072638a33a0ede2b5af4e0a967f1d",
+      "path": "src/hir/validation/contract_owners.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "ad62a81aae32343a67c7fde665ee49c62965dfa6",
+      "path": "src/hir/validation/contract_owners/tests.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "c16f95905f8b27667ddeb7f5fa9cf0bcac6c7c80",
+      "path": "src/hir/validation/contract_owners/tests/old.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "f5078dc5c50286f618d45cf83942eee4ce1309ab",
+      "path": "src/hir/validation/function_scope.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "43d8a12fb1b27da9c6255fe4a1f0994f729d5e22",
+      "path": "src/hir/validation/function_scope/backing_saved.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "9a23047be72a36f649a1e5bbcbcae20d1d1e9747",
+      "path": "src/hir/validation/function_scope/collection_tests.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "8ee88e898c513286fedc22a56e86ee3ec5eb0a18",
+      "path": "src/hir/validation/function_scope/collection_tests/funded_early.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "cb0b076f67b1a32c6556ee87b5cd6e2eca604dda",
+      "path": "src/hir/validation/function_scope/empty_ensures.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "fce244727a247a77b0d79a62c532e4467a3a27ef",
+      "path": "src/hir/validation/function_scope/empty_ensures/before.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "b77091b7585cd3c1f398494f87d80ab5c2ece767",
+      "path": "src/hir/validation/function_scope/empty_ensures/tests.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "68cd66020cd65f5dad73f189234bcf768cdf8c63",
+      "path": "src/hir/validation/function_scope/lifecycle.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "a4c9cd1f2400d3e982456a01eec387f308e6744c",
+      "path": "src/hir/validation/function_scope/lifecycle/completed.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "fa93e7a381ee72ed0ef9d3fce24c8ed6f5311abf",
+      "path": "src/hir/validation/function_scope/lifecycle/completed/before_inline.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "02e9a3b5b7f4d4aaa7784770910140708e940467",
+      "path": "src/hir/validation/function_scope/lifecycle/completed/inline_path.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "ebf8a6636fd3348483330c29e1d8f2abb570e128",
+      "path": "src/hir/validation/function_scope/lifecycle/completed/inline_path/tests.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "befdfb2be13d3c1fb140630724bcbbef1780fade",
+      "path": "src/hir/validation/function_scope/lifecycle/completed/tests.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "014f6f9830064a3c849097b668f26acecfcb6f67",
+      "path": "src/hir/validation/function_scope/lifecycle_receiver_saved.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "b7ee07751f8d28628c55dbf7202f77d8c8892aa8",
+      "path": "src/hir/validation/function_scope/old.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "dc07fadfaa42ab4b471bcc75401ab573c2b4b3e4",
+      "path": "src/hir/validation/function_scope/phase_tests.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "c7cfb73df3dd6316acbae386c31ac083e1f9842c",
+      "path": "src/hir/validation/function_scope/tests.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "ea728815b44d253cf12c0cc606eb1413f8efb2fb",
+      "path": "src/hir/validation/generic_template/values.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "b1ed32aa9e95b1c30b632905f4105b493ff42dbe",
+      "path": "src/hir/validation/generic_template/values/charge.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "2c8a509a57cacab542374c020bf73d994ba1705f",
+      "path": "src/hir/validation/generic_template/values/charge/refusal_tests.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "049cd07e0a6f3d7c4a32a826422f07bd1027c88c",
+      "path": "src/hir/validation/generic_template/values/checkpoint_tests.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "bb1f5cfe7651fe7475cf3e0cf35b9d22a164016d",
+      "path": "src/hir/validation/generic_template/values/refusal_tests.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "403bb2bfa2d64edd07ae534bca7e60345fc0c9d4",
+      "path": "src/hir/validation/generic_template/values/tests.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "3b5ab9bb42e00d5cb6df1a99173bf9119215ba37",
+      "path": "src/hir/validation/generic_template/values/tree.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "523d246ac2bf4fa8c814ddb6a8f2f814816aba0e",
+      "path": "src/hir/validation/scope_checkpoint.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "d3485d41901d08179af6e264ce3ad033725d3253",
+      "path": "src/hir/validation/scope_checkpoint/charge.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "e9d5b6427416dc22f6ccd732e331ab54abb4e763",
+      "path": "src/hir/validation/scope_checkpoint/coarse.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "4017f79c62ca2c1b1c5acdece5aca4b3ed0b64ef",
+      "path": "src/hir/validation/scope_checkpoint/fresh.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "a44857a85e09deabe5737143427e852d3ceb1cb7",
+      "path": "src/hir/validation/scope_checkpoint/fresh/tests.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "de325663028dd975368eb6c39f1fa107726f6093",
+      "path": "src/hir/validation/scope_checkpoint/marks.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "4a2b5e61ae6c41e4e3cbbcab22d93653756eecf4",
+      "path": "src/hir/validation/scope_checkpoint/merge.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "3c196a8700bd6c184b31e02d629831ae5a890972",
+      "path": "src/hir/validation/scope_checkpoint/merge/saved.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "b0be1abb5b790508ecbaa81000f4c5a8da3e8ee9",
+      "path": "src/hir/validation/scope_checkpoint/merge/tests.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "449cf032384514378b3072d0671c385fc1edeb86",
+      "path": "src/hir/validation/scope_checkpoint/paths.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "5ee0475ea0634547442f29579eea3d290b0a89d5",
+      "path": "src/hir/validation/scope_checkpoint/persistent_input_tests.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "90fe50658618e84b94115e51ad4437bc74afe4a2",
+      "path": "src/hir/validation/scope_checkpoint/refusal_tests.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "0367121a517e1d55127ac8aa56600f67d4c7e9f0",
+      "path": "src/hir/validation/scope_checkpoint/storage.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "714e69287ac63f9c0b035826a0aec4dd714b3f3d",
+      "path": "src/hir/validation/scope_checkpoint/tests.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "d4aac6f9c4b2b3b9bca30658ced3d89c2877fe86",
+      "path": "src/hir/validation/scope_checkpoint/transaction.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "6c225fa699be80a999818716c6d7152edb6d3608",
+      "path": "src/hir/validation/scope_checkpoint/transaction_tests.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "8366f97150cb95bfc95ecd9510312b6dfe0d432c",
+      "path": "src/hir/validation/scope_checkpoint/tree.rs"
+    },
+    {
+      "mode": "100644",
+      "git_blob": "5c660ae88b60efa21387f83a4828c4b01df138a7",
+      "path": "src/hir/validation/scope_checkpoint/views.rs"
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "issue": 786,
+  "status": "OPEN_EXPLICIT_REQUIRED_GATES_NOT_PASSED",
+  "live_issue": "https://github.com/wavect/semaprax/issues/786",
+  "owning_spec": "docs/BORROWED-RECORD-FIELD-UNIQUENESS-V1.md:141",
+  "full_clone_sort_missing_owner": {
+    "package": "semaprax",
+    "kind": "test:owned_data",
+    "selector": "owned_leaf_vec::field_unique::same_source_uniqueness_matches_clone_sort_oracle_and_preserves_owner_on_every_engine",
+    "historical_4ec_index": 256,
+    "historical_exit": 101,
+    "historical_log_sha256": "ee54e638fc03488e8ea24c2b7420040d8e07fc385c8abeba621583b0ddd181e0",
+    "actual_failure": "stricthost spx_format_step_v1 missing; host source corrected later, successful full rerun not found",
+    "runtime_children": [
+      "clang -O0",
+      "native executable",
+      "clang -O2",
+      "native executable",
+      "Node strictWasm host"
+    ],
+    "Cargo_children": false,
+    "147_absent": true,
+    "148_parent_authorized_addition": "one selector, no new target; draft schema kind=test:owned_data already has8other836owners"
+  },
+  "required_full_application_receipt": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/qualification-7a87-145-20261015/round/owning-selected-results.json",
+  "receipt_sha256": "6e8f85c6d9d5742e7e4fea362d0b28f66c90b9ed7475f7d18afe3510bb15efe4",
+  "required_full_application_rows": [
+    {
+      "index": 50,
+      "selector": "standard_library::application_json::owned::shiftsim_typed_records::unfactored_schedule_retains_original_source_and_factored_admission",
+      "exit_code": 101,
+      "log": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-50.log",
+      "log_sha256": "4ff0e1d7513d3e92de281f0754e633aa47d6a346e80f05e9f125fcb22a744ad6"
+    },
+    {
+      "index": 51,
+      "selector": "standard_library::application_json::owned::shiftsim_typed_records::original_copy_state_replacement_calls_keep_both_t281_refusals",
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-51.log",
+      "log_sha256": "b8b98839bcc5ba8eed5a7c0017abd6044b68cf78492a292b4b9682cabbe524db"
+    },
+    {
+      "index": 52,
+      "selector": "standard_library::application_json::owned::shiftsim_typed_records::typed_record_shiftsim_derives_both_codecs_and_runs_retained_corpus",
+      "exit_code": 101,
+      "log": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-52.log",
+      "log_sha256": "d8a8a3d2185520442945657309d8d268b07691ed707015c587a2beca2ad4ea2b"
+    },
+    {
+      "index": 53,
+      "selector": "standard_library::application_json::owned::shiftsim_typed_records::typed_vec_constructor_retains_exact_explicit_chain_application_control",
+      "exit_code": 101,
+      "log": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-53.log",
+      "log_sha256": "296dfe7783e8a7fda47448fc5510f7feb52ba0612aef94d20b36a49448cfde52"
+    }
+  ],
+  "separate_successful_controls": "4ec251..255 descriptor5PASS;257..260 fourotherbackendPASS;261 independent adoptedIDoraclePASS. These do not replace fullclone-sort/allengine or original fullShiftSim corpus.",
+  "positive_matched_agent_advantage": "not made an additional acceptance requirement; remains unmeasured",
+  "no_execution_in_this_audit": true
+}

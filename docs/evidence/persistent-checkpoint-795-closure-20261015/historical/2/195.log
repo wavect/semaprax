@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::validation::scope_checkpoint::fresh_tests::later_true_flags_are_reinspected_without_prior_clear_root_authority ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7917 filtered out; finished in 0.01s
+

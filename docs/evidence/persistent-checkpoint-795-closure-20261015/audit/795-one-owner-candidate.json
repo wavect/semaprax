@@ -1,0 +1,25 @@
+{
+  "status": "CANDIDATE_PENDING_PARENT_ONE_EXACT_ARTIFACT_OWNER",
+  "issue": 795,
+  "current_head": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+  "artifact_subject": "d8fadfb7cd5ece54504cda542575e5a154d3657c",
+  "binding": "/Volumes/Semaprax/provenance/closure-d8fad-three-actual-20261015/binding.json",
+  "binding_sha256": "286c5216ef5b7f10aa88c21cb4b5419695ac67125845e06587852966beb9c4ed",
+  "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04",
+  "expected_and_observed_executable_sha256": "17d553295d19f4249bd42812ac7c004560f48e7a77a08ffd3d5efb7e12393c3a",
+  "package": "semaprax",
+  "kind": "lib",
+  "selector": "hir::validation::function_scope::tests::production_chain_observes_actual_backing_debits_complete_drop_and_exact_short_sticky",
+  "command": [
+    "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04",
+    "hir::validation::function_scope::tests::production_chain_observes_actual_backing_debits_complete_drop_and_exact_short_sticky",
+    "--exact",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "not_executed": true,
+  "why": "complete real function receiver, original saved map receiver, rich contract/scalar/payload corpus, requested/peak/debits, exact/short/sticky and allDrop; original failure superseded by4ec324PASS, but current d8cut binds later test/control fixes",
+  "runtime_children": "none: internal semaprax check/resolve/validator plus allocator observer; no Cargo,clang,Node subprocess",
+  "positive_application_fit_requirement": "not invented: issue requires original app owners unchanged and execution/disclosure; known global G171/app failures remain explicit residuals, not proof of local clone elimination failure",
+  "qualification_claim": "candidate only; no current full compiler/current-head runtime claim"
+}

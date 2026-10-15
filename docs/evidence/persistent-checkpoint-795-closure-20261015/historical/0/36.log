@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::validation::scope_checkpoint::tests::equal_nonempty_projection_states_still_run_the_full_prefix_join ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7731 filtered out; finished in 0.00s
+

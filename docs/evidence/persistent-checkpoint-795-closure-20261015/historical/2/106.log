@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::validation::generic_template::values::checkpoint_tests::unique_replacement_has_zero_requests_but_sticky_refusal_blocks_unique_and_shared_publication ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7917 filtered out; finished in 0.00s
+

@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::validation::scope_checkpoint::persistent_input_tests::prepared_insertion_drop_and_payload_refusal_preserve_the_complete_prior_root_and_debits ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7917 filtered out; finished in 0.00s
+

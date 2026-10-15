@@ -1,0 +1,20 @@
+
+running 1 test
+test hir::validation::scope_checkpoint::persistent_input_tests::checkpoint_target_guard_keeps_full_published_state_on_unwind_without_map_materialization ... 
+thread 'hir::validation::scope_checkpoint::persistent_input_tests::checkpoint_target_guard_keeps_full_published_state_on_unwind_without_map_materialization' (30947839) panicked at src/hir/validation/scope_checkpoint/persistent_input_tests.rs:90:21:
+injected with persistent publication and children live
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'hir::validation::scope_checkpoint::persistent_input_tests::checkpoint_target_guard_keeps_full_published_state_on_unwind_without_map_materialization' (30947839) panicked at src/hir/validation/scope_checkpoint/persistent_input_tests.rs:103:5:
+assertion `left == right` failed
+  left: 64
+ right: 0
+FAILED
+
+failures:
+
+failures:
+    hir::validation::scope_checkpoint::persistent_input_tests::checkpoint_target_guard_keeps_full_published_state_on_unwind_without_map_materialization
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 7754 filtered out; finished in 0.06s
+

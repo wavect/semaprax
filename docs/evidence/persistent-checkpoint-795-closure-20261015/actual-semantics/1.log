@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::validation::generic_template::values::checkpoint_tests::full_original_symbolic_walks_preserve_contract_closure_nested_and_late_error_diagnostics ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9101 filtered out; finished in 1.31s
+

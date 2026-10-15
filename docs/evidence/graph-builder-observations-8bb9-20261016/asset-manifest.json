@@ -1,0 +1,552 @@
+{
+  "source": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+  "status": "ACTUAL_CAPTURE_READONLY_PLAN_NOT_APPLIED",
+  "assets": [
+    {
+      "path": "managed/analysis.log",
+      "bytes": 1795,
+      "sha256": "0f8fce878495dd204a8ce58212db4fe4ab060a28406bc580d582093f211590bd",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-pin-capture-20261016/analysis.log"
+    },
+    {
+      "path": "managed/binaries.json",
+      "bytes": 492,
+      "sha256": "2803e428cadfa15c4978d988699eea38cd8874853ad3fe53babaa2ffd27c9247",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-pin-capture-20261016/binaries.json"
+    },
+    {
+      "path": "managed/candidates.json",
+      "bytes": 12239,
+      "sha256": "96613fd61b08a3e6b79b9db0f603a905510a9b031b80c0d6efe16ee1aeaa169f",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-pin-capture-20261016/candidates.json"
+    },
+    {
+      "path": "managed/projection-wire.log",
+      "bytes": 5775,
+      "sha256": "2a6cca3f32341603c159120a38a9486ac74d71548bfd1f1c1bf559ca170fdc12",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-pin-capture-20261016/projection-wire.log"
+    },
+    {
+      "path": "managed/public-graph.log",
+      "bytes": 608,
+      "sha256": "ab404b2933082d393902bbd36c35411b4541b8733a8f4d681266597935b39f4f",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-pin-capture-20261016/public-graph.log"
+    },
+    {
+      "path": "managed/source-head.txt",
+      "bytes": 41,
+      "sha256": "9c1e9447f58fc51fd22172080860832c1b31f381c0c99dc7a0e15b94ddb98365",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-pin-capture-20261016/source-head.txt"
+    },
+    {
+      "path": "managed/source-local.patch",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-pin-capture-20261016/source-local.patch"
+    },
+    {
+      "path": "managed/status.tsv",
+      "bytes": 290,
+      "sha256": "9f8f9fa10d0b9ba8a4a7c969209dd37a2e83661e777cb617ae1fd0b1633ccd0a",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-pin-capture-20261016/status.tsv"
+    },
+    {
+      "path": "managed/wires/capability-context.json",
+      "bytes": 4338,
+      "sha256": "c771e4dfb7a4ae3891b37580ef41a2a29925a8ef98787364287660d39e162275",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-pin-capture-20261016/wires/capability-context.json"
+    },
+    {
+      "path": "managed/wires/capability-review.json",
+      "bytes": 13626,
+      "sha256": "011c500a3356f204cd4c57e14f14beef2d84e284e4edf1455f27335ad12af89d",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-pin-capture-20261016/wires/capability-review.json"
+    },
+    {
+      "path": "managed/wires/context.json",
+      "bytes": 4514,
+      "sha256": "592f86ccb22dbb8a2125f19c412da7a1b85682c2f7aac31a9d817dee6383f83a",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-pin-capture-20261016/wires/context.json"
+    },
+    {
+      "path": "managed/wires/custom-impact.json",
+      "bytes": 4569,
+      "sha256": "a9d1763dbc6dc074446c517edf5b61ab5c2d47a5e1be8046494724e0049a6e04",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-pin-capture-20261016/wires/custom-impact.json"
+    },
+    {
+      "path": "managed/wires/forward.json",
+      "bytes": 4515,
+      "sha256": "c4b9cddd73500c78c8ef15dae60530e5db2ebe9dde6ed7bcb24c57a986fa4349",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-pin-capture-20261016/wires/forward.json"
+    },
+    {
+      "path": "managed/wires/impact.json",
+      "bytes": 4160,
+      "sha256": "e7fe82453d594f0874bb4343aa6587914fd53079840f6241793a8ceedbd54e8d",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-pin-capture-20261016/wires/impact.json"
+    },
+    {
+      "path": "managed/wires/projection-wire.json",
+      "bytes": 5529,
+      "sha256": "83f35080f590a8ec0e2ac30c40fa59a695ab0fc80d5fd7dfd5bbd5e3dcd374dd",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-pin-capture-20261016/wires/projection-wire.json"
+    },
+    {
+      "path": "managed/wires/public-graph.json",
+      "bytes": 6597,
+      "sha256": "8a1c21ebfeec1c2e87915aaa6cc62b5890e2dd7e201c37b37bf91f6527c36a3b",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-pin-capture-20261016/wires/public-graph.json"
+    },
+    {
+      "path": "managed/wires/review.json",
+      "bytes": 12709,
+      "sha256": "340779da00facf6bed20df4710466e400be1398a227d029b19ae12dbfd537d76",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-pin-capture-20261016/wires/review.json"
+    },
+    {
+      "path": "managed/wires/type-context.json",
+      "bytes": 4012,
+      "sha256": "1176be093b4e970479fc1f3e68667bf0257dd8440f166a5d94e9a169bd659b46",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-pin-capture-20261016/wires/type-context.json"
+    },
+    {
+      "path": "browser/baseline/semaprax.toml",
+      "bytes": 308,
+      "sha256": "1423cbcd10a605d5abed6af6e48dfd99c96659fbbe08960faf82672d4a6d653b",
+      "original": "/Volumes/Semaprax/provenance/browser-pin8bb9-resume-actual-20261016/baseline/semaprax.toml"
+    },
+    {
+      "path": "browser/baseline/src/app.spx",
+      "bytes": 405,
+      "sha256": "ddfedb62ccb63930d411bff62716583f075c703b72f8d5434816ff45e1469fcc",
+      "original": "/Volumes/Semaprax/provenance/browser-pin8bb9-resume-actual-20261016/baseline/src/app.spx"
+    },
+    {
+      "path": "browser/baseline/src/core.spx",
+      "bytes": 548,
+      "sha256": "415255f8628535606dcecd8d7459639014d4a3437dc1199ecf7f9cc8074d801e",
+      "original": "/Volumes/Semaprax/provenance/browser-pin8bb9-resume-actual-20261016/baseline/src/core.spx"
+    },
+    {
+      "path": "browser/baseline/src/tests.spx",
+      "bytes": 649,
+      "sha256": "373d4bc3cc3b292da6fdf69c15778c363573af42dde0dc213c23360f499a7b11",
+      "original": "/Volumes/Semaprax/provenance/browser-pin8bb9-resume-actual-20261016/baseline/src/tests.spx"
+    },
+    {
+      "path": "browser/baseline.memory.jsonl",
+      "bytes": 3621,
+      "sha256": "c55c502449415ebc50dee17b0c7c1f1ecdcde9ed1cb52e7f9e1877bdd2cf73ae",
+      "original": "/Volumes/Semaprax/provenance/browser-pin8bb9-resume-actual-20261016/baseline.memory.jsonl"
+    },
+    {
+      "path": "browser/baseline.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original": "/Volumes/Semaprax/provenance/browser-pin8bb9-resume-actual-20261016/baseline.stderr.log"
+    },
+    {
+      "path": "browser/binding.json",
+      "bytes": 5592,
+      "sha256": "715705ab64f996c9dcda6682bb8eee1fafa6d12cde7d7dc8b6aa6f8b823942a7",
+      "original": "/Volumes/Semaprax/provenance/browser-pin8bb9-resume-actual-20261016/binding.json"
+    },
+    {
+      "path": "browser/calculator-baseline.json",
+      "bytes": 9894,
+      "sha256": "35c71fa712b5dc70212ff74809d1fdc52f910e56653ec3c220dc5b9e1219e3e7",
+      "original": "/Volumes/Semaprax/provenance/browser-pin8bb9-resume-actual-20261016/calculator-baseline.json"
+    },
+    {
+      "path": "browser/calculator-renamed.json",
+      "bytes": 9894,
+      "sha256": "2601057655d7d01c252eec97865dd453b128b382bb8c0bcda7709910b880226f",
+      "original": "/Volumes/Semaprax/provenance/browser-pin8bb9-resume-actual-20261016/calculator-renamed.json"
+    },
+    {
+      "path": "browser/renamed/semaprax.toml",
+      "bytes": 308,
+      "sha256": "1423cbcd10a605d5abed6af6e48dfd99c96659fbbe08960faf82672d4a6d653b",
+      "original": "/Volumes/Semaprax/provenance/browser-pin8bb9-resume-actual-20261016/renamed/semaprax.toml"
+    },
+    {
+      "path": "browser/renamed/src/app.spx",
+      "bytes": 405,
+      "sha256": "ddfedb62ccb63930d411bff62716583f075c703b72f8d5434816ff45e1469fcc",
+      "original": "/Volumes/Semaprax/provenance/browser-pin8bb9-resume-actual-20261016/renamed/src/app.spx"
+    },
+    {
+      "path": "browser/renamed/src/core.spx",
+      "bytes": 548,
+      "sha256": "8b81d51affddc0e62460c7e828032262df189b393787bafe07f5b06e4c8ea9b2",
+      "original": "/Volumes/Semaprax/provenance/browser-pin8bb9-resume-actual-20261016/renamed/src/core.spx"
+    },
+    {
+      "path": "browser/renamed/src/tests.spx",
+      "bytes": 649,
+      "sha256": "373d4bc3cc3b292da6fdf69c15778c363573af42dde0dc213c23360f499a7b11",
+      "original": "/Volumes/Semaprax/provenance/browser-pin8bb9-resume-actual-20261016/renamed/src/tests.spx"
+    },
+    {
+      "path": "browser/renamed.memory.jsonl",
+      "bytes": 3615,
+      "sha256": "987c13c82ac74f77619a8084834c401cbc1a72c701cc791b6e72df0e2ecde724",
+      "original": "/Volumes/Semaprax/provenance/browser-pin8bb9-resume-actual-20261016/renamed.memory.jsonl"
+    },
+    {
+      "path": "browser/renamed.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original": "/Volumes/Semaprax/provenance/browser-pin8bb9-resume-actual-20261016/renamed.stderr.log"
+    },
+    {
+      "path": "browser/results.json",
+      "bytes": 14593,
+      "sha256": "d089d8c845d7f2eba57be0aa9d835be16551213ca5ff975afcaa6f17e42476b4",
+      "original": "/Volumes/Semaprax/provenance/browser-pin8bb9-resume-actual-20261016/results.json"
+    },
+    {
+      "path": "strict-readonly-plan/actual-current-capture/analysis.log",
+      "bytes": 1795,
+      "sha256": "0f8fce878495dd204a8ce58212db4fe4ab060a28406bc580d582093f211590bd",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/actual-current-capture/analysis.log"
+    },
+    {
+      "path": "strict-readonly-plan/actual-current-capture/binaries.json",
+      "bytes": 492,
+      "sha256": "2803e428cadfa15c4978d988699eea38cd8874853ad3fe53babaa2ffd27c9247",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/actual-current-capture/binaries.json"
+    },
+    {
+      "path": "strict-readonly-plan/actual-current-capture/candidates.json",
+      "bytes": 12239,
+      "sha256": "96613fd61b08a3e6b79b9db0f603a905510a9b031b80c0d6efe16ee1aeaa169f",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/actual-current-capture/candidates.json"
+    },
+    {
+      "path": "strict-readonly-plan/actual-current-capture/projection-wire.log",
+      "bytes": 5775,
+      "sha256": "2a6cca3f32341603c159120a38a9486ac74d71548bfd1f1c1bf559ca170fdc12",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/actual-current-capture/projection-wire.log"
+    },
+    {
+      "path": "strict-readonly-plan/actual-current-capture/public-graph.log",
+      "bytes": 608,
+      "sha256": "ab404b2933082d393902bbd36c35411b4541b8733a8f4d681266597935b39f4f",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/actual-current-capture/public-graph.log"
+    },
+    {
+      "path": "strict-readonly-plan/actual-current-capture/source-head.txt",
+      "bytes": 41,
+      "sha256": "9c1e9447f58fc51fd22172080860832c1b31f381c0c99dc7a0e15b94ddb98365",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/actual-current-capture/source-head.txt"
+    },
+    {
+      "path": "strict-readonly-plan/actual-current-capture/source-local.patch",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/actual-current-capture/source-local.patch"
+    },
+    {
+      "path": "strict-readonly-plan/actual-current-capture/status.tsv",
+      "bytes": 290,
+      "sha256": "9f8f9fa10d0b9ba8a4a7c969209dd37a2e83661e777cb617ae1fd0b1633ccd0a",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/actual-current-capture/status.tsv"
+    },
+    {
+      "path": "strict-readonly-plan/actual-current-capture/wires/capability-context.json",
+      "bytes": 4338,
+      "sha256": "c771e4dfb7a4ae3891b37580ef41a2a29925a8ef98787364287660d39e162275",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/actual-current-capture/wires/capability-context.json"
+    },
+    {
+      "path": "strict-readonly-plan/actual-current-capture/wires/capability-review.json",
+      "bytes": 13626,
+      "sha256": "011c500a3356f204cd4c57e14f14beef2d84e284e4edf1455f27335ad12af89d",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/actual-current-capture/wires/capability-review.json"
+    },
+    {
+      "path": "strict-readonly-plan/actual-current-capture/wires/context.json",
+      "bytes": 4514,
+      "sha256": "592f86ccb22dbb8a2125f19c412da7a1b85682c2f7aac31a9d817dee6383f83a",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/actual-current-capture/wires/context.json"
+    },
+    {
+      "path": "strict-readonly-plan/actual-current-capture/wires/custom-impact.json",
+      "bytes": 4569,
+      "sha256": "a9d1763dbc6dc074446c517edf5b61ab5c2d47a5e1be8046494724e0049a6e04",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/actual-current-capture/wires/custom-impact.json"
+    },
+    {
+      "path": "strict-readonly-plan/actual-current-capture/wires/forward.json",
+      "bytes": 4515,
+      "sha256": "c4b9cddd73500c78c8ef15dae60530e5db2ebe9dde6ed7bcb24c57a986fa4349",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/actual-current-capture/wires/forward.json"
+    },
+    {
+      "path": "strict-readonly-plan/actual-current-capture/wires/impact.json",
+      "bytes": 4160,
+      "sha256": "e7fe82453d594f0874bb4343aa6587914fd53079840f6241793a8ceedbd54e8d",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/actual-current-capture/wires/impact.json"
+    },
+    {
+      "path": "strict-readonly-plan/actual-current-capture/wires/projection-wire.json",
+      "bytes": 5529,
+      "sha256": "83f35080f590a8ec0e2ac30c40fa59a695ab0fc80d5fd7dfd5bbd5e3dcd374dd",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/actual-current-capture/wires/projection-wire.json"
+    },
+    {
+      "path": "strict-readonly-plan/actual-current-capture/wires/public-graph.json",
+      "bytes": 6597,
+      "sha256": "8a1c21ebfeec1c2e87915aaa6cc62b5890e2dd7e201c37b37bf91f6527c36a3b",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/actual-current-capture/wires/public-graph.json"
+    },
+    {
+      "path": "strict-readonly-plan/actual-current-capture/wires/review.json",
+      "bytes": 12709,
+      "sha256": "340779da00facf6bed20df4710466e400be1398a227d029b19ae12dbfd537d76",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/actual-current-capture/wires/review.json"
+    },
+    {
+      "path": "strict-readonly-plan/actual-current-capture/wires/type-context.json",
+      "bytes": 4012,
+      "sha256": "1176be093b4e970479fc1f3e68667bf0257dd8440f166a5d94e9a169bd659b46",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/actual-current-capture/wires/type-context.json"
+    },
+    {
+      "path": "strict-readonly-plan/actual-literals-and-inverse-composition.patch",
+      "bytes": 2866,
+      "sha256": "27ed4733fe2eb260a6e9d5c914ae1c05b81d30a2180903bf4ccff21022c32014",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/actual-literals-and-inverse-composition.patch"
+    },
+    {
+      "path": "strict-readonly-plan/candidate-source-after/docs/evidence/prelude-forecast-286/pin-capture/exact-source-inverses.json",
+      "bytes": 129829,
+      "sha256": "04d14712fb00b8d909c5d15766233b6009b6c6fed00ec8a76bd86372b501e9ff",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/candidate-source-after/docs/evidence/prelude-forecast-286/pin-capture/exact-source-inverses.json"
+    },
+    {
+      "path": "strict-readonly-plan/candidate-source-after/src/workspace_graph/type_proof_tests.rs",
+      "bytes": 52672,
+      "sha256": "0ef80a860a95826579c3a82c951aca3fd22f0903efbda68e6264a599fde1b1f9",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/candidate-source-after/src/workspace_graph/type_proof_tests.rs"
+    },
+    {
+      "path": "strict-readonly-plan/candidate-source-after/tests/workspace/semantic_graph.rs",
+      "bytes": 52467,
+      "sha256": "4b78ebe0d14d00f31daa6bae641eaf66212e97851bc46156df851b266587d282",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/candidate-source-after/tests/workspace/semantic_graph.rs"
+    },
+    {
+      "path": "strict-readonly-plan/complete-source-projections.json",
+      "bytes": 129534,
+      "sha256": "7aea25121afc366dfe2e595ad013f3e0c90543939a1e64bdd9cbb65f080716a6",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/complete-source-projections.json"
+    },
+    {
+      "path": "strict-readonly-plan/complete-source.inverse.patch",
+      "bytes": 2866,
+      "sha256": "ec31082ad6adb7788a254ca932021b67a11995b878c97330cf92889e652a38d5",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/complete-source.inverse.patch"
+    },
+    {
+      "path": "strict-readonly-plan/expected-counts.json",
+      "bytes": 506776,
+      "sha256": "c9daa1a718376f245b20fba1fff9f94599616d57011eca9cad91226b020fe2cb",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/expected-counts.json"
+    },
+    {
+      "path": "strict-readonly-plan/immutable-legacy/docs/evidence/prelude-forecast-286/pin-capture/exact-source-inverses.json",
+      "bytes": 129829,
+      "sha256": "04d14712fb00b8d909c5d15766233b6009b6c6fed00ec8a76bd86372b501e9ff",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/immutable-legacy/docs/evidence/prelude-forecast-286/pin-capture/exact-source-inverses.json"
+    },
+    {
+      "path": "strict-readonly-plan/immutable-legacy/docs/evidence/prelude-forecast-286/pin-capture/tests__wasm__scalar_browser_ci_contract.rs.before.txt",
+      "bytes": 9078,
+      "sha256": "b1406b424804a8b5716286ce3059c62a28a3c6e739999938929b58de7f2e66c5",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/immutable-legacy/docs/evidence/prelude-forecast-286/pin-capture/tests__wasm__scalar_browser_ci_contract.rs.before.txt"
+    },
+    {
+      "path": "strict-readonly-plan/immutable-legacy/docs/evidence/prelude-forecast-286/pin-capture/tests__workspace__semantic_graph.rs.before.txt",
+      "bytes": 47303,
+      "sha256": "f28fb0878a42042ac763241982eeb5b896cbecae375a4dd4215fb493b5d51833",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/immutable-legacy/docs/evidence/prelude-forecast-286/pin-capture/tests__workspace__semantic_graph.rs.before.txt"
+    },
+    {
+      "path": "strict-readonly-plan/owning-build-result.json",
+      "bytes": 50169,
+      "sha256": "adaeeaa70d39722dfe0110b7e073f8300988d7fc337c33c80f500d92b945bc4f",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/owning-build-result.json"
+    },
+    {
+      "path": "strict-readonly-plan/prelude-pin-producers-result.json",
+      "bytes": 7714,
+      "sha256": "0ceb7036c1816c22e801e5aca8b3b91fb04199b29943b4a3ab1f2e0865c3755f",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/prelude-pin-producers-result.json"
+    },
+    {
+      "path": "strict-readonly-plan/prepared-patch-record.json",
+      "bytes": 1430,
+      "sha256": "19269ab2c060bc93bf539d071f56ae8fa3d008c067f00908d82772abe544ec81",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/prepared-patch-record.json"
+    },
+    {
+      "path": "strict-readonly-plan/previous-actual-35cc-capture/analysis.log",
+      "bytes": 1795,
+      "sha256": "f78d3fdbc08e56a940cea0b971ad67431be28ab496148b96c0f1aafa82eba271",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/previous-actual-35cc-capture/analysis.log"
+    },
+    {
+      "path": "strict-readonly-plan/previous-actual-35cc-capture/binaries.json",
+      "bytes": 492,
+      "sha256": "7be44777985697480e1ce3a51ea527afde1bea86c661abee59fbe5453a3df9e9",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/previous-actual-35cc-capture/binaries.json"
+    },
+    {
+      "path": "strict-readonly-plan/previous-actual-35cc-capture/candidates.json",
+      "bytes": 12239,
+      "sha256": "6fc24b12a215c2eb4f329f24212c072aeddd04615a1f5350dd33fbcc1390f3a8",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/previous-actual-35cc-capture/candidates.json"
+    },
+    {
+      "path": "strict-readonly-plan/previous-actual-35cc-capture/projection-wire.log",
+      "bytes": 5775,
+      "sha256": "35eef8d5f5d1af465e3f4b8f3fabaeaff4753ba22c14739124f2fcf18c6cb270",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/previous-actual-35cc-capture/projection-wire.log"
+    },
+    {
+      "path": "strict-readonly-plan/previous-actual-35cc-capture/public-graph.log",
+      "bytes": 608,
+      "sha256": "9a03f850e6fe0ce83570d99ccd0564d01987124a696f40378d41c3b4072243f9",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/previous-actual-35cc-capture/public-graph.log"
+    },
+    {
+      "path": "strict-readonly-plan/previous-actual-35cc-capture/source-head.txt",
+      "bytes": 41,
+      "sha256": "ed9ee03009cd869c29cca36d0d05eae3f7cc8b11f957780162233ac8d6c9cbf9",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/previous-actual-35cc-capture/source-head.txt"
+    },
+    {
+      "path": "strict-readonly-plan/previous-actual-35cc-capture/source-local.patch",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/previous-actual-35cc-capture/source-local.patch"
+    },
+    {
+      "path": "strict-readonly-plan/previous-actual-35cc-capture/status.tsv",
+      "bytes": 290,
+      "sha256": "9f8f9fa10d0b9ba8a4a7c969209dd37a2e83661e777cb617ae1fd0b1633ccd0a",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/previous-actual-35cc-capture/status.tsv"
+    },
+    {
+      "path": "strict-readonly-plan/previous-actual-35cc-capture/wires/capability-context.json",
+      "bytes": 4338,
+      "sha256": "cbe0ef0e127493fff8d09fd7b71902ec3fa411c05655813ba21702c268a86f06",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/previous-actual-35cc-capture/wires/capability-context.json"
+    },
+    {
+      "path": "strict-readonly-plan/previous-actual-35cc-capture/wires/capability-review.json",
+      "bytes": 13626,
+      "sha256": "856f47d2ea3b179156a8cb48ea7a14a3fd48908472ecd37d7c5547a62b4a34e3",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/previous-actual-35cc-capture/wires/capability-review.json"
+    },
+    {
+      "path": "strict-readonly-plan/previous-actual-35cc-capture/wires/context.json",
+      "bytes": 4514,
+      "sha256": "531c4928f03919cbe391636cb5a3c6e1a81e1e78ef9a6d9b870a662ba4fe64c9",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/previous-actual-35cc-capture/wires/context.json"
+    },
+    {
+      "path": "strict-readonly-plan/previous-actual-35cc-capture/wires/custom-impact.json",
+      "bytes": 4569,
+      "sha256": "6e04aedb33f4122be228d6fd36ba8685be17fe9777d366589a8ad00cc81cb98a",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/previous-actual-35cc-capture/wires/custom-impact.json"
+    },
+    {
+      "path": "strict-readonly-plan/previous-actual-35cc-capture/wires/forward.json",
+      "bytes": 4515,
+      "sha256": "3c1ecc805f6e8ce44e8bb5494ab6f8e2e190ea007abd491b4bc5087bae14baa5",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/previous-actual-35cc-capture/wires/forward.json"
+    },
+    {
+      "path": "strict-readonly-plan/previous-actual-35cc-capture/wires/impact.json",
+      "bytes": 4160,
+      "sha256": "0d337f90ce845ad4f6c02930ba578d8002aaf1faee4a150488df961c5a44a2f4",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/previous-actual-35cc-capture/wires/impact.json"
+    },
+    {
+      "path": "strict-readonly-plan/previous-actual-35cc-capture/wires/projection-wire.json",
+      "bytes": 5529,
+      "sha256": "74dd9cc25b0f9f331aa831d6fac0e44f1d51488d6c3a548f3c60b6a86ff8eb04",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/previous-actual-35cc-capture/wires/projection-wire.json"
+    },
+    {
+      "path": "strict-readonly-plan/previous-actual-35cc-capture/wires/public-graph.json",
+      "bytes": 6597,
+      "sha256": "6b5cc543f824f65ea9deaeb9d713176c8c3ba2d77261fe32ed866ebb69c1f6e6",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/previous-actual-35cc-capture/wires/public-graph.json"
+    },
+    {
+      "path": "strict-readonly-plan/previous-actual-35cc-capture/wires/review.json",
+      "bytes": 12709,
+      "sha256": "3cdd798dc3486d371419879d8d10fd749d366797e590c14d04c06f098fac3518",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/previous-actual-35cc-capture/wires/review.json"
+    },
+    {
+      "path": "strict-readonly-plan/previous-actual-35cc-capture/wires/type-context.json",
+      "bytes": 4012,
+      "sha256": "d9aade25e555411d208f04f257dc9ed757c2aab70f9f2f09044d3f7bb3384721",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/previous-actual-35cc-capture/wires/type-context.json"
+    },
+    {
+      "path": "strict-readonly-plan/readonly-command.json",
+      "bytes": 675,
+      "sha256": "f54861b948f405bf66ce0c8b34c53724be7b01293bd5f572908348dcfa49cb74",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/readonly-command.json"
+    },
+    {
+      "path": "strict-readonly-plan/readonly-plan.json",
+      "bytes": 4014,
+      "sha256": "50ea1613ca1a2e3ba4b0e8f387815694f8da8cf036b813369f9d641003aedd36",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/readonly-plan.json"
+    },
+    {
+      "path": "strict-readonly-plan/readonly.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/readonly.stderr"
+    },
+    {
+      "path": "strict-readonly-plan/source-before/docs/evidence/prelude-forecast-286/pin-capture/exact-source-inverses.json",
+      "bytes": 129829,
+      "sha256": "04d14712fb00b8d909c5d15766233b6009b6c6fed00ec8a76bd86372b501e9ff",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/source-before/docs/evidence/prelude-forecast-286/pin-capture/exact-source-inverses.json"
+    },
+    {
+      "path": "strict-readonly-plan/source-before/src/workspace_graph/type_proof_tests.rs",
+      "bytes": 52672,
+      "sha256": "53736e9d12bb60f3c88b86ae48b6476adba4f1d238a3e287c92a608854308fe7",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/source-before/src/workspace_graph/type_proof_tests.rs"
+    },
+    {
+      "path": "strict-readonly-plan/source-before/tests/workspace/semantic_graph.rs",
+      "bytes": 52467,
+      "sha256": "d09b48becb11fb46b12bb4c9558ee6ec42d612c7c4d166796236ddadaa91aaee",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/source-before/tests/workspace/semantic_graph.rs"
+    },
+    {
+      "path": "strict-readonly-plan/trusted-inputs.json",
+      "bytes": 596,
+      "sha256": "1561c14eec887a1c3b4056557c5ad3574ce1cb33db2a67ffb68e00802566b9ae",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/trusted-inputs.json"
+    },
+    {
+      "path": "strict-readonly-plan/whole-wire-exact-inverses.json",
+      "bytes": 56358,
+      "sha256": "8c2de976a20f45e516ef288bd3b084c434d7ee86189d614d12084d622e4676fa",
+      "original": "/Volumes/Semaprax/provenance/actual8bb9-resume-strict-pin-plan-20261016/whole-wire-exact-inverses.json"
+    }
+  ]
+}

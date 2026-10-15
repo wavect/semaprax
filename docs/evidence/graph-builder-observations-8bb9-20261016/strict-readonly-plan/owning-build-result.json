@@ -1,0 +1,1419 @@
+{
+  "observation_helper_path": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/drivers/semaprax_pressure_observation_v3.py",
+  "observation_helper_sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+  "phase_monitor_path": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/drivers/observed_phase.py",
+  "phase_monitor_sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867",
+  "schema": "semaprax.resumed-owning-build-bound.v1",
+  "resumption": {
+    "schema": "semaprax.explicit-two-phase-resumption.v1",
+    "source_head": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+    "source_tree": "85707059ff5ac6d7a41300a04e5b1d78011cd330",
+    "original_round": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016",
+    "original_receipt_sha256": "12a6367d287dd6717428a38d39dfd6c79d70325a9871ad6e237d2a1ca3ff0fab",
+    "original_manifest_sha256": "11120415eae9ff60896c785ceef7f19ba9b73448a40e4d59b86430882afb9825",
+    "original_exit_code": 130,
+    "original_third_group_remains_UNCONFIRMED": true,
+    "later_independent_settlement_sha256": "6a8ab48a36542b0251f1c9bfaf4559983fe6c30fc3c07ee344d6b2a77f2aea14",
+    "reused_completed_command_indices": [
+      0,
+      1
+    ],
+    "execute_only_command_indices": [
+      2,
+      3
+    ],
+    "unit_artifact": {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "lib"
+        ],
+        "crate_types": [
+          "lib"
+        ],
+        "name": "semaprax",
+        "src_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/src/lib.rs",
+        "edition": "2021",
+        "doc": true,
+        "doctest": true,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04",
+      "executable_sha256": "6e8f6bef93669b0994b0430dd7ceabf9484928cf18e5d4e46c90739e0d30e0ce"
+    },
+    "source_profile_environment_exact": true,
+    "no_original_130_promotion": true,
+    "command_origin_plan": [
+      {
+        "index": 0,
+        "origin": "REUSED_ACTUAL_ORIGINAL_SUCCESS",
+        "receipt": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016/owning-build-result.json"
+      },
+      {
+        "index": 1,
+        "origin": "REUSED_ACTUAL_ORIGINAL_SUCCESS",
+        "receipt": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016/owning-build-result.json"
+      },
+      {
+        "index": 2,
+        "origin": "NEW_RESUME_COMMAND_REQUIRED",
+        "receipt": "new owning-build-result.json"
+      },
+      {
+        "index": 3,
+        "origin": "NEW_RESUME_COMMAND_REQUIRED",
+        "receipt": "new owning-build-result.json"
+      }
+    ],
+    "immutable_inputs_sha256": {
+      "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016/owning-build-result.json": "12a6367d287dd6717428a38d39dfd6c79d70325a9871ad6e237d2a1ca3ff0fab",
+      "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016/expected-counts.json": "11120415eae9ff60896c785ceef7f19ba9b73448a40e4d59b86430882afb9825",
+      "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016/owning-build.jsonl": "77d8525e600dfd7a11dbaf73d9bf99a938b04d21d1fdc24a30e692c08884d18e",
+      "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016/owning-build.log": "130fa9f91a99e9b0e55341fa28bd015d4483d26b95155d1c9e17d6ba7b6e994d",
+      "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016/memory-samples.jsonl": "8677811a2beaf460479d530aa4a913f9b3a553d35ba780cd426d1aa88656fc81",
+      "/Volumes/Semaprax/provenance/8bb76-resource-stop-independent-settlement-20261016.json": "6a8ab48a36542b0251f1c9bfaf4559983fe6c30fc3c07ee344d6b2a77f2aea14",
+      "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/reuse-completed/memory-samples.jsonl": "f52df18522a0fd80d550d30eee3e9e328c8b3974cfd183cb0b07c28fc3f96bdb",
+      "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/reuse-completed/owning-build.log": "54d3ec25312d4aaf4a6197f376a5af4182355e5f4635a6b70c26d9e7927c4b38",
+      "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/reuse-completed/owning-build.jsonl": "cfa83ddfdcc4c3b0e58bdef6ad4134aeb8792050781ea767a63b89bee9018166",
+      "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016/pressure-guardian.jsonl": "d0b406ac2a301bda7326f455e198bebd8b576f4f55d89869ac357430bcd50b6f",
+      "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016/pressure-guardian-source.py": "115dfba227713331fe0b021d787e9c7ddff44e3cf5ad1524526da45bb322021a"
+    }
+  },
+  "newly_executed_command_indices": [
+    2,
+    3
+  ],
+  "derived_four_command_success": true,
+  "recorded_command_wall_seconds_sum": 1132.0094626659848,
+  "source_subject": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+  "source_tree": "85707059ff5ac6d7a41300a04e5b1d78011cd330",
+  "cargo_lock_sha256": "73c2e543a41d2524e150597226b62686b36ba67bf023f884b52282ced19865f3",
+  "manifest_sha256": "c9daa1a718376f245b20fba1fff9f94599616d57011eca9cad91226b020fe2cb",
+  "driver_sha256": "07e56f83ca7a8af214761b21b0e003a9e99f803b632ca207e098199b558e4c46",
+  "ordered_commands": [
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--no-run",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ],
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "build",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ],
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--test",
+      "cleanup_backends",
+      "--test",
+      "cli_check_routing_v1",
+      "--test",
+      "hir_module_boundaries",
+      "--test",
+      "owned_data",
+      "--test",
+      "project",
+      "--test",
+      "wasm",
+      "--test",
+      "workspace",
+      "--no-run",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ],
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax-toolchain",
+      "--test",
+      "cli_new_project_v1",
+      "--no-run",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ]
+  ],
+  "cargo_build_jobs": 1,
+  "build_target_selection": "explicit-two-new-commands-after-authenticated-two-successes-v1",
+  "memory_samples_sha256": "7962d7548bf7a17d4d2dfdc0539fc10b59c285cc467e31549f27cada833bd1b8",
+  "results": [
+    {
+      "command": [
+        "/Users/kevin/.cargo/bin/rustup",
+        "run",
+        "1.97.1",
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--lib",
+        "--no-run",
+        "--jobs",
+        "1",
+        "--message-format=json"
+      ],
+      "executed": true,
+      "exit_code": 0,
+      "resource_refusal": null,
+      "observation_errors": [],
+      "peak_process_group_rss_bytes": 6236815360,
+      "rss_limit_bytes": 8589934592,
+      "last_system_free_percent": 65,
+      "process_high_water_marks": [
+        {
+          "pid": 20175,
+          "ppid": 20115,
+          "rss_bytes": 101941248,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/cargo"
+        },
+        {
+          "pid": 20205,
+          "ppid": 20175,
+          "rss_bytes": 6930432,
+          "name": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/build/semaprax-40b59bcff6ce68fb/build-script-build"
+        },
+        {
+          "pid": 20646,
+          "ppid": 20175,
+          "rss_bytes": 6226870272,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+        },
+        {
+          "pid": 39813,
+          "ppid": 20646,
+          "rss_bytes": 4587520,
+          "name": "(xcrun)"
+        },
+        {
+          "pid": 39815,
+          "ppid": 20646,
+          "rss_bytes": 17203200,
+          "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+        },
+        {
+          "pid": 39817,
+          "ppid": 39815,
+          "rss_bytes": 2563981312,
+          "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld"
+        },
+        {
+          "pid": 40021,
+          "ppid": 20646,
+          "rss_bytes": 1586397184,
+          "name": "rust-objcopy"
+        }
+      ],
+      "wall_seconds": 411.78421233299014,
+      "baseline_telemetry": {
+        "kernel_pressure": {
+          "raw": 1,
+          "label": "normal",
+          "label_status": "exact_kernel_mapping",
+          "kernel_version": "Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:06 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6030",
+          "mapping_provenance": {
+            "source_tag": "xnu-12377.121.6",
+            "conversion_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/kern/kern_memorystatus_notify.c",
+            "conversion_spans": "1651-1679;1754-1768",
+            "constants_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/sys/event_private.h",
+            "constants_span": "276-278"
+          }
+        },
+        "swap": {
+          "total_bytes": 6442450944,
+          "available_bytes": 1217069056,
+          "used_bytes": 5225381888,
+          "page_size": 16384,
+          "encrypted": true,
+          "raw_sha256": "047f3dbcfac34cd70b6480281623fbf1851811440ad96cfb9da5866bfc1a10f3"
+        },
+        "vm": {
+          "page_size": 16384,
+          "counters": {
+            "Pages free": 232374,
+            "Pages inactive": 319350,
+            "Pages purgeable": 9269,
+            "File-backed pages": 280273,
+            "Pages occupied by compressor": 115833,
+            "Swapins": 104132226,
+            "Swapouts": 141253505
+          }
+        },
+        "windows": [
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-n",
+              "kern.memorystatus_vm_pressure_level"
+            ],
+            "started": 115153.882735583,
+            "finished": 115153.884883916
+          },
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-b",
+              "vm.swapusage"
+            ],
+            "started": 115153.884983458,
+            "finished": 115153.886836041
+          },
+          {
+            "command": [
+              "/usr/bin/vm_stat"
+            ],
+            "started": 115153.886866916,
+            "finished": 115153.889117666
+          }
+        ],
+        "finished": 115153.889313625,
+        "atomic": false
+      },
+      "post_stop_telemetry": {
+        "kernel_pressure": {
+          "raw": 1,
+          "label": "normal",
+          "label_status": "exact_kernel_mapping",
+          "kernel_version": "Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:06 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6030",
+          "mapping_provenance": {
+            "source_tag": "xnu-12377.121.6",
+            "conversion_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/kern/kern_memorystatus_notify.c",
+            "conversion_spans": "1651-1679;1754-1768",
+            "constants_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/sys/event_private.h",
+            "constants_span": "276-278"
+          }
+        },
+        "swap": {
+          "total_bytes": 8589934592,
+          "available_bytes": 1302069248,
+          "used_bytes": 7287865344,
+          "page_size": 16384,
+          "encrypted": true,
+          "raw_sha256": "a994208d2800f5ecb7a232c2bdcb5f5db65dd1b38ab61a8bc966089184ad87b1"
+        },
+        "vm": {
+          "page_size": 16384,
+          "counters": {
+            "Pages free": 347133,
+            "Pages inactive": 286905,
+            "Pages purgeable": 8848,
+            "File-backed pages": 175427,
+            "Pages occupied by compressor": 105452,
+            "Swapins": 104362270,
+            "Swapouts": 141635934
+          }
+        },
+        "windows": [
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-n",
+              "kern.memorystatus_vm_pressure_level"
+            ],
+            "started": 115564.838970791,
+            "finished": 115564.842109208
+          },
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-b",
+              "vm.swapusage"
+            ],
+            "started": 115564.842129083,
+            "finished": 115564.844049958
+          },
+          {
+            "command": [
+              "/usr/bin/vm_stat"
+            ],
+            "started": 115564.844075958,
+            "finished": 115564.846594708
+          }
+        ],
+        "finished": 115564.846638875,
+        "atomic": false
+      },
+      "post_stop_observation_status": "collected_after_confirmed_empty_group",
+      "admission_system_free_percent": 76,
+      "telemetry_sample_count": 194,
+      "maximum_positive_swap_used_delta_bytes": 4325310464,
+      "failed_telemetry_samples": [],
+      "group_settlement": {
+        "owned_pgid": 20175,
+        "confirmed_empty": true,
+        "signals": [],
+        "operation_failures": [],
+        "observation_errors": [],
+        "resource_refusal": null,
+        "finished": 115564.838928083
+      },
+      "source_binding_status": "unchanged",
+      "observation_helper_path": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016/drivers/semaprax_pressure_observation_v3.py",
+      "observation_helper_sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+      "phase_monitor_path": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016/drivers/observed_phase.py",
+      "phase_monitor_sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+    },
+    {
+      "command": [
+        "/Users/kevin/.cargo/bin/rustup",
+        "run",
+        "1.97.1",
+        "cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--lib",
+        "--jobs",
+        "1",
+        "--message-format=json"
+      ],
+      "executed": true,
+      "exit_code": 0,
+      "resource_refusal": null,
+      "observation_errors": [],
+      "peak_process_group_rss_bytes": 4777525248,
+      "rss_limit_bytes": 8589934592,
+      "last_system_free_percent": 55,
+      "process_high_water_marks": [
+        {
+          "pid": 40850,
+          "ppid": 20115,
+          "rss_bytes": 97304576,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/cargo"
+        },
+        {
+          "pid": 40881,
+          "ppid": 40850,
+          "rss_bytes": 4751245312,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+        }
+      ],
+      "wall_seconds": 192.26599749999878,
+      "baseline_telemetry": {
+        "kernel_pressure": {
+          "raw": 1,
+          "label": "normal",
+          "label_status": "exact_kernel_mapping",
+          "kernel_version": "Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:06 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6030",
+          "mapping_provenance": {
+            "source_tag": "xnu-12377.121.6",
+            "conversion_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/kern/kern_memorystatus_notify.c",
+            "conversion_spans": "1651-1679;1754-1768",
+            "constants_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/sys/event_private.h",
+            "constants_span": "276-278"
+          }
+        },
+        "swap": {
+          "total_bytes": 8589934592,
+          "available_bytes": 1302069248,
+          "used_bytes": 7287865344,
+          "page_size": 16384,
+          "encrypted": true,
+          "raw_sha256": "a994208d2800f5ecb7a232c2bdcb5f5db65dd1b38ab61a8bc966089184ad87b1"
+        },
+        "vm": {
+          "page_size": 16384,
+          "counters": {
+            "Pages free": 311163,
+            "Pages inactive": 290705,
+            "Pages purgeable": 10270,
+            "File-backed pages": 181737,
+            "Pages occupied by compressor": 105120,
+            "Swapins": 104362566,
+            "Swapouts": 141635934
+          }
+        },
+        "windows": [
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-n",
+              "kern.memorystatus_vm_pressure_level"
+            ],
+            "started": 115566.030640583,
+            "finished": 115566.032716083
+          },
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-b",
+              "vm.swapusage"
+            ],
+            "started": 115566.032735375,
+            "finished": 115566.0346365
+          },
+          {
+            "command": [
+              "/usr/bin/vm_stat"
+            ],
+            "started": 115566.0346605,
+            "finished": 115566.036510791
+          }
+        ],
+        "finished": 115566.036547541,
+        "atomic": false
+      },
+      "post_stop_telemetry": {
+        "kernel_pressure": {
+          "raw": 1,
+          "label": "normal",
+          "label_status": "exact_kernel_mapping",
+          "kernel_version": "Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:06 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6030",
+          "mapping_provenance": {
+            "source_tag": "xnu-12377.121.6",
+            "conversion_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/kern/kern_memorystatus_notify.c",
+            "conversion_spans": "1651-1679;1754-1768",
+            "constants_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/sys/event_private.h",
+            "constants_span": "276-278"
+          }
+        },
+        "swap": {
+          "total_bytes": 8589934592,
+          "available_bytes": 1527250944,
+          "used_bytes": 7062683648,
+          "page_size": 16384,
+          "encrypted": true,
+          "raw_sha256": "ab076eeeb33fee323dc46324889df375ede259faa7db6dbbacebad6ebe252ceb"
+        },
+        "vm": {
+          "page_size": 16384,
+          "counters": {
+            "Pages free": 166980,
+            "Pages inactive": 203075,
+            "Pages purgeable": 1421,
+            "File-backed pages": 183810,
+            "Pages occupied by compressor": 162970,
+            "Swapins": 104379800,
+            "Swapouts": 141639598
+          }
+        },
+        "windows": [
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-n",
+              "kern.memorystatus_vm_pressure_level"
+            ],
+            "started": 115757.280916458,
+            "finished": 115757.283951625
+          },
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-b",
+              "vm.swapusage"
+            ],
+            "started": 115757.283978708,
+            "finished": 115757.287613
+          },
+          {
+            "command": [
+              "/usr/bin/vm_stat"
+            ],
+            "started": 115757.287748708,
+            "finished": 115757.290719041
+          }
+        ],
+        "finished": 115757.290791666,
+        "atomic": false
+      },
+      "post_stop_observation_status": "collected_after_confirmed_empty_group",
+      "admission_system_free_percent": 73,
+      "telemetry_sample_count": 92,
+      "maximum_positive_swap_used_delta_bytes": 0,
+      "failed_telemetry_samples": [],
+      "group_settlement": {
+        "owned_pgid": 40850,
+        "confirmed_empty": true,
+        "signals": [],
+        "operation_failures": [],
+        "observation_errors": [],
+        "resource_refusal": null,
+        "finished": 115757.280565708
+      },
+      "source_binding_status": "unchanged",
+      "observation_helper_path": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016/drivers/semaprax_pressure_observation_v3.py",
+      "observation_helper_sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+      "phase_monitor_path": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016/drivers/observed_phase.py",
+      "phase_monitor_sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+    },
+    {
+      "command": [
+        "/Users/kevin/.cargo/bin/rustup",
+        "run",
+        "1.97.1",
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--test",
+        "cleanup_backends",
+        "--test",
+        "cli_check_routing_v1",
+        "--test",
+        "hir_module_boundaries",
+        "--test",
+        "owned_data",
+        "--test",
+        "project",
+        "--test",
+        "wasm",
+        "--test",
+        "workspace",
+        "--no-run",
+        "--jobs",
+        "1",
+        "--message-format=json"
+      ],
+      "executed": true,
+      "exit_code": 0,
+      "resource_refusal": null,
+      "observation_errors": [],
+      "peak_process_group_rss_bytes": 3729195008,
+      "rss_limit_bytes": 8589934592,
+      "last_system_free_percent": 68,
+      "process_high_water_marks": [
+        {
+          "pid": 1181,
+          "ppid": 1042,
+          "rss_bytes": 103038976,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/cargo"
+        },
+        {
+          "pid": 1224,
+          "ppid": 1181,
+          "rss_bytes": 3715514368,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+        },
+        {
+          "pid": 22005,
+          "ppid": 1181,
+          "rss_bytes": 618496000,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+        },
+        {
+          "pid": 23053,
+          "ppid": 22005,
+          "rss_bytes": 17235968,
+          "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+        },
+        {
+          "pid": 23097,
+          "ppid": 23053,
+          "rss_bytes": 1125318656,
+          "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld"
+        },
+        {
+          "pid": 23204,
+          "ppid": 22005,
+          "rss_bytes": 441532416,
+          "name": "rust-objcopy"
+        },
+        {
+          "pid": 23318,
+          "ppid": 1181,
+          "rss_bytes": 449806336,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+        },
+        {
+          "pid": 23908,
+          "ppid": 23318,
+          "rss_bytes": 17252352,
+          "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+        },
+        {
+          "pid": 23913,
+          "ppid": 23908,
+          "rss_bytes": 810401792,
+          "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld"
+        },
+        {
+          "pid": 23960,
+          "ppid": 23318,
+          "rss_bytes": 221102080,
+          "name": "rust-objcopy"
+        },
+        {
+          "pid": 24034,
+          "ppid": 1181,
+          "rss_bytes": 336642048,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+        },
+        {
+          "pid": 24161,
+          "ppid": 24034,
+          "rss_bytes": 17203200,
+          "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+        },
+        {
+          "pid": 24162,
+          "ppid": 24161,
+          "rss_bytes": 810270720,
+          "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld"
+        },
+        {
+          "pid": 24494,
+          "ppid": 24034,
+          "rss_bytes": 279576576,
+          "name": "rust-objcopy"
+        },
+        {
+          "pid": 24662,
+          "ppid": 1181,
+          "rss_bytes": 201621504,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+        },
+        {
+          "pid": 24797,
+          "ppid": 24662,
+          "rss_bytes": 2424832,
+          "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+        },
+        {
+          "pid": 24870,
+          "ppid": 24662,
+          "rss_bytes": 2850816,
+          "name": "rust-objcopy"
+        },
+        {
+          "pid": 24876,
+          "ppid": 1181,
+          "rss_bytes": 135757824,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+        },
+        {
+          "pid": 24928,
+          "ppid": 24876,
+          "rss_bytes": 17186816,
+          "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+        },
+        {
+          "pid": 24929,
+          "ppid": 24928,
+          "rss_bytes": 881442816,
+          "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld"
+        },
+        {
+          "pid": 25053,
+          "ppid": 1181,
+          "rss_bytes": 828342272,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+        },
+        {
+          "pid": 26462,
+          "ppid": 25053,
+          "rss_bytes": 17235968,
+          "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+        },
+        {
+          "pid": 26463,
+          "ppid": 26462,
+          "rss_bytes": 1153744896,
+          "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld"
+        },
+        {
+          "pid": 26570,
+          "ppid": 25053,
+          "rss_bytes": 443236352,
+          "name": "rust-objcopy"
+        },
+        {
+          "pid": 26811,
+          "ppid": 1181,
+          "rss_bytes": 474005504,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+        },
+        {
+          "pid": 27347,
+          "ppid": 26811,
+          "rss_bytes": 17252352,
+          "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+        },
+        {
+          "pid": 27348,
+          "ppid": 27347,
+          "rss_bytes": 1025622016,
+          "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld"
+        },
+        {
+          "pid": 27431,
+          "ppid": 26811,
+          "rss_bytes": 303792128,
+          "name": "rust-objcopy"
+        },
+        {
+          "pid": 27533,
+          "ppid": 1181,
+          "rss_bytes": 128892928,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+        },
+        {
+          "pid": 27554,
+          "ppid": 27533,
+          "rss_bytes": 17203200,
+          "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+        },
+        {
+          "pid": 27555,
+          "ppid": 27554,
+          "rss_bytes": 1006600192,
+          "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld"
+        },
+        {
+          "pid": 27680,
+          "ppid": 27533,
+          "rss_bytes": 295698432,
+          "name": "rust-objcopy"
+        },
+        {
+          "pid": 28031,
+          "ppid": 1181,
+          "rss_bytes": 509870080,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+        },
+        {
+          "pid": 28369,
+          "ppid": 28031,
+          "rss_bytes": 17252352,
+          "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+        },
+        {
+          "pid": 28370,
+          "ppid": 28369,
+          "rss_bytes": 1161494528,
+          "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld"
+        },
+        {
+          "pid": 28899,
+          "ppid": 28031,
+          "rss_bytes": 493387776,
+          "name": "rust-objcopy"
+        }
+      ],
+      "wall_seconds": 295.2320060829952,
+      "baseline_telemetry": {
+        "kernel_pressure": {
+          "raw": 1,
+          "label": "normal",
+          "label_status": "exact_kernel_mapping",
+          "kernel_version": "Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:06 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6030",
+          "mapping_provenance": {
+            "source_tag": "xnu-12377.121.6",
+            "conversion_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/kern/kern_memorystatus_notify.c",
+            "conversion_spans": "1651-1679;1754-1768",
+            "constants_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/sys/event_private.h",
+            "constants_span": "276-278"
+          }
+        },
+        "swap": {
+          "total_bytes": 7516192768,
+          "available_bytes": 1601896448,
+          "used_bytes": 5914296320,
+          "page_size": 16384,
+          "encrypted": true,
+          "raw_sha256": "d9b0e3e8442e6390b313c1e1c02c7325afbcbbd35c9240c770a94e23b66f04cc"
+        },
+        "vm": {
+          "page_size": 16384,
+          "counters": {
+            "Pages free": 60345,
+            "Pages inactive": 338001,
+            "Pages purgeable": 8940,
+            "File-backed pages": 312168,
+            "Pages occupied by compressor": 81343,
+            "Swapins": 104613343,
+            "Swapouts": 141969126
+          }
+        },
+        "windows": [
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-n",
+              "kern.memorystatus_vm_pressure_level"
+            ],
+            "started": 116623.506644916,
+            "finished": 116623.513497666
+          },
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-b",
+              "vm.swapusage"
+            ],
+            "started": 116623.513629291,
+            "finished": 116623.522358166
+          },
+          {
+            "command": [
+              "/usr/bin/vm_stat"
+            ],
+            "started": 116623.522421208,
+            "finished": 116623.529392291
+          }
+        ],
+        "finished": 116623.529802625,
+        "atomic": false
+      },
+      "post_stop_telemetry": {
+        "kernel_pressure": {
+          "raw": 1,
+          "label": "normal",
+          "label_status": "exact_kernel_mapping",
+          "kernel_version": "Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:06 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6030",
+          "mapping_provenance": {
+            "source_tag": "xnu-12377.121.6",
+            "conversion_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/kern/kern_memorystatus_notify.c",
+            "conversion_spans": "1651-1679;1754-1768",
+            "constants_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/sys/event_private.h",
+            "constants_span": "276-278"
+          }
+        },
+        "swap": {
+          "total_bytes": 7516192768,
+          "available_bytes": 1329266688,
+          "used_bytes": 6186926080,
+          "page_size": 16384,
+          "encrypted": true,
+          "raw_sha256": "7ebf5b2f7bbdcd33bc313de64e032790ab9e07e1a3f9d1f88103a63c28a8c5f6"
+        },
+        "vm": {
+          "page_size": 16384,
+          "counters": {
+            "Pages free": 108500,
+            "Pages inactive": 233770,
+            "Pages purgeable": 12000,
+            "File-backed pages": 252177,
+            "Pages occupied by compressor": 99434,
+            "Swapins": 104662990,
+            "Swapouts": 142035430
+          }
+        },
+        "windows": [
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-n",
+              "kern.memorystatus_vm_pressure_level"
+            ],
+            "started": 116917.339857833,
+            "finished": 116917.343204916
+          },
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-b",
+              "vm.swapusage"
+            ],
+            "started": 116917.3432555,
+            "finished": 116917.345894208
+          },
+          {
+            "command": [
+              "/usr/bin/vm_stat"
+            ],
+            "started": 116917.345933125,
+            "finished": 116917.34824525
+          }
+        ],
+        "finished": 116917.348300625,
+        "atomic": false
+      },
+      "post_stop_observation_status": "collected_after_confirmed_empty_group",
+      "admission_system_free_percent": 71,
+      "telemetry_sample_count": 139,
+      "maximum_positive_swap_used_delta_bytes": 868220928,
+      "failed_telemetry_samples": [],
+      "group_settlement": {
+        "owned_pgid": 1181,
+        "confirmed_empty": true,
+        "signals": [],
+        "operation_failures": [],
+        "observation_errors": [],
+        "resource_refusal": null,
+        "finished": 116917.338585875
+      },
+      "source_binding_status": "unchanged",
+      "observation_helper_path": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/drivers/semaprax_pressure_observation_v3.py",
+      "observation_helper_sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+      "phase_monitor_path": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/drivers/observed_phase.py",
+      "phase_monitor_sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+    },
+    {
+      "command": [
+        "/Users/kevin/.cargo/bin/rustup",
+        "run",
+        "1.97.1",
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax-toolchain",
+        "--test",
+        "cli_new_project_v1",
+        "--no-run",
+        "--jobs",
+        "1",
+        "--message-format=json"
+      ],
+      "executed": true,
+      "exit_code": 0,
+      "resource_refusal": null,
+      "observation_errors": [],
+      "peak_process_group_rss_bytes": 5018042368,
+      "rss_limit_bytes": 8589934592,
+      "last_system_free_percent": 58,
+      "process_high_water_marks": [
+        {
+          "pid": 29142,
+          "ppid": 1042,
+          "rss_bytes": 99057664,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/cargo"
+        },
+        {
+          "pid": 29181,
+          "ppid": 29142,
+          "rss_bytes": 4919001088,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+        },
+        {
+          "pid": 43678,
+          "ppid": 29142,
+          "rss_bytes": 1016758272,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+        },
+        {
+          "pid": 44392,
+          "ppid": 29142,
+          "rss_bytes": 607961088,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+        },
+        {
+          "pid": 44826,
+          "ppid": 29142,
+          "rss_bytes": 397852672,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+        },
+        {
+          "pid": 45794,
+          "ppid": 29142,
+          "rss_bytes": 199409664,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+        },
+        {
+          "pid": 45983,
+          "ppid": 45794,
+          "rss_bytes": 17235968,
+          "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+        },
+        {
+          "pid": 45987,
+          "ppid": 45983,
+          "rss_bytes": 875462656,
+          "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld"
+        },
+        {
+          "pid": 45996,
+          "ppid": 45794,
+          "rss_bytes": 293683200,
+          "name": "rust-objcopy"
+        },
+        {
+          "pid": 46023,
+          "ppid": 29142,
+          "rss_bytes": 514621440,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+        },
+        {
+          "pid": 46135,
+          "ppid": 46023,
+          "rss_bytes": 17252352,
+          "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+        },
+        {
+          "pid": 46136,
+          "ppid": 46135,
+          "rss_bytes": 1326596096,
+          "name": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld"
+        },
+        {
+          "pid": 46169,
+          "ppid": 46023,
+          "rss_bytes": 623951872,
+          "name": "rust-objcopy"
+        }
+      ],
+      "wall_seconds": 232.72724675000063,
+      "baseline_telemetry": {
+        "kernel_pressure": {
+          "raw": 1,
+          "label": "normal",
+          "label_status": "exact_kernel_mapping",
+          "kernel_version": "Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:06 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6030",
+          "mapping_provenance": {
+            "source_tag": "xnu-12377.121.6",
+            "conversion_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/kern/kern_memorystatus_notify.c",
+            "conversion_spans": "1651-1679;1754-1768",
+            "constants_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/sys/event_private.h",
+            "constants_span": "276-278"
+          }
+        },
+        "swap": {
+          "total_bytes": 7516192768,
+          "available_bytes": 1329266688,
+          "used_bytes": 6186926080,
+          "page_size": 16384,
+          "encrypted": true,
+          "raw_sha256": "7ebf5b2f7bbdcd33bc313de64e032790ab9e07e1a3f9d1f88103a63c28a8c5f6"
+        },
+        "vm": {
+          "page_size": 16384,
+          "counters": {
+            "Pages free": 63278,
+            "Pages inactive": 284580,
+            "Pages purgeable": 15280,
+            "File-backed pages": 297562,
+            "Pages occupied by compressor": 99208,
+            "Swapins": 104663034,
+            "Swapouts": 142035430
+          }
+        },
+        "windows": [
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-n",
+              "kern.memorystatus_vm_pressure_level"
+            ],
+            "started": 116920.511421875,
+            "finished": 116920.515001125
+          },
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-b",
+              "vm.swapusage"
+            ],
+            "started": 116920.515033583,
+            "finished": 116920.517888666
+          },
+          {
+            "command": [
+              "/usr/bin/vm_stat"
+            ],
+            "started": 116920.517951083,
+            "finished": 116920.520144583
+          }
+        ],
+        "finished": 116920.520211458,
+        "atomic": false
+      },
+      "post_stop_telemetry": {
+        "kernel_pressure": {
+          "raw": 1,
+          "label": "normal",
+          "label_status": "exact_kernel_mapping",
+          "kernel_version": "Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:06 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6030",
+          "mapping_provenance": {
+            "source_tag": "xnu-12377.121.6",
+            "conversion_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/kern/kern_memorystatus_notify.c",
+            "conversion_spans": "1651-1679;1754-1768",
+            "constants_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/sys/event_private.h",
+            "constants_span": "276-278"
+          }
+        },
+        "swap": {
+          "total_bytes": 7516192768,
+          "available_bytes": 1522991104,
+          "used_bytes": 5993201664,
+          "page_size": 16384,
+          "encrypted": true,
+          "raw_sha256": "b40078db2dede677a315bf9e1b6e5780475e27323f7c2805f361b58b9b820429"
+        },
+        "vm": {
+          "page_size": 16384,
+          "counters": {
+            "Pages free": 50702,
+            "Pages inactive": 283660,
+            "Pages purgeable": 3522,
+            "File-backed pages": 204817,
+            "Pages occupied by compressor": 150404,
+            "Swapins": 104675281,
+            "Swapouts": 142035430
+          }
+        },
+        "windows": [
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-n",
+              "kern.memorystatus_vm_pressure_level"
+            ],
+            "started": 117152.254954708,
+            "finished": 117152.257401958
+          },
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-b",
+              "vm.swapusage"
+            ],
+            "started": 117152.257444875,
+            "finished": 117152.260831875
+          },
+          {
+            "command": [
+              "/usr/bin/vm_stat"
+            ],
+            "started": 117152.260912958,
+            "finished": 117152.265445458
+          }
+        ],
+        "finished": 117152.265590291,
+        "atomic": false
+      },
+      "post_stop_observation_status": "collected_after_confirmed_empty_group",
+      "admission_system_free_percent": 66,
+      "telemetry_sample_count": 111,
+      "maximum_positive_swap_used_delta_bytes": 0,
+      "failed_telemetry_samples": [],
+      "group_settlement": {
+        "owned_pgid": 29142,
+        "confirmed_empty": true,
+        "signals": [],
+        "operation_failures": [],
+        "observation_errors": [],
+        "resource_refusal": null,
+        "finished": 117152.253561625
+      },
+      "source_binding_status": "unchanged",
+      "observation_helper_path": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/drivers/semaprax_pressure_observation_v3.py",
+      "observation_helper_sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+      "phase_monitor_path": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/drivers/observed_phase.py",
+      "phase_monitor_sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+    }
+  ],
+  "exit_code": 0,
+  "wall_seconds": 533.7952547500026,
+  "executed_test_bodies": 0,
+  "artifact_refusals": [],
+  "artifacts": [
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "lib"
+        ],
+        "crate_types": [
+          "lib"
+        ],
+        "name": "semaprax",
+        "src_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/src/lib.rs",
+        "edition": "2021",
+        "doc": true,
+        "doctest": true,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04",
+      "executable_sha256": "6e8f6bef93669b0994b0430dd7ceabf9484928cf18e5d4e46c90739e0d30e0ce"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "workspace",
+        "src_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/tests/workspace.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/workspace-1d89468226fe8696",
+      "executable_sha256": "de9f4caa2475febd1e00279d4f7b075537af650d3b6938aab346550ba3f01c76"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "cleanup_backends",
+        "src_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/tests/cleanup_backends.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/cleanup_backends-1ec946003b446784",
+      "executable_sha256": "f660507a107257f7dcbb29290ef10e840814a0cef1a291b275f0fd00fe2a1759"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "wasm",
+        "src_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/tests/wasm.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/wasm-78dfcc0a2b5e52d8",
+      "executable_sha256": "df4d95fddbdd090baae674279d3c65287c9bd4b53d4d4c014547df1055472a85"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "hir_module_boundaries",
+        "src_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/tests/hir_module_boundaries.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/hir_module_boundaries-ab357449017f5c5d",
+      "executable_sha256": "2a750d7f7dca77f0764c367bde357a39dcc4d478868705c563d69f4d9a48c653"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "cli_check_routing_v1",
+        "src_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/tests/cli_check_routing_v1.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/cli_check_routing_v1-1cb8e0f9a6c3b94b",
+      "executable_sha256": "e05c5d34dae9e1ca4b6c7f891d6444123f39940e3036985e3e4117fa48a6494c"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "project",
+        "src_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/tests/project.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/project-0b17395c83331332",
+      "executable_sha256": "72abf449e234e1ad5c97ebcb5d8cf72bc2dc39c7d3a908aad724495d0a8343ea"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "owned_data",
+        "src_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/tests/owned_data.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/owned_data-03ea564fa4f76fbf",
+      "executable_sha256": "3f30f7b6574696ac9b3fb42e56722b78228bd7d33df80ab5d44bfdf88aa4d110"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-toolchain#0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "cli_new_project_v1",
+        "src_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-toolchain/tests/cli_new_project_v1.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/cli_new_project_v1-02ab7508ab05de6a",
+      "executable_sha256": "28395411d7847434bddfe214f6875a8facc7f0e9f88f6576e749b315588aac70"
+    }
+  ],
+  "owning_build_metadata_sha256": "957e9470c4f89cd1aaf9742c9cc0d65a9bb8fca9087b96d422385a8bd57ba12e",
+  "log_sha256": "551216dcd82a91f8077f04489152a97307b9ba80f11251abf7338e1c37489544",
+  "node_version": "v24.3.0",
+  "private_target_dir": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012"
+}

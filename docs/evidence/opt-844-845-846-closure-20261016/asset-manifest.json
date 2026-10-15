@@ -1,0 +1,56 @@
+{
+  "source": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+  "published_evidence_commit": "2f03b2a2d50b06e34c8e5a5f1a4b7c4fad2cacda",
+  "closed_issues": [
+    844,
+    845,
+    846
+  ],
+  "assets": [
+    {
+      "path": "ACCEPTANCE.md",
+      "sha256": "57d8141481a32605e265be5639e9dd2f2c6abeff1d314441842fa7eba5a16f71",
+      "bytes": 1809
+    },
+    {
+      "path": "actual-closure-actions.json",
+      "sha256": "ca8fcff2cd5a879c391707b65ce8ce3decd03fa9a91fbdea58b92279e7892887",
+      "bytes": 885
+    },
+    {
+      "path": "issue-844-closure-comment-20261016.md",
+      "sha256": "e4489a950ed8d95899ec24bdf49538fba8c61dd24d86f18414690a2ef6693bdf",
+      "bytes": 1544
+    },
+    {
+      "path": "issue-844-preclosure-20261016.json",
+      "sha256": "a36345fdc80d3c98900300520574e0cb0351578f6d77e010dcc81baa49f1fbf6",
+      "bytes": 3660
+    },
+    {
+      "path": "issue-845-closure-comment-20261016.md",
+      "sha256": "5e49a32cd14a01319f3935683d73a884fa15b91a535fa435f51e9541d4a85cfc",
+      "bytes": 1519
+    },
+    {
+      "path": "issue-845-preclosure-20261016.json",
+      "sha256": "e8848b47f22eff172c51433474ae8b0095cc71237259991cdb0e7c58e7c91491",
+      "bytes": 2877
+    },
+    {
+      "path": "issue-846-closure-comment-20261016.md",
+      "sha256": "dacafa82ab4e84661adc6bcdae8f0fcccd1e715b61bbe7ee23a89525b72abd80",
+      "bytes": 1416
+    },
+    {
+      "path": "issue-846-preclosure-20261016.json",
+      "sha256": "b39f072c39777a68423f0fda504e9dc14abb299d18aeff14285eaa651097e2c7",
+      "bytes": 2054
+    },
+    {
+      "path": "readiness-before-closure.json",
+      "sha256": "94ff308e29a57f5ad6ed1f29337beba24f8e5e9141ab1bb6da5610eef72a5afa",
+      "bytes": 27265
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+
+running 1 test
+test stage_substitution_cannot_receive_writes_or_be_published ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 27 filtered out; finished in 0.56s
+

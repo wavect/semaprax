@@ -1,0 +1,17 @@
+
+running 1 test
+test workspace_graph::generic_type_import::receiving::tests::typed_declaration_complete_old_receivers_actual_callers_and_full_source_inverses_stay_bound ... 
+thread 'workspace_graph::generic_type_import::receiving::tests::typed_declaration_complete_old_receivers_actual_callers_and_full_source_inverses_stay_bound' (7636107) panicked at src/workspace_graph/generic_type_import/receiving/tests.rs:250:9:
+assertion `left == right` failed
+  left: "979326a3b01901b8dcd6e62d0505078c7e13c43885dfc4c13117a637a0eb7163"
+ right: "4a1920f6abdff90036fe9afabe687c091b08a38d4f26a28e2e7c7feb678cbd14"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    workspace_graph::generic_type_import::receiving::tests::typed_declaration_complete_old_receivers_actual_callers_and_full_source_inverses_stay_bound
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.06s
+

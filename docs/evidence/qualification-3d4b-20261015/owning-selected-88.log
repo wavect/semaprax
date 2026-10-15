@@ -1,0 +1,15 @@
+
+running 1 test
+test standard_library::application_json::owned::shiftsim_typed_records::unfactored_schedule_retains_original_source_and_factored_admission ... 
+thread 'standard_library::application_json::owned::shiftsim_typed_records::unfactored_schedule_retains_original_source_and_factored_admission' (7653791) panicked at tests/project/standard_library/application_json/owned/shiftsim_typed_records.rs:144:6:
+factored replay must admit the unchanged original schedule: [Diagnostic { code: "SPX-G171", severity: Error, message: "Workspace Semantic Graph `builder_bytes` exceeds 67108864", path: None, span: None, help: Some("live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast 37255788 bytes for 16 module(s) and fit within 67108864, with `src/order.spx` the largest at 17317720 bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound. resolved-core phase first sticky ledger refusal: requested 461 bytes with 425 remaining and 0 reserved floor. Authenticated internal stage: HIR final validation. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown.") }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    standard_library::application_json::owned::shiftsim_typed_records::unfactored_schedule_retains_original_source_and_factored_admission
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 640 filtered out; finished in 0.80s
+

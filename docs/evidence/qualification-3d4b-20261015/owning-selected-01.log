@@ -1,0 +1,30 @@
+
+running 1 test
+test workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap ... validation-operation-profile profile=catalog-normalizer-compact-original cap=67108864 sources=12
+validation-operation-source profile=catalog-normalizer-compact-original path=dependencies/std.data.json.dec/0.1.0/dec.spx bytes=16547 sha256=b2723fe2e0840029a8157d9a8e5b6e4a5bc0fcfaac70b18369792a8bfddb6d92
+validation-operation-source profile=catalog-normalizer-compact-original path=dependencies/std.data.json.doc/0.1.0/doc.spx bytes=10377 sha256=d2640d528812ddb9faaa2739183cc4ec37fae3dcf07999122efb9f11b735227e
+validation-operation-source profile=catalog-normalizer-compact-original path=dependencies/std.data.json.utf8/0.1.0/utf8.spx bytes=5779 sha256=7e7c199053756c98d42f1ad2dd42d3f64414e2e32b0c173ab89a011e80d4ac3b
+validation-operation-source profile=catalog-normalizer-compact-original path=dependencies/std.data.ndjson/0.1.0/ndjson.spx bytes=4671 sha256=7521af31dc508cb16dbdb16c0b173fd7d69bfb6d2d9343b363f6989b87ec9c94
+validation-operation-source profile=catalog-normalizer-compact-original path=dependencies/std.io.lines/0.1.0/lines.spx bytes=4129 sha256=12be4b613bd80f0aa93ef65b87c3c59a09454918ceea9d3952f48735ad23fd44
+validation-operation-source profile=catalog-normalizer-compact-original path=dependencies/std.io/0.1.0/io.spx bytes=3465 sha256=ad199f1ef1174fb2bd92d7fa0934d99e3b9e52911203919d8679b9f27404d591
+validation-operation-source profile=catalog-normalizer-compact-original path=src/app.spx bytes=36916 sha256=fc0f2066816eaed43134a8f77532d62e67b6e6ac358e365b2fd850e384db881b
+validation-operation-source profile=catalog-normalizer-compact-original path=src/batch.spx bytes=18797 sha256=e21359703e249c98c1fcb7d3bad0e51a22c06afbcd64b894ad13cd3b20e16745
+validation-operation-source profile=catalog-normalizer-compact-original path=src/enrichment.spx bytes=3815 sha256=3fe16e6ca1ca94c0c474af5f47671f11d01145bd565e81d677ba67956f0a6375
+validation-operation-source profile=catalog-normalizer-compact-original path=src/limits.spx bytes=1268 sha256=411c1e25124bb992fdf5cf100560861daa2d7c7e0d785c11cd715746b0b766e9
+validation-operation-source profile=catalog-normalizer-compact-original path=src/record.spx bytes=18580 sha256=80aaebf32d1fa0357bc60f92565ca86eb53759507ddad667cc4d20cf52190c6e
+validation-operation-source profile=catalog-normalizer-compact-original path=src/tests.spx bytes=22631 sha256=2d69842f7ad6423ac14ecd5a12d3414942d4eab2d2e941811ab0364f076f19dd
+validation-operation-receipt profile=catalog-normalizer-compact-original cap=67108864 trace=Some(Trace { owner: 35215789200, operation: None, first_operation_refusal: Some(OperationRefusal { operation: Some(CleanupReplay), requested: 4520, remaining: 226, floor: 0, stage: Some(HirValidation) }), initial: 67108864, consumed: 67108638, prebound: 52578688, layouts: 13680, mode: 6, debits: [22381, 16184, 67381, 260269, 0, 0, 0, 0, 0, 52578688, 304510, 0, 0, 0, 0, 0, 0, 210125, 0, 175020, 165550, 3370948, 0, 0, 0, 89046, 0, 5353650, 1809252, 187568, 147744, 271632, 192116, 328464, 1081920, 476190, 0, 0, 0, 0] })
+
+thread 'workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap' (7617778) panicked at src/workspace_graph/tests/builder_limits.rs:660:13:
+catalog compact core exceeds cap: [Diagnostic { code: "SPX-G171", severity: Error, message: "Workspace Semantic Graph `builder_bytes` exceeds 67108864", path: None, span: None, help: Some("live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast 52578688 bytes for 12 module(s) and fit within 67108864, with `src/app.spx` the largest at 15572716 bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound. resolved-core phase first sticky ledger refusal: requested 4520 bytes with 226 remaining and 0 reserved floor. Authenticated internal stage: HIR final validation. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown.") }]; forecast=Ok((60455772, 60455772)); live debit=67108794, overflow=true, core_ok=false
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+epsilon-app-census owner=catalog-normalizer-compact-original partial_prefix=true eligible_events=1187 ready_child_entry_events=1187 shared_acquired_events=1187 memo_publication_events=1187 counters_overflowed=false cumulative_events_not_unique_frequency=true
+FAILED
+
+failures:
+
+failures:
+    workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.95s
+

@@ -1,0 +1,10 @@
+
+running 1 test
+test cleanup_plan::replay::selected_entry::tests::fact_errors::paid_fact_semantic_receipt_keeps_exact_shared_ids_and_driver_verdicts ... selected driver lexical=false old=(31999543, 404775) current=(31999532, 405583) context_old=(17, 49440) context_current=(17, 49440) blocks_old=(6, 192) blocks_current=(17, 1000) ordinary_832_directory=not_entered_by_selected_budget
+selected driver lexical=false old=(31999543, 404775) current=(31999401, 416663) context_old=(17, 49440) context_current=(148, 60520) blocks_old=(6, 192) blocks_current=(17, 1000) ordinary_832_directory=not_entered_by_selected_budget
+selected driver lexical=true old=(31981365, 1040603) current=(31981291, 1046259) context_old=(1047, 49824) context_current=(1047, 49824) blocks_old=(1675, 32064) blocks_current=(1749, 37720) ordinary_832_directory=not_entered_by_selected_budget
+selected driver lexical=true old=(31981365, 1040603) current=(31980518, 1116443) context_old=(1047, 49824) context_current=(1820, 120008) blocks_old=(1675, 32064) blocks_current=(1749, 37720) ordinary_832_directory=not_entered_by_selected_budget
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.02s
+

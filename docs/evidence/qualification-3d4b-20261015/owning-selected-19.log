@@ -1,0 +1,13 @@
+
+running 1 test
+test cleanup_plan::replay::selected_entry::tests::fact_errors::tree_policy::complete_tree_and_both_arena_policies_keep_full_scalar_corpus_ids_and_verdicts ... selected driver lexical=false old=(31988885, 966132) current=(31988338, 1016252) context_old=(108, 49440) context_current=(644, 98752) blocks_old=(1593, 10432) blocks_current=(1604, 11240) ordinary_832_directory=not_entered_by_selected_budget
+selected driver lexical=false old=(31986234, 1057004) current=(31985602, 1113212) context_old=(1085, 49440) context_current=(1591, 95952) blocks_old=(2296, 31464) blocks_current=(2422, 41160) ordinary_832_directory=not_entered_by_selected_budget
+selected driver lexical=false old=(31994611, 587192) current=(31994244, 620320) context_old=(92, 49440) context_current=(448, 81760) blocks_old=(632, 5024) blocks_current=(643, 5832) ordinary_832_directory=not_entered_by_selected_budget
+selected driver lexical=false old=(31993460, 585308) current=(31993033, 624100) context_old=(110, 49440) context_current=(526, 87424) blocks_old=(349, 3744) blocks_current=(360, 4552) ordinary_832_directory=not_entered_by_selected_budget
+selected driver lexical=false old=(31995509, 487229) current=(31995229, 511061) context_old=(727, 49440) context_current=(933, 67616) blocks_old=(815, 22464) blocks_current=(889, 28120) ordinary_832_directory=not_entered_by_selected_budget
+selected driver lexical=false old=(31996083, 432839) current=(31995803, 456671) context_old=(663, 49440) context_current=(869, 67616) blocks_old=(745, 21664) blocks_current=(819, 27320) ordinary_832_directory=not_entered_by_selected_budget
+selected driver lexical=false old=(31996356, 487140) current=(31996091, 509556) context_old=(540, 49440) context_current=(731, 66200) blocks_old=(614, 22464) blocks_current=(688, 28120) ordinary_832_directory=not_entered_by_selected_budget
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.02s
+

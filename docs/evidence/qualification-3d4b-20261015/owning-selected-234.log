@@ -1,0 +1,11 @@
+
+running 1 test
+test cleanup_plan::replay::factored::canonical_shared::inline_weighted::tests::inline_weighted_real_allocations_debit_peak_and_drop_include_many_header_and_singleton_backing ... inline-weighted width=0 old=2889/Metrics { allocations: 10, reallocations: 0, allocated: 912, freed: 912, live: 0, highwater: 912, invalid: false } current=4049/Metrics { allocations: 10, reallocations: 0, allocated: 912, freed: 912, live: 0, highwater: 912, invalid: false }
+inline-weighted width=1 old=8553/Metrics { allocations: 26, reallocations: 4, allocated: 2640, freed: 2640, live: 0, highwater: 1384, invalid: false } current=9793/Metrics { allocations: 24, reallocations: 4, allocated: 2608, freed: 2608, live: 0, highwater: 1352, invalid: false }
+inline-weighted width=2 old=10585/Metrics { allocations: 29, reallocations: 4, allocated: 2984, freed: 2984, live: 0, highwater: 1472, invalid: false } current=11897/Metrics { allocations: 28, reallocations: 4, allocated: 2968, freed: 2968, live: 0, highwater: 1456, invalid: false }
+inline-weighted width=3 old=12097/Metrics { allocations: 31, reallocations: 5, allocated: 3200, freed: 3200, live: 0, highwater: 1560, invalid: false } current=13305/Metrics { allocations: 30, reallocations: 5, allocated: 3184, freed: 3184, live: 0, highwater: 1544, invalid: false }
+inline-weighted width=4 old=12873/Metrics { allocations: 32, reallocations: 5, allocated: 3288, freed: 3288, live: 0, highwater: 1648, invalid: false } current=13977/Metrics { allocations: 31, reallocations: 5, allocated: 3272, freed: 3272, live: 0, highwater: 1632, invalid: false }
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.01s
+

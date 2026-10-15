@@ -1,0 +1,15 @@
+
+running 1 test
+test graph::tests::explicit_match_modes_select_v21_and_are_distinct_in_graph_and_agent_views ... 
+thread 'graph::tests::explicit_match_modes_select_v21_and_are_distinct_in_graph_and_agent_views' (7700507) panicked at src/graph/tests.rs:185:73:
+called `Result::unwrap()` on an `Err` value: Diagnostic { code: "SPX-H006", severity: Error, message: "resolved record match mode disagrees with its scrutinee", path: None, span: None, help: None }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    graph::tests::explicit_match_modes_select_v21_and_are_distinct_in_graph_and_agent_views
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.06s
+

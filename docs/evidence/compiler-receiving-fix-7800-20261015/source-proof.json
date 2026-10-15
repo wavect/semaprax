@@ -1,0 +1,18 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "basis": "7800b014151b6ce0709c351ccdfd52ae25832e07",
+  "full_repaired_sources": 3,
+  "original_assertion_bodies_edited": 0,
+  "new_rust_selectors": 0,
+  "protected_38_current_to_prior_rows": 38,
+  "protected_held_rows": 26,
+  "all_old_runtime_metadata_archives_and_proofs_unchanged": true,
+  "all_old_projection_current_hashes_and_full_inverses_verified": true,
+  "archive_summary_sha256": "8c4830ea15561a4881549669f479cc394ff50193c3c6ae6b67f44af0b3c64696",
+  "fixed_files": [
+    "src/cleanup_plan/replay/factored/canonical_shared/before_held.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+    "src/source_reflows_merge.rs"
+  ],
+  "runtime_qualification": "PENDING; actual frozen7800 unit compile failed3 errors,7/8build phases passed,0bodies; no RAM interruption"
+}

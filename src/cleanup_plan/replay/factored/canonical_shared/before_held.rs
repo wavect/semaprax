@@ -8,7 +8,7 @@ use super::super::{
 };
 
 
-use super::{app_census, ordered_alias, ordered_weights, successor_targets};
+use super::{app_census, ordered_alias, ordered_weights, successor_targets, tests};
 #[allow(dead_code)]
 #[path = "before_held_memo.rs"]
 pub(super) mod memo;
@@ -76,7 +76,7 @@ fn share_weighted(
 pub(super) struct Canonicalizer<'a> {
     automaton: &'a Automaton,
     sink: usize,
-    closures: memo::RetainedMemo<Rc<ordered_weights::OrderedWeights>>,
+    pub(super) closures: memo::RetainedMemo<Rc<ordered_weights::OrderedWeights>>,
     states: BTreeMap<SharedWeighted, usize>,
     ids: BTreeMap<(u64, Vec<(Label, usize)>), usize>,
     cursor: Vec<(usize, bool)>,

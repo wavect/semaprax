@@ -1,0 +1,288 @@
+{
+  "source_subject": "7800b014151b6ce0709c351ccdfd52ae25832e07",
+  "original_external_round": "/Volumes/Semaprax/lane-prompts/final-7800-230-qualification-20261015",
+  "build_exit": 101,
+  "executed_test_bodies": 0,
+  "successful_phases": 7,
+  "total_phases": 8,
+  "wall_seconds": 637.4451557919965,
+  "actual_compiler_errors": [
+    {
+      "rendered": "error[E0433]: cannot find module or crate `tests` in this scope\n   --> src/cleanup_plan/replay/factored/canonical_shared/before_held.rs:510:9\n    |\n510 |         tests::note_actual_entry(budget);\n    |         ^^^^^ use of unresolved module or unlinked crate `tests`\n    |\nhelp: to make use of source file src/cleanup_plan/replay/factored/canonical_shared/tests.rs, use `mod tests` in this file to declare the module\n   --> src/lib.rs:14:1\n    |\n 14 + mod tests;\n    |\nhelp: consider importing this module\n    |\n  5 + use crate::cleanup_plan::replay::factored::canonical_shared::tests;\n    |\n\n",
+      "$message_type": "diagnostic",
+      "children": [
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "to make use of source file src/cleanup_plan/replay/factored/canonical_shared/tests.rs, use `mod tests` in this file to declare the module",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 613,
+              "byte_start": 613,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/lib.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 14,
+              "line_start": 14,
+              "suggested_replacement": "mod tests;\n",
+              "suggestion_applicability": "MaybeIncorrect",
+              "text": [
+                {
+                  "highlight_end": 1,
+                  "highlight_start": 1,
+                  "text": "extern crate self as semaprax;"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "consider importing this module",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 313,
+              "byte_start": 313,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/cleanup_plan/replay/factored/canonical_shared/before_held.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 5,
+              "line_start": 5,
+              "suggested_replacement": "use crate::cleanup_plan::replay::factored::canonical_shared::tests;\n",
+              "suggestion_applicability": "MaybeIncorrect",
+              "text": [
+                {
+                  "highlight_end": 1,
+                  "highlight_start": 1,
+                  "text": "use super::super::{"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "level": "error",
+      "message": "cannot find module or crate `tests` in this scope",
+      "spans": [
+        {
+          "byte_end": 22147,
+          "byte_start": 22142,
+          "column_end": 14,
+          "column_start": 9,
+          "expansion": null,
+          "file_name": "src/cleanup_plan/replay/factored/canonical_shared/before_held.rs",
+          "is_primary": true,
+          "label": "use of unresolved module or unlinked crate `tests`",
+          "line_end": 510,
+          "line_start": 510,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 14,
+              "highlight_start": 9,
+              "text": "        tests::note_actual_entry(budget);"
+            }
+          ]
+        }
+      ],
+      "code": {
+        "code": "E0433",
+        "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+      }
+    },
+    {
+      "rendered": "error[E0433]: cannot find `tests` in `super`\n   --> src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs:413:43\n    |\n413 |     let (automaton, sink, roots) = super::tests::automaton(&function);\n    |                                           ^^^^^ could not find `tests` in `super`\n    |\nnote: these modules exist but are inaccessible\n   --> src/cleanup_plan/replay/factored/borrowed_canonical.rs:295:1\n    |\n295 | mod tests;\n    | ^^^^^^^^^^ `crate::cleanup_plan::replay::factored::borrowed_canonical::tests`: not accessible\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared/memo.rs:159:1\n    |\n159 | mod tests;\n    | ^^^^^^^^^^ `crate::cleanup_plan::replay::factored::canonical_shared::memo::tests`: not accessible\nhelp: consider importing this module\n    |\n405 + use crate::cleanup_plan::replay::factored::canonical_shared::tests;\n    |\nhelp: if you import `tests`, refer to it directly\n    |\n413 -     let (automaton, sink, roots) = super::tests::automaton(&function);\n413 +     let (automaton, sink, roots) = tests::automaton(&function);\n    |\n\n",
+      "$message_type": "diagnostic",
+      "children": [
+        {
+          "children": [],
+          "code": null,
+          "level": "note",
+          "message": "these modules exist but are inaccessible",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 11893,
+              "byte_start": 11883,
+              "column_end": 11,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/cleanup_plan/replay/factored/borrowed_canonical.rs",
+              "is_primary": true,
+              "label": "`crate::cleanup_plan::replay::factored::borrowed_canonical::tests`: not accessible",
+              "line_end": 295,
+              "line_start": 295,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": [
+                {
+                  "highlight_end": 11,
+                  "highlight_start": 1,
+                  "text": "mod tests;"
+                }
+              ]
+            },
+            {
+              "byte_end": 5624,
+              "byte_start": 5614,
+              "column_end": 11,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/cleanup_plan/replay/factored/canonical_shared/memo.rs",
+              "is_primary": true,
+              "label": "`crate::cleanup_plan::replay::factored::canonical_shared::memo::tests`: not accessible",
+              "line_end": 159,
+              "line_start": 159,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": [
+                {
+                  "highlight_end": 11,
+                  "highlight_start": 1,
+                  "text": "mod tests;"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "consider importing this module",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 17979,
+              "byte_start": 17979,
+              "column_end": 1,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 405,
+              "line_start": 405,
+              "suggested_replacement": "use crate::cleanup_plan::replay::factored::canonical_shared::tests;\n",
+              "suggestion_applicability": "MaybeIncorrect",
+              "text": [
+                {
+                  "highlight_end": 1,
+                  "highlight_start": 1,
+                  "text": "use super::*;"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "if you import `tests`, refer to it directly",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 18338,
+              "byte_start": 18331,
+              "column_end": 43,
+              "column_start": 36,
+              "expansion": null,
+              "file_name": "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 413,
+              "line_start": 413,
+              "suggested_replacement": "",
+              "suggestion_applicability": "Unspecified",
+              "text": [
+                {
+                  "highlight_end": 43,
+                  "highlight_start": 36,
+                  "text": "    let (automaton, sink, roots) = super::tests::automaton(&function);"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "level": "error",
+      "message": "cannot find `tests` in `super`",
+      "spans": [
+        {
+          "byte_end": 18343,
+          "byte_start": 18338,
+          "column_end": 48,
+          "column_start": 43,
+          "expansion": null,
+          "file_name": "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+          "is_primary": true,
+          "label": "could not find `tests` in `super`",
+          "line_end": 413,
+          "line_start": 413,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 48,
+              "highlight_start": 43,
+              "text": "    let (automaton, sink, roots) = super::tests::automaton(&function);"
+            }
+          ]
+        }
+      ],
+      "code": {
+        "code": "E0433",
+        "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+      }
+    },
+    {
+      "rendered": "error[E0616]: field `closures` of struct `cleanup_plan::replay::factored::canonical_shared::before_held::Canonicalizer` is private\n   --> src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs:437:33\n    |\n437 |                 assert!(current.closures.failed());\n    |                                 ^^^^^^^^ private field\n\n",
+      "$message_type": "diagnostic",
+      "children": [],
+      "level": "error",
+      "message": "field `closures` of struct `cleanup_plan::replay::factored::canonical_shared::before_held::Canonicalizer` is private",
+      "spans": [
+        {
+          "byte_end": 19620,
+          "byte_start": 19612,
+          "column_end": 41,
+          "column_start": 33,
+          "expansion": null,
+          "file_name": "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+          "is_primary": true,
+          "label": "private field",
+          "line_end": 437,
+          "line_start": 437,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 41,
+              "highlight_start": 33,
+              "text": "                assert!(current.closures.failed());"
+            }
+          ]
+        }
+      ],
+      "code": {
+        "code": "E0616",
+        "explanation": "Attempted to access a private field on a struct.\n\nErroneous code example:\n\n```compile_fail,E0616\nmod some_module {\n    pub struct Foo {\n        x: u32, // So `x` is private in here.\n    }\n\n    impl Foo {\n        pub fn new() -> Foo { Foo { x: 0 } }\n    }\n}\n\nlet f = some_module::Foo::new();\nprintln!(\"{}\", f.x); // error: field `x` of struct `some_module::Foo` is private\n```\n\nIf you want to access this field, you have two options:\n\n1) Set the field public:\n\n```\nmod some_module {\n    pub struct Foo {\n        pub x: u32, // `x` is now public.\n    }\n\n    impl Foo {\n        pub fn new() -> Foo { Foo { x: 0 } }\n    }\n}\n\nlet f = some_module::Foo::new();\nprintln!(\"{}\", f.x); // ok!\n```\n\n2) Add a getter function:\n\n```\nmod some_module {\n    pub struct Foo {\n        x: u32, // So `x` is still private in here.\n    }\n\n    impl Foo {\n        pub fn new() -> Foo { Foo { x: 0 } }\n\n        // We create the getter function here:\n        pub fn get_x(&self) -> &u32 { &self.x }\n    }\n}\n\nlet f = some_module::Foo::new();\nprintln!(\"{}\", f.get_x()); // ok!\n```\n"
+      }
+    }
+  ],
+  "guardian_interrupted": false,
+  "note": "Production and all non-core-lib owning artifacts compiled. Last core lib unit harness failed with three test-only scope/privacy errors; no runtime acceptance inferred. Original full logs and drivers preserved; regeneratable Python caches excluded."
+}

@@ -1,0 +1,10 @@
+{
+  "docs/evidence/compiler-receiving-fix-7800-20261015/src__cleanup_plan__replay__factored__canonical_shared__before_held.rs.before.txt": "04819529038ac64c12046a7d88ceb65a81ba603f1ea448036b043f56032e1508",
+  "docs/evidence/compiler-receiving-fix-7800-20261015/current-to-7800.full.patch.gz": "1750e2e5f550bf4a2e1291fd4b6b9225e90a53882adddd16c88677320b25b4cb",
+  "docs/evidence/compiler-receiving-fix-7800-20261015/predecessor-projections.json": "2b22adba85fe3d3d95f08117fa6a7fe0969eca213d2a166111934d468479d527",
+  "docs/evidence/compiler-receiving-fix-7800-20261015/README.md": "2b22fded858bb0be12b5ccfd35748614a40e619b9c30c46afd82f9aa15cfa3ff",
+  "docs/evidence/compiler-receiving-fix-7800-20261015/src__cleanup_plan__replay__factored__canonical_shared__scratch_tests.rs.before.txt": "c14eed7c27913cdfec7ff0ccd94b82ecf851f9e5ab64fc6356bcbcd346094a97",
+  "docs/evidence/compiler-receiving-fix-7800-20261015/src__source_reflows_merge.rs.before.txt": "6bae60108596fc7b458c8508ae416a4ad2a535273740711aeea4677b429c5aac",
+  "docs/evidence/compiler-receiving-fix-7800-20261015/source-proof.json": "b8e5eb8ee261fff8b01800d15ad2bf51b75ab593993ec341e292e7aa1168784a",
+  "docs/evidence/compiler-receiving-fix-7800-20261015/verify.py": "733a1543348c67091730c6de382098b16d1ac3db4c1a54efde1de1d1886504d8"
+}

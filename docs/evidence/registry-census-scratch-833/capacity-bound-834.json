@@ -1,0 +1,10 @@
+{
+  "owning_commit": "b36501d32dd5199dd2ce3a7d45a39484dc9c048c",
+  "integrated_current_observed": "cb7aeb1",
+  "source": "src/workspace_graph/expected_projection/private_layout.rs",
+  "source_sha256": "352f21121745b0e902aeace72eb3e338a11ddf36ab16fe90ea5c5cc7bf6e9dd4",
+  "archive": "original/private_layout-834.rs",
+  "exact_added_line": "        let capacity = capacity.min(count);",
+  "applies_to": "new derive_with_scratch only; independent old940 derive_with_work unchanged",
+  "qualification": "Source incorporation only; no new or inherited execution claim"
+}

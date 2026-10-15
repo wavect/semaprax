@@ -1,0 +1,981 @@
+{
+  "basis": "940fcf220e47d1975f757e76f0b3401691db9358",
+  "status": "SOURCE_AUTHORED_UNEXECUTED_NO_RUST",
+  "parser_sha256": "8774afeeb957dabcde7eee44a29c1a91aec2572d7740413a0dbebf473ec7da6f",
+  "new": 7,
+  "required_existing": 11,
+  "checks": [
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::distinct_census_callers_keep_complete_old_layouts_and_reset_paid_scratch",
+      "source": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+      "source_sha256": "ba6c1913332dd3c33f921cd334807f926e51c344a90472dcd576703d84b44d05",
+      "source_binding": {
+        "source_path": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+        "line": 33,
+        "name": "distinct_census_callers_keep_complete_old_layouts_and_reset_paid_scratch",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 528,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 20,
+            "module": "expected_projection",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection.rs",
+            "line": 69,
+            "module": "private_layout",
+            "attributes": [
+              "#[path = \"expected_projection/private_layout.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout.rs",
+            "line": 14,
+            "module": "registry",
+            "attributes": [
+              "#[path = \"private_layout/registry.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout/registry.rs",
+            "line": 252,
+            "module": "scratch_tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"registry/scratch_tests.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "ba6c1913332dd3c33f921cd334807f926e51c344a90472dcd576703d84b44d05",
+        "ignored": false
+      },
+      "role": "new",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::census_scratch_release_retains_receipt_and_late_cold_caller_reacquires",
+      "source": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+      "source_sha256": "ba6c1913332dd3c33f921cd334807f926e51c344a90472dcd576703d84b44d05",
+      "source_binding": {
+        "source_path": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+        "line": 97,
+        "name": "census_scratch_release_retains_receipt_and_late_cold_caller_reacquires",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 528,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 20,
+            "module": "expected_projection",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection.rs",
+            "line": 69,
+            "module": "private_layout",
+            "attributes": [
+              "#[path = \"expected_projection/private_layout.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout.rs",
+            "line": 14,
+            "module": "registry",
+            "attributes": [
+              "#[path = \"private_layout/registry.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout/registry.rs",
+            "line": 252,
+            "module": "scratch_tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"registry/scratch_tests.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "ba6c1913332dd3c33f921cd334807f926e51c344a90472dcd576703d84b44d05",
+        "ignored": false
+      },
+      "role": "new",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::complete_old_and_reused_census_keep_malformed_diagnostics_and_poisoned_drop",
+      "source": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+      "source_sha256": "ba6c1913332dd3c33f921cd334807f926e51c344a90472dcd576703d84b44d05",
+      "source_binding": {
+        "source_path": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+        "line": 129,
+        "name": "complete_old_and_reused_census_keep_malformed_diagnostics_and_poisoned_drop",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 528,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 20,
+            "module": "expected_projection",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection.rs",
+            "line": 69,
+            "module": "private_layout",
+            "attributes": [
+              "#[path = \"expected_projection/private_layout.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout.rs",
+            "line": 14,
+            "module": "registry",
+            "attributes": [
+              "#[path = \"private_layout/registry.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout/registry.rs",
+            "line": 252,
+            "module": "scratch_tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"registry/scratch_tests.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "ba6c1913332dd3c33f921cd334807f926e51c344a90472dcd576703d84b44d05",
+        "ignored": false
+      },
+      "role": "new",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::census_registry_exact_short_zero_work_and_byte_limits_keep_sticky_refusal",
+      "source": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+      "source_sha256": "ba6c1913332dd3c33f921cd334807f926e51c344a90472dcd576703d84b44d05",
+      "source_binding": {
+        "source_path": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+        "line": 155,
+        "name": "census_registry_exact_short_zero_work_and_byte_limits_keep_sticky_refusal",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 528,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 20,
+            "module": "expected_projection",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection.rs",
+            "line": 69,
+            "module": "private_layout",
+            "attributes": [
+              "#[path = \"expected_projection/private_layout.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout.rs",
+            "line": 14,
+            "module": "registry",
+            "attributes": [
+              "#[path = \"private_layout/registry.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout/registry.rs",
+            "line": 252,
+            "module": "scratch_tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"registry/scratch_tests.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "ba6c1913332dd3c33f921cd334807f926e51c344a90472dcd576703d84b44d05",
+        "ignored": false
+      },
+      "role": "new",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::census_scratch_preserves_nested_floors_foreign_and_restored_owner_refusal",
+      "source": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+      "source_sha256": "ba6c1913332dd3c33f921cd334807f926e51c344a90472dcd576703d84b44d05",
+      "source_binding": {
+        "source_path": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+        "line": 193,
+        "name": "census_scratch_preserves_nested_floors_foreign_and_restored_owner_refusal",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 528,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 20,
+            "module": "expected_projection",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection.rs",
+            "line": 69,
+            "module": "private_layout",
+            "attributes": [
+              "#[path = \"expected_projection/private_layout.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout.rs",
+            "line": 14,
+            "module": "registry",
+            "attributes": [
+              "#[path = \"private_layout/registry.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout/registry.rs",
+            "line": 252,
+            "module": "scratch_tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"registry/scratch_tests.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "ba6c1913332dd3c33f921cd334807f926e51c344a90472dcd576703d84b44d05",
+        "ignored": false
+      },
+      "role": "new",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::distinct_census_registry_observes_actual_allocated_reserved_peak_and_complete_drop",
+      "source": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+      "source_sha256": "ba6c1913332dd3c33f921cd334807f926e51c344a90472dcd576703d84b44d05",
+      "source_binding": {
+        "source_path": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+        "line": 258,
+        "name": "distinct_census_registry_observes_actual_allocated_reserved_peak_and_complete_drop",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 528,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 20,
+            "module": "expected_projection",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection.rs",
+            "line": 69,
+            "module": "private_layout",
+            "attributes": [
+              "#[path = \"expected_projection/private_layout.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout.rs",
+            "line": 14,
+            "module": "registry",
+            "attributes": [
+              "#[path = \"private_layout/registry.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout/registry.rs",
+            "line": 252,
+            "module": "scratch_tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"registry/scratch_tests.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "ba6c1913332dd3c33f921cd334807f926e51c344a90472dcd576703d84b44d05",
+        "ignored": false
+      },
+      "role": "new",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::complete_old_registry_census_derivation_and_current_scratch_sources_remain_bound",
+      "source": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+      "source_sha256": "ba6c1913332dd3c33f921cd334807f926e51c344a90472dcd576703d84b44d05",
+      "source_binding": {
+        "source_path": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+        "line": 325,
+        "name": "complete_old_registry_census_derivation_and_current_scratch_sources_remain_bound",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 528,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 20,
+            "module": "expected_projection",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection.rs",
+            "line": 69,
+            "module": "private_layout",
+            "attributes": [
+              "#[path = \"expected_projection/private_layout.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout.rs",
+            "line": 14,
+            "module": "registry",
+            "attributes": [
+              "#[path = \"private_layout/registry.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout/registry.rs",
+            "line": 252,
+            "module": "scratch_tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"registry/scratch_tests.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "ba6c1913332dd3c33f921cd334807f926e51c344a90472dcd576703d84b44d05",
+        "ignored": false
+      },
+      "role": "new",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::tests::invocation_reuses_exact_closure_across_import_forecasts_stubs_and_retry_modes",
+      "source": "src/workspace_graph/expected_projection/private_layout/registry/tests.rs",
+      "source_sha256": "4c48bb7dbd4c6cebdffc15de7bfafcdf0121cb8bca2928a80bfc30a34d10e1be",
+      "source_binding": {
+        "source_path": "src/workspace_graph/expected_projection/private_layout/registry/tests.rs",
+        "line": 15,
+        "name": "invocation_reuses_exact_closure_across_import_forecasts_stubs_and_retry_modes",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 528,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 20,
+            "module": "expected_projection",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection.rs",
+            "line": 69,
+            "module": "private_layout",
+            "attributes": [
+              "#[path = \"expected_projection/private_layout.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout.rs",
+            "line": 14,
+            "module": "registry",
+            "attributes": [
+              "#[path = \"private_layout/registry.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout/registry.rs",
+            "line": 231,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"registry/tests.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "4c48bb7dbd4c6cebdffc15de7bfafcdf0121cb8bca2928a80bfc30a34d10e1be",
+        "ignored": false
+      },
+      "role": "required_existing",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::tests::preparation_has_exact_one_short_overlap_and_sticky_context_refusal",
+      "source": "src/workspace_graph/expected_projection/private_layout/registry/tests.rs",
+      "source_sha256": "4c48bb7dbd4c6cebdffc15de7bfafcdf0121cb8bca2928a80bfc30a34d10e1be",
+      "source_binding": {
+        "source_path": "src/workspace_graph/expected_projection/private_layout/registry/tests.rs",
+        "line": 148,
+        "name": "preparation_has_exact_one_short_overlap_and_sticky_context_refusal",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 528,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 20,
+            "module": "expected_projection",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection.rs",
+            "line": 69,
+            "module": "private_layout",
+            "attributes": [
+              "#[path = \"expected_projection/private_layout.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout.rs",
+            "line": 14,
+            "module": "registry",
+            "attributes": [
+              "#[path = \"private_layout/registry.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout/registry.rs",
+            "line": 231,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"registry/tests.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "4c48bb7dbd4c6cebdffc15de7bfafcdf0121cb8bca2928a80bfc30a34d10e1be",
+        "ignored": false
+      },
+      "role": "required_existing",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::tests::fallible_sort_matches_independent_order_and_stops_at_exact_work_boundary",
+      "source": "src/workspace_graph/expected_projection/private_layout/registry/tests.rs",
+      "source_sha256": "4c48bb7dbd4c6cebdffc15de7bfafcdf0121cb8bca2928a80bfc30a34d10e1be",
+      "source_binding": {
+        "source_path": "src/workspace_graph/expected_projection/private_layout/registry/tests.rs",
+        "line": 232,
+        "name": "fallible_sort_matches_independent_order_and_stops_at_exact_work_boundary",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 528,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 20,
+            "module": "expected_projection",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection.rs",
+            "line": 69,
+            "module": "private_layout",
+            "attributes": [
+              "#[path = \"expected_projection/private_layout.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout.rs",
+            "line": 14,
+            "module": "registry",
+            "attributes": [
+              "#[path = \"private_layout/registry.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout/registry.rs",
+            "line": 231,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"registry/tests.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "4c48bb7dbd4c6cebdffc15de7bfafcdf0121cb8bca2928a80bfc30a34d10e1be",
+        "ignored": false
+      },
+      "role": "required_existing",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::tests::two_callers_share_one_derivation_query_ledger_and_sticky_refusal",
+      "source": "src/workspace_graph/expected_projection/private_layout/registry/tests.rs",
+      "source_sha256": "4c48bb7dbd4c6cebdffc15de7bfafcdf0121cb8bca2928a80bfc30a34d10e1be",
+      "source_binding": {
+        "source_path": "src/workspace_graph/expected_projection/private_layout/registry/tests.rs",
+        "line": 270,
+        "name": "two_callers_share_one_derivation_query_ledger_and_sticky_refusal",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 528,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 20,
+            "module": "expected_projection",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection.rs",
+            "line": 69,
+            "module": "private_layout",
+            "attributes": [
+              "#[path = \"expected_projection/private_layout.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout.rs",
+            "line": 14,
+            "module": "registry",
+            "attributes": [
+              "#[path = \"private_layout/registry.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout/registry.rs",
+            "line": 231,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"registry/tests.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "4c48bb7dbd4c6cebdffc15de7bfafcdf0121cb8bca2928a80bfc30a34d10e1be",
+        "ignored": false
+      },
+      "role": "required_existing",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::tests::held_presentation_borrows_without_allocation_and_pays_shared_work",
+      "source": "src/workspace_graph/expected_projection/private_layout/registry/tests.rs",
+      "source_sha256": "4c48bb7dbd4c6cebdffc15de7bfafcdf0121cb8bca2928a80bfc30a34d10e1be",
+      "source_binding": {
+        "source_path": "src/workspace_graph/expected_projection/private_layout/registry/tests.rs",
+        "line": 324,
+        "name": "held_presentation_borrows_without_allocation_and_pays_shared_work",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 528,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 20,
+            "module": "expected_projection",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection.rs",
+            "line": 69,
+            "module": "private_layout",
+            "attributes": [
+              "#[path = \"expected_projection/private_layout.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout.rs",
+            "line": 14,
+            "module": "registry",
+            "attributes": [
+              "#[path = \"private_layout/registry.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout/registry.rs",
+            "line": 231,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"registry/tests.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "4c48bb7dbd4c6cebdffc15de7bfafcdf0121cb8bca2928a80bfc30a34d10e1be",
+        "ignored": false
+      },
+      "role": "required_existing",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::tests::held_presentation_work_is_exact_one_short_and_sticky",
+      "source": "src/workspace_graph/expected_projection/private_layout/registry/tests.rs",
+      "source_sha256": "4c48bb7dbd4c6cebdffc15de7bfafcdf0121cb8bca2928a80bfc30a34d10e1be",
+      "source_binding": {
+        "source_path": "src/workspace_graph/expected_projection/private_layout/registry/tests.rs",
+        "line": 395,
+        "name": "held_presentation_work_is_exact_one_short_and_sticky",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 528,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 20,
+            "module": "expected_projection",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection.rs",
+            "line": 69,
+            "module": "private_layout",
+            "attributes": [
+              "#[path = \"expected_projection/private_layout.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout.rs",
+            "line": 14,
+            "module": "registry",
+            "attributes": [
+              "#[path = \"private_layout/registry.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/expected_projection/private_layout/registry.rs",
+            "line": 231,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"registry/tests.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "4c48bb7dbd4c6cebdffc15de7bfafcdf0121cb8bca2928a80bfc30a34d10e1be",
+        "ignored": false
+      },
+      "role": "required_existing",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "test:workspace",
+      "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+      "source": "tests/workspace/semantic_graph.rs",
+      "source_sha256": "4af44d68c4988c4b042a6e7b08ad5aa6f6e6f726953c0858a9e4e65ca35b497a",
+      "source_binding": {
+        "source_path": "tests/workspace/semantic_graph.rs",
+        "line": 358,
+        "name": "expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "tests/workspace.rs",
+            "line": 68,
+            "module": "semantic_graph",
+            "attributes": [
+              "#[path = \"workspace/semantic_graph.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "4af44d68c4988c4b042a6e7b08ad5aa6f6e6f726953c0858a9e4e65ca35b497a",
+        "ignored": false
+      },
+      "role": "required_existing",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::tests::builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal",
+      "source": "src/workspace_graph/tests/builder_limits.rs",
+      "source_sha256": "dcb1f36c6bf33987050042c7161ce95926079804b0d71f356104daf27f84903f",
+      "source_binding": {
+        "source_path": "src/workspace_graph/tests/builder_limits.rs",
+        "line": 376,
+        "name": "identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 528,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 5972,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"workspace_graph/tests.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/tests.rs",
+            "line": 7,
+            "module": "builder_limits",
+            "attributes": [
+              "#[path = \"tests/builder_limits.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "dcb1f36c6bf33987050042c7161ce95926079804b0d71f356104daf27f84903f",
+        "ignored": false
+      },
+      "role": "required_existing",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+      "source": "src/workspace_graph/tests/builder_limits.rs",
+      "source_sha256": "dcb1f36c6bf33987050042c7161ce95926079804b0d71f356104daf27f84903f",
+      "source_binding": {
+        "source_path": "src/workspace_graph/tests/builder_limits.rs",
+        "line": 540,
+        "name": "catalog_normalizer_compact_core_fits_production_builder_cap",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 528,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 5972,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"workspace_graph/tests.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/tests.rs",
+            "line": 7,
+            "module": "builder_limits",
+            "attributes": [
+              "#[path = \"tests/builder_limits.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "dcb1f36c6bf33987050042c7161ce95926079804b0d71f356104daf27f84903f",
+        "ignored": false
+      },
+      "role": "required_existing",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "project::incremental::cold_source_tests::explicit_owner_siblings_match_legacy_selective_routes_and_body_reuse",
+      "source": "src/project/incremental/cold_source_tests.rs",
+      "source_sha256": "bb064e63b57815d599c447c4a03a981670fd394e390e4af25a9e2966b74e4c9f",
+      "source_binding": {
+        "source_path": "src/project/incremental/cold_source_tests.rs",
+        "line": 165,
+        "name": "explicit_owner_siblings_match_legacy_selective_routes_and_body_reuse",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 342,
+            "module": "project",
+            "attributes": [
+              "#[allow(\n    dead_code,\n    unused_imports,\n    unused_mut,\n    clippy::collapsible_if,\n    clippy::manual_is_multiple_of,\n    clippy::needless_lifetimes,\n    clippy::needless_question_mark,\n    clippy::question_mark,\n    clippy::redundant_closure,\n    clippy::redundant_iter_cloned,\n    clippy::too_many_arguments,\n    clippy::type_complexity,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+            ]
+          },
+          {
+            "source_path": "src/project/mod.rs",
+            "line": 63,
+            "module": "incremental",
+            "attributes": []
+          },
+          {
+            "source_path": "src/project/incremental.rs",
+            "line": 944,
+            "module": "cold_source_tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"incremental/cold_source_tests.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "bb064e63b57815d599c447c4a03a981670fd394e390e4af25a9e2966b74e4c9f",
+        "ignored": false
+      },
+      "role": "required_existing",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "project::incremental::checked_hir::tests::lifecycle::actual_cold_warm_cache_core_and_publication_match_owned_receiver_through_drop",
+      "source": "src/project/incremental/checked_hir/tests/lifecycle.rs",
+      "source_sha256": "b3610b51d4281bb07bd9125a0565a9a97f098697e8b5d66e8b7a1d2d9f35e065",
+      "source_binding": {
+        "source_path": "src/project/incremental/checked_hir/tests/lifecycle.rs",
+        "line": 83,
+        "name": "actual_cold_warm_cache_core_and_publication_match_owned_receiver_through_drop",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 342,
+            "module": "project",
+            "attributes": [
+              "#[allow(\n    dead_code,\n    unused_imports,\n    unused_mut,\n    clippy::collapsible_if,\n    clippy::manual_is_multiple_of,\n    clippy::needless_lifetimes,\n    clippy::needless_question_mark,\n    clippy::question_mark,\n    clippy::redundant_closure,\n    clippy::redundant_iter_cloned,\n    clippy::too_many_arguments,\n    clippy::type_complexity,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+            ]
+          },
+          {
+            "source_path": "src/project/mod.rs",
+            "line": 63,
+            "module": "incremental",
+            "attributes": []
+          },
+          {
+            "source_path": "src/project/incremental.rs",
+            "line": 40,
+            "module": "checked_hir",
+            "attributes": []
+          },
+          {
+            "source_path": "src/project/incremental/checked_hir.rs",
+            "line": 57,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          },
+          {
+            "source_path": "src/project/incremental/checked_hir/tests.rs",
+            "line": 84,
+            "module": "lifecycle",
+            "attributes": [
+              "#[path = \"tests/lifecycle.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "b3610b51d4281bb07bd9125a0565a9a97f098697e8b5d66e8b7a1d2d9f35e065",
+        "ignored": false
+      },
+      "role": "required_existing",
+      "status": "SOURCE_AUTHORED_UNEXECUTED"
+    }
+  ]
+}

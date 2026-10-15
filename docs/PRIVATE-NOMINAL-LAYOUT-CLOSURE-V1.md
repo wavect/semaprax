@@ -179,6 +179,41 @@ before allocation. Its monotonic receipt is carried into every core attempt and
 retention forecast, including retained overlap. The no-inference route creates
 no registry backing. There is no global cache or serialized validation lease.
 
+Source-authored #833 additionally retains only the identifier census's three
+capacity-513 traversal vectors in that same authenticated registry. The enlarged
+registry header is included in its existing first-preparation prepayment. Each
+vector is acquired at the old census point after unsupported-surface checks.
+Each later child preparation reserves the complete original census backing
+again at that same frontier before borrowing retained vectors: the numeric
+receipt and shared semantic work ledger grant no physical budget authority.
+This is allocation reuse only, with no reservation-saving claim;
+existing census work and both layout traversals remain unchanged. The new
+scratch derivation also retains #834's `min(count, total_workspace_types)` entry
+bound after the same checked total-type fold; the complete old940 derivation
+remains byte exact as an independent oracle. Each census
+adds one paid selection operation and five paid successful reset operations to
+the invocation ledger, plus one prepaid teardown operation for each acquired
+buffer generation. Successful walks clear references and reset the private
+census counters before a distinct caller can reuse backing. Any failed query
+poisons the invocation and drops retained scratch. Every core attempt releases
+preparation scratch after its last compact forecast and before acquiring the
+core owner; the monotonic receipt is unchanged. An unexpected later cold caller
+honestly reacquires backing and adds its ordinary preparation receipt. Held hits
+acquire nothing. There is no budget donation, refund, scope fusion, global/TLS
+scratch authority, lifetime cast or changed limit. Layout traversal frames and
+ownership-index facts/frames remain per derivation; this is partial reuse.
+
+The complete old registry, old derivation and old identifier census remain
+independently executable. The seven `registry::scratch_tests::` definitions
+cover distinct/interleaved callers, held hits, successful counter reset,
+release/reacquisition, malformed full diagnostics, exact/short/zero limits,
+sticky failures, restored/foreign owners and nested floors. Paired allocator
+observations include complete registry Drop and report actual reservation,
+allocation/reallocation bytes and peak. They are source-authored and unexecuted
+at this checkpoint. Neither physical savings nor an application gain is yet
+established; retained preparation overlap and the larger registry header must be
+included in actual qualification.
+
 Entry, nominal-fact and signature-site ordering uses allocation-free fallible
 heapsort. Identity-byte comparisons and swaps debit the same remaining work
 before execution; refusal never publishes an incomplete directory. The four

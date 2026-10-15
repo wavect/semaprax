@@ -78,6 +78,8 @@ macro_rules! semantic_graph_private_layout_source_inventory {
 concat!(
         include_str!("../../src/workspace_graph/expected_projection/private_layout.rs"),
         include_str!("../../src/workspace_graph/expected_projection/private_layout/registry.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/before_registry.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs"),
         include_str!("../../src/workspace_graph/expected_projection/private_layout/sorting.rs"),
         include_str!("../../src/workspace_graph/expected_projection/private_layout/ledger.rs"),
         include_str!(

@@ -1,0 +1,190 @@
+{
+  "kind": "source-only immutable incoming evidence; execution pending",
+  "files": [
+    {
+      "path": "starter-original/immediate-base-full-source.json",
+      "sha256": "a32e31175e0c57b553440544f69fbf95a4c87b619e67972becc7df61b072742b",
+      "bytes": 5133
+    },
+    {
+      "path": "starter-original/immediate-source-inverse.patch",
+      "sha256": "7e2403cf2a313ffb1510e18a8fa7fa25fff8b17560e2f07bba20076f077f6915",
+      "bytes": 133004
+    },
+    {
+      "path": "starter-original/old-source/CHANGELOG.md",
+      "sha256": "777bd77d18db21c994911f3a25ecf1015b218e5b7587704966c6802b6d8dd099",
+      "bytes": 522396
+    },
+    {
+      "path": "starter-original/old-source/crates/semaprax-native-rust-interop-platform/src/lib.rs",
+      "sha256": "852648e5ac452100cfc327785836d20e80987986658175e18794960025a6ce4f",
+      "bytes": 48034
+    },
+    {
+      "path": "starter-original/old-source/crates/semaprax-native-rust-owned-data-package/src/project_publication.rs",
+      "sha256": "9b683265e28e5aac6673d51ec2e6c94eca2f2f1d0db0f3f121ede0d545e1fb2f",
+      "bytes": 33712
+    },
+    {
+      "path": "starter-original/old-source/crates/semaprax-toolchain/src/new_project.rs",
+      "sha256": "1a968edb1d7baf2d534930007be0f7a85670261d2b0c2259bac783a008ffa3c8",
+      "bytes": 16338
+    },
+    {
+      "path": "starter-original/old-source/crates/semaprax-toolchain/tests/cli_new_project_v1.rs",
+      "sha256": "656655aec846eaaf937dab5f95c7ef353a989bc909c678ac3f6f4895b9828d3b",
+      "bytes": 23210
+    },
+    {
+      "path": "starter-original/old-source/docs/ARCHITECTURE.md",
+      "sha256": "26fe70363f020937a2d0705399112313d0771043d66c197b83dc773ebada1634",
+      "bytes": 351561
+    },
+    {
+      "path": "starter-original/old-source/docs/COMPLETION-MATRIX.md",
+      "sha256": "71e418c108b81ca36b70ed5b39ba1be0b036bde0a9fe3912931dc012b3266e79",
+      "bytes": 144030
+    },
+    {
+      "path": "starter-original/old-source/docs/DEVELOPMENT.md",
+      "sha256": "b6dc82c7124c3d2c5692de7b55f429f00d93d962cd2cbe662604a7759a8b0de5",
+      "bytes": 29793
+    },
+    {
+      "path": "starter-original/old-source/src/cli/execution.rs",
+      "sha256": "d9206335509ed1c7247ca8638cba9fd3154f920a40fd2e1aa71dbbcada043bfe",
+      "bytes": 22726
+    },
+    {
+      "path": "starter-original/old-source/src/cli/help.rs",
+      "sha256": "3aa5e3bdaedea4f21a19d127146e73bc7b15bbd9faa070c85ceee78ea85350df",
+      "bytes": 89342
+    },
+    {
+      "path": "starter-original/old-source/src/cli/json_codec/plan.rs",
+      "sha256": "6ba414101cc5690375c2d63703a7a1ea9d8748241406c628265578f9e5932b85",
+      "bytes": 4679
+    },
+    {
+      "path": "starter-original/old-source/src/cli/json_codec/profile.rs",
+      "sha256": "31c83d841512cd70ec1c97f1b0d128e65107d7944af91ea6979a5c84d21dbf5e",
+      "bytes": 2751
+    },
+    {
+      "path": "starter-original/old-source/src/cli/json_codec.rs",
+      "sha256": "38315cd240fe0558b05473fe2527c7b0e39619cb36e219f369ff4414dec40371",
+      "bytes": 19620
+    },
+    {
+      "path": "starter-original/old-source/src/cli_driver/native_test.rs",
+      "sha256": "5985f69e64d20d40ef7e2e67498308ad0c508486876c2b3a9e683488902f2768",
+      "bytes": 14631
+    },
+    {
+      "path": "starter-original/old-source/src/project/json_codec.rs",
+      "sha256": "55d82e54379321845d8867e1748e36bc3d097cdb618da15459630415cf0ab10a",
+      "bytes": 13070
+    },
+    {
+      "path": "starter-original/old-source/src/project/mod.rs",
+      "sha256": "a874359ae6a0563597d3fd6c4ea7eb008145d8afe360b7a862473f13556bd887",
+      "bytes": 66074
+    },
+    {
+      "path": "starter-original/old-source/src/project/native_test.rs",
+      "sha256": "b00e188e2299df008c7f3fe8a112e6f779524610133c1a25b5afdbd96c19e91d",
+      "bytes": 6791
+    },
+    {
+      "path": "starter-original/old-source/tests/doctor_production_provisioner_v1.rs",
+      "sha256": "a8fa97a370063054dd1e5703ceca327d4f0ffa831a1c2aa5e568410f2a40a23e",
+      "bytes": 45868
+    },
+    {
+      "path": "starter-original/old-source/tests/native_rust_interop_ci_contract.rs",
+      "sha256": "f63367acdea9449e9286ff4d219a542d02e3998bd5bfc9d5803baf0d41cb7444",
+      "bytes": 44489
+    },
+    {
+      "path": "starter-original/old-source/tests/project/standard_library/application_json/plan.rs",
+      "sha256": "dfd868ba8484a75d8a123f0cce6cc678f9a4fa8747ea267a896b7298369da421",
+      "bytes": 13455
+    },
+    {
+      "path": "starter-original/old-source/tests/project/standard_library/application_json.rs",
+      "sha256": "77525c71b4e3726c4105ad4a457d40c2de065afbc519efb18568139e59fc40c3",
+      "bytes": 16215
+    },
+    {
+      "path": "starter-original/old-source/tests/public_native_rust_sdk_ci_contract.rs",
+      "sha256": "8e99d611ffc8bac4175d94461307ca566dd6a2513e8c209312f9a5506dfc2b33",
+      "bytes": 15702
+    },
+    {
+      "path": "starter-original/pending-checks.json",
+      "sha256": "fda9e85f0a0b540a95406fbeffc6949eac6adc13a5aa4bc0d8fdf55fab6c0667",
+      "bytes": 1202
+    },
+    {
+      "path": "starter-held-input-fix/immediate-base-full-source.json",
+      "sha256": "b6afb86d8435536d861501602f2bc21e15e049e0298524c3d5a8d2b3839d61f9",
+      "bytes": 1541
+    },
+    {
+      "path": "starter-held-input-fix/immediate-source-inverse.patch",
+      "sha256": "92637535a2b9f34a4c9321a2c151526d8fc200752c8dd98a46fed020f9c0df16",
+      "bytes": 20330
+    },
+    {
+      "path": "starter-held-input-fix/old-source/CHANGELOG.md",
+      "sha256": "ad83af56e5d801604c80e1f0ac8924ae2ea5c0d3395fa4b796bda1e34e29f943",
+      "bytes": 522881
+    },
+    {
+      "path": "starter-held-input-fix/old-source/crates/semaprax-toolchain/src/new_project/application.rs",
+      "sha256": "22f94b8428d1aa8c12c2563301ab5b3ce77df6305fd3228eff08ae412f07f8f7",
+      "bytes": 10896
+    },
+    {
+      "path": "starter-held-input-fix/old-source/crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs",
+      "sha256": "736d8d912cd381e116bd6215726ff5e2353fbca8aebacb4f9290223650b9684e",
+      "bytes": 12916
+    },
+    {
+      "path": "starter-held-input-fix/old-source/docs/APPLICATION-STARTER-V1.md",
+      "sha256": "3edd79a49573c9616f0e62eeed1a94efbf017e9fc81d879bc22ca59ed805bdb3",
+      "bytes": 7658
+    },
+    {
+      "path": "starter-held-input-fix/old-source/docs/PROJECT-NATIVE-TEST-COLLECTION-RECORD-PURE-V1.md",
+      "sha256": "b734ef75f842f15cb399585f077cdf070013ce7ee9a73d7d91a469bb4ea4e9c0",
+      "bytes": 2749
+    },
+    {
+      "path": "starter-held-input-fix/old-source/src/project/native_test.rs",
+      "sha256": "d56ab71420a6e16929f3e10daf78dc4070888dbab4207f6e846002dec5f03bd8",
+      "bytes": 8770
+    },
+    {
+      "path": "starter-held-input-fix/pending-checks.json",
+      "sha256": "00742549011f70423994a10314364d6fb5d589852c61ca7bc6c85b658ff2284c",
+      "bytes": 1229
+    },
+    {
+      "path": "field-update-review/REVIEW.md",
+      "sha256": "c644990e826d96d8c849e6c32e3ed338bd88aa90f05e8fcb50bf77726375ca2f",
+      "bytes": 6008
+    },
+    {
+      "path": "starter-review/followup-2ae6fee.md",
+      "sha256": "74ec2ec34391ffefd3d8f6aed8af516ee96e535dcaae43b862d5ff7e8259f8d5",
+      "bytes": 2355
+    },
+    {
+      "path": "starter-review/review.md",
+      "sha256": "b5671b9506f7e0b8849caeb6e2dfe71a7ec06b10c032767db32e6d5291c93475",
+      "bytes": 3313
+    }
+  ]
+}

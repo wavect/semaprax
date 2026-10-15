@@ -1,0 +1,29 @@
+{
+  "source_base": "e3eb476838442b58c02ccc815aae4bbdfebfd50e",
+  "executed": [
+    "direct rustfmt parse/format checks",
+    "git diff --check",
+    "static changed-module line budget scan"
+  ],
+  "not_executed": [
+    "Cargo compilation",
+    "owning Rust tests",
+    "Clippy",
+    "benchmarks",
+    "graft build",
+    "full quality gates"
+  ],
+  "pending": [
+    "cargo test --locked -p semaprax-toolchain --test cli_new_project_v1 application_starter::",
+    "cargo test --locked -p semaprax-toolchain --test cli_new_project_v1 new_project::application::tests::",
+    "cargo test --locked -p semaprax --test project standard_library::application_json::starter::",
+    "cargo test --locked -p semaprax --lib collection_record_native_test_successor_requires_explicit_closed_selection",
+    "cargo test --locked -p semaprax-native-rust-owned-data-package application_inventory_is_closed_sorted_unique_and_bounded",
+    "existing old scaffold/native-test/codec/source-audit receivers"
+  ],
+  "dependencies": [
+    "G171808 remains OPEN; full ordinary compiler admission retained",
+    "v31 pure typed C emission remains unexecuted",
+    "selected-file codec-schema composition remains unexecuted"
+  ]
+}

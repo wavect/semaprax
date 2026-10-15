@@ -1,0 +1,9 @@
+{
+  "source_subject": "d765f7c7eda572f6ec3c62115e59f0fdef103a80",
+  "exit_code": 101,
+  "executed_test_bodies": 0,
+  "production_library_build": "PASS",
+  "root_cause": "15 test-compilation errors: missing explicit imports and one include_str fixture path",
+  "correction_commit": "769a9d1eb429d91c79edcf26f420b0700f259959",
+  "scope": "No owning test bodies ran; all complete original compiler output retained."
+}

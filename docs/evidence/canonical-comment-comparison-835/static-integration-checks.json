@@ -1,17 +1,18 @@
 {
   "status": "SOURCE_ONLY_NO_COMPILER_OR_RUNTIME",
-  "private_layout_sources": 91,
+  "private_layout_sources": 95,
   "all_forbidden_literals_preserved_without_new_exemption": true,
   "module_size_scope": "exact roots of tests/module_size.rs::tracked_sources",
-  "measured_rust_sources": 6251,
+  "measured_rust_sources": 6270,
   "module_size_violations": [],
   "all_three_session_mirror_source_assertions_equal": true,
-  "initial_public_pin_owner_and_completion_matrix_unchanged": [
+  "parent_public_pin_owner_and_completion_matrix_unchanged_by_this_integration": [
     "tests/workspace/semantic_graph.rs",
     "docs/COMPLETION-MATRIX.md"
   ],
   "new_guard_exemptions": 0,
-  "initial_root": "4f8f598c7935d0a5cdd4a5d5ba5b49d164ae2cfc",
+  "authenticated_parent_root": "8c692cf4592525b2b85124536ad6ee619801f18d",
+  "historical_formatter_root": "4f8f598c7935d0a5cdd4a5d5ba5b49d164ae2cfc",
   "typed825_projection_children_joined_and_pure": [
     "borrowed_imports/typed.rs",
     "defaults/typed.rs",

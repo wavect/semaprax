@@ -29,8 +29,8 @@ assert compact(body(atom,'enum Atom {'))==compact(body(mirror,'enum Atom {'))
 assert compact(body(error,'enum EngineError {'))==compact(body(mirror,'enum EngineError {')).replace('expression_facts::errors::','')
 assert compact(body(atom,'source: ExpressionId,'))==compact(body(mirror,'source: ExpressionId,'))
 kept=['tests/workspace/semantic_graph.rs','docs/COMPLETION-MATRIX.md']
-for name in kept:assert (R/name).read_bytes()==subprocess.check_output(['git','show','4f8f598c7935d0a5cdd4a5d5ba5b49d164ae2cfc:'+name],cwd=R)
-(D/'static-integration-checks.json').write_text(json.dumps({'status':'SOURCE_ONLY_NO_COMPILER_OR_RUNTIME','private_layout_sources':len(joined),'all_forbidden_literals_preserved_without_new_exemption':True,'module_size_scope':'exact roots of tests/module_size.rs::tracked_sources','measured_rust_sources':len(counts),'module_size_violations':violations,'all_three_session_mirror_source_assertions_equal':True,'initial_public_pin_owner_and_completion_matrix_unchanged':kept,'new_guard_exemptions':0,'initial_root':'4f8f598c7935d0a5cdd4a5d5ba5b49d164ae2cfc'},indent=2)+'\n')
+for name in kept:assert (R/name).read_bytes()==subprocess.check_output(['git','show','8c692cf4592525b2b85124536ad6ee619801f18d:'+name],cwd=R)
+(D/'static-integration-checks.json').write_text(json.dumps({'status':'SOURCE_ONLY_NO_COMPILER_OR_RUNTIME','private_layout_sources':len(joined),'all_forbidden_literals_preserved_without_new_exemption':True,'module_size_scope':'exact roots of tests/module_size.rs::tracked_sources','measured_rust_sources':len(counts),'module_size_violations':violations,'all_three_session_mirror_source_assertions_equal':True,'parent_public_pin_owner_and_completion_matrix_unchanged_by_this_integration':kept,'new_guard_exemptions':0,'authenticated_parent_root':'8c692cf4592525b2b85124536ad6ee619801f18d','historical_formatter_root':'4f8f598c7935d0a5cdd4a5d5ba5b49d164ae2cfc'},indent=2)+'\n')
 print('source-only purity',len(joined),'sources; exact owning line-budget roots',len(counts),'; mirror3 +initial pin/matrix bytes verified')
 
 # All newly split typed projection producers remain in the owning audited union.

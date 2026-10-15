@@ -1,8 +1,11 @@
 //! Fresh old/current directory derivations; requested backing, not RSS.
-use super::*;
+use super::{
+    visit, AuthoredDeclaration, BTreeMap, Diagnostic, Entry, LayoutClosure, Program,
+    TypeDeclaration, DEPTH, WORK,
+};
 use crate::bounded_output::{active_remaining, with_limit_usage_refusal};
-use crate::test_allocation_observer::{Metrics, measure};
-use crate::workspace_graph::{MAX_BUILDER_BYTES, index_authored};
+use crate::test_allocation_observer::{measure, Metrics};
+use crate::workspace_graph::{index_authored, MAX_BUILDER_BYTES};
 const PROVIDER: &str = include_str!("function_provider.spx");
 const CALLER: &str = include_str!("function_caller.spx");
 const SINGLE_CALLER: &str = "module function_layout.app; use function @id(\"make\") from function_layout.provider as make; @id(\"app.main\") fn main()->i64 {0}";
@@ -157,8 +160,8 @@ fn observe<'a>(
     }
 }
 #[test]
-fn callback_occurrences_bound_exact_full_identity_inserts_on_sparse_dense_duplicate_and_imported_closures()
- {
+fn callback_occurrences_bound_exact_full_identity_inserts_on_sparse_dense_duplicate_and_imported_closures(
+) {
     for (name, parsed) in fixtures() {
         let authored = index_authored(&parsed).unwrap();
         if name == "none" {
@@ -211,12 +214,10 @@ fn callback_occurrences_bound_exact_full_identity_inserts_on_sparse_dense_duplic
             assert_eq!(old.entries.capacity(), current.entries.capacity());
         }
         if name == "imported_descendant" {
-            assert!(
-                current
-                    .entries
-                    .iter()
-                    .all(|e| e.declaration.stable_id != "config")
-            );
+            assert!(current
+                .entries
+                .iter()
+                .all(|e| e.declaration.stable_id != "config"));
             // Config is explicitly imported, so entry census excludes it, while
             // ownedness must still descend into its actual held declaration.
             let target = authored.get("make").unwrap();
@@ -269,7 +270,7 @@ fn actual_cold_reservation_allocation_peak_and_full_drop_are_compared_without_ba
         ) {
             assert!(removed > 0);
         }
-        // Logging is outside both the allocation observer and ACTIVE owner.
+        // Logging is outside both the allocation observer and enclosing builder owner.
         eprintln!("#834 {name} old={old:?} current={current:?} removed_entry_bytes={removed}");
     }
 }

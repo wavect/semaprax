@@ -1,0 +1,10 @@
+[
+  {
+    "manifest": "docs/evidence/canonical-comment-comparison-835/pending-selectors.json",
+    "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+    "source": "tests/workspace/semantic_graph.rs",
+    "prior_sha256": "4af44d68c4988c4b042a6e7b08ad5aa6f6e6f726953c0858a9e4e65ca35b497a",
+    "prior_revision": "689adaea75d33186a3fb182b98c0c522cd8a0348",
+    "current_sha256": "910cc41a86fb254e3aa36e2708b109ec91f7a309dd64aac051854cbf5806abab"
+  }
+]

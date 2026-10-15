@@ -1,0 +1,9 @@
+{
+  "status": "UNEXECUTED",
+  "exact_existing_controls_additional_to_parent_47": [
+    "cleanup_plan::replay::selected_entry::tests::two_lexical_members_share_one_index_and_exact_whole_drop_ledgers",
+    "cleanup_plan::replay::selected_entry::tests::malformed_later_certificate_body_and_target_cannot_reuse_an_earlier_lease",
+    "cleanup_plan::replay::selected_entry::tests::fact_errors::tree_policy::complete_tree_and_both_arena_policies_keep_full_scalar_corpus_ids_and_verdicts"
+  ],
+  "selection_owner": "Parent combines these with actual failed20 and new source definitions; no old116 blanket rerun requested."
+}

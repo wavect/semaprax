@@ -1,0 +1,16 @@
+{
+  "original_fixture_count": 89,
+  "original_fixture_bytes": 93590460,
+  "extra_custody_fixture_count": 1,
+  "extra_custody_fixture_bytes": 51472,
+  "all_runtime_fixture_count": 90,
+  "new_source_owners": [
+    "src/source_reflows_merge/runtime_json.rs",
+    "src/source_reflows_merge/runtime_json/inventory.rs",
+    "src/source_reflows_merge/runtime_json/tests.rs"
+  ],
+  "new_owner_hashes_metadata_only": true,
+  "self_hash_cycle": false,
+  "runtime_IO_or_Cargo_executed": false,
+  "preexisting_input_rows": 6
+}

@@ -1,0 +1,28 @@
+{
+  "status": "SOURCE_ONLY_TRANSPORT_CUSTODY_NOT_EXECUTED",
+  "source_basis": "9ccc0e2f18e15d4d72f46262b7a940a23a66500e",
+  "old_complete_project_body_byteexact": true,
+  "reviewed_transport_root_restored_byteexact": true,
+  "original_fixture_count": 89,
+  "original_fixture_bytes": 93590460,
+  "all_original_file_SHA256_exact": true,
+  "extra_custody_fixture_count": 1,
+  "extra_custody_fixture_bytes": 51472,
+  "runtime_fixture_count": 90,
+  "whole9ccc_preexisting_input_inverses": 6,
+  "new_child_sources_all_three_audits": [
+    "src/source_reflows_merge/runtime_json.rs",
+    "src/source_reflows_merge/runtime_json/inventory.rs",
+    "src/source_reflows_merge/runtime_json/tests.rs"
+  ],
+  "new_child_hashes_metadata_only": {
+    "src/source_reflows_merge/runtime_json.rs": "6e4304d278c67101bb0e3e728a2c315f28d8e236dc22112a76e5ac17fd2a4935",
+    "src/source_reflows_merge/runtime_json/inventory.rs": "a7d270d9f025508e10fba6aa711df5afdd18ad698467956b88f61b3aafa6c231",
+    "src/source_reflows_merge/runtime_json/tests.rs": "a7e3e35f2ff6a0aeeb02f3e70a05b3bd6fda0f92a8725a8834b31c878407bbfa"
+  },
+  "inherited_original_namespace_exact_for_proof_reuse": true,
+  "old_JSON_scripts_archives_unchanged": true,
+  "repository_runtime_fixture_required": true,
+  "RAM_or_runtime_gain_claim": false,
+  "Rust_Cargo_IO_test_execution": false
+}

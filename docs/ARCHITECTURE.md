@@ -4432,6 +4432,19 @@ Input drift, nonunique edits and predecessor drift fail closed. The source-lock
 coverage gate recognizes this reader exactly as it recognizes `include_str!`;
 ordinary authority and implementation audits continue to read current source.
 
+The `cfg(test)` source-view helper `source_reflows_merge` delegates fixture transport
+to its private `runtime_json` loader, fixed inventory, and hostile-I/O tests. The
+inventory preserves 89 original repository JSON files (93,590,460 bytes), each
+bound to its compiled path, exact length, and SHA-256; one additional custody
+fixture restores the complete prior helper, three audit roots, and both changed
+documents before the existing historical views. Each load checks one opened
+regular-file handle, exact bounds, EOF, digest, and UTF-8 before parsing. It grants
+no production filesystem authority and uses no discovery or global cache. All
+original projection logic, stage order, JSON bytes, and source assertions remain
+intact; the three source audits include every new child. Test binaries require
+the repository fixtures at runtime. This source-only transport change has no
+measured RAM benefit yet.
+
 
 The bounded generic inference helpers in `source_verify/generic_inference` and
 `hir/generic_inference` independently unify exact argument types before normal

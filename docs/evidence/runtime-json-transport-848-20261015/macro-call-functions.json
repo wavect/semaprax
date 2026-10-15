@@ -1,0 +1,320 @@
+[
+  {
+    "path": "src/ast/iterative_program_drop_tests.rs",
+    "function": "entire_program_source_and_original_destructor_test_stay_exact_with_four_carrier_hooks",
+    "has_measure": false,
+    "line": 310
+  },
+  {
+    "path": "src/source_verify/recovery_tests/callee_components.rs",
+    "function": "complete_pre_component_entry_and_call_sources_remain_exact",
+    "has_measure": false,
+    "line": 181
+  },
+  {
+    "path": "src/source_verify/recovery_tests/flow_799.rs",
+    "function": "complete_matching_and_arm_receivers_have_exact_full_source_inverses",
+    "has_measure": false,
+    "line": 103
+  },
+  {
+    "path": "src/source_verify/declaration/functions/signature_refusal/tests.rs",
+    "function": "full_production_sources_and_complete_public_predecessors_keep_exact_inverses",
+    "has_measure": false,
+    "line": 231
+  },
+  {
+    "path": "src/ast/drop_method_roots/tests.rs",
+    "function": "complete_prior_program_drop_and_new_method_root_source_projection_remain_exact",
+    "has_measure": false,
+    "line": 148
+  },
+  {
+    "path": "src/loan_plan/paid_cfg/tests.rs",
+    "function": "whole_original_cfg_legacy_plan_and_child_projection_sources_remain_exact",
+    "has_measure": false,
+    "line": 375
+  },
+  {
+    "path": "src/hir/resolver_scope/source_audit.rs",
+    "function": "complete_frozen_receiver_and_shared_boundaries_match_static_body_provenance",
+    "has_measure": false,
+    "line": 10
+  },
+  {
+    "path": "src/hir/ids/fixed_operation_tests.rs",
+    "function": "full_original_operation_sources_and_receivers_have_only_declared_identity_hooks",
+    "has_measure": false,
+    "line": 109
+  },
+  {
+    "path": "src/hir/validation/constructor_seed/intrinsic_tests.rs",
+    "function": "complete_intrinsic_sources_and_saved_constructor_dispatch_reconstruct_every_original_byte",
+    "has_measure": false,
+    "line": 278
+  },
+  {
+    "path": "src/hir/validation/constructor_seed/intrinsic_tests.rs",
+    "function": "corrective_controllers_reconstruct_complete_original_sources",
+    "has_measure": false,
+    "line": 405
+  },
+  {
+    "path": "src/hir/validation/function_scope/phase_tests.rs",
+    "function": "complete_whole_chain_allocation_owner_is_retained_byte_exact",
+    "has_measure": false,
+    "line": 146
+  },
+  {
+    "path": "src/hir/validation/function_scope/phase_tests.rs",
+    "function": "production_stage_dispatch_preserves_original_with_only_named_permit_and_registration_hooks",
+    "has_measure": false,
+    "line": 162
+  },
+  {
+    "path": "src/hir/validation/held_profiles/source_audit.rs",
+    "function": "complete_current_call_owners_are_exact_original_with_only_declared_held_profile_hooks",
+    "has_measure": false,
+    "line": 12
+  },
+  {
+    "path": "src/hir/validation/held_profiles/source_audit.rs",
+    "function": "complete_saved_lookup_and_argument_receivers_and_shared_type_prefix_remain_byte_exact",
+    "has_measure": false,
+    "line": 33
+  },
+  {
+    "path": "src/hir/validation/function_lookup/paid_custody.rs",
+    "function": "complete_constructor_preflight_and_lookup_sources_preserve_full_original_bytes",
+    "has_measure": false,
+    "line": 167
+  },
+  {
+    "path": "src/hir/validation/canonical_loans/ownership_tests.rs",
+    "function": "complete_old_constructor_inventory_caller_and_closure_source_projections_remain_exact",
+    "has_measure": false,
+    "line": 171
+  },
+  {
+    "path": "src/hir/validation/canonical_loans/ownership_tests.rs",
+    "function": "complete_public_boundary_composition_preserves_original_owner_and_kat_source_bytes",
+    "has_measure": false,
+    "line": 362
+  },
+  {
+    "path": "src/hir/validation/ownership_flags/tests.rs",
+    "function": "full_original_ownership_methods_and_all_hooked_sources_are_exactly_bound",
+    "has_measure": false,
+    "line": 226
+  },
+  {
+    "path": "src/hir/validation/ownership_flags/tests.rs",
+    "function": "complete_original_paid_entry_and_lazy_fast_gates_stay_source_exact",
+    "has_measure": false,
+    "line": 574
+  },
+  {
+    "path": "src/hir/validation/generic_template/call_graph/tests.rs",
+    "function": "full_generic_graph_sources_and_independent_constructor_dispatch_preserve_original_bytes",
+    "has_measure": false,
+    "line": 341
+  },
+  {
+    "path": "src/hir/validation/function_lookup/permits/source_tests.rs",
+    "function": "complete_lookup_and_permit_sources_have_only_named_borrowed_membership_hooks",
+    "has_measure": false,
+    "line": 109
+  },
+  {
+    "path": "src/hir/validation/function_scope/empty_ensures/tests.rs",
+    "function": "whole_current_function_is_exact_prior_source_plus_named_empty_guard",
+    "has_measure": false,
+    "line": 173
+  },
+  {
+    "path": "src/hir/validation/function_scope/lifecycle/completed/inline_path/tests.rs",
+    "function": "complete_original_and_all_source_audit_receivers_are_byte_exact",
+    "has_measure": false,
+    "line": 325
+  },
+  {
+    "path": "src/hir/nominal_payload/legacy/source_tests.rs",
+    "function": "legacy_nominal_complete_original_sources_and_semantic_constructor_stay_exact",
+    "has_measure": false,
+    "line": 4
+  },
+  {
+    "path": "src/hir/inspection/paid_nul/tests.rs",
+    "function": "complete_nul_receiving_and_saved_constructor_sources_preserve_every_original_byte",
+    "has_measure": false,
+    "line": 277
+  },
+  {
+    "path": "src/hir/canonical_loan_storage/caller/stage_tests.rs",
+    "function": "actual_shared_seal_stage_preserves_exact_short_zero_numeric_receipts_and_complete_drop",
+    "has_measure": true,
+    "line": 139
+  },
+  {
+    "path": "src/hir/declaration_index/inventory_lookup/compound/tests.rs",
+    "function": "compound_optimization_decline_remains_distinct_from_work_refusal_and_keeps_saved_sources",
+    "has_measure": false,
+    "line": 174
+  },
+  {
+    "path": "src/hir/owned_text_record/paid/tests.rs",
+    "function": "full_saved_receiver_sources_remain_byte_identical_and_program_selection_matches",
+    "has_measure": false,
+    "line": 489
+  },
+  {
+    "path": "src/hir/owned_text_record/paid/tests.rs",
+    "function": "explicit_collect_types_preserve_complete_prior_text_and_early_profile_controls",
+    "has_measure": false,
+    "line": 565
+  },
+  {
+    "path": "src/cleanup_plan/replay/allocation/tests/accounting_scope.rs",
+    "function": "complete_ordinary_tree_receiver_original_owner_and_current_accounting_scope_stay_source_bound",
+    "has_measure": false,
+    "line": 63
+  },
+  {
+    "path": "src/cleanup_plan/replay/skeleton_work/ordinary_dag/frontier_tests.rs",
+    "function": "independent_original_type_drop_builders_and_complete_receiver_are_byte_locked",
+    "has_measure": false,
+    "line": 556
+  },
+  {
+    "path": "src/cleanup_plan/replay/selected_entry/tests/session_errors/source.rs",
+    "function": "selected_session_complete_source_inverses_and_old_layout_definitions_stay_bound",
+    "has_measure": false,
+    "line": 3
+  },
+  {
+    "path": "src/cleanup_plan/replay/selected_entry/tests/fact_errors/tree_policy.rs",
+    "function": "complete_original_tree_receiver_child_and_existing_usage_assertions_stay_byte_exact",
+    "has_measure": false,
+    "line": 317
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/tests.rs",
+    "function": "full_original_receiving_and_helpers_are_byte_exact_and_all_current_hooks_bound",
+    "has_measure": false,
+    "line": 446
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs",
+    "function": "complete_original_arena_and_every_added_source_join_have_exact_full_inverses",
+    "has_measure": false,
+    "line": 285
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/regions_entry/tests.rs",
+    "function": "complete_region_entry_and_four_variant_source_projections_restore_full_originals",
+    "has_measure": false,
+    "line": 353
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs",
+    "function": "complete_root_receivers_and_only_named_paid_caller_projections_keep_original_bytes",
+    "has_measure": false,
+    "line": 316
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs",
+    "function": "transitive_receiver_originals_and_sticky_auth_stay_complete",
+    "has_measure": false,
+    "line": 249
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs",
+    "function": "source_archives",
+    "has_measure": false,
+    "line": 269
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/status_tests.rs",
+    "function": "complete_before_status_fact_receiver_and_full_source_remain_exact",
+    "has_measure": false,
+    "line": 396
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/exit_tests.rs",
+    "function": "complete_before_exit_receiver_and_full_source_inverses_remain_exact",
+    "has_measure": false,
+    "line": 495
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/tests.rs",
+    "function": "complete_pre_retention_sources_and_all_inverse_hooks_remain_exact",
+    "has_measure": false,
+    "line": 186
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/edge_tests.rs",
+    "function": "complete_before_edge_receiver_and_current_full_source_remain_exact",
+    "has_measure": false,
+    "line": 412
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs",
+    "function": "complete_source_archives",
+    "has_measure": false,
+    "line": 571
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/strategy/activation_tests.rs",
+    "function": "immutable_original_shiftsim_forced_enumerated_retains_frozen_refusal",
+    "has_measure": false,
+    "line": 258
+  },
+  {
+    "path": "src/cleanup_plan/replay/paid_type_facts/inventory_nested/tests.rs",
+    "function": "complete_original_nested_and_index_sources_stay_independent_and_byte_exact",
+    "has_measure": false,
+    "line": 251
+  },
+  {
+    "path": "src/cleanup_plan/replay/paid_type_facts/inventory_encoded/tests/constructors.rs",
+    "function": "complete_prior_key_substitution_and_storage_receivers_remain_independent_byte_exact",
+    "has_measure": false,
+    "line": 171
+  },
+  {
+    "path": "src/cleanup_plan/replay/schema/paid_summary/tests.rs",
+    "function": "complete_schema_original_and_receiving_body_remain_byte_exact",
+    "has_measure": false,
+    "line": 3
+  },
+  {
+    "path": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+    "function": "complete_original_sources_and_compiled_owning_receivers_remain_exact",
+    "has_measure": false,
+    "line": 3
+  },
+  {
+    "path": "src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs",
+    "function": "merged_current_ci_reflow_and_presence512_complete_inputs_remain_exact",
+    "has_measure": false,
+    "line": 3
+  },
+  {
+    "path": "src/workspace_graph/expected_projection/defaults/inline_tests.rs",
+    "function": "complete_inline_sources_and_original_owners_have_exact_whole_file_inverses",
+    "has_measure": false,
+    "line": 300
+  },
+  {
+    "path": "src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs",
+    "function": "full_original_constructor_and_only_sticky_publication_changes_stay_source_bound",
+    "has_measure": false,
+    "line": 108
+  },
+  {
+    "path": "src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs",
+    "function": "complete_original_receivers_and_all_literal_source_inverses_remain_byte_exact",
+    "has_measure": false,
+    "line": 538
+  }
+]

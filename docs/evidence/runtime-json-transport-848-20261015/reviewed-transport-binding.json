@@ -1,0 +1,23 @@
+{
+  "mode": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "basis": "9ccc0e2f18e15d4d72f46262b7a940a23a66500e",
+  "binding": "stable WIP; final commit pending",
+  "files": {
+    "src/source_reflows_merge.rs": "edd0d33c9c45a0d22b1818ded0e2d924affc397509beca7aaa24f08824b5ea6d",
+    "src/source_reflows_merge/runtime_json.rs": "6e4304d278c67101bb0e3e728a2c315f28d8e236dc22112a76e5ac17fd2a4935",
+    "src/source_reflows_merge/runtime_json/inventory.rs": "e748354d3aa776d28d84e85e76ce40fe3d2a6f6e01cc57d1b0044b2c46645f7c",
+    "src/source_reflows_merge/runtime_json/tests.rs": "1ac8570141f51b4ac91936fbf0e2a765a1c4272b3dfe7a3285bfe0c8269d1846"
+  },
+  "inventory": {
+    "count": 89,
+    "total_bytes": 93590460,
+    "max_bytes": 5081115,
+    "checks": "Each compiled path/length/SHA and physical fixture matched original discovery inventory, in original occurrence order."
+  },
+  "findings": [],
+  "limits": [
+    "No Rust compilation or IO-test execution.",
+    "No compiler RSS or timing reduction claim.",
+    "Final outer source-custody/audit composition not yet reviewed."
+  ]
+}

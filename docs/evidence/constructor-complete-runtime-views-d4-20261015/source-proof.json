@@ -1,0 +1,149 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_GATES",
+  "source_basis": "aa03d88c21b268cfc383c9842c5799bc8bca3c3f",
+  "full_source_successor_rows": 3,
+  "physical_runtime_e4b_inputs": 23,
+  "inline_five_complete_owners_and_five_children_replayed": true,
+  "backing_seventeen_full_sources_replayed": true,
+  "old_manifests_archives_unchanged": true,
+  "prior_source_proof_replayed": {
+    "status": "SOURCE_ONLY_NO_RUST_GATES",
+    "source_basis": "a0c1213695b475c585e94cb599fedc218aa37ef5",
+    "full_source_successor_rows": 2,
+    "full_runtime_binding_rows": 6,
+    "all_four_complete_originals_and_two_variants_restored": true,
+    "original_status_literal_preserved": true,
+    "physical_816_JSON_unchanged": true,
+    "all_prior_evidence_unchanged": true,
+    "prior_corrected825_full_source_proof": {
+      "status": "SOURCE_ONLY_NO_RUST_GATES",
+      "source_basis": "9cbdb5520a0ded38c5aece9f79e99c03e73e93fd",
+      "fee_author_commit": "96c5548088f189c836a7e66081a26269dbf82cec",
+      "complete_successor_rows": 2,
+      "stale_and_altered_refusals": 4,
+      "all_old_9cb_source_proofs_replayed": {
+        "status": "SOURCE_ONLY_NO_RUST_GATES",
+        "source_basis": "d4cab900edac07fdcc4de0cdcb1bf3daafbef5ef",
+        "complete_branch_rows": {
+          "d4": 15,
+          "825": 29,
+          "typed825": 9
+        },
+        "typed825_all21_original_full_assertions_replayed": true,
+        "three_audit_owners_each_include_all_four_new_sources": true,
+        "interop_inventory_lines": 1500,
+        "stale_and_altered_refusals": 106,
+        "complete_prior_d4_source_proof": {
+          "status": "SOURCE_ONLY_NO_RUST_GATES",
+          "actual_main": "9279411a0c7e7cf12908457c5fe93289a7b19508",
+          "source_basis": "9b174d852798c99ce2d14b8170ec05e6c0f94b88",
+          "complete_branch_rows": {
+            "main927": 3,
+            "hex": 24
+          },
+          "complete_9b_convergence_paths": 25,
+          "stale_and_altered_refusals": 54,
+          "original_main927_proof_replayed": {
+            "status": "SOURCE_ONLY_NO_RUST_GATES",
+            "source_basis": "9b174d852798c99ce2d14b8170ec05e6c0f94b88",
+            "actual_main": "9279411a0c7e7cf12908457c5fe93289a7b19508",
+            "current_to_9b": 23,
+            "current_to_main927": 26,
+            "old93_immutable": true,
+            "new_main87_full_inverses": true,
+            "main_semantic_root_and_inline_full_assertions": true,
+            "three_new_owners_in_all_three_audits": true,
+            "interop_inventory_lines": 1500,
+            "altered_and_stale_refusals": 98,
+            "complete_original_9b_source_proof_replayed": {
+              "status": "SOURCE_ONLY_NO_RUST_GATES",
+              "actual_main": "f0455caf96706a0545e754957fcc903434a7f880",
+              "strict_named_branch_inputs": {
+                "fixes": 26,
+                "main": 8
+              },
+              "strict_stale_rejections": 34,
+              "independent_full_ae91_convergence": true,
+              "four_source_failures_and_full_facade_replayed": true,
+              "original57consumer87CI_and_ff92_MAIN93_verifiers_replayed_in_named_views": true,
+              "old_closed_metadata_scope_views": {
+                "fixes": "052667a21687a73e2d9af415171663c783d415a9",
+                "main_ff": "77f90da5e00d533e40714d42369daed90661156a"
+              },
+              "protected_full_packet_files": 61,
+              "production_edited_by_assembly": false,
+              "new_test_bodies_by_assembly": 0,
+              "runtime_bodies_executed": 0
+            },
+            "runtime_or_app_recovery_claim": false
+          },
+          "original_hex_proof_replayed": {
+            "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+            "actual_failed_subject": "9b174d852798c99ce2d14b8170ec05e6c0f94b88",
+            "actual_build_exit": 101,
+            "actual_build_wall_seconds": 462.47538741600874,
+            "actual_test_bodies": 0,
+            "exact_full_source_inputs": 2,
+            "all_original_assertions_retained": true,
+            "stable_public_digest_adapter_already_used_in_same_file": true,
+            "complete_frozen_4_57_87_92_93_source_verifier_replayed": true,
+            "protected_packets_unchanged": 61,
+            "source_only_production_changes": 0,
+            "new_test_bodies": 0,
+            "actual_E0277_direct_records": 2,
+            "old_unit_and_production_passes_are_only_subject_9b": true,
+            "unit_recompile_required_because_typed_cost_reads_full_helper": true
+          },
+          "all_preexisting_evidence_unchanged": true,
+          "failed_build_14_archive_unchanged": true,
+          "starter_exact_authored_commit": true,
+          "runtime_test_bodies_executed": 0,
+          "production_changes_only_authored_MAIN": true,
+          "prior_completed_runtime_subject": "ae91_95_only_not_failed9b"
+        },
+        "isolated_825_source_proof": {
+          "status": "SOURCE_ONLY_PASS",
+          "changed_complete_sources": 6,
+          "complete_added_sources": 4,
+          "rust_execution": false,
+          "issue825": "OPEN_PARTIAL"
+        },
+        "relative_held_reader_byte_exact": true,
+        "relative_resolution_read_order_preserved": true,
+        "all_existing_evidence_unchanged": true,
+        "issue825": "OPEN_PARTIAL",
+        "runtime_test_bodies_executed": 0
+      },
+      "fee_author_complete_source_proof_replayed": {
+        "status": "SOURCE_ONLY_PASS",
+        "whole_current_inverse": true,
+        "original_packet_unchanged": true,
+        "original_complete_bindings_replayed": true,
+        "new_layouts": [
+          "&Result<T,CoreFailure>",
+          "&mut Result<T,CoreFailure>",
+          "&Setup",
+          "Setup copied initializer",
+          "Setup parameter receiver"
+        ],
+        "rust_execution": false
+      },
+      "all_existing_evidence_unchanged": true,
+      "future_selection_unchanged": 152,
+      "new_test_bodies": 0,
+      "production_correction_exact_author_bytes": true,
+      "runtime_bodies_executed": 0,
+      "issue825": "OPEN_PARTIAL"
+    },
+    "stale_altered_refusals": 8,
+    "future_selection": 178,
+    "new_test_bodies": 0,
+    "production_changes": 0,
+    "runtime_bodies_executed": 0
+  },
+  "stale_altered_refusals": 28,
+  "new_test_bodies": 0,
+  "production_changes": 0,
+  "runtime_bodies_executed": 0,
+  "future_selection_unchanged": 178
+}

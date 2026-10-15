@@ -525,10 +525,34 @@ fn before_setup_reference_controls(source: &str, current: &str) -> String {
 
 // Full physical successor; the prior receiving correction domain stays exact.
 fn before_region_status_view(source: &str, current: &str) -> String {
+    let previous = before_constructor_complete_views(source, current);
+    let current = previous.as_str();
     project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/region-status-import-view-d4-20261015/current-to-a0c.json"
+        )),
+        source,
+        current,
+    )
+}
+
+fn before_constructor_complete_views(source: &str, current: &str) -> String {
+    project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/constructor-complete-runtime-views-d4-20261015/current-to-aa03.json"
+        )),
+        source,
+        current,
+    )
+}
+// These two complete manifests describe physical e4b inputs, not CI reflows.
+pub(crate) fn constructor_complete_input(source: &str, current: &str) -> String {
+    project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/constructor-complete-runtime-views-d4-20261015/runtime-views.json"
         )),
         source,
         current,

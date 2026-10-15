@@ -1,0 +1,17 @@
+
+running 1 test
+test workspace_graph::expected_projection::defaults::inline_tests::complete_inline_sources_and_original_owners_have_exact_whole_file_inverses ... 
+thread 'workspace_graph::expected_projection::defaults::inline_tests::complete_inline_sources_and_original_owners_have_exact_whole_file_inverses' (8362162) panicked at src/workspace_graph/expected_projection/defaults/inline_tests.rs:347:13:
+assertion `left == right` failed
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    workspace_graph::expected_projection::defaults::inline_tests::complete_inline_sources_and_original_owners_have_exact_whole_file_inverses
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9069 filtered out; finished in 0.94s
+

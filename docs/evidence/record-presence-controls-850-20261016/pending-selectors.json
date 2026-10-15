@@ -1,0 +1,35 @@
+{
+  "mode": "UNEXECUTED_EXISTING_BODIES",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::renewal_profile::ordinary::record_presence::tests::presence_matches_complete_old_prefix_and_authenticates_the_exact_immutable_index"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::renewal_profile::ordinary::record_presence::tests::exact_metadata_and_census_work_and_one_short_fail_closed_without_allocation"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::renewal_profile::ordinary::record_presence::tests::scalar_callable_boundary_reuses_one_census_under_the_unchanged_work_limit"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::renewal_profile::ordinary::record_presence::tests::prior_enclosing_refusal_cannot_be_hidden_by_a_prepared_presence_proof"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::renewal_profile::ordinary::record_presence::tests::full_original_collector_and_phase_source_inverses_remain_exact"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::renewal_profile::ordinary::consuming::tests::full_consuming_collector_matches_unchanged_original"
+    }
+  ]
+}

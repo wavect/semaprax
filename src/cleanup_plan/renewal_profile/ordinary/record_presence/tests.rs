@@ -1,6 +1,22 @@
 use super::*;
 use crate::test_allocation_observer::measure;
 use std::cell::Cell;
+fn constructor_layout() -> usize {
+    use std::mem::size_of;
+    2 * size_of::<RecordPresence<'_>>()
+        + size_of::<bool>()
+        + size_of::<Result<RecordPresence<'_>, Refusal>>()
+        + size_of::<Result<(), Refusal>>()
+        + size_of::<&mut Admission<'_>>()
+}
+fn read_layout() -> usize {
+    use std::mem::size_of;
+    2 * size_of::<Result<bool, Refusal>>()
+        + 2 * size_of::<Result<(), Refusal>>()
+        + size_of::<&RecordPresence<'_>>()
+        + 4 * size_of::<&DeclarationIndex>()
+        + 4 * size_of::<&mut Admission<'_>>()
+}
 
 fn program(record: bool) -> crate::hir::ResolvedProgram {
     let record = if record {
@@ -28,6 +44,11 @@ fn old_prefix(index: &DeclarationIndex) -> (bool, usize) {
 
 #[test]
 fn presence_matches_complete_old_prefix_and_authenticates_the_exact_immutable_index() {
+    assert_eq!(
+        RecordPresence::constructor_controls() + RecordPresence::acquisition_receiving_controls(),
+        constructor_layout()
+    );
+    assert_eq!(RecordPresence::read_controls(), read_layout());
     for record in [false, true] {
         let program = program(record);
         let foreign = program.clone();
@@ -46,8 +67,12 @@ fn presence_matches_complete_old_prefix_and_authenticates_the_exact_immutable_in
         };
         let mut admission = Admission::new(&mut charge, &mut reserve);
         let ((), allocation) = measure(|| {
+            admission
+                .reserve(RecordPresence::acquisition_receiving_controls())
+                .unwrap();
             let presence = RecordPresence::new(index, &mut admission).unwrap();
             assert_eq!(work.get(), steps);
+            admission.reserve(18 * read_layout()).unwrap();
             for _ in 0..16 {
                 assert_eq!(presence.get(index, &mut admission), Ok(expected));
             }
@@ -59,7 +84,7 @@ fn presence_matches_complete_old_prefix_and_authenticates_the_exact_immutable_in
             assert!(presence.get(index, &mut admission).is_err());
         });
         assert!(!allocation.invalid && allocation.allocated == 0 && allocation.live == 0);
-        assert_eq!(paid.get(), std::mem::size_of::<RecordPresence<'_>>());
+        assert_eq!(paid.get(), constructor_layout() + 18 * read_layout());
     }
 }
 
@@ -69,10 +94,11 @@ fn exact_metadata_and_census_work_and_one_short_fail_closed_without_allocation()
         let program = program(record);
         let index = &program.declarations;
         let (expected, steps) = old_prefix(index);
-        let metadata = std::mem::size_of::<RecordPresence<'_>>();
+        let constructor = constructor_layout();
+        let metadata = constructor + 2 * read_layout();
         for (bytes, units, succeeds) in [
             (metadata, steps + 1, true),
-            (metadata - 1, steps + 1, false),
+            (constructor - 1, steps + 1, false),
             (metadata, steps - 1, false),
         ] {
             let backing = Cell::new(bytes);
@@ -93,8 +119,12 @@ fn exact_metadata_and_census_work_and_one_short_fail_closed_without_allocation()
             };
             let mut admission = Admission::new(&mut charge, &mut reserve);
             let (success, allocation) = measure(|| {
+                admission
+                    .reserve(RecordPresence::acquisition_receiving_controls())
+                    .unwrap();
                 match RecordPresence::new(index, &mut admission) {
                     Ok(presence) => {
+                        admission.reserve(2 * read_layout()).unwrap();
                         assert_eq!(presence.get(index, &mut admission), Ok(expected));
                         // No remaining work is recreated by the held proof.
                         assert_eq!(presence.get(index, &mut admission), Err(Refusal::Work));
@@ -109,9 +139,42 @@ fn exact_metadata_and_census_work_and_one_short_fail_closed_without_allocation()
             });
             assert_eq!(success, succeeds);
             assert!(!allocation.invalid && allocation.allocated == 0 && allocation.live == 0);
-            if bytes < metadata {
+            if bytes < constructor {
                 assert_eq!(work.get(), units);
             }
+        }
+        // The read has its own exact positive receiving frontier; acquisition
+        // does not donate one paid slot to arbitrarily many future reads.
+        for (read_bytes, succeeds) in [
+            (read_layout(), true),
+            (read_layout() - 1, false),
+            (0, false),
+        ] {
+            let remaining = Cell::new(constructor + read_bytes);
+            let mut work = |_| true;
+            let mut backing = |bytes| match remaining.get().checked_sub(bytes) {
+                Some(left) => {
+                    remaining.set(left);
+                    true
+                }
+                None => false,
+            };
+            let mut admission = Admission::new(&mut work, &mut backing);
+            admission
+                .reserve(RecordPresence::acquisition_receiving_controls())
+                .unwrap();
+            let presence = RecordPresence::new(index, &mut admission).unwrap();
+            let (success, allocation) = measure(|| {
+                if admission.reserve(read_layout()).is_err() {
+                    // No read Result/receiver is constructed when its bank
+                    // was not acquired; this is Directory setup refusal.
+                    return false;
+                }
+                assert_eq!(presence.get(index, &mut admission), Ok(expected));
+                true
+            });
+            assert_eq!(success, succeeds);
+            assert!(!allocation.invalid && allocation.allocated == 0 && allocation.live == 0);
         }
     }
 }
@@ -144,7 +207,11 @@ fn scalar_callable_boundary_reuses_one_census_under_the_unchanged_work_limit() {
     };
     let mut backing = |_| true;
     let mut admission = Admission::new(&mut work, &mut backing);
+    admission
+        .reserve(RecordPresence::acquisition_receiving_controls())
+        .unwrap();
     let presence = RecordPresence::new(index, &mut admission).unwrap();
+    admission.reserve(1024 * read_layout()).unwrap();
     for _ in 0..1024 {
         assert_eq!(presence.get(index, &mut admission), Ok(false));
     }
@@ -154,13 +221,17 @@ fn scalar_callable_boundary_reuses_one_census_under_the_unchanged_work_limit() {
 #[test]
 fn prior_enclosing_refusal_cannot_be_hidden_by_a_prepared_presence_proof() {
     let program = program(false);
-    let size = std::mem::size_of::<RecordPresence<'_>>();
+    let size = constructor_layout() + read_layout();
     let (((), observed), refused, paid) = crate::bounded_output::with_limit_usage(size, || {
         measure(|| {
             let mut work = |_| true;
             let mut backing = crate::bounded_output::reserve_active_required;
             let mut admission = Admission::new(&mut work, &mut backing);
+            admission
+                .reserve(RecordPresence::acquisition_receiving_controls())
+                .unwrap();
             let presence = RecordPresence::new(&program.declarations, &mut admission).unwrap();
+            admission.reserve(read_layout()).unwrap();
             assert!(!crate::bounded_output::reserve_active_required(1));
             assert_eq!(
                 presence.get(&program.declarations, &mut admission),
@@ -177,6 +248,35 @@ fn prior_enclosing_refusal_cannot_be_hidden_by_a_prepared_presence_proof() {
 #[test]
 fn full_original_collector_and_phase_source_inverses_remain_exact() {
     use sha2::{Digest, Sha256};
+    fn immediate_main_input(path: &str, current: &str) -> String {
+        let rows: serde_json::Value = serde_json::from_str(include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/record-presence-controls-850-20261016/runtime-inputs.json"
+        )))
+        .unwrap();
+        let row = &rows[path];
+        assert_eq!(row["current"].as_str().unwrap(), current);
+        assert_eq!(
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
+            ),
+            row["current_sha256"].as_str().unwrap()
+        );
+        let previous = row["before"].as_str().unwrap();
+        assert_eq!(
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(previous.as_bytes()))
+            ),
+            row["before_sha256"].as_str().unwrap()
+        );
+        previous.to_owned()
+    }
+    let _complete_main_presence = immediate_main_input(
+        "src/cleanup_plan/renewal_profile/ordinary/record_presence.rs",
+        include_str!("../record_presence.rs"),
+    );
     let packets = [
         (
             "src/cleanup_plan/renewal_profile/ordinary/consuming.rs",
@@ -215,6 +315,7 @@ fn full_original_collector_and_phase_source_inverses_remain_exact() {
     )))
     .unwrap();
     for (path, current, old, hash) in packets {
+        let current = immediate_main_input(path, current);
         assert_eq!(
             format!(
                 "{:x}",

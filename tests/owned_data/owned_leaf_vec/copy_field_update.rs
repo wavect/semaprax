@@ -101,7 +101,27 @@ fn wasm_copy_field_update_index_rhs_and_host_authority_failures_keep_the_single_
 #[test]
 fn field_update_import_and_native_store_are_absent_from_the_complete_old_row_oracle() {
     corpus::assert_sources();
+    let rejected =
+        semaprax::check(&corpus::rejected_oracle_source(), "field-update-before.spx").unwrap_err();
+    assert_eq!(rejected.len(), 1);
+    let rejected = &rejected[0];
+    assert_eq!(rejected.code, "SPX-T266");
+    assert_eq!(rejected.severity, semaprax::diagnostic::Severity::Error);
+    assert_eq!(
+        rejected.message,
+        "borrowed view `bytes_as_slice` requires an exact admitted storage place"
+    );
+    assert_eq!(rejected.path.as_deref(), Some("field-update-before.spx"));
+    let span = rejected.span.unwrap();
+    assert_eq!(
+        (span.start, span.end, span.line, span.column),
+        (393, 420, 10, 102)
+    );
+    assert_eq!(rejected.help.as_deref(), Some("`bytes_as_slice` borrows from a named `let` binding, not from this expression; bind the owner first: `let owner = …; <view>(owner)`"));
     let ast = semaprax::check(&corpus::oracle_source(), "field-update-before.spx").unwrap();
+    let canonical = semaprax::format::canonical(&ast);
+    let round_trip = semaprax::check(&canonical, "field-update-before.spx").unwrap();
+    assert_eq!(semaprax::format::canonical(&round_trip), canonical);
     let old_c = codegen::emit_c(&ast).unwrap();
     let old_wasm = wasm::emit_module(&ast).unwrap();
     assert!(!old_c.contains("spx_leaf_update_field("));

@@ -1,0 +1,32 @@
+[
+  {
+    "source": "tests/support/record_copy_field_update.rs",
+    "checkpoint_revision": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+    "archive": "docs/evidence/record-copy-field-update-admitted-oracle-20261015/before/tests/support/record_copy_field_update.rs",
+    "current_sha256": "212604e4b3eff8e25169e2c87eac39c560bd0973241d3e088a8d4ff63a1b2a60",
+    "original_sha256": "84cf034dff8191f14232c6cb90cc4861be7b0a3dc57457dff6898611f072cbec",
+    "edits": [
+      {
+        "new": "}\n\"#;\n// The original projected-Bytes spelling above remains a refusal control.\n// Clone the same row, then transfer its complete fields into named owners\n// before copying the same title and payload into the replacement row.\nconst ADMITTED_ROW_ORACLE: &str = r#\"@id(\"field.before\")\nfn before(rows:own Vec<Row>,index:usize,value:i64)->Vec<Row> {\n let old=vec_clone_at<Row>(rows,index);\n match own old { Row{title,scalar,payload}=>{\n  let replacement=Row{title:string_from_str(string_as_str(title)),scalar:value,payload:bytes_copy(bytes_as_slice(payload))};\n  vec_replace<Row>(rows,index,replacement)\n }, }\n}\n\"#;\npub(crate) fn rejected_oracle_source() -> String {\n    oracle_source().replacen(ADMITTED_ROW_ORACLE, OLD_ROW_ORACLE, 1)\n}\npub(crate) fn oracle_source() -> String {\n    format!(\n        r#\"{}{ADMITTED_ROW_ORACLE}\n@id(\"owned.leaf.main\") fn main()->i64 {{\n let a=vec_with_capacity<Row>(1usize);\n",
+        "old": "}\n\"#;\npub(crate) fn oracle_source() -> String {\n    format!(\n        r#\"{}{OLD_ROW_ORACLE}\n@id(\"owned.leaf.main\") fn main()->i64 {{\n let a=vec_with_capacity<Row>(1usize);\n"
+      },
+      {
+        "new": "    use sha2::{Digest, Sha256};\n    let predecessor;\n    let current = if domain == \"fixture-current\" {\n        current\n    } else if domain == \"assembly\" {\n        predecessor = source_input(\"fixture-current\", source, current);\n        predecessor.as_str()\n    } else {\n        predecessor = source_input(\"assembly\", source, current);\n        predecessor.as_str()\n    };\n    let data = if domain == \"fixture-current\" {\n        include_str!(\"../../docs/evidence/record-copy-field-update-admitted-oracle-20261015/current-to-35cc.json\")\n    } else if domain == \"assembly\" {\n        include_str!(\n            \"../../docs/evidence/ready-main-844-846-836-assembly-20261015/final-to-836.json\"\n",
+        "old": "    use sha2::{Digest, Sha256};\n    let predecessor;\n    let current = if domain == \"assembly\" {\n        current\n    } else {\n        predecessor = source_input(\"assembly\", source, current);\n        predecessor.as_str()\n    };\n    let data = if domain == \"assembly\" {\n        include_str!(\n            \"../../docs/evidence/ready-main-844-846-836-assembly-20261015/final-to-836.json\"\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/owned_data/owned_leaf_vec/copy_field_update.rs",
+    "checkpoint_revision": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+    "archive": "docs/evidence/record-copy-field-update-admitted-oracle-20261015/before/tests/owned_data/owned_leaf_vec/copy_field_update.rs",
+    "current_sha256": "3e87c8e02332e62b7f2ba3798540f0cae16105a2e6a0bf3d05fa7382ead747b3",
+    "original_sha256": "af7cf8420cfad1dfcf6434fcf58b71e504f3c6ff365ab0aa3d37c168b14c217c",
+    "edits": [
+      {
+        "new": "fn field_update_import_and_native_store_are_absent_from_the_complete_old_row_oracle() {\n    corpus::assert_sources();\n    let rejected =\n        semaprax::check(&corpus::rejected_oracle_source(), \"field-update-before.spx\").unwrap_err();\n    assert_eq!(rejected.len(), 1);\n    let rejected = &rejected[0];\n    assert_eq!(rejected.code, \"SPX-T266\");\n    assert_eq!(rejected.severity, semaprax::diagnostic::Severity::Error);\n    assert_eq!(\n        rejected.message,\n        \"borrowed view `bytes_as_slice` requires an exact admitted storage place\"\n    );\n    assert_eq!(rejected.path.as_deref(), Some(\"field-update-before.spx\"));\n    let span = rejected.span.unwrap();\n    assert_eq!(\n        (span.start, span.end, span.line, span.column),\n        (393, 420, 10, 102)\n    );\n    assert_eq!(rejected.help.as_deref(), Some(\"`bytes_as_slice` borrows from a named `let` binding, not from this expression; bind the owner first: `let owner = \u2026; <view>(owner)`\"));\n    let ast = semaprax::check(&corpus::oracle_source(), \"field-update-before.spx\").unwrap();\n    let canonical = semaprax::format::canonical(&ast);\n    let round_trip = semaprax::check(&canonical, \"field-update-before.spx\").unwrap();\n    assert_eq!(semaprax::format::canonical(&round_trip), canonical);\n    let old_c = codegen::emit_c(&ast).unwrap();\n    let old_wasm = wasm::emit_module(&ast).unwrap();\n",
+        "old": "fn field_update_import_and_native_store_are_absent_from_the_complete_old_row_oracle() {\n    corpus::assert_sources();\n    let ast = semaprax::check(&corpus::oracle_source(), \"field-update-before.spx\").unwrap();\n    let old_c = codegen::emit_c(&ast).unwrap();\n    let old_wasm = wasm::emit_module(&ast).unwrap();\n"
+      }
+    ]
+  }
+]

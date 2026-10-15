@@ -111,9 +111,24 @@ fn before(rows:own Vec<Row>,index:usize,value:i64)->Vec<Row> {
  vec_replace<Row>(rows,index,replacement)
 }
 "#;
+// The original projected-Bytes spelling above remains a refusal control.
+// Clone the same row, then transfer its complete fields into named owners
+// before copying the same title and payload into the replacement row.
+const ADMITTED_ROW_ORACLE: &str = r#"@id("field.before")
+fn before(rows:own Vec<Row>,index:usize,value:i64)->Vec<Row> {
+ let old=vec_clone_at<Row>(rows,index);
+ match own old { Row{title,scalar,payload}=>{
+  let replacement=Row{title:string_from_str(string_as_str(title)),scalar:value,payload:bytes_copy(bytes_as_slice(payload))};
+  vec_replace<Row>(rows,index,replacement)
+ }, }
+}
+"#;
+pub(crate) fn rejected_oracle_source() -> String {
+    oracle_source().replacen(ADMITTED_ROW_ORACLE, OLD_ROW_ORACLE, 1)
+}
 pub(crate) fn oracle_source() -> String {
     format!(
-        r#"{}{OLD_ROW_ORACLE}
+        r#"{}{ADMITTED_ROW_ORACLE}
 @id("owned.leaf.main") fn main()->i64 {{
  let a=vec_with_capacity<Row>(1usize);
  let b=vec_push<Row>(a,Row{{title:"a\u{{0}}é",scalar:7,payload:bytes_zeroed(3usize)}});
@@ -299,13 +314,18 @@ fn assert_coverage_sources() {
 fn source_input(domain: &str, source: &str, current: &str) -> String {
     use sha2::{Digest, Sha256};
     let predecessor;
-    let current = if domain == "assembly" {
+    let current = if domain == "fixture-current" {
         current
+    } else if domain == "assembly" {
+        predecessor = source_input("fixture-current", source, current);
+        predecessor.as_str()
     } else {
         predecessor = source_input("assembly", source, current);
         predecessor.as_str()
     };
-    let data = if domain == "assembly" {
+    let data = if domain == "fixture-current" {
+        include_str!("../../docs/evidence/record-copy-field-update-admitted-oracle-20261015/current-to-35cc.json")
+    } else if domain == "assembly" {
         include_str!(
             "../../docs/evidence/ready-main-844-846-836-assembly-20261015/final-to-836.json"
         )

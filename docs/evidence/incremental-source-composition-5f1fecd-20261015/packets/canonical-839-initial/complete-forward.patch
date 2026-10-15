@@ -1,0 +1,2368 @@
+diff --git a/docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md b/docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md
+index 14d7d6b74..0736b2072 100644
+--- a/docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md
++++ b/docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md
+@@ -381,6 +381,12 @@ authenticate within budget changes. Test builds additionally run the
+ factored comparison beside enumeration on every function small enough to
+ enumerate and require the same verdict.
+ 
++The source-only [OPT839 retained canonical scratch draft](evidence/canonical-scratch-839/README.md)
++keeps one comparison's cursor/frame/open backing and authenticated receiving
++storage. Its complete old receiver, ordinary Memo, work/arithmetic/diagnostic
++contract and independent HIR/plan roots remain controls. Focused executable
++qualification is pending; it grants no application-budget or support claim.
++
+ ## Conformance trace
+ 
+ Backend equivalence tests use the versioned [conformance trace v1](CONFORMANCE-TRACE-V1.md): a target-neutral event trace containing stable import/lifecycle IDs, semantic storage/place IDs, expression IDs for transitions, event kind (`initialize`, `transfer`, `call_commit`, `import_begin`, `import_end`, `select_failure`, `finalize_begin`, `finalize_end`, or `result_commit`), and normalized status. `select_failure` exposes the exact write-once source selected by every nested frame as well as the root. Callable imports may complete with a normalized failure; automatic-finalizer import completion is success-only in the type system. A trivial strategy emits both finalization events with success even though it performs no host call. Physical pointers, Wasm handles, status tokens, stack offsets, and host exception objects are excluded. Two backends conform only when they produce the same ordered semantic events and normalized final status for the same verified program and injected import outcomes.
+diff --git a/docs/evidence/canonical-scratch-839/README.md b/docs/evidence/canonical-scratch-839/README.md
+new file mode 100644
+index 000000000..775ad36f4
+--- /dev/null
++++ b/docs/evidence/canonical-scratch-839/README.md
+@@ -0,0 +1,81 @@
++# OPT839: exact-comparison retained canonical scratch
++
++Source-only NEXT batch, based on `94c392e9bd8b60edba497263d0267ec54a4dd728`.
++No Cargo, build, test, Clippy, C, or Node execution was performed for this lane.
++Static formatting and source/inverse checks are separate from qualification.
++
++`canonical_shared::Canonicalizer` retains paid cursor, canonical-frame and open
++identity vector backing across closure lookups and both roots of its existing
++immutable automaton comparison. The original weighted closure and closed-map
++representations remain unchanged here; OPT838 owns their separate migration.
++Open identity membership/removal now scans an insertion-ordered vector; it does
++not influence canonical label/signature ordering, IDs, arithmetic or work units.
++An outer receiver clears all retained references on success, arithmetic overflow,
++cycle, work refusal and physical refusal. Capacity survives; final Drop releases
++it. Growth uses the existing full-replacement reservation while prior backing
++remains charged. There is no refund or allowance transfer.
++
++A closure cache hit authenticates its exact function, ReplayBudget address and
++active ledger, then charges the original single cursor work unit. It constructs
++no throwaway cursor vector. Misses use retained cursor backing. Canonical frame
++and open storage acquire actual capacity before each push; allocation-free
++ordinary/no-owner routes retain their original payer behavior.
++
++`memo::RetainedMemo` composes the complete ordinary Memo. Its first successful
++activation still calls the original Result-returning authentication and pays its
++authorization receipt. Later success uses a unit-returning authentication method
++and a held refusal slot. It still checks the original ledger before querying the
++payer and performs sticky zero-byte authentication. Foreign/stale use invalidates
++the receiver, hides its values, never queries a foreign ReplayBudget, and cannot
++be repaired by restoring the owner. A selected payer Diagnostic is moved intact;
++the already-terminal sentinel is the original allocation-free empty SPX-H006.
++
++The source accounting pays the new wrapper's inline controls and failure
++receiving once at activation. Misses pay their additional inner Result receiving,
++prepare-scratch Result, and copied root scalar. Each canonical call pays its
++additional inner Result receiving, moved root Vec header and prepare-scratch
++Result. The cursor/frame/open headers are paid once at scratch activation.
++Original Rc/vector/map constructors retain their charges. The original ordinary
++Memo implementation remains present, with only its now-test-only insert gated
++and the retained submodule registered. Neither an extant constructor's fee nor a
++work debit was deleted to claim savings.
++
++The complete immediate canonical and Memo originals are retained byte-for-byte
++in the two `.before.txt` files. `before_scratch.rs` is the complete canonical
++receiver with import/module adaptations, closure test visibility and read-only
++accessors; its independent Memo is `before_scratch_memo.rs`. The source regression
++reconstructs these adaptations from the complete originals. Both existing source
++audit joins include every new Rust owner. Prior originals and proof histories
++are untouched. External lane-local provenance holds all changed-file originals,
++a complete inverse patch and exact current-byte hashes; it does not compose or
++rewrite earlier global archives.
++
++Pending focused library selector prefix:
++
++`cleanup_plan::replay::factored::canonical_shared::scratch_tests::`
++
++It owns complete immediate-old/current closures, states, signatures, IDs,
++duplicate weights, overflow, full Diagnostics and every work frontier; actual
++allocation/peak/free/last Drop; zero/exact/one-short and every actual byte cut;
++cache-hit no-allocation/work preservation; foreign/nested/restored owner; and
++ordinary/no-owner controls. Existing canonical_shared, memo, epsilon_alias,
++receiving_layer_tests and singleton_target_tests selectors remain required.
++All assertions are authored and unexecuted.
++
++At the parent batch boundary run only the exact new/affected owners, scoped
++Clippy and the unchanged #808 native/project and builder recovery selectors
++recorded by the batch. In particular preserve:
++
++- `identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal`
++- `catalog_normalizer_compact_core_fits_production_builder_cap`
++- the original `codec808_frontier` library diagnostic witness
++- `string_settlement::codec_allocation::string_vectors::primitive_string_codec_reads_and_short_refusal_allocate_nothing_then_copy_final_string_once`
++- `string_settlement::codec_allocation::string_vectors::primitive_string_codec_actual_byte_and_item_plus_one_preflight_never_reserve_output`
++- all five unchanged `standard_library::application_json::nested_response::string_vectors` cases.
++
++The user forbids full suites/gates for this batch. Do not substitute this draft
++for completed runtime checks. Actual d6bf evidence was 86 pass / 20 fail, including
++10 existing builder/codec application-cap failures. Its 48,840,045-byte figure is
++aggregate final-HIR-stage debit including a cfg(test) oracle, not production
++`document_end` or cleanup-only cost. No application cap-fit, measured saving,
++hosted support, or live-agent token/turn improvement is claimed.
+diff --git a/docs/evidence/canonical-scratch-839/canonical_shared.rs.before.txt b/docs/evidence/canonical-scratch-839/canonical_shared.rs.before.txt
+new file mode 100644
+index 000000000..5f224064f
+--- /dev/null
++++ b/docs/evidence/canonical-scratch-839/canonical_shared.rs.before.txt
+@@ -0,0 +1,525 @@
++//! Paid immutable weighted backing for the ordinary canonical receiver.
++//! Frames, open states and completed memo keys share only owned immutable
++//! vectors. Label order, route weights, signature algebra and work debits keep
++//! the complete original receiver in canonical_before.rs as an independent control.
++use super::{
++    physical_clone, replay_error, Automaton, BTreeMap, BTreeSet, Diagnostic, Label, Rc,
++    ReplayBudget, ResolvedFunction, Weighted,
++};
++
++#[cfg(test)]
++mod before_alias;
++#[cfg(test)]
++mod before_index;
++#[cfg(test)]
++mod before_targets;
++mod epsilon_alias;
++mod memo;
++#[cfg(test)]
++mod singleton_target_tests;
++mod successor_targets;
++
++type SharedWeighted = Rc<Weighted>;
++
++enum CanonicalFrame {
++    Enter(SharedWeighted),
++    Exit(SharedWeighted, u64, Vec<(Label, SharedWeighted)>),
++}
++
++// The caller has already paid the moved vector's complete allocated backing.
++// Rc owns that vector without copying it; its two counters and Vec header are
++// separately acquired while all preceding owners remain fully charged.
++fn own_weighted(
++    function: &ResolvedFunction,
++    budget: &mut ReplayBudget,
++    state: Weighted,
++) -> Result<SharedWeighted, Diagnostic> {
++    budget.reserve_bytes(
++        function,
++        physical_clone::rc_backing_bytes::<Weighted>(),
++        "factored weighted shared header",
++    )?;
++    Ok(Rc::new(state))
++}
++
++// Vec's FromIterator growth policy may round 1..3 items up to four slots.
++// Build this producer through its exact precharged capacity instead.
++fn weighted_successor(
++    function: &ResolvedFunction,
++    budget: &mut ReplayBudget,
++    targets: BTreeMap<usize, u64>,
++) -> Result<SharedWeighted, Diagnostic> {
++    budget.reserve_array::<(usize, u64)>(
++        function,
++        targets.len(),
++        "factored weighted successor vector",
++    )?;
++    let mut state = Vec::with_capacity(targets.len());
++    state.extend(targets);
++    own_weighted(function, budget, state)
++}
++
++fn share_weighted(
++    function: &ResolvedFunction,
++    budget: &mut ReplayBudget,
++    state: &SharedWeighted,
++) -> Result<SharedWeighted, Diagnostic> {
++    let work = state
++        .len()
++        .checked_add(1)
++        .ok_or_else(|| replay_error(function, "factored weighted state work overflowed"))?;
++    budget.charge(function, work, "factored weighted state copy")?;
++    // Authentication remains sticky even though this clone creates no backing.
++    // The receiving frame/map slot has its own full carrier reservation.
++    budget.reserve_bytes(function, 0, "factored weighted state backing")?;
++    Ok(Rc::clone(state))
++}
++
++/// Bottom-up hash-consing of the weighted subset construction. A determinized
++/// state's id is its accepted weight together with each label and the id of
++/// the state that label leads to, so two states share an id exactly when
++/// they accept every observation sequence the same number of times.
++pub(super) struct Canonicalizer<'a> {
++    automaton: &'a Automaton,
++    sink: usize,
++    closures: memo::Memo<Rc<BTreeMap<usize, u64>>>,
++    states: BTreeMap<SharedWeighted, usize>,
++    ids: BTreeMap<(u64, Vec<(Label, usize)>), usize>,
++}
++
++impl<'a> Canonicalizer<'a> {
++    pub(super) fn new(automaton: &'a Automaton, sink: usize) -> Self {
++        Self {
++            automaton,
++            sink,
++            closures: memo::Memo::new(),
++            states: BTreeMap::new(),
++            ids: BTreeMap::new(),
++        }
++    }
++
++    /// Nodes with moves (or the sink) reachable through epsilon edges, each
++    /// with its number of epsilon routes.
++    fn closure(
++        &mut self,
++        function: &ResolvedFunction,
++        root: usize,
++        budget: &mut ReplayBudget,
++    ) -> Result<Option<Rc<BTreeMap<usize, u64>>>, Diagnostic> {
++        self.closures.authenticate(function, budget)?;
++        budget.reserve_array::<(usize, bool)>(function, 1, "factored closure initial cursor")?;
++        let mut stack = vec![(root, false)];
++        while let Some((node, expanded)) = stack.pop() {
++            budget.charge(function, 1, "factored closure cursor")?;
++            if self.closures.contains_key(&node) {
++                continue;
++            }
++            let state = &self.automaton.nodes[node];
++            if !expanded {
++                budget.reserve_vec(function, &mut stack, 1, "factored closure cursors")?;
++                stack.push((node, true));
++                for target in &state.epsilon {
++                    if !self.closures.contains_key(target) {
++                        budget.reserve_vec(function, &mut stack, 1, "factored closure cursors")?;
++                        stack.push((*target, false));
++                    }
++                }
++                continue;
++            }
++            // Exactly one immutable epsilon child contributes the complete map.
++            // Sink/own-move/duplicate-edge and all other shapes keep the full
++            // general producer below, including checked route accumulation.
++            if node != self.sink && state.moves.is_empty() && state.epsilon.len() == 1 {
++                #[cfg(test)]
++                app_census::eligible();
++                let Some(inner) = self.closures.get(&state.epsilon[0]) else {
++                    return Err(replay_error(function, "cleanup CFG contains a cycle"));
++                };
++                #[cfg(test)]
++                app_census::child_ready(inner.len());
++                let shared = match epsilon_alias::share(function, inner, budget) {
++                    Ok(shared) => shared,
++                    Err(error) => {
++                        self.closures.reject_after_error();
++                        return Err(error);
++                    }
++                };
++                #[cfg(test)]
++                app_census::acquired();
++                self.closures.insert(function, node, budget, || shared)?;
++                #[cfg(test)]
++                app_census::published();
++                continue;
++            }
++            let mut closure = BTreeMap::new();
++            if !state.moves.is_empty() || node == self.sink {
++                budget.reserve_btree_node::<usize, u64>(function, "factored closure node")?;
++                closure.insert(node, 1_u64);
++            }
++            for target in &state.epsilon {
++                let Some(inner) = self.closures.get(target) else {
++                    return Err(replay_error(function, "cleanup CFG contains a cycle"));
++                };
++                for (inner_node, routes) in inner.iter() {
++                    budget.charge(function, 1, "factored closure route addition")?;
++                    if !closure.contains_key(inner_node) {
++                        budget
++                            .reserve_btree_node::<usize, u64>(function, "factored closure node")?;
++                    }
++                    let slot = closure.entry(*inner_node).or_insert(0_u64);
++                    let Some(sum) = slot.checked_add(*routes) else {
++                        return Ok(None);
++                    };
++                    *slot = sum;
++                }
++            }
++            budget.charge(
++                function,
++                closure.len().saturating_add(1),
++                "factored skeleton closure",
++            )?;
++            budget.reserve_bytes(
++                function,
++                physical_clone::rc_backing_bytes::<BTreeMap<usize, u64>>(),
++                "factored closure shared header",
++            )?;
++            self.closures
++                .insert(function, node, budget, || Rc::new(closure))?;
++        }
++        Ok(self.closures.get(&root).cloned())
++    }
++
++    /// The accepted weight of `state` and its weighted successor per label.
++    #[allow(clippy::type_complexity)]
++    fn successors(
++        &mut self,
++        function: &ResolvedFunction,
++        state: &SharedWeighted,
++        budget: &mut ReplayBudget,
++    ) -> Result<Option<(u64, Vec<(Label, SharedWeighted)>)>, Diagnostic> {
++        let mut closed = BTreeMap::<usize, u64>::new();
++        for (node, weight) in state.iter() {
++            let Some(closure) = self.closure(function, *node, budget)? else {
++                return Ok(None);
++            };
++            for (inner, routes) in closure.iter() {
++                let Some(sum) = routes.checked_mul(*weight).and_then(|product| {
++                    closed.get(inner).copied().unwrap_or(0).checked_add(product)
++                }) else {
++                    return Ok(None);
++                };
++                budget.charge(function, 1, "factored weighted route addition")?;
++                if !closed.contains_key(inner) {
++                    budget.reserve_btree_node::<usize, u64>(
++                        function,
++                        "factored weighted closure node",
++                    )?;
++                }
++                closed.insert(*inner, sum);
++            }
++        }
++        let accepted = closed.get(&self.sink).copied().unwrap_or(0);
++        if budget.pays_allocations() {
++            budget.reserve_bytes(
++                function,
++                std::mem::size_of::<BTreeMap<Label, successor_targets::Targets>>()
++                    + std::mem::size_of::<Option<&mut successor_targets::Targets>>(),
++                "factored successor label receiving controls",
++            )?;
++        }
++        let mut successors = BTreeMap::<Label, successor_targets::Targets>::new();
++        for (node, weight) in &closed {
++            let moves = &self.automaton.nodes[*node].moves;
++            budget.charge(
++                function,
++                moves.len().saturating_add(1),
++                "factored skeleton subset construction",
++            )?;
++            for (label, child) in moves {
++                if !successors.contains_key(label) {
++                    budget.reserve_btree_node::<Label, successor_targets::Targets>(
++                        function,
++                        "factored successor label node",
++                    )?;
++                    if budget.pays_allocations() {
++                        budget.reserve_bytes(
++                            function,
++                            2 * std::mem::size_of::<successor_targets::Targets>()
++                                + std::mem::size_of::<Option<u64>>()
++                                + std::mem::size_of::<Option<successor_targets::Targets>>(),
++                            "factored inline singleton target initializer and receiving",
++                        )?;
++                    }
++                    budget.reserve_bytes(
++                        function,
++                        0,
++                        "factored singleton target authentication",
++                    )?;
++                    let weight = 0_u64
++                        .checked_add(*weight)
++                        .expect("zero plus u64 cannot overflow");
++                    successors.insert(
++                        label.clone(),
++                        successor_targets::Targets::One {
++                            child: *child,
++                            weight,
++                        },
++                    );
++                } else {
++                    let targets = successors.get_mut(label).expect("existing label");
++                    match targets {
++                        successor_targets::Targets::One {
++                            child: first,
++                            weight: total,
++                        } if *first == *child => {
++                            // Same repeated-child checked_add before any later
++                            // target acquisition or error, as in the old map.
++                            let Some(sum) = total.checked_add(*weight) else {
++                                return Ok(None);
++                            };
++                            *total = sum;
++                        }
++                        successor_targets::Targets::One {
++                            child: first,
++                            weight: total,
++                        } => {
++                            assert_ne!(*first, *child);
++                            if budget.pays_allocations() {
++                                budget.reserve_bytes(
++                                    function,
++                                    2 * std::mem::size_of::<BTreeMap<usize, u64>>()
++                                        + std::mem::size_of::<successor_targets::Targets>()
++                                        + 2 * std::mem::size_of::<Option<u64>>()
++                                        + 2 * std::mem::size_of::<(usize, u64)>(),
++                                    "factored inline successor promotion carriers",
++                                )?;
++                            }
++                            budget.reserve_bytes(
++                                function,
++                                0,
++                                "factored successor target promotion authentication",
++                            )?;
++                            budget.reserve_btree_node::<usize, u64>(
++                                function,
++                                "factored successor target node",
++                            )?;
++                            budget.reserve_btree_node::<usize, u64>(
++                                function,
++                                "factored successor target node",
++                            )?;
++                            let mut promoted = BTreeMap::new();
++                            promoted.insert(*first, *total);
++                            let sum = 0_u64
++                                .checked_add(*weight)
++                                .expect("zero plus u64 cannot overflow");
++                            promoted.insert(*child, sum);
++                            *targets = successor_targets::Targets::Many(promoted);
++                        }
++                        successor_targets::Targets::Many(targets) => {
++                            if !targets.contains_key(child) {
++                                budget.reserve_btree_node::<usize, u64>(
++                                    function,
++                                    "factored successor target node",
++                                )?;
++                            }
++                            let slot = targets.entry(*child).or_insert(0);
++                            let Some(sum) = slot.checked_add(*weight) else {
++                                return Ok(None);
++                            };
++                            *slot = sum;
++                        }
++                    }
++                }
++            }
++        }
++        budget.reserve_array::<(Label, SharedWeighted)>(
++            function,
++            successors.len(),
++            "factored successor vector",
++        )?;
++        let mut result = Vec::with_capacity(successors.len());
++        // Do not initialize an owning map iterator or its receiving tuple on
++        // the empty route. Zero-byte vector authentication above still runs.
++        if !successors.is_empty() {
++            if budget.pays_allocations() {
++                budget.reserve_bytes(
++                    function,
++                    std::mem::size_of::<
++                        std::collections::btree_map::IntoIter<Label, successor_targets::Targets>,
++                    >() + std::mem::size_of::<Option<(Label, successor_targets::Targets)>>()
++                        + std::mem::size_of::<(Label, successor_targets::Targets)>(),
++                    "factored successor target iterator receiving",
++                )?;
++            }
++            for (label, targets) in successors {
++                if budget.pays_allocations() {
++                    budget.reserve_bytes(
++                        function,
++                        2 * std::mem::size_of::<SharedWeighted>()
++                            + std::mem::size_of::<Vec<(usize, u64)>>()
++                            + std::mem::size_of::<(usize, u64)>(),
++                        "factored inline successor finish receiving",
++                    )?;
++                }
++                budget.reserve_bytes(
++                    function,
++                    0,
++                    "factored successor target finish authentication",
++                )?;
++                let state = match targets {
++                    successor_targets::Targets::One { child, weight } => {
++                        budget.reserve_array::<(usize, u64)>(
++                            function,
++                            1,
++                            "factored weighted successor vector",
++                        )?;
++                        if budget.pays_allocations() {
++                            budget.reserve_bytes(
++                                function,
++                                std::mem::size_of::<[(usize, u64); 1]>(),
++                                "factored one-entry array initializer",
++                            )?;
++                        }
++                        let state = Vec::from([(child, weight)]);
++                        budget.reserve_bytes(
++                            function,
++                            physical_clone::rc_backing_bytes::<Weighted>(),
++                            "factored weighted shared header",
++                        )?;
++                        Rc::new(state)
++                    }
++                    successor_targets::Targets::Many(targets) => {
++                        // The remaining fallible weighted producer still has
++                        // its real map argument and Result receiving carrier.
++                        if budget.pays_allocations() {
++                            budget.reserve_bytes(
++                                function,
++                                std::mem::size_of::<BTreeMap<usize, u64>>()
++                                    + std::mem::size_of::<Result<SharedWeighted, Diagnostic>>(),
++                                "factored many weighted producer receiving",
++                            )?;
++                        }
++                        weighted_successor(function, budget, targets)?
++                    }
++                };
++                result.push((label, state));
++            }
++        }
++        Ok(Some((accepted, result)))
++    }
++
++    pub(super) fn id(
++        &mut self,
++        function: &ResolvedFunction,
++        root: Weighted,
++        budget: &mut ReplayBudget,
++    ) -> Result<Option<usize>, Diagnostic> {
++        #[cfg(test)]
++        tests::note_actual_entry(budget);
++        // Authenticate even when states already contains the requested root.
++        // One equivalent() call holds this function and budget borrowed across
++        // both roots; no closure/cache view leaves that invocation.
++        self.closures.authenticate(function, budget)?;
++        budget.reserve_array::<CanonicalFrame>(function, 1, "factored canonical initial frame")?;
++        let root = own_weighted(function, budget, root)?;
++        let root_copy = share_weighted(function, budget, &root)?;
++        let mut frames = vec![CanonicalFrame::Enter(root_copy)];
++        let mut open = BTreeSet::new();
++        while let Some(frame) = frames.pop() {
++            budget.charge(function, 1, "factored canonical frame")?;
++            match frame {
++                CanonicalFrame::Enter(state) => {
++                    if self.states.contains_key(&state) {
++                        continue;
++                    }
++                    if open.contains(&state) {
++                        return Err(replay_error(function, "cleanup CFG contains a cycle"));
++                    }
++                    budget.reserve_btree_node::<SharedWeighted, ()>(
++                        function,
++                        "factored open-state identity node",
++                    )?;
++                    open.insert(share_weighted(function, budget, &state)?);
++                    let Some((accepted, successors)) = self.successors(function, &state, budget)?
++                    else {
++                        return Ok(None);
++                    };
++                    let child_count = successors.len();
++                    budget.reserve_vec(
++                        function,
++                        &mut frames,
++                        1,
++                        "factored canonical exit frame",
++                    )?;
++                    let exit_index = frames.len();
++                    frames.push(CanonicalFrame::Exit(state, accepted, successors));
++                    for index in 0..child_count {
++                        let CanonicalFrame::Exit(_, _, successors) = &frames[exit_index] else {
++                            unreachable!("canonical exit retained below child frames");
++                        };
++                        let child = share_weighted(function, budget, &successors[index].1)?;
++                        budget.reserve_vec(
++                            function,
++                            &mut frames,
++                            1,
++                            "factored canonical child frames",
++                        )?;
++                        frames.push(CanonicalFrame::Enter(child));
++                    }
++                }
++                CanonicalFrame::Exit(state, accepted, successors) => {
++                    open.remove(&state);
++                    budget.charge(
++                        function,
++                        successors.len(),
++                        "factored canonical signature construction",
++                    )?;
++                    budget.reserve_array::<(Label, usize)>(
++                        function,
++                        successors.len(),
++                        "factored canonical signature vector",
++                    )?;
++                    let mut key = Vec::with_capacity(successors.len());
++                    for (label, child) in successors {
++                        let Some(id) = self.states.get(&child) else {
++                            return Err(replay_error(function, "cleanup CFG contains a cycle"));
++                        };
++                        key.push((label, *id));
++                    }
++                    let key = (accepted, key);
++                    let id = match self.ids.get(&key) {
++                        Some(id) => *id,
++                        None => {
++                            budget.reserve_btree_node::<(u64, Vec<(Label, usize)>), usize>(
++                                function,
++                                "factored canonical signature node",
++                            )?;
++                            let id = self.ids.len();
++                            self.ids.insert(key, id);
++                            id
++                        }
++                    };
++                    if !self.states.contains_key(&state) {
++                        budget.reserve_btree_node::<SharedWeighted, usize>(
++                            function,
++                            "factored canonical state memo node",
++                        )?;
++                    }
++                    self.states.insert(state, id);
++                }
++            }
++        }
++        Ok(self.states.get(&root).copied())
++    }
++}
++
++#[cfg(test)]
++mod tests;
++
++#[cfg(test)]
++pub(super) mod app_census;
++
++#[cfg(test)]
++mod before_receiving_layers;
++#[cfg(test)]
++mod receiving_layer_tests;
+diff --git a/docs/evidence/canonical-scratch-839/memo.rs.before.txt b/docs/evidence/canonical-scratch-839/memo.rs.before.txt
+new file mode 100644
+index 000000000..d6b40c210
+--- /dev/null
++++ b/docs/evidence/canonical-scratch-839/memo.rs.before.txt
+@@ -0,0 +1,158 @@
++//! Lazy numeric closure memo. Sparse high keys still require gap directory slots.
++use super::{Diagnostic, ReplayBudget, ResolvedFunction};
++use crate::bounded_output::classifier_string::ClassifierLedger;
++use std::mem::size_of;
++const WIDTH: usize = 8;
++
++pub(super) struct Memo<T> {
++    chunks: Vec<Option<Box<[Option<T>; WIDTH]>>>,
++    binding: Option<Binding>,
++    failed: bool,
++}
++struct Binding {
++    function: *const ResolvedFunction,
++    budget: *const ReplayBudget,
++    ledger: ClassifierLedger,
++}
++impl<T> Memo<T> {
++    pub(super) fn new() -> Self {
++        Self {
++            chunks: Vec::new(),
++            binding: None,
++            failed: false,
++        }
++    }
++    pub(super) fn authenticate(
++        &mut self,
++        function: &ResolvedFunction,
++        budget: &mut ReplayBudget,
++    ) -> Result<(), Diagnostic> {
++        if self.failed {
++            return Err(Diagnostic::io("SPX-H006", String::new()));
++        }
++        if let Some(binding) = &self.binding {
++            // Read no foreign payer, even to construct a refusal report. The
++            // exact caller keeps both borrowed receivers at stable addresses.
++            let ledger_matches = binding.ledger.current();
++            if binding.function != std::ptr::from_ref(function)
++                || binding.budget != std::ptr::from_ref(budget)
++                || !ledger_matches
++            {
++                self.failed = true;
++                return Err(Diagnostic::io("SPX-H006", String::new()));
++            }
++        }
++        if let Err(error) =
++            budget.reserve_bytes(function, 0, "factored closure memo authentication")
++        {
++            self.failed = true;
++            return Err(error);
++        }
++        if budget.pays_allocations() {
++            if let Err(error) = budget.reserve_bytes(
++                function,
++                size_of::<Result<(), Diagnostic>>(),
++                "factored closure memo authorization receipt",
++            ) {
++                self.failed = true;
++                return Err(error);
++            }
++        }
++        if self.binding.is_none() {
++            // One live Memo receiver (including its binding slot) and the
++            // separately named Option<Binding> initializer below.
++            // The old Canonicalizer constructor created only allocation-free
++            // inert fields; activation pays its new inline receiver once.
++            if budget.pays_allocations() {
++                if let Err(error) = budget.reserve_bytes(
++                    function,
++                    size_of::<Self>() + size_of::<Option<Binding>>(),
++                    "factored closure memo controls",
++                ) {
++                    self.failed = true;
++                    return Err(error);
++                }
++            }
++            let binding = Some(Binding {
++                function: std::ptr::from_ref(function),
++                budget: std::ptr::from_ref(budget),
++                ledger: ClassifierLedger::capture(),
++            });
++            self.binding = binding;
++        }
++        Ok(())
++    }
++    // Caller already holds the selected error; retain it unchanged while
++    // invalidating views without querying any payer or allocating a report.
++    pub(super) fn reject_after_error(&mut self) {
++        self.failed = true;
++    }
++    pub(super) fn contains_key(&self, key: &usize) -> bool {
++        self.get(key).is_some()
++    }
++    pub(super) fn get(&self, key: &usize) -> Option<&T> {
++        if self.failed {
++            return None;
++        }
++        self.chunks
++            .get(*key / WIDTH)?
++            .as_ref()?
++            .get(*key % WIDTH)?
++            .as_ref()
++    }
++    pub(super) fn insert(
++        &mut self,
++        function: &ResolvedFunction,
++        key: usize,
++        budget: &mut ReplayBudget,
++        make: impl FnOnce() -> T,
++    ) -> Result<(), Diagnostic> {
++        self.authenticate(function, budget)?;
++        let result = self.insert_bound(function, key, budget, make);
++        if result.is_err() {
++            self.failed = true;
++        }
++        result
++    }
++    fn insert_bound(
++        &mut self,
++        function: &ResolvedFunction,
++        key: usize,
++        budget: &mut ReplayBudget,
++        make: impl FnOnce() -> T,
++    ) -> Result<(), Diagnostic> {
++        let index = key / WIDTH;
++        // WIDTH > 1, so quotient + 1 cannot overflow usize.
++        let required = index + 1;
++        if self.chunks.len() < required {
++            let additional = required - self.chunks.len();
++            budget.reserve_vec(
++                function,
++                &mut self.chunks,
++                additional,
++                "factored closure memo directory",
++            )?;
++            self.chunks.resize_with(required, || None);
++        }
++        if self.chunks[index].is_none() {
++            if budget.pays_allocations() {
++                // Named array initializer + its simultaneously allocated boxed
++                // array backing + named Box pointer. The directory's receiving
++                // Option<Box> slot was already paid by reserve_vec, not again.
++                budget.reserve_bytes(
++                    function,
++                    2 * size_of::<[Option<T>; WIDTH]>() + size_of::<Box<[Option<T>; WIDTH]>>(),
++                    "factored closure memo chunk",
++                )?;
++            }
++            let values: [Option<T>; WIDTH] = std::array::from_fn(|_| None);
++            let chunk = Box::new(values);
++            self.chunks[index] = Some(chunk);
++        }
++        self.chunks[index].as_mut().expect("paid chunk")[key % WIDTH] = Some(make());
++        Ok(())
++    }
++}
++
++#[cfg(test)]
++mod tests;
+diff --git a/src/cleanup_plan/replay/factored/canonical_shared.rs b/src/cleanup_plan/replay/factored/canonical_shared.rs
+index 5f224064f..d6ed59736 100644
+--- a/src/cleanup_plan/replay/factored/canonical_shared.rs
++++ b/src/cleanup_plan/replay/factored/canonical_shared.rs
+@@ -3,8 +3,8 @@
+ //! vectors. Label order, route weights, signature algebra and work debits keep
+ //! the complete original receiver in canonical_before.rs as an independent control.
+ use super::{
+-    physical_clone, replay_error, Automaton, BTreeMap, BTreeSet, Diagnostic, Label, Rc,
+-    ReplayBudget, ResolvedFunction, Weighted,
++    physical_clone, replay_error, Automaton, BTreeMap, Diagnostic, Label, Rc, ReplayBudget,
++    ResolvedFunction, Weighted,
+ };
+ 
+ #[cfg(test)]
+@@ -12,10 +12,14 @@ mod before_alias;
+ #[cfg(test)]
+ mod before_index;
+ #[cfg(test)]
++mod before_scratch;
++#[cfg(test)]
+ mod before_targets;
+ mod epsilon_alias;
+ mod memo;
+ #[cfg(test)]
++mod scratch_tests;
++#[cfg(test)]
+ mod singleton_target_tests;
+ mod successor_targets;
+ 
+@@ -82,9 +86,13 @@ fn share_weighted(
+ pub(super) struct Canonicalizer<'a> {
+     automaton: &'a Automaton,
+     sink: usize,
+-    closures: memo::Memo<Rc<BTreeMap<usize, u64>>>,
++    closures: memo::RetainedMemo<Rc<BTreeMap<usize, u64>>>,
+     states: BTreeMap<SharedWeighted, usize>,
+     ids: BTreeMap<(u64, Vec<(Label, usize)>), usize>,
++    cursor: Vec<(usize, bool)>,
++    frames: Vec<CanonicalFrame>,
++    open: Vec<SharedWeighted>,
++    scratch_paid: bool,
+ }
+ 
+ impl<'a> Canonicalizer<'a> {
+@@ -92,9 +100,13 @@ impl<'a> Canonicalizer<'a> {
+         Self {
+             automaton,
+             sink,
+-            closures: memo::Memo::new(),
++            closures: memo::RetainedMemo::new(),
+             states: BTreeMap::new(),
+             ids: BTreeMap::new(),
++            cursor: Vec::new(),
++            frames: Vec::new(),
++            open: Vec::new(),
++            scratch_paid: false,
+         }
+     }
+ 
+@@ -106,22 +118,62 @@ impl<'a> Canonicalizer<'a> {
+         root: usize,
+         budget: &mut ReplayBudget,
+     ) -> Result<Option<Rc<BTreeMap<usize, u64>>>, Diagnostic> {
+-        self.closures.authenticate(function, budget)?;
+-        budget.reserve_array::<(usize, bool)>(function, 1, "factored closure initial cursor")?;
+-        let mut stack = vec![(root, false)];
+-        while let Some((node, expanded)) = stack.pop() {
++        self.closures.authenticate_retained(function, budget);
++        if self.closures.failed() {
++            return Err(self.closures.failure());
++        }
++        // The cached route still executes its original one cursor work debit.
++        // It constructs neither a cursor Vec nor an inner Result receiver.
++        if self.closures.contains_key(&root) {
++            budget.charge(function, 1, "factored closure cursor")?;
++            return Ok(self.closures.get(&root).cloned());
++        }
++        if budget.pays_allocations() {
++            budget.reserve_bytes(
++                function,
++                std::mem::size_of::<Result<Option<Rc<BTreeMap<usize, u64>>>, Diagnostic>>()
++                    + std::mem::size_of::<Result<(), Diagnostic>>()
++                    + std::mem::size_of::<usize>(),
++                "factored closure scratch receiving",
++            )?;
++        }
++        self.prepare_scratch(function, budget)?;
++        let result = self.closure_inner(function, root, budget);
++        self.cursor.clear();
++        result
++    }
++
++    fn closure_inner(
++        &mut self,
++        function: &ResolvedFunction,
++        root: usize,
++        budget: &mut ReplayBudget,
++    ) -> Result<Option<Rc<BTreeMap<usize, u64>>>, Diagnostic> {
++        budget.reserve_vec(
++            function,
++            &mut self.cursor,
++            1,
++            "factored closure initial cursor",
++        )?;
++        self.cursor.push((root, false));
++        while let Some((node, expanded)) = self.cursor.pop() {
+             budget.charge(function, 1, "factored closure cursor")?;
+             if self.closures.contains_key(&node) {
+                 continue;
+             }
+             let state = &self.automaton.nodes[node];
+             if !expanded {
+-                budget.reserve_vec(function, &mut stack, 1, "factored closure cursors")?;
+-                stack.push((node, true));
++                budget.reserve_vec(function, &mut self.cursor, 1, "factored closure cursors")?;
++                self.cursor.push((node, true));
+                 for target in &state.epsilon {
+                     if !self.closures.contains_key(target) {
+-                        budget.reserve_vec(function, &mut stack, 1, "factored closure cursors")?;
+-                        stack.push((*target, false));
++                        budget.reserve_vec(
++                            function,
++                            &mut self.cursor,
++                            1,
++                            "factored closure cursors",
++                        )?;
++                        self.cursor.push((*target, false));
+                     }
+                 }
+                 continue;
+@@ -146,7 +198,8 @@ impl<'a> Canonicalizer<'a> {
+                 };
+                 #[cfg(test)]
+                 app_census::acquired();
+-                self.closures.insert(function, node, budget, || shared)?;
++                self.closures
++                    .insert_retained(function, node, budget, || shared)?;
+                 #[cfg(test)]
+                 app_census::published();
+                 continue;
+@@ -184,7 +237,7 @@ impl<'a> Canonicalizer<'a> {
+                 "factored closure shared header",
+             )?;
+             self.closures
+-                .insert(function, node, budget, || Rc::new(closure))?;
++                .insert_retained(function, node, budget, || Rc::new(closure))?;
+         }
+         Ok(self.closures.get(&root).cloned())
+     }
+@@ -419,27 +472,82 @@ impl<'a> Canonicalizer<'a> {
+         // Authenticate even when states already contains the requested root.
+         // One equivalent() call holds this function and budget borrowed across
+         // both roots; no closure/cache view leaves that invocation.
+-        self.closures.authenticate(function, budget)?;
+-        budget.reserve_array::<CanonicalFrame>(function, 1, "factored canonical initial frame")?;
++        self.closures.authenticate_retained(function, budget);
++        if self.closures.failed() {
++            return Err(self.closures.failure());
++        }
++        if budget.pays_allocations() {
++            budget.reserve_bytes(
++                function,
++                std::mem::size_of::<Result<Option<usize>, Diagnostic>>()
++                    + std::mem::size_of::<Weighted>()
++                    + std::mem::size_of::<Result<(), Diagnostic>>(),
++                "factored canonical scratch receiving and moved root",
++            )?;
++        }
++        self.prepare_scratch(function, budget)?;
++        let result = self.id_inner(function, root, budget);
++        // Retain capacity, never owned references, across either root and all
++        // success, arithmetic, work, physical and semantic failure exits.
++        self.cursor.clear();
++        self.frames.clear();
++        self.open.clear();
++        result
++    }
++
++    fn prepare_scratch(
++        &mut self,
++        function: &ResolvedFunction,
++        budget: &mut ReplayBudget,
++    ) -> Result<(), Diagnostic> {
++        if !self.scratch_paid {
++            if budget.pays_allocations() {
++                budget.reserve_bytes(
++                    function,
++                    std::mem::size_of::<Vec<(usize, bool)>>()
++                        + std::mem::size_of::<Vec<CanonicalFrame>>()
++                        + std::mem::size_of::<Vec<SharedWeighted>>()
++                        + std::mem::size_of::<bool>(),
++                    "factored retained canonical scratch controls",
++                )?;
++            }
++            self.scratch_paid = true;
++        }
++        Ok(())
++    }
++
++    fn id_inner(
++        &mut self,
++        function: &ResolvedFunction,
++        root: Weighted,
++        budget: &mut ReplayBudget,
++    ) -> Result<Option<usize>, Diagnostic> {
++        budget.reserve_vec(
++            function,
++            &mut self.frames,
++            1,
++            "factored canonical initial frame",
++        )?;
+         let root = own_weighted(function, budget, root)?;
+         let root_copy = share_weighted(function, budget, &root)?;
+-        let mut frames = vec![CanonicalFrame::Enter(root_copy)];
+-        let mut open = BTreeSet::new();
+-        while let Some(frame) = frames.pop() {
++        self.frames.push(CanonicalFrame::Enter(root_copy));
++        while let Some(frame) = self.frames.pop() {
+             budget.charge(function, 1, "factored canonical frame")?;
+             match frame {
+                 CanonicalFrame::Enter(state) => {
+                     if self.states.contains_key(&state) {
+                         continue;
+                     }
+-                    if open.contains(&state) {
++                    if self.open.contains(&state) {
+                         return Err(replay_error(function, "cleanup CFG contains a cycle"));
+                     }
+-                    budget.reserve_btree_node::<SharedWeighted, ()>(
++                    budget.reserve_vec(
+                         function,
+-                        "factored open-state identity node",
++                        &mut self.open,
++                        1,
++                        "factored retained open-state identity slots",
+                     )?;
+-                    open.insert(share_weighted(function, budget, &state)?);
++                    self.open.push(share_weighted(function, budget, &state)?);
+                     let Some((accepted, successors)) = self.successors(function, &state, budget)?
+                     else {
+                         return Ok(None);
+@@ -447,28 +555,30 @@ impl<'a> Canonicalizer<'a> {
+                     let child_count = successors.len();
+                     budget.reserve_vec(
+                         function,
+-                        &mut frames,
++                        &mut self.frames,
+                         1,
+                         "factored canonical exit frame",
+                     )?;
+-                    let exit_index = frames.len();
+-                    frames.push(CanonicalFrame::Exit(state, accepted, successors));
++                    let exit_index = self.frames.len();
++                    self.frames
++                        .push(CanonicalFrame::Exit(state, accepted, successors));
+                     for index in 0..child_count {
+-                        let CanonicalFrame::Exit(_, _, successors) = &frames[exit_index] else {
++                        let CanonicalFrame::Exit(_, _, successors) = &self.frames[exit_index]
++                        else {
+                             unreachable!("canonical exit retained below child frames");
+                         };
+                         let child = share_weighted(function, budget, &successors[index].1)?;
+                         budget.reserve_vec(
+                             function,
+-                            &mut frames,
++                            &mut self.frames,
+                             1,
+                             "factored canonical child frames",
+                         )?;
+-                        frames.push(CanonicalFrame::Enter(child));
++                        self.frames.push(CanonicalFrame::Enter(child));
+                     }
+                 }
+                 CanonicalFrame::Exit(state, accepted, successors) => {
+-                    open.remove(&state);
++                    self.open.retain(|entry| entry != &state);
+                     budget.charge(
+                         function,
+                         successors.len(),
+diff --git a/src/cleanup_plan/replay/factored/canonical_shared/before_scratch.rs b/src/cleanup_plan/replay/factored/canonical_shared/before_scratch.rs
+new file mode 100644
+index 000000000..04bd27c9f
+--- /dev/null
++++ b/src/cleanup_plan/replay/factored/canonical_shared/before_scratch.rs
+@@ -0,0 +1,511 @@
++//! Paid immutable weighted backing for the ordinary canonical receiver.
++//! Frames, open states and completed memo keys share only owned immutable
++//! vectors. Label order, route weights, signature algebra and work debits keep
++//! the complete original receiver in canonical_before.rs as an independent control.
++use super::super::{
++    physical_clone, replay_error, Automaton, BTreeMap, BTreeSet, Diagnostic, Label, Rc,
++    ReplayBudget, ResolvedFunction, Weighted,
++};
++use super::{app_census, epsilon_alias, successor_targets, tests};
++#[path = "before_scratch_memo.rs"]
++mod memo;
++
++type SharedWeighted = Rc<Weighted>;
++
++enum CanonicalFrame {
++    Enter(SharedWeighted),
++    Exit(SharedWeighted, u64, Vec<(Label, SharedWeighted)>),
++}
++
++// The caller has already paid the moved vector's complete allocated backing.
++// Rc owns that vector without copying it; its two counters and Vec header are
++// separately acquired while all preceding owners remain fully charged.
++fn own_weighted(
++    function: &ResolvedFunction,
++    budget: &mut ReplayBudget,
++    state: Weighted,
++) -> Result<SharedWeighted, Diagnostic> {
++    budget.reserve_bytes(
++        function,
++        physical_clone::rc_backing_bytes::<Weighted>(),
++        "factored weighted shared header",
++    )?;
++    Ok(Rc::new(state))
++}
++
++// Vec's FromIterator growth policy may round 1..3 items up to four slots.
++// Build this producer through its exact precharged capacity instead.
++fn weighted_successor(
++    function: &ResolvedFunction,
++    budget: &mut ReplayBudget,
++    targets: BTreeMap<usize, u64>,
++) -> Result<SharedWeighted, Diagnostic> {
++    budget.reserve_array::<(usize, u64)>(
++        function,
++        targets.len(),
++        "factored weighted successor vector",
++    )?;
++    let mut state = Vec::with_capacity(targets.len());
++    state.extend(targets);
++    own_weighted(function, budget, state)
++}
++
++fn share_weighted(
++    function: &ResolvedFunction,
++    budget: &mut ReplayBudget,
++    state: &SharedWeighted,
++) -> Result<SharedWeighted, Diagnostic> {
++    let work = state
++        .len()
++        .checked_add(1)
++        .ok_or_else(|| replay_error(function, "factored weighted state work overflowed"))?;
++    budget.charge(function, work, "factored weighted state copy")?;
++    // Authentication remains sticky even though this clone creates no backing.
++    // The receiving frame/map slot has its own full carrier reservation.
++    budget.reserve_bytes(function, 0, "factored weighted state backing")?;
++    Ok(Rc::clone(state))
++}
++
++/// Bottom-up hash-consing of the weighted subset construction. A determinized
++/// state's id is its accepted weight together with each label and the id of
++/// the state that label leads to, so two states share an id exactly when
++/// they accept every observation sequence the same number of times.
++pub(super) struct Canonicalizer<'a> {
++    automaton: &'a Automaton,
++    sink: usize,
++    closures: memo::Memo<Rc<BTreeMap<usize, u64>>>,
++    states: BTreeMap<SharedWeighted, usize>,
++    ids: BTreeMap<(u64, Vec<(Label, usize)>), usize>,
++}
++
++impl<'a> Canonicalizer<'a> {
++    pub(super) fn new(automaton: &'a Automaton, sink: usize) -> Self {
++        Self {
++            automaton,
++            sink,
++            closures: memo::Memo::new(),
++            states: BTreeMap::new(),
++            ids: BTreeMap::new(),
++        }
++    }
++
++    /// Nodes with moves (or the sink) reachable through epsilon edges, each
++    /// with its number of epsilon routes.
++    pub(super) fn closure(
++        &mut self,
++        function: &ResolvedFunction,
++        root: usize,
++        budget: &mut ReplayBudget,
++    ) -> Result<Option<Rc<BTreeMap<usize, u64>>>, Diagnostic> {
++        self.closures.authenticate(function, budget)?;
++        budget.reserve_array::<(usize, bool)>(function, 1, "factored closure initial cursor")?;
++        let mut stack = vec![(root, false)];
++        while let Some((node, expanded)) = stack.pop() {
++            budget.charge(function, 1, "factored closure cursor")?;
++            if self.closures.contains_key(&node) {
++                continue;
++            }
++            let state = &self.automaton.nodes[node];
++            if !expanded {
++                budget.reserve_vec(function, &mut stack, 1, "factored closure cursors")?;
++                stack.push((node, true));
++                for target in &state.epsilon {
++                    if !self.closures.contains_key(target) {
++                        budget.reserve_vec(function, &mut stack, 1, "factored closure cursors")?;
++                        stack.push((*target, false));
++                    }
++                }
++                continue;
++            }
++            // Exactly one immutable epsilon child contributes the complete map.
++            // Sink/own-move/duplicate-edge and all other shapes keep the full
++            // general producer below, including checked route accumulation.
++            if node != self.sink && state.moves.is_empty() && state.epsilon.len() == 1 {
++                #[cfg(test)]
++                app_census::eligible();
++                let Some(inner) = self.closures.get(&state.epsilon[0]) else {
++                    return Err(replay_error(function, "cleanup CFG contains a cycle"));
++                };
++                #[cfg(test)]
++                app_census::child_ready(inner.len());
++                let shared = match epsilon_alias::share(function, inner, budget) {
++                    Ok(shared) => shared,
++                    Err(error) => {
++                        self.closures.reject_after_error();
++                        return Err(error);
++                    }
++                };
++                #[cfg(test)]
++                app_census::acquired();
++                self.closures.insert(function, node, budget, || shared)?;
++                #[cfg(test)]
++                app_census::published();
++                continue;
++            }
++            let mut closure = BTreeMap::new();
++            if !state.moves.is_empty() || node == self.sink {
++                budget.reserve_btree_node::<usize, u64>(function, "factored closure node")?;
++                closure.insert(node, 1_u64);
++            }
++            for target in &state.epsilon {
++                let Some(inner) = self.closures.get(target) else {
++                    return Err(replay_error(function, "cleanup CFG contains a cycle"));
++                };
++                for (inner_node, routes) in inner.iter() {
++                    budget.charge(function, 1, "factored closure route addition")?;
++                    if !closure.contains_key(inner_node) {
++                        budget
++                            .reserve_btree_node::<usize, u64>(function, "factored closure node")?;
++                    }
++                    let slot = closure.entry(*inner_node).or_insert(0_u64);
++                    let Some(sum) = slot.checked_add(*routes) else {
++                        return Ok(None);
++                    };
++                    *slot = sum;
++                }
++            }
++            budget.charge(
++                function,
++                closure.len().saturating_add(1),
++                "factored skeleton closure",
++            )?;
++            budget.reserve_bytes(
++                function,
++                physical_clone::rc_backing_bytes::<BTreeMap<usize, u64>>(),
++                "factored closure shared header",
++            )?;
++            self.closures
++                .insert(function, node, budget, || Rc::new(closure))?;
++        }
++        Ok(self.closures.get(&root).cloned())
++    }
++
++    /// The accepted weight of `state` and its weighted successor per label.
++    #[allow(clippy::type_complexity)]
++    fn successors(
++        &mut self,
++        function: &ResolvedFunction,
++        state: &SharedWeighted,
++        budget: &mut ReplayBudget,
++    ) -> Result<Option<(u64, Vec<(Label, SharedWeighted)>)>, Diagnostic> {
++        let mut closed = BTreeMap::<usize, u64>::new();
++        for (node, weight) in state.iter() {
++            let Some(closure) = self.closure(function, *node, budget)? else {
++                return Ok(None);
++            };
++            for (inner, routes) in closure.iter() {
++                let Some(sum) = routes.checked_mul(*weight).and_then(|product| {
++                    closed.get(inner).copied().unwrap_or(0).checked_add(product)
++                }) else {
++                    return Ok(None);
++                };
++                budget.charge(function, 1, "factored weighted route addition")?;
++                if !closed.contains_key(inner) {
++                    budget.reserve_btree_node::<usize, u64>(
++                        function,
++                        "factored weighted closure node",
++                    )?;
++                }
++                closed.insert(*inner, sum);
++            }
++        }
++        let accepted = closed.get(&self.sink).copied().unwrap_or(0);
++        if budget.pays_allocations() {
++            budget.reserve_bytes(
++                function,
++                std::mem::size_of::<BTreeMap<Label, successor_targets::Targets>>()
++                    + std::mem::size_of::<Option<&mut successor_targets::Targets>>(),
++                "factored successor label receiving controls",
++            )?;
++        }
++        let mut successors = BTreeMap::<Label, successor_targets::Targets>::new();
++        for (node, weight) in &closed {
++            let moves = &self.automaton.nodes[*node].moves;
++            budget.charge(
++                function,
++                moves.len().saturating_add(1),
++                "factored skeleton subset construction",
++            )?;
++            for (label, child) in moves {
++                if !successors.contains_key(label) {
++                    budget.reserve_btree_node::<Label, successor_targets::Targets>(
++                        function,
++                        "factored successor label node",
++                    )?;
++                    if budget.pays_allocations() {
++                        budget.reserve_bytes(
++                            function,
++                            2 * std::mem::size_of::<successor_targets::Targets>()
++                                + std::mem::size_of::<Option<u64>>()
++                                + std::mem::size_of::<Option<successor_targets::Targets>>(),
++                            "factored inline singleton target initializer and receiving",
++                        )?;
++                    }
++                    budget.reserve_bytes(
++                        function,
++                        0,
++                        "factored singleton target authentication",
++                    )?;
++                    let weight = 0_u64
++                        .checked_add(*weight)
++                        .expect("zero plus u64 cannot overflow");
++                    successors.insert(
++                        label.clone(),
++                        successor_targets::Targets::One {
++                            child: *child,
++                            weight,
++                        },
++                    );
++                } else {
++                    let targets = successors.get_mut(label).expect("existing label");
++                    match targets {
++                        successor_targets::Targets::One {
++                            child: first,
++                            weight: total,
++                        } if *first == *child => {
++                            // Same repeated-child checked_add before any later
++                            // target acquisition or error, as in the old map.
++                            let Some(sum) = total.checked_add(*weight) else {
++                                return Ok(None);
++                            };
++                            *total = sum;
++                        }
++                        successor_targets::Targets::One {
++                            child: first,
++                            weight: total,
++                        } => {
++                            assert_ne!(*first, *child);
++                            if budget.pays_allocations() {
++                                budget.reserve_bytes(
++                                    function,
++                                    2 * std::mem::size_of::<BTreeMap<usize, u64>>()
++                                        + std::mem::size_of::<successor_targets::Targets>()
++                                        + 2 * std::mem::size_of::<Option<u64>>()
++                                        + 2 * std::mem::size_of::<(usize, u64)>(),
++                                    "factored inline successor promotion carriers",
++                                )?;
++                            }
++                            budget.reserve_bytes(
++                                function,
++                                0,
++                                "factored successor target promotion authentication",
++                            )?;
++                            budget.reserve_btree_node::<usize, u64>(
++                                function,
++                                "factored successor target node",
++                            )?;
++                            budget.reserve_btree_node::<usize, u64>(
++                                function,
++                                "factored successor target node",
++                            )?;
++                            let mut promoted = BTreeMap::new();
++                            promoted.insert(*first, *total);
++                            let sum = 0_u64
++                                .checked_add(*weight)
++                                .expect("zero plus u64 cannot overflow");
++                            promoted.insert(*child, sum);
++                            *targets = successor_targets::Targets::Many(promoted);
++                        }
++                        successor_targets::Targets::Many(targets) => {
++                            if !targets.contains_key(child) {
++                                budget.reserve_btree_node::<usize, u64>(
++                                    function,
++                                    "factored successor target node",
++                                )?;
++                            }
++                            let slot = targets.entry(*child).or_insert(0);
++                            let Some(sum) = slot.checked_add(*weight) else {
++                                return Ok(None);
++                            };
++                            *slot = sum;
++                        }
++                    }
++                }
++            }
++        }
++        budget.reserve_array::<(Label, SharedWeighted)>(
++            function,
++            successors.len(),
++            "factored successor vector",
++        )?;
++        let mut result = Vec::with_capacity(successors.len());
++        // Do not initialize an owning map iterator or its receiving tuple on
++        // the empty route. Zero-byte vector authentication above still runs.
++        if !successors.is_empty() {
++            if budget.pays_allocations() {
++                budget.reserve_bytes(
++                    function,
++                    std::mem::size_of::<
++                        std::collections::btree_map::IntoIter<Label, successor_targets::Targets>,
++                    >() + std::mem::size_of::<Option<(Label, successor_targets::Targets)>>()
++                        + std::mem::size_of::<(Label, successor_targets::Targets)>(),
++                    "factored successor target iterator receiving",
++                )?;
++            }
++            for (label, targets) in successors {
++                if budget.pays_allocations() {
++                    budget.reserve_bytes(
++                        function,
++                        2 * std::mem::size_of::<SharedWeighted>()
++                            + std::mem::size_of::<Vec<(usize, u64)>>()
++                            + std::mem::size_of::<(usize, u64)>(),
++                        "factored inline successor finish receiving",
++                    )?;
++                }
++                budget.reserve_bytes(
++                    function,
++                    0,
++                    "factored successor target finish authentication",
++                )?;
++                let state = match targets {
++                    successor_targets::Targets::One { child, weight } => {
++                        budget.reserve_array::<(usize, u64)>(
++                            function,
++                            1,
++                            "factored weighted successor vector",
++                        )?;
++                        if budget.pays_allocations() {
++                            budget.reserve_bytes(
++                                function,
++                                std::mem::size_of::<[(usize, u64); 1]>(),
++                                "factored one-entry array initializer",
++                            )?;
++                        }
++                        let state = Vec::from([(child, weight)]);
++                        budget.reserve_bytes(
++                            function,
++                            physical_clone::rc_backing_bytes::<Weighted>(),
++                            "factored weighted shared header",
++                        )?;
++                        Rc::new(state)
++                    }
++                    successor_targets::Targets::Many(targets) => {
++                        // The remaining fallible weighted producer still has
++                        // its real map argument and Result receiving carrier.
++                        if budget.pays_allocations() {
++                            budget.reserve_bytes(
++                                function,
++                                std::mem::size_of::<BTreeMap<usize, u64>>()
++                                    + std::mem::size_of::<Result<SharedWeighted, Diagnostic>>(),
++                                "factored many weighted producer receiving",
++                            )?;
++                        }
++                        weighted_successor(function, budget, targets)?
++                    }
++                };
++                result.push((label, state));
++            }
++        }
++        Ok(Some((accepted, result)))
++    }
++
++    pub(super) fn id(
++        &mut self,
++        function: &ResolvedFunction,
++        root: Weighted,
++        budget: &mut ReplayBudget,
++    ) -> Result<Option<usize>, Diagnostic> {
++        #[cfg(test)]
++        tests::note_actual_entry(budget);
++        // Authenticate even when states already contains the requested root.
++        // One equivalent() call holds this function and budget borrowed across
++        // both roots; no closure/cache view leaves that invocation.
++        self.closures.authenticate(function, budget)?;
++        budget.reserve_array::<CanonicalFrame>(function, 1, "factored canonical initial frame")?;
++        let root = own_weighted(function, budget, root)?;
++        let root_copy = share_weighted(function, budget, &root)?;
++        let mut frames = vec![CanonicalFrame::Enter(root_copy)];
++        let mut open = BTreeSet::new();
++        while let Some(frame) = frames.pop() {
++            budget.charge(function, 1, "factored canonical frame")?;
++            match frame {
++                CanonicalFrame::Enter(state) => {
++                    if self.states.contains_key(&state) {
++                        continue;
++                    }
++                    if open.contains(&state) {
++                        return Err(replay_error(function, "cleanup CFG contains a cycle"));
++                    }
++                    budget.reserve_btree_node::<SharedWeighted, ()>(
++                        function,
++                        "factored open-state identity node",
++                    )?;
++                    open.insert(share_weighted(function, budget, &state)?);
++                    let Some((accepted, successors)) = self.successors(function, &state, budget)?
++                    else {
++                        return Ok(None);
++                    };
++                    let child_count = successors.len();
++                    budget.reserve_vec(
++                        function,
++                        &mut frames,
++                        1,
++                        "factored canonical exit frame",
++                    )?;
++                    let exit_index = frames.len();
++                    frames.push(CanonicalFrame::Exit(state, accepted, successors));
++                    for index in 0..child_count {
++                        let CanonicalFrame::Exit(_, _, successors) = &frames[exit_index] else {
++                            unreachable!("canonical exit retained below child frames");
++                        };
++                        let child = share_weighted(function, budget, &successors[index].1)?;
++                        budget.reserve_vec(
++                            function,
++                            &mut frames,
++                            1,
++                            "factored canonical child frames",
++                        )?;
++                        frames.push(CanonicalFrame::Enter(child));
++                    }
++                }
++                CanonicalFrame::Exit(state, accepted, successors) => {
++                    open.remove(&state);
++                    budget.charge(
++                        function,
++                        successors.len(),
++                        "factored canonical signature construction",
++                    )?;
++                    budget.reserve_array::<(Label, usize)>(
++                        function,
++                        successors.len(),
++                        "factored canonical signature vector",
++                    )?;
++                    let mut key = Vec::with_capacity(successors.len());
++                    for (label, child) in successors {
++                        let Some(id) = self.states.get(&child) else {
++                            return Err(replay_error(function, "cleanup CFG contains a cycle"));
++                        };
++                        key.push((label, *id));
++                    }
++                    let key = (accepted, key);
++                    let id = match self.ids.get(&key) {
++                        Some(id) => *id,
++                        None => {
++                            budget.reserve_btree_node::<(u64, Vec<(Label, usize)>), usize>(
++                                function,
++                                "factored canonical signature node",
++                            )?;
++                            let id = self.ids.len();
++                            self.ids.insert(key, id);
++                            id
++                        }
++                    };
++                    if !self.states.contains_key(&state) {
++                        budget.reserve_btree_node::<SharedWeighted, usize>(
++                            function,
++                            "factored canonical state memo node",
++                        )?;
++                    }
++                    self.states.insert(state, id);
++                }
++            }
++        }
++        Ok(self.states.get(&root).copied())
++    }
++}
++
++
++impl Canonicalizer<'_> {
++    pub(super) fn signatures(&self) -> &BTreeMap<(u64, Vec<(Label, usize)>), usize> { &self.ids }
++    pub(super) fn states(&self) -> &BTreeMap<SharedWeighted, usize> { &self.states }
++}
+diff --git a/src/cleanup_plan/replay/factored/canonical_shared/before_scratch_memo.rs b/src/cleanup_plan/replay/factored/canonical_shared/before_scratch_memo.rs
+new file mode 100644
+index 000000000..b925bc0db
+--- /dev/null
++++ b/src/cleanup_plan/replay/factored/canonical_shared/before_scratch_memo.rs
+@@ -0,0 +1,155 @@
++//! Lazy numeric closure memo. Sparse high keys still require gap directory slots.
++use super::{Diagnostic, ReplayBudget, ResolvedFunction};
++use crate::bounded_output::classifier_string::ClassifierLedger;
++use std::mem::size_of;
++const WIDTH: usize = 8;
++
++pub(super) struct Memo<T> {
++    chunks: Vec<Option<Box<[Option<T>; WIDTH]>>>,
++    binding: Option<Binding>,
++    failed: bool,
++}
++struct Binding {
++    function: *const ResolvedFunction,
++    budget: *const ReplayBudget,
++    ledger: ClassifierLedger,
++}
++impl<T> Memo<T> {
++    pub(super) fn new() -> Self {
++        Self {
++            chunks: Vec::new(),
++            binding: None,
++            failed: false,
++        }
++    }
++    pub(super) fn authenticate(
++        &mut self,
++        function: &ResolvedFunction,
++        budget: &mut ReplayBudget,
++    ) -> Result<(), Diagnostic> {
++        if self.failed {
++            return Err(Diagnostic::io("SPX-H006", String::new()));
++        }
++        if let Some(binding) = &self.binding {
++            // Read no foreign payer, even to construct a refusal report. The
++            // exact caller keeps both borrowed receivers at stable addresses.
++            let ledger_matches = binding.ledger.current();
++            if binding.function != std::ptr::from_ref(function)
++                || binding.budget != std::ptr::from_ref(budget)
++                || !ledger_matches
++            {
++                self.failed = true;
++                return Err(Diagnostic::io("SPX-H006", String::new()));
++            }
++        }
++        if let Err(error) =
++            budget.reserve_bytes(function, 0, "factored closure memo authentication")
++        {
++            self.failed = true;
++            return Err(error);
++        }
++        if budget.pays_allocations() {
++            if let Err(error) = budget.reserve_bytes(
++                function,
++                size_of::<Result<(), Diagnostic>>(),
++                "factored closure memo authorization receipt",
++            ) {
++                self.failed = true;
++                return Err(error);
++            }
++        }
++        if self.binding.is_none() {
++            // One live Memo receiver (including its binding slot) and the
++            // separately named Option<Binding> initializer below.
++            // The old Canonicalizer constructor created only allocation-free
++            // inert fields; activation pays its new inline receiver once.
++            if budget.pays_allocations() {
++                if let Err(error) = budget.reserve_bytes(
++                    function,
++                    size_of::<Self>() + size_of::<Option<Binding>>(),
++                    "factored closure memo controls",
++                ) {
++                    self.failed = true;
++                    return Err(error);
++                }
++            }
++            let binding = Some(Binding {
++                function: std::ptr::from_ref(function),
++                budget: std::ptr::from_ref(budget),
++                ledger: ClassifierLedger::capture(),
++            });
++            self.binding = binding;
++        }
++        Ok(())
++    }
++    // Caller already holds the selected error; retain it unchanged while
++    // invalidating views without querying any payer or allocating a report.
++    pub(super) fn reject_after_error(&mut self) {
++        self.failed = true;
++    }
++    pub(super) fn contains_key(&self, key: &usize) -> bool {
++        self.get(key).is_some()
++    }
++    pub(super) fn get(&self, key: &usize) -> Option<&T> {
++        if self.failed {
++            return None;
++        }
++        self.chunks
++            .get(*key / WIDTH)?
++            .as_ref()?
++            .get(*key % WIDTH)?
++            .as_ref()
++    }
++    pub(super) fn insert(
++        &mut self,
++        function: &ResolvedFunction,
++        key: usize,
++        budget: &mut ReplayBudget,
++        make: impl FnOnce() -> T,
++    ) -> Result<(), Diagnostic> {
++        self.authenticate(function, budget)?;
++        let result = self.insert_bound(function, key, budget, make);
++        if result.is_err() {
++            self.failed = true;
++        }
++        result
++    }
++    fn insert_bound(
++        &mut self,
++        function: &ResolvedFunction,
++        key: usize,
++        budget: &mut ReplayBudget,
++        make: impl FnOnce() -> T,
++    ) -> Result<(), Diagnostic> {
++        let index = key / WIDTH;
++        // WIDTH > 1, so quotient + 1 cannot overflow usize.
++        let required = index + 1;
++        if self.chunks.len() < required {
++            let additional = required - self.chunks.len();
++            budget.reserve_vec(
++                function,
++                &mut self.chunks,
++                additional,
++                "factored closure memo directory",
++            )?;
++            self.chunks.resize_with(required, || None);
++        }
++        if self.chunks[index].is_none() {
++            if budget.pays_allocations() {
++                // Named array initializer + its simultaneously allocated boxed
++                // array backing + named Box pointer. The directory's receiving
++                // Option<Box> slot was already paid by reserve_vec, not again.
++                budget.reserve_bytes(
++                    function,
++                    2 * size_of::<[Option<T>; WIDTH]>() + size_of::<Box<[Option<T>; WIDTH]>>(),
++                    "factored closure memo chunk",
++                )?;
++            }
++            let values: [Option<T>; WIDTH] = std::array::from_fn(|_| None);
++            let chunk = Box::new(values);
++            self.chunks[index] = Some(chunk);
++        }
++        self.chunks[index].as_mut().expect("paid chunk")[key % WIDTH] = Some(make());
++        Ok(())
++    }
++}
+diff --git a/src/cleanup_plan/replay/factored/canonical_shared/memo.rs b/src/cleanup_plan/replay/factored/canonical_shared/memo.rs
+index d6b40c210..491bc75a3 100644
+--- a/src/cleanup_plan/replay/factored/canonical_shared/memo.rs
++++ b/src/cleanup_plan/replay/factored/canonical_shared/memo.rs
+@@ -100,6 +100,7 @@ impl<T> Memo<T> {
+             .get(*key % WIDTH)?
+             .as_ref()
+     }
++    #[cfg(test)]
+     pub(super) fn insert(
+         &mut self,
+         function: &ResolvedFunction,
+@@ -156,3 +157,6 @@ impl<T> Memo<T> {
+ 
+ #[cfg(test)]
+ mod tests;
++
++mod retained;
++pub(super) use retained::RetainedMemo;
+diff --git a/src/cleanup_plan/replay/factored/canonical_shared/memo/retained.rs b/src/cleanup_plan/replay/factored/canonical_shared/memo/retained.rs
+new file mode 100644
+index 000000000..f946f15a2
+--- /dev/null
++++ b/src/cleanup_plan/replay/factored/canonical_shared/memo/retained.rs
+@@ -0,0 +1,113 @@
++//! Exact-comparison receiving owner; the complete ordinary Memo stays intact.
++use super::{Diagnostic, Memo, ReplayBudget, ResolvedFunction};
++use std::mem::size_of;
++
++pub(in crate::cleanup_plan::replay::factored::canonical_shared) struct RetainedMemo<T> {
++    memo: Memo<T>,
++    refusal: Option<Diagnostic>,
++    controls_paid: bool,
++}
++impl<T> RetainedMemo<T> {
++    pub(in crate::cleanup_plan::replay::factored::canonical_shared) fn new() -> Self {
++        Self {
++            memo: Memo::new(),
++            refusal: None,
++            controls_paid: false,
++        }
++    }
++    pub(in crate::cleanup_plan::replay::factored::canonical_shared) fn authenticate_retained(
++        &mut self,
++        function: &ResolvedFunction,
++        budget: &mut ReplayBudget,
++    ) {
++        if self.memo.failed {
++            return;
++        }
++        if self.memo.binding.is_none() {
++            // This real initial Result retains the ordinary authorization fee.
++            // Successful later calls do not invoke that Result-returning API.
++            if let Err(error) = self.memo.authenticate(function, budget) {
++                self.memo.failed = true;
++                self.refusal = Some(error);
++                return;
++            }
++        } else if let Some(binding) = &self.memo.binding {
++            let ledger_matches = binding.ledger.current();
++            if binding.function != std::ptr::from_ref(function)
++                || binding.budget != std::ptr::from_ref(budget)
++                || !ledger_matches
++            {
++                self.memo.failed = true;
++                return;
++            }
++            if let Err(error) =
++                budget.reserve_bytes(function, 0, "factored closure memo authentication")
++            {
++                self.memo.failed = true;
++                self.refusal = Some(error);
++                return;
++            }
++        }
++        if !self.controls_paid {
++            if budget.pays_allocations() {
++                if let Err(error) = budget.reserve_bytes(
++                    function,
++                    size_of::<Self>() - size_of::<Memo<T>>()
++                        + size_of::<Option<Diagnostic>>()
++                        + size_of::<Diagnostic>(),
++                    "factored retained memo controls and failure receiving",
++                ) {
++                    self.memo.failed = true;
++                    self.refusal = Some(error);
++                    return;
++                }
++            }
++            self.controls_paid = true;
++        }
++    }
++    pub(in crate::cleanup_plan::replay::factored::canonical_shared) fn failed(&self) -> bool {
++        self.memo.failed
++    }
++    pub(in crate::cleanup_plan::replay::factored::canonical_shared) fn failure(
++        &mut self,
++    ) -> Diagnostic {
++        assert!(self.memo.failed);
++        self.refusal
++            .take()
++            .unwrap_or_else(|| Diagnostic::io("SPX-H006", String::new()))
++    }
++    pub(in crate::cleanup_plan::replay::factored::canonical_shared) fn reject_after_error(
++        &mut self,
++    ) {
++        self.memo.reject_after_error();
++    }
++    pub(in crate::cleanup_plan::replay::factored::canonical_shared) fn contains_key(
++        &self,
++        key: &usize,
++    ) -> bool {
++        self.memo.contains_key(key)
++    }
++    pub(in crate::cleanup_plan::replay::factored::canonical_shared) fn get(
++        &self,
++        key: &usize,
++    ) -> Option<&T> {
++        self.memo.get(key)
++    }
++    pub(in crate::cleanup_plan::replay::factored::canonical_shared) fn insert_retained(
++        &mut self,
++        function: &ResolvedFunction,
++        key: usize,
++        budget: &mut ReplayBudget,
++        make: impl FnOnce() -> T,
++    ) -> Result<(), Diagnostic> {
++        self.authenticate_retained(function, budget);
++        if self.memo.failed {
++            return Err(self.failure());
++        }
++        let result = self.memo.insert_bound(function, key, budget, make);
++        if result.is_err() {
++            self.memo.failed = true;
++        }
++        result
++    }
++}
+diff --git a/src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs b/src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs
+new file mode 100644
+index 000000000..fe67c0ec8
+--- /dev/null
++++ b/src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs
+@@ -0,0 +1,437 @@
++//! Exact immediate-old receivers and physical scratch lifetime controls.
++use super::{before_scratch, memo, Canonicalizer, Diagnostic, ReplayBudget};
++use crate::bounded_output::with_limit_usage_refusal;
++use crate::test_allocation_observer::{current_metrics, measure};
++
++fn fixture() -> super::ResolvedFunction {
++    super::super::lexical_plan_tests::fixture(super::super::lexical_plan_tests::WHILE).1
++}
++
++#[test]
++fn retained_scratch_complete_old_ids_weights_signatures_work_and_diagnostics() {
++    let function = fixture();
++    let (automaton, sink, roots) = super::tests::automaton(&function);
++    let mut old = before_scratch::Canonicalizer::new(&automaton, sink);
++    let mut current = Canonicalizer::new(&automaton, sink);
++    let mut old_budget = ReplayBudget::new();
++    let mut budget = ReplayBudget::new();
++    for root in roots[..6].iter().chain(roots[..6].iter()) {
++        assert_eq!(
++            old.id(&function, vec![(*root, 1)], &mut old_budget),
++            current.id(&function, vec![(*root, 1)], &mut budget),
++        );
++        assert_eq!(budget.remaining, old_budget.remaining);
++        assert_eq!(budget.skeleton_remaining, old_budget.skeleton_remaining);
++        assert_eq!(&current.ids, old.signatures());
++        assert_eq!(&current.states, old.states());
++        assert!(current.frames.is_empty() && current.open.is_empty() && current.cursor.is_empty());
++        assert_eq!(
++            old.closure(&function, *root, &mut old_budget),
++            current.closure(&function, *root, &mut budget),
++        );
++        assert_eq!(budget.remaining, old_budget.remaining);
++    }
++    // Overflow and cycle compare the complete Result/Diagnostic, not its code.
++    for state in [vec![(roots[3], u64::MAX)], vec![(roots[6], 1)]] {
++        assert_eq!(
++            old.id(&function, state.clone(), &mut old_budget),
++            current.id(&function, state, &mut budget),
++        );
++        assert_eq!(budget.remaining, old_budget.remaining);
++        assert!(current.frames.is_empty() && current.open.is_empty() && current.cursor.is_empty());
++    }
++}
++
++#[test]
++fn retained_scratch_complete_old_every_work_frontier_and_failure_cleanup() {
++    let function = fixture();
++    let (automaton, sink, roots) = super::tests::automaton(&function);
++    let mut old = before_scratch::Canonicalizer::new(&automaton, sink);
++    let mut probe = ReplayBudget::new();
++    let initial = probe.remaining;
++    old.id(&function, vec![(roots[3], 1)], &mut probe).unwrap();
++    let spent = initial - probe.remaining;
++    for units in 0..=spent {
++        let mut old = before_scratch::Canonicalizer::new(&automaton, sink);
++        let mut current = Canonicalizer::new(&automaton, sink);
++        let mut a = ReplayBudget::new();
++        let mut b = ReplayBudget::new();
++        a.remaining = units;
++        b.remaining = units;
++        assert_eq!(
++            old.id(&function, vec![(roots[3], 1)], &mut a),
++            current.id(&function, vec![(roots[3], 1)], &mut b),
++        );
++        assert_eq!(a.remaining, b.remaining);
++        assert_eq!(a.skeleton_remaining, b.skeleton_remaining);
++        assert!(current.frames.is_empty() && current.open.is_empty() && current.cursor.is_empty());
++    }
++}
++
++#[test]
++fn retained_closure_cached_route_constructs_no_cursor_or_auth_return_carrier() {
++    let function = fixture();
++    let (automaton, sink, roots) = super::tests::automaton(&function);
++    let mut current = Canonicalizer::new(&automaton, sink);
++    let mut budget = ReplayBudget::new();
++    let ((), refused, _, _) = with_limit_usage_refusal(usize::MAX, || {
++        current.closure(&function, roots[3], &mut budget).unwrap();
++    });
++    assert!(!refused);
++    // The same held ledger must stay active across both operations. This
++    // separate scope is deliberately foreign and must refuse without payment.
++    let (((), allocation), refused, paid, _) = with_limit_usage_refusal(usize::MAX, || {
++        measure(|| {
++            let before = current_metrics().allocated;
++            assert_eq!(
++                current.closure(&function, roots[3], &mut budget),
++                Err(Diagnostic::io("SPX-H006", String::new())),
++            );
++            assert_eq!(current_metrics().allocated, before);
++        })
++    });
++    assert!(!refused && paid == 0 && allocation.allocated == 0);
++
++    let ((), refused, _, _) = with_limit_usage_refusal(usize::MAX, || {
++        let mut current = Canonicalizer::new(&automaton, sink);
++        let mut budget = ReplayBudget::new();
++        current.closure(&function, roots[3], &mut budget).unwrap();
++        let pointer = current.cursor.as_ptr();
++        let capacity = current.cursor.capacity();
++        let before = budget.remaining;
++        let (((), allocation), refused, paid, first) =
++            crate::bounded_output::with_limit_usage_refusal(usize::MAX, || {
++                // Nested scopes are foreign too; successful reuse is measured
++                // below inside the original scope without replacing its ledger.
++                measure(|| {
++                    assert!(current.closure(&function, roots[3], &mut budget).is_err());
++                })
++            });
++        assert!(!refused && paid == 0 && first.is_none() && allocation.allocated == 0);
++        assert_eq!(pointer, current.cursor.as_ptr());
++        assert_eq!(capacity, current.cursor.capacity());
++        assert_eq!(before, budget.remaining);
++    });
++    assert!(refused); // Restoring a bound scope cannot cure a foreign attempt.
++}
++
++#[test]
++fn retained_closure_same_scope_cache_hit_has_zero_allocation_and_one_work_unit() {
++    let function = fixture();
++    let (automaton, sink, roots) = super::tests::automaton(&function);
++    let (((), allocation), refused, paid, first) = with_limit_usage_refusal(usize::MAX, || {
++        measure(|| {
++            let mut current = Canonicalizer::new(&automaton, sink);
++            let mut budget = ReplayBudget::new();
++            current.closure(&function, roots[3], &mut budget).unwrap();
++            let at = current_metrics().allocated;
++            let before = budget.remaining;
++            let capacity = current.cursor.capacity();
++            let pointer = current.cursor.as_ptr();
++            for _ in 0..16 {
++                assert!(current
++                    .closure(&function, roots[3], &mut budget)
++                    .unwrap()
++                    .is_some());
++            }
++            assert_eq!(budget.remaining, before - 16);
++            assert_eq!(current_metrics().allocated, at);
++            assert_eq!(current.cursor.capacity(), capacity);
++            assert_eq!(current.cursor.as_ptr(), pointer);
++            drop(current);
++            drop(budget);
++        })
++    });
++    assert!(!refused && first.is_none());
++    assert!(
++        !allocation.invalid && allocation.live == 0 && allocation.allocated == allocation.freed
++    );
++    assert!(allocation.allocated <= paid && allocation.highwater <= paid);
++}
++
++#[test]
++fn retained_canonical_physical_zero_exact_short_growth_and_all_exit_drops() {
++    let function = fixture();
++    let (automaton, sink, roots) = super::tests::automaton(&function);
++    let observe = |limit, count| {
++        with_limit_usage_refusal(limit, || {
++            measure(|| {
++                let mut current = Canonicalizer::new(&automaton, sink);
++                let mut budget = ReplayBudget::new();
++                let mut success = true;
++                for root in roots[..count].iter() {
++                    // The test's input Vec has its own real prepaid backing.
++                    if budget
++                        .reserve_array::<(usize, u64)>(&function, 1, "scratch test input")
++                        .is_err()
++                    {
++                        success = false;
++                        break;
++                    }
++                    match current.id(&function, vec![(*root, 1)], &mut budget) {
++                        Ok(Some(_)) => {}
++                        other => {
++                            drop(other);
++                            success = false;
++                            assert!(
++                                current.frames.is_empty()
++                                    && current.open.is_empty()
++                                    && current.cursor.is_empty()
++                            );
++                            break;
++                        }
++                    }
++                }
++                drop(current);
++                drop(budget);
++                success
++            })
++        })
++    };
++    for count in 1..=6 {
++        let ((success, allocation), refused, exact, first) = observe(usize::MAX, count);
++        assert!(success && !refused && first.is_none());
++        assert!(
++            !allocation.invalid && allocation.live == 0 && allocation.allocated == allocation.freed
++        );
++        assert!(allocation.allocated <= exact && allocation.highwater <= exact);
++        for limit in [0, exact - 1, exact] {
++            let ((success, allocation), refused, _, first) = observe(limit, count);
++            assert_eq!(success, limit == exact);
++            assert_eq!(refused, limit != exact);
++            assert_eq!(first.is_none(), limit == exact);
++            assert!(
++                !allocation.invalid
++                    && allocation.live == 0
++                    && allocation.allocated == allocation.freed
++            );
++            if limit == 0 {
++                assert_eq!(allocation.allocated, 0);
++            }
++        }
++    }
++}
++
++#[test]
++fn retained_memo_foreign_function_budget_and_restoration_never_touch_foreign_payer() {
++    let function = fixture();
++    let wrong = function.clone();
++    for foreign_function in [true, false] {
++        let (((), allocation), refused, paid, _) = with_limit_usage_refusal(usize::MAX, || {
++            measure(|| {
++                let mut budget = ReplayBudget::new();
++                let mut foreign = ReplayBudget::new();
++                let mut memo = memo::RetainedMemo::<usize>::new();
++                memo.insert_retained(&function, 0, &mut budget, || 3)
++                    .unwrap();
++                let at = current_metrics().allocated;
++                if foreign_function {
++                    memo.authenticate_retained(&wrong, &mut budget);
++                } else {
++                    memo.authenticate_retained(&function, &mut foreign);
++                }
++                assert!(memo.failed());
++                assert_eq!(memo.failure(), Diagnostic::io("SPX-H006", String::new()));
++                memo.authenticate_retained(&function, &mut budget);
++                assert!(memo.failed() && memo.get(&0).is_none());
++                assert!(foreign.refusal_text.is_none() && !foreign.refusal_spent);
++                assert_eq!(current_metrics().allocated, at);
++                drop(memo);
++                drop(foreign);
++                drop(budget);
++            })
++        });
++        assert!(!refused && paid > 0);
++        assert!(
++            !allocation.invalid && allocation.live == 0 && allocation.allocated == allocation.freed
++        );
++    }
++}
++
++#[test]
++fn retained_scratch_immediate_complete_originals_and_adaptation_are_exact() {
++    let original = include_str!(
++        "../../../../../docs/evidence/canonical-scratch-839/canonical_shared.rs.before.txt"
++    );
++    let start = original.find("use super::{").unwrap();
++    let end = original.find("type SharedWeighted").unwrap();
++    let mut expected = original[..start].to_owned();
++    expected.push_str("use super::super::{\n    physical_clone, replay_error, Automaton, BTreeMap, BTreeSet, Diagnostic, Label, Rc,\n    ReplayBudget, ResolvedFunction, Weighted,\n};\nuse super::{app_census, epsilon_alias, successor_targets, tests};\n#[path = \"before_scratch_memo.rs\"]\nmod memo;\n\n");
++    let body = &original[end..];
++    let body = body.split("\n#[cfg(test)]\nmod tests;").next().unwrap();
++    expected.push_str(&body.replacen("    fn closure(", "    pub(super) fn closure(", 1));
++    expected.push_str("\n\nimpl Canonicalizer<'_> {\n    pub(super) fn signatures(&self) -> &BTreeMap<(u64, Vec<(Label, usize)>), usize> { &self.ids }\n    pub(super) fn states(&self) -> &BTreeMap<SharedWeighted, usize> { &self.states }\n}\n");
++    assert_eq!(expected, include_str!("before_scratch.rs"));
++    let memo =
++        include_str!("../../../../../docs/evidence/canonical-scratch-839/memo.rs.before.txt");
++    assert_eq!(
++        memo.replace("\n#[cfg(test)]\nmod tests;\n", ""),
++        include_str!("before_scratch_memo.rs")
++    );
++}
++
++#[test]
++fn retained_scratch_no_owner_route_never_bootstraps_active_zero_payer() {
++    let function = fixture();
++    let (automaton, sink, roots) = super::tests::automaton(&function);
++    let (((), allocation), refused, paid, first) = with_limit_usage_refusal(0, || {
++        measure(|| {
++            let mut current = Canonicalizer::new(&automaton, sink);
++            let mut budget = ReplayBudget::unobserved();
++            assert!(current
++                .id(&function, vec![(roots[0], 1)], &mut budget)
++                .unwrap()
++                .is_some());
++            assert!(budget.refusal_text.is_none() && !budget.refusal_spent);
++            assert!(
++                current.frames.is_empty() && current.open.is_empty() && current.cursor.is_empty()
++            );
++            drop(current);
++            drop(budget);
++        })
++    });
++    assert!(!refused && paid == 0 && first.is_none());
++    assert!(
++        !allocation.invalid && allocation.live == 0 && allocation.allocated == allocation.freed
++    );
++}
++
++#[test]
++fn retained_scratch_every_actual_byte_cut_clears_owners_before_sticky_retry() {
++    let function = fixture();
++    let (automaton, sink, roots) = super::tests::automaton(&function);
++    let observe = |limit| {
++        with_limit_usage_refusal(limit, || {
++            measure(|| {
++                let mut current = Canonicalizer::new(&automaton, sink);
++                let mut budget = ReplayBudget::new();
++                // Input construction is outside the changed receiver's funding
++                // claim, and remains included in observed actual allocations.
++                let input = vec![(roots[3], 1)];
++                let success = current.id(&function, input, &mut budget).is_ok();
++                assert!(
++                    current.frames.is_empty()
++                        && current.open.is_empty()
++                        && current.cursor.is_empty()
++                );
++                if !success {
++                    let at = current_metrics().allocated;
++                    assert!(current.closure(&function, roots[3], &mut budget).is_err());
++                    assert_eq!(current_metrics().allocated, at);
++                }
++                drop(current);
++                drop(budget);
++                success
++            })
++        })
++    };
++    let ((success, _), refused, exact, first) = observe(usize::MAX);
++    assert!(success && !refused && first.is_none());
++    // This traverses every real control, cursor, frame, open backing and memo
++    // growth refusal frontier, including its exact and one-byte-short edge.
++    for limit in 0..=exact {
++        let ((success, allocation), refused, _, first) = observe(limit);
++        assert_eq!(success, limit == exact);
++        assert_eq!(refused, limit != exact);
++        assert_eq!(first.is_none(), limit == exact);
++        assert!(
++            !allocation.invalid && allocation.live == 0 && allocation.allocated == allocation.freed
++        );
++    }
++}
++
++#[test]
++fn retained_scratch_complete_old_current_actual_and_reserved_costs_are_separate() {
++    let function = fixture();
++    let (automaton, sink, roots) = super::tests::automaton(&function);
++    let observe = |old| {
++        with_limit_usage_refusal(usize::MAX, || {
++            measure(|| {
++                let mut budget = ReplayBudget::new();
++                if old {
++                    let mut receiver = before_scratch::Canonicalizer::new(&automaton, sink);
++                    for root in roots[..6].iter().chain(roots[..6].iter()) {
++                        budget
++                            .reserve_array::<(usize, u64)>(&function, 1, "scratch comparison input")
++                            .unwrap();
++                        assert!(receiver
++                            .id(&function, vec![(*root, 1)], &mut budget)
++                            .unwrap()
++                            .is_some());
++                    }
++                    drop(receiver);
++                } else {
++                    let mut receiver = Canonicalizer::new(&automaton, sink);
++                    for root in roots[..6].iter().chain(roots[..6].iter()) {
++                        budget
++                            .reserve_array::<(usize, u64)>(&function, 1, "scratch comparison input")
++                            .unwrap();
++                        assert!(receiver
++                            .id(&function, vec![(*root, 1)], &mut budget)
++                            .unwrap()
++                            .is_some());
++                    }
++                    drop(receiver);
++                }
++                budget.remaining
++            })
++        })
++    };
++    let old = observe(true);
++    let current = observe(false);
++    assert_eq!(old.0 .0, current.0 .0);
++    for observation in [&old, &current] {
++        assert!(!observation.1 && observation.3.is_none());
++        let metrics = observation.0 .1;
++        assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed);
++        assert!(metrics.allocated <= observation.2 && metrics.highwater <= observation.2);
++    }
++    eprintln!(
++        "scratch full-old reservation={} actual={:?}; current reservation={} actual={:?}",
++        old.2, old.0 .1, current.2, current.0 .1
++    );
++}
++
++#[test]
++fn retained_cache_zero_byte_reuse_checks_floor_and_sticky_refusal_without_allocation() {
++    use crate::bounded_output::{
++        active_remaining, clear_active_floor, reserve_active_required, set_active_floor,
++    };
++    let function = fixture();
++    let (automaton, sink, roots) = super::tests::automaton(&function);
++    for floor in [false, true] {
++        let (((), allocation), refused, _, first) = with_limit_usage_refusal(1 << 20, || {
++            measure(|| {
++                let mut current = Canonicalizer::new(&automaton, sink);
++                let mut budget = ReplayBudget::new();
++                current.closure(&function, roots[3], &mut budget).unwrap();
++                let remaining = active_remaining().unwrap();
++                if floor {
++                    assert!(set_active_floor(remaining));
++                } else {
++                    assert!(reserve_active_required(remaining));
++                }
++                let at = current_metrics().allocated;
++                assert!(current
++                    .closure(&function, roots[3], &mut budget)
++                    .unwrap()
++                    .is_some());
++                assert_eq!(current_metrics().allocated, at);
++                assert!(!reserve_active_required(1));
++                clear_active_floor();
++                assert!(current.closure(&function, roots[3], &mut budget).is_err());
++                assert_eq!(current_metrics().allocated, at);
++                assert!(current.closures.failed());
++                drop(current);
++                drop(budget);
++            })
++        });
++        assert!(refused);
++        let first = first.unwrap();
++        assert_eq!(first.requested, 1);
++        assert_eq!(first.floor > 0, floor);
++        assert!(
++            !allocation.invalid && allocation.live == 0 && allocation.allocated == allocation.freed
++        );
++    }
++}
+diff --git a/tests/hir_module_boundaries.rs b/tests/hir_module_boundaries.rs
+index 89eec1d01..2cd61f3e3 100644
+--- a/tests/hir_module_boundaries.rs
++++ b/tests/hir_module_boundaries.rs
+@@ -442,6 +442,10 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
+         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs"),
+         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/tests.rs"),
+         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/memo.rs"),
++        include_str!("../src/cleanup_plan/replay/factored/canonical_shared/memo/retained.rs"),
++        include_str!("../src/cleanup_plan/replay/factored/canonical_shared/before_scratch.rs"),
++        include_str!("../src/cleanup_plan/replay/factored/canonical_shared/before_scratch_memo.rs"),
++        include_str!("../src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs"),
+         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/memo/tests.rs"),
+         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias.rs"),
+         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/app_census.rs"),
+diff --git a/tests/workspace/semantic_graph/source_inventory.rs b/tests/workspace/semantic_graph/source_inventory.rs
+index 188f24556..b8a81df75 100644
+--- a/tests/workspace/semantic_graph/source_inventory.rs
++++ b/tests/workspace/semantic_graph/source_inventory.rs
+@@ -24,6 +24,10 @@ macro_rules! semantic_graph_private_layout_source_inventory {
+         include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs"),
+         include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/tests.rs"),
+         include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/memo.rs"),
++        include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/memo/retained.rs"),
++        include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/before_scratch.rs"),
++        include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/before_scratch_memo.rs"),
++        include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs"),
+         include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/memo/tests.rs"),
+         include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias.rs"),
+         include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/app_census.rs"),

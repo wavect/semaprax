@@ -1,0 +1,223 @@
+diff --git a/docs/evidence/canonical-scratch-839/README.md b/docs/evidence/canonical-scratch-839/README.md
+index 775ad36f4..ee7aea567 100644
+--- a/docs/evidence/canonical-scratch-839/README.md
++++ b/docs/evidence/canonical-scratch-839/README.md
+@@ -21,17 +21,21 @@ no throwaway cursor vector. Misses use retained cursor backing. Canonical frame
+ and open storage acquire actual capacity before each push; allocation-free
+ ordinary/no-owner routes retain their original payer behavior.
+ 
+-`memo::RetainedMemo` composes the complete ordinary Memo. Its first successful
+-activation still calls the original Result-returning authentication and pays its
+-authorization receipt. Later success uses a unit-returning authentication method
+-and a held refusal slot. It still checks the original ledger before querying the
+-payer and performs sticky zero-byte authentication. Foreign/stale use invalidates
+-the receiver, hides its values, never queries a foreign ReplayBudget, and cannot
+-be repaired by restoring the owner. A selected payer Diagnostic is moved intact;
+-the already-terminal sentinel is the original allocation-free empty SPX-H006.
++`memo::RetainedMemo` composes the complete ordinary Memo. Every authentication,
++including a warm cache hit, calls the original Result-returning authentication
++and pays its per-call `size_of::<Result<(), Diagnostic>>()` authorization receipt.
++The unit-returning wrapper does not remove that inner Result construction. It
++keeps a held refusal slot, but claims no authentication-carrier saving. The
++ordinary implementation checks the original ledger before querying the payer
++and performs sticky zero-byte authentication before the positive receiving fee.
++Foreign/stale use invalidates the receiver, hides its values, never queries a
++foreign ReplayBudget, and cannot be repaired by restoring the owner. A selected
++payer Diagnostic is moved intact; the already-terminal sentinel is the original
++allocation-free empty SPX-H006.
+ 
+ The source accounting pays the new wrapper's inline controls and failure
+-receiving once at activation. Misses pay their additional inner Result receiving,
++receiving once at activation, including the real Result receiver of its added
++control reservation. Misses pay their additional inner Result receiving,
+ prepare-scratch Result, and copied root scalar. Each canonical call pays its
+ additional inner Result receiving, moved root Vec header and prepare-scratch
+ Result. The cursor/frame/open headers are paid once at scratch activation.
+@@ -58,7 +62,10 @@ It owns complete immediate-old/current closures, states, signatures, IDs,
+ duplicate weights, overflow, full Diagnostics and every work frontier; actual
+ allocation/peak/free/last Drop; zero/exact/one-short and every actual byte cut;
+ cache-hit no-allocation/work preservation; foreign/nested/restored owner; and
+-ordinary/no-owner controls. Existing canonical_shared, memo, epsilon_alias,
++ordinary/no-owner controls. A warm-authentication boundary control requires the
++full per-call Result fee, rejects zero and one-byte-short availability before any
++new allocation, and checks the complete ordinary authenticator source against
++the immutable original. Existing canonical_shared, memo, epsilon_alias,
+ receiving_layer_tests and singleton_target_tests selectors remain required.
+ All assertions are authored and unexecuted.
+ 
+@@ -79,3 +86,11 @@ for completed runtime checks. Actual d6bf evidence was 86 pass / 20 fail, includ
+ aggregate final-HIR-stage debit including a cfg(test) oracle, not production
+ `document_end` or cleanup-only cost. No application cap-fit, measured saving,
+ hosted support, or live-agent token/turn improvement is claimed.
++
++Source-review correction after `15ac307443132d8631e8b16b036ba9a689d97139`:
++the initial warm unit-returning path still called `reserve_bytes(0)`, whose
++Diagnostic-bearing Result was a real repeated construction. Its one-time controls
++could not fund that per-call receiver. The corrected draft delegates every call
++to the unchanged ordinary authenticator and restores its full fee. The remaining
++structural benefit is retained cursor/frame/open backing; all measured benefit
++and application recovery remain unqualified.
+diff --git a/src/cleanup_plan/replay/factored/canonical_shared.rs b/src/cleanup_plan/replay/factored/canonical_shared.rs
+index d6ed59736..cc593e4af 100644
+--- a/src/cleanup_plan/replay/factored/canonical_shared.rs
++++ b/src/cleanup_plan/replay/factored/canonical_shared.rs
+@@ -123,7 +123,8 @@ impl<'a> Canonicalizer<'a> {
+             return Err(self.closures.failure());
+         }
+         // The cached route still executes its original one cursor work debit.
+-        // It constructs neither a cursor Vec nor an inner Result receiver.
++        // It constructs neither a cursor Vec nor a closure_inner Result
++        // receiver. The ordinary memo authentication Result remains paid.
+         if self.closures.contains_key(&root) {
+             budget.charge(function, 1, "factored closure cursor")?;
+             return Ok(self.closures.get(&root).cloned());
+diff --git a/src/cleanup_plan/replay/factored/canonical_shared/memo/retained.rs b/src/cleanup_plan/replay/factored/canonical_shared/memo/retained.rs
+index f946f15a2..dbeae2d64 100644
+--- a/src/cleanup_plan/replay/factored/canonical_shared/memo/retained.rs
++++ b/src/cleanup_plan/replay/factored/canonical_shared/memo/retained.rs
+@@ -23,30 +23,14 @@ impl<T> RetainedMemo<T> {
+         if self.memo.failed {
+             return;
+         }
+-        if self.memo.binding.is_none() {
+-            // This real initial Result retains the ordinary authorization fee.
+-            // Successful later calls do not invoke that Result-returning API.
+-            if let Err(error) = self.memo.authenticate(function, budget) {
+-                self.memo.failed = true;
+-                self.refusal = Some(error);
+-                return;
+-            }
+-        } else if let Some(binding) = &self.memo.binding {
+-            let ledger_matches = binding.ledger.current();
+-            if binding.function != std::ptr::from_ref(function)
+-                || binding.budget != std::ptr::from_ref(budget)
+-                || !ledger_matches
+-            {
+-                self.memo.failed = true;
+-                return;
+-            }
+-            if let Err(error) =
+-                budget.reserve_bytes(function, 0, "factored closure memo authentication")
+-            {
+-                self.memo.failed = true;
+-                self.refusal = Some(error);
+-                return;
+-            }
++        // The ordinary function still constructs a Diagnostic-bearing Result
++        // on every invocation, including warm zero-byte authentication. Keep
++        // its actual per-call authorization-receipt charge. A unit-returning
++        // wrapper does not eliminate that inner construction.
++        if let Err(error) = self.memo.authenticate(function, budget) {
++            self.memo.failed = true;
++            self.refusal = Some(error);
++            return;
+         }
+         if !self.controls_paid {
+             if budget.pays_allocations() {
+@@ -54,7 +38,8 @@ impl<T> RetainedMemo<T> {
+                     function,
+                     size_of::<Self>() - size_of::<Memo<T>>()
+                         + size_of::<Option<Diagnostic>>()
+-                        + size_of::<Diagnostic>(),
++                        + size_of::<Diagnostic>()
++                        + size_of::<Result<(), Diagnostic>>(),
+                     "factored retained memo controls and failure receiving",
+                 ) {
+                     self.memo.failed = true;
+diff --git a/src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs b/src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs
+index fe67c0ec8..9f06c015d 100644
+--- a/src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs
++++ b/src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs
+@@ -69,7 +69,7 @@ fn retained_scratch_complete_old_every_work_frontier_and_failure_cleanup() {
+ }
+ 
+ #[test]
+-fn retained_closure_cached_route_constructs_no_cursor_or_auth_return_carrier() {
++fn retained_closure_cached_route_constructs_no_cursor_and_rejects_foreign_authentication() {
+     let function = fixture();
+     let (automaton, sink, roots) = super::tests::automaton(&function);
+     let mut current = Canonicalizer::new(&automaton, sink);
+@@ -393,7 +393,7 @@ fn retained_scratch_complete_old_current_actual_and_reserved_costs_are_separate(
+ }
+ 
+ #[test]
+-fn retained_cache_zero_byte_reuse_checks_floor_and_sticky_refusal_without_allocation() {
++fn retained_cache_receiving_fee_preserves_floor_and_sticky_refusal_without_allocation() {
+     use crate::bounded_output::{
+         active_remaining, clear_active_floor, reserve_active_required, set_active_floor,
+     };
+@@ -406,10 +406,11 @@ fn retained_cache_zero_byte_reuse_checks_floor_and_sticky_refusal_without_alloca
+                 let mut budget = ReplayBudget::new();
+                 current.closure(&function, roots[3], &mut budget).unwrap();
+                 let remaining = active_remaining().unwrap();
++                let receipt = std::mem::size_of::<Result<(), Diagnostic>>();
+                 if floor {
+-                    assert!(set_active_floor(remaining));
++                    assert!(set_active_floor(remaining - receipt));
+                 } else {
+-                    assert!(reserve_active_required(remaining));
++                    assert!(reserve_active_required(remaining - receipt));
+                 }
+                 let at = current_metrics().allocated;
+                 assert!(current
+@@ -435,3 +436,60 @@ fn retained_cache_zero_byte_reuse_checks_floor_and_sticky_refusal_without_alloca
+         );
+     }
+ }
++
++#[test]
++fn retained_warm_authentication_pays_the_real_result_at_exact_and_one_short_frontiers() {
++    use crate::bounded_output::{active_remaining, reserve_active_required};
++    let function = fixture();
++    let receipt = std::mem::size_of::<Result<(), Diagnostic>>();
++    for available in [0, receipt - 1, receipt] {
++        let (((), allocation), refused, _, first) = with_limit_usage_refusal(1 << 20, || {
++            measure(|| {
++                let mut memo = memo::RetainedMemo::<usize>::new();
++                let mut budget = ReplayBudget::new();
++                memo.authenticate_retained(&function, &mut budget);
++                assert!(!memo.failed());
++                let remaining = active_remaining().unwrap();
++                assert!(reserve_active_required(remaining - available));
++                let at = current_metrics().allocated;
++                memo.authenticate_retained(&function, &mut budget);
++                assert_eq!(memo.failed(), available != receipt);
++                assert_eq!(current_metrics().allocated, at);
++                if available == receipt {
++                    assert_eq!(active_remaining(), Some(0));
++                } else {
++                    assert_eq!(memo.failure().code, "SPX-H006");
++                    memo.authenticate_retained(&function, &mut budget);
++                    assert!(memo.failed());
++                    assert_eq!(current_metrics().allocated, at);
++                }
++                drop(memo);
++                drop(budget);
++            })
++        });
++        assert_eq!(refused, available != receipt);
++        if available == receipt {
++            assert!(first.is_none());
++        } else {
++            let first = first.unwrap();
++            assert_eq!(first.requested, receipt);
++            assert_eq!(first.remaining, available);
++        }
++        assert!(
++            !allocation.invalid && allocation.live == 0 && allocation.allocated == allocation.freed
++        );
++    }
++    // Calling the ordinary authenticator above retains its exact source fee;
++    // its complete implementation has no hidden replacement or weakened debit.
++    let ordinary = include_str!("memo.rs").replace(
++        "    #[cfg(test)]\n    pub(super) fn insert(",
++        "    pub(super) fn insert(",
++    );
++    let ordinary = ordinary
++        .strip_suffix("\nmod retained;\npub(super) use retained::RetainedMemo;\n")
++        .unwrap();
++    assert_eq!(
++        ordinary,
++        include_str!("../../../../../docs/evidence/canonical-scratch-839/memo.rs.before.txt")
++    );
++}

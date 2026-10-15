@@ -1,0 +1,11 @@
+{
+  "time_unix": 1792069781.433425,
+  "source": "93650ecbef340264fb09e3be5649cd7962c682ea",
+  "superseding_main": "7f9080f85316bf0e2e8f530cf4c5adbcda247c16",
+  "reason": "Cancellation was considered because main accounting advanced; authoritative poll found existing terminal compiler failure first. No process was signalled. This is a real compiler failure, not RAM interruption or orchestration cancellation.",
+  "controller_pid": 43986,
+  "action": "ALREADY_TERMINAL101_NO_SIGNAL_NO_CANCELLATION",
+  "actual_build_exit": 101,
+  "actual_compiler_errors": 1,
+  "actual_test_bodies": 0
+}

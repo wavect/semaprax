@@ -1,0 +1,133 @@
+{
+  "source_subject": "93650ecbef340264fb09e3be5649cd7962c682ea",
+  "original_external_round": "/Volumes/Semaprax/lane-prompts/final-9365-299-qualification-20261015",
+  "build_exit": 101,
+  "executed_test_bodies": 0,
+  "successful_phases": 0,
+  "total_phases": 1,
+  "planned_phases": 8,
+  "wall_seconds": 89.68819375000021,
+  "actual_compiler_errors": [
+    {
+      "rendered": "error[E0277]: the trait bound `std::rc::Rc<SmallWeighted>: std::borrow::Borrow<std::rc::Rc<Vec<(usize, u64)>>>` is not satisfied\n   --> src/cleanup_plan/replay/factored/canonical_shared/before_alias.rs:351:55\n    |\n351 |                 .all(|(state, id)| current.states.get(state) == Some(id))\n    |                                                   --- ^^^^^ the trait `std::borrow::Borrow<std::rc::Rc<Vec<(usize, u64)>>>` is not implemented for `std::rc::Rc<SmallWeighted>`\n    |                                                   |\n    |                                                   required by a bound introduced by this call\n    |\nhelp: the trait `Borrow<std::rc::Rc<Vec<(usize, u64)>>>` is not implemented for `std::rc::Rc<SmallWeighted>`\n      but trait `Borrow<SmallWeighted>` is implemented for it\n   --> /rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/rc.rs:3849:0\n    = help: for that trait implementation, expected `SmallWeighted`, found `std::rc::Rc<Vec<(usize, u64)>>`\nnote: required by a bound in `std::collections::BTreeMap::<K, V, A>::get`\n   --> /rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/collections/btree/map.rs:717:4\n\n",
+      "$message_type": "diagnostic",
+      "children": [
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "the trait `Borrow<std::rc::Rc<Vec<(usize, u64)>>>` is not implemented for `std::rc::Rc<SmallWeighted>`\nbut trait `Borrow<SmallWeighted>` is implemented for it",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 130199,
+              "byte_start": 130139,
+              "column_end": 61,
+              "column_start": 1,
+              "expansion": null,
+              "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/rc.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 3849,
+              "line_start": 3849,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            }
+          ]
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "for that trait implementation, expected `SmallWeighted`, found `std::rc::Rc<Vec<(usize, u64)>>`",
+          "rendered": null,
+          "spans": []
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "note",
+          "message": "required by a bound in `std::collections::BTreeMap::<K, V, A>::get`",
+          "rendered": null,
+          "spans": [
+            {
+              "byte_end": 26724,
+              "byte_start": 26619,
+              "column_end": 16,
+              "column_start": 5,
+              "expansion": null,
+              "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/collections/btree/map.rs",
+              "is_primary": true,
+              "label": null,
+              "line_end": 720,
+              "line_start": 717,
+              "suggested_replacement": null,
+              "suggestion_applicability": null,
+              "text": []
+            }
+          ]
+        }
+      ],
+      "level": "error",
+      "message": "the trait bound `std::rc::Rc<SmallWeighted>: std::borrow::Borrow<std::rc::Rc<Vec<(usize, u64)>>>` is not satisfied",
+      "spans": [
+        {
+          "byte_end": 14617,
+          "byte_start": 14612,
+          "column_end": 60,
+          "column_start": 55,
+          "expansion": null,
+          "file_name": "src/cleanup_plan/replay/factored/canonical_shared/before_alias.rs",
+          "is_primary": true,
+          "label": "the trait `std::borrow::Borrow<std::rc::Rc<Vec<(usize, u64)>>>` is not implemented for `std::rc::Rc<SmallWeighted>`",
+          "line_end": 351,
+          "line_start": 351,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 60,
+              "highlight_start": 55,
+              "text": "                .all(|(state, id)| current.states.get(state) == Some(id))"
+            }
+          ]
+        },
+        {
+          "byte_end": 14611,
+          "byte_start": 14608,
+          "column_end": 54,
+          "column_start": 51,
+          "expansion": null,
+          "file_name": "src/cleanup_plan/replay/factored/canonical_shared/before_alias.rs",
+          "is_primary": false,
+          "label": "required by a bound introduced by this call",
+          "line_end": 351,
+          "line_start": 351,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 54,
+              "highlight_start": 51,
+              "text": "                .all(|(state, id)| current.states.get(state) == Some(id))"
+            }
+          ]
+        }
+      ],
+      "code": {
+        "code": "E0277",
+        "explanation": "You tried to use a type which doesn't implement some trait in a place which\nexpected that trait.\n\nErroneous code example:\n\n```compile_fail,E0277\n// here we declare the Foo trait with a bar method\ntrait Foo {\n    fn bar(&self);\n}\n\n// we now declare a function which takes an object implementing the Foo trait\nfn some_func<T: Foo>(foo: T) {\n    foo.bar();\n}\n\nfn main() {\n    // we now call the method with the i32 type, which doesn't implement\n    // the Foo trait\n    some_func(5i32); // error: the trait bound `i32 : Foo` is not satisfied\n}\n```\n\nIn order to fix this error, verify that the type you're using does implement\nthe trait. Example:\n\n```\ntrait Foo {\n    fn bar(&self);\n}\n\n// we implement the trait on the i32 type\nimpl Foo for i32 {\n    fn bar(&self) {}\n}\n\nfn some_func<T: Foo>(foo: T) {\n    foo.bar(); // we can now use this method since i32 implements the\n               // Foo trait\n}\n\nfn main() {\n    some_func(5i32); // ok!\n}\n```\n\nOr in a generic context, an erroneous code example would look like:\n\n```compile_fail,E0277\nfn some_func<T>(foo: T) {\n    println!(\"{:?}\", foo); // error: the trait `core::fmt::Debug` is not\n                           //        implemented for the type `T`\n}\n\nfn main() {\n    // We now call the method with the i32 type,\n    // which *does* implement the Debug trait.\n    some_func(5i32);\n}\n```\n\nNote that the error here is in the definition of the generic function. Although\nwe only call it with a parameter that does implement `Debug`, the compiler\nstill rejects the function. It must work with all possible input types. In\norder to make this example compile, we need to restrict the generic type we're\naccepting:\n\n```\nuse std::fmt;\n\n// Restrict the input type to types that implement Debug.\nfn some_func<T: fmt::Debug>(foo: T) {\n    println!(\"{:?}\", foo);\n}\n\nfn main() {\n    // Calling the method is still fine, as i32 implements Debug.\n    some_func(5i32);\n\n    // This would fail to compile now:\n    // struct WithoutDebug;\n    // some_func(WithoutDebug);\n}\n```\n\nRust only looks at the signature of the called function, as such it must\nalready specify all requirements that will be used for every type parameter.\n"
+      }
+    }
+  ],
+  "guardian_interrupted": false,
+  "cancellation_action": "ALREADY_TERMINAL101_NO_SIGNAL_NO_CANCELLATION",
+  "cancellation_observation_source": "/Volumes/Semaprax/provenance/9365-superseded-main-build-cancellation-20261015.json",
+  "excluded_regeneratable_files": [
+    "drivers/__pycache__/draft_contract.cpython-312.pyc",
+    "drivers/__pycache__/observed_phase.cpython-312.pyc",
+    "drivers/__pycache__/semaprax_pressure_observation_v3.cpython-312.pyc"
+  ],
+  "note": "Actual core-library unit compilation failed with one E0277 test-only state-key comparison error. Exit101; full driver wall89.68819375000021seconds, not10189seconds. No runtime body executed. Cancellation was considered only after this terminal compiler failure was observed; no process signal, cancellation or RAM interruption occurred. Complete actual logs, drivers, manifests and receipts retained byte-exact; Python caches excluded."
+}

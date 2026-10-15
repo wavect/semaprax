@@ -1,0 +1,8 @@
+{
+  "source_subject": "746a1252a1a65aa52a2f5ab2b88d33aabe4f8000",
+  "exit_code": 101,
+  "executed_test_bodies": 0,
+  "root_cause": "Four E0433 references to missing sibling module import intervals in nested/check.rs",
+  "correction_commit": "7b8425580c1faa60b7b6770075bf4b17e19ad893",
+  "scope": "First production-library compile phase; owning test binaries and runtime were not executed. Complete original output retained."
+}

@@ -187,7 +187,7 @@ macro_rules! loan_cfg_source_inventory {
         include_str!("../../../../../src/cleanup_plan/renewal_profile/selected_inline/cells.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/selected_context/child.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/selected_context/child/tests.rs"),
-        include_str!("../../../../../src/cleanup_plan/replay/selected_context/child/tests/source.rs"), include_str!("../../../../../src/cleanup_plan/replay/selected_context/child/tests/source/compressed_fixture.rs"),
+        include_str!("../../../../../src/cleanup_plan/replay/selected_context/child/tests/source.rs"), include_str!("../../../../../src/cleanup_plan/replay/selected_context/child/tests/source/compressed_fixture.rs"), include_str!("../../../../../src/ast/expression_statement/tests.rs"), include_str!("../../../../../tests/wasm/scalar_browser_ci_contract/historical_builder.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/selected_context/paid_before_children.rs"),
         include_str!("../../../../../src/hir/lexical_exit/selected_child.rs"),
         include_str!("../../../../../src/loop_calls/byte_writer/resolved/selected_inline.rs"),

@@ -38,7 +38,7 @@ pub(super) fn parse(arguments: &[String]) -> Result<(&str, &str, project::Scaffo
                     "tables" => project::ScaffoldLayout::Tables,
                     "current" => project::ScaffoldLayout::Current,
                     _ => {
-                        eprintln!("project-scaffold layout must be frozen, tables, or current");
+                        eprintln!("project-scaffold layout must be frozen or tables or current");
                         return Err(2);
                     }
                 });

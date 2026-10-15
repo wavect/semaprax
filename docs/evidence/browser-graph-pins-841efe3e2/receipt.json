@@ -1,0 +1,34 @@
+{
+  "current_run": 38770620786,
+  "current_job": 116546107383,
+  "source_head": "841efe3e27ab510049891440d3033a0d82f96bb1",
+  "only_non_digest_delta_since_prior_capture": "budget.used_builder_bytes: 4852372 -> 4852388",
+  "fixtures": [
+    {
+      "fixture": "calculator-baseline.json",
+      "current_digest": "sha256:8590a806de7844c298e52b4c985234b911d60e04b6b29a06e20b0b8a0b8ddfb5",
+      "current_builder_bytes": 4852388,
+      "prior_builder_bytes": 4852372,
+      "historical_builder_bytes": 1214409,
+      "prior_graph_digest": "sha256:2488a7324a5311a59be3310eccebc906166b3ae5e23e33314bb1e91d061c0ee8",
+      "historical_graph_digest": "sha256:1858de2482c3cdbd15e9752003079ce19797f1168aada4890cfbd5a94a0cac9f",
+      "original_cursor_control_digest": "sha256:489f02ed298c2d35433d6c9f811ccc26c50ce90117b3976a862b40aff11129b8",
+      "current_wire_sha256": "8dd96cfbb8657dd7eb56368ff40893463c2f868ac0540b8439452f7470cebefe",
+      "prior_wire_sha256": "f951893b562c7fb904d4454b417ff910eedb5788b473129ed79879a55becaca8",
+      "historical_wire_sha256": "1388105a39fb89ec84c6b3aed500bda4d654921b2263734866655dc4896194aa"
+    },
+    {
+      "fixture": "calculator-renamed.json",
+      "current_digest": "sha256:3be60b9f01605a9701e9c386174139b988a1dc5969bde69bdf6e1e2b060f8a2b",
+      "current_builder_bytes": 4852388,
+      "prior_builder_bytes": 4852372,
+      "historical_builder_bytes": 1214409,
+      "prior_graph_digest": "sha256:ea244c0b5dd12452b18cf222d9d92d49b8a196d353eeed7c38d887c696b104d5",
+      "historical_graph_digest": "sha256:66698f543a192b5892ef344d4c55356e6fa829149615f4018fe9fee25f297c17",
+      "original_cursor_control_digest": "sha256:ccb0ec81a00f3890ec2fe87af8d0f801970a1a397eeb55fe115e83dab02188ba",
+      "current_wire_sha256": "8ff4b375071848c2b3e3b7d0875fa3d593b4266eb2e335e658d63604bc9790ee",
+      "prior_wire_sha256": "b46be32be9d067b2bafc9a4adf7aaed9669a1e4413100824a62ea900872ec1f2",
+      "historical_wire_sha256": "ab9e2c01332e10d55dbdc2cf3c1d04973ad64884d6b373d8ab87ab3678eec937"
+    }
+  ]
+}

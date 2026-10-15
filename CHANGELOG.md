@@ -21,6 +21,14 @@
   executable qualification and physical measurements are pending.
 
 - Qualify the closed named String-transfer v1 scope with all 15 exact a417 owning controls and the five 27ae regenerated-pin/source controls; retain unrelated application-budget failures and frozen public profiles.
+- Refresh both browser graph pins from authenticated hosted compiler records, retaining full current/prior graph wires, exact historical bill reconstruction, and the unchanged original cursor-control helper and hashes. Use the direct error assertion for the unit-valued hidden-law check result to satisfy the pinned Clippy gate.
+
+- Refuse a native-law carrier in ordinary Project file facts unless the manifest selected its law path before workspace preflight; preserve raw Graph retention and add owned, cold, and cached Project regressions.
+
+- Select the application JSON and NDJSON module gates in library-depth CI, keep complete browser graph diagnostics in job logs without artifact coupling, and preserve the scaffold layout error’s frozen-or-tables prefix while listing current guidance.
+
+- Grow canonical expression-statement hygiene scratch with actual traversal depth, prepaying each complete replacement and retaining the original depth limit and full fixed-array receiver controls.
+
 - Initialize reservation caller metadata on the source-acquisition payer. Keep the exact truncated release version in the bounded notice while retaining its changelog link, and extend the frozen CLI-help projection for the admitted current scaffold layout.
 
 - Capture the first refused reservation’s compiler caller without allocating, and append it to outward builder-budget help while preserving numeric receipts, stages, limits and paid-report omission.

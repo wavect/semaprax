@@ -77,3 +77,76 @@ fn retained_ast_revision_matches_source_replay_across_preludes() {
         );
     }
 }
+
+#[test]
+fn native_law_selection_refuses_hidden_sources_on_owned_cold_and_cached_routes() {
+    const LAW: &str = "module calculator.laws;\n\n@id(\"calculator.divide.nonzero\")\nlaw contract \"calculator.divide\" requires (right: i64)\n    right != 0\n    evidence theorem_proved;\n";
+    const MANIFEST: &str = "schema = \"semaprax.manifest.v2\"\n\n[package]\nname = \"calculator\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"calculator.app\"\nsources = [\"src/app.spx\", \"src/contracts.spx\", \"src/core.spx\", \"src/tests.spx\"]\nlaw_sources = [\"src/contracts.spx\"]\ntests = [\"calculator.tests\"]\n\n[exports]\nweb = [\"calculator.add\", \"calculator.divide\", \"calculator.is-negative\", \"calculator.multiply\", \"calculator.not\", \"calculator.subtract\"]\n";
+    let selected = ProjectManifest::parse(MANIFEST).unwrap();
+    let hidden_text = MANIFEST.replace("law_sources = [\"src/contracts.spx\"]", "law_sources = []");
+    assert_ne!(hidden_text, MANIFEST);
+    let hidden = ProjectManifest::parse(&hidden_text).unwrap();
+    let sources = [
+        (
+            "src/app.spx",
+            include_str!("../../../examples/calculator-project/src/app.spx"),
+        ),
+        ("src/contracts.spx", LAW),
+        (
+            "src/core.spx",
+            include_str!("../../../examples/calculator-project/src/core.spx"),
+        ),
+        (
+            "src/tests.spx",
+            include_str!("../../../examples/calculator-project/src/tests.spx"),
+        ),
+    ];
+    let owned = || {
+        sources
+            .iter()
+            .map(
+                |(path, source)| crate::semantic_workspace::SemanticWorkspaceSource {
+                    path: (*path).to_owned(),
+                    source: (*source).to_owned(),
+                },
+            )
+            .collect()
+    };
+    let errors = super::build_owned(&hidden, owned())
+        .err()
+        .expect("owned hidden law must refuse");
+    assert_eq!(errors[0].code, "SPX-LW110");
+    let frontend = sources
+        .iter()
+        .map(|(path, source)| ProjectFrontendSource::new(path, source).unwrap())
+        .collect::<Vec<_>>();
+    for semantic in [false, true] {
+        let mut cache = if semantic {
+            ProjectFrontendCache::new_with_semantic_cache()
+        } else {
+            ProjectFrontendCache::new()
+        };
+        let errors = cache
+            .build(&hidden, &frontend)
+            .err()
+            .expect("cold hidden law must refuse");
+        assert_eq!(errors[0].code, "SPX-LW110");
+        let before = cache.build(&selected, &frontend).unwrap();
+        assert_eq!(before.revision().law_modules().len(), 1);
+        let errors = cache
+            .build(&hidden, &frontend)
+            .err()
+            .expect("cached hidden law must refuse");
+        assert_eq!(errors[0].code, "SPX-LW110");
+        let after = cache.build(&selected, &frontend).unwrap();
+        assert_eq!(after.revision().law_modules().len(), 1);
+        assert_eq!(
+            before.revision().project_revision(),
+            after.revision().project_revision()
+        );
+        assert_eq!(
+            before.revision().semantic_graph_digest(),
+            after.revision().semantic_graph_digest()
+        );
+    }
+}

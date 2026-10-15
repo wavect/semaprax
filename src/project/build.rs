@@ -125,6 +125,18 @@ fn finish_build(
     let _workflow_span = crate::workflow_profile::span(crate::workflow_profile::Stage::ProjectLink);
     let (files, ordinary_workspace_manifest, ordinary_workspace_revision, mut graph) =
         preflight.into_snapshot_parts();
+    // Selected law paths were removed before ordinary workspace preflight.
+    // Its inert native-law carrier is valid for raw Graph retention, but is
+    // never authority to hide a declaration in an ordinary Project source.
+    if files
+        .iter()
+        .any(|file| file.source_graph_schema() == "semaprax.native-law.v1")
+    {
+        return Err(vec![Diagnostic::io(
+            "SPX-LW110",
+            "native law declarations in ordinary Project sources require explicit law_sources selection",
+        )]);
+    }
     let (workspace_manifest, workspace_revision) = if law_source_facts.is_empty() {
         (ordinary_workspace_manifest, ordinary_workspace_revision)
     } else {

@@ -618,6 +618,8 @@ pub(crate) fn compressed_fixture_input(source: &str, current: &str) -> String {
 
 // The retained registry owner and inherited guards have distinct whole inputs.
 fn before_retained833(source: &str, current: &str) -> String {
+    let previous = before_main66517(source, current);
+    let current = previous.as_str();
     project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -628,10 +630,24 @@ fn before_retained833(source: &str, current: &str) -> String {
     )
 }
 pub(crate) fn retained833_input(source: &str, current: &str) -> String {
+    let previous = before_main66517(source, current);
+    let current = previous.as_str();
     project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/retained-registry-833-assembly-20261015/current-to-c3.json"
+        )),
+        source,
+        current,
+    )
+}
+
+// Latest MAIN source enters the immutable combined833/841 checkpoint first.
+fn before_main66517(source: &str, current: &str) -> String {
+    project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/main66517-source-assembly-20261015/current-to-397.json"
         )),
         source,
         current,

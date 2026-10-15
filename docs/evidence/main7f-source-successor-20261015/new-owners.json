@@ -1,0 +1,12 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/path_join/storage/empty_renewals.rs",
+    "sha256": "fd2006adc9e0f703f538a45f3c457f0c9d1af36b08366991a0fb6897cd13860c",
+    "new_owner": true
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs",
+    "sha256": "c6724771e239061bd5b9a96ed94b88154134b53451b7ac06f36ce9e9d0347438",
+    "new_owner": true
+  }
+]

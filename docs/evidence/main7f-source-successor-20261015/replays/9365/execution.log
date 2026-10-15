@@ -1,0 +1,31 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "merged_code_basis": "b1e3cad9100494e81ac7e5f6ae2695eb0ee586da",
+  "named_branches": {
+    "9d": "9d4358078f9e2ae7740683c06bbf939284038058",
+    "842": "8025cd196fd15629cdfb6646fe281fb74f606a04",
+    "843": "538673710c463b911c2e5a38d8f7fc9275f99c62"
+  },
+  "finite_final_owners": 24,
+  "common_7800_sources_reconciled": 15,
+  "strict_stale_raw_negative_checks": 39,
+  "original_direct842_rows": 13,
+  "original_direct843_rows": 11,
+  "sticky_full_source_rows": 2,
+  "held_rows": 26,
+  "prior_packets": 101,
+  "prior_rows": 904,
+  "prior_current_to_prior_joins": 38,
+  "all_old_assertion_bodies_and_runtime_domains_preserved": true,
+  "all_production_code_unchanged_from_merged_input": true,
+  "protected_runtime_hashes": {
+    "docs/evidence/compiler-receiving-fix-7800-20261015/predecessor-projections.json": "2b22adba85fe3d3d95f08117fa6a7fe0969eca213d2a166111934d468479d527",
+    "docs/evidence/inline-weighted-successor-842/source-inverses.json": "73b32eaf57a0af165fb8377fb1bbdf3a499fe969b159e1e03eee795391c99f95",
+    "docs/evidence/inline-weighted-successor-842/new-source-bindings.json": "b32a9a4efd941a15c0c44472609e3b58ab2fcaf9b5241935ef1ff2929db5eed1",
+    "docs/evidence/held-closure-receiver-843/runtime-projections.json": "fe2e11f4544bcd297fee73fe279ec38b3a8e196945b54f523eac9a1c7221ab7e",
+    "docs/evidence/held-closure-receiver-843/source-inverses.json": "b49f63da93c1d802dd62efdbe1e189bb8c36d18811dd489ce45b95f8aaaa33dd",
+    "docs/evidence/held-closure-receiver-843-sticky-fix/source-inverses.json": "0b49d72f2d7ddcbe3dd3ab29fc58c0174f66e2b6ae1f6c0d5d16fb8fe61993d5"
+  },
+  "git_cache_peak_bytes": 16777135,
+  "new_runtime_results": 0
+}

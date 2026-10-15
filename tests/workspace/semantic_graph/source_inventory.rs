@@ -166,6 +166,8 @@ macro_rules! semantic_graph_root_source_inventory {
         include_str!("../../src/cleanup_plan/replay/live_oracle/source_custody/presence.rs"),
         include_str!("../../src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs"),
         include_str!("../../src/source_reflows_merge.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/storage/empty_renewals.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs"),
         include_str!("../../src/cleanup_plan/replay/expression_facts/receiving.rs"),
         include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/directory.rs"),
         include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/return_operands.rs"),

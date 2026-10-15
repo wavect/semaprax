@@ -1,0 +1,9 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "source_proof_sha256": "85ac50e0ce4e74d258605ea644dc791318ca51f42b3269e6121ef440f4ed2b4d",
+  "replay_proof_sha256": "a1070ab83be49d969d6a33c094c2d5d1df6dce023be74d8e622597746f5a8a2f",
+  "old_programs_unchanged_assertions": 6,
+  "new_rust_selectors": 0,
+  "runtime_bodies": 0,
+  "pending_parent_selection": 309
+}

@@ -1,0 +1,19 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
+    "checkpoint_revision": "7c10b8eae5c590b9c3114f13f206cc014762b38f",
+    "archive": "docs/evidence/held-closure-miss-fixture-fix-843-20261015/closure-tests.rs.before.txt",
+    "current_sha256": "9f93d0a5b2eb84ccd0e2da828c410fda3949ef9082ade4543c13525f1f43e891",
+    "original_sha256": "78c6bfedd01a582a93788c427223e79e134c894e3d3767b99683e6137c9a6b19",
+    "edits": [
+      {
+        "new": "            // LoopLatch is disconnected from both comparison roots. A fresh\n            // query must invoke the producer once; its retry must invoke none.\n            assert!(!current.closures.contains_key(&roots[2]));\n            let count = producer_count();\n            let value = current\n                .closure_with_receiving(&function, roots[2], &mut budget, &mut receiving)\n                .unwrap()\n                .unwrap();\n            assert_eq!(producer_count(), count + 1);\n            assert_eq!(value.len(), 1);\n            assert_eq!(value.get(&roots[2]), Some(&1));\n            drop(value);\n            let work = budget.remaining;\n            let allocated = current_metrics().allocated;\n            drop(\n                current\n                    .closure_with_receiving(&function, roots[2], &mut budget, &mut receiving)\n                    .unwrap(),\n            );\n            assert_eq!(producer_count(), count + 1);\n            assert_eq!(budget.remaining, work - 1);\n            assert_eq!(current_metrics().allocated, allocated);\n            let count = producer_count();\n            let work = budget.remaining;\n            let allocated = current_metrics().allocated;\n            for _ in 0..8 {",
+        "old": "            let count = producer_count();\n            let work = budget.remaining;\n            let allocated = current_metrics().allocated;\n            for _ in 0..8 {"
+      },
+      {
+        "new": "            assert!(!current.closures.contains_key(&sink));\n            assert!(current.closures.contains_key(&roots[0]));\n            assert!(current.closures.contains_key(&roots[3]));\n            // The initial closure follows epsilon edges, not roots[0]'s move\n            // to sink. Query that still-cold sink explicitly, then prove reuse.\n            let count = producer_count();\n            let value = current\n                .closure_with_receiving(&function, sink, &mut budget, &mut receiving)\n                .unwrap()\n                .unwrap();\n            assert_eq!(producer_count(), count + 1);\n            assert_eq!(value.len(), 1);\n            assert_eq!(value.get(&sink), Some(&1));\n            drop(value);\n            let work = budget.remaining;\n            let allocated = current_metrics().allocated;\n            drop(\n                current\n                    .closure_with_receiving(&function, sink, &mut budget, &mut receiving)\n                    .unwrap(),\n            );\n            assert_eq!(producer_count(), count + 1);\n            assert_eq!(budget.remaining, work - 1);\n            assert_eq!(current_metrics().allocated, allocated);\n",
+        "old": "            assert!(current.closures.contains_key(&sink));\n            assert!(current.closures.contains_key(&roots[0]));\n            assert!(current.closures.contains_key(&roots[3]));\n"
+      }
+    ]
+  }
+]

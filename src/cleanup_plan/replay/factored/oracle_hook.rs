@@ -28,7 +28,7 @@ pub(super) fn cross_check_with_storage<'hir>(
         Ok(None) => match storage {
             Some(storage) if storage.has_receiving_owner() => {
                 storage.authenticate(program, function, budget)?;
-                super::continuation_receiver::cross_check(program, function, storage);
+                super::continuation_receiver::cross_check(program, function, storage)?;
             }
             _ => super::cross_check(program, function),
         },

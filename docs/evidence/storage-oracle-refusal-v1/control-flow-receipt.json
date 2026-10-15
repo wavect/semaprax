@@ -1,0 +1,15 @@
+{
+  "scope": "actual complete before/current receiver control flow and actual BO/Diagnostic; synthetic comparison engine and HIR carriers; no full HIR execution",
+  "runs": [
+    {
+      "compiler": "1.88.0-aarch64-apple-darwin",
+      "sampled_aggregate_peak_KiB": 170992,
+      "result": "pass"
+    },
+    {
+      "compiler": "1.97.1-aarch64-apple-darwin",
+      "sampled_aggregate_peak_KiB": 176928,
+      "result": "pass"
+    }
+  ]
+}

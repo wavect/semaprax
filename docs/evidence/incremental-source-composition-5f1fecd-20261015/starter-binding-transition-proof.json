@@ -1,0 +1,38 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "source_basis": "8967ab82fbd11758c1b68e064cfd42f66cfb01c7",
+  "prior_binding_file": "docs/evidence/incremental-source-composition-d39fe67-20261015/starter-current-bindings.json",
+  "prior_binding_sha256": "e174a8ba38aaa0efa4d92a9c0567f1f3600608d70400a879e1bf5b93fb0f2825",
+  "bindings_verified": 38,
+  "all_old_inverse_hooks_retained": true,
+  "authenticated_added_joins": [
+    {
+      "owner": "starter-original",
+      "source": "CHANGELOG.md",
+      "checkpoint": "d39fe676a7c1df3323888b25c9481f7bbb65feaa",
+      "previous_sha256": "1a8e58a57c27040d1e2478205fa502e09bd36fc3ef8861c85cf0188b89e56dac",
+      "current_sha256": "248de787926ce7bff961f648734557a7fbe6205b043a11d8a860616e6ed815d9"
+    },
+    {
+      "owner": "starter-original",
+      "source": "docs/ARCHITECTURE.md",
+      "checkpoint": "d39fe676a7c1df3323888b25c9481f7bbb65feaa",
+      "previous_sha256": "7797e2fe572f91a959ca77b46e3af1b852e2495042a751d0ba99c55fe9598718",
+      "current_sha256": "03523ae0759dddc149b9bf83268b803409370a967ad5ca3e3107818db5fc6f7a"
+    },
+    {
+      "owner": "starter-original",
+      "source": "docs/DEVELOPMENT.md",
+      "checkpoint": "d39fe676a7c1df3323888b25c9481f7bbb65feaa",
+      "previous_sha256": "d25eb03e9b6c6422bf9ee6d17c75cded0b9da8183957cd1bed6c9d69fa4c89d4",
+      "current_sha256": "0629d2873a4d3302265c85bcd00f2c1c462559b49db9d740ff6b76d0dc22b227"
+    },
+    {
+      "owner": "starter-held-input-fix",
+      "source": "CHANGELOG.md",
+      "checkpoint": "d39fe676a7c1df3323888b25c9481f7bbb65feaa",
+      "previous_sha256": "1a8e58a57c27040d1e2478205fa502e09bd36fc3ef8861c85cf0188b89e56dac",
+      "current_sha256": "248de787926ce7bff961f648734557a7fbe6205b043a11d8a860616e6ed815d9"
+    }
+  ]
+}

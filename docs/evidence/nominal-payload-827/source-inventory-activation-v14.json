@@ -54,7 +54,7 @@
     },
     {
       "source": "src/hir.rs",
-      "sha256": "169243ea21dde16d153d0f96d7683d421474a81e7fe802fe51351b14d1001657",
+      "sha256": "432395d875a954de8aee03c3fcbd827ecbb5066e0c6fa9fd0cc0ec2c2a36db7f",
       "original": "docs/evidence/nominal-payload-827/original/src/hir.rs",
       "original_sha256": "a5efa3f9d058c37538b9f08a17f3286fad4b2342b54943d64f3a4ca69e6459e0",
       "new_file": false
@@ -68,7 +68,7 @@
     },
     {
       "source": "src/hir/declaration_index.rs",
-      "sha256": "9cb1c0667e83e5f72aab03411cb50fb7a74062428bb420e9e1ad2341d4b8e374",
+      "sha256": "adc41f5edf1a8bf7a598e6020ff0f014489bb753a462a7150b4938dd47deb55a",
       "original": "docs/evidence/nominal-payload-827/original/src/hir/declaration_index.rs",
       "original_sha256": "586684b48f58eea49ca017a4f1b8ab54fee3a874366d9ef0e10c2e31b8cd46c3",
       "new_file": false
@@ -89,7 +89,7 @@
     },
     {
       "source": "src/hir/declaration_index/leaf_drop_tests.rs",
-      "sha256": "f2919fb1344f564493273f4ae4d888c2eff906508859bd944509b34acc98814f",
+      "sha256": "1cde0e096101398c7d0f8071d55951d311acfd134bc6f1e5c237bb3f89140054",
       "original": "docs/evidence/nominal-payload-827/original/src/hir/declaration_index/leaf_drop_tests.rs",
       "original_sha256": "abd2cc7eb9eb8bf41a7dfcfbf969e5f2e1e0e12faa29b5af474c37ae4a3c74ec",
       "new_file": false
@@ -138,7 +138,7 @@
     },
     {
       "source": "src/hir/declaration_index/primitive_replay/option_u8/tests.rs",
-      "sha256": "97740a2f90453edc2d3f3f20a412dbcd95f631ad798f52f23c762f1d42db3386",
+      "sha256": "d8a489657557edb2803f9a33a13c2ecc22513296d54815ed028cad5c9de45b16",
       "original": "docs/evidence/nominal-payload-827/original/src/hir/declaration_index/primitive_replay/option_u8/tests.rs",
       "original_sha256": "8f6ae9d1a5f2b75bf90d66dd661d4af1c4eceb696189ae4723c35572020c64b6",
       "new_file": false
@@ -152,7 +152,7 @@
     },
     {
       "source": "src/hir/identity_resolution.rs",
-      "sha256": "c3253c5cfebd469f6577ded2977ee699199ff53eaa7f63483315b996ce00c465",
+      "sha256": "2f791110cd64206def2efc9fc6a5110b0e49c6b1b500366c3795a1e8b9fee9be",
       "original": "docs/evidence/nominal-payload-827/original/src/hir/identity_resolution.rs",
       "original_sha256": "dd295809fbc859040caafd6bf5f4bb3863c64392747b539717547c0cad3c1700",
       "new_file": false
@@ -334,7 +334,7 @@
     },
     {
       "source": "src/hir/validation/function_scope/lifecycle/completed/inline_path/tests.rs",
-      "sha256": "b9012f7d816ec1c50ec5e62a9e718ac574ed3b02ce2aff2599a584da5b2ec8c5",
+      "sha256": "86b4a7121eb0dfccb7344b57cf0acf5e81a1435eb4c4fdb5d9dd7e71c2217a69",
       "original": "docs/evidence/nominal-payload-827/original/src/hir/validation/function_scope/lifecycle/completed/inline_path/tests.rs",
       "original_sha256": "46762047636feb00bd85bf0da82a4fca991662879e600488dd94aaa339d22cd7",
       "new_file": false
@@ -376,14 +376,14 @@
     },
     {
       "source": "src/workspace_graph.rs",
-      "sha256": "df1b090cc949a6d8913b3550fa1af748146281d89850118956172410a092e454",
+      "sha256": "f517b9c93b4de7db618db0abc0139d4d88121f298ae9f3b16246dc20e833c0a9",
       "original": "docs/evidence/nominal-payload-827/original/src/workspace_graph.rs",
       "original_sha256": "fe644b87c264e23b9afa0660d4bcd8149583f19438146734d258025c27087771",
       "new_file": false
     },
     {
       "source": "src/workspace_graph/expected_projection/borrowed_leaf.rs",
-      "sha256": "ddcde091b09c67ba3cbdd12b14644ca0bdd53c90c435cd1b8bdac249d390aa5c",
+      "sha256": "489df5deda3454a2bac7e60a4367411f958aa8af6d547c86434b8b9c753eda20",
       "original": "docs/evidence/nominal-payload-827/original/src/workspace_graph/expected_projection/borrowed_leaf.rs",
       "original_sha256": "635a606f173659862c09c8d0d44b2e20e25b3278b7b3a44802e9eea9d565fa7e",
       "new_file": false
@@ -563,5 +563,5 @@
   "combined_final_source_basis": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
   "explicit_import_source_basis": "a41774c0b",
   "ordered_integrated_source_basis": "e3eb476838442b58c02ccc815aae4bbdfebfd50e",
-  "final_integrated_source_basis": "d39fe676a7c1df3323888b25c9481f7bbb65feaa"
+  "final_integrated_source_basis": "8967ab82fbd11758c1b68e064cfd42f66cfb01c7"
 }

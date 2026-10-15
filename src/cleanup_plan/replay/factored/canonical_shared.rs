@@ -3,8 +3,8 @@
 //! vectors. Label order, route weights, signature algebra and work debits keep
 //! the complete original receiver in canonical_before.rs as an independent control.
 use super::{
-    physical_clone, replay_error, Automaton, BTreeMap, BTreeSet, Diagnostic, Label, Rc,
-    ReplayBudget, ResolvedFunction, Weighted,
+    physical_clone, replay_error, Automaton, BTreeMap, Diagnostic, Label, Rc, ReplayBudget,
+    ResolvedFunction, Weighted,
 };
 
 #[cfg(test)]
@@ -12,9 +12,13 @@ mod before_alias;
 #[cfg(test)]
 mod before_index;
 #[cfg(test)]
+mod before_scratch;
+#[cfg(test)]
 mod before_targets;
 mod epsilon_alias;
 mod memo;
+#[cfg(test)]
+mod scratch_tests;
 #[cfg(test)]
 mod singleton_target_tests;
 mod successor_targets;
@@ -82,9 +86,13 @@ fn share_weighted(
 pub(super) struct Canonicalizer<'a> {
     automaton: &'a Automaton,
     sink: usize,
-    closures: memo::Memo<Rc<BTreeMap<usize, u64>>>,
+    closures: memo::RetainedMemo<Rc<BTreeMap<usize, u64>>>,
     states: BTreeMap<SharedWeighted, usize>,
     ids: BTreeMap<(u64, Vec<(Label, usize)>), usize>,
+    cursor: Vec<(usize, bool)>,
+    frames: Vec<CanonicalFrame>,
+    open: Vec<SharedWeighted>,
+    scratch_paid: bool,
 }
 
 impl<'a> Canonicalizer<'a> {
@@ -92,9 +100,13 @@ impl<'a> Canonicalizer<'a> {
         Self {
             automaton,
             sink,
-            closures: memo::Memo::new(),
+            closures: memo::RetainedMemo::new(),
             states: BTreeMap::new(),
             ids: BTreeMap::new(),
+            cursor: Vec::new(),
+            frames: Vec::new(),
+            open: Vec::new(),
+            scratch_paid: false,
         }
     }
 
@@ -106,22 +118,62 @@ impl<'a> Canonicalizer<'a> {
         root: usize,
         budget: &mut ReplayBudget,
     ) -> Result<Option<Rc<BTreeMap<usize, u64>>>, Diagnostic> {
-        self.closures.authenticate(function, budget)?;
-        budget.reserve_array::<(usize, bool)>(function, 1, "factored closure initial cursor")?;
-        let mut stack = vec![(root, false)];
-        while let Some((node, expanded)) = stack.pop() {
+        self.closures.authenticate_retained(function, budget);
+        if self.closures.failed() {
+            return Err(self.closures.failure());
+        }
+        // The cached route still executes its original one cursor work debit.
+        // It constructs neither a cursor Vec nor an inner Result receiver.
+        if self.closures.contains_key(&root) {
+            budget.charge(function, 1, "factored closure cursor")?;
+            return Ok(self.closures.get(&root).cloned());
+        }
+        if budget.pays_allocations() {
+            budget.reserve_bytes(
+                function,
+                std::mem::size_of::<Result<Option<Rc<BTreeMap<usize, u64>>>, Diagnostic>>()
+                    + std::mem::size_of::<Result<(), Diagnostic>>()
+                    + std::mem::size_of::<usize>(),
+                "factored closure scratch receiving",
+            )?;
+        }
+        self.prepare_scratch(function, budget)?;
+        let result = self.closure_inner(function, root, budget);
+        self.cursor.clear();
+        result
+    }
+
+    fn closure_inner(
+        &mut self,
+        function: &ResolvedFunction,
+        root: usize,
+        budget: &mut ReplayBudget,
+    ) -> Result<Option<Rc<BTreeMap<usize, u64>>>, Diagnostic> {
+        budget.reserve_vec(
+            function,
+            &mut self.cursor,
+            1,
+            "factored closure initial cursor",
+        )?;
+        self.cursor.push((root, false));
+        while let Some((node, expanded)) = self.cursor.pop() {
             budget.charge(function, 1, "factored closure cursor")?;
             if self.closures.contains_key(&node) {
                 continue;
             }
             let state = &self.automaton.nodes[node];
             if !expanded {
-                budget.reserve_vec(function, &mut stack, 1, "factored closure cursors")?;
-                stack.push((node, true));
+                budget.reserve_vec(function, &mut self.cursor, 1, "factored closure cursors")?;
+                self.cursor.push((node, true));
                 for target in &state.epsilon {
                     if !self.closures.contains_key(target) {
-                        budget.reserve_vec(function, &mut stack, 1, "factored closure cursors")?;
-                        stack.push((*target, false));
+                        budget.reserve_vec(
+                            function,
+                            &mut self.cursor,
+                            1,
+                            "factored closure cursors",
+                        )?;
+                        self.cursor.push((*target, false));
                     }
                 }
                 continue;
@@ -146,7 +198,8 @@ impl<'a> Canonicalizer<'a> {
                 };
                 #[cfg(test)]
                 app_census::acquired();
-                self.closures.insert(function, node, budget, || shared)?;
+                self.closures
+                    .insert_retained(function, node, budget, || shared)?;
                 #[cfg(test)]
                 app_census::published();
                 continue;
@@ -184,7 +237,7 @@ impl<'a> Canonicalizer<'a> {
                 "factored closure shared header",
             )?;
             self.closures
-                .insert(function, node, budget, || Rc::new(closure))?;
+                .insert_retained(function, node, budget, || Rc::new(closure))?;
         }
         Ok(self.closures.get(&root).cloned())
     }
@@ -419,27 +472,82 @@ impl<'a> Canonicalizer<'a> {
         // Authenticate even when states already contains the requested root.
         // One equivalent() call holds this function and budget borrowed across
         // both roots; no closure/cache view leaves that invocation.
-        self.closures.authenticate(function, budget)?;
-        budget.reserve_array::<CanonicalFrame>(function, 1, "factored canonical initial frame")?;
+        self.closures.authenticate_retained(function, budget);
+        if self.closures.failed() {
+            return Err(self.closures.failure());
+        }
+        if budget.pays_allocations() {
+            budget.reserve_bytes(
+                function,
+                std::mem::size_of::<Result<Option<usize>, Diagnostic>>()
+                    + std::mem::size_of::<Weighted>()
+                    + std::mem::size_of::<Result<(), Diagnostic>>(),
+                "factored canonical scratch receiving and moved root",
+            )?;
+        }
+        self.prepare_scratch(function, budget)?;
+        let result = self.id_inner(function, root, budget);
+        // Retain capacity, never owned references, across either root and all
+        // success, arithmetic, work, physical and semantic failure exits.
+        self.cursor.clear();
+        self.frames.clear();
+        self.open.clear();
+        result
+    }
+
+    fn prepare_scratch(
+        &mut self,
+        function: &ResolvedFunction,
+        budget: &mut ReplayBudget,
+    ) -> Result<(), Diagnostic> {
+        if !self.scratch_paid {
+            if budget.pays_allocations() {
+                budget.reserve_bytes(
+                    function,
+                    std::mem::size_of::<Vec<(usize, bool)>>()
+                        + std::mem::size_of::<Vec<CanonicalFrame>>()
+                        + std::mem::size_of::<Vec<SharedWeighted>>()
+                        + std::mem::size_of::<bool>(),
+                    "factored retained canonical scratch controls",
+                )?;
+            }
+            self.scratch_paid = true;
+        }
+        Ok(())
+    }
+
+    fn id_inner(
+        &mut self,
+        function: &ResolvedFunction,
+        root: Weighted,
+        budget: &mut ReplayBudget,
+    ) -> Result<Option<usize>, Diagnostic> {
+        budget.reserve_vec(
+            function,
+            &mut self.frames,
+            1,
+            "factored canonical initial frame",
+        )?;
         let root = own_weighted(function, budget, root)?;
         let root_copy = share_weighted(function, budget, &root)?;
-        let mut frames = vec![CanonicalFrame::Enter(root_copy)];
-        let mut open = BTreeSet::new();
-        while let Some(frame) = frames.pop() {
+        self.frames.push(CanonicalFrame::Enter(root_copy));
+        while let Some(frame) = self.frames.pop() {
             budget.charge(function, 1, "factored canonical frame")?;
             match frame {
                 CanonicalFrame::Enter(state) => {
                     if self.states.contains_key(&state) {
                         continue;
                     }
-                    if open.contains(&state) {
+                    if self.open.contains(&state) {
                         return Err(replay_error(function, "cleanup CFG contains a cycle"));
                     }
-                    budget.reserve_btree_node::<SharedWeighted, ()>(
+                    budget.reserve_vec(
                         function,
-                        "factored open-state identity node",
+                        &mut self.open,
+                        1,
+                        "factored retained open-state identity slots",
                     )?;
-                    open.insert(share_weighted(function, budget, &state)?);
+                    self.open.push(share_weighted(function, budget, &state)?);
                     let Some((accepted, successors)) = self.successors(function, &state, budget)?
                     else {
                         return Ok(None);
@@ -447,28 +555,30 @@ impl<'a> Canonicalizer<'a> {
                     let child_count = successors.len();
                     budget.reserve_vec(
                         function,
-                        &mut frames,
+                        &mut self.frames,
                         1,
                         "factored canonical exit frame",
                     )?;
-                    let exit_index = frames.len();
-                    frames.push(CanonicalFrame::Exit(state, accepted, successors));
+                    let exit_index = self.frames.len();
+                    self.frames
+                        .push(CanonicalFrame::Exit(state, accepted, successors));
                     for index in 0..child_count {
-                        let CanonicalFrame::Exit(_, _, successors) = &frames[exit_index] else {
+                        let CanonicalFrame::Exit(_, _, successors) = &self.frames[exit_index]
+                        else {
                             unreachable!("canonical exit retained below child frames");
                         };
                         let child = share_weighted(function, budget, &successors[index].1)?;
                         budget.reserve_vec(
                             function,
-                            &mut frames,
+                            &mut self.frames,
                             1,
                             "factored canonical child frames",
                         )?;
-                        frames.push(CanonicalFrame::Enter(child));
+                        self.frames.push(CanonicalFrame::Enter(child));
                     }
                 }
                 CanonicalFrame::Exit(state, accepted, successors) => {
-                    open.remove(&state);
+                    self.open.retain(|entry| entry != &state);
                     budget.charge(
                         function,
                         successors.len(),

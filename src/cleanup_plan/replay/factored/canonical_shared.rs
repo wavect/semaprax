@@ -188,6 +188,7 @@ impl<'a> Canonicalizer<'a> {
     ) -> Result<Option<Rc<ordered_weights::OrderedWeights>>, Diagnostic> {
         // Validate the held destination before any ordinary payer query.
         if !receiving.valid(function, budget) {
+            self.closures.reject_after_error();
             return Err(Diagnostic::io("SPX-H006", String::new()));
         }
         self.closures.authenticate_retained(function, budget);
@@ -632,6 +633,7 @@ impl<'a> Canonicalizer<'a> {
         // both roots; no closure/cache view leaves that invocation.
         // Validate the held destination before any ordinary payer query.
         if !receiving.valid(function, budget) {
+            self.closures.reject_after_error();
             return Err(Diagnostic::io("SPX-H006", String::new()));
         }
         self.closures.authenticate_retained(function, budget);

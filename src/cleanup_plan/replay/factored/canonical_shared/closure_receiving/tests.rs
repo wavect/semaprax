@@ -352,3 +352,165 @@ fn held_closure_complete_old_invocation_and_current_caller_keep_checked_verdict_
         (b.remaining, b.skeleton_remaining)
     );
 }
+
+#[test]
+fn held_closure_actual_entries_hide_cached_views_after_foreign_and_restored_slots() {
+    let function = fixture();
+    let foreign_function = fixture();
+    let (automaton, sink, roots) = super::super::tests::automaton(&function);
+    for id_entry in [false, true] {
+        // Foreign function, foreign budget, nested current ledger, expired slot.
+        for kind in 0..4 {
+            let ((), allocation) = measure(|| {
+                let ((), refused, _, first) = with_limit_usage_refusal(1 << 24, || {
+                    let mut budget = ReplayBudget::new();
+                    let mut foreign_budget = ReplayBudget::new();
+                    let mut current = Canonicalizer::new(&automaton, sink);
+                    let mut receiving = ClosureReceiving::acquire(&function, &mut budget).unwrap();
+                    // This unused replacement already belongs to the original
+                    // live ledger; the attack must invalidate the Memo itself.
+                    let mut fresh = ClosureReceiving::acquire(&function, &mut budget).unwrap();
+                    if id_entry {
+                        budget
+                            .reserve_array::<(usize, u64)>(&function, 1, "sticky id prime")
+                            .unwrap();
+                        assert!(
+                            current
+                                .id_with_receiving(
+                                    &function,
+                                    vec![(roots[0], 1)],
+                                    &mut budget,
+                                    &mut receiving
+                                )
+                                .unwrap()
+                                .is_some()
+                        );
+                        assert!(!current.states.is_empty());
+                    } else {
+                        assert!(
+                            current
+                                .closure_with_receiving(
+                                    &function,
+                                    roots[0],
+                                    &mut budget,
+                                    &mut receiving
+                                )
+                                .unwrap()
+                                .is_some()
+                        );
+                    }
+                    assert!(current.closures.get(&roots[0]).is_some());
+                    if kind == 3 {
+                        let (stale, refused, _, first) = with_limit_usage_refusal(1 << 20, || {
+                            ClosureReceiving::acquire(&function, &mut budget).unwrap()
+                        });
+                        assert!(!refused && first.is_none());
+                        receiving = stale;
+                    }
+                    // Every owned test argument exists before the no-allocation
+                    // boundary, including arguments rejected before id_inner.
+                    let mut inputs = [
+                        vec![(roots[0], 1)],
+                        vec![(roots[0], 1)],
+                        vec![(roots[0], 1)],
+                    ]
+                    .into_iter();
+                    macro_rules! invoke {
+                        ($function:expr,$budget:expr,$slot:expr) => {
+                            if id_entry {
+                                current
+                                    .id_with_receiving(
+                                        $function,
+                                        inputs.next().unwrap(),
+                                        $budget,
+                                        $slot,
+                                    )
+                                    .map(|_| ())
+                            } else {
+                                current
+                                    .closure_with_receiving($function, roots[0], $budget, $slot)
+                                    .map(|_| ())
+                            }
+                        };
+                    }
+                    let expected = Diagnostic::io("SPX-H006", String::new());
+                    let work = (budget.remaining, budget.skeleton_remaining);
+                    let foreign_work =
+                        (foreign_budget.remaining, foreign_budget.skeleton_remaining);
+                    let at = current_metrics().allocated;
+                    if kind == 2 {
+                        let ((), refused, used, first) = with_limit_usage_refusal(0, || {
+                            let inner_at = current_metrics().allocated;
+                            assert_eq!(
+                                invoke!(&function, &mut budget, &mut receiving).unwrap_err(),
+                                expected
+                            );
+                            assert_eq!(current_metrics().allocated, inner_at);
+                        });
+                        assert!(!refused && used == 0 && first.is_none());
+                    } else {
+                        let left = active_remaining();
+                        if kind == 0 {
+                            assert_eq!(
+                                invoke!(&foreign_function, &mut budget, &mut receiving)
+                                    .unwrap_err(),
+                                expected
+                            );
+                        } else if kind == 1 {
+                            assert_eq!(
+                                invoke!(&function, &mut foreign_budget, &mut receiving)
+                                    .unwrap_err(),
+                                expected
+                            );
+                        } else {
+                            assert_eq!(
+                                invoke!(&function, &mut budget, &mut receiving).unwrap_err(),
+                                expected
+                            );
+                        }
+                        assert_eq!(active_remaining(), left);
+                        assert_eq!(current_metrics().allocated, at);
+                    }
+                    assert!(current.closures.failed());
+                    assert!(current.closures.get(&roots[0]).is_none());
+                    assert_eq!(
+                        invoke!(&function, &mut budget, &mut receiving).unwrap_err(),
+                        expected
+                    );
+                    // Even a distinct, correctly bound destination cannot cure
+                    // the original canonical receiver after the rejected call.
+                    assert!(fresh.valid(&function, &budget));
+                    let left = active_remaining();
+                    let retry_at = current_metrics().allocated;
+                    assert_eq!(
+                        invoke!(&function, &mut budget, &mut fresh).unwrap_err(),
+                        expected
+                    );
+                    assert!(current.closures.get(&roots[0]).is_none());
+                    assert_eq!((budget.remaining, budget.skeleton_remaining), work);
+                    assert_eq!(
+                        (foreign_budget.remaining, foreign_budget.skeleton_remaining),
+                        foreign_work
+                    );
+                    assert_eq!(active_remaining(), left);
+                    assert_eq!(current_metrics().allocated, retry_at);
+                    drop(inputs);
+                    drop(current);
+                    drop(receiving);
+                    drop(fresh);
+                    drop(budget);
+                    drop(foreign_budget);
+                });
+                // A foreign nested ledger selects sticky refusal on its held
+                // outer owner, while the nested payer itself is never queried.
+                assert_eq!(refused, kind == 2);
+                assert!(first.is_none() || kind == 2);
+            });
+            assert!(
+                !allocation.invalid
+                    && allocation.live == 0
+                    && allocation.allocated == allocation.freed
+            );
+        }
+    }
+}

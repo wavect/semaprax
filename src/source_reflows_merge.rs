@@ -231,6 +231,8 @@ fn corrected_previous(source: &str, current: &str) -> String {
     )
 }
 pub(crate) fn scalar_policy_input(source: &str, current: &str) -> String {
+    let previous = before_main927(source, current);
+    let current = previous.as_str();
     project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -344,6 +346,8 @@ pub(crate) fn consumer_child(domain: &str, source: &str, current: &str) -> Strin
 }
 
 fn final_fix_input(source: &str, current: &str) -> String {
+    let previous = before_main927(source, current);
+    let current = previous.as_str();
     project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -354,6 +358,8 @@ fn final_fix_input(source: &str, current: &str) -> String {
     )
 }
 fn final_main_input(source: &str, current: &str) -> String {
+    let previous = before_main927(source, current);
+    let current = previous.as_str();
     project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -399,6 +405,29 @@ fn before_f045(source: &str, current: &str) -> String {
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/mainf045-source-successor-20261015/current-to-0bf.json"
+        )),
+        source,
+        current,
+    )
+}
+
+// Preserve the complete frozen9b domains independently of the newer MAIN proof.
+fn before_main927(source: &str, current: &str) -> String {
+    project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/main927-source-successor-20261015/current-to-9b.json"
+        )),
+        source,
+        current,
+    )
+}
+// Only these named inputs may enter MAIN's unchanged semantic source proofs.
+pub(crate) fn main927_input(source: &str, current: &str) -> String {
+    project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/main927-source-successor-20261015/current-to-main927.json"
         )),
         source,
         current,

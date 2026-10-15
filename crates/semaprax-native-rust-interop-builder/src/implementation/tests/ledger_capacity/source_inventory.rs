@@ -23,8 +23,7 @@ macro_rules! fixed_operation_identity_source_inventory {
         )
     };
 }
-// Shared complete byte-writer/frontier source join for both owning audits.
-// No test bodies, assertions or literal contents are relocated here.
+// Shared complete byte-writer/frontier source join for both owning audits. No test bodies, assertions or literal contents are relocated here.
 macro_rules! byte_writer_source_inventory {
     () => {
         concat!(
@@ -389,8 +388,7 @@ macro_rules! hir_borrowed_root_oracle_source_inventory {
         )
     };
 }
-// Resolver source join: every original source in its original order, with the
-// missing production descendants inserted beside their parents.
+// Resolver source join: every original source in its original order, with the missing production descendants inserted beside their parents.
 macro_rules! hir_resolver_source_inventory {
     () => {
         concat!(
@@ -448,9 +446,11 @@ macro_rules! hir_resolver_source_inventory {
         include_str!("../../../../../src/hir/prelude_bundle/work_model.rs"),
         include_str!("../../../../../src/project/incremental/paid_resolution/base.rs"),
         include_str!("../../../../../src/workspace_graph/identity_resolution/base.rs"),
+        include_str!("../../../../../src/workspace_graph/identity_resolution/base/cache_billing.rs"),
+        include_str!("../../../../../src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs"),
+        include_str!("../../../../../src/workspace_graph/identity_resolution/base/cache_billing/tests.rs"),
         include_str!("../../../../../src/workspace_graph/identity_resolution/base/tests.rs"),
         include_str!("../../../../../src/workspace_graph/identity_resolution/base/affinity_tests.rs"),
-
             include_str!("../../../../../src/hir/funded.rs"),
             include_str!("../../../../../src/hir/ordinary_scan.rs"),
             include_str!("../../../../../src/hir/ordinary_scan/tests.rs"),

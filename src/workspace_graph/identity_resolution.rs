@@ -2,7 +2,8 @@
 //! identity payment. One fixed report owner is acquired on the already active
 //! builder ledger BEFORE verification, SourceIndex or DeclarationIndex work,
 //! then forwarded through the selective or fresh route and both invariant
-//! passes. Cache hits never reach this module. Setup refusal stays Copy; the
+//! passes. Cached modules use only the live prelude replay sibling. Setup
+//! refusal stays Copy; the
 //! outer `Vec<Diagnostic>` graph/report layer remains explicitly unqualified.
 use super::expected_projection::borrowed_leaf::Input;
 use crate::bounded_output::identity_reservation::{IdentityReservation, Refused};
@@ -140,3 +141,9 @@ mod tests;
 
 mod base;
 pub(super) use base::resolve_module_with_core;
+
+#[cfg(test)]
+pub(super) use base::cache_billing::source_reference::{
+    historical_inline_inventory, historical_inline_root, historical_root,
+};
+pub(super) use base::cache_billing::{local_resolution_bytes, replay_cached_prelude};

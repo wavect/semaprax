@@ -1,0 +1,17 @@
+[
+  {
+    "source": "src/workspace_graph/identity_resolution/base/cache_billing.rs",
+    "sha256": "2b2b09e8d0cb5e98c9fbf8b514cfe3491c70abe4ee7d8370294aaffb28b7ed80",
+    "origin": "9279411a0c7e7cf12908457c5fe93289a7b19508"
+  },
+  {
+    "source": "src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs",
+    "sha256": "809389548397e2d0562ae8986a276673cc0cc5bd17f61289e964573f227b5e46",
+    "origin": "9279411a0c7e7cf12908457c5fe93289a7b19508"
+  },
+  {
+    "source": "src/workspace_graph/identity_resolution/base/cache_billing/tests.rs",
+    "sha256": "34429276a4978bd27df8ee7ba3badc66c1e48b0bdcd151c2cdc9393dc0cc5a9f",
+    "origin": "9279411a0c7e7cf12908457c5fe93289a7b19508"
+  }
+]

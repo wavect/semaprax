@@ -1188,35 +1188,36 @@ pub(super) fn emit_byte_exports(
     program: &ResolvedProgram,
     plans: &[super::data_exports::DataExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
-    emit_byte_exports_profile(program, plans, false, false, None, &[])
+    emit_byte_exports_profile(program, plans, false, false, None, &[], true)
 }
 
 pub(super) fn emit_owned_data_exports(
     program: &ResolvedProgram,
     plans: &[super::owned_data_exports::OwnedDataExportPlan],
+    owned_utf8_profile: bool,
 ) -> Result<Vec<u8>, Diagnostic> {
-    emit_byte_exports_profile(program, &[], false, false, None, plans)
+    emit_byte_exports_profile(program, &[], false, false, None, plans, owned_utf8_profile)
 }
 
 pub(super) fn emit_byte_exports_with_stdout_transcript(
     program: &ResolvedProgram,
     plans: &[super::data_exports::DataExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
-    emit_byte_exports_profile(program, plans, true, false, None, &[])
+    emit_byte_exports_profile(program, plans, true, false, None, &[], true)
 }
 
 pub(super) fn emit_useful_data_command_v2(
     program: &ResolvedProgram,
     plans: &[super::data_exports::DataExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
-    emit_byte_exports_profile(program, plans, true, true, None, &[])
+    emit_byte_exports_profile(program, plans, true, true, None, &[], true)
 }
 
 pub(super) fn emit_language_command_io(
     program: &ResolvedProgram,
     plan: &super::command_io::CommandPlan,
 ) -> Result<Vec<u8>, Diagnostic> {
-    emit_byte_exports_profile(program, &[], true, false, Some(plan), &[])
+    emit_byte_exports_profile(program, &[], true, false, Some(plan), &[], true)
 }
 
 fn emit_byte_exports_profile(
@@ -1226,6 +1227,7 @@ fn emit_byte_exports_profile(
     publish_only_truthy: bool,
     command_io: Option<&super::command_io::CommandPlan>,
     owned_plans: &[super::owned_data_exports::OwnedDataExportPlan],
+    owned_utf8_profile: bool,
 ) -> Result<Vec<u8>, Diagnostic> {
     string_runtime::refuse_unimplemented_collections(program)?;
     let uses_owned_buffer = program_uses_owned_buffer(program);
@@ -1254,10 +1256,17 @@ fn emit_byte_exports_profile(
             "static borrowed UTF-8 does not widen public data export profiles",
         ));
     }
+    let uses_owned_strings = !static_utf8
+        && super::functions_use_strings(executable_functions.iter().map(|(function, _)| *function));
+    if !owned_utf8_profile && uses_owned_strings {
+        return Err(error(
+            "owned string literal reached a non-v10 WebAssembly profile",
+        ));
+    }
     let has_owned_utf8 = static_utf8
         // Runtime selection follows the exact bodies emitted below, including
         // materialized instances and closure bodies, not only their signatures.
-        || super::functions_use_strings(executable_functions.iter().map(|(function, _)| *function))
+        || uses_owned_strings
         || (command_io.is_some_and(super::command_io::CommandPlan::is_environment_command)
             && super::program_uses_strings(program))
         || owned_plans

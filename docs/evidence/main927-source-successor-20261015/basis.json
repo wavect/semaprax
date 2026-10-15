@@ -1,0 +1,56 @@
+{
+  "source_basis": "9b174d852798c99ce2d14b8170ec05e6c0f94b88",
+  "actual_main": "9279411a0c7e7cf12908457c5fe93289a7b19508",
+  "private_merge_pending": true,
+  "old93_runtime": "docs/evidence/mainf045-source-successor-20261015/live-mainf045-ci93.json",
+  "old93_sha256": "2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+  "actual_main_table": "actual-main927-reflows.json",
+  "actual_main_records": 87,
+  "changed_physical_inputs": [
+    "CHANGELOG.md",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "docs/AGENT-SKILL-BUNDLE-V1.json",
+    "docs/ARCHITECTURE.md",
+    "docs/NATIVE-OWNED-DATA-STRING-SETTLEMENT-V1.md",
+    "docs/PAID-INVOCATION-BASE-PRELUDE-V1.md",
+    "src/hir/prelude_bundle/invocation.rs",
+    "src/source_reflows.json",
+    "src/source_reflows.rs",
+    "src/source_reflows_merge.rs",
+    "src/wasm/aggregate.rs",
+    "src/wasm/aggregate/tests.rs",
+    "src/wasm/aggregate/tests/owned_utf8_usage.rs",
+    "src/wasm/owned_data_public.rs",
+    "src/workspace_graph.rs",
+    "src/workspace_graph/expected_projection/defaults/inline_tests.rs",
+    "src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs",
+    "src/workspace_graph/identity_resolution.rs",
+    "src/workspace_graph/identity_resolution/base.rs",
+    "src/workspace_graph/identity_resolution/base/cache_billing.rs",
+    "src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs",
+    "src/workspace_graph/identity_resolution/base/cache_billing/tests.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/native/owned_data_string_settlement.rs",
+    "tests/project/semantic_cache.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ],
+  "current_to_9b_rows": 23,
+  "current_to_main_rows": 26,
+  "new_owners": [
+    {
+      "source": "src/workspace_graph/identity_resolution/base/cache_billing.rs",
+      "sha256": "2b2b09e8d0cb5e98c9fbf8b514cfe3491c70abe4ee7d8370294aaffb28b7ed80",
+      "origin": "9279411a0c7e7cf12908457c5fe93289a7b19508"
+    },
+    {
+      "source": "src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs",
+      "sha256": "809389548397e2d0562ae8986a276673cc0cc5bd17f61289e964573f227b5e46",
+      "origin": "9279411a0c7e7cf12908457c5fe93289a7b19508"
+    },
+    {
+      "source": "src/workspace_graph/identity_resolution/base/cache_billing/tests.rs",
+      "sha256": "34429276a4978bd27df8ee7ba3badc66c1e48b0bdcd151c2cdc9393dc0cc5a9f",
+      "origin": "9279411a0c7e7cf12908457c5fe93289a7b19508"
+    }
+  ]
+}

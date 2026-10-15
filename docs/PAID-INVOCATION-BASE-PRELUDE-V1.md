@@ -16,6 +16,25 @@ Before producer work or backing allocation, acquisition separately precharges th
 
 The real initial Index owner currently supplies only bytes. `fixed_work::FixedSchemaPayer` is a separate draft for a finite compiler-schema work counter, with its paid inline carrier and exact const metadata operation bound specified in [Fixed Base Prelude Producer Work v1](FIXED-BASE-PRELUDE-PRODUCER-WORK-V1.md). It grants no replay work or source authority. ROOT accepted its private activation conditions; actual root integration and qualification remain required, and no unconditional successful work bridge is permitted.
 
+## Checked-module cache billing
+
+A checked-module bill records module-local resolver work. Successful
+`Invocation::ensure_selected` intervals separately record the actual debit on
+the existing live builder ledger, including selected extensions and receiving
+controls. This integer is bookkeeping, never a reservation, refund or work
+credit. The complete invocation carrier remains prepaid by its core owner.
+A fresh module stores its resolver interval minus this shared interval. A
+checked hit first revalidates its complete HIR, then reacquires the exact
+current prelude selection through that same core owner and an ordinary funded
+identity reservation. Its residual module bill excludes that live shared debit.
+No prior owner, cached count or serialized HIR authorizes the new acquisition.
+All actual charges remain spent, all checked subtraction fails closed, and
+source verification, sticky refusals and the existing limits remain unchanged.
+This prevents a cached first module from replaying a shared acquisition while
+a later miss pays for it a second time. Actual base/vector hit-then-miss and
+same-length provider-edit regressions are authored; full CI qualification is
+pending.
+
 ## Borrowed overlay and work
 
 An overlay borrows the base owner and one existing local index. It never builds merged maps or clones nominal HIR. Base declaration/type/case/field/parameter lookups return original borrowed payloads; local misses consult the existing local owner's facts. Declaration traversal merges sorted persistent-ID orders deterministically, giving the base entry on a duplicate ID; this creates no source admission exception. The ordinary verifier continues to reject forged compiler identities. Base spelling precedence remains the existing prelude precedence; parser-only overlap controls do not admit shadow declarations.

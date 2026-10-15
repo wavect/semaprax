@@ -31,7 +31,11 @@ pub fn emit_resolved_module_with_owned_data_exports(
         ));
     }
     let plans = super::owned_data_exports::prepare(program, descriptor)?;
-    super::aggregate::emit_owned_data_exports(program, &plans)
+    super::aggregate::emit_owned_data_exports(
+        program,
+        &plans,
+        descriptor.project_schema() == crate::project::PUBLIC_OWNED_UTF8_PROJECT_SCHEMA,
+    )
 }
 
 pub fn emit_resolved_module_with_flat_owned_record_exports(
@@ -62,7 +66,7 @@ pub fn emit_resolved_module_with_flat_owned_record_exports(
         ));
     }
     let plans = super::owned_data_exports::prepare_flat_records(program, descriptor)?;
-    super::aggregate::emit_owned_data_exports(program, &plans)
+    super::aggregate::emit_owned_data_exports(program, &plans, false)
 }
 
 pub fn emit_resolved_module_with_nested_owned_record_exports(
@@ -93,7 +97,7 @@ pub fn emit_resolved_module_with_nested_owned_record_exports(
         ));
     }
     let plans = super::owned_data_exports::prepare_nested_records(program, descriptor)?;
-    super::aggregate::emit_owned_data_exports(program, &plans)
+    super::aggregate::emit_owned_data_exports(program, &plans, false)
 }
 
 fn error(message: &'static str) -> Diagnostic {

@@ -579,3 +579,30 @@ mod string_transfer;
 
 #[path = "semantic_cache/copy_discard.rs"]
 mod copy_discard;
+
+#[test]
+fn same_length_provider_edits_after_a_checked_hit_keep_full_cold_graph_and_image_bytes() {
+    let fixture = Fixture::new();
+    let manifest = fixture.manifest();
+    let mut cache = ProjectFrontendCache::new_with_semantic_cache();
+    let first = cache.build(&manifest, &fixture.sources()).unwrap();
+    work(&first, 4, 0);
+    same(first.revision(), fixture.cold().unwrap());
+    for (from, to) in [
+        ("left + right", "right + left"),
+        ("right + left", "left + right"),
+    ] {
+        let before = fixture.read("src/core.spx");
+        fixture.replace("src/core.spx", from, to);
+        assert_eq!(fixture.read("src/core.spx").len(), before.len());
+        let edited = cache.build(&manifest, &fixture.sources()).unwrap();
+        let report = work_split(&edited, 1, 3, 1, 3);
+        assert_eq!(report["invalidated_sources"], json!(["src/core.spx"]));
+        // The app sorts before its provider and retains an exact checked hit.
+        // A miss after it must not acquire an already-replayed prelude twice.
+        same(edited.revision(), fixture.cold().unwrap());
+        let unchanged = cache.build(&manifest, &fixture.sources()).unwrap();
+        work(&unchanged, 0, 4);
+        same(unchanged.revision(), fixture.cold().unwrap());
+    }
+}

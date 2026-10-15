@@ -1,4 +1,5 @@
-//! Test-only exact inverses for reviewed CI formatting and lint repairs.
+//! Test-only exact inverses for reviewed CI source-reader, formatting and lint repairs.
+//! Production semantic changes use separately named whole-file proofs.
 //! Historical source assertions still compare every original byte. Each
 //! current input is authenticated in full before applying explicit inverses.
 use std::collections::HashMap;
@@ -13,7 +14,8 @@ macro_rules! ci_str {
     };
 }
 
-const REPAIRS: &str = include_str!("../docs/evidence/mainf045-source-successor-20261015/live-mainf045-ci93.json");
+const REPAIRS: &str =
+    include_str!("../docs/evidence/mainf045-source-successor-20261015/live-mainf045-ci93.json");
 type Cache = HashMap<(&'static str, &'static str), &'static str>;
 static CACHE: OnceLock<Mutex<Cache>> = OnceLock::new();
 static RECORDS: OnceLock<serde_json::Value> = OnceLock::new();
@@ -111,6 +113,14 @@ fn approved_reflows_authenticate_full_inputs_and_reconstruct_full_predecessors()
         let old = restore(record, &current);
         assert_ne!(current, old);
     }
+    let mut main_paths = std::collections::BTreeSet::new();
+    for record in main927_records() {
+        let path = record["path"].as_str().unwrap();
+        assert!(main_paths.insert(path));
+        let current = std::fs::read_to_string(root.join(path)).unwrap();
+        let old = restore_main927(record, &current);
+        assert_ne!(current, old);
+    }
 }
 
 #[test]
@@ -126,4 +136,59 @@ fn a_changed_current_byte_is_refused_before_an_inverse_can_hide_it() {
     let mut forged = record.clone();
     forged["before_sha256"] = serde_json::Value::String("0".repeat(64));
     assert!(std::panic::catch_unwind(|| restore(&forged, &current)).is_err());
+    let record = main927_records().first().unwrap();
+    let current = std::fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join(record["path"].as_str().unwrap()),
+    )
+    .unwrap();
+    let mut changed = current.clone();
+    changed.push(' ');
+    assert!(std::panic::catch_unwind(|| restore_main927(record, &changed)).is_err());
+    let mut forged = record.clone();
+    forged["before_sha256"] = serde_json::Value::String("0".repeat(64));
+    assert!(std::panic::catch_unwind(|| restore_main927(&forged, &current)).is_err());
+}
+
+// Separate MAIN927 semantic/source-reader domain; the old93 table stays immutable.
+fn main927_records() -> &'static [serde_json::Value] {
+    static RECORDS: OnceLock<serde_json::Value> = OnceLock::new();
+    RECORDS
+        .get_or_init(|| {
+            serde_json::from_str(include_str!(
+                "../docs/evidence/main927-source-successor-20261015/actual-main927-reflows.json"
+            ))
+            .unwrap()
+        })
+        .as_array()
+        .unwrap()
+}
+fn restore_main927(record: &serde_json::Value, current: &str) -> String {
+    let path = record["path"].as_str().unwrap();
+    let mut restored = crate::source_reflows_merge::main927_input(path, current);
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(restored.as_bytes()))
+        ),
+        record["after_sha256"],
+        "MAIN927 complete input drifted: {path}"
+    );
+    for edit in record["inverse"].as_array().unwrap() {
+        let after = edit["after"].as_str().unwrap();
+        assert_eq!(
+            restored.matches(after).count(),
+            1,
+            "unique MAIN927 inverse: {path}"
+        );
+        restored = restored.replacen(after, edit["before"].as_str().unwrap(), 1);
+    }
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(restored.as_bytes()))
+        ),
+        record["before_sha256"],
+        "MAIN927 complete predecessor drifted: {path}"
+    );
+    restored
 }

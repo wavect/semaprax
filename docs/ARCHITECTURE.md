@@ -2386,6 +2386,13 @@ MCP, LSP, editor, watcher, build, execution, commit, or publication route. See
 [Persistent Incremental Semantic Service
 v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md).
 
+`workspace_graph::identity_resolution::base::cache_billing` separates the
+actual invocation-wide prelude acquisition from each cached module's resolver
+bill. Hits perform full HIR validation before reacquiring their exact current
+prelude through the live core and funded identity owner. The invocation's
+successful-debit counter supplies accounting only; it grants no source,
+reservation or cache authority. Actual debits are never refunded.
+
 `src/project/workspace_execution.rs` owns the exact SEG-04 binding selector and
 receipt replay for one retained service generation and its selected
 ProgramRoot; it accepts no caller-supplied root decoding or authority. Its

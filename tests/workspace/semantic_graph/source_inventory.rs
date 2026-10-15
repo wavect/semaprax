@@ -274,6 +274,9 @@ macro_rules! semantic_graph_root_source_inventory {
         include_str!("../../src/hir/prelude_bundle/work_model.rs"),
         include_str!("../../src/project/incremental/paid_resolution/base.rs"),
         include_str!("../../src/workspace_graph/identity_resolution/base.rs"),
+        include_str!("../../src/workspace_graph/identity_resolution/base/cache_billing.rs"),
+        include_str!("../../src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs"),
+        include_str!("../../src/workspace_graph/identity_resolution/base/cache_billing/tests.rs"),
         include_str!("../../src/workspace_graph/identity_resolution/base/tests.rs"),
         include_str!("../../src/workspace_graph/identity_resolution/base/affinity_tests.rs"),
 

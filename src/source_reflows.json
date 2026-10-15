@@ -1471,17 +1471,6 @@
     ]
   },
   {
-    "path": "src/workspace_graph.rs",
-    "before_sha256": "c82d3bb6176c847fd9ff171f02d9c5aedd113e72b1eb9b1739ffee062319c11b",
-    "after_sha256": "de94863e39460dd9270b2feea2fc7a4986d25417e20ee2cfa4b38412e9a13f55",
-    "inverse": [
-      {
-        "after": "            // until this legacy outer adapter.\n            let (resolved, function_costs, reused_functions, static_text) =\n                identity_resolution::resolve_module_with_core(\n                    &mut core_proofs,\n                    frontend.as_deref(),\n                    &program.path,\n                    &synthetic,\n                    private,\n",
-        "before": "            // until this legacy outer adapter.\n            let (resolved, function_costs, reused_functions, static_text) =\n                identity_resolution::resolve_module_with_core(\n                    &mut core_proofs,frontend.as_deref(),\n                    &program.path,\n                    &synthetic,\n                    private,\n"
-      }
-    ]
-  },
-  {
     "path": "src/workspace_graph/expected_projection/borrowed_imports.rs",
     "before_sha256": "cbea3d04790517cf7584fe1163000314dbf514990b5cd5ed4429564e59f23675",
     "after_sha256": "63fb2d0a638c87533099d62e1de65988c92ebf37a1329e283c9f4cdccb338bbf",
@@ -1536,8 +1525,12 @@
   {
     "path": "src/workspace_graph/expected_projection/defaults/inline_tests.rs",
     "before_sha256": "400913a814ca07438c851557d1a7551aec2a283ca88a63c3f08fb32baa8ef5e9",
-    "after_sha256": "745b277a7fffec4b04ae3eba73d5c2a9ab3b390d1781cfed977e78b3ea258e98",
+    "after_sha256": "308c2cd503cc36bd06d41783e8a8ce8db69efe8edc19bfd956a5e33177927a2d",
     "inverse": [
+      {
+        "after": "    )))\n    .unwrap();\n    let inventory =\n        crate::workspace_graph::identity_resolution::historical_inline_inventory(ci_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/tests/workspace/semantic_graph/source_inventory.rs\"\n        )));\n    let owners = [\n        crate::workspace_graph::identity_resolution::historical_inline_root(),\n        ci_str!(\"../defaults.rs\"),\n        ci_str!(\"../import_stub.rs\"),\n        ci_str!(\"../borrowed_imports.rs\"),\n        inventory.as_str(),\n    ];\n    let originals = [\n",
+        "before": "    )))\n    .unwrap();\n    let owners = [\n        ci_str!(\"../../../workspace_graph.rs\"),\n        ci_str!(\"../defaults.rs\"),\n        ci_str!(\"../import_stub.rs\"),\n        ci_str!(\"../borrowed_imports.rs\"),\n        ci_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/tests/workspace/semantic_graph/source_inventory.rs\"\n        )),\n    ];\n    let originals = [\n"
+      },
       {
         "after": "        );\n    }\n    let children = [\n        ci_str!(\"../../constructor_failure.rs\"),\n        ci_str!(\"inline.rs\"),\n        ci_str!(\"inline_fields.rs\"),\n        ci_str!(\"../borrowed_imports/inline.rs\"),\n        ci_str!(\"inline_tests.rs\"),\n    ];\n    for (record, source) in proof[\"children\"].as_array().unwrap().iter().zip(children) {\n        assert_eq!(\n",
         "before": "        );\n    }\n    let children = [\n        include_str!(\"../../constructor_failure.rs\"),\n        include_str!(\"inline.rs\"),\n        include_str!(\"inline_fields.rs\"),\n        include_str!(\"../borrowed_imports/inline.rs\"),\n        include_str!(\"inline_tests.rs\"),\n    ];\n    for (record, source) in proof[\"children\"].as_array().unwrap().iter().zip(children) {\n        assert_eq!(\n"

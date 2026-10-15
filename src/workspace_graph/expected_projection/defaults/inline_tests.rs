@@ -304,15 +304,17 @@ fn complete_inline_sources_and_original_owners_have_exact_whole_file_inverses() 
         "/docs/evidence/constructor-inline-failure-825/exact-source-inverses.json"
     )))
     .unwrap();
+    let inventory =
+        crate::workspace_graph::identity_resolution::historical_inline_inventory(include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/workspace/semantic_graph/source_inventory.rs"
+        )));
     let owners = [
-        ci_str!("../../../workspace_graph.rs"),
+        crate::workspace_graph::identity_resolution::historical_inline_root(),
         ci_str!("../defaults.rs"),
         ci_str!("../import_stub.rs"),
         ci_str!("../borrowed_imports.rs"),
-        ci_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/tests/workspace/semantic_graph/source_inventory.rs"
-        )),
+        inventory.as_str(),
     ];
     let originals = [
         ci_str!(concat!(

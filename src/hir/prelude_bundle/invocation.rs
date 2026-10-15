@@ -17,6 +17,8 @@ pub(crate) enum ProducerFailure {
 }
 pub(crate) struct Invocation<E> {
     bundle: Option<BasePreludeBundle>,
+    // Successful live debits; bookkeeping only, never a reservation credit.
+    selected_bytes: usize,
     first: Option<InvocationFailure<E>>,
     receipt: Option<WorkReceipt>,
     vector: Option<VectorExtension>,
@@ -27,6 +29,9 @@ pub(crate) struct Invocation<E> {
     work_limit: Option<usize>,
 }
 impl<E> Invocation<E> {
+    pub(crate) fn selected_bytes(&self) -> usize {
+        self.selected_bytes
+    }
     pub(crate) fn bind_owner(&mut self, current: bool) {
         if !current && self.first.is_none() {
             self.first = Some(InvocationFailure::Producer(ProducerFailure::Detached));
@@ -35,6 +40,7 @@ impl<E> Invocation<E> {
     pub(crate) fn new() -> Self {
         Self {
             bundle: None,
+            selected_bytes: 0,
             first: None,
             receipt: None,
             vector: None,
@@ -120,6 +126,7 @@ impl<E: Copy> Invocation<E> {
             self.first = Some(first);
             return Err(first);
         }
+        let before = crate::bounded_output::active_remaining();
         self.ensure(reserve)?;
         let result = (|| {
             reserve(
@@ -174,6 +181,19 @@ impl<E: Copy> Invocation<E> {
             self.first = Some(first);
             return Err(first);
         }
+        // Count the actual successful interval on the existing ledger. The
+        // standalone callback controls have no active ledger and record zero.
+        let spent = match (before, crate::bounded_output::active_remaining()) {
+            (Some(before), Some(after)) => before.checked_sub(after),
+            (None, None) => Some(0),
+            _ => None,
+        };
+        let Some(total) = spent.and_then(|spent| self.selected_bytes.checked_add(spent)) else {
+            let first = InvocationFailure::Producer(ProducerFailure::Layout);
+            self.first = Some(first);
+            return Err(first);
+        };
+        self.selected_bytes = total;
         Ok((
             self.bundle.as_ref().expect("successful base acquisition"),
             (prelude.len() > 2)

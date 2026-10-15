@@ -111,3 +111,5 @@ mod affinity_tests;
 
 #[cfg(test)]
 mod vector_tests;
+
+pub(in crate::workspace_graph) mod cache_billing;

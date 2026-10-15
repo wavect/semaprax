@@ -1,0 +1,4 @@
+semaprax --lib bounded_output::stage_debits::tests::operation_guards_keep_complete_untagged_refusal_and_actual_zero_allocation
+semaprax --lib bounded_output::stage_debits::tests::operation_scope_restores_after_unwind_and_nested_foreign_budget_cannot_tag_parent
+semaprax --lib bounded_output::stage_debits::tests::last_attempt_is_distinct_from_maximum_consumed_and_does_not_allocate
+semaprax --lib workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure

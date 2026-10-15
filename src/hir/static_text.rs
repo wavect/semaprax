@@ -1,7 +1,7 @@
 //! Immutable literal roots are authenticated from typed module expressions.
 //! The bounded walk owns no heap inventory and never trusts attached plans.
 use super::{
-    hir_error, OwnershipMode, ResolvedExpr, ResolvedExprKind, ResolvedProgram, ResolvedType,
+    OwnershipMode, ResolvedExpr, ResolvedExprKind, ResolvedProgram, ResolvedType, hir_error,
 };
 use crate::diagnostic::Diagnostic;
 
@@ -19,6 +19,15 @@ pub(crate) fn validate_literal(value: &str) -> Result<(), Diagnostic> {
         return Err(hir_error(
             "static UTF-8 literal exceeds 65536 decoded bytes",
         ));
+    }
+    Ok(())
+}
+
+pub(crate) fn validate_literal_inline(
+    value: &str,
+) -> Result<(), crate::cleanup_plan::renewal_profile::child_refusal::Refusal> {
+    if value.len() > MAX_POOL_BYTES {
+        return Err(crate::cleanup_plan::renewal_profile::child_refusal::Refusal::Profile(crate::cleanup_plan::renewal_profile::profile_refusal::ProfileRefusal::StaticUtf8LiteralExceeds65536DecodedBytes));
     }
     Ok(())
 }

@@ -56,8 +56,8 @@ impl<'a> Context<'a> {
                 "selected retained lexical replay requires an actual lexical function",
             ));
         }
-        selected_profile::paid::validate(source, function, budget)?;
-        selected_owner::paid::owner(source, function, budget)?;
+        selected_profile::paid_before_children::validate(source, function, budget)?;
+        selected_owner::paid_before_children::owner(source, function, budget)?;
         budget.reserve_array::<Self>(function, 1, "selected immutable replay lease")?;
         let renewals = {
             let ReplayBudget {

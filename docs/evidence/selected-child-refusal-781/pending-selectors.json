@@ -34,5 +34,82 @@
   ],
   "retain_existing_packet": "docs/evidence/selected-session-static-refusal-781/pending-selectors.json",
   "required_original_paid_setup_and_actual_callers": "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
-  "not_current108_expansion": true
+  "not_current108_expansion": true,
+  "finite_context_followup": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_profile::paid_children::tests::full_original_context_string_vector_record_corpora_and_renewal_identities_match_through_drop",
+      "source": "src/cleanup_plan/replay/selected_profile/paid_children/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_profile::paid_children::tests::complete_old_collection_receivers_keep_wrong_arity_modes_and_competing_priority",
+      "source": "src/cleanup_plan/replay/selected_profile/paid_children/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_profile::paid_children::tests::full_append_original_lent_unscoped_exact_short_zero_and_sticky_first_owner_stay_bound",
+      "source": "src/cleanup_plan/replay/selected_profile/paid_children/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_profile::paid_children::tests::actual_session_child_refusal_retains_full_old_diagnostic_and_public_paid_report_owner",
+      "source": "src/cleanup_plan/replay/selected_profile/paid_children/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_profile::paid_children::tests::all_finite_labels_and_ignored_classification_keep_full_original_fields",
+      "source": "src/cleanup_plan/replay/selected_profile/paid_children/tests.rs"
+    }
+  ],
+  "required_prior_source_owner": "cleanup_plan::replay::selected_context::child::tests::source::finite_child_cut_sources_and_complete_old_receivers_stay_exact",
+  "required_paid_setup7": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_entry::tests::paid::paid_report_zero_and_one_short_return_the_exact_rejected_ledger_without_allocating",
+      "source": "src/cleanup_plan/replay/selected_entry/tests/paid.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_entry::tests::paid::paid_report_setup_refusal_publishes_original_backing_and_keeps_setup_ledger",
+      "source": "src/cleanup_plan/replay/selected_entry/tests/paid.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_entry::tests::paid::paid_report_constructor_refusal_keeps_the_exact_ledger_and_first_receipt",
+      "source": "src/cleanup_plan/replay/selected_entry/tests/paid.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_entry::tests::paid::paid_report_budget_refusal_moves_the_prepaid_text_once_without_allocating",
+      "source": "src/cleanup_plan/replay/selected_entry/tests/paid.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_entry::tests::paid::paid_report_constructor_exhaustion_spends_the_prepaid_receipt_and_fails_closed",
+      "source": "src/cleanup_plan/replay/selected_entry/tests/paid.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_entry::tests::paid::paid_report_session_refusal_transfers_carrier_and_retains_first_receipt_through_drop",
+      "source": "src/cleanup_plan/replay/selected_entry/tests/paid.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_entry::tests::paid::paid_finish_returns_the_same_ledger_and_a_failed_finish_allocates_nothing",
+      "source": "src/cleanup_plan/replay/selected_entry/tests/paid.rs"
+    }
+  ]
 }

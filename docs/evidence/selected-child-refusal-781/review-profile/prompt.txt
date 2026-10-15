@@ -1,0 +1,224 @@
+Independent actual-source accounting review, source-only no tools. #781 paid Context: retain old independent bodies/full six Diagnostic fields/first failure. New actual paid profile calls helpers which acquire Permit::profile BEFORE inner call; new Deferred has only Budget(Diagnostic) from explicit ReplayBudget operations or Finite(Copy Refusal). NO From<Diagnostic>. No cap/refund/ambient payer. Permit captures exact borrowed subject, consumed to retain original shared body ID; no replacement subject/payer at refusal. Original fixed outward affine report remains paid. Old/current complete EngineError/Atom/Option/Result layout owner remains pending, not portable equality. Added bytes/init work must be paid before success/error calls, no old-header credit. Audit concrete fees/missing controls, exact append/lent-skeleton first failure and classification behavior. The full selected_context::Permit acquirer prepays full (Permit,Refusal,OptionRefusal,Receipt,EngineError,OptionEngineError,Result<T,Refusal>,Result<T,EngineError>,Result<Permit,EngineError>,Result<Context,EngineError>,Result<(),EngineError>) plus11init units before Permit exists. Lower selected inline append additionally prepays its Refusal/result/optional/receiving controls before original bounded cursor, preserving original iteration/charge units. New vector classifier exact old predicates/error order, but finite Copy errors replace raw H006 IO strings; renewal cells still ignores classification error as false and thereby stops allocate/discard. No authority/caching changes. Raw profile label vs function-prefix renderer catalog source-inventoried42finite labels. Unknown dynamic engine children outside Context remain explicit Owned. Give confirmed bugs vs unseen uncertainty, <=900words. Design only before finalcontrols, no runtimeverdict.
+
+SOURCE src/cleanup_plan/replay/selected_context/child.rs:73
+/// Only calls on ReplayBudget may construct this already-paid budget arm.
+/// Finite semantic producers carry Copy data, never a Diagnostic conversion.
+pub(in super::super) enum Deferred {
+    Budget(crate::diagnostic::Diagnostic),
+    Finite(Refusal),
+}
+impl From<Refusal> for Deferred {
+    fn from(reason: Refusal) -> Self {
+        Self::Finite(reason)
+    }
+}
+impl<'a> Permit<'a> {
+    pub(in super::super) fn profile<T>(
+        subject: &'a ResolvedFunction,
+        budget: &mut ReplayBudget,
+    ) -> Result<Self, Error> {
+        type Controls<T> = (
+            Deferred,
+            Option<Deferred>,
+            Result<T, Deferred>,
+            Result<T, Deferred>,
+        );
+        budget.reserve_array::<Controls<T>>(subject, 1, "selected profile child controls")?;
+        budget.charge(subject, 4, "selected profile child controls")?;
+        Self::acquire::<T>(subject, budget)
+    }
+    pub(in super::super) fn resolve<T>(self, result: Result<T, Deferred>) -> Result<T, Error> {
+        match result {
+            Ok(value) => Ok(value),
+            Err(Deferred::Finite(reason)) => Err(self.refuse(reason)),
+            Err(Deferred::Budget(error)) => Err(Error::Owned(error)),
+        }
+    }
+}
+
+SOURCE src/cleanup_plan/replay/selected_profile/collections.rs:209
+pub(in crate::cleanup_plan::replay) fn append(
+    function: &ResolvedFunction,
+    binding: &crate::hir::ResolvedBinding,
+    value: &ResolvedExpr,
+    budget: &mut ReplayBudget,
+) -> Result<bool, Diagnostic> {
+    if budget.refusal_spent {
+        return Err(budget.budget_refusal(function, "selected replay budget already failed", ""));
+    }
+    // Debit the allowance `ReplayBudget::charge` would use. A factored
+    // comparison lends the whole free allowance to its skeleton constructors,
+    // so `remaining` is then zero and only the lent allowance may pay.
+    let ReplayBudget {
+        remaining,
+        skeleton_remaining,
+        skeleton_spent,
+        lent_skeleton,
+        physical,
+        ..
+    } = budget;
+    let lent = *lent_skeleton;
+    let physical = physical
+        .as_deref_mut()
+        .ok_or_else(|| replay_error(function, "selected append lost reservation"))?;
+    let mut exhausted = false;
+    let answer = crate::cleanup_plan::renewal_profile::selected_string_append(
+        binding,
+        value,
+        physical,
+        &mut |units| {
+            let debited = if lent {
+                skeleton_remaining
+                    .checked_sub(units)
+                    .zip(skeleton_spent.checked_add(units))
+                    .map(|(next, spent)| {
+                        *skeleton_remaining = next;
+                        *skeleton_spent = spent;
+                    })
+            } else {
+                remaining.checked_sub(units).map(|next| *remaining = next)
+            };
+            debited.ok_or_else(|| {
+                exhausted = true;
+                // This marker is consumed below, never published. The outer
+                // refusal owns the sole prepaid diagnostic String backing.
+                Diagnostic::io("SPX-H006", String::new())
+            })
+        },
+    );
+    if exhausted {
+        // Same sticky refusal as every other selected debit: no later member
+        // or retry can spend what this exhausted allowance did not have.
+        let error = budget.budget_refusal(
+            function,
+            "cleanup replay work budget exhausted during ",
+            "selected String append",
+        );
+        exhaust(budget);
+        return Err(error);
+    }
+    answer
+}
+
+SOURCE src/cleanup_plan/replay/selected_profile/paid_children/collections.rs:259
+    function: &ResolvedFunction,
+    binding: &crate::hir::ResolvedBinding,
+    value: &ResolvedExpr,
+    budget: &mut ReplayBudget,
+) -> Result<bool, Deferred> {
+    if budget.refusal_spent {
+        return Err(Deferred::Budget(budget.budget_refusal(
+            function,
+            "selected replay budget already failed",
+            "",
+        )));
+    }
+    // Debit the allowance `ReplayBudget::charge` would use. A factored
+    // comparison lends the whole free allowance to its skeleton constructors,
+    // so `remaining` is then zero and only the lent allowance may pay.
+    let ReplayBudget {
+        remaining,
+        skeleton_remaining,
+        skeleton_spent,
+        lent_skeleton,
+        physical,
+        ..
+    } = budget;
+    let lent = *lent_skeleton;
+    let physical = physical.as_deref_mut().ok_or_else(|| {
+        Deferred::Finite(Refusal::Profile(
+            ProfileRefusal::SelectedAppendLostReservation,
+        ))
+    })?;
+    let mut exhausted = false;
+    let answer = crate::cleanup_plan::renewal_profile::selected_string_append_inline(
+        binding,
+        value,
+        physical,
+        &mut |units| {
+            let debited = if lent {
+                skeleton_remaining
+                    .checked_sub(units)
+                    .zip(skeleton_spent.checked_add(units))
+                    .map(|(next, spent)| {
+                        *skeleton_remaining = next;
+                        *skeleton_spent = spent;
+                    })
+            } else {
+                remaining.checked_sub(units).map(|next| *remaining = next)
+            };
+            debited.ok_or_else(|| {
+                exhausted = true;
+                // This marker is consumed below, never published. The outer
+                // refusal owns the sole prepaid diagnostic String backing.
+                Refusal::RenewalWork
+            })
+        },
+    );
+    if exhausted {
+        // Same sticky refusal as every other selected debit: no later member
+        // or retry can spend what this exhausted allowance did not have.
+        let error = Deferred::Budget(budget.budget_refusal(
+            function,
+            "cleanup replay work budget exhausted during ",
+            "selected String append",
+        ));
+        exhaust_inner(budget);
+        return Err(error);
+    }
+    answer.map_err(Deferred::Finite)
+}
+pub(in crate::cleanup_plan::replay) fn append(
+    function: &ResolvedFunction,
+    binding: &crate::hir::ResolvedBinding,
+    value: &ResolvedExpr,
+    budget: &mut ReplayBudget,
+) -> Result<bool, Error> {
+    let permit = Permit::profile::<bool>(function, budget)?;
+    let outcome = append_inner(function, binding, value, budget);
+    permit.resolve(outcome)
+}
+pub(super) fn prepay_inner(
+    program: &dyn ReplayContext,
+    function: &ResolvedFunction,
+    query_bytes: usize,
+
+SOURCE src/cleanup/inventory_builder/selected_inline.rs:16
+pub(crate) fn selected_vector_element_inline<'a>(
+    program: &dyn crate::cleanup::ReplayContext,
+    ty: &'a ResolvedType,
+) -> Result<Option<&'a ResolvedType>, Refusal> {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return Ok(None);
+    };
+    if declaration.as_str() != crate::prelude::VEC_ID {
+        return Ok(None);
+    }
+    authenticate_selected_vector_inline(program, declaration)?;
+    let [element] = arguments.as_slice() else {
+        return Err(refusal(
+            ProfileRefusal::SelectedVecHasInvalidTypeArgumentCount,
+        ));
+    };
+    if crate::vec_ops::resolved_vec_element_is_admitted(element) || *element == ResolvedType::String
+    {
+        return Ok(Some(element));
+    }
+    if matches!(element, ResolvedType::Nominal { arguments, .. } if arguments.is_empty()) {
+        selected_flat_record_fields_inline(program, element)?;
+        if crate::hir::copy_record_collection::admitted(program.declarations(), element)
+            || crate::hir::owned_leaf_collection::runtime_element(program.declarations(), element)
+        {
+            return Ok(Some(element));
+        }
+    }
+    Err(refusal(
+        ProfileRefusal::SelectedVecElementIsOutsideTheCurrentBoundedFlatFamily,
+    ))
+}
+pub(crate) fn authenticate_selected_vector_inline(
+    program: &dyn crate::cleanup::ReplayContext,

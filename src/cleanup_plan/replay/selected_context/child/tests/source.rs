@@ -6,13 +6,32 @@ fn finite_child_cut_sources_and_complete_old_receivers_stay_exact() {
     ))
     .unwrap();
     assert_eq!(
-        include_str!("../../paid_before_children.rs").replacen(
-            "fn new_paid_before_children(",
-            "fn new_paid(",
-            1
-        ),
+        include_str!("../../paid_before_children.rs")
+            .replacen(
+                "selected_profile::paid_before_children::validate",
+                "selected_profile::paid::validate",
+                1
+            )
+            .replacen(
+                "selected_owner::paid_before_children::owner",
+                "selected_owner::paid::owner",
+                1
+            )
+            .replacen("fn new_paid_before_children(", "fn new_paid(", 1),
         include_str!(
             "../../../../../../docs/evidence/selected-child-refusal-781/original/src__cleanup_plan__replay__selected_context__paid.rs.before.txt"
+        )
+    );
+    assert_eq!(
+        include_str!("../../../selected_profile/paid_before_children.rs"),
+        include_str!(
+            "../../../../../../docs/evidence/selected-child-refusal-781/original/a920__selected_profile__paid.rs.before.txt"
+        )
+    );
+    assert_eq!(
+        include_str!("../../../selected_owner/paid_before_children.rs"),
+        include_str!(
+            "../../../../../../docs/evidence/selected-child-refusal-781/original/a920__selected_owner__paid.rs.before.txt"
         )
     );
     let files = [
@@ -23,12 +42,28 @@ fn finite_child_cut_sources_and_complete_old_receivers_stay_exact() {
             ),
         ),
         (
+            "src/cleanup.rs",
+            include_str!("../../../../../../src/cleanup.rs"),
+        ),
+        (
+            "src/cleanup/inventory_builder.rs",
+            include_str!("../../../../../../src/cleanup/inventory_builder.rs"),
+        ),
+        (
+            "src/cleanup/inventory_builder/selected_inline.rs",
+            include_str!("../../../../../../src/cleanup/inventory_builder/selected_inline.rs"),
+        ),
+        (
             "src/cleanup_plan/renewal_profile.rs",
             include_str!("../../../../../../src/cleanup_plan/renewal_profile.rs"),
         ),
         (
             "src/cleanup_plan/renewal_profile/child_refusal.rs",
             include_str!("../../../../../../src/cleanup_plan/renewal_profile/child_refusal.rs"),
+        ),
+        (
+            "src/cleanup_plan/renewal_profile/profile_refusal.rs",
+            include_str!("../../../../../../src/cleanup_plan/renewal_profile/profile_refusal.rs"),
         ),
         (
             "src/cleanup_plan/renewal_profile/selected.rs",
@@ -87,6 +122,76 @@ fn finite_child_cut_sources_and_complete_old_receivers_stay_exact() {
             ),
         ),
         (
+            "src/cleanup_plan/replay/selected_owner.rs",
+            include_str!("../../../../../../src/cleanup_plan/replay/selected_owner.rs"),
+        ),
+        (
+            "src/cleanup_plan/replay/selected_owner/paid.rs",
+            include_str!("../../../../../../src/cleanup_plan/replay/selected_owner/paid.rs"),
+        ),
+        (
+            "src/cleanup_plan/replay/selected_owner/paid_before_children.rs",
+            include_str!(
+                "../../../../../../src/cleanup_plan/replay/selected_owner/paid_before_children.rs"
+            ),
+        ),
+        (
+            "src/cleanup_plan/replay/selected_profile.rs",
+            include_str!("../../../../../../src/cleanup_plan/replay/selected_profile.rs"),
+        ),
+        (
+            "src/cleanup_plan/replay/selected_profile/paid.rs",
+            include_str!("../../../../../../src/cleanup_plan/replay/selected_profile/paid.rs"),
+        ),
+        (
+            "src/cleanup_plan/replay/selected_profile/paid_before_children.rs",
+            include_str!(
+                "../../../../../../src/cleanup_plan/replay/selected_profile/paid_before_children.rs"
+            ),
+        ),
+        (
+            "src/cleanup_plan/replay/selected_profile/paid_children.rs",
+            include_str!(
+                "../../../../../../src/cleanup_plan/replay/selected_profile/paid_children.rs"
+            ),
+        ),
+        (
+            "src/cleanup_plan/replay/selected_profile/paid_children/collections.rs",
+            include_str!(
+                "../../../../../../src/cleanup_plan/replay/selected_profile/paid_children/collections.rs"
+            ),
+        ),
+        (
+            "src/cleanup_plan/replay/selected_profile/paid_children/flat_records.rs",
+            include_str!(
+                "../../../../../../src/cleanup_plan/replay/selected_profile/paid_children/flat_records.rs"
+            ),
+        ),
+        (
+            "src/cleanup_plan/replay/selected_profile/paid_children/row_loan.rs",
+            include_str!(
+                "../../../../../../src/cleanup_plan/replay/selected_profile/paid_children/row_loan.rs"
+            ),
+        ),
+        (
+            "src/cleanup_plan/replay/selected_profile/paid_children/string_transfer.rs",
+            include_str!(
+                "../../../../../../src/cleanup_plan/replay/selected_profile/paid_children/string_transfer.rs"
+            ),
+        ),
+        (
+            "src/cleanup_plan/replay/selected_profile/paid_children/tests.rs",
+            include_str!(
+                "../../../../../../src/cleanup_plan/replay/selected_profile/paid_children/tests.rs"
+            ),
+        ),
+        (
+            "src/cleanup_plan/replay/selected_profile/paid_children/tests/fixtures.rs",
+            include_str!(
+                "../../../../../../src/cleanup_plan/replay/selected_profile/paid_children/tests/fixtures.rs"
+            ),
+        ),
+        (
             "src/cleanup_plan/replay/semantic_refusal.rs",
             include_str!("../../../../../../src/cleanup_plan/replay/semantic_refusal.rs"),
         ),
@@ -95,8 +200,16 @@ fn finite_child_cut_sources_and_complete_old_receivers_stay_exact() {
             include_str!("../../../../../../src/hir/lexical_exit.rs"),
         ),
         (
+            "src/hir/lexical_exit/latch_inline.rs",
+            include_str!("../../../../../../src/hir/lexical_exit/latch_inline.rs"),
+        ),
+        (
             "src/hir/lexical_exit/selected_child.rs",
             include_str!("../../../../../../src/hir/lexical_exit/selected_child.rs"),
+        ),
+        (
+            "src/hir/static_text.rs",
+            include_str!("../../../../../../src/hir/static_text.rs"),
         ),
         (
             "src/loop_calls/byte_writer.rs",

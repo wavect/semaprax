@@ -3,6 +3,7 @@
 use crate::diagnostic::Diagnostic;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum Refusal {
+    Profile(super::profile_refusal::ProfileRefusal),
     LexicalDepth,
     RenewalCensus,
     HelperCensus,
@@ -13,6 +14,7 @@ pub(crate) enum Refusal {
 impl Refusal {
     pub(crate) fn detail(self) -> &'static str {
         match self {
+            Self::Profile(reason) => reason.detail(),
             Self::LexicalDepth => "lexical control scan exceeds admitted expression depth",
             Self::RenewalCensus => "selected primitive renewal census refused",
             Self::HelperCensus => {
@@ -24,7 +26,10 @@ impl Refusal {
         }
     }
     pub(crate) fn prefixed(self) -> bool {
-        matches!(self, Self::RenewalWork | Self::LostPhysical)
+        match self {
+            Self::Profile(reason) => reason.prefixed(),
+            _ => matches!(self, Self::RenewalWork | Self::LostPhysical),
+        }
     }
     /// Explicit legacy renderer; callers alone own this allocating boundary.
     pub(crate) fn legacy(self) -> Diagnostic {

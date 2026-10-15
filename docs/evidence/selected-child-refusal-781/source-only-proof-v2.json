@@ -1,0 +1,401 @@
+{
+  "status": "source-only; Rust owners unexecuted",
+  "basis": "a920309d8a37feb3fe021d36deb62881884f5aeb",
+  "own41": [
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "current_sha256": "e22b95bd8eff936136826268f9231e8611d09cea25e390f11a168d2a92f82c9b",
+      "complete_original_equal": true,
+      "lines": 1448
+    },
+    {
+      "source": "src/cleanup.rs",
+      "current_sha256": "7481c128ef581ef9f19fea61cf26faec4ded5461ea01c63da0c4b346f218719e",
+      "complete_original_equal": true,
+      "lines": 713
+    },
+    {
+      "source": "src/cleanup/inventory_builder.rs",
+      "current_sha256": "488fe089e7ecaed678bb421ed0d8793302a930bc6c1c6674df37c54ed742f6c5",
+      "complete_original_equal": true,
+      "lines": 1075
+    },
+    {
+      "source": "src/cleanup/inventory_builder/selected_inline.rs",
+      "current_sha256": "87e1c5fd97d4c062e170145682e76691b888c56ee1dba06f4ddb25d559641913",
+      "complete_original_equal": true,
+      "lines": 237
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile.rs",
+      "current_sha256": "a9891330c86d3aad8891bf89a7b0c96c85118d7ad11c721e0da472e9a1a1ecc0",
+      "complete_original_equal": true,
+      "lines": 307
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/child_refusal.rs",
+      "current_sha256": "fbd2da5b2009357bf8a1ff35f0bb4792e89c5dd41efde6afff740f41f0db4f42",
+      "complete_original_equal": true,
+      "lines": 38
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/profile_refusal.rs",
+      "current_sha256": "e99882b5172d1ceddd60c194d4fa0ab95ca40d9a173bf176e850be9e654c03c5",
+      "complete_original_equal": true,
+      "lines": 200
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/selected.rs",
+      "current_sha256": "9e786d9ee1ea0710c8c56b8d22839f4d83731bf33e10dc6c38f17a008ef5f870",
+      "complete_original_equal": true,
+      "lines": 460
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/selected_inline.rs",
+      "current_sha256": "3234fe03a54657e882829f0bb28f8ff64c39a60b5d169ef4a1eb95e734ce7744",
+      "complete_original_equal": true,
+      "lines": 226
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/selected_inline/append.rs",
+      "current_sha256": "b072c182cb4b4bc5078143c57bf22107792497f2d2f3e67613a26c3f8b4739b1",
+      "complete_original_equal": true,
+      "lines": 75
+    },
+    {
+      "source": "src/cleanup_plan/renewal_profile/selected_inline/cells.rs",
+      "current_sha256": "2dd9050a116cd321a6d287a734cdba1f3fd1e1ea1caef0ba74a292c902846d10",
+      "complete_original_equal": true,
+      "lines": 125
+    },
+    {
+      "source": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "current_sha256": "f0df82b1f06505ac9dc041fa178d6287dbb6e743d2cc4a3613e50fb41bee4dfd",
+      "complete_original_equal": true,
+      "lines": 1367
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_context.rs",
+      "current_sha256": "f391b7b290a737dd283020ac713e7045b138968832d03dde27e913351ab7940a",
+      "complete_original_equal": true,
+      "lines": 112
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_context/child.rs",
+      "current_sha256": "1710f802f9b90889de12bbfc6bd5ad713e02d67a605f3c9ada8413580973fe7e",
+      "complete_original_equal": true,
+      "lines": 137
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_context/child/tests.rs",
+      "current_sha256": "c0fff9d41c28830186a0fd30844355cf1fc1da9528fb165131ff3a0e5fc3c860",
+      "complete_original_equal": true,
+      "lines": 344
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_context/child/tests/source.rs",
+      "current_sha256": "9dd840b0fabba16d5964a3880ebea1c2283412cb83db8455acc31b8d8cee7145",
+      "complete_original_equal": true,
+      "lines": 259
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_context/paid.rs",
+      "current_sha256": "c1cc9bc652c03d6050b35a9b33083ed230046f36e4573ce341200b401e7c2173",
+      "complete_original_equal": true,
+      "lines": 81
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_context/paid_before_children.rs",
+      "current_sha256": "b952c81a627eb3e5b1617922fd39ef8e54bce78e0df000fe57604be054bf2d3f",
+      "complete_original_equal": true,
+      "lines": 99
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_owner.rs",
+      "current_sha256": "849ba043b4f2037e273c96fa019e42109b3d6e4983c8c1ce66a645f62f394052",
+      "complete_original_equal": true,
+      "lines": 59
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_owner/paid.rs",
+      "current_sha256": "e984f475bdce585143155529a2a22f07f4ad3b926cae328623b49c94c0ec8b53",
+      "complete_original_equal": true,
+      "lines": 61
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_owner/paid_before_children.rs",
+      "current_sha256": "c1d2ee47fd0ce510eec0d84f648b877ea539fdea5b4420aa41c06b4bf0a95fd1",
+      "complete_original_equal": true,
+      "lines": 57
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_profile.rs",
+      "current_sha256": "54c9274dc7e566edbd9f7aa790e72ce62f9fddbd73a31b24d952ac60e3a83ed2",
+      "complete_original_equal": true,
+      "lines": 724
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_profile/paid.rs",
+      "current_sha256": "221fd08f97e69e82edb47318c57adb57b1b43e66b661a4259aad94f6eda99f9e",
+      "complete_original_equal": true,
+      "lines": 394
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_profile/paid_before_children.rs",
+      "current_sha256": "625b05295bc3bc1ab00b0d2ce86eef7f13a29b36f851ad090bb8d4b586421570",
+      "complete_original_equal": true,
+      "lines": 367
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_profile/paid_children.rs",
+      "current_sha256": "9ac35dd5498a91e0a36352245dc5ade4c77382021e79c5b816829d50064eec0e",
+      "complete_original_equal": true,
+      "lines": 40
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_profile/paid_children/collections.rs",
+      "current_sha256": "fbbf9e2a5ef790556da9620be23c054db5fac4f0c97aa19828a4e6750054ec29",
+      "complete_original_equal": true,
+      "lines": 464
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_profile/paid_children/flat_records.rs",
+      "current_sha256": "52d4cd953616f78802e9ed4d092264b5565de6d34c957d23517663eb4411de48",
+      "complete_original_equal": true,
+      "lines": 184
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_profile/paid_children/row_loan.rs",
+      "current_sha256": "e09e678a26aac005e18b4a7d4ab26f2524995f0c38196f8cebc0afbf525a01d3",
+      "complete_original_equal": true,
+      "lines": 66
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_profile/paid_children/string_transfer.rs",
+      "current_sha256": "95703363a424289e3b1d5907cd687fcd5ea69e0d9909ef064144b6f6fd42b437",
+      "complete_original_equal": true,
+      "lines": 53
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_profile/paid_children/tests.rs",
+      "current_sha256": "eef330e8e938e3b890ff0cad984903cd58fb030d4e312b445c286df4d300b5ca",
+      "complete_original_equal": true,
+      "lines": 676
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_profile/paid_children/tests/fixtures.rs",
+      "current_sha256": "a11d8d366edd16182016554a788b9ba31155193702831f561fe3c15f6e757278",
+      "complete_original_equal": true,
+      "lines": 25
+    },
+    {
+      "source": "src/cleanup_plan/replay/semantic_refusal.rs",
+      "current_sha256": "d51e7c1c6e5e84c6be8a1d27db2eb0f2979f523a50cae7c085e37d049d21f952",
+      "complete_original_equal": true,
+      "lines": 123
+    },
+    {
+      "source": "src/hir/lexical_exit.rs",
+      "current_sha256": "b99458953d0fdbe9d93c5ea35881cf8628bd402d759fb6f705007ca6e861c89b",
+      "complete_original_equal": true,
+      "lines": 187
+    },
+    {
+      "source": "src/hir/lexical_exit/latch_inline.rs",
+      "current_sha256": "c79f9ea1a8653de79d8118645e0054e9c936783b3972f8fdc81b8749cc2df7fa",
+      "complete_original_equal": true,
+      "lines": 169
+    },
+    {
+      "source": "src/hir/lexical_exit/selected_child.rs",
+      "current_sha256": "c082d210432372df2e1124fe0147580963621284d32c0f0b5f9531ad52fd78e9",
+      "complete_original_equal": true,
+      "lines": 47
+    },
+    {
+      "source": "src/hir/static_text.rs",
+      "current_sha256": "b8e938ecb551c85962ca1c94bb9a94a46bea08911143d8059df5695ffb143fd0",
+      "complete_original_equal": true,
+      "lines": 175
+    },
+    {
+      "source": "src/loop_calls/byte_writer.rs",
+      "current_sha256": "2469ee3667c8b865ed6faf480e61aa9b1f443acdd842c5a6317c6d168cb7610f",
+      "complete_original_equal": true,
+      "lines": 217
+    },
+    {
+      "source": "src/loop_calls/byte_writer/resolved.rs",
+      "current_sha256": "0ab9fa73794e264a5701323deb73baa2763fadc5a2574c2f55c3812e6db26908",
+      "complete_original_equal": true,
+      "lines": 593
+    },
+    {
+      "source": "src/loop_calls/byte_writer/resolved/selected_inline.rs",
+      "current_sha256": "5634914aba2e68e15d41835cc0cdd7f119cd3ea5e330035bd728b81d8bcf0a5c",
+      "complete_original_equal": true,
+      "lines": 302
+    },
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "current_sha256": "c24b2ab78f63c5de4ca7b92fc8ea2a81761d0c80fcccf77c8abda0c85b05455a",
+      "complete_original_equal": true,
+      "lines": 767
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "current_sha256": "eb7e713ed1fd859b93763d3299c625656cb52ff8fbe9164dddf3e53544789ece",
+      "complete_original_equal": true,
+      "lines": 571
+    }
+  ],
+  "preserved_selected_session19": [
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "current_sha256": "e22b95bd8eff936136826268f9231e8611d09cea25e390f11a168d2a92f82c9b",
+      "complete_original_equal": true,
+      "lines": 1448
+    },
+    {
+      "source": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "current_sha256": "f0df82b1f06505ac9dc041fa178d6287dbb6e743d2cc4a3613e50fb41bee4dfd",
+      "complete_original_equal": true,
+      "lines": 1367
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_context.rs",
+      "current_sha256": "f391b7b290a737dd283020ac713e7045b138968832d03dde27e913351ab7940a",
+      "complete_original_equal": true,
+      "lines": 112
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_entry.rs",
+      "current_sha256": "496fb4b8c69b253d31c997c34bc2628c851a12c56f894dbc16f4c0d0388daa5a",
+      "complete_original_equal": true,
+      "lines": 455
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_entry/paid.rs",
+      "current_sha256": "a931ed2c0ce52f3d977d092b9c14ea31378a55f2daf5ca0b872023d6861e33ee",
+      "complete_original_equal": true,
+      "lines": 737
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_entry/tests.rs",
+      "current_sha256": "7e01d8d075bded968c502a59b08072ce21a06e56402c12e149d7c59785425036",
+      "complete_original_equal": true,
+      "lines": 169
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_entry/tests/structural_errors.rs",
+      "current_sha256": "74fb771e372cc36e82aa3c55b4c9f7edbdd85b83a2b6bf32cb3bb0512d3ab58f",
+      "complete_original_equal": true,
+      "lines": 206
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_owner.rs",
+      "current_sha256": "849ba043b4f2037e273c96fa019e42109b3d6e4983c8c1ce66a645f62f394052",
+      "complete_original_equal": true,
+      "lines": 59
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_profile.rs",
+      "current_sha256": "54c9274dc7e566edbd9f7aa790e72ce62f9fddbd73a31b24d952ac60e3a83ed2",
+      "complete_original_equal": true,
+      "lines": 724
+    },
+    {
+      "source": "src/cleanup_plan/replay/semantic_refusal.rs",
+      "current_sha256": "d51e7c1c6e5e84c6be8a1d27db2eb0f2979f523a50cae7c085e37d049d21f952",
+      "complete_original_equal": true,
+      "lines": 123
+    },
+    {
+      "source": "src/cleanup_plan/replay/semantic_refusal/tests.rs",
+      "current_sha256": "e3c85624ae3df160b97da3ae184fe192d888cbbfcc761554261f78def3db009e",
+      "complete_original_equal": true,
+      "lines": 151
+    },
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "current_sha256": "c24b2ab78f63c5de4ca7b92fc8ea2a81761d0c80fcccf77c8abda0c85b05455a",
+      "complete_original_equal": true,
+      "lines": 767
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "current_sha256": "eb7e713ed1fd859b93763d3299c625656cb52ff8fbe9164dddf3e53544789ece",
+      "complete_original_equal": true,
+      "lines": 571
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_context/paid.rs",
+      "current_sha256": "c1cc9bc652c03d6050b35a9b33083ed230046f36e4573ce341200b401e7c2173",
+      "complete_original_equal": true,
+      "lines": 81
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_owner/paid.rs",
+      "current_sha256": "e984f475bdce585143155529a2a22f07f4ad3b926cae328623b49c94c0ec8b53",
+      "complete_original_equal": true,
+      "lines": 61
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_profile/paid.rs",
+      "current_sha256": "221fd08f97e69e82edb47318c57adb57b1b43e66b661a4259aad94f6eda99f9e",
+      "complete_original_equal": true,
+      "lines": 394
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_entry/tests/session_errors.rs",
+      "current_sha256": "e622bd82c61a6ed837094c890e753ebdf0f753de15fcc1aca6c70f278aa6ff11",
+      "complete_original_equal": true,
+      "lines": 314
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_entry/tests/session_errors/source.rs",
+      "current_sha256": "7a146c74fea6d4b5acceb4efdb3fb8b4e456a0601ef4d7b9ece3e6aae756b261",
+      "complete_original_equal": true,
+      "lines": 63
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/errors.rs",
+      "current_sha256": "5d28ccd0de56fb900a1d5b31d58363c1bc298d58f82eb986d1f173c6e28b54a0",
+      "complete_original_equal": true,
+      "lines": 94
+    }
+  ],
+  "old22_changed_leading_bridges": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "src/cleanup_plan/renewal_profile.rs",
+    "src/cleanup_plan/renewal_profile/child_refusal.rs",
+    "src/cleanup_plan/renewal_profile/selected_inline.rs",
+    "src/cleanup_plan/renewal_profile/selected_inline/cells.rs",
+    "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+    "src/cleanup_plan/replay/selected_context.rs",
+    "src/cleanup_plan/replay/selected_context/child.rs",
+    "src/cleanup_plan/replay/selected_context/child/tests/source.rs",
+    "src/cleanup_plan/replay/selected_context/paid_before_children.rs",
+    "src/hir/lexical_exit.rs",
+    "src/hir/lexical_exit/selected_child.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ],
+  "selected_session19_changed_leading_bridges": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+    "src/cleanup_plan/replay/selected_context.rs",
+    "src/cleanup_plan/replay/selected_owner.rs",
+    "src/cleanup_plan/replay/selected_profile.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs",
+    "src/cleanup_plan/replay/selected_owner/paid.rs",
+    "src/cleanup_plan/replay/selected_profile/paid.rs"
+  ],
+  "prior_proof_preserved": "source-only-proof.json",
+  "source36": "separate tracked checker executed all36 complete inverse equal; no Rust execution",
+  "parser_check": "rustfmt edition2024 parsed25 changed/new Rust source files; no Rust compilation/typecheck",
+  "module_and_include_check": "all41 closed files <=1500 lines; literal includes resolve at actual module/macro callsites; mixed original-code strings in b.rs separately checked by source36",
+  "complete_old_context_profile_owner": "all3 whole receiver bytes equal immutable archives after only3 named Context adapters",
+  "second_pass_repairs": 0
+}

@@ -1,0 +1,29 @@
+{
+  "argv": [
+    "/Users/kevin/.local/bin/claude",
+    "--print",
+    "--tools",
+    "",
+    "--strict-mcp-config",
+    "--mcp-config",
+    "{\"mcpServers\":{}}",
+    "--setting-sources",
+    "",
+    "--settings",
+    "{\"disableAllHooks\":true}",
+    "--no-session-persistence",
+    "--model",
+    "sonnet",
+    "--max-budget-usd",
+    "3.5",
+    "--output-format",
+    "json"
+  ],
+  "prompt_sha256": "bad056e502c50ec3314787555733b5059a78f184f883de2cff911994dda79e10",
+  "exit_code": 0,
+  "wall_seconds": 42.71087770899612,
+  "tools_enabled": false,
+  "code_execution": false,
+  "peak_process_group_rss_bytes": 323616768,
+  "resource_refusal": null
+}

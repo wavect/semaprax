@@ -34,3 +34,14 @@ pub(crate) fn requires_inline(function: &ResolvedFunction) -> Result<bool, Refus
     }
     Ok(false)
 }
+
+pub(crate) fn validate_owner_inline(
+    function: &ResolvedFunction,
+    owner: &crate::hir::FunctionExecutionId,
+) -> Result<(), Refusal> {
+    if function.result_id.matches_result(owner) && function.body.id.matches(owner, "body") {
+        Ok(())
+    } else {
+        Err(Refusal::Profile(crate::cleanup_plan::renewal_profile::profile_refusal::ProfileRefusal::LexicalFunctionOwnerDiffersFromCanonicalResultBodyIdentities))
+    }
+}

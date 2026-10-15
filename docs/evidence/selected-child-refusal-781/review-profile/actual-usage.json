@@ -1,0 +1,21 @@
+{
+  "reported_model_usage": {
+    "claude-sonnet-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 5204,
+      "cacheReadInputTokens": 649,
+      "cacheCreationInputTokens": 5725,
+      "webSearchRequests": 0,
+      "costUSD": 0.0750089,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2952,
+      "canonicalModel": "claude-sonnet-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "reported_total_cost_usd": 0.0750089,
+  "billing": "Actual account billing unavailable; reported CLI list cost is not savings.",
+  "verdict_scope": "Concrete intermediate source before deterministic finding fixes; no final approval or runtime verdict."
+}

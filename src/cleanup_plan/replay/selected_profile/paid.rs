@@ -1,9 +1,9 @@
 //! Paid selected-local static refusals; arbitrary child Diagnostics stay explicit.
 use super::super::selected_context::paid::refusal;
+use super::paid_children::{self, collections, flat_records, row_loan, string_transfer};
 use super::{
     DEPTH, Frame, OwnershipMode, ReplayBudget, ResolvedExprKind, ResolvedFunction,
-    ResolvedMatchPattern, ResolvedType, collections, expression_facts, flat_records, row_loan,
-    string_transfer,
+    ResolvedMatchPattern, ResolvedType, expression_facts,
 };
 pub(in super::super) fn validate(
     program: &dyn crate::cleanup::ReplayContext,
@@ -24,7 +24,7 @@ pub(in super::super) fn validate(
         collections::prepay(
             program,
             function,
-            collections::type_key_bytes(&function.return_type)?,
+            collections::type_key_bytes(&function.return_type, function, budget)?,
             budget,
         )?;
     }
@@ -33,7 +33,7 @@ pub(in super::super) fn validate(
         || !program.function_instances().is_empty()
         || !function.effects.is_empty()
         || function.yields.is_some()
-        || !flat_records::admitted(program, &function.return_type)?
+        || !flat_records::admitted(program, &function.return_type, function, budget)?
     {
         return Err(refusal(
             function,
@@ -46,11 +46,11 @@ pub(in super::super) fn validate(
             collections::prepay(
                 program,
                 function,
-                collections::type_key_bytes(&parameter.ty)?,
+                collections::type_key_bytes(&parameter.ty, function, budget)?,
                 budget,
             )?;
         }
-        if !flat_records::admitted(program, &parameter.ty)? {
+        if !flat_records::admitted(program, &parameter.ty, function, budget)? {
             return Err(refusal(
                 function,
                 budget,
@@ -78,24 +78,28 @@ pub(in super::super) fn validate(
                     collections::prepay(
                         program,
                         function,
-                        collections::type_key_bytes(&expression.ty)?,
+                        collections::type_key_bytes(&expression.ty, function, budget)?,
                         budget,
                     )?;
                 }
                 if expression.ty != ResolvedType::Never
-                    && !flat_records::admitted(program, &expression.ty)?
+                    && !flat_records::admitted(program, &expression.ty, function, budget)?
                 {
-                    return Err(refusal(function, budget, "selected lexical replay does not admit nominal or callable expression storage"));
+                    return Err(refusal(
+                        function,
+                        budget,
+                        "selected lexical replay does not admit nominal or callable expression storage",
+                    ));
                 }
                 if let ResolvedExprKind::Project { base, .. } = &expression.kind {
                     collections::prepay(
                         program,
                         function,
-                        collections::type_key_bytes(&base.ty)?,
+                        collections::type_key_bytes(&base.ty, function, budget)?,
                         budget,
                     )?;
                 }
-                flat_records::expression(program, function, expression)?;
+                flat_records::expression(program, function, expression, budget)?;
                 match &expression.kind {
                     ResolvedExprKind::ConstructVariant { .. }
                     | ResolvedExprKind::UpdateRecord { .. }
@@ -109,7 +113,11 @@ pub(in super::super) fn validate(
                     | ResolvedExprKind::NativeRustImportCall(_)
                     | ResolvedExprKind::HostCommandCall(_)
                     | ResolvedExprKind::Yield { .. } => {
-                        return Err(refusal(function, budget, "selected lexical replay provider is outside the reserved primitive profile"));
+                        return Err(refusal(
+                            function,
+                            budget,
+                            "selected lexical replay provider is outside the reserved primitive profile",
+                        ));
                     }
                     ResolvedExprKind::VecFieldRead { .. } => {
                         collections::field(program, function, expression, budget)?
@@ -128,7 +136,7 @@ pub(in super::super) fn validate(
                                 "selected static literal has invalid type, ownership or backing",
                             ));
                         }
-                        crate::hir::static_text::validate_literal(value)?;
+                        paid_children::literal(function, value, budget)?;
                     }
                     ResolvedExprKind::Block { statements, .. }
                     | ResolvedExprKind::VecConstructor { statements, .. } => {
@@ -145,7 +153,7 @@ pub(in super::super) fn validate(
                                     collections::prepay(
                                         program,
                                         function,
-                                        collections::type_key_bytes(&binding.ty)?,
+                                        collections::type_key_bytes(&binding.ty, function, budget)?,
                                         budget,
                                     )?;
                                 }
@@ -153,7 +161,12 @@ pub(in super::super) fn validate(
                             match statement {
                                 crate::hir::ResolvedStatement::Let { binding, .. }
                                 | crate::hir::ResolvedStatement::Assign { binding, .. }
-                                    if !flat_records::admitted(program, &binding.ty)? =>
+                                    if !flat_records::admitted(
+                                        program,
+                                        &binding.ty,
+                                        function,
+                                        budget,
+                                    )? =>
                                 {
                                     return Err(refusal(
                                         function,
@@ -164,7 +177,11 @@ pub(in super::super) fn validate(
                                 crate::hir::ResolvedStatement::Assign {
                                     field: Some(_), ..
                                 } => {
-                                    return Err(refusal(function, budget, "selected primitive assignment cannot target a nominal field"));
+                                    return Err(refusal(
+                                        function,
+                                        budget,
+                                        "selected primitive assignment cannot target a nominal field",
+                                    ));
                                 }
                                 crate::hir::ResolvedStatement::LexicalWhile {
                                     condition,
@@ -180,7 +197,11 @@ pub(in super::super) fn validate(
                                                 ..
                                             }
                                     ) {
-                                        return Err(refusal(function, budget,"selected lexical replay owning iterator latch remains closed"));
+                                        return Err(refusal(
+                                            function,
+                                            budget,
+                                            "selected lexical replay owning iterator latch remains closed",
+                                        ));
                                     }
                                     if matches!(
                                         latch,
@@ -211,7 +232,11 @@ pub(in super::super) fn validate(
                                         if !crate::vec_ops::resolved_element_is_admitted(
                                             &binding.ty,
                                         ) {
-                                            return Err(refusal(function, budget,"selected Copy-for item is outside its scalar family"));
+                                            return Err(refusal(
+                                                function,
+                                                budget,
+                                                "selected Copy-for item is outside its scalar family",
+                                            ));
                                         }
                                         // Ordinary latch validation constructs exactly one Vec type
                                         // (one argument and its owned declaration spelling).
@@ -226,9 +251,7 @@ pub(in super::super) fn validate(
                                             "selected Copy-for latch Vec identity",
                                         )?;
                                     }
-                                    crate::hir::lexical_exit::validate_latch(
-                                        condition, body, latch,
-                                    )?;
+                                    paid_children::latch(function, condition, body, latch, budget)?;
                                 }
                                 crate::hir::ResolvedStatement::Assign {
                                     binding, value, ..
@@ -250,7 +273,11 @@ pub(in super::super) fn validate(
                         scrutinee, arms, ..
                     } => {
                         if matches!(scrutinee.ty, ResolvedType::Nominal { .. }) {
-                            return Err(refusal(function, budget, "selected direct records do not admit owning or destructuring matches"));
+                            return Err(refusal(
+                                function,
+                                budget,
+                                "selected direct records do not admit owning or destructuring matches",
+                            ));
                         }
                         for arm in arms {
                             validate_pattern(function, &arm.pattern, budget, 0)?;

@@ -86,7 +86,10 @@ pub(super) fn validate(
                 if expression.ty != ResolvedType::Never
                     && !flat_records::admitted(program, &expression.ty)?
                 {
-                    return Err(replay_error(function, "selected lexical replay does not admit nominal or callable expression storage"));
+                    return Err(replay_error(
+                        function,
+                        "selected lexical replay does not admit nominal or callable expression storage",
+                    ));
                 }
                 if let ResolvedExprKind::Project { base, .. } = &expression.kind {
                     collections::prepay(
@@ -110,7 +113,10 @@ pub(super) fn validate(
                     | ResolvedExprKind::NativeRustImportCall(_)
                     | ResolvedExprKind::HostCommandCall(_)
                     | ResolvedExprKind::Yield { .. } => {
-                        return Err(replay_error(function, "selected lexical replay provider is outside the reserved primitive profile"));
+                        return Err(replay_error(
+                            function,
+                            "selected lexical replay provider is outside the reserved primitive profile",
+                        ));
                     }
                     ResolvedExprKind::VecFieldRead { .. } => {
                         collections::field(program, function, expression, budget)?
@@ -163,7 +169,10 @@ pub(super) fn validate(
                                 crate::hir::ResolvedStatement::Assign {
                                     field: Some(_), ..
                                 } => {
-                                    return Err(replay_error(function, "selected primitive assignment cannot target a nominal field"));
+                                    return Err(replay_error(
+                                        function,
+                                        "selected primitive assignment cannot target a nominal field",
+                                    ));
                                 }
                                 crate::hir::ResolvedStatement::LexicalWhile {
                                     condition,
@@ -179,7 +188,10 @@ pub(super) fn validate(
                                                 ..
                                             }
                                     ) {
-                                        return Err(replay_error(function,"selected lexical replay owning iterator latch remains closed"));
+                                        return Err(replay_error(
+                                            function,
+                                            "selected lexical replay owning iterator latch remains closed",
+                                        ));
                                     }
                                     if matches!(
                                         latch,
@@ -208,7 +220,10 @@ pub(super) fn validate(
                                         if !crate::vec_ops::resolved_element_is_admitted(
                                             &binding.ty,
                                         ) {
-                                            return Err(replay_error(function,"selected Copy-for item is outside its scalar family"));
+                                            return Err(replay_error(
+                                                function,
+                                                "selected Copy-for item is outside its scalar family",
+                                            ));
                                         }
                                         // Ordinary latch validation constructs exactly one Vec type
                                         // (one argument and its owned declaration spelling).
@@ -246,7 +261,10 @@ pub(super) fn validate(
                         scrutinee, arms, ..
                     } => {
                         if matches!(scrutinee.ty, ResolvedType::Nominal { .. }) {
-                            return Err(replay_error(function, "selected direct records do not admit owning or destructuring matches"));
+                            return Err(replay_error(
+                                function,
+                                "selected direct records do not admit owning or destructuring matches",
+                            ));
                         }
                         for arm in arms {
                             validate_pattern(function, &arm.pattern, budget, 0)?;
@@ -419,9 +437,11 @@ mod tests {
         };
         let error = validate(&context, &function, &mut budget(usize::MAX)).unwrap_err();
         assert_eq!(error.code, "SPX-H006");
-        assert!(error
-            .message
-            .contains("unauthenticated or unsupported fields"));
+        assert!(
+            error
+                .message
+                .contains("unauthenticated or unsupported fields")
+        );
     }
 }
 
@@ -582,10 +602,12 @@ mod cursor_work_tests {
         else {
             panic!("guarded histories must exhaust the authenticated plan budget");
         };
-        assert!(branch_error.iter().any(|error| error.code == "SPX-H006"
-            && error
-                .message
-                .contains("cleanup replay work budget exhausted during plan branch state push")));
+        assert!(branch_error.iter().any(|error| {
+            error.code == "SPX-H006"
+                && error
+                    .message
+                    .contains("cleanup replay work budget exhausted during plan branch state push")
+        }));
         // Preserve the original large guarded source as an explicit unchanged
         // terminal-path limit refusal, independently of this cursor-work gate.
         let oversized_arms = (0..64)
@@ -696,3 +718,7 @@ mod cursor_work_tests {
 }
 
 pub(super) mod paid;
+
+#[cfg(test)]
+pub(super) mod paid_before_children;
+pub(super) mod paid_children;

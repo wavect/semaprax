@@ -14,7 +14,9 @@ pub(super) fn vector(
         _ => return Ok(false),
     };
     prepay_collection_probes(program, query, charge)?;
-    let Ok(Some(element)) = crate::cleanup::selected_vector_element(program, &binding.ty) else {
+    let Ok(Some(element)) =
+        crate::cleanup::selected_inline::selected_vector_element_inline(program, &binding.ty)
+    else {
         return Ok(false);
     };
     let ResolvedExprKind::Call {

@@ -503,3 +503,29 @@ ignored classification errors, the selected profile's collection/append and
 other dynamic child Diagnostic producers, and arbitrary owned helper/renewal
 routes outside this finite cut. They are not certified paid by the new receipt
 or the outward report. This batch does not claim whole transitive OPT781 closure.
+
+### Finite paid Context child refusal successor (#781, pending qualification)
+
+The selected paid Context uses closed Copy data for the exact forty-two finite
+child labels in its collection, direct-record, row-loan, string-transfer,
+literal, latch and owner checks. Their original raw/function-prefixed six-field
+diagnostics and first-error order remain the compatibility contract. A borrowed
+subject permit acquires complete receiving/error/result/optional controls on the
+existing invocation budget before child entry, including successful calls.
+The additional Deferred/result controls and their four initializer units are
+paid separately from the full eleven permit controls and any nested producer
+controls. No old carrier is credited against a new acquisition.
+
+Only real ReplayBudget methods construct the sealed budget-diagnostic arm.
+Arbitrary owned child diagnostics cannot be classified as paid through this
+seam. Nonselected or absent-owner compatibility wrappers remain explicitly
+allocating legacy receivers. Renewal eligibility still ignores failed Vec
+classification exactly where the original query did; replacing the discarded
+Diagnostic with Copy data grants no new source or payer authority.
+
+The complete former paid Context, profile and owner receivers remain executable
+controls, with explicit namespace adapters and immutable whole-source inverses.
+This finite adoption does not complete arbitrary later Session/replay/renewal
+owned diagnostic propagation. Those residuals, unsupported admission profiles,
+and outward legacy rendering remain explicit; issue #781 is not closed by the
+source-only successor or by observing its tests before qualification.

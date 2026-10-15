@@ -106,7 +106,7 @@ impl ReplayContext for Context<'_> {
 #[cfg(test)]
 pub(super) mod borrowed;
 
+pub(super) mod child;
 pub(super) mod paid;
-mod child;
 #[cfg(test)]
 mod paid_before_children;

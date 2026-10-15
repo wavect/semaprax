@@ -8,6 +8,7 @@ use crate::hir::{
 };
 use std::collections::{BTreeMap, BTreeSet};
 mod append;
+pub(crate) use append::admitted as selected_string_append_inline;
 mod cells;
 const DEPTH: usize = 514;
 type Frame<'a> = Option<(crate::hir::lexical_exit::ChildCursor<'a>, bool, bool)>;

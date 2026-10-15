@@ -1,9 +1,10 @@
 //! Independently reconstructed cleanup inventory, with an explicit selected
 //! physical constructor boundary. Legacy construction retains its old behavior.
 use super::*;
-use crate::cleanup_plan::{replay_reserve_vec, ReplayClonePayload, ReplayPhysicalReservation};
+use crate::cleanup_plan::{ReplayClonePayload, ReplayPhysicalReservation, replay_reserve_vec};
 use std::cell::RefCell;
 mod selected;
+pub(crate) mod selected_inline;
 
 pub(crate) fn selected_vector_element<'a>(
     program: &dyn crate::cleanup::ReplayContext,

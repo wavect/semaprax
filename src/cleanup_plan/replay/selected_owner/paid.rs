@@ -52,6 +52,10 @@ pub(in super::super) fn owner(
         )?;
         return Ok(owner);
     }
-    crate::hir::lexical_exit::validate_owner(function, &owner)?;
+    let permit = super::super::selected_context::child::Permit::profile::<()>(function, budget)?;
+    permit.resolve(
+        crate::hir::lexical_exit::validate_owner_inline(function, &owner)
+            .map_err(super::super::selected_context::child::Deferred::Finite),
+    )?;
     Ok(owner)
 }

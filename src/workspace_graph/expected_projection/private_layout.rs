@@ -111,6 +111,7 @@ impl<'a> LayoutClosure<'a> {
             .iter()
             .try_fold(0usize, |n, p| n.checked_add(p.types.len()))
             .ok_or_else(refusal)?;
+        let capacity = capacity.min(count);
         reserve_builder_structure(
             capacity
                 .checked_mul(std::mem::size_of::<Entry<'_>>())
@@ -771,3 +772,10 @@ pub(in crate::workspace_graph) fn signature_is_private(
     };
     private(caller, module, id, &mut work).unwrap_or(true)
 }
+
+#[cfg(test)]
+#[path = "private_layout/capacity_before.rs"]
+mod capacity_before;
+#[cfg(test)]
+#[path = "private_layout/capacity_tests.rs"]
+mod capacity_tests;

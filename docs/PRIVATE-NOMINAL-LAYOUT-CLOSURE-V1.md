@@ -240,3 +240,9 @@ Related contracts: [Project v32 Nested-Outcome Command v1](PROJECT-V32-NESTED-OU
 [Workspace Semantic Graph v1](WORKSPACE-SEMANTIC-GRAPH-V1.md),
 [Semantic Kernel v1](SEMANTIC-KERNEL-V1.md), and
 [Architecture](ARCHITECTURE.md#internal-owned-data-libraries).
+
+## Entry buffer bound source checkpoint (#834)
+
+The existing first-pass visit count bounds entry insertions: a second-pass callback inserts at most one entry and duplicate full stable IDs insert none. The entry buffer therefore uses the smaller of this occurrence count and the checked total workspace type count. The original checked fold, name allocation, work, diagnostic order and owner-index backing remain unchanged. The preceding receiver and full source archive remain available for independent comparison.
+
+The owning `private_layout::capacity_tests::` cases compare outcomes, all diagnostic fields, work and actual allocation/reservation/peak/release observations across sparse, dense, duplicate and imported-descendant layouts. These newly authored cases are unexecuted; issue #834 remains open pending consolidated qualification.

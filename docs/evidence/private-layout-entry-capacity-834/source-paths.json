@@ -1,0 +1,11 @@
+[
+  "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+  "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+  "src/workspace_graph/expected_projection/private_layout.rs",
+  "src/workspace_graph/expected_projection/private_layout/capacity_before.rs",
+  "src/workspace_graph/expected_projection/private_layout/capacity_tests.rs",
+  "src/workspace_graph/expected_projection/private_layout/capacity_tests/owner_controls.rs",
+  "src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs",
+  "tests/hir_module_boundaries.rs",
+  "tests/workspace/semantic_graph/source_inventory.rs"
+]

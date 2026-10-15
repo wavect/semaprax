@@ -1,0 +1,30 @@
+{
+  "status": "SOURCE_ONLY_NO_COMPILER_OR_TEST_EXECUTION",
+  "basis": "940fcf220e47d1975f757e76f0b3401691db9358",
+  "whole_original_rows_reconstructed": 9,
+  "complete_old_receiver": "full_derive_with_work_body_exact_after_visibility_name_adapter_cfg_test_compilation_pending",
+  "complete_old_module_sha256": "292d6b24b974e6ee3c4575a389f67faa48dcf61e95783a70ed467b9acaa1c5f2",
+  "production_change": "one_post_fold_capacity_min_shared_by_real_reservation_backing_and_guard",
+  "original_checked_fold_name_work_alias_dedup_sort_owner_order": "byte_exact",
+  "occurrence_to_insertion_bound": "at_most_one_insert_per_same_immutable_callback; duplicate_full_stable_id_returns_zero",
+  "owner_index_bound": "UNCHANGED; imported_descendants_excluded_from_entry_count_are_not_capped_by_it",
+  "unchanged_helper_sha256": {
+    "src/workspace_graph/expected_projection/private_layout/owner_index.rs": "8aca443af867d3b213fbbabfc526e92a2e045a4447ab0a1cf16d8bb0b44b8cee",
+    "src/workspace_graph/expected_projection/private_layout/names.rs": "3f434af06f500aacfccf578d871ef67845e597b0fa9a6834c3790c8346ffda59",
+    "src/workspace_graph/expected_projection/private_layout/roots.rs": "d42b4ecfeb89bb91cb89bfde0058e755e7e20bbb1b7c353da9ba0489721e72cf",
+    "src/workspace_graph/expected_projection/private_layout/shape.rs": "c1c155d08666d6e32ae66188a1d5c4ac3affd0e04b77b992f680c9dd69ff4245",
+    "src/workspace_graph/expected_projection/private_layout/sorting.rs": "59b6a600927fba5dbb8d2e67360b2e5dc889e2d672b8d33b86efb73b4c2e5df5",
+    "src/workspace_graph/expected_projection/private_layout/authority.rs": "9a66a7bb422c27e3528e7d17aaf44ef96ca868017df31d21a44e9a1abdb375fe",
+    "src/workspace_graph/expected_projection/private_layout/registry.rs": "92280049b79e12704d73359c34bebaadbcc0ebac37f435b710f88487c0cb8a44",
+    "src/workspace_graph/expected_projection/private_layout/ledger.rs": "e3af56276c6dff6c6ed1e7d90142b1b69b262f01058633fb7f18d6a76bdb1fc1"
+  },
+  "recorded_1670_line_parent_unchanged": true,
+  "full_source_joins": 3,
+  "cargo": "UNEXECUTED",
+  "rust_tests": "UNEXECUTED",
+  "runtime": "UNEXECUTED",
+  "allocator_observations": "AUTHORED_ONLY_UNEXECUTED",
+  "clippy": "UNEXECUTED",
+  "issue_834": "OPEN",
+  "measured_gain": "NOT_ESTABLISHED"
+}

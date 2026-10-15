@@ -1,0 +1,15 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "checkpoint_revision": "ea9f3d93430f085c175bd1478a06b0ddb9e9c079",
+    "archive": "docs/evidence/canonical-test-entry-auth-fix-843-20261015/canonical_shared.rs.before.txt",
+    "current_sha256": "43df43ad61648075dcc465d6af296891394fd6019eacd5a1105ed621c8b8da70",
+    "original_sha256": "df8d23dcd96f6002a3aec148ef663e2cc0543d32d30e6e34d5316fd3884b8e6c",
+    "edits": [
+      {
+        "new": "    #[cfg(test)]\n    pub(super) fn id(\n        &mut self,\n        function: &ResolvedFunction,\n        root: Weighted,\n        budget: &mut ReplayBudget,\n    ) -> Result<Option<usize>, Diagnostic> {\n        // Preserve the old entry's owner rejection before a fresh test-only slot\n        // can query or charge a foreign payer. A valid call still pays acquisition.\n        self.closures.authenticate_retained(function, budget);\n        if self.closures.failed() {\n            return Err(self.closures.failure());\n        }\n        let mut receiving = closure_receiving::ClosureReceiving::acquire(function, budget)?;\n        self.id_with_receiving(function, root, budget, &mut receiving)\n    }\n",
+        "old": "    #[cfg(test)]\n    pub(super) fn id(\n        &mut self,\n        function: &ResolvedFunction,\n        root: Weighted,\n        budget: &mut ReplayBudget,\n    ) -> Result<Option<usize>, Diagnostic> {\n        let mut receiving = closure_receiving::ClosureReceiving::acquire(function, budget)?;\n        self.id_with_receiving(function, root, budget, &mut receiving)\n    }\n"
+      }
+    ]
+  }
+]

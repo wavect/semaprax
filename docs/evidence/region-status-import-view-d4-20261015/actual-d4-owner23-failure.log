@@ -1,0 +1,17 @@
+
+running 1 test
+test cleanup_plan::replay::expression_facts::receiving::regions_entry::tests::complete_region_entry_and_four_variant_source_projections_restore_full_originals ... 
+thread 'cleanup_plan::replay::expression_facts::receiving::regions_entry::tests::complete_region_entry_and_four_variant_source_projections_restore_full_originals' (8310698) panicked at src/cleanup_plan/replay/expression_facts/receiving/regions_entry/tests.rs:439:13:
+assertion `left == right` failed
+  left: "112b1a3f5e47c5d0c99c476c2374e7eb9dbfdc04d9220a94f6bf73b613ee294e"
+ right: "914e1a78079f871cb37462414b1991cde6722e78b7af39cb7979e11f16f767e9"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::expression_facts::receiving::regions_entry::tests::complete_region_entry_and_four_variant_source_projections_restore_full_originals
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9069 filtered out; finished in 0.08s
+

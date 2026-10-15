@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/source36-after-23e8-20261015/AI-Lang/docs/evidence/source36-current-view-adapter-94c392-20261015/verify_source36.py", line 48, in <module>
+    current=apply(current,section,p)
+  File "/Volumes/Semaprax/worktrees/source36-after-23e8-20261015/AI-Lang/docs/evidence/source36-current-view-adapter-94c392-20261015/verify_source36.py", line 41, in apply
+    assert current.count(new)==1,(str(p),repr(new[:100]),current.count(new));current=current.replace(new,old,1)
+           ^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('/Volumes/Semaprax/worktrees/source36-after-23e8-20261015/AI-Lang/src/cleanup_plan/replay/live_oracle/source_custody/b.rs', "'    }\\n    false\\n}\\n\\n#[cfg(test)]\\npub(crate) use concat_funded::work::{\\n    is_same_owner_concat_hir_f'", 0)

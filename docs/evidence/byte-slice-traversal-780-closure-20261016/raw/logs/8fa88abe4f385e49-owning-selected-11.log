@@ -1,0 +1,6 @@
+
+running 1 test
+test byte_slice_for_runtime::byte_for_matches_manual_loop_and_oracle_on_every_engine ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 195 filtered out; finished in 2.36s
+

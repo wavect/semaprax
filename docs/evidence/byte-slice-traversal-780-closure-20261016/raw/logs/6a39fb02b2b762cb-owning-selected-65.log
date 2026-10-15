@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::cache_codec::byte_traversal_tests::byte_traversal_roundtrips_source_graph_and_both_cache_projections ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7490 filtered out; finished in 1.56s
+

@@ -1,0 +1,6 @@
+
+running 1 test
+test source_verify::byte_traversal::nested::tests::nested_byte_sources_available_at_outer_entry_are_admitted_and_v1_refusal_is_retained ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8872 filtered out; finished in 0.87s
+

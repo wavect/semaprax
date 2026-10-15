@@ -1,0 +1,15 @@
+
+running 1 test
+test hir::validation::byte_traversal::nested::tests::nested_byte_ancestor_freezes_cover_every_inner_subtree_and_same_root_after_inner_exit ... 
+thread 'hir::validation::byte_traversal::nested::tests::nested_byte_ancestor_freezes_cover_every_inner_subtree_and_same_root_after_inner_exit' (4690155) panicked at src/hir/validation/byte_traversal/nested/tests.rs:43:45:
+called `Result::unwrap()` on an `Err` value: [Diagnostic { code: "SPX-H006", severity: Error, message: "borrowed byte traversal is nested in another traversal", path: None, span: None, help: None }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    hir::validation::byte_traversal::nested::tests::nested_byte_ancestor_freezes_cover_every_inner_subtree_and_same_root_after_inner_exit
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8872 filtered out; finished in 0.07s
+

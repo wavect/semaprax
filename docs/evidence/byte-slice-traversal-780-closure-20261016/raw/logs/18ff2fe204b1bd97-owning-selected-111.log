@@ -1,0 +1,15 @@
+
+running 1 test
+test byte_slice_for_traversal::byte_for_refusals_and_owner_freeze_are_stable ... 
+thread 'byte_slice_for_traversal::byte_for_refusals_and_owner_freeze_are_stable' (4362030) panicked at tests/language/byte_slice_for_traversal.rs:472:51:
+called `Result::unwrap()` on an `Err` value: [Diagnostic { code: "SPX-H006", severity: Error, message: "nested for traversal reached bounded-loop HIR admission", path: Some("byte-slice-traversal.spx"), span: Some(Span { start: 240, end: 281, line: 9, column: 24 }), help: None }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    byte_slice_for_traversal::byte_for_refusals_and_owner_freeze_are_stable
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 867 filtered out; finished in 0.01s
+

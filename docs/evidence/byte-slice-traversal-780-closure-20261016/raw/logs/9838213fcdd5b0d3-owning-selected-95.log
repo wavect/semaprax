@@ -1,0 +1,15 @@
+
+running 1 test
+test byte_slice_for_runtime::byte_for_matches_manual_loop_and_oracle_on_every_engine ... 
+thread 'byte_slice_for_runtime::byte_for_matches_manual_loop_and_oracle_on_every_engine' (24976375) panicked at tests/useful_data/byte_slice_for_runtime.rs:177:54:
+called `Result::unwrap()` on an `Err` value: Diagnostic { code: "SPX-W116", severity: Error, message: "legacy scalar Web packages do not supply the required String runtime imports", path: None, span: None, help: Some("for standalone scalar String source, use --profile internal-strings-v1 with admitted scalar exports; aggregate String programs use the aggregate Web lowering") }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    byte_slice_for_runtime::byte_for_matches_manual_loop_and_oracle_on_every_engine
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 194 filtered out; finished in 2.13s
+

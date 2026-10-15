@@ -1,0 +1,32 @@
+
+running 1 test
+test byte_slice_for_runtime::nested::nested_byte_traversal_matches_manual_loop_on_interpreter_native_and_wasm ... 
+thread 'byte_slice_for_runtime::nested::nested_byte_traversal_matches_manual_loop_on_interpreter_native_and_wasm' (5512328) panicked at tests/useful_data/byte_slice_for_runtime.rs:392:5:
+catalog-failure-0: stdout= stderr=node:internal/modules/run_main:105
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /^contract$/. Input:
+
+'Expected values to be strictly equal:\n\n0 !== 1\n'
+
+    at file:///Volumes/Semaprax/lane-prompts/large-940f-qualification-20261015/runtime-tmp/semaprax-nested-byte-for-10939/raw-byte-for.mjs:72:60 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 'Expected values to be strictly equal:\n\n0 !== 1\n',
+  expected: /^contract$/,
+  operator: 'match'
+}
+
+Node.js v24.3.0
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    byte_slice_for_runtime::nested::nested_byte_traversal_matches_manual_loop_on_interpreter_native_and_wasm
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 198 filtered out; finished in 2.26s
+

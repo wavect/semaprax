@@ -127,7 +127,6 @@ impl<'a> Directory<'a> {
         if !helpers.matches_program(member.program) {
             return admission.refuse(Refusal::Subject);
         }
-        admission.reserve(RecordPresence::shared_transport_controls())?;
         Self::collect_impl(
             member.program,
             member.function,

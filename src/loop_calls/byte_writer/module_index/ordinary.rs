@@ -81,6 +81,9 @@ impl<'a> ModuleIndex<'a> {
             if demanded.is_some_and(|demanded| !std::ptr::eq(function, demanded)) {
                 continue;
             }
+            admission
+                .reserve(RecordPresence::shared_caller_controls())
+                .map_err(|_| resolved::census_error())?;
             let directory = Directory::collect_current_with_presence(
                 member,
                 self,

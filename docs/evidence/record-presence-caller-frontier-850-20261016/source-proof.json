@@ -1,0 +1,9 @@
+{
+  "mode": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "whole_immediate_inverses": 4,
+  "runtime_inputs": 3,
+  "complete_prior_namespace_restored": true,
+  "old_runtime_proof_script_byte_exact": true,
+  "some_payment_before_caller_borrow": true,
+  "no_new_selector": true
+}

@@ -1,0 +1,401 @@
+use std::fs;
+use std::path::Path;
+
+fn read(relative: &str) -> String {
+    fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
+        .unwrap_or_else(|error| panic!("read {relative}: {error}"))
+}
+
+/// A consumer test plus every submodule it owns.
+///
+/// The counts below bind *every* nested Cargo invocation in a consumer. Reading
+/// only the root would let an invocation added in a submodule escape the count
+/// while the assertion still passed against the smaller file.
+fn read_consumer(relative: &str) -> String {
+    let mut source = read(relative);
+    let directory = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join(relative.strip_suffix(".rs").expect("consumer module root"));
+    let Ok(entries) = fs::read_dir(&directory) else {
+        return source;
+    };
+    let mut submodules: Vec<_> = entries
+        .flatten()
+        .map(|entry| entry.path())
+        .filter(|path| path.extension().is_some_and(|ext| ext == "rs"))
+        .collect();
+    submodules.sort();
+    for submodule in submodules {
+        source.push('\n');
+        source.push_str(&fs::read_to_string(&submodule).expect("consumer submodule"));
+    }
+    source
+}
+
+#[test]
+fn hosted_matrix_routes_public_sdk_evidence_on_all_three_operating_systems() {
+    let workflow = read(".github/workflows/ci.yml");
+    let public_sdk = workflow
+        .split("\n  native-rust-sdk-v1:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  verify:\n").next())
+        .expect("Public Native Rust SDK CI job");
+    for runner in ["ubuntu-latest", "macos-latest", "windows-latest"] {
+        assert!(public_sdk.contains(runner), "CI matrix is missing {runner}");
+    }
+    for required in [
+        "public_native_rust_sdk_v1",
+        "public_native_rust_sdk_ci_contract",
+        "examples/calculator-rust/Cargo.toml",
+        "SEMAPRAX_ARCHIVER",
+        "SEMAPRAX_REQUIRE_PUBLIC_NATIVE_RUST_SDK",
+        "SEMAPRAX_REQUIRE_DARWIN_REAL_ARCHIVE",
+        "tests::archive_admission::darwin_real_d_archive_is_exact_and_reproducible_across_tool_versions",
+        "cargo test --locked --offline -p semaprax-native-rust-interop-platform-sys --lib tests::archive_admission::darwin_real_d_archive_is_exact_and_reproducible_across_tool_versions",
+    ] {
+        assert!(
+            public_sdk.contains(required),
+            "hosted public Native Rust SDK evidence is missing `{required}`"
+        );
+    }
+    assert!(public_sdk.contains("--locked"));
+    assert!(public_sdk.contains("--offline"));
+    let dependency_fetch = public_sdk
+        .find("Fetch the root workspace and standalone Rust consumer dependency closures")
+        .expect("Public SDK dependency fetch");
+    let darwin_gate = public_sdk
+        .find("Require exact reproducible Darwin archive admission")
+        .expect("Public SDK Darwin archive gate");
+    assert!(
+        dependency_fetch < darwin_gate,
+        "the Darwin archive gate must run offline after the complete dependency fetch",
+    );
+    for required in [
+        "CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=%SEMAPRAX_LINKER%",
+        "echo LINK=",
+        "echo _LINK_=",
+        "Require minimal effectful public SDK build on Windows",
+    ] {
+        assert!(
+            public_sdk.contains(required),
+            "hosted public SDK linker boundary is missing `{required}`"
+        );
+    }
+    assert_eq!(
+        public_sdk
+            .matches("CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=")
+            .count(),
+        1,
+        "Public SDK Windows setup must bind Cargo's target linker exactly once"
+    );
+    assert!(
+        !public_sdk.contains("continue-on-error"),
+        "every Public Native Rust SDK host and step must be blocking"
+    );
+}
+
+#[test]
+fn node_entrypoint_stays_relative_to_the_canonical_fixture_authority() {
+    let consumer = read("tests/public_native_rust_sdk_v1.rs");
+    let helper = consumer
+        .split_once("fn calculator_node_command(fixture: &Path) -> Command {")
+        .and_then(|(_, tail)| tail.split_once("\n}\n"))
+        .map(|(body, _)| body)
+        .expect("calculator Node command helper");
+    assert!(helper.contains("command.current_dir(fixture).arg(\"calculator.mjs\");"));
+    assert_eq!(
+        consumer
+            .matches("calculator_node_command(&fixture.0)")
+            .count(),
+        2,
+        "the command-inspection regression and real Wasm execution must share the helper"
+    );
+    assert!(
+        !consumer.contains(".arg(fixture.0.join(\"calculator.mjs\"))"),
+        "Node 22 on Windows cannot resolve a verbatim absolute entrypoint"
+    );
+}
+
+#[test]
+fn external_consumers_share_one_bounded_nested_cargo_linker_path_binder() {
+    let binder = read("tests/support/native_rust_cargo.rs");
+    for required in [
+        "CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER",
+        "SEMAPRAX_LINKER",
+        "SEMAPRAX_VCTOOLS",
+        "command.env_remove(\"LINK\")",
+        "command.env_remove(\"_LINK_\")",
+        "does not hold the linker image or its ancestors",
+        "close a same-path substitution race",
+    ] {
+        assert!(binder.contains(required), "Cargo binder lost `{required}`");
+    }
+    for forbidden in ["command.env(\"PATH\"", "RUSTFLAGS", "-Clinker="] {
+        assert!(
+            !binder.contains(forbidden),
+            "Cargo binder admitted forbidden linker configuration `{forbidden}`"
+        );
+    }
+
+    for (path, expected_commands) in [
+        ("tests/frame_payload_product_v1.rs", 2),
+        ("tests/public_native_rust_owned_data_sdk_v1.rs", 6),
+        ("tests/project_native_rust_owned_utf8_v1.rs", 1),
+    ] {
+        let consumer = read_consumer(path);
+        assert!(consumer.contains("mod native_rust_cargo;"), "{path}");
+        assert!(consumer.contains("mod native_rust_target;"), "{path}");
+        assert_eq!(
+            consumer.matches(".env(\"CARGO_TARGET_DIR\",").count(),
+            expected_commands,
+            "{path} must keep every nested Cargo target inside its short isolated directory"
+        );
+        // The owned-data consumer's submodule adds one factory call inside
+        // ConsumerToolchain; its four callers supply their own target paths.
+        let factory_dispatch = usize::from(path == "tests/public_native_rust_owned_data_sdk_v1.rs");
+        assert_eq!(
+            consumer
+                .matches("native_rust_cargo::cargo_command()")
+                .count()
+                + consumer.matches(".cargo_command()").count(),
+            expected_commands + factory_dispatch,
+            "{path} must bind every generated-package Cargo invocation"
+        );
+        assert!(!consumer.contains("Command::new(\"cargo\")"), "{path}");
+        assert!(
+            !consumer.contains("Command::new(env!(\"CARGO\"))"),
+            "{path}"
+        );
+    }
+    let consumer_toolchain =
+        read("tests/public_native_rust_owned_data_sdk_v1/consumer_toolchain.rs");
+    assert!(consumer_toolchain.contains("super::native_rust_cargo::cargo_command()"));
+    assert!(consumer_toolchain
+        .contains("super::native_rust_cargo::bind_nested_cargo_linker_path(&mut command)"));
+
+    let target = read("tests/support/native_rust_target.rs");
+    for required in [
+        "semaprax-generated-native-rust-owned-data-sdk-0000000000000000",
+        "encode_wide().count()",
+        "checked_add(OBJECT_SUFFIX.encode_utf16().count())",
+        "units < 260",
+        "std::fs::create_dir(&path)",
+        "std::io::ErrorKind::AlreadyExists",
+    ] {
+        assert!(
+            target.contains(required),
+            "Cargo target guard lost `{required}`"
+        );
+    }
+
+    let consumers = read("tests/public_native_rust_sdk_v1.rs");
+    assert_eq!(
+        consumers
+            .matches("native_rust_cargo::cargo_command()")
+            .count(),
+        14,
+        "thirteen effectful setup/lock/consumer commands (nine original plus the four \
+         tarball-packaging consumer commands added for the packaged-tarball round trip) \
+         plus the command-inspection test must use the binder"
+    );
+    for required in [
+        ".env(\"LINK\", \".obj\")",
+        ".env(\"_LINK_\", \".obj\")",
+        "Some(Some(linker.as_os_str()))",
+        "configured(\"LINK\"), Some(None)",
+        "configured(\"_LINK_\"), Some(None)",
+        "configured(\"LIB\")",
+        "configured(\"INCLUDE\")",
+        "configured(\"PATH\"), None",
+        "configured(\"RUSTFLAGS\"), None",
+    ] {
+        assert!(
+            consumers.contains(required),
+            "poisoned nested-Cargo command inspection lost `{required}`"
+        );
+    }
+}
+
+#[test]
+fn general_windows_matrix_binds_the_same_explicit_nested_cargo_linker() {
+    let workflow = read(".github/workflows/ci.yml");
+    let verify = workflow
+        .split_once("\n  verify:\n")
+        .map(|(_, tail)| tail)
+        .and_then(|tail| tail.split_once("\n  desktop-native-product:\n"))
+        .map(|(verify, _)| verify)
+        .expect("general Rust verification matrix");
+    for required in [
+        "CARGO_PROFILE_DEV_DEBUG=0",
+        "CARGO_PROFILE_TEST_DEBUG=0",
+        "CARGO_INCREMENTAL=0",
+        "python3 scripts/ci-msrv.py --label \"Rust Windows\" --shard \"${{ matrix.shard }}\" --exclude-package semaprax-native-rust-interop",
+        "echo CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=%SEMAPRAX_LINKER%",
+        "echo LINK=",
+        "echo _LINK_=",
+    ] {
+        assert!(
+            verify.contains(required),
+            "general Windows matrix lost `{required}`"
+        );
+    }
+    let compact_step = verify
+        .split_once("- name: Keep Windows compiler and test artifacts compact")
+        .unwrap()
+        .1
+        .split_once("- name:")
+        .unwrap()
+        .0;
+    assert!(compact_step.contains("if: runner.os == 'Windows'"));
+    assert!(!compact_step.contains("DEBUG_ASSERTIONS"));
+}
+
+#[test]
+fn archive_failures_without_settlement_evidence_are_fail_stop() {
+    let platform = read("crates/semaprax-native-rust-interop-platform/src/lib.rs");
+    let legacy = platform
+        .split("#[cfg(not(target_os = \"macos\"))]")
+        .nth(1)
+        .and_then(|tail| tail.split("result.map(HeldRegularFile)").next())
+        .expect("non-Darwin archive facade branch");
+    assert!(legacy.contains("phase: ArchiveToolFailurePhase::Platform"));
+    assert!(legacy.contains("settlement: ArchiveToolSettlement::Uncertain"));
+    assert!(!legacy.contains("settlement: ArchiveToolSettlement::Settled"));
+}
+
+#[test]
+fn quality_gate_and_example_are_promotion_evidence_not_a_private_claim() {
+    let gates = read("docs/QUALITY-GATES.md");
+    for required in [
+        "public_native_rust_sdk_v1",
+        "public_native_rust_sdk_ci_contract",
+        "examples/calculator-rust",
+    ] {
+        assert!(
+            gates.contains(required),
+            "quality gates are missing `{required}`"
+        );
+    }
+
+    let readme = read("examples/calculator-rust/README.md");
+    for required in [
+        "standalone example",
+        "generated `semaprax-generated-native-rust-sdk` package",
+        "no source or workspace dependency",
+        "locked offline mode",
+    ] {
+        assert!(
+            readme.contains(required),
+            "example contract is missing `{required}`"
+        );
+    }
+}
+
+#[test]
+fn root_package_does_not_create_a_dependency_cycle_to_the_builder() {
+    // Check both independent requirements: a normal dependency must not
+    // cycle back into the compiler, and it must not be unpublished. An
+    // acyclic private leaf still breaks the compiler's registry archive.
+    //
+    // Check the real property instead, and check it TRANSITIVELY: a
+    // dependency two hops away reaches back just as effectively as a direct
+    // one, so a single-level check would pass a graph that still cycles.
+    // Dependency keys are matched by name rather than by substring, so
+    // `semaprax = { .. }`, `semaprax.workspace = true` and `semaprax = "0.5"`
+    // are all caught; a substring check misses the last two.
+    fn dependency_keys(manifest: &str) -> Vec<String> {
+        let mut in_dependencies = false;
+        let mut keys = Vec::new();
+        for line in manifest.lines() {
+            let line = line.trim();
+            if line.starts_with('[') {
+                in_dependencies = line == "[dependencies]" || line.ends_with(".dependencies]");
+            } else if in_dependencies && !line.is_empty() && !line.starts_with('#') {
+                let key = line
+                    .split(['=', '.', ' '])
+                    .next()
+                    .unwrap_or_default()
+                    .trim()
+                    .to_owned();
+                if !key.is_empty() {
+                    keys.push(key);
+                }
+            }
+        }
+        keys
+    }
+
+    fn path_of(manifest: &str, dependency: &str) -> Option<String> {
+        manifest
+            .lines()
+            .find(|line| line.trim_start().starts_with(dependency))
+            .and_then(|line| line.split("path = \"").nth(1))
+            .and_then(|tail| tail.split('"').next())
+            .map(str::to_owned)
+    }
+
+    fn is_unpublished(manifest: &str) -> bool {
+        manifest.lines().any(|line| {
+            line.split_once('=').is_some_and(|(key, value)| {
+                key.trim() == "publish"
+                    && value.split('#').next().unwrap_or_default().trim() == "false"
+            })
+        })
+    }
+
+    // A leaf with no dependencies is not a cycle, but is still forbidden
+    // when Cargo cannot resolve it from the compiler's packaged manifest.
+    assert!(is_unpublished(
+        "[package]\nname = \"private-leaf\"\npublish = false\n"
+    ));
+    assert!(is_unpublished("[package]\npublish=false # private\n"));
+    assert!(!is_unpublished(
+        "[package]\nname = \"public-leaf\"\npublish = true\n"
+    ));
+
+    // The builder really does depend on `semaprax`; that is the edge which
+    // makes any path back to the builder a cycle, so pin it rather than
+    // assume it.
+    let builder_manifest = read("crates/semaprax-native-rust-interop-builder/Cargo.toml");
+    assert!(
+        dependency_keys(&builder_manifest)
+            .iter()
+            .any(|key| key == "semaprax"),
+        "the builder must still depend on `semaprax` for this contract to mean anything"
+    );
+
+    let root_manifest = read("Cargo.toml");
+    let mut queue: Vec<(String, String)> = Vec::new();
+    for key in dependency_keys(&root_manifest) {
+        if let Some(rest) = key.strip_prefix("semaprax-") {
+            let directory = path_of(&root_manifest, &key).unwrap_or_else(|| {
+                panic!("private normal dependency `semaprax-{rest}` without a workspace path")
+            });
+            queue.push((key, directory));
+        }
+    }
+
+    let mut visited: Vec<String> = Vec::new();
+    while let Some((name, directory)) = queue.pop() {
+        if visited.contains(&directory) {
+            continue;
+        }
+        visited.push(directory.clone());
+        let manifest = read(&format!("{directory}/Cargo.toml"));
+        assert!(
+            !is_unpublished(&manifest),
+            "normal dependency `{name}` at `{directory}` is unpublished; the compiler archive must not depend on it"
+        );
+        for key in dependency_keys(&manifest) {
+            assert_ne!(
+                key, "semaprax",
+                "private normal dependency `{name}` at `{directory}` reaches back to `semaprax`, \
+                 which is the dependency cycle this contract exists to refuse"
+            );
+            if key.starts_with("semaprax-") {
+                if let Some(relative) = path_of(&manifest, &key) {
+                    queue.push((key, format!("{directory}/{relative}")));
+                }
+            }
+        }
+    }
+}

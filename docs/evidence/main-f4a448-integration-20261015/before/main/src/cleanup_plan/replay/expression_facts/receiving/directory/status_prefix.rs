@@ -1,0 +1,320 @@
+//! Status-only insertion over the exact held immutable key set. No lookup authority.
+use super::*;
+use crate::bounded_output::classifier_string::ClassifierLedger;
+use std::cell::Cell;
+use std::mem::size_of;
+
+#[derive(Clone, Copy)]
+enum Refusal {
+    Binding,
+    Invocation,
+    Budget,
+}
+
+// Held only during the actual current source-order insertion loop. Raw pointers
+// are compared, never dereferenced; moving either receiver fails closed.
+pub(in crate::cleanup_plan::replay::expression_facts::receiving) struct Owner<'hir> {
+    function: &'hir ResolvedFunction,
+    directory: *const Directory<&'hir StatusSourceId>,
+    budget: *const ReplayBudget,
+    ledger: ClassifierLedger,
+    next: Cell<usize>,
+    first: Cell<Option<Refusal>>,
+}
+impl<'hir> Owner<'hir> {
+    pub(in crate::cleanup_plan::replay::expression_facts::receiving) fn new(
+        function: &'hir ResolvedFunction,
+        directory: &Directory<&'hir StatusSourceId>,
+        budget: &mut ReplayBudget,
+    ) -> Result<Self, Diagnostic> {
+        budget.reserve_bytes(
+            function,
+            2 * size_of::<Self>() + size_of::<Result<Self, Diagnostic>>(),
+            directory.phase,
+        )?;
+        budget.charge(function, 3, directory.phase)?;
+        if !directory.nodes.is_empty() || directory.root != NIL || directory.first != NIL {
+            return Err(budget.budget_refusal(
+                function,
+                "status prefix insertion requires a fresh current directory",
+                "",
+            ));
+        }
+        // Six actual initialized binding/control fields, one unit each.
+        budget.charge(function, 6, directory.phase)?;
+        Ok(Self {
+            function,
+            directory,
+            budget,
+            ledger: ClassifierLedger::capture(),
+            next: Cell::new(0),
+            first: Cell::new(None),
+        })
+    }
+    fn refuse(
+        &self,
+        reason: Refusal,
+        function: &ResolvedFunction,
+        budget: &mut ReplayBudget,
+    ) -> Diagnostic {
+        let selected = self.first.get().unwrap_or(reason);
+        self.first.set(Some(selected));
+        budget.budget_refusal(
+            function,
+            match selected {
+                Refusal::Binding => {
+                    "status prefix insertion belongs to another subject or receiver"
+                }
+                Refusal::Invocation => "status prefix insertion belongs to another invocation",
+                Refusal::Budget => "selected status prefix insertion budget already failed",
+            },
+            "",
+        )
+    }
+    fn authenticate(
+        &self,
+        directory: &Directory<&'hir StatusSourceId>,
+        function: &ResolvedFunction,
+        key: &StatusSourceId,
+        budget: &mut ReplayBudget,
+    ) -> Result<(), Diagnostic> {
+        if let Some(first) = self.first.get() {
+            return Err(self.refuse(first, function, budget));
+        }
+        if !std::ptr::eq(self.function, function)
+            || !std::ptr::eq(self.directory, directory)
+            || !std::ptr::eq(self.budget, budget)
+        {
+            return Err(self.refuse(Refusal::Binding, function, budget));
+        }
+        if !self.ledger.current() {
+            return Err(self.refuse(Refusal::Invocation, function, budget));
+        }
+        budget.reserve_bytes(function, 0, directory.phase)?;
+        budget.charge(function, 0, directory.phase)?;
+        // The authorization receipt and the inner/outer insertion Results are
+        // new receiving carriers. Fund them through this authenticated owner
+        // before producing the successful receipt or entering the probe.
+        budget.reserve_bytes(
+            function,
+            size_of::<Result<(), Diagnostic>>() + 2 * size_of::<Result<bool, Diagnostic>>(),
+            directory.phase,
+        )?;
+        // One exact indexed current-row identity test; no textual ID parsing or
+        // extra full-function scan precedes the original duplicate frontier.
+        budget.charge(function, 1, directory.phase)?;
+        if function
+            .cleanup_plan
+            .status_sources
+            .get(self.next.get())
+            .is_none_or(|source| !std::ptr::eq(&source.id, key))
+        {
+            return Err(self.refuse(Refusal::Binding, function, budget));
+        }
+        Ok(())
+    }
+}
+
+struct Search {
+    probe: Probe,
+    at: usize,
+    maximum: usize,
+    lower: usize,
+    upper: usize,
+    prefix: usize,
+}
+struct Comparison<'a> {
+    left: &'a [u8],
+    right: &'a [u8],
+    end: usize,
+    common: usize,
+}
+// Existing expression-fact prefix comparator's source-derived ten bookkeeping
+// operations and unchanged byte-pair/end rate. No prior local/header credit.
+const COMPARISON_UNITS: usize = 10;
+const COMPARISON_BYTES: usize = size_of::<Comparison<'static>>()
+    + size_of::<Result<(Ordering, usize), Diagnostic>>()
+    + size_of::<(Ordering, usize)>()
+    + size_of::<Ordering>(); // Simultaneous complete-expression ordering local.
+const SEARCH_BYTES: usize = 2 * size_of::<Search>()
+    + size_of::<Result<Probe, Diagnostic>>()
+    + size_of::<Probe>()
+    + size_of::<&StatusSourceId>(); // Simultaneously received minimum key.
+
+fn compare(
+    function: &ResolvedFunction,
+    query: &StatusSourceId,
+    candidate: &StatusSourceId,
+    prefix: usize,
+    budget: &mut ReplayBudget,
+    phase: &'static str,
+) -> Result<(Ordering, usize), Diagnostic> {
+    budget.reserve_bytes(function, COMPARISON_BYTES, phase)?;
+    budget.charge(function, COMPARISON_UNITS, phase)?;
+    let mut comparison = Comparison {
+        left: query.expression.as_str().as_bytes(),
+        right: candidate.expression.as_str().as_bytes(),
+        end: query
+            .expression
+            .as_str()
+            .len()
+            .min(candidate.expression.as_str().len()),
+        common: prefix,
+    };
+    let units = comparison
+        .end
+        .checked_sub(prefix)
+        .and_then(|n| n.checked_add(1))
+        .ok_or_else(|| overflow(function, budget, "directory key comparison work overflow"))?;
+    budget.charge(function, units, phase)?;
+    while comparison.common < comparison.end {
+        let a = comparison.left[comparison.common];
+        let b = comparison.right[comparison.common];
+        if a != b {
+            return Ok((a.cmp(&b), comparison.common));
+        }
+        comparison.common += 1;
+    }
+    // New scalar ordering receipt and equal-expression branch, before either.
+    budget.charge(function, 2, phase)?;
+    let order = comparison.left.len().cmp(&comparison.right.len());
+    if order != Ordering::Equal {
+        return Ok((order, comparison.common));
+    }
+    budget.charge(function, 1, phase)?;
+    Ok((query.lane.cmp(&candidate.lane), comparison.common))
+}
+
+impl<'hir> Directory<&'hir StatusSourceId> {
+    fn certified_probe(
+        &self,
+        function: &ResolvedFunction,
+        key: &StatusSourceId,
+        budget: &mut ReplayBudget,
+    ) -> Result<Probe, Diagnostic> {
+        budget.reserve_bytes(function, SEARCH_BYTES, self.phase)?;
+        // Six Search fields plus five nested Probe fields, one unit each.
+        budget.charge(function, 11, self.phase)?;
+        let mut search = Search {
+            probe: Probe {
+                found: false,
+                parent: NIL,
+                before: NIL,
+                after: NIL,
+                side: Ordering::Equal,
+            },
+            at: self.root,
+            maximum: self.root,
+            lower: 0,
+            upper: 0,
+            prefix: 0,
+        };
+        budget.charge(function, VISIT_UNITS, self.phase)?;
+        let minimum = self.nodes[self.first].key;
+        budget.charge(function, 1, self.phase)?;
+        search.lower = compare(function, key, minimum, 0, budget, self.phase)?.1;
+        loop {
+            budget.charge(function, VISIT_UNITS, self.phase)?;
+            let node = &self.nodes[search.maximum];
+            if node.right == NIL {
+                budget.charge(function, 1, self.phase)?;
+                search.upper = compare(function, key, node.key, 0, budget, self.phase)?.1;
+                break;
+            }
+            budget.charge(function, 1, self.phase)?;
+            search.maximum = node.right;
+        }
+        budget.charge(function, 1, self.phase)?;
+        search.prefix = search.lower.min(search.upper);
+        // All stored expression keys lie between these real min/max keys.
+        // Byte strings sharing a prefix form a contiguous ordered interval.
+        // Lane is secondary, so every held key shares these certified bytes.
+        while search.at != NIL {
+            budget.charge(function, VISIT_UNITS, self.phase)?;
+            let node = &self.nodes[search.at];
+            budget.charge(function, 1, self.phase)?;
+            search.probe.side =
+                compare(function, key, node.key, search.prefix, budget, self.phase)?.0;
+            if search.probe.side == Ordering::Equal {
+                budget.charge(function, 1, self.phase)?;
+                search.probe.found = true;
+                return Ok(search.probe);
+            }
+            budget.charge(function, 3, self.phase)?;
+            search.probe.parent = search.at;
+            if search.probe.side == Ordering::Less {
+                search.probe.after = search.at;
+                search.at = node.left;
+            } else {
+                search.probe.before = search.at;
+                search.at = node.right;
+            }
+        }
+        Ok(search.probe)
+    }
+    pub(in crate::cleanup_plan::replay::expression_facts::receiving) fn insert_certified(
+        &mut self,
+        function: &ResolvedFunction,
+        key: &'hir StatusSourceId,
+        budget: &mut ReplayBudget,
+        owner: &Owner<'hir>,
+    ) -> Result<bool, Diagnostic> {
+        let result = (|| {
+            owner.authenticate(self, function, key, budget)?;
+            // No repeated-prefix opportunity exists with fewer than two keys.
+            budget.charge(function, 1, self.phase)?;
+            if self.nodes.len() < 2 {
+                return self.insert(function, key, budget);
+            }
+            self.authenticate(function, budget)?;
+            let probe = self.certified_probe(function, key, budget)?;
+            if probe.found {
+                return Ok(false);
+            }
+            // Exact unchanged append/grow/link/rebalance sequence from insert.
+            self.grow(function, budget)?;
+            budget.charge(function, VISIT_UNITS, self.phase)?;
+            let index = self.nodes.len();
+            self.nodes.push(Node {
+                key,
+                left: NIL,
+                right: NIL,
+                parent: probe.parent,
+                next: probe.after,
+                height: 1,
+            });
+            if probe.before == NIL {
+                self.first = index;
+            } else {
+                self.nodes[probe.before].next = index;
+            }
+            if probe.parent == NIL {
+                self.root = index;
+            } else if probe.side == Ordering::Less {
+                self.nodes[probe.parent].left = index;
+            } else {
+                self.nodes[probe.parent].right = index;
+            }
+            self.rebalance(probe.parent, function, budget)?;
+            Ok(true)
+        })();
+        match result {
+            Ok(inserted) => {
+                budget.charge(function, 1, self.phase).inspect_err(|_| {
+                    owner.first.set(Some(Refusal::Budget));
+                })?;
+                owner.next.set(owner.next.get() + 1);
+                Ok(inserted)
+            }
+            Err(error) => {
+                if owner.first.get().is_none() {
+                    owner.first.set(Some(Refusal::Budget));
+                }
+                Err(error)
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests;

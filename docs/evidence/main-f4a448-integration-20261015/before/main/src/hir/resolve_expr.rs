@@ -1,0 +1,3093 @@
+//! Iterative expression resolution without host recursion.
+
+use std::collections::BTreeMap;
+use std::rc::Rc;
+
+use crate::ast::{BinaryOp, Expr, ExprKind, MatchPattern, Statement, TypeDeclarationKind, UnaryOp};
+use crate::diagnostic::Diagnostic;
+
+use super::expr_nodes::{
+    PatternValue, ResolvedExpr, ResolvedExprKind, ResolvedFieldInitializer, ResolvedMatchArm,
+    ResolvedMatchPattern, ResolvedMatchPatternField, ResolvedStatement,
+};
+use super::ids::CompilerDeclaration as CId;
+use super::ids::{DeclarationId, ExpressionId, FunctionExecutionId, ValueId};
+use super::monomorphize::substitute_type;
+use super::nodes::{
+    is_scalar_resolved_type, DeclarationKind, OwnershipMode, ResolvedBinding,
+    ResolvedImportResultKind, ResolvedMatchMode, ResolvedNativeRustImportCall, ResolvedType,
+};
+use super::resolve_expr_frame::{take_pair, take_results, take_triple, Frame};
+use super::type_reachability::record_args_ok;
+use super::{Binding, Place, PlaceProjection, Resolver, Scope};
+use path_arena::{PathArena, PathId, Seg, Step};
+
+mod byte_view;
+#[cfg(test)]
+mod capacity;
+mod finish;
+pub(super) mod lexical_exit;
+mod literal_format;
+pub(super) mod path_arena;
+mod sort_keys;
+mod super_method;
+mod variable;
+pub(super) mod vec_constructor;
+mod vec_field;
+
+impl Resolver<'_> {
+    pub(super) fn resolve_expr_iterative(
+        &self,
+        function: &FunctionExecutionId,
+        expr: &Expr,
+        bindings: &BTreeMap<String, Binding>,
+        path: &str,
+    ) -> Result<ResolvedExpr, Diagnostic> {
+        const { assert!(std::mem::size_of::<Frame<'static>>() <= 592) };
+        let mut paths = PathArena::new(path);
+        let mut frames = vec![Frame::Enter {
+            expr,
+            bindings: super::resolver_scope::borrowed(bindings),
+            path: PathId::ROOT,
+        }];
+        let mut results = Vec::new();
+        let mut loop_targets: [Option<super::ControlTarget>; crate::cache_codec::MAX_DEPTH + 1] =
+            std::array::from_fn(|_| None);
+        let mut loop_depth = 0usize;
+
+        while let Some(frame) = frames.pop() {
+            paths.release_above(frames.len());
+            #[cfg(test)]
+            capacity::note(&frames, &results, &frame, &loop_targets, &paths);
+            match frame {
+                Frame::FinishVecConstructor { element, count } => {
+                    vec_constructor::finish(&mut results, element, count)?
+                }
+                Frame::EnterLoop(target) => {
+                    lexical_exit::enter_loop(&mut loop_targets, &mut loop_depth, target)?
+                }
+                Frame::LeaveLoop => {
+                    loop_depth -= 1;
+                    loop_targets[loop_depth] = None;
+                }
+                Frame::FinishLexicalExit {
+                    span,
+                    path,
+                    kind,
+                    target,
+                    has_value,
+                } => {
+                    lexical_exit::finish_results(
+                        function,
+                        span,
+                        paths.at(path),
+                        kind,
+                        target,
+                        has_value,
+                        &mut results,
+                    );
+                }
+                Frame::Enter {
+                    expr,
+                    bindings,
+                    path,
+                } => match &expr.kind {
+                    ExprKind::VecConstructor { .. } => vec_constructor::schedule(
+                        self,
+                        function,
+                        expr,
+                        bindings,
+                        path,
+                        &mut frames,
+                    )?,
+                    ExprKind::LexicalExit { kind, value } => {
+                        lexical_exit::schedule(
+                            function,
+                            expr,
+                            *kind,
+                            value.as_deref(),
+                            &bindings,
+                            path,
+                            loop_targets
+                                .get(loop_depth.wrapping_sub(1))
+                                .and_then(Option::as_ref),
+                            &mut frames,
+                            &mut paths,
+                        )?;
+                    }
+                    ExprKind::Call { name, .. }
+                        if crate::stdin_stream_ops::pure_by_name(name).is_some() =>
+                    {
+                        let path = paths.at(path);
+                        results.push(
+                            self.resolve_stdin_inspection(function, expr, &bindings, path)?
+                                .expect("matched intrinsic"),
+                        );
+                    }
+                    ExprKind::Closure { .. } => {
+                        // Closure lowering derives and owns nested path text.
+                        let path = paths.at(path).materialize();
+                        results.push(self.resolve_closure(function, expr, &bindings, &path, false)?)
+                    }
+                    ExprKind::Int(value) => results.push(ResolvedExpr {
+                        id: paths.at(path).expression_id(function),
+                        ty: ResolvedType::I64,
+                        ownership: OwnershipMode::Value,
+                        kind: ResolvedExprKind::Int(*value),
+                        span: expr.span,
+                    }),
+                    ExprKind::BorrowedUtf8Literal(value) => results.push(ResolvedExpr {
+                        id: paths.at(path).expression_id(function),
+                        ty: ResolvedType::Str,
+                        ownership: OwnershipMode::Borrow,
+                        kind: ResolvedExprKind::BorrowedUtf8Literal(super::StaticUtf8::from_text(
+                            value,
+                        )),
+                        span: expr.span,
+                    }),
+                    ExprKind::String(value) => {
+                        let ty = ResolvedType::String;
+                        results.push(ResolvedExpr {
+                            id: paths.at(path).expression_id(function),
+                            ownership: self.expression_ownership(
+                                &ty,
+                                OwnershipMode::Own,
+                                expr.span,
+                            )?,
+                            ty,
+                            kind: ResolvedExprKind::String(value.clone()),
+                            span: expr.span,
+                        });
+                    }
+                    ExprKind::Int32(value) => results.push(ResolvedExpr {
+                        id: paths.at(path).expression_id(function),
+                        ty: ResolvedType::I32,
+                        ownership: OwnershipMode::Value,
+                        kind: ResolvedExprKind::Int32(*value),
+                        span: expr.span,
+                    }),
+                    ExprKind::Char(value) => results.push(ResolvedExpr {
+                        id: paths.at(path).expression_id(function),
+                        ty: ResolvedType::Char,
+                        ownership: OwnershipMode::Value,
+                        kind: ResolvedExprKind::Char(*value),
+                        span: expr.span,
+                    }),
+                    ExprKind::Uint8(value) => results.push(ResolvedExpr {
+                        id: paths.at(path).expression_id(function),
+                        ty: ResolvedType::U8,
+                        ownership: OwnershipMode::Value,
+                        kind: ResolvedExprKind::Uint8(*value),
+                        span: expr.span,
+                    }),
+                    ExprKind::Usize(value) => results.push(ResolvedExpr {
+                        id: paths.at(path).expression_id(function),
+                        ty: ResolvedType::Usize,
+                        ownership: OwnershipMode::Value,
+                        kind: ResolvedExprKind::Usize(*value),
+                        span: expr.span,
+                    }),
+                    ExprKind::ArrayU8(values) => results.push(ResolvedExpr {
+                        id: paths.at(path).expression_id(function),
+                        ty: ResolvedType::ArrayU8(values.len() as u32),
+                        ownership: OwnershipMode::Value,
+                        kind: ResolvedExprKind::ArrayU8(values.clone()),
+                        span: expr.span,
+                    }),
+                    ExprKind::RepeatArrayU8 { value, count } => results.push(ResolvedExpr {
+                        id: paths.at(path).expression_id(function),
+                        ty: ResolvedType::ArrayU8(*count),
+                        ownership: OwnershipMode::Value,
+                        kind: ResolvedExprKind::RepeatArrayU8 {
+                            value: *value,
+                            count: *count,
+                        },
+                        span: expr.span,
+                    }),
+                    ExprKind::Float32(bits) => results.push(ResolvedExpr {
+                        id: paths.at(path).expression_id(function),
+                        ty: ResolvedType::F32,
+                        ownership: OwnershipMode::Value,
+                        kind: ResolvedExprKind::Float32(*bits),
+                        span: expr.span,
+                    }),
+                    ExprKind::Float64(bits) => results.push(ResolvedExpr {
+                        id: paths.at(path).expression_id(function),
+                        ty: ResolvedType::F64,
+                        ownership: OwnershipMode::Value,
+                        kind: ResolvedExprKind::Float64(*bits),
+                        span: expr.span,
+                    }),
+                    ExprKind::Bool(value) => results.push(ResolvedExpr {
+                        id: paths.at(path).expression_id(function),
+                        ty: ResolvedType::Bool,
+                        ownership: OwnershipMode::Value,
+                        kind: ResolvedExprKind::Bool(*value),
+                        span: expr.span,
+                    }),
+                    ExprKind::Var(name) => {
+                        let path = paths.at(path);
+                        results.push(self.named_value(function, expr, &bindings, path, name)?)
+                    }
+                    ExprKind::Call {
+                        name,
+                        type_arguments,
+                        args,
+                    } => {
+                        let call_path = paths.at(path);
+                        if let Some(callable) =
+                            self.invocation_target(function, name, &bindings, call_path, expr.span)?
+                        {
+                            if !type_arguments.is_empty() {
+                                return Err(super::function_value::error(
+                                    "function value call cannot have type arguments",
+                                ));
+                            }
+                            frames.push(Frame::FinishInvoke {
+                                span: expr.span,
+                                path,
+                                callable,
+                                argument_count: args.len(),
+                            });
+                            frames.push(Frame::ChildNext {
+                                children: args,
+                                index: 0,
+                                bindings,
+                                path,
+                                segment: Seg::Arg,
+                            });
+                            continue;
+                        }
+                        if let Some(import_id) =
+                            self.declarations.native_rust_import_id(name).cloned()
+                        {
+                            let import = self
+                                .program
+                                .interfaces()
+                                .iter()
+                                .flat_map(|interface| &interface.imports)
+                                .find(|import| import.stable_id == import_id.as_str())
+                                .expect("native Rust import index is built from source imports");
+                            if !type_arguments.is_empty() || args.len() != import.params.len() {
+                                return Err(self.error(
+                                    "SPX-B107",
+                                    "Native Rust Interop declaration set is unsupported: scalar value signature required",
+                                    expr.span,
+                                ));
+                            }
+                            frames.push(Frame::FinishNativeCall {
+                                span: expr.span,
+                                path,
+                                import: import_id,
+                                argument_count: args.len(),
+                            });
+                            frames.push(Frame::ChildNext {
+                                children: args,
+                                index: 0,
+                                bindings,
+                                path,
+                                segment: Seg::NativeRustArg,
+                            });
+                        } else if crate::vec_ops::field_unique::literal_call(name) {
+                            frames.extend(self.sort_by_frames(
+                                function,
+                                expr,
+                                type_arguments,
+                                args,
+                                bindings,
+                                path,
+                            )?);
+                        } else if name == crate::vec_field::NAME {
+                            frames.extend(self.vec_field_frames(
+                                function,
+                                expr,
+                                type_arguments,
+                                args,
+                                bindings,
+                                path,
+                            )?);
+                        } else if name == crate::literal_format::NAME {
+                            frames.extend(self.literal_format_frames(
+                                function,
+                                expr,
+                                type_arguments,
+                                args,
+                                bindings,
+                                path,
+                            )?);
+                        } else if let Some(op) = crate::string_ops::by_name(name).filter(|_| {
+                            crate::map_ops::by_generic_name(name, type_arguments).is_none()
+                        }) {
+                            if !type_arguments.is_empty() {
+                                return Err(self.error(
+                                    "SPX-H006",
+                                    format!("string operation `{name}` has type arguments"),
+                                    expr.span,
+                                ));
+                            }
+                            if args.len() != op.arity() {
+                                return Err(self.error(
+                                    "SPX-H006",
+                                    format!(
+                                        "string operation `{name}` expects {} arguments, received {}",
+                                        op.arity(),
+                                        args.len()
+                                    ),
+                                    expr.span,
+                                ));
+                            }
+                            frames.push(Frame::FinishStringOp {
+                                span: expr.span,
+                                path,
+                                op,
+                                argument_count: args.len(),
+                            });
+                            frames.push(Frame::ChildNext {
+                                children: args,
+                                index: 0,
+                                bindings,
+                                path,
+                                segment: Seg::Arg,
+                            });
+                        } else if let Some(op) = crate::str_ops::by_name(name) {
+                            if !type_arguments.is_empty() {
+                                return Err(self.error(
+                                    "SPX-H006",
+                                    format!(
+                                        "borrowed string operation `{name}` has type arguments"
+                                    ),
+                                    expr.span,
+                                ));
+                            }
+                            if args.len() != op.arity() {
+                                return Err(self.error(
+                                    "SPX-H006",
+                                    format!(
+                                        "borrowed string operation `{name}` expects {} arguments, received {}",
+                                        op.arity(),
+                                        args.len()
+                                    ),
+                                    expr.span,
+                                ));
+                            }
+                            frames.push(Frame::FinishStrOp {
+                                span: expr.span,
+                                path,
+                                op,
+                                argument_count: args.len(),
+                            });
+                            frames.push(Frame::ChildNext {
+                                children: args,
+                                index: 0,
+                                bindings,
+                                path,
+                                segment: Seg::Arg,
+                            });
+                        } else if let Some(site) =
+                            super::resolve_box_call::OwnedGenericCallSite::by_name(name)
+                        {
+                            site.schedule(
+                                self,
+                                function,
+                                &mut frames,
+                                type_arguments,
+                                args,
+                                bindings,
+                                path,
+                                expr.span,
+                            )?;
+                        } else if let Some(op) = self.byte_operation(name)? {
+                            if !type_arguments.is_empty() || args.len() != op.arity() {
+                                return Err(self.error(
+                                    "SPX-H006",
+                                    format!("invalid byte operation `{name}` call shape"),
+                                    expr.span,
+                                ));
+                            }
+                            frames.push(Frame::FinishByteOp {
+                                span: expr.span,
+                                path,
+                                op,
+                                argument_count: args.len(),
+                            });
+                            frames.push(Frame::ChildNext {
+                                children: args,
+                                index: 0,
+                                bindings,
+                                path,
+                                segment: Seg::Arg,
+                            });
+                        } else if let Some(op) = crate::host_io_ops::by_name(name) {
+                            if !type_arguments.is_empty() || args.len() != op.arity() {
+                                return Err(self.error(
+                                    "SPX-T269",
+                                    format!("invalid host I/O operation `{name}` call shape"),
+                                    expr.span,
+                                ));
+                            }
+                            frames.push(Frame::FinishHostIoOp {
+                                span: expr.span,
+                                path,
+                                op,
+                                argument_count: args.len(),
+                            });
+                            frames.push(Frame::ChildNext {
+                                children: args,
+                                index: 0,
+                                bindings,
+                                path,
+                                segment: Seg::Arg,
+                            });
+                        } else if let Some(op) = crate::command_io_ops::by_name(name) {
+                            if !type_arguments.is_empty()
+                                || args.len() != crate::command_io_ops::arity(op)
+                            {
+                                return Err(self.error(
+                                    "SPX-T270",
+                                    format!("invalid command I/O operation `{name}` call shape"),
+                                    expr.span,
+                                ));
+                            }
+                            frames.push(Frame::FinishHostCommandOp {
+                                span: expr.span,
+                                path,
+                                op,
+                                argument_count: args.len(),
+                            });
+                            frames.push(Frame::ChildNext {
+                                children: args,
+                                index: 0,
+                                bindings,
+                                path,
+                                segment: Seg::Arg,
+                            });
+                        } else {
+                            let template = self
+                                .declarations
+                                .function_id(name)
+                                .cloned()
+                                .ok_or_else(|| {
+                                    self.error(
+                                        "SPX-H003",
+                                        format!("unresolved function `{name}`"),
+                                        expr.span,
+                                    )
+                                })?;
+                            let target = self
+                                .program
+                                .functions()
+                                .iter()
+                                .find(|function| function.stable_id == template.as_str())
+                                .ok_or_else(|| {
+                                    self.error(
+                                        "SPX-H003",
+                                        format!(
+                                            "function identity `{template}` has no declaration"
+                                        ),
+                                        expr.span,
+                                    )
+                                })?;
+                            let (resolved_arguments, instance, return_source_type) = self
+                                .ordinary_call_signature(
+                                    function,
+                                    target,
+                                    type_arguments,
+                                    args,
+                                    &bindings,
+                                    expr.span,
+                                )?;
+                            frames.push(Frame::FinishCall {
+                                span: expr.span,
+                                path,
+                                callee: template,
+                                type_arguments: resolved_arguments,
+                                instance,
+                                return_source_type,
+                                target_span: target.span,
+                                argument_count: args.len(),
+                            });
+                            frames.push(Frame::ChildNext {
+                                children: args,
+                                index: 0,
+                                bindings,
+                                path,
+                                segment: Seg::Arg,
+                            });
+                        }
+                    }
+                    ExprKind::Unary { op, value } => {
+                        frames.push(Frame::FinishUnary {
+                            span: expr.span,
+                            path,
+                            op: *op,
+                        });
+                        frames.push(Frame::Enter {
+                            expr: value,
+                            bindings,
+                            path: paths.child(&frames, path, Seg::Value),
+                        });
+                    }
+                    ExprKind::Binary { op, left, right } => {
+                        frames.push(Frame::AfterBinaryLeft {
+                            span: expr.span,
+                            path,
+                            op: *op,
+                            right,
+                            bindings: bindings.clone(),
+                        });
+                        frames.push(Frame::Enter {
+                            expr: left,
+                            bindings,
+                            path: paths.child(&frames, path, Seg::Left),
+                        });
+                    }
+                    ExprKind::Block { statements, tail } => {
+                        frames.push(Frame::BlockNext {
+                            span: expr.span,
+                            path,
+                            statements,
+                            tail,
+                            index: 0,
+                            scope: bindings,
+                            resolved: Vec::with_capacity(statements.len()),
+                        });
+                    }
+                    ExprKind::If {
+                        condition,
+                        then_branch,
+                        else_branch,
+                    } => {
+                        frames.push(Frame::AfterIfCondition {
+                            span: expr.span,
+                            path,
+                            then_branch,
+                            else_branch,
+                            bindings: bindings.clone(),
+                        });
+                        frames.push(Frame::Enter {
+                            expr: condition,
+                            bindings,
+                            path: paths.child(&frames, path, Seg::Condition),
+                        });
+                    }
+                    ExprKind::ConstructRecord {
+                        type_name,
+                        type_arguments,
+                        fields,
+                        ..
+                    } => {
+                        let record =
+                            self.declarations
+                                .type_id(type_name)
+                                .cloned()
+                                .ok_or_else(|| {
+                                    self.error(
+                                        "SPX-H001",
+                                        format!("unresolved record `{type_name}`"),
+                                        expr.span,
+                                    )
+                                })?;
+                        if self.declarations.declaration(&record).is_none_or(|item| {
+                            !matches!(item.kind, DeclarationKind::Record | DeclarationKind::Class)
+                        }) {
+                            return Err(self.error(
+                                "SPX-H001",
+                                format!(
+                                    "constructor target `{type_name}` is not a record or class"
+                                ),
+                                expr.span,
+                            ));
+                        }
+                        let arguments = type_arguments
+                            .iter()
+                            .map(|argument| {
+                                self.resolve_expression_type(function, argument, expr.span)
+                            })
+                            .collect::<Result<Vec<_>, _>>()?;
+                        let parameters =
+                            self.declarations.type_parameters(&record).ok_or_else(|| {
+                                self.error(
+                                    "SPX-H006",
+                                    format!("record `{record}` has no parameter metadata"),
+                                    expr.span,
+                                )
+                            })?;
+                        let template_record = matches!(function, FunctionExecutionId::Monomorphic(owner)
+                        if self.program.functions().iter().any(|candidate|
+                            candidate.stable_id == owner.as_str() && !candidate.type_parameters.is_empty())
+                        && super::type_reachability::is_nested_owned_byte_record_template(
+                            &self.declarations,
+                            &ResolvedType::Nominal { declaration: record.clone(), arguments: arguments.clone() },
+                            owner,
+                            self.program.functions().iter().find(|candidate| candidate.stable_id == owner.as_str()).map_or(0, |candidate| candidate.type_parameters.len()),
+                        ));
+                        if arguments.len() != parameters.len()
+                            || (!template_record
+                                && !record_args_ok(&self.declarations, &record, &arguments))
+                        {
+                            return Err(self.error(
+                                "SPX-H006",
+                                format!("record `{record}` has invalid concrete arguments"),
+                                expr.span,
+                            ));
+                        }
+                        frames.push(Frame::RecordNext {
+                            span: expr.span,
+                            path,
+                            type_name,
+                            record,
+                            arguments,
+                            fields,
+                            index: 0,
+                            bindings,
+                            resolved: Vec::with_capacity(fields.len()),
+                        });
+                    }
+                    ExprKind::ConstructVariant {
+                        type_name,
+                        type_arguments,
+                        case_name,
+                        fields,
+                        ..
+                    } => {
+                        let variant =
+                            self.declarations
+                                .type_id(type_name)
+                                .cloned()
+                                .ok_or_else(|| {
+                                    self.error(
+                                        "SPX-H001",
+                                        format!("unresolved variant `{type_name}`"),
+                                        expr.span,
+                                    )
+                                })?;
+                        if self
+                            .declarations
+                            .declaration(&variant)
+                            .is_none_or(|item| item.kind != DeclarationKind::Variant)
+                        {
+                            return Err(self.error(
+                                "SPX-H001",
+                                format!("constructor target `{type_name}` is not a variant"),
+                                expr.span,
+                            ));
+                        }
+                        let case = self
+                            .declarations
+                            .case_id(&variant, case_name)
+                            .cloned()
+                            .ok_or_else(|| {
+                                self.error(
+                                    "SPX-H001",
+                                    format!("unresolved case `{type_name}::{case_name}`"),
+                                    expr.span,
+                                )
+                            })?;
+                        frames.push(Frame::VariantNext {
+                            span: expr.span,
+                            path,
+                            type_name,
+                            case_name,
+                            variant,
+                            case,
+                            type_arguments,
+                            fields,
+                            index: 0,
+                            bindings,
+                            resolved: Vec::with_capacity(fields.len()),
+                        });
+                    }
+                    ExprKind::Match {
+                        mode,
+                        scrutinee,
+                        arms,
+                    } => {
+                        frames.push(Frame::AfterMatchScrutinee {
+                            span: expr.span,
+                            path,
+                            mode: (*mode).into(),
+                            arms,
+                            bindings: bindings.clone(),
+                        });
+                        frames.push(Frame::Enter {
+                            expr: scrutinee,
+                            bindings,
+                            path: paths.child(&frames, path, Seg::Scrutinee),
+                        });
+                    }
+                    ExprKind::Try { operand } => {
+                        frames.push(Frame::FinishTry {
+                            span: expr.span,
+                            path,
+                        });
+                        frames.push(Frame::Enter {
+                            expr: operand,
+                            bindings,
+                            path: paths.child(&frames, path, Seg::Operand),
+                        });
+                    }
+                    // Resumable Effects v1 (issue #204): the request
+                    // resolves as an ordinary sub-expression; the whole
+                    // node's placeholder type (the request's own type) is
+                    // fixed up to the declared response type once the
+                    // enclosing function's `yields` clause is known --
+                    // `hir::resolve_yield::finish_yields_admission`.
+                    ExprKind::Yield { request } => {
+                        frames.push(Frame::FinishYield {
+                            span: expr.span,
+                            path,
+                        });
+                        frames.push(Frame::Enter {
+                            expr: request,
+                            bindings,
+                            path: paths.child(&frames, path, Seg::Request),
+                        });
+                    }
+                    ExprKind::UpdateRecord { base, fields } => {
+                        frames.push(Frame::AfterUpdateBase {
+                            span: expr.span,
+                            path,
+                            fields,
+                            bindings: bindings.clone(),
+                        });
+                        frames.push(Frame::Enter {
+                            expr: base,
+                            bindings,
+                            path: paths.child(&frames, path, Seg::Base),
+                        });
+                    }
+                    ExprKind::Project { base, field, .. } => {
+                        let site = paths.at(path);
+                        if let Some(value) = super::resolve_for::record::project(
+                            self, function, expr, &bindings, site,
+                        )? {
+                            results.push(value);
+                            continue;
+                        }
+                        frames.push(Frame::FinishProject {
+                            span: expr.span,
+                            path,
+                            field,
+                        });
+                        frames.push(Frame::Enter {
+                            expr: base,
+                            bindings,
+                            path: paths.child(&frames, path, Seg::Base),
+                        });
+                    }
+                    ExprKind::MethodCall {
+                        receiver,
+                        method,
+                        type_arguments,
+                        args,
+                        ..
+                    } => {
+                        if !type_arguments.is_empty() {
+                            return Err(self.error(
+                                "SPX-P106",
+                                "method call generic arguments are not supported in this slice",
+                                expr.span,
+                            ));
+                        }
+                        let resolved_args = type_arguments
+                            .iter()
+                            .map(|a| self.resolve_type(a, expr.span))
+                            .collect::<Result<Vec<_>, _>>()?;
+                        frames.push(Frame::FinishMethodCall {
+                            span: expr.span,
+                            path,
+                            method,
+                            receiver,
+                            bindings: bindings.clone(),
+                            type_arguments: resolved_args,
+                            args_len: args.len(),
+                        });
+                        if !args.is_empty() {
+                            frames.push(Frame::MethodArgNext {
+                                args,
+                                index: 0,
+                                bindings: bindings.clone(),
+                                path,
+                            });
+                        }
+                        frames.push(Frame::Enter {
+                            expr: receiver,
+                            bindings,
+                            path: paths.child(&frames, path, Seg::ArgZero),
+                        });
+                    }
+                    ExprKind::SuperMethod {
+                        method,
+                        method_span,
+                        args,
+                    } => {
+                        let FunctionExecutionId::Monomorphic(template) = function else {
+                            return Err(self.error(
+                                "SPX-T231",
+                                "`super` is only allowed inside a class-method override",
+                                *method_span,
+                            ));
+                        };
+                        let owner = self
+                            .declarations
+                            .declaration(template)
+                            .and_then(|item| item.owner.clone())
+                            .ok_or_else(|| {
+                                self.error(
+                                    "SPX-T231",
+                                    "`super` is only allowed inside a class-method override",
+                                    *method_span,
+                                )
+                            })?;
+                        let parent = self
+                            .declarations
+                            .class_parent(&owner)
+                            .cloned()
+                            .ok_or_else(|| {
+                                self.error(
+                                    "SPX-T231",
+                                    format!(
+                                        "`super.{method}` requires a parent; the enclosing class has none"
+                                    ),
+                                    *method_span,
+                                )
+                            })?;
+                        let (holder, callee) = self
+                            .resolve_method_in_chain(&parent, method, *method_span)
+                            .map_err(|_| {
+                                self.error(
+                                    "SPX-T231",
+                                    format!("unresolved super method `{method}`"),
+                                    *method_span,
+                                )
+                            })?;
+                        frames.push(Frame::FinishSuperMethod {
+                            span: expr.span,
+                            method_span: *method_span,
+                            path,
+                            method,
+                            holder: holder.clone(),
+                            callee,
+                            args_len: args.len(),
+                        });
+                        if !args.is_empty() {
+                            frames.push(Frame::MethodArgNext {
+                                args,
+                                index: 0,
+                                bindings: bindings.clone(),
+                                path,
+                            });
+                        }
+                        // The inherited receiver is the enclosing method's own `self`
+                        // parameter; the finish frame wraps this upcast source under the
+                        // canonical `.arg.0` argument identity.
+                        let owner_ty = ResolvedType::Nominal {
+                            declaration: owner.clone(),
+                            arguments: Vec::new(),
+                        };
+                        let source = Step::from(Seg::ArgZeroSource);
+                        results.push(ResolvedExpr {
+                            id: paths.at(path).expression_id_with(function, &[source]),
+                            ty: owner_ty.clone(),
+                            ownership: self.expression_ownership(
+                                &owner_ty,
+                                OwnershipMode::Own,
+                                expr.span,
+                            )?,
+                            kind: ResolvedExprKind::Place(Place {
+                                root: ValueId::parameter(function, 0),
+                                projections: Vec::new(),
+                            }),
+                            span: expr.span,
+                        });
+                    }
+                },
+                Frame::FinishNativeCall {
+                    span,
+                    path,
+                    import,
+                    argument_count,
+                } => {
+                    let args = take_results(&mut results, argument_count);
+                    let source_import = self
+                        .program
+                        .interfaces()
+                        .iter()
+                        .flat_map(|interface| &interface.imports)
+                        .find(|candidate| candidate.stable_id == import.as_str())
+                        .expect("native Rust import identity remains indexed");
+                    for (argument, parameter) in args.iter().zip(&source_import.params) {
+                        if argument.ty != self.resolve_type(&parameter.ty, parameter.span)? {
+                            return Err(self.error(
+                                "SPX-B107",
+                                "Native Rust Interop declaration set is unsupported: scalar value signature required",
+                                argument.span,
+                            ));
+                        }
+                    }
+                    let (result, ty) =
+                        self.resolve_native_rust_result(&source_import.result, span)?;
+                    results.push(ResolvedExpr {
+                        id: paths.at(path).expression_id(function),
+                        ty,
+                        ownership: result.ownership(),
+                        kind: ResolvedExprKind::NativeRustImportCall(
+                            ResolvedNativeRustImportCall {
+                                expression: paths.at(path).expression_id(function),
+                                import,
+                                args,
+                                result,
+                            },
+                        ),
+                        span,
+                    });
+                }
+                Frame::FinishInvoke {
+                    span,
+                    path,
+                    callable,
+                    argument_count,
+                } => {
+                    let args = take_results(&mut results, argument_count);
+                    let path = paths.at(path);
+                    results.push(self.finish_invocation(function, path, span, callable, args)?);
+                }
+                Frame::FinishCall {
+                    span,
+                    path,
+                    callee,
+                    type_arguments,
+                    instance,
+                    return_source_type,
+                    target_span,
+                    argument_count,
+                } => {
+                    let args = take_results(&mut results, argument_count);
+                    let args = self.bind_row_loans(&callee, &instance, &type_arguments, args)?;
+                    let (ty, ownership) =
+                        self.resolve_call_result(function, &return_source_type, target_span)?;
+                    results.push(ResolvedExpr {
+                        id: paths.at(path).expression_id(function),
+                        ty,
+                        ownership,
+                        kind: ResolvedExprKind::Call {
+                            callee,
+                            type_arguments,
+                            instance,
+                            args,
+                        },
+                        span,
+                    });
+                }
+                Frame::FinishStringOp {
+                    span,
+                    path,
+                    op,
+                    argument_count,
+                } => {
+                    let args = take_results(&mut results, argument_count);
+                    for (index, argument) in args.iter().enumerate() {
+                        if argument.ty != op.param_types()[index] {
+                            let expected = &op.param_types()[index];
+                            return Err(self.error(
+                                "SPX-H006",
+                                format!(
+                                    "string operation `{}` argument {} expects `{}`, received `{}`",
+                                    op.name(),
+                                    index,
+                                    expected.identity_key(),
+                                    argument.ty.identity_key()
+                                ),
+                                argument.span,
+                            ));
+                        }
+                    }
+                    let ty = op.return_type();
+                    let ownership = self.expression_ownership(&ty, OwnershipMode::Own, span)?;
+                    results.push(ResolvedExpr {
+                        id: paths.at(path).expression_id(function),
+                        ty,
+                        ownership,
+                        kind: ResolvedExprKind::Call {
+                            callee: op.resolved_id(),
+                            type_arguments: Vec::new(),
+                            instance: None,
+                            args,
+                        },
+                        span,
+                    });
+                }
+                frame @ (Frame::FinishSortBy { .. } | Frame::FinishVecField { .. }) => {
+                    self.finish_vec_literal_frame(function, frame, &paths, &mut results)?;
+                }
+                Frame::FinishLiteralFormat {
+                    span,
+                    path,
+                    template,
+                    argument_count,
+                } => {
+                    let args = take_results(&mut results, argument_count);
+                    let path = paths.at(path);
+                    results.push(self.finish_literal_format(function, span, path, template, args)?);
+                }
+                Frame::LiteralFormatArgNext {
+                    args,
+                    index,
+                    bindings,
+                    path,
+                } => {
+                    Self::queue_literal_format_argument(
+                        &mut frames,
+                        &mut paths,
+                        args,
+                        index,
+                        bindings,
+                        path,
+                    );
+                }
+                Frame::FinishStrOp {
+                    span,
+                    path,
+                    op,
+                    argument_count,
+                } => {
+                    let args = take_results(&mut results, argument_count);
+                    for (index, argument) in args.iter().enumerate() {
+                        if argument.ty != op.param_types()[index] {
+                            let expected = &op.param_types()[index];
+                            return Err(self.error(
+                                "SPX-H006",
+                                format!(
+                                    "borrowed string operation `{}` argument {} expects `{}`, received `{}`",
+                                    op.name(),
+                                    index,
+                                    expected.identity_key(),
+                                    argument.ty.identity_key()
+                                ),
+                                argument.span,
+                            ));
+                        }
+                    }
+                    let ty = op.return_type();
+                    let ownership = self.expression_ownership(&ty, OwnershipMode::Own, span)?;
+                    results.push(ResolvedExpr {
+                        id: paths.at(path).expression_id(function),
+                        ty,
+                        ownership,
+                        kind: ResolvedExprKind::Call {
+                            callee: DeclarationId::new(op.id()),
+                            type_arguments: Vec::new(),
+                            instance: None,
+                            args,
+                        },
+                        span,
+                    });
+                }
+                Frame::FinishByteOp {
+                    span,
+                    path,
+                    op,
+                    argument_count,
+                } => {
+                    let mut args = take_results(&mut results, argument_count);
+                    for (index, argument) in args.iter().enumerate() {
+                        if !op.accepts_resolved(index, &argument.ty) {
+                            return Err(self.error(
+                                "SPX-H006",
+                                format!(
+                                    "byte operation `{}` argument {} has the wrong type",
+                                    op.name(),
+                                    index
+                                ),
+                                argument.span,
+                            ));
+                        }
+                    }
+                    let ty = op.return_type();
+                    let ownership = self.expression_ownership(&ty, OwnershipMode::Own, span)?;
+                    if op == crate::byte_ops::ByteOp::Range {
+                        let mut args = args.into_iter();
+                        let source = args.next().expect("range has a source");
+                        if !self.byte_range_source_shape(&source) {
+                            return Err(self.error(
+                                "SPX-T266",
+                                "byte_range requires a named Slice<u8> or exact bytes_as_slice(named_owner) source",
+                                source.span,
+                            ));
+                        }
+                        let start = args.next().expect("range has a start");
+                        let end = args.next().expect("range has an end");
+                        debug_assert!(args.next().is_none());
+                        results.push(ResolvedExpr {
+                            id: paths.at(path).expression_id(function),
+                            ty,
+                            ownership: OwnershipMode::Borrow,
+                            kind: ResolvedExprKind::ByteRange {
+                                operation: DeclarationId::new(crate::byte_ops::RANGE_ID),
+                                source: Box::new(source),
+                                start: Box::new(start),
+                                end: Box::new(end),
+                            },
+                            span,
+                        });
+                        continue;
+                    }
+                    let site = paths.at(path);
+                    if let Some(fused) =
+                        crate::vec_ops::string_slot::fuse(function, site, span, op, &mut args)
+                    {
+                        results.push(fused);
+                        continue;
+                    }
+                    if let Some(fused) = self.fuse_vec_field_bytes(function, span, site, op, &args)
+                    {
+                        results.push(fused);
+                        continue;
+                    }
+                    if op.is_view() {
+                        let place = self.resolved_view_place(op, &args[0])?;
+                        results.push(ResolvedExpr {
+                            id: paths.at(path).expression_id(function),
+                            ty,
+                            ownership: OwnershipMode::Borrow,
+                            kind: ResolvedExprKind::BorrowPlace {
+                                operation: DeclarationId::new(op.id()),
+                                place: place.clone(),
+                            },
+                            span,
+                        });
+                        continue;
+                    }
+                    results.push(ResolvedExpr {
+                        id: paths.at(path).expression_id(function),
+                        ty,
+                        ownership,
+                        kind: ResolvedExprKind::Call {
+                            callee: DeclarationId::new(op.id()),
+                            type_arguments: Vec::new(),
+                            instance: None,
+                            args,
+                        },
+                        span,
+                    });
+                }
+                Frame::FinishOwnedGenericOp {
+                    span,
+                    path,
+                    op,
+                    element,
+                    argument_count,
+                } => {
+                    let args = take_results(&mut results, argument_count);
+                    results.push(super::resolve_box_call::finish_owned(
+                        self,
+                        function,
+                        paths.at(path),
+                        span,
+                        op,
+                        element,
+                        args,
+                    )?);
+                }
+                Frame::FinishHostIoOp {
+                    span,
+                    path,
+                    op,
+                    argument_count,
+                } => {
+                    let args = take_results(&mut results, argument_count);
+                    for (index, argument) in args.iter().enumerate() {
+                        if !op.accepts_resolved(index, &argument.ty) {
+                            return Err(self.error(
+                                "SPX-T269",
+                                format!(
+                                    "host I/O operation `{}` argument {} has the wrong type",
+                                    op.name(),
+                                    index
+                                ),
+                                argument.span,
+                            ));
+                        }
+                    }
+                    results.push(ResolvedExpr {
+                        id: paths.at(path).expression_id(function),
+                        ty: op.return_type(),
+                        ownership: OwnershipMode::Value,
+                        kind: ResolvedExprKind::Call {
+                            callee: DeclarationId::new(op.id()),
+                            type_arguments: Vec::new(),
+                            instance: None,
+                            args,
+                        },
+                        span,
+                    });
+                }
+                Frame::FinishHostCommandOp {
+                    span,
+                    path,
+                    op,
+                    argument_count,
+                } => {
+                    let args = take_results(&mut results, argument_count);
+                    let path = paths.at(path);
+                    results.push(self.finish_host_command(function, path, span, op, args)?);
+                }
+                Frame::ChildNext {
+                    children,
+                    index,
+                    bindings,
+                    path,
+                    segment,
+                } => {
+                    if index < children.len() {
+                        frames.push(Frame::ChildNext {
+                            children,
+                            index: index + 1,
+                            bindings: bindings.clone(),
+                            path,
+                            segment,
+                        });
+                        frames.push(Frame::Enter {
+                            expr: &children[index],
+                            bindings,
+                            path: paths.child(&frames, path, segment.at(index)),
+                        });
+                    }
+                }
+                Frame::MethodArgNext {
+                    args,
+                    index,
+                    bindings,
+                    path,
+                } => {
+                    if index < args.len() {
+                        frames.push(Frame::MethodArgNext {
+                            args,
+                            index: index + 1,
+                            bindings: bindings.clone(),
+                            path,
+                        });
+                        frames.push(Frame::Enter {
+                            expr: &args[index],
+                            bindings,
+                            path: paths.child(&frames, path, Seg::Arg.at(index + 1)),
+                        });
+                    }
+                }
+                Frame::FinishUnary { span, path, op } => {
+                    let value = results.pop().expect("unary child result retained");
+                    results.push(finish::finish_unary(
+                        function,
+                        span,
+                        paths.at(path),
+                        op,
+                        value,
+                    ));
+                }
+                Frame::FinishBinary { span, path, op } => {
+                    let (left, right) = take_pair(&mut results);
+                    let ty = match (&op, &left.ty) {
+                        (
+                            BinaryOp::Add
+                            | BinaryOp::Sub
+                            | BinaryOp::Mul
+                            | BinaryOp::Div
+                            | BinaryOp::Rem,
+                            ResolvedType::I32 | ResolvedType::U8 | ResolvedType::Usize,
+                        ) => left.ty.clone(),
+                        (
+                            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div,
+                            ResolvedType::F32,
+                        ) => ResolvedType::F32,
+                        (
+                            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div,
+                            ResolvedType::F64,
+                        ) => ResolvedType::F64,
+                        (
+                            BinaryOp::Add
+                            | BinaryOp::Sub
+                            | BinaryOp::Mul
+                            | BinaryOp::Div
+                            | BinaryOp::Rem,
+                            _,
+                        ) => ResolvedType::I64,
+                        (
+                            BinaryOp::Eq
+                            | BinaryOp::Ne
+                            | BinaryOp::Lt
+                            | BinaryOp::Le
+                            | BinaryOp::Gt
+                            | BinaryOp::Ge
+                            | BinaryOp::And
+                            | BinaryOp::Or,
+                            _,
+                        ) => ResolvedType::Bool,
+                    };
+                    results.push(ResolvedExpr {
+                        id: paths.at(path).expression_id(function),
+                        ty,
+                        ownership: OwnershipMode::Value,
+                        kind: ResolvedExprKind::Binary {
+                            op,
+                            left: Box::new(left),
+                            right: Box::new(right),
+                        },
+                        span,
+                    });
+                }
+                Frame::AfterBinaryLeft {
+                    span,
+                    path,
+                    op,
+                    right,
+                    bindings,
+                } => {
+                    frames.push(Frame::FinishBinary { span, path, op });
+                    frames.push(Frame::Enter {
+                        expr: right,
+                        bindings,
+                        path: paths.child(&frames, path, Seg::Right),
+                    });
+                }
+                Frame::BlockNext {
+                    span,
+                    path,
+                    statements,
+                    tail,
+                    index,
+                    scope,
+                    resolved,
+                } => {
+                    if index == statements.len() {
+                        frames.push(Frame::FinishBlock {
+                            span,
+                            path,
+                            statements: resolved,
+                        });
+                        frames.push(Frame::Enter {
+                            expr: tail,
+                            bindings: scope,
+                            path: paths.child(&frames, path, Seg::Tail),
+                        });
+                    } else {
+                        let stmt = Seg::Statement.at(index);
+                        match &statements[index] {
+                            Statement::Let { value, .. } => {
+                                frames.push(Frame::BlockAfterLet {
+                                    span,
+                                    path,
+                                    statements,
+                                    tail,
+                                    index,
+                                    scope: scope.clone(),
+                                    resolved,
+                                });
+                                frames.push(Frame::Enter {
+                                    expr: value,
+                                    bindings: scope,
+                                    path: paths.child(&frames, path, stmt.then(Seg::Value)),
+                                });
+                            }
+                            Statement::Assign {
+                                name,
+                                name_span,
+                                field,
+                                value,
+                                ..
+                            } => {
+                                let immutable_code = if field.is_some() {
+                                    "SPX-U107"
+                                } else {
+                                    "SPX-U101"
+                                };
+                                let target = self.resolve_assign_target(
+                                    name,
+                                    *name_span,
+                                    &scope,
+                                    immutable_code,
+                                )?;
+                                let target_field = match field {
+                                    Some(field) => {
+                                        Some(self.resolve_assign_field_target(&target, field)?)
+                                    }
+                                    None => None,
+                                };
+                                frames.push(Frame::BlockAfterAssign {
+                                    span,
+                                    path,
+                                    statements,
+                                    tail,
+                                    index,
+                                    scope: scope.clone(),
+                                    resolved,
+                                    target,
+                                    target_field,
+                                });
+                                frames.push(Frame::Enter {
+                                    expr: value,
+                                    bindings: scope,
+                                    path: paths.child(&frames, path, stmt.then(Seg::Value)),
+                                });
+                            }
+                            Statement::Unsafe { body, .. } => {
+                                frames.push(Frame::BlockAfterUnsafe {
+                                    span,
+                                    path,
+                                    statements,
+                                    tail,
+                                    index,
+                                    scope: scope.clone(),
+                                    resolved,
+                                });
+                                frames.push(Frame::Enter {
+                                    expr: body,
+                                    bindings: scope,
+                                    path: paths.child(&frames, path, stmt.then(Seg::Body)),
+                                });
+                            }
+                            Statement::While {
+                                condition, body, ..
+                            } => {
+                                self.reject_while_disallowed_scoped(condition, Some(function))?;
+                                self.reject_while_disallowed_in_scope(
+                                    body,
+                                    Some(function),
+                                    Some(&scope),
+                                )?;
+                                frames.push(Frame::BlockWhileCondition {
+                                    span,
+                                    path,
+                                    condition,
+                                    body,
+                                    statements,
+                                    tail,
+                                    index,
+                                    scope: scope.clone(),
+                                    resolved,
+                                });
+                                frames.push(Frame::Enter {
+                                    expr: condition,
+                                    bindings: scope,
+                                    path: paths.child(&frames, path, stmt.then(Seg::Condition)),
+                                });
+                            }
+                            Statement::ForOwn { .. } => super::resolve_for_own::schedule(
+                                &mut frames,
+                                &mut paths,
+                                span,
+                                path,
+                                statements,
+                                tail,
+                                index,
+                                scope,
+                                resolved,
+                            ),
+                            Statement::For {
+                                item, values, body, ..
+                            } => super::resolve_for::schedule(
+                                self,
+                                function,
+                                &mut frames,
+                                &mut paths,
+                                span,
+                                path,
+                                statements,
+                                tail,
+                                index,
+                                scope,
+                                resolved,
+                                item,
+                                values,
+                                body,
+                            )?,
+                            Statement::ForBorrow { .. } => super::resolve_for::record::schedule(
+                                self,
+                                function,
+                                &mut frames,
+                                &mut paths,
+                                span,
+                                path,
+                                statements,
+                                tail,
+                                index,
+                                scope,
+                                resolved,
+                            )?,
+                        }
+                    }
+                }
+                Frame::BlockAfterLet {
+                    span,
+                    path,
+                    statements,
+                    tail,
+                    index,
+                    mut scope,
+                    mut resolved,
+                } => {
+                    let value = results.pop().expect("let value result retained");
+                    let Statement::Let {
+                        name,
+                        name_span,
+                        mutable,
+                        declared,
+                        span: statement_span,
+                        ..
+                    } = &statements[index]
+                    else {
+                        unreachable!("let frame resumes at a let statement")
+                    };
+                    let statement = Seg::Statement.at(index);
+                    if super::copy_discard::source(&statements[index]) {
+                        super::copy_discard::require(&value)?;
+                        resolved.push(ResolvedStatement::CopyDiscard {
+                            value,
+                            span: *statement_span,
+                        });
+                        frames.push(Frame::BlockNext {
+                            span,
+                            path,
+                            statements,
+                            tail,
+                            index: index + 1,
+                            scope,
+                            resolved,
+                        });
+                        continue;
+                    }
+                    if let Some(declared_ast) = declared {
+                        let declared_ty = self.resolve_binding_annotation(
+                            function,
+                            &scope,
+                            declared_ast,
+                            *name_span,
+                        )?;
+                        if value.ty != declared_ty {
+                            let ResolvedType::Nominal {
+                                declaration: child_id,
+                                ..
+                            } = &value.ty
+                            else {
+                                return Err(self.error(
+                                    "SPX-T232",
+                                    format!(
+                                        "declared binding type `{}` does not accept value type `{}`",
+                                        declared_ty.identity_key(),
+                                        value.ty.identity_key()
+                                    ),
+                                    *name_span,
+                                ));
+                            };
+                            let ResolvedType::Nominal {
+                                declaration: parent_id,
+                                ..
+                            } = &declared_ty
+                            else {
+                                return Err(self.error(
+                                    "SPX-T232",
+                                    format!(
+                                        "declared binding type `{}` does not accept value type `{}`",
+                                        declared_ty.identity_key(),
+                                        value.ty.identity_key()
+                                    ),
+                                    *name_span,
+                                ));
+                            };
+                            self.check_upcast_admissible(child_id, parent_id, *name_span)?;
+                            frames.push(Frame::StartUpcast {
+                                source: match &statements[index] {
+                                    Statement::Let { value, .. } => value,
+                                    _ => unreachable!("let frame resumes at a let statement"),
+                                },
+                                bindings: scope.clone(),
+                                slot_parent: path,
+                                slot_edge: statement.then(Seg::Value),
+                                holder: parent_id.clone(),
+                                span: value.span,
+                                resume: Box::new(Frame::BlockAfterLet {
+                                    span,
+                                    path,
+                                    statements,
+                                    tail,
+                                    index,
+                                    scope,
+                                    resolved,
+                                }),
+                            });
+                            continue;
+                        }
+                    }
+                    let binding = ResolvedBinding {
+                        id: paths.at(path).value_local_with(function, &[statement]),
+                        name: name.clone(),
+                        ownership: value.ownership,
+                        ty: value.ty.clone(),
+                        span: *name_span,
+                    };
+                    Rc::make_mut(&mut scope).to_mut().insert(
+                        name.clone(),
+                        Binding {
+                            traversal_row: None,
+                            id: binding.id.clone(),
+                            ty: binding.ty.clone(),
+                            ownership: binding.ownership,
+                            mutable: *mutable,
+                        },
+                    );
+                    resolved.push(ResolvedStatement::Let {
+                        binding,
+                        mutable: *mutable,
+                        value,
+                        span: *statement_span,
+                    });
+                    frames.push(Frame::BlockNext {
+                        span,
+                        path,
+                        statements,
+                        tail,
+                        index: index + 1,
+                        scope,
+                        resolved,
+                    });
+                }
+                Frame::BlockAfterAssign {
+                    span,
+                    path,
+                    statements,
+                    tail,
+                    index,
+                    scope,
+                    mut resolved,
+                    target,
+                    target_field,
+                } => {
+                    let value = results.pop().expect("assign value result retained");
+                    match &target_field {
+                        Some((_, field_ty)) => {
+                            if value.ty != *field_ty {
+                                return Err(self.error(
+                                    "SPX-U110",
+                                    format!(
+                                        "assigned value type `{}` does not exactly match field type `{}`",
+                                        value.ty.identity_key(),
+                                        field_ty.identity_key()
+                                    ),
+                                    value.span,
+                                ));
+                            }
+                        }
+                        None => {
+                            // A direct `yield` is initially resolved with its
+                            // request type. `finish_yields_admission` retags
+                            // it to the enclosing clause's response type and
+                            // checks this exact target afterwards. Validating
+                            // the placeholder here would incorrectly reject
+                            // `yields Request -> Response` assignments when
+                            // the two admitted scalar types differ.
+                            if !matches!(&value.kind, ResolvedExprKind::Yield { .. }) {
+                                super::resolve_vec_call::validate_whole_assignment(
+                                    self, function, &target, &value,
+                                )?;
+                            }
+                        }
+                    }
+                    let Statement::Assign {
+                        span: statement_span,
+                        ..
+                    } = &statements[index]
+                    else {
+                        unreachable!("assign frame resumes at an assignment statement")
+                    };
+                    resolved.push(ResolvedStatement::Assign {
+                        binding: target,
+                        field: target_field.map(|(field_id, _)| field_id),
+                        value,
+                        span: *statement_span,
+                    });
+                    frames.push(Frame::BlockNext {
+                        span,
+                        path,
+                        statements,
+                        tail,
+                        index: index + 1,
+                        scope,
+                        resolved,
+                    });
+                }
+                Frame::BlockAfterUnsafe {
+                    span,
+                    path,
+                    statements,
+                    tail,
+                    index,
+                    scope,
+                    mut resolved,
+                } => {
+                    let body = results.pop().expect("unsafe body result retained");
+                    if body.ownership != OwnershipMode::Value || !is_scalar_resolved_type(&body.ty)
+                    {
+                        return Err(self.error(
+                            "SPX-N104",
+                            "unsafe boundary bodies must produce a scalar Copy value",
+                            body.span,
+                        ));
+                    }
+                    let Statement::Unsafe {
+                        audit,
+                        span: statement_span,
+                        ..
+                    } = &statements[index]
+                    else {
+                        unreachable!("unsafe frame resumes at an unsafe statement")
+                    };
+                    resolved.push(ResolvedStatement::Unsafe {
+                        audit: audit.clone(),
+                        body: Box::new(body),
+                        span: *statement_span,
+                    });
+                    frames.push(Frame::BlockNext {
+                        span,
+                        path,
+                        statements,
+                        tail,
+                        index: index + 1,
+                        scope,
+                        resolved,
+                    });
+                }
+                Frame::BlockWhileCondition {
+                    span,
+                    path,
+                    condition,
+                    body,
+                    statements,
+                    tail,
+                    index,
+                    scope,
+                    resolved,
+                } => {
+                    let evaluated = results.pop().expect("while condition result retained");
+                    if evaluated.ty != ResolvedType::Bool {
+                        return Err(self.error(
+                            "SPX-T251",
+                            "`while` condition must be bool",
+                            condition.span,
+                        ));
+                    }
+                    let target = super::ControlTarget::Loop {
+                        owner: function.clone(),
+                        site: evaluated.id.clone(),
+                    };
+                    frames.push(Frame::BlockWhileBody {
+                        span,
+                        path,
+                        statements,
+                        tail,
+                        index,
+                        scope: scope.clone(),
+                        resolved,
+                        condition: Box::new(evaluated),
+                        condition_span: condition.span,
+                    });
+                    frames.push(Frame::LeaveLoop);
+                    frames.push(Frame::Enter {
+                        expr: body,
+                        bindings: scope.clone(),
+                        path: paths.child(&frames, path, Seg::Statement.at(index).then(Seg::Body)),
+                    });
+                    frames.push(Frame::EnterLoop(target));
+                }
+                Frame::BlockWhileBody {
+                    span,
+                    path,
+                    statements,
+                    tail,
+                    index,
+                    scope,
+                    mut resolved,
+                    condition,
+                    condition_span,
+                } => {
+                    let body = results.pop().expect("while body result retained");
+                    let Statement::While {
+                        span: statement_span,
+                        ..
+                    } = &statements[index]
+                    else {
+                        unreachable!("while frame resumes at a while statement")
+                    };
+                    resolved.push(lexical_exit::loop_statement(
+                        condition,
+                        Box::new(body),
+                        super::LoopLatchKind::Condition,
+                        condition_span.merge(*statement_span),
+                    ));
+                    frames.push(Frame::BlockNext {
+                        span,
+                        path,
+                        statements,
+                        tail,
+                        index: index + 1,
+                        scope,
+                        resolved,
+                    });
+                }
+                Frame::ForOwn(frame) => super::resolve_for_own::resume(
+                    self,
+                    function,
+                    *frame,
+                    &mut frames,
+                    &mut paths,
+                    &mut results,
+                )?,
+                frame @ Frame::BlockForBody { .. } => super::resolve_for_own::resume_vec(
+                    self,
+                    function,
+                    frame,
+                    &mut frames,
+                    &mut paths,
+                    &mut results,
+                )?,
+                Frame::FinishBlock {
+                    span,
+                    path,
+                    statements,
+                } => {
+                    let tail = results.pop().expect("block tail result retained");
+                    let path = paths.at(path);
+                    results.push(finish::finish_block(function, span, path, statements, tail));
+                }
+                Frame::FinishIf { span, path } => {
+                    let children = take_triple(&mut results);
+                    results.push(finish::finish_if(function, span, paths.at(path), children));
+                }
+                Frame::AfterIfCondition {
+                    span,
+                    path,
+                    then_branch,
+                    else_branch,
+                    bindings,
+                } => {
+                    frames.push(Frame::AfterIfThen {
+                        span,
+                        path,
+                        else_branch,
+                        bindings: bindings.clone(),
+                    });
+                    frames.push(Frame::Enter {
+                        expr: then_branch,
+                        bindings,
+                        path: paths.child(&frames, path, Seg::Then),
+                    });
+                }
+                Frame::AfterIfThen {
+                    span,
+                    path,
+                    else_branch,
+                    bindings,
+                } => {
+                    frames.push(Frame::FinishIf { span, path });
+                    frames.push(Frame::Enter {
+                        expr: else_branch,
+                        bindings,
+                        path: paths.child(&frames, path, Seg::Else),
+                    });
+                }
+                Frame::RecordNext {
+                    span,
+                    path,
+                    type_name,
+                    record,
+                    arguments,
+                    fields,
+                    index,
+                    bindings,
+                    resolved,
+                } => {
+                    if index == fields.len() {
+                        let ty = ResolvedType::Nominal {
+                            declaration: record.clone(),
+                            arguments,
+                        };
+                        let ownership = self.function_expression_ownership(
+                            function,
+                            &ty,
+                            OwnershipMode::Own,
+                            span,
+                        )?;
+                        results.push(ResolvedExpr {
+                            id: paths.at(path).expression_id(function),
+                            ty,
+                            ownership,
+                            kind: ResolvedExprKind::ConstructRecord {
+                                record,
+                                fields: resolved,
+                            },
+                            span,
+                        });
+                    } else {
+                        let initializer = &fields[index];
+                        let field = self
+                            .declarations
+                            .field_id(&record, &initializer.name)
+                            .cloned()
+                            .ok_or_else(|| {
+                                self.error(
+                                    "SPX-H001",
+                                    format!(
+                                        "unresolved field `{}.{}`",
+                                        type_name, initializer.name
+                                    ),
+                                    initializer.name_span,
+                                )
+                            })?;
+                        frames.push(Frame::RecordAfterField {
+                            span,
+                            path,
+                            type_name,
+                            record,
+                            arguments,
+                            fields,
+                            index,
+                            bindings: bindings.clone(),
+                            resolved,
+                            field,
+                        });
+                        frames.push(Frame::Enter {
+                            expr: &initializer.value,
+                            bindings,
+                            path: paths.child(&frames, path, Seg::Field.at(index).then(Seg::Value)),
+                        });
+                    }
+                }
+                Frame::RecordAfterField {
+                    span,
+                    path,
+                    type_name,
+                    record,
+                    arguments,
+                    fields,
+                    index,
+                    bindings,
+                    mut resolved,
+                    field,
+                } => {
+                    let value = results.pop().expect("record field result retained");
+                    resolved.push(ResolvedFieldInitializer { field, value });
+                    frames.push(Frame::RecordNext {
+                        span,
+                        path,
+                        type_name,
+                        record,
+                        arguments,
+                        fields,
+                        index: index + 1,
+                        bindings,
+                        resolved,
+                    });
+                }
+                Frame::VariantNext {
+                    span,
+                    path,
+                    type_name,
+                    case_name,
+                    variant,
+                    case,
+                    type_arguments,
+                    fields,
+                    index,
+                    bindings,
+                    resolved,
+                } => {
+                    if index == fields.len() {
+                        let arguments = type_arguments
+                            .iter()
+                            .map(|argument| {
+                                self.resolve_call_type_argument(function, argument, span)
+                            })
+                            .collect::<Result<Vec<_>, _>>()?;
+                        let ty = ResolvedType::Nominal {
+                            declaration: variant.clone(),
+                            arguments,
+                        };
+                        let ownership = self.function_expression_ownership(
+                            function,
+                            &ty,
+                            OwnershipMode::Own,
+                            span,
+                        )?;
+                        results.push(ResolvedExpr {
+                            id: paths.at(path).expression_id(function),
+                            ty,
+                            ownership,
+                            kind: ResolvedExprKind::ConstructVariant {
+                                variant,
+                                case,
+                                fields: resolved,
+                            },
+                            span,
+                        });
+                    } else {
+                        let initializer = &fields[index];
+                        let field = self
+                            .declarations
+                            .field_id(&case, &initializer.name)
+                            .cloned()
+                            .ok_or_else(|| {
+                                self.error(
+                                    "SPX-H001",
+                                    format!(
+                                        "unresolved payload field `{type_name}::{case_name}.{}`",
+                                        initializer.name
+                                    ),
+                                    initializer.name_span,
+                                )
+                            })?;
+                        frames.push(Frame::VariantAfterField {
+                            span,
+                            path,
+                            type_name,
+                            case_name,
+                            variant,
+                            case,
+                            type_arguments,
+                            fields,
+                            index,
+                            bindings: bindings.clone(),
+                            resolved,
+                            field,
+                        });
+                        frames.push(Frame::Enter {
+                            expr: &initializer.value,
+                            bindings,
+                            path: paths.child(&frames, path, Seg::Field.at(index).then(Seg::Value)),
+                        });
+                    }
+                }
+                Frame::VariantAfterField {
+                    span,
+                    path,
+                    type_name,
+                    case_name,
+                    variant,
+                    case,
+                    type_arguments,
+                    fields,
+                    index,
+                    bindings,
+                    mut resolved,
+                    field,
+                } => {
+                    let value = results.pop().expect("variant field result retained");
+                    resolved.push(ResolvedFieldInitializer { field, value });
+                    frames.push(Frame::VariantNext {
+                        span,
+                        path,
+                        type_name,
+                        case_name,
+                        variant,
+                        case,
+                        type_arguments,
+                        fields,
+                        index: index + 1,
+                        bindings,
+                        resolved,
+                    });
+                }
+                Frame::AfterMatchScrutinee {
+                    span,
+                    path,
+                    mode,
+                    arms,
+                    bindings,
+                } => {
+                    let scrutinee = results.pop().expect("match scrutinee retained");
+                    // Copy scalars take the refutable-match decision chain; other types keep the prior surface.
+                    if matches!(
+                        scrutinee.ty,
+                        ResolvedType::I64
+                            | ResolvedType::I32
+                            | ResolvedType::U8
+                            | ResolvedType::Usize
+                            | ResolvedType::Char
+                            | ResolvedType::Bool
+                    ) {
+                        if mode != ResolvedMatchMode::Value {
+                            return Err(self.error(
+                                "SPX-O117",
+                                "explicit match ownership modes require a non-Copy record scrutinee",
+                                span,
+                            ));
+                        }
+                        if arms.is_empty() {
+                            return Err(self.error("SPX-H006", "resolved match has no arms", span));
+                        }
+                        self.validate_refutable_match_admission(&scrutinee.ty, arms)?;
+                        frames.push(Frame::ScalarMatchNext {
+                            span,
+                            path,
+                            mode,
+                            arms,
+                            index: 0,
+                            bindings,
+                            scrutinee,
+                            resolved: Vec::with_capacity(arms.len()),
+                        });
+                        continue;
+                    }
+                    let refutable_syntax = super::resolve_variant_or::has_scalar_only_syntax(
+                        arms,
+                        mode == ResolvedMatchMode::Value
+                            && crate::variant_guards::copy_variant(
+                                &self.declarations,
+                                &scrutinee.ty,
+                            ),
+                    );
+                    if refutable_syntax {
+                        return Err(self.error(
+                            "SPX-T254",
+                            format!(
+                                "guards and literal/or/binding patterns require a Copy-scalar \
+                                 scrutinee (i64/i32/u8/char/bool); received {}",
+                                scrutinee.ty.identity_key()
+                            ),
+                            span,
+                        ));
+                    }
+                    let ResolvedType::Nominal {
+                        declaration: matched_type,
+                        arguments,
+                    } = &scrutinee.ty
+                    else {
+                        return Err(self.error(
+                            "SPX-H001",
+                            "cannot resolve match on a non-record/non-variant value",
+                            span,
+                        ));
+                    };
+                    let matched_kind = self
+                        .declarations
+                        .declaration(matched_type)
+                        .map(|item| item.kind)
+                        .filter(|kind| {
+                            matches!(kind, DeclarationKind::Record | DeclarationKind::Variant)
+                        })
+                        .ok_or_else(|| {
+                            self.error(
+                                "SPX-H001",
+                                "cannot resolve match on a non-record/non-variant value",
+                                span,
+                            )
+                        })?;
+                    self.validate_match_ownership(function, &scrutinee, matched_kind, mode, span)?;
+                    let matched_type = matched_type.clone();
+                    let instance_arguments = arguments.clone();
+                    frames.push(Frame::MatchNext {
+                        span,
+                        path,
+                        mode,
+                        arms,
+                        index: 0,
+                        bindings,
+                        scrutinee,
+                        matched_type,
+                        instance_arguments,
+                        matched_kind,
+                        resolved: Vec::with_capacity(arms.len()),
+                    });
+                }
+                Frame::MatchNext {
+                    span,
+                    path,
+                    mode,
+                    arms,
+                    index,
+                    bindings,
+                    scrutinee,
+                    matched_type,
+                    instance_arguments,
+                    matched_kind,
+                    resolved,
+                } => {
+                    if index == arms.len() {
+                        let path = paths.at(path);
+                        results.push(self.finish_lexical_match(
+                            function, span, path, mode, scrutinee, resolved,
+                        )?);
+                    } else {
+                        let arm = &arms[index];
+                        let mut arm_bindings = bindings.clone();
+                        let pattern = match &arm.pattern {
+                            MatchPattern::Wildcard { span }
+                                if matched_kind == DeclarationKind::Variant
+                                    && mode != ResolvedMatchMode::Value =>
+                            {
+                                return Err(self.error(
+                                    "SPX-O117",
+                                    "explicit ownership variant match requires every case pattern",
+                                    *span,
+                                ));
+                            }
+                            MatchPattern::Wildcard { .. } => ResolvedMatchPattern::Wildcard,
+                            MatchPattern::Variant {
+                                case_name, fields, ..
+                            } => {
+                                if matched_kind != DeclarationKind::Variant {
+                                    return Err(self.error(
+                                        "SPX-H001",
+                                        "variant pattern has a record scrutinee",
+                                        arm.span,
+                                    ));
+                                }
+                                let case = self
+                                    .declarations
+                                    .case_id(&matched_type, case_name)
+                                    .cloned()
+                                    .ok_or_else(|| {
+                                        self.error(
+                                            "SPX-H001",
+                                            format!(
+                                                "unresolved case `{matched_type}::{case_name}`"
+                                            ),
+                                            arm.span,
+                                        )
+                                    })?;
+                                let mut resolved_fields = Vec::with_capacity(fields.len());
+                                for (field_index, field) in fields.iter().enumerate() {
+                                    let field_id = self
+                                        .declarations
+                                        .field_id(&case, &field.name)
+                                        .cloned()
+                                        .ok_or_else(|| {
+                                            self.error(
+                                                "SPX-H001",
+                                                format!(
+                                                    "unresolved pattern field `{case}.{}`",
+                                                    field.name
+                                                ),
+                                                field.span,
+                                            )
+                                        })?;
+                                    let field_template = self
+                                        .declarations
+                                        .case_fields(&case)
+                                        .and_then(|items| {
+                                            items.iter().find(|item| item.id == field_id)
+                                        })
+                                        .map(|item| item.ty.clone())
+                                        .ok_or_else(|| {
+                                            self.error(
+                                                "SPX-H001",
+                                                format!("pattern field `{field_id}` has no type"),
+                                                field.span,
+                                            )
+                                        })?;
+                                    let field_ty = substitute_type(
+                                        &field_template,
+                                        &matched_type,
+                                        &instance_arguments,
+                                    )?;
+                                    let ownership = self.function_expression_ownership(
+                                        function,
+                                        &field_ty,
+                                        match mode {
+                                            ResolvedMatchMode::Own => OwnershipMode::Own,
+                                            ResolvedMatchMode::Borrow => OwnershipMode::Borrow,
+                                            ResolvedMatchMode::Value => OwnershipMode::Value,
+                                        },
+                                        field.span,
+                                    )?;
+                                    let suffix = [
+                                        Seg::Arm.at(index).then(Seg::BindingField),
+                                        Step::index(field_index),
+                                    ];
+                                    let binding = ResolvedBinding {
+                                        id: paths.at(path).value_local_with(function, &suffix),
+                                        name: field.binding.clone(),
+                                        ownership,
+                                        ty: field_ty.clone(),
+                                        span: field.binding_span,
+                                    };
+                                    Rc::make_mut(&mut arm_bindings).to_mut().insert(
+                                        field.binding.clone(),
+                                        Binding {
+                                            traversal_row: None,
+                                            id: binding.id.clone(),
+                                            ty: field_ty,
+                                            ownership,
+                                            mutable: false,
+                                        },
+                                    );
+                                    resolved_fields.push(ResolvedMatchPatternField {
+                                        field: field_id,
+                                        binding,
+                                    });
+                                }
+                                ResolvedMatchPattern::Variant {
+                                    variant: matched_type.clone(),
+                                    case,
+                                    fields: resolved_fields,
+                                }
+                            }
+                            MatchPattern::Record {
+                                type_name,
+                                fields,
+                                span: pattern_span,
+                                ..
+                            } => {
+                                if matched_kind != DeclarationKind::Record {
+                                    return Err(self.error(
+                                        "SPX-H001",
+                                        "record pattern has a variant scrutinee",
+                                        arm.span,
+                                    ));
+                                }
+                                // Record patterns keep their own owned-path traversal.
+                                let record = Seg::Arm.at(index).then(Seg::Record);
+                                let record = paths.at(path).materialize_with(&[record]);
+                                self.resolve_record_match_pattern(
+                                    function,
+                                    &scrutinee.ty,
+                                    type_name,
+                                    fields,
+                                    Rc::make_mut(&mut arm_bindings).to_mut(),
+                                    &record,
+                                    *pattern_span,
+                                    mode,
+                                )?
+                            }
+                            MatchPattern::Or { alternatives, span }
+                                if arm.pattern.is_variant_or() =>
+                            {
+                                self.resolve_variant_or_pattern(
+                                    &matched_type,
+                                    matched_kind,
+                                    mode,
+                                    alternatives,
+                                    *span,
+                                )?
+                            }
+                            // Refutable Match v1 patterns on aggregate
+                            // scrutinees were rejected during admission
+                            // (SPX-T254); the legacy chain never sees them.
+                            MatchPattern::Literal { span, .. }
+                            | MatchPattern::Or { span, .. }
+                            | MatchPattern::Binding { span, .. } => {
+                                return Err(self.error(
+                                    "SPX-T254",
+                                    "guards and literal/or/binding patterns require a \
+                                     Copy-scalar scrutinee",
+                                    *span,
+                                ));
+                            }
+                        };
+                        frames.push(Frame::MatchAfterArm {
+                            span,
+                            path,
+                            mode,
+                            arms,
+                            index,
+                            bindings,
+                            scrutinee,
+                            matched_type,
+                            instance_arguments,
+                            matched_kind,
+                            resolved,
+                            pattern,
+                        });
+                        let edge = Seg::Arm.at(index);
+                        frames.push(Frame::Enter {
+                            expr: &arm.value,
+                            bindings: arm_bindings.clone(),
+                            path: paths.child(&frames, path, edge.then(Seg::Value)),
+                        });
+                        if let Some(guard) = &arm.guard {
+                            frames.push(Frame::Enter {
+                                expr: guard,
+                                bindings: arm_bindings,
+                                path: paths.child(&frames, path, edge.then(Seg::Guard)),
+                            });
+                        }
+                    }
+                }
+                Frame::MatchAfterArm {
+                    span,
+                    path,
+                    mode,
+                    arms,
+                    index,
+                    bindings,
+                    scrutinee,
+                    matched_type,
+                    instance_arguments,
+                    matched_kind,
+                    mut resolved,
+                    pattern,
+                } => {
+                    let value = results.pop().expect("match arm value retained");
+                    let guard = arms[index]
+                        .guard
+                        .as_ref()
+                        .map(|_| Box::new(results.pop().expect("match guard retained")));
+                    resolved.push(ResolvedMatchArm {
+                        pattern,
+                        guard,
+                        value,
+                        span: arms[index].span,
+                    });
+                    frames.push(Frame::MatchNext {
+                        span,
+                        path,
+                        mode,
+                        arms,
+                        index: index + 1,
+                        bindings,
+                        scrutinee,
+                        matched_type,
+                        instance_arguments,
+                        matched_kind,
+                        resolved,
+                    });
+                }
+                Frame::ScalarMatchNext {
+                    span,
+                    path,
+                    mode,
+                    arms,
+                    index,
+                    bindings,
+                    scrutinee,
+                    resolved,
+                } => {
+                    if index == arms.len() {
+                        let path = paths.at(path);
+                        results.push(self.finish_lexical_match(
+                            function, span, path, mode, scrutinee, resolved,
+                        )?);
+                    } else {
+                        let arm = &arms[index];
+                        let mut arm_bindings = bindings.clone();
+                        let pattern = match &arm.pattern {
+                            crate::ast::MatchPattern::Wildcard { .. } => {
+                                ResolvedMatchPattern::Wildcard
+                            }
+                            crate::ast::MatchPattern::Binding { name, .. } => {
+                                let edge = Seg::Arm.at(index).then(Seg::Binding);
+                                let binding = ResolvedBinding {
+                                    id: paths.at(path).value_local_with(function, &[edge]),
+                                    name: name.clone(),
+                                    ownership: OwnershipMode::Value,
+                                    ty: scrutinee.ty.clone(),
+                                    span: arm.pattern.span(),
+                                };
+                                Rc::make_mut(&mut arm_bindings).to_mut().insert(
+                                    name.clone(),
+                                    Binding {
+                                        traversal_row: None,
+                                        id: binding.id.clone(),
+                                        ty: binding.ty.clone(),
+                                        ownership: OwnershipMode::Value,
+                                        mutable: false,
+                                    },
+                                );
+                                ResolvedMatchPattern::Binding(binding)
+                            }
+                            crate::ast::MatchPattern::Literal { value, .. } => {
+                                ResolvedMatchPattern::Literal(PatternValue::from_ast(*value))
+                            }
+                            crate::ast::MatchPattern::Or { alternatives, .. } => {
+                                ResolvedMatchPattern::Or(
+                                    alternatives
+                                        .iter()
+                                        .map(|alternative| match alternative {
+                                            crate::ast::MatchPattern::Literal { value, .. } => {
+                                                ResolvedMatchPattern::Literal(
+                                                    PatternValue::from_ast(*value),
+                                                )
+                                            }
+                                            // SPX-M105 rejected non-literal
+                                            // alternatives during admission.
+                                            _ => {
+                                                unreachable!("or-pattern alternatives are literals")
+                                            }
+                                        })
+                                        .collect(),
+                                )
+                            }
+                            // Aggregate patterns on scalar scrutinees were
+                            // rejected during admission.
+                            crate::ast::MatchPattern::Variant { .. }
+                            | crate::ast::MatchPattern::Record { .. } => {
+                                return Err(self.error(
+                                    "SPX-H001",
+                                    "aggregate pattern has a Copy-scalar scrutinee",
+                                    arm.span,
+                                ));
+                            }
+                        };
+                        frames.push(Frame::ScalarMatchAfterArm {
+                            span,
+                            path,
+                            mode,
+                            arms,
+                            index,
+                            bindings,
+                            scrutinee,
+                            resolved,
+                            pattern,
+                        });
+                        let edge = Seg::Arm.at(index);
+                        if let Some(guard) = &arm.guard {
+                            frames.push(Frame::Enter {
+                                expr: guard.as_ref(),
+                                bindings: arm_bindings.clone(),
+                                path: paths.child(&frames, path, edge.then(Seg::Guard)),
+                            });
+                        }
+                        frames.push(Frame::Enter {
+                            expr: &arm.value,
+                            bindings: arm_bindings,
+                            path: paths.child(&frames, path, edge.then(Seg::Value)),
+                        });
+                    }
+                }
+                Frame::ScalarMatchAfterArm {
+                    span,
+                    path,
+                    mode,
+                    arms,
+                    index,
+                    bindings,
+                    scrutinee,
+                    mut resolved,
+                    pattern,
+                } => {
+                    // The guard's Enter resolved after the value's, so the
+                    // guard's result sits on top of the results stack.
+                    let guard = arms[index]
+                        .guard
+                        .is_some()
+                        .then(|| Box::new(results.pop().expect("scalar match arm guard retained")));
+                    let value = results.pop().expect("scalar match arm value retained");
+                    if let Some(guard) = &guard {
+                        if guard.ty != ResolvedType::Bool {
+                            return Err(self.error(
+                                "SPX-T256",
+                                format!(
+                                    "match guard must be bool; received {}",
+                                    guard.ty.identity_key()
+                                ),
+                                arms[index].span,
+                            ));
+                        }
+                    }
+                    if let Some(first) = super::lexical_exit::reachable_arm(&resolved) {
+                        if value.ty != ResolvedType::Never
+                            && (first.value.ty != value.ty
+                                || first.value.ownership != value.ownership)
+                        {
+                            return Err(self.error(
+                                "SPX-T259",
+                                format!(
+                                    "match arms disagree on the result type; expected {}",
+                                    first.value.ty.identity_key()
+                                ),
+                                arms[index].span,
+                            ));
+                        }
+                    }
+                    resolved.push(ResolvedMatchArm {
+                        pattern,
+                        guard,
+                        value,
+                        span: arms[index].span,
+                    });
+                    frames.push(Frame::ScalarMatchNext {
+                        span,
+                        path,
+                        mode,
+                        arms,
+                        index: index + 1,
+                        bindings,
+                        scrutinee,
+                        resolved,
+                    });
+                }
+                Frame::FinishTry { span, path } => {
+                    let operand = results.pop().expect("try operand retained");
+                    let operand_type = operand.ty.clone();
+                    let ResolvedType::Nominal {
+                        declaration,
+                        arguments,
+                    } = &operand_type
+                    else {
+                        return Err(self.error(
+                            "SPX-H006",
+                            "resolved `?` operand is not the ordinary Result",
+                            span,
+                        ));
+                    };
+                    let residual_type = self.resolve_try_result_type(function, span)?;
+                    let (kind, ty, ownership) = match (declaration.as_str(), arguments.as_slice()) {
+                        (crate::prelude::RESULT_ID, [ok_type, _error_type]) => {
+                            super::owned_result_try::resolve_result(operand, residual_type, ok_type)
+                        }
+                        (crate::prelude::OPTION_ID, [some_type]) => (
+                            ResolvedExprKind::TryOption {
+                                operand: Box::new(operand),
+                                option: DeclarationId::new(crate::prelude::OPTION_ID),
+                                some_case: DeclarationId::new(crate::prelude::OPTION_SOME_ID),
+                                some_field: DeclarationId::new(
+                                    crate::prelude::OPTION_SOME_VALUE_ID,
+                                ),
+                                none_case: DeclarationId::compiler(CId::OptionNone),
+                                residual_type,
+                            },
+                            some_type.clone(),
+                            OwnershipMode::Value,
+                        ),
+                        _ => {
+                            return Err(self.error(
+                                "SPX-H006",
+                                "resolved `?` operand is not an ordinary Result or Option",
+                                span,
+                            ));
+                        }
+                    };
+                    results.push(ResolvedExpr {
+                        id: paths.at(path).expression_id(function),
+                        ty,
+                        ownership,
+                        kind,
+                        span,
+                    });
+                }
+                // Resumable Effects (issues #204, #296): `ty` is the
+                // enclosing function's declared response type, read from
+                // its AST `yields` clause so a yielded binding in a nested
+                // block types later statements correctly (request type if no
+                // clause resolves). `hir::resolve_yield` still checks the
+                // request type and retags every site once resolution
+                // finishes; `resolve_function_in_scope` has not yet
+                // attached the resolved clause when this frame runs.
+                Frame::FinishYield { span, path } => {
+                    let request = results.pop().expect("yield request retained");
+                    let ty = self.yield_answer_type(function, &request.ty);
+                    results.push(ResolvedExpr {
+                        id: paths.at(path).expression_id(function),
+                        ty,
+                        ownership: OwnershipMode::Value,
+                        kind: ResolvedExprKind::Yield {
+                            request: Box::new(request),
+                        },
+                        span,
+                    });
+                }
+                Frame::AfterUpdateBase {
+                    span,
+                    path,
+                    fields,
+                    bindings,
+                } => {
+                    let base = results.pop().expect("record update base retained");
+                    let ResolvedType::Nominal {
+                        declaration: record,
+                        ..
+                    } = &base.ty
+                    else {
+                        return Err(self.error(
+                            "SPX-H001",
+                            "cannot resolve a record update on a non-record value",
+                            span,
+                        ));
+                    };
+                    if self
+                        .declarations
+                        .declaration(record)
+                        .is_none_or(|item| item.kind != DeclarationKind::Record)
+                    {
+                        return Err(self.error(
+                            "SPX-H001",
+                            "cannot resolve a record update on a non-record value",
+                            span,
+                        ));
+                    }
+                    let record = record.clone();
+                    frames.push(Frame::UpdateNext {
+                        span,
+                        path,
+                        base,
+                        record,
+                        fields,
+                        index: 0,
+                        bindings,
+                        resolved: Vec::with_capacity(fields.len()),
+                    });
+                }
+                Frame::UpdateNext {
+                    span,
+                    path,
+                    base,
+                    record,
+                    fields,
+                    index,
+                    bindings,
+                    resolved,
+                } => {
+                    if index == fields.len() {
+                        let ty = base.ty.clone();
+                        let ownership = self.function_expression_ownership(
+                            function,
+                            &ty,
+                            OwnershipMode::Own,
+                            span,
+                        )?;
+                        results.push(ResolvedExpr {
+                            id: paths.at(path).expression_id(function),
+                            ty,
+                            ownership,
+                            kind: ResolvedExprKind::UpdateRecord {
+                                base: Box::new(base),
+                                record,
+                                fields: resolved,
+                            },
+                            span,
+                        });
+                    } else {
+                        let initializer = &fields[index];
+                        let field = self
+                            .declarations
+                            .field_id(&record, &initializer.name)
+                            .cloned()
+                            .ok_or_else(|| {
+                                self.error(
+                                    "SPX-H001",
+                                    format!(
+                                        "unresolved replacement field `{}.{}`",
+                                        record, initializer.name
+                                    ),
+                                    initializer.name_span,
+                                )
+                            })?;
+                        frames.push(Frame::UpdateAfterField {
+                            span,
+                            path,
+                            base,
+                            record,
+                            fields,
+                            index,
+                            bindings: bindings.clone(),
+                            resolved,
+                            field,
+                        });
+                        frames.push(Frame::Enter {
+                            expr: &initializer.value,
+                            bindings,
+                            path: paths.child(&frames, path, Seg::Field.at(index).then(Seg::Value)),
+                        });
+                    }
+                }
+                Frame::UpdateAfterField {
+                    span,
+                    path,
+                    base,
+                    record,
+                    fields,
+                    index,
+                    bindings,
+                    mut resolved,
+                    field,
+                } => {
+                    let value = results.pop().expect("record replacement result retained");
+                    resolved.push(ResolvedFieldInitializer { field, value });
+                    frames.push(Frame::UpdateNext {
+                        span,
+                        path,
+                        base,
+                        record,
+                        fields,
+                        index: index + 1,
+                        bindings,
+                        resolved,
+                    });
+                }
+                Frame::FinishProject { span, path, field } => {
+                    let base = results.pop().expect("projection base retained");
+                    let ResolvedType::Nominal {
+                        declaration: owner,
+                        arguments,
+                    } = &base.ty
+                    else {
+                        return Err(self.error(
+                            "SPX-H001",
+                            format!("cannot resolve field `{field}` on a non-record value"),
+                            span,
+                        ));
+                    };
+                    if self.declarations.declaration(owner).is_none_or(|item| {
+                        !matches!(item.kind, DeclarationKind::Record | DeclarationKind::Class)
+                    }) {
+                        return Err(self.error(
+                            "SPX-H001",
+                            format!("cannot resolve field `{field}` on a non-record value"),
+                            span,
+                        ));
+                    }
+                    let field_id = self
+                        .declarations
+                        .field_id(owner, field)
+                        .cloned()
+                        .ok_or_else(|| {
+                            self.error(
+                                "SPX-H001",
+                                format!("unresolved field `{field}` on `{owner}`"),
+                                span,
+                            )
+                        })?;
+                    let field_ty = self
+                        .declarations
+                        .record_fields(owner)
+                        .and_then(|fields| fields.iter().find(|item| item.id == field_id))
+                        .map(|item| item.ty.clone())
+                        .ok_or_else(|| {
+                            self.error(
+                                "SPX-H001",
+                                format!("field `{field_id}` has no resolved type"),
+                                span,
+                            )
+                        })?;
+                    let field_ty = substitute_type(&field_ty, owner, arguments)?;
+                    let ownership = self.function_expression_ownership(
+                        function,
+                        &field_ty,
+                        base.ownership,
+                        span,
+                    )?;
+                    let kind = match &base.kind {
+                        ResolvedExprKind::Place(place) => {
+                            let mut place = place.clone();
+                            place
+                                .projections
+                                .push(PlaceProjection::Field(field_id.clone()));
+                            ResolvedExprKind::Place(place)
+                        }
+                        _ => ResolvedExprKind::Project {
+                            base: Box::new(base),
+                            field: field_id,
+                        },
+                    };
+                    results.push(ResolvedExpr {
+                        id: paths.at(path).expression_id(function),
+                        ty: field_ty,
+                        ownership,
+                        kind,
+                        span,
+                    });
+                }
+                Frame::FinishMethodCall {
+                    span,
+                    path,
+                    method,
+                    receiver: receiver_ast,
+                    bindings,
+                    type_arguments,
+                    args_len,
+                } => {
+                    if !type_arguments.is_empty() {
+                        return Err(self.error(
+                            "SPX-P106",
+                            "method generic arguments are not supported in this slice",
+                            span,
+                        ));
+                    }
+                    let mut all = take_results(&mut results, args_len + 1);
+                    let receiver = all.remove(0);
+                    let args = all;
+                    let receiver_class = match &receiver.ty {
+                        ResolvedType::Nominal {
+                            declaration: class_id,
+                            arguments,
+                        } => Some((class_id.clone(), arguments.clone())),
+                        _ => None,
+                    };
+                    let Some((class_id, class_args)) = receiver_class else {
+                        return Err(self.error(
+                            "SPX-H001",
+                            format!("cannot resolve method `{method}` on a non-class value"),
+                            span,
+                        ));
+                    };
+                    let class_decl = self.declarations.declaration(&class_id).ok_or_else(|| {
+                        self.error("SPX-H001", format!("unknown class `{class_id}`"), span)
+                    })?;
+                    if class_decl.kind != DeclarationKind::Class {
+                        return Err(self.error(
+                            "SPX-H001",
+                            format!(
+                                "method `{method}` requires a class receiver, found `{class_id}`"
+                            ),
+                            span,
+                        ));
+                    }
+                    // Class Inheritance v1: method resolution walks the
+                    // declared receiver's ancestor chain nearest-first, so an
+                    // override replaces the inherited symbol for receivers of
+                    // its own class while unoverridden parents stay callable.
+                    let (holder, method_id) =
+                        self.resolve_method_in_chain(&class_id, method, span)?;
+                    // An inherited receiver is consumed through a prefix
+                    // upcast: re-enter the receiver expression at the
+                    // canonical `.source` identity and wrap its result before
+                    // the method-call continuation resumes.
+                    if holder != class_id {
+                        self.check_upcast_admissible(&class_id, &holder, receiver.span)?;
+                        frames.push(Frame::StartUpcast {
+                            source: receiver_ast,
+                            bindings: bindings.clone(),
+                            slot_parent: path,
+                            slot_edge: Seg::ArgZero.into(),
+                            holder: holder.clone(),
+                            span: receiver.span,
+                            resume: Box::new(Frame::FinishMethodCall {
+                                span,
+                                path,
+                                method,
+                                receiver: receiver_ast,
+                                bindings,
+                                type_arguments,
+                                args_len,
+                            }),
+                        });
+                        continue;
+                    }
+                    let holder_ast = self
+                        .program
+                        .types()
+                        .iter()
+                        .find(|t| t.stable_id == holder.as_str())
+                        .ok_or_else(|| {
+                            self.error("SPX-H006", format!("class `{holder}` has no AST"), span)
+                        })?;
+                    let TypeDeclarationKind::Class { methods, .. } = &holder_ast.kind else {
+                        return Err(self.error(
+                            "SPX-H006",
+                            format!("`{holder}` is not a class"),
+                            span,
+                        ));
+                    };
+                    let method_ast =
+                        methods.iter().find(|m| m.name == *method).ok_or_else(|| {
+                            self.error(
+                                "SPX-H001",
+                                format!("unresolved method `{method}` on class `{holder}`"),
+                                span,
+                            )
+                        })?;
+                    if method_ast.params.is_empty() {
+                        return Err(self.error(
+                            "SPX-H001",
+                            format!("method `{method}` has no self parameter"),
+                            method_ast.span,
+                        ));
+                    }
+                    let self_param = &method_ast.params[0];
+                    let self_ty = self.resolve_type(&self_param.ty, self_param.span)?;
+                    let expected_self = ResolvedType::Nominal {
+                        declaration: holder.clone(),
+                        arguments: class_args.clone(),
+                    };
+                    if self_ty != expected_self {
+                        return Err(self.error(
+                            "SPX-H001",
+                            format!(
+                                "method `{method}` self parameter type `{:?}` does not match class `{holder}`",
+                                self_ty
+                            ),
+                            self_param.span,
+                        ));
+                    }
+                    if method_ast.params.len() - 1 != args.len() {
+                        return Err(self.error(
+                            "SPX-H001",
+                            format!(
+                                "method `{method}` expects {} arguments, found {}",
+                                method_ast.params.len() - 1,
+                                args.len()
+                            ),
+                            span,
+                        ));
+                    }
+                    for (arg, param) in args.iter().zip(method_ast.params.iter().skip(1)) {
+                        let param_ty = self.resolve_type(&param.ty, param.span)?;
+                        if arg.ty != param_ty {
+                            return Err(self.error(
+                                "SPX-H001",
+                                format!(
+                                    "method `{method}` argument `{}` expects type `{}`, found `{}`",
+                                    param.name,
+                                    param_ty.identity_key(),
+                                    arg.ty.identity_key()
+                                ),
+                                arg.span,
+                            ));
+                        }
+                    }
+                    let return_ty = self.resolve_type(&method_ast.return_type, method_ast.span)?;
+                    let ownership =
+                        self.expression_ownership(&return_ty, OwnershipMode::Own, span)?;
+                    let callee = method_id;
+                    let mut call_args = Vec::with_capacity(1 + args.len());
+                    call_args.push(receiver);
+                    call_args.extend(args);
+                    results.push(ResolvedExpr {
+                        id: paths.at(path).expression_id(function),
+                        ty: return_ty,
+                        ownership,
+                        kind: ResolvedExprKind::Call {
+                            callee,
+                            type_arguments: Vec::new(),
+                            instance: None,
+                            args: call_args,
+                        },
+                        span,
+                    });
+                }
+                Frame::FinishSuperMethod {
+                    span,
+                    method_span,
+                    path,
+                    method,
+                    holder,
+                    callee,
+                    args_len,
+                } => {
+                    let all = take_results(&mut results, args_len + 1);
+                    results.push(self.finish_super_method(
+                        function,
+                        span,
+                        method_span,
+                        paths.at(path),
+                        method,
+                        holder,
+                        callee,
+                        all,
+                    )?);
+                }
+                frame @ Frame::StartUpcast { .. } => {
+                    finish::start_upcast(frame, &mut frames, &mut paths)
+                }
+                Frame::FinishUpcast {
+                    slot_path,
+                    holder,
+                    span,
+                } => {
+                    let source = results.pop().expect("upcast source result retained");
+                    let id = paths.at(slot_path).expression_id(function);
+                    results.push(self.finish_upcast(id, holder, span, source)?);
+                }
+            }
+        }
+
+        self.finish_expression_results(results, expr.span)
+    }
+}

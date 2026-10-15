@@ -1,0 +1,373 @@
+//! Native expression lowering for compiler-owned bounded Vec operations.
+
+mod copy_record;
+mod field_read;
+mod field_unique;
+mod owned_leaf;
+mod owned_payload;
+mod plan_infallible;
+mod record_payload;
+mod sort_keys;
+mod string_slot;
+
+use crate::codegen::native_bytes::NativeBytesProducer as _;
+use crate::diagnostic::Diagnostic;
+use crate::hir::{ResolvedExpr, ResolvedType};
+
+use super::super::{backend_error, CEmitter, COutput, CValue};
+
+// `format!` resolves to the bounded codegen macro declared before
+// `mod native_emit`; it must never fall back to `std::format!` here.
+impl<'a, O: COutput> CEmitter<'a, O> {
+    pub(super) fn emit_vec_op(
+        &mut self,
+        expr: &ResolvedExpr,
+        op: crate::vec_ops::VecOp,
+        type_arguments: &[ResolvedType],
+        args: &[ResolvedExpr],
+    ) -> Result<CValue, Diagnostic> {
+        if op == crate::vec_ops::VecOp::StrAt {
+            return self.emit_string_slot(expr);
+        }
+        if op == crate::vec_ops::VecOp::UniqueBy {
+            return self.emit_field_unique(expr);
+        }
+        let [element] = type_arguments else {
+            return Err(backend_error(
+                "bounded Vec operation has incorrect type arity",
+            ));
+        };
+        if crate::hir::copy_record_collection::admitted(&self.program.declarations, element) {
+            return self.emit_copy_record_vec(expr, op, element, args);
+        }
+        if crate::hir::owned_leaf_collection::admits_operation(
+            &self.program.declarations,
+            op,
+            element,
+        ) && (!crate::hir::owned_record_collection::admits_vec_operation_element(
+            &self.program.declarations,
+            op,
+            element,
+        ) || matches!(
+            op,
+            crate::vec_ops::VecOp::CloneAt
+                | crate::vec_ops::VecOp::Replace
+                | crate::vec_ops::VecOp::ReserveOwned
+                | crate::vec_ops::VecOp::SortOwned
+                | crate::vec_ops::VecOp::SortBy
+        )) {
+            return self.emit_owned_leaf_vec(expr, op, element, args);
+        }
+        let admitted_record = crate::hir::owned_record_collection::admits_vec_operation_element(
+            &self.program.declarations,
+            op,
+            element,
+        );
+        if !(crate::vec_ops::resolved_operation_element_is_admitted(op, element) || admitted_record)
+            || args.len() != op.arity()
+        {
+            return Err(backend_error(
+                "bounded Vec operation has invalid resolved shape",
+            ));
+        }
+        if admitted_record {
+            return self.emit_vec_record_op(expr, op, element, args);
+        }
+        if *element == ResolvedType::Bytes {
+            return self.emit_vec_bytes_op(expr, op, args);
+        }
+        let tag = vec_element_tag(element)?;
+        let mut values = Vec::with_capacity(args.len());
+        for (index, argument) in args.iter().enumerate() {
+            let value = self.emit_expr(argument)?;
+            // Stage at the argument's canonical boundary. Producers may have
+            // already reached this epoch; the shared plan helper authenticates
+            // that case without replaying initialization or earlier transfers.
+            values.push(self.stage_bytes_call_argument(
+                &expr.id,
+                index,
+                argument,
+                op.param_ownership_for(index, element),
+                value,
+            )?);
+        }
+        let return_type = op.resolved_return_type(element);
+        self.require_type(&expr.ty, &return_type, "bounded Vec operation result")?;
+        let plan = self.bytes_plan;
+        match op {
+            crate::vec_ops::VecOp::StrAt
+            | crate::vec_ops::VecOp::CloneAt
+            | crate::vec_ops::VecOp::Replace
+            | crate::vec_ops::VecOp::ReserveOwned
+            | crate::vec_ops::VecOp::SortOwned
+            | crate::vec_ops::VecOp::SortBy
+            | crate::vec_ops::VecOp::UniqueBy => {
+                Err(backend_error("owned operation reached scalar Vec lowering"))
+            }
+            crate::vec_ops::VecOp::WithCapacity => {
+                self.require_type(&values[0].ty, &ResolvedType::Usize, "Vec capacity")?;
+                let plan =
+                    plan.ok_or_else(|| backend_error("Vec allocation has no cleanup plan"))?;
+                let destination = plan
+                    .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
+                    .to_owned();
+                self.line(&format!(
+                    "spx_status = spx_vec_with_capacity(spx_ctx, UINT32_C({tag}), {}, &{destination});",
+                    values[0].code
+                ));
+                self.emit_operation_failure_check()?;
+                for line in plan.apply_at(&expr.id)?.lines() {
+                    self.line(line);
+                }
+                Ok(CValue {
+                    code: plan.result_at(&expr.id).unwrap_or(&destination).to_owned(),
+                    ty: return_type,
+                })
+            }
+            crate::vec_ops::VecOp::Push => {
+                self.require_type(
+                    &values[0].ty,
+                    &crate::vec_ops::resolved_vec(element.clone()),
+                    "Vec push owner",
+                )?;
+                self.require_type(&values[1].ty, element, "Vec push element")?;
+                let plan = plan.ok_or_else(|| backend_error("Vec push has no cleanup plan"))?;
+                let (source, source_flag, _) = plan.call_argument(&expr.id, 0)?;
+                let source = source.to_owned();
+                let source_flag = source_flag.to_owned();
+                let destination = plan
+                    .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
+                    .to_owned();
+                let bits = vec_scalar_to_bits(&values[1]);
+                self.line(&format!(
+                    "spx_status = spx_vec_push(spx_ctx, UINT32_C({tag}), &{source}, {bits}, &{destination});"
+                ));
+                self.emit_operation_failure_check()?;
+                self.line(&format!("{source_flag} = false;"));
+                for line in plan.apply_at(&expr.id)?.lines() {
+                    self.line(line);
+                }
+                Ok(CValue {
+                    code: plan.result_at(&expr.id).unwrap_or(&destination).to_owned(),
+                    ty: return_type,
+                })
+            }
+            crate::vec_ops::VecOp::ReserveExact => {
+                self.require_type(
+                    &values[0].ty,
+                    &crate::vec_ops::resolved_vec(element.clone()),
+                    "Vec reserve owner",
+                )?;
+                self.require_type(
+                    &values[1].ty,
+                    &ResolvedType::Usize,
+                    "Vec reserve additional",
+                )?;
+                let plan = plan.ok_or_else(|| backend_error("Vec reserve has no cleanup plan"))?;
+                let (source, source_flag, _) = plan.call_argument(&expr.id, 0)?;
+                let source = source.to_owned();
+                let source_flag = source_flag.to_owned();
+                let destination = plan
+                    .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
+                    .to_owned();
+                self.line(&format!(
+                    "spx_status = spx_vec_reserve_exact(spx_ctx, UINT32_C({tag}), &{source}, {}, &{destination});",
+                    values[1].code
+                ));
+                self.emit_operation_failure_check()?;
+                self.line(&format!("{source_flag} = false;"));
+                for line in plan.apply_at(&expr.id)?.lines() {
+                    self.line(line);
+                }
+                Ok(CValue {
+                    code: plan.result_at(&expr.id).unwrap_or(&destination).to_owned(),
+                    ty: return_type,
+                })
+            }
+            crate::vec_ops::VecOp::Set => {
+                self.require_type(
+                    &values[0].ty,
+                    &crate::vec_ops::resolved_vec(element.clone()),
+                    "Vec set owner",
+                )?;
+                self.require_type(&values[1].ty, &ResolvedType::Usize, "Vec set index")?;
+                self.require_type(&values[2].ty, element, "Vec set element")?;
+                let plan = plan.ok_or_else(|| backend_error("Vec set has no cleanup plan"))?;
+                let (source, source_flag, _) = plan.call_argument(&expr.id, 0)?;
+                let source = source.to_owned();
+                let source_flag = source_flag.to_owned();
+                let destination = plan
+                    .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
+                    .to_owned();
+                let bits = vec_scalar_to_bits(&values[2]);
+                self.line(&format!(
+                    "spx_status = spx_vec_set(spx_ctx, UINT32_C({tag}), &{source}, {}, {bits}, &{destination});",
+                    values[1].code
+                ));
+                self.emit_operation_failure_check()?;
+                self.line(&format!("{source_flag} = false;"));
+                for line in plan.apply_at(&expr.id)?.lines() {
+                    self.line(line);
+                }
+                Ok(CValue {
+                    code: plan.result_at(&expr.id).unwrap_or(&destination).to_owned(),
+                    ty: return_type,
+                })
+            }
+            crate::vec_ops::VecOp::Clear | crate::vec_ops::VecOp::Sort => {
+                self.require_type(
+                    &values[0].ty,
+                    &crate::vec_ops::resolved_vec(element.clone()),
+                    "Vec clear owner",
+                )?;
+                let plan = plan.ok_or_else(|| backend_error("Vec clear has no cleanup plan"))?;
+                let (source, source_flag, _) = plan.call_argument(&expr.id, 0)?;
+                let source = source.to_owned();
+                let source_flag = source_flag.to_owned();
+                let destination = plan
+                    .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
+                    .to_owned();
+                let operation = if op == crate::vec_ops::VecOp::Sort {
+                    "spx_vec_sort"
+                } else {
+                    "spx_vec_clear"
+                };
+                self.line(&format!(
+                    "spx_status = {operation}(spx_ctx, UINT32_C({tag}), &{source}, &{destination});"
+                ));
+                self.emit_plan_infallible_vec_status(expr, op)?;
+                self.line(&format!("{source_flag} = false;"));
+                for line in plan.apply_at(&expr.id)?.lines() {
+                    self.line(line);
+                }
+                Ok(CValue {
+                    code: plan.result_at(&expr.id).unwrap_or(&destination).to_owned(),
+                    ty: return_type,
+                })
+            }
+            crate::vec_ops::VecOp::Len | crate::vec_ops::VecOp::Capacity => {
+                self.validate_plan_infallible_vec_operation(expr, op)?;
+                self.require_type(
+                    &values[0].ty,
+                    &crate::vec_ops::resolved_vec(element.clone()),
+                    "Vec borrow",
+                )?;
+                let temporary = self.temporary(&ResolvedType::Usize)?;
+                let helper = if op == crate::vec_ops::VecOp::Len {
+                    "spx_vec_len"
+                } else {
+                    "spx_vec_capacity"
+                };
+                self.line(&format!(
+                    "{temporary} = {helper}(spx_ctx, &({}), UINT32_C({tag}));",
+                    values[0].code
+                ));
+                Ok(CValue {
+                    code: temporary,
+                    ty: ResolvedType::Usize,
+                })
+            }
+            crate::vec_ops::VecOp::Get => {
+                self.require_type(
+                    &values[0].ty,
+                    &crate::vec_ops::resolved_vec(element.clone()),
+                    "Vec get borrow",
+                )?;
+                self.require_type(&values[1].ty, &ResolvedType::Usize, "Vec get index")?;
+                let bits = self.temporary(&ResolvedType::Usize)?;
+                self.line(&format!(
+                    "spx_status = spx_vec_get(spx_ctx, &({}), UINT32_C({tag}), {}, &{bits});",
+                    values[0].code, values[1].code
+                ));
+                self.emit_operation_failure_check()?;
+                Ok(CValue {
+                    code: vec_bits_to_scalar(&bits, element)?,
+                    ty: element.clone(),
+                })
+            }
+        }
+    }
+}
+
+/// The compact numeric element tag the shared `spx_vec_*` C runtime uses to
+/// select its per-element storage stride. `resolved_operation_element_is_admitted`
+/// admits only a Copy scalar or `Bytes` (handled separately by
+/// `emit_vec_bytes_op`) today, so the fallback arm is unreachable through
+/// `emit_vec_op`'s own entry gate. It returns a clean diagnostic rather than
+/// panicking so that a future admission widening that reaches this dispatch
+/// ahead of matching backend support fails closed instead of aborting the
+/// compiler process. See `docs/OWNED-RECORD-COLLECTION-ELEMENT-V1.md`
+/// (backend hazard).
+fn vec_element_tag(ty: &ResolvedType) -> Result<i32, Diagnostic> {
+    Ok(match ty {
+        ResolvedType::I64 => 1,
+        ResolvedType::I32 => 2,
+        ResolvedType::U8 => 3,
+        ResolvedType::Usize => 4,
+        ResolvedType::Char => 5,
+        ResolvedType::F32 => 6,
+        ResolvedType::F64 => 7,
+        ResolvedType::Bool => 8,
+        _ => {
+            return Err(backend_error(
+                "bounded Vec operation reached an element type this backend does not execute",
+            ));
+        }
+    })
+}
+
+fn vec_scalar_to_bits(value: &CValue) -> String {
+    match value.ty {
+        ResolvedType::F32 => format!("spx_vec_f32_bits({})", value.code),
+        ResolvedType::F64 => format!("spx_vec_f64_bits({})", value.code),
+        _ => format!("((uint64_t)({}))", value.code),
+    }
+}
+
+pub(super) fn vec_bits_to_scalar(bits: &str, ty: &ResolvedType) -> Result<String, Diagnostic> {
+    Ok(match ty {
+        ResolvedType::I64 => format!("((int64_t){bits})"),
+        ResolvedType::I32 => format!("((int32_t){bits})"),
+        ResolvedType::U8 => format!("((uint8_t){bits})"),
+        ResolvedType::Usize => bits.to_owned(),
+        ResolvedType::Char => format!("((uint32_t){bits})"),
+        ResolvedType::F32 => format!("spx_vec_bits_f32({bits})"),
+        ResolvedType::F64 => format!("spx_vec_bits_f64({bits})"),
+        ResolvedType::Bool => format!("((bool){bits})"),
+        // See the parallel arm in `emit_vec_op`: a clean diagnostic, not a
+        // panic, for any element outside today's admitted scalar profile.
+        _ => {
+            return Err(backend_error(
+                "bounded Vec operation reached an element type this backend does not execute",
+            ));
+        }
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// SPX-AI-020 (issue #119) backend-hazard regression: today's admitted
+    /// bounded Vec profile is a Copy scalar or `Bytes` only
+    /// (`resolved_operation_element_is_admitted`/`resolved_vec_element_is_admitted`
+    /// in `crate::vec_ops`), so `emit_vec_op`'s own entry gate refuses any
+    /// other element before it ever reaches `vec_element_tag`/
+    /// `vec_bits_to_scalar`. These tests exercise the helpers directly with
+    /// an element outside that profile (bypassing the entry gate the way a
+    /// forged/hostile HIR or a future admission widening ahead of matching
+    /// backend support could) to prove they return a clean diagnostic rather
+    /// than the `unreachable!()` this module used before SPX-AI-020: see
+    /// `docs/OWNED-RECORD-COLLECTION-ELEMENT-V1.md` (backend hazard).
+    #[test]
+    fn vec_element_tag_refuses_an_unadmitted_element_without_panicking() {
+        assert!(vec_element_tag(&ResolvedType::String).is_err());
+        assert!(vec_element_tag(&ResolvedType::Bytes).is_err());
+    }
+
+    #[test]
+    fn vec_bits_to_scalar_refuses_an_unadmitted_element_without_panicking() {
+        assert!(vec_bits_to_scalar("0", &ResolvedType::String).is_err());
+        assert!(vec_bits_to_scalar("0", &ResolvedType::Bytes).is_err());
+    }
+}

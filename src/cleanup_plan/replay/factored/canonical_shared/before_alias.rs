@@ -348,6 +348,9 @@ impl Canonicalizer<'_> {
             && self
                 .states
                 .iter()
-                .all(|(state, id)| current.states.get(state) == Some(id))
+                .zip(current.states.iter())
+                .all(|((state, id), (current_state, current_id))| {
+                    state.as_slice() == current_state.as_slice() && id == current_id
+                })
     }
 }

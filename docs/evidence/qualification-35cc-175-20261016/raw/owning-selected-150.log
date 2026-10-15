@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::supplemental::receiving::tests::complete_original_receiving_walk_is_preserved_by_only_storage_substitutions ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9168 filtered out; finished in 0.00s
+

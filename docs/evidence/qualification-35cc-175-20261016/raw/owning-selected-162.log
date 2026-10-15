@@ -1,0 +1,20 @@
+
+running 1 test
+test workspace_graph::tests::builder_limits::pattern_source_workspace_fits_unchanged_builder_budget ... validation-operation-profile profile=pattern-original cap=67108864 sources=3
+validation-operation-source profile=pattern-original path=src/examples.spx bytes=3585 sha256=b10fd2678d5479237a245ecc76179473dc2a8fff0b395c29d75a8d0bd0305dc6
+validation-operation-source profile=pattern-original path=src/pattern.spx bytes=81944 sha256=6e701050a4b3dd28d62ab1393810fcfae5018a645e3f0b0ef5cfceda524ece21
+validation-operation-source profile=pattern-original path=src/tests.spx bytes=23503 sha256=6c9084fb387603e3b194260d14fa8a788119342a375ce5c5428d6df55010ade1
+validation-operation-receipt profile=pattern-original cap=67108864 trace=Some(Trace { owner: 48297967632, operation: None, first_operation_refusal: Some(OperationRefusal { operation: Some(CleanupReplay), requested: 70176, remaining: 37515, floor: 0, stage: Some(HirValidation) }), initial: 67108864, consumed: 67071349, prebound: 57080110, layouts: 5866, mode: 6, debits: [10346, 8206, 33503, 64044, 0, 0, 0, 0, 0, 57080110, 419009, 0, 0, 0, 0, 0, 0, 128176, 0, 107970, 37168, 159356, 0, 0, 0, 34017, 0, 8581370, 44510, 44480, 44544, 85280, 60488, 13816, 13504, 101452, 0, 0, 0, 0] })
+
+thread 'workspace_graph::tests::builder_limits::pattern_source_workspace_fits_unchanged_builder_budget' (11361698) panicked at src/workspace_graph/tests/builder_limits.rs:820:48:
+[Diagnostic { code: "SPX-G171", severity: Error, message: "Workspace Semantic Graph `builder_bytes` exceeds 67108864", path: None, span: None, help: Some("live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast 57080110 bytes for 3 module(s) and fit within 67108864, with `src/pattern.spx` the largest at 44269272 bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound. resolved-core phase first sticky ledger refusal: requested 70176 bytes with 37515 remaining and 0 reserved floor. Authenticated internal stage: HIR final validation. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown.") }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    workspace_graph::tests::builder_limits::pattern_source_workspace_fits_unchanged_builder_budget
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9168 filtered out; finished in 0.22s
+

@@ -1,0 +1,6 @@
+
+running 1 test
+test workspace_graph::initial_report::tests::complete_original_builder_mappers_and_all_current_owners_remain_authenticated ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9168 filtered out; finished in 2.01s
+

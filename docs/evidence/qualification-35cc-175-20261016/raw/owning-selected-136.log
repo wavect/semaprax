@@ -1,0 +1,6 @@
+
+running 1 test
+test workspace_graph::initial_report::tests::actual_initial_attempt_then_typed_policy_removes_only_real_report_allocation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9168 filtered out; finished in 0.00s
+

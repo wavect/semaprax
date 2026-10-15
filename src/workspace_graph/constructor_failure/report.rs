@@ -1,8 +1,7 @@
 //! Prepaid dynamic final-refusal publication on the original core ledger.
 use super::receiving::Setup;
-use crate::bounded_output::{
-    active_remaining, reserve_active_required, ClassifierLedger, ReservationRefusal,
-};
+use crate::bounded_output::classifier_string::ClassifierLedger;
+use crate::bounded_output::{active_remaining, reserve_active_required, ReservationRefusal};
 use crate::diagnostic::Diagnostic;
 use crate::workspace_graph::diagnostics::BorrowedBuilderHelp;
 use std::borrow::Cow;

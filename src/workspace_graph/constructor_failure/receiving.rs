@@ -1,7 +1,8 @@
 //! One actual core-attempt ledger owns the single-diagnostic receiving slot.
 //! This certifies neither existing multi-error helpers nor final legacy output.
 use super::Failure;
-use crate::bounded_output::{ClassifierLedger, active_remaining, reserve_active_required};
+use crate::bounded_output::classifier_string::ClassifierLedger;
+use crate::bounded_output::{active_remaining, reserve_active_required};
 use crate::diagnostic::Diagnostic;
 use std::mem::size_of;
 

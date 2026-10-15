@@ -1,0 +1,9 @@
+{
+  "status": "SOURCE_ONLY_NO_CARGO_OR_RUST_EXECUTION",
+  "basis": "7623acd670f0a25a21ed8c00c190b517e78c8945",
+  "immediate_full_originals": 3,
+  "existing_packet_full_originals": 15,
+  "production_files": 3,
+  "changes": "Two import paths; exact workspace_graph visibility for Attempt/run/into_parts/reserve; no control flow or type conversion edits",
+  "cascading_errors": "E0277/E0308 left to actual recompilation; no modules.to_vec workaround"
+}

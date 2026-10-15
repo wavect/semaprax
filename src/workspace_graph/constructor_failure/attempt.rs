@@ -6,11 +6,11 @@ use super::{
 use crate::bounded_output::active_refused;
 use crate::diagnostic::Diagnostic;
 use std::mem::size_of;
-pub(super) struct Attempt<T> {
+pub(in crate::workspace_graph) struct Attempt<T> {
     result: Result<T, CoreFailure>,
     publication: Option<Result<Published, Unpublished>>,
 }
-pub(super) fn run<T>(
+pub(in crate::workspace_graph) fn run<T>(
     maximum: usize,
     operation: impl FnOnce() -> Result<T, CoreFailure>,
 ) -> Attempt<T> {
@@ -44,7 +44,9 @@ pub(super) fn run<T>(
     }
 }
 impl<T> Attempt<T> {
-    pub(super) fn into_parts(self) -> (Result<T, CoreFailure>, Option<Vec<Diagnostic>>) {
+    pub(in crate::workspace_graph) fn into_parts(
+        self,
+    ) -> (Result<T, CoreFailure>, Option<Vec<Diagnostic>>) {
         let publication = self.publication.and_then(|publication| match publication {
             Ok(published) => Some(published.into_report()),
             // Secondary publication failure never substitutes for the primary
@@ -61,7 +63,7 @@ impl<T> Attempt<T> {
 
 /// Typed refusal at the actual attempt boundary: no diagnostic construction
 /// follows a failed ledger reservation. Original helpers keep their legacy API.
-pub(super) fn reserve(bytes: usize) -> Result<(), CoreFailure> {
+pub(in crate::workspace_graph) fn reserve(bytes: usize) -> Result<(), CoreFailure> {
     if crate::bounded_output::active_remaining().is_none() {
         return Err(CoreFailure::Setup(Setup::NoOwner));
     }

@@ -1,0 +1,632 @@
+{
+  "status": "SOURCE_READY_FINITE76_NOT_REGISTERED_AWAIT_PARENT_MERGED_FREEZE",
+  "source_subject": null,
+  "draft_locator_commit": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::compact_nodes::before::tests::compact_layout_and_original_label_order_are_actual_and_source_independent",
+      "reasons": [
+        "Changed844fixture or owning fullsource inverse."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::compact_nodes::before::tests::nested_floor_keeps_original_first_refusal_and_terminal_retry_fields",
+      "reasons": [
+        "Changed844fixture or owning fullsource inverse."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::compact_nodes::before::tests::complete_original_receivers_and_all_new_source_owners_remain_authenticated",
+      "reasons": [
+        "Changed844fixture or owning fullsource inverse."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::compact_nodes::before::tests::immediate_parent_831_and_compact_storage_have_independent_complete_source_domains",
+      "reasons": [
+        "Changed844fixture or owning fullsource inverse."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::amortized_source::ordered_amortized_checkpoint_full_sources_and_inverses_are_exact",
+      "reasons": [
+        "Actual77failed fullsource root receiver now corrected."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "reasons": [
+        "Shared sourcehelper transport changed; complete sourcefrontier must remain exact."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::b::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "reasons": [
+        "Shared sourcehelper transport changed; complete sourcefrontier must remain exact."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::runtime_json::tests::fixed_projection_json_transport_refuses_hostile_io_before_parsing",
+      "reasons": [
+        "Proposed848sourcekey dispatch actual all90 IO/membership/hostile owner; retain only if finalready implementation included."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "bounded_output::stage_debits::tests::operation_guards_keep_complete_untagged_refusal_and_actual_zero_allocation",
+      "reasons": [
+        "Changed first-site trace observer existing unit contract."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "bounded_output::stage_debits::tests::operation_scope_restores_after_unwind_and_nested_foreign_budget_cannot_tag_parent",
+      "reasons": [
+        "Changed first-site trace observer existing unit contract."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "bounded_output::stage_debits::tests::last_attempt_is_distinct_from_maximum_consumed_and_does_not_allocate",
+      "reasons": [
+        "Changed first-site trace observer existing unit contract."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure",
+      "reasons": [
+        "Actual first-site consumer; preserve selected failure/metadata."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:owned_data",
+      "selector": "owned_leaf_vec::copy_field_update::same_source_interpreter_matches_every_scalar_multi_copy_legacy_and_failure_control",
+      "reasons": [
+        "Actual T266 failed owner consumes corrected independent positive oracle; preserve alloldnegative/completecurrent backend checks."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:owned_data",
+      "selector": "owned_leaf_vec::copy_field_update::wasm_copy_field_updates_keep_all_scalar_lanes_and_owned_identities_without_store_clones_or_drops",
+      "reasons": [
+        "Actual T266 failed owner consumes corrected independent positive oracle; preserve alloldnegative/completecurrent backend checks."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:owned_data",
+      "selector": "owned_leaf_vec::copy_field_update::field_update_import_and_native_store_are_absent_from_the_complete_old_row_oracle",
+      "reasons": [
+        "Actual T266 failed owner consumes corrected independent positive oracle; preserve alloldnegative/completecurrent backend checks."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:cleanup_backends",
+      "selector": "owned_leaf_collections::copy_field_update::copy_field_updates_preserve_eight_scalar_lanes_owned_leaf_bits_and_zero_store_heap_at_o0_o2",
+      "reasons": [
+        "Actual native positive owner consumes corrected independent oracle."
+      ]
+    },
+    {
+      "package": "semaprax-toolchain",
+      "kind": "test:cli_new_project_v1",
+      "selector": "application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen",
+      "reasons": [
+        "Realshared model fixture nowcanonical; actual application route must see newbytes, including original15 retained."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::owned::shiftsim_typed_records::unfactored_schedule_retains_original_source_and_factored_admission",
+      "reasons": [
+        "Realshared model fixture nowcanonical; actual application route must see newbytes, including original15 retained."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::owned::shiftsim_typed_records::typed_record_shiftsim_derives_both_codecs_and_runs_retained_corpus",
+      "reasons": [
+        "Realshared model fixture nowcanonical; actual application route must see newbytes, including original15 retained."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::owned::shiftsim_typed_records::typed_vec_constructor_retains_exact_explicit_chain_application_control",
+      "reasons": [
+        "Realshared model fixture nowcanonical; actual application route must see newbytes, including original15 retained."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::owned::shiftsim_typed_records::original_copy_state_replacement_calls_keep_both_t281_refusals",
+      "reasons": [
+        "Realshared model fixture nowcanonical; actual application route must see newbytes, including original15 retained."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::inline_weighted::source::inline_weighted_complete_source_inverses_and_immediate_receiver_are_exact",
+      "reasons": [
+        "Actual175owner93 fullreceiverdomain failure nowcorrected via existingwholeF64view; alloldassertions retained."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::type_proof_tests::projection_tests::rendered_document_has_literal_sha_exact_wire_order_and_digest_binding",
+      "reasons": [
+        "Actual35ccpin failure: reviewedintermediatepin/runtimecapture update requires actualconsumer; must recaptureafternewMain beforefinalpinapplication."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::public_api_cli_bytes_getters_and_read_only_locking_are_exact",
+      "reasons": [
+        "Actual35ccpin failure: reviewedintermediatepin/runtimecapture update requires actualconsumer; must recaptureafternewMain beforefinalpinapplication."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::public_workspace_analysis_api_cli_kats_and_locking_are_exact",
+      "reasons": [
+        "Actual35ccpin failure: reviewedintermediatepin/runtimecapture update requires actualconsumer; must recaptureafternewMain beforefinalpinapplication."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::browser_known_answers_match_authenticated_baseline_and_rename_graphs",
+      "reasons": [
+        "Actual35ccpin failure: reviewedintermediatepin/runtimecapture update requires actualconsumer; must recaptureafternewMain beforefinalpinapplication."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace",
+      "selector": "semantic_change::reporting::typed_public_generation_verification_and_application_keep_full_legacy_bytes",
+      "reasons": [
+        "Actual v74fixture refusal fixed without changing reportparity assertions ornegativefixtures."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace",
+      "selector": "semantic_structural_change::reporting::typed_public_generation_verification_and_application_keep_full_legacy_bytes",
+      "reasons": [
+        "Actual v74fixture refusal fixed without changing reportparity assertions ornegativefixtures."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::complete_immediate_receiver_helpers_and_all_seven_original_controls_remain_exact",
+      "reasons": [
+        "Actualowner125 missingwhole844adaptedreceiver sourceview fixed; alloldassertions intact."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:hir_module_boundaries",
+      "selector": "core_validation_has_no_resolution_cleanup_build_or_physical_authority",
+      "reasons": [
+        "Actualpurityfalsepositive fixed by complete authenticatedcurrentproduction/test-only partition; rawunions kept."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+      "reasons": [
+        "Actualpurityfalsepositive fixed by complete authenticatedcurrentproduction/test-only partition; rawunions kept."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::tests::exact_box_and_node_are_paid_before_either_allocation_and_refusal_is_sticky",
+      "reasons": [
+        "NewMAIN019d boxed-state completecost/order/replay/oldreceiver/sourcecontrol; keepfulloriginalassertions."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::tests::held_state_moves_preserve_pointers_and_duplicates_without_cloning_or_refunds",
+      "reasons": [
+        "NewMAIN019d boxed-state completecost/order/replay/oldreceiver/sourcecontrol; keepfulloriginalassertions."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::tests::boxed_order_matches_inline_values_through_tree_splits_and_every_prefix",
+      "reasons": [
+        "NewMAIN019d boxed-state completecost/order/replay/oldreceiver/sourcecontrol; keepfulloriginalassertions."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::receiver_tests::whole_original_and_boxed_replay_keep_success_work_and_hostile_diagnostic",
+      "reasons": [
+        "NewMAIN019d boxed-state completecost/order/replay/oldreceiver/sourcecontrol; keepfulloriginalassertions."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::receiver_tests::complete_current_replay_has_exact_and_one_short_physical_limits_with_last_drop",
+      "reasons": [
+        "NewMAIN019d boxed-state completecost/order/replay/oldreceiver/sourcecontrol; keepfulloriginalassertions."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::receiver_tests::complete_original_receiver_and_exact_current_source_inverse_stay_bound",
+      "reasons": [
+        "NewMAIN019d boxed-state completecost/order/replay/oldreceiver/sourcecontrol; keepfulloriginalassertions."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::tests::boxed_prefix_keeps_every_history_union_and_control_disagreement",
+      "reasons": [
+        "NewMAIN019d boxed-state completecost/order/replay/oldreceiver/sourcecontrol; keepfulloriginalassertions."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::builder_limits::pattern_source_workspace_fits_unchanged_builder_budget",
+      "reasons": [
+        "Unchangedactualpositive application/budget owner affected by newMAINownership-state physicalroute; priorFAIL staysFAIL untilactualrerun."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "standard_library::pattern_executes_on_all_three_backends",
+      "reasons": [
+        "Unchangedactualpositive application/budget owner affected by newMAINownership-state physicalroute; priorFAIL staysFAIL untilactualrerun."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "standard_library::application_json::owned::catalog_scoped_records::typed_catalog_derives_codecs_and_preserves_all_23_functional_cases",
+      "reasons": [
+        "Unchangedactualpositive application/budget owner affected by newMAINownership-state physicalroute; priorFAIL staysFAIL untilactualrerun."
+      ]
+    },
+    {
+      "package": "semaprax-toolchain",
+      "kind": "test:cli_new_project_v1",
+      "selector": "application_starter::application_starter_selected_file_declared_native_tests_and_unchanged_cli49",
+      "reasons": [
+        "Unchangedactualpositive application/budget owner affected by newMAINownership-state physicalroute; priorFAIL staysFAIL untilactualrerun."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal",
+      "reasons": [
+        "Unchangedactualpositive application/budget owner affected by newMAINownership-state physicalroute; priorFAIL staysFAIL untilactualrerun."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+      "reasons": [
+        "Unchangedactualpositive application/budget owner affected by newMAINownership-state physicalroute; priorFAIL staysFAIL untilactualrerun."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::current_hosted_wires_replay_complete_historical_cursor_controls",
+      "reasons": [
+        "Changed actual35cc browser bridge full-wire/source/hostile controls; current intermediate pins require actual consumer qualification."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::current_hosted_wires_reproduce_every_prior_byte_after_only_bill_and_digest_restoration",
+      "reasons": [
+        "Changed actual35cc browser bridge full-wire/source/hostile controls; current intermediate pins require actual consumer qualification."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::a_rehashed_non_builder_budget_mutation_cannot_pass_the_historical_bridge",
+      "reasons": [
+        "Changed actual35cc browser bridge full-wire/source/hostile controls; current intermediate pins require actual consumer qualification."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::complete_prior_browser_contract_has_only_registration_and_call_adapter_changes",
+      "reasons": [
+        "Changed actual35cc browser bridge full-wire/source/hostile controls; current intermediate pins require actual consumer qualification."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_uncached_core_old_and_current_include_new_entry_controls_and_all_drop",
+      "reasons": [
+        "Actual847 outer accepted boundary observer corrected; original zero/one-short/exact producer remains."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "diagnostic::writer::tests::writer_complete_old_json_human_fields_escaping_nulls_and_order_remain_exact",
+      "reasons": [
+        "Parent requested current-source846 complete eleven direct acceptance owners; original35cc PASS kept separately."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "diagnostic::writer::tests::bounded_writer_keeps_every_original_quote_order_floor_sticky_and_partial_byte",
+      "reasons": [
+        "Parent requested current-source846 complete eleven direct acceptance owners; original35cc PASS kept separately."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "diagnostic::writer::tests::whole_renderer_drop_measures_actual_intermediate_strings_and_unfavorable_bounded_route",
+      "reasons": [
+        "Parent requested current-source846 complete eleven direct acceptance owners; original35cc PASS kept separately."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "diagnostic::writer::tests::writer_failure_keeps_first_io_error_and_does_not_touch_later_diagnostics",
+      "reasons": [
+        "Parent requested current-source846 complete eleven direct acceptance owners; original35cc PASS kept separately."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "diagnostic::writer::tests::full_original_renderer_and_all_current_source_owners_remain_bound",
+      "reasons": [
+        "Parent requested current-source846 complete eleven direct acceptance owners; original35cc PASS kept separately."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:cli_check_routing_v1",
+      "selector": "actual_diagnostic_writer_preserves_json_human_streams_status_and_original_bytes",
+      "reasons": [
+        "Parent requested current-source846 complete eleven direct acceptance owners; original35cc PASS kept separately."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "diagnostic::tests::json_uses_bare_nulls_for_absent_fields_and_a_fixed_key_order",
+      "reasons": [
+        "Parent requested current-source846 complete eleven direct acceptance owners; original35cc PASS kept separately."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "diagnostic::tests::quote_json_escapes_every_control_character",
+      "reasons": [
+        "Parent requested current-source846 complete eleven direct acceptance owners; original35cc PASS kept separately."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "diagnostic::tests::quote_json_never_exceeds_the_active_output_budget",
+      "reasons": [
+        "Parent requested current-source846 complete eleven direct acceptance owners; original35cc PASS kept separately."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_report::tests::initial_zero_exact_short_sticky_typed_transfer_display_and_drop_allocate_nothing",
+      "reasons": [
+        "Parent requested current-source846 complete eleven direct acceptance owners; original35cc PASS kept separately."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_report::tests::exact_paid_setup_refusal_transfers_original_slot_text_and_ledger_through_drop",
+      "reasons": [
+        "Parent requested current-source846 complete eleven direct acceptance owners; original35cc PASS kept separately."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::renewal_profile::ordinary::record_presence::tests::presence_matches_complete_old_prefix_and_authenticates_the_exact_immutable_index",
+      "reasons": [
+        "NewMain269 actual metadata/work/authority/refusal/fullsource owning control; corrected funding must retain it.",
+        "850 actual receiving formula/frontier controls or unchanged complete consuming collector; no new test body."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::renewal_profile::ordinary::record_presence::tests::exact_metadata_and_census_work_and_one_short_fail_closed_without_allocation",
+      "reasons": [
+        "NewMain269 actual metadata/work/authority/refusal/fullsource owning control; corrected funding must retain it.",
+        "850 actual receiving formula/frontier controls or unchanged complete consuming collector; no new test body."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::renewal_profile::ordinary::record_presence::tests::scalar_callable_boundary_reuses_one_census_under_the_unchanged_work_limit",
+      "reasons": [
+        "NewMain269 actual metadata/work/authority/refusal/fullsource owning control; corrected funding must retain it.",
+        "850 actual receiving formula/frontier controls or unchanged complete consuming collector; no new test body."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::renewal_profile::ordinary::record_presence::tests::prior_enclosing_refusal_cannot_be_hidden_by_a_prepared_presence_proof",
+      "reasons": [
+        "NewMain269 actual metadata/work/authority/refusal/fullsource owning control; corrected funding must retain it.",
+        "850 actual receiving formula/frontier controls or unchanged complete consuming collector; no new test body."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::renewal_profile::ordinary::record_presence::tests::full_original_collector_and_phase_source_inverses_remain_exact",
+      "reasons": [
+        "NewMain269 actual metadata/work/authority/refusal/fullsource owning control; corrected funding must retain it.",
+        "850 actual receiving formula/frontier controls or unchanged complete consuming collector; no new test body."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::renewal_profile::ordinary::consuming::tests::phase_presence_keeps_full_current_directories_and_every_consuming_entry",
+      "reasons": [
+        "NewMain269 complete old/current directory and work parity."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::tests::callable_limit_exact_advances_and_one_over_is_g171",
+      "reasons": [
+        "Main269 actual original1024 callable boundary and oneoverG171 acceptance."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::source_schema::static_text::primitive::helpers::tests::a_large_comment_keeps_ordinary_imports_admitted_without_authorizing_a_selected_helper",
+      "reasons": [
+        "Actual35cc fixture failure153/155 corrected with original assertions retained."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:project",
+      "selector": "command_argument_borrow::retained_hir_still_rejects_a_mutable_command_argument_alias_independently",
+      "reasons": [
+        "Actual35cc fixture failure153/155 corrected with original assertions retained."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::actual_diagnostic_owner_zero_exact_and_each_short_frontier_keep_full_drop",
+      "reasons": [
+        "New849 actual production receiving owner: funded admission/entry/terminal, foreign sticky/floors/drop, complete oldMain parity and full source controls."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::actual_owned_held_and_duplicate_entries_pay_each_bank_and_preserve_box_identity",
+      "reasons": [
+        "New849 actual production receiving owner: funded admission/entry/terminal, foreign sticky/floors/drop, complete oldMain parity and full source controls."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::duplicate_zero_auth_keeps_complete_main_diagnostic_and_first_receipt_at_sticky_floor",
+      "reasons": [
+        "New849 actual production receiving owner: funded admission/entry/terminal, foreign sticky/floors/drop, complete oldMain parity and full source controls."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::foreign_function_budget_and_scope_poison_only_original_owner_and_never_restore_entry",
+      "reasons": [
+        "New849 actual production receiving owner: funded admission/entry/terminal, foreign sticky/floors/drop, complete oldMain parity and full source controls."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::actual_entry_and_box_layout_inventory_and_complete_main_receiver_sources_are_exact",
+      "reasons": [
+        "New849 actual production receiving owner: funded admission/entry/terminal, foreign sticky/floors/drop, complete oldMain parity and full source controls."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::complete_main_callback_and_current_receiving_replay_keep_full_success_error_work_and_costs",
+      "reasons": [
+        "New849 actual production receiving owner: funded admission/entry/terminal, foreign sticky/floors/drop, complete oldMain parity and full source controls."
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::renewal_profile::ordinary::consuming::tests::full_consuming_collector_matches_unchanged_original",
+      "reasons": [
+        "850 actual receiving formula/frontier controls or unchanged complete consuming collector; no new test body."
+      ]
+    }
+  ],
+  "counts": {
+    "checks": 76,
+    "roles": 9
+  },
+  "history": "35cc175terminal135PASS40FAIL; preserve completeactualarchive639. Omitted175PASS is historicalNOT_RETESTED, omittedFAIL remainsNOT_FIXED. Thisfuturecandidate has0actualbodies. Actual35ccmanaged/browserpins intermediateonly; postMAINfresh3+2producer capture mandatory.",
+  "terminal_175_required_before_final_scope": false,
+  "if_round_stops": "NOT_APPLICABLE: actual35cc finished all175:135PASS/40FAIL; this proposal creates no new PASS for omitted owners.",
+  "required_pending": [
+    "actual parent merged final source hash",
+    "successful current scoped build/artifact bindings",
+    "fresh post-Main actual3+2 pin producers after successful build"
+  ]
+}

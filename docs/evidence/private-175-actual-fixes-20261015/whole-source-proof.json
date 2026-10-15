@@ -1,0 +1,18 @@
+{
+  "mode": "STATIC_SOURCE_ONLY_NO_RUST_EXECUTION",
+  "checkpoint": "c1597ffdaacee0e1669090a4f7208d9fa52b8c19",
+  "whole_changed_prior_inputs": 36,
+  "direct849_checkpoint_inputs": 11,
+  "direct849_changed_rows": 4,
+  "restored_namespace": "EVERY_CHANGED_PREEXISTING_TRACKED_INPUT_EXACT_C159_GIT",
+  "original_fixed_runtime_json_count": 89,
+  "original_fixed_runtime_json_bytes": 93590460,
+  "extra_custody_count": 1,
+  "extra_custody_bytes": 51472,
+  "all90_exact": true,
+  "project_algorithm_exact": true,
+  "old_evidence_artifacts_unchanged": true,
+  "changed_and_added_rust_files_cap_checked": 42,
+  "table_bytes": 183580,
+  "table_sha256": "0a969c621c6534ce66a92783e677242dbb66cc126b847b9b70d94b4ebe209f06"
+}

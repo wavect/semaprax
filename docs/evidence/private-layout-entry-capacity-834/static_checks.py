@@ -23,7 +23,7 @@ assert current.count('        let capacity = capacity.min(count);\n')==1
 assert current.removesuffix(register).replace('        let capacity = capacity.min(count);\n','',1)==old
 start=old.index('    fn derive_with_work(');end=old.index('    pub(super) fn add_costs(',start)
 method=old[start:end].replace('    fn derive_with_work(','    pub(super) fn derive_with_work_before_capacity(',1)
-assert (R/'src/workspace_graph/expected_projection/private_layout/capacity_before.rs').read_text()=="//! Complete preceding cold receiver; only method visibility/name differ.\nuse super::*;\nimpl<'a> LayoutClosure<'a> {\n"+method+'}\n'
+assert (R/'src/workspace_graph/expected_projection/private_layout/capacity_before.rs').read_text()=="//! Complete preceding cold receiver; only method visibility/name differ.\nuse super::{Absence, AuthoredDeclaration, BTreeMap, DEPTH, Diagnostic, Entry, Frame, LayoutClosure, Program, debit, explicit_only, ledger, names, owner_index, private_name, refusal, reserve_builder_structure, sorting, visit};\nimpl<'a> LayoutClosure<'a> {\n"+method+'}\n'
 # All count/name/overflow/work/alias/dedup/sort/owner checks stay byte-exact;
 # only the existing reservation/backing/guard capacity is narrowed after fold.
 assert current.index('let mut ordinal = names::first(caller)?')<current.index('debit(remaining, programs.len())?')<current.index('let capacity = programs')<current.index('let capacity = capacity.min(count)')<current.index('let mut entries: Vec<Entry')

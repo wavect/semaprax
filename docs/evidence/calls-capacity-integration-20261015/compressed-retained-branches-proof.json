@@ -1,0 +1,21 @@
+{
+  "status": "PASS_SOURCE_ONLY_LOSSLESS_COMPRESSED_STORAGE",
+  "full_parallel_metadata_histories": 165,
+  "independent_incoming_original_rows": 2079,
+  "all_original_row_identities_equal_frozen_proof": true,
+  "prior_proof_sha256": "9008f9c239c3478fd6f538ecac2f9aac8d25f92931672166587bad9dab1626fe",
+  "storage_index_sha256": "ce1a9fbd87c559f1851ab8209857923e3664af5388dbddda414b22ac4012fb07",
+  "payloads_verified": 496,
+  "all_uncompressed_side_SHA_claims_unchanged": true,
+  "all_decompressed_payloads_byte_identical_to_original_Git_blobs": true,
+  "deterministic_gzip_mtime": 0,
+  "deterministic_gzip_filename": "",
+  "uncompressed_bytes": 2419363421,
+  "compressed_bytes": 299712770,
+  "chunk_bytes": 1048576,
+  "global_blob_cache": false,
+  "largest_single_decoded_Git_blob_bytes": 3540327,
+  "largest_single_manifest_payload_bytes": 24973023,
+  "memory_policy": "one JSON manifest plus one source/old-archive blob at a time; byte identity streams in fixed chunks; no global raw/decoded blob cache",
+  "rust_execution": "UNEXECUTED"
+}

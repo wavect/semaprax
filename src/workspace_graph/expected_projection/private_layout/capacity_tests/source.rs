@@ -79,7 +79,7 @@ fn complete_old_receiver_source_and_all_new_joined_sources_stay_exact() {
         "../../../../../docs/evidence/private-layout-entry-capacity-834/original/src__workspace_graph__expected_projection__private_layout.rs.before.txt"
     );
     let before = include_str!("../capacity_before.rs");
-    let before=before.strip_prefix("//! Complete preceding cold receiver; only method visibility/name differ.\nuse super::*;\nimpl<'a> LayoutClosure<'a> {\n").unwrap().strip_suffix("}\n").unwrap()
+    let before=before.strip_prefix("//! Complete preceding cold receiver; only method visibility/name differ.\nuse super::{Absence, AuthoredDeclaration, BTreeMap, DEPTH, Diagnostic, Entry, Frame, LayoutClosure, Program, debit, explicit_only, ledger, names, owner_index, private_name, refusal, reserve_builder_structure, sorting, visit};\nimpl<'a> LayoutClosure<'a> {\n").unwrap().strip_suffix("}\n").unwrap()
         .replacen("    pub(super) fn derive_with_work_before_capacity(","    fn derive_with_work(",1);
     let start = full.find("    fn derive_with_work(").unwrap();
     let end = full.find("    pub(super) fn add_costs(").unwrap();

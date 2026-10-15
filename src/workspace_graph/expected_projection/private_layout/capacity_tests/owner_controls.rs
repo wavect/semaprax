@@ -1,5 +1,9 @@
 //! Existing owner, sticky and nested floor rules under the smaller real backing.
-use super::*;
+use super::super::registry;
+use super::{
+    active_remaining, index_authored, measure, observe, padded, programs, same_diagnostics,
+    with_limit_usage_refusal, LayoutClosure, MAX_BUILDER_BYTES, PROVIDER, SINGLE_CALLER, WORK,
+};
 use crate::bounded_output::{clear_active_floor, set_active_floor};
 #[test]
 fn cold_registry_exact_short_zero_and_foreign_restored_contexts_keep_receipts_sticky() {

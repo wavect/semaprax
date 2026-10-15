@@ -1,5 +1,5 @@
 //! Complete preceding cold receiver; only method visibility/name differ.
-use super::*;
+use super::{Absence, AuthoredDeclaration, BTreeMap, DEPTH, Diagnostic, Entry, Frame, LayoutClosure, Program, debit, explicit_only, ledger, names, owner_index, private_name, refusal, reserve_builder_structure, sorting, visit};
 impl<'a> LayoutClosure<'a> {
     pub(super) fn derive_with_work_before_capacity(
         caller: &Program,

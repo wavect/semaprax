@@ -29,13 +29,15 @@ if (integration / 'legacy-inverses.precomposition.json').exists():
     for row, old in zip(restored, frozen):
         assert row['source'] == old['source']
         if row['edits'] != old['edits']:
-            assert len(row['edits']) == len(old['edits']) + 1
-            assert row['edits'][1:] == old['edits']
-            prefix = row['edits'][0]
-            assert sha(prefix['new']) == row['current_sha256']
-            assert sha(prefix['before']) == old['current_sha256']
-            row['edits'].pop(0)
-            row['current_sha256'] = old['current_sha256']
+            extra = len(row['edits']) - len(old['edits'])
+            assert extra > 0 and row['edits'][extra:] == old['edits']
+            for _ in range(extra):
+                prefix = row['edits'].pop(0)
+                assert sha(prefix['new']) == row['current_sha256']
+                following = row['edits'][0]['new'] if len(row['edits']) > len(old['edits']) else None
+                expected = sha(following) if following is not None else old['current_sha256']
+                assert sha(prefix['before']) == expected
+                row['current_sha256'] = expected
     assert restored == frozen
 subject = 'src/hir/declaration_index/legacy_drop/tests.rs'
 record = next(record for record in restored if record['source'] == subject)

@@ -24,7 +24,7 @@ for row in json.loads((r/'docs/evidence/region-entry-receiving-816/receiver-proj
  after=row['after'].replace('let under = validate_place(function, place, storage, leaves)?;','let under = helpers::validate_place(function, place, storage, leaves, budget)?;');assert current.count(after)==1
  assert (r/'src/cleanup_plan/replay.rs').read_text().count(before)==1
 # The independent old six-field adapter is preserved verbatim, including both new child arms.
-src='src/cleanup_plan/replay/semantic_refusal/tests.rs';old=subprocess.check_output(['git','show',rows[0]['basis']+':'+src],text=True);now=(r/src).read_text();start=old.index('fn complete_original_legacy(');end=old.index('\n#[test]',start);assert old[start:end] in now
+src='src/cleanup_plan/replay/semantic_refusal/tests.rs';old=subprocess.check_output(['git','show',rows[0]['basis']+':'+src],text=True);now=(r/src).read_text();start=old.index('fn complete_original_legacy(');end=old.index('\n#[test]',start);adapter = '        Atom::SelectedCall(kind) => kind.detail().to_owned(),\n        Atom::UnknownCallCallee(callee) => format!("call commit has unknown callee `{callee}`"),\n';assert now.count(adapter)==1;assert old[start:end] in now.replace(adapter,'',1)
 for f in ['tests/hir_module_boundaries.rs','tests/workspace/semantic_graph/source_inventory.rs','crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs']:
  s=(r/f).read_text()
  for path in [row['source'] for row in rows[:6]]:assert s.count(path)==1,(f,path)

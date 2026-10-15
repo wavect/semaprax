@@ -684,7 +684,7 @@
       "harness": "test:workspace",
       "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
       "source": "tests/workspace/semantic_graph.rs",
-      "source_sha256": "4af44d68c4988c4b042a6e7b08ad5aa6f6e6f726953c0858a9e4e65ca35b497a",
+      "source_sha256": "910cc41a86fb254e3aa36e2708b109ec91f7a309dd64aac051854cbf5806abab",
       "source_binding": {
         "source_path": "tests/workspace/semantic_graph.rs",
         "line": 358,
@@ -702,7 +702,7 @@
             ]
           }
         ],
-        "sha256": "4af44d68c4988c4b042a6e7b08ad5aa6f6e6f726953c0858a9e4e65ca35b497a",
+        "sha256": "910cc41a86fb254e3aa36e2708b109ec91f7a309dd64aac051854cbf5806abab",
         "ignored": false
       },
       "status": "SOURCE_AUTHORED_UNEXECUTED",

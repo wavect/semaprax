@@ -261,7 +261,7 @@ fn directory<T>(count: usize, owner: &mut Receiver) -> Result<Vec<T>, Failure> {
 
 #[cfg(test)]
 mod directory_tests {
-    use super::*;
+    use super::{Failure, Receiver, directory};
     use crate::bounded_output::with_limit_usage_refusal;
     use crate::test_allocation_observer::{current_metrics, measure};
     use crate::workspace_graph::constructor_failure::receiving::Setup;

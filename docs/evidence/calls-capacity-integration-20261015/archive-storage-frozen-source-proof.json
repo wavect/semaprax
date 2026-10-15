@@ -1,0 +1,15 @@
+{
+  "status": "SOURCE_ONLY_FROZEN",
+  "basis": "cb7aeb1a12e11306ebf01ac08abca4008f6fa792",
+  "existing_tracked_changes_only": {
+    "raw_new_conflict_payloads_replaced_by_gzip": 495,
+    "new_retained_verifier": 1,
+    "storage_readme": 1
+  },
+  "production_sources_changed": 0,
+  "existing_original_archives_changed": 0,
+  "active_67_packet_inverse_hooks_changed": 0,
+  "old_retained_side_manifests_and_SHA_claims_changed": 0,
+  "runtime": "UNEXECUTED",
+  "all_old_side_manifest_and_prior_2079_row_proof_bytes_equal_cb7a": true
+}

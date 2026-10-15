@@ -1,0 +1,44 @@
+[
+  {
+    "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "incoming_revision": "70ca4fce5d0b6df7f42a660e5db1b6bcc4c45cf2",
+    "base_sha256": "1a8c3702946b2390cbb299560c5700fa86904d9558c600c74be36a5beaeb6f7b",
+    "root_sha256": "5f7890ef86cdf7b437a1a4da9a9087bb12477217224de9cc4b61a079af64a205",
+    "incoming_sha256": "b41af293562da4ed8338bf6d2b5d77643144dd647643ee10d53883640bdbd31a"
+  },
+  {
+    "path": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+    "incoming_revision": "70ca4fce5d0b6df7f42a660e5db1b6bcc4c45cf2",
+    "base_sha256": "db2e716e8d16270cd6b32d9088a5523a258a7a36aec79440d5c3e9d3798832d2",
+    "root_sha256": "df514aebc42b33262e9d7f719d6abe04834980d74015eb4bcdf8a35064ed00eb",
+    "incoming_sha256": "099b2f52d8667a8a99fc3a25d3e2f4e5b81a19b30a4758777f365f728d61efbb"
+  },
+  {
+    "path": "src/cleanup_plan/replay/selected_entry/tests/session_errors.rs",
+    "incoming_revision": "70ca4fce5d0b6df7f42a660e5db1b6bcc4c45cf2",
+    "base_sha256": "e622bd82c61a6ed837094c890e753ebdf0f753de15fcc1aca6c70f278aa6ff11",
+    "root_sha256": "2ab49aae028543f79fe1cfd03dd72745d25f717d22823fd5e035ece0c4a19403",
+    "incoming_sha256": "1553f56f4040efffe395d3a203a7e8790cccebc437a5fbd9e86f5d256735d571"
+  },
+  {
+    "path": "src/cleanup_plan/replay/semantic_refusal.rs",
+    "incoming_revision": "70ca4fce5d0b6df7f42a660e5db1b6bcc4c45cf2",
+    "base_sha256": "d51e7c1c6e5e84c6be8a1d27db2eb0f2979f523a50cae7c085e37d049d21f952",
+    "root_sha256": "cd3bf1dd74e6c81f46651d73af47f1b37ed4eb50619ce38f8efbc2bad8e725b0",
+    "incoming_sha256": "58a566c9f69f5815c685bfeee98c43af2b3aacbbbfc91ec3a2fd919ee77225bf"
+  },
+  {
+    "path": "tests/hir_module_boundaries.rs",
+    "incoming_revision": "70ca4fce5d0b6df7f42a660e5db1b6bcc4c45cf2",
+    "base_sha256": "58f43d91ac84394cbd44c824f63f1859bd73e5249e6e25bd6a64737e0eab9298",
+    "root_sha256": "3f4b46977c03a8d2d09a3a67cdf85a9e28d03515a11da2294aa1902c11724f37",
+    "incoming_sha256": "41c012a417caad75657a0d4d6dc52cc0449476562958aa568969ee333f0e7933"
+  },
+  {
+    "path": "tests/workspace/semantic_graph/source_inventory.rs",
+    "incoming_revision": "70ca4fce5d0b6df7f42a660e5db1b6bcc4c45cf2",
+    "base_sha256": "54501ea392f1f9ed29538bd68117caa464c14679d8b459e068e4e714142225df",
+    "root_sha256": "2afaf5e35105f1b418797e26cc9df990be08a4a9b4ee3dba7fced0c827b2fd21",
+    "incoming_sha256": "8c1a91239045721d61b48062bb9132f17e6485f1ffb25d41fc8209e7dade9a81"
+  }
+]

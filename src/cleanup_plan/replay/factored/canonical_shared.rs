@@ -219,7 +219,10 @@ impl<'a> Canonicalizer<'a> {
             }
             let mut closure = ordered_weights::OrderedWeights::new();
             if !state.moves.is_empty() || node == self.sink {
-                closure.insert_new(function, budget, node, 1_u64)?;
+                if closure.needs_capacity() {
+                    closure.grow(function, budget)?;
+                }
+                closure.insert_prepaid(node, 1_u64);
             }
             for target in &state.epsilon {
                 let Some(inner) = self.closures.get(target) else {
@@ -228,7 +231,10 @@ impl<'a> Canonicalizer<'a> {
                 for (inner_node, routes) in inner.iter() {
                     budget.charge(function, 1, "factored closure route addition")?;
                     if closure.get(inner_node).is_none() {
-                        closure.insert_new(function, budget, *inner_node, 0_u64)?;
+                        if closure.needs_capacity() {
+                            closure.grow(function, budget)?;
+                        }
+                        closure.insert_prepaid(*inner_node, 0_u64);
                     }
                     let slot = closure
                         .get_mut(inner_node)
@@ -308,7 +314,10 @@ impl<'a> Canonicalizer<'a> {
                     };
                     budget.charge(function, 1, "factored weighted route addition")?;
                     if closed.get(inner).is_none() {
-                        closed.insert_new(function, budget, *inner, 0_u64)?;
+                        if closed.needs_capacity() {
+                            closed.grow(function, budget)?;
+                        }
+                        closed.insert_prepaid(*inner, 0_u64);
                     }
                     *closed.get_mut(inner).expect("inserted ordered weight") = sum;
                 }

@@ -11,15 +11,15 @@ fn fixture() -> ResolvedFunction {
 fn invariant(weights: &OrderedWeights) {
     fn walk(
         weights: &OrderedWeights,
-        at: usize,
-        parent: usize,
+        at: Link,
+        parent: Link,
         low: Option<usize>,
         high: Option<usize>,
     ) -> (usize, u8) {
         if at == NONE {
             return (0, 0);
         }
-        let node = &weights.nodes[at];
+        let node = &weights.nodes[at as usize];
         assert_eq!(node.parent, parent);
         assert!(low.is_none_or(|low| low < node.key));
         assert!(high.is_none_or(|high| node.key < high));
@@ -29,10 +29,20 @@ fn invariant(weights: &OrderedWeights) {
         assert!(lh.abs_diff(rh) <= 1);
         (left + right + 1, node.height)
     }
+    if weights.used == 1 && weights.nodes.is_empty() {
+        assert_eq!(weights.len(), 1);
+        assert!(weights.nodes.is_empty());
+        assert_eq!(weights.root, NONE);
+        return;
+    }
     assert_eq!(
         walk(weights, weights.root, NONE, None, None).0,
         weights.len()
     );
+    for node in &weights.nodes[weights.used..] {
+        assert_eq!(node.height, 0);
+        assert_eq!((node.left, node.right, node.parent), (NONE, NONE, NONE));
+    }
 }
 
 #[test]
@@ -55,9 +65,10 @@ fn ordered_arena_all_rotations_numeric_extremes_and_dense_permutations_match_btr
         let mut old = BTreeMap::new();
         for key in keys {
             let value = (key as u64).wrapping_mul(17);
-            weights
-                .insert_new(&function, &mut budget, key, value)
-                .unwrap();
+            if weights.needs_capacity() {
+                weights.grow(&function, &mut budget).unwrap();
+            }
+            weights.insert_prepaid(key, value);
             old.insert(key, value);
             invariant(&weights);
             assert!(weights.iter().eq(old.iter()));
@@ -93,17 +104,20 @@ fn observe(
             let mut complete = true;
             for key in keys {
                 let previous = weights.len();
-                if let Err(error) = weights.insert_new(function, &mut budget, *key, 1) {
-                    assert_eq!(error.code, "SPX-H006");
-                    assert_eq!(weights.len(), previous);
-                    drop(error);
-                    let stopped = current_metrics().allocated;
-                    assert!(weights.insert_new(function, &mut budget, *key, 1).is_err());
-                    assert_eq!(current_metrics().allocated, stopped);
-                    assert_eq!(weights.len(), previous);
-                    complete = false;
-                    break;
+                if weights.needs_capacity() {
+                    if let Err(error) = weights.grow(function, &mut budget) {
+                        assert_eq!(error.code, "SPX-H006");
+                        assert_eq!(weights.len(), previous);
+                        drop(error);
+                        let stopped = current_metrics().allocated;
+                        assert!(weights.grow(function, &mut budget).is_err());
+                        assert_eq!(current_metrics().allocated, stopped);
+                        assert_eq!(weights.len(), previous);
+                        complete = false;
+                        break;
+                    }
                 }
+                weights.insert_prepaid(*key, 1);
             }
             let stopped = current_metrics().allocated;
             drop(weights);
@@ -166,58 +180,148 @@ fn ordered_arena_each_growth_zero_exact_short_keeps_actual_allocation_separate_a
 }
 
 #[test]
-fn ordered_insertion_all_three_receiving_results_are_paid_even_without_growth() {
+fn ordered_growth_receiving_and_initializers_are_paid_then_warm_insertion_constructs_no_result() {
     let function = fixture();
     assert_eq!(
-        OrderedWeights::INSERT_CONTROLS,
-        3 * std::mem::size_of::<Result<(), Diagnostic>>() + std::mem::size_of::<Node>()
+        OrderedWeights::GROW_CONTROLS,
+        4 * size_of::<Result<(), Diagnostic>>()
     );
+    assert!(MAX_KEYS <= MAX_SLOTS && MAX_SLOTS < u32::MAX as usize);
     let mut probe = ReplayBudget::with_physical(&function, usize::MAX).unwrap();
     probe
         .reserve_bytes(&function, OrderedWeights::CONTROLS, "ordered formula owner")
         .unwrap();
     let mut weights = OrderedWeights::new();
-    let before = probe.physical.as_ref().unwrap().charged();
-    weights.insert_new(&function, &mut probe, 0, 7).unwrap();
     let prefix = probe.physical.as_ref().unwrap().charged();
+    let ((), physical) = measure(|| weights.insert_prepaid(0, 7));
+    assert_eq!(physical.allocated, 0);
+    assert_eq!(probe.physical.as_ref().unwrap().charged(), prefix);
+    assert!(weights.used == 1 && weights.nodes.is_empty());
+    weights.grow(&function, &mut probe).unwrap();
+    let growth = probe.physical.as_ref().unwrap().charged() - prefix;
     assert_eq!(
-        prefix - before,
-        OrderedWeights::INSERT_CONTROLS + weights.nodes.capacity() * std::mem::size_of::<Node>()
+        growth,
+        OrderedWeights::GROW_CONTROLS + 2 * weights.nodes.len() * size_of::<Node>()
     );
     let capacity = weights.nodes.capacity();
-    assert!(capacity > weights.len());
-    let at = probe.physical.as_ref().unwrap().charged();
-    weights
-        .insert_new(&function, &mut probe, usize::MAX, 11)
-        .unwrap();
+    let paid = probe.physical.as_ref().unwrap().charged();
+    let ((), physical) = measure(|| weights.insert_prepaid(usize::MAX, 11));
+    assert_eq!(physical.allocated, 0);
+    assert_eq!(probe.physical.as_ref().unwrap().charged(), paid);
     assert_eq!(weights.nodes.capacity(), capacity);
-    assert_eq!(
-        probe.physical.as_ref().unwrap().charged() - at,
-        3 * std::mem::size_of::<Result<(), Diagnostic>>() + std::mem::size_of::<Node>()
-    );
+    invariant(&weights);
     for remaining in [
         0,
-        OrderedWeights::INSERT_CONTROLS - 1,
-        OrderedWeights::INSERT_CONTROLS,
+        OrderedWeights::GROW_CONTROLS - 1,
+        OrderedWeights::GROW_CONTROLS,
+        growth - 1,
+        growth,
     ] {
         let mut budget = ReplayBudget::with_physical(&function, prefix + remaining).unwrap();
         budget
             .reserve_bytes(&function, OrderedWeights::CONTROLS, "ordered formula owner")
             .unwrap();
         let mut weights = OrderedWeights::new();
-        weights.insert_new(&function, &mut budget, 0, 7).unwrap();
-        let (result, physical) =
-            measure(|| weights.insert_new(&function, &mut budget, usize::MAX, 11));
-        assert_eq!(result.is_ok(), remaining == OrderedWeights::INSERT_CONTROLS);
-        assert_eq!(physical.allocated, 0);
+        weights.insert_prepaid(0, 7);
+        let result = weights.grow(&function, &mut budget);
+        assert_eq!(result.is_ok(), remaining == growth);
+        assert_eq!(weights.len(), 1);
         assert_eq!(weights.get(&0), Some(&7));
-        assert_eq!(
-            weights.get(&usize::MAX),
-            if remaining == OrderedWeights::INSERT_CONTROLS {
-                Some(&11)
-            } else {
-                None
+        if result.is_ok() {
+            assert_eq!(weights.nodes.len(), capacity);
+            assert_eq!(weights.nodes.capacity(), capacity);
+            weights.insert_prepaid(usize::MAX, 11);
+            assert_eq!(weights.get(&usize::MAX), Some(&11));
+            invariant(&weights);
+        } else {
+            drop(result);
+            assert_eq!(
+                weights.root, NONE,
+                "refused promotion never publishes an arena root"
+            );
+            assert!(weights.nodes.is_empty());
+            assert!(weights.iter().eq(std::iter::once((&0, &7))));
+            if remaining == growth - 1 {
+                assert_eq!(
+                    weights.nodes.capacity(),
+                    capacity,
+                    "backing acquisition precedes the refused empty-node initializer payment"
+                );
             }
-        );
+            let at = current_metrics().allocated;
+            assert!(weights.grow(&function, &mut budget).is_err());
+            assert_eq!(current_metrics().allocated, at);
+            assert_eq!(weights.get(&0), Some(&7));
+            assert!(weights.iter().eq(std::iter::once((&0, &7))));
+        }
     }
+    // Repeat the initializer refusal after a real AVL arena is already live.
+    let arena_prefix = probe.physical.as_ref().unwrap().charged();
+    let next_backing = 2 * capacity * size_of::<Node>();
+    let next_initializers = capacity * size_of::<Node>();
+    let next_growth = OrderedWeights::GROW_CONTROLS + next_backing + next_initializers;
+    for remaining in [
+        0,
+        OrderedWeights::GROW_CONTROLS - 1,
+        OrderedWeights::GROW_CONTROLS + next_backing,
+        next_growth - 1,
+        next_growth,
+    ] {
+        let mut budget = ReplayBudget::with_physical(&function, arena_prefix + remaining).unwrap();
+        budget
+            .reserve_bytes(&function, OrderedWeights::CONTROLS, "ordered formula owner")
+            .unwrap();
+        let mut weights = OrderedWeights::new();
+        weights.insert_prepaid(0, 7);
+        weights.grow(&function, &mut budget).unwrap();
+        weights.insert_prepaid(usize::MAX, 11);
+        let root = weights.root;
+        let left_height = weights.nodes[0].height;
+        let second_parent = weights.nodes[1].parent;
+        let result = weights.grow(&function, &mut budget);
+        assert_eq!(result.is_ok(), remaining == next_growth);
+        assert_eq!(weights.len(), 2);
+        assert_eq!(weights.root, root);
+        assert_eq!(weights.nodes[0].height, left_height);
+        assert_eq!(weights.nodes[1].parent, second_parent);
+        assert!(
+            weights.iter().eq([(0, 7), (usize::MAX, 11)]
+                .iter()
+                .map(|(key, weight)| (key, weight)))
+        );
+        if result.is_err() {
+            drop(result);
+            assert_eq!(weights.nodes.len(), capacity);
+            if remaining >= OrderedWeights::GROW_CONTROLS + next_backing {
+                assert_eq!(weights.nodes.capacity(), 2 * capacity);
+            }
+            assert!(weights.grow(&function, &mut budget).is_err());
+            assert_eq!(weights.root, root);
+            assert!(
+                weights.iter().eq([(0, 7), (usize::MAX, 11)]
+                    .iter()
+                    .map(|(key, weight)| (key, weight)))
+            );
+        }
+        invariant(&weights);
+    }
+}
+
+#[test]
+fn ordered_private_index_growth_refuses_before_allocation_or_mutation() {
+    let function = fixture();
+    let mut budget = ReplayBudget::with_physical(&function, usize::MAX).unwrap();
+    budget
+        .reserve_bytes(&function, OrderedWeights::CONTROLS, "ordered hostile owner")
+        .unwrap();
+    let mut weights = OrderedWeights::new();
+    weights.used = MAX_KEYS; // Deliberate private metadata corruption, no huge allocation.
+    let (result, physical) = measure(|| weights.grow(&function, &mut budget));
+    let error = result.unwrap_err();
+    assert_eq!(error.code, "SPX-H006");
+    assert!(error.message.contains("ordered arena index bound exceeded"));
+    assert_eq!(weights.used, MAX_KEYS);
+    assert_eq!(weights.nodes.capacity(), 0);
+    assert!(weights.nodes.is_empty());
+    assert_eq!(physical.allocated, 0);
 }

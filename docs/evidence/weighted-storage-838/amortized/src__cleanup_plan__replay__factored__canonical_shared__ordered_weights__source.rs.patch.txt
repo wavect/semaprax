@@ -1,0 +1,26 @@
+--- checkpoint/src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/source.rs
++++ amortized/src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/source.rs
+@@ -1,6 +1,6 @@
+ //! Full immediate source custody in both directions; no excluded interiors.
+-fn apply(source: &str, patch: &str, reverse: bool) -> String {
++pub(super) fn apply(source: &str, patch: &str, reverse: bool) -> String {
+     let mut input = source.split_inclusive('\n');
+     let mut output = String::new();
+     let mut consumed = 0usize;
+     let mut in_hunk = false;
+@@ -52,13 +52,13 @@
+ #[test]
+ fn ordered_complete_immediate_sources_round_trip_in_both_directions() {
+     macro_rules! bind {
+         ($current:literal, $old:literal, $patch:literal) => {{
+-            let current = include_str!($current);
++            let current = super::amortized_source::checkpoint($current, include_str!($current));
+             let old = include_str!($old);
+             let patch = include_str!($patch);
+             assert_eq!(apply(old, patch, false), current);
+-            assert_eq!(apply(current, patch, true), old);
++            assert_eq!(apply(&current, patch, true), old);
+         }};
+     }
+     // Bind full current files and their complete immediate predecessor bytes.
+     bind!(

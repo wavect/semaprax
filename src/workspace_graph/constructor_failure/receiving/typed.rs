@@ -55,6 +55,42 @@ impl Receiver {
         self.reserve(0)?;
         Ok(text)
     }
+    /// The old structural checked_usage cap is a logical verdict, not a
+    /// physical reservation receipt. Keep its original captured maximum and
+    /// first Setup inline without inventing a sticky ledger refusal.
+    pub(in crate::workspace_graph) fn limit(&mut self) -> Setup {
+        if let Err(first) = self.reserve(0) {
+            return first;
+        }
+        let first = Setup::Budget {
+            maximum: self.maximum,
+        };
+        self.first = Some(first);
+        first
+    }
+    pub(in crate::workspace_graph) fn sum(
+        &mut self,
+        used: usize,
+        additional: usize,
+    ) -> Result<usize, Setup> {
+        self.reserve(
+            size_of::<Result<usize, Setup>>()
+                + size_of::<Option<usize>>()
+                + 2 * size_of::<usize>()
+                + size_of::<&mut Self>(),
+        )?;
+        let next = used.checked_add(additional);
+        if let Some(next) = next {
+            if next <= self.maximum {
+                return Ok(next);
+            }
+        }
+        let first = Setup::Budget {
+            maximum: self.maximum,
+        };
+        self.first = Some(first);
+        Err(first)
+    }
     pub(in crate::workspace_graph) fn physical(&mut self) -> Setup {
         if let Some(first) = self.first {
             return first;

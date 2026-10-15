@@ -1,14 +1,15 @@
 //! Complete overlay walk; only default and directory refusal custody changes.
+#[path = "typed_cost.rs"]
+mod typed_cost;
 use super::{
-    AuthoredDeclaration, LayoutRegistry, StructuralCost, alias_clone, ast_function_cost,
-    ast_function_signature_cost, ast_type_declaration_cost, budgeted_format, eligible, graph_error,
-    import_stub, iterative, pay_default_teardown, pay_signature, pay_teardown,
-    pay_teardown_minimum, pay_type, refusal, type_rewrite,
+    AuthoredDeclaration, LayoutRegistry, alias_clone, budgeted_format, eligible, graph_error,
+    import_stub, iterative, refusal, type_rewrite,
 };
 use crate::ast::program_source::{SyntheticProgramView, generated_roots::GeneratedRoots};
 use crate::ast::{Expr, ExprKind, Function, ModuleUseKind, Program, Type, TypeDeclaration};
 use crate::workspace_graph::constructor_failure::{receiving::Receiver, typed::Failure};
 use std::collections::BTreeMap;
+use typed_cost::{pay_default_teardown, pay_signature, pay_teardown_minimum, pay_type};
 
 pub(in crate::workspace_graph) fn construct_using<'p, 'a>(
     program: &'p Program,
@@ -37,7 +38,7 @@ pub(in crate::workspace_graph) fn construct_using<'p, 'a>(
         .ok_or_else(refusal)?;
     let recursive = iterative(program, authored);
     if recursive {
-        pay_teardown_minimum()?;
+        pay_teardown_minimum(owner)?;
     }
     owner.reserve(std::mem::size_of::<GeneratedRoots>())?;
     let mut roots = if recursive {
@@ -53,11 +54,9 @@ pub(in crate::workspace_graph) fn construct_using<'p, 'a>(
     {
         let target = &authored[import.persistent_id.as_str()];
         let declaration = target.ty.expect("validated type target");
-        pay_type(declaration)?;
+        pay_type(declaration, owner)?;
         if recursive {
-            let mut cost = StructuralCost::raw_ast(true).with_inline_values(true);
-            ast_type_declaration_cost(declaration, &mut cost)?;
-            pay_teardown(&cost)?;
+            typed_cost::teardown_type(declaration, owner)?;
         }
         types.push(alias_clone::type_payload(declaration));
         let copy = types.last_mut().expect("inserted type");
@@ -73,11 +72,9 @@ pub(in crate::workspace_graph) fn construct_using<'p, 'a>(
     }
     // Preserve the independent closure's exact order after explicit aliases.
     for entry in &layout.entries {
-        pay_type(entry.declaration)?;
+        pay_type(entry.declaration, owner)?;
         if recursive {
-            let mut cost = StructuralCost::raw_ast(true).with_inline_values(true);
-            ast_type_declaration_cost(entry.declaration, &mut cost)?;
-            pay_teardown(&cost)?;
+            typed_cost::teardown_type(entry.declaration, owner)?;
         }
         types.push(alias_clone::type_payload(entry.declaration));
         let copy = types.last_mut().expect("inserted private type");
@@ -148,16 +145,11 @@ pub(in crate::workspace_graph) fn construct_using<'p, 'a>(
                     || crate::box_ops::source_wrapper(provider, original).is_some()
             });
         if retain_body {
-            let mut cost = StructuralCost::raw_ast(true).with_inline_values(true);
-            ast_function_cost(original, &mut cost)?;
-            owner.reserve(cost.total)?;
-            pay_teardown(&cost)?;
+            typed_cost::teardown_function(original, true, owner)?;
         } else {
-            pay_signature(original)?;
+            pay_signature(original, owner)?;
             if recursive {
-                let mut cost = StructuralCost::raw_ast(true).with_inline_values(true);
-                ast_function_signature_cost(original, &mut cost)?;
-                pay_teardown(&cost)?;
+                typed_cost::teardown_function(original, false, owner)?;
             }
         }
         let function = if retain_body {
@@ -188,7 +180,7 @@ pub(in crate::workspace_graph) fn construct_using<'p, 'a>(
             Some(&layout),
         )?;
         if recursive {
-            pay_default_teardown(&function.return_type, &type_index)?;
+            pay_default_teardown(&function.return_type, &type_index, owner)?;
         }
         function.body = import_stub::typed::default_expr(
             function,

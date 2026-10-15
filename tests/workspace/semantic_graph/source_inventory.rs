@@ -197,6 +197,7 @@ include_str!("../../src/workspace_graph/expected_projection/defaults/typed.rs"),
 include_str!("../../src/workspace_graph/expected_projection/defaults/typed_fields.rs"),
 include_str!("../../src/workspace_graph/expected_projection/import_stub/typed.rs"),
 include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/typed.rs"),
+include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs"),
 include_str!("../../src/workspace_graph/constructor_failure/attempt.rs"),
 include_str!("../../src/workspace_graph/constructor_failure/report.rs"),
 include_str!("../../src/workspace_graph/constructor_failure/report/stages.rs"),
@@ -534,6 +535,7 @@ macro_rules! semantic_graph_projection_child_source_inventory {
     (cost) => {
         concat!(
             include_str!("../../src/workspace_graph/expected_projection/cost.rs"),
+            include_str!("../../src/workspace_graph/expected_projection/cost/constructor.rs"),
             include_str!(
                 "../../src/workspace_graph/expected_projection/cost/generic_rewrite_test_bridge.rs"
             ),

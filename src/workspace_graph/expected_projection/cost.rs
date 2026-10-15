@@ -980,3 +980,6 @@ mod uncached_absence_tests;
 #[cfg(test)]
 #[path = "cost/generic_rewrite_test_bridge.rs"]
 pub(in crate::workspace_graph) mod generic_rewrite_test_bridge;
+
+#[path = "cost/constructor.rs"]
+pub(in crate::workspace_graph) mod constructor;

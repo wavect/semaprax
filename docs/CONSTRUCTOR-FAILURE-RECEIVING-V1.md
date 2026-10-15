@@ -82,3 +82,43 @@ complete immediate source inverses. They have not run. Structural-cost/census,
 checked count arithmetic, registry/layout derivation, rewrite/provider and
 public/no-owner outward producers remain explicit residuals. This successor makes
 no runtime, savings, application-fit or whole-constructor funding claim.
+
+
+## Typed raw-cost and default-teardown census successor
+
+The actual overlay now uses separately compiled typed copies of the complete raw
+field/type/signature/function/expression/pattern visitors, accumulator formulas,
+and recursive expanded-default teardown census. Original visitors, accumulators
+and geometric teardown payments remain independently compiled. All 15 raw cost
+and identity/storage census fields keep their formulas and update order; the
+fourfold teardown census and original once-per-worklist minimum are unchanged.
+
+The same original affine Receiver pays actual returned controls, borrowed
+arguments, accumulator and census initializer storage before traversal, then
+pays the original raw clone/teardown backing before acquisition. Sized references
+are measured from actual arguments; borrowed str/slice arguments retain their
+fat-pointer layout. These controls are new cumulative debits, with no refund,
+old-layout credit, guessed replacement fee, work-unit change or cap increase.
+
+A logical checked-cost overflow or maximum breach keeps the original captured
+maximum inline and selects no invented physical sticky receipt: the original
+checked_usage also returned its semantic cap error without reserving. Actual
+reservation failure retains the ledger's original first receipt. Both paths
+retain the Receiver's first Setup and original owner authentication. They
+propagate to the existing attempt/report owner without a helper Diagnostic or
+error Vec. Logical-only Setup still reaches the explicitly allocating old public
+adapter, which preserves the old six-field G171 value; this successor does not
+fund or adopt a new outward API.
+
+Source-authored controls compare all 15 cost fields over the complete std
+collection/memory source visitors plus scalar/control/type fixtures, whole Drop,
+every byte frontier of the retained-function cost/payment chain, sticky retry,
+foreign/restored association and logical-only cap compatibility without a fake
+receipt. Existing complete old/core/overlay/report controls remain required and
+unexecuted in this packet. The source audits join both new children.
+
+Registry/layout derivation and its scoped ledger, structural prebound consumers
+outside this actual constructor chain, alias/type rewriting, provider-internal
+producers, checked overlay count arithmetic and public/no-owner compatibility
+remain real residuals. No savings, runtime, application-fit, full-constructor
+funding or OPT825 closure is claimed.

@@ -1,0 +1,11 @@
+{
+  "source": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+  "complete": true,
+  "actual": 175,
+  "PASS": 135,
+  "FAIL": 40,
+  "all_logs_authenticated": true,
+  "all_owned_groups_empty": true,
+  "resource_refusals": 0,
+  "owning_build_receipt_sha256": "90e37876f0737759b03104a0d6d8debff72166dfa2cca0a488a1bdef62ab6ac2"
+}

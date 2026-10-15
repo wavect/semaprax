@@ -1,0 +1,51 @@
+[
+  {
+    "receipt": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/clippy-production-result.json",
+    "receipt_sha256": "b878c57cbd5fa7c52b5c88396f129560f71da43ae5078947626df2b3a739ba4b",
+    "source": "7a87b33115c0cd45b14cac64d7b37e5742503159",
+    "exit_code": 0,
+    "command": [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "clippy",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--bin",
+      "semaprax",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "log": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/clippy-production.log",
+    "log_sha256": "db7bd05a70038f0624fd4a47665ecbd3e9d5a7a61324063ab90b58acc18ddfce"
+  },
+  {
+    "receipt": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/clippy-production-toolchain-full-cli-result.json",
+    "receipt_sha256": "b30ff161011e5605f67d360fb743e3a3943136bed799c3e189ad47902bff522b",
+    "source": "7a87b33115c0cd45b14cac64d7b37e5742503159",
+    "exit_code": 0,
+    "command": [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "clippy",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax-toolchain",
+      "--bin",
+      "semaprax-full",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "log": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/clippy-production-toolchain-full-cli.log",
+    "log_sha256": "8c138bc5497dc1f26da33678a79764d4f09bea9de35c77fe9768d82dbdda252e"
+  }
+]

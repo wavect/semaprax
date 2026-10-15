@@ -19,6 +19,17 @@ fn read_bound(path: &Path, maximum: usize) -> Result<Vec<u8>, NewProjectFailure>
     read_bound_with_hook(path, maximum, &|_| Ok(()))
 }
 
+fn selected_input_path(path: &Path) -> Result<PathBuf, NewProjectFailure> {
+    if path
+        .components()
+        .any(|part| matches!(part, std::path::Component::ParentDir))
+    {
+        return Err(failure("starter input parent traversal is not admitted"));
+    }
+    std::path::absolute(path)
+        .map_err(|error| failure(format!("cannot resolve starter input: {error}")))
+}
+
 fn read_bound_with_hook(
     path: &Path,
     maximum: usize,
@@ -114,7 +125,13 @@ fn run_with_input_hook(
         (Some(path), Some(file)) => Some(((*path).to_owned(), PathBuf::from(file))),
         _ => return Err(usage()),
     };
+    // Resolve each selected spelling once, without following input symlinks.
+    // Reject ParentDir before platform-specific absolute path normalization.
+    let plan_path = selected_input_path(&plan_path)?;
     let plan = read_bound_with_hook(&plan_path, 16_384, before_open)?;
+    let activation = activation
+        .map(|(path, file)| selected_input_path(&file).map(|file| (path, file)))
+        .transpose()?;
     let command_bytes = activation
         .as_ref()
         .map(|(_, file)| read_bound_with_hook(file, 131_072, before_open))

@@ -2,6 +2,11 @@
      distinct cold callers; full old receiver retained; qualification pending. -->
 # Changelog
 
+- Resolve explicitly selected starter plan and command-source paths once from
+  the full host's working directory, retaining all held no-follow reads and
+  prepublication rechecks. Add relative/absolute exact-byte and symlink-refusal
+  controls; source-only until focused qualification.
+
 - Bind fresh application plan/activation reads (#837) to the existing no-follow bounded held regular-file owner, closing inspection/open symlink and FIFO replacement races. Add deterministic pre-open swap controls and small independent typed native-test selector owners. Source-only correction; execution remains pending.
 
 - Author fresh application assembly (#837) from existing replayed codec plans and explicit command profiles through the original held-parent scaffold publisher. Bind canonical source/generation receipts and exact native routes; add an explicit pure typed v31 native-test successor while preserving old profile refusals. Full ShiftSim15/selected-file CLI49 and hostile-publication scenarios are authored; all executable qualification and the source-capacity dependency remain pending.

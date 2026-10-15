@@ -1,0 +1,15 @@
+{
+  "status": "SOURCE_ONLY_NO_EXECUTION",
+  "source_basis": "77f90da5e00d533e40714d42369daed90661156a",
+  "current_sha256": "45f64162922d8a06c23712a0e010cdc6f983df499909ae72bed191205723fb17",
+  "original_sha256": "ad18ce957412ea18523be2b02c9567085d5fccf82037fa536bd89b375cfc84e5",
+  "full_inverse_restores_git_original": true,
+  "only_test_file_changed": true,
+  "old_failure_assertions_and_rebuild_sequence_byte_exact": true,
+  "new_test_bodies": 0,
+  "scan_node_limit": 32768,
+  "scan_depth_limit": 64,
+  "json_pointer_byte_limit": 512,
+  "string_preview_scalar_limit": 80,
+  "production_sources_changed": false
+}

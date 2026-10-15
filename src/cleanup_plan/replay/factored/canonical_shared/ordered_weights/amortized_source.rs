@@ -19,7 +19,19 @@ pub(super) fn checkpoint(path: &str, source: &str) -> String {
 
 // Complete current input is authenticated before either historical patch hop.
 fn current40f(path: &str, current: &str) -> String {
-    let held = crate::cleanup_plan::replay::physical_budget::authentication::previous_include(path, current);
+    let observed = if path == "tests.rs" {
+        crate::source_reflows_merge::consumer_child(
+            "ordered838",
+            "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/tests.rs",
+            current,
+        )
+    } else {
+        current.to_owned()
+    };
+    let current = observed.as_str();
+    let held = crate::cleanup_plan::replay::physical_budget::authentication::previous_include(
+        path, current,
+    );
     let current = held.as_str();
     let merged = crate::source_reflows_merge::weighted(path, current);
     let current = merged.as_str();

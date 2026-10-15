@@ -613,7 +613,7 @@ impl SkeletonWork<'_, '_> {
     let start = original_builders.find("impl SkeletonWork").unwrap();
     let end = original_builders.find("#[cfg(test)]\nmod tests;").unwrap();
     assert!(saved.contains(&original_builders[start..end]));
-    let receiver_source = include_str!("tests.rs");
+    let receiver_source = ci_str!("tests.rs");
     assert_eq!(
         receiver_source
             .matches("Observations::union_for_test(old_members)")
@@ -639,7 +639,7 @@ impl SkeletonWork<'_, '_> {
             "work.charge_for_test(0, \"sticky ordinal work\")",
             "work.charge(0, \"sticky ordinal work\")",
         );
-    let storage_source = include_str!("../dag_storage/tests.rs");
+    let storage_source = ci_str!("../dag_storage/tests.rs");
     assert_eq!(
         storage_source
             .matches("drop(work.ordinary_scratch.take());")
@@ -653,7 +653,7 @@ impl SkeletonWork<'_, '_> {
             "../../../../../docs/evidence/ordinary-dag-drop/original-dag-storage-tests.txt"
         )
     );
-    let tails_source = include_str!("../dag_storage/tests/tail_moves.rs");
+    let tails_source = ci_str!("../dag_storage/tests/tail_moves.rs");
     assert_eq!(
         tails_source
             .matches("drop(work.ordinary_scratch.take());")

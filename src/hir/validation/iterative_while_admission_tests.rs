@@ -88,7 +88,15 @@ fn exact_512_nested_indexed_matches_validate_on_a_low_stack() {
         .name("indexed-match-admission-depth".to_owned())
         .stack_size(128 * 1024)
         .spawn(move || {
+            // Direct stderr survives libtest's captured-output loss on abort.
+            use std::io::Write;
+            std::io::stderr()
+                .write_all(b"indexed-depth: constructor\n")
+                .unwrap();
             let mut validator = HirValidator::new(&program).unwrap();
+            std::io::stderr()
+                .write_all(b"indexed-depth: constructor complete\n")
+                .unwrap();
             // `validate_function` authenticates borrowed slice parameters
             // before invoking this private admission pass. Recreate that
             // exact prerequisite because this focused test calls the pass
@@ -100,8 +108,17 @@ fn exact_512_nested_indexed_matches_validate_on_a_low_stack() {
                     projections: Vec::new(),
                 },
             );
+            std::io::stderr()
+                .write_all(b"indexed-depth: baseline\n")
+                .unwrap();
             validator.validate_while_admission(&baseline).unwrap();
+            std::io::stderr()
+                .write_all(b"indexed-depth: nested\n")
+                .unwrap();
             validator.validate_while_admission(&nested).unwrap();
+            std::io::stderr()
+                .write_all(b"indexed-depth: nested complete\n")
+                .unwrap();
             (program, nested)
         })
         .unwrap()

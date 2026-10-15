@@ -19,6 +19,81 @@ use sha2::{Digest, Sha256};
 
 use super::{proposal, Fixture};
 
+// Fatal-path diagnostics only: never serialize whole graph subtrees.
+fn first_graph_difference(warm: &Value, cold: &Value, skip_root_digest: bool) -> Value {
+    fn preview(value: Option<&Value>) -> Value {
+        match value {
+            None => json!("<missing>"),
+            Some(Value::String(value)) => json!({
+                "text_prefix": value.chars().take(80).collect::<String>(),
+                "utf8_bytes": value.len(),
+            }),
+            Some(Value::Array(value)) => json!({"array_length": value.len()}),
+            Some(Value::Object(value)) => json!({"object_fields": value.len()}),
+            Some(value) => value.clone(),
+        }
+    }
+    fn walk(
+        warm: Option<&Value>,
+        cold: Option<&Value>,
+        pointer: &str,
+        depth: usize,
+        remaining: &mut usize,
+        skip_root_digest: bool,
+    ) -> Option<Value> {
+        if depth == 64 || *remaining == 0 {
+            return Some(json!({"status": "scan_limit", "pointer": pointer}));
+        }
+        *remaining -= 1;
+        let mut child = |key: &str, warm, cold| {
+            // JSON Pointer escapes can double a key. Refuse before constructing
+            // an oversized path, and identify the bounded parent honestly.
+            if key.len() > (512usize.saturating_sub(pointer.len() + 1)) / 2 {
+                return Some(json!({"status": "pointer_limit", "pointer": pointer}));
+            }
+            let key = key.replace('~', "~0").replace('/', "~1");
+            walk(
+                warm,
+                cold,
+                &format!("{pointer}/{key}"),
+                depth + 1,
+                remaining,
+                skip_root_digest,
+            )
+        };
+        match (warm, cold) {
+            (Some(Value::Object(left)), Some(Value::Object(right))) => {
+                for key in left.keys().chain(right.keys().filter(|key| !left.contains_key(*key))) {
+                    if skip_root_digest && depth == 0 && key == "graph_digest" {
+                        continue;
+                    }
+                    if let Some(found) = child(key, left.get(key), right.get(key)) {
+                        return Some(found);
+                    }
+                }
+                None
+            }
+            (Some(Value::Array(left)), Some(Value::Array(right))) => {
+                for index in 0..left.len().max(right.len()) {
+                    if let Some(found) = child(&index.to_string(), left.get(index), right.get(index)) {
+                        return Some(found);
+                    }
+                }
+                None
+            }
+            _ if warm == cold => None,
+            _ => Some(json!({
+                "status": "different",
+                "pointer": pointer,
+                "warm": preview(warm),
+                "cold": preview(cold),
+            })),
+        }
+    }
+    walk(Some(warm), Some(cold), "", 0, &mut 32_768, skip_root_digest)
+        .unwrap_or_else(|| json!({"status": "equal"}))
+}
+
 fn assert_refused<T>(result: Result<T, Vec<Diagnostic>>) {
     let errors = result
         .err()
@@ -358,6 +433,8 @@ fn workspace_execution_retains_historical_generation_across_exact_refresh() {
                 "workspace_manifest_equal": warm.workspace_manifest() == candidate_project.workspace_manifest(),
                 "sources_equal": warm.sources() == candidate_project.sources(),
                 "graph_equal": warm.semantic_graph() == candidate_project.semantic_graph(),
+                "first_graph_difference": first_graph_difference(&warm_graph, &cold_graph, false),
+                "first_graph_content_difference": first_graph_difference(&warm_graph, &cold_graph, true),
                 "warm_graph_budget": warm_graph["budget"],
                 "cold_graph_budget": cold_graph["budget"],
                 "warm_graph_digest": warm_graph["graph_digest"],

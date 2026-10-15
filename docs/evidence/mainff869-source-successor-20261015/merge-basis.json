@@ -1,0 +1,24 @@
+{
+  "ours": "ae91fa963ecfe85f4cc830cda85fff2f5bdbe094",
+  "theirs": "ff869dd96ef97f179078c08fca098398be2d8e8e",
+  "merge_base": "7f9080f85316bf0e2e8f530cf4c5adbcda247c16",
+  "paths": [
+    "CHANGELOG.md",
+    "docs/AGENT-SKILL-BUNDLE-V1.json",
+    "docs/DECLARATION-IDENTITY-BACKING-V1.md",
+    "src/cleanup_plan/replay/path_join.rs",
+    "src/cleanup_plan/replay/path_join/storage.rs",
+    "src/cleanup_plan/replay/path_join/storage/atomic_controls.rs",
+    "src/cleanup_plan/replay/path_join/storage/atomic_controls/tests.rs",
+    "src/cleanup_plan/replay/path_join/storage/empty_renewals.rs",
+    "src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs",
+    "src/hir/borrowed_scalar/option_u8.rs",
+    "src/hir/owned_leaf_collection.rs",
+    "src/hir/static_text/backing.rs",
+    "src/hir/validation/generic_template/call_graph/ordered.rs",
+    "src/workspace_graph/identity_resolution.rs",
+    "tests/image_transport_v5/builtin_calls.rs"
+  ],
+  "snapshot_rows": 45,
+  "source_only": true
+}

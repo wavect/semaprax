@@ -364,6 +364,21 @@ fn complete_region_entry_and_four_variant_source_projections_restore_full_origin
         ),
         "f27fb4d28d71bb522bafb208a3da4bd8098ec61b5cca904f33d5d9858738b0e4"
     );
+    let current = ci_str!("../regions_entry.rs");
+    let later_helper = "helpers::validate_place(function, place, storage, leaves, budget)?";
+    assert_eq!(current.matches(later_helper).count(), 1);
+    let original_receiver = current.replacen(
+        later_helper,
+        "validate_place(function, place, storage, leaves)?",
+        1,
+    );
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(original_receiver.as_bytes()))
+        ),
+        "327237ebc01755438f25ff967fc327a3ffb4f9d6be2a2a54bad6a36803b7095b"
+    );
     let records: serde_json::Value = serde_json::from_str(ci_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/region-entry-receiving-816/exact-source-inverses.json"
@@ -415,6 +430,23 @@ fn complete_region_entry_and_four_variant_source_projections_restore_full_origin
             record["sha256"].as_str().unwrap()
         );
         let mut current = current.to_owned();
+        // The later status-prefix owner is a separate compiled child. Its
+        // registration adds no directory implementation to this frozen root.
+        if record["source"] == "src/cleanup_plan/replay/expression_facts/receiving/directory.rs" {
+            let registration = "\nmod status_prefix;\npub(super) use status_prefix::Owner as StatusInsertionOwner;\n";
+            assert!(current.ends_with(registration));
+            assert_eq!(current.matches(registration).count(), 1);
+            assert_eq!(
+                format!(
+                    "{:x}",
+                    crate::digest_hex::LowerHex(Sha256::digest(
+                        include_str!("../directory/status_prefix.rs").as_bytes()
+                    ))
+                ),
+                "914e1a78079f871cb37462414b1991cde6722e78b7af39cb7979e11f16f767e9"
+            );
+            current.truncate(current.len() - registration.len());
+        }
         for edit in record["edits"].as_array().unwrap().iter().rev() {
             let after = edit["after"].as_str().unwrap();
             assert_eq!(current.matches(after).count(), 1);
@@ -447,12 +479,15 @@ fn complete_region_entry_and_four_variant_source_projections_restore_full_origin
             record["sha256"].as_str().unwrap()
         );
         assert_eq!(record["before"].as_str().unwrap(), original);
+        let after = record["after"].as_str().unwrap();
+        assert_eq!(original_receiver.matches(after).count(), 1);
         // The moved entry receiver explicitly qualifies its existing helper;
         // restore that recorded relocation adapter before checking the full body.
         let after = record["after"].as_str().unwrap().replace(
             "let under = validate_place(function, place, storage, leaves)?;",
             "let under = helpers::validate_place(function, place, storage, leaves, budget)?;",
         );
+
         assert_eq!(
             include_str!("../regions_entry.rs")
                 .matches(after.as_str())

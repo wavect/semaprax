@@ -19,7 +19,7 @@ fn controls_bytes() -> usize {
     2 * size_of::<Payload<'_>>() + size_of::<Result<Payload<'_>, Diagnostic>>()
 }
 
-fn clone_leaf(ty: &ResolvedType) -> bool {
+pub(super) fn clone_leaf(ty: &ResolvedType) -> bool {
     matches!(
         ty,
         ResolvedType::Never
@@ -151,4 +151,4 @@ pub(in crate::cleanup_plan::replay::path_join) fn copy(payload: Payload<'_>) -> 
 }
 
 #[cfg(test)]
-mod tests;
+pub(super) mod tests;

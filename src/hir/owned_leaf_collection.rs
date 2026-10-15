@@ -1,7 +1,7 @@
 //! Authenticated, target-neutral layout of the additive owned-leaf Vec slice.
 //!
 //! This descriptor does not widen the frozen two-Bytes record predicate or
-//! primitive Vec<Bytes> operation set. Call sites choose admission separately.
+//! primitive `Vec<Bytes>` operation set. Call sites choose admission separately.
 use super::{
     DeclarationIndex, DeclarationKind, IdentityOrigin, ResolvedFieldDeclaration, ResolvedType,
 };

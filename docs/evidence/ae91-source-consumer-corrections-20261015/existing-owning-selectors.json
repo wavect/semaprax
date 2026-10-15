@@ -1,0 +1,49 @@
+{
+  "source_only": true,
+  "new_bodies": 0,
+  "actual_previous_failures": [
+    {
+      "harness": "semaprax::workspace",
+      "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+      "exit_code": 101,
+      "log_sha256": "b1cda8152223f524e82b1064cb9d2f2f6a7ba1c5478fa1995181b078ad5d5820",
+      "source_subject": "ae91fa963ecfe85f4cc830cda85fff2f5bdbe094"
+    },
+    {
+      "harness": "semaprax::lib",
+      "selector": "workspace_graph::generic_type_import::receiving::tests::typed_declaration_foreign_restored_owner_keeps_unchanged_ast_and_sticky_detachment",
+      "exit_code": 101,
+      "log_sha256": "e68bb63f2c57dd1f3f3ab45d45b95081969043c465afb7b29de13f708bcb73bf",
+      "source_subject": "ae91fa963ecfe85f4cc830cda85fff2f5bdbe094"
+    },
+    {
+      "harness": "semaprax::lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::complete_old_registry_census_derivation_and_current_scratch_sources_remain_bound",
+      "exit_code": 101,
+      "log_sha256": "d89bbd8a26c99ea7a3a434a0c0402132aed600e36f190373eccfc229648cc30f",
+      "source_subject": "ae91fa963ecfe85f4cc830cda85fff2f5bdbe094"
+    },
+    {
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::ordered_weights::amortized_source::ordered_amortized_checkpoint_full_sources_and_inverses_are_exact",
+      "exit_code": 101,
+      "log_sha256": "eb186c3f041477b73f430690940727b36625e6c3c8f44ae02d20aa0987781f8e",
+      "source_subject": "ae91fa963ecfe85f4cc830cda85fff2f5bdbe094"
+    },
+    {
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::closure_receiving::tests::held_closure_foreign_function_budget_nested_and_expired_slot_are_sticky_without_query",
+      "exit_code": 101,
+      "log_sha256": "3e747ed3621de7bf0dd274ecf21ee2bf3d4c77c22a9cad969529740ce5de46f2",
+      "source_subject": "ae91fa963ecfe85f4cc830cda85fff2f5bdbe094"
+    },
+    {
+      "harness": "semaprax::lib",
+      "selector": "workspace_graph::cold_canonical::tests::complete_old_commented_formatter_preflight_sources_and_all_current_children_remain_exact",
+      "exit_code": 101,
+      "log_sha256": "ffa0e47bfa4b90ed85d31250387b38e7e79be3a4f2c1535c5c70694c36c4d6a2",
+      "source_subject": "ae91fa963ecfe85f4cc830cda85fff2f5bdbe094"
+    }
+  ],
+  "note": "All six actual ae91 failures remain prior failures until these authored fixes are executed. No Cargo/test executed here."
+}

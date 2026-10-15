@@ -337,7 +337,11 @@ fn complete_old_registry_census_derivation_and_current_scratch_sources_remain_bo
             "tests/workspace/semantic_graph/source_inventory.rs" => (include_str!("../../../../../tests/workspace/semantic_graph/source_inventory.rs").to_owned(), include_str!("../../../../../docs/evidence/registry-census-scratch-833/original/source_inventory.rs")),
             _ => panic!("unexpected full source owner"),
         };
-        current = crate::source_reflows_merge::consumer_input("registry833", row["source"].as_str().unwrap(), &current);
+        current = crate::source_reflows_merge::consumer_input(
+            "registry833",
+            row["source"].as_str().unwrap(),
+            &current,
+        );
         for edit in row["edits"].as_array().unwrap() {
             let new = edit["new"].as_str().unwrap();
             assert_eq!(current.matches(new).count(), 1);
@@ -398,6 +402,8 @@ fn complete_old_registry_census_derivation_and_current_scratch_sources_remain_bo
             .iter()
             .find(|row| row["source"] == path)
             .unwrap();
+        let projected = crate::source_reflows_merge::consumer_child("registry833", path, bytes);
+        let bytes = projected.as_str();
         assert_eq!(
             format!(
                 "{:x}",

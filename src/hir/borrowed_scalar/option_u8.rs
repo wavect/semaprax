@@ -1,4 +1,4 @@
-//! Exact compiler-owned Copy Option<u8>; no authored or general nominal layout.
+//! Exact compiler-owned Copy `Option<u8>`; no authored or general nominal layout.
 use super::super::*;
 pub(crate) fn is_type(ty: &ResolvedType) -> bool {
     matches!(ty, ResolvedType::Nominal { declaration, arguments }

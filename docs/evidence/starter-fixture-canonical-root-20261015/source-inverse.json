@@ -1,0 +1,22 @@
+{
+  "schema": "semaprax.test-fixture-source-inverse.v1",
+  "source": "crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs",
+  "base": "57644fb687f0aae3f7ce837e60cfae0f22603110",
+  "before_sha256": "f8f1dcb4362f9cde077bdab32a6b06d7740614b8534551ea9b81d370faf9ed32",
+  "after_sha256": "544db186321e4474a070295caafec97bc50029c735669ae030dc5285c16c997a",
+  "edits": [
+    {
+      "old": "    Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(\"../..\")",
+      "new": "    Path::new(env!(\"CARGO_MANIFEST_DIR\"))\n        .join(\"../..\")\n        .canonicalize()\n        .expect(\"canonical repository fixture root\")"
+    }
+  ],
+  "test_bodies_changed": 0,
+  "production_changed": false,
+  "runtime": "PENDING",
+  "reason": "The held directory reader rejects ParentDir; canonicalize the repository fixture before passing its plan and command paths. Preserve all original installer/native/corpus assertions and all production no-follow/parent-traversal rules.",
+  "affected_existing_selectors": [
+    "application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen",
+    "application_starter::application_starter_selected_file_declared_native_tests_and_unchanged_cli49"
+  ],
+  "negative_control": "new_project::application::tests::starter_plan_and_activation_swap_to_symlink_or_fifo_refuses_before_staging"
+}

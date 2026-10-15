@@ -819,6 +819,17 @@
     ]
   },
   {
+    "path": "src/cleanup_plan/replay/skeleton_work/ordinary_dag/tests.rs",
+    "before_sha256": "d17dae8c6c00c034c06092531c4a45c97347c88fdd351fb7d7e11c6be09bb2ab",
+    "after_sha256": "b10eef27cabb5cc84531e6f6f9f6178a76b0e304119d9da25d71503e82d67321",
+    "inverse": [
+      {
+        "after": "        assert_eq!(observed.live, 0);\n        assert_eq!(observed.allocated, observed.freed);\n    }\n    #[allow(\n        clippy::drop_non_drop,\n        reason = \"End this borrowed proof at the measured lifetime boundary.\"\n    )]\n    drop(work);\n    for (extra, accepted) in [(required, true), (required - 1, false)] {\n        let mut budget = ReplayBudget::with_physical(function, setup + extra).unwrap();\n",
+        "before": "        assert_eq!(observed.live, 0);\n        assert_eq!(observed.allocated, observed.freed);\n    }\n    drop(work);\n    for (extra, accepted) in [(required, true), (required - 1, false)] {\n        let mut budget = ReplayBudget::with_physical(function, setup + extra).unwrap();\n"
+      }
+    ]
+  },
+  {
     "path": "src/graph.rs",
     "before_sha256": "23843dc9f3ba38f1cb0bef28ac3aeaef24fc6809daa67e483d4c334f3aa5c444",
     "after_sha256": "fe9f0d212f1a771f671ecfda9ab7c9d621022ab24846699f656b62611fc1a49c",

@@ -1,0 +1,20 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_GATES",
+  "actual_main": "f0455caf96706a0545e754957fcc903434a7f880",
+  "strict_named_branch_inputs": {
+    "fixes": 26,
+    "main": 8
+  },
+  "strict_stale_rejections": 34,
+  "independent_full_ae91_convergence": true,
+  "four_source_failures_and_full_facade_replayed": true,
+  "original57consumer87CI_and_ff92_MAIN93_verifiers_replayed_in_named_views": true,
+  "old_closed_metadata_scope_views": {
+    "fixes": "052667a21687a73e2d9af415171663c783d415a9",
+    "main_ff": "77f90da5e00d533e40714d42369daed90661156a"
+  },
+  "protected_full_packet_files": 61,
+  "production_edited_by_assembly": false,
+  "new_test_bodies_by_assembly": 0,
+  "runtime_bodies_executed": 0
+}

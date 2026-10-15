@@ -175,14 +175,19 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
         budget.charge(function, join_units, "all-path ownership replay")?;
         let mut groups = BTreeMap::<ControlKey, BTreeSet<PathState>>::new();
         for state in states {
-            storage::reserve_control_clone(function, &state, budget)?;
-            let key = (
-                state.pending_failure.clone(),
-                state.selected_failure.clone(),
-                state.staged_copy_result.clone(),
-                state.published,
-                state.returned.clone(),
-            );
+            let key = if storage::atomic_controls::selected(&state, budget) {
+                let payload = storage::atomic_controls::reserve(function, &state, budget)?;
+                storage::atomic_controls::copy(payload)
+            } else {
+                storage::reserve_control_clone(function, &state, budget)?;
+                (
+                    state.pending_failure.clone(),
+                    state.selected_failure.clone(),
+                    state.staged_copy_result.clone(),
+                    state.published,
+                    state.returned.clone(),
+                )
+            };
             if !groups.contains_key(&key) {
                 storage::reserve_btree_node::<ControlKey, BTreeSet<PathState>>(
                     function,

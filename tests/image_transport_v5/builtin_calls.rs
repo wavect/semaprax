@@ -125,8 +125,8 @@ fn place(name: &str) -> Value {
 }
 fn assert_metadata(value: &Value) {
     let rows = value["builtin_calls"].as_array().unwrap();
-    // Thirteen byte operations and nine String operations.
-    assert_eq!(rows.len(), 22);
+    // Fourteen byte operations and nine String operations.
+    assert_eq!(rows.len(), 23);
     let rows = rows
         .iter()
         .filter(|row| row["evidence_owner"] == "compiler_byte_operations")

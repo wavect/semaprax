@@ -2,7 +2,7 @@ use super::*;
 use crate::bounded_output::{with_limit_usage_refusal, ReservationRefusal};
 use crate::test_allocation_observer::{current_metrics, measure, Metrics};
 
-fn function() -> ResolvedFunction {
+pub(in crate::cleanup_plan::replay::path_join::storage) fn function() -> ResolvedFunction {
     let parsed = crate::check(
         "module clone; @id(\"main\") fn main()->i64 {0}",
         "clone.spx",
@@ -11,7 +11,9 @@ fn function() -> ResolvedFunction {
     crate::hir::resolve(&parsed).unwrap().functions.remove(0)
 }
 
-fn state(previously_populated: bool) -> PathState {
+pub(in crate::cleanup_plan::replay::path_join::storage) fn state(
+    previously_populated: bool,
+) -> PathState {
     let owner = crate::hir::FunctionExecutionId::Monomorphic(DeclarationId::new("clone.owner"));
     let expression = ExpressionId::new(&owner, "body.clone");
     let shared = DeclarationId::new("clone.case:é\0");

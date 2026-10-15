@@ -291,9 +291,17 @@ fn a_manual_while_cannot_create_byte_traversal_ancestry() {
 "#;
     let source_errors = crate::check(source, "byte-ancestry.spx").unwrap_err();
     assert!(source_errors.iter().any(|e| e.code == "SPX-T284"));
-    // Resolution must enforce the same boundary even without source checking.
     let parsed = crate::parse(source, "byte-ancestry.spx").unwrap();
-    let hir_errors = crate::hir::resolve(&parsed).unwrap_err();
-    assert!(hir_errors.iter().any(|e| e.code == "SPX-H006"
-        && e.message == "nested for traversal reached bounded-loop HIR admission"));
+    // The public resolver preserves the complete source diagnostic unchanged.
+    assert_eq!(crate::hir::resolve(&parsed).unwrap_err(), source_errors);
+    // Deliberately supply a hostile AST to the private post-verification seam:
+    // HIR admission must independently refuse the invented byte ancestry.
+    let Err(hir_error) = crate::hir::resolve_verified(&parsed, None) else {
+        panic!("manual while invented byte traversal ancestry");
+    };
+    assert_eq!(hir_error.code, "SPX-H006");
+    assert_eq!(
+        hir_error.message,
+        "nested for traversal reached bounded-loop HIR admission"
+    );
 }

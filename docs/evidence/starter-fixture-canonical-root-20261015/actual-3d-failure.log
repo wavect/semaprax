@@ -1,0 +1,16 @@
+
+running 1 test
+test application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen ... 
+thread 'application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen' (7654787) panicked at crates/semaprax-toolchain/tests/cli_new_project_v1.rs:52:5:
+command failed: new: cannot hold starter input parent
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 27 filtered out; finished in 11.44s
+

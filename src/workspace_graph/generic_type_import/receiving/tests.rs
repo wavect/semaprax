@@ -190,9 +190,41 @@ fn typed_declaration_every_byte_frontier_stops_acquisition_and_preserves_origina
 fn typed_declaration_foreign_restored_owner_keeps_unchanged_ast_and_sticky_detachment() {
     let (caller, programs) = super::super::borrowed_tests::contexts();
     let original = fixture(0, false);
-    let (_, refused, _, first) = with_limit_usage_refusal(1 << 24, || {
+    // An untouched owner must retain the original successful ledger contract.
+    let mut expected = original.clone();
+    super::super::original::rewrite_declaration_with_layout(
+        &mut expected,
+        "fixture.provider",
+        &caller,
+        &programs,
+        None,
+    )
+    .unwrap();
+    let (((), observed), refused, _, first) = with_limit_usage_refusal(1 << 24, || {
+        measure(|| {
+            let mut current = original.clone();
+            let mut owner = Receiver::acquire().unwrap();
+            rewrite_declaration_with_layout(
+                &mut current,
+                "fixture.provider",
+                &caller,
+                &programs,
+                None,
+                &mut owner,
+            )
+            .unwrap();
+            assert_eq!(current, expected);
+            drop(current);
+            drop(owner);
+        })
+    });
+    assert!(!refused && first.is_none());
+    assert!(!observed.invalid && observed.live == 0);
+    assert_eq!(observed.allocated, observed.freed);
+    let (original_remaining, refused, _, first) = with_limit_usage_refusal(1 << 24, || {
         let mut current = original.clone();
         let mut owner = Receiver::acquire().unwrap();
+        let original_remaining = crate::bounded_output::active_remaining().unwrap();
         let (_, child_refused, used, child_first) = with_limit_usage_refusal(1 << 20, || {
             let (result, observed) = measure(|| {
                 rewrite_declaration_with_layout(
@@ -221,9 +253,22 @@ fn typed_declaration_foreign_restored_owner_keeps_unchanged_ast_and_sticky_detac
         assert!(matches!(result, Err(Failure::Setup(Setup::Detached))));
         assert_eq!(observed.allocated, 0);
         assert_eq!(current, original);
+        assert!(active_refused());
         drop(owner);
+        original_remaining
     });
-    assert!(!refused && first.is_none());
+    // ClassifierLedger::current poisons its held originating ledger, never the
+    // foreign child. Restoring ACTIVE cannot revive the detached receiver.
+    assert!(refused);
+    assert_eq!(
+        first,
+        Some(crate::bounded_output::ReservationRefusal {
+            requested: 0,
+            remaining: original_remaining,
+            floor: 0,
+            stage: None,
+        })
+    );
 }
 
 #[test]
@@ -247,7 +292,11 @@ fn typed_declaration_complete_old_receivers_actual_callers_and_full_source_inver
     let manifest = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_eq!(rows.as_array().unwrap().len(), sources.len());
     for (row, source) in rows.as_array().unwrap().iter().zip(sources) {
-        let projected = crate::source_reflows_merge::consumer_input("decl825", row["source"].as_str().unwrap(), source);
+        let projected = crate::source_reflows_merge::consumer_input(
+            "decl825",
+            row["source"].as_str().unwrap(),
+            source,
+        );
         let source = projected.as_str();
         assert_eq!(
             format!(

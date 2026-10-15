@@ -73,6 +73,34 @@ their old receiver. These current-source owning tests and whole-application fit
 remain unqualified until exact-head CI executes them. The small local standard
 library smoke exercise covers the copied constructor body and field parity only.
 
+## Ordinary atomic body control-key clone
+
+The ordinary ActiveBuilder ownership join separately selects a present `Body`
+staged result whose type is one of the same closed twenty atomic tags. Its
+immutable affine payload borrows only the five actual control-key fields;
+renewal, live-order and conditional-variant containers cannot be cloned through
+that payload. Before publication it pays both borrowed views, the outward
+Result, the returned key carrier, and all returned-place projection backing.
+The receiving constructor preserves pending and selected failure, the complete
+staged result, publication state and returned source in their original order.
+It constructs no type-walk cursor because those exact types have no child
+containers. This is a narrower physical constructor, not type admission.
+
+Absent results, compound types, every residual-result variant, selected/oracle
+payers and unobserved replay retain the complete original reserve-and-clone
+route. The original join work request, grouping, tree insertion, state replay,
+limits and sticky failures remain unchanged. No debit is subtracted or refunded.
+This changes the conservative reservation and avoids a fixed stack cursor;
+heap request, RSS, speed or application-fit improvements are not established.
+
+`atomic_controls::tests` retains the complete independently compiled old tuple
+receiver, checks all twenty tags and all five fields with both measurement
+orders and populated histories, independently prices the complete new request
+sequence, measures through result/budget Drop, and exercises exact/short/zero,
+every request frontier, sticky retries and the original-route exclusions.
+These actual-HIR owning tests require exact-head CI execution; a small local
+constructor smoke is not a compiler integration or full-funding receipt.
+
 Authored owning controls cover old owned-String trait/wire parity, all empty/NUL/
 Unicode distinctions, duplicate independent backings, static/shared equivalence,
 borrowed and already-owned overlap, zero/exact/one-short refusal, sticky same-ledger

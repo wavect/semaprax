@@ -15,6 +15,8 @@
   executable qualification and physical measurements are pending.
 
 - Qualify the closed named String-transfer v1 scope with all 15 exact a417 owning controls and the five 27ae regenerated-pin/source controls; retain unrelated application-budget failures and frozen public profiles.
+- Prepay a separate atomic-body control-key constructor without a type-walk cursor, preserving the full original control tuple, replay work and every other receiver. Mark generic type spellings as code in five rustdoc comments.
+
 - Update candidate inventory regressions for the admitted bounded-zeroing builtin, recognize binary-hash receipt readers in harness isolation, and fix two remaining test lint findings.
 - Give ordinary empty-renewal branch clones a separately prepaid borrowed
   payload without a renewal-map reference, preserving full state and work while

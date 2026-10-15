@@ -100,6 +100,7 @@ impl<T> Memo<T> {
             .get(*key % WIDTH)?
             .as_ref()
     }
+    #[cfg(test)]
     pub(super) fn insert(
         &mut self,
         function: &ResolvedFunction,
@@ -156,3 +157,6 @@ impl<T> Memo<T> {
 
 #[cfg(test)]
 mod tests;
+
+mod retained;
+pub(super) use retained::RetainedMemo;

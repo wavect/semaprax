@@ -381,6 +381,12 @@ authenticate within budget changes. Test builds additionally run the
 factored comparison beside enumeration on every function small enough to
 enumerate and require the same verdict.
 
+The source-only [OPT839 retained canonical scratch draft](evidence/canonical-scratch-839/README.md)
+keeps one comparison's cursor/frame/open backing and authenticated receiving
+storage. Its complete old receiver, ordinary Memo, work/arithmetic/diagnostic
+contract and independent HIR/plan roots remain controls. Focused executable
+qualification is pending; it grants no application-budget or support claim.
+
 ## Conformance trace
 
 Backend equivalence tests use the versioned [conformance trace v1](CONFORMANCE-TRACE-V1.md): a target-neutral event trace containing stable import/lifecycle IDs, semantic storage/place IDs, expression IDs for transitions, event kind (`initialize`, `transfer`, `call_commit`, `import_begin`, `import_end`, `select_failure`, `finalize_begin`, `finalize_end`, or `result_commit`), and normalized status. `select_failure` exposes the exact write-once source selected by every nested frame as well as the root. Callable imports may complete with a normalized failure; automatic-finalizer import completion is success-only in the type system. A trivial strategy emits both finalization events with success even though it performs no host call. Physical pointers, Wasm handles, status tokens, stack offsets, and host exception objects are excluded. Two backends conform only when they produce the same ordered semantic events and normalized final status for the same verified program and injected import outcomes.

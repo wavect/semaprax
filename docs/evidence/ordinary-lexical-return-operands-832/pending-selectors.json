@@ -1,0 +1,37 @@
+{
+  "status": "UNEXECUTED",
+  "library_selectors": [
+    "cleanup_plan::replay::lexical_replay::operand_tests::",
+    "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::",
+    "cleanup_plan::replay::expression_facts::receiving::remaining::tests::",
+    "cleanup_plan::replay::path_join::branch_join::tests::normalization_debits_root_comparisons_and_the_self_join_before_rekeying",
+    "cleanup_plan::replay::live_oracle::source_custody::",
+    "project::incremental::cold_source_tests::explicit_owner_siblings_match_legacy_selective_routes_and_body_reuse",
+    "workspace_graph::identity_resolution::tests::one_mib_ledger_preserves_first_cursor_refusal_and_sticky_retries"
+  ],
+  "integration_selectors": [
+    "hir_module_boundaries",
+    "module_size",
+    "language lexical_structured_exits",
+    "workspace semantic_graph",
+    "unchanged cache/normalizer application owners from parent consolidated campaign"
+  ],
+  "qualification": [
+    "production and cfg(test) build",
+    "Clippy",
+    "old/current actual absolute work and byte frontiers",
+    "exact/one-short/zero/sticky work and physical boundaries",
+    "allocation acquisition through full Drop",
+    "foreign/restored/stale owner controls",
+    "canonical source/graph/cache parity",
+    "current integration source-inverse composition"
+  ],
+  "issue_832": "OPEN",
+  "issue_781": "OPEN",
+  "claims_not_established": [
+    "whole-compiler funding",
+    "application recovery",
+    "token/RSS/cost gain",
+    "hosted or physical-device support"
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "pushed_branch": "wavect/v0-10-0",
+  "github_live_ref_read": "4f8f598c7935d0a5cdd4a5d5ba5b49d164ae2cfc",
+  "local_tracking_ref_was_stale": "335ef483c0ca0082afbe928ecf7697814a60e7c1",
+  "git_ssh_lsremote": "permission denied; GitHub REST ref read used instead",
+  "source": "src/cleanup_plan/replay/lexical_replay.rs",
+  "pushed_source_blob_sha256": "3560d28ecefd32dfefd1c7ae1db2d847e84b3e44fe1c02c23e7e7568c3013288",
+  "current_source_head": "403d8a409417baa8e99e6d488c567e6b9b6acc74",
+  "current_source_sha256": "3560d28ecefd32dfefd1c7ae1db2d847e84b3e44fe1c02c23e7e7568c3013288",
+  "exact_inventory_fragment_sha256": "6f5b7b468ee1eb43f5111295f5d8694a78829730265c64f36b0f060595261615",
+  "inventory_fragment_raw_equal": true,
+  "source_lines_current": [
+    137,
+    145
+  ],
+  "duplicate_search": {
+    "queries": [
+      "\"return operand\"",
+      "\"return_operands\"",
+      "\"lexical\" \"receiving\""
+    ],
+    "results": [
+      {
+        "number": 741,
+        "state": "open",
+        "disposition": "Distinct semantic finite Bytes allocation proof; mention of return operands in hostile-input coverage, not this compiler inventory funding boundary"
+      },
+      {
+        "number": 766,
+        "state": "closed",
+        "disposition": "Conditional semicolon parsing, unrelated"
+      },
+      {
+        "number": 831,
+        "state": "open",
+        "disposition": "Factored successor target ownership, unrelated"
+      }
+    ]
+  },
+  "new_issue_filed": false
+}

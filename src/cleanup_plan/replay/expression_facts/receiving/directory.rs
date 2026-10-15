@@ -144,6 +144,21 @@ impl<K: KeyWork> Directory<K> {
         })
     }
 
+    #[cfg(test)]
+    pub(super) fn nodes_pointer_for_test(&self) -> *const () {
+        self.nodes.as_ptr().cast()
+    }
+
+    #[cfg(test)]
+    pub(super) fn first_key_for_test(&self) -> Option<&K> {
+        self.nodes.get(self.first).map(|node| &node.key)
+    }
+
+    #[cfg(test)]
+    pub(super) fn node_layout_bytes() -> usize {
+        std::mem::size_of::<Node<K>>()
+    }
+
     pub(super) fn is_empty(&self) -> bool {
         self.nodes.is_empty()
     }

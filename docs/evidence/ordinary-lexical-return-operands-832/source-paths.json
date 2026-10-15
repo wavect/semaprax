@@ -1,0 +1,16 @@
+[
+  "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+  "src/cleanup_plan/replay/expression_facts/receiving.rs",
+  "src/cleanup_plan/replay/expression_facts/receiving/directory.rs",
+  "src/cleanup_plan/replay/expression_facts/receiving/return_operands.rs",
+  "src/cleanup_plan/replay/expression_facts/receiving/return_operands/exits.rs",
+  "src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs",
+  "src/cleanup_plan/replay/lexical_replay.rs",
+  "src/cleanup_plan/replay/lexical_replay/before_operands.rs",
+  "src/cleanup_plan/replay/lexical_replay/operand_tests.rs",
+  "src/cleanup_plan/replay/lexical_replay/operand_tests/source.rs",
+  "src/cleanup_plan/replay/lexical_replay/ordinary.rs",
+  "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+  "tests/hir_module_boundaries.rs",
+  "tests/workspace/semantic_graph/source_inventory.rs"
+]

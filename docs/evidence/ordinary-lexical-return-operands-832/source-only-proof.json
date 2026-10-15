@@ -1,0 +1,18 @@
+{
+  "status": "SOURCE_ONLY_NO_COMPILER_OR_TEST_EXECUTION",
+  "basis": "d7ec339562b90d655340e315e3ab674ef4d24b12",
+  "whole_original_rows_reconstructed": 14,
+  "complete_old_caller": "byte_exact_complete_independent_cfg_test_module_compilation_pending",
+  "ordinary_driver": "full_old_verification_bodies_and_order_reconstructed",
+  "exit_consumer": "full_old_checks_reconstructed_with_exact_paid_membership_seam",
+  "complete_source_joins": 3,
+  "owned_identity_clones_in_inventory": 0,
+  "new_directory_work": "additional_to_original_verification_work",
+  "rustfmt_parse_only": true,
+  "cargo": "UNEXECUTED",
+  "compiler": "UNEXECUTED",
+  "rust_tests": "UNEXECUTED",
+  "runtime": "UNEXECUTED",
+  "issue_832": "OPEN",
+  "issue_781": "OPEN"
+}

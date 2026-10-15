@@ -124,6 +124,16 @@ own transfer mappings and exact atomic call commits; staging never debits the
 reserved history. This tracking retains no declaration index and changes no
 serialized proof authority or physical cleanup operation.
 
+`cleanup_plan/replay/lexical_replay/ordinary.rs` owns the paid ordinary lexical
+caller. Its fallible return-operand index in
+`expression_facts/receiving/return_operands.rs` borrows exact HIR identities and
+uses the existing paid AVL directory. The index binds the held function, lexical
+facts, ReplayBudget and current ledger, authenticating before exit membership
+and certificate replay. It carries no certificate or source admission authority.
+Selected/no-owner callers retain their preceding route; the full old ordinary
+caller is retained as a complete independent test module in `lexical_replay/before_operands.rs`.
+This is a source-only checkpoint with owning execution pending.
+
 `cleanup_plan/replay/factored/strategy.rs` owns deferred lexical resource selection
 and post-authentication Enumerated/LexicalFactored dispatch. Exact certificate and
 ownership replay precede observation-automaton construction; terminal census alone

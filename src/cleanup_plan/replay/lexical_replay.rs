@@ -9,6 +9,12 @@
 //! certificate never reaches a backend.
 use super::*;
 use crate::ast::LexicalExitKind;
+mod ordinary;
+#[cfg(test)]
+#[allow(dead_code, reason = "complete independently compiled original lexical caller")]
+mod before_operands;
+#[cfg(test)]
+mod operand_tests;
 
 pub(super) fn validate_with_index(
     program: &dyn crate::cleanup::ReplayContext,
@@ -49,6 +55,9 @@ fn validate_core<'hir, E: structural_control::call_receiving::Policy>(
         &mut ReplayBudget,
     ) -> Result<expression_facts::Facts<'hir>, E>,
 ) -> Result<(), E> {
+    if !budget.selected() && budget.pays_allocations() {
+        return ordinary::validate_core(program, function, budget, helpers, build_facts);
+    }
     let plan = &function.cleanup_plan;
     selected_profile::validate(program, function, budget)?;
     let owner = selected_owner::owner(program, function, budget)?;

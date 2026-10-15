@@ -11,6 +11,8 @@ pub(in crate::cleanup_plan::replay) use retained::{
 };
 mod regions_entry;
 mod remaining;
+mod return_operands;
+pub(in crate::cleanup_plan::replay) use return_operands::ReturnOperands;
 use directory::Directory;
 pub(in crate::cleanup_plan::replay) use regions_entry::{validate_entry, validate_regions};
 pub(in crate::cleanup_plan::replay) use remaining::validate_exits;

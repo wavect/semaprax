@@ -1,0 +1,58 @@
+{
+  "schema": "semaprax.starter-relative-inputs-source.v1",
+  "base": "e690c794c8ccf4badb388b73fe8932573313c965",
+  "runtime": "PENDING_NO_BUILDS_TESTS_OR_CLIPPY",
+  "paths": [
+    {
+      "file": "CHANGELOG.md",
+      "before_sha256": "5868553283befb3c48257b4782ebda226ec2f6e48d768a1e54861b84ae0a3a72",
+      "after_sha256": "22656de209e431fd7782aa6a85b70189d491b3cb0a0e163dedb67fc8fb95454e",
+      "full_before": "before/CHANGELOG.md"
+    },
+    {
+      "file": "crates/semaprax-toolchain/src/new_project/application.rs",
+      "before_sha256": "6760bb538642e23db6d1a1add9e6efb9b6e2e90ea2d3d2274acbdb9f8574508b",
+      "after_sha256": "9c43ceebfa9b90d008d77db9ac052737d66f2b4b29b6710453f0e1e7fd0373c9",
+      "full_before": "before/crates/semaprax-toolchain/src/new_project/application.rs"
+    },
+    {
+      "file": "crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs",
+      "before_sha256": "368628ab7380b8c2e57874e2ff103a0a09bb4d3e6ce75065e239c2988b7808b5",
+      "after_sha256": "0f3486608379f907bb744ce03e54573a33001c3f463aaa06dcfe038d8af3e991",
+      "full_before": "before/crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs"
+    },
+    {
+      "file": "docs/APPLICATION-STARTER-V1.md",
+      "before_sha256": "6f6536c8f7b57afde09f8e58bc1e7d891acd190a570f3cf3bcb3dbe5908066e2",
+      "after_sha256": "1d8b73eb312e7c3b206492e46d152eb9c62c6513e991d51bf8215efcf00b53f8",
+      "full_before": "before/docs/APPLICATION-STARTER-V1.md"
+    },
+    {
+      "file": "docs/DEVELOPMENT.md",
+      "before_sha256": "0629d2873a4d3302265c85bcd00f2c1c462559b49db9d740ff6b76d0dc22b227",
+      "after_sha256": "a77bf89e168a4d7b9b447da73ba57605266fa58d662849a93f71b00155585e27",
+      "full_before": "before/docs/DEVELOPMENT.md"
+    }
+  ],
+  "new_test_bodies": 1,
+  "new_Rust_modules": 0,
+  "input_authority": "Existing explicit full-host --codec-plan/--command-source flags; resolve each once from CWD in original plan-then-command read order. Reject ParentDir before platform-specific absolute resolution. All existing held-parent, no-follow, bounded-byte and publication operations unchanged.",
+  "owning_existing_contract": "docs/APPLICATION-STARTER-V1.md documented relative paths before this fix. Reader previously passed relative parents into absolute-only platform::hold_directory.",
+  "unchanged_boundaries": [
+    "standalone compiler",
+    "manifest target and capability grants",
+    "codec plan decode/replay",
+    "frozen scaffold capsules",
+    "all existing no-follow and FIFO hostile tests",
+    "parent/stage publisher",
+    "source-byte and descriptor limits"
+  ],
+  "new_selector": "application_starter::application_starter_relative_selected_inputs_keep_exact_bytes_and_no_follow",
+  "affected_existing_selectors": [
+    "new_project::application::tests::starter_unknown_duplicate_and_incomplete_profiles_refuse_before_input_reads",
+    "new_project::application::tests::starter_plan_and_activation_swap_to_symlink_or_fifo_refuses_before_staging",
+    "new_project::application::tests::starter_input_held_regular_reader_preserves_exact_bytes_and_bounds",
+    "new_project::application::tests::starter_initial_symlink_and_existing_destination_preserve_originals"
+  ],
+  "claims": "Authored path-resolution bug fix and stronger fixture/docs only; no successful app installation or efficiency measurement claimed."
+}

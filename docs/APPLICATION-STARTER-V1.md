@@ -39,6 +39,13 @@ Both byte sequences are independently rechecked before staging. The authenticate
 owner independently performs its ordinary final input recheck. These operations
 bind one held invocation revision; subsequent edits cannot mutate returned bytes.
 
+Selected plan and command-source paths may be absolute or ordinary relative
+paths from the invocation's working directory. The full host resolves each
+spelling once before its first read and reuses it for the prepublication recheck.
+This is absolute path resolution, not symlink canonicalization: the existing
+held parent walk still rejects symlinks and parent-traversal components, and
+the final regular-file and named-handle checks remain required.
+
 The closed admitted command profiles are `source-command.v1`,
 `source-command.resource-output.v1`, `source-command.selected-file.v1`,
 `source-command.selected-file.resource-output.v1` and

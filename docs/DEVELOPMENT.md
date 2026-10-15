@@ -206,6 +206,17 @@ private toolchain package, whose path dependencies retain exact version pins.
 The package gate must verify the actual archive; disabling verification is not
 a packaging fix.
 
+Use `semaprax::digest_hex::LowerHex` around SHA-256 digests in integration
+tests, or `crate::digest_hex::LowerHex` within the compiler. The digest array
+does not implement Rust's `LowerHex` formatter directly. Source-audit helpers
+compile in their owning integration harness, separately from the unit binary.
+
+Positive authenticated-source fixtures must contain canonical source. Keep raw
+noncanonical input as a separate negative case, then use the compiler formatter
+for the success fixture. CLI `--json` diagnostics are JSON lines on stdout;
+human diagnostics use stderr. Check the selected diagnostic code in the correct
+channel instead of accepting any unsuccessful exit.
+
 The quickstart, frame-payload product, and root owned-data/UTF-8 SDK tests
 share `tests/support/full_toolchain.rs` to build the unpublished CLI locked
 and offline. The helper selects the unique `semaprax-full` binary from

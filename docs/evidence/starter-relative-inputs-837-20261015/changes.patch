@@ -1,0 +1,194 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index d2f8ce11d..af16377a2 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -2,6 +2,11 @@
+      distinct cold callers; full old receiver retained; qualification pending. -->
+ # Changelog
+ 
++- Resolve explicitly selected starter plan and command-source paths once from
++  the full host's working directory, retaining all held no-follow reads and
++  prepublication rechecks. Add relative/absolute exact-byte and symlink-refusal
++  controls; source-only until focused qualification.
++
+ - Bind fresh application plan/activation reads (#837) to the existing no-follow bounded held regular-file owner, closing inspection/open symlink and FIFO replacement races. Add deterministic pre-open swap controls and small independent typed native-test selector owners. Source-only correction; execution remains pending.
+ 
+ - Author fresh application assembly (#837) from existing replayed codec plans and explicit command profiles through the original held-parent scaffold publisher. Bind canonical source/generation receipts and exact native routes; add an explicit pure typed v31 native-test successor while preserving old profile refusals. Full ShiftSim15/selected-file CLI49 and hostile-publication scenarios are authored; all executable qualification and the source-capacity dependency remain pending.
+diff --git a/crates/semaprax-toolchain/src/new_project/application.rs b/crates/semaprax-toolchain/src/new_project/application.rs
+index c3997d5c5..74990bdc2 100644
+--- a/crates/semaprax-toolchain/src/new_project/application.rs
++++ b/crates/semaprax-toolchain/src/new_project/application.rs
+@@ -19,6 +19,17 @@ fn read_bound(path: &Path, maximum: usize) -> Result<Vec<u8>, NewProjectFailure>
+     read_bound_with_hook(path, maximum, &|_| Ok(()))
+ }
+ 
++fn selected_input_path(path: &Path) -> Result<PathBuf, NewProjectFailure> {
++    if path
++        .components()
++        .any(|part| matches!(part, std::path::Component::ParentDir))
++    {
++        return Err(failure("starter input parent traversal is not admitted"));
++    }
++    std::path::absolute(path)
++        .map_err(|error| failure(format!("cannot resolve starter input: {error}")))
++}
++
+ fn read_bound_with_hook(
+     path: &Path,
+     maximum: usize,
+@@ -114,7 +125,13 @@ fn run_with_input_hook(
+         (Some(path), Some(file)) => Some(((*path).to_owned(), PathBuf::from(file))),
+         _ => return Err(usage()),
+     };
++    // Resolve each selected spelling once, without following input symlinks.
++    // Reject ParentDir before platform-specific absolute path normalization.
++    let plan_path = selected_input_path(&plan_path)?;
+     let plan = read_bound_with_hook(&plan_path, 16_384, before_open)?;
++    let activation = activation
++        .map(|(path, file)| selected_input_path(&file).map(|file| (path, file)))
++        .transpose()?;
+     let command_bytes = activation
+         .as_ref()
+         .map(|(_, file)| read_bound_with_hook(file, 131_072, before_open))
+diff --git a/crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs b/crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs
+index b233bfc55..169d17105 100644
+--- a/crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs
++++ b/crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs
+@@ -49,6 +49,97 @@ fn assert_legacy_native_json_refusal(root: &Path) {
+         Some(&serde_json::json!("SPX-B104"))
+     );
+ }
++
++#[test]
++fn application_starter_relative_selected_inputs_keep_exact_bytes_and_no_follow() {
++    let fixture = Fixture::new("relative-selected-inputs");
++    let plan = fixture.root.join("plan.json");
++    let source = fixture.root.join("command.spx");
++    std::fs::write(&plan, b"{}").unwrap();
++    std::fs::write(&source, [0xff]).unwrap();
++    let invoke = |plan: &Path, source: &Path| {
++        Command::new(env!("CARGO_BIN_EXE_semaprax-full"))
++            .current_dir(&fixture.root)
++            .args([
++                "new",
++                "output",
++                "--from",
++                "not-opened-project",
++                "--codec-plan",
++            ])
++            .arg(plan)
++            .args([
++                "--command-profile",
++                "source-command.v1",
++                "--command-path",
++                "src/app.spx",
++                "--command-source",
++            ])
++            .arg(source)
++            .output()
++            .unwrap()
++    };
++    // Reaching this exact refusal proves that BOTH selected inputs were read,
++    // before Project loading; no compiler/application capacity is involved.
++    let relative = invoke(Path::new("plan.json"), Path::new("command.spx"));
++    let absolute = invoke(&plan, &source);
++    assert!(!relative.status.success() && !absolute.status.success());
++    assert_eq!(relative.status.code(), absolute.status.code());
++    assert_eq!(relative.stdout, absolute.stdout);
++    assert_eq!(relative.stderr, absolute.stderr);
++    assert!(
++        String::from_utf8_lossy(&relative.stderr).contains("command source is not UTF-8"),
++        "{:?}",
++        relative
++    );
++    assert!(!fixture.root.join("output").exists());
++    assert_eq!(std::fs::read(&plan).unwrap(), b"{}");
++    assert_eq!(std::fs::read(&source).unwrap(), [0xff]);
++
++    std::fs::create_dir(fixture.root.join("child")).unwrap();
++    for (plan_name, source_name) in [
++        ("child/../plan.json", "command.spx"),
++        ("plan.json", "child/../command.spx"),
++    ] {
++        let refused = invoke(Path::new(plan_name), Path::new(source_name));
++        assert!(!refused.status.success());
++        assert!(String::from_utf8_lossy(&refused.stderr).contains("parent traversal"));
++        assert!(!fixture.root.join("output").exists());
++    }
++
++    #[cfg(unix)]
++    {
++        let outside = fixture.root.join("outside");
++        std::fs::write(&outside, b"outside original").unwrap();
++        std::os::unix::fs::symlink(&outside, fixture.root.join("plan-alias.json")).unwrap();
++        std::os::unix::fs::symlink(&outside, fixture.root.join("source-alias.spx")).unwrap();
++        std::os::unix::fs::symlink(&fixture.root, fixture.root.join("parent-alias")).unwrap();
++        for (plan_name, source_name) in [
++            ("plan-alias.json", "command.spx"),
++            ("plan.json", "source-alias.spx"),
++        ] {
++            let refused = invoke(Path::new(plan_name), Path::new(source_name));
++            assert!(!refused.status.success());
++            assert!(
++                String::from_utf8_lossy(&refused.stderr).contains("regular non-symlink file"),
++                "{:?}",
++                refused
++            );
++            assert!(!fixture.root.join("output").exists());
++            assert_eq!(std::fs::read(&outside).unwrap(), b"outside original");
++        }
++        let parent_alias = invoke(
++            Path::new("parent-alias/plan.json"),
++            Path::new("command.spx"),
++        );
++        assert!(!parent_alias.status.success());
++        assert!(String::from_utf8_lossy(&parent_alias.stderr)
++            .contains("cannot hold starter input parent"));
++        assert!(!fixture.root.join("output").exists());
++        assert_eq!(std::fs::read(&plan).unwrap(), b"{}");
++        assert_eq!(std::fs::read(&source).unwrap(), [0xff]);
++    }
++}
+ fn assert_roundtrip(root: &Path) {
+     semaprax::project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
+         assert_eq!(
+diff --git a/docs/APPLICATION-STARTER-V1.md b/docs/APPLICATION-STARTER-V1.md
+index 82acedc9b..546ec5bc0 100644
+--- a/docs/APPLICATION-STARTER-V1.md
++++ b/docs/APPLICATION-STARTER-V1.md
+@@ -39,6 +39,13 @@ Both byte sequences are independently rechecked before staging. The authenticate
+ owner independently performs its ordinary final input recheck. These operations
+ bind one held invocation revision; subsequent edits cannot mutate returned bytes.
+ 
++Selected plan and command-source paths may be absolute or ordinary relative
++paths from the invocation's working directory. The full host resolves each
++spelling once before its first read and reuses it for the prepublication recheck.
++This is absolute path resolution, not symlink canonicalization: the existing
++held parent walk still rejects symlinks and parent-traversal components, and
++the final regular-file and named-handle checks remain required.
++
+ The closed admitted command profiles are `source-command.v1`,
+ `source-command.resource-output.v1`, `source-command.selected-file.v1`,
+ `source-command.selected-file.resource-output.v1` and
+diff --git a/docs/DEVELOPMENT.md b/docs/DEVELOPMENT.md
+index 60b1222f2..841337a62 100644
+--- a/docs/DEVELOPMENT.md
++++ b/docs/DEVELOPMENT.md
+@@ -206,6 +206,17 @@ private toolchain package, whose path dependencies retain exact version pins.
+ The package gate must verify the actual archive; disabling verification is not
+ a packaging fix.
+ 
++Use `semaprax::digest_hex::LowerHex` around SHA-256 digests in integration
++tests, or `crate::digest_hex::LowerHex` within the compiler. The digest array
++does not implement Rust's `LowerHex` formatter directly. Source-audit helpers
++compile in their owning integration harness, separately from the unit binary.
++
++Positive authenticated-source fixtures must contain canonical source. Keep raw
++noncanonical input as a separate negative case, then use the compiler formatter
++for the success fixture. CLI `--json` diagnostics are JSON lines on stdout;
++human diagnostics use stderr. Check the selected diagnostic code in the correct
++channel instead of accepting any unsuccessful exit.
++
+ The quickstart, frame-payload product, and root owned-data/UTF-8 SDK tests
+ share `tests/support/full_toolchain.rs` to build the unpublished CLI locked
+ and offline. The helper selects the unique `semaprax-full` binary from

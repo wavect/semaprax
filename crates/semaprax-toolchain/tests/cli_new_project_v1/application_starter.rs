@@ -49,6 +49,97 @@ fn assert_legacy_native_json_refusal(root: &Path) {
         Some(&serde_json::json!("SPX-B104"))
     );
 }
+
+#[test]
+fn application_starter_relative_selected_inputs_keep_exact_bytes_and_no_follow() {
+    let fixture = Fixture::new("relative-selected-inputs");
+    let plan = fixture.root.join("plan.json");
+    let source = fixture.root.join("command.spx");
+    std::fs::write(&plan, b"{}").unwrap();
+    std::fs::write(&source, [0xff]).unwrap();
+    let invoke = |plan: &Path, source: &Path| {
+        Command::new(env!("CARGO_BIN_EXE_semaprax-full"))
+            .current_dir(&fixture.root)
+            .args([
+                "new",
+                "output",
+                "--from",
+                "not-opened-project",
+                "--codec-plan",
+            ])
+            .arg(plan)
+            .args([
+                "--command-profile",
+                "source-command.v1",
+                "--command-path",
+                "src/app.spx",
+                "--command-source",
+            ])
+            .arg(source)
+            .output()
+            .unwrap()
+    };
+    // Reaching this exact refusal proves that BOTH selected inputs were read,
+    // before Project loading; no compiler/application capacity is involved.
+    let relative = invoke(Path::new("plan.json"), Path::new("command.spx"));
+    let absolute = invoke(&plan, &source);
+    assert!(!relative.status.success() && !absolute.status.success());
+    assert_eq!(relative.status.code(), absolute.status.code());
+    assert_eq!(relative.stdout, absolute.stdout);
+    assert_eq!(relative.stderr, absolute.stderr);
+    assert!(
+        String::from_utf8_lossy(&relative.stderr).contains("command source is not UTF-8"),
+        "{:?}",
+        relative
+    );
+    assert!(!fixture.root.join("output").exists());
+    assert_eq!(std::fs::read(&plan).unwrap(), b"{}");
+    assert_eq!(std::fs::read(&source).unwrap(), [0xff]);
+
+    std::fs::create_dir(fixture.root.join("child")).unwrap();
+    for (plan_name, source_name) in [
+        ("child/../plan.json", "command.spx"),
+        ("plan.json", "child/../command.spx"),
+    ] {
+        let refused = invoke(Path::new(plan_name), Path::new(source_name));
+        assert!(!refused.status.success());
+        assert!(String::from_utf8_lossy(&refused.stderr).contains("parent traversal"));
+        assert!(!fixture.root.join("output").exists());
+    }
+
+    #[cfg(unix)]
+    {
+        let outside = fixture.root.join("outside");
+        std::fs::write(&outside, b"outside original").unwrap();
+        std::os::unix::fs::symlink(&outside, fixture.root.join("plan-alias.json")).unwrap();
+        std::os::unix::fs::symlink(&outside, fixture.root.join("source-alias.spx")).unwrap();
+        std::os::unix::fs::symlink(&fixture.root, fixture.root.join("parent-alias")).unwrap();
+        for (plan_name, source_name) in [
+            ("plan-alias.json", "command.spx"),
+            ("plan.json", "source-alias.spx"),
+        ] {
+            let refused = invoke(Path::new(plan_name), Path::new(source_name));
+            assert!(!refused.status.success());
+            assert!(
+                String::from_utf8_lossy(&refused.stderr).contains("regular non-symlink file"),
+                "{:?}",
+                refused
+            );
+            assert!(!fixture.root.join("output").exists());
+            assert_eq!(std::fs::read(&outside).unwrap(), b"outside original");
+        }
+        let parent_alias = invoke(
+            Path::new("parent-alias/plan.json"),
+            Path::new("command.spx"),
+        );
+        assert!(!parent_alias.status.success());
+        assert!(String::from_utf8_lossy(&parent_alias.stderr)
+            .contains("cannot hold starter input parent"));
+        assert!(!fixture.root.join("output").exists());
+        assert_eq!(std::fs::read(&plan).unwrap(), b"{}");
+        assert_eq!(std::fs::read(&source).unwrap(), [0xff]);
+    }
+}
 fn assert_roundtrip(root: &Path) {
     semaprax::project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
         assert_eq!(

@@ -21,17 +21,21 @@ no throwaway cursor vector. Misses use retained cursor backing. Canonical frame
 and open storage acquire actual capacity before each push; allocation-free
 ordinary/no-owner routes retain their original payer behavior.
 
-`memo::RetainedMemo` composes the complete ordinary Memo. Its first successful
-activation still calls the original Result-returning authentication and pays its
-authorization receipt. Later success uses a unit-returning authentication method
-and a held refusal slot. It still checks the original ledger before querying the
-payer and performs sticky zero-byte authentication. Foreign/stale use invalidates
-the receiver, hides its values, never queries a foreign ReplayBudget, and cannot
-be repaired by restoring the owner. A selected payer Diagnostic is moved intact;
-the already-terminal sentinel is the original allocation-free empty SPX-H006.
+`memo::RetainedMemo` composes the complete ordinary Memo. Every authentication,
+including a warm cache hit, calls the original Result-returning authentication
+and pays its per-call `size_of::<Result<(), Diagnostic>>()` authorization receipt.
+The unit-returning wrapper does not remove that inner Result construction. It
+keeps a held refusal slot, but claims no authentication-carrier saving. The
+ordinary implementation checks the original ledger before querying the payer
+and performs sticky zero-byte authentication before the positive receiving fee.
+Foreign/stale use invalidates the receiver, hides its values, never queries a
+foreign ReplayBudget, and cannot be repaired by restoring the owner. A selected
+payer Diagnostic is moved intact; the already-terminal sentinel is the original
+allocation-free empty SPX-H006.
 
 The source accounting pays the new wrapper's inline controls and failure
-receiving once at activation. Misses pay their additional inner Result receiving,
+receiving once at activation, including the real Result receiver of its added
+control reservation. Misses pay their additional inner Result receiving,
 prepare-scratch Result, and copied root scalar. Each canonical call pays its
 additional inner Result receiving, moved root Vec header and prepare-scratch
 Result. The cursor/frame/open headers are paid once at scratch activation.
@@ -58,7 +62,10 @@ It owns complete immediate-old/current closures, states, signatures, IDs,
 duplicate weights, overflow, full Diagnostics and every work frontier; actual
 allocation/peak/free/last Drop; zero/exact/one-short and every actual byte cut;
 cache-hit no-allocation/work preservation; foreign/nested/restored owner; and
-ordinary/no-owner controls. Existing canonical_shared, memo, epsilon_alias,
+ordinary/no-owner controls. A warm-authentication boundary control requires the
+full per-call Result fee, rejects zero and one-byte-short availability before any
+new allocation, and checks the complete ordinary authenticator source against
+the immutable original. Existing canonical_shared, memo, epsilon_alias,
 receiving_layer_tests and singleton_target_tests selectors remain required.
 All assertions are authored and unexecuted.
 
@@ -79,3 +86,11 @@ for completed runtime checks. Actual d6bf evidence was 86 pass / 20 fail, includ
 aggregate final-HIR-stage debit including a cfg(test) oracle, not production
 `document_end` or cleanup-only cost. No application cap-fit, measured saving,
 hosted support, or live-agent token/turn improvement is claimed.
+
+Source-review correction after `15ac307443132d8631e8b16b036ba9a689d97139`:
+the initial warm unit-returning path still called `reserve_bytes(0)`, whose
+Diagnostic-bearing Result was a real repeated construction. Its one-time controls
+could not fund that per-call receiver. The corrected draft delegates every call
+to the unchanged ordinary authenticator and restores its full fee. The remaining
+structural benefit is retained cursor/frame/open backing; all measured benefit
+and application recovery remain unqualified.

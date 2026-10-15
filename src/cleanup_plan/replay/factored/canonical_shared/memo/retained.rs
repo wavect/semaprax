@@ -23,30 +23,14 @@ impl<T> RetainedMemo<T> {
         if self.memo.failed {
             return;
         }
-        if self.memo.binding.is_none() {
-            // This real initial Result retains the ordinary authorization fee.
-            // Successful later calls do not invoke that Result-returning API.
-            if let Err(error) = self.memo.authenticate(function, budget) {
-                self.memo.failed = true;
-                self.refusal = Some(error);
-                return;
-            }
-        } else if let Some(binding) = &self.memo.binding {
-            let ledger_matches = binding.ledger.current();
-            if binding.function != std::ptr::from_ref(function)
-                || binding.budget != std::ptr::from_ref(budget)
-                || !ledger_matches
-            {
-                self.memo.failed = true;
-                return;
-            }
-            if let Err(error) =
-                budget.reserve_bytes(function, 0, "factored closure memo authentication")
-            {
-                self.memo.failed = true;
-                self.refusal = Some(error);
-                return;
-            }
+        // The ordinary function still constructs a Diagnostic-bearing Result
+        // on every invocation, including warm zero-byte authentication. Keep
+        // its actual per-call authorization-receipt charge. A unit-returning
+        // wrapper does not eliminate that inner construction.
+        if let Err(error) = self.memo.authenticate(function, budget) {
+            self.memo.failed = true;
+            self.refusal = Some(error);
+            return;
         }
         if !self.controls_paid {
             if budget.pays_allocations() {
@@ -54,7 +38,8 @@ impl<T> RetainedMemo<T> {
                     function,
                     size_of::<Self>() - size_of::<Memo<T>>()
                         + size_of::<Option<Diagnostic>>()
-                        + size_of::<Diagnostic>(),
+                        + size_of::<Diagnostic>()
+                        + size_of::<Result<(), Diagnostic>>(),
                     "factored retained memo controls and failure receiving",
                 ) {
                     self.memo.failed = true;

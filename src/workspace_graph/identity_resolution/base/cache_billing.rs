@@ -8,6 +8,8 @@ pub(in crate::workspace_graph) fn replay_cached_prelude(
 ) -> Result<(), ModuleFailure> {
     core.bind_base_owner();
     let mut owner = IdentityReservation::acquire().map_err(ModuleFailure::Setup)?;
+    #[cfg(test)]
+    observe_acquired(&owner);
     let result = core
         .base_prelude
         .ensure_selected(

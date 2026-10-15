@@ -1,0 +1,189 @@
+SEMAPRAX — Meaning in. Verified machine code out.
+
+Usage:
+semaprax dev <semaprax.toml> --jsonl|--human [--interpreter|--source-agent]
+semaprax check [<file>|<dir>|semaprax.toml|--manifest-path path] [--json]
+semaprax compact graph|agent-definition <file> [--encoding text|binary|model-text] [--replay <encoded>]
+semaprax compact context <file> <stable-id> [--max-bytes N] [--encoding text|binary|model-text] [--replay <encoded>]
+semaprax compact task-context <file> <stable-id> [--goal text] [--priority N] [--reason text] [--seed stable-id [--priority N] [--reason text]]... [--revision digest] [--tokenizer byte-v1|lexical-v1] [--max-bytes N] [--max-tokens N] [--encoding text|binary|model-text] [--replay <encoded>]
+semaprax compact api-surface <project> [--encoding text|binary|model-text] [--replay <encoded>]
+semaprax compact candidate-diff <project> <capsule> [--encoding text|binary|model-text] [--replay <encoded>]
+semaprax graph <file>
+semaprax explore <manifest> [--target <id> --depth <n>] [--candidate-capsule <path> --expect-candidate <digest>] --format html|json|markdown|svg --output <path>
+semaprax doc <file|project> [--module <source-path>] [--json]
+semaprax verify <file> <patch.spatch> <evidence.json>
+semaprax verify <root> <patch.wspatch>|<proposal.json> <evidence.json>
+semaprax verify <definition.json> <profile.json> <graph.json>
+semaprax verify <manifest> <image.json>
+semaprax agent inspect <definition.json> [--profile]
+semaprax agent run <definition.json> <task.json> <transcript.json> [--evidence|--trace]
+semaprax agent replay <definition.json> <task.json> <transcript.json> <evidence.json>
+semaprax agent skill [--require-schema <schema>]
+semaprax skills get <agent|language|graph|stdlib|packages|effects>
+semaprax explain <SPX-CODE> [--json]
+semaprax fix --plan
+semaprax fix <file> assign-function-id <automatic-function-id> --plan
+semaprax query --capabilities
+semaprax query <file|project> [--kind <kind>[,<kind>]] [--name <text>] [--id <prefix>] [--effect <effect>] [--calls <stable-id>] [--called-by <stable-id>] [--json]
+semaprax query <project> declarations [--kind <kind>[,<kind>]] [--name <text>] [--id <prefix>] [--effect <effect>] [--calls <stable-id>] [--called-by <stable-id>] [--offset N] [--limit N] [--revision digest]
+semaprax query <project> symbol <stable-id> [--revision digest]
+semaprax query <project> context <declaration|capability> <target> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--revision digest]
+semaprax query <project> impact <declaration|capability> <target> [--depth N] [--max-bytes N] [--max-nodes N] [--revision digest]
+semaprax query <project> available-operations <stable-id> [--revision digest]
+semaprax change preview <project> rename-display-name <stable-id> <new-name> [--revision digest] [--evidence|--structural-diff]
+semaprax change preview <project> replace-expression <stable-id> <expression-id> <replacement-json> [--revision digest] [--evidence|--structural-diff]
+semaprax change preview <project> add-contract <stable-id> <requires|ensures> <predicate-json> [--revision digest] [--evidence|--structural-diff]
+semaprax change preview <project> add-declaration <anchor-stable-id> <declaration-json> [--revision digest] [--evidence|--structural-diff]
+semaprax change rebase <base-project> rename-display-name <stable-id> <new-name> --onto <onto-project> [--revision digest] [--onto-revision digest]
+semaprax change merge <project> rename-display-name <left-id> <left-new-name> --with rename-display-name <right-id> <right-new-name> [--revision digest] --order <left-then-right|right-then-left>
+semaprax package report <file> [--max-bytes N]
+semaprax package lock <subject.json>... [--max-bytes N]
+semaprax package resolve <subject.json>... --require <package>:<range> [--require ...] --target <native64|wasm32> [--allow-capability <capability>]... [--max-bytes N]
+semaprax release verify <release-dir>
+semaprax audit inspect <capsule.json>
+semaprax audit verify <capsule.json> <objects-dir> [--require-role <role>]... [--revoke <identity>]... [--trust-log <log-id>]... [--trust-roster <path.json>] [--min-checkpoint-size <n>] [--now <unix-seconds>]
+semaprax audit diff <capsule-a.json> <capsule-b.json>
+semaprax workflow inspect <workflow.json>
+semaprax workflow validate <workflow.json>
+semaprax workflow checkpoint <checkpoint.json>
+semaprax workflow dispatch <policy.json> <request.json>
+semaprax registry search <registry.json> <query>
+semaprax registry add <registry.json> <package> <range>
+semaprax registry lock <registry.json> <template.json> [--raw]
+semaprax registry fetch <registry.json> <package> <version> [--raw]
+semaprax registry verify <registry.json> <snapshot-evidence.json>
+semaprax registry verify <registry.json> <template.json> <lock-evidence.json>
+semaprax registry publish <registry.json> <entry.json>
+semaprax add <dir>|semaprax.toml <package> <range>
+semaprax fetch <cache-dir> <subject.json>...
+semaprax fetch --lock <lock.json> <cache-dir> <subject.json>...
+semaprax project-image <manifest>
+semaprax project-image-store <manifest> <store-root>
+semaprax project-image-load <store-root> <receipt.json> <expected-image-digest>
+semaprax project-image-verify <manifest> <image.json>
+semaprax project-symbol <manifest> <stable-id>
+semaprax project-candidate-preview <manifest> <change.json>
+semaprax project-candidate-export <manifest> <change.json>
+semaprax project-candidate-restore <manifest> <capsule.json>
+semaprax semantic-cache-init <store-root>
+semaprax semantic-cache-persist <manifest> <store-root>
+semaprax semantic-cache-load <store-root> <entry-digest>
+semaprax semantic-cache-evict <store-root> <entry-digest>
+semaprax semantic-cache-lifecycle <manifest> <empty-store-root>
+semaprax semantic-cache-cold-open <manifest>
+semaprax semantic-cache-warm-open <manifest> <store-root> <entry-digest>
+semaprax semantic-cache-refresh <manifest> <store-root> <entry-digest>
+semaprax retention-metadata-inventory <declarations.json>
+semaprax retention-metadata-plan <inventory.json> <sequence> <max-subjects> <max-bytes> <protected-generations> <previous-checkpoint.json|none> <previous-digest|none> <previous-predecessor-digest|none>
+semaprax retention-metadata-persist <store-root> <checkpoint.json> <checkpoint-digest> <previous-digest|none> <plan.json> <plan-digest>
+semaprax retention-metadata-load <store-root> <checkpoint-digest> <previous-digest|none> <plan-digest>
+semaprax project-candidate-persist <manifest> <capsule.json> <store-root>
+semaprax project-candidate-load <store-root> <archive-digest> <candidate-digest>
+semaprax project-draft-persist <manifest> <draft-capsule.json> <store-root>
+semaprax project-draft-load <store-root> <archive-digest> <draft-digest>
+semaprax project-candidate-git-publish <manifest> <capsule.json> <approved-candidate-digest> <host-policy.json>
+semaprax serve-workspace <manifest> <host-policy.json>
+semaprax serve-workspace-mcp <manifest> <host-policy.json>
+semaprax service <project> [--mcp]
+semaprax serve-image <manifest>
+semaprax serve-candidates <manifest>
+semaprax serve-test-candidates <manifest>
+semaprax serve-diagnostics <manifest>
+semaprax serve-diagnostics-tested <manifest>
+semaprax context <file|project> <symbol|stable-id> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--filters contracts,ownership,effects,types,targets,diagnostics,tests,session_protocol]
+semaprax context <file.spx> <selected-rust-import-id|rust-path> --rust-index <canonical-index.json> [--max-bytes N]
+semaprax context <saved-file.spx> <rust-path-prefix> --rust-index <canonical-index.json> --candidates [--max-bytes N]
+semaprax context-benchmark <manifest>
+semaprax serve <file> [--max-request-bytes N]
+semaprax quality-plan <quick|changed|full> [exact-changed-path ...]
+semaprax doctor [--profile <id>] [--target native|web|all] [--json]
+semaprax doctor verify-release <release-dir> --trusted-root-sha256 <64-lowercase-hex>
+semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text|stdin-stream-data|stdin-stream-collection-record|source-command-file-text]
+semaprax project-scaffold --name project-name [--template calculator|library|service|stdin-stream-text|stdin-stream-data|stdin-stream-collection-record|source-command-file-text] [--layout frozen|tables|current]
+semaprax build <file> [--target native] [-o|--output path] [--json]
+semaprax build <file> --target native-callable --function stable-id [-o|--output path] [--json]
+semaprax build <file> --target web|wasm [--profile internal-strings-v1|text-toolkit-v1] [--export stable-id ...] [-o|--output path] [--json]
+semaprax build [<dir>|semaprax.toml|--manifest-path path] [--target native|web|wasm|npm|oci] [-o|--output path] [--json]
+semaprax run <file> [--json] [--max-steps N] [--max-bytes N] [--native] [-- <arg>...]
+semaprax run [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]
+semaprax network-run [<dir>|semaprax.toml|--manifest-path path] --fixture fixture.json [--arg UTF8]... [--stdin path] [--max-steps N]
+semaprax test [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N] [--target interpreter]
+semaprax test [<dir>|semaprax.toml|--manifest-path path] [--json] --target native [--native-timeout-ms N] [--native-max-output-bytes N]
+semaprax fmt <file>|<dir>|semaprax.toml [--check]
+semaprax fmt --manifest <semaprax.toml> [--check]
+semaprax patch <file> <patch.spatch>
+semaprax patch-receipt <project> render <transaction-json> <candidate-digest>
+semaprax patch-receipt <project> verify <transaction-json> <candidate-digest> <receipt-json>
+semaprax patch-receipt <project> refusal <transaction-json> <requested-candidate-digest>
+semaprax patch-receipt <project> verify-refusal <transaction-json> <requested-candidate-digest> <receipt-json>
+semaprax patch-receipt <project> compare <left-transaction-json> <left-candidate-digest> <left-receipt-json> <right-transaction-json> <right-candidate-digest> <right-receipt-json>
+semaprax patch-receipt <project> evidence-summary <transaction-json> <candidate-digest>
+semaprax patch-receipt <project> evidence-page <transaction-json> <candidate-digest> <evidence-id> <handle> <cursor|->
+semaprax workspace-init <root> <path-set.json>
+semaprax semantic-workspace-init <root> <path-set.json>
+semaprax semantic-workspace-change-preview <root> <proposal.json>
+semaprax semantic-workspace-change-evidence <root> <proposal.json>
+semaprax verify-semantic-workspace-change-evidence <root> <proposal.json> <evidence.json>
+semaprax apply-semantic-workspace-change-evidence <root> <proposal.json> <evidence.json>
+semaprax semantic-workspace-structural-change-preview <root> <proposal.json>
+semaprax semantic-workspace-structural-change-evidence <root> <proposal.json>
+semaprax verify-semantic-workspace-structural-change-evidence <root> <proposal.json> <evidence.json>
+semaprax apply-semantic-workspace-structural-change-evidence <root> <proposal.json> <evidence.json>
+semaprax semantic-workspace-operations-derive <root> <proposal.json>
+semaprax semantic-workspace-operations-change-proposal <root> <proposal.json>
+semaprax semantic-workspace-operations-evidence <root> <proposal.json>
+semaprax verify-semantic-workspace-operations-evidence <root> <proposal.json> <evidence.json>
+semaprax apply-semantic-workspace-operations-evidence <root> <proposal.json> <evidence.json>
+semaprax workspace-snapshot <root>
+semaprax workspace-graph <root> <entry-module>
+semaprax workspace-context <root> <entry-module> <declaration|capability> <target> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N]
+semaprax workspace-impact <root> <entry-module> <declaration|capability> <target> [--depth N] [--max-bytes N] [--max-nodes N]
+semaprax workspace-review <root> <entry-module> <declaration|capability> <target>
+semaprax workspace-preview <root> <patch.wspatch>
+semaprax workspace-apply <root> <patch.wspatch>
+semaprax workspace-patch-evidence <root> <patch.wspatch>
+semaprax verify-workspace-patch-evidence <root> <patch.wspatch> <evidence.json>
+semaprax workspace-apply-with-evidence <root> <patch.wspatch> <evidence.json>
+semaprax impact <file> <patch.spatch> [--depth N] [--max-bytes N] [--max-nodes N]
+semaprax properties <file> [--max-cases N] [--max-functions N] [--max-bytes N] [--seed N]
+semaprax hygienic-gen <file> [--templates default-constructor,field-accessors] [--max-bytes N]
+semaprax openapi <file> --function <name|stable-id> ... [--max-bytes N]
+semaprax openapi-compat <base.json> <candidate.json> [--max-bytes N]
+semaprax c-header <file> --function name|stable-id[,...] [--function ...] [--max-bytes N] [--emit-header]
+semaprax freestanding-object <file> [--max-bytes N]
+semaprax abi-report <file> --function name|stable-id[,...] [--function ...] [--max-bytes N]
+semaprax capability-manifest <file> [--max-bytes N]
+semaprax package-report <file> [--max-bytes N]
+semaprax package-lock <subject.json>... [--max-bytes N]
+semaprax package-resolve <subject.json>... --require <package>:<range> [--require ...] --target <native64|wasm32> [--allow-capability <capability>]... [--max-bytes N]
+semaprax lock [<dir>|semaprax.toml] [--write|--verify|--compare <baseline.lock>|--emit-interface|--compare-interface <baseline.json>]
+semaprax resolve [<dir>|semaprax.toml] --target <native64|wasm32> --cache <dir> [--write|--verify] [--max-bytes N]
+semaprax region-report <file> [--max-bytes N]
+semaprax assurance-policy <file> --profile <require-static|allow-runtime-guard|allow-test-evidence|report-only> [--max-bytes N] [--max-obligations N]
+semaprax assurance-diff <base-file> <candidate-file> --profile <require-static|allow-runtime-guard|allow-test-evidence|report-only> [--as-of YYYY-MM-DD] [--max-bytes N] [--max-obligations N]
+semaprax assurance-manifest <file> [--max-bytes N] [--max-obligations N]
+semaprax project-assurance-manifest <manifest> [--max-bytes N] [--max-obligations N] [--forbid-reaches <claim-id> <from-id> <to-id>]...
+semaprax project-proof-check <absolute-manifest> --tool lean|z3 --executable <absolute-path> --version-line <exact-version> --host-profile trusted-local|confined (--law <stable-id> | --source <project-path> --declaration <stable-id> --ensures <index>)
+semaprax project-proof-check <absolute-manifest> --workflow summary|detail --law <selected-id> --tool lean|z3 --executable <absolute-path> --version-line <exact-version> --host-profile trusted-local [--source <project-path> --declaration <stable-id> --ensures <index>] [--offset <n> --limit <n> --max-bytes <n>] [--show-witness-values]
+semaprax simd-report <file> [--max-bytes N]
+semaprax protocol-check <file> [--max-bytes N]
+semaprax interpret <file> --function <name|stable-id> [--arg <scalar literal>]... [--max-bytes N]
+semaprax interpret-strings <file> --function <name|stable-id> [--arg <scalar literal>]... [--max-bytes N]
+semaprax ui-schema <file> [--max-bytes N]
+semaprax webapp <file> [-o|--output dir] [--title text] [--api]
+semaprax plugin-manifest <file> [--max-bytes N]
+semaprax cxx-shim <file> --function name|stable-id[,...] [--function ...] [--max-bytes N] [--emit-fragment]
+semaprax cxx-package <file> --function name|stable-id[,...] [--function ...] [--max-bytes N]
+semaprax review <file> <patch.spatch>
+semaprax review <project> <transaction.json> [--evidence]
+semaprax target-evidence <file> <patch.spatch>
+semaprax patch-evidence <file> <patch.spatch>
+semaprax patch-evidence-v2 <file> <patch.spatch>
+semaprax verify-patch-evidence <file> <patch.spatch> <evidence.json>
+semaprax verify-patch-evidence-v2 <file> <patch.spatch> <evidence.json>
+semaprax patch-with-evidence <file> <patch.spatch> <evidence.json>
+semaprax patch-with-evidence-v2 <file> <patch.spatch> <evidence.json>
+semaprax repairs <file> assign-function-id <automatic-function-id>
+semaprax repair <file> <repair-id> --persistent-id <persistent-id>
+semaprax version [--json]
+semaprax --version

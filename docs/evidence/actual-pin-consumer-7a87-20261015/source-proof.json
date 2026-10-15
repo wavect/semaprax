@@ -1,0 +1,12 @@
+{
+  "state": "SOURCE_ONLY_NOT_RUNTIME_QUALIFICATION",
+  "checkpoint": "92eeddc7f9a6e65a849a1186642e0cc52a0a82e9",
+  "actual_plan_literals": 11,
+  "complete_frontdoor_rows": 3,
+  "all17SourceA_original_full_inverses_equal": true,
+  "all11_original_help_pins_equal": true,
+  "legacy_full_source_inverse_predicates": 107,
+  "tamper_refusals": 6,
+  "production_changes": 0,
+  "new_test_bodies": 0
+}

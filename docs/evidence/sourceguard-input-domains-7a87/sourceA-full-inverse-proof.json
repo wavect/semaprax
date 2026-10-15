@@ -1,0 +1,26 @@
+{
+  "sourceA_actual_sections": 17,
+  "sources": [
+    "src/bounded_output/classifier_string.rs",
+    "src/cleanup_plan.rs",
+    "src/cleanup_plan/replay.rs",
+    "src/cleanup_plan/replay/allocation.rs",
+    "src/cleanup_plan/replay/allocation/oracle.rs",
+    "src/cleanup_plan/replay/allocation/oracle/diagnostic.rs",
+    "src/cleanup_plan/replay/factored.rs",
+    "src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs",
+    "src/cleanup_plan/replay/factored/oracle_hook.rs",
+    "src/cleanup_plan/replay/nested_shape/paid.rs",
+    "src/cleanup_plan/replay/ordinary_inventory/substitute.rs",
+    "src/cleanup_plan/replay/paid_type_facts.rs",
+    "src/cleanup_plan/replay/paid_type_facts/inventory_encoded.rs",
+    "src/cleanup_plan/replay/paid_type_facts/inventory_encoded/tests.rs",
+    "src/cleanup_plan/replay/paid_type_facts/inventory_tests.rs",
+    "src/cleanup_plan/replay/skeleton_work/oracle_entry.rs",
+    "src/hir/function_value.rs"
+  ],
+  "all_full_original_inverses_equal": true,
+  "actual_prefixes_recognized": true,
+  "cache_bytes": 0,
+  "Rust_execution": false
+}

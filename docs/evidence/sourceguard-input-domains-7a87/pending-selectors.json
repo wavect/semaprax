@@ -1,0 +1,14 @@
+{
+  "new_bodies": 0,
+  "existing_direct_owners": [
+    {
+      "harness": "semaprax::offline_package",
+      "selector": "resolver_cli::help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot"
+    },
+    {
+      "harness": "semaprax::lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact"
+    }
+  ],
+  "runtime_executed": false
+}

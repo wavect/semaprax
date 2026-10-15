@@ -1,0 +1,13 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED_LINT_CORRECTION",
+  "source_basis": "940fcf220e47d1975f757e76f0b3401691db9358",
+  "parent_commit": "d2b852fda9ef7a67eb84c8688ce0ead1a41ea16c",
+  "owners": 3,
+  "complete_original_reconstruction": true,
+  "no_allow_suppression": true,
+  "old_helper_body_control_order_and_callers_unchanged": true,
+  "actual_prior_clippy_exit": 101,
+  "actual_prior_receipt_sha256": "5af5e3669932cc92dca106016f3ec754885bd36b25c7005ae0648ff87e9c00f6",
+  "actual_prior_log_sha256": "a76c292abb40c44517e9ecf31ff1a282ce51037dfe4ad26e947f50bb9f95683e",
+  "new_clippy_execution": false
+}

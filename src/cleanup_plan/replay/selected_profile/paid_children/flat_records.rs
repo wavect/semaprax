@@ -106,7 +106,7 @@ pub(in crate::cleanup_plan::replay) fn module(
 }
 pub(super) fn expression_inner(
     program: &dyn ReplayContext,
-    function: &ResolvedFunction,
+    _function: &ResolvedFunction,
     expression: &ResolvedExpr,
 ) -> Result<(), Deferred> {
     match &expression.kind {

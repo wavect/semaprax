@@ -1,6 +1,5 @@
 //! Exact borrowed classification twins; finite error data never allocates.
 //! Callers pay their receiving controls before invoking these pure queries.
-use crate::cleanup::ReplayContext;
 use crate::cleanup_plan::renewal_profile::{
     child_refusal::Refusal, profile_refusal::ProfileRefusal,
 };

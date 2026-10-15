@@ -129,7 +129,7 @@ pub(crate) fn checked_bindings_with_reservation_and_work_inline<'a>(
         |units, storage| (storage.1)(units),
         CensusRefusal {
             physical: |_| {},
-            error: error,
+            error,
         },
     )
 }

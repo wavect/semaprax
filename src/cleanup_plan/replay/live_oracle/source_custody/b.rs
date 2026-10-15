@@ -777,7 +777,7 @@ fn explicit_owner_siblings_match_legacy_selective_routes_and_body_reuse() {
         );
     }
     {
-        let mut current = include_str!("../../../../string_ops.rs").to_owned();
+        let mut current = super::current_view::project("src/string_ops.rs", include_str!("../../../../string_ops.rs"));
         undo(
             &mut current,
             r#"    }
@@ -883,7 +883,7 @@ pub(crate) mod work;
         );
     }
     {
-        let mut current = include_str!("../../../../string_ops/conditions.rs").to_owned();
+        let mut current = super::current_view::project("src/string_ops/conditions.rs", include_str!("../../../../string_ops/conditions.rs"));
         undo(
             &mut current,
             r#"    }

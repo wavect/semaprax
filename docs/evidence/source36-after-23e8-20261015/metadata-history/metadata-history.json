@@ -1,0 +1,11 @@
+{
+  "status": "LOCAL_METADATA_HISTORY_NOT_GLOBAL_ACTIVE_SOURCE",
+  "old_two_view_json": "docs/evidence/source36-current-view-adapter-94c392-20261015/source-projections.json",
+  "complete_old_json_archive": "docs/evidence/source36-after-23e8-20261015/metadata-history/old-two-view-source-projections.json",
+  "old_json_sha256": "a72d22f40acc63e6cacdb19500640a8aa08b5f59fe5cd79173d60cb839e315ae",
+  "new_combined_json": "docs/evidence/source36-after-23e8-20261015/source-projections.json",
+  "new_combined_sha256": "8133be469de9b9f646e9de68f129979c2ebc0e261affa353ecab320577802cdd",
+  "old_two_records_retained_exactly": true,
+  "old_original_helper_archive_untouched": true,
+  "no_json_row_in_source_inverses": true
+}

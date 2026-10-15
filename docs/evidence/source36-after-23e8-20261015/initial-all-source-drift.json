@@ -1,0 +1,261 @@
+{
+  "status": "SOURCE_ONLY_DIAGNOSTIC_CENSUS",
+  "existing_ab_controls_checked": 34,
+  "unchanged_additional_controls": "Old verifier tail includes2 additional complete controls; final adapted runner will execute all36 unchanged.",
+  "failures": [
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/string_ops.rs",
+      "line": 780,
+      "pass": false,
+      "error": "AssertionError(('/Volumes/Semaprax/worktrees/source36-after-23e8-20261015/AI-Lang/src/cleanup_plan/replay/live_oracle/source_custody/b.rs', \"'    }\\\\n    false\\\\n}\\\\n\\\\n#[cfg(test)]\\\\npub(crate) use concat_funded::work::{\\\\n    is_same_owner_concat_hir_f'\", 0))"
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/string_ops/conditions.rs",
+      "line": 886,
+      "pass": false,
+      "error": "AssertionError(('/Volumes/Semaprax/worktrees/source36-after-23e8-20261015/AI-Lang/src/cleanup_plan/replay/live_oracle/source_custody/b.rs', \"'    }\\\\n    false\\\\n}\\\\n\\\\n#[cfg(test)]\\\\npub(crate) use funded::work::{\\\\n    condition_reads_funded_with_work,'\", 0))"
+    }
+  ],
+  "all_ab_controls": [
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/bounded_output/classifier_string.rs",
+      "line": 5,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan.rs",
+      "line": 54,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay.rs",
+      "line": 78,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/allocation.rs",
+      "line": 146,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/allocation/oracle.rs",
+      "line": 178,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/allocation/oracle/diagnostic.rs",
+      "line": 207,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/factored.rs",
+      "line": 281,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs",
+      "line": 691,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/factored/oracle_hook.rs",
+      "line": 725,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/nested_shape/paid.rs",
+      "line": 861,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/ordinary_inventory/substitute.rs",
+      "line": 908,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/paid_type_facts.rs",
+      "line": 969,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/paid_type_facts/inventory_encoded.rs",
+      "line": 1047,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/paid_type_facts/inventory_encoded/tests.rs",
+      "line": 1165,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/paid_type_facts/inventory_tests.rs",
+      "line": 1223,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/skeleton_work/oracle_entry.rs",
+      "line": 1405,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/hir/function_value.rs",
+      "line": 1477,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/hir/function_value/funded.rs",
+      "line": 5,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/hir/funded.rs",
+      "line": 29,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/hir/ids.rs",
+      "line": 53,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/hir/ids/metered_owner.rs",
+      "line": 84,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/hir/lexical_exit.rs",
+      "line": 108,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/hir/lexical_exit/owner_funded.rs",
+      "line": 135,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/hir/lexical_exit/walk.rs",
+      "line": 274,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/literal_format.rs",
+      "line": 369,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/literal_format/funded.rs",
+      "line": 393,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/project/incremental/cold_source_tests.rs",
+      "line": 417,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/string_ops.rs",
+      "line": 780,
+      "pass": false,
+      "error": "AssertionError(('/Volumes/Semaprax/worktrees/source36-after-23e8-20261015/AI-Lang/src/cleanup_plan/replay/live_oracle/source_custody/b.rs', \"'    }\\\\n    false\\\\n}\\\\n\\\\n#[cfg(test)]\\\\npub(crate) use concat_funded::work::{\\\\n    is_same_owner_concat_hir_f'\", 0))"
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/string_ops/concat_funded.rs",
+      "line": 862,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/string_ops/conditions.rs",
+      "line": 886,
+      "pass": false,
+      "error": "AssertionError(('/Volumes/Semaprax/worktrees/source36-after-23e8-20261015/AI-Lang/src/cleanup_plan/replay/live_oracle/source_custody/b.rs', \"'    }\\\\n    false\\\\n}\\\\n\\\\n#[cfg(test)]\\\\npub(crate) use funded::work::{\\\\n    condition_reads_funded_with_work,'\", 0))"
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/string_ops/conditions/funded.rs",
+      "line": 955,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/string_ops/take.rs",
+      "line": 979,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/workspace_graph/identity_resolution/tests.rs",
+      "line": 1039,
+      "pass": true,
+      "error": null
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "tests/hir_module_boundaries.rs",
+      "line": 1092,
+      "pass": true,
+      "error": null
+    }
+  ]
+}

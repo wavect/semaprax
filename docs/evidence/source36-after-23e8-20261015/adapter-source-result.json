@@ -1,0 +1,40 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTED",
+  "whole_source_proofs": [
+    {
+      "manifest": "source-projections.json",
+      "source": "src/cleanup_plan/replay.rs",
+      "whole_original_equal": true
+    },
+    {
+      "manifest": "source-projections.json",
+      "source": "tests/hir_module_boundaries.rs",
+      "whole_original_equal": true
+    },
+    {
+      "manifest": "source-projections.json",
+      "source": "src/string_ops.rs",
+      "whole_original_equal": true
+    },
+    {
+      "manifest": "source-projections.json",
+      "source": "src/string_ops/conditions.rs",
+      "whole_original_equal": true
+    },
+    {
+      "manifest": "source-inverses.json",
+      "source": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "whole_original_equal": true
+    },
+    {
+      "manifest": "source-inverses.json",
+      "source": "src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs",
+      "whole_original_equal": true
+    }
+  ],
+  "old_two_named_records_preserved": true,
+  "old_runners_proofs_helper_archive_unchanged": true,
+  "old_undo_count_assertions_preserved": true,
+  "a_rs_unchanged_lines": 1500,
+  "new_json_not_global_active_source": true
+}

@@ -1,0 +1,72 @@
+[PRIVATE-PHYSICAL-OBSERVER] function=catalog_normalizer.tests.main phase=factored automaton nodes bytes=3072 stack=   0: <std::backtrace::Backtrace>::create
+   1: <semaprax::cleanup_plan::replay::ReplayBudget>::reserve_bytes
+   2: <semaprax::cleanup_plan::replay::ReplayBudget>::reserve_array::<semaprax::cleanup_plan::replay::factored::Node>
+   3: <semaprax::cleanup_plan::replay::ReplayBudget>::reserve_vec::<semaprax::cleanup_plan::replay::factored::Node>
+   4: <semaprax::cleanup_plan::replay::factored::Automaton>::node
+   5: <semaprax::cleanup_plan::replay::factored::Automaton>::chain
+   6: <semaprax::cleanup_plan::replay::factored::Automaton>::add_dag
+   7: <semaprax::cleanup_plan::replay::factored::Automaton>::add_observations
+   8: semaprax::cleanup_plan::replay::factored::build_comparison::{closure#0}
+   9: semaprax::cleanup_plan::replay::factored::build_comparison
+  10: semaprax::cleanup_plan::replay::factored::compare_with_index_storage
+  11: semaprax::cleanup_plan::replay::factored::validate_with_index_storage
+  12: semaprax::cleanup_plan::replay::validate_typed_control_skeleton_with_index
+  13: semaprax::cleanup_plan::replay::validate_structure_with_budget_storage
+  14: semaprax::cleanup_plan::replay::validate_program_context
+  15: semaprax::cleanup_plan::replay::validate_program
+  16: semaprax::cleanup_plan::validate::validate_program
+  17: semaprax::hir::inspection::validate_with_loan_comparison
+  18: semaprax::hir::validate_selected_with_static_text
+  19: semaprax::hir::validate_with_static_text
+  20: semaprax::hir::selected_fused_candidate::resolution::validation
+  21: <semaprax::hir::Resolver>::resolve_with_agent_identities::<semaprax::bounded_output::identity_reservation::Refused, semaprax::hir::identity_resolution::nominal::source_pass_nominal<semaprax::bounded_output::identity_reservation::Refused, <semaprax::workspace_graph::expected_projection::borrowed_leaf::Input>::resolve_paid_with_base::{closure#0}>::{closure#0}>::{closure#16}
+  22: semaprax::bounded_output::with_reservation_stage::<core::result::Result<bool, semaprax::diagnostic::Diagnostic>, <semaprax::hir::Resolver>::resolve_with_agent_identities<semaprax::bounded_output::identity_reservation::Refused, semaprax::hir::identity_resolution::nominal::source_pass_nominal<semaprax::bounded_output::identity_reservation::Refused, <semaprax::workspace_graph::expected_projection::borrowed_leaf::Input>::resolve_paid_with_base::{closure#0}>::{closure#0}>::{closure#16}>
+  23: <semaprax::hir::Resolver>::resolve_with_agent_identities::<semaprax::bounded_output::identity_reservation::Refused, semaprax::hir::identity_resolution::nominal::source_pass_nominal<semaprax::bounded_output::identity_reservation::Refused, <semaprax::workspace_graph::expected_projection::borrowed_leaf::Input>::resolve_paid_with_base::{closure#0}>::{closure#0}>
+  24: semaprax::hir::identity_resolution::nominal::source_pass_nominal::<semaprax::bounded_output::identity_reservation::Refused, <semaprax::workspace_graph::expected_projection::borrowed_leaf::Input>::resolve_paid_with_base::{closure#0}>
+  25: semaprax::hir::identity_resolution::nominal::resolve_source_checked_previous_with_base::<<semaprax::workspace_graph::expected_projection::borrowed_leaf::Input>::resolve_paid_with_base::{closure#0}>
+  26: <semaprax::workspace_graph::expected_projection::borrowed_leaf::Input>::resolve_paid_with_base
+  27: semaprax::workspace_graph::identity_resolution::base::resolve_module_with_base::{closure#0}::{closure#0}::{closure#2}
+  28: semaprax::bounded_output::with_reservation_stage::<core::result::Result<(semaprax::hir::nodes::ResolvedProgram, alloc::collections::btree::map::BTreeMap<alloc::string::String, usize>, usize, bool), semaprax::project::incremental::paid_resolution::base::BaseSelectiveFailure>, semaprax::workspace_graph::identity_resolution::base::resolve_module_with_base::{closure#0}::{closure#0}::{closure#2}>
+  29: semaprax::workspace_graph::identity_resolution::base::resolve_module_with_base::{closure#0}::{closure#0}
+  30: semaprax::box_ops::wrappers::with_authenticated_linked_source::<core::result::Result<(semaprax::hir::nodes::ResolvedProgram, alloc::collections::btree::map::BTreeMap<alloc::string::String, usize>, usize, bool), semaprax::project::incremental::paid_resolution::base::BaseSelectiveFailure>, semaprax::workspace_graph::identity_resolution::base::resolve_module_with_base::{closure#0}::{closure#0}>
+  31: semaprax::workspace_graph::identity_resolution::base::resolve_module_with_base::{closure#0}
+  32: semaprax::vec_ops::wrappers::with_authenticated_linked_source::<core::result::Result<(semaprax::hir::nodes::ResolvedProgram, alloc::collections::btree::map::BTreeMap<alloc::string::String, usize>, usize, bool), semaprax::project::incremental::paid_resolution::base::BaseSelectiveFailure>, semaprax::workspace_graph::identity_resolution::base::resolve_module_with_base::{closure#0}>
+  33: semaprax::workspace_graph::identity_resolution::base::resolve_module_with_base
+  34: semaprax::workspace_graph::identity_resolution::base::resolve_module_with_core
+  35: semaprax::workspace_graph::build_resolved_core_current
+  36: semaprax::workspace_graph::build_owned_inner::{closure#12}::{closure#0}::{closure#2}
+  37: semaprax::bounded_output::with_reservation_stage::<core::result::Result<(alloc::vec::Vec<semaprax::workspace_graph::WorkspaceResolvedModule>, alloc::collections::btree::map::BTreeMap<alloc::string::String, alloc::string::String>, alloc::collections::btree::map::BTreeMap<alloc::string::String, usize>, alloc::collections::btree::map::BTreeMap<alloc::string::String, semaprax::workspace_graph::WorkspaceDeclarationFact>, alloc::vec::Vec<semaprax::workspace_graph::WorkspaceEdge>), semaprax::workspace_graph::constructor_failure::receiving::CoreFailure>, semaprax::workspace_graph::build_owned_inner::{closure#12}::{closure#0}::{closure#2}>
+  38: semaprax::workspace_graph::build_owned_inner::{closure#12}::{closure#0}
+  39: semaprax::workspace_graph::constructor_failure::attempt::run::<((alloc::vec::Vec<semaprax::workspace_graph::WorkspaceResolvedModule>, alloc::collections::btree::map::BTreeMap<alloc::string::String, alloc::string::String>, alloc::collections::btree::map::BTreeMap<alloc::string::String, usize>, alloc::collections::btree::map::BTreeMap<alloc::string::String, semaprax::workspace_graph::WorkspaceDeclarationFact>, alloc::vec::Vec<semaprax::workspace_graph::WorkspaceEdge>), semaprax::workspace_graph::custody::SelectionPlan), semaprax::workspace_graph::build_owned_inner::{closure#12}::{closure#0}>
+  40: semaprax::workspace_graph::build_owned_inner::{closure#12}
+  41: semaprax::bounded_output::with_limit_usage_refusal_site::<semaprax::workspace_graph::constructor_failure::attempt::Attempt<((alloc::vec::Vec<semaprax::workspace_graph::WorkspaceResolvedModule>, alloc::collections::btree::map::BTreeMap<alloc::string::String, alloc::string::String>, alloc::collections::btree::map::BTreeMap<alloc::string::String, usize>, alloc::collections::btree::map::BTreeMap<alloc::string::String, semaprax::workspace_graph::WorkspaceDeclarationFact>, alloc::vec::Vec<semaprax::workspace_graph::WorkspaceEdge>), semaprax::workspace_graph::custody::SelectionPlan)>, semaprax::workspace_graph::build_owned_inner::{closure#12}>::{closure#0}
+  42: semaprax::bounded_output::with_limit_usage_refusal::<(semaprax::workspace_graph::constructor_failure::attempt::Attempt<((alloc::vec::Vec<semaprax::workspace_graph::WorkspaceResolvedModule>, alloc::collections::btree::map::BTreeMap<alloc::string::String, alloc::string::String>, alloc::collections::btree::map::BTreeMap<alloc::string::String, usize>, alloc::collections::btree::map::BTreeMap<alloc::string::String, semaprax::workspace_graph::WorkspaceDeclarationFact>, alloc::vec::Vec<semaprax::workspace_graph::WorkspaceEdge>), semaprax::workspace_graph::custody::SelectionPlan)>, core::option::Option<&core::panic::location::Location>), semaprax::bounded_output::with_limit_usage_refusal_site<semaprax::workspace_graph::constructor_failure::attempt::Attempt<((alloc::vec::Vec<semaprax::workspace_graph::WorkspaceResolvedModule>, alloc::collections::btree::map::BTreeMap<alloc::string::String, alloc::string::String>, alloc::collections::btree::map::BTreeMap<alloc::string::String, usize>, alloc::collections::btree::map::BTreeMap<alloc::string::String, semaprax::workspace_graph::WorkspaceDeclarationFact>, alloc::vec::Vec<semaprax::workspace_graph::WorkspaceEdge>), semaprax::workspace_graph::custody::SelectionPlan)>, semaprax::workspace_graph::build_owned_inner::{closure#12}>::{closure#0}>
+  43: semaprax::bounded_output::with_limit_usage_refusal_site::<semaprax::workspace_graph::constructor_failure::attempt::Attempt<((alloc::vec::Vec<semaprax::workspace_graph::WorkspaceResolvedModule>, alloc::collections::btree::map::BTreeMap<alloc::string::String, alloc::string::String>, alloc::collections::btree::map::BTreeMap<alloc::string::String, usize>, alloc::collections::btree::map::BTreeMap<alloc::string::String, semaprax::workspace_graph::WorkspaceDeclarationFact>, alloc::vec::Vec<semaprax::workspace_graph::WorkspaceEdge>), semaprax::workspace_graph::custody::SelectionPlan)>, semaprax::workspace_graph::build_owned_inner::{closure#12}>
+  44: semaprax::workspace_graph::build_owned_inner
+  45: semaprax::workspace_graph::build_owned_retaining_sources_with_frontend_limit
+  46: semaprax::workspace_graph::build_owned_retaining_sources_with_builder_limit
+  47: semaprax::workspace_graph::build_owned_retaining_sources
+  48: semaprax::semantic_workspace::preflight_owned_inner_mode
+  49: semaprax::semantic_workspace::preflight_owned_inner
+  50: semaprax::semantic_workspace::preflight_owned
+  51: semaprax::project::build::build_owned
+  52: semaprax::project::load_snapshot_for_host_access::{closure#0}
+  53: semaprax::project::snapshot_building::load_snapshot_building::<(), semaprax::project::load_snapshot_for_host_access::{closure#0}>
+  54: semaprax::project::load_snapshot_for_host_access
+  55: semaprax::project::load_snapshot
+  56: semaprax::project::with_authenticated_project::<(alloc::string::String, alloc::string::String), semaprax_full::driver::run::{closure#3}>
+  57: semaprax_full::driver::run
+  58: semaprax_full::driver::main_with_host::{closure#0}
+  59: std::sys::backtrace::__rust_begin_short_backtrace::<semaprax_full::driver::main_with_host::{closure#0}, core::result::Result<(), u8>>
+  60: std::thread::lifecycle::spawn_unchecked::<semaprax_full::driver::main_with_host::{closure#0}, core::result::Result<(), u8>>::{closure#1}::{closure#0}
+  61: <core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked<semaprax_full::driver::main_with_host::{closure#0}, core::result::Result<(), u8>>::{closure#1}::{closure#0}> as core::ops::function::FnOnce<()>>::call_once
+  62: std::panicking::catch_unwind::do_call::<core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked<semaprax_full::driver::main_with_host::{closure#0}, core::result::Result<(), u8>>::{closure#1}::{closure#0}>, core::result::Result<(), u8>>
+  63: ___rust_try
+  64: std::thread::lifecycle::spawn_unchecked::<semaprax_full::driver::main_with_host::{closure#0}, core::result::Result<(), u8>>::{closure#1}
+  65: <std::thread::lifecycle::spawn_unchecked<semaprax_full::driver::main_with_host::{closure#0}, core::result::Result<(), u8>>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  66: <std::sys::thread::unix::Thread>::new::thread_start
+  67: __pthread_cond_wait
+
+[PRIVATE-REFUSAL-OBSERVER] mode=6 refusal=Some(ReservationRefusal { requested: 3072, remaining: 1992, floor: 0, stage: Some(HirValidation) }) site=Some(Location { file: "src/cleanup_plan/replay/physical_budget.rs", line: 86, column: 24 })
+[PRIVATE-PRIMARY-OBSERVER] Legacy([Diagnostic { code: "SPX-H006", severity: Error, message: "", path: None, span: None, help: None }])
+{"code":"SPX-G171","severity":"error","message":"Workspace Semantic Graph `builder_bytes` exceeds 67108864","path":null,"location":null,"help":"live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast 52578688 bytes for 12 module(s) and fit within 67108864, with `src/app.spx` the largest at 15572716 bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound. resolved-core phase first sticky ledger refusal: requested 3072 bytes with 1992 remaining and 0 reserved floor. Authenticated internal stage: HIR final validation. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown."}

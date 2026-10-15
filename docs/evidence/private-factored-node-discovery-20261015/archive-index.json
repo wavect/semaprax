@@ -1,0 +1,110 @@
+[
+  {
+    "original": "/Volumes/Semaprax/provenance/diagnostic-private-site-20261015/normalizer-diagnostic-memory.jsonl",
+    "archive": "site/normalizer-diagnostic-memory.jsonl",
+    "sha256": "308b48db7fe09015fdcd05c16910bbc584a89a661fa0a08d2c11c24653c4189a",
+    "bytes": 13045
+  },
+  {
+    "original": "/Volumes/Semaprax/provenance/diagnostic-private-site-20261015/normalizer-diagnostic-result.json",
+    "archive": "site/normalizer-diagnostic-result.json",
+    "sha256": "7cab387f8422b1b3727590916e14797cb2635db427d4b7607aa38ebbc884418a",
+    "bytes": 5900
+  },
+  {
+    "original": "/Volumes/Semaprax/provenance/diagnostic-private-site-20261015/normalizer-diagnostic.log",
+    "archive": "site/normalizer-diagnostic.log",
+    "sha256": "b9d913eb3f22e276f694bee170e091751d5b5ae166ce2c6fa4bbe7742e5a229a",
+    "bytes": 981
+  },
+  {
+    "original": "/Volumes/Semaprax/provenance/diagnostic-private-site-20261015/production-build-memory.jsonl",
+    "archive": "site/production-build-memory.jsonl",
+    "sha256": "7a2a9b8045becaa4487cfbef31229cdb6208cc670f2128f01eb42221d06339d4",
+    "bytes": 142805
+  },
+  {
+    "original": "/Volumes/Semaprax/provenance/diagnostic-private-site-20261015/production-build-result.json",
+    "archive": "site/production-build-result.json",
+    "sha256": "fb451251e750543d7c94e765422251feeb6428aed68a53b4c63db0574c2f9406",
+    "bytes": 7344
+  },
+  {
+    "original": "/Volumes/Semaprax/provenance/diagnostic-private-site-20261015/production-build.log",
+    "archive": "site/production-build.log",
+    "sha256": "3eba343abae052daefa03751a82809078191dee78ef3afcff9ab980ead35f68d",
+    "bytes": 217962
+  },
+  {
+    "original": "/Volumes/Semaprax/provenance/diagnostic-private-primary-20261015/normalizer-diagnostic-memory.jsonl",
+    "archive": "primary/normalizer-diagnostic-memory.jsonl",
+    "sha256": "7a39708b96fadca27db64dfa3238d1bff68283f2c0bec958027f1d527d7527ab",
+    "bytes": 15339
+  },
+  {
+    "original": "/Volumes/Semaprax/provenance/diagnostic-private-primary-20261015/normalizer-diagnostic-result.json",
+    "archive": "primary/normalizer-diagnostic-result.json",
+    "sha256": "1bb38fcfd80780bb01586ade0bc88aad8db384868c95c08406823fe3977bffd9",
+    "bytes": 5909
+  },
+  {
+    "original": "/Volumes/Semaprax/provenance/diagnostic-private-primary-20261015/normalizer-diagnostic.log",
+    "archive": "primary/normalizer-diagnostic.log",
+    "sha256": "9a90dd018be1ca41bf049c8d48dc1e8fc5e12f0fac9a0de18bf773240f3566ef",
+    "bytes": 1116
+  },
+  {
+    "original": "/Volumes/Semaprax/provenance/diagnostic-private-primary-20261015/production-build-memory.jsonl",
+    "archive": "primary/production-build-memory.jsonl",
+    "sha256": "a7ed2f373c68fd4a85449f131a176263a87f0c6ab9885db3f73d0baa01587d7e",
+    "bytes": 142718
+  },
+  {
+    "original": "/Volumes/Semaprax/provenance/diagnostic-private-primary-20261015/production-build-result.json",
+    "archive": "primary/production-build-result.json",
+    "sha256": "7d346ed3d385c654c14bc1471c87c53cb66050e954bbe45f5fbc708c283a2c9d",
+    "bytes": 7340
+  },
+  {
+    "original": "/Volumes/Semaprax/provenance/diagnostic-private-primary-20261015/production-build.log",
+    "archive": "primary/production-build.log",
+    "sha256": "d16ed8fe973eefe62bd9d7afeac08b8c9396ac1948fa88dc8bc022aa827660da",
+    "bytes": 217962
+  },
+  {
+    "original": "/Volumes/Semaprax/provenance/diagnostic-private-physical-20261015/normalizer-diagnostic-memory.jsonl",
+    "archive": "physical/normalizer-diagnostic-memory.jsonl",
+    "sha256": "fab5c6cac5f47161f3f960661d9480939f71398af6da966a5cce5611fdd39bc0",
+    "bytes": 15338
+  },
+  {
+    "original": "/Volumes/Semaprax/provenance/diagnostic-private-physical-20261015/normalizer-diagnostic-result.json",
+    "archive": "physical/normalizer-diagnostic-result.json",
+    "sha256": "3c77f4943be62d1ab754d478b110879b148183a5a081e4ac6cca1c67d504ba0d",
+    "bytes": 5911
+  },
+  {
+    "original": "/Volumes/Semaprax/provenance/diagnostic-private-physical-20261015/normalizer-diagnostic.log",
+    "archive": "physical/normalizer-diagnostic.log",
+    "sha256": "450ff282369cc9be92dea90e342cb9f95561561bd5d442c2c97e587aa7979c83",
+    "bytes": 12645
+  },
+  {
+    "original": "/Volumes/Semaprax/provenance/diagnostic-private-physical-20261015/production-build-memory.jsonl",
+    "archive": "physical/production-build-memory.jsonl",
+    "sha256": "ebadf060c39d6f5c93776670cef9bd7e8b29415f7374331caf20d3f96b131939",
+    "bytes": 142715
+  },
+  {
+    "original": "/Volumes/Semaprax/provenance/diagnostic-private-physical-20261015/production-build-result.json",
+    "archive": "physical/production-build-result.json",
+    "sha256": "758b51652bf1c89106cc17396fa3cd90707d84e2168dda2726ac40c69fa8a1af",
+    "bytes": 7350
+  },
+  {
+    "original": "/Volumes/Semaprax/provenance/diagnostic-private-physical-20261015/production-build.log",
+    "archive": "physical/production-build.log",
+    "sha256": "7d50e353f8284ede1e5601a27d005b1547bcd56610f20a42d98ad3f90fb073fa",
+    "bytes": 217962
+  }
+]

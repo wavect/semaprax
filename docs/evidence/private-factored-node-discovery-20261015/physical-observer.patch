@@ -1,0 +1,34 @@
+diff --git a/src/cleanup_plan/replay/physical_budget.rs b/src/cleanup_plan/replay/physical_budget.rs
+index c2005b2c4..6bfed5361 100644
+--- a/src/cleanup_plan/replay/physical_budget.rs
++++ b/src/cleanup_plan/replay/physical_budget.rs
+@@ -99,6 +99,9 @@ impl ReplayBudget {
+         if accepted {
+             Ok(())
+         } else {
++            if !self.refusal_spent {
++                eprintln!("[PRIVATE-PHYSICAL-OBSERVER] function={} phase={phase} bytes={bytes} stack={}", function.id, std::backtrace::Backtrace::force_capture());
++            }
+             Err(self.budget_refusal(
+                 function,
+                 "cleanup replay physical reservation exhausted during ",
+diff --git a/src/workspace_graph.rs b/src/workspace_graph.rs
+index 65fc0121a..7769096a7 100644
+--- a/src/workspace_graph.rs
++++ b/src/workspace_graph.rs
+@@ -4157,7 +4157,15 @@ fn build_owned_inner(
+                     Ok::<_, constructor_failure::receiving::CoreFailure>((core, custody))
+                 })
+             });
++        if overflowed {
++            eprintln!("[PRIVATE-REFUSAL-OBSERVER] mode={fallback_mode} refusal={refusal:?} site={site:?}");
++        }
+         let (core, paid_refusal) = core.into_parts();
++        if overflowed {
++            if let Err(ref selected) = core {
++                eprintln!("[PRIVATE-PRIMARY-OBSERVER] {selected:?}");
++            }
++        }
+         core_builder_bytes = core_builder_bytes.max(consumed);
+         if !overflowed {
+             break core;

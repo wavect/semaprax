@@ -1,0 +1,16 @@
+{
+  "source_only": true,
+  "base": "35c24934440a039d49049983453de24a6ac1f389",
+  "full_inverses": 2,
+  "protected_prior_tables": [
+    {
+      "path": "docs/evidence/boxed-state-receiving-849-20261016/source-inverses.json",
+      "sha256": "38b80859431a8bec59f4a775ca703d3f4afc101036d7ff62f709efdfdfe951f4"
+    },
+    {
+      "path": "docs/evidence/boxed-state-receiving-849-20261016/current-to-main019d.json",
+      "sha256": "28603d69dab2f81de837dc5aa5f7528e4265dc0532bc203a869e34f6c6be08e8"
+    }
+  ],
+  "semantic_or_test_body_change": false
+}

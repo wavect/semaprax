@@ -4,8 +4,15 @@ use sha2::{Digest, Sha256};
 #[path = "source_reflows_merge/runtime_json.rs"]
 mod runtime_json;
 // The final compositor authenticates its raw view at this independent owner front.
-pub(crate) fn boxed849_input(_source: &str, current: &str) -> String {
-    current.to_owned()
+pub(crate) fn boxed849_input(source: &str, current: &str) -> String {
+    project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/boxed-state-local-owner-849-20261016/current-to-35c.json"
+        )),
+        source,
+        current,
+    )
 }
 pub(crate) fn boxed849_previous(source: &str, current: &str) -> String {
     project(

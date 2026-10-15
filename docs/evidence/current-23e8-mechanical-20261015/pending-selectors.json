@@ -1,0 +1,91 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED",
+  "base": "23e8f1d0a67cb2657bb4cdc963a2a2828c523c7c",
+  "checks": [
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::generic_type_import::receiving::tests::typed_declaration_rewrite_preserves_complete_old_record_class_variant_order_and_six_fields",
+      "reason": "Actual missing receiving module corrected; preserve every existing declaration owner."
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::generic_type_import::receiving::tests::typed_declaration_parameter_spill_keeps_exact_old_sort_lookup_work_and_original_borrows",
+      "reason": "Actual missing receiving module corrected; preserve every existing declaration owner."
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::generic_type_import::receiving::tests::typed_declaration_every_byte_frontier_stops_acquisition_and_preserves_original_first_setup",
+      "reason": "Actual missing receiving module corrected; preserve every existing declaration owner."
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::generic_type_import::receiving::tests::typed_declaration_foreign_restored_owner_keeps_unchanged_ast_and_sticky_detachment",
+      "reason": "Actual missing receiving module corrected; preserve every existing declaration owner."
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::generic_type_import::receiving::tests::typed_declaration_complete_old_receivers_actual_callers_and_full_source_inverses_stay_bound",
+      "reason": "Actual missing receiving module corrected; preserve every existing declaration owner."
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "reason": "Actual corrected digest source guard or unchanged foreign-owner receiver; no assertion weakened."
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::private_layout::registry::scratch_tests::complete_old_registry_census_derivation_and_current_scratch_sources_remain_bound",
+      "reason": "Actual corrected digest source guard or unchanged foreign-owner receiver; no assertion weakened."
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::return_operands::tests::foreign_function_facts_budget_and_restored_nested_owner_never_reuse_backing",
+      "reason": "Actual corrected digest source guard or unchanged foreign-owner receiver; no assertion weakened."
+    },
+    {
+      "package": "semaprax-toolchain",
+      "harness": "test:cli_new_project_v1",
+      "selector": "new_project::application::tests::fresh_application_partial_writes_never_publish_or_overwrite",
+      "reason": "Explicit module path must genuinely register all six existing application unit bodies."
+    },
+    {
+      "package": "semaprax-toolchain",
+      "harness": "test:cli_new_project_v1",
+      "selector": "new_project::application::tests::fresh_application_symlink_destinations_and_parents_are_refused",
+      "reason": "Explicit module path must genuinely register all six existing application unit bodies."
+    },
+    {
+      "package": "semaprax-toolchain",
+      "harness": "test:cli_new_project_v1",
+      "selector": "new_project::application::tests::starter_unknown_duplicate_and_incomplete_profiles_refuse_before_input_reads",
+      "reason": "Explicit module path must genuinely register all six existing application unit bodies."
+    },
+    {
+      "package": "semaprax-toolchain",
+      "harness": "test:cli_new_project_v1",
+      "selector": "new_project::application::tests::starter_plan_and_activation_swap_to_symlink_or_fifo_refuses_before_staging",
+      "reason": "Explicit module path must genuinely register all six existing application unit bodies."
+    },
+    {
+      "package": "semaprax-toolchain",
+      "harness": "test:cli_new_project_v1",
+      "selector": "new_project::application::tests::starter_input_held_regular_reader_preserves_exact_bytes_and_bounds",
+      "reason": "Explicit module path must genuinely register all six existing application unit bodies."
+    },
+    {
+      "package": "semaprax-toolchain",
+      "harness": "test:cli_new_project_v1",
+      "selector": "new_project::application::tests::starter_initial_symlink_and_existing_destination_preserve_originals",
+      "reason": "Explicit module path must genuinely register all six existing application unit bodies."
+    }
+  ],
+  "parent_owned_semantic_fix": "native_shared_bytes UpdateField arm and profile regression separate"
+}

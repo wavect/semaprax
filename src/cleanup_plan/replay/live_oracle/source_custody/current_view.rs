@@ -11,7 +11,13 @@ pub(super) fn project(source: &str, current: &str) -> String {
     let matching: Vec<_> = rows.iter().filter(|row| row["source"] == source).collect();
     assert_eq!(matching.len(), 1, "unique authenticated source view");
     let row = matching[0];
-    assert_eq!(format!("{:x}", Sha256::digest(current.as_bytes())), row["current_sha256"]);
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
+        ),
+        row["current_sha256"]
+    );
     let mut projected = current.to_owned();
     for edit in row["edits"].as_array().expect("complete source inverse") {
         let new = edit["new"].as_str().expect("current source bytes");
@@ -19,6 +25,12 @@ pub(super) fn project(source: &str, current: &str) -> String {
         assert_eq!(projected.matches(new).count(), 1, "unique complete inverse");
         projected = projected.replacen(new, old, 1);
     }
-    assert_eq!(format!("{:x}", Sha256::digest(projected.as_bytes())), row["original_sha256"]);
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(projected.as_bytes()))
+        ),
+        row["original_sha256"]
+    );
     projected
 }

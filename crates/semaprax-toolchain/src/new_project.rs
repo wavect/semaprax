@@ -1,3 +1,4 @@
+#[path = "new_project/application.rs"]
 mod application;
 #[path = "new_project/templates.rs"]
 mod templates;

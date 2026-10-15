@@ -1,5 +1,5 @@
 use super::super::{
-    active_builder_limit, budgeted_format, default_expr, graph_error, import_stub, limit_error,
+    active_builder_limit, budgeted_format, graph_error, import_stub, limit_error,
     private_layout, type_rewrite, AuthoredDeclaration,
 };
 use super::{construct, eligible, reserve_builder_structure, LayoutRegistry};

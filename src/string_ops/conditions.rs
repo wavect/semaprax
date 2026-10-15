@@ -15,7 +15,7 @@ use crate::hir::{
 #[cfg(test)]
 mod funded;
 #[cfg(test)]
-pub(crate) use funded::{condition_reads_funded, function_reads_funded, needs_cleanup_funded};
+pub(crate) use funded::function_reads_funded;
 
 fn is_condition_read(op: super::StringOp) -> bool {
     matches!(
@@ -119,10 +119,7 @@ pub(crate) fn needs_cleanup(condition: &ResolvedExpr) -> bool {
 }
 
 #[cfg(test)]
-pub(crate) use funded::work::{
-    condition_reads_funded_with_work, function_reads_funded_with_work,
-    needs_cleanup_funded_with_work,
-};
+pub(crate) use funded::work::function_reads_funded_with_work;
 
 #[cfg(test)]
 pub(crate) fn resolved_operands_with_work<'a, E>(

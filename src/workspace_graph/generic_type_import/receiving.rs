@@ -191,4 +191,5 @@ pub(in crate::workspace_graph) fn rewrite_declaration_with_layout(
 }
 
 #[cfg(test)]
+#[path = "receiving/tests.rs"]
 mod tests;

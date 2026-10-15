@@ -143,7 +143,7 @@ fn foreign_function_facts_budget_and_restored_nested_owner_never_reuse_backing()
     let mut scan = ReplayBudget::new();
     let facts = lexical_hir::collect(f, &mut scan).unwrap();
     let other_facts = lexical_hir::collect(f, &mut scan).unwrap();
-    let expected = Diagnostic::io_static(
+    let _expected = Diagnostic::io_static(
         "SPX-H006",
         "ordinary lexical return operands lost their owner",
     );

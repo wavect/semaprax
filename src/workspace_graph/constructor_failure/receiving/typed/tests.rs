@@ -225,7 +225,6 @@ fn typed_static_defaults_and_stub_forwarding_keep_complete_old_six_fields_and_va
 }
 #[test]
 fn typed_core_overlay_matches_complete_old_success_and_late_semantic_failure_through_drop() {
-    use crate::ast::program_source::ProgramSource;
     use crate::workspace_graph::expected_projection::{CoreProviderProofs, private_layout};
     let mut programs = [
         "module typed.app; use function @id(\"helper\") from typed.provider as increment; @id(\"main\") fn main()->i64 {increment(41)}",

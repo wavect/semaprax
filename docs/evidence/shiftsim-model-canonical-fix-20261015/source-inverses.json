@@ -1,0 +1,15 @@
+[
+  {
+    "source": "examples/shiftsim-typed-record-successor/src/model.spx",
+    "checkpoint_revision": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+    "archive": "docs/evidence/shiftsim-model-canonical-fix-20261015/model.before.spx.txt",
+    "current_sha256": "00d043435eca3cc89ee3671af004899701452df9487e9970d7333e6d72602feb",
+    "original_sha256": "9c85ed17639905c1b141f9b70e45c5826e56d0669933be0e1f75eba114dad547",
+    "edits": [
+      {
+        "new": "module shiftsim.model;\nuse type @id(\"shiftsim.assignment\") from shiftsim.response_schema as Assignment;\nuse type @id(\"shiftsim.metrics\") from shiftsim.response_schema as Metrics;\nuse type @id(\"shiftsim.report\") from shiftsim.response_schema as Report;\n\n@id(\"shiftsim.patient_state\")\nrecord PatientState {\n    @id(\"shiftsim.patient_state.arrival\")\n    arrival: i64,\n    @id(\"shiftsim.patient_state.assigned\")\n    assigned: bool,\n}\n\n@id(\"shiftsim.worker_state\")\nrecord WorkerState {\n    @id(\"shiftsim.worker_state.free_at\")\n    free_at: i64,\n}\n\n@id(\"shiftsim.schedule_result\")\nrecord ScheduleResult {\n    @id(\"shiftsim.schedule_result.valid\")\n    valid: bool,\n    @id(\"shiftsim.schedule_result.report\")\n    report: Report,\n}\n\n@id(\"shiftsim.worker\")\nrecord Worker {\n    @id(\"shiftsim.worker.id\")\n    id: string,\n    @id(\"shiftsim.worker.free_at\")\n    free_at: i64,\n}\n\n@id(\"shiftsim.model.anchor\")\nfn model_anchor() -> i64\n{\n    0\n}\n",
+        "old": "module shiftsim.model;\nuse type @id(\"shiftsim.assignment\") from shiftsim.response_schema as Assignment;\nuse type @id(\"shiftsim.metrics\") from shiftsim.response_schema as Metrics;\nuse type @id(\"shiftsim.report\") from shiftsim.response_schema as Report;\n\n@id(\"shiftsim.patient_state\")\nrecord PatientState {\n    @id(\"shiftsim.patient_state.arrival\")\n    arrival: i64,\n    @id(\"shiftsim.patient_state.assigned\")\n    assigned: bool,\n}\n\n@id(\"shiftsim.worker_state\")\nrecord WorkerState {\n    @id(\"shiftsim.worker_state.free_at\")\n    free_at: i64,\n}\n\n@id(\"shiftsim.schedule_result\")\nrecord ScheduleResult {\n    @id(\"shiftsim.schedule_result.valid\")\n    valid: bool,\n    @id(\"shiftsim.schedule_result.report\")\n    report: Report,\n}\n\n@id(\"shiftsim.model.anchor\")\nfn model_anchor() -> i64\n{\n    0\n}\n\n@id(\"shiftsim.worker\")\nrecord Worker {\n    @id(\"shiftsim.worker.id\")\n    id: string,\n    @id(\"shiftsim.worker.free_at\")\n    free_at: i64,\n}\n"
+      }
+    ]
+  }
+]

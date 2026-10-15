@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+import hashlib, json, os, pathlib, shutil, stat, subprocess, sys
+compiler = "/usr/bin/clang"
+root = pathlib.Path("/Volumes/Semaprax/lane-prompts/final-3d4b-310-qualification-20261015/native-timeout-diagnostics/semaprax-project-native-test-cli-timeout-recovery-38299-0-attempt-1/captures")
+args = sys.argv[1:]
+cap = None
+def copy(source, target):
+    with source.open('rb') as reader, target.open('xb') as writer:
+        shutil.copyfileobj(reader, writer, length=65536)
+def digest(path):
+    result = hashlib.sha256()
+    with path.open('rb') as reader:
+        while True:
+            chunk = reader.read(65536)
+            if not chunk:
+                return result.hexdigest()
+            result.update(chunk)
+try:
+    used = sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+    ordinal = len(list(root.iterdir()))
+    if ordinal < 64:
+        cap = root / f'{ordinal:03}'
+        cap.mkdir()
+        source = next(pathlib.Path(a) for a in args if a.endswith('.c'))
+        size = source.stat().st_size
+        if used + size <= 67108864:
+            copy(source, cap / 'source.c')
+except Exception:
+    cap = None
+result = subprocess.run([compiler, *args])
+try:
+    if cap is not None:
+        target = pathlib.Path(args[args.index('-o') + 1])
+        used = sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+        if result.returncode == 0 and used + target.stat().st_size <= 67108864:
+            copy(target, cap / 'program')
+            (cap / 'program').chmod(stat.S_IMODE(target.stat().st_mode))
+        files = [{ 'path':p.name, 'bytes':p.stat().st_size, 'sha256':digest(p) }
+                 for p in sorted(cap.iterdir()) if p.is_file()]
+        receipt = json.dumps({'compiler':compiler, 'arguments':args, 'exit_code':result.returncode, 'files':files},sort_keys=True).encode()
+        used = sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+        if used + len(receipt) <= 67108864:
+            (cap / 'compiler.json').write_bytes(receipt)
+except Exception:
+    pass
+if result.returncode < 0:
+    os.kill(os.getpid(), -result.returncode)
+sys.exit(result.returncode)

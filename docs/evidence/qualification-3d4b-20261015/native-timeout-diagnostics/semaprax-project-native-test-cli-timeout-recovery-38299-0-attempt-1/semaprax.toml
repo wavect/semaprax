@@ -1,0 +1,27 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "decimal-command"
+version = "0.1.0"
+profile = "source-command.v1"
+
+[modules]
+entry = "decimal.command"
+sources = ["app.spx", "tests.spx"]
+tests = ["decimal.tests"]
+
+[exports]
+web = []
+
+[command]
+function = "decimal.command.main"
+input = "argv-utf8+file-text.v1"
+
+[capabilities]
+required = ["fs.read", "process.args.read", "process.stderr.write", "process.stdout.write"]
+
+[dependencies]
+std.int.decimal = "=0.1.0"
+
+[targets]
+matrix = ["native64"]

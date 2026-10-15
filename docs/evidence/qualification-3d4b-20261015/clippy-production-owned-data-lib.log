@@ -1,0 +1,28 @@
+    Checking const-oid v0.10.2
+    Checking digest v0.11.3
+    Checking sha2 v0.11.0
+    Checking serde_core v1.0.229
+    Checking semaprax-native-rust-interop-platform-sys v0.1.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-native-rust-interop-platform-sys)
+    Checking memchr v2.8.3
+    Checking serde_json v1.0.151
+    Checking semaprax-native-rust-interop-platform v0.1.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-native-rust-interop-platform)
+    Checking semaprax-native-rust-owned-data-package v0.1.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/crates/semaprax-native-rust-owned-data-package)
+error: redundant closure
+  --> crates/semaprax-native-rust-owned-data-package/src/project_publication/application.rs:61:43
+   |
+61 |                 self.names.each_ref().map(|name| OsStr::new(name)),
+   |                                           ^^^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the associated function itself: `OsStr::new`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#redundant_closure
+   = note: `-D clippy::redundant-closure` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::redundant_closure)]`
+
+error: redundant closure
+   --> crates/semaprax-native-rust-owned-data-package/src/project_publication/application.rs:101:72
+    |
+101 |         platform::prepare_owned_discard_inventory(names.each_ref().map(|name| OsStr::new(name)))
+    |                                                                        ^^^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the associated function itself: `OsStr::new`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#redundant_closure
+
+error: could not compile `semaprax-native-rust-owned-data-package` (lib) due to 2 previous errors

@@ -1,0 +1,233 @@
+{
+  "artifact_byte_limit": 67108864,
+  "artifact_bytes": 169567,
+  "artifact_file_limit": 192,
+  "case_capture_limit": 64,
+  "command": {
+    "arguments": [
+      "test",
+      "--target",
+      "native",
+      "--native-timeout-ms",
+      "100",
+      "--native-timing",
+      "--json"
+    ],
+    "cwd": "/Volumes/Semaprax/lane-prompts/final-3d4b-310-qualification-20261015/runtime-tmp/semaprax-project-native-test-cli-timeout-recovery-38299-0",
+    "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/semaprax",
+    "executable_sha256": "ec450cb867a4ab8e2e021839d54ece1bc57fc12531b86f64918bb2d4f25fdd68",
+    "tmpdir": "/Volumes/Semaprax/lane-prompts/final-3d4b-310-qualification-20261015/runtime-tmp/semaprax-project-native-test-cli-timeout-recovery-38299-0/scratch"
+  },
+  "compiler_sha256": "179301dcb41ea78accc3fa0048a7e6f6710d891945a751a34addd622020c1818",
+  "compiler_wrapper_sha256": "de401738983411b956270c594ad097882c7dd32849d6e149d39fa7b26eaca3f5",
+  "retained": [
+    {
+      "case": {
+        "diagnostic_timings": {
+          "deadline_interval_seconds": 0.101787375,
+          "deadline_overshoot_seconds": 0.001787375,
+          "deadline_start_seconds": 0.000882542,
+          "first_wait_seconds": 0.000884792,
+          "last_pending_seconds": 0.102669792,
+          "last_wait_seconds": 0.102669792,
+          "max_wait_gap_seconds": 0.006263708,
+          "note": "process loader and scheduling remain in deadline interval; poll observations do not establish child CPU, loader cost or scheduler attribution",
+          "observation_complete_seconds": 0.102807625,
+          "pending_observations": 18,
+          "schema": "semaprax.native-test-diagnostic-timing.v1",
+          "scope": "monotonic observations relative to run_case entry; compilation and scratch sealing/cleanup excluded",
+          "spawn_return_seconds": 0.000852125,
+          "stderr_settled_seconds": 0.102807584,
+          "stdout_settled_seconds": 0.102804125,
+          "terminal_kind": "deadline",
+          "terminal_observed_seconds": 0.102669917,
+          "timeout_ms": 100,
+          "wait_observations": 18
+        },
+        "exit_code": null,
+        "name": "main",
+        "outcome": "native test exceeded 100 ms",
+        "passed": false,
+        "result": null,
+        "role": "main",
+        "stable_id": "decimal.tests.main",
+        "stderr": "",
+        "stdout": ""
+      },
+      "compiler": {
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Wno-tautological-compare",
+          "/Volumes/Semaprax/lane-prompts/final-3d4b-310-qualification-20261015/runtime-tmp/semaprax-project-native-test-cli-timeout-recovery-38299-0/scratch/.semaprax-native-38303-2/source.c",
+          "-o",
+          "/Volumes/Semaprax/lane-prompts/final-3d4b-310-qualification-20261015/runtime-tmp/semaprax-project-native-test-cli-timeout-recovery-38299-0/scratch/.semaprax-native-38303-1/program"
+        ],
+        "compiler": "/usr/bin/clang",
+        "exit_code": 0,
+        "files": [
+          {
+            "bytes": 33432,
+            "path": "program",
+            "sha256": "98e69736d876bf73052a2d904953829ef34de37e690e5fa4be9d0762ea4354c4"
+          },
+          {
+            "bytes": 27854,
+            "path": "source.c",
+            "sha256": "94513aae1b1a29d42e79f1acd2e474c764caaff593eeded7c693b5254f830385"
+          }
+        ]
+      },
+      "ordinal": 0
+    },
+    {
+      "case": {
+        "diagnostic_timings": {
+          "deadline_interval_seconds": 0.101040208,
+          "deadline_overshoot_seconds": 0.001040208,
+          "deadline_start_seconds": 0.001964,
+          "first_wait_seconds": 0.001964958,
+          "last_pending_seconds": 0.103004083,
+          "last_wait_seconds": 0.103004083,
+          "max_wait_gap_seconds": 0.006279875,
+          "note": "process loader and scheduling remain in deadline interval; poll observations do not establish child CPU, loader cost or scheduler attribution",
+          "observation_complete_seconds": 0.1031225,
+          "pending_observations": 18,
+          "schema": "semaprax.native-test-diagnostic-timing.v1",
+          "scope": "monotonic observations relative to run_case entry; compilation and scratch sealing/cleanup excluded",
+          "spawn_return_seconds": 0.001939542,
+          "stderr_settled_seconds": 0.103122458,
+          "stdout_settled_seconds": 0.103119708,
+          "terminal_kind": "deadline",
+          "terminal_observed_seconds": 0.103004208,
+          "timeout_ms": 100,
+          "wait_observations": 18
+        },
+        "exit_code": null,
+        "name": "test_a_refusal",
+        "outcome": "native test exceeded 100 ms",
+        "passed": false,
+        "result": null,
+        "role": "case",
+        "stable_id": "decimal.tests.test_a_refusal",
+        "stderr": "",
+        "stdout": ""
+      },
+      "compiler": {
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Wno-tautological-compare",
+          "/Volumes/Semaprax/lane-prompts/final-3d4b-310-qualification-20261015/runtime-tmp/semaprax-project-native-test-cli-timeout-recovery-38299-0/scratch/.semaprax-native-38303-4/source.c",
+          "-o",
+          "/Volumes/Semaprax/lane-prompts/final-3d4b-310-qualification-20261015/runtime-tmp/semaprax-project-native-test-cli-timeout-recovery-38299-0/scratch/.semaprax-native-38303-3/program"
+        ],
+        "compiler": "/usr/bin/clang",
+        "exit_code": 0,
+        "files": [
+          {
+            "bytes": 16840,
+            "path": "program",
+            "sha256": "e90f138e1ba8274a373114b214e6db7a17be61d3ef38964d5446d32df20c843d"
+          },
+          {
+            "bytes": 27874,
+            "path": "source.c",
+            "sha256": "1539f3cd9e0b2c7bfceee86cac47672fceeeb1ede7a776334f7d2aa6ba4f6797"
+          }
+        ]
+      },
+      "ordinal": 1
+    },
+    {
+      "case": {
+        "diagnostic_timings": {
+          "deadline_interval_seconds": 0.105824208,
+          "deadline_overshoot_seconds": 0.005824208,
+          "deadline_start_seconds": 0.002552667,
+          "first_wait_seconds": 0.00255375,
+          "last_pending_seconds": 0.108376417,
+          "last_wait_seconds": 0.108376417,
+          "max_wait_gap_seconds": 0.00626225,
+          "note": "process loader and scheduling remain in deadline interval; poll observations do not establish child CPU, loader cost or scheduler attribution",
+          "observation_complete_seconds": 0.108484375,
+          "pending_observations": 18,
+          "schema": "semaprax.native-test-diagnostic-timing.v1",
+          "scope": "monotonic observations relative to run_case entry; compilation and scratch sealing/cleanup excluded",
+          "spawn_return_seconds": 0.002530834,
+          "stderr_settled_seconds": 0.108484375,
+          "stdout_settled_seconds": 0.108482292,
+          "terminal_kind": "deadline",
+          "terminal_observed_seconds": 0.108376875,
+          "timeout_ms": 100,
+          "wait_observations": 18
+        },
+        "exit_code": null,
+        "name": "test_z_after",
+        "outcome": "native test exceeded 100 ms",
+        "passed": false,
+        "result": null,
+        "role": "case",
+        "stable_id": "decimal.tests.test_z_after",
+        "stderr": "",
+        "stdout": ""
+      },
+      "compiler": {
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Wno-tautological-compare",
+          "/Volumes/Semaprax/lane-prompts/final-3d4b-310-qualification-20261015/runtime-tmp/semaprax-project-native-test-cli-timeout-recovery-38299-0/scratch/.semaprax-native-38303-6/source.c",
+          "-o",
+          "/Volumes/Semaprax/lane-prompts/final-3d4b-310-qualification-20261015/runtime-tmp/semaprax-project-native-test-cli-timeout-recovery-38299-0/scratch/.semaprax-native-38303-5/program"
+        ],
+        "compiler": "/usr/bin/clang",
+        "exit_code": 0,
+        "files": [
+          {
+            "bytes": 33432,
+            "path": "program",
+            "sha256": "98e69736d876bf73052a2d904953829ef34de37e690e5fa4be9d0762ea4354c4"
+          },
+          {
+            "bytes": 27870,
+            "path": "source.c",
+            "sha256": "b0a0cea7ebd9b2b676f92b2d3989d9f3ad95e375503de9c5daf590cdf88f3a2d"
+          }
+        ]
+      },
+      "ordinal": 2
+    }
+  ],
+  "schema": "semaprax.native-test-timeout-capture.v1",
+  "scope": "test-harness diagnostic only; compiler PATH wrapper and copies outside deadline; no performance inference",
+  "sources": [
+    {
+      "bytes": 496,
+      "path": "semaprax.toml",
+      "sha256": "7cf4718effd76f5ace336adea8a0fba9ad4c86847901e6df073eda6461f0f616"
+    },
+    {
+      "bytes": 895,
+      "path": "app.spx",
+      "sha256": "d19ad048dc68bffc04ccb0c24e4fc0eee1566c4d1b26f849e2d3d688db2270fb"
+    },
+    {
+      "bytes": 253,
+      "path": "tests.spx",
+      "sha256": "b35835d7546e6dbeb02defb63826fa6afe107a29ee1e4cf810b74da5b0313a7e"
+    }
+  ],
+  "status": 1,
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stdout_sha256": "cb8b14159e06db2b2d141ac8c3334b6a713530a2e89f84ca17e018490071e0f1"
+}

@@ -1,0 +1,23 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED_FIXTURE_CORRECTION",
+  "base_commit": "d6bf8151942190a956eb57350fa8b8892a8c68e5",
+  "changed_source": "src/format/comments/compare/tests.rs",
+  "base_source_sha256": "3b456a0fc4004aa848b4cb1c85d0e6a0ab6cb98ad7a43144657cf1e342e225a0",
+  "corrected_source_sha256": "7adedbc8fc515199d21e71a93fbe7a1624c5500e46278f4ddf834050ef0a7b38",
+  "source_inverse": "source-inverse.patch",
+  "source_inverse_sha256": "9cdd3c77aab185d439071c49a1142e16b42fb4d3ac2a2797be4c5ff2ea4a644f",
+  "prior_failure_log": "/Volumes/Semaprax/lane-prompts/large-d6bf-qualification-20261015/owning-selected-44.log",
+  "prior_failure_log_sha256": "e99616eeccefebe7097671663248a073700ae1d023a2af39823e50b42be85e35",
+  "prior_failure": "SPX-P101 at parse_with_comments(...).unwrap(): a module must declare at least one function",
+  "original_corpus_bytes_preserved": true,
+  "original_assertions_preserved": true,
+  "original_string_formatter_unchanged": true,
+  "comparison_sink_and_production_parser_unchanged": true,
+  "new_execution": false,
+  "pending_controls": [
+    "format::comments::compare::tests::full_commented_comparison_keeps_old_unicode_crlf_trailing_nested_and_noncanonical_bytes",
+    "format::comments::compare::tests::comparison_accepts_every_later_write_after_mismatch_and_checked_length_overflow",
+    "format::comments::tests::",
+    "tests/projections/fmt_comments.rs owning harness"
+  ]
+}

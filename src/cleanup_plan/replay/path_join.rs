@@ -1,7 +1,14 @@
 //! Topological cleanup-CFG replay and ownership-only join normalization.
 
 use super::*;
+use std::borrow::Borrow;
+#[cfg(test)]
+#[allow(dead_code, reason = "complete original path-state replay receiver")]
+mod before;
+mod boxed_states;
 mod branch_join;
+#[cfg(test)]
+mod receiver_tests;
 pub(super) mod storage;
 
 #[allow(clippy::too_many_arguments)] // Keep the independently held phase index explicit.
@@ -124,12 +131,12 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
         });
     }
 
-    budget.reserve_array::<BTreeSet<PathState>>(
+    budget.reserve_array::<BTreeSet<Box<PathState>>>(
         function,
         plan.blocks.len(),
         "incoming state frontier",
     )?;
-    let mut incoming = vec![BTreeSet::<PathState>::new(); plan.blocks.len()];
+    let mut incoming = vec![BTreeSet::<Box<PathState>>::new(); plan.blocks.len()];
     insert_incoming(
         function,
         &mut incoming[plan.entry.0 as usize],
@@ -173,7 +180,7 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                         .saturating_add(renewal::retained_units(state))
                 }));
         budget.charge(function, join_units, "all-path ownership replay")?;
-        let mut groups = BTreeMap::<ControlKey, BTreeSet<PathState>>::new();
+        let mut groups = BTreeMap::<ControlKey, BTreeSet<Box<PathState>>>::new();
         for state in states {
             let key = if storage::atomic_controls::selected(&state, budget) {
                 let payload = storage::atomic_controls::reserve(function, &state, budget)?;
@@ -189,14 +196,16 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                 )
             };
             if !groups.contains_key(&key) {
-                storage::reserve_btree_node::<ControlKey, BTreeSet<PathState>>(
+                storage::reserve_btree_node::<ControlKey, BTreeSet<Box<PathState>>>(
                     function,
                     budget,
                     "ownership control groups",
                 )?;
             }
             let group = groups.entry(key).or_default();
-            insert_incoming(function, group, state, budget)?;
+            boxed_states::insert_held(group, state, &mut |bytes, phase| {
+                budget.reserve_bytes(function, bytes, phase)
+            })?;
         }
         let block = &plan.blocks[block_id.0 as usize];
         for states in groups.into_values() {
@@ -226,7 +235,7 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                     budget,
                 )?;
             }
-            let mut state = states
+            let mut state = *states
                 .into_iter()
                 .next()
                 .expect("replay control group is non-empty");
@@ -420,18 +429,13 @@ type ControlKey = (
 );
 fn insert_incoming(
     function: &ResolvedFunction,
-    target: &mut BTreeSet<PathState>,
+    target: &mut BTreeSet<Box<PathState>>,
     state: PathState,
     budget: &mut ReplayBudget,
 ) -> Result<(), Diagnostic> {
-    if !target.contains(&state) {
-        storage::reserve_btree_node::<PathState, ()>(
-            function,
-            budget,
-            "incoming ownership state node",
-        )?;
-        target.insert(state);
-    }
+    boxed_states::insert_owned(target, state, &mut |bytes, phase| {
+        budget.reserve_bytes(function, bytes, phase)
+    })?;
     Ok(())
 }
 
@@ -446,14 +450,20 @@ fn validate_control_group(
 ) -> Result<(), Diagnostic> {
     validate_control_group_with_budget(function, states, block, &mut ReplayBudget::new())
 }
-fn validate_control_group_with_budget(
+fn validate_control_group_with_budget<K: Ord + Borrow<PathState>>(
     function: &ResolvedFunction,
-    states: &BTreeSet<PathState>,
+    states: &BTreeSet<K>,
     block: BlockId,
     budget: &mut ReplayBudget,
 ) -> Result<(), Diagnostic> {
     for state in states {
-        validate_join_compatibility(function, states.range(..state), state, block, budget)?;
+        validate_join_compatibility(
+            function,
+            states.range::<K, _>(..state).map(|prior| prior.borrow()),
+            state.borrow(),
+            block,
+            budget,
+        )?;
     }
     Ok(())
 }
@@ -461,13 +471,13 @@ fn validate_control_group_with_budget(
 #[cfg(test)]
 mod tests;
 
-fn joined_ownership_state(
+fn joined_ownership_state<K: Ord + Borrow<PathState>>(
     program: &dyn crate::cleanup::ReplayContext,
     function: &ResolvedFunction,
-    states: &BTreeSet<PathState>,
+    states: &BTreeSet<K>,
     budget: &mut ReplayBudget,
 ) -> Result<(Vec<LivenessFlagId>, Vec<ReplayConditionalVariant>), Diagnostic> {
-    let mut states = states.iter();
+    let mut states = states.iter().map(|state| state.borrow());
     let first = states
         .next()
         .ok_or_else(|| replay_error(function, "cleanup join has no incoming states"))?;

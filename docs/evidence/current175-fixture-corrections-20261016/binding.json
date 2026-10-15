@@ -1,0 +1,23 @@
+{
+  "status": "SOURCE_ONLY_NOT_EXECUTED",
+  "base": "04308c74a7b60d2258daeabe88f563a501ca173d",
+  "actual_failure_source": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+  "actual_failure_indices": [
+    153,
+    155
+  ],
+  "files": [
+    {
+      "path": "src/workspace_graph/source_schema/static_text/primitive/helpers/tests.rs",
+      "before_file": "scalar_helpers.before.rs.txt",
+      "before_sha256": "748cb1f3763f6dc7e5ee537d2658f0aa6f630cb2632e8d9ddc644accc8833e1e",
+      "after_sha256": "2757c7facd355c4863639565bc7a2dc388c2bf6738deb5f03b1cfd4cb2c07314"
+    },
+    {
+      "path": "tests/project/command_argument_borrow.rs",
+      "before_file": "command_argument.before.rs.txt",
+      "before_sha256": "e7c5566d803226f8cc3ee88f913053fd1c67cd61c4476fc3b4e0477c93c10420",
+      "after_sha256": "124e7e7e8cc2ba0666a514806d5285f1125c029b9adcd5304f042844288e7b33"
+    }
+  ]
+}

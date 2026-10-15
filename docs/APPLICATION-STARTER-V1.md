@@ -31,8 +31,11 @@ source remains in the receipt's codec bundle. Original files are never rewritten
 
 `--command-path` and `--command-source` appear together or neither appears.
 The latter is an explicit bounded regular non-symlink UTF-8 file, at most 131072
-bytes. The plan is at most 16384 bytes. Both selected input files are read through
-identity-checked handles and rechecked before staging. The authenticated Project
+bytes. The plan is at most 16384 bytes. Both selected input files are opened through the existing held-directory bounded
+regular-file owner: final-component no-follow, nonblocking Unix classification,
+opened-handle regular-file authentication and exact named-handle rechecks. Early
+path metadata is only a convenience refusal and never establishes authority.
+Both byte sequences are independently rechecked before staging. The authenticated Project
 owner independently performs its ordinary final input recheck. These operations
 bind one held invocation revision; subsequent edits cannot mutate returned bytes.
 
@@ -107,7 +110,9 @@ Owning pending checks:
   installed product capability.
 - `cli_new_project_v1 new_project::application::tests::` owns partial writes,
   old-source preservation, existing/symlink destinations/parents and malformed
-  options. `project_publication::application::tests::` owns exact arities/path
+  options. Its deterministic plan/activation swap controls replace an inspected
+  regular input with a symlink or FIFO before the held open; both refuse before
+  staging and preserve external/authored files. `project_publication::application::tests::` owns exact arities/path
   refusals. Existing scaffold physical namespace-race cases remain required.
 - `project standard_library::application_json::starter::` and existing plan
   decoder/overlap/stale/source/bounds/receipt gates retain closed decoding,

@@ -1,6 +1,6 @@
 //! Explicit full-host fresh installation, reusing the scaffold publisher.
 use super::*;
-use std::io::Read;
+use semaprax_native_rust_interop_platform as platform;
 
 fn failure(message: impl Into<String>) -> NewProjectFailure {
     NewProjectFailure::creation(message)
@@ -16,32 +16,53 @@ fn diagnostic(errors: Vec<semaprax::diagnostic::Diagnostic>) -> NewProjectFailur
 }
 
 fn read_bound(path: &Path, maximum: usize) -> Result<Vec<u8>, NewProjectFailure> {
+    read_bound_with_hook(path, maximum, &|_| Ok(()))
+}
+
+fn read_bound_with_hook(
+    path: &Path,
+    maximum: usize,
+    before_open: &dyn Fn(&Path) -> Result<(), NewProjectFailure>,
+) -> Result<Vec<u8>, NewProjectFailure> {
+    let parent_path = path
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let name = path
+        .file_name()
+        .ok_or_else(|| failure("starter input must name one regular file"))?;
+    let parent = platform::hold_directory(parent_path)
+        .map_err(|_| failure("cannot hold starter input parent"))?;
+    // This early inspection is a convenience refusal only. The actual file
+    // classification and no-follow/nonblocking open belong to the held owner.
     let metadata = fs::symlink_metadata(path)
         .map_err(|e| failure(format!("cannot inspect starter input: {e}")))?;
     if !metadata.is_file() || metadata.file_type().is_symlink() {
         return Err(failure("starter input must be a regular non-symlink file"));
     }
-    let before = Handle::from_path(path).map_err(|e| failure(e.to_string()))?;
-    let file = fs::File::open(path).map_err(|e| failure(e.to_string()))?;
-    if Handle::from_file(file.try_clone().map_err(|e| failure(e.to_string()))?)
-        .map_err(|e| failure(e.to_string()))?
-        != before
+    before_open(path)?;
+    let file = platform::hold_regular_file_bounded(&parent, name, maximum)
+        .map_err(|_| failure("starter input is not a bounded held regular non-symlink file"))?;
+    let bytes = platform::read_exact(&file, maximum)
+        .map_err(|_| failure("starter input changed while reading"))?;
+    platform::recheck_regular_file_named_bounded(&parent, name, &file, maximum)
+        .map_err(|_| failure("starter input binding changed while reading"))?;
+    if !platform::same_directory_path(&parent, parent_path)
+        .map_err(|_| failure("starter input parent changed"))?
     {
-        return Err(failure("starter input changed while opening"));
-    }
-    let mut bytes = Vec::new();
-    file.take(maximum as u64 + 1)
-        .read_to_end(&mut bytes)
-        .map_err(|e| failure(e.to_string()))?;
-    if bytes.len() > maximum
-        || Handle::from_path(path).map_err(|e| failure(e.to_string()))? != before
-    {
-        return Err(failure("starter input changed or exceeds its byte bound"));
+        return Err(failure("starter input parent binding changed"));
     }
     Ok(bytes)
 }
 
 pub(super) fn run(arguments: &[String]) -> Result<PathBuf, NewProjectFailure> {
+    run_with_input_hook(arguments, &|_| Ok(()))
+}
+
+fn run_with_input_hook(
+    arguments: &[String],
+    before_open: &dyn Fn(&Path) -> Result<(), NewProjectFailure>,
+) -> Result<PathBuf, NewProjectFailure> {
     let usage = || {
         NewProjectFailure::invocation("new <fresh-directory> --from <project> --codec-plan <plan-json> --command-profile <exact-profile> [--command-path <declared-path> --command-source <source-file>]")
     };
@@ -93,10 +114,10 @@ pub(super) fn run(arguments: &[String]) -> Result<PathBuf, NewProjectFailure> {
         (Some(path), Some(file)) => Some(((*path).to_owned(), PathBuf::from(file))),
         _ => return Err(usage()),
     };
-    let plan = read_bound(&plan_path, 16_384)?;
+    let plan = read_bound_with_hook(&plan_path, 16_384, before_open)?;
     let command_bytes = activation
         .as_ref()
-        .map(|(_, file)| read_bound(file, 131_072))
+        .map(|(_, file)| read_bound_with_hook(file, 131_072, before_open))
         .transpose()?;
     let command = activation
         .as_ref()
@@ -320,5 +341,110 @@ mod tests {
             let arguments = arguments.into_iter().map(str::to_owned).collect::<Vec<_>>();
             assert_eq!(run(&arguments).unwrap_err().exit_code(), 2);
         }
+    }
+    #[cfg(unix)]
+    #[test]
+    fn starter_plan_and_activation_swap_to_symlink_or_fifo_refuses_before_staging() {
+        for selected in ["plan.json", "command.spx"] {
+            for replacement in ["symlink", "fifo"] {
+                let parent = root();
+                let plan = parent.join("plan.json");
+                let activation = parent.join("command.spx");
+                let outside = parent.join("outside");
+                fs::write(&plan, b"{}").unwrap();
+                fs::write(&activation, b"module app;\n").unwrap();
+                fs::write(&outside, b"outside original").unwrap();
+                let destination = parent.join("new");
+                let arguments = [
+                    destination.to_str().unwrap(),
+                    "--from",
+                    "not-opened-project",
+                    "--codec-plan",
+                    plan.to_str().unwrap(),
+                    "--command-profile",
+                    "source-command.v1",
+                    "--command-path",
+                    "src/app.spx",
+                    "--command-source",
+                    activation.to_str().unwrap(),
+                ]
+                .map(str::to_owned)
+                .to_vec();
+                let swapped = std::cell::Cell::new(false);
+                let result = run_with_input_hook(&arguments, &|path| {
+                    if path.file_name().unwrap() == std::ffi::OsStr::new(selected)
+                        && !swapped.replace(true)
+                    {
+                        fs::remove_file(path).unwrap();
+                        if replacement == "symlink" {
+                            std::os::unix::fs::symlink(&outside, path).unwrap();
+                        } else {
+                            assert!(std::process::Command::new("mkfifo")
+                                .arg(path)
+                                .status()
+                                .unwrap()
+                                .success());
+                        }
+                    }
+                    Ok(())
+                });
+                assert!(swapped.get());
+                assert!(result
+                    .unwrap_err()
+                    .to_string()
+                    .contains("bounded held regular non-symlink"));
+                assert!(!destination.exists());
+                assert!(fs::read_dir(&parent).unwrap().all(|entry| !entry
+                    .unwrap()
+                    .file_name()
+                    .to_string_lossy()
+                    .starts_with(".semaprax-new-")));
+                assert_eq!(fs::read(&outside).unwrap(), b"outside original");
+                fs::remove_dir_all(parent).unwrap();
+            }
+        }
+    }
+
+    #[test]
+    fn starter_input_held_regular_reader_preserves_exact_bytes_and_bounds() {
+        let parent = root();
+        let input = parent.join("plan.json");
+        fs::write(&input, b"stable").unwrap();
+        assert_eq!(read_bound(&input, 6).unwrap(), b"stable");
+        assert!(read_bound(&input, 5).is_err());
+        assert_eq!(fs::read(&input).unwrap(), b"stable");
+        fs::remove_dir_all(parent).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn starter_initial_symlink_and_existing_destination_preserve_originals() {
+        let parent = root();
+        let outside = parent.join("outside");
+        let alias = parent.join("plan.json");
+        fs::write(&outside, b"outside original").unwrap();
+        std::os::unix::fs::symlink(&outside, &alias).unwrap();
+        assert!(read_bound(&alias, 64).is_err());
+        let destination = parent.join("existing");
+        fs::create_dir(&destination).unwrap();
+        fs::write(destination.join("authored"), b"do not overwrite").unwrap();
+        let arguments = [
+            destination.to_str().unwrap(),
+            "--from",
+            "not-opened-project",
+            "--codec-plan",
+            alias.to_str().unwrap(),
+            "--command-profile",
+            "source-command.v1",
+        ]
+        .map(str::to_owned)
+        .to_vec();
+        assert!(run(&arguments).is_err());
+        assert_eq!(
+            fs::read(destination.join("authored")).unwrap(),
+            b"do not overwrite"
+        );
+        assert_eq!(fs::read(&outside).unwrap(), b"outside original");
+        fs::remove_dir_all(parent).unwrap();
     }
 }

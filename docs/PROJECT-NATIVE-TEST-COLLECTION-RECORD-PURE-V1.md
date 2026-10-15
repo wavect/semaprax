@@ -37,7 +37,12 @@ remain 10000ms and 65536 combined output bytes; maximums remain 600000ms and
 1048576 bytes. Selecting it executes native code only under that explicit host
 operation; a starter receipt alone cannot execute it.
 
-Pending gates: the full starter ShiftSim15 journey, explicit selector parse
-controls, old native-target v31 refusal, v31 effectful test refusal, wrong profile,
+Pending gates: `cli_new_project_v1 application_starter::tiny_collection_record_selector_executes_typed_native_roots_and_keeps_legacy_refusal`
+independently exercises a small real v31 typed Report helper, native declared
+roots, undeclared-root prepublication refusal and old CLI target refusal.
+`--lib project::native_test::collection_record_pure_tests::` independently admits
+its checked typed closure and refuses checked effectful source, module permits
+and hostile function effects. The full starter ShiftSim15 journey and explicit
+selector parse controls remain required alongside old native-target v31 refusal, v31 effectful test refusal, wrong profile,
 undeclared root refusal, and original source-command result/timeout/output/
 settlement receivers. No backend or application qualification is claimed.

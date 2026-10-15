@@ -411,6 +411,12 @@ fn complete_original_tree_receiver_child_and_existing_usage_assertions_stay_byte
     assert_eq!(current.matches(scalar).count(), 1);
     let current = current.replacen(scalar, "    pub(crate) fn validate_scalar_paid(", 1);
     assert_eq!(
+        current,
+        include_str!(
+            "../../../../../../docs/evidence/scalar-fact-policy-tree/original-selected-entry.txt"
+        )
+    );
+    assert_eq!(
         view(
             &projections,
             "src/cleanup_plan/replay/selected_entry.rs",

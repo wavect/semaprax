@@ -1059,3 +1059,43 @@ fn original_static_text_provider_numeric_mismatch_keeps_checked_refusal() {
         .expect("source mismatch");
     assert!(errors.iter().any(|error| error.code == "SPX-T207"));
 }
+
+#[test]
+fn a_large_comment_keeps_ordinary_imports_admitted_without_authorizing_a_selected_helper() {
+    let leaf = format!("{LEAF}\n//{}\n", "x".repeat(1_048_576));
+    let ordinary_caller = r#"module scalar.app;
+use function @id("helper.step") from scalar.helper as step;
+@id("app.main") fn main()->i64 {step(41)}
+"#;
+    let ordinary = build(ordinary_caller, PROVIDER, &leaf).unwrap();
+    let provider = ordinary
+        .hir
+        .modules
+        .iter()
+        .find(|module| module.module == "scalar.leaf")
+        .unwrap();
+    assert!(provider.scalar_helpers.is_none());
+    assert!(schema(&ordinary).is_ok());
+    let linked = ordinary
+        .linked_owned_data_api_program_with_roots("scalar.app", &[])
+        .unwrap();
+    crate::hir::validate(&linked).unwrap();
+
+    // The same source cannot supply a partial or unhashed proof to the static
+    // receiver. Its existing full-inventory guard remains the refusal gate.
+    let selected = build(CALLER, PROVIDER, &leaf).unwrap();
+    let provider = selected
+        .hir
+        .modules
+        .iter()
+        .find(|module| module.module == "scalar.leaf")
+        .unwrap();
+    assert!(provider.scalar_helpers.is_none());
+    let errors = schema(&selected).unwrap_err();
+    assert_eq!(errors.len(), 1);
+    assert_eq!(errors[0].code, "SPX-G410");
+    assert_eq!(
+        errors[0].message,
+        "retained static UTF-8 source-site authority disagrees"
+    );
+}

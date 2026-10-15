@@ -1,0 +1,407 @@
+[
+  {
+    "source": "CHANGELOG.md",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/CHANGELOG.md",
+    "current_sha256": "55c218d10b2c69dfe5fd5b791eb0a36b10ce862a93b935ebfaca3b4c47063027",
+    "original_sha256": "a8d22f777aa755f2ee8f0dfc2be5a8e9d289d301a21ec304633d0f25368560ce",
+    "edits": [
+      {
+        "new": "\n- Author the sealed initial builder-report policy and actual typed CLI propagation (#845), provider-bound borrowed function aliases on the closed uncached route (#847), and a separate cached-prelude report acquisition observer (#796). Preserve original compatibility receivers, source assertions and unfunded output boundaries; executable qualification remains pending.\n- Decline optional scalar-helper capture when the complete source hash cannot fit its unchanged work bound, preserving ordinary scalar imports and the full G410 receiving refusal for a missing proof. Retain the large Explorer snapshot regression and independent capture controls.\n\n- Refresh browser graph pins from complete hosted 17104e20c records after paid-scratch bill reductions, retaining every historical graph byte and adding an exact previous-capture reconstruction gate.\n\n- Reject reached Useful Data v1 dependency signatures at import admission with G172, preserving H006 for body-only authored-type refusals and admission of unreached newer bundled declarations.\n\n- Grow the actual supplemental receiving cursor from two frames under its unchanged 1,028-frame bound, paying complete overlapping replacements and live-frame moves. Retain the full original receiver and shallow reuse gate; expose callers through remaining array and path-join reservation wrappers.\n\n- Cover admitted internal owning-record imports together with exact public-v8 owning-parameter refusal, retaining the original type-import and unsupported-variant cases and no-write checks.\n\n- Refuse an authored owning row-helper parameter with T284 before retained-HIR projection, preserving cold/warm diagnostic parity and G173 for all existing descriptor forgeries.\n\n- Pin mutable command-argument source refusal to its earlier T264 diagnostic and retain the exact H006 immutability guard through an independently validated, tampered Project HIR control.\n\n- Check frozen v11 nested-record String refusal at descriptor derivation and replay, retaining array source refusal and adding an identical Bool-field positive control. Preserve the language's admitted String records.\n",
+        "old": "\n- Author the sealed initial builder-report policy and actual typed CLI propagation (#845), provider-bound borrowed function aliases on the closed uncached route (#847), and a separate cached-prelude report acquisition observer (#796). Preserve original compatibility receivers, source assertions and unfunded output boundaries; executable qualification remains pending.\n\n- Check frozen v11 nested-record String refusal at descriptor derivation and replay, retaining array source refusal and adding an identical Bool-field positive control. Preserve the language's admitted String records.\n"
+      }
+    ]
+  },
+  {
+    "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "current_sha256": "636812b31139bcc5a863636d0fe6c261b3062f27c4d6ce94b61afb8d9dbfbbdd",
+    "original_sha256": "f2696dddcbd2dfdef933c52b78a2999f3b665c35890a110ffb1f086b4999a4c0",
+    "edits": [
+      {
+        "new": "        include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/blocks.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/blocks_before_receipt.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/call_receiving.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/supplemental/receiving.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/supplemental/receiving/tests.rs\"),\n        concat!(include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs\")),\n        include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/custody_tests.rs\"),\n",
+        "old": "        include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/blocks.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/blocks_before_receipt.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/call_receiving.rs\"),\n        concat!(include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs\")),\n        include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/custody_tests.rs\"),\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/AGENT-SKILL-BUNDLE-V1.json",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/docs/AGENT-SKILL-BUNDLE-V1.json",
+    "current_sha256": "6a95041037b52f3b75abbffb2f5b3c3877e871ef8d7d66a01cba9e01e0eb3580",
+    "original_sha256": "8eb0e4fbbd5ee5d47e001138331dfbd540a4c35e64305719356e080cfd3ea08c",
+    "edits": [
+      {
+        "new": "{\"schema\":\"semaprax.agent-skill.v1\",\"digest\":\"sha256:e4e0988c8dd824d71339beb88ada394c6e5ba79ec91fff1a8a30f1241b70f013\",\"bytes\":5401,\"payload\":{\"schema\":\"semaprax.agent-skill.v1\",\"authority\":false,\"compiler\":{\"binary_identity_claimed\":false,\"build_commit\":null,\"package\":\"semaprax\",\"version\":\"0.9.0\"},\"authority_classes\":[\"candidate_only\",\"publication\",\"read_only\",\"source_write\",\"test_execute\"],\"target_profiles\":[\"core-wasm\",\"interpreter\",\"native-c11\"],\"package_status\":{\"digest\":\"sha256:cb620f216f1fe93bad2c50db7e07448679497e73857a0104c499f3d22238ea3c\",\"module_count\":53,\"schema\":\"semaprax.standard-library-catalog.v1\"},\"discovery\":{\"schema\":\"semaprax.semantic-discovery.v1\",\"operations\":[{\"name\":\"agent_context\",\"surface\":\"cli\",\"tool_class\":\"read_only_query\",\"payload_schemas\":[\"semaprax.agent-context.v1\",\"semaprax.agent-context.v2\"]},{\"name\":\"agent_interaction_schema\",\"surface\":\"library\",\"tool_class\":\"read_only_schema\",\"payload_schemas\":[\"semaprax.agent-interaction-schema.v1\"]},{\"name\":\"agent_skill\",\"surface\":\"cli\",\"tool_class\":\"read_only_report\",\"payload_schemas\":[\"semaprax.agent-skill.v1\"]},{\"name\":\"assurance_manifest\",\"surface\":\"library\",\"tool_class\":\"read_only_report\",\"payload_schemas\":[\"semaprax.assurance-manifest.v1\"]},{\"name\":\"capability_manifest\",\"surface\":\"cli\",\"tool_class\":\"read_only_report\",\"payload_schemas\":[\"semaprax.capability-manifest.v1\"]},{\"name\":\"context_delta\",\"surface\":\"library\",\"tool_class\":\"read_only_delta\",\"payload_schemas\":[\"semaprax.semantic-discovery.context-delta.v1\"]},{\"name\":\"installed_diagnostic_catalog\",\"surface\":\"cli\",\"tool_class\":\"read_only_help\",\"payload_schemas\":[\"semaprax.installed-diagnostic-catalog.v1\"],\"digest\":\"sha256:95d14c350ca420420dbf220302d4454431b17b46019261cc3fe1930c11d98416\",\"code_count\":1513},{\"name\":\"installed_query_capabilities\",\"surface\":\"cli\",\"tool_class\":\"read_only_help\",\"payload_schemas\":[\"semaprax.installed-query-capabilities.v1\"],\"digest\":\"sha256:ada51a13bd79de7cfe9d3424cff440977fadff49bd285378ea1b552ea863c312\"},{\"name\":\"installed_skill\",\"surface\":\"cli\",\"tool_class\":\"read_only_help\",\"payload_schemas\":[\"semaprax.installed-skill.v1\"]},{\"name\":\"region_report\",\"surface\":\"cli\",\"tool_class\":\"read_only_report\",\"payload_schemas\":[\"semaprax.region-report.v1\"]}]},\"public_workflow\":[{\"verb\":\"apply\",\"authority_class\":\"source_write\",\"cli_command\":\"apply-semantic-workspace-change-evidence\",\"cli_usage\":\"semaprax apply-semantic-workspace-change-evidence <root> <proposal.json> <evidence.json>\",\"note\":\"commits one evidence-gated proposal to source; requires a prior propose/preview and its exact evidence\"},{\"verb\":\"context\",\"authority_class\":\"read_only\",\"cli_command\":\"context\",\"cli_usage\":\"semaprax context <file|project> <symbol|stable-id> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--filters ...]\",\"note\":\"one bounded, targeted question about one declaration; see AGENTS.md's own worked example\"},{\"verb\":\"impact\",\"authority_class\":\"read_only\",\"cli_command\":\"impact\",\"cli_usage\":\"semaprax impact <file> <patch.spatch> [--depth N] [--max-bytes N] [--max-nodes N]\",\"note\":\"bounded blast-radius of one candidate patch before requesting a preview\"},{\"verb\":\"inspect\",\"authority_class\":\"read_only\",\"cli_command\":\"graph\",\"cli_usage\":\"semaprax graph <file>\",\"note\":\"whole-module structural read; reserve for tools that need the complete document, prefer `context` otherwise\"},{\"verb\":\"propose\",\"authority_class\":\"candidate_only\",\"cli_command\":\"change\",\"cli_usage\":\"semaprax change preview <project> <operation> ... [--evidence|--structural-diff]\",\"note\":\"produces a candidate preview/evidence capsule; never writes source and never publishes\"},{\"verb\":\"publish\",\"authority_class\":\"publication\",\"cli_command\":\"project-candidate-git-publish\",\"cli_usage\":\"semaprax project-candidate-git-publish <manifest> <capsule.json> <approved-candidate-digest> <host-policy.json>\",\"note\":\"the one terminal step that publishes an already-approved candidate; requires an explicit prior approval digest\"},{\"verb\":\"rebase\",\"authority_class\":\"candidate_only\",\"cli_command\":\"change\",\"cli_usage\":\"semaprax change rebase <base-project> <operation> ... --onto <onto-project> [--revision digest] [--onto-revision digest]\",\"note\":\"re-targets a pending proposal onto a newer revision; still produces a candidate, never writes source\"},{\"verb\":\"repair\",\"authority_class\":\"source_write\",\"cli_command\":\"repair\",\"cli_usage\":\"semaprax repair <file> <repair-id> --persistent-id <persistent-id>\",\"note\":\"applies one installed, compiler-checked fix plan; writes source\"},{\"verb\":\"review\",\"authority_class\":\"read_only\",\"cli_command\":\"review\",\"cli_usage\":\"semaprax review <file> <patch.spatch>\",\"note\":\"read-only, bound to exact source and patch bytes; source drift fails closed\"},{\"verb\":\"test\",\"authority_class\":\"test_execute\",\"cli_command\":\"test\",\"cli_usage\":\"semaprax test [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\",\"note\":\"executes the project's own compiler-checked tests; the only public verb that runs code\"}],\"known_limitations\":[\"a_static_bundle_carries_no_authority_and_must_not_be_treated_as_a_live_capability_grant\",\"an_operation_or_command_listed_here_must_still_be_reconfirmed_against_the_installed_compiler_before_use\",\"does_not_replace_reading_the_owning_specification_for_the_syntax_protocol_or_command_it_names\",\"package_status_is_the_bundled_standard_library_catalog_not_an_ordinary_package_registry_inventory\",\"public_workflow_wraps_existing_commands_and_does_not_widen_or_narrow_their_admitted_semantics\"]}}",
+        "old": "{\"schema\":\"semaprax.agent-skill.v1\",\"digest\":\"sha256:8fe69acd3f2590bfb750bc209b789363436d911897a3c3bdb122269305889d7c\",\"bytes\":5401,\"payload\":{\"schema\":\"semaprax.agent-skill.v1\",\"authority\":false,\"compiler\":{\"binary_identity_claimed\":false,\"build_commit\":null,\"package\":\"semaprax\",\"version\":\"0.9.0\"},\"authority_classes\":[\"candidate_only\",\"publication\",\"read_only\",\"source_write\",\"test_execute\"],\"target_profiles\":[\"core-wasm\",\"interpreter\",\"native-c11\"],\"package_status\":{\"digest\":\"sha256:cb620f216f1fe93bad2c50db7e07448679497e73857a0104c499f3d22238ea3c\",\"module_count\":53,\"schema\":\"semaprax.standard-library-catalog.v1\"},\"discovery\":{\"schema\":\"semaprax.semantic-discovery.v1\",\"operations\":[{\"name\":\"agent_context\",\"surface\":\"cli\",\"tool_class\":\"read_only_query\",\"payload_schemas\":[\"semaprax.agent-context.v1\",\"semaprax.agent-context.v2\"]},{\"name\":\"agent_interaction_schema\",\"surface\":\"library\",\"tool_class\":\"read_only_schema\",\"payload_schemas\":[\"semaprax.agent-interaction-schema.v1\"]},{\"name\":\"agent_skill\",\"surface\":\"cli\",\"tool_class\":\"read_only_report\",\"payload_schemas\":[\"semaprax.agent-skill.v1\"]},{\"name\":\"assurance_manifest\",\"surface\":\"library\",\"tool_class\":\"read_only_report\",\"payload_schemas\":[\"semaprax.assurance-manifest.v1\"]},{\"name\":\"capability_manifest\",\"surface\":\"cli\",\"tool_class\":\"read_only_report\",\"payload_schemas\":[\"semaprax.capability-manifest.v1\"]},{\"name\":\"context_delta\",\"surface\":\"library\",\"tool_class\":\"read_only_delta\",\"payload_schemas\":[\"semaprax.semantic-discovery.context-delta.v1\"]},{\"name\":\"installed_diagnostic_catalog\",\"surface\":\"cli\",\"tool_class\":\"read_only_help\",\"payload_schemas\":[\"semaprax.installed-diagnostic-catalog.v1\"],\"digest\":\"sha256:a8215f00810946c386cfb31c59e76e854a8ea3f0769d796e93da4d0557d2b972\",\"code_count\":1513},{\"name\":\"installed_query_capabilities\",\"surface\":\"cli\",\"tool_class\":\"read_only_help\",\"payload_schemas\":[\"semaprax.installed-query-capabilities.v1\"],\"digest\":\"sha256:ada51a13bd79de7cfe9d3424cff440977fadff49bd285378ea1b552ea863c312\"},{\"name\":\"installed_skill\",\"surface\":\"cli\",\"tool_class\":\"read_only_help\",\"payload_schemas\":[\"semaprax.installed-skill.v1\"]},{\"name\":\"region_report\",\"surface\":\"cli\",\"tool_class\":\"read_only_report\",\"payload_schemas\":[\"semaprax.region-report.v1\"]}]},\"public_workflow\":[{\"verb\":\"apply\",\"authority_class\":\"source_write\",\"cli_command\":\"apply-semantic-workspace-change-evidence\",\"cli_usage\":\"semaprax apply-semantic-workspace-change-evidence <root> <proposal.json> <evidence.json>\",\"note\":\"commits one evidence-gated proposal to source; requires a prior propose/preview and its exact evidence\"},{\"verb\":\"context\",\"authority_class\":\"read_only\",\"cli_command\":\"context\",\"cli_usage\":\"semaprax context <file|project> <symbol|stable-id> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--filters ...]\",\"note\":\"one bounded, targeted question about one declaration; see AGENTS.md's own worked example\"},{\"verb\":\"impact\",\"authority_class\":\"read_only\",\"cli_command\":\"impact\",\"cli_usage\":\"semaprax impact <file> <patch.spatch> [--depth N] [--max-bytes N] [--max-nodes N]\",\"note\":\"bounded blast-radius of one candidate patch before requesting a preview\"},{\"verb\":\"inspect\",\"authority_class\":\"read_only\",\"cli_command\":\"graph\",\"cli_usage\":\"semaprax graph <file>\",\"note\":\"whole-module structural read; reserve for tools that need the complete document, prefer `context` otherwise\"},{\"verb\":\"propose\",\"authority_class\":\"candidate_only\",\"cli_command\":\"change\",\"cli_usage\":\"semaprax change preview <project> <operation> ... [--evidence|--structural-diff]\",\"note\":\"produces a candidate preview/evidence capsule; never writes source and never publishes\"},{\"verb\":\"publish\",\"authority_class\":\"publication\",\"cli_command\":\"project-candidate-git-publish\",\"cli_usage\":\"semaprax project-candidate-git-publish <manifest> <capsule.json> <approved-candidate-digest> <host-policy.json>\",\"note\":\"the one terminal step that publishes an already-approved candidate; requires an explicit prior approval digest\"},{\"verb\":\"rebase\",\"authority_class\":\"candidate_only\",\"cli_command\":\"change\",\"cli_usage\":\"semaprax change rebase <base-project> <operation> ... --onto <onto-project> [--revision digest] [--onto-revision digest]\",\"note\":\"re-targets a pending proposal onto a newer revision; still produces a candidate, never writes source\"},{\"verb\":\"repair\",\"authority_class\":\"source_write\",\"cli_command\":\"repair\",\"cli_usage\":\"semaprax repair <file> <repair-id> --persistent-id <persistent-id>\",\"note\":\"applies one installed, compiler-checked fix plan; writes source\"},{\"verb\":\"review\",\"authority_class\":\"read_only\",\"cli_command\":\"review\",\"cli_usage\":\"semaprax review <file> <patch.spatch>\",\"note\":\"read-only, bound to exact source and patch bytes; source drift fails closed\"},{\"verb\":\"test\",\"authority_class\":\"test_execute\",\"cli_command\":\"test\",\"cli_usage\":\"semaprax test [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\",\"note\":\"executes the project's own compiler-checked tests; the only public verb that runs code\"}],\"known_limitations\":[\"a_static_bundle_carries_no_authority_and_must_not_be_treated_as_a_live_capability_grant\",\"an_operation_or_command_listed_here_must_still_be_reconfirmed_against_the_installed_compiler_before_use\",\"does_not_replace_reading_the_owning_specification_for_the_syntax_protocol_or_command_it_names\",\"package_status_is_the_bundled_standard_library_catalog_not_an_ordinary_package_registry_inventory\",\"public_workflow_wraps_existing_commands_and_does_not_widen_or_narrow_their_admitted_semantics\"]}}"
+      }
+    ]
+  },
+  {
+    "source": "docs/BOUNDED-LANGUAGE-COMMAND-IO-V1.md",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/docs/BOUNDED-LANGUAGE-COMMAND-IO-V1.md",
+    "current_sha256": "3ce130aa4cf46770d1e14df58a8384c5b70adadd15ac6639587968856b721bdf",
+    "original_sha256": "a38e4577660312e79bff621a860a9a35d5ce3cdd6775e54847ea6a7564134e76",
+    "edits": [
+      {
+        "new": "projected through `str_as_bytes`, but cannot escape, be stored, enter an\naggregate, cross an import/callback/async boundary, or outlive settlement.\n\nA mutable local holding this borrowed `str` is refused during source checking\nwith `SPX-T264`. Independently validating retained HIR still refuses a forged\nmutable alias with `SPX-H006`; the earlier source diagnostic does not replace\nthe HIR immutability check.\n\n[Owned String Loops v2](OWNED-STRING-LOOPS-V2.md#immutable-input-and-borrowed-views-590)\n",
+        "old": "projected through `str_as_bytes`, but cannot escape, be stored, enter an\naggregate, cross an import/callback/async boundary, or outlive settlement.\n\n[Owned String Loops v2](OWNED-STRING-LOOPS-V2.md#immutable-input-and-borrowed-views-590)\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/PRIVATE-NOMINAL-LAYOUT-CLOSURE-V1.md",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/docs/PRIVATE-NOMINAL-LAYOUT-CLOSURE-V1.md",
+    "current_sha256": "87ae690a55bc0a9c55bfdf3a0823bffcdc4599880080e11c4ee56ccfeed848dc",
+    "original_sha256": "bb8bc1c5096a80630f7be5ae554433b94c38caf973bcd3495755613ca55f79ef",
+    "edits": [
+      {
+        "new": "only `Decoded` and its cases. This is internal layout reconstruction, not a new\nsource import, public descriptor, capability, graph edge, or lifetime grant.\n\nThe internal nongeneric record-signature lane includes owning record\nparameters. It does not admit those parameters through the public Project-v8\ndescriptor: selecting the same function there retains `SPX-J113` for an\nunsupported parameter. The internal signature-root route also keeps unsupported\nvariant families closed under their existing `SPX-G172` refusal.\n\n## Authority and visibility\n",
+        "old": "only `Decoded` and its cases. This is internal layout reconstruction, not a new\nsource import, public descriptor, capability, graph edge, or lifetime grant.\n\n## Authority and visibility\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/RFC-STATIC-BORROWED-UTF8-LITERALS-V1.md",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/docs/RFC-STATIC-BORROWED-UTF8-LITERALS-V1.md",
+    "current_sha256": "e2de3024c53dda109872b42564211484a0bc09029620028337be69012a2aff8a",
+    "original_sha256": "5ae8318fa8737db35d7362a089f242647b316996f71de70694d718971ef86bff",
+    "edits": [
+      {
+        "new": "validation. No signature-only, generated-name, stub, or attached-index shortcut\nmay authorize an allocating or unknown producer.\n\nScalar-helper capture is optional. If the complete defining-source hash cannot\nfit its existing capture work allowance, capture returns no inventory before\nallocating digest scratch or hashing source bytes. Ordinary checked scalar\nimports retain their existing route. A static-source receiver still requires\nthe complete independently replayed inventory and refuses a missing inventory\nwith `SPX-G410`; a decline does not authorize a partial or unhashed proof.\nThe work bound, source-size bounds and full hash prices are unchanged.\n\nSource edits invalidate revision-scoped literal facts even if display names or\n",
+        "old": "validation. No signature-only, generated-name, stub, or attached-index shortcut\nmay authorize an allocating or unknown producer.\n\nSource edits invalidate revision-scoped literal facts even if display names or\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/SCOPED-RECORD-ROW-LOAN-V1.md",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/docs/SCOPED-RECORD-ROW-LOAN-V1.md",
+    "current_sha256": "284cc4b7d34384ed3024ecca2e0894dbfb24b4c5733d2d18631e6bcbacf6f8f8",
+    "original_sha256": "a2e82e7eebb674722e8268660a01930be7de0e5f7d81eed4343585840fa13f22",
+    "edits": [
+      {
+        "new": "source; retained primitive bodies hash every descriptor identity.\n\nWhen current provider source changes a lent parameter to `own R`, source\nprojection reports the ordinary `SPX-T284` row-escape diagnostic at the caller\nargument before interpreting a retained descriptor. This applies equally to a\ncold build and a warm consumer. A forged descriptor against still-admitted\nborrowed-provider source retains its independent `SPX-G173` mismatch refusal.\n\n## Qualification definitions\n\n",
+        "old": "source; retained primitive bodies hash every descriptor identity.\n\n## Qualification definitions\n\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+    "current_sha256": "ffc4aa81cec6648f9dcc55b6389ba069c91cf45e6180477b12fc93608d2462d4",
+    "original_sha256": "7d05ff5cfafdd4c47e349c183d38faa42975e3d5b94882ade6197e055381da7b",
+    "edits": [
+      {
+        "new": "pending CI; isolated carrier probes do not establish application fit.\n\nSupplemental receiving has its own independent 1,028-frame ceiling. Its paid\nscratch owner acquires two initial frames and keeps that backing across complete\nroot walks. Deeper pending continuations acquire a full replacement, two vector\ncontrols and a frame control while old backing remains live. Only moved live\nframes consume relocation work; unused capacity is never initialized as a\nsemantic frame. The receiver's dispatch, parameter views, shape derivation,\nflag order, callback order and original depth errors remain unchanged. Its\ncomplete fixed-capacity receiver remains independently compiled, with a complete\nsource inverse and real-HIR callback-parity controls. Deep walks can pay more\ncumulative backing than the original eager buffer; application qualification\nrequires the full owning gates.\n\nPhysical reservation wrappers propagate the compiler's caller coordinate to the\nexisting first-refusal receipt. This preserves all requests, debits, refusal\n",
+        "old": "pending CI; isolated carrier probes do not establish application fit.\n\nPhysical reservation wrappers propagate the compiler's caller coordinate to the\nexisting first-refusal receipt. This preserves all requests, debits, refusal\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/structural-call-cursor-v1/README.md",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/docs/evidence/structural-call-cursor-v1/README.md",
+    "current_sha256": "e45f575a12e2ac3f1c5523a7a6a67713ffab603816551208601cfdc10b3caefc",
+    "original_sha256": "248b73dd255e729ee2f6349fd4001f5848bd8ce475200cdde7aed8116a542bcb",
+    "edits": [
+      {
+        "new": "matches that request. The shared wrapper alone cannot prove it was the only\nremaining cost. Caller-coordinate propagation makes later refusals attributable.\n\nFollow-up hosted evidence on `6dec6f011` identifies the same-sized refused\nrequest in supplemental receiving through `ordinary_inventory/storage.rs`.\nThe original numerical match did not identify its caller. The structural-call\nchange is a separately tested storage optimization; it did not resolve that\nSTD-08 refusal. [Supplemental cursor growth](../supplemental-cursor-growth-v1/README.md)\nrecords the actual receiving owner and its separate qualification.\n\n`calls.before.rs.txt` retains the complete original module. The independently\n",
+        "old": "matches that request. The shared wrapper alone cannot prove it was the only\nremaining cost. Caller-coordinate propagation makes later refusals attributable.\n\n`calls.before.rs.txt` retains the complete original module. The independently\n"
+      }
+    ]
+  },
+  {
+    "source": "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    "current_sha256": "159681fd79461fd624409c26e533a73a3797eb207b37f1fa3f04c41f94dc3f55",
+    "original_sha256": "0f06e21855a419b0192babf562da0caaebc1fdf1184d5a59935008333a71ea94",
+    "edits": [
+      {
+        "new": "    project_revision: \"sha256:8576caa566cb7f0d265354927c5bc7b481146f05e616f76917f340b4af26f053\",\n    workspace_revision: \"sha256:f0454397a2b339677bc49c9ccd8e8491917426202c6aba2475221879e02ae3f6\",\n    project_graph_digest: \"sha256:dcd4f20c52e9b8cc52ac7695f4ef7f0668a4bb5d7c735434ede9e0c0361ee363\",\n  },\n  {\n",
+        "old": "    project_revision: \"sha256:8576caa566cb7f0d265354927c5bc7b481146f05e616f76917f340b4af26f053\",\n    workspace_revision: \"sha256:f0454397a2b339677bc49c9ccd8e8491917426202c6aba2475221879e02ae3f6\",\n    project_graph_digest: \"sha256:91a02f54eb2652f8cb43a46f58515393e3d30d1cfa706bde4c5f6569b5ada8ac\",\n  },\n  {\n"
+      },
+      {
+        "new": "    project_revision: \"sha256:afa7b35b6b057eaa1cbf89c68ccd1e19a8d988f4168049f70717f80c28218fb7\",\n    workspace_revision: \"sha256:8fcf973950f10bf9393ff5597484333b178e5f93c5d2a1847f6ccc18d6185f71\",\n    project_graph_digest: \"sha256:322b05af9bab447a12c7f9f2cda2ef3f7b2959ced4b68af04a716aa54b127122\",\n  },\n];\n",
+        "old": "    project_revision: \"sha256:afa7b35b6b057eaa1cbf89c68ccd1e19a8d988f4168049f70717f80c28218fb7\",\n    workspace_revision: \"sha256:8fcf973950f10bf9393ff5597484333b178e5f93c5d2a1847f6ccc18d6185f71\",\n    project_graph_digest: \"sha256:a03e245fcf85a4d3e63aa266ed1f3a30e5ab809fe196dcd817a63c1c7201cc55\",\n  },\n];\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_inventory/storage.rs",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/src/cleanup_plan/replay/ordinary_inventory/storage.rs",
+    "current_sha256": "02b60b9d594abb7661e3621bceb7a81cb967db5791c63e0f145d19141be6a0ed",
+    "original_sha256": "ceafd84aeeb6df98ba9122b03db0bd05f3bc6b085ae2b881f110fe48fbe2658b",
+    "edits": [
+      {
+        "new": "use super::super::{Diagnostic, ReplayBudget, ResolvedFunction};\n\n#[track_caller]\npub(in crate::cleanup_plan::replay) fn array<T>(\n    function: &ResolvedFunction,\n",
+        "old": "use super::super::{Diagnostic, ReplayBudget, ResolvedFunction};\n\npub(in crate::cleanup_plan::replay) fn array<T>(\n    function: &ResolvedFunction,\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/storage.rs",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/src/cleanup_plan/replay/path_join/storage.rs",
+    "current_sha256": "671900b2a5b62cba38ad34777f69d8f7fa2169bacac174a4237e1a24fbaf07c5",
+    "original_sha256": "9771d1d267855c57cf9db3e67a6e3270ed316f1442069b573a7a277bb8985ad9",
+    "edits": [
+      {
+        "new": "    Some(bytes)\n}\n#[track_caller]\npub(in crate::cleanup_plan::replay) fn reserve_btree_node<K, V>(\n    function: &ResolvedFunction,\n",
+        "old": "    Some(bytes)\n}\npub(in crate::cleanup_plan::replay) fn reserve_btree_node<K, V>(\n    function: &ResolvedFunction,\n"
+      },
+      {
+        "new": "}\n\n#[track_caller]\npub(in crate::cleanup_plan::replay) fn insert_set<K: Ord>(\n    function: &ResolvedFunction,\n",
+        "old": "}\n\npub(in crate::cleanup_plan::replay) fn insert_set<K: Ord>(\n    function: &ResolvedFunction,\n"
+      },
+      {
+        "new": "    Ok(target.insert(value))\n}\n#[track_caller]\npub(in crate::cleanup_plan::replay) fn insert_map<K: Ord, V>(\n    function: &ResolvedFunction,\n",
+        "old": "    Ok(target.insert(value))\n}\npub(in crate::cleanup_plan::replay) fn insert_map<K: Ord, V>(\n    function: &ResolvedFunction,\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/supplemental/receiving.rs",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/src/cleanup_plan/replay/supplemental/receiving.rs",
+    "current_sha256": "b10bab9c98eca0da61d2cfe60fac0b2adb1b68f3ea0419cb480440c17672fd6e",
+    "original_sha256": "bd8aaab3ba25a6a5b89c16dfd0453bab1becabbb6b631cd744b3bf2e1573b238",
+    "edits": [
+      {
+        "new": "//! One paid depth-bounded cursor, reused after each complete expression walk.\n//! Synthetic owning parameter providers retain their explicit legacy fallback.\nuse super::*;\nuse crate::cleanup_plan::replay::nested_shape::type_needs_drop_with_budget;\nconst FRAME_CAPACITY: usize = 1028;\n\nenum Frame<'a> {\n",
+        "old": "//! One real paid fixed cursor, reused after each complete source-expression walk.\n//! Synthetic owning parameter providers retain their explicit legacy fallback.\nuse super::*;\nuse crate::cleanup_plan::replay::nested_shape::type_needs_drop_with_budget;\nuse crate::cleanup_plan::replay::ordinary_inventory::storage::array;\n\nenum Frame<'a> {\n"
+      },
+      {
+        "new": "        budget: &mut ReplayBudget,\n    ) -> Result<Self, Diagnostic> {\n        budget.reserve_array::<Self>(function, 1, \"supplemental cursor owner\")?;\n        let mut frames = Vec::new();\n        reserve_frames(&mut frames, 1, function, budget)?;\n        Ok(Self { frames })\n    }\n}\n",
+        "old": "        budget: &mut ReplayBudget,\n    ) -> Result<Self, Diagnostic> {\n        Ok(Self {\n            frames: array(function, 1028, budget, \"supplemental fixed cursor\")?,\n        })\n    }\n}\n"
+      },
+      {
+        "new": "    let frames = &mut scratch.frames;\n    debug_assert!(frames.is_empty());\n    reserve_frames(frames, 1, function, budget)?;\n    frames.push(Frame::Expr(expression, 0));\n    while let Some(frame) = frames.pop() {\n",
+        "old": "    let frames = &mut scratch.frames;\n    debug_assert!(frames.is_empty());\n    frames.push(Frame::Expr(expression, 0));\n    while let Some(frame) = frames.pop() {\n"
+      },
+      {
+        "new": "                    }\n                    if let Some(argument) = args.get(next) {\n                        if frames.len() + 3 > FRAME_CAPACITY {\n                            return Err(replay_error(\n                                function,\n",
+        "old": "                    }\n                    if let Some(argument) = args.get(next) {\n                        if frames.len() + 3 > frames.capacity() {\n                            return Err(replay_error(\n                                function,\n"
+      },
+      {
+        "new": "                            ));\n                        }\n                        reserve_frames(frames, 3, function, budget)?;\n                        frames.push(Frame::Expr(expression, next + 1));\n                        frames.push(Frame::CallArgument(expression, next));\n",
+        "old": "                            ));\n                        }\n                        frames.push(Frame::Expr(expression, next + 1));\n                        frames.push(Frame::CallArgument(expression, next));\n"
+      },
+      {
+        "new": "                    }\n                } else if let Some(child) = replay_expression_child(expression, next) {\n                    if frames.len() + 2 > FRAME_CAPACITY {\n                        return Err(replay_error(\n                            function,\n",
+        "old": "                    }\n                } else if let Some(child) = replay_expression_child(expression, next) {\n                    if frames.len() + 2 > frames.capacity() {\n                        return Err(replay_error(\n                            function,\n"
+      },
+      {
+        "new": "                        ));\n                    }\n                    reserve_frames(frames, 2, function, budget)?;\n                    frames.push(Frame::Expr(expression, next + 1));\n                    frames.push(Frame::Expr(child, 0));\n",
+        "old": "                        ));\n                    }\n                    frames.push(Frame::Expr(expression, next + 1));\n                    frames.push(Frame::Expr(child, 0));\n"
+      },
+      {
+        "new": "    Ok(())\n}\n\n// Capacity never supplies traversal authority. Replacements retain every live\n// continuation and pay their full backing while the old buffer is still held.\nfn reserve_frames<'a>(\n    frames: &mut Vec<Frame<'a>>,\n    additional: usize,\n    function: &ResolvedFunction,\n    budget: &mut ReplayBudget,\n) -> Result<(), Diagnostic> {\n    budget.reserve_bytes(function, 0, \"supplemental fixed cursor\")?;\n    let required = frames\n        .len()\n        .checked_add(additional)\n        .filter(|n| *n <= FRAME_CAPACITY)\n        .ok_or_else(|| {\n            replay_error(\n                function,\n                \"supplemental-slot traversal exceeds the admitted depth\",\n            )\n        })?;\n    if required <= frames.capacity() {\n        return Ok(());\n    }\n    let target = frames\n        .capacity()\n        .saturating_mul(2)\n        .clamp(required.max(2), FRAME_CAPACITY);\n    if !frames.is_empty() {\n        budget.charge(function, frames.len(), \"supplemental cursor relocation\")?;\n    }\n    budget.reserve_bytes(\n        function,\n        2 * std::mem::size_of::<Vec<Frame<'a>>>() + std::mem::size_of::<Frame<'a>>(),\n        \"supplemental cursor controls\",\n    )?;\n    budget.reserve_array::<Frame<'a>>(function, target, \"supplemental fixed cursor\")?;\n    let mut replacement = Vec::new();\n    replacement.try_reserve_exact(target).map_err(|_| {\n        budget.budget_refusal(\n            function,\n            \"cleanup replay physical vector allocation failed\",\n            \"\",\n        )\n    })?;\n    if replacement.capacity() != target {\n        return Err(budget.budget_refusal(\n            function,\n            \"cleanup replay physical vector capacity disagrees with its reservation\",\n            \"\",\n        ));\n    }\n    replacement.append(frames);\n    *frames = replacement;\n    Ok(())\n}\n\n#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"complete independently compiled original receiving walk\"\n)]\n#[path = \"../../../../docs/evidence/supplemental-cursor-growth-v1/receiving.before.rs.txt\"]\nmod before;\n#[cfg(test)]\nmod tests;\n",
+        "old": "    Ok(())\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "src/source_reflows_merge.rs",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/src/source_reflows_merge.rs",
+    "current_sha256": "527f4b7da68b638542705b8581e259ee7bd3bc12ddd479e74469946a2fbf000a",
+    "original_sha256": "62c23e468a8c15a372869fbfe04d2b38c06193e3c2e673f57a02171324604703",
+    "edits": [
+      {
+        "new": "}\nfn final_batch_input(branch: &str, source: &str, current: &str) -> String {\n    let before_main = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/main-f4a448-integration-20261015/current-to-6444.json\"\n        )),\n        source,\n        current,\n    );\n    let current = before_main.as_str();\n    let prior_docs = project(\n        include_str!(concat!(\n",
+        "old": "}\nfn final_batch_input(branch: &str, source: &str, current: &str) -> String {\n    let prior_docs = project(\n        include_str!(concat!(\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/record_traversal/row_loan.rs",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/src/workspace_graph/record_traversal/row_loan.rs",
+    "current_sha256": "9963ef65b0fd8b6cd0245a04f7188eba1576f11bf039c9a523c7d1f74b755511",
+    "original_sha256": "4ab109a4db71dc995bafebcf85b9baa02ab834e1493a9457fb0d56fa15001969",
+    "edits": [
+      {
+        "new": "        let (context, target) = callee(program, programs, name).ok_or_else(refusal)?;\n        let parameter = target.params.get(position).ok_or_else(refusal)?;\n        // This is an authored source error, before any retained descriptor is\n        // inspected. A current provider's owning parameter cannot receive a\n        // borrowed traversal row, even when the consumer was checked before\n        // that provider signature changed. Retained-HIR mismatches below keep\n        // their independent G173 refusal.\n        if parameter.mode == crate::ast::ParamMode::Own {\n            return Err(vec![Diagnostic::error(\n                \"SPX-T284\",\n                \"record traversal row cannot escape or materialize aggregate storage; select a field\",\n                argument.span,\n            )\n            .at_path(&program.path)]);\n        }\n        let Type::Named {\n            name: record,\n",
+        "old": "        let (context, target) = callee(program, programs, name).ok_or_else(refusal)?;\n        let parameter = target.params.get(position).ok_or_else(refusal)?;\n        let Type::Named {\n            name: record,\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/retained_validation/dependency_closure.rs",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/src/workspace_graph/retained_validation/dependency_closure.rs",
+    "current_sha256": "b2ac81e2f08617dd1c5bd7668dbda327b0aa345c21d6e13c6c14fbbdad5416ff",
+    "original_sha256": "574cf8cb6fbcb7d9b5c947c00dd1d87df25d9e3831bb989c495e5c5c0d5c3b52",
+    "edits": [
+      {
+        "new": "            )]);\n        };\n        // A reached dependency must pass the same signature admission as an\n        // imported target. Body-only profile refusals still belong to the HIR\n        // linker, which can identify the unsupported authored type precisely.\n        if incompatible.contains(&id)\n            && (!hir::useful_data_workspace_return_admitted(&linked.function.return_type)\n                || linked.function.params.iter().any(|parameter| {\n                    !hir::useful_data_workspace_parameter_admitted(\n                        &parameter.ty,\n                        parameter.ownership,\n                    )\n                }))\n        {\n            return Err(vec![super::super::graph_error(\n                \"SPX-G172\",\n                super::super::package::import_profile_refusal(),\n            )]);\n        }\n        if !retained.insert(id) {\n            continue;\n",
+        "old": "            )]);\n        };\n        if !retained.insert(id) {\n            continue;\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/source_schema/static_text/primitive/helpers/tests.rs",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/src/workspace_graph/source_schema/static_text/primitive/helpers/tests.rs",
+    "current_sha256": "748cb1f3763f6dc7e5ee537d2658f0aa6f630cb2632e8d9ddc644accc8833e1e",
+    "original_sha256": "a71c4a0ed3cdf0ea27b5151e9dae6fb2d9164174726a3e05994667652050223b",
+    "edits": [
+      {
+        "new": "    assert!(errors.iter().any(|error| error.code == \"SPX-T207\"));\n}\n\n#[test]\nfn a_large_comment_keeps_ordinary_imports_admitted_without_authorizing_a_selected_helper() {\n    let leaf = format!(\"{LEAF}\\n//{}\\n\", \"x\".repeat(1_048_576));\n    let ordinary_caller = r#\"module scalar.app;\nuse function @id(\"helper.step\") from scalar.helper as step;\n@id(\"app.main\") fn main()->i64 {step(41)}\n\"#;\n    let ordinary = build(ordinary_caller, PROVIDER, &leaf).unwrap();\n    let provider = ordinary\n        .hir\n        .modules\n        .iter()\n        .find(|module| module.module == \"scalar.leaf\")\n        .unwrap();\n    assert!(provider.scalar_helpers.is_none());\n    assert!(schema(&ordinary).is_ok());\n    let linked = ordinary\n        .linked_owned_data_api_program_with_roots(\"scalar.app\", &[])\n        .unwrap();\n    crate::hir::validate(&linked).unwrap();\n\n    // The same source cannot supply a partial or unhashed proof to the static\n    // receiver. Its existing full-inventory guard remains the refusal gate.\n    let selected = build(CALLER, PROVIDER, &leaf).unwrap();\n    let provider = selected\n        .hir\n        .modules\n        .iter()\n        .find(|module| module.module == \"scalar.leaf\")\n        .unwrap();\n    assert!(provider.scalar_helpers.is_none());\n    let errors = schema(&selected).unwrap_err();\n    assert_eq!(errors.len(), 1);\n    assert_eq!(errors[0].code, \"SPX-G410\");\n    assert_eq!(\n        errors[0].message,\n        \"retained static UTF-8 source-site authority disagrees\"\n    );\n}\n",
+        "old": "    assert!(errors.iter().any(|error| error.code == \"SPX-T207\"));\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/static_text/scalar_helpers.rs",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/src/workspace_graph/static_text/scalar_helpers.rs",
+    "current_sha256": "9700af77f59fe5203f2d5c69e2ab9514a9f0890f1f42bc70b655a91a4b5958b5",
+    "original_sha256": "abdb8ca8cfaa1e617562bcb90458882bbfa588765b6293a3e272d33e80f81cd0",
+    "edits": [
+      {
+        "new": "    *work = work.checked_sub(units).ok_or_else(fail)?;\n    Ok(())\n}\nfn pay_source_revision_work(\n    path: &str,\n    module: &str,\n    source: &str,\n    work: &mut usize,\n) -> Result<bool, Vec<Diagnostic>> {\n    let units = source\n        .len()\n        .checked_add(path.len())\n        .and_then(|n| n.checked_add(module.len()))\n        .and_then(|n| n.checked_add(24 + b\"semaprax.retained-primitive-source.v1\\0\".len()))\n        .ok_or_else(fail)?;\n    let Some(remaining) = work.checked_sub(units) else {\n        return Ok(false);\n    };\n    *work = remaining;\n    Ok(true)\n}\n/// Pure still includes checked arithmetic and failing pre/postconditions.\n",
+        "old": "    *work = work.checked_sub(units).ok_or_else(fail)?;\n    Ok(())\n}\n/// Pure still includes checked arithmetic and failing pre/postconditions.\n"
+      },
+      {
+        "new": "    }\n    let source = selected.ok_or_else(fail)?;\n    // Capture is optional; a source that cannot fit the hash work retains no\n    // proof. A selected receiver still requires and independently replays the\n    // complete inventory. Decline before allocating scratch or hashing bytes.\n    if !pay_source_revision_work(&program.path, &program.module, &source.source, &mut work)? {\n        return Ok(None);\n    }\n    reserve_builder_structure(\n        body_digest::scratch_bytes()\n",
+        "old": "    }\n    let source = selected.ok_or_else(fail)?;\n    reserve_builder_structure(\n        body_digest::scratch_bytes()\n"
+      },
+      {
+        "new": "            )\n            .ok_or_else(capacity)?,\n    )?;\n    let revision = body_digest::source(&program.path, &program.module, &source.source);\n",
+        "old": "            )\n            .ok_or_else(capacity)?,\n    )?;\n    debit(\n        &mut work,\n        source\n            .source\n            .len()\n            .checked_add(program.path.len())\n            .and_then(|n| n.checked_add(program.module.len()))\n            .and_then(|n| n.checked_add(24 + b\"semaprax.retained-primitive-source.v1\\0\".len()))\n            .ok_or_else(fail)?,\n    )?;\n    let revision = body_digest::source(&program.path, &program.module, &source.source);\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/static_text/scalar_helpers/capture_directory/tests.rs",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/src/workspace_graph/static_text/scalar_helpers/capture_directory/tests.rs",
+    "current_sha256": "1cc0489a52cad126d7516d2b57b91cf4ad5d8064a880eea97b247e4a0936d82b",
+    "original_sha256": "95e1223a382a5f3209a46126d623881641ea067daba105290cbe7a6d895ea118",
+    "edits": [
+      {
+        "new": "use crate::workspace_graph::{index_authored, AuthoredDeclaration, AuthoredKind, WorkspaceSource};\nuse std::collections::BTreeMap;\n\n#[test]\nfn optional_source_hash_work_keeps_exact_prices_and_declines_every_short_budget() {\n    let path = \"provider.spx\";\n    let module = \"scalar.leaf\";\n    let source = \"\u00e9\\0\";\n    // Three length prefixes, the full domain and UTF-8 bytes are all paid.\n    let units = 24\n        + b\"semaprax.retained-primitive-source.v1\\0\".len()\n        + path.len()\n        + module.len()\n        + source.len();\n    let ((), metrics) = crate::test_allocation_observer::measure(|| {\n        for available in 0..units {\n            let mut work = available;\n            assert!(\n                !super::super::pay_source_revision_work(path, module, source, &mut work).unwrap()\n            );\n            assert_eq!(work, available);\n        }\n        for spare in [0, 1, 1024] {\n            let mut work = units + spare;\n            assert!(\n                super::super::pay_source_revision_work(path, module, source, &mut work).unwrap()\n            );\n            assert_eq!(work, spare);\n        }\n    });\n    assert_eq!(metrics, crate::test_allocation_observer::Metrics::default());\n}\n\nfn source(count: usize) -> String {\n",
+        "old": "use crate::workspace_graph::{index_authored, AuthoredDeclaration, AuthoredKind, WorkspaceSource};\nuse std::collections::BTreeMap;\n\nfn source(count: usize) -> String {\n"
+      },
+      {
+        "new": "    assert!(!refused);\n}\n\n#[test]\nfn optional_source_work_selection_preserves_the_complete_prior_capture_body() {\n    let current = include_str!(\"../../scalar_helpers.rs\");\n    let original = include_str!(concat!(\n        env!(\"CARGO_MANIFEST_DIR\"),\n        \"/docs/evidence/optional-helper-source-work-v1/scalar_helpers.before.rs.txt\"\n    ));\n    let helper = \"fn pay_source_revision_work(\\n    path: &str,\\n    module: &str,\\n    source: &str,\\n    work: &mut usize,\\n) -> Result<bool, Vec<Diagnostic>> {\\n    let units = source\\n        .len()\\n        .checked_add(path.len())\\n        .and_then(|n| n.checked_add(module.len()))\\n        .and_then(|n| n.checked_add(24 + b\\\"semaprax.retained-primitive-source.v1\\\\0\\\".len()))\\n        .ok_or_else(fail)?;\\n    let Some(remaining) = work.checked_sub(units) else {\\n        return Ok(false);\\n    };\\n    *work = remaining;\\n    Ok(true)\\n}\\n\";\n    let guard = \"    // Capture is optional; a source that cannot fit the hash work retains no\\n    // proof. A selected receiver still requires and independently replays the\\n    // complete inventory. Decline before allocating scratch or hashing bytes.\\n    if !pay_source_revision_work(&program.path, &program.module, &source.source, &mut work)? {\\n        return Ok(None);\\n    }\\n\";\n    let debit = \"    debit(\\n        &mut work,\\n        source\\n            .source\\n            .len()\\n            .checked_add(program.path.len())\\n            .and_then(|n| n.checked_add(program.module.len()))\\n            .and_then(|n| n.checked_add(24 + b\\\"semaprax.retained-primitive-source.v1\\\\0\\\".len()))\\n            .ok_or_else(fail)?,\\n    )?;\\n\";\n    let anchor =\n        \"    let revision = body_digest::source(&program.path, &program.module, &source.source);\";\n    let mut restored = current.to_owned();\n    for addition in [helper, guard] {\n        assert_eq!(restored.matches(addition).count(), 1);\n        restored = restored.replacen(addition, \"\", 1);\n    }\n    assert_eq!(restored.matches(anchor).count(), 1);\n    restored = restored.replacen(anchor, &format!(\"{debit}{anchor}\"), 1);\n    assert_eq!(restored, original);\n}\n",
+        "old": "    assert!(!refused);\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/tests/record_traversal.rs",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/src/workspace_graph/tests/record_traversal.rs",
+    "current_sha256": "a520fc4f24aec98b9236650c070912c8a38cd8d299d6e7fa1c5bf27c2b193c5e",
+    "original_sha256": "5b258db7449d08f6fb95c9a14be060056445ca0d1045511db00e3b44aa33bdfb",
+    "edits": [
+      {
+        "new": "    let build = build_owned(input.clone()).unwrap();\n    super::super::record_traversal::validate(&programs, &build.hir.modules).unwrap();\n    // Current authored provider ownership is a source refusal. Replaying old\n    // consumer HIR must not misclassify this source edit as a forged descriptor.\n    let mut owning_input = input.clone();\n    owning_input[0].source = owning_input[0]\n        .source\n        .replace(\"row: borrow Row\", \"row: own Row\");\n    assert_ne!(owning_input[0].source, input[0].source);\n    let owning_programs = parsed_sources(&owning_input);\n    let errors =\n        super::super::record_traversal::validate(&owning_programs, &build.hir.modules).unwrap_err();\n    assert_eq!(errors[0].code, \"SPX-T284\");\n    assert_eq!(\n        errors[0].message,\n        \"record traversal row cannot escape or materialize aggregate storage; select a field\"\n    );\n    assert_eq!(errors[0].path.as_deref(), Some(\"app.spx\"));\n    assert!(errors[0].span.is_some());\n    let errors = build_owned(owning_input)\n        .err()\n        .expect(\"owning provider must refuse\");\n    assert!(errors.iter().any(|error| error.code == \"SPX-T284\"));\n    for attack in 0..4 {\n        let mut build = build_owned(input.clone()).unwrap();\n",
+        "old": "    let build = build_owned(input.clone()).unwrap();\n    super::super::record_traversal::validate(&programs, &build.hir.modules).unwrap();\n    for attack in 0..4 {\n        let mut build = build_owned(input.clone()).unwrap();\n"
+      },
+      {
+        "new": "            }\n        }\n        let errors =\n            super::super::record_traversal::validate(&programs, &build.hir.modules).unwrap_err();\n        assert_eq!(errors[0].code, \"SPX-G173\", \"attack {attack}\");\n    }\n}\n",
+        "old": "            }\n        }\n        assert!(\n            super::super::record_traversal::validate(&programs, &build.hir.modules).is_err(),\n            \"attack {attack}\"\n        );\n    }\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/hir_module_boundaries.rs",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/tests/hir_module_boundaries.rs",
+    "current_sha256": "ef7fee1cdb326729a2b3729589d75a976be48d06fefdf573d4cab08ab315acf5",
+    "original_sha256": "c0016994fd63d3de37329b56a3a7e241a66891ea2a1f4126b6c6cd64a2b64f35",
+    "edits": [
+      {
+        "new": "        include_str!(\"../src/cleanup_plan/replay/structural_control/blocks.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/structural_control/blocks_before_receipt.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/structural_control/call_receiving.rs\"), include_str!(\"../src/cleanup_plan/replay/supplemental/receiving.rs\"), include_str!(\"../src/cleanup_plan/replay/supplemental/receiving/tests.rs\"),\n        concat!(include_str!(\"../src/cleanup_plan/replay/structural_control/calls.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs\")),\n        include_str!(\"../src/cleanup_plan/replay/structural_control/calls/custody_tests.rs\"),\n",
+        "old": "        include_str!(\"../src/cleanup_plan/replay/structural_control/blocks.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/structural_control/blocks_before_receipt.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/structural_control/call_receiving.rs\"),\n        concat!(include_str!(\"../src/cleanup_plan/replay/structural_control/calls.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs\")),\n        include_str!(\"../src/cleanup_plan/replay/structural_control/calls/custody_tests.rs\"),\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/project/command_argument_borrow.rs",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/tests/project/command_argument_borrow.rs",
+    "current_sha256": "e7c5566d803226f8cc3ee88f913053fd1c67cd61c4476fc3b4e0477c93c10420",
+    "original_sha256": "3064e22e4c2120e76acb3d88c4ea600d7608dbaadfc193a05ec04563c3b8e135",
+    "edits": [
+      {
+        "new": "    .expect_err(\"a mutable borrowed-str command local must fail closed\");\n    assert!(\n        errors.iter().any(|error| error.code == \"SPX-T264\"\n            && error.message\n                == \"byte-slice alias `needle_text` must be immutable and cannot be reassigned\"),\n        \"{errors:?}\"\n    );\n}\n\n#[test]\nfn retained_hir_still_rejects_a_mutable_command_argument_alias_independently() {\n    use semaprax::hir::{self, ResolvedExprKind, ResolvedStatement};\n    let (example, files) = COMMITTED_COMMAND_PROJECTS[3];\n    let project = fixture(example, files);\n    let mut program = with_authenticated_project(&project.0.join(\"semaprax.toml\"), |snapshot| {\n        snapshot.check()?;\n        Ok(snapshot.entry_program().clone())\n    })\n    .unwrap();\n    hir::validate(&program).unwrap();\n    let function = program\n        .functions\n        .iter_mut()\n        .find(|function| function.id.as_str() == \"spxgrep-lines.run\")\n        .unwrap();\n    let ResolvedExprKind::Block { tail, .. } = &mut function.body.kind else {\n        panic!(\"the checked command retains its block body\");\n    };\n    let ResolvedExprKind::If { then_branch, .. } = &mut tail.kind else {\n        panic!(\"the checked command retains its argument-count condition\");\n    };\n    let ResolvedExprKind::Block { statements, .. } = &mut then_branch.kind else {\n        panic!(\"the argument branch retains its checked bindings\");\n    };\n    let mut changed = false;\n    for statement in statements {\n        let ResolvedStatement::Let {\n            binding, mutable, ..\n        } = statement\n        else {\n            continue;\n        };\n        if binding.name != \"needle_text\" {\n            continue;\n        }\n        assert!(!*mutable);\n        *mutable = true;\n        changed = true;\n    }\n    assert!(\n        changed,\n        \"the original command-argument binding must be changed\"\n    );\n    let error = hir::validate(&program).unwrap_err();\n    assert_eq!(error.code, \"SPX-H006\");\n    assert_eq!(\n        error.message,\n        \"borrowed-str local alias must be immutable and unprojected\"\n    );\n}\n",
+        "old": "    .expect_err(\"a mutable borrowed-str command local must fail closed\");\n    assert!(\n        errors.iter().any(|error| error.code == \"SPX-H006\"\n            && error.message == \"borrowed-str local alias must be immutable and unprojected\"),\n        \"{errors:?}\"\n    );\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/project/signature_owned_values.rs",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/tests/project/signature_owned_values.rs",
+    "current_sha256": "4a113e33e046dff73ca5b64278f128e9ed0db9066835fe1f81d2f7b09c18aa85",
+    "original_sha256": "dc3e5e52dbac50782673b0225d9c9fd90092bd6c87ffaa4889cae0071f12995c",
+    "edits": [
+      {
+        "new": "\n#[test]\nfn internal_record_imports_keep_variant_imports_and_public_owned_parameters_closed() {\n    for (import, target, admitted) in [\n        (\n",
+        "old": "\n#[test]\nfn owned_type_imports_are_admitted_but_owned_argument_function_imports_remain_closed() {\n    for (import, target, admitted) in [\n        (\n"
+      },
+      {
+        "new": "            \"use function @id(\\\"owned.record-select\\\") from owned.core as select_frame;\",\n            \"owned.record-select\",\n            true,\n        ),\n        (\n",
+        "old": "            \"use function @id(\\\"owned.record-select\\\") from owned.core as select_frame;\",\n            \"owned.record-select\",\n            false,\n        ),\n        (\n"
+      },
+      {
+        "new": "        let disk = fixture.bytes();\n        let opened = with_authenticated_project(&fixture.0.join(\"semaprax.toml\"), |snapshot| {\n            if target == \"owned.record-select\" {\n                // Internal nongeneric record calls are an admitted library\n                // route. Selecting that same owning signature as a public v8\n                // API must still fail at the closed public boundary.\n                let positive = snapshot.public_api_descriptor().unwrap();\n                assert_eq!(positive.exports().len(), 1);\n                assert_eq!(positive.exports()[0].stable_id().as_str(), \"owned.public\");\n                let revision = snapshot.retain_revision();\n                let error = semaprax::project::derive_public_api_descriptor(\n                    snapshot.entry_program(),\n                    &[target.to_owned()],\n                    semaprax::project::PublicApiSubject {\n                        project_schema: semaprax::project::PUBLIC_OWNED_DATA_PROJECT_SCHEMA,\n                        project_revision: snapshot.project_revision(),\n                        workspace_revision: snapshot.workspace_revision(),\n                        project_graph_digest: revision.semantic_graph_digest(),\n                    },\n                )\n                .unwrap_err();\n                assert_eq!(error.code, \"SPX-J113\");\n                assert_eq!(\n                    error.message,\n                    \"selected public API export `owned.record-select` has an unsupported parameter\"\n                );\n            }\n            Ok(snapshot.semantic_graph().to_owned())\n        });\n",
+        "old": "        let disk = fixture.bytes();\n        let opened = with_authenticated_project(&fixture.0.join(\"semaprax.toml\"), |snapshot| {\n            Ok(snapshot.semantic_graph().to_owned())\n        });\n"
+      },
+      {
+        "new": "            let graph = opened.unwrap();\n            assert!(graph.contains(&format!(\"\\\"target\\\":\\\"{target}\\\"\")));\n            let kind = if import.starts_with(\"use type \") {\n                \"type_import\"\n            } else {\n                \"function_import\"\n            };\n            assert!(graph.contains(&format!(\"\\\"kind\\\":\\\"{kind}\\\"\")));\n        } else {\n            code(opened, \"SPX-G172\");\n",
+        "old": "            let graph = opened.unwrap();\n            assert!(graph.contains(&format!(\"\\\"target\\\":\\\"{target}\\\"\")));\n            assert!(graph.contains(\"\\\"kind\\\":\\\"type_import\\\"\"));\n        } else {\n            code(opened, \"SPX-G172\");\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+    "current_sha256": "791302195066b0306ead01d0e8e25d579eb2b4dede7ca93901c3c8740e229115",
+    "original_sha256": "5424f231b52547e3ef1e04ea04ced1042b0b5e624f2358205e80bcaad1558fb8",
+    "edits": [
+      {
+        "new": "];\nconst CAPTURED: [&str; 2] = [\n    include_str!(\"../../../docs/evidence/browser-graph-pins-17104e20c/current-hosted-calculator-baseline.json\"),\n    include_str!(\"../../../docs/evidence/browser-graph-pins-17104e20c/current-hosted-calculator-renamed.json\"),\n];\nfn hash(domain: &[u8], bytes: &[u8]) -> String {\n",
+        "old": "];\nconst CAPTURED: [&str; 2] = [\n    include_str!(\"../../../docs/evidence/browser-graph-pins-268cb0523/current-hosted-calculator-baseline.json\"),\n    include_str!(\"../../../docs/evidence/browser-graph-pins-268cb0523/current-hosted-calculator-renamed.json\"),\n];\nfn hash(domain: &[u8], bytes: &[u8]) -> String {\n"
+      },
+      {
+        "new": "        parsed[\"graph_digest\"].as_str().unwrap()\n    );\n    assert_eq!(parsed[\"budget\"][\"used_builder_bytes\"], 3_930_276);\n    let historical = HISTORICAL\n        .iter()\n",
+        "old": "        parsed[\"graph_digest\"].as_str().unwrap()\n    );\n    assert_eq!(parsed[\"budget\"][\"used_builder_bytes\"], 4_393_980);\n    let historical = HISTORICAL\n        .iter()\n"
+      },
+      {
+        "new": "        previous[\"graph_digest\"].as_str().unwrap()\n    );\n    let field = \"\\\"used_builder_bytes\\\":3930276\";\n    assert_eq!(graph.matches(field).count(), 1);\n    let restored = graph.replacen(field, \"\\\"used_builder_bytes\\\":1214409\", 1);\n",
+        "old": "        previous[\"graph_digest\"].as_str().unwrap()\n    );\n    let field = \"\\\"used_builder_bytes\\\":4393980\";\n    assert_eq!(graph.matches(field).count(), 1);\n    let restored = graph.replacen(field, \"\\\"used_builder_bytes\\\":1214409\", 1);\n"
+      },
+      {
+        "new": "        assert_eq!(digest(graph), expected);\n        assert!(runner.contains(&graph_digest(graph)));\n    }\n}\n#[test]\nfn current_hosted_wires_reproduce_every_prior_byte_after_only_bill_and_digest_restoration() {\n    let previous = [\n        include_str!(\"../../../docs/evidence/browser-graph-pins-268cb0523/current-hosted-calculator-baseline.json\"),\n        include_str!(\"../../../docs/evidence/browser-graph-pins-268cb0523/current-hosted-calculator-renamed.json\"),\n    ];\n    for (captured, previous) in CAPTURED.into_iter().zip(previous) {\n        let graph = captured.strip_suffix('\\n').unwrap();\n        let previous = previous.strip_suffix('\\n').unwrap();\n        let parsed: serde_json::Value = serde_json::from_str(graph).unwrap();\n        let prior: serde_json::Value = serde_json::from_str(previous).unwrap();\n        assert_eq!(graph_digest(graph), parsed[\"graph_digest\"]);\n        assert_eq!(graph_digest(previous), prior[\"graph_digest\"]);\n        assert_eq!(parsed[\"budget\"][\"used_builder_bytes\"], 3_930_276);\n        assert_eq!(prior[\"budget\"][\"used_builder_bytes\"], 4_393_980);\n        let field = \"\\\"used_builder_bytes\\\":3930276\";\n        assert_eq!(graph.matches(field).count(), 1);\n        let restored = graph.replacen(field, \"\\\"used_builder_bytes\\\":4393980\", 1);\n        let field = format!(\"\\\"graph_digest\\\":{}\", parsed[\"graph_digest\"]);\n        assert_eq!(restored.matches(&field).count(), 1);\n        let restored = restored.replacen(\n            &field,\n            &format!(\"\\\"graph_digest\\\":{}\", prior[\"graph_digest\"]),\n            1,\n        );\n        assert_eq!(restored, previous, \"complete prior hosted graph bytes\");\n    }\n}\n",
+        "old": "        assert_eq!(digest(graph), expected);\n        assert!(runner.contains(&graph_digest(graph)));\n    }\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_graph/source_inventory.rs",
+    "checkpoint_revision": "6444d6d950bc01be03720c33ad6cb175e62e8cc5",
+    "archive": "docs/evidence/main-f4a448-integration-20261015/before/6444/tests/workspace/semantic_graph/source_inventory.rs",
+    "current_sha256": "8b898024215c17b4dab19fd8cd097b71ab2ef27a1b299899a8c9efe98074b9c5",
+    "original_sha256": "bd6d42a5a63980febcb9f6b6959f731d10ba4e14f57fd5b8a4cd6bd39ba0c6b1",
+    "edits": [
+      {
+        "new": "        include_str!(\"../../src/cleanup_plan/replay/structural_control/blocks.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/structural_control/blocks_before_receipt.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/structural_control/call_receiving.rs\"), include_str!(\"../../src/cleanup_plan/replay/supplemental/receiving.rs\"), include_str!(\"../../src/cleanup_plan/replay/supplemental/receiving/tests.rs\"),\n        concat!(include_str!(\"../../src/cleanup_plan/replay/structural_control/calls.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs\")),\n        include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/custody_tests.rs\"),\n",
+        "old": "        include_str!(\"../../src/cleanup_plan/replay/structural_control/blocks.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/structural_control/blocks_before_receipt.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/structural_control/call_receiving.rs\"),\n        concat!(include_str!(\"../../src/cleanup_plan/replay/structural_control/calls.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs\")),\n        include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/custody_tests.rs\"),\n"
+      }
+    ]
+  }
+]

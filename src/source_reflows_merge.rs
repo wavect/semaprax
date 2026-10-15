@@ -936,6 +936,15 @@ pub(crate) fn branch_closed831_input(source: &str, current: &str) -> String {
     final_batch_input("831", source, current)
 }
 fn final_batch_input(branch: &str, source: &str, current: &str) -> String {
+    let before_main = project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/main-f4a448-integration-20261015/current-to-6444.json"
+        )),
+        source,
+        current,
+    );
+    let current = before_main.as_str();
     let prior_docs = project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),

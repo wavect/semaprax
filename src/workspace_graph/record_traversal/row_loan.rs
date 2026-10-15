@@ -57,6 +57,19 @@ pub(super) fn collect<'a>(
         }
         let (context, target) = callee(program, programs, name).ok_or_else(refusal)?;
         let parameter = target.params.get(position).ok_or_else(refusal)?;
+        // This is an authored source error, before any retained descriptor is
+        // inspected. A current provider's owning parameter cannot receive a
+        // borrowed traversal row, even when the consumer was checked before
+        // that provider signature changed. Retained-HIR mismatches below keep
+        // their independent G173 refusal.
+        if parameter.mode == crate::ast::ParamMode::Own {
+            return Err(vec![Diagnostic::error(
+                "SPX-T284",
+                "record traversal row cannot escape or materialize aggregate storage; select a field",
+                argument.span,
+            )
+            .at_path(&program.path)]);
+        }
         let Type::Named {
             name: record,
             arguments,

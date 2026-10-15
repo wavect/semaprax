@@ -343,7 +343,7 @@ fn strings_and_owned_records_and_variants_reorder_each_local_call_once_and_repla
 }
 
 #[test]
-fn owned_type_imports_are_admitted_but_owned_argument_function_imports_remain_closed() {
+fn internal_record_imports_keep_variant_imports_and_public_owned_parameters_closed() {
     for (import, target, admitted) in [
         (
             "use type @id(\"owned.packet\") from owned.core as Frame;",
@@ -358,7 +358,7 @@ fn owned_type_imports_are_admitted_but_owned_argument_function_imports_remain_cl
         (
             "use function @id(\"owned.record-select\") from owned.core as select_frame;",
             "owned.record-select",
-            false,
+            true,
         ),
         (
             "use function @id(\"owned.variant-select\") from owned.core as select_signal;",
@@ -379,12 +379,42 @@ fn owned_type_imports_are_admitted_but_owned_argument_function_imports_remain_cl
         .unwrap();
         let disk = fixture.bytes();
         let opened = with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+            if target == "owned.record-select" {
+                // Internal nongeneric record calls are an admitted library
+                // route. Selecting that same owning signature as a public v8
+                // API must still fail at the closed public boundary.
+                let positive = snapshot.public_api_descriptor().unwrap();
+                assert_eq!(positive.exports().len(), 1);
+                assert_eq!(positive.exports()[0].stable_id().as_str(), "owned.public");
+                let revision = snapshot.retain_revision();
+                let error = semaprax::project::derive_public_api_descriptor(
+                    snapshot.entry_program(),
+                    &[target.to_owned()],
+                    semaprax::project::PublicApiSubject {
+                        project_schema: semaprax::project::PUBLIC_OWNED_DATA_PROJECT_SCHEMA,
+                        project_revision: snapshot.project_revision(),
+                        workspace_revision: snapshot.workspace_revision(),
+                        project_graph_digest: revision.semantic_graph_digest(),
+                    },
+                )
+                .unwrap_err();
+                assert_eq!(error.code, "SPX-J113");
+                assert_eq!(
+                    error.message,
+                    "selected public API export `owned.record-select` has an unsupported parameter"
+                );
+            }
             Ok(snapshot.semantic_graph().to_owned())
         });
         if admitted {
             let graph = opened.unwrap();
             assert!(graph.contains(&format!("\"target\":\"{target}\"")));
-            assert!(graph.contains("\"kind\":\"type_import\""));
+            let kind = if import.starts_with("use type ") {
+                "type_import"
+            } else {
+                "function_import"
+            };
+            assert!(graph.contains(&format!("\"kind\":\"{kind}\"")));
         } else {
             code(opened, "SPX-G172");
         }

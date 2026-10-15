@@ -110,8 +110,61 @@ fn a_mutable_command_argument_local_still_fails_closed_on_the_project_route() {
     })
     .expect_err("a mutable borrowed-str command local must fail closed");
     assert!(
-        errors.iter().any(|error| error.code == "SPX-H006"
-            && error.message == "borrowed-str local alias must be immutable and unprojected"),
+        errors.iter().any(|error| error.code == "SPX-T264"
+            && error.message
+                == "byte-slice alias `needle_text` must be immutable and cannot be reassigned"),
         "{errors:?}"
+    );
+}
+
+#[test]
+fn retained_hir_still_rejects_a_mutable_command_argument_alias_independently() {
+    use semaprax::hir::{self, ResolvedExprKind, ResolvedStatement};
+    let (example, files) = COMMITTED_COMMAND_PROJECTS[3];
+    let project = fixture(example, files);
+    let mut program = with_authenticated_project(&project.0.join("semaprax.toml"), |snapshot| {
+        snapshot.check()?;
+        Ok(snapshot.entry_program().clone())
+    })
+    .unwrap();
+    hir::validate(&program).unwrap();
+    let function = program
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "spxgrep-lines.run")
+        .unwrap();
+    let ResolvedExprKind::Block { tail, .. } = &mut function.body.kind else {
+        panic!("the checked command retains its block body");
+    };
+    let ResolvedExprKind::If { then_branch, .. } = &mut tail.kind else {
+        panic!("the checked command retains its argument-count condition");
+    };
+    let ResolvedExprKind::Block { statements, .. } = &mut then_branch.kind else {
+        panic!("the argument branch retains its checked bindings");
+    };
+    let mut changed = false;
+    for statement in statements {
+        let ResolvedStatement::Let {
+            binding, mutable, ..
+        } = statement
+        else {
+            continue;
+        };
+        if binding.name != "needle_text" {
+            continue;
+        }
+        assert!(!*mutable);
+        *mutable = true;
+        changed = true;
+    }
+    assert!(
+        changed,
+        "the original command-argument binding must be changed"
+    );
+    let error = hir::validate(&program).unwrap_err();
+    assert_eq!(error.code, "SPX-H006");
+    assert_eq!(
+        error.message,
+        "borrowed-str local alias must be immutable and unprojected"
     );
 }

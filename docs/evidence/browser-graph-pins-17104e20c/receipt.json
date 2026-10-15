@@ -1,0 +1,27 @@
+{
+  "source_head": "17104e20c16db1d4ac6845266b78908f390b9896",
+  "run": 38793590554,
+  "job": 116624982882,
+  "fixtures": [
+    {
+      "fixture": "calculator-baseline.json",
+      "current_digest": "sha256:dcd4f20c52e9b8cc52ac7695f4ef7f0668a4bb5d7c735434ede9e0c0361ee363",
+      "prior_digest": "sha256:91a02f54eb2652f8cb43a46f58515393e3d30d1cfa706bde4c5f6569b5ada8ac",
+      "current_builder_bytes": 3930276,
+      "prior_builder_bytes": 4393980,
+      "bytes_saved": 463704,
+      "current_wire_sha256": "42dfc80705a1bb156ed4739aba385266046ad555f9eee4e29271f4712222a6a1",
+      "complete_prior_wire_reproduced": true
+    },
+    {
+      "fixture": "calculator-renamed.json",
+      "current_digest": "sha256:322b05af9bab447a12c7f9f2cda2ef3f7b2959ced4b68af04a716aa54b127122",
+      "prior_digest": "sha256:a03e245fcf85a4d3e63aa266ed1f3a30e5ab809fe196dcd817a63c1c7201cc55",
+      "current_builder_bytes": 3930276,
+      "prior_builder_bytes": 4393980,
+      "bytes_saved": 463704,
+      "current_wire_sha256": "44c4c500ad37dc8eef82e4d90a5272c971824980c3429bf69e18607d60d77f6d",
+      "complete_prior_wire_reproduced": true
+    }
+  ]
+}

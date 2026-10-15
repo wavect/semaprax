@@ -1,6 +1,7 @@
 //! Same-invocation physical construction helpers; no forecast credit.
 use super::super::{Diagnostic, ReplayBudget, ResolvedFunction};
 
+#[track_caller]
 pub(in crate::cleanup_plan::replay) fn array<T>(
     function: &ResolvedFunction,
     count: usize,

@@ -1,0 +1,24 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/path_join/boxed_states.rs",
+    "current_sha256": "34fd1fbfa2ba214f1b9f5ffaa05045effb5d790cc438efe6357d1a9d278569db",
+    "original_sha256": "b729ca58c23f784f3d62a95bdb8392b4f933fb374ba9fcad59eb1755730fa282",
+    "edits": [
+      {
+        "new": "    marker: PhantomData<fn() -> T>,\n}\nimpl<T: Ord> Insertions<T> {\n    // Aggregate initializer, named mutable result and caller receiving owner;\n    // the Result<Self> wrapper remains separate, plus constructor/payment Results,\n    // inert ledger return, refusal None/Some/take and terminal Diagnostic moves.\n    pub(super) fn controls() -> usize {\n        3 * size_of::<Self>()\n            + size_of::<Result<Self, Diagnostic>>()\n            + size_of::<Result<(), Diagnostic>>()\n            + size_of::<ClassifierLedger>()\n",
+        "old": "    marker: PhantomData<fn() -> T>,\n}\nimpl<T: Ord> Insertions<T> {\n    // One real outer owner initializer and receiver, constructor/payment Results,\n    // inert ledger return, refusal None/Some/take and terminal Diagnostic moves.\n    pub(super) fn controls() -> usize {\n        2 * size_of::<Self>()\n            + size_of::<Result<Self, Diagnostic>>()\n            + size_of::<Result<(), Diagnostic>>()\n            + size_of::<ClassifierLedger>()\n"
+      }
+    ]
+  },
+  {
+    "source": "src/source_reflows_merge.rs",
+    "current_sha256": "6806a52467889cdeb8912f20406151eaf88448d0f1bf80aaabe52bb4d8c3dc2a",
+    "original_sha256": "479463d560787d17adeddc61a7449171ab55d6cbd3daf5141c1ba84a81c38aa7",
+    "edits": [
+      {
+        "new": "#[path = \"source_reflows_merge/runtime_json.rs\"]\nmod runtime_json;\n// The final compositor authenticates its raw view at this independent owner front.\npub(crate) fn boxed849_input(source: &str, current: &str) -> String {\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/boxed-state-local-owner-849-20261016/current-to-35c.json\"\n        )),\n        source,\n        current,\n    )\n}\npub(crate) fn boxed849_previous(source: &str, current: &str) -> String {\n    project(\n",
+        "old": "#[path = \"source_reflows_merge/runtime_json.rs\"]\nmod runtime_json;\n// The final compositor authenticates its raw view at this independent owner front.\npub(crate) fn boxed849_input(_source: &str, current: &str) -> String {\n    current.to_owned()\n}\npub(crate) fn boxed849_previous(source: &str, current: &str) -> String {\n    project(\n"
+      }
+    ]
+  }
+]

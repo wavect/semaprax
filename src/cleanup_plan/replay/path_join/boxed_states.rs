@@ -16,10 +16,11 @@ pub(super) struct Insertions<T> {
     marker: PhantomData<fn() -> T>,
 }
 impl<T: Ord> Insertions<T> {
-    // One real outer owner initializer and receiver, constructor/payment Results,
+    // Aggregate initializer, named mutable result and caller receiving owner;
+    // the Result<Self> wrapper remains separate, plus constructor/payment Results,
     // inert ledger return, refusal None/Some/take and terminal Diagnostic moves.
     pub(super) fn controls() -> usize {
-        2 * size_of::<Self>()
+        3 * size_of::<Self>()
             + size_of::<Result<Self, Diagnostic>>()
             + size_of::<Result<(), Diagnostic>>()
             + size_of::<ClassifierLedger>()

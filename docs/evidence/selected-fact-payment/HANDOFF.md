@@ -1,5 +1,9 @@
 # Selected Tree fact payment layout repair
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only, based on d32d0c575; no Cargo, build, tests or observer changes.
 
 Frozen bf29 log119 panics at line97 in the Err arm `assert!(!success)`. Only the full row has success=true. The full case refuses; the receipt does not show full-minus-one success. Its SHA was verified against the frozen inventory.

@@ -1,5 +1,9 @@
 # Bounded review disposition
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 One actual tools-disabled Sonnet dispatch reviewed 9,847 exact source bytes. It completed in 82.1386 seconds, exit 0, peak process-group RSS 322,879,488 bytes; provider list cost $0.118096. No confirmed blocker was found in the pasted transitions. This is source-only review, not compiler, runtime, physical funding, or full owner qualification evidence. The complete raw verdict and process receipt are retained without rewriting.
 
 Reviewed production commit: 5d9e6b12551ffd94a99db59f432a7ac4e57b6d26.

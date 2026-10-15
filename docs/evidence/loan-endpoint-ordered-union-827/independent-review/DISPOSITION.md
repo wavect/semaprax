@@ -1,5 +1,9 @@
 # Bounded ordered-union source review disposition
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 One tool-disabled review completed in 40.686135 seconds, exit 0, peak process
 RSS 319,963,136 bytes (limit 805,306,368), no resource refusal. Payload 9,990
 bytes; raw verdict/result/usage and process receipt retained unchanged. Provider

@@ -1,5 +1,9 @@
 # Actual current forecast pin update
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Actual producer source: `a184d4406f241aa11df5c297102609b4c35ec1b3`.
 
 ROOT's existing frozen-source wrapper completed the bounded producer capture:

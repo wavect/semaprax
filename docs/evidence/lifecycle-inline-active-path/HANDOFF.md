@@ -1,5 +1,7 @@
 # Paid inline lifecycle active path — independent next batch
 
+Audience: compiler contributors, tool authors, and reviewers.
+
 Base: `699362b83f4e940462b59b140acd27f5563cc276`.
 Status: source-only; no Cargo, build, test execution or runtime qualification.
 

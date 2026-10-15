@@ -1,3 +1,9 @@
+# claude review findings (nested-shape-scratch)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only review of the pasted code. Nothing was compiled or run. I found no hard type or lifetime blocker, and typed derivation is not skipped. I did find two control gaps and a few items I can't verify from the paste.
 
 ## Confirmed from the source

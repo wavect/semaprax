@@ -1,3 +1,9 @@
+# ASSESSMENT (review)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The single tool-disabled source review completed in106.77616333399783 seconds on returned modelclaude-sonnet-5-5. Provider list costUSD0.24844; actual billing remains unknown. No confirmed production blocker was reported. This is source review, not test execution or approval of runtime qualification.
 
 The review scope did not include the preexisting canonical_loans/ownership_tests guard that reconstructs the complete owned_before preparation body against its fixed archive. That binding already exists. Inner append/planner helpers are intentionally shared for this outer stage-only comparison; their separate complete old receivers and controls remain required. Reserve/sticky semantics and Metrics traits omitted from the payload are unchanged source, already inspected locally. All Before-layout model fields use underscore names; the tests compare size/alignment and Option widths, not stable Rust field offsets or ABI guarantees.

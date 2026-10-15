@@ -1,5 +1,9 @@
 # Actual 1a0b five-control correction
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only corrections of five actual failing controls; no production implementation, quota, cap, forecast or authority-policy change. Complete logs and fixed-source originals are retained. The enclosing runtime round was still live at capture; no claim is made about its final results or the corrected bodies.
 
 The every-acquisition constructor test retains its complete original inadmitted fixture as an exact ordered three-diagnostic negative, including codes, severity, messages, paths, spans and help. Its physical full-old/current constructor route instead uses a source-verified Option<i64> record field and an in-scope generic variant parameter. Every exact acquisition stop, zero retry, full old value/wire, balance and no post-refusal allocation assertions remain.

@@ -1,5 +1,9 @@
 # OPT818 — paid typed-shape scratch reuse
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Private source batch based on `47cbc2f7487485dd23ac2ecfcdc1afea2a86f3d3`. Graft was attempted first but the private checkout has no usable indexed result and cache refresh was denied; exact owning source and required RFC0001/RFC0003, Architecture, completion, quality/development and workspace semantic graph contracts were then read.
 
 The complete ordinary inventory receiver now owns one `PaidShapeReceiver`, which holds the exclusive original `&mut ReplayBudget` and only the original frame/result Vec backing. Every slot still executes the complete paid typed derivation, including the original root clone, substitution, temporary metadata, output shape construction, typed checks and unchanged diagnostic selection order. Per-root logical Budget resets; next_flag remains cumulative. The original fresh standalone paid entry remains used by supplemental receiving. No summary, cached verdict, limit, refund, alternate payer or opaque pointer authority was added.

@@ -1,5 +1,9 @@
 # OPT795 canonical join no-op COW reduction
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Current production block/branch/lazy/assignment/loop scope checkpoints are already O(1) Rc roots. The remaining avoidable complete payload clone addressed here is post-normalization conditional/branch mutation: equal nonempty projection states correctly run the canonical builders but previously always called get_mut, cloning shared path nodes and the complete ValidationBinding/type even when the exact computed ownership outputs equal the existing target.
 
 This bounded change keeps the original join_scratch charge, loan union/count, moved-place builder, full prefix candidate builder and operation order. Only after those complete original outputs exist does it compare the actual written fields. Conditional checks availability/moved/partial equality plus exact no-op loan extend via subset; branches checks all four complete output fields. Type, contract_local, mutable and ownership are never overwritten by these joins. Different immutable fields cannot create a false-positive no-op because they are not assignments this operation performs. Nonempty equal inputs requiring prefix normalization still commit the changed output.

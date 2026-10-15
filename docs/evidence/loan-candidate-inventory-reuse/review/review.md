@@ -1,3 +1,9 @@
+# review (review)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 I reviewed only the pasted text and ran nothing. The paste has no line numbers, so I cite by function or statement. The 64/60 normalizer overrun can't be attributed to any inner operation from this source, and I don't try to.
 
 ## Blocker-level, concrete from the source

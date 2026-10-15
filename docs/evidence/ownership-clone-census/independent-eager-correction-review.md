@@ -1,3 +1,9 @@
+# independent eager correction review (ownership-clone-census)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 **Verdict:** one definite accounting regression, plus two compile-risk items I couldn't rule out from the pasted text. I did not see anything wrong with the census cursor accounting itself.
 
 ## Definite error: `Payer::new()` charges on the fast path

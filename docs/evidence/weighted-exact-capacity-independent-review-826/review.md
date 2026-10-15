@@ -1,5 +1,9 @@
 # Review of OPT826 `97480a13`: weighted successor capacity
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only review. Nothing was executed. I found **no blocker** in production.
 
 ## Production

@@ -1,5 +1,9 @@
 # OPT799 conditional and match continuation
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Issue: https://github.com/wavect/semaprax/issues/799
 
 This separately cherry-pickable continuation follows operator15844 and fixture95bce. A real admission bit travels through existing conditional frames; both branches and all ownership joins still run. No result is published from an absent/refused condition or incompatible branch join.

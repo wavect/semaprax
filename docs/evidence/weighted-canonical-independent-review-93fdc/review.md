@@ -1,5 +1,9 @@
 # Review of `canonical_shared.rs` at 93fdc103 (source only, nothing executed)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Line numbers are approximate, counted from the pasted excerpts.
 
 ## Blockers

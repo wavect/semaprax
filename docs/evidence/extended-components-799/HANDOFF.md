@@ -1,5 +1,9 @@
 # OPT799 exact extended declaration components
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only continuation of501b77e3588696c4e6be7f5f6e9f7263600160ed. No Cargo, tests, Clippy, benchmarks or app-fit measurements ran. The12 authored selectors in pending-selectors.json are unexecuted.
 
 Generic source specialization now retains its already-resolved immutable original Function. Ordinary source signatures and this source specialization expose that same lifetime-bound function; synthetic builtin specialization has no declaration owner. The existing actual owned-parameter/return capacity accounting covers both variants, with no allowance or quota change. The exact full shared scope source projection admits only the new variant, accessor, capacity arm and matching getter arms.

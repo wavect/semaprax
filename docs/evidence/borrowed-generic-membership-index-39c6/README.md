@@ -1,5 +1,9 @@
 # Bounded-work borrowed generic membership
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only follow-up to 4bc83; compilation and runtime are pending. Generic record parameter count has no dedicated parser/admission limit: parser/types.rs171–197 accepts the complete list, declaration/identity.rs64–79 checks identifiers/duplicates, and the one-or-two bound applies to generic functions. Workspace declaration count includes record fields but excludes type parameters; total canonical source bytes is the outer bound. Repeated linear membership therefore had a meaningful parameter-count × field-count worst case. Scratch removal is not universally faster.
 
 One sorted borrowed ordinal index now serves every declaration walk. Up to sixteen indices stay inline. Larger indices reserve the exact containing control and usize backing before fallible try_reserve_exact; actual capacity must equal the request. Any discrepancy is terminal, never admitted by post-allocation funding. Input strings and parameter declarations remain borrowed; the private ordinal vector cannot escape or be forged. Duplicate/empty/Unicode membership remains exact string equality and creates no declaration/source authority. Sorting plus binary lookup restores O(P log P + F log P) comparison work without changing a source/profile cap. The original direct ordered field/method/variant visitors remain.

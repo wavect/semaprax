@@ -1,5 +1,9 @@
 # Review: `author:find` card search
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 I found one likely concrete defect, one smaller matching defect, and several conditional items. I read the source only and ran nothing.
 
 ## Likely defect

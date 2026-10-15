@@ -1,3 +1,9 @@
+# claude author response (paid-receiving-directories)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 I haven't compiled or run any of this, and I haven't seen several helpers, so I flag where I inferred rather than read them.
 
 ## New file: `directory.rs`

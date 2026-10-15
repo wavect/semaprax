@@ -1,5 +1,9 @@
 # Explicit unfunded Legacy nominal sharing (#827)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Basis: 07b76aa3c0d2099f804fb8c09be3664b63c0fbf3. Source-only; no Cargo,
 compiler, Clippy, Rust tests or application execution in this worktree.
 

@@ -1,5 +1,9 @@
 # OPT781 public report caller fixtures
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Base5a066a828395d0c49593743571a14bf3f8ee000b; source-only, no Cargo/build/test/root edits. Actual frozen failures were G181 unsupported base source Graph and G188 invalid structural base proposal before the paid reporting routes were reached.
 
 Both evidence APIs intentionally admit only the closed v10..v14 base source schemas. The original fixtures perform a scalar projected read from a record parameter. Positive reporting fixtures now express the same result through an irrefutable value-mode Copy record pattern. Record/field IDs, names, types, permits/effects, imports, managed paths and source-ordered change operations remain. Change's renamed Metric candidate is adapted as well as its Point base; the ordinary candidate generator still supplies actual base schema/revision/digest and canonical replacement JSON. Structural keeps all create/delete/move/replace operations and its original proposal path. No Graph tag is substituted, protocol version admitted, checker bypassed, budget increased or production API changed. Actual compiler snapshot schema assertions must succeed within the existing grammar; this source packet does not claim selection or runtime pass.

@@ -1,5 +1,9 @@
 # Paid endpoint ordered union, source packet
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Basis: be8ff06ff1e3319c63a3e00f82f7085dd7b83ce9. Source-only; no Cargo,
 Rust execution, allocator measurement or application-fit claim in this packet.
 

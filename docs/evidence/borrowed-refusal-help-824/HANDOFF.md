@@ -1,5 +1,9 @@
 # Borrowed refusal help — source-only successor
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The selected TLS dominant/pending/sequential path is formatted through scoped immutable Ref guards instead of cloning owned path Strings. Pending remains first, sequential second, dominant fallback last. Every complete original message literal and branch remains. The guards never escape. Every formatting argument is a built-in String/str reference, usize, or bool branch selector; format_within/CappedString only touches the bounded_output budget/stage counters, not these diagnostic TLS cells, so this path has no custom Display callback or same-cell mutation/reentrancy.
 
 Complete original formatter is independently compiled in borrowed_help_tests, restored byte-for-byte against its archive. The complete diagnostics.rs inverse retains all unrelated source, with exact counted hooks and fixed original SHA. Eight branch combinations include simultaneous pending/sequential evidence, live/precharge, resolving/retained and UTF8/NUL paths. New controls compare all Diagnostic fields, full original/current allocated bytes and complete Drop, plus0/sticky exact first refusal (no clone acquisition).

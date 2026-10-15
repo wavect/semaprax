@@ -1,5 +1,9 @@
 # Reuse actual canonical loan append probe backing
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The current caller previously acquired three fresh probe vectors for each independently rebuilt function plan. The new append receiver retains one local LoanId-to-origin probe, one liveness probe and one identity probe in the exact receiving Storage. Each replacement prepays its full actual requested layout before acquisition. Scratch uses exact needed replacement capacity; the complete persistent directory doubling/growth receiver remains unchanged. Entries are cleared after both success and refusal. Draining probe entries into the existing immutable directories keeps their backing through the receiving Storage Drop. No debit is refunded and no new allowance is created.
 
 All independently rebuilt plans still precede append. Complete origin/unknown-loan/duplicate/identity checks, source occurrence order, last local duplicate occurrence semantics, moved Place payloads, persistent sorted lookup directories, complete Deferred comparisons, constructor preflight and exact-subject validation remain. A zero-byte payer authentication occurs before detaching retained scratch and on every capacity reuse. The scratch field contains no admission, attached-plan, or serialized authority. Production prepare/validate always use the current append.

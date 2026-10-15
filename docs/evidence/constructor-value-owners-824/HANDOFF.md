@@ -1,5 +1,9 @@
 # Independent constructor value owners — source-only
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The Vec/Box source classifiers compare exact borrowed type trees and parameter modes instead of allocating temporary generic signatures. Every original authentication, signature, body and operation gate remains. Complete original classifiers are independently compiled in wrapper original children, including their old allocations.
 
 Record/class and first-variant default field Vec growth is lazy: each full field is constructed before acquiring its output slot, preserving partial-field error order. Actual requested Layout backing is reserved before strict-capacity allocation; the modeled Vec carrier is recorded separately. Sticky zero-byte checks remain. No forecasts, limits, credits or quota formulas changed.

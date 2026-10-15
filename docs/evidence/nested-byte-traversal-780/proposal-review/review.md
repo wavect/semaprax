@@ -1,5 +1,9 @@
 # Review of the OPT780 proposal (text only, nothing executed)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The pasted text has no line numbers, so I cite section headings. I could not check any claim about the existing code against source.
 
 ## Blockers (the spec must resolve these before code)

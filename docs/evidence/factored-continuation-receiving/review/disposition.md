@@ -1,5 +1,9 @@
 # Source-backed disposition, qualification pending
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 One tools-disabled review of the distinct receiving seam completed in72.098s,
 exit0, peak326123520 bytes. Raw verdict, exact8426-byte packet, source hashes and
 provider usage remain unmodified. This record preserves its conditional objections;

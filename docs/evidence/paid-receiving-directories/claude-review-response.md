@@ -1,3 +1,9 @@
+# claude review response (paid-receiving-directories)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only review. I couldn't see `receiving_before.rs`, `ReplayBudget`, `Lookup`, or the surrounding types, so anything depending on them is listed as an unknown API. I found no definite compile error, but the items in section 1 would each break the build if the assumption fails.
 
 ## 1. Type, lifetime and Clippy

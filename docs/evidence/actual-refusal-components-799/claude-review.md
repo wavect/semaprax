@@ -1,3 +1,9 @@
+# claude review (actual-refusal-components-799)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 **No concrete blocker found in the supplied source.** The items below could not be settled from the excerpts alone. I did not compile or run anything.
 
 ## (1) Authentication

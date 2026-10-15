@@ -1,5 +1,9 @@
 # Post-814 paid main-shape frontier reuse (source only)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The current collector previously created a separately allocated main-shape frontier for every storage root. The new Builder retains only that borrowed-frame backing across roots of one invocation. Every main shape, generic substitution, flag classifier, field/case visit, root profile and first semantic failure remains at its original body position. Each root keeps the original Vec header/work authentication. Builder pays its complete larger actual size and construction/eventual retained release work before initialization; actual growth uses the same existing cumulative ReplayBudget. No admission cache, new cap, credit, refund or payer exists.
 
 The local paid header swaps with the retained frontier after authentication. Every Result clears borrowed frames and returns capacity before propagation. A panic drops the lent paid buffer normally, leaving the Builder's placeholder empty. Generic's owned Cow frontier remains unchanged. Source references are explicitly bound to the immutable program/function receiving lifetime.

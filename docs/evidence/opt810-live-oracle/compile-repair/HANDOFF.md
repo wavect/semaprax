@@ -1,5 +1,9 @@
 # OPT810 actual compilation repair
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only response to the actual frozen d8df12 unit build errors. No Cargo/build/test execution or frozen root edits. This commit follows the separate closure controls commit; originals and account semantics remain intact.
 
 - Cold owning module registration now explicitly points to its existing `cold_source_tests/oracle_owner_before.rs` child. The complete original child body is unchanged.

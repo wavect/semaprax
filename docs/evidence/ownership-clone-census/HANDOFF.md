@@ -1,5 +1,9 @@
 # Ownership clone census accounting correction
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only base9285; no Cargo/build/tests/observer/caps edits. No heap18 attribution or app-fit claim.
 
 The new ownership payer entered the real ResolvedType ClonePayload census without reserving its514 Option<(&ResolvedType,usize)> inline cursor. Replay allocation.rs200 explicitly requires paying that exact cursor before preflight initialization. This is inline accounting; census allocates no heap and shared IDs clone with no new backing.

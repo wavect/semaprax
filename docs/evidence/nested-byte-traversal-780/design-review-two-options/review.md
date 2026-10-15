@@ -1,3 +1,9 @@
+# review (design-review-two-options)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 **Review of pasted snippets only. Nothing was executed, and none of this is source or runtime approval. The snippets have no line numbers, so I cite function and snippet names.**
 
 ## Verdict

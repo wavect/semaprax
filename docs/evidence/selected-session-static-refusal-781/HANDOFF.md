@@ -1,5 +1,9 @@
 # Selected-local session refusal successor (#781)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Basis: a33c16996b4f095ffa2cf631bc39db4589e28302. Source-only; no Cargo,
 compiler, runtime or allocation control has executed for this packet.
 

@@ -1,5 +1,9 @@
 # Borrowed permit membership and FunctionScope isolation — source only
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Frozen74d whole owner reports app.main allocated1584, paid1576, live0. This is an actual eight-byte deficit, not proof of an eight-byte identity clone. The admitted iterative fixture has an empty scalar block returning zero, no parameters/effects/contracts/yields, and module permit host.echo.
 
 Concrete source cause fixed: Lookup's standalone Legacy permit receiver collected the entire module permit list into a fresh unreserved BTreeSet at each function validation. Current function validation now calls permits_borrowed, which borrows the original &[String] and uses full exact byte equality. Borrowed-directory membership remains its original binary search. Function effects, unsafe checks, body validations, and first diagnostic order remain in their original positions. No storage, cap, debit, refund, credit, or observer changes. This removes a genuine allocation; its attribution to the measured deficit and any application benefit remain unmeasured.

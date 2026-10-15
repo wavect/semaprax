@@ -1,5 +1,9 @@
 # Residual constructor acquisition audit: List/Iter prelude structural checks
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 This is from the pasted source only, with no tools, edits or tests run. Items marked **unseen** depend on code that wasn't pasted.
 
 ## Findings

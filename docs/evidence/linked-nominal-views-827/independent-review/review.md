@@ -1,5 +1,9 @@
 # Review of the storage-only linker diff
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Nothing was executed. Findings come only from the pasted diff and helper snippets.
 
 ## Blockers (contingent on code not shown)

@@ -1,5 +1,9 @@
 # HIR validation operation attribution
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 This source-only diagnostic chunk extends the existing allocation-free, test-only `bounded_output::stage_debits` observer. Fixed enum tags surround actual HIR constructor boundaries: function directories, canonical loan preparation, validator construction/core validation, text runtime/containment/substitution, ownership checkpoint payment, lifecycle payment and independent function-value/attached-identity/cleanup receivers. The original first refusal records its operation once. Tags cannot create a payer, change work/byte limits, authorize a cache, select a diagnostic or overwrite a refusal.
 
 `Budget`, `ReservationRefusal`, ordinary diagnostic text and the complete existing executable-profile lookup remain unchanged. Operation guards retain an already-owned budget Rc, acquire no backing, authenticate the exact observed budget and restore on success/refusal/unwind. Foreign nested budgets cannot enter the parent observation; their ordinary settlement remains visible. The existing max-consumed-attempt receipt selection is unchanged.

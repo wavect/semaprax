@@ -1,5 +1,9 @@
 # Review of the redundant `seen` set removal (source-only, nothing executed)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 ## Blockers (conditional on code I can't see)
 
 1. **`Set` and `set_insert` may become dead code in non-test builds.**

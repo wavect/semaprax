@@ -1,3 +1,9 @@
+# review (independent-review)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 **Scope:** source-only review of the pasted code. Nothing was executed, and I did not verify the unseen `undo`, `pays_builder`, `reserve_*` or `oracle` code. I found no definite compile or semantic blocker in the pasted lines. The items below are insufficient controls and uncertainties.
 
 ## Likely insufficient controls

@@ -1,3 +1,9 @@
+# DISPOSITION (review)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The raw review completed once in 67.04s; model claude-sonnet-5-5, list estimate USD0.099318, actual billing unavailable. No final-revision approval is claimed.
 
 C2: corrected Option::as_ref argument/receiver overlap with two pointer copies and two bookkeeping units. Full new controls are derived from initialized types: two token pointers, two Option receiver pointers, optional reference return, receiving reference and branch bool; seven units. No old header credit.

@@ -1,5 +1,9 @@
 # Combined dense/status source custody
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Exact source subject cf7b8ad90faa5cdf969238f31b4cbc04c60cde13, after dense91fb and statusdf7046bd4/f4cdd5751/cf7b8ad90. Metadata only; no production or runtime change.
 
 All8 assigned shared packets reconstruct their complete original archives,35 rows total.25 rows required one new exact current-to-authenticated-prior-input inverse before existing hooks (appended when the owning receiver traverses edits in reverse). Each prior input was itself verified through every existing hook to the fixed archive before composition. All original hooks and archive fields/hashes remain unchanged; explicit current hashes/counts refreshed.

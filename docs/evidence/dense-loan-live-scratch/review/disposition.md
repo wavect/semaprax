@@ -1,3 +1,9 @@
+# disposition (review)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 One actual 9552-byte tools-disabled review completed in38.30s (receipt/raw verdict
 retained). It reported no confirmed blocker, with eight conditional concerns;
 this is source review, not qualification or approval.

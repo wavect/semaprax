@@ -1,5 +1,9 @@
 # Review of the new caller-paid place-result helpers (source only, nothing executed)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The paste has no line numbers, so I cite code fragments instead. I found no definite blocker. I did not compile anything, and several conclusions depend on types and helpers that are not shown.
 
 ## Semantics (checked against old `under`)

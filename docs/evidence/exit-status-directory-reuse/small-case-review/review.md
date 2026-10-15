@@ -1,3 +1,9 @@
+# review (small-case-review)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 ## Blockers
 
 1. **`exact_accounting` does not check that the runs were valid.** It never asserts `old.0 && new.0`, `!old.3 && !new.3`, or `old.4.is_none() && new.4.is_none()`. The identities only make sense for full-limit successful runs. On a refused or failed run, `used`/`debit` are partial. A mistaken call on a hostile input would either fail confusingly or hide the problem. Add these preconditions, or call it only from the full-limit branch.

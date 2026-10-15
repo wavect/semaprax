@@ -1,5 +1,9 @@
 # Correction review disposition
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 One tool-disabled Sonnet5.5 process completed87.5105s, peak323092480bytes, exit0. Reported list estimateUSD0.1280169; actual provider billing unknown. Raw result and prompt preserved. Review scope is9108byte comparison/payment seam, explicitly omitting the450line complete bodies. It is not runtime approval. No redispatch after deterministic follow-ups.
 
 1. EXIT cost concern is an omitted-context misunderstanding: exit_tests.rs has its own separate exit-only removed_directory_cost; supplied function was edge_tests.rs, with the distinct EXIT implementation stated but not copied into bounded packet. Actual code retains only exit Directory in EXIT component. No source fix required.

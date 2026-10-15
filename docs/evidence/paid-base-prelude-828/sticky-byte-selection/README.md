@@ -1,5 +1,9 @@
 # Concrete first-byte selection correction
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Actual IdentityReservation source exposes an edge missed by the initial counter: wrong scope returns Detached, then a later zero request in restored scope returns Budget(first underlying receipt). Relying on callback requery therefore preserves the ledger receipt but changes the selected typed E. ROOT and #827 confirmed the actual invocation E is Copy IdentityReservation::Refused and approved retaining the exact first byte/work error inline.
 
 The fixed-schema adapter alone now requires E:Copy and owns Option<FixedFailure<E>>. It copies only the inline first payload on retries, with no Clone bound/implementation, dynamic allocation, callback requery, lossy conversion or fabricated byte error. The actual enlarged Self/Result layouts are paid by the unchanged Layout calculation. Ordinary generic identity/materialization callbacks remain unconstrained. #827's invocation holder separately keeps its typed first failure and cannot reacquire a failed invocation.

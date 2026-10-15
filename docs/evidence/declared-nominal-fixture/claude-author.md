@@ -1,3 +1,9 @@
+# claude author (declared-nominal-fixture)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 **Assessment (from the pasted source only, nothing compiled or run)**
 
 - **Why the fixture fails.** `CollectionCarrier { rows: Vec<CollectionText> }` is a non-generic explicit-id record. Its only leaf is a `Vec` whose element passes `owned_leaf_collection::runtime_element`, so `owned_collection_record::admitted` is true. `contains` then returns false at its second early exit, before the scan runs. The fixture is a correct negative, and the positive expectation was the mistake.

@@ -1,5 +1,9 @@
 # Source-only review (nothing executed)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 ## Blockers
 
 **B1. The token does not bind the ACTIVE ledger, so the nested foreign/restored identity requirement is unmet (retained.rs:5-9, 115-122).**

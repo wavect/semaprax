@@ -1,5 +1,9 @@
 # OPT785 closed operation callee identities
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only private batch based on d8df12a3b0283c9a8c3947021b4dcd3faf8565a0. No Cargo, tests, builds, benchmark or GitHub mutation was performed.
 
 The shared DeclarationId carrier, paid borrowed/owned constructors, ordinary IdentityReservation acquisition and cache decode payer already exist. This patch adds closed MapOperation, ListOperation and IteratorOperation compiler variants and changes only the callee constructor in the three live resolve_box_call finish receivers. Their 20 exact static operation spellings allocate no identity backing. MapOp::id gains const qualification with its full body unchanged; ListOp/IteratorOp already had const methods. No arbitrary static-string entry, global interning, pointer authority, forecast/cap change, new allowance, refund or accounting credit is introduced. All original argument/type checks, left-to-right scheduling and result construction remain byte-exact under the named inverse.

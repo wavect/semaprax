@@ -1,5 +1,9 @@
 # Paid loan discovery cursors (OPT815)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The production funded candidate receiver no longer materializes separate root, pending and complete expression vectors. A borrowed cursor uses 32 inline expression references and fallible caller-paid spill without a new depth limit. A complete pure discovery preflight occurs before any alias/ownership directory acquisition. Its retained spill is reset and reused for the complete alias pass and then candidate inspection, preserving root and child order and the alias-before-candidate boundary. All actual expression visits debit the same existing WorkCounter that subsequently drives the complete paid planner; there is no extra work allowance or work-gain claim.
 
 All existing alias/bound/ownership/root directories, canonical plans, ordinary full old planners, error rendering, current-function pointer authentication, sticky payer authentication, and application corpora remain. The old paid candidate is compiled byte-exact. The complete old funded production bodies are compiled with only the candidate receiver qualifier changed and the two existing registration headers left in their original owning module. Complete archived files and exact whole-source projections are asserted.

@@ -1,5 +1,9 @@
 # Bounded source review disposition
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 One tool-disabled Sonnet dispatch reviewed the exact5978-byte production diff
 and existing helper snippets. It completed in39.15s, exit0, peak process-group
 RSS321093632 bytes. Provider list costUSD0.058534; actual billing unknown.

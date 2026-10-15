@@ -1,3 +1,9 @@
+# claude argument review response (ownership-copy-flags)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 **Verdict: no definite API, privacy, type, syntax or parity errors in the supplied source.** Nothing was executed, so all of this is a source-only reading.
 
 **Parity (old `_before` vs current)**

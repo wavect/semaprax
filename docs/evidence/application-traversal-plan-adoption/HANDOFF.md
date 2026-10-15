@@ -1,5 +1,9 @@
 # Application traversal and paired setup adoption
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Base: `17efd2ed52a97f41eec05c75d56e01ade219b392`. Source-only implementation; no Cargo, builds, tests, Clippy or full gates ran here. Rustfmt, Python AST syntax parsing, literal include-path existence and git diff whitespace checks completed. Graph refresh was not performed in this source-only lane.
 
 ShiftSim adopts borrowed rows in next_patient, next_server and next_time_from_arrivals. Count-limited prefixes stop before reading a suffix. Overlength calls use the complete retained indexed receivers, retaining early success and genuine late Vec bounds status2. waiting_count and next_time are unchanged. Complete base schedule/order source snapshots and their hashes remain independent full-source corpus arms. Existing unfactored and string-slot controls remain. All15 ShiftSim and23 Catalog raw-byte corpus rows and original assertions/caps remain intact; each C11 O0/O2 corpus gains the pre-traversal typed source arm.

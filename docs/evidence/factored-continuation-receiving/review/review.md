@@ -1,3 +1,9 @@
+# review (review)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 I did not execute or compile anything, and the four test controls and the helper types (`ClassifierLedger`, `ReplayBudget`, `compare_with_index_storage`) were not pasted. The pasted files have no line numbers, so I cite function and statement instead.
 
 ## Likely blockers

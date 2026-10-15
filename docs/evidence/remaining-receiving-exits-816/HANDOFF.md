@@ -1,5 +1,9 @@
 # OPT816 bounded remaining exit/finalizer directories — source-only
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Existing arena receiving already pays status/edge/commit/call directories. This successor addresses remaining ordinary root validate_exits and validate_finalizer_actions sets: borrowed complete StatusSourceId keys, copied EdgeId continuation keys, copied LivenessFlagId guards. All use the already paid indexed AVL Directory and the same mutable ReplayBudget. Full comparisons, sticky0 authentication, physical growth/pre-acquisition backing and replacement overlap are inherited from that qualified storage owner. Backing lives until the complete respective exit/finalizer receiver returns/drops. No separate quota, forecast credit, refunds, sorted cleanup-vector repair, pointer authority or attached-proof shortcut.
 
 Complete old root functions remain unchanged and independently executable; the unobserved compatibility route calls them directly. Only ordinary main and unselected lexical exit call sites select the new seam. All prior status/region/chain/place/finalizer/result/error order is copied exactly; existing helpers are shared unchanged. Full old/current byte or work refusal thresholds are not claimed equal: genuine directory operations are now charged. With sufficient budget every semantic Diagnostic field stays equal.

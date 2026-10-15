@@ -1,5 +1,9 @@
 # Source-only review: ownership-copy paid flags hooks
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 **No definite compile, privacy, or Clippy blocker is visible in the supplied source.** Several items depend on files I wasn't shown and are worth a quick grep. None are failures I can demonstrate.
 
 ## Correctness: matches the stated intent

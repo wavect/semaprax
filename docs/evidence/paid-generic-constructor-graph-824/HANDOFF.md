@@ -1,5 +1,9 @@
 # Paid generic constructor graph
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only private successor of 9a87252f9, with the already-integrated intrinsic controller correction carried locally. Cherry-pick only this new source commit. No Cargo/build/test execution. No application fit, total-constructor funding, savings, new work allowance or byte-refusal equivalence is claimed.
 
 The constructor's original graph setup clones identities into a BTree set, map of outgoing BTree sets, incoming BTree map and VecDeque. Under the existing active validation owner the current route instead borrows the exact immutable program's declaration identities, sorts/deduplicates their complete byte Ord, and indexes outgoing sparse AVL ordinal sets, incoming counts and one FIFO. Every original template is scanned, including repeated identity bodies, in requires/body/ensures order. The same complete call visitor handles nested calls and guards. Unknown targets remain ignored by this graph receiver; all ordinary constructor gates remain in their original positions. No signatures, materialization limits or type profiles change.

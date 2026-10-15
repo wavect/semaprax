@@ -1,5 +1,9 @@
 # OPT824 intrinsic constructor borrowing successor
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Base `f1f48d5a74e80037b805deff0db5cb69f45697c7`. Source-only: no Cargo, Rust tests, builds, benchmarks or root edits. This removes concrete discarded canonical nominal argument vectors; no whole-constructor funding, application-fit or byte-gap attribution claim.
 
 List `is_list/is_step` compare exact nominal identity bytes and one I64 argument. List/Iter case shape receivers compare exact singleton TypeParameter owner/index and enclosing List/Iter identity instead of constructing a temporary type tree. Canonical declaration validation avoids constructing the known I64 Step argument; iterator validation still executes the same `resolved_element_is_admitted_in(I64)` gate before case lookup. All original case/field IDs, names, ordinals, arity, order, compiler origin checks and complete diagnostics remain. No payer, quota, refunds, credits or forecast changes: these pure receivers acquire no replacement storage.

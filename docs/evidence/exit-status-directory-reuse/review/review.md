@@ -1,5 +1,9 @@
 # Review of `validate_exits_retained` status-directory reuse (source only, nothing compiled or run)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The pasted source has no line numbers, so I cite quoted snippets. Nothing here is proven to fail. The items below are what the source supports.
 
 ## Blockers (given your stated goal)

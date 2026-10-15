@@ -1,3 +1,9 @@
+# review (review)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 ## Findings (source-only, nothing compiled or executed)
 
 ### Blockers

@@ -1,3 +1,9 @@
+# HANDOFF (status-fact-borrow-reuse)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Private source from c2ca00a9e, including the already integrated edge/map/prefix later-composition fixes. No ROOT writes/Cargo/build/Clippy/runtime.
 
 Production: keep ids.insert first, prepay full borrowed receiving reference plus assignment, obtain actual existence fact once, use its immutable payload for immediate propagated-call callee check; separately prepay full call reference/assignment. All other status branches and block body unchanged. Complete prior status producer independently compiled verbatim in status_before.rs. Old exact retained-control assertions execute that prior producer through one explicit lexical adapter; current exact controls are separately derived. No quota/price/cap change, new Rc/cache, refund, or old-header discount.

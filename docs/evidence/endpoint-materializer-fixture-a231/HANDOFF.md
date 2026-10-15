@@ -1,5 +1,9 @@
 # Two actual a231 controls corrected; no production algorithm change
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Actual owner118 failed in the complete old materializer before.rs74 because the
 zero-loan public plan had taken its early return and carried no CFG edge rows.
 The control constructed a nonempty CFG anyway, violating the internal

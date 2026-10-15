@@ -1,5 +1,9 @@
 # Paid NUL audit receiving path
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Private source-only successor of 3ecf64d250746ac496932e05259740ae9528eea3. No Cargo/build/tests; qualification remains pending. No whole-constructor funding, application fit, allocation deficit attribution or savings claim.
 
 The complete prior inspection audit remains the production no-owner compatibility route and the independently compiled saved constructor receiver. The active-owner route copies every original declaration/type/expression/inventory/plan/control check with its exact iteration and push order. Existing inline32 per-walk lifetimes remain. A fallible borrowed cursor authenticates reserve0 on push, extend (including empty), and pop; it debits its modeled inline initialized carrier before construction and each complete Global Vec spill replacement Layout before acquisition. Its first capacity4/doubling mirrors the prior pointer Vec growth. No new depth/work quota, amortized credit, refund or cap increase. Unexpected capacity refuses publication and is not retrospectively funded. Modeled inline ownership is separate from actual requested allocator bytes and RSS.

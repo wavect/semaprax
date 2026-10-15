@@ -1,5 +1,9 @@
 # Review of prelude forecast correction (source-only, nothing executed)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 ## Verdict
 I found no concrete arithmetic, double-count, or Rust-typing defect in the pasted lines. The matches below are read from source, not run. Several conclusions depend on code that was not pasted, and I list those as uncertainties. The correction is source-consistent but unqualified, as `docs/WORKSPACE-GRAPH-PRELUDE-FORECAST-V1.md` itself says.
 

@@ -1,5 +1,9 @@
 # Review of the issue816 proposal (source-only, nothing executed)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 ## Blockers (must be specified before approval)
 
 1. **Growth contract is undefined.** Per-push `reserve_vec` on an already-growing Vec is ambiguous. `reserve_vec` prepays a full replacement array while the old one stays live, so doubling growth charges old plus new at every step. Also, `Vec::push` at `len == capacity` reallocates silently and unmetered. The helper must (a) compute the new capacity with `checked_mul`/`checked_add`, (b) reserve before push, and (c) return an error rather than push if `len == capacity`.

@@ -1,5 +1,9 @@
 # Actual 1a0b pin update with complete previous-wire history
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The ROOT-authorized producer captured ten complete wires from source 1a0b9d9bc5ce2b36133d61ea4636dc9614f2f41e. The actual wrapper succeeded; the public graph and analysis owners failed only at their exact stale budget and eight-SHA assertions, and the existing ignored projection producer passed. The strict read-only updater validated the full frozen source/build/producer receipt hashes, exact lib/workspace binary roles and hashes, source cleanliness including untracked files, all ten wire manifests, graph digest domain/length framing, analysis graph binding, exact old/current panic values and source lines, and every old owner byte before ROOT advanced. Its complete output and one-off exact-old-literal adaptation are retained. The adaptation preserves every strict check and locks the full 1a0b source head.
 
 This updates only eleven actual literals: public graph builder amount and full-document SHA, eight analysis full-document SHAs, and projection full-document SHA. The public builder amount increases from 1282992 to 1349027 (+66035); no efficiency or lower-peak claim follows. All tests, locking/CLI/getter assertions, caps, forecast accounting and corrected P remain unchanged. No current whole828 or application gain is claimed.

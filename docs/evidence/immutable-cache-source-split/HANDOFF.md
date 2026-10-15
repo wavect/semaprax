@@ -1,5 +1,9 @@
 # OPT796 actual source custody (source only)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The current route preserves the original mutable provider, pruning and restore passes. It pays actual new source-owner headers, retained ordinal backing and one immutable parsed-owner directory on the real original core payer before acquisition. After restore, the actual programs and complete source metadata move into their owners. Ordinary Project linking uses those parsed owners for Agent/law extraction instead of reparsing. Checked keys keep generated roots separately and cannot expose or encode a source until their exact invocation slot completes. No combined Function/type receiving directory is created for admitted borrowed overlays. Unsupported profiles retain the complete owning route.
 
 File facts and public Project source facts retain source metadata, which has no AST link. Explicit cache keys may retain their own exact parsed generation. Source values and the historical Program wire are unchanged. Source cache publication validates the complete directory and all pending key associations before binding; no failed build commits the caller cache.

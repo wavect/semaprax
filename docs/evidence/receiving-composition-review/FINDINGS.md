@@ -1,5 +1,9 @@
 # Receiving composition source review
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 One new tools-disabled Claude Sonnet5.5 review completed on private043f82. It found no definite compile/type/borrow defect and confirmed the scratch borrow split, full old/current probe byte arithmetic, retained backing on error/success, inline/spill stack discipline and root order. These are source judgments, not execution. The review's closing statement that code "compiles" is not an executed qualification and is not adopted.
 
 Actual firstParty list-cost basis: $0.5685975. Actual billing remains unknown. Full actual model/usage/result is retained in `claude-review-receipt.json`; no denied packet was retried.

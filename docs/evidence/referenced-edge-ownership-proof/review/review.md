@@ -1,5 +1,9 @@
 # Review: removal of the write-only `referenced_edges` AVL set
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 I reviewed only the pasted source and did not execute anything.
 
 ## Blockers

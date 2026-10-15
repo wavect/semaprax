@@ -1,3 +1,9 @@
+# integration review result (held-generic-call-profiles-812)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 **No definite blocker found in the supplied source.** Nothing I checked fails type, visibility, lifetime or module resolution on its own text. Several checks depend on items that were not provided, so I list those as uncertainty and not as defects.
 
 ## Checked and consistent

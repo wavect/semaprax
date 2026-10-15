@@ -1,5 +1,9 @@
 # Complete funded planner fixtures and ordinary fact accounting scope
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 This is a source-only repair based on `d94653b600584058245b9e92764d1f1c09cd3c3e`. The actual 5a81 qualification logs `owning-selected-52.log` and `owning-selected-51.log` reported two fixture-accounting failures: a projected planner's `observed.allocations > 8` floor and Tree/Arena remaining-work equality (`31999236` versus `31985667`). They did not establish an unpaid-byte deficit, expression-fact dominance, application fit or token savings.
 
 The current OPT815 complete projected/lexical owner retains the exact original `>8` floor, every full-plan equality, lexical zero-work diagnostic, exact/one-short debit and receiving Drop assertion. Its three current targets now include a real source-authored chain of 80 typed scalar bindings, each consuming its predecessor and the final Copy discard receiving the chain before the entire original body resumes. This forces a wide block beyond the cursor's 32 inline references and constructs actual ownership-directory backing. It does not allocate padding inside the observer or change any committed application fixture. An actual paid cursor walk compares every pointer against complete original preorder, charges all three passes to the unchanged 1,000,000-work ceiling, proves spill acquisition and allocation-free reuse, and observes payer/cursor Drop.

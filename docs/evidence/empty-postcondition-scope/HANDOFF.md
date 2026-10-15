@@ -1,5 +1,9 @@
 # Empty postcondition result carrier
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The production function receiver skips only the unused result-scope binding when `function.ensures` is empty. Result identity registration, all body/type/ownership checks and lifecycle/loan validation still run in their original order. The empty path authenticates the existing sticky payer with a zero-byte reservation before returning success. A nonempty postcondition retains the complete original construction and validation path.
 
 The omitted carrier has no consumer: `validate_contracts_persistent` already returns immediately for an empty contract slice. The local scope is discarded after validation and does not publish authority or a program change. No type, ownership, graph, cleanup or backend policy changes.

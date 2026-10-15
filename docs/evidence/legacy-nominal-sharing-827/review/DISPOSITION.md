@@ -1,3 +1,9 @@
+# DISPOSITION (review)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Two actual bounded tool-disabled Sonnet calls completed. Their raw prompts,
 outputs, argv/resource receipts and list-price usage are retained separately.
 No actual billing or token/application savings are inferred.

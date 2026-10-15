@@ -1,3 +1,9 @@
+# claude author findings (nested-shape-scratch)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Nothing was compiled or run, as requested, so the diff below is unverified. Hunks are anchored by context rather than line numbers, because I don't have the file offsets.
 
 ## Design

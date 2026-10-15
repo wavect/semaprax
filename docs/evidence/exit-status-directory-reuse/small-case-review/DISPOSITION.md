@@ -1,3 +1,9 @@
+# DISPOSITION (small-case-review)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Actual review completed once50.9309s, Sonnet5.5, provider listUSD0.07305, actualbillingunknown. No runtime or final revised approval claimed.
 
 B1: strengthened exact_accounting itself with full success/no-refusal/firstNone preconditions, independent of current caller conditions. Tuples print before these conditions.

@@ -1,5 +1,9 @@
 # Bounded design second opinion (source only)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The single tools-disabled review completed in 86.34 seconds with exit 0, below the 120-second/768-MiB limits. The raw payload, answer and process receipt are retained unchanged. No Rust compilation or runtime result is claimed.
 
 Select option A: independently validate the actual primitive lowering, all ancestor freezes, current provenance and exact loop targets. Do not add an origin descriptor or forbid unrelated Vec/Iter operations. Mixed source-for syntax remains closed at the typed source gate; a safe handwritten While is not rejected merely because its surface origin cannot be recovered.

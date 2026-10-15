@@ -1,5 +1,9 @@
 # Diagnosis: `fact_errors.rs:97` panic (source-only, nothing compiled or measured)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 ## Verdict
 
 Yes, the `cfg(test)` `Payer::Oracle(OracleLease)` variant is the likely cause. It is never constructed on this path. It changes the layout of `Payer`, and therefore `size_of::<FactCapacity>()`. The test's layout twin has no such variant, so its `cursor` term is too small.

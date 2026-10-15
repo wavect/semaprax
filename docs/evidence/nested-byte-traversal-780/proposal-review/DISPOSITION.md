@@ -1,5 +1,9 @@
 # Raw proposal blockers and approved bounded response
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The single 9,939-byte tool-disabled proposal review exited0 in40.542531666s,
 peak280,920,064 bytes (limit805,306,368), no resource refusal. Raw result,
 verdict, payload and receipt retained unchanged. Provider list USD0.064162;

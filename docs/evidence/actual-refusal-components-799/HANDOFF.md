@@ -1,5 +1,9 @@
 # Actual #799 runtime repair
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only successor of 4d5d4209d3dd0f4fbc61e1063495ec128dbf5ffb. No Cargo, tests, Clippy or app-fit claim.
 
 Rooted Project used source_place and published the type without the ResumeProject declaration-refusal check. The new publication seam retains all original source-place availability checks first and authenticates each immutable raw field against its exact declaring environment and complete six-field original receipt. Existing traversal-row projections admit only real supported scalar/view fields; their unchanged admission predicate cannot return a missing named field.

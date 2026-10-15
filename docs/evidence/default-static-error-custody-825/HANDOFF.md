@@ -1,5 +1,9 @@
 # OPT825 bounded fixed-message custody — source-only
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Eight runtime default error sites use existing Diagnostic::io_static instead of graph_error -> Diagnostic::io -> Into<String>. Every code/message/severity/path/span/help and byte serialization remains; no error disappears and reservation/error order is untouched. Forecast functions still use their original dispatch and formulas. The complete original recursive default receiver still calls graph_error and keeps owned-message allocation; its source SHA is fixed in new controls. No original file/archive changed.
 
 The real legacy nonempty Vec<Diagnostic> allocation remains observable, including at0/sticky failure. This packet removes only fixed message backing; it neither prepays Vec publication nor completes825. No new inline owner, artificial error allowance, caller budget, credit/refund/cap or ledger change. Unknown/dynamic errors retain their existing owned route.

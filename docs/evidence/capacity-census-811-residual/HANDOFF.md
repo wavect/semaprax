@@ -1,5 +1,9 @@
 # OPT811 residual component census correction
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Base f9aadf17cbca430480f8bcf40afbcb58cd9a0711. Source-only; no Cargo/build/test/Clippy executed.
 
 The earlier invocation-local feedback correction and missing ordinary/conditional/string-move terms already exist at this base. They are not newly attributed to the historical pin mismatch. The frozen bf29 owner failed at the unchanged pin with [9224,443313] versus [9224,132070]; neither value establishes allocator highwater or a measured old/new allocation regression.

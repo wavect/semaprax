@@ -1,5 +1,9 @@
 # OPT812 source-only handoff
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The canonical retained lookup now keeps actual immutable program, function-or-instance and parameter ordinals. It uses exactly the original source-order predicates and constant-time ordinal authentication. Numeric keys are not type hashes, owned argument clones or raw pointers. Equal owned HIR remains valid through the complete ordinary fallback; foreign and detached carriers cannot obtain cache authority.
 
 The existing shared validator Rc owns a bounded optional table. The larger actual control layout and complete Vec replacement backing are paid before acquisition on the existing active budget. The128-entry implementation cap only stops remembering; declined optional growth runs the full original classifier. None/Err/unknown/root-arity-mismatch/unheld routes remain uncached. Every request/hit authenticates zero, no RefCell borrow spans classification, and no quota, cap increase, refund or credit exists. No active payer means no new table backing. Zero-argument nominal precedence is unchanged.

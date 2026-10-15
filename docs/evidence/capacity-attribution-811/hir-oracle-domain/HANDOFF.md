@@ -1,5 +1,9 @@
 # Complete production HIR scan and independent oracle domain
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Private base4f003f5f496a03ac5fa0065d5e1325af0af03d7e. The original mixed source guard was failing actual frozen f8 qualification. This correction does not claim the unchanged gate previously passed or that a successor gate has executed.
 
 Exhaustive expansion maps all three forbidden full-inventory calls to two existing cfg(test) oracle modules: inventory_profile/tests.rs71 and inventory_summary/tests.rs5,212. No actual production validator/classifier file was removed. All other443 complete literal includes, all eleven held/fixed children and every forbidden token/assertion remain. Both full production parent modules are still in the authority scan. Production-source-expansion.json records the complete current source membership/hashes and prior forbidden source:line mappings; no excerpt replaces a complete source.

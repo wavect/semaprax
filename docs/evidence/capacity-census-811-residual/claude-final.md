@@ -1,3 +1,9 @@
+# claude final (capacity-census-811-residual)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 **Source-only review of OPT811.** I ran nothing and have not seen `legacy`, `ordinary_view`, `byte_writer` or `lexical_control`. I found no type or signature errors in the new API: closure shapes, `Cell::get` paths, `bool::then`, the `?` inside `try_fold`, and `Copy` use of `Option<Components>` all look sound. The substantive findings follow, most important first.
 
 **1. Retained empty-index builder: `ordinary_index` is attached too late (`helper_index.rs`, `with_index` / `with_helper_sites`).**

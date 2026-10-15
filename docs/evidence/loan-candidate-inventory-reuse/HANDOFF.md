@@ -1,5 +1,9 @@
 # Concrete source handoff
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Actual production funded_flat now passes producer-made CurrentSubject into the
 candidate inventory receiver and moves the actual three paid maps into its full
 positive plan receiver. Old complete candidate/build/facade remain independently

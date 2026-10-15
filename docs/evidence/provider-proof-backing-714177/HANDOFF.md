@@ -1,5 +1,9 @@
 # Per-core provider-proof storage custody
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only, no Cargo/build/test execution. Based on the corrected ordinal owner at 71417722e. Prerequisite old default/wrapper helpers are the cleanup packet 6e2659d53, locally cherry-picked as 2ea958adc; cherry-pick only this packet's final commit after that cleanup packet.
 
 One `CoreProviderProofs` is constructed inside the actual resolved-core budget after the unchanged input-carrier reservation. It owns only exact immutable source references, captured budget Rc identity, Vec/Box backing, paid-carrier state and poison. Each logical forecast/constructor phase checks the exact authored-map and full program-slice identity, captured current payer, and sticky reserve0 before consuming backing. It clears every memo row and fixed cursor frame and creates a fresh original WORK scope. Provider/body/source membership and signature checks still run in their original order. Within-phase memo semantics are unchanged. SourceBacking also retains failure and rejects reuse after failure. Any early return, failed proof or unwind returns storage through ordinary Drop and poisons the core owner. Each new resolved-core attempt starts empty; pre-core and standalone calls remain fresh.

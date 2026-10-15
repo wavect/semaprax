@@ -1,5 +1,9 @@
 # Pure projection explicit imports
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only successor from the actual `a27a0e3b6` integration commit. Frozen f8 owner 181 failed its unchanged wildcard-import prohibition.
 
 The actual complete audited projection joins 68 literal source members. Five joined imports were wildcards: the transient and publication borrowed-import test children, current checked-source key and encoder, and the independent contiguous declaration receiver's test module. Each now imports only the named declarations or traits it uses. No source moves, hidden aliases, allowlists, audit exclusions, or shorter source comparisons are introduced.

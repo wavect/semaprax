@@ -1,3 +1,9 @@
+# claude result (paid-classifier-receiving-f8)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 **Verdict: not established.** Nothing in the supplied source shows that `work(0, …)` can observe `overflowed`.
 
 **1. `identity()` fix**

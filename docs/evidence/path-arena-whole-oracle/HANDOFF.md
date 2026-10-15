@@ -1,5 +1,9 @@
 # OPT778 full old/current receiver comparison (source-only)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Base: `69dfb984c9ebe9412653706f9eaa3652e3c3afaf`.
 
 The old arm verifies the original source, runs the complete compiled frozen 5ff `resolve_program/agent_identity_original::resolve_verified_original` receiver, and dispatches expression entries to the complete recursive text expression receiver. It independently constructs its program, loan inventories and ordered cleanup plans. It never clones current HIR to produce old HIR. Both results pass complete ordinary HIR and loan validation before full equality, graph and cache-byte comparisons. Original wide/deep/loop/source-for/lazy/ordered-argument fixture source is retained, plus an additive requires/ensures counterpart.

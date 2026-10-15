@@ -1,5 +1,9 @@
 # OPT822 copy-only ownership observations
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Private base `bf29fd8dd3df354df0b055686fc3f4f48e3cfb92`. Source-only; no tests, Cargo, builds or Clippy executed. Existing whole function-scope lifetime/cost assertions and all saved function/expression bodies remain unchanged.
 
 Three actual ownership queries, expected_ownership, is_owned_resource and validate_argument_ownership_view, now read only the Copy bit. The same complete nominal-facts lookup remains first, with unchanged eligibility, retained metadata and cache precedence. Its fallback calls the existing complete paid TypeFlags route. Static leaves and exact cache hits avoid owning key/layout acquisition; real misses retain complete generic/invariant/substitution/cycle classification and fund Storage plus each actual vector replacement, B-tree node, type clone and box through the same active budget. Reserve(0) still authenticates warm/capacity-hit paths. No quota, credit, refunds, forecasts, persistent cache or flags-module/observer change.

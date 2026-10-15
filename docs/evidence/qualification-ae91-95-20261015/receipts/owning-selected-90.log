@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::factored::canonical_shared::closure_receiving::source::held_closure_complete_old_canonical_and_caller_are_independent_byte_exact_bodies ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.00s
+

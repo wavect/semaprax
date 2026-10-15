@@ -1,0 +1,1343 @@
+{
+  "source_subject": "ae91fa963ecfe85f4cc830cda85fff2f5bdbe094",
+  "runtime_complete": true,
+  "runtime_pass": 89,
+  "runtime_fail": 6,
+  "build_phases_passed": 5,
+  "build_seconds": 569.5707985420013,
+  "terminal_clippy_roles_archived": [
+    "core",
+    "toolchain-full-cli",
+    "owned-data-lib"
+  ],
+  "execution_source_is_ae91_not_archive_commit": true,
+  "files": [
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/clippy-core-pressure-guardian-source.py",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/clippy-core-pressure-guardian-source.py",
+      "sha256": "4e7c4816d521ca3520676ee63884c0f384869fb547e55599fe83f5c18b81a1a2",
+      "bytes": 6889
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/clippy-core-pressure-guardian.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/clippy-core-pressure-guardian.jsonl",
+      "sha256": "c005795ccf8a6552bcc40f961c9030d5cc3c95a55a23c0af73380473cc0afa99",
+      "bytes": 14486
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/clippy-production-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/clippy-production-memory-samples.jsonl",
+      "sha256": "cb0fdfaac291aabcf38e779594e3056514427c4e0e983bae4a51296799f66e8c",
+      "bytes": 95260
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/clippy-production-owned-data-lib-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/clippy-production-owned-data-lib-memory-samples.jsonl",
+      "sha256": "d805c6afe952edc61748c5a1724ea521968392dd8f091bed70be7af40eb063a9",
+      "bytes": 3504
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/clippy-production-owned-data-lib-result.json",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/clippy-production-owned-data-lib-result.json",
+      "sha256": "b108071ef11574295c9beea670e48c767be8df771d22a149bb44c5ef34d2cf52",
+      "bytes": 6369
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/clippy-production-owned-data-lib.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/clippy-production-owned-data-lib.log",
+      "sha256": "798c576b3a1d5b7fc4edd0d2a397b6631c4c51282d85b39c1ba93ae7217ce8a0",
+      "bytes": 243
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/clippy-production-result.json",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/clippy-production-result.json",
+      "sha256": "355770238479bf0e81157c631caad1fae9f0adcf567a6a6504d1803f8060f23c",
+      "bytes": 7179
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/clippy-production-toolchain-full-cli-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/clippy-production-toolchain-full-cli-memory-samples.jsonl",
+      "sha256": "bdd7568a5b625db425d3e69dc645aa1c839cc1e61ae41ac0aefa791a95c5d8e1",
+      "bytes": 87300
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/clippy-production-toolchain-full-cli-result.json",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/clippy-production-toolchain-full-cli-result.json",
+      "sha256": "78fbb646228f5b45c656a18074fffef75f1554b7dce8273e404177011612b5de",
+      "bytes": 7667
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/clippy-production-toolchain-full-cli.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/clippy-production-toolchain-full-cli.log",
+      "sha256": "40dc9ac96fae1109b1faa588d7ddbd4bed0e9874b296d6e339ecb9ca0793811d",
+      "bytes": 1368
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/clippy-production.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/clippy-production.log",
+      "sha256": "71e04b4c9ca17c40a5893fc33781f30bbc93e62438dc1bca837daa9dedeaa2cd",
+      "bytes": 166
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/compilation-manifest.json",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/compilation-manifest.json",
+      "sha256": "48f92126d60d295f0535ca54513e66f8aced4a788695676ab65dafc036110e89",
+      "bytes": 4179813
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/drivers/build-owning.py",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/drivers/build-owning.py",
+      "sha256": "7d9eb4e4d3aab9ba94afad0d236ebb32a895eb1cd3db8e1d738438a893787888",
+      "bytes": 9776
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/drivers/draft_contract.py",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/drivers/draft_contract.py",
+      "sha256": "c3ab46afbf6c62485c5c4b3389a579d0744d889622051f1eb7f6c48d2b0745e1",
+      "bytes": 1752
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/drivers/observed_phase.py",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/drivers/observed_phase.py",
+      "sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867",
+      "bytes": 11471
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/drivers/run-extra-production-clippy.py",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/drivers/run-extra-production-clippy.py",
+      "sha256": "47ff9dd51db73eb2b1e6b666c06ad37429d34e2959253179ed14ecb81f2ac8fe",
+      "bytes": 6678
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/drivers/run-owning-selected.py",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/drivers/run-owning-selected.py",
+      "sha256": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450",
+      "bytes": 10438
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/drivers/run-production-lib-cli-clippy.py",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/drivers/run-production-lib-cli-clippy.py",
+      "sha256": "e94eca5f0b9aa73193e1065a944b1681a459bdeba7b45e984f477a55268f4077",
+      "bytes": 6214
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/drivers/semaprax_pressure_observation_v3.py",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/drivers/semaprax_pressure_observation_v3.py",
+      "sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+      "bytes": 10269
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/expected-counts.json",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/expected-counts.json",
+      "sha256": "48f92126d60d295f0535ca54513e66f8aced4a788695676ab65dafc036110e89",
+      "bytes": 4179813
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/memory-samples.jsonl",
+      "sha256": "3983397feb618720687057b483abc7d9ef66de8a08a0073a1c2a98a9e7088c4a",
+      "bytes": 687563
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-build-progress.json",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-build-progress.json",
+      "sha256": "71486c448adba57e48758ce7b05ab2c0ec260abfb1a1feaa0362a282d94bd22d",
+      "bytes": 39718
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-build-result.json",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-build-result.json",
+      "sha256": "93e1bb36118de414c7ace6627c6967c55900a26bc24d3d599524d5e241996652",
+      "bytes": 43263
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-build.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-build.jsonl",
+      "sha256": "c8e729df8fe7d78cb1900df3141e0a1b8282cd23ce8a6c7689cb820392dfa911",
+      "bytes": 930833
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-build.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-build.log",
+      "sha256": "7d11b297cd10b2afafa2c430e98fb0a5bfa0c9d28573a02e124a6f4bd3bf237a",
+      "bytes": 1541
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-00-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-00-memory-samples.jsonl",
+      "sha256": "8340807f2d9d33b755519d3df6598705f66b379a6e26916dc95ba4108b7300c9",
+      "bytes": 3503
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-00.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-00.log",
+      "sha256": "b1cda8152223f524e82b1064cb9d2f2f6a7ba1c5478fa1995181b078ad5d5820",
+      "bytes": 4715
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-01-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-01-memory-samples.jsonl",
+      "sha256": "dce18f13b95b2313afbef536b802d9d0f7053e69d350a740a87439cfa680bb61",
+      "bytes": 3632
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-01.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-01.log",
+      "sha256": "9946fb39e46bae2cc690c3106f9318ea75cfd100499e3e7c7318392030a4d755",
+      "bytes": 266
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-02-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-02-memory-samples.jsonl",
+      "sha256": "57d1649329e70fce63ee9b634e47bced3ab23a80636947f0dc424a56f49112e0",
+      "bytes": 3613
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-02.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-02.log",
+      "sha256": "3f4a9887ef150b7e93440319951e9ca44db7153273d6a8d08f84012f09478b32",
+      "bytes": 269
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-03-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-03-memory-samples.jsonl",
+      "sha256": "7842e617bd60c447f23dfdd57b70131608e56930e9f9327a7208965d7929c99d",
+      "bytes": 3621
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-03.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-03.log",
+      "sha256": "4c82cb264164b69f7ad9bb8c0017a9ba89437b6855ed52fe771cf108daa995b1",
+      "bytes": 281
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-04-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-04-memory-samples.jsonl",
+      "sha256": "be3e8486ef432f8c12b0c52b4596dce750cf374d2e4a450b5f6c31dc9f9ef46f",
+      "bytes": 3626
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-04.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-04.log",
+      "sha256": "e7f0ba25ca4a0156ffec066636396ed3f6435d0acb55bd3cb0a17ab414777d76",
+      "bytes": 273
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-05-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-05-memory-samples.jsonl",
+      "sha256": "b42154487cf0f634833002030588454bb1cff2d8b408a5f91095c0c714e90f81",
+      "bytes": 3622
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-05.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-05.log",
+      "sha256": "a92e15d6da6ee68177bc72815ba3433c92d54018987b94fae884553df50d7df3",
+      "bytes": 264
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-06-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-06-memory-samples.jsonl",
+      "sha256": "b86642a4a02610879b0ce872aa282ec384d4b79fb6109f62d27a9953271bbce5",
+      "bytes": 3499
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-06.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-06.log",
+      "sha256": "0c4509f333a1ff803bd9e5be51961c9b7fdd900cb3961357c6a1e8d577ca6ac5",
+      "bytes": 265
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-07-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-07-memory-samples.jsonl",
+      "sha256": "07a726b5d04ab97f3c678eb6af5ed7af5424d1a08db637632895dde3b9aab075",
+      "bytes": 3501
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-07.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-07.log",
+      "sha256": "dcaccbc2888d67d643c4c72012b6116ca380aae0c4fdb357386c663ff3bacdb3",
+      "bytes": 269
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-08-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-08-memory-samples.jsonl",
+      "sha256": "b74d70dc3a34c5a9d978d7a941d20813592821af0ebc2fa8de087de5b63a945e",
+      "bytes": 3619
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-08.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-08.log",
+      "sha256": "3ac963b027a2bd2af4f68fb3486e10a8bccfdc3592805619d464eda5a5c956b7",
+      "bytes": 276
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-09-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-09-memory-samples.jsonl",
+      "sha256": "cdab85ea06209b770d1b3c821422ff80d129c154ce40fdeb927656a3c27e259c",
+      "bytes": 3503
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-09.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-09.log",
+      "sha256": "6ef2b3f296ec4dfbe2af96abeac1276f1feb2dfa7e33c34cca587c7233efffad",
+      "bytes": 335
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-10-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-10-memory-samples.jsonl",
+      "sha256": "4a6a6bbe8f334cb1b294b5a44cbb2e30467d304b4d03d6268aefd484123b4a5f",
+      "bytes": 3630
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-10.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-10.log",
+      "sha256": "35d4ff06dec68b7361c8df7823c51a41fce43ecba72f661e839bbeeca09d3643",
+      "bytes": 630
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-11-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-11-memory-samples.jsonl",
+      "sha256": "fe43903c04b9f704eaf562169b64e2ecb645a7e27436a11d488ab424cfeea78e",
+      "bytes": 3507
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-11.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-11.log",
+      "sha256": "e0b9053e2a050e890d201c32687f48a98489513897ed6287947b78a838ffdcaa",
+      "bytes": 282
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-12-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-12-memory-samples.jsonl",
+      "sha256": "2c2c3ef74a0c8cdd0f2e95f3570c6a926839974b7b8bdb22cb7146900a5a9372",
+      "bytes": 3499
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-12.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-12.log",
+      "sha256": "2aed60fa6ade8a0a5f6bf1b82e1560aef967a11e2368cdeafcda7943d0c9f66a",
+      "bytes": 600
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-13-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-13-memory-samples.jsonl",
+      "sha256": "594d357fd8feb81ae6b8e9da14ceafd950ace6e50b2b51cd9d486ebc1ef38271",
+      "bytes": 3506
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-13.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-13.log",
+      "sha256": "2a7e12ed68386dc589c2aa281f51201936b32b196aee6c46fb96479eaa8d62ac",
+      "bytes": 282
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-14-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-14-memory-samples.jsonl",
+      "sha256": "76577dcc283bf38bd3e3c6fc234e3629d0d7ae609405e90c6c550124b1cb9438",
+      "bytes": 3503
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-14.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-14.log",
+      "sha256": "d285341315a725dbad55309d43cbbfdc3a6e0b9dae9fed8404e3e6738446df79",
+      "bytes": 263
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-15-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-15-memory-samples.jsonl",
+      "sha256": "b73ccf6820e20a5a99e60660e2218bc0314e57d0d34f5bd6416ed270986810bd",
+      "bytes": 3502
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-15.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-15.log",
+      "sha256": "56bb00424f5988643a986191892bdf77e4e71cc63da793ac24c3a5191225b108",
+      "bytes": 263
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-16-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-16-memory-samples.jsonl",
+      "sha256": "bad616795557f1d40d275372a9cbb2268c6cbb6e7cc65373291cfc57d8eff153",
+      "bytes": 3502
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-16.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-16.log",
+      "sha256": "c65e84a331e9c4a12fe12486b736efdef28e40c3d9ceee2ecb3726354ccd99b1",
+      "bytes": 254
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-17-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-17-memory-samples.jsonl",
+      "sha256": "2928bae977ccc6f6d1601e14df2721b2fad409f6cddddfc40b5a7d3410e2081c",
+      "bytes": 3503
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-17.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-17.log",
+      "sha256": "d24db853f47abf422fceacf5cf508bec6e27e54eb4eabde07cc0b3ad5438d9e8",
+      "bytes": 262
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-18-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-18-memory-samples.jsonl",
+      "sha256": "8113080757641b1976332c15f590c5150049ef1fb817a734375ae55c0fbcde33",
+      "bytes": 3503
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-18.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-18.log",
+      "sha256": "545030cee7eb44aeeeca3cd38e5df26e86c4955b71e2220675002d281d83033f",
+      "bytes": 252
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-19-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-19-memory-samples.jsonl",
+      "sha256": "36fb1f3b84f5f80727ecdee9437475a6ecf95e4e35e9c24c2be676580e2bc874",
+      "bytes": 3622
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-19.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-19.log",
+      "sha256": "670087a1c9fb1d758b3198e507165610ba16320d9faa755325ce35057826b1e6",
+      "bytes": 242
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-20-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-20-memory-samples.jsonl",
+      "sha256": "efb66087aaee07b259a68a84c5ff3242b6f7b044db6b90cf0b5d942ea8177f23",
+      "bytes": 3511
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-20.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-20.log",
+      "sha256": "d966b83fdb9d183099ea2a5f94d2c840101f07ea2536ea2b7daf8acb4b5b9bd8",
+      "bytes": 237
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-21-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-21-memory-samples.jsonl",
+      "sha256": "3587edde7c39a1cf8faff0a0633867a63aae65d3f3052a852e7996f422aaa36b",
+      "bytes": 3499
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-21.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-21.log",
+      "sha256": "0018bffa8758162c6b09dade684c7ba3ddb94865d59d1b5e999c34867f9346a8",
+      "bytes": 260
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-22-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-22-memory-samples.jsonl",
+      "sha256": "a7079b5ab2eec76a087247eba13b489bcf9167572e6d8b3abd659b2533eaabeb",
+      "bytes": 3500
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-22.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-22.log",
+      "sha256": "446762b822eadcba3995e97bbb52123b753e4c895b53011eca10a851daa456f7",
+      "bytes": 274
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-23-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-23-memory-samples.jsonl",
+      "sha256": "a4bff4f78d7838ca44591c63f5f2b35d976d64ac084c4db98b2edda8f8bf4061",
+      "bytes": 3501
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-23.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-23.log",
+      "sha256": "5be6c0225ea499f68f92ac1dd6e692d1ea7813de20b0c8a6d7c55abf8980ba82",
+      "bytes": 271
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-24-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-24-memory-samples.jsonl",
+      "sha256": "7472a08bf23166e3fe40727bcc8feae55b8262946885f40a1bc35e011b06ef9a",
+      "bytes": 3622
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-24.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-24.log",
+      "sha256": "611e9a40f30114e946c0e2b0dc52bf21ddbf991d6cca3bc5bb64da8bb1b9bafa",
+      "bytes": 274
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-25-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-25-memory-samples.jsonl",
+      "sha256": "74fe26033a955882801b3141595f2537430eca225a4aa00ada10b771d8feb2c9",
+      "bytes": 3621
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-25.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-25.log",
+      "sha256": "e68bb63f2c57dd1f3f3ab45d45b95081969043c465afb7b29de13f708bcb73bf",
+      "bytes": 800
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-26-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-26-memory-samples.jsonl",
+      "sha256": "77814758ba6bb4d9e9179a9058aef2f1788b6b5ecf1b3fad7793bfc6e7b92ee1",
+      "bytes": 3626
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-26.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-26.log",
+      "sha256": "c0b2f1a9df32fe44ecb2188ddb84817a27dba41da858613f86d5ded6cc762045",
+      "bytes": 275
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-27-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-27-memory-samples.jsonl",
+      "sha256": "4dbc0bbf90615d9828651a897fd03d3b8a224526b7521dfa735d96ce825ccbad",
+      "bytes": 3867
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-27.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-27.log",
+      "sha256": "5482dbf6066123c93e4ff600b9ca92d193a7bd911b8706006188e42ed0967e26",
+      "bytes": 262
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-28-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-28-memory-samples.jsonl",
+      "sha256": "d0080ce2f3b32d56b382c64f9ed4bc9b6434d86a963b3c5366aec13a9f062691",
+      "bytes": 3501
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-28.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-28.log",
+      "sha256": "6f31b5b5a63aec02fa27b15d2aec336d2290a1e41b2ea99cd64a2a5fc116be5a",
+      "bytes": 256
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-29-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-29-memory-samples.jsonl",
+      "sha256": "f9cdd0d23c8083284d8b84a703ca11a8c25622f6e429d34f650a82c3def5af3a",
+      "bytes": 3504
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-29.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-29.log",
+      "sha256": "f2015763d3fc60d6a5fce6e42671abdf8bb4f639d09b5c237e5f787376853a6d",
+      "bytes": 270
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-30-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-30-memory-samples.jsonl",
+      "sha256": "41f8f8e24296f47c59d3749291e0071410c8a14ee24abb71619703815ad0f43f",
+      "bytes": 3617
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-30.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-30.log",
+      "sha256": "d89bbd8a26c99ea7a3a434a0c0402132aed600e36f190373eccfc229648cc30f",
+      "bytes": 1022
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-31-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-31-memory-samples.jsonl",
+      "sha256": "edc0b089d3ac0253818d19a943f844c52c8eea66c93cd54934cb9f8a5c15c2bf",
+      "bytes": 3993
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-31.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-31.log",
+      "sha256": "7f2c50475bbed67341ca9ab606e8c1414f1b93de3f9844e1d3b66d64b3262a63",
+      "bytes": 218
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-32-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-32-memory-samples.jsonl",
+      "sha256": "5ee36c554a6ee330e7821f30c13bdc8baa46d6458e5c988e055f47b053ec9410",
+      "bytes": 3495
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-32.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-32.log",
+      "sha256": "b4521d5dadca09182cfe4889b7ca469501a5eeef94062668cf56c0431d381532",
+      "bytes": 224
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-33-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-33-memory-samples.jsonl",
+      "sha256": "2aba48bde54bf5a279a2f8db2ec036e1a8977a5be253e441d5fdfdfc91dba60c",
+      "bytes": 3504
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-33.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-33.log",
+      "sha256": "ce66621948067688d259e21a816701c879adc564f00de81b500a18b338a9ffe7",
+      "bytes": 287
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-34-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-34-memory-samples.jsonl",
+      "sha256": "6e62d95bd0f9be718d7a1da94208f5b30791338c5457f15f413c9acfd2238146",
+      "bytes": 3624
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-34.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-34.log",
+      "sha256": "0b8a0aac7d37ac9dd512765395c2840844ef895b8c37bca96ea128546fd5f89e",
+      "bytes": 270
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-35-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-35-memory-samples.jsonl",
+      "sha256": "35a2c8fd38afb52b2bf5e35f2ad4688fa9e5bd0b5df3ead701d92762266f4d9c",
+      "bytes": 3621
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-35.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-35.log",
+      "sha256": "4ad85ecb774b6095e1bde2890928ab40c620de9ac4f1db5d1cae207bb4ebdc7b",
+      "bytes": 272
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-36-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-36-memory-samples.jsonl",
+      "sha256": "be7494229e01ff4080ed78840a2293c33d2b06f7feac425fa3fef1002e45d966",
+      "bytes": 3627
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-36.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-36.log",
+      "sha256": "56606ff43941b9c2d3c0622bbd5c67663212966f012dec0770d92593a101208a",
+      "bytes": 292
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-37-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-37-memory-samples.jsonl",
+      "sha256": "572a86987a51c152b9872f647fb40f36e7ee9f9474a4c7598d8980b1d31bd1ce",
+      "bytes": 3626
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-37.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-37.log",
+      "sha256": "ee255670c9229f544c7f1f6ca078f59b97b343ebcc9b6afee33ed1d462a85109",
+      "bytes": 293
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-38-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-38-memory-samples.jsonl",
+      "sha256": "989e9e57d90c84f13207cf3a4e7af190a60cb86fb906e18c8115ca26af4c1510",
+      "bytes": 3502
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-38.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-38.log",
+      "sha256": "03c82c9cbfcbd757a8799d0fc888fd0a7d3250f7efac8eac5e72851139c85710",
+      "bytes": 295
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-39-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-39-memory-samples.jsonl",
+      "sha256": "6dd41eebc68199186616efcebf66ed5a30fa4fa2494ca82d6cbec0c97d17bf95",
+      "bytes": 3614
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-39.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-39.log",
+      "sha256": "cffc21c39fc09ab7fefb063a78e07e292c2755d2c5a0b4d4b9be3007a6653007",
+      "bytes": 298
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-40-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-40-memory-samples.jsonl",
+      "sha256": "168e309556cbbdea843f3152b2c98568a8fd05b9ca1af3d37f8406af5a542a9f",
+      "bytes": 3501
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-40.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-40.log",
+      "sha256": "918d23d2c7c3c371d7b034fa2b8ea931c76d245ecd17da4ae50de78202cd1cdb",
+      "bytes": 283
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-41-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-41-memory-samples.jsonl",
+      "sha256": "01755c2881fa99a1d3d533b85dcf191e0b84ab1e91028ff8fcaa0e15153dfc8b",
+      "bytes": 3502
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-41.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-41.log",
+      "sha256": "ceaa360c5f1b6259e8456353b65a8855b122cc0700caffd002b614de81fa9b60",
+      "bytes": 283
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-42-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-42-memory-samples.jsonl",
+      "sha256": "61a7252bd67dae72ecb4f23f4bfdd4be387805598538411300544b5c8b8a6fd1",
+      "bytes": 3624
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-42.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-42.log",
+      "sha256": "d1a679f19e33a8de7f0b8a87b0156e0a029b373fb32c094f4153b1d434946174",
+      "bytes": 283
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-43-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-43-memory-samples.jsonl",
+      "sha256": "1b2c202c7d3fe409acacd4167b673908fbfb49a056b01b3486426433963abe2c",
+      "bytes": 3500
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-43.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-43.log",
+      "sha256": "c64d8e9c817ddf2b966863b587b912d1ff96638632bee74466744105e4a2a447",
+      "bytes": 284
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-44-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-44-memory-samples.jsonl",
+      "sha256": "ba3f225edfdef5ce3acb636efc33fdeb22e9e6d8bcea691f4b48bc33989029e6",
+      "bytes": 3625
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-44.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-44.log",
+      "sha256": "530348ca4221b81cdbec9e08812266fea86562d363f5e8b80ac35b806db7c18f",
+      "bytes": 291
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-45-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-45-memory-samples.jsonl",
+      "sha256": "1b764e05a97374166c5bf2422e956be4a102592569a55ec12c4924ceadd3d157",
+      "bytes": 3624
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-45.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-45.log",
+      "sha256": "55cdd03b1ee786095544155b176e92368c25b2e2c301c91369b6a7354eb282f6",
+      "bytes": 282
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-46-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-46-memory-samples.jsonl",
+      "sha256": "fb96cc1e45978a41b688fc60d5d15d45052c4ab09e5c77918340b0e63d5aaf1c",
+      "bytes": 3621
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-46.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-46.log",
+      "sha256": "c25d17774b4ed73505ac363fb787bbe5f566c7cda184ae0ca64d4d48f0d0bd84",
+      "bytes": 250
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-47-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-47-memory-samples.jsonl",
+      "sha256": "c48ad749935b2166b7b3b5ddc507b491800a28be1419adea3acb753376a167d2",
+      "bytes": 3977
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-47.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-47.log",
+      "sha256": "27956db922de3bd2da0700864942fb26ef87a5a6748f947171aa79df62c94813",
+      "bytes": 250
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-48-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-48-memory-samples.jsonl",
+      "sha256": "40b2a4a55abe362f93605edba50e772f67ef88414df0b6b6c90bc695b74d4f8f",
+      "bytes": 3617
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-48.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-48.log",
+      "sha256": "eb186c3f041477b73f430690940727b36625e6c3c8f44ae02d20aa0987781f8e",
+      "bytes": 26959
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-49-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-49-memory-samples.jsonl",
+      "sha256": "52013682620bde1428e9c5f0e6338e7c8fbcac570c182ad3b69faa0b4d7519d3",
+      "bytes": 3501
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-49.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-49.log",
+      "sha256": "a758b68a965db62444847dfb18b20618bfe11f70945fd875b6085b837cb6119c",
+      "bytes": 1809
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-50-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-50-memory-samples.jsonl",
+      "sha256": "a3b60befc8ea32ab7c7da400dbfcffe93331fa7845b08db977d4c8b19ea36c84",
+      "bytes": 3617
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-50.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-50.log",
+      "sha256": "9d7ed9a49da61305345cf4c5f72af926c90c158a2e3955896d86550f3ee475d3",
+      "bytes": 267
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-51-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-51-memory-samples.jsonl",
+      "sha256": "eca5d924c0d83df0f7aa0f6f096abf23e91e4fcc3c97f1518e0e06371c94dfbf",
+      "bytes": 3621
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-51.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-51.log",
+      "sha256": "a0b8e70593a5b6d956e36b511c8a6d3810ce14eeefbe2975f15de66b9522bd89",
+      "bytes": 259
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-52-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-52-memory-samples.jsonl",
+      "sha256": "e61aafadf31dfaad7fac9aa6df36775ad4cf0526115922eb812de0b74e3c1f73",
+      "bytes": 3503
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-52.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-52.log",
+      "sha256": "5dcf5d01ea0201e15511829ae9f2a0bc781307ac7e856d37a1d227762befbfe0",
+      "bytes": 293
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-53-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-53-memory-samples.jsonl",
+      "sha256": "9e610d1715c3c538d7b16ee6d0b680951811356d56373f25ec91ed6b93bb99f6",
+      "bytes": 3495
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-53.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-53.log",
+      "sha256": "5a66e148038688504756f18ace46deb881d55b31fdbf86311b92dcfed1707a9c",
+      "bytes": 281
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-54-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-54-memory-samples.jsonl",
+      "sha256": "0724dcf6fe0728cadfb07d8f56665e933ae0c739799cce43ef13badc2fcbe098",
+      "bytes": 5976
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-54.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-54.log",
+      "sha256": "a0477976e23dc1c688a8aaa3a259a327f1e771f419d24331ef560fd05c035c23",
+      "bytes": 297
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-55-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-55-memory-samples.jsonl",
+      "sha256": "3eb2bd43ddbbcbb054b565dafbb41b1366b871c2cd6347f99774f17fea951b31",
+      "bytes": 3510
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-55.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-55.log",
+      "sha256": "0db04945521cf8ff92d84ea503e7dd01fd30ae76bf9bdecf21ea2ce0875b807e",
+      "bytes": 291
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-56-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-56-memory-samples.jsonl",
+      "sha256": "02ac0e87c74f07042befb37489f65102a318d5504a2a738ca6ea9f1cbd5bb396",
+      "bytes": 3498
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-56.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-56.log",
+      "sha256": "769ce07c761424d8bb02ded4dd9f7ce4d6e064c374da4af833ac08ea8595bf8d",
+      "bytes": 300
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-57-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-57-memory-samples.jsonl",
+      "sha256": "1dce7d872745894428ecfc32f3c2362390c0d1ded6cacefdd9d04a13c8466915",
+      "bytes": 17607
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-57.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-57.log",
+      "sha256": "25a34cf194d812181ab558369c72faebe0c0be956b12ea24fb4586dc123bf601",
+      "bytes": 220
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-58-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-58-memory-samples.jsonl",
+      "sha256": "d5c816b573488ce03116b0b42c5c5584a6245100f6479631c67065dc8cbe6e90",
+      "bytes": 3624
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-58.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-58.log",
+      "sha256": "dfbc2084f6b543903d80ea77168206c103e8b6757cc441236367c19fa1d376d7",
+      "bytes": 1052
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-59-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-59-memory-samples.jsonl",
+      "sha256": "e6bb96e150da16add8d90df59c7dad63839713bf354324fca4b3447ee239383a",
+      "bytes": 3493
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-59.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-59.log",
+      "sha256": "3f69ec37b7f5548a421535b13fc6a77eb9152d2e914efc9897fe5bf1c5a0f3f9",
+      "bytes": 264
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-60-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-60-memory-samples.jsonl",
+      "sha256": "76fd22f38fac8ea911cdf2ea2105ed737260e80343c5fe50cc4c38e390baa781",
+      "bytes": 3500
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-60.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-60.log",
+      "sha256": "7fd035aa86a6def1313208c4d730f138da120b562158a01100f5ee9842145d68",
+      "bytes": 280
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-61-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-61-memory-samples.jsonl",
+      "sha256": "b9ac00f8db01f3e7a9342cb9d327fd1d14e6f3b3feeca4d2e5fb8027e10db7e6",
+      "bytes": 3501
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-61.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-61.log",
+      "sha256": "b5a619cec1b2bd040f630c572587ad4dea479eb0ed5845dc2d2d2947cc2d3376",
+      "bytes": 281
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-62-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-62-memory-samples.jsonl",
+      "sha256": "c53e3ea5d73c756ecb7debb2eb36ea7fd7e9b3e23236a98d9237849888f07f2e",
+      "bytes": 3622
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-62.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-62.log",
+      "sha256": "6f62d5b94f1385db8a1f6993a699ac96c0ac10876e1c9cd1749907ab7d369560",
+      "bytes": 266
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-63-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-63-memory-samples.jsonl",
+      "sha256": "3de610a8e479377f4cdb30e0cf1f64f2f904359abb5d5b27af5465f7ba947bcf",
+      "bytes": 3619
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-63.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-63.log",
+      "sha256": "353111866b2699056e1df57f03f7b866635a051a0221de907c896c09ed732886",
+      "bytes": 278
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-64-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-64-memory-samples.jsonl",
+      "sha256": "b4dd95fbdb04ac5d348f628d2913b37b1e5493a066ef697795fc4bcca3e9ee3a",
+      "bytes": 3501
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-64.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-64.log",
+      "sha256": "bb51ac511a515665db993449b650e04b69aa25f0d497ea1675a56a3c4e3e985e",
+      "bytes": 278
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-65-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-65-memory-samples.jsonl",
+      "sha256": "1f2e2f4ee59815ce93c2ffddaa3287356f5d47f164b79493cb633090e324c3c3",
+      "bytes": 3619
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-65.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-65.log",
+      "sha256": "a0004671684bbc638bab11e653c6f421aab9d74bc64f713d481eb53ebd152b8b",
+      "bytes": 254
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-66-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-66-memory-samples.jsonl",
+      "sha256": "bf261d1b268b38d578c9f3177b50c81aac43b36001b6772d9e13f8e9e58bbdbe",
+      "bytes": 3621
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-66.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-66.log",
+      "sha256": "f738f981ce4c8429831b0edf95c2a233b2331d97583bf672b568513723d630b1",
+      "bytes": 278
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-67-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-67-memory-samples.jsonl",
+      "sha256": "10eacd7db4c15c03177c56701e40f06e47c2a28b649b2c8f25381bccb9fd5a2b",
+      "bytes": 3495
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-67.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-67.log",
+      "sha256": "13597174a7c1ae95982f04a70182a72c5279bc8fc4a82a06ce0adcc8163430dd",
+      "bytes": 276
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-68-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-68-memory-samples.jsonl",
+      "sha256": "fc3334b247beddf0d4693e6a05725d0b98189a8e79d235b553a377afc3ad535d",
+      "bytes": 3497
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-68.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-68.log",
+      "sha256": "ecb88d54ffd70890288bf54463107e07850347b01afb7c548e87f6c9f22eca7e",
+      "bytes": 288
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-69-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-69-memory-samples.jsonl",
+      "sha256": "48e9ff8adacd9080abcb3ca5bf36b6e1cf431c2dc0be4c0c8eff150a647120db",
+      "bytes": 3501
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-69.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-69.log",
+      "sha256": "52fb366c04d468c083febf83da68636d61228d183f3ae8324fc4cc68e48afac8",
+      "bytes": 283
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-70-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-70-memory-samples.jsonl",
+      "sha256": "f4dfe38df6dbd9295e84ab8f2bfccc89dfaecf4c1a1a1e24fc5dcc24e2a1198a",
+      "bytes": 3499
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-70.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-70.log",
+      "sha256": "9c4393bee1ebd50e90b3158a0418d61e825d6981269dac2bbcd25ecca34b5afb",
+      "bytes": 263
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-71-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-71-memory-samples.jsonl",
+      "sha256": "8ef63d698eac1c2e431fc9a4217b214934c621f76b0aacbb077ac6142f93038b",
+      "bytes": 3494
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-71.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-71.log",
+      "sha256": "f0722b8d443acf9f2675eafbc0e7ed10c7625cbf73a794dac1ef20d662389657",
+      "bytes": 269
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-72-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-72-memory-samples.jsonl",
+      "sha256": "a03e522de00544958cc89d06d5d5d72f3269568b04c0f3435a7e78ea1bd11672",
+      "bytes": 3495
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-72.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-72.log",
+      "sha256": "93a9919056404ef9f9197d2d639208f1c515a5da50c1ec6a99297b9294757231",
+      "bytes": 288
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-73-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-73-memory-samples.jsonl",
+      "sha256": "0cfcf7cf089e5a1c091c23f66dfb4b5e77639e789b8257eeaed36b8d429e45d3",
+      "bytes": 3502
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-73.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-73.log",
+      "sha256": "8499b9f67a35d8b9afe9d4af94d0d0b4291efd9fe27f46228a8a3dd31066a816",
+      "bytes": 300
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-74-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-74-memory-samples.jsonl",
+      "sha256": "76074721729a3aebc5b376a2d6881ee4a3a59d3302724c1763880e11b53dcc89",
+      "bytes": 3503
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-74.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-74.log",
+      "sha256": "2d2946a8c5c5f3aa415b8d0262e16bdd1014a9bf86aaa9256984c5b7518c63ac",
+      "bytes": 297
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-75-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-75-memory-samples.jsonl",
+      "sha256": "13c79a353de0e82cf145840d0b04a497b949f37cd63580bed362ccaae0e674f7",
+      "bytes": 3504
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-75.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-75.log",
+      "sha256": "58b268e13e0d208e5543d062d7e5dcdcede648f1f0f1418643573e62463d9878",
+      "bytes": 1706
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-76-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-76-memory-samples.jsonl",
+      "sha256": "04fd232ea23b5e19a11c90c6221e49a6008be2a942de2fe7e7e4427b6cf50c92",
+      "bytes": 3500
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-76.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-76.log",
+      "sha256": "e0a8c0e19aa32d6a973d287a4904d98cfb84d40605e880c63141ff3526371003",
+      "bytes": 289
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-77-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-77-memory-samples.jsonl",
+      "sha256": "c9ace64f7f53f780303c4a446c56a81a5ed9ea39c81448083b09b7630b33c7f4",
+      "bytes": 3503
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-77.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-77.log",
+      "sha256": "4ef37bc94bf851577a5a3f71cc1742f83be368ec0327c665f915f7e092341e5d",
+      "bytes": 290
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-78-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-78-memory-samples.jsonl",
+      "sha256": "f08b8a4d7b3f3d009823df9dab1f760302c1b7f9da6b8bced92bd5c075338d4d",
+      "bytes": 3621
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-78.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-78.log",
+      "sha256": "1f0f311ed225434325306f5e35c64feb678414c14ed32975d15e53376811868f",
+      "bytes": 268
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-79-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-79-memory-samples.jsonl",
+      "sha256": "97c62f48e62add5abe2f27663b63eece5ff2fea687c91a859ff7dc69a14ede0b",
+      "bytes": 3624
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-79.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-79.log",
+      "sha256": "be18bf46e57128124e30a20d3c72cbd3043046fad0bbd1342452a9c58133ee8b",
+      "bytes": 276
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-80-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-80-memory-samples.jsonl",
+      "sha256": "b4fc5e4373604dd6dce2452bae713142ffe7e97cbb33e2a0aa2206a34412e09b",
+      "bytes": 3502
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-80.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-80.log",
+      "sha256": "d506edbd3cef34af83834a5e923b161739b24ec16c3847a11b9b492e70a04118",
+      "bytes": 274
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-81-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-81-memory-samples.jsonl",
+      "sha256": "87e4f94aef5a933d6e97086ee8f68be270fc0d3cc168bb7e73054b6389a58760",
+      "bytes": 3501
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-81.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-81.log",
+      "sha256": "e369b14ef6f48d0c4f6f606bd58ba789724c36a1966641beab94053a498fd459",
+      "bytes": 271
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-82-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-82-memory-samples.jsonl",
+      "sha256": "74e4feba5c747d5f1a51fc4f03b5894761682d163e9621b279a37d4fa933e0bb",
+      "bytes": 3499
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-82.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-82.log",
+      "sha256": "2d01c4dc05fcfda92f8681cd780c2170298fda8442e3250052271871267b42ec",
+      "bytes": 272
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-83-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-83-memory-samples.jsonl",
+      "sha256": "1c853d7f42207f0230bffae2ee3859ebadce9099221f87ce9ea54dab7482e2d9",
+      "bytes": 3498
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-83.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-83.log",
+      "sha256": "327502ff2b54394b1e2e384d87b4ca4d7b2c273c0f6fee80c902a2153f21136a",
+      "bytes": 270
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-84-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-84-memory-samples.jsonl",
+      "sha256": "31cc7ec6d87f246da378525728bce00211bef0c5ac16cf815ab62f24b8d6a263",
+      "bytes": 3502
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-84.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-84.log",
+      "sha256": "30d748dd4aa86b8f2c871963747d8ed924eb1107ccfed723147c788f96b5cb61",
+      "bytes": 288
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-85-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-85-memory-samples.jsonl",
+      "sha256": "a1cf17f9f23938498bd8061fbaada8500a2d19b24dbcb7c7c838286c624ff273",
+      "bytes": 3504
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-85.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-85.log",
+      "sha256": "328633a6aab814fc89054450522b0dee25796de3124a9ac1fac17861c0b4d8a6",
+      "bytes": 283
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-86-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-86-memory-samples.jsonl",
+      "sha256": "f522b2a7f71ebdff87d3526c073694954dd9812417eb0a610ccd7eef7a0274af",
+      "bytes": 3617
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-86.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-86.log",
+      "sha256": "3e747ed3621de7bf0dd274ecf21ee2bf3d4c77c22a9cad969529740ce5de46f2",
+      "bytes": 839
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-87-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-87-memory-samples.jsonl",
+      "sha256": "4ad2c41404104954d134b76a82915648a14e4a7dbce7611e2c4478b63a187883",
+      "bytes": 3501
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-87.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-87.log",
+      "sha256": "260fc5240265561f141d2f6fb5792e39a4c32fbf4b133f3d9283f212d8da564d",
+      "bytes": 276
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-88-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-88-memory-samples.jsonl",
+      "sha256": "b3be91fc021fc7a6c83cbd27b3770a1f799eb68d382ca22a457aa1c9bb6f3f94",
+      "bytes": 3501
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-88.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-88.log",
+      "sha256": "3d1d1dbee6258a6daf68483d82722219ef4612f9376b43e3c27c9500589c9a08",
+      "bytes": 289
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-89-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-89-memory-samples.jsonl",
+      "sha256": "3bb07f8c4bf933d03974063ed74b21035a91a64079c185b75d20705bc79347b2",
+      "bytes": 3623
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-89.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-89.log",
+      "sha256": "05cec4865d10dea8886bc310fdb1b6227ff7e41d81386c279105cc9f0667564e",
+      "bytes": 267
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-90-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-90-memory-samples.jsonl",
+      "sha256": "36200cf0728644b086b050b7ddfb974664ad1d0de7d8c5f328042171a128f8b2",
+      "bytes": 3498
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-90.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-90.log",
+      "sha256": "4ca021848cc7e4beaef35cfc9cf1cdeb074e6be594483131ca4b8e55815f9779",
+      "bytes": 285
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-91-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-91-memory-samples.jsonl",
+      "sha256": "2b58172312d28e4ca56da3b0647e1ac89d6c23694566977a6e1d6213ff0cb107",
+      "bytes": 3620
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-91.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-91.log",
+      "sha256": "0f9d318001234ce7a9062b71d2dd089de2eb1d9f418e856d6bd949b1057a9d44",
+      "bytes": 256
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-92-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-92-memory-samples.jsonl",
+      "sha256": "a09e26efe1d1327b4e19d16a232f44dcc316d723b7a9232d4ecf0f44efc7505f",
+      "bytes": 3619
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-92.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-92.log",
+      "sha256": "ffa0e47bfa4b90ed85d31250387b38e7e79be3a4f2c1535c5c70694c36c4d6a2",
+      "bytes": 892
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-93-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-93-memory-samples.jsonl",
+      "sha256": "a56ec2171542efcca81cbc0fafafa8fdbbb514a6c4e836692542ef7a13e5650e",
+      "bytes": 3617
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-93.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-93.log",
+      "sha256": "d71bcd66b14fcc3c5c6609c3241b1aa4865613876e3ee65aff72bffc503fa465",
+      "bytes": 282
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-94-memory-samples.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-94-memory-samples.jsonl",
+      "sha256": "1702138b1e5806d714ce3ee949de97be21c5cf16aa32081c32fa6963a8d144f8",
+      "bytes": 3617
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-94.log",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-94.log",
+      "sha256": "11b42666178ccfbdf8b594e7318696072202badac08467f7a2640a9c52516168",
+      "bytes": 249
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/owning-selected-results.json",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/owning-selected-results.json",
+      "sha256": "680062c9896e350da4dc325145047b8bd1b55f290c222b1916a4f78e7b4871af",
+      "bytes": 803657
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/preparation-receipt.json",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/preparation-receipt.json",
+      "sha256": "359b33613bc18ac473a28121ca5df84782c4215cb4f22807be3533bd399d35b1",
+      "bytes": 4716
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/pressure-guardian-source.py",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/pressure-guardian-source.py",
+      "sha256": "a4477f43ec63fccb169a9b951c793f62a1cd06352d3a690872cfe1673be58119",
+      "bytes": 6400
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/pressure-guardian.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/pressure-guardian.jsonl",
+      "sha256": "7c2f4affdec27c25e42073c212d690c83b9ed4c511f0a24b78f745fbf9105e34",
+      "bytes": 105287
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/selected-pressure-guardian-source.py",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/selected-pressure-guardian-source.py",
+      "sha256": "4e7c4816d521ca3520676ee63884c0f384869fb547e55599fe83f5c18b81a1a2",
+      "bytes": 6889
+    },
+    {
+      "original_path": "/Volumes/Semaprax/lane-prompts/final-ae91-95-recheck-20261015/selected-pressure-guardian.jsonl",
+      "archive_path": "docs/evidence/qualification-ae91-95-20261015/receipts/selected-pressure-guardian.jsonl",
+      "sha256": "d9a12e694e8412381b3e048cc06e8c721db09c5dcaa5ee55eb970d71a143f16a",
+      "bytes": 45531
+    }
+  ],
+  "all_three_relevant_clippy_passed": true
+}

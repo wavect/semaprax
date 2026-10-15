@@ -1,0 +1,17 @@
+
+running 1 test
+test workspace_graph::cold_canonical::tests::complete_old_commented_formatter_preflight_sources_and_all_current_children_remain_exact ... 
+thread 'workspace_graph::cold_canonical::tests::complete_old_commented_formatter_preflight_sources_and_all_current_children_remain_exact' (7929460) panicked at src/workspace_graph/cold_canonical/tests.rs:372:9:
+assertion `left == right` failed
+  left: "c3f6ff4b44a73a1cb577ee26d9ef507d9cde09e762e4b3316e76f391c0d1364b"
+ right: "0d01d06a2f6f9794f9f52ffa4ebcdac1a557405a2737623ae7515422c511a148"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    workspace_graph::cold_canonical::tests::complete_old_commented_formatter_preflight_sources_and_all_current_children_remain_exact
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.06s
+

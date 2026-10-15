@@ -1,0 +1,63 @@
+{
+  "src/cleanup_plan/renewal_profile/ordinary/consuming.rs": [
+    [
+      4379,
+      "    collect_body(program, function, output, admission)\n}\n\npub(super) fn collect_with_presence<'a>(\n    program: &P,\n    function: &'a F,\n    output: &mut Scratch<Entry<'a>>,\n    presence: &super::RecordPresence<'_>,\n    admission: &mut Admission<'_>,\n) -> Result<(), Refusal> {\n    if !presence.get(&program.declarations, admission)? {\n        return Ok(());\n    }\n    collect_body(program, function, output, admission)\n}\n\nfn collect_body<'a>(\n    program: &P,\n    function: &'a F,\n    output: &mut Scratch<Entry<'a>>,\n    admission: &mut Admission<'_>,\n) -> Result<(), Refusal> {\n",
+      ""
+    ]
+  ],
+  "src/cleanup_plan/renewal_profile/ordinary/mod.rs": [
+    [
+      172,
+      "mod record_presence;\n",
+      ""
+    ],
+    [
+      206,
+      "pub(crate) use record_presence::RecordPresence;\n",
+      ""
+    ],
+    [
+      2883,
+      "        Self::collect_impl(program, function, helpers, None, admission, true)\n",
+      "        Self::collect_impl(program, function, helpers, admission, true)\n"
+    ],
+    [
+      2967,
+      "    #[cfg(test)]\n",
+      ""
+    ],
+    [
+      3341,
+      "        Self::collect_impl(\n            member.program,\n            member.function,\n            helpers,\n            None,\n            admission,\n            false,\n        )\n    }\n    pub(crate) fn collect_current_with_presence(\n        member: CurrentMember<'a>,\n        helpers: &crate::loop_calls::byte_writer::ModuleIndex<'a>,\n        presence: &RecordPresence<'_>,\n        admission: &mut Admission<'_>,\n    ) -> Result<Self, Refusal> {\n        admission.units(1)?;\n        if !helpers.matches_program(member.program) {\n            return admission.refuse(Refusal::Subject);\n        }\n        Self::collect_impl(\n            member.program,\n            member.function,\n            helpers,\n            Some(presence),\n            admission,\n            false,\n        )\n",
+      "        Self::collect_impl(member.program, member.function, helpers, admission, false)\n"
+    ],
+    [
+      4291,
+      "        presence: Option<&RecordPresence<'_>>,\n",
+      ""
+    ],
+    [
+      4737,
+      "                match presence {\n                    Some(presence) => consuming::collect_with_presence(\n                        program, function, output, presence, admission,\n                    )?,\n                    None => consuming::collect(program, function, output, admission)?,\n                }\n",
+      "                consuming::collect(program, function, output, admission)?;\n"
+    ]
+  ],
+  "src/loop_calls/byte_writer/module_index/ordinary.rs": [
+    [
+      162,
+      "    Admission, Directory, Family, RecordPresence, Refusal, Scratch,\n",
+      "    Admission, Directory, Family, Refusal, Scratch,\n"
+    ],
+    [
+      2774,
+      "        let record_presence = RecordPresence::new(&program.declarations, &mut admission)\n            .map_err(|_| resolved::census_error())?;\n",
+      ""
+    ],
+    [
+      3531,
+      "            let directory = Directory::collect_current_with_presence(\n                member,\n                self,\n                &record_presence,\n                &mut admission,\n            )\n            .map_err(|_| resolved::census_error())?;\n",
+      "            let directory = Directory::collect_current(member, self, &mut admission)\n                .map_err(|_| resolved::census_error())?;\n"
+    ]
+  ]
+}

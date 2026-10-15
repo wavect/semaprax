@@ -2,7 +2,7 @@
 mod numeric;
 use super::*;
 use crate::cleanup_plan::renewal_profile::ordinary::{
-    Admission, Directory, Family, Refusal, Scratch,
+    Admission, Directory, Family, RecordPresence, Refusal, Scratch,
 };
 use crate::hir::ExpressionId;
 impl<'a> ModuleIndex<'a> {
@@ -64,6 +64,8 @@ impl<'a> ModuleIndex<'a> {
             crate::hir::renewal_probes::phase::Probes::new(&program.declarations, &mut admission)
                 .map_err(|_| resolved::census_error())?;
         admission.probes = Some(&probes);
+        let record_presence = RecordPresence::new(&program.declarations, &mut admission)
+            .map_err(|_| resolved::census_error())?;
         if self.sites.is_empty() {
             admission
                 .reserve(std::mem::size_of::<Self>())
@@ -76,8 +78,13 @@ impl<'a> ModuleIndex<'a> {
             if demanded.is_some_and(|demanded| !std::ptr::eq(function, demanded)) {
                 continue;
             }
-            let directory = Directory::collect_current(member, self, &mut admission)
-                .map_err(|_| resolved::census_error())?;
+            let directory = Directory::collect_current_with_presence(
+                member,
+                self,
+                &record_presence,
+                &mut admission,
+            )
+            .map_err(|_| resolved::census_error())?;
             directories
                 .push(directory, &mut admission)
                 .map_err(|_| resolved::census_error())?;

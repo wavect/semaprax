@@ -7,6 +7,94 @@ use crate::hir::{ExpressionId, ResolvedExpr as E, ResolvedExprKind as K};
 use std::cell::Cell;
 use std::mem::size_of;
 
+#[test]
+fn phase_presence_keeps_full_current_directories_and_every_consuming_entry() {
+    let source = crate::check(
+        r#"module phase_presence;
+@id("row") record Row {@id("row.a") a:Bytes,@id("row.n") n:i64,@id("row.b") b:Bytes,}
+@id("plain") fn plain()->i64 {0}
+@id("main") fn main()->i64 {
+ let rows=vec_push<Row>(vec_with_capacity<Row>(1usize),Row{a:bytes_zeroed(1usize),n:1,b:bytes_zeroed(1usize)});
+ let mut target=vec_with_capacity<Row>(1usize);
+ for own row in vec_into_iter<Row>(rows) {target=vec_push<Row>(target,row);0} 0 }
+"#,
+        "phase-presence.spx",
+    ).unwrap();
+    let program = crate::hir::resolve(&source).unwrap();
+    let helpers = crate::loop_calls::byte_writer::ModuleIndex::new(&program).unwrap();
+    let mut work = |_| true;
+    let mut backing = |_| true;
+    let presence = super::super::RecordPresence::new(
+        &program.declarations,
+        &mut Admission::new(&mut work, &mut backing),
+    )
+    .unwrap();
+    let mut prefix = 0;
+    for declaration in program.declarations.declarations() {
+        prefix += 1;
+        if declaration.kind == crate::hir::DeclarationKind::Record
+            && declaration.identity_origin == crate::hir::IdentityOrigin::Explicit
+        {
+            break;
+        }
+    }
+    let mut consuming = 0;
+    for member in super::super::current_members(&program) {
+        let collect = |cached| {
+            let work = Cell::new(0usize);
+            let paid = Cell::new(0usize);
+            let mut debit = |units| {
+                work.set(work.get() + units);
+                true
+            };
+            let mut reserve = |bytes| {
+                paid.set(paid.get() + bytes);
+                true
+            };
+            let mut admission = Admission::new(&mut debit, &mut reserve);
+            let directory = if cached {
+                Directory::collect_current_with_presence(
+                    member,
+                    &helpers,
+                    &presence,
+                    &mut admission,
+                )
+            } else {
+                Directory::collect_current(member, &helpers, &mut admission)
+            }
+            .unwrap();
+            (directory, work.get(), paid.get())
+        };
+        let (before, old_work, old_paid) = collect(false);
+        let (after, new_work, new_paid) = collect(true);
+        assert_eq!(new_work + prefix, old_work + 1);
+        assert_eq!(new_paid, old_paid);
+        assert_eq!(before.entries.len(), after.entries.len());
+        for (before, after) in before.entries.iter().zip(&after.entries) {
+            assert!(std::ptr::eq(before.at, after.at));
+            assert!(std::ptr::eq(before.binding, after.binding));
+            assert_eq!(
+                (
+                    before.families,
+                    before.family,
+                    before.ordinal,
+                    before.rank,
+                    before.first
+                ),
+                (
+                    after.families,
+                    after.family,
+                    after.ordinal,
+                    after.rank,
+                    after.first
+                )
+            );
+            consuming += usize::from(after.rank == 0 && after.first);
+        }
+    }
+    assert!(consuming > 0);
+}
+
 struct Outcome<'r, O> {
     nodes: Vec<&'r E>,
     result: Result<(), Refusal>,

@@ -1,0 +1,1 @@
+{"status": "SOURCE_ONLY_PASS", "whole_current_inverse": true, "original_packet_unchanged": true, "original_complete_bindings_replayed": true, "new_layouts": ["&Result<T,CoreFailure>", "&mut Result<T,CoreFailure>", "&Setup", "Setup copied initializer", "Setup parameter receiver"], "rust_execution": false}

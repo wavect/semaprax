@@ -1,0 +1,11 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "basis": "4f8f598c7935d0a5cdd4a5d5ba5b49d164ae2cfc",
+  "current_source_rows": 2,
+  "all_full_originals_and_current_bindings": true,
+  "whole_helper_prefix_equal_after_only_three_named_diagnostic_hooks": true,
+  "original_helpers_unchanged": true,
+  "source36": "PASS",
+  "production_files_changed": false,
+  "cfg_test_difference": "Full test-only independent replay remains compiled; receipt equality alone cannot establish production site equivalence."
+}

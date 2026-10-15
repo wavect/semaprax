@@ -1,3 +1,5 @@
+#[path = "../../tests/native/string_settlement/codec_allocation/codec808_frontier.rs"]
+mod codec808_frontier;
 #[path = "tests/cache_stage_debits.rs"]
 mod cache_stage_debits;
 use super::*;

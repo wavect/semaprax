@@ -1,0 +1,7 @@
+{
+  "status": "AUTHORED_UNEXECUTED_DIAGNOSTIC_ONLY",
+  "selector": "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure",
+  "source": "tests/native/string_settlement/codec_allocation/codec808_frontier.rs",
+  "source_sha256": "1f90201ed8422af0608dcabba619638bd9618ab00be82eb1a42701bbabb79a9b",
+  "original_seven_owners": "UNCHANGED: retain original integration owners; this witness never qualifies backend/allocation assertions"
+}

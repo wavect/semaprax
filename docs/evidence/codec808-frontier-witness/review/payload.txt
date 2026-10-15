@@ -1,0 +1,114 @@
+Review concrete cfg(test)-only diagnostic witness proposal. Seven issue808 primitive Vec<string> integration tests actually fail SPX-G171 during with_authenticated_project, HIR final validation; raw SHA-verified receipts201/149(two),408/7(three),200/79(two). Exact inneroperation unknown. Do not infer allocation/cause from numbers. Existing OperationRefusal guards only available in cfgtest library; integration-linked production library lacks them. No tests/builds permitted now. Proposal new lib unit child workspace_graph/tests/codec808_frontier.rs copies EXACT existing native helper PREPARATION PREFIX below (no changes to prefix, caps, derivation/verification/canonical sequencing), same original manifest include, SCHEMA/canonicalhelper exact. Replace only helper declaration/stop boundary: prepare_v2(response)->PathBuf ends after this for-loop, returnsroot. No later C generation/runtime/allocation observation is claimed. Existing native owners fail at .unwrap inside prefix BEFORE that omitted tail; all7 integration owners remain unchanged. One witness test clears existing take_completed/take_last_completed, catch_unwind around prepare_v2(V2 max64/256), takes/prints both traces AFTER original core ledger settles, then resumes EXACT original panic payload if failed. Success cleans testdir, no success claim about backend. Complete original helper+parent source archived unchanged; compiletime source-equality control compares exact prefix, manifest bytes and original SCHEMA/canonical helper. No production schema/telemetry/fields/authority/fees changes. Test wrapper panic machinery occurs AFTER ordinary selected result; cannot become a retry/fallback. Is this sound exact fixture reproduction/first-frontier attribution? Identify concrete blockers or attribution caveats. Does existing trace max vs last suffice for original refused call? Keep response concise.
+EXACT PREFIX:
+    let root = std::env::temp_dir().join(format!(
+        "native-codec-allocation-{}-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos(),
+        SERIAL.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::create_dir(&root).unwrap();
+    fs::create_dir(root.join("src")).unwrap();
+    fs::write(
+        root.join("semaprax.toml"),
+        include_str!("../bulk_utf8/semaprax.toml"),
+    )
+    .unwrap();
+    fs::write(
+        root.join("src/schema.spx"),
+        canonical(&SCHEMA.replace("Vec<Row>", "Vec<string>")),
+    )
+    .unwrap();
+    for (path, source) in [
+        (
+            "src/app.spx",
+            "module consumer.app;@id(\"consumer.main\") fn main()->i64{0}",
+        ),
+        (
+            "src/tests.spx",
+            "module consumer.tests;@id(\"consumer.tests\") fn main()->i64{0}",
+        ),
+    ] {
+        fs::write(root.join(path), canonical(source)).unwrap();
+    }
+    for policy in [
+        project::JsonCodecProfile::NestedRequest {
+            max_string_bytes: 64,
+            max_array_items: 256,
+        },
+        response,
+    ] {
+        let source = project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
+            let revision = snapshot.retain_revision();
+            let source = project::derive_json_codec_source_with_profile(
+                &revision,
+                "src/schema.spx",
+                "fault.report",
+                policy,
+            )?;
+            project::verify_json_codec_source_with_profile(
+                &revision,
+                "src/schema.spx",
+                "fault.report",
+                &source,
+                policy,
+            )?;
+            assert_eq!(source, canonical(&source));
+            Ok(source)
+        })
+        .unwrap();
+        fs::write(root.join("src/schema.spx"), source).unwrap();
+    }
+
+EXISTING TRACE SETTLEMENT:
+pub(crate) struct Guard {
+    previous: Trace,
+}
+pub(crate) fn start(prebound: usize, layouts: usize, mode: u8) -> Guard {
+    let budget = active().expect("resolved core has its existing budget");
+    let trace = Trace {
+        owner: Rc::as_ptr(&budget) as usize,
+        initial: budget.remaining.get(),
+        prebound,
+        layouts,
+        mode,
+        ..Trace::EMPTY
+    };
+    let previous = CURRENT.with(|current| current.replace(trace));
+    Guard { previous }
+}
+impl Drop for Guard {
+    fn drop(&mut self) {
+        let mut trace = CURRENT.with(|current| current.replace(self.previous));
+        let budget = active().expect("core trace settles before its ledger");
+        assert_eq!(trace.owner, Rc::as_ptr(&budget) as usize);
+        trace.consumed = trace.initial - budget.remaining.get();
+        assert_eq!(
+            trace.sum(),
+            trace.consumed,
+            "every committed debit exactly once"
+        );
+        LAST_COMPLETED.with(|completed| completed.set(Some(trace)));
+        COMPLETED.with(|completed| {
+            if completed
+                .get()
+                .is_none_or(|old| trace.consumed > old.consumed)
+            {
+                completed.set(Some(trace));
+            }
+        });
+    }
+}
+pub(crate) fn take_completed() -> Option<Trace> {
+    COMPLETED.with(|completed| completed.take())
+}
+/// Final attempt, separately from the historical maximum-consumed attempt.
+/// Observation only: neither receipt changes the ordinary budget or retry path.
+pub(crate) fn take_last_completed() -> Option<Trace> {
+    LAST_COMPLETED.with(|completed| completed.take())
+}
+
+#[cfg(test)]
+mod tests;

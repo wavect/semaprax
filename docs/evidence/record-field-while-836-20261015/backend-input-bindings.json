@@ -1,0 +1,127 @@
+[
+  {
+    "domain": "backends",
+    "source": "src/codegen/native_emit/expression/vec_ops.rs",
+    "target_sha256": "566bcd39027ab55c0800b0c631814b45d988e6d959d4cc0a91f2de09c3fa52d7"
+  },
+  {
+    "domain": "backends",
+    "source": "src/codegen/native_emit/expression/vec_ops/owned_payload.rs",
+    "target_sha256": "e91eee09439a41d1c90e6133a321294d08f4b68f64548ec3e3369a752b051b61"
+  },
+  {
+    "domain": "backends",
+    "source": "src/codegen/native_emit/expression/vec_ops/record_payload.rs",
+    "target_sha256": "3b86501a0d9d465848c019239ca2e030c6fd0f6299817631d80c8be5ed374b12"
+  },
+  {
+    "domain": "backends",
+    "source": "src/codegen/native_vec.rs",
+    "target_sha256": "e96a33ef703f09e0fe61b952af784314e403b55745c80b2c67e413d848c785fc"
+  },
+  {
+    "domain": "backends",
+    "source": "src/codegen/native_vec/owned_leaf.rs",
+    "target_sha256": "1b16dd8a7e947148b75cad99e353e1cc0b190ab034cc9f25c4fe64ae7e900352"
+  },
+  {
+    "domain": "backends",
+    "source": "src/wasm/aggregate.rs",
+    "target_sha256": "862f5f7f9d9351717dc4f9c9c92ddff5f82e169eca516120d71c7741d140a15d"
+  },
+  {
+    "domain": "backends",
+    "source": "src/wasm/aggregate/vec_field.rs",
+    "target_sha256": "477309b95cbeb626ba2aadb0d4fdbb978f65092ae5eb5e25d0f045d89977f1fc"
+  },
+  {
+    "domain": "backends",
+    "source": "src/wasm/aggregate/vec_owned_leaf.rs",
+    "target_sha256": "30824f71b023aedcfde7f1f4d24a6d3bd087615396d21cb0ea3b282b789dca43"
+  },
+  {
+    "domain": "backends",
+    "source": "src/wasm/aggregate/vec_owned_payload.rs",
+    "target_sha256": "c082e81bc293ce1bc99d9b8d9761d031185415527e659b90548c5b650b8f549d"
+  },
+  {
+    "domain": "backends",
+    "source": "src/wasm/aggregate/vec_record_payload.rs",
+    "target_sha256": "58116167715767584d7658e05aa289cc758541d2ffe585348cc962ae95eb4480"
+  },
+  {
+    "domain": "backends",
+    "source": "tests/cleanup_backends/owned_leaf_collections.rs",
+    "target_sha256": "3fa8a7ab60d9e26926b448c775c548d4c42687243cecdd0a6d63871d0b5f9a78"
+  },
+  {
+    "domain": "backends",
+    "source": "tests/owned_data/owned_leaf_vec.rs",
+    "target_sha256": "0d1e84bf3548f95bdce59aaa80f17bf89f295cc6dd38dd089669f756ab0d8859"
+  },
+  {
+    "domain": "backends",
+    "source": "tests/owned_data/owned_leaf_vec/host.js",
+    "target_sha256": "6a8dec18fd89837bf3a25b0aeb30e6fffd7aa0ac69ea1f23fcfc3d663ff7ac12"
+  },
+  {
+    "domain": "backends",
+    "source": "src/codegen/native_emit/expression/vec_ops/field_update.rs",
+    "target_sha256": "5c2ff64a52303ee80eb069570ac96e892d15391eaaee81b054a1e40b108474af"
+  },
+  {
+    "domain": "backends",
+    "source": "src/codegen/native_vec/field_update.c",
+    "target_sha256": "b3e560f838d52dcfb17eacc7161b6a20acaffc0f2457fabb22a7feadcb3e5481"
+  },
+  {
+    "domain": "backends",
+    "source": "src/wasm/aggregate/vec_owned_leaf/field_update.rs",
+    "target_sha256": "dd2ac350b0a6b57898a6070c4e4ed303d435e88ca8df02767391627d9a5720c8"
+  },
+  {
+    "domain": "backends",
+    "source": "tests/support/record_copy_field_update.rs",
+    "target_sha256": "17450bb704f73ec623cec90728172a289552921e40d1bce5c3a7d3e3e3ce41c8"
+  },
+  {
+    "domain": "backends",
+    "source": "tests/cleanup_backends/owned_leaf_collections/copy_field_update.rs",
+    "target_sha256": "b385f28f7d6862a3ca7209cd54fea521d6281ba728cb29c8e60e58c18b1b0974"
+  },
+  {
+    "domain": "backends",
+    "source": "tests/owned_data/owned_leaf_vec/copy_field_update.rs",
+    "target_sha256": "af7cf8420cfad1dfcf6434fcf58b71e504f3c6ff365ab0aa3d37c168b14c217c"
+  },
+  {
+    "domain": "coverage",
+    "source": "tests/support/record_copy_field_update.rs",
+    "target_sha256": "17450bb704f73ec623cec90728172a289552921e40d1bce5c3a7d3e3e3ce41c8"
+  },
+  {
+    "domain": "coverage",
+    "source": "tests/cleanup_backends/owned_leaf_collections/copy_field_update.rs",
+    "target_sha256": "b385f28f7d6862a3ca7209cd54fea521d6281ba728cb29c8e60e58c18b1b0974"
+  },
+  {
+    "domain": "coverage",
+    "source": "tests/owned_data/owned_leaf_vec/copy_field_update.rs",
+    "target_sha256": "af7cf8420cfad1dfcf6434fcf58b71e504f3c6ff365ab0aa3d37c168b14c217c"
+  },
+  {
+    "domain": "coverage",
+    "source": "tests/owned_data/owned_leaf_vec/host.js",
+    "target_sha256": "6a8dec18fd89837bf3a25b0aeb30e6fffd7aa0ac69ea1f23fcfc3d663ff7ac12"
+  },
+  {
+    "domain": "coverage",
+    "source": "tests/cleanup_backends/owned_leaf_collections/copy_field_update_boundary.rs",
+    "target_sha256": "796162aa312f4c726c2350629590df1617de7bc891bc6c5db3e5bd3f13043fab"
+  },
+  {
+    "domain": "coverage",
+    "source": "tests/cleanup_backends/owned_leaf_collections/copy_field_update_boundary.c",
+    "target_sha256": "ed71cb13f87cb7421afc93b4056793375d8a7cd2bc70d443903c44561df1b214"
+  }
+]

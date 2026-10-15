@@ -357,7 +357,13 @@ impl Resolver<'_> {
                                 type_arguments.len() != 1
                                     || !(crate::vec_ops::ast_element_is_admitted(&type_arguments[0]) || crate::source_verify::copy_record_source_admitted(self.program, &type_arguments[0]) || crate::source_verify::owned_leaf_source_admitted(self.program, &type_arguments[0]) || generic.is_some_and(|f| matches!(&type_arguments[0], Type::Named { name, arguments } if arguments.is_empty() && f.type_parameters.iter().any(|parameter| parameter.name == *name))))
                             })
-                            || args.len() != operation.arity()
+                            || args.len()
+                                != if operation == crate::vec_ops::VecOp::UpdateField {
+                                    // The source-only literal selector is removed before HIR.
+                                    4
+                                } else {
+                                    operation.arity()
+                                }
                         {
                             return Err(self.error(
                                 "SPX-T283",

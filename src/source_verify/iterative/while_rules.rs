@@ -401,7 +401,13 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             || !(crate::vec_ops::ast_element_is_admitted(&type_arguments[0])
                                 || crate::source_verify::declared_type::copy_record_collection::source_admitted(self.program, &type_arguments[0]) || crate::source_verify::declared_type::owned_leaf_collection::source_admitted(self.program, &type_arguments[0]))
                             })
-                            || args.len() != operation.arity()
+                            || args.len()
+                                != if operation == crate::vec_ops::VecOp::UpdateField {
+                                    // The source-only literal selector is removed before HIR.
+                                    4
+                                } else {
+                                    operation.arity()
+                                }
                         {
                             #[cfg(test)]
                             crate::source_verify::string_slot::trace_while_refusal(

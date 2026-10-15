@@ -10,8 +10,8 @@ const HISTORICAL: [&str; 2] = [
     ),
 ];
 const CAPTURED: [&str; 2] = [
-    include_str!("../../../docs/evidence/browser-graph-pins-841efe3e2/current-hosted-calculator-baseline.json"),
-    include_str!("../../../docs/evidence/browser-graph-pins-841efe3e2/current-hosted-calculator-renamed.json"),
+    include_str!("../../../docs/evidence/browser-graph-pins-268cb0523/current-hosted-calculator-baseline.json"),
+    include_str!("../../../docs/evidence/browser-graph-pins-268cb0523/current-hosted-calculator-renamed.json"),
 ];
 fn hash(domain: &[u8], bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
@@ -41,7 +41,7 @@ pub(super) fn digest(graph: &str) -> String {
         graph_digest(graph),
         parsed["graph_digest"].as_str().unwrap()
     );
-    assert_eq!(parsed["budget"]["used_builder_bytes"], 4_852_388);
+    assert_eq!(parsed["budget"]["used_builder_bytes"], 4_393_980);
     let historical = HISTORICAL
         .iter()
         .map(|text| text.strip_suffix('\n').unwrap())
@@ -56,7 +56,7 @@ pub(super) fn digest(graph: &str) -> String {
         graph_digest(historical),
         previous["graph_digest"].as_str().unwrap()
     );
-    let field = "\"used_builder_bytes\":4852388";
+    let field = "\"used_builder_bytes\":4393980";
     assert_eq!(graph.matches(field).count(), 1);
     let restored = graph.replacen(field, "\"used_builder_bytes\":1214409", 1);
     let current_digest = format!("\"graph_digest\":{}", parsed["graph_digest"]);

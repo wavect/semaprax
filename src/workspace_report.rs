@@ -108,7 +108,7 @@ impl fmt::Display for WorkspaceReportFailure {
                 if index != 0 {
                     writeln!(out)?;
                 }
-                fmt::Display::fmt(diagnostic, out)?;
+                diagnostic.write_to(out, false)?;
             }
             return Ok(());
         }

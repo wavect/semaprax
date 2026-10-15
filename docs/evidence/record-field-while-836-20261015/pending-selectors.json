@@ -1,0 +1,13 @@
+{
+  "status": "AUTHORED_NOT_RUN",
+  "new_test_bodies": 1,
+  "keep_all_26_issue_836_gates_and_original_shiftsim15": true,
+  "selectors": [
+    "vec_ops::field_update::tests::while_source_selector_is_metadata_and_hir_keeps_three_runtime_children",
+    "owned_leaf_vec::copy_field_update::same_source_interpreter_matches_every_scalar_multi_copy_legacy_and_failure_control",
+    "owned_leaf_collections::copy_field_update::copy_field_updates_preserve_eight_scalar_lanes_owned_leaf_bits_and_zero_store_heap_at_o0_o2",
+    "owned_leaf_vec::copy_field_update::wasm_copy_field_updates_keep_all_scalar_lanes_and_owned_identities_without_store_clones_or_drops",
+    "owned_leaf_vec::copy_field_update::wasm_copy_field_update_index_rhs_and_host_authority_failures_keep_the_single_commit_boundary",
+    "owned_leaf_vec::copy_field_update::field_update_import_and_native_store_are_absent_from_the_complete_old_row_oracle"
+  ]
+}

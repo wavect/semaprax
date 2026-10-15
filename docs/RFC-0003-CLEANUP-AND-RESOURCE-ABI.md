@@ -724,3 +724,24 @@ ownership, owned payload, or public generic ABI.
 - Claiming platform interoperability from generated wrappers that have not executed conformance fixtures.
 
 These shortcuts weaken exactly the safety and cross-target equivalence that SEMAPRAX is intended to make verifiable.
+
+### Factored zero/single edge storage (OPT844, qualification pending)
+
+The private automaton node has one combined Empty/Movement/Epsilon slot. On the
+ordinary 64-bit layout it is 32 bytes; the independent preceding two-Vec node
+is 48 bytes. A second edge, including a duplicate or a mixed edge kind, acquires
+a boxed pair of owning Vecs and preserves insertion order within each edge kind.
+Actual usize targets and the original two Label variants remain unchanged.
+Node backing uses its actual layout. First-edge admission acquires the new enum
+initializer; promotion and subsequent Many insertion acquire their new control,
+receiver and allocation costs before construction. Removed backing grants no
+refund, quota, semantic work discount, source admission, or baseline charge.
+
+The complete old Node, Automaton, builder and canonical algorithm compile
+independently over their old two-Vec representation. New controls compare all
+216 small forward graphs, duplicate/parallel/epsilon weights and overflow,
+complete builder verdicts and every work frontier, later malformed edges,
+exact/short/zero physical frontiers, promotion refusal, nested floors, and whole
+constructor-to-Drop observations. Whole comparison costs and synthetic chain
+costs are separate; branching promotions can be unfavorable. All bodies are
+pending execution. No application cap fit, speedup, or OPT808 closure is claimed.

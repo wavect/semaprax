@@ -221,3 +221,68 @@ fn main() -> i64
         "{stdout}"
     );
 }
+
+#[test]
+fn actual_diagnostic_writer_preserves_json_human_streams_status_and_original_bytes() {
+    let root = fixture();
+    let filename = "unicode-é.spx";
+    for source in [
+        INVALID,
+        r#"module route.diagnostics;
+@id("app.main")
+fn main() -> i64 {
+    let mut text = bytes_zeroed(1usize);
+    while false { text = bytes_zeroed(2usize); false }
+    0
+}
+"#,
+    ] {
+        fs::write(root.join(filename), source).unwrap();
+        let expected = match semaprax::parse(source, Path::new(filename)) {
+            Ok(program) => semaprax::hir::analyze(&program).diagnostics,
+            Err(error) => vec![error],
+        };
+        assert!(expected.iter().any(|d| d.severity.is_error()));
+        for json in [false, true] {
+            let arguments = if json {
+                vec![filename, "--json"]
+            } else {
+                vec![filename]
+            };
+            let output = cli(&root, &arguments);
+            assert_eq!(output.status.code(), Some(1));
+            let original: String = expected
+                .iter()
+                .map(|d| {
+                    if json {
+                        format!("{}\n", d.json())
+                    } else {
+                        format!("{d}\n")
+                    }
+                })
+                .collect();
+            if json {
+                assert_eq!(output.stdout, original.as_bytes());
+                assert!(output.stderr.is_empty());
+            } else {
+                assert_eq!(output.stderr, original.as_bytes());
+                assert!(output.stdout.is_empty());
+            }
+            #[cfg(unix)]
+            {
+                // A read-only descriptor deterministically refuses the actual
+                // selected stream without replacing the compiler's status1.
+                let read_only = fs::File::open("/dev/null").unwrap();
+                let mut command = Command::new(env!("CARGO_BIN_EXE_semaprax"));
+                command.arg("check").args(&arguments).current_dir(&root);
+                if json {
+                    command.stdout(std::process::Stdio::from(read_only));
+                } else {
+                    command.stderr(std::process::Stdio::from(read_only));
+                }
+                assert_eq!(command.output().unwrap().status.code(), Some(1));
+            }
+            assert_eq!(fs::read_to_string(root.join(filename)).unwrap(), source);
+        }
+    }
+}

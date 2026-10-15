@@ -354,7 +354,7 @@ pub(super) fn build<'hir, P: errors::Policy>(
     payer: capacity::Payer<'_>,
     budget: &mut ReplayBudget,
 ) -> Result<Arena<'hir>, P::Error> {
-    let mut capacity = capacity::FactCapacity::with_payer(function, payer)
+    let mut capacity = capacity::ArenaCapacity::new(function, payer)
         .map_err(|failure| P::capacity(function, failure))?;
     budget.charge(function, 1, "expression-fact arena owner construction")?;
     let mut facts = Arena::new(&mut capacity).map_err(|failure| P::capacity(function, failure))?;
@@ -374,3 +374,14 @@ pub(super) fn build<'hir, P: errors::Policy>(
     }
     Ok(facts)
 }
+
+#[cfg(test)]
+#[path = "arena/cursor_tests.rs"]
+mod cursor_tests;
+#[cfg(test)]
+#[path = "arena/producer_before_cursor.rs"]
+mod producer_before_cursor;
+
+#[cfg(test)]
+#[path = "arena/before_cursor.rs"]
+mod before_cursor;

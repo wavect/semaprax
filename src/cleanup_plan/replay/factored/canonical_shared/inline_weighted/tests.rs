@@ -222,7 +222,7 @@ fn inline_weighted_moved_many_exact_enum_controls_and_actual_rc_layout_precede_c
 fn inline_weighted_promoted_many_overflow_precedes_later_cyclic_label() {
     let function = fixture();
     let (mut graph, sink, root) = graph(&function, 2, 1);
-    let first = graph.nodes[root].moves[0].1;
+    let first = graph.nodes[root].moves()[0].1;
     let mut build = ReplayBudget::unobserved();
     graph.movement(&function, &mut build, root, Label::End(SkeletonTerminal::Success), first).unwrap();
     graph.movement(&function, &mut build, root, Label::End(SkeletonTerminal::Failure), root).unwrap();

@@ -29,7 +29,9 @@ Missing, computed, non-Copy or unsupported selectors/shapes refuse with
 `SPX-T320`; ordinary wrong operand types retain `SPX-T205`. An own vector is
 required; ordinary move/availability and whole-root loan rules apply. The
 operation is allowed in existing bounded loops under their unchanged work and
-allocation limits. It creates no general mutable reference or new authority.
+allocation limits. Loop admission counts four source arguments; lowering removes
+only the literal selector, leaving three evaluated runtime children. It creates
+no general mutable reference or new authority.
 
 ## Evaluation and commit
 

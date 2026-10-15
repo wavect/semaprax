@@ -1,0 +1,30 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/factored/compact_nodes.rs",
+    "sha256": "e06bd9826bb072f3aeb3c2992796b9bec7eb5f05edd3c3a1b383dcad72e45292"
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs",
+    "sha256": "e75dd4f89a7105ed5308ba9fae7faf9a439c4b55feb345274eb0c80a2cee5d3b"
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs",
+    "sha256": "f960bc941b2e4d73a60ac6726e205567f4aba6a2203fb71a932432b1393b34a8"
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs",
+    "sha256": "81fa11ac2c8fa02b6a05aad9de4d79f00221f8e044c66de4d812c072a5521b96"
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/compact_nodes/before/storage.rs",
+    "sha256": "99c6f1981b0bce003b7e53809b358fdd4c8b1813b7dbd3a8864d2ce6e63f914b"
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/compact_nodes/before/strategy.rs",
+    "sha256": "a7af5670fa9ed729e29587d6ae691b8cfc6f055dfc857857db3521eaaba98e92"
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/compact_nodes/tests.rs",
+    "sha256": "19af35421a90452835f838120d278ba8198fc8b23588cfa9a85e69e385a409de"
+  }
+]

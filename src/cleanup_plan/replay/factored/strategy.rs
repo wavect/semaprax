@@ -108,7 +108,7 @@ fn census(
             "factored census has an unknown root or sink",
         ));
     }
-    if !nodes[built.sink].moves.is_empty() || !nodes[built.sink].epsilon.is_empty() {
+    if !nodes[built.sink].moves().is_empty() || !nodes[built.sink].epsilon().is_empty() {
         return Err(replay_error(
             function,
             "exact census sink has outgoing movements",
@@ -143,9 +143,9 @@ fn census(
     while let Some(cursor) = frontier.last_mut() {
         let node = &nodes[cursor.node];
         let moves = node
-            .epsilon
+            .epsilon()
             .len()
-            .checked_add(node.moves.len())
+            .checked_add(node.moves().len())
             .ok_or_else(|| replay_error(function, "exact census movement count overflowed"))?;
         if cursor.next == moves {
             budget.charge(function, 1, "exact census completed node")?;
@@ -156,10 +156,10 @@ fn census(
         }
         budget.charge(function, 1, "exact census route")?;
         let index = cursor.next;
-        let target = if index < node.epsilon.len() {
-            node.epsilon[index]
+        let target = if index < node.epsilon().len() {
+            node.epsilon()[index]
         } else {
-            let (label, target) = &node.moves[index - node.epsilon.len()];
+            let (label, target) = &node.moves()[index - node.epsilon().len()];
             if let Label::End(terminal) = label {
                 if *target != built.sink {
                     return Err(replay_error(

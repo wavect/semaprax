@@ -4,20 +4,19 @@ pub(super) fn collect_arena_facts<'a, P: errors::Policy>(
     function: &'a ResolvedFunction,
     expression: &'a ResolvedExpr,
     facts: &mut Arena<'a>,
-    mut capacity: Option<&mut capacity::FactCapacity<'a, '_>>,
+    mut capacity: Option<&mut capacity::ArenaCapacity<'a, '_>>,
     budget: &mut ReplayBudget,
 ) -> Result<(), P::Error> {
     // One borrowed continuation per ancestor keeps the original pre-order walk
     // and avoids rescanning wide Block/Match prefixes for each child.
-    let mut stack = [None; 514];
-    stack[0] = Some((
-        expression_children::ReplayChildCursor::new(expression),
-        false,
-    ));
-    let mut len = 1usize;
-    while len != 0 {
-        len -= 1;
-        let (mut cursor, started) = stack[len].take().expect("expression-fact frame retained");
+    capacity
+        .as_deref_mut()
+        .expect("arena owns its payer")
+        .start(expression)
+        .map_err(|failure| P::capacity(function, failure))?;
+    while let Some((mut cursor, started)) =
+        capacity.as_deref_mut().expect("arena owns its payer").pop()
+    {
         let current = cursor.expression();
         if !started {
             if let Some(capacity) = capacity.as_deref_mut() {
@@ -114,18 +113,11 @@ pub(super) fn collect_arena_facts<'a, P: errors::Policy>(
             }
         }
         if let Some(child) = cursor.next() {
-            if len + 2 > stack.len() {
-                return Err(P::capacity(
-                    function,
-                    capacity::Failure {
-                        detail: "HIR expression fact traversal exceeds the admitted depth",
-                        physical: false,
-                    },
-                ));
-            }
-            stack[len] = Some((cursor, true));
-            stack[len + 1] = Some((expression_children::ReplayChildCursor::new(child), false));
-            len += 2;
+            capacity
+                .as_deref_mut()
+                .expect("arena owns its payer")
+                .children(cursor, child)
+                .map_err(|failure| P::capacity(function, failure))?;
         }
     }
     Ok(())

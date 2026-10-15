@@ -363,6 +363,22 @@ requires/body/ensures preorder, fact insertion/duplicate timing and all
 preclone reservations are unchanged. Capacity and continuation carrier layouts
 are still the actual `size_of` layouts at the existing reservation sites.
 
+The paid Arena collector has a separate `ArenaCapacity` owner for its expression
+continuations. Its original `FactCapacity` base still owns and funds the complete
+514-entry type cursor. The new owner acquires its actual inline layout before
+construction and owns one growing expression-frame vector across the function's
+requires/body/ensures sequence. No caller supplies spare backing. Every growth
+pays complete replacement backing and receiving controls while the previous
+allocation is live, and charges every copied or newly initialized slot to the
+existing work allowance. Reuse checks the held payer's sticky state, including
+an Oracle epoch that has ended. There is no refund, quota increase, lookup
+authority, or allocator credit. Both depth ceilings, all payload preclone charges,
+fact insertion timing and complete original errors remain unchanged. The legacy
+factory and a complete independent fixed-array Arena entry/producer remain
+compiled, with full-source byte controls. Deep walks can pay more cumulative
+replacement backing than the old fixed array; lower cost is claimed only for
+measured shallow owners. Full-HIR and application qualification is pending CI.
+
 Owning lib controls (authored, unexecuted):
 
 - `cleanup_plan::replay::expression_facts::tests::errors::typed_fact_policy_matches_saved_legacy_text_order_and_full_facts`

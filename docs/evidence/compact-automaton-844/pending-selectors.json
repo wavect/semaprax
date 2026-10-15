@@ -1,0 +1,17 @@
+{
+  "status": "SOURCE_ONLY_PENDING_EXECUTION",
+  "package": "semaprax",
+  "harness": "lib",
+  "new_exact_selectors": [
+    "cleanup_plan::replay::factored::compact_nodes::before::tests::compact_layout_and_original_label_order_are_actual_and_source_independent",
+    "cleanup_plan::replay::factored::compact_nodes::before::tests::exhaustive_small_order_parallel_epsilon_and_weighted_languages_match_complete_old",
+    "cleanup_plan::replay::factored::compact_nodes::before::tests::complete_builder_and_comparison_receivers_keep_work_and_later_semantic_diagnostics",
+    "cleanup_plan::replay::factored::compact_nodes::before::tests::whole_constructor_to_drop_reports_empty_singleton_and_unfavorable_many_costs",
+    "cleanup_plan::replay::factored::compact_nodes::before::tests::promotion_refusal_preserves_old_inline_value_and_all_drop_ownership",
+    "cleanup_plan::replay::factored::compact_nodes::before::tests::nested_floor_keeps_original_first_refusal_and_terminal_retry_fields",
+    "cleanup_plan::replay::factored::compact_nodes::before::tests::complete_original_receivers_and_all_new_source_owners_remain_authenticated",
+    "cleanup_plan::replay::factored::compact_nodes::before::tests::complete_build_comparison_and_canonical_receivers_report_physical_costs_through_drop"
+  ],
+  "new_tests": 8,
+  "old_required_owners": "retain existing automaton storage, canonical/weighted/epsilon/closure receiving, strategy/census, normalizer/retry/codec application and three full-source audits; no removal of prior failures"
+}

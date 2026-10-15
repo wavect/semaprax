@@ -185,7 +185,7 @@ fn singleton_target_promotions_sort_and_preserve_same_child_overflow_before_late
     // Two distinct children promote first, then the first child repeats and
     // overflows inside Many. A later cyclic label must never replace None.
     let (mut graph, sink, root) = automaton(&function, 2, 1);
-    let first = graph.nodes[root].moves[0].1;
+    let first = graph.nodes[root].moves()[0].1;
     let mut build = ReplayBudget::unobserved();
     graph
         .movement(

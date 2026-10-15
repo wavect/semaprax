@@ -1,0 +1,14 @@
+[
+  {
+    "source": "src/diagnostic/writer.rs",
+    "sha256": "234adedbf03a1c76098f51339a9d5b96bc0a755c196c9de681d413a05a5f6b34"
+  },
+  {
+    "source": "src/diagnostic/writer/tests.rs",
+    "sha256": "9bb4d37ef018992338459d905c75581f7e42148750880dfc8bf686f3fb6764f0"
+  },
+  {
+    "source": "src/diagnostic/before_writer.rs",
+    "sha256": "62a827a7e501498eaf82f977ea0b5aba8629e746a6c810e0d6676e0e9a6c5e6a"
+  }
+]

@@ -486,6 +486,7 @@ The registry compiler and unpublished toolchain share one compiler library and
 bounded source, Project, and prepared Rust API context routes;
 `options.rs` parses bounded command options, `report_options.rs` parses report/analysis options, and
 `source_execution.rs` owns single-file build, run, and diagnostics.
+`diagnostic/writer.rs` borrows caller output for shared JSON/human rendering; the CLI report path owns its stream lock. Active bounded JSON retains the complete legacy renderer and its logical quote order. Neither writer nor stream lock certifies prepaid report/output storage.
 `help_dispatch.rs` prints the global and scoped `cli::help` surfaces.
 The `source_execution.rs` module’s `fused_profile` child dispatches the explicit source-only profile before
 ordinary checking. Public `fused_source` parses once and lends a private full

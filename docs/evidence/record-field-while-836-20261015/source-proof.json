@@ -1,0 +1,10 @@
+{
+  "status": "SOURCE_ONLY_PASS",
+  "immediate_full_inverses": 8,
+  "backend_full_input_checks": 25,
+  "changed_backend_views": {
+    "backends": 2,
+    "coverage": 1
+  },
+  "rust_execution": false
+}

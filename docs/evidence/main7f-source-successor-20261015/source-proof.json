@@ -1,0 +1,32 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "production_basis": "d5dd5e63da1429d4ec6cb6bd59c48a7b50129d42",
+  "prior_domain": "93650ecbef340264fb09e3be5649cd7962c682ea",
+  "latest_main": "7f9080f85316bf0e2e8f530cf4c5adbcda247c16",
+  "strict_current_to_9365_rows": 28,
+  "stale_raw_refusals": 28,
+  "live_main_records": 87,
+  "prior_main_records_preserved": 85,
+  "main_target_deltas": 18,
+  "compatibility_full_owner_rows": 1,
+  "complete_old_producer_unchanged_before_adapter": true,
+  "full_new_owners_in_each_of_three_audits": [
+    "src/cleanup_plan/replay/path_join/storage/empty_renewals.rs",
+    "src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs"
+  ],
+  "interop_lines": 1500,
+  "merge_paths": 25,
+  "merge_records": 75,
+  "present_inputs": 71,
+  "explicit_absent_inputs": 4,
+  "assembly_files": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "src/source_reflows_merge.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ],
+  "production_byte_exact_to_basis": true,
+  "old9365_packet_byte_exact": true,
+  "git_cache_peak_bytes": 13417492,
+  "runtime_bodies_executed": 0
+}

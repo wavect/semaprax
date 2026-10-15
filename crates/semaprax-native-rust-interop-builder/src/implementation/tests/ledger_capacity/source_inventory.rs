@@ -155,6 +155,8 @@ macro_rules! loan_cfg_source_inventory {
         include_str!("../../../../../src/cleanup_plan/replay/live_oracle/source_custody/presence.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs"),
         include_str!("../../../../../src/source_reflows_merge.rs"),
+        include_str!("../../../../../src/cleanup_plan/replay/path_join/storage/empty_renewals.rs"),
+        include_str!("../../../../../src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/return_operands.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/return_operands/exits.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs"),
@@ -1246,7 +1248,6 @@ macro_rules! verifier_source_inventory {
         )
     };
 }
-
 // Cleanup-plan lowering join, same ordering rule as the resolver join.
 macro_rules! lower_source_inventory {
     () => {
@@ -1410,7 +1411,6 @@ macro_rules! lower_source_inventory {
         )
     };
 }
-
 // Joined source audit inventory for the additive final-validation children.
 macro_rules! hir_final_validation_source_inventory {
     () => {

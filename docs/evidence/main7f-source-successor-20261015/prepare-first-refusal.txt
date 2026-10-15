@@ -1,0 +1,1 @@
+Actual source-only preparation first refused KeyError: archive on an explicitly absent merge input. Corrected derived preparation now verifies absent Git entries; no old input or proof was changed.

@@ -1,0 +1,17 @@
+{
+  "production_basis": "d5dd5e63da1429d4ec6cb6bd59c48a7b50129d42",
+  "prior_source_domain": "93650ecbef340264fb09e3be5649cd7962c682ea",
+  "latest_main_domain": "7f9080f85316bf0e2e8f530cf4c5adbcda247c16",
+  "new_source_rows": 28,
+  "new_files": 2,
+  "current_main_records": 87,
+  "latest_main_projection_rows": 18,
+  "assembly_edits": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "src/source_reflows_merge.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ],
+  "production_edited": false,
+  "source_only": true
+}

@@ -56,7 +56,7 @@ pub(crate) fn ours(source: &str, current: &str) -> String {
         current,
     )
 }
-pub(crate) fn main(source: &str, current: &str) -> String {
+fn prior_main(source: &str, current: &str) -> String {
     let predecessor = assembled_previous(source, current);
     let current = predecessor.as_str();
     project(
@@ -103,6 +103,8 @@ pub(crate) fn closure_previous(source: &str, current: &str) -> String {
 // Each isolated branch projector remains strict. Authenticate the actual final
 // input separately into its named branch before comparing complete base bytes.
 pub(crate) fn assembly_view(stage: &str, source: &str, current: &str) -> String {
+    let previous = latest_previous(source, current);
+    let current = previous.as_str();
     let data = match stage {
         "9d" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/final-842-843-source-assembly-20261015/view-9d.json")),
         "842" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/final-842-843-source-assembly-20261015/view-842.json")),
@@ -121,4 +123,16 @@ fn assembled_previous(source: &str, current: &str) -> String {
     assert_eq!(repaired, inline, "independent branch sources must reach the same complete7800 input");
     assert_eq!(repaired, closure, "held branch source must reach the same complete7800 input");
     repaired
+}
+
+// Strict newest input, before the immutable9365 branch domains. No old raw input
+// is accepted as an alternative to its complete current source.
+fn latest_previous(source: &str, current: &str) -> String {
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main7f-source-successor-20261015/current-to-9365.json")), source, current)
+}
+pub(crate) fn main(source: &str, current: &str) -> String {
+    // Authenticate the complete inherited f813 route in its named older view.
+    // The live CI consumer keeps the newer87-record main tuple below.
+    let _prior = prior_main(source, current);
+    project(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main7f-source-successor-20261015/current-to-main7f.json")), source, current)
 }

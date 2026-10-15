@@ -1,0 +1,87 @@
+module app.nested_byte_traversal;
+
+@id("app.nested.sum")
+fn sum(left: borrow Slice<u8>, right: borrow Slice<u8>) -> i64 {
+    let mut total = 0;
+    for outer in left {
+        for inner in right { total = total + i64_from_u8(outer) * 10 + i64_from_u8(inner); 0 }
+        0
+    }
+    total
+}
+
+@id("app.nested.manual")
+fn manual(left: borrow Slice<u8>, right: borrow Slice<u8>) -> i64 {
+    let left_length = byte_len(left);
+    let right_length = byte_len(right);
+    let mut outer_index = 0usize;
+    let mut total = 0;
+    while outer_index < left_length {
+        let outer = match byte_get(left, outer_index) {
+            Some { value } => value,
+            None => 0u8,
+        };
+        let mut inner_index = 0usize;
+        while inner_index < right_length {
+            let inner = match byte_get(right, inner_index) {
+                Some { value } => value,
+                None => 0u8,
+            };
+            total = total + i64_from_u8(outer) * 10 + i64_from_u8(inner);
+            inner_index = inner_index + 1usize;
+            0
+        }
+        outer_index = outer_index + 1usize;
+        0
+    }
+    total
+}
+
+@id("app.nested.exits")
+fn exits(left: borrow Slice<u8>, right: borrow Slice<u8>) -> i64 {
+    let mut total = 0;
+    for outer in left {
+        for inner in right {
+            if inner == 3u8 { continue; } else { 0 };
+            if inner == 5u8 { break; } else { 0 };
+            total = total + i64_from_u8(outer) * 10 + i64_from_u8(inner);
+            0
+        }
+        0
+    }
+    total
+}
+
+@id("app.nested.while_bridge")
+fn while_bridge(left: borrow Slice<u8>, right: borrow Slice<u8>) -> i64 {
+    let mut once = true;
+    let mut total = 0;
+    for outer in left {
+        while once {
+            for inner in right { total = total + i64_from_u8(outer) * 10 + i64_from_u8(inner); 0 }
+            once = false;
+            0
+        }
+        0
+    }
+    total
+}
+
+@id("app.nested.main")
+fn main() -> i64 {
+    let left = [1u8, 2u8];
+    let right = [3u8, 4u8, 5u8];
+    let left_view = array_as_slice(left);
+    let right_view = array_as_slice(right);
+    let empty = byte_range(right_view, 0usize, 0usize);
+    let singleton = byte_range(right_view, 1usize, 2usize);
+    let same = sum(left_view, left_view);
+    let ordinary = sum(left_view, right_view);
+    let one = sum(left_view, singleton);
+    let zero = sum(left_view, empty);
+    let zero_left = sum(empty, right_view);
+    let reference = manual(left_view, right_view);
+    if ordinary == reference && one == 38 && zero == 0 && zero_left == 0 && same == 66 {
+        ordinary + exits(left_view, right_view) + while_bridge(left_view, right_view)
+    } else { -999 }
+}

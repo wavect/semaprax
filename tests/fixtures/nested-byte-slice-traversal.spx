@@ -18,14 +18,14 @@ fn manual(left: borrow Slice<u8>, right: borrow Slice<u8>) -> i64 {
     let mut total = 0;
     while outer_index < left_length {
         let outer = match byte_get(left, outer_index) {
-            Some { value } => value,
-            None => 0u8,
+            Option::Some { value } => value,
+            Option::None {} => 0u8,
         };
         let mut inner_index = 0usize;
         while inner_index < right_length {
             let inner = match byte_get(right, inner_index) {
-                Some { value } => value,
-                None => 0u8,
+                Option::Some { value } => value,
+                Option::None {} => 0u8,
             };
             total = total + i64_from_u8(outer) * 10 + i64_from_u8(inner);
             inner_index = inner_index + 1usize;

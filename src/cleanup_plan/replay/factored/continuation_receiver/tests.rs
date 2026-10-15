@@ -161,8 +161,8 @@ fn current_factored_storage_preserves_old_automata_work_and_full_hostile_diagnos
                         );
                         assert_eq!(old.automaton.nodes.len(), current.automaton.nodes.len());
                         for (a, b) in old.automaton.nodes.iter().zip(&current.automaton.nodes) {
-                            assert_eq!(a.moves, b.moves);
-                            assert_eq!(a.epsilon, b.epsilon);
+                            assert_eq!(a.moves(), b.moves());
+                            assert_eq!(a.epsilon(), b.epsilon());
                         }
                     }
                     (Err(old), Err(current)) => {

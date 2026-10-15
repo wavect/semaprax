@@ -1,0 +1,13 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "base": "c58243c6cbe4577efe6cfa81ca6312ff45c1c71a",
+  "whole_immediate_inputs": 26,
+  "independent_full_old_receivers": 5,
+  "new_Rust_owners": 7,
+  "new_tests": 8,
+  "complete_old_automaton_and_comparison_bodies_exact": true,
+  "old_assertions_preserved": true,
+  "all_three_full_source_audits_complete": true,
+  "unchanged_predecessor_proofs_replayed": true,
+  "runtime_or_gain_claim": null
+}

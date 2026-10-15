@@ -1,0 +1,10 @@
+{
+  "status": "SOURCE_INTEGRATION_ONLY_NO_RUST",
+  "full_current_to_7a87": 11,
+  "exact_latest_main_inputs": 20,
+  "complete_original_main_cursor_source_controls_replayed": true,
+  "new_compiled_children_joined_all_three_audits": 4,
+  "new_exact_unit_selectors": 8,
+  "old_evidence_modified": false,
+  "pins_or_app_qualification": false
+}

@@ -34,6 +34,7 @@ mod borrowed_canonical;
 #[cfg(test)]
 mod canonical_before;
 mod canonical_shared;
+mod compact_nodes;
 pub(super) mod copy_regions;
 mod dag_memo;
 #[cfg(test)]
@@ -41,6 +42,7 @@ mod instrumentation;
 mod storage;
 #[cfg(test)]
 use canonical_before::Receiver as Canonicalizer;
+use compact_nodes::Node;
 use storage::{memo_insert, push_end, push_frame, reserve_transition_observation};
 
 /// Path count above which the factored comparison replaces enumeration.
@@ -50,12 +52,6 @@ const FACTORED_PATH_THRESHOLD: usize = 4_096;
 enum Label {
     Observation(Rc<SkeletonObservation>),
     End(SkeletonTerminal),
-}
-
-#[derive(Default)]
-struct Node {
-    moves: Vec<(Label, usize)>,
-    epsilon: Vec<usize>,
 }
 
 /// Semantic nonselection remains false; a physical scratch refusal is sticky
@@ -376,13 +372,41 @@ impl Automaton {
         to: usize,
     ) -> Result<(), Diagnostic> {
         budget.charge(function, 1, "factored automaton labelled movement")?;
-        budget.reserve_vec(
-            function,
-            &mut self.nodes[from].moves,
-            1,
-            "factored automaton moves",
-        )?;
-        self.nodes[from].moves.push((label, to));
+        if matches!(self.nodes[from], Node::Empty) {
+            // Existing incoming tuple remains; only the enclosing inline enum
+            // is a new initializer. Payment replaces the old reserve_vec call.
+            budget.reserve_bytes(
+                function,
+                std::mem::size_of::<Node>(),
+                "factored automaton moves",
+            )?;
+            self.nodes[from] = Node::Movement((label, to));
+        } else {
+            if !matches!(self.nodes[from], Node::Many(_)) {
+                budget.reserve_bytes(
+                    function,
+                    Node::PROMOTION_CONTROLS,
+                    "factored compact node promotion controls",
+                )?;
+                self.nodes[from].promote(function, budget, true)?;
+            } else {
+                budget.reserve_bytes(
+                    function,
+                    std::mem::size_of::<Result<(), Diagnostic>>()
+                        + 2 * std::mem::size_of::<&mut Box<compact_nodes::Many>>()
+                        + 2 * std::mem::size_of::<&mut compact_nodes::Many>(),
+                    "factored compact many receiving controls",
+                )?;
+                let Node::Many(many) = &mut self.nodes[from] else {
+                    unreachable!()
+                };
+                budget.reserve_vec(function, &mut many.moves, 1, "factored automaton moves")?;
+            }
+            let Node::Many(many) = &mut self.nodes[from] else {
+                unreachable!()
+            };
+            many.moves.push((label, to));
+        }
         #[cfg(test)]
         instrumentation::edge();
         Ok(())
@@ -396,13 +420,44 @@ impl Automaton {
         to: usize,
     ) -> Result<(), Diagnostic> {
         budget.charge(function, 1, "factored automaton epsilon movement")?;
-        budget.reserve_vec(
-            function,
-            &mut self.nodes[from].epsilon,
-            1,
-            "factored automaton epsilon moves",
-        )?;
-        self.nodes[from].epsilon.push(to);
+        if matches!(self.nodes[from], Node::Empty) {
+            budget.reserve_bytes(
+                function,
+                std::mem::size_of::<Node>(),
+                "factored automaton epsilon moves",
+            )?;
+            self.nodes[from] = Node::Epsilon(to);
+        } else {
+            if !matches!(self.nodes[from], Node::Many(_)) {
+                budget.reserve_bytes(
+                    function,
+                    Node::PROMOTION_CONTROLS,
+                    "factored compact node promotion controls",
+                )?;
+                self.nodes[from].promote(function, budget, false)?;
+            } else {
+                budget.reserve_bytes(
+                    function,
+                    std::mem::size_of::<Result<(), Diagnostic>>()
+                        + 2 * std::mem::size_of::<&mut Box<compact_nodes::Many>>()
+                        + 2 * std::mem::size_of::<&mut compact_nodes::Many>(),
+                    "factored compact many receiving controls",
+                )?;
+                let Node::Many(many) = &mut self.nodes[from] else {
+                    unreachable!()
+                };
+                budget.reserve_vec(
+                    function,
+                    &mut many.epsilon,
+                    1,
+                    "factored automaton epsilon moves",
+                )?;
+            }
+            let Node::Many(many) = &mut self.nodes[from] else {
+                unreachable!()
+            };
+            many.epsilon.push(to);
+        }
         #[cfg(test)]
         instrumentation::edge();
         Ok(())
@@ -898,8 +953,8 @@ mod continuation_tests {
             );
             assert_eq!(old.automaton.nodes.len(), current.automaton.nodes.len());
             for (old, current) in old.automaton.nodes.iter().zip(&current.automaton.nodes) {
-                assert_eq!(old.moves, current.moves);
-                assert_eq!(old.epsilon, current.epsilon);
+                assert_eq!(old.moves(), current.moves());
+                assert_eq!(old.epsilon(), current.epsilon());
             }
             assert!(
                 storage.frames.is_some(),

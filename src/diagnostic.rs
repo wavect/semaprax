@@ -345,3 +345,12 @@ mod tests {
 
 #[cfg(test)]
 mod refusal_tests;
+
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "complete independent original diagnostic renderer"
+)]
+mod before_writer;
+/// Shared borrowed diagnostic output; caller storage remains ordinary output.
+pub mod writer;

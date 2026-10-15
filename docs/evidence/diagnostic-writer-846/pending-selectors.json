@@ -1,0 +1,77 @@
+{
+  "status": "SOURCE_ONLY_AUTHORED_UNEXECUTED",
+  "base": "7a87b33115c0cd45b14cac64d7b37e5742503159",
+  "new_bodies": 6,
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "diagnostic::writer::tests::writer_complete_old_json_human_fields_escaping_nulls_and_order_remain_exact",
+      "new_body": true
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "diagnostic::writer::tests::bounded_writer_keeps_every_original_quote_order_floor_sticky_and_partial_byte",
+      "new_body": true
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "diagnostic::writer::tests::whole_renderer_drop_measures_actual_intermediate_strings_and_unfavorable_bounded_route",
+      "new_body": true
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "diagnostic::writer::tests::writer_failure_keeps_first_io_error_and_does_not_touch_later_diagnostics",
+      "new_body": true
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "diagnostic::writer::tests::full_original_renderer_and_all_current_source_owners_remain_bound",
+      "new_body": true
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:cli_check_routing_v1",
+      "selector": "actual_diagnostic_writer_preserves_json_human_streams_status_and_original_bytes",
+      "new_body": true
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "diagnostic::tests::json_uses_bare_nulls_for_absent_fields_and_a_fixed_key_order",
+      "new_body": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "diagnostic::tests::quote_json_escapes_every_control_character",
+      "new_body": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "diagnostic::tests::quote_json_never_exceeds_the_active_output_budget",
+      "new_body": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_report::tests::initial_zero_exact_short_sticky_typed_transfer_display_and_drop_allocate_nothing",
+      "new_body": false
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_report::tests::exact_paid_setup_refusal_transfers_original_slot_text_and_ledger_through_drop",
+      "new_body": false
+    }
+  ],
+  "required_existing_cli_binary": "core semaprax actual completed rawCargo artifact; no stale binary",
+  "new_harnesses": 0,
+  "new_selected_existing_harness": "test:cli_check_routing_v1",
+  "output_funding_certified": false
+}

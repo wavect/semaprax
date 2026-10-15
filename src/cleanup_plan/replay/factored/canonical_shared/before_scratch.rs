@@ -109,7 +109,7 @@ impl<'a> Canonicalizer<'a> {
             if !expanded {
                 budget.reserve_vec(function, &mut stack, 1, "factored closure cursors")?;
                 stack.push((node, true));
-                for target in &state.epsilon {
+                for target in state.epsilon() {
                     if !self.closures.contains_key(target) {
                         budget.reserve_vec(function, &mut stack, 1, "factored closure cursors")?;
                         stack.push((*target, false));
@@ -120,10 +120,10 @@ impl<'a> Canonicalizer<'a> {
             // Exactly one immutable epsilon child contributes the complete map.
             // Sink/own-move/duplicate-edge and all other shapes keep the full
             // general producer below, including checked route accumulation.
-            if node != self.sink && state.moves.is_empty() && state.epsilon.len() == 1 {
+            if node != self.sink && state.moves().is_empty() && state.epsilon().len() == 1 {
                 #[cfg(test)]
                 app_census::eligible();
-                let Some(inner) = self.closures.get(&state.epsilon[0]) else {
+                let Some(inner) = self.closures.get(&state.epsilon()[0]) else {
                     return Err(replay_error(function, "cleanup CFG contains a cycle"));
                 };
                 #[cfg(test)]
@@ -143,11 +143,11 @@ impl<'a> Canonicalizer<'a> {
                 continue;
             }
             let mut closure = BTreeMap::new();
-            if !state.moves.is_empty() || node == self.sink {
+            if !state.moves().is_empty() || node == self.sink {
                 budget.reserve_btree_node::<usize, u64>(function, "factored closure node")?;
                 closure.insert(node, 1_u64);
             }
-            for target in &state.epsilon {
+            for target in state.epsilon() {
                 let Some(inner) = self.closures.get(target) else {
                     return Err(replay_error(function, "cleanup CFG contains a cycle"));
                 };
@@ -220,7 +220,7 @@ impl<'a> Canonicalizer<'a> {
         }
         let mut successors = BTreeMap::<Label, successor_targets::Targets>::new();
         for (node, weight) in &closed {
-            let moves = &self.automaton.nodes[*node].moves;
+            let moves = self.automaton.nodes[*node].moves();
             budget.charge(
                 function,
                 moves.len().saturating_add(1),

@@ -1,0 +1,63 @@
+{
+  "status": "SOURCE_ONLY_NOT_RUN",
+  "new_tests": [
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::arena::cursor_tests::actual_full_fact_owners_and_duplicate_error_match_the_complete_original_entry",
+      "source": "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs",
+      "why": "new latestMAIN actual paid cursor owner/original/full-source/frontier gate"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::arena::cursor_tests::original_514_frame_boundary_is_unchanged_on_raw_collector_census_inputs",
+      "source": "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs",
+      "why": "new latestMAIN actual paid cursor owner/original/full-source/frontier gate"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::arena::cursor_tests::complete_original_capacity_entry_and_producer_are_byte_bound",
+      "source": "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs",
+      "why": "new latestMAIN actual paid cursor owner/original/full-source/frontier gate"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::arena::cursor_tests::shallow_actual_fact_owner_releases_all_backing_and_costs_less_than_the_full_original",
+      "source": "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs",
+      "why": "new latestMAIN actual paid cursor owner/original/full-source/frontier gate"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::capacity::cursor_tests::actual_cursor_backing_overlap_work_and_release_match_every_frontier",
+      "source": "src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs",
+      "why": "new latestMAIN actual paid cursor owner/original/full-source/frontier gate"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::capacity::cursor_tests::every_short_frontier_is_sticky_and_reuse_stays_with_the_same_owner",
+      "source": "src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs",
+      "why": "new latestMAIN actual paid cursor owner/original/full-source/frontier gate"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::capacity::cursor_tests::live_builder_cursor_funding_has_exact_short_and_zero_boundaries",
+      "source": "src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs",
+      "why": "new latestMAIN actual paid cursor owner/original/full-source/frontier gate"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::capacity::cursor_tests::exhausted_work_refuses_before_backing_and_stale_oracle_cannot_borrow_a_new_epoch",
+      "source": "src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs",
+      "why": "new latestMAIN actual paid cursor owner/original/full-source/frontier gate"
+    }
+  ],
+  "retain_existing_browser_whole_wire_and_three_audit_owners": true,
+  "pin_recapture_required_if_current_source_changes_bills": true
+}

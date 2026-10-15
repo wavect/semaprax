@@ -1,0 +1,14 @@
+[
+  {
+    "current": "Option<&mut capacity::ArenaCapacity<'a, '_>>",
+    "previous": "Option<&mut capacity::FactCapacity<'a, '_>>"
+  },
+  {
+    "current": "    capacity\n        .as_deref_mut()\n        .expect(\"arena owns its payer\")\n        .start(expression)\n        .map_err(|failure| P::capacity(function, failure))?;\n    while let Some((mut cursor, started)) =\n        capacity.as_deref_mut().expect(\"arena owns its payer\").pop()\n    {\n",
+    "previous": "    let mut stack = [None; 514];\n    stack[0] = Some((\n        expression_children::ReplayChildCursor::new(expression),\n        false,\n    ));\n    let mut len = 1usize;\n    while len != 0 {\n        len -= 1;\n        let (mut cursor, started) = stack[len].take().expect(\"expression-fact frame retained\");\n"
+  },
+  {
+    "current": "            capacity\n                .as_deref_mut()\n                .expect(\"arena owns its payer\")\n                .children(cursor, child)\n                .map_err(|failure| P::capacity(function, failure))?;",
+    "previous": "            if len + 2 > stack.len() {\n                return Err(P::capacity(\n                    function,\n                    capacity::Failure {\n                        detail: \"HIR expression fact traversal exceeds the admitted depth\",\n                        physical: false,\n                    },\n                ));\n            }\n            stack[len] = Some((cursor, true));\n            stack[len + 1] = Some((expression_children::ReplayChildCursor::new(child), false));\n            len += 2;"
+  }
+]

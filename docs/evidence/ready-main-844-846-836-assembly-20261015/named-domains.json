@@ -1,0 +1,43 @@
+{
+  "d8": {
+    "revision": "d8fadfb7cd5ece54504cda542575e5a154d3657c",
+    "rows": 44,
+    "introduced_non_checkpoint_files": [
+      "docs/DIAGNOSTIC-WRITER-V1.md",
+      "src/cleanup_plan/replay/expression_facts/arena/before_cursor.rs",
+      "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs",
+      "src/cleanup_plan/replay/expression_facts/arena/producer_before_cursor.rs",
+      "src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs",
+      "src/cleanup_plan/replay/factored/compact_nodes.rs",
+      "src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs",
+      "src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs",
+      "src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs",
+      "src/cleanup_plan/replay/factored/compact_nodes/before/storage.rs",
+      "src/cleanup_plan/replay/factored/compact_nodes/before/strategy.rs",
+      "src/cleanup_plan/replay/factored/compact_nodes/tests.rs",
+      "src/diagnostic/before_writer.rs",
+      "src/diagnostic/writer.rs",
+      "src/diagnostic/writer/tests.rs"
+    ]
+  },
+  "844": {
+    "revision": "b715fa258e27354cc1a85f652caa6a909f57239f",
+    "rows": 5,
+    "introduced_non_checkpoint_files": []
+  },
+  "846": {
+    "revision": "e2521dac782fa887da005bdba632dd31efb3f8aa",
+    "rows": 5,
+    "introduced_non_checkpoint_files": []
+  },
+  "836": {
+    "revision": "a8d3d1a930d9c55eed20d554b4fcd9edaee79456",
+    "rows": 1,
+    "introduced_non_checkpoint_files": []
+  },
+  "main": {
+    "revision": "e0bb6de0cee445ccbd10bc349aa67d75748f997c",
+    "rows": 5,
+    "introduced_non_checkpoint_files": []
+  }
+}

@@ -300,3 +300,135 @@ impl<'a, 'p> FactCapacity<'a, 'p> {
         Ok(())
     }
 }
+
+/// One funded function owns its stack across requires/body/ensures. No caller
+/// supplies spare backing or moves a cursor from another capacity owner.
+pub(super) struct ArenaCapacity<'a, 'p> {
+    base: FactCapacity<'a, 'p>,
+    frames: Vec<FactFrame<'a>>,
+    len: usize,
+}
+impl<'a, 'p> std::ops::Deref for ArenaCapacity<'a, 'p> {
+    type Target = FactCapacity<'a, 'p>;
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+impl std::ops::DerefMut for ArenaCapacity<'_, '_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.base
+    }
+}
+impl<'a, 'p> ArenaCapacity<'a, 'p> {
+    pub(super) fn new(
+        function: &'a ResolvedFunction,
+        mut physical: Payer<'p>,
+    ) -> Result<Self, Failure> {
+        physical
+            .reserve(size_of::<Self>() + 2 * size_of::<FactFrame<'_>>() + size_of::<usize>())
+            .map_err(|_| Failure {
+                detail: "physical expression-fact cursor reservation refused",
+                physical: true,
+            })?;
+        Ok(Self {
+            base: FactCapacity {
+                _function: function,
+                physical,
+                types: [None; 514],
+                work: MAX_REPLAY_WORK_UNITS,
+            },
+            frames: Vec::new(),
+            len: 0,
+        })
+    }
+    fn grow_frames(&mut self, needed: usize) -> Result<(), Failure> {
+        // Even a reuse must authenticate the same held payer's sticky state.
+        self.base.reserve(0)?;
+        if needed > 514 {
+            return Err(Failure {
+                detail: "HIR expression fact traversal exceeds the admitted depth",
+                physical: false,
+            });
+        }
+        if needed <= self.frames.len() {
+            return Ok(());
+        }
+        let target = self
+            .frames
+            .len()
+            .max(1)
+            .saturating_mul(2)
+            .min(514)
+            .max(needed);
+        // Copied slots plus newly initialized slots are the full target count.
+        self.base.arena_work(target)?;
+        self.base
+            .reserve(2 * size_of::<Vec<FactFrame<'_>>>() + size_of::<FactFrame<'_>>())?;
+        self.base.array::<FactFrame<'_>>(target)?;
+        let mut replacement = Vec::new();
+        replacement.try_reserve_exact(target).map_err(|_| Failure {
+            detail: "physical expression-fact cursor allocation refused",
+            physical: true,
+        })?;
+        if replacement.capacity() != target {
+            return Err(Failure {
+                detail: "physical expression-fact cursor capacity differs",
+                physical: true,
+            });
+        }
+        replacement.append(&mut self.frames);
+        replacement.resize(target, None);
+        self.frames = replacement;
+        Ok(())
+    }
+    pub(super) fn start(&mut self, expression: &'a ResolvedExpr) -> Result<(), Failure> {
+        self.base.reserve(0)?;
+        if self.len != 0 {
+            return Err(Failure {
+                detail: "expression-fact cursor retains an unfinished root",
+                physical: false,
+            });
+        }
+        self.grow_frames(1)?;
+        self.frames[0] = Some((
+            expression_children::ReplayChildCursor::new(expression),
+            false,
+        ));
+        self.len = 1;
+        Ok(())
+    }
+    pub(super) fn pop(&mut self) -> Option<(expression_children::ReplayChildCursor<'a>, bool)> {
+        if self.len == 0 {
+            return None;
+        }
+        self.len -= 1;
+        Some(
+            self.frames[self.len]
+                .take()
+                .expect("expression-fact frame retained"),
+        )
+    }
+    pub(super) fn children(
+        &mut self,
+        cursor: expression_children::ReplayChildCursor<'a>,
+        child: &'a ResolvedExpr,
+    ) -> Result<(), Failure> {
+        self.base.reserve(0)?;
+        if self.len + 2 > 514 {
+            return Err(Failure {
+                detail: "HIR expression fact traversal exceeds the admitted depth",
+                physical: false,
+            });
+        }
+        self.grow_frames(self.len + 2)?;
+        self.frames[self.len] = Some((cursor, true));
+        self.frames[self.len + 1] =
+            Some((expression_children::ReplayChildCursor::new(child), false));
+        self.len += 2;
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+#[path = "capacity/cursor_tests.rs"]
+mod cursor_tests;

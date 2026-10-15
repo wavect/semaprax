@@ -47,7 +47,7 @@ impl<'a> BorrowedCanonicalizer<'a> {
             if !expanded {
                 grow(function, budget, &mut stack, 1, "factored closure cursors")?;
                 stack.push((node, true));
-                for target in &state.epsilon {
+                for target in state.epsilon() {
                     budget.charge(function, 1, "borrowed closure actual epsilon child")?;
                     if !self.closures.contains(function, target, budget)? {
                         grow(function, budget, &mut stack, 1, "factored closure cursors")?;
@@ -62,10 +62,10 @@ impl<'a> BorrowedCanonicalizer<'a> {
                 "borrowed closure dictionary header",
             )?;
             let mut closure = Dictionary::new();
-            if !state.moves.is_empty() || node == self.sink {
+            if !state.moves().is_empty() || node == self.sink {
                 closure.insert(function, node, 1_u64, budget)?;
             }
-            for target in &state.epsilon {
+            for target in state.epsilon() {
                 budget.charge(
                     function,
                     1,
@@ -144,7 +144,7 @@ impl<'a> BorrowedCanonicalizer<'a> {
         )?;
         let mut successors = Dictionary::<Label, Dictionary<usize, u64>>::new();
         for (node, weight) in closed.iter() {
-            let moves = &self.automaton.nodes[*node].moves;
+            let moves = self.automaton.nodes[*node].moves();
             budget.charge(
                 function,
                 moves

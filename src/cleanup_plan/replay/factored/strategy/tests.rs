@@ -127,9 +127,9 @@ fn cycles_unknown_targets_and_nonterminal_sinks_are_not_censuses() {
         let mut built = product(&function, 1, SkeletonTerminal::Success);
         let root = built.hir_root;
         match attack {
-            0 => built.automaton.nodes[root].epsilon.push(root),
-            1 => built.automaton.nodes[root].epsilon.push(usize::MAX),
-            2 => built.automaton.nodes[built.sink].epsilon.push(root),
+            0 => built.automaton.epsilon(&function, &mut ReplayBudget::new(), root, root).unwrap(),
+            1 => built.automaton.epsilon(&function, &mut ReplayBudget::new(), root, usize::MAX).unwrap(),
+            2 => built.automaton.epsilon(&function, &mut ReplayBudget::new(), built.sink, root).unwrap(),
             _ => unreachable!(),
         }
         let mut budget = ReplayBudget::new();

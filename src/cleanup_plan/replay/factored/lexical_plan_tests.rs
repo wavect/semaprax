@@ -59,10 +59,10 @@ pub(super) fn enumerate(automaton: &Automaton, root: usize) -> Vec<SkeletonPath>
             depth < 512 && result.len() < MAX_REPLAY_PATHS,
             "small independent oracle bound"
         );
-        for target in &automaton.nodes[node].epsilon {
+        for target in automaton.nodes[node].epsilon() {
             visit(automaton, *target, observations.clone(), depth + 1, result);
         }
-        for (label, target) in &automaton.nodes[node].moves {
+        for (label, target) in automaton.nodes[node].moves() {
             match label {
                 Label::Observation(observation) => {
                     let mut next = observations.clone();
@@ -103,7 +103,7 @@ pub(super) fn assert_plan_oracle(function: &ResolvedFunction) {
     assert_eq!(enumerate(&automaton, root), expected);
     // Every lexical exit directly contributes a marker edge in the converter;
     // marker targets retain either the certified resume or the exact terminal.
-    assert!(automaton.nodes.iter().any(|node|node.moves.iter().any(|(label,_)|matches!(label,Label::Observation(observation) if matches!(observation.as_ref(),SkeletonObservation::LexicalExit{..})))));
+    assert!(automaton.nodes.iter().any(|node|node.moves().iter().any(|(label,_)|matches!(label,Label::Observation(observation) if matches!(observation.as_ref(),SkeletonObservation::LexicalExit{..})))));
 }
 
 #[test]

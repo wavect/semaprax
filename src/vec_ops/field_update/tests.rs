@@ -211,3 +211,70 @@ fn unsupported_record_frontiers_and_descriptor_budget_fail_closed() {
     let (result, _, _) = crate::bounded_output::with_limit_usage(0, || descriptor.identity());
     assert!(result.is_none());
 }
+
+#[test]
+fn while_source_selector_is_metadata_and_hir_keeps_three_runtime_children() {
+    let source = r#"module field.loop;
+@id("field.row") record Row { @id("field.row.title") title:string, @id("field.row.n") n:i64 }
+@id("field.main") fn main()->i64 {
+ let a=vec_with_capacity<Row>(1usize);
+ let mut rows=vec_push<Row>(a,Row{title:"held",n:0});
+ let mut i=0;
+ while i<3 {
+  rows=vec_update_field<Row>(rows,0usize,i,"n");
+  i=i+1;
+  0
+ }
+ if vec_field<Row>(rows,0usize,"n")==2 {29}else{0}
+}"#;
+    let program = resolved(source);
+    let mut pending: Vec<_> = program.functions.iter().map(|f| &f.body).collect();
+    let mut stores = 0;
+    while let Some(expression) = pending.pop() {
+        if let ResolvedExprKind::Call {
+            callee,
+            args,
+            type_arguments,
+            ..
+        } = &expression.kind
+        {
+            if callee.as_str().starts_with(PREFIX) {
+                assert_eq!(args.len(), 3, "selector has no runtime child");
+                assert_eq!(type_arguments.len(), 1);
+                stores += 1;
+            }
+        }
+        for index in 0..expression.child_count() {
+            pending.push(expression.child(index).unwrap());
+        }
+    }
+    assert_eq!(stores, 1);
+    crate::hir::validate(&program).unwrap();
+    let wire = crate::cache_codec::encode(&program).unwrap();
+    let replay: crate::hir::ResolvedProgram = crate::cache_codec::decode(&wire).unwrap();
+    crate::hir::validate(&replay).unwrap();
+    let outcome =
+        crate::interpreter::evaluate_resolved_zero_arg_i64(&program, "field.main", 1_000_000)
+            .unwrap();
+    assert!(matches!(
+        outcome.outcome,
+        crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(29)
+    ));
+    let graph = crate::graph::to_json(&crate::check(source, "field-loop.spx").unwrap()).unwrap();
+    crate::graph::verify_json(&crate::check(source, "field-loop.spx").unwrap(), &graph).unwrap();
+    for (old, new, code) in [
+        ("i,\"n\"", "i", "SPX-T283"),
+        ("i,\"n\"", "i,\"n\",0", "SPX-T283"),
+        ("i,\"n\"", "i,\"title\"", "SPX-T320"),
+        ("i,\"n\"", "false,\"n\"", "SPX-T205"),
+        ("i,\"n\"", "i,{\"n\"}", "SPX-T320"),
+    ] {
+        let changed = source.replace(old, new);
+        assert_ne!(changed, source);
+        let diagnostics = crate::check(&changed, "field-loop-refusal.spx").unwrap_err();
+        assert!(
+            diagnostics.iter().any(|d| d.code == code),
+            "{diagnostics:?}"
+        );
+    }
+}

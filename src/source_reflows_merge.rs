@@ -97,6 +97,16 @@ pub(crate) fn held(source: &str, current: &str) -> String {
 }
 
 pub(crate) fn weighted(path: &str, current: &str) -> String {
+    let staged = if path == "../epsilon_alias/tests.rs" {
+        final_ready_input(
+            "d8",
+            "src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias/tests.rs",
+            current,
+        )
+    } else {
+        current.to_owned()
+    };
+    let current = staged.as_str();
     if path == "../../../../../../docs/ARCHITECTURE.md" {
         return assembled_previous("docs/ARCHITECTURE.md", current);
     }
@@ -715,16 +725,20 @@ fn before_sourceguard_inputs(source: &str, current: &str) -> String {
     let staged = before_actual_pin_consumers(source, current);
     let current = staged.as_str();
     project(
-        include_str!(concat!(env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/sourceguard-input-domains-7a87/current-to-d20.json")),
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/sourceguard-input-domains-7a87/current-to-d20.json"
+        )),
         source,
         current,
     )
 }
 pub(crate) fn source36_classifier_input(source: &str, current: &str) -> String {
     project(
-        include_str!(concat!(env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/sourceguard-input-domains-7a87/classifier-input.json")),
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/sourceguard-input-domains-7a87/classifier-input.json"
+        )),
         source,
         current,
     )
@@ -732,10 +746,51 @@ pub(crate) fn source36_classifier_input(source: &str, current: &str) -> String {
 
 // Actual producer literals are transported only for historical full-source guards.
 fn before_actual_pin_consumers(source: &str, current: &str) -> String {
+    let current = final_ready_input("d8", source, current);
+    let current = current.as_str();
     project(
-        include_str!(concat!(env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/actual-pin-consumer-7a87-20261015/current-to-92.json")),
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/actual-pin-consumer-7a87-20261015/current-to-92.json"
+        )),
         source,
         current,
     )
+}
+
+// Independent physical-input domains: no checkpoint table accepts another stage.
+fn final_ready_input(stage: &str, source: &str, current: &str) -> String {
+    let data = match stage {
+        "d8" => include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/ready-main-844-846-836-assembly-20261015/final-to-d8.json"
+        )),
+        "844" => include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/ready-main-844-846-836-assembly-20261015/final-to-844.json"
+        )),
+        "846" => include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/ready-main-844-846-836-assembly-20261015/final-to-846.json"
+        )),
+        _ => panic!("unknown exact ready checkpoint"),
+    };
+    project(data, source, current)
+}
+pub(crate) fn compact844_current_input(source: &str, current: &str) -> String {
+    final_ready_input("844", source, current)
+}
+pub(crate) fn compact844_input(source: &str, current: &str) -> String {
+    let current = final_ready_input("844", source, current);
+    project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/compact-automaton-844-immediate7a87/current-to-a3.json"
+        )),
+        source,
+        &current,
+    )
+}
+pub(crate) fn diagnostic846_input(source: &str, current: &str) -> String {
+    final_ready_input("846", source, current)
 }

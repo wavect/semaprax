@@ -201,9 +201,9 @@ fn ordinary_order_and_full_duplicate_multisets_match_with_one_budget_through_dro
         spent <= (WIDE + 1) * (32 * logarithm + 100),
         "wide Alt actual work {spent}"
     );
-    assert_eq!(wide_automaton.nodes[start].epsilon.len(), WIDE);
+    assert_eq!(wide_automaton.nodes[start].epsilon().len(), WIDE);
     assert!(wide_automaton.nodes[start]
-        .epsilon
+        .epsilon()
         .iter()
         .all(|target| *target == end));
     let ObservationDagKind::Alt(members) = &root.kind else {
@@ -324,10 +324,10 @@ fn ordinary_order_and_full_duplicate_multisets_match_with_one_budget_through_dro
             return vec![Vec::new()];
         }
         let mut result = Vec::new();
-        for child in &automaton.nodes[node].epsilon {
+        for child in automaton.nodes[node].epsilon() {
             result.extend(enumerate(automaton, *child, sink));
         }
-        for (label, child) in &automaton.nodes[node].moves {
+        for (label, child) in automaton.nodes[node].moves() {
             for mut suffix in enumerate(automaton, *child, sink) {
                 suffix.insert(0, label.clone());
                 result.push(suffix);

@@ -706,12 +706,20 @@ pub(super) fn report(errors: &[Diagnostic], json: bool) -> u8 {
 }
 
 pub(super) fn report_all(errors: &[Diagnostic], json: bool) {
-    for error in errors {
-        if json {
-            println!("{}", error.json());
-        } else {
-            eprintln!("{error}");
-        }
+    use semaprax::diagnostic::writer::{write_lines, IoWriter};
+    if errors.is_empty() {
+        return;
+    }
+    if json {
+        let stdout = std::io::stdout();
+        let mut stream = stdout.lock();
+        let mut output = IoWriter::new(&mut stream);
+        let _ = write_lines(&mut output, errors, true);
+    } else {
+        let stderr = std::io::stderr();
+        let mut stream = stderr.lock();
+        let mut output = IoWriter::new(&mut stream);
+        let _ = write_lines(&mut output, errors, false);
     }
 }
 

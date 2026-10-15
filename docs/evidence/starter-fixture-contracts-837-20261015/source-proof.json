@@ -1,0 +1,70 @@
+{
+  "schema": "semaprax.starter-fixture-contract-correction.v1",
+  "before_source": "9b174d852798c99ce2d14b8170ec05e6c0f94b88",
+  "file": "crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs",
+  "before_sha256": "544db186321e4474a070295caafec97bc50029c735669ae030dc5285c16c997a",
+  "after_sha256": "368628ab7380b8c2e57874e2ff103a0a09bb4d3e6ce75065e239c2988b7808b5",
+  "full_before": "application_starter.before.rs.txt",
+  "patch": "fixture.patch",
+  "only_removed_lines": [
+    "    let legacy = cli(&output, &[\"test\", \".\", \"--target\", \"native\", \"--json\"]);",
+    "    let legacy = cli(&root, &[\"test\", \".\", \"--target\", \"native\", \"--json\"]);"
+  ],
+  "original_assertions_and_raw_schema_literal_retained": true,
+  "production_changed": false,
+  "test_bodies_added": 0,
+  "runtime": "PENDING_NO_TESTS_RUN",
+  "historical_failures": [
+    {
+      "source": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/cli_new_project_v1-02ab7508ab05de6a",
+        "application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 101,
+      "log": "owning-selected-92.log",
+      "sha256": "29b8726018cc04222a55c88e430a7c29dc3fe854f44ae2dbab44f83bf88bebb0"
+    },
+    {
+      "source": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/cli_new_project_v1-02ab7508ab05de6a",
+        "application_starter::application_starter_selected_file_declared_native_tests_and_unchanged_cli49",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 101,
+      "log": "owning-selected-93.log",
+      "sha256": "8e25fb7f627205eeb0b5be385c38ca51ed566431f42facb74d53fb093f2afde9"
+    },
+    {
+      "source": "3d4b996c9a8cd2b100a3c594e741314c108b5591",
+      "command": [
+        "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/cli_new_project_v1-02ab7508ab05de6a",
+        "application_starter::tiny_collection_record_selector_executes_typed_native_roots_and_keeps_legacy_refusal",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 101,
+      "log": "owning-selected-94.log",
+      "sha256": "54f346b055a1b6eddb4ded46d852469bfdcc44372272584a7002a34c30d2f5d3"
+    }
+  ],
+  "production_json_contract": {
+    "source": "src/cli_driver/source_execution.rs",
+    "lines": "703-716",
+    "source_sha256": "d659a9dcaf22e5e3c357caed5655e11fdf1e13a142036edd97cde2e75b2ffef8",
+    "rule": "report_all writes JSON diagnostics to stdout and human diagnostics to stderr; exact diagnostic selection remains unchanged"
+  },
+  "existing_affected_selectors": [
+    "application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen",
+    "application_starter::application_starter_selected_file_declared_native_tests_and_unchanged_cli49",
+    "application_starter::tiny_collection_record_selector_executes_typed_native_roots_and_keeps_legacy_refusal"
+  ],
+  "scope": "Retain the original raw noncanonical schema as a G170/no-publication/no-input-write negative. Canonicalize that same checked schema before exercising successful LogLens installation and all original CLI49 assertions. Preserve human B104 stderr assertions and additionally parse complete JSON stdout and require the selected B104 code with empty stderr. No backend or installer behavior changes."
+}

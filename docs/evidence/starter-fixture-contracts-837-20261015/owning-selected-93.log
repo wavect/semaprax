@@ -1,0 +1,17 @@
+
+running 1 test
+test application_starter::application_starter_selected_file_declared_native_tests_and_unchanged_cli49 ... 
+thread 'application_starter::application_starter_selected_file_declared_native_tests_and_unchanged_cli49' (7655541) panicked at crates/semaprax-toolchain/tests/cli_new_project_v1.rs:52:5:
+command failed: new: error[SPX-G170]: workspace semantic source `src/schema.spx` is not canonical
+  help: Run `semaprax fmt <project-directory-or-manifest>` to canonicalize project source, then retry.
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    application_starter::application_starter_selected_file_declared_native_tests_and_unchanged_cli49
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 27 filtered out; finished in 0.05s
+

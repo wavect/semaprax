@@ -1,0 +1,52 @@
+diff --git a/crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs b/crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs
+index 46701b543..b233bfc55 100644
+--- a/crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs
++++ b/crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs
+@@ -37,0 +38,14 @@ fn install(
++
++fn assert_legacy_native_json_refusal(root: &Path) {
++    let output = cli(root, &["test", ".", "--target", "native", "--json"]);
++    assert!(!output.status.success());
++    assert!(output.stderr.is_empty(), "{:?}", output);
++    let diagnostics = serde_json::Deserializer::from_slice(&output.stdout)
++        .into_iter::<serde_json::Value>()
++        .collect::<Result<Vec<_>, _>>()
++        .expect("native refusal emits complete JSON diagnostics on stdout");
++    assert_eq!(
++        diagnostics.first().map(|value| &value["code"]),
++        Some(&serde_json::json!("SPX-B104"))
++    );
++}
+@@ -218 +232 @@ fn application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fift
+-    let legacy = cli(&output, &["test", ".", "--target", "native", "--json"]);
++    let legacy = cli(&output, &["test", ".", "--target", "native"]);
+@@ -220,0 +235 @@ fn application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fift
++    assert_legacy_native_json_refusal(&output);
+@@ -318,0 +334,22 @@ fn application_starter_selected_file_declared_native_tests_and_unchanged_cli49()
++    // Retain the original noncanonical input as an explicit negative case,
++    // then provide canonical authored source to the successful installer.
++    let before = read_tree(&authored);
++    let noncanonical = install(
++        &output,
++        &authored,
++        &plan,
++        "source-command.selected-file.resource-output.v1",
++        None,
++    );
++    assert!(!noncanonical.status.success());
++    assert!(
++        String::from_utf8_lossy(&noncanonical.stderr).contains("SPX-G170"),
++        "{:?}",
++        noncanonical
++    );
++    assert!(!output.exists());
++    assert_eq!(read_tree(&authored), before);
++    let schema_path = authored.join("src/schema.spx");
++    let schema = std::fs::read_to_string(&schema_path).unwrap();
++    let parsed = semaprax::parse(&schema, "src/schema.spx").unwrap();
++    std::fs::write(&schema_path, semaprax::format::canonical(&parsed)).unwrap();
+@@ -399 +436 @@ fn tiny_collection_record_selector_executes_typed_native_roots_and_keeps_legacy_
+-    let legacy = cli(&root, &["test", ".", "--target", "native", "--json"]);
++    let legacy = cli(&root, &["test", ".", "--target", "native"]);
+@@ -401,0 +439 @@ fn tiny_collection_record_selector_executes_typed_native_roots_and_keeps_legacy_
++    assert_legacy_native_json_refusal(&root);

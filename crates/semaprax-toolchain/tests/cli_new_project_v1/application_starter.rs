@@ -35,6 +35,20 @@ fn install(
     }
     command.output().unwrap()
 }
+
+fn assert_legacy_native_json_refusal(root: &Path) {
+    let output = cli(root, &["test", ".", "--target", "native", "--json"]);
+    assert!(!output.status.success());
+    assert!(output.stderr.is_empty(), "{:?}", output);
+    let diagnostics = serde_json::Deserializer::from_slice(&output.stdout)
+        .into_iter::<serde_json::Value>()
+        .collect::<Result<Vec<_>, _>>()
+        .expect("native refusal emits complete JSON diagnostics on stdout");
+    assert_eq!(
+        diagnostics.first().map(|value| &value["code"]),
+        Some(&serde_json::json!("SPX-B104"))
+    );
+}
 fn assert_roundtrip(root: &Path) {
     semaprax::project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
         assert_eq!(
@@ -215,9 +229,10 @@ fn application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fift
     );
     assert_success(&cli(&output, &["check", "."]));
     // Frozen route remains refused; the new typed pure route is explicit.
-    let legacy = cli(&output, &["test", ".", "--target", "native", "--json"]);
+    let legacy = cli(&output, &["test", ".", "--target", "native"]);
     assert!(!legacy.status.success());
     assert!(String::from_utf8_lossy(&legacy.stderr).contains("SPX-B104"));
+    assert_legacy_native_json_refusal(&output);
     let tests = cli(
         &output,
         &[
@@ -316,6 +331,28 @@ fn application_starter_selected_file_declared_native_tests_and_unchanged_cli49()
     let plan = fixture.root.join("plan.json");
     std::fs::write(&plan, r#"{"schema":"semaprax.json-codec-plan.v1","entries":[{"source":"src/schema.spx","record":"starter.row","profile":"flat-scalars.v1"}]}"#).unwrap();
     let output = fixture.root.join("application");
+    // Retain the original noncanonical input as an explicit negative case,
+    // then provide canonical authored source to the successful installer.
+    let before = read_tree(&authored);
+    let noncanonical = install(
+        &output,
+        &authored,
+        &plan,
+        "source-command.selected-file.resource-output.v1",
+        None,
+    );
+    assert!(!noncanonical.status.success());
+    assert!(
+        String::from_utf8_lossy(&noncanonical.stderr).contains("SPX-G170"),
+        "{:?}",
+        noncanonical
+    );
+    assert!(!output.exists());
+    assert_eq!(read_tree(&authored), before);
+    let schema_path = authored.join("src/schema.spx");
+    let schema = std::fs::read_to_string(&schema_path).unwrap();
+    let parsed = semaprax::parse(&schema, "src/schema.spx").unwrap();
+    std::fs::write(&schema_path, semaprax::format::canonical(&parsed)).unwrap();
     assert_success(&install(
         &output,
         &authored,
@@ -396,9 +433,10 @@ fn tiny_collection_record_selector_executes_typed_native_roots_and_keeps_legacy_
         Ok(())
     })
     .unwrap();
-    let legacy = cli(&root, &["test", ".", "--target", "native", "--json"]);
+    let legacy = cli(&root, &["test", ".", "--target", "native"]);
     assert!(!legacy.status.success());
     assert!(String::from_utf8_lossy(&legacy.stderr).contains("SPX-B104"));
+    assert_legacy_native_json_refusal(&root);
     let explicit = cli(
         &root,
         &[

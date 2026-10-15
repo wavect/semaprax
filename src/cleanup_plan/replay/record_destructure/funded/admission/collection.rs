@@ -41,14 +41,14 @@ pub(super) fn collection(
                 if depth > crate::cleanup::MAX_CLEANUP_SHAPE_DEPTH
                     || !arguments.is_empty()
                     || index
-                        .type_parameters(&declaration)
+                        .type_parameters(declaration)
                         .is_none_or(|p| !p.is_empty())
-                    || index.declaration(&declaration).is_none_or(|d| {
+                    || index.declaration(declaration).is_none_or(|d| {
                         d.kind != DeclarationKind::Record
                             || d.identity_origin != IdentityOrigin::Explicit
                     })
                     || index.has_record_invariant(declaration)
-                    || active.contains(&declaration)
+                    || active.contains(declaration)
                 {
                     return Ok(false);
                 }
@@ -57,7 +57,7 @@ pub(super) fn collection(
                     "collection admission active node",
                 )?;
                 active.insert(declaration);
-                let Some(declared) = index.record_fields(&declaration) else {
+                let Some(declared) = index.record_fields(declaration) else {
                     return Ok(false);
                 };
                 let Some(next) = fields.checked_add(declared.len()) else {
@@ -94,7 +94,7 @@ pub(super) fn collection(
                 );
             }
             Frame::Leave(declaration) => {
-                active.remove(&declaration);
+                active.remove(declaration);
             }
             Frame::Enter(_, _) => return Ok(false),
         }

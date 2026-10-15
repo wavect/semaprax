@@ -282,7 +282,7 @@ fn original_missing_arm_comma_bodies_stay_independent_parser_refusals() {
         );
         let refused = crate::parse(&text, Path::new(PATH))
             .err()
-            .expect("original body must be refused by the parser");
+            .unwrap_or_else(|| panic!("original body must be refused by the parser"));
         assert_eq!(refused, expected, "{text}");
         assert_eq!(refused.json(), expected.json(), "{text}");
     }
@@ -545,8 +545,14 @@ fn original_boolean_match_keeps_exact_catch_all_refusal_and_admitted_controls() 
         span_at(&original, "false => 0,", 0, "false => 0"),
         None,
     );
-    assert_eq!(full(&original, true), [expected.clone()]);
-    assert_eq!(full(&original, false), [expected.clone()]);
+    assert_eq!(
+        full(&original, true).as_slice(),
+        std::slice::from_ref(&expected)
+    );
+    assert_eq!(
+        full(&original, false).as_slice(),
+        std::slice::from_ref(&expected)
+    );
     assert_eq!(full(&original, false)[0].json(), expected.json());
     for body in [
         "match true { true => 1, false => 0, _ => 0, }",

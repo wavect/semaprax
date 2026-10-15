@@ -50,6 +50,10 @@ impl Preparation {
     ) -> Result<Self, Diagnostic> {
         Self::try_new(function, physical).map_err(|failure| {
             let (physical, reason) = failure.into_parts();
+            #[allow(
+                clippy::drop_non_drop,
+                reason = "End this borrowed proof at the measured lifetime boundary."
+            )]
             drop(physical);
             // Legacy outward Diagnostic has no separately funded report carrier.
             replay_error(function, reason.message())

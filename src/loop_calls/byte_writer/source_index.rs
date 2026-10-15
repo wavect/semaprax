@@ -310,6 +310,10 @@ impl<'a> SourceIndex<'a> {
 }
 #[cfg(test)]
 #[path = "source_index/tests.rs"]
+#[allow(
+    clippy::duplicate_mod,
+    reason = "Run the same controls against independent receivers."
+)]
 mod tests;
 
 pub(crate) trait SourceHelpers {

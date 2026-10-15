@@ -103,7 +103,11 @@ fn paid_fact_cursor_and_growth_exact_short_keep_first_receipt_and_drop_one_owner
                         assert_eq!(facts.len(), 2);
                         assert_eq!(selected.usage().1, full);
                         drop(facts);
-                        drop(selected.finish_paid().ok().expect("successful paid finish"));
+                        drop(
+                            selected
+                                .finish_paid()
+                                .unwrap_or_else(|_| panic!("successful paid finish")),
+                        );
                     }
                     Err(error) => {
                         assert!(!success);
@@ -130,7 +134,11 @@ fn paid_fact_cursor_and_growth_exact_short_keep_first_receipt_and_drop_one_owner
                         assert_eq!(refusal.ledger_mut().unwrap() as *const _, ledger);
                         assert!(refusal.ledger_mut().unwrap().reserve(0).is_err());
                         let before_report = current_metrics();
-                        drop(refusal.into_report(FORM).ok().expect("same outward form"));
+                        drop(
+                            refusal
+                                .into_report(FORM)
+                                .unwrap_or_else(|_| panic!("same outward form")),
+                        );
                         assert_eq!(current_metrics().allocations, before_report.allocations);
                     }
                 }

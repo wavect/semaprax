@@ -197,7 +197,7 @@ mod tests {
  if vec_len<Row>(words)==2usize && vec_len<Row>(later)==0usize {29}else{0}
 }
 "#;
-    fn selected<'a>(function: &'a Function) -> &'a Expr {
+    fn selected(function: &Function) -> &Expr {
         let mut selected = None;
         assert!(walk(&function.body, |expr| {
             if matches!(&expr.kind, ExprKind::Call { name, .. } if name == crate::vec_ops::CLONE_AT_NAME)

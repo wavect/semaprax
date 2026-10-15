@@ -16,9 +16,9 @@ impl std::fmt::Write for Bounded {
 }
 pub(super) fn describe(builder: &PlanBuilder<'_>, left: &FlowState, right: &FlowState) -> String {
     let mut text = Bounded(String::with_capacity(MAX_BYTES));
-    let _ = write!(text, "cleanup join function={}\n", builder.function.id);
+    let _ = writeln!(text, "cleanup join function={}", builder.function.id);
     for (name, state) in [("left", left), ("right", right)] {
-        let _ = write!(text, "{name} live_order={:?}\n", state.live_order);
+        let _ = writeln!(text, "{name} live_order={:?}", state.live_order);
         for flag in state.live_order.iter().take(32) {
             if let Some(leaf) = builder.leaves.get(flag) {
                 let _ = writeln!(text, "{name} flag={} place={:?}", flag.0, leaf.place);

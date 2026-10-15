@@ -78,6 +78,10 @@ fn string_vec_and_borrowed_record_receiving_replay_match_complete_ordinary_plans
                 )
                 .unwrap_or_else(|error| panic!("selected replay of {source}: {error:?}"));
             let bytes = measured.charged();
+            #[allow(
+                clippy::drop_non_drop,
+                reason = "End this borrowed proof at the measured lifetime boundary."
+            )]
             drop(measured);
             let exact = super::super::selected_entry::validate_retained_lexical_with_reservation(
                 context,
@@ -86,6 +90,10 @@ fn string_vec_and_borrowed_record_receiving_replay_match_complete_ordinary_plans
             )
             .unwrap();
             assert_eq!(exact.charged(), bytes);
+            #[allow(
+                clippy::drop_non_drop,
+                reason = "End this borrowed proof at the measured lifetime boundary."
+            )]
             drop(exact);
             assert_eq!(
                 super::super::selected_entry::validate_retained_lexical_with_reservation(
@@ -507,9 +515,17 @@ fn named_string_transfer_retained_replay_matches_ordinary_exact_and_short() {
         let measured = receiver(context, retained, PhysicalReservation::new(usize::MAX)).unwrap();
         let charged = measured.charged();
         assert!(charged > 0);
+        #[allow(
+            clippy::drop_non_drop,
+            reason = "End this borrowed proof at the measured lifetime boundary."
+        )]
         drop(measured);
         let exact = receiver(context, retained, PhysicalReservation::new(charged)).unwrap();
         assert_eq!(exact.charged(), charged);
+        #[allow(
+            clippy::drop_non_drop,
+            reason = "End this borrowed proof at the measured lifetime boundary."
+        )]
         drop(exact);
         assert_eq!(
             receiver(context, retained, PhysicalReservation::new(charged - 1))

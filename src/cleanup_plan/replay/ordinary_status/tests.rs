@@ -128,7 +128,7 @@ fn borrowed_status_comparison_removes_actual_owned_table_backing_through_drop() 
         assert!(!owned.invalid);
         // Each authored + has an independently known one-case Vec in the saved
         // producer, in addition to the owned status table and call ID strings.
-        assert!(owned.allocations >= count + 1);
+        assert!(owned.allocations > count);
         assert!(owned.allocated >= count * std::mem::size_of::<StatusCase>());
         assert_eq!(owned.allocated, owned.freed);
         assert_eq!(owned.live, 0);

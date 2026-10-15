@@ -306,7 +306,7 @@ fn assert_whole_plan(program: &ResolvedProgram, function: &ResolvedFunction, exp
     assert!(!success);
     assert!(refused);
     assert!(first.is_some());
-    assert!(used <= exact - 1);
+    assert!(used < exact);
     assert_eq!(short.freed, short.allocated);
     assert_eq!(short.live, 0);
     assert!(!short.invalid);

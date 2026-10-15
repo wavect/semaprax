@@ -1374,6 +1374,10 @@ mod fused;
 
 #[cfg(test)]
 #[path = "byte_data_capacity/tests.rs"]
+#[allow(
+    clippy::duplicate_mod,
+    reason = "Run the same controls against independent receivers."
+)]
 mod tests;
 
 #[cfg(test)]

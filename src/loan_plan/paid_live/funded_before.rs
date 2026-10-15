@@ -83,6 +83,10 @@ fn lexical_preflight(
 
 #[cfg(test)]
 #[path = "../funded_flat/tests.rs"]
+#[allow(
+    clippy::duplicate_mod,
+    reason = "Run the same controls against independent receivers."
+)]
 mod tests;
 
 #[cfg(test)]

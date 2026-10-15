@@ -47,7 +47,7 @@ fn prepared_string_vec_and_borrowed_record_signatures_keep_current_type_pointers
                 &parsed, &named, &nominal, &mut work,
             )
         };
-        assert_eq!(answer.unwrap(), true);
+        assert!(answer.unwrap());
         assert_eq!(work, 0);
         let mut short = cost - 1;
         let answer = if cost == 7 {

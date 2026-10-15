@@ -129,7 +129,7 @@ fn full_original_operation_sources_and_receivers_have_only_declared_identity_hoo
         format!(
             "{:x}",
             crate::digest_hex::LowerHex(<sha2::Sha256 as sha2::Digest>::digest(
-                current[start..end].as_bytes()
+                &current.as_bytes()[start..end]
             ))
         ),
         "ef04cf361ae1d56eb44b0e308786371d14d93239341b6fd6c322d4710a416fa4"

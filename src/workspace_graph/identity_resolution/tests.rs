@@ -120,7 +120,7 @@ fn complete_owned_and_borrowed_actual_payment_exact_short_and_sticky_receivers()
         assert!(exact.allocated <= used && exact.highwater <= used);
         let (((), short), failed, used, first) = observe(required - 1, true);
         let first = first.expect("one-short selects a real original request");
-        assert!(failed && first.requested > first.remaining && used <= required - 1);
+        assert!(failed && first.requested > first.remaining && used < required);
         assert!(!short.invalid && short.live == 0);
         assert_eq!(short.allocated, short.freed);
         assert!(short.allocated <= used && short.highwater <= used);

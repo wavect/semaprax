@@ -347,6 +347,10 @@ fn record_layout_proof_runs_once_per_exact_binding_with_hostile_and_drop_control
             let mut proof = RecordProof::new(&ast, &resolved);
             let mut work = once;
             assert!(proof.admitted(&ast, &resolved, &mut work).unwrap());
+            #[allow(
+                clippy::drop_non_drop,
+                reason = "End this borrowed proof at the measured lifetime boundary."
+            )]
             drop(proof);
         });
         assert_eq!((observed.allocations, observed.live), (0, 0));

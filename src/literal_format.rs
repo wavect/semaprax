@@ -222,6 +222,9 @@ pub(crate) use funded::checked_moving_string_operands_funded;
 mod move_tests;
 
 #[cfg(test)]
+pub(crate) use funded::work::checked_moving_string_operands_funded_with_work;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -243,6 +246,3 @@ mod tests {
         }
     }
 }
-
-#[cfg(test)]
-pub(crate) use funded::work::checked_moving_string_operands_funded_with_work;

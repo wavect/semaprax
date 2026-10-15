@@ -17,6 +17,8 @@ use crate::hir::{ResolvedExpr, ResolvedExprKind};
 
 use super::{charge, LoanId, WorkCounter};
 
+type EdgeLiveness = (Vec<Vec<LoanId>>, Vec<Vec<u16>>);
+
 pub(super) struct LegacyAdjacency {
     pub(super) successors: Vec<Vec<u16>>,
     pub(super) successor_edges: Vec<Vec<u16>>,
@@ -131,7 +133,7 @@ pub(super) fn edge_liveness(
     edges: &[(u16, u16)],
     live: &[BTreeSet<u16>],
     work: &mut WorkCounter,
-) -> Result<(Vec<Vec<LoanId>>, Vec<Vec<u16>>), Diagnostic> {
+) -> Result<EdgeLiveness, Diagnostic> {
     let mut edge_live = vec![Vec::<LoanId>::new(); edges.len()];
     let mut termination_edges = vec![Vec::<u16>::new(); live.len()];
     for (loan_index, nodes) in live.iter().enumerate() {

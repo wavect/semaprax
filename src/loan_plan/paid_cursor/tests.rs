@@ -112,7 +112,7 @@ fn cursor_spill_is_prepaid_exact_short_sticky_and_reused_through_drop() {
     assert_eq!(again, full);
     let ((ok, short), refused, used, first) = run(exact - 1);
     assert!(!ok && refused && first.is_some() && !short.invalid);
-    assert!(used <= exact - 1);
+    assert!(used < exact);
     assert!(short.allocated <= used && short.highwater <= used);
     assert_eq!(short.allocated, short.freed);
     assert_eq!(short.live, 0);

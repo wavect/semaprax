@@ -240,7 +240,7 @@ fn transfer_commit_epochs_and_total_status_are_independently_revalidated() {
             _ => unreachable!(),
         };
         let argument = operand(root).unwrap().id.clone();
-        if mutation >= 5 && mutation <= 6 {
+        if (5..=6).contains(&mutation) {
             f.cleanup_plan
                 .status_sources
                 .push(crate::cleanup_plan::StatusSource {

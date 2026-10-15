@@ -150,6 +150,66 @@ pub(super) fn expression(
     }
 }
 
+/// The bounded scalar decision subset used by the actual UTF-8 readers. The
+/// final arm is irrefutable; earlier arms are exact same-typed literal domains.
+pub(super) fn scalar_match(
+    function: &ResolvedFunction,
+    expression: &ResolvedExpr,
+    mode: crate::hir::ResolvedMatchMode,
+    scrutinee: &ResolvedExpr,
+    arms: &[ResolvedMatchArm],
+    budget: &mut ReplayBudget,
+) -> Result<bool, Diagnostic> {
+    budget.charge(function, 1, "borrowed scalar match header")?;
+    if mode != crate::hir::ResolvedMatchMode::Value
+        || scrutinee.ownership != OwnershipMode::Value
+        || expression.ownership != OwnershipMode::Value
+        || !crate::hir::is_refutable_match_scalar(&scrutinee.ty)
+        || !crate::hir::is_scalar_resolved_type(&expression.ty)
+        || arms.is_empty()
+    {
+        return Ok(false);
+    }
+    for (index, arm) in arms.iter().enumerate() {
+        budget.charge(function, 1, "borrowed scalar actual arm")?;
+        if arm.guard.is_some()
+            || arm.value.ty != expression.ty
+            || arm.value.ownership != OwnershipMode::Value
+        {
+            return Ok(false);
+        }
+        let last = index + 1 == arms.len();
+        match &arm.pattern {
+            ResolvedMatchPattern::Wildcard if last => {}
+            ResolvedMatchPattern::Binding(binding) if last => {
+                budget.charge(function, 1, "borrowed scalar catch-all binding")?;
+                if binding.ty != scrutinee.ty || binding.ownership != OwnershipMode::Value {
+                    return Ok(false);
+                }
+            }
+            ResolvedMatchPattern::Literal(value) if !last => {
+                budget.charge(function, 1, "borrowed scalar literal type")?;
+                if value.ty() != scrutinee.ty {
+                    return Ok(false);
+                }
+            }
+            ResolvedMatchPattern::Or(alternatives) if !last && !alternatives.is_empty() => {
+                for alternative in alternatives {
+                    budget.charge(function, 1, "borrowed scalar actual alternative")?;
+                    let ResolvedMatchPattern::Literal(value) = alternative else {
+                        return Ok(false);
+                    };
+                    if value.ty() != scrutinee.ty {
+                        return Ok(false);
+                    }
+                }
+            }
+            _ => return Ok(false),
+        }
+    }
+    Ok(true)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -213,64 +273,4 @@ mod tests {
             );
         }
     }
-}
-
-/// The bounded scalar decision subset used by the actual UTF-8 readers. The
-/// final arm is irrefutable; earlier arms are exact same-typed literal domains.
-pub(super) fn scalar_match(
-    function: &ResolvedFunction,
-    expression: &ResolvedExpr,
-    mode: crate::hir::ResolvedMatchMode,
-    scrutinee: &ResolvedExpr,
-    arms: &[ResolvedMatchArm],
-    budget: &mut ReplayBudget,
-) -> Result<bool, Diagnostic> {
-    budget.charge(function, 1, "borrowed scalar match header")?;
-    if mode != crate::hir::ResolvedMatchMode::Value
-        || scrutinee.ownership != OwnershipMode::Value
-        || expression.ownership != OwnershipMode::Value
-        || !crate::hir::is_refutable_match_scalar(&scrutinee.ty)
-        || !crate::hir::is_scalar_resolved_type(&expression.ty)
-        || arms.is_empty()
-    {
-        return Ok(false);
-    }
-    for (index, arm) in arms.iter().enumerate() {
-        budget.charge(function, 1, "borrowed scalar actual arm")?;
-        if arm.guard.is_some()
-            || arm.value.ty != expression.ty
-            || arm.value.ownership != OwnershipMode::Value
-        {
-            return Ok(false);
-        }
-        let last = index + 1 == arms.len();
-        match &arm.pattern {
-            ResolvedMatchPattern::Wildcard if last => {}
-            ResolvedMatchPattern::Binding(binding) if last => {
-                budget.charge(function, 1, "borrowed scalar catch-all binding")?;
-                if binding.ty != scrutinee.ty || binding.ownership != OwnershipMode::Value {
-                    return Ok(false);
-                }
-            }
-            ResolvedMatchPattern::Literal(value) if !last => {
-                budget.charge(function, 1, "borrowed scalar literal type")?;
-                if value.ty() != scrutinee.ty {
-                    return Ok(false);
-                }
-            }
-            ResolvedMatchPattern::Or(alternatives) if !last && !alternatives.is_empty() => {
-                for alternative in alternatives {
-                    budget.charge(function, 1, "borrowed scalar actual alternative")?;
-                    let ResolvedMatchPattern::Literal(value) = alternative else {
-                        return Ok(false);
-                    };
-                    if value.ty() != scrutinee.ty {
-                        return Ok(false);
-                    }
-                }
-            }
-            _ => return Ok(false),
-        }
-    }
-    Ok(true)
 }

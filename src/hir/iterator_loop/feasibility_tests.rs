@@ -198,7 +198,7 @@ fn forged_predicate_done_latch_and_normal_endpoint_refuse_independent_replay_and
         } else {
             let (condition, body, latch) = loop_mut(&mut function.body).unwrap();
             match mutation {
-                0 | 1 | 2 => {
+                0..=2 => {
                     let ResolvedExprKind::Match { arms, .. } = &mut condition.kind else {
                         unreachable!()
                     };
@@ -208,7 +208,7 @@ fn forged_predicate_done_latch_and_normal_endpoint_refuse_independent_replay_and
                         _ => arms[0].value.ty = ResolvedType::I64,
                     }
                 }
-                3 | 4 | 5 => {
+                3..=5 => {
                     let ResolvedExprKind::Match { arms, .. } = &mut replacement(body).kind else {
                         unreachable!()
                     };

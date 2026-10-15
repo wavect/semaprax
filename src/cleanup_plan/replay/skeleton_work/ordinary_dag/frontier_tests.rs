@@ -169,10 +169,13 @@ fn current_order(program: &ResolvedProgram, item: &Observation) -> ([usize; 32],
         assert!(!report.invalid);
         assert_eq!(report.count, 6);
         let mut tails = [usize::MAX; 3];
-        let mut count = 0;
-        for ordinal in report.order[..6].iter().copied().filter(|i| *i < 3) {
+        for (count, ordinal) in report.order[..6]
+            .iter()
+            .copied()
+            .filter(|i| *i < 3)
+            .enumerate()
+        {
             tails[count] = ordinal;
-            count += 1;
         }
         assert_eq!(tails, [1, 2, 0]);
         let paid = work.budget.physical.as_ref().unwrap().charged() - before;
@@ -238,6 +241,10 @@ fn saved_order(program: &ResolvedProgram, item: &Observation) -> ([usize; 32], M
         });
         assert!(!report.invalid);
         assert_eq!(report.count, 6);
+        #[allow(
+            clippy::drop_non_drop,
+            reason = "End this borrowed proof at the measured lifetime boundary."
+        )]
         drop(work);
         report.order
     });
@@ -827,6 +834,10 @@ fn cat_alt_actual_member_backing_and_rc_release_order_pin_the_physical_frontier_
                 assert_eq!(report.count, pointers.len());
                 drop(leaves);
                 let paid = work.budget.physical.as_ref().unwrap().charged() - before;
+                #[allow(
+                    clippy::drop_non_drop,
+                    reason = "End this borrowed proof at the measured lifetime boundary."
+                )]
                 drop(work);
                 (report, paid)
             });
@@ -864,23 +875,21 @@ fn cat_alt_actual_member_backing_and_rc_release_order_pin_the_physical_frontier_
         }
         let mut old_tails = [usize::MAX; 5];
         let mut current_tails = [usize::MAX; 5];
-        let mut oi = 0;
-        let mut ci = 0;
-        for ordinal in old.order[..old.count]
+        for (oi, ordinal) in old.order[..old.count]
             .iter()
             .copied()
             .filter(|i| (2..7).contains(i))
+            .enumerate()
         {
             old_tails[oi] = ordinal;
-            oi += 1;
         }
-        for ordinal in current.order[..current.count]
+        for (ci, ordinal) in current.order[..current.count]
             .iter()
             .copied()
             .filter(|i| (2..7).contains(i))
+            .enumerate()
         {
             current_tails[ci] = ordinal;
-            ci += 1;
         }
         assert_eq!(current_tails, old_tails);
         assert_eq!(current_tails, [6, 5, 4, 3, 2]);

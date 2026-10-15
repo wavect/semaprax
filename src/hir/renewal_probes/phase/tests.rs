@@ -38,6 +38,10 @@ fn paid_borrowed_search_matches_all_old_tables_and_exact_storage_drop() {
     assert!(probes.declaration(&query, &mut |_| true).unwrap().is_none());
     assert!(probes.declaration(&query, &mut |_| false).is_err());
     drop(probes);
+    #[allow(
+        clippy::drop_non_drop,
+        reason = "End this borrowed proof at the measured lifetime boundary."
+    )]
     drop(admission);
     // Each map's independent source cardinality requires capacities 1,2,4,...;
     // two borrowed words per entry, and an overlapping Vec header per growth.

@@ -302,7 +302,15 @@ fn vector_work_owner_foreign_then_restored_preserves_first_raw_detached() {
                 Err(FixedFailure::Bytes(Refused::Detached))
             );
             assert_eq!(current_metrics().allocated, at);
+            #[allow(
+                clippy::drop_non_drop,
+                reason = "End this borrowed proof at the measured lifetime boundary."
+            )]
             drop(payer);
+            #[allow(
+                clippy::drop_non_drop,
+                reason = "End this borrowed proof at the measured lifetime boundary."
+            )]
             drop(reserve);
             drop(owner);
         })

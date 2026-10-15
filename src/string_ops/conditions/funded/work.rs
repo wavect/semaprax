@@ -6,9 +6,9 @@
 use super::*;
 use crate::hir::funded::work::{self as paid, Work};
 
-fn scan<'a, E>(
+fn scan<E>(
     reads: &mut BTreeSet<ExpressionId>,
-    pending: &mut Vec<&'a ResolvedExpr>,
+    pending: &mut Vec<&ResolvedExpr>,
     work: Work<'_, E>,
     reserve: Reserve<'_, E>,
 ) -> Result<(), FundedError<E>> {

@@ -83,11 +83,11 @@ fn normalization_to_nested_owning_join_replays_source_hir_and_cleanup() {
 
 #[test]
 fn normalization_join_refuses_near_shapes_identity_loss_and_general_results() {
-    for renamed in [TYPES
-        .replace("Input", "UnrelatedCarrier")
-        .replace("Ready", "ArbitrarySuccess")
-        .replace("Error", "ArbitraryFailure")]
     {
+        let renamed = TYPES
+            .replace("Input", "UnrelatedCarrier")
+            .replace("Ready", "ArbitrarySuccess")
+            .replace("Error", "ArbitraryFailure");
         let source = format!("{renamed}@id(\"main\") fn main()->i64{{0}}");
         let program = resolve(&crate::check(&source, "opaque-stream-input.spx").unwrap()).unwrap();
         assert!(admitted(&program.declarations, &ty("input")));

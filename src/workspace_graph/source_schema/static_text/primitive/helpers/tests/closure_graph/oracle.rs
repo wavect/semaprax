@@ -65,10 +65,8 @@ fn lookup<'a>(
                 .checked_add(function.id.as_str().len())
                 .ok_or(Refused::MISMATCH)?,
         )?;
-        if function.id == *id {
-            if found.replace(i).is_some() {
-                return Err(Refused::MISMATCH);
-            }
+        if function.id == *id && found.replace(i).is_some() {
+            return Err(Refused::MISMATCH);
         }
     }
     Ok(found)

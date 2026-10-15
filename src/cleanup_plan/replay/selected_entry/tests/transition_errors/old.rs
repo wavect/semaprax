@@ -1,6 +1,10 @@
 //! Independent saved transition error oracle; never runtime authority.
 use super::*;
 use crate::cleanup_plan::replay::transition_storage::transfer;
+#[allow(
+    clippy::too_many_arguments,
+    reason = "Keep the independent receiver and observation controls explicit."
+)]
 pub(super) fn ordinary(
     program: &dyn crate::cleanup::ReplayContext,
     function: &ResolvedFunction,
@@ -317,6 +321,10 @@ pub(super) fn ordinary(
     Ok(())
 }
 
+#[allow(
+    clippy::too_many_arguments,
+    reason = "Keep the independent receiver and observation controls explicit."
+)]
 pub(super) fn selected(
     program: &dyn crate::cleanup::ReplayContext,
     function: &ResolvedFunction,

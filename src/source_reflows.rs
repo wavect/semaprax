@@ -93,7 +93,7 @@ pub(crate) fn source(
         return current;
     };
     let mut cache = CACHE.get_or_init(Mutex::default).lock().unwrap();
-    *cache.entry((caller, included)).or_insert_with(|| {
+    cache.entry((caller, included)).or_insert_with(|| {
         // One bounded fixture allocation per included file, retained only for
         // this test process. This helper is absent from production builds.
         Box::leak(restore(record, current).into_boxed_str())

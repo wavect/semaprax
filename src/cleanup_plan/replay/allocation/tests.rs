@@ -127,7 +127,9 @@ fn active_builder_zero_exact_short_refusal_is_sticky_and_moves_paid_text() {
                     let values = vec![0u64; 3];
                     drop(values);
                 } else {
-                    let error = result.err().expect("exactly short builder refuses");
+                    let error = result
+                        .err()
+                        .unwrap_or_else(|| panic!("exactly short builder refuses"));
                     assert_eq!(error.code, "SPX-H006");
                     if limit >= text_bytes {
                         assert!(!error.message.is_empty());

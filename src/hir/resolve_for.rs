@@ -253,7 +253,7 @@ pub(super) fn resolve_reference(
     resolver.reject_while_disallowed_in_scope(
         body,
         None,
-        bytes::admits(source_binding).then_some(&scope),
+        bytes::admits(source_binding).then_some(scope),
     )?;
     let source = ResolvedBinding {
         id: source_binding.id.clone(),

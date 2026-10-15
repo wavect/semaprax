@@ -155,6 +155,10 @@ fn actual_metadata_probes_preserve_exact_one_short_cumulative_failure_without_al
             assert_eq!(second, Err(()));
             assert_eq!(authenticated_metered(&current, &value, &mut debit), Err(()));
         }
+        #[allow(
+            clippy::drop_non_drop,
+            reason = "End this borrowed proof at the measured lifetime boundary."
+        )]
         drop(debit);
         assert_eq!(remaining, 0);
         assert_eq!(failed, total != spent * 2);

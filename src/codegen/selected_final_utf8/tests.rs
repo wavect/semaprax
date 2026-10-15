@@ -231,7 +231,7 @@ fn final_constructor_accepts_authenticated_bytes_projection_and_refuses_array_or
     ));
     let error = emit(&array)
         .err()
-        .expect("Array view remains outside the profile");
+        .unwrap_or_else(|| panic!("Array view remains outside the profile"));
     assert_eq!(error.code, "SPX-B104");
     assert!(error.message.contains("exact bounded owned-Bytes view"));
     let aliased = program(&SOURCE.replace(
@@ -240,7 +240,7 @@ fn final_constructor_accepts_authenticated_bytes_projection_and_refuses_array_or
     ));
     let error = emit(&aliased)
         .err()
-        .expect("named alias remains outside the profile");
+        .unwrap_or_else(|| panic!("named alias remains outside the profile"));
     assert_eq!(error.code, "SPX-B104");
     assert!(error.message.contains("exact bounded owned-Bytes view"));
 }

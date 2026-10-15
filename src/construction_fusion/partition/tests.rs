@@ -229,6 +229,10 @@ fn exact_and_one_short_work_cover_current_inventory_and_identity_bytes() {
     let (source, program) = pending();
     let initial = 100_000;
     let mut remaining = initial;
+    #[allow(
+        clippy::drop_non_drop,
+        reason = "End this borrowed proof at the measured lifetime boundary."
+    )]
     drop(
         derive(
             &source,
@@ -242,6 +246,10 @@ fn exact_and_one_short_work_cover_current_inventory_and_identity_bytes() {
     let used = initial - remaining;
     assert!(used > 0);
     let mut exact = used;
+    #[allow(
+        clippy::drop_non_drop,
+        reason = "End this borrowed proof at the measured lifetime boundary."
+    )]
     drop(
         derive(
             &source,

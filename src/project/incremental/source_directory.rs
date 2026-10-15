@@ -146,7 +146,7 @@ mod tests {
         );
         assert!(Arc::ptr_eq(directory.get("a.spx").unwrap(), &owners[0]));
         assert!(directory.get("unknown.spx").is_none());
-        assert_eq!(directory.iter().rev().next().unwrap().0, "z.spx");
+        assert_eq!(directory.iter().next_back().unwrap().0, "z.spx");
         let reversed = Arc::new(vec![Arc::clone(&owners[1]), Arc::clone(&owners[0])]);
         assert!(SourceDirectory::current(&reversed).is_err());
         let duplicates = Arc::new(vec![Arc::clone(&owners[0]), Arc::clone(&owners[0])]);

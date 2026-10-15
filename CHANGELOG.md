@@ -15,6 +15,14 @@
   executable qualification and physical measurements are pending.
 
 - Qualify the closed named String-transfer v1 scope with all 15 exact a417 owning controls and the five 27ae regenerated-pin/source controls; retain unrelated application-budget failures and frozen public profiles.
+- Repair the pinned Clippy gate while retaining explicit proof lifetimes and
+  independently compiled historical receiver controls. Name complex carrier
+  types, preserve measured traversal order, and move whole test modules after
+  production items without rewriting their literal contents.
+
+- Keep the full 4096-row traversal witness behind its explicit fused-source
+  profile through cache replay and all three execution engines. Retain ordinary
+  graph and capacity refusals, and make its transfer hostile change the fixture.
 
 - Keep borrowed byte replay context identity stable across compiler codegen
   units while retaining exact function, expression and foreign-context checks.

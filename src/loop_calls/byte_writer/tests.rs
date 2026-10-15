@@ -182,7 +182,7 @@ fn legacy_allocating_helper_census_preserves_ordinary_depth_and_refuses_one_extr
         let ResolvedExprKind::Block { tail, .. } = &mut outer.kind else {
             panic!("ordinary source block");
         };
-        *tail = Box::new(std::mem::replace(&mut main.body, template.clone()));
+        **tail = std::mem::replace(&mut main.body, template.clone());
         main.body = outer;
     }
     let main = program
@@ -201,7 +201,7 @@ fn legacy_allocating_helper_census_preserves_ordinary_depth_and_refuses_one_extr
         panic!("source block");
     };
     // Move the existing body under exactly one additional source-shaped frame.
-    *tail = Box::new(main.body.clone());
+    **tail = main.body.clone();
     main.body = outer;
     let main = program
         .functions

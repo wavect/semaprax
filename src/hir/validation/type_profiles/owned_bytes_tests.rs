@@ -114,7 +114,7 @@ fn borrowed_owned_byte_query_keeps_text_visited_cycles_duplicate_kinds_and_unsub
     parity(&program, &nominal("query.cycle", Vec::new()), false);
     program.types.remove(program.types.len() - 2);
     parity(&program, &nominal("query.cycle", Vec::new()), true);
-    let parameters = vec![ResolvedType::TypeParameter {
+    let parameters = [ResolvedType::TypeParameter {
         owner: declaration.id.clone(),
         index: 0,
     }];

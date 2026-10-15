@@ -1,14 +1,11 @@
 use super::*;
 
-fn old(
-    program: &ResolvedProgram,
-) -> Result<
-    (
-        BTreeMap<(ExpressionId, LoanCause), LoanId>,
-        BTreeMap<(ExpressionId, LoanPointPhase, LoanId), Place>,
-    ),
-    Diagnostic,
-> {
+type CanonicalLoans = (
+    BTreeMap<(ExpressionId, LoanCause), LoanId>,
+    BTreeMap<(ExpressionId, LoanPointPhase, LoanId), Place>,
+);
+
+fn old(program: &ResolvedProgram) -> Result<CanonicalLoans, Diagnostic> {
     let mut canonical_loan_ids = BTreeMap::new();
     let mut canonical_loan_liveness = BTreeMap::new();
     for function in program.functions.iter().chain(

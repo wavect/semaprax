@@ -16,6 +16,7 @@
 //!   `BTreeMap::get` + `Vec::as_slice`; iterator `filter/count/all` only),
 //!   `ReplayContext::resolve_call_target` (linear `iter().find`, borrowed
 //!   result), `loop_calls::resolved_renewal_view` (`matches!`).
+//!
 //! The only owning expression on this route was `same_owner`'s
 //! `[element.clone()]`, which `same_owner_funded` replaces. If any of the
 //! callees above gains an owning temporary, this audit must be redone.

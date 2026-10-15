@@ -1413,6 +1413,10 @@ fn scope_exit_outcome_json(outcome: &ScopeExitOutcome) -> String {
 
 #[cfg(test)]
 #[path = "scoped_tasks/tests.rs"]
+#[allow(
+    clippy::duplicate_mod,
+    reason = "Run the same controls against independent receivers."
+)]
 mod tests;
 
 #[cfg(test)]

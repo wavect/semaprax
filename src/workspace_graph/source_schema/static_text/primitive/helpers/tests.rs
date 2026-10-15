@@ -737,9 +737,7 @@ fn generic_option_nominal_and_vec_provider_bodies_keep_the_route_closed() {
         ),
         (
             "private nominal",
-            format!(
-                "module scalar.leaf; @id(\"private.Row\") record Row {{@id(\"private.Row.n\") n:i64,}} @id(\"leaf.step\") fn step(n:i64)->i64{{let row=Row {{n:n}};row.n}}"
-            ),
+            "module scalar.leaf; @id(\"private.Row\") record Row {@id(\"private.Row.n\") n:i64,} @id(\"leaf.step\") fn step(n:i64)->i64{let row=Row {n:n};row.n}".to_owned(),
         ),
         (
             "owned Vec",

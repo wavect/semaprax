@@ -6,6 +6,10 @@ use crate::bounded_output::with_limit_usage_refusal;
 use crate::test_allocation_observer::measure;
 use crate::workspace_graph::index_authored;
 #[path = "original_construct.rs"]
+#[allow(
+    clippy::duplicate_mod,
+    reason = "Run the same controls against independent receivers."
+)]
 mod original_construct;
 
 #[test]
@@ -84,7 +88,7 @@ fn last_alias_and_synthetic_main_refusal_never_publish_partial_generated_roots()
             let ((old_short, old_metrics), refused, used, first) = observe(paid - 1, true);
             // Preserve the full original defective receiver as a counterexample.
             assert_eq!(old_short, (true, false, false));
-            assert!(refused && first.is_some() && used <= paid - 1);
+            assert!(refused && first.is_some() && used < paid);
             assert!(!old_metrics.invalid && old_metrics.live == 0);
             assert_eq!(old_metrics.allocated, old_metrics.freed);
             for limit in [paid - 1, 0] {

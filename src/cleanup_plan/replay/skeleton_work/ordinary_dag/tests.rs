@@ -54,6 +54,10 @@ fn ordinary_empty_union_preserves_saved_multiset_and_literal_node_storage_throug
         assert_eq!(observed.live, 0);
         assert_eq!(observed.allocated, observed.freed);
     }
+    #[allow(
+        clippy::drop_non_drop,
+        reason = "End this borrowed proof at the measured lifetime boundary."
+    )]
     drop(work);
     for (extra, accepted) in [(required, true), (required - 1, false)] {
         let mut budget = ReplayBudget::with_physical(function, setup + extra).unwrap();

@@ -1,6 +1,8 @@
 //! Authored borrowed-row loops exercise existing read carriers on all engines.
 use super::{run_wasm, DECLARATION, SEQUENCE};
 use std::sync::atomic::Ordering;
+#[path = "selected_record_traversal.rs"]
+mod selected_record_traversal;
 
 fn run(body: &str, expected: i64) {
     let source = format!("{DECLARATION}{body}");
@@ -206,7 +208,8 @@ fn maximum_admitted_owned_rows_preserve_views_order_and_nonallocating_reentry() 
         .expect("exact canonical owning Row declaration, including stable fields and types");
     let expected: i64 = (0..4096).sum();
     assert_eq!(expected, 8_386_560);
-    run(body, expected);
+    assert_eq!(format!("{declaration}{body}"), SOURCE);
+    selected_record_traversal::run(SOURCE, expected);
 }
 
 // Uses the complete maximum witness's functional oracle at the unchanged Byte event cap.

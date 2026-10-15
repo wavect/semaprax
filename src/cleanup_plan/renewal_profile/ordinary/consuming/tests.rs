@@ -117,7 +117,7 @@ fn heap(frames: usize) -> (usize, usize, usize, usize) {
     let mut caps = Vec::new();
     let mut cap = 0usize;
     while cap < need {
-        cap = (cap * 2).max(INLINE).min(LIMIT - INLINE);
+        cap = (cap * 2).clamp(INLINE, LIMIT - INLINE);
         caps.push(cap);
     }
     let cell = size_of::<ChildCursor<'static>>();
@@ -180,8 +180,8 @@ fn chains_match_original_ids_work_and_charge_real_formula() {
         assert_eq!(observed.live, 0);
         assert_eq!(observed.allocated, allocated);
         assert_eq!(observed.highwater, highwater);
-        assert_eq!(observed.allocations as usize, count);
-        assert_eq!(observed.reallocations as usize, 0);
+        assert_eq!(observed.allocations, count);
+        assert_eq!(observed.reallocations, 0);
         assert!(observed.allocated <= used(after.backing_left) - size_of::<Stack<'static>>());
         if frames <= INLINE {
             assert_eq!(observed.allocated, 0);
@@ -289,7 +289,7 @@ fn exact_one_short_zero_and_refusal_contracts() {
         );
         // Zero budgets: backing is checked before initialization work.
         for (w, b) in [(0usize, 0usize), (usize::MAX, 0)] {
-            let a = run!(old::visit, &root, w, usize::MAX.min(b));
+            let a = run!(old::visit, &root, w, b);
             let n = run!(visit, &root, w, b);
             assert_eq!(a.result, Err(Refusal::Backing));
             assert_eq!(n.result, Err(Refusal::Backing));

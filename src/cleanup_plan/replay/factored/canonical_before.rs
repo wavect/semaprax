@@ -1,6 +1,8 @@
 //! Complete pre-sharing receiver; its interior is retained verbatim.
 use super::*;
 
+type Signatures = BTreeMap<(u64, Vec<(Label, usize)>), usize>;
+
 enum CanonicalFrame {
     Enter(Weighted),
     Exit(Weighted, u64, Vec<(Label, Weighted)>),
@@ -290,7 +292,7 @@ impl<'a> Receiver<'a> {
     pub(super) fn states(&self) -> &BTreeMap<Weighted, usize> {
         &self.0.states
     }
-    pub(super) fn signatures(&self) -> &BTreeMap<(u64, Vec<(Label, usize)>), usize> {
+    pub(super) fn signatures(&self) -> &Signatures {
         &self.0.ids
     }
 }

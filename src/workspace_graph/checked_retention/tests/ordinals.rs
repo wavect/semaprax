@@ -64,7 +64,7 @@ fn sparse_checked_ordinals_preserve_cold_warm_body_identity_old_wire_and_paid_dr
                         }
                         assert!(view.get(count).is_none());
                         assert_eq!(
-                            view.iter().rev().next().unwrap().id,
+                            view.iter().next_back().unwrap().id,
                             owner.functions[(count - 1) * 2].id
                         );
                         drop(view);

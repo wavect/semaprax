@@ -101,7 +101,7 @@ fn fixed_copy_discovery_scratch_is_reserved_before_use() {
     let (result, observed) = crate::test_allocation_observer::measure(|| {
         eligible(&program, &function, &function.body, &mut budget)
     });
-    assert_eq!(result.unwrap(), true);
+    assert!(result.unwrap());
     assert!(!observed.invalid && observed.allocated == 0 && observed.live == 0);
     let charged = budget.physical.as_ref().unwrap().charged() - before;
     let mut exact = ReplayBudget::with_physical(&function, before + charged).unwrap();

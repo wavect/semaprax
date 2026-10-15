@@ -37,8 +37,10 @@ fn all_operation_payloads_preserve_saved_owned_facts_and_exact_current_reference
                 arguments: vec![ResolvedType::U8],
             }],
         };
-        let instance =
-            FunctionInstanceId::derive(&DeclarationId::new("payload.generic"), &[nominal.clone()]);
+        let instance = FunctionInstanceId::derive(
+            &DeclarationId::new("payload.generic"),
+            std::slice::from_ref(&nominal),
+        );
         let cases = [
             ResolvedExprKind::Call {
                 callee: DeclarationId::new("payload.generic"),

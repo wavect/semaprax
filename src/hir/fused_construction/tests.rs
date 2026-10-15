@@ -7,6 +7,8 @@
 //! enclosing span. That stand-in is mutated HIR, not a checked 33..4096 program
 //! and never an authoritative body lease.
 use super::*;
+
+type Forgery = (&'static str, fn(&mut ResolvedProgram));
 use crate::hir::{DeclarationId, ResolvedFieldInitializer};
 mod join;
 
@@ -212,7 +214,7 @@ fn decoded_hir_forgeries_refuse_and_original_shape_is_unchanged() {
     let wire = crate::cache_codec::encode(&original).unwrap();
     let decoded = || -> ResolvedProgram { crate::cache_codec::decode(&wire).unwrap() };
     assert_eq!(derive(&decoded()).unwrap().shape_digest(), Some(digest));
-    let forgeries: [(&str, fn(&mut ResolvedProgram)); 15] = [
+    let forgeries: [Forgery; 15] = [
         ("polarity", |p| {
             if let K::Binary { op, .. } = &mut condition(p).kind {
                 *op = BinaryOp::Le;

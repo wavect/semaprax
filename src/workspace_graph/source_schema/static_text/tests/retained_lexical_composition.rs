@@ -956,8 +956,7 @@ fn retained_traversal_row_lends_to_an_imported_borrowed_scalar_reader() {
         };
         assert_ne!(escaping, PROVIDER);
         let errors = try_build_imported(&escaping, &consumer)
-            .err()
-            .expect("an escaping imported helper is not a row reader");
+            .err().unwrap_or_else(|| panic!("an escaping imported helper is not a row reader"));
         assert!(
             errors.iter().any(|error| error.code == "SPX-T284"),
             "{escaping}: {errors:#?}"
@@ -986,7 +985,7 @@ fn retained_traversal_row_cannot_be_owned_or_stored_through_imported_helpers() {
         assert_ne!(consumer, IMPORTED);
         let errors = try_build_imported(&provider, &consumer)
             .err()
-            .expect("retained build refuses the escaping row");
+            .unwrap_or_else(|| panic!("retained build refuses the escaping row"));
         assert!(
             errors.iter().any(|error| error.code == "SPX-T284"
                 && error.message
@@ -998,7 +997,7 @@ fn retained_traversal_row_cannot_be_owned_or_stored_through_imported_helpers() {
             .replace(authored, consumer_use);
         let errors = crate::check(&local, "writer.spx")
             .err()
-            .expect("direct source verification refuses the escaping row");
+            .unwrap_or_else(|| panic!("direct source verification refuses the escaping row"));
         assert!(
             errors.iter().any(|error| error.code == "SPX-T284"
                 && error.message == "record traversal row cannot escape or materialize aggregate storage; select a field"),

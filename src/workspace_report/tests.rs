@@ -58,7 +58,7 @@ fn initial_zero_exact_short_sticky_typed_transfer_display_and_drop_allocate_noth
         let ((), cost) = measure(|| {
             let refusal = Acquired::try_acquire(Physical::new(limit), FORM)
                 .err()
-                .expect("initial refusal");
+                .unwrap_or_else(|| panic!("initial refusal"));
             let mut error = WorkspaceReportFailure::selected(refusal, None);
             assert!(!error.has_paid_report());
             assert!(error.reported().is_none());
@@ -108,7 +108,10 @@ fn exact_paid_setup_refusal_transfers_original_slot_text_and_ledger_through_drop
     let ((), cost) = measure(|| {
         let owner = acquire(paid());
         let pointers = owner.backing();
-        let refusal = owner.prepare(function).err().expect("no setup backing");
+        let refusal = owner
+            .prepare(function)
+            .err()
+            .unwrap_or_else(|| panic!("no setup backing"));
         let mut error = WorkspaceReportFailure::selected(refusal, None);
         render(&error);
         assert!(error.has_paid_report());
@@ -257,7 +260,7 @@ fn actual_schema_receiving_caller_keeps_zero_short_exact_paid_owner_until_final_
                 let mut error = build
                     .source_graph_schemas_receiving_typed(&sources)
                     .err()
-                    .expect("same invocation refusal");
+                    .unwrap_or_else(|| panic!("same invocation refusal"));
                 assert_eq!(error.has_paid_report(), limit == bytes);
                 let owner = error
                     .selected_owner_mut()

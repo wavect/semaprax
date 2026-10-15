@@ -100,7 +100,7 @@ fn feature_discovery_includes_deferred_bodies_without_admitting_forged_closures(
     };
     // Discovery must see deferred syntax, but cannot authorize a foreign body
     // or enlarge the existing scalar-local closure profile.
-    *body = Box::new(replacement);
+    **body = replacement;
     assert!(function_requires(main));
     assert!(requires(&resolved));
     assert!(graph_schema(&resolved).is_err());

@@ -334,7 +334,7 @@ fn intrinsic_bytes(id: &str, names: &[&str]) -> usize {
             .enumerate()
             .map(|(index, name)| {
                 let len = id.len() + 7 + index.to_string().len();
-                let arc = (len + 2 * std::mem::size_of::<usize>() + align - 1) / align * align;
+                let arc = (len + 2 * std::mem::size_of::<usize>()).div_ceil(align) * align;
                 name.len() + len + arc
             })
             .sum::<usize>()
@@ -838,7 +838,7 @@ fn valid_eight_scalar_generic_closures_keep_full_owned_fallback_projection_recei
     ) -> usize {
         let mut invocations = 0;
         if let ResolvedExprKind::Invoke { callable, args } = &expression.kind {
-            let callee = &*crate::hir::function_value::INVOKE_ID;
+            let callee: &DeclarationId = &crate::hir::function_value::INVOKE_ID;
             let arguments = [callable.ty.clone()];
             let old = resolved_call_params(program, function, expression, callee, None, &arguments)
                 .unwrap();
@@ -1001,7 +1001,7 @@ fn valid_eight_scalar_generic_closures_keep_full_owned_fallback_projection_recei
             &program,
             function,
             &function.body,
-            &*crate::hir::function_value::INVOKE_ID,
+            &crate::hir::function_value::INVOKE_ID,
             None,
             &arguments,
         );
@@ -1009,7 +1009,7 @@ fn valid_eight_scalar_generic_closures_keep_full_owned_fallback_projection_recei
             &program,
             function,
             &function.body,
-            &*crate::hir::function_value::INVOKE_ID,
+            &crate::hir::function_value::INVOKE_ID,
             None,
             &arguments,
         );

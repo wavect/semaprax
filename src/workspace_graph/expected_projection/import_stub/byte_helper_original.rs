@@ -290,6 +290,10 @@ impl<'a> ProviderProofs<'a> {
 
 #[cfg(test)]
 #[path = "byte_helper/tests.rs"]
+#[allow(
+    clippy::duplicate_mod,
+    reason = "Run the same controls against independent receivers."
+)]
 mod tests;
 
 // ORIGINAL_PROVIDER_OBSERVATION_BEGIN

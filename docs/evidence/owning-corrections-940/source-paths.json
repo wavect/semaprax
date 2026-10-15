@@ -1,0 +1,12 @@
+[
+  "src/cleanup_plan/replay/expression_facts/receiving/regions_entry/tests.rs",
+  "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+  "src/cleanup_plan/replay/selected_entry/tests/fact_errors.rs",
+  "src/cleanup_plan/replay/selected_entry/tests/session_errors.rs",
+  "src/cleanup_plan/replay/semantic_refusal.rs",
+  "src/cleanup_plan/replay/semantic_refusal/tests.rs",
+  "tests/hir_module_boundaries.rs",
+  "tests/workspace/semantic_graph/source_inventory.rs",
+  "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+  "src/cleanup_plan/replay/live_oracle/source_custody/b.rs"
+]

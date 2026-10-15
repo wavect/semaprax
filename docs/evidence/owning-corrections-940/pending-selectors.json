@@ -1,0 +1,14 @@
+{
+  "execution": "UNEXECUTED",
+  "exact_owning_selectors": [
+    "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::complete_immediate_receiver_helpers_and_all_seven_original_controls_remain_exact",
+    "cleanup_plan::replay::expression_facts::receiving::regions_entry::tests::complete_region_entry_and_four_variant_source_projections_restore_full_originals",
+    "cleanup_plan::replay::selected_entry::tests::fact_errors::paid_fact_semantic_receipt_keeps_exact_shared_ids_and_driver_verdicts",
+    "cleanup_plan::replay::semantic_refusal::tests::every_atom_matches_complete_original_diagnostic_under_finite_account_through_drop",
+    "cleanup_plan::replay::semantic_refusal::tests::raw_child_oracle_exact_short_zero_and_foreign_subject_keep_prepaid_bound",
+    "cleanup_plan::replay::semantic_refusal::tests::selected_child_source_bindings_keep_paid_data_separate_from_legacy_text",
+    "cleanup_plan::replay::selected_entry::tests::session_errors::actual_raw_child_refusal_keeps_one_prepaid_session_report_and_ledger_through_drop",
+    "cleanup_plan::replay::semantic_refusal::tests::sealed_atoms_keep_saved_detailed_text_and_allocate_no_identity_payload",
+    "cleanup_plan::replay::selected_context::child::tests::child_permit_exact_short_zero_bytes_and_work_preserve_first_ledger_full_drop"
+  ]
+}

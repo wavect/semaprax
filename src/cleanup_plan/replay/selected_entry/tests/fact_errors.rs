@@ -143,6 +143,53 @@ fn paid_fact_cursor_and_growth_exact_short_keep_first_receipt_and_drop_one_owner
     }
 }
 
+// Execute both real constructors with freshly acquired equal budgets. Their
+// difference is independent of the driver's error policy and is never credited.
+fn context_usage(
+    source: &dyn ReplayContext,
+    function: &ResolvedFunction,
+    lexical: bool,
+    current: bool,
+) -> (usize, usize) {
+    let mut owner = session(source, function, usize::MAX);
+    let before = owner.usage();
+    if current {
+        let context = selected_context::Context::new_paid(
+            &owner.indexed,
+            function,
+            &mut owner.budget,
+            lexical,
+        )
+        .unwrap();
+        drop(context);
+    } else {
+        let context =
+            selected_context::Context::new(&owner.indexed, function, &mut owner.budget).unwrap();
+        drop(context);
+    }
+    let after = owner.usage();
+    (before.0 - after.0, after.1 - before.1)
+}
+fn compare_context_delta(
+    old: &Session<'_>,
+    current: &Session<'_>,
+    source: &dyn ReplayContext,
+    function: &ResolvedFunction,
+    lexical: bool,
+) {
+    let before = context_usage(source, function, lexical, false);
+    let after = context_usage(source, function, lexical, true);
+    // Cross-add exact absolute debits; this also handles a smaller representation
+    // without guessing a signed fee or hardcoding a new expected count.
+    assert_eq!(old.usage().0 + before.0, current.usage().0 + after.0);
+    assert_eq!(old.usage().1 + after.1, current.usage().1 + before.1);
+    eprintln!(
+        "driver lexical={lexical} old={:?} current={:?} context_old={before:?} context_current={after:?}",
+        old.usage(),
+        current.usage()
+    );
+}
+
 #[test]
 fn paid_fact_semantic_receipt_keeps_exact_shared_ids_and_driver_verdicts() {
     let program = tiny();
@@ -189,12 +236,18 @@ fn paid_fact_semantic_receipt_keeps_exact_shared_ids_and_driver_verdicts() {
         assert_eq!(observed.allocated, observed.freed);
         assert_eq!(observed.live, 0);
         assert!(!observed.invalid);
-        // Actual complete scalar and lexical driver success/work/backing parity.
+        // Error policies share the complete original Context constructor.
+        // Current Context adds genuinely prepaid controls; compare those
+        // constructor costs separately instead of asserting equal totals.
         let mut old = session(&context, &program.functions[0], usize::MAX);
         let mut paid = session(&context, &program.functions[0], usize::MAX);
         old.validate_scalar(&program.functions[0]).unwrap();
-        paid.validate_scalar_paid(&program.functions[0]).unwrap();
+        paid.validate_scalar_paid_original(&program.functions[0])
+            .unwrap();
         assert_eq!(old.usage(), paid.usage());
+        let mut current = session(&context, &program.functions[0], usize::MAX);
+        current.validate_scalar_paid(&program.functions[0]).unwrap();
+        compare_context_delta(&old, &current, &context, &program.functions[0], false);
         let lexical = super::program();
         let lexical_context = primitive_fixture::Context::new(&lexical);
         let function = super::members(&lexical)[0];
@@ -213,8 +266,11 @@ fn paid_fact_semantic_receipt_keeps_exact_shared_ids_and_driver_verdicts() {
         let mut old = acquire();
         let mut paid = acquire();
         old.validate(function).unwrap();
-        paid.validate_paid(function).unwrap();
+        paid.validate_paid_original(function).unwrap();
         assert_eq!(old.usage(), paid.usage());
+        let mut current = acquire();
+        current.validate_paid(function).unwrap();
+        compare_context_delta(&old, &current, &lexical_context, function, true);
     });
     assert!(!overflowed);
 }

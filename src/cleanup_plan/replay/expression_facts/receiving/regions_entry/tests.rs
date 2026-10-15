@@ -352,25 +352,58 @@ fn complete_regions_and_entry_work_exact_short_sticky_keep_the_same_payer() {
 #[test]
 fn complete_region_entry_and_four_variant_source_projections_restore_full_originals() {
     use sha2::{Digest, Sha256};
+    let complete_current = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/owning-corrections-940/complete-regions-entry-current.rs.txt"
+    ));
+    assert_eq!(include_str!("../regions_entry.rs"), complete_current);
     assert_eq!(
         format!(
             "{:x}",
-            crate::digest_hex::LowerHex(Sha256::digest(
-                include_str!("../regions_entry.rs").as_bytes()
-            ))
+            crate::digest_hex::LowerHex(Sha256::digest(complete_current.as_bytes()))
         ),
-        "327237ebc01755438f25ff967fc327a3ffb4f9d6be2a2a54bad6a36803b7095b"
+        "f27fb4d28d71bb522bafb208a3da4bd8098ec61b5cca904f33d5d9858738b0e4"
     );
     let records: serde_json::Value = serde_json::from_str(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/region-entry-receiving-816/exact-source-inverses.json"
     )))
     .unwrap();
-    let sources=[
-        (include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/cleanup_plan/replay.rs")),include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/docs/evidence/region-entry-receiving-816/src__cleanup_plan__replay.rs.before.txt"))),
-        (include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/cleanup_plan/replay/lexical_replay.rs")),include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/docs/evidence/region-entry-receiving-816/src__cleanup_plan__replay__lexical_replay.rs.before.txt"))),
-        (include_str!("../../receiving.rs"),include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/docs/evidence/region-entry-receiving-816/src__cleanup_plan__replay__expression_facts__receiving.rs.before.txt"))),
-        (include_str!("../directory.rs"),include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/docs/evidence/region-entry-receiving-816/src__cleanup_plan__replay__expression_facts__receiving__directory.rs.before.txt"))),
+    let sources = [
+        (
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/cleanup_plan/replay.rs"
+            )),
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/docs/evidence/region-entry-receiving-816/src__cleanup_plan__replay.rs.before.txt"
+            )),
+        ),
+        (
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/cleanup_plan/replay/lexical_replay.rs"
+            )),
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/docs/evidence/region-entry-receiving-816/src__cleanup_plan__replay__lexical_replay.rs.before.txt"
+            )),
+        ),
+        (
+            include_str!("../../receiving.rs"),
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/docs/evidence/region-entry-receiving-816/src__cleanup_plan__replay__expression_facts__receiving.rs.before.txt"
+            )),
+        ),
+        (
+            include_str!("../directory.rs"),
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/docs/evidence/region-entry-receiving-816/src__cleanup_plan__replay__expression_facts__receiving__directory.rs.before.txt"
+            )),
+        ),
     ];
     assert_eq!(records.as_array().unwrap().len(), sources.len());
     for (record, (current, original)) in records.as_array().unwrap().iter().zip(sources) {
@@ -414,9 +447,16 @@ fn complete_region_entry_and_four_variant_source_projections_restore_full_origin
             record["sha256"].as_str().unwrap()
         );
         assert_eq!(record["before"].as_str().unwrap(), original);
-        let after = record["after"].as_str().unwrap();
+        // The moved entry receiver explicitly qualifies its existing helper;
+        // restore that recorded relocation adapter before checking the full body.
+        let after = record["after"].as_str().unwrap().replace(
+            "let under = validate_place(function, place, storage, leaves)?;",
+            "let under = helpers::validate_place(function, place, storage, leaves, budget)?;",
+        );
         assert_eq!(
-            include_str!("../regions_entry.rs").matches(after).count(),
+            include_str!("../regions_entry.rs")
+                .matches(after.as_str())
+                .count(),
             1
         );
         assert_eq!(

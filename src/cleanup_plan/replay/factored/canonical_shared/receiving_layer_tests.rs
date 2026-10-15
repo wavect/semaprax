@@ -187,7 +187,7 @@ fn complete_immediate_receiver_helpers_and_all_seven_original_controls_remain_ex
     let restored = saved
         .replacen("use super::super::{", "use super::{", 1)
         .replacen(
-            "use super::{epsilon_alias, memo, successor_targets, tests};\n",
+            "use super::{app_census, epsilon_alias, memo, successor_targets, tests};\n",
             registrations,
             1,
         )

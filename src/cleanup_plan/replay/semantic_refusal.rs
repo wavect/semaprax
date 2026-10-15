@@ -67,6 +67,38 @@ impl Receipt {
                 if reason.prefixed() {
                     replay_error(function, reason.detail())
                 } else {
+                    // Ordinary legacy text keeps its complete original renderer.
+                    // An explicit matching oracle invocation must fund raw text
+                    // before allocation, just as the prefixed replay bridge does.
+                    #[cfg(test)]
+                    match allocation::authority_for_function(function) {
+                        Ok(Some(lease)) => {
+                            let result = if matches!(allocation::opted(), Ok(Some(current)) if current == lease)
+                            {
+                                allocation::raw_error_metered(
+                                    lease,
+                                    function,
+                                    format_args!("{}", reason.detail()),
+                                )
+                            } else {
+                                allocation::raw_error_funded(
+                                    lease,
+                                    format_args!("{}", reason.detail()),
+                                )
+                            };
+                            return match result {
+                                Ok(diagnostic) => diagnostic,
+                                Err(failure) => failure.into_diagnostic(),
+                            };
+                        }
+                        Err(_) => {
+                            return Diagnostic::io_static(
+                                "SPX-H006",
+                                "oracle invocation authority refused a raw diagnostic",
+                            );
+                        }
+                        Ok(None) => {}
+                    }
                     reason.legacy()
                 }
             }

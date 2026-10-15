@@ -376,3 +376,74 @@ fn selected_call_dynamic_receipt_keeps_the_same_session_report_and_ledger_throug
         assert!(!overflow);
     }
 }
+
+
+#[test]
+fn actual_raw_child_refusal_keeps_one_prepaid_session_report_and_ledger_through_drop() {
+    let program = fixture();
+    let context = primitive_fixture::Context::new(&program);
+    let function = &program.functions[0];
+    let mut deep = function.clone();
+    let leaf = deep.body.clone();
+    let mut nested = leaf.clone();
+    for _ in 0..=crate::cache_codec::MAX_DEPTH + 1 {
+        let mut parent = leaf.clone();
+        parent.kind = crate::hir::ResolvedExprKind::Block {
+            statements: Vec::new(),
+            tail: Box::new(nested),
+        };
+        nested = parent;
+    }
+    deep.body = nested;
+    let old = crate::hir::lexical_exit::requires(&deep).unwrap_err();
+    assert_eq!(
+        old.message,
+        "lexical control scan exceeds admitted expression depth"
+    );
+    let ((), overflow, _) = crate::bounded_output::with_limit_usage(usize::MAX, || {
+        let (_, observed) = measure(|| {
+            let mut owner = acquire(&context, function, usize::MAX);
+            let report = owner.report.as_ref().unwrap().backing();
+            let ledger = owner.budget.physical.as_deref().unwrap() as *const _;
+            let before = current_metrics();
+            // The real public driver enters the real Permit before its child.
+            let error = owner.validate_paid(&deep).unwrap_err();
+            let expression_facts::errors::EngineError::Structural(receipt) = &error else {
+                panic!("actual raw child must remain sealed data")
+            };
+            assert_eq!(receipt.stage(), "selected child");
+            assert_eq!(
+                receipt.source().as_str().as_ptr(),
+                deep.body.id.as_str().as_ptr()
+            );
+            assert_eq!(current_metrics().allocations, before.allocations);
+            assert!(matches!(
+                owner.validate_paid(function),
+                Err(expression_facts::errors::EngineError::Failed)
+            ));
+            let mut refusal = owner.into_failed_preparation().refuse_engine(error);
+            assert_eq!(
+                refusal.structural_receipt().unwrap().stage(),
+                "selected child"
+            );
+            assert!(refusal.receipt().is_none());
+            assert_eq!(refusal.report().unwrap().as_ptr(), report.0);
+            assert_eq!(refusal.report().unwrap()[0].message.as_ptr(), report.1);
+            assert_eq!(refusal.ledger_mut().unwrap() as *const _, ledger);
+            let first = refusal.ledger_mut().unwrap().reserve(0).unwrap_err();
+            assert_eq!(refusal.ledger_mut().unwrap().reserve(1).unwrap_err(), first);
+            drop(refusal.into_report(FORM).ok().unwrap());
+            assert_eq!(current_metrics().allocations, before.allocations);
+        });
+        assert!(!observed.invalid);
+        assert_eq!(observed.live, 0);
+        assert_eq!(observed.allocated, observed.freed);
+    });
+    assert!(!overflow);
+    // Explicit ordinary legacy conversion still renders all six original fields.
+    let receipt = semantic_refusal::Receipt::selected_child(
+        &deep,
+        crate::cleanup_plan::renewal_profile::child_refusal::Refusal::LexicalDepth,
+    );
+    same(&old, &receipt.legacy(&deep));
+}

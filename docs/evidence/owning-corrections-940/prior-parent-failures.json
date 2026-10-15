@@ -1,0 +1,26 @@
+[
+  {
+    "owner": 67,
+    "path": "/Volumes/Semaprax/lane-prompts/large-940f-qualification-20261015/owning-selected-66.log",
+    "sha256": "7258b6bbf2aa26eff5bf8f27786c42d2907d492b847832e31ade4c480bc9c80a",
+    "status": "prior-parent-qualification-FAILED; corrected packet UNEXECUTED"
+  },
+  {
+    "owner": 108,
+    "path": "/Volumes/Semaprax/lane-prompts/large-940f-qualification-20261015/owning-selected-107.log",
+    "sha256": "bb7bc874ced10bba98deaef655c9efb2ef18e27cde37755645e28b3caa5f4c2a",
+    "status": "prior-parent-qualification-FAILED; corrected packet UNEXECUTED"
+  },
+  {
+    "owner": 104,
+    "path": "/Volumes/Semaprax/lane-prompts/large-940f-qualification-20261015/owning-selected-103.log",
+    "sha256": "91d6118b9846e66399e9de4d3dcc379fc439276df6619253a8391ab5d5354790",
+    "status": "prior-parent-qualification-FAILED; corrected packet UNEXECUTED"
+  },
+  {
+    "owner": 136,
+    "path": "/Volumes/Semaprax/lane-prompts/large-940f-qualification-20261015/owning-selected-135.log",
+    "sha256": "0fd464454cccfae79c7d234c9b83a916b858cce7ee610d91bd77eddd83957028",
+    "status": "prior-parent-qualification-FAILED; corrected packet UNEXECUTED"
+  }
+]

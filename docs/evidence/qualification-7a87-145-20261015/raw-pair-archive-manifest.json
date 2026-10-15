@@ -1,0 +1,162 @@
+[
+  {
+    "path": "build-owning.patch",
+    "bytes": 700,
+    "sha256": "3d86e3fc0fdb662672ebf8d4bbb92dd1316623e1ca8a68c90b655124ab4ed010"
+  },
+  {
+    "path": "common-expected-counts.json",
+    "bytes": 782281,
+    "sha256": "5c1a8c9f85de9fd72bf8145f3a5f22df193f7f27ed42945562e2e077bdcfc32b"
+  },
+  {
+    "path": "drivers/build-owning.py",
+    "bytes": 10009,
+    "sha256": "fbb37c7f41c91352bd669447fdb7280c9638e7cdbbad3bfb4bb74789739ae0f5"
+  },
+  {
+    "path": "drivers/draft_contract.py",
+    "bytes": 1752,
+    "sha256": "c3ab46afbf6c62485c5c4b3389a579d0744d889622051f1eb7f6c48d2b0745e1"
+  },
+  {
+    "path": "drivers/observed_phase.py",
+    "bytes": 11471,
+    "sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+  },
+  {
+    "path": "drivers/run-extra-production-clippy.py",
+    "bytes": 6678,
+    "sha256": "47ff9dd51db73eb2b1e6b666c06ad37429d34e2959253179ed14ecb81f2ac8fe"
+  },
+  {
+    "path": "drivers/run-owning-selected.py",
+    "bytes": 10438,
+    "sha256": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450"
+  },
+  {
+    "path": "drivers/run-production-lib-cli-clippy.py",
+    "bytes": 6214,
+    "sha256": "e94eca5f0b9aa73193e1065a944b1681a459bdeba7b45e984f477a55268f4077"
+  },
+  {
+    "path": "drivers/semaprax_pressure_observation_v3.py",
+    "bytes": 10269,
+    "sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b"
+  },
+  {
+    "path": "expected-counts.json",
+    "bytes": 182594,
+    "sha256": "02b098fcb53262b878fb885b6f1d04be8dbd4f9f146c3a0ca1bda30278e72e5e"
+  },
+  {
+    "path": "helper-common.rs",
+    "bytes": 9073,
+    "sha256": "78324c41f888eaf44b59ef2ca91355f018435d0302f50ae114ea2425d4511d87"
+  },
+  {
+    "path": "helper-raw.rs",
+    "bytes": 9059,
+    "sha256": "5d987457cc1f7ffd697fb208793199c151e58c8345fe480f156d1255dc6d88b8"
+  },
+  {
+    "path": "memory-samples.jsonl",
+    "bytes": 380469,
+    "sha256": "be8b2f371afee93b0043926484adce4332ee7fd586a3c951e43912f747fa7994"
+  },
+  {
+    "path": "original-drivers/build-owning.py",
+    "bytes": 9776,
+    "sha256": "7d9eb4e4d3aab9ba94afad0d236ebb32a895eb1cd3db8e1d738438a893787888"
+  },
+  {
+    "path": "original-drivers/draft_contract.py",
+    "bytes": 1752,
+    "sha256": "c3ab46afbf6c62485c5c4b3389a579d0744d889622051f1eb7f6c48d2b0745e1"
+  },
+  {
+    "path": "original-drivers/observed_phase.py",
+    "bytes": 11471,
+    "sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+  },
+  {
+    "path": "original-drivers/run-extra-production-clippy.py",
+    "bytes": 6678,
+    "sha256": "47ff9dd51db73eb2b1e6b666c06ad37429d34e2959253179ed14ecb81f2ac8fe"
+  },
+  {
+    "path": "original-drivers/run-owning-selected.py",
+    "bytes": 10438,
+    "sha256": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450"
+  },
+  {
+    "path": "original-drivers/run-production-lib-cli-clippy.py",
+    "bytes": 6214,
+    "sha256": "e94eca5f0b9aa73193e1065a944b1681a459bdeba7b45e984f477a55268f4077"
+  },
+  {
+    "path": "original-drivers/semaprax_pressure_observation_v3.py",
+    "bytes": 10269,
+    "sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b"
+  },
+  {
+    "path": "owning-build-progress.json",
+    "bytes": 8846,
+    "sha256": "fed6c731fcd418c2b5ec2a427af274c806687aa162fde55c8469bde3a8f0dc9c"
+  },
+  {
+    "path": "owning-build-result.json",
+    "bytes": 9908,
+    "sha256": "bc558a58272f6aa65da9f695035c99aff8585ee4fdd565055bf6f9dfdea76ee4"
+  },
+  {
+    "path": "owning-build.jsonl",
+    "bytes": 252415,
+    "sha256": "bd0024ee166c532b9b6ab451f42212b7852b58c120c0f06f2c078c7e487c466d"
+  },
+  {
+    "path": "owning-build.log",
+    "bytes": 167,
+    "sha256": "d8914dc372cd337c9a83d1d8cbcf7b125f755a2017d9d3d1542d47a987d94544"
+  },
+  {
+    "path": "owning-selected-00-memory-samples.jsonl",
+    "bytes": 3615,
+    "sha256": "b5a6e9723869904f4fc5d8539197f2c03f14ff0eba8570f0f168f7e564e1d126"
+  },
+  {
+    "path": "owning-selected-00.log",
+    "bytes": 252,
+    "sha256": "805ebf4b292be07d01b56e4f320b433ea7882acaea149e7b1ce3363f413bd40b"
+  },
+  {
+    "path": "owning-selected-results.json",
+    "bytes": 9087,
+    "sha256": "50482b39a97edd5920c0a751463449f8b69f1b386154685bd6d5b5c1c73548ea"
+  },
+  {
+    "path": "pair-source-proof.json",
+    "bytes": 2191,
+    "sha256": "72d5c26799711c4b7cc9f860d82ba9c2aff6768fdf1272c7c75dba12f601b2bf"
+  },
+  {
+    "path": "paired-arm-observation.json",
+    "bytes": 10806,
+    "sha256": "991b07b2c3707080976ddae6719056fa192129bfa526fd72c2516d78866e70a4"
+  },
+  {
+    "path": "pressure-guardian-source.py",
+    "bytes": 6400,
+    "sha256": "a4477f43ec63fccb169a9b951c793f62a1cd06352d3a690872cfe1673be58119"
+  },
+  {
+    "path": "pressure-guardian.jsonl",
+    "bytes": 60596,
+    "sha256": "5c3d97bce46f6889a991aa72c0dfce8562073e44dfbabc1ac69c422cb4551a02"
+  },
+  {
+    "path": "pressure-wrapper.py",
+    "bytes": 6400,
+    "sha256": "a4477f43ec63fccb169a9b951c793f62a1cd06352d3a690872cfe1673be58119"
+  }
+]

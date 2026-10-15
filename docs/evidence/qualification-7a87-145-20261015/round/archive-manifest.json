@@ -1,0 +1,1944 @@
+{
+  "source_subject": "7a87b33115c0cd45b14cac64d7b37e5742503159",
+  "scope": "completed current round files and controllers only; no runtime-tmp/cache or unrelated prior histories",
+  "files": [
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/clippy-core-pressure-guardian-source.py",
+      "archive": "clippy-core-pressure-guardian-source.py",
+      "size": 6889,
+      "sha256": "4e7c4816d521ca3520676ee63884c0f384869fb547e55599fe83f5c18b81a1a2"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/clippy-core-pressure-guardian.jsonl",
+      "archive": "clippy-core-pressure-guardian.jsonl",
+      "size": 12361,
+      "sha256": "ca01c685d92855b6689b5ca550e12b5941dbf60f5383bb52a6b71ebb3ba42b74"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/clippy-full-cli-pressure-guardian-source.py",
+      "archive": "clippy-full-cli-pressure-guardian-source.py",
+      "size": 6889,
+      "sha256": "4e7c4816d521ca3520676ee63884c0f384869fb547e55599fe83f5c18b81a1a2"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/clippy-full-cli-pressure-guardian.jsonl",
+      "archive": "clippy-full-cli-pressure-guardian.jsonl",
+      "size": 14185,
+      "sha256": "cf5e084d1d594c4be67472457c84827fbd3d63bb3f07d0466ca32ebec1dd4ef4"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/clippy-production-memory-samples.jsonl",
+      "archive": "clippy-production-memory-samples.jsonl",
+      "size": 81011,
+      "sha256": "de4dfb373af8db257c3a298c1f800c88e216a5ba7675b4343a2019760833b1d9"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/clippy-production-result.json",
+      "archive": "clippy-production-result.json",
+      "size": 7377,
+      "sha256": "b878c57cbd5fa7c52b5c88396f129560f71da43ae5078947626df2b3a739ba4b"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/clippy-production-toolchain-full-cli-memory-samples.jsonl",
+      "archive": "clippy-production-toolchain-full-cli-memory-samples.jsonl",
+      "size": 92142,
+      "sha256": "763a231beb2b3957e65c2c3a0f828e49ec3bfbc6dd47c0837df608e6dcc1ffd9"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/clippy-production-toolchain-full-cli-result.json",
+      "archive": "clippy-production-toolchain-full-cli-result.json",
+      "size": 7878,
+      "sha256": "b30ff161011e5605f67d360fb743e3a3943136bed799c3e189ad47902bff522b"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/clippy-production-toolchain-full-cli.log",
+      "archive": "clippy-production-toolchain-full-cli.log",
+      "size": 1462,
+      "sha256": "8c138bc5497dc1f26da33678a79764d4f09bea9de35c77fe9768d82dbdda252e"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/clippy-production.log",
+      "archive": "clippy-production.log",
+      "size": 166,
+      "sha256": "db7bd05a70038f0624fd4a47665ecbd3e9d5a7a61324063ab90b58acc18ddfce"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/compilation-manifest.json",
+      "archive": "compilation-manifest.json",
+      "size": 782281,
+      "sha256": "5c1a8c9f85de9fd72bf8145f3a5f22df193f7f27ed42945562e2e077bdcfc32b"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/expected-counts.json",
+      "archive": "expected-counts.json",
+      "size": 782281,
+      "sha256": "5c1a8c9f85de9fd72bf8145f3a5f22df193f7f27ed42945562e2e077bdcfc32b"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/memory-samples.jsonl",
+      "archive": "memory-samples.jsonl",
+      "size": 972514,
+      "sha256": "649267bdb1f72be9a5f51de3b22163f1b3b329f46300d4324034435943d7c2a6"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-build-progress.json",
+      "archive": "owning-build-progress.json",
+      "size": 47870,
+      "sha256": "b16a07c6ccecf7c5457ebc9954eccac4da040d5c115441e0c748893d4771859b"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-build-result.json",
+      "archive": "owning-build-result.json",
+      "size": 59071,
+      "sha256": "bb75fb1129932443aa131300a5c10b7abe008bdae7229c2980cd26bed6269806"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-build.jsonl",
+      "archive": "owning-build.jsonl",
+      "size": 1141716,
+      "sha256": "2dc7f1575a6800a6343beeae2dc666cf789646dab475863469ee173b41d91854"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-build.log",
+      "archive": "owning-build.log",
+      "size": 1450,
+      "sha256": "a569f365070f33c3acefe34d3e54a3375810c197dd1a48e829e49d9888f37835"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-00-memory-samples.jsonl",
+      "archive": "owning-selected-00-memory-samples.jsonl",
+      "size": 3629,
+      "sha256": "98e0c7cdafd51bb551a2cae5bb355252db5ef294a50c5caf3cce4d3dcc1427f9"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-00.log",
+      "archive": "owning-selected-00.log",
+      "size": 281,
+      "sha256": "68097c8557b562c40459142bce37737364daef975b9a0f1ec98b7b8a187fa0c7"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-01-memory-samples.jsonl",
+      "archive": "owning-selected-01-memory-samples.jsonl",
+      "size": 6713,
+      "sha256": "ebd3ce2db7ad3e4b288608f3b2d8638a482217db69b6c859f61718088409f90c"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-01.log",
+      "archive": "owning-selected-01.log",
+      "size": 1364,
+      "sha256": "2c0080a06c145b1723395f125ac347b064755f0ea0b54217fc13636dc1a0bf19"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-02-memory-samples.jsonl",
+      "archive": "owning-selected-02-memory-samples.jsonl",
+      "size": 4176,
+      "sha256": "4b41df3285f30aa2999a237ac341cbc5f5bcce53d0a94670e74db76fe38f43dd"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-02.log",
+      "archive": "owning-selected-02.log",
+      "size": 1320,
+      "sha256": "48fd99d01a619fc4dfa353c6770f582d4fa80b251ed4752c7fd87e38fc4d6363"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-03-memory-samples.jsonl",
+      "archive": "owning-selected-03-memory-samples.jsonl",
+      "size": 3620,
+      "sha256": "e1c208a2dabab6c63e0989d812850ffcb6b8c6fd057384fbee3ef47abe2429c3"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-03.log",
+      "archive": "owning-selected-03.log",
+      "size": 1198,
+      "sha256": "787e7773fca244d6e28903299a334e1d673e1e4e95382da0e181050df7297758"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-04-memory-samples.jsonl",
+      "archive": "owning-selected-04-memory-samples.jsonl",
+      "size": 90394,
+      "sha256": "143e05dbc50430a2d76b2a28ad1ccc3ec4e6f6109138bcf2e12b046e7e7d4c9d"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-04.log",
+      "archive": "owning-selected-04.log",
+      "size": 2182,
+      "sha256": "b040f49b79df0e4bb579ff94168b2d92517352b799c3b1515fce5495ba71c89c"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-05-memory-samples.jsonl",
+      "archive": "owning-selected-05-memory-samples.jsonl",
+      "size": 3967,
+      "sha256": "a749c1c6f2d11ab3a80077b0b6768e1b6cc509008a6e490cd84afe06b92efa9c"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-05.log",
+      "archive": "owning-selected-05.log",
+      "size": 4743,
+      "sha256": "c6effd8656015074cfdb2b179839ab549bd50f532edc880c3fee92f0a607f9f1"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-06-memory-samples.jsonl",
+      "archive": "owning-selected-06-memory-samples.jsonl",
+      "size": 3954,
+      "sha256": "f0b751c91ad2441427057d83228baa1607a1983c34e6aee990e73b1e7345e195"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-06.log",
+      "archive": "owning-selected-06.log",
+      "size": 1587,
+      "sha256": "56c53177adf01b6eace0287aa28dd64df7f429fa8e5ccf71d2002c0ef8caa480"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-07-memory-samples.jsonl",
+      "archive": "owning-selected-07-memory-samples.jsonl",
+      "size": 3966,
+      "sha256": "58d9c779dc9d04384c820b79e24def02348e1623cba3ae0f1afa046a42bfd8f2"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-07.log",
+      "archive": "owning-selected-07.log",
+      "size": 1611,
+      "sha256": "f3717532d8dc00cfb069223e49d09fc56e5e5ef09ebd8ef707c9c7ab4dbc3e92"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-08-memory-samples.jsonl",
+      "archive": "owning-selected-08-memory-samples.jsonl",
+      "size": 3967,
+      "sha256": "f3bd9d72ab62be3a93e097149688da7c038572f64d61eecea0579dd84e5776b4"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-08.log",
+      "archive": "owning-selected-08.log",
+      "size": 1656,
+      "sha256": "d175323daf14f250114af3975d0aaadb657338fad6ed647ab645110f36417e55"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-09-memory-samples.jsonl",
+      "archive": "owning-selected-09-memory-samples.jsonl",
+      "size": 3967,
+      "sha256": "dd72d9319ab10d7bce07f9e969e25e1b6f94ea5638b5578c666d7c5f5e320a15"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-09.log",
+      "archive": "owning-selected-09.log",
+      "size": 1644,
+      "sha256": "b3eb00cbfa344a6a2a8e091924933b3941ca310b0a5a3ace94fcc53fa2e22747"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-10-memory-samples.jsonl",
+      "archive": "owning-selected-10-memory-samples.jsonl",
+      "size": 3972,
+      "sha256": "453c0596635d7bcaafad09332a9da9fb82cef65359765bbc1dd106c61bac5173"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-10.log",
+      "archive": "owning-selected-10.log",
+      "size": 1616,
+      "sha256": "ffbdaa1caf9a53b97857c4a382c119783b7653523795082eaf7162a0377e50d3"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-100-memory-samples.jsonl",
+      "archive": "owning-selected-100-memory-samples.jsonl",
+      "size": 3623,
+      "sha256": "e3bea898020b11ec5d31d1867bb8b9c64546f907b670cf7717880aa59e05ef7e"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-100.log",
+      "archive": "owning-selected-100.log",
+      "size": 300,
+      "sha256": "9b53037b1dd35f92997ba0e99a973ee95ce50ce196701b9013f1aacbf98261e8"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-101-memory-samples.jsonl",
+      "archive": "owning-selected-101-memory-samples.jsonl",
+      "size": 3500,
+      "sha256": "8dd5cf74dd2a1994c89fedd08cc725e478f58a0e2d4f6c03a75c68a654eed147"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-101.log",
+      "archive": "owning-selected-101.log",
+      "size": 3263,
+      "sha256": "21d12777f5590a84e85623d136967ba00492900c5c2228f22ae73158e9856fd4"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-102-memory-samples.jsonl",
+      "archive": "owning-selected-102-memory-samples.jsonl",
+      "size": 3499,
+      "sha256": "999458f474a2051d3c37e639e1c8d4d20ba9381ad38ee417f1c465cdd875e1af"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-102.log",
+      "archive": "owning-selected-102.log",
+      "size": 287,
+      "sha256": "a6be18d3ff29b8d90dc33f366aeba42f6341c78a0222328b3ded573610cdaedf"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-103-memory-samples.jsonl",
+      "archive": "owning-selected-103-memory-samples.jsonl",
+      "size": 3624,
+      "sha256": "f1c0c583625eabcaa73490ae5d1ab99dc58ddaa35622f711e774e3f99f00c5aa"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-103.log",
+      "archive": "owning-selected-103.log",
+      "size": 270,
+      "sha256": "e982dc06576f06ff3dc75cfa2680dd789448de04606176846b0e935ccb4e0e6f"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-104-memory-samples.jsonl",
+      "archive": "owning-selected-104-memory-samples.jsonl",
+      "size": 3502,
+      "sha256": "ab2dde9843c109405bf290f0edac4b46838007a28ecd50c1cfdd60bb6933e49f"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-104.log",
+      "archive": "owning-selected-104.log",
+      "size": 295,
+      "sha256": "5c2b963bd635668c948919e29b6c792d7ed46a3d04067be4996cde286ee707e1"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-105-memory-samples.jsonl",
+      "archive": "owning-selected-105-memory-samples.jsonl",
+      "size": 3502,
+      "sha256": "20fbb6090f73bac3e715363737bd1b24fb2a223dd32265936536502dd1885b7d"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-105.log",
+      "archive": "owning-selected-105.log",
+      "size": 284,
+      "sha256": "fe56aec05f23941747526fd82b993dfb72b05226851cf666954ae2d5a23f7f65"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-106-memory-samples.jsonl",
+      "archive": "owning-selected-106-memory-samples.jsonl",
+      "size": 3502,
+      "sha256": "43ff6cf630f9edba876994a6881b59243da95fd9eb3f91680ee0eb84294681d7"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-106.log",
+      "archive": "owning-selected-106.log",
+      "size": 298,
+      "sha256": "9b02e1f70bfc9a7e1f975aa0e145d96e97cc10e03d06dd62c1b2fbf86e1d9208"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-107-memory-samples.jsonl",
+      "archive": "owning-selected-107-memory-samples.jsonl",
+      "size": 3626,
+      "sha256": "35c8f9c8423ba83ee9bfefec3d5e3c44c5ef02c8aa66ce05118ff1f3cc9803a1"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-107.log",
+      "archive": "owning-selected-107.log",
+      "size": 275,
+      "sha256": "ff84bee69086fba090509205224f09263392f37bcafb423a87432beac07aa65b"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-108-memory-samples.jsonl",
+      "archive": "owning-selected-108-memory-samples.jsonl",
+      "size": 3498,
+      "sha256": "f324c998f5d4c6564c5d62b531dde2cddbc8767972f90786524439b0b743282b"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-108.log",
+      "archive": "owning-selected-108.log",
+      "size": 235,
+      "sha256": "7b3da5d0ae900ba2f7e1aec6d049abf75500924bb3c2d78ccecfd0ec98223575"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-109-memory-samples.jsonl",
+      "archive": "owning-selected-109-memory-samples.jsonl",
+      "size": 3499,
+      "sha256": "5cb27720063eaaf0f233c6c20f3e62b6294c4f4c37c78d44c892559b000b2d56"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-109.log",
+      "archive": "owning-selected-109.log",
+      "size": 205,
+      "sha256": "7824248d0edfc11d1ad467618f8a2458e002864078d29a5597a18c1d947cc66a"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-11-memory-samples.jsonl",
+      "archive": "owning-selected-11-memory-samples.jsonl",
+      "size": 3974,
+      "sha256": "0bdd7309c8eabd962ac410d8b0c56c8ab8b5c06f54b3d6b0f57e7e7f2ed10e94"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-11.log",
+      "archive": "owning-selected-11.log",
+      "size": 1642,
+      "sha256": "835e4d0b61d240ff7fd6c35c496c933de011ecb754046fbab32b9ac2e9dc87f1"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-110-memory-samples.jsonl",
+      "archive": "owning-selected-110-memory-samples.jsonl",
+      "size": 3500,
+      "sha256": "6fed6bb7b91a728b4f89fad5eec932f462a15b846831d823a1997c21d2e171f4"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-110.log",
+      "archive": "owning-selected-110.log",
+      "size": 234,
+      "sha256": "41e91fc21c47185540ece530f4e50c0fbd1b3a03f26ae2e5f43884054448d97c"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-111-memory-samples.jsonl",
+      "archive": "owning-selected-111-memory-samples.jsonl",
+      "size": 3502,
+      "sha256": "aa32a17d7bd8f89b918e767ced6313965bfd256bc3c2f6652c8fb93e4b2926e6"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-111.log",
+      "archive": "owning-selected-111.log",
+      "size": 234,
+      "sha256": "0a39a6dd11be7c6afb5cb5f77df2a8bac29d51cf450a83651843fa416135a063"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-112-memory-samples.jsonl",
+      "archive": "owning-selected-112-memory-samples.jsonl",
+      "size": 3620,
+      "sha256": "2a3ff3b0336e74188eeba25f162aa6e4da00279785c9e0f26e65cd262031289c"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-112.log",
+      "archive": "owning-selected-112.log",
+      "size": 231,
+      "sha256": "c373e7d69c792ae78ecc39758ac4de88506e14302407c8c4f465d366d39435a8"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-113-memory-samples.jsonl",
+      "archive": "owning-selected-113-memory-samples.jsonl",
+      "size": 3501,
+      "sha256": "90f5b74a0b23aba091c606cec2ba1b0e9e2d632eb71ccf8fb3ab37ca2ffc2eee"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-113.log",
+      "archive": "owning-selected-113.log",
+      "size": 224,
+      "sha256": "a1901a4f63a0578a01334f325e9693f28c2a6951914e6726d2fe037827c2e8d3"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-114-memory-samples.jsonl",
+      "archive": "owning-selected-114-memory-samples.jsonl",
+      "size": 3976,
+      "sha256": "075e6d102218a2af7fdf98be8cd7d72a37acfb34dbe9b47dccb13747ba7d6806"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-114.log",
+      "archive": "owning-selected-114.log",
+      "size": 226,
+      "sha256": "285e97a5ae225c527a00cb52a69fd4267d3e621fa5b65a20e56ba801b95578b0"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-115-memory-samples.jsonl",
+      "archive": "owning-selected-115-memory-samples.jsonl",
+      "size": 3623,
+      "sha256": "b6d9b5e9db1241da03f9538869184780336642771c426b682ff152de934de674"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-115.log",
+      "archive": "owning-selected-115.log",
+      "size": 191,
+      "sha256": "9cf251791c42e1f78dffdacdf88e33fccb65283278068c8671da59a71cf135ab"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-116-memory-samples.jsonl",
+      "archive": "owning-selected-116-memory-samples.jsonl",
+      "size": 3613,
+      "sha256": "9c0ad33c396db4880a5240e8599bdadc2d4b743c198bdc0a2ced0dbea60be197"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-116.log",
+      "archive": "owning-selected-116.log",
+      "size": 699,
+      "sha256": "8feb17e941d19f27af9cfffcb4bcb130dca9ae6ff3742230a478a041fe5063c5"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-117-memory-samples.jsonl",
+      "archive": "owning-selected-117-memory-samples.jsonl",
+      "size": 3511,
+      "sha256": "f81c3bd1fbf1014d0ef2a2c64d585d321aa2d2c2d6930c7676955cd676dcf8e0"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-117.log",
+      "archive": "owning-selected-117.log",
+      "size": 215,
+      "sha256": "928b2ba8f9cd72dcfc8e7e27cdf747649832f0231c4884915f99fb94382990dd"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-118-memory-samples.jsonl",
+      "archive": "owning-selected-118-memory-samples.jsonl",
+      "size": 3502,
+      "sha256": "f5a16e1fe5a45162441a159cac100b8740f2d958194796460942e41e0e824cb6"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-118.log",
+      "archive": "owning-selected-118.log",
+      "size": 183,
+      "sha256": "dbb671c886088cefc9e456b6d65f8d0dffe60fc131ace8a62802c37abff4b522"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-119-memory-samples.jsonl",
+      "archive": "owning-selected-119-memory-samples.jsonl",
+      "size": 3501,
+      "sha256": "40b00cd10cb0ad086329741f00fff9f01b78fa76f04f3ba6219080868cccd256"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-119.log",
+      "archive": "owning-selected-119.log",
+      "size": 285,
+      "sha256": "1e2425c42fa49d1baba5b1074f6db3a71cd49e6aaadb6dede7a28ea4e0f773bc"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-12-memory-samples.jsonl",
+      "archive": "owning-selected-12-memory-samples.jsonl",
+      "size": 3972,
+      "sha256": "5ff93a882265bef7c65c39769c880296d1e920a8f7763de3b779c6607a172c94"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-12.log",
+      "archive": "owning-selected-12.log",
+      "size": 1631,
+      "sha256": "c4a78f90ba4a9d24a3fed8aba6b6b490c1dee696ccfeb9271c0e0e22265a0abe"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-120-memory-samples.jsonl",
+      "archive": "owning-selected-120-memory-samples.jsonl",
+      "size": 3504,
+      "sha256": "e0dbbc4d160d22bfa65aeade23b20def519e1f7f600ff6434c0514f0110fed89"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-120.log",
+      "archive": "owning-selected-120.log",
+      "size": 270,
+      "sha256": "857bf42723e4d66ef53ffe0111985c3ea0fe724a1d7cde552f218f7f5df137d2"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-121-memory-samples.jsonl",
+      "archive": "owning-selected-121-memory-samples.jsonl",
+      "size": 5983,
+      "sha256": "7215ca308ef4bdbf9adefeeb82042a57d9373679f4e7b185bb56378d74e4ef15"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-121.log",
+      "archive": "owning-selected-121.log",
+      "size": 297,
+      "sha256": "88ed3e44a39eae2ba60cc4b5b47d75b8379f65fd6194faa10500216b6c9cd078"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-122-memory-samples.jsonl",
+      "archive": "owning-selected-122-memory-samples.jsonl",
+      "size": 3504,
+      "sha256": "dd5fe05b428df82aab65c6ddf16332f2c9145e60bc089af2418eaf4cad6b9760"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-122.log",
+      "archive": "owning-selected-122.log",
+      "size": 291,
+      "sha256": "5dc5bcd8f612c0c7ed34e3b63794ef22c286a0823153433fab1cd739b2c1f1db"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-123-memory-samples.jsonl",
+      "archive": "owning-selected-123-memory-samples.jsonl",
+      "size": 3500,
+      "sha256": "e3f9f7a97549b3be239b8c38f151e08f6794dde8691c42bf70eb1c577947f811"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-123.log",
+      "archive": "owning-selected-123.log",
+      "size": 290,
+      "sha256": "70e4c7cbd03cb869e44cfb1f7214287dae615dfefc4d2a775f4a8af37aad4084"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-124-memory-samples.jsonl",
+      "archive": "owning-selected-124-memory-samples.jsonl",
+      "size": 6328,
+      "sha256": "32d0a4d29ff451d7873aa9d19d60132c06c8a5ce7161588a44be362423b23934"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-124.log",
+      "archive": "owning-selected-124.log",
+      "size": 267,
+      "sha256": "0ba489921164dfe4c453d889da73be8d2bba9426da62733bdf274c778ad41607"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-125-memory-samples.jsonl",
+      "archive": "owning-selected-125-memory-samples.jsonl",
+      "size": 6307,
+      "sha256": "cca8f8c325f5c7ffcf0f9b9a8754b6ef3b89a3dc77da9f0f105f5a250e79a79d"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-125.log",
+      "archive": "owning-selected-125.log",
+      "size": 276,
+      "sha256": "f70605f427a0c943a9089a0207a69ec21d733d4ea589036542073d432a494cc2"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-126-memory-samples.jsonl",
+      "archive": "owning-selected-126-memory-samples.jsonl",
+      "size": 3620,
+      "sha256": "f1ef7dcf1cdfd02a0c59c90872805bc6847797273f82b98645a66f11519da68e"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-126.log",
+      "archive": "owning-selected-126.log",
+      "size": 249,
+      "sha256": "40cffcad3b986708178e833adb29a0d346a0b3fca70dfc01a86cff8b65f47f71"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-127-memory-samples.jsonl",
+      "archive": "owning-selected-127-memory-samples.jsonl",
+      "size": 3501,
+      "sha256": "a2b96c12c76b4c2b4892214bd45a608db86513b4bbcbd48f6164b2b42889555d"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-127.log",
+      "archive": "owning-selected-127.log",
+      "size": 241,
+      "sha256": "db6b2899b4da90c64bf1a058fa1f16c513517bd3788e078508642ca412c45b15"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-128-memory-samples.jsonl",
+      "archive": "owning-selected-128-memory-samples.jsonl",
+      "size": 3623,
+      "sha256": "347e131006aab40f5c365c6b3be084061e12afd608fed8c16456438ad92ca41e"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-128.log",
+      "archive": "owning-selected-128.log",
+      "size": 252,
+      "sha256": "cf6daa2597e9dc7abc4a8afcc5e58181f8ed26f09c907ca428b5d9a92144685a"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-129-memory-samples.jsonl",
+      "archive": "owning-selected-129-memory-samples.jsonl",
+      "size": 3615,
+      "sha256": "b33422d2b6f5d2490ef8a216a7ef550ff7561bb7562986a7b65f580bb3193181"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-129.log",
+      "archive": "owning-selected-129.log",
+      "size": 1141,
+      "sha256": "0ebd1562e4d99ca3a46358403e7bdea59e85c08eb4b9683cee1328f510808cf1"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-13-memory-samples.jsonl",
+      "archive": "owning-selected-13-memory-samples.jsonl",
+      "size": 3965,
+      "sha256": "a04071acd05616ab000b672ce3c55ab42ea6fb3024a772123d2ce703f58381ed"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-13.log",
+      "archive": "owning-selected-13.log",
+      "size": 2476,
+      "sha256": "6f72db610997b635b5414c2f90726efa494317282e5f5b5bd56ccee66eb63259"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-130-memory-samples.jsonl",
+      "archive": "owning-selected-130-memory-samples.jsonl",
+      "size": 3624,
+      "sha256": "df209b8adb1590abdf26d68ed8ab8056337f9f4d616e58b2587aacb5ee01de7e"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-130.log",
+      "archive": "owning-selected-130.log",
+      "size": 245,
+      "sha256": "ce1fa1f7ff2901f190dec8f2b6333759d5ae6551f0fe0466e4298af04532e640"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-131-memory-samples.jsonl",
+      "archive": "owning-selected-131-memory-samples.jsonl",
+      "size": 3617,
+      "sha256": "20742095c226f8c15885278d99de53d7ccc2c8dd124500c2a0d28b9afa309fd8"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-131.log",
+      "archive": "owning-selected-131.log",
+      "size": 256,
+      "sha256": "c452705d85da02dbd084dc9dee9ee8faae66071a0884ec8ba6bdbd039ca0f9dd"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-132-memory-samples.jsonl",
+      "archive": "owning-selected-132-memory-samples.jsonl",
+      "size": 3626,
+      "sha256": "ed26ad0030c69091ff5224195ad0a6d40f9201ff420764cf8b4dfa3c47046a14"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-132.log",
+      "archive": "owning-selected-132.log",
+      "size": 1246,
+      "sha256": "fbf261599fd94da72d5a43d2c311b6f0f60c62e2962e1bcf78ff31b604e149c6"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-133-memory-samples.jsonl",
+      "archive": "owning-selected-133-memory-samples.jsonl",
+      "size": 3975,
+      "sha256": "f2d662e2177035df785fe5602b3504cea24724cf386c26a4408353dd005ae45b"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-133.log",
+      "archive": "owning-selected-133.log",
+      "size": 256,
+      "sha256": "aa01688f3075bfe2dcc15ed5d667e3871e88d11d88be8028f0bb5e3b90c82a3c"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-134-memory-samples.jsonl",
+      "archive": "owning-selected-134-memory-samples.jsonl",
+      "size": 3623,
+      "sha256": "0ef54de4383e7e907297897e1d4bbddd1521323f219bde0c5b8348dbb95a72c4"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-134.log",
+      "archive": "owning-selected-134.log",
+      "size": 198,
+      "sha256": "0d37a4e1477910b77affd3cd203f007307774eab4bb8a7f7d24b817544b09f5f"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-135-memory-samples.jsonl",
+      "archive": "owning-selected-135-memory-samples.jsonl",
+      "size": 3622,
+      "sha256": "babc41d100761402a8c2d3ea084eb731bca5f54b4122342c528cfe3c7f467b14"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-135.log",
+      "archive": "owning-selected-135.log",
+      "size": 205,
+      "sha256": "ac80bf5a600bda9af7fd5ef09074b96fc29609c29708acdef3a2b6054df9dfc7"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-136-memory-samples.jsonl",
+      "archive": "owning-selected-136-memory-samples.jsonl",
+      "size": 3625,
+      "sha256": "42dbefec1317721ef238f6ea9f01f858c3cf2f4f6990474374c5f68b467d157d"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-136.log",
+      "archive": "owning-selected-136.log",
+      "size": 215,
+      "sha256": "5e8a7a5232075a23f0ecefd66fb2369bb12a75c599ce00aa52be1200e020037d"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-137-memory-samples.jsonl",
+      "archive": "owning-selected-137-memory-samples.jsonl",
+      "size": 3627,
+      "sha256": "79a652447c50799bd2f7b9709f33e69017d875b6834d7b3424fdc3ff46cf3156"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-137.log",
+      "archive": "owning-selected-137.log",
+      "size": 208,
+      "sha256": "02affdde91c8b3c637b89112ea12153486e7fb2dd6d15239097c37fd741479b4"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-138-memory-samples.jsonl",
+      "archive": "owning-selected-138-memory-samples.jsonl",
+      "size": 3620,
+      "sha256": "2f7dfba925b5434eb2506dee7e1dbb159d534f8731bd39b80983d957a80062a5"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-138.log",
+      "archive": "owning-selected-138.log",
+      "size": 201,
+      "sha256": "80629b02da8721dea733d427412f07646dc013e9587f0c2e3227f83cbe5fc5b1"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-139-memory-samples.jsonl",
+      "archive": "owning-selected-139-memory-samples.jsonl",
+      "size": 3621,
+      "sha256": "9ae5c71c0b38d3acc6ca0f840843eae0f232179639b4758bff563facd2377bbf"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-139.log",
+      "archive": "owning-selected-139.log",
+      "size": 217,
+      "sha256": "6927f6ccae21280e056bfa5d63fc1b277095a3bd61b517e1b5710d77b9138321"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-14-memory-samples.jsonl",
+      "archive": "owning-selected-14-memory-samples.jsonl",
+      "size": 3618,
+      "sha256": "9aa2c568353891dd114efd4f076c75ad51f6c1940cf5a35fa94960b08b9e985d"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-14.log",
+      "archive": "owning-selected-14.log",
+      "size": 785,
+      "sha256": "2d68d41a97943ed6e883036e3ee6c9ba9164d031de218378cb407913f195d533"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-140-memory-samples.jsonl",
+      "archive": "owning-selected-140-memory-samples.jsonl",
+      "size": 4163,
+      "sha256": "f2e95b792e4edb03d89c7cd86bdb633667681f8d52b87f788b5533131661348e"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-140.log",
+      "archive": "owning-selected-140.log",
+      "size": 177,
+      "sha256": "562ce162d4ee06bf4f450bf6326a88333ab1e06a0f96f41624b177e8ea211c29"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-141-memory-samples.jsonl",
+      "archive": "owning-selected-141-memory-samples.jsonl",
+      "size": 3620,
+      "sha256": "6395d0ebd00fe6cd0519a06bf3693d90fdd29fa9656991189cf06c43a96edb8e"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-141.log",
+      "archive": "owning-selected-141.log",
+      "size": 181,
+      "sha256": "cad0e460232fb019bb01d2002b1ff900757f0a881f201d2dc962a787e8c12266"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-142-memory-samples.jsonl",
+      "archive": "owning-selected-142-memory-samples.jsonl",
+      "size": 3493,
+      "sha256": "22ffd195f5fc9ad38fd38732addf835213d9d432b923e960e3abacc12dcc4709"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-142.log",
+      "archive": "owning-selected-142.log",
+      "size": 175,
+      "sha256": "1603fd1b4ce687931f016c7a122cf4a7cd2db139e7f1389016192adc176b8fc8"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-143-memory-samples.jsonl",
+      "archive": "owning-selected-143-memory-samples.jsonl",
+      "size": 3621,
+      "sha256": "e8b90ef073c016bedb3293c197757712cfc9762446ba415d0413c0806f463e84"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-143.log",
+      "archive": "owning-selected-143.log",
+      "size": 237,
+      "sha256": "129c943d05ad50f48fa8993cdf9b87cf5804851a0ba3ce414ab12233cbc211d1"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-144-memory-samples.jsonl",
+      "archive": "owning-selected-144-memory-samples.jsonl",
+      "size": 3619,
+      "sha256": "1ee25db4b4f94318648fcf5ae933e6495cc95c969c8ff959ae9ea6e3e56d9595"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-144.log",
+      "archive": "owning-selected-144.log",
+      "size": 4015,
+      "sha256": "03206851b9584d6444a7770c8a9d9386bc0311f2c24053441478bab48ef78a4e"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-15-memory-samples.jsonl",
+      "archive": "owning-selected-15-memory-samples.jsonl",
+      "size": 3624,
+      "sha256": "ce78573f4a4e4af0e955d70394fc09d7e296c397a55ba500fae42a756a2422bf"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-15.log",
+      "archive": "owning-selected-15.log",
+      "size": 226,
+      "sha256": "5f03baa6a985268e95fef38f4cc0934b34ebc2256cd02c8cd03445ffec1de8da"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-16-memory-samples.jsonl",
+      "archive": "owning-selected-16-memory-samples.jsonl",
+      "size": 3622,
+      "sha256": "561c064f3938090a852369e9c89220ea51fe740bb6809c0b90828c2e4ca4c43a"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-16.log",
+      "archive": "owning-selected-16.log",
+      "size": 264,
+      "sha256": "5e9f1f853b69460ea1d1f42efc7cbe64a4a7eb135a9ba63bf265275388e76591"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-17-memory-samples.jsonl",
+      "archive": "owning-selected-17-memory-samples.jsonl",
+      "size": 5973,
+      "sha256": "15af1c206ca0fb8f07f3dcdf60912e016ac17bc6976869a330dd07033a73b6df"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-17.log",
+      "archive": "owning-selected-17.log",
+      "size": 276,
+      "sha256": "e1baf6afdd643a6f2b2f85a48b2b77209be43610575320b36912f6bc01c18df6"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-18-memory-samples.jsonl",
+      "archive": "owning-selected-18-memory-samples.jsonl",
+      "size": 3499,
+      "sha256": "db9b968d05e4c46dc726d671e46518112c66263121c2768840df4eb34d10ede2"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-18.log",
+      "archive": "owning-selected-18.log",
+      "size": 1953,
+      "sha256": "08f6e8455489148edd123947b64913c74fd6c9d437f66495b6a3ce522558c85d"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-19-memory-samples.jsonl",
+      "archive": "owning-selected-19-memory-samples.jsonl",
+      "size": 3499,
+      "sha256": "3040c8455b909287b5079f55f5427c37a4781dbb96a5066f7b6a61ffa69ba9d2"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-19.log",
+      "archive": "owning-selected-19.log",
+      "size": 281,
+      "sha256": "764a3d348c392a8bcf521bee89aaa43a3a92794de048321b58e59c560f0df5de"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-20-memory-samples.jsonl",
+      "archive": "owning-selected-20-memory-samples.jsonl",
+      "size": 3498,
+      "sha256": "a05b30541f134803318a22c75bd6df1ec0e228cd8f0adb64c9051c838c3fcc3a"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-20.log",
+      "archive": "owning-selected-20.log",
+      "size": 262,
+      "sha256": "c41cfc7229c78f9560df7e555a6f1aaa2719b9a64a6a4edc8a1810a0f9a15c14"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-21-memory-samples.jsonl",
+      "archive": "owning-selected-21-memory-samples.jsonl",
+      "size": 3506,
+      "sha256": "0a8f171cb98b3fe1e7256a556251a3c3b39efb176e85afd5823ef2207b3e2c35"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-21.log",
+      "archive": "owning-selected-21.log",
+      "size": 254,
+      "sha256": "8d1049fb7f046dde094515c044728ef9129faff8c8c8532d9a3a0b49d7f7e831"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-22-memory-samples.jsonl",
+      "archive": "owning-selected-22-memory-samples.jsonl",
+      "size": 3500,
+      "sha256": "8b3455309bfb5bb6279efbd4100edc15e054dbd32fe335bcb611e94e9a43cbe4"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-22.log",
+      "archive": "owning-selected-22.log",
+      "size": 256,
+      "sha256": "9cd517c7785b3b17555aeccc078a04e0d93ac58e5798a1400bf0a63bf82b9794"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-23-memory-samples.jsonl",
+      "archive": "owning-selected-23-memory-samples.jsonl",
+      "size": 3494,
+      "sha256": "b7d11c49beffb5419bd1adf9150106001cd6f933e0fa90245b804f50f63a7fe7"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-23.log",
+      "archive": "owning-selected-23.log",
+      "size": 272,
+      "sha256": "0205ef18467c762cce3cf6a5d47936cc15c36353391845ad53add15106fa4ba8"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-24-memory-samples.jsonl",
+      "archive": "owning-selected-24-memory-samples.jsonl",
+      "size": 3631,
+      "sha256": "34b5190da2af3e73ed08f189c0ee5745c44777cd4ccc361933c172464a235379"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-24.log",
+      "archive": "owning-selected-24.log",
+      "size": 222,
+      "sha256": "c3b0823ee405013f2f3bea4aa9f8708d1edbbefe088cc703d1c2ee7a08ee7294"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-25-memory-samples.jsonl",
+      "archive": "owning-selected-25-memory-samples.jsonl",
+      "size": 3488,
+      "sha256": "6e9bc2d3aeab764723d07c4247060cccd94c8cb47641a1f50f65548bbf536bc6"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-25.log",
+      "archive": "owning-selected-25.log",
+      "size": 234,
+      "sha256": "31b0881034d49fa1b374c24c867294da98448169b1269b68c44f78f411cf6b78"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-26-memory-samples.jsonl",
+      "archive": "owning-selected-26-memory-samples.jsonl",
+      "size": 3497,
+      "sha256": "a8707c7ffb8682ec57ab3773146897cf4facc2a1f6a8a5afeb16f3cb84232436"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-26.log",
+      "archive": "owning-selected-26.log",
+      "size": 225,
+      "sha256": "72945324ef0b67de09747e8d06495a8084c794177c4cbcab58be6b22648919e1"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-27-memory-samples.jsonl",
+      "archive": "owning-selected-27-memory-samples.jsonl",
+      "size": 3495,
+      "sha256": "69d5d9ec9a4d15d0445960de5e1d9b139818a40a28ec23887a689053ef9af0e8"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-27.log",
+      "archive": "owning-selected-27.log",
+      "size": 226,
+      "sha256": "a67f4a59f438a3d4f7ec3165bf4d79d2af9d9530c297c7378328ede79ba564d9"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-28-memory-samples.jsonl",
+      "archive": "owning-selected-28-memory-samples.jsonl",
+      "size": 3985,
+      "sha256": "0271a3e4a7fa9068083bd7c423785e0a2976838c18655b24a4b044b857a9edda"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-28.log",
+      "archive": "owning-selected-28.log",
+      "size": 277,
+      "sha256": "f248e49194200b3d327cdcff31be79704f48874009d11a51e9094f6c1c192790"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-29-memory-samples.jsonl",
+      "archive": "owning-selected-29-memory-samples.jsonl",
+      "size": 3620,
+      "sha256": "7e0771acfb6c908d5de084dd3f8dfbc23293fa5ec7405b30715604bdb255ab15"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-29.log",
+      "archive": "owning-selected-29.log",
+      "size": 247,
+      "sha256": "b6518de4be9cdc93f75e12197d36a1a9e5358bc43ce1b386ec686c8edd1b0b4c"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-30-memory-samples.jsonl",
+      "archive": "owning-selected-30-memory-samples.jsonl",
+      "size": 3621,
+      "sha256": "a17eab0d4d4abe27c07244c7a956b6768cf181121c3238a2ee5f4d81b12f8ca6"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-30.log",
+      "archive": "owning-selected-30.log",
+      "size": 1082,
+      "sha256": "96d328a242d9c0dd3bc842801cf409435b25e387c539fbe78909d49360f74df9"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-31-memory-samples.jsonl",
+      "archive": "owning-selected-31-memory-samples.jsonl",
+      "size": 3635,
+      "sha256": "f9542accbc874df3beb96118ce4e09cbb71bf9dbb050214ce2539c3eede920f1"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-31.log",
+      "archive": "owning-selected-31.log",
+      "size": 824,
+      "sha256": "ab66128070d25399c0454a5cbb6bc645fafe49c9734d327f2031e6bda6e0bf4d"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-32-memory-samples.jsonl",
+      "archive": "owning-selected-32-memory-samples.jsonl",
+      "size": 9331,
+      "sha256": "15f2fede4776d77ce42a644adf0dc0436e913d3373aeb571c821a7654df7e784"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-32.log",
+      "archive": "owning-selected-32.log",
+      "size": 263,
+      "sha256": "e3e9c4ac30c9999a2bc6b77c856dbbd41047b182c726dbb5c4662bf9a9913854"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-33-memory-samples.jsonl",
+      "archive": "owning-selected-33-memory-samples.jsonl",
+      "size": 3628,
+      "sha256": "e4205910ade2cad7d0912260d2b58c8cf9d3e3b4177c6a645d8547f6c052c375"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-33.log",
+      "archive": "owning-selected-33.log",
+      "size": 1026,
+      "sha256": "7e34e006301d61e995607608877d4502d3c5630f36eab3eaa71727e9702de878"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-34-memory-samples.jsonl",
+      "archive": "owning-selected-34-memory-samples.jsonl",
+      "size": 3623,
+      "sha256": "c2b45b85a969da88cb80a94eae22b0531c1655489cc85d21c0bc21cc45a99d0a"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-34.log",
+      "archive": "owning-selected-34.log",
+      "size": 1014,
+      "sha256": "b363d6e0e9d8f131b531973affcee0cf9adf0d129dd4c67960be95b70db5722b"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-35-memory-samples.jsonl",
+      "archive": "owning-selected-35-memory-samples.jsonl",
+      "size": 3620,
+      "sha256": "055bdaecf86812efe88c1320ffdb3a0d0ced2a4c56be76e198b721c5eb41654b"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-35.log",
+      "archive": "owning-selected-35.log",
+      "size": 753,
+      "sha256": "42458c2e2496d3a373a1fec64b50cf713f5cda25cfad81b0dd4c9b6985c0bc0a"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-36-memory-samples.jsonl",
+      "archive": "owning-selected-36-memory-samples.jsonl",
+      "size": 4190,
+      "sha256": "17d785999d1741376028cc25235973b247e9132fbc0da7a57b1647eeb564d809"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-36.log",
+      "archive": "owning-selected-36.log",
+      "size": 197,
+      "sha256": "b9b43628e66ad1368039ecb4671a695401c0ea8366ce95a5cb30ea997efda61b"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-37-memory-samples.jsonl",
+      "archive": "owning-selected-37-memory-samples.jsonl",
+      "size": 4177,
+      "sha256": "3e2a90f6b53c8e86040cfc9106a9ddb5fd9b14231da719445d9df5f284717bcc"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-37.log",
+      "archive": "owning-selected-37.log",
+      "size": 212,
+      "sha256": "f4db0386f8dce6bd2b8c5188e264a0a3d0844b5fce646f76504711bc9950fc41"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-38-memory-samples.jsonl",
+      "archive": "owning-selected-38-memory-samples.jsonl",
+      "size": 3623,
+      "sha256": "3b6d74ca0b2ad10c35897fd146cdb99b2be6423d6ee3daca922cc265968094de"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-38.log",
+      "archive": "owning-selected-38.log",
+      "size": 202,
+      "sha256": "c9a09eb3faebf90a7c92abbd4c554fd052e449fd51ffb56243da3321460173f0"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-39-memory-samples.jsonl",
+      "archive": "owning-selected-39-memory-samples.jsonl",
+      "size": 3623,
+      "sha256": "0b8b52b2bbb698482443bd10c857fcb0b1bbd5d85d2584a96d6400acde720291"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-39.log",
+      "archive": "owning-selected-39.log",
+      "size": 210,
+      "sha256": "568c7829cd8bd140ec8457a9ea46a412c1cfa81d245595210140f19c4108da43"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-40-memory-samples.jsonl",
+      "archive": "owning-selected-40-memory-samples.jsonl",
+      "size": 3622,
+      "sha256": "738ac0163e2d45102056c08fb62b7480ab2e9e1c535d5d6b5a8d836aa989b598"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-40.log",
+      "archive": "owning-selected-40.log",
+      "size": 218,
+      "sha256": "1584431b50caee9eb5a63e4ccfb32997e6282b16ea7484be0fc453f0348d48bf"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-41-memory-samples.jsonl",
+      "archive": "owning-selected-41-memory-samples.jsonl",
+      "size": 3976,
+      "sha256": "9a9e52acd17bf2159ae9bc37effe4f9391c806e001039019b5cad2dfd2cdfb58"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-41.log",
+      "archive": "owning-selected-41.log",
+      "size": 201,
+      "sha256": "497c30ca6e7ae3f9af02a2683c2c42e2cc652edb5625368b5b35dceaa70657ff"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-42-memory-samples.jsonl",
+      "archive": "owning-selected-42-memory-samples.jsonl",
+      "size": 3620,
+      "sha256": "8800c49a670ac8e6fc74aa0aa62b93ff46d713200bc79c5c2f8b41860c59f54e"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-42.log",
+      "archive": "owning-selected-42.log",
+      "size": 226,
+      "sha256": "e41e8c8f9b7d6aa4b5fc52ef67eacbb5b4189cb69b16e6fe8e7521cee4c84fb2"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-43-memory-samples.jsonl",
+      "archive": "owning-selected-43-memory-samples.jsonl",
+      "size": 3625,
+      "sha256": "41ad56c15e0595415d9d1e8c8a926d06fb1c5356461bb65ddbb8dddf67ba211c"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-43.log",
+      "archive": "owning-selected-43.log",
+      "size": 209,
+      "sha256": "bc5f5d12371611c0c2f6911bf2e9dac4fb697cb1b8689d52a7a72bd1fb1cbb27"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-44-memory-samples.jsonl",
+      "archive": "owning-selected-44-memory-samples.jsonl",
+      "size": 3502,
+      "sha256": "e46fcf42e9410018fe3115e7fcd3767a5331ec239f8f5415fdffbcaf81728194"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-44.log",
+      "archive": "owning-selected-44.log",
+      "size": 220,
+      "sha256": "1b09cd6bd0d34dbefda137f4a650133513eb4cab7393d07fad77415eb8dc586b"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-45-memory-samples.jsonl",
+      "archive": "owning-selected-45-memory-samples.jsonl",
+      "size": 3621,
+      "sha256": "56857839fcd9a15436f215e052e2f9691066ef686a6d34d64021261abe251829"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-45.log",
+      "archive": "owning-selected-45.log",
+      "size": 271,
+      "sha256": "08daab9544a6c2f9e510a559b75bffd28bdfa3c8014cd9dec87d114d0e8bc986"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-46-memory-samples.jsonl",
+      "archive": "owning-selected-46-memory-samples.jsonl",
+      "size": 3621,
+      "sha256": "99ee970c2bf19d63dc0191ff1cf65ba1b784221cbc6ace8c44666cfe54c09fe5"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-46.log",
+      "archive": "owning-selected-46.log",
+      "size": 245,
+      "sha256": "dba07a3d6b304e01ac86d48dca0d50eef0afbb35d47fadf58304f1c3edea490f"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-47-memory-samples.jsonl",
+      "archive": "owning-selected-47-memory-samples.jsonl",
+      "size": 3624,
+      "sha256": "becdb18b7cbfb8e1b281fc77e5bf1c1c5d0208d2b9c131b8a5894e7cc4c08651"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-47.log",
+      "archive": "owning-selected-47.log",
+      "size": 260,
+      "sha256": "ff67a451433c0f59aa431d9e9325e4ae285bee4332e4226209a8fde0d1e43624"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-48-memory-samples.jsonl",
+      "archive": "owning-selected-48-memory-samples.jsonl",
+      "size": 3625,
+      "sha256": "158ed42c7731f4e1588f2ca189cd22e5d079e1bbe50d8f28c79c7a064eb18da3"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-48.log",
+      "archive": "owning-selected-48.log",
+      "size": 248,
+      "sha256": "2ace27e7ad8560b610d3f4f030d45a1614a533912c5d56cd53707e06f4c561f0"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-49-memory-samples.jsonl",
+      "archive": "owning-selected-49-memory-samples.jsonl",
+      "size": 3619,
+      "sha256": "62d8292eae2327dbfe741a7db80e9e6985fc4c538b880759b5b0e79a8af40552"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-49.log",
+      "archive": "owning-selected-49.log",
+      "size": 222,
+      "sha256": "1954bd545b4c217ee064291790f97995f407be513157b7901a861f073e2b7281"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-50-memory-samples.jsonl",
+      "archive": "owning-selected-50-memory-samples.jsonl",
+      "size": 3622,
+      "sha256": "a6355596914cf312f1756698d2f5f95ffdc1cceb6d26f11b3f1ea1beed568ebb"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-50.log",
+      "archive": "owning-selected-50.log",
+      "size": 1573,
+      "sha256": "4ff0e1d7513d3e92de281f0754e633aa47d6a346e80f05e9f125fcb22a744ad6"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-51-memory-samples.jsonl",
+      "archive": "owning-selected-51-memory-samples.jsonl",
+      "size": 3624,
+      "sha256": "971a1cf69829f99ab202b83d66ffdb8e0d146d0d0873e6553ea5f9838f38fb14"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-51.log",
+      "archive": "owning-selected-51.log",
+      "size": 255,
+      "sha256": "b8b98839bcc5ba8eed5a7c0017abd6044b68cf78492a292b4b9682cabbe524db"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-52-memory-samples.jsonl",
+      "archive": "owning-selected-52-memory-samples.jsonl",
+      "size": 3620,
+      "sha256": "4ae7e7fb11d01a451ce263d5d8303529796774e4c31140a7aaf0a2f160afe29e"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-52.log",
+      "archive": "owning-selected-52.log",
+      "size": 1060,
+      "sha256": "d8a8a3d2185520442945657309d8d268b07691ed707015c587a2beca2ad4ea2b"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-53-memory-samples.jsonl",
+      "archive": "owning-selected-53-memory-samples.jsonl",
+      "size": 3621,
+      "sha256": "e68eaaf703f620a21861fba9994aaceb61fced95bad82919a54c6c0c93789eb3"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-53.log",
+      "archive": "owning-selected-53.log",
+      "size": 1074,
+      "sha256": "296dfe7783e8a7fda47448fc5510f7feb52ba0612aef94d20b36a49448cfde52"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-54-memory-samples.jsonl",
+      "archive": "owning-selected-54-memory-samples.jsonl",
+      "size": 3501,
+      "sha256": "4de1d9ebbe357875fe4aebc2572ad9938e5ee71218e2a731112c84b768c5f752"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-54.log",
+      "archive": "owning-selected-54.log",
+      "size": 270,
+      "sha256": "c1fe73387ea96193ce6eb8664f6e901d7250318e3354339ce1aa6f0b21979912"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-55-memory-samples.jsonl",
+      "archive": "owning-selected-55-memory-samples.jsonl",
+      "size": 3501,
+      "sha256": "836d1b7b48f0b516089ce553238ef996ea6317756c0dbfaeb03699c5c1a9d969"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-55.log",
+      "archive": "owning-selected-55.log",
+      "size": 275,
+      "sha256": "711b553bd794b537c008d543799351e4ca0c2a580e559b91af1052c22c44100c"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-56-memory-samples.jsonl",
+      "archive": "owning-selected-56-memory-samples.jsonl",
+      "size": 3495,
+      "sha256": "0ba8920852dd480733e16b69b0ef71b7e1021aef5d4381474c1e405d9a290bf5"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-56.log",
+      "archive": "owning-selected-56.log",
+      "size": 219,
+      "sha256": "9c013f17fe0e58a4b80ed114446dbef5a8a47c0da6dc283774eaae3b864ad9ab"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-57-memory-samples.jsonl",
+      "archive": "owning-selected-57-memory-samples.jsonl",
+      "size": 3502,
+      "sha256": "991d1f541661dae5e0eb7cee0a326432ce418b64a8f8277240740123329080ec"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-57.log",
+      "archive": "owning-selected-57.log",
+      "size": 235,
+      "sha256": "a421ea367e0403d9b7731d4e4dcc92ff4428f08a0d6f38b545e4cd028ae2e81f"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-58-memory-samples.jsonl",
+      "archive": "owning-selected-58-memory-samples.jsonl",
+      "size": 3503,
+      "sha256": "545b38d10cde73d2ad0f5f2f0b13eb720e7abe3871ac01b5075bc3e6862af7b2"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-58.log",
+      "archive": "owning-selected-58.log",
+      "size": 223,
+      "sha256": "4e63c55616fac294b76fd7d898658e37d62a2eb4b9cff4ddd99e33dd55224b0b"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-59-memory-samples.jsonl",
+      "archive": "owning-selected-59-memory-samples.jsonl",
+      "size": 3505,
+      "sha256": "6bc8e35927ac120b466db134076409c3b886633dee4885a798b0045716ebd32c"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-59.log",
+      "archive": "owning-selected-59.log",
+      "size": 255,
+      "sha256": "8b8f98092c52031b39e276a4af7ce4e0a7bf4f3e29f4e9ed258f60a035a7b5ba"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-60-memory-samples.jsonl",
+      "archive": "owning-selected-60-memory-samples.jsonl",
+      "size": 3504,
+      "sha256": "af9abfa84ad9f2c053315cf4249b5edee2fb459c496a14244068fb211f8ef2f3"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-60.log",
+      "archive": "owning-selected-60.log",
+      "size": 242,
+      "sha256": "a7bf4e16f4316557efc1d6fdc9be81eb78ae600a8c8af2dd659a8a590450afb2"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-61-memory-samples.jsonl",
+      "archive": "owning-selected-61-memory-samples.jsonl",
+      "size": 3501,
+      "sha256": "def96e1d99c1c72c4c0a3cc5cd945dfe69d2509305d5db0f53677cf11b5a8aee"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-61.log",
+      "archive": "owning-selected-61.log",
+      "size": 237,
+      "sha256": "4da57faeeb2984e132bb902bd7593dc704d34fc64e67f78c030938b3db03eea3"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-62-memory-samples.jsonl",
+      "archive": "owning-selected-62-memory-samples.jsonl",
+      "size": 4157,
+      "sha256": "34de08a0b5fdd6f8a7a0a4559a3a5aaac085e72f750f3423784dd3fd3d34a77e"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-62.log",
+      "archive": "owning-selected-62.log",
+      "size": 743,
+      "sha256": "2177ff15fb43f99285f123ce9c97cfa67927c5a771aea40ba8afa1ff75ba2bd6"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-63-memory-samples.jsonl",
+      "archive": "owning-selected-63-memory-samples.jsonl",
+      "size": 5979,
+      "sha256": "d92a7afeff1ea2e829b09468040fd6c596a70398e5f1a4f5014483d47b2c7d27"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-63.log",
+      "archive": "owning-selected-63.log",
+      "size": 298,
+      "sha256": "4d18e76cf8c28f5ec2914d84e78bfeb5e74ae5f5b6942a061f8dda40eaf3103b"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-64-memory-samples.jsonl",
+      "archive": "owning-selected-64-memory-samples.jsonl",
+      "size": 3618,
+      "sha256": "a8745d8aeaa1c71c2e91c0a6b7148d1907a2ef24e527c08e1213d9b6d12744ed"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-64.log",
+      "archive": "owning-selected-64.log",
+      "size": 781,
+      "sha256": "57b5d06d7929b0fe469cd92c4b9eeaf6cbfe751c63ffeb37988bf9c1d63cc5b0"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-65-memory-samples.jsonl",
+      "archive": "owning-selected-65-memory-samples.jsonl",
+      "size": 10956,
+      "sha256": "c150ad05c64de2aa78fae75f6c8fdb7902563c35de9bc7f608f2890aa1572098"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-65.log",
+      "archive": "owning-selected-65.log",
+      "size": 250,
+      "sha256": "1418aa04501248c4752a7a9180506678dffb106f061fff8c5b152d6ebd13c4e3"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-66-memory-samples.jsonl",
+      "archive": "owning-selected-66-memory-samples.jsonl",
+      "size": 8314,
+      "sha256": "d57a08db65950e78430550d3f5f260d8860fcec62dd8d0ff99257c75d0628a24"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-66.log",
+      "archive": "owning-selected-66.log",
+      "size": 277,
+      "sha256": "5dc8e442a09a0a6e39c04850fbd65a44b1db42b9d84a76f47aabd002600853e4"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-67-memory-samples.jsonl",
+      "archive": "owning-selected-67-memory-samples.jsonl",
+      "size": 132560,
+      "sha256": "455cae1e2fa60a4a6b0d068725999204c6c6d43b941b00472909b99295d3505d"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-67.log",
+      "archive": "owning-selected-67.log",
+      "size": 221,
+      "sha256": "cab2c0852e109028390f9f42b24aac45c54484ceb2b4a5b5ced79a59e501b7cb"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-68-memory-samples.jsonl",
+      "archive": "owning-selected-68-memory-samples.jsonl",
+      "size": 5980,
+      "sha256": "b4d22b33c683cfac8677637aba7488b6a94698e4db412f10f2edf824457b40a4"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-68.log",
+      "archive": "owning-selected-68.log",
+      "size": 1810,
+      "sha256": "473dfc70451bb86e11a2963debd4a3ae293e2e1975781acc3af483d35fad88be"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-69-memory-samples.jsonl",
+      "archive": "owning-selected-69-memory-samples.jsonl",
+      "size": 3500,
+      "sha256": "1afbd18438bc84344327e92e9b697a798f34c3e26f777286d030f7d97ca7081a"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-69.log",
+      "archive": "owning-selected-69.log",
+      "size": 264,
+      "sha256": "817e68cf19b3116c5b2013baf019e2045cde7c499c16680b75b12279f4e4314b"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-70-memory-samples.jsonl",
+      "archive": "owning-selected-70-memory-samples.jsonl",
+      "size": 38927,
+      "sha256": "6331b6a303aee486e859a58519b3a2a1aa665abc6f288a00e14cf088fc2df09e"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-70.log",
+      "archive": "owning-selected-70.log",
+      "size": 264,
+      "sha256": "53545f924478a711fded8aede1886168770de077ab67287afaa4a49110c1cae7"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-71-memory-samples.jsonl",
+      "archive": "owning-selected-71-memory-samples.jsonl",
+      "size": 3499,
+      "sha256": "4d45079ff77931cad5fa0dc51ca7be1a4c43e6052e91076bc714afe539dab3b3"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-71.log",
+      "archive": "owning-selected-71.log",
+      "size": 227,
+      "sha256": "da0f0fadfca4d95640295b27f0e153e5402a8ec4a8dfe0f53a01166959f0740d"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-72-memory-samples.jsonl",
+      "archive": "owning-selected-72-memory-samples.jsonl",
+      "size": 3498,
+      "sha256": "f5224ae27d6f05d167d83b94a9768f2a960cd0f6650c3a9c82e000601524a473"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-72.log",
+      "archive": "owning-selected-72.log",
+      "size": 274,
+      "sha256": "a1bd43fd105992b60f5bc8eb247992c80757441c3937a6d8a60b02f291b551f3"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-73-memory-samples.jsonl",
+      "archive": "owning-selected-73-memory-samples.jsonl",
+      "size": 3631,
+      "sha256": "4e43755c7623a7971bd6d043ecf578025be97e8777db0c3c7f5cdc908a5f5e3e"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-73.log",
+      "archive": "owning-selected-73.log",
+      "size": 194,
+      "sha256": "9b4998c0b6e0120489f5f0b1cd8595992583110477c70cb039686096bc82b107"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-74-memory-samples.jsonl",
+      "archive": "owning-selected-74-memory-samples.jsonl",
+      "size": 3622,
+      "sha256": "f66cbeac17d4e45d776391c83280fbfd1cfd1c57bdb39c92351e2804b7a3ca23"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-74.log",
+      "archive": "owning-selected-74.log",
+      "size": 219,
+      "sha256": "66b0619c78cfe6126a33f0610b9f27482c19bb9a9e57fb2a7a93e34f92f5542c"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-75-memory-samples.jsonl",
+      "archive": "owning-selected-75-memory-samples.jsonl",
+      "size": 3493,
+      "sha256": "b3329565ba2e5366d16e56dd798983aba07d9bd84553a9f03d79897ad40fd60f"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-75.log",
+      "archive": "owning-selected-75.log",
+      "size": 231,
+      "sha256": "c84be48e463b985dc58dc78625b84cc68b2f7b4112e436029adf66456830f878"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-76-memory-samples.jsonl",
+      "archive": "owning-selected-76-memory-samples.jsonl",
+      "size": 3621,
+      "sha256": "8064f6f2d81f1ed920490d56975dcf8d431a5f0fe64da2cb6fdeee1a6ae6a4f1"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-76.log",
+      "archive": "owning-selected-76.log",
+      "size": 276,
+      "sha256": "429cc6c050ceb17b6ce616e7be78588760dc3e8eb7324d06b35ef74320732ba5"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-77-memory-samples.jsonl",
+      "archive": "owning-selected-77-memory-samples.jsonl",
+      "size": 3622,
+      "sha256": "f941ceebcc7f2be4738e2845d8e624e5f91e3c793cfb57b10e7940e261a7d79b"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-77.log",
+      "archive": "owning-selected-77.log",
+      "size": 252,
+      "sha256": "9dcaab4b9c5cd13e416f26e8e20a25eb5e261f5f419e738e3ca46a390bf3fe80"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-78-memory-samples.jsonl",
+      "archive": "owning-selected-78-memory-samples.jsonl",
+      "size": 3501,
+      "sha256": "0fb0f50ba0b85b1e44a68d73965b95a3ef5cf439d1c2f2c47f30192edae8afd7"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-78.log",
+      "archive": "owning-selected-78.log",
+      "size": 293,
+      "sha256": "d2e003a4362537abbf8ad9ec2d4ac26b0f2a55f137ca3a5c3c11531e340d8729"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-79-memory-samples.jsonl",
+      "archive": "owning-selected-79-memory-samples.jsonl",
+      "size": 3497,
+      "sha256": "ebde1cc59556cac1d7ae72550b96d7cc8bc741de1bc782dfbc5ede21b4f8774d"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-79.log",
+      "archive": "owning-selected-79.log",
+      "size": 1297,
+      "sha256": "196f82324fc2e1e246ccc13c5d546f8bb0a2d1f483d622c8434f0e9e7172b5e4"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-80-memory-samples.jsonl",
+      "archive": "owning-selected-80-memory-samples.jsonl",
+      "size": 3500,
+      "sha256": "b1f3cb65bdac48827758acd07e63393608b78edff30b28eb56cb7853264d4a2d"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-80.log",
+      "archive": "owning-selected-80.log",
+      "size": 290,
+      "sha256": "39ea0515cc8c530c89d5302d01209a17f9bcf4a11fcb7b55780e2380a3a88704"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-81-memory-samples.jsonl",
+      "archive": "owning-selected-81-memory-samples.jsonl",
+      "size": 3497,
+      "sha256": "274d6aaf84b29c4e43c841ded99afb90a7ea5455bd2d2f81c923e0c06919e640"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-81.log",
+      "archive": "owning-selected-81.log",
+      "size": 279,
+      "sha256": "7829ed735df2453c7381df7a46473270c69c0c97f66fd0e437a99310ff31accd"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-82-memory-samples.jsonl",
+      "archive": "owning-selected-82-memory-samples.jsonl",
+      "size": 3495,
+      "sha256": "3667a3417ebdc813c639e150c870ec442747e89920feffa2e62590c67cfd7b7b"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-82.log",
+      "archive": "owning-selected-82.log",
+      "size": 300,
+      "sha256": "e7d63160fea4dcdc21705846cd2755af168686a9a9f80dad101b96d14c8dc122"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-83-memory-samples.jsonl",
+      "archive": "owning-selected-83-memory-samples.jsonl",
+      "size": 3504,
+      "sha256": "152c4ccf155c5796e28a4c7485594b04869c79e3847069e9d0a31451b20fc441"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-83.log",
+      "archive": "owning-selected-83.log",
+      "size": 281,
+      "sha256": "e858129ee2f9c67953111d137cc50d2e1be824b2cd6049363ec2ff5ec62476cb"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-84-memory-samples.jsonl",
+      "archive": "owning-selected-84-memory-samples.jsonl",
+      "size": 3503,
+      "sha256": "f2562a7326f2d9beacd73d14669ddc1883b72be763248c1b236aa7bee20351fd"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-84.log",
+      "archive": "owning-selected-84.log",
+      "size": 468,
+      "sha256": "6800cf21be7a9c1a4050833fe49ca1ef8caa62e13b2535bb9b56d08ac7e610b6"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-85-memory-samples.jsonl",
+      "archive": "owning-selected-85-memory-samples.jsonl",
+      "size": 3498,
+      "sha256": "1804b6d48459669b140900ef49cad208bdd23e215b36ed94db860dac21bae45c"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-85.log",
+      "archive": "owning-selected-85.log",
+      "size": 277,
+      "sha256": "76916d2c2f73e1d0c3a5a4af2d890bdfb3c40c7369d0300dd99954d452094a09"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-86-memory-samples.jsonl",
+      "archive": "owning-selected-86-memory-samples.jsonl",
+      "size": 3496,
+      "sha256": "f40fedbec1010aa7c799119a1f6c8d8b17b2ab0388a5341e96b62a8169452135"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-86.log",
+      "archive": "owning-selected-86.log",
+      "size": 282,
+      "sha256": "182552193e65d0e9d04c2d2824ccc7d8645b5c7e52711ba4066cb78b54f1bd4f"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-87-memory-samples.jsonl",
+      "archive": "owning-selected-87-memory-samples.jsonl",
+      "size": 3502,
+      "sha256": "ec6ac29e7b9ab74129b0d826a6331ce4b9710ef1736363d2d597d4f8a6931413"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-87.log",
+      "archive": "owning-selected-87.log",
+      "size": 280,
+      "sha256": "589f8463097b8c165e86d8afc36f46ace43f5b836442a9107e074b0635c2db22"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-88-memory-samples.jsonl",
+      "archive": "owning-selected-88-memory-samples.jsonl",
+      "size": 3500,
+      "sha256": "90b8bd4f2c61b54f648aaa4ec9cde5a008da181d8a686fafa21d0c06ea92ca32"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-88.log",
+      "archive": "owning-selected-88.log",
+      "size": 280,
+      "sha256": "70b1965a1eda368d8d31ebd33a1cc748897da81fb4f95a3799e36b5ac7e3aaf6"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-89-memory-samples.jsonl",
+      "archive": "owning-selected-89-memory-samples.jsonl",
+      "size": 3617,
+      "sha256": "b5b009ff16891df7b05fdf5ad08b78f42ff656ff401ba9750a6edc0c224f5e3e"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-89.log",
+      "archive": "owning-selected-89.log",
+      "size": 1243,
+      "sha256": "302fc1253c22471bb082e7cb15d9509cfaff4d2a1cc6ee5e3cdca829b776c8a8"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-90-memory-samples.jsonl",
+      "archive": "owning-selected-90-memory-samples.jsonl",
+      "size": 3970,
+      "sha256": "8549500f8960dc05c8789cef9f9ec24b7f33ac1975872b2889a979ffd2c7a552"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-90.log",
+      "archive": "owning-selected-90.log",
+      "size": 287,
+      "sha256": "b5d6a542d828b81de62d7e465a6265c1017b5867e833b994c468a1bcc64c63ab"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-91-memory-samples.jsonl",
+      "archive": "owning-selected-91-memory-samples.jsonl",
+      "size": 3974,
+      "sha256": "52e4588771a44cf7f4fcadb6828c275bb2f7cbe344d7f9ff952edbbf97f75d55"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-91.log",
+      "archive": "owning-selected-91.log",
+      "size": 276,
+      "sha256": "47630ed270c33e9bfb238b692d0e50ed24a6ec2f5f6de493e69a3f87480fa06a"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-92-memory-samples.jsonl",
+      "archive": "owning-selected-92-memory-samples.jsonl",
+      "size": 3497,
+      "sha256": "8acc50302323b8a3561c2a8ab2778f3a85aae9a3c6eb1fd6af5d99af5cc501b8"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-92.log",
+      "archive": "owning-selected-92.log",
+      "size": 265,
+      "sha256": "c957c166ce07ea9d23a09cbce25ec9478f00af5772b1419e1919ec0adc8c2ec3"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-93-memory-samples.jsonl",
+      "archive": "owning-selected-93-memory-samples.jsonl",
+      "size": 3501,
+      "sha256": "5cc7961d6e3c0c5ae8e9c2ef469a57ff63a32fde43d383ffb9b118b308261dfa"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-93.log",
+      "archive": "owning-selected-93.log",
+      "size": 271,
+      "sha256": "3d174a8593ad3a1494c18c09a9f5f00c676cc5b899b5cb1e9f3fa4913e423ebe"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-94-memory-samples.jsonl",
+      "archive": "owning-selected-94-memory-samples.jsonl",
+      "size": 3500,
+      "sha256": "81155341b5be784cf49f173e8753892427d6555b51f91e22a14c663cefc5e29b"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-94.log",
+      "archive": "owning-selected-94.log",
+      "size": 263,
+      "sha256": "34c7b0de83db9a6814356fe86105f98533f445c97437a494354aac59629135a7"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-95-memory-samples.jsonl",
+      "archive": "owning-selected-95-memory-samples.jsonl",
+      "size": 3498,
+      "sha256": "65b09f31372e012b7ddcc77f718144e9fd1bb0402773f0534e0e3c50658617a9"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-95.log",
+      "archive": "owning-selected-95.log",
+      "size": 264,
+      "sha256": "d936197569f0054095174fc7ab2097bd1a0b7028967a55f2885addc952fb987d"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-96-memory-samples.jsonl",
+      "archive": "owning-selected-96-memory-samples.jsonl",
+      "size": 3500,
+      "sha256": "8b4545516da81091f0a07dacabbb0df226138b04607b0e020a0836103b98c2bb"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-96.log",
+      "archive": "owning-selected-96.log",
+      "size": 251,
+      "sha256": "eefb5a97a95d4b08ab68b5a11903ef1f235905479d41ef1676a133e6b81cc71c"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-97-memory-samples.jsonl",
+      "archive": "owning-selected-97-memory-samples.jsonl",
+      "size": 3499,
+      "sha256": "c407a3ccf8573fc8c56b0ca143e3fa4edc43857c82b3632fd043ede5ee401854"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-97.log",
+      "archive": "owning-selected-97.log",
+      "size": 271,
+      "sha256": "7ad449c814efe6154ddd6b3d8f2004289156ad79a711f0d3d4de8864b3b339f2"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-98-memory-samples.jsonl",
+      "archive": "owning-selected-98-memory-samples.jsonl",
+      "size": 3502,
+      "sha256": "83fc3774afe3617cc9abf8899028281d70f83bef002d5254f3c817ea1bab817e"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-98.log",
+      "archive": "owning-selected-98.log",
+      "size": 277,
+      "sha256": "9657855b1efe5e6fc26dd7025d0dd4dec2089f45bbb83026ad0429d55d6acdfe"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-99-memory-samples.jsonl",
+      "archive": "owning-selected-99-memory-samples.jsonl",
+      "size": 3624,
+      "sha256": "4af4381f2eecc3b09ea35049d77445a784e88bdf110910af82d0bdb56e089708"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-99.log",
+      "archive": "owning-selected-99.log",
+      "size": 290,
+      "sha256": "c7f1bbbd6013afffe313b21273fb3b2e8cbf74a336b39de8dc0315a3e8285de9"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/owning-selected-results.json",
+      "archive": "owning-selected-results.json",
+      "size": 1227750,
+      "sha256": "6e8f85c6d9d5742e7e4fea362d0b28f66c90b9ed7475f7d18afe3510bb15efe4"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/prelude-pin-producers-memory.jsonl",
+      "archive": "prelude-pin-producers-memory.jsonl",
+      "size": 5965,
+      "sha256": "9e4c5500f756888263638e847777b0a3dfa357d70fbcbb251387ea8e06ae437a"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/prelude-pin-producers-result.json",
+      "archive": "prelude-pin-producers-result.json",
+      "size": 7209,
+      "sha256": "0bbc9871fe50fe48f3e63c18b5635e36048d5f8d5a90bdd4722e1acfc0478ff8"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/prelude-pin-producers.log",
+      "archive": "prelude-pin-producers.log",
+      "size": 77,
+      "sha256": "c0ff630ea50006ca6461409dc29330cc09fbd0d3e212cfdff46db8b3e14889a2"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/preparation-receipt.json",
+      "archive": "preparation-receipt.json",
+      "size": 5077,
+      "sha256": "e030ec5491dafbc17d6731fd52d1fd3026e42db0f7bf1a6e026f866112f7dc25"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/pressure-guardian-source.py",
+      "archive": "pressure-guardian-source.py",
+      "size": 6400,
+      "sha256": "a4477f43ec63fccb169a9b951c793f62a1cd06352d3a690872cfe1673be58119"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/pressure-guardian.jsonl",
+      "archive": "pressure-guardian.jsonl",
+      "size": 148938,
+      "sha256": "91292c87036b3f617985e22d281c79811dcb65e8ab807be8bc7b1e50dddbab1f"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/selected-pressure-guardian-source.py",
+      "archive": "selected-pressure-guardian-source.py",
+      "size": 6889,
+      "sha256": "4e7c4816d521ca3520676ee63884c0f384869fb547e55599fe83f5c18b81a1a2"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/selected-pressure-guardian.jsonl",
+      "archive": "selected-pressure-guardian.jsonl",
+      "size": 117372,
+      "sha256": "89719eecbc8b0b769d76290246e2e7369c03dd1e96d53cc9090df76416574783"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/drivers/build-owning.py",
+      "archive": "drivers/build-owning.py",
+      "size": 9776,
+      "sha256": "7d9eb4e4d3aab9ba94afad0d236ebb32a895eb1cd3db8e1d738438a893787888"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/drivers/draft_contract.py",
+      "archive": "drivers/draft_contract.py",
+      "size": 1752,
+      "sha256": "c3ab46afbf6c62485c5c4b3389a579d0744d889622051f1eb7f6c48d2b0745e1"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/drivers/observed_phase.py",
+      "archive": "drivers/observed_phase.py",
+      "size": 11471,
+      "sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/drivers/run-extra-production-clippy.py",
+      "archive": "drivers/run-extra-production-clippy.py",
+      "size": 6678,
+      "sha256": "47ff9dd51db73eb2b1e6b666c06ad37429d34e2959253179ed14ecb81f2ac8fe"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/drivers/run-owning-selected.py",
+      "archive": "drivers/run-owning-selected.py",
+      "size": 10438,
+      "sha256": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/drivers/run-production-lib-cli-clippy.py",
+      "archive": "drivers/run-production-lib-cli-clippy.py",
+      "size": 6214,
+      "sha256": "e94eca5f0b9aa73193e1065a944b1681a459bdeba7b45e984f477a55268f4077"
+    },
+    {
+      "source": "/Volumes/Semaprax/lane-prompts/final-7a87-145-qualification-20261015/drivers/semaprax_pressure_observation_v3.py",
+      "archive": "drivers/semaprax_pressure_observation_v3.py",
+      "size": 10269,
+      "sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b"
+    }
+  ]
+}

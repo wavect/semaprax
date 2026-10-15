@@ -29,11 +29,26 @@ pub(in crate::workspace_graph) fn run<T>(
             };
         }
     };
-    let result = operation();
+    let mut result = operation();
     // The first receipt is sealed BEFORE with_limit restores the child. A
     // successful/no-sticky attempt drops real unused storage with no refund.
     let publication = if active_refused() {
         Some(owner.seal())
+    } else if let Err(CoreFailure::Setup(setup)) = &result {
+        // A non-sticky setup result must not discard an already paid slot and
+        // allocate another Vec after the child restores. On secondary failure
+        // the complete original primary remains; no authority is borrowed.
+        match owner.seal_setup(*setup) {
+            Ok(published) => match &mut result {
+                Err(error) => error.receive_published(published),
+                Ok(_) => unreachable!("selected setup result remains Err"),
+            },
+            Err(unpublished) => {
+                drop(unpublished.owner);
+                let _reason = unpublished.refusal;
+            }
+        }
+        None
     } else {
         drop(owner);
         None

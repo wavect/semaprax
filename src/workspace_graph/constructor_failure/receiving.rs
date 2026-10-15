@@ -203,3 +203,16 @@ pub(in crate::workspace_graph) mod before;
 mod tests;
 
 mod typed;
+
+// Only an opaque report::Published can supply this backing and ledger. This
+// does not certify arbitrary legacy Vecs or turn an unreceived error into paid
+// output. The complete compatibility conversion above remains unchanged.
+impl CoreFailure {
+    pub(super) fn receive_published(&mut self, published: super::report::Published) {
+        let (report, ledger) = published.into_parts();
+        *self = Self::Received {
+            report,
+            ledger: ClassifierLedgerDebug(ledger),
+        };
+    }
+}

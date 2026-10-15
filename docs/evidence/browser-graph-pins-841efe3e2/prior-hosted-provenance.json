@@ -1,0 +1,1 @@
+{"binary_sha256": "cbb5257e3210883b8f3f7c4284e4931936a20cdbd2cd73c9535eb64a44aec5e9", "head": "7f9080f85316bf0e2e8f530cf4c5adbcda247c16", "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5\n"}

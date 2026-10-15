@@ -122,8 +122,15 @@ fn explicit_law_module_is_queryable_open_and_bound_to_exact_project_bytes() {
 fn hidden_missing_and_misassociated_laws_fail_closed() {
     let fixture = Fixture::new(LAW, MANIFEST);
     let hidden = MANIFEST.replace("law_sources = [\"src/contracts.spx\"]", "law_sources = []");
+    assert_ne!(hidden, MANIFEST);
     std::fs::write(fixture.manifest(), hidden).unwrap();
-    assert!(with_authenticated_project(&fixture.manifest(), |snapshot| snapshot.check()).is_err());
+    let errors = with_authenticated_project(&fixture.manifest(), |snapshot| snapshot.check())
+        .expect_err("an ordinary source cannot hide a native law declaration");
+    assert_eq!(errors[0].code, "SPX-LW110");
+    assert_eq!(
+        errors[0].message,
+        "native law declarations in ordinary Project sources require explicit law_sources selection"
+    );
 
     std::fs::write(fixture.manifest(), MANIFEST).unwrap();
     let invalid = LAW.replace("calculator.divide\"", "calculator.absent\"");

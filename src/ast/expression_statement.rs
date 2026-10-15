@@ -75,14 +75,14 @@ pub fn projection_roots<'a>(
 ) -> bool {
     // Block children use statement/child positions rather than repeated prefix lookup.
     // Over-depth foreign ASTs conservatively retain the full let spelling.
-    if !reserve(std::mem::size_of::<[Option<(&Expr, usize, usize)>; 513]>()) {
+    let mut stack = Vec::new();
+    if !grow_frames(&mut stack, 1, &mut reserve) {
         return false;
     }
     if !reserve(std::mem::size_of::<[Option<PatternFrame<'_>>; 129]>()) {
         return false;
     }
     let mut patterns = [None; 129];
-    let mut stack = [None; 513];
 
     let mut markers = Vec::new();
     let mut uses = Vec::new();
@@ -214,7 +214,7 @@ pub fn projection_roots<'a>(
             };
             if let Some(child) = child {
                 stack[len - 1] = Some((node, next.0, next.1));
-                if len == stack.len() {
+                if len == 513 || !grow_frames(&mut stack, len + 1, &mut reserve) {
                     return false;
                 }
                 stack[len] = Some((child, 0, 0));
@@ -228,6 +228,43 @@ pub fn projection_roots<'a>(
     uses.sort_unstable();
     !markers.windows(2).any(|pair| pair[0] == pair[1])
         && markers.iter().all(|name| uses.binary_search(name).is_err())
+}
+
+// Grow only physical scratch; the independent 513-frame traversal limit remains.
+// Pay the entire replacement while the previous allocation is still live. No
+// capacity credit or refund is inferred from the allocator's choice of backing.
+fn grow_frames<T: Copy>(
+    frames: &mut Vec<Option<T>>,
+    needed: usize,
+    reserve: &mut impl FnMut(usize) -> bool,
+) -> bool {
+    if needed > 513 {
+        return false;
+    }
+    if needed <= frames.len() {
+        return true;
+    }
+    let capacity = frames.len().max(1).saturating_mul(2).min(513).max(needed);
+    let Ok(layout) = std::alloc::Layout::array::<Option<T>>(capacity) else {
+        return false;
+    };
+    let Some(bytes) = layout
+        .size()
+        .checked_add(2 * std::mem::size_of::<Vec<Option<T>>>() + std::mem::size_of::<Option<T>>())
+    else {
+        return false;
+    };
+    if !reserve(bytes) {
+        return false;
+    }
+    let mut replacement = Vec::new();
+    if replacement.try_reserve_exact(capacity).is_err() || replacement.capacity() != capacity {
+        return false;
+    }
+    replacement.append(frames);
+    replacement.resize(capacity, None);
+    *frames = replacement;
+    true
 }
 
 fn pattern_names<'a>(
@@ -299,3 +336,6 @@ fn pattern_names<'a>(
     }
     true
 }
+
+#[cfg(test)]
+mod tests;

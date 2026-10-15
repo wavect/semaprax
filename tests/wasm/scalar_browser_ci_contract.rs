@@ -3,6 +3,9 @@ use std::path::Path;
 
 use sha2::{Digest, Sha256};
 
+#[path = "scalar_browser_ci_contract/historical_builder.rs"]
+mod historical_builder;
+
 fn digest_without_checked_value_cursor_budget(graph: &str) -> String {
     let parsed: serde_json::Value = serde_json::from_str(graph).unwrap();
     let digest_field = format!(",\"graph_digest\":{}", parsed["graph_digest"]);
@@ -118,9 +121,7 @@ fn browser_known_answers_match_authenticated_baseline_and_rename_graphs() {
                     file.write_all(revision.semantic_graph().as_bytes())
                         .expect("capture complete actual calculator graph");
                 }
-                previous_digests.push(digest_without_checked_value_cursor_budget(
-                    revision.semantic_graph(),
-                ));
+                previous_digests.push(historical_builder::digest(revision.semantic_graph()));
                 let actual = [
                     revision.project_revision(),
                     revision.workspace_revision(),

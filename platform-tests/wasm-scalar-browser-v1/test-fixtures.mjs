@@ -32,10 +32,9 @@ const expectedFunctions = [
   parameters,
   result,
 }));
-// The shared-identity accounting changes only used_builder_bytes: 1235986 ->
-// 1214409. Restoring that field reproduces both previous graph pins byte for
-// byte; project/workspace revisions and every other graph field are unchanged.
-// The add -> sum display rename retains the same AST shapes and string lengths.
+// Exact hosted compiler records from 841efe3e2, including the complete current
+// builder bill. The Rust browser contract retains full historical wire and
+// cursor controls; docs/evidence/browser-graph-pins-841efe3e2 binds both captures.
 const fixtureSpecs = [
   { name: "direct-source", schema: "semaprax.web.v4" },
   {
@@ -43,14 +42,14 @@ const fixtureSpecs = [
     schema: "semaprax.web-project.v1",
     project_revision: "sha256:8576caa566cb7f0d265354927c5bc7b481146f05e616f76917f340b4af26f053",
     workspace_revision: "sha256:f0454397a2b339677bc49c9ccd8e8491917426202c6aba2475221879e02ae3f6",
-    project_graph_digest: "sha256:1858de2482c3cdbd15e9752003079ce19797f1168aada4890cfbd5a94a0cac9f",
+    project_graph_digest: "sha256:8590a806de7844c298e52b4c985234b911d60e04b6b29a06e20b0b8a0b8ddfb5",
   },
   {
     name: "project-renamed",
     schema: "semaprax.web-project.v1",
     project_revision: "sha256:afa7b35b6b057eaa1cbf89c68ccd1e19a8d988f4168049f70717f80c28218fb7",
     workspace_revision: "sha256:8fcf973950f10bf9393ff5597484333b178e5f93c5d2a1847f6ccc18d6185f71",
-    project_graph_digest: "sha256:66698f543a192b5892ef344d4c55356e6fa829149615f4018fe9fee25f297c17",
+    project_graph_digest: "sha256:3be60b9f01605a9701e9c386174139b988a1dc5969bde69bdf6e1e2b060f8a2b",
   },
 ];
 const expectedArtifacts = [

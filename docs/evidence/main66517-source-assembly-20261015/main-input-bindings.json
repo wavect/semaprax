@@ -1,0 +1,68 @@
+[
+  {
+    "source": ".github/workflows/ci.yml",
+    "revision": "66517a983",
+    "sha256": "dd58d7d3ecc8169f7f7b5e21efb996faa484d4b1d3991319e649ef8b76b0dc6c",
+    "bytes": 174448
+  },
+  {
+    "source": "docs/AGENT-SKILL-BUNDLE-V1.json",
+    "revision": "66517a983",
+    "sha256": "8eb0e4fbbd5ee5d47e001138331dfbd540a4c35e64305719356e080cfd3ea08c",
+    "bytes": 5544
+  },
+  {
+    "source": "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    "revision": "66517a983",
+    "sha256": "8c1025d97ddff2969b6ade0682aeb46facbd4872015f11f7012136f3f350130b",
+    "bytes": 10292
+  },
+  {
+    "source": "src/ast/expression_statement.rs",
+    "revision": "66517a983",
+    "sha256": "2ee5ce38e7f34d4954237525d4b780b0f13d0919b0afda328ff0af42d7488801",
+    "bytes": 13121
+  },
+  {
+    "source": "src/ast/expression_statement/tests.rs",
+    "revision": "66517a983",
+    "sha256": "2c25cfbb97bb987b5e0695c37515438728d5a4f4c522d432f637ea42d8a13c02",
+    "bytes": 11915
+  },
+  {
+    "source": "src/cli_driver/project_scaffold_options.rs",
+    "revision": "66517a983",
+    "sha256": "bc2996c26fa11bc4df76d852ac418332c8c69f41f6f74d06b01c1c1aee0ab3c1",
+    "bytes": 7829
+  },
+  {
+    "source": "src/project/build.rs",
+    "revision": "66517a983",
+    "sha256": "9393bdc1c0eea98c6f175f075bc4bc08bc153744781703054204643975a1b848",
+    "bytes": 19502
+  },
+  {
+    "source": "src/project/build/tests.rs",
+    "revision": "66517a983",
+    "sha256": "45f27493b8d1edf743edefc0dfe4693a3ed7441cb40ac1954283cff6362db020",
+    "bytes": 6325
+  },
+  {
+    "source": "tests/project/native_law_v1.rs",
+    "revision": "66517a983",
+    "sha256": "26cb7b07704616ce53fd8a2b66cbc85c3ba7da31c6064bd2313585269607309c",
+    "bytes": 13437
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract.rs",
+    "revision": "66517a983",
+    "sha256": "2e5e392cb33e2eb998093b21c29c2cab4decb8e85e99bbbaf27ca0a6fb50f9d5",
+    "bytes": 9796
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+    "revision": "66517a983",
+    "sha256": "8cdabfbc8d14fd6f1854ce74d3d881bad4d52ee933d9a78250f13de81368290b",
+    "bytes": 5460
+  }
+]

@@ -1,0 +1,442 @@
+[
+  {
+    "path": "src/source_reflows.rs",
+    "line": 57,
+    "gateway": "main",
+    "function": "restore",
+    "function_line": 55,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/source_reflows.rs",
+    "line": 167,
+    "gateway": "main927_input",
+    "function": "restore_main927",
+    "function_line": 165,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/diagnostic/writer/tests.rs",
+    "line": 266,
+    "gateway": "diagnostic846_input",
+    "function": "full_original_renderer_and_all_current_source_owners_remain_bound",
+    "function_line": 239,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/diagnostic/writer/tests.rs",
+    "line": 297,
+    "gateway": "diagnostic846_input",
+    "function": "full_original_renderer_and_all_current_source_owners_remain_bound",
+    "function_line": 239,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/hir/resolve_statement/text_reference.rs",
+    "line": 80,
+    "gateway": "main_f045_input",
+    "function": "full_current_expression_entry_is_exact_original_plus_test_dispatch",
+    "function_line": 34,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/cleanup_plan/replay/selected_entry/tests/fact_errors/tree_policy.rs",
+    "line": 327,
+    "gateway": "scalar_policy_input",
+    "function": "view",
+    "function_line": 326,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/cleanup_plan/replay/physical_budget/authentication/source.rs",
+    "line": 6,
+    "gateway": "held",
+    "function": "previous",
+    "function_line": 5,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/cleanup_plan/replay/physical_budget/authentication/source.rs",
+    "line": 64,
+    "gateway": "held",
+    "function": "held_full_current_sources_and_immediate_inverses_authenticate_every_byte",
+    "function_line": 32,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+    "line": 196,
+    "gateway": "consumer_input",
+    "function": "complete_immediate_receiver_helpers_and_all_seven_original_controls_remain_exact",
+    "function_line": 182,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+    "line": 198,
+    "gateway": "consumer_input",
+    "function": "complete_immediate_receiver_helpers_and_all_seven_original_controls_remain_exact",
+    "function_line": 182,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+    "line": 250,
+    "gateway": "branch_closed831_input",
+    "function": "branch_closed_full_current_sources_restore_every_immediate_e93f_byte",
+    "function_line": 207,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/compact_nodes/tests.rs",
+    "line": 411,
+    "gateway": "compact844_input",
+    "function": "complete_original_receivers_and_all_new_source_owners_remain_authenticated",
+    "function_line": 393,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/compact_nodes/tests.rs",
+    "line": 434,
+    "gateway": "compact844_input",
+    "function": "complete_original_receivers_and_all_new_source_owners_remain_authenticated",
+    "function_line": 393,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/compact_nodes/tests.rs",
+    "line": 460,
+    "gateway": "compact844_input",
+    "function": "complete_original_receivers_and_all_new_source_owners_remain_authenticated",
+    "function_line": 393,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/compact_nodes/tests.rs",
+    "line": 532,
+    "gateway": "compact844_current_input",
+    "function": "immediate_parent_831_and_compact_storage_have_independent_complete_source_domains",
+    "function_line": 513,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/compact_nodes/tests.rs",
+    "line": 554,
+    "gateway": "compact844_current_input",
+    "function": "immediate_parent_831_and_compact_storage_have_independent_complete_source_domains",
+    "function_line": 513,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/amortized_source.rs",
+    "line": 23,
+    "gateway": "consumer_child",
+    "function": "current40f",
+    "function_line": 21,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/amortized_source.rs",
+    "line": 36,
+    "gateway": "weighted",
+    "function": "current40f",
+    "function_line": 21,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/source.rs",
+    "line": 26,
+    "gateway": "assembly_view",
+    "function": "inline_weighted_complete_source_inverses_and_immediate_receiver_are_exact",
+    "function_line": 7,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/source.rs",
+    "line": 19,
+    "gateway": "assembly_view",
+    "function": "held_closure_every_source_and_full_immediate_inverse_are_exact",
+    "function_line": 14,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/source.rs",
+    "line": 34,
+    "gateway": "closure_previous",
+    "function": "held_closure_every_source_and_full_immediate_inverse_are_exact",
+    "function_line": 14,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/cleanup_plan/replay/lexical_replay/operand_tests/source.rs",
+    "line": 81,
+    "gateway": "consumer_input",
+    "function": "whole_old_lexical_caller_and_all_new_inventory_sources_remain_bound",
+    "function_line": 3,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/cleanup_plan/replay/selected_context/child/tests/source/compressed_fixture.rs",
+    "line": 212,
+    "gateway": "compressed_fixture_input",
+    "function": "prior_source",
+    "function_line": 203,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/cleanup_plan/replay/selected_context/child/tests/source/compressed_fixture.rs",
+    "line": 330,
+    "gateway": "runtime848_input",
+    "function": "verify_runtime_source_custody",
+    "function_line": 320,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+    "line": 6,
+    "gateway": "source36_classifier_input",
+    "function": "complete_original_sources_and_compiled_owning_receivers_remain_exact",
+    "function_line": 3,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs",
+    "line": 7,
+    "gateway": "ours",
+    "function": "project",
+    "function_line": 4,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs",
+    "line": 227,
+    "gateway": "main27424_input",
+    "function": "complete_original_lookup_and_unchanged_receivers_remain_byte_bound",
+    "function_line": 223,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs",
+    "line": 240,
+    "gateway": "main27424_input",
+    "function": "complete_original_lookup_and_unchanged_receivers_remain_byte_bound",
+    "function_line": 223,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/cold_canonical/tests.rs",
+    "line": 304,
+    "gateway": "consumer_input",
+    "function": "complete_old_commented_formatter_preflight_sources_and_all_current_children_remain_exact",
+    "function_line": 292,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/cold_canonical/tests.rs",
+    "line": 376,
+    "gateway": "consumer_child",
+    "function": "complete_old_commented_formatter_preflight_sources_and_all_current_children_remain_exact",
+    "function_line": 292,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/initial_report/tests.rs",
+    "line": 240,
+    "gateway": "initial845_input",
+    "function": "complete_original_builder_mappers_and_all_current_owners_remain_authenticated",
+    "function_line": 229,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/initial_report/tests.rs",
+    "line": 271,
+    "gateway": "initial845_input",
+    "function": "complete_original_builder_mappers_and_all_current_owners_remain_authenticated",
+    "function_line": 229,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/initial_report/tests.rs",
+    "line": 286,
+    "gateway": "initial845_input",
+    "function": "complete_original_builder_mappers_and_all_current_owners_remain_authenticated",
+    "function_line": 229,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/tests/builder_limits.rs",
+    "line": 393,
+    "gateway": "retry_fixture_input",
+    "function": "identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal",
+    "function_line": 391,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/generic_type_import/receiving/tests.rs",
+    "line": 295,
+    "gateway": "consumer_input",
+    "function": "typed_declaration_complete_old_receivers_actual_callers_and_full_source_inverses_stay_bound",
+    "function_line": 275,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
+    "line": 574,
+    "gateway": "setup_typed_input",
+    "function": "typed_constructor_complete_sources_original_helpers_and_live_caller_are_exactly_bound",
+    "function_line": 331,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/expected_projection/defaults/inline_tests.rs",
+    "line": 342,
+    "gateway": "constructor_complete_input",
+    "function": "complete_inline_sources_and_original_owners_have_exact_whole_file_inverses",
+    "function_line": 300,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/expected_projection/defaults/inline_tests.rs",
+    "line": 369,
+    "gateway": "constructor_complete_input",
+    "function": "complete_inline_sources_and_original_owners_have_exact_whole_file_inverses",
+    "function_line": 300,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+    "line": 401,
+    "gateway": "directory825_input",
+    "function": "typed_overlay_directory_complete_source_inverses_and_three_live_calls_are_bound",
+    "function_line": 393,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+    "line": 405,
+    "gateway": "directory825_input",
+    "function": "typed_overlay_directory_complete_source_inverses_and_three_live_calls_are_bound",
+    "function_line": 393,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+    "line": 412,
+    "gateway": "directory825_input",
+    "function": "typed_overlay_directory_complete_source_inverses_and_three_live_calls_are_bound",
+    "function_line": 393,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 966,
+    "gateway": "consumer_input",
+    "function": "typed_constructor_cost_complete_originals_live_callers_and_all_source_inverses_are_bound",
+    "function_line": 844,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+    "line": 667,
+    "gateway": "consumer_input",
+    "function": "typed_signature_rewrite_complete_old_helpers_live_callers_and_whole_source_inverses_are_bound",
+    "function_line": 584,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs",
+    "line": 425,
+    "gateway": "retained_function847_input",
+    "function": "complete_immediate_sources_and_independent_old_receivers_remain_authenticated",
+    "function_line": 413,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs",
+    "line": 459,
+    "gateway": "retained_function847_input",
+    "function": "complete_immediate_sources_and_independent_old_receivers_remain_authenticated",
+    "function_line": 413,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs",
+    "line": 478,
+    "gateway": "retained_function847_input",
+    "function": "complete_immediate_sources_and_independent_old_receivers_remain_authenticated",
+    "function_line": 413,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+    "line": 340,
+    "gateway": "consumer_input",
+    "function": "complete_old_registry_census_derivation_and_current_scratch_sources_remain_bound",
+    "function_line": 325,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+    "line": 405,
+    "gateway": "consumer_child",
+    "function": "complete_old_registry_census_derivation_and_current_scratch_sources_remain_bound",
+    "function_line": 325,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/expected_projection/private_layout/registry/retained_tests.rs",
+    "line": 303,
+    "gateway": "retained833_input",
+    "function": "complete_immediate_sources_and_old_owning_bodies_remain_independent",
+    "function_line": 272,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/expected_projection/private_layout/registry/retained_tests.rs",
+    "line": 335,
+    "gateway": "retained833_input",
+    "function": "complete_immediate_sources_and_old_owning_bodies_remain_independent",
+    "function_line": 272,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/expected_projection/private_layout/registry/retained_tests.rs",
+    "line": 367,
+    "gateway": "retained833_input",
+    "function": "complete_immediate_sources_and_old_owning_bodies_remain_independent",
+    "function_line": 272,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs",
+    "line": 60,
+    "gateway": "consumer_input",
+    "function": "complete_old_receiver_source_and_all_new_joined_sources_stay_exact",
+    "function_line": 3,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs",
+    "line": 567,
+    "gateway": "constructor_complete_input",
+    "function": "complete_original_receivers_and_all_literal_source_inverses_remain_byte_exact",
+    "function_line": 538,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs",
+    "line": 14,
+    "gateway": "main_current_input",
+    "function": "restore",
+    "function_line": 13,
+    "function_has_measure": false
+  },
+  {
+    "path": "src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs",
+    "line": 178,
+    "gateway": "main_current_input",
+    "function": "historical_inline_inventory",
+    "function_line": 177,
+    "function_has_measure": false
+  }
+]

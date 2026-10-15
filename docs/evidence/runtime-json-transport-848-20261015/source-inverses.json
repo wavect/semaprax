@@ -1,0 +1,340 @@
+[
+  {
+    "source": "src/source_reflows_merge.rs",
+    "checkpoint_revision": "9ccc0e2f18e15d4d72f46262b7a940a23a66500e",
+    "archive": "docs/evidence/runtime-json-transport-848-20261015/before/src/source_reflows_merge.rs",
+    "current_sha256": "d2fcede91908237d776fdf35af5c96052cd608874516167e68f6f7a3e5703f93",
+    "original_sha256": "e9fe80d852127bf0f8c703da174d64c4aa5eda393e611d21dcc8b2f97cb204e5",
+    "edits": [
+      {
+        "new": "//! This test-only projection owns no compiler authority and grants no admission.\nuse sha2::{Digest, Sha256};\n#[path = \"source_reflows_merge/runtime_json.rs\"]\nmod runtime_json;\nfn project(rows: &str, source: &str, current: &str) -> String {\n    let rows: serde_json::Value = serde_json::from_str(rows).expect(\"fixed merge projections\");\n",
+        "old": "//! This test-only projection owns no compiler authority and grants no admission.\nuse sha2::{Digest, Sha256};\nfn project(rows: &str, source: &str, current: &str) -> String {\n    let rows: serde_json::Value = serde_json::from_str(rows).expect(\"fixed merge projections\");\n"
+      },
+      {
+        "new": "fn before_build_fix(source: &str, current: &str) -> String {\n    project(\n        &runtime_json::load(runtime_json::Fixture::F00),\n        source,\n        current,\n",
+        "old": "fn before_build_fix(source: &str, current: &str) -> String {\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/compiler-receiving-fix-7800-20261015/predecessor-projections.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "pub(crate) fn ours(source: &str, current: &str) -> String {\n    let staged = project(\n        &runtime_json::load(runtime_json::Fixture::F01),\n        source,\n        current,\n",
+        "old": "pub(crate) fn ours(source: &str, current: &str) -> String {\n    let staged = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/source-composition-f813-held-20261015/pre-ours.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = staged.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F02),\n        source,\n        current,\n",
+        "old": "    let current = staged.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/source36-main88884-merge-20261015/ours-projections.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = predecessor.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F03),\n        source,\n        current,\n",
+        "old": "    let current = predecessor.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/source-composition-f813-held-20261015/main-projections.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = predecessor.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F04),\n        source,\n        current,\n",
+        "old": "    let current = predecessor.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/source-composition-f813-held-20261015/held-projections.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    }\n    project(\n        &runtime_json::load(runtime_json::Fixture::F05),\n        \"src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias/tests.rs\",\n        current,\n",
+        "old": "    }\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/source-composition-f813-held-20261015/weighted-projections.json\"\n        )),\n        \"src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias/tests.rs\",\n        current,\n"
+      },
+      {
+        "new": "fn inline_weighted_previous(source: &str, current: &str) -> String {\n    project(\n        &runtime_json::load(runtime_json::Fixture::F06),\n        source,\n        current,\n",
+        "old": "fn inline_weighted_previous(source: &str, current: &str) -> String {\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/inline-weighted-successor-842/source-inverses.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "pub(crate) fn closure_previous(source: &str, current: &str) -> String {\n    project(\n        &runtime_json::load(runtime_json::Fixture::F07),\n        source,\n        current,\n",
+        "old": "pub(crate) fn closure_previous(source: &str, current: &str) -> String {\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/held-closure-receiver-843/runtime-projections.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = previous.as_str();\n    let data = match stage {\n        \"9d\" => runtime_json::load(runtime_json::Fixture::F08),\n        \"842\" => runtime_json::load(runtime_json::Fixture::F09),\n        \"843\" => runtime_json::load(runtime_json::Fixture::F10),\n        _ => panic!(\"unknown immutable assembly source domain\"),\n    };\n    project(&data, source, current)\n}\nfn assembled_previous(source: &str, current: &str) -> String {\n",
+        "old": "    let current = previous.as_str();\n    let data = match stage {\n        \"9d\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/final-842-843-source-assembly-20261015/view-9d.json\"\n        )),\n        \"842\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/final-842-843-source-assembly-20261015/view-842.json\"\n        )),\n        \"843\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/final-842-843-source-assembly-20261015/view-843.json\"\n        )),\n        _ => panic!(\"unknown immutable assembly source domain\"),\n    };\n    project(data, source, current)\n}\nfn assembled_previous(source: &str, current: &str) -> String {\n"
+      },
+      {
+        "new": "    let current = corrected.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F11),\n        source,\n        current,\n",
+        "old": "    let current = corrected.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/main7f-source-successor-20261015/current-to-9365.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let corrected = corrected_previous(source, current);\n    let _historical_main7f = project(\n        &runtime_json::load(runtime_json::Fixture::F12),\n        source,\n        &corrected,\n    );\n    project(\n        &runtime_json::load(runtime_json::Fixture::F13),\n        source,\n        &physical,\n",
+        "old": "    let corrected = corrected_previous(source, current);\n    let _historical_main7f = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/main7f-source-successor-20261015/current-to-main7f.json\"\n        )),\n        source,\n        &corrected,\n    );\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/mainff869-source-successor-20261015/current-to-mainff.json\"\n        )),\n        source,\n        &physical,\n"
+      },
+      {
+        "new": "    let current = baseline.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F14),\n        source,\n        current,\n",
+        "old": "    let current = baseline.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/d1bb-corrective-source-successor-20261015/current-to-d1bb.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = previous.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F15),\n        source,\n        current,\n",
+        "old": "    let current = previous.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/d1bb-corrective-source-successor-20261015/scalar-policy-inputs.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = predecessor.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F16),\n        source,\n        current,\n",
+        "old": "    let current = predecessor.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/source-consumer-closure-fixes-20261015/current-to-3d4b.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = predecessor.as_str();\n    let data = match domain {\n        \"decl825\" => runtime_json::load(runtime_json::Fixture::F17),\n        \"cost825\" => runtime_json::load(runtime_json::Fixture::F18),\n        \"signature825\" => runtime_json::load(runtime_json::Fixture::F19),\n        \"capacity834\" => runtime_json::load(runtime_json::Fixture::F20),\n        \"registry833\" => runtime_json::load(runtime_json::Fixture::F21),\n        \"receiving831\" => runtime_json::load(runtime_json::Fixture::F22),\n        \"lexical832\" => runtime_json::load(runtime_json::Fixture::F23),\n        \"cold835\" => runtime_json::load(runtime_json::Fixture::F24),\n        _ => panic!(\"unknown complete source consumer domain\"),\n    };\n    project(&data, source, current)\n}\n\n",
+        "old": "    let current = predecessor.as_str();\n    let data = match domain {\n        \"decl825\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/source-consumer-closure-fixes-20261015/decl825.json\"\n        )),\n        \"cost825\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/source-consumer-closure-fixes-20261015/cost825.json\"\n        )),\n        \"signature825\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/source-consumer-closure-fixes-20261015/signature825.json\"\n        )),\n        \"capacity834\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/source-consumer-closure-fixes-20261015/capacity834.json\"\n        )),\n        \"registry833\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/source-consumer-closure-fixes-20261015/registry833.json\"\n        )),\n        \"receiving831\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/source-consumer-closure-fixes-20261015/receiving831.json\"\n        )),\n        \"lexical832\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/source-consumer-closure-fixes-20261015/lexical832.json\"\n        )),\n        \"cold835\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/source-consumer-closure-fixes-20261015/cold835.json\"\n        )),\n        _ => panic!(\"unknown complete source consumer domain\"),\n    };\n    project(data, source, current)\n}\n\n"
+      },
+      {
+        "new": "    let fixes = final_fix_input(source, current);\n    let fixes = project(\n        &runtime_json::load(runtime_json::Fixture::F25),\n        source,\n        &fixes,\n    );\n    let fixes = project(\n        &runtime_json::load(runtime_json::Fixture::F26),\n        source,\n        &fixes,\n",
+        "old": "    let fixes = final_fix_input(source, current);\n    let fixes = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/ae91-source-consumer-corrections-20261015/current-to-ae91.json\"\n        )),\n        source,\n        &fixes,\n    );\n    let fixes = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/final-ae91-mainf045-assembly-20261015/fixes-ae91-reconcile.json\"\n        )),\n        source,\n        &fixes,\n"
+      },
+      {
+        "new": "    let current = branch.as_str();\n    let rows = match domain {\n        \"registry833\" => runtime_json::load(runtime_json::Fixture::F27),\n        \"cold835\" => runtime_json::load(runtime_json::Fixture::F28),\n        \"ordered838\" => runtime_json::load(runtime_json::Fixture::F29),\n        _ => panic!(\"unknown source child domain\"),\n    };\n    project(&rows, source, current)\n}\n\n",
+        "old": "    let current = branch.as_str();\n    let rows = match domain {\n        \"registry833\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/ae91-source-consumer-corrections-20261015/registry833-children.json\"\n        )),\n        \"cold835\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/ae91-source-consumer-corrections-20261015/cold835-children.json\"\n        )),\n        \"ordered838\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/ae91-source-consumer-corrections-20261015/ordered838-observer.json\"\n        )),\n        _ => panic!(\"unknown source child domain\"),\n    };\n    project(rows, source, current)\n}\n\n"
+      },
+      {
+        "new": "    let current = previous.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F30),\n        source,\n        current,\n",
+        "old": "    let current = previous.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/final-ae91-mainf045-assembly-20261015/view-fixes.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = previous.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F31),\n        source,\n        current,\n",
+        "old": "    let current = previous.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/final-ae91-mainf045-assembly-20261015/view-main.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let predecessor = before_f045(source, current);\n    let previous = project(\n        &runtime_json::load(runtime_json::Fixture::F32),\n        source,\n        &predecessor,\n    );\n    project(\n        &runtime_json::load(runtime_json::Fixture::F33),\n        source,\n        &previous,\n",
+        "old": "    let predecessor = before_f045(source, current);\n    let previous = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/mainff869-source-successor-20261015/current-to-ae91.json\"\n        )),\n        source,\n        &predecessor,\n    );\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/final-ae91-mainf045-assembly-20261015/main-ae91-reconcile.json\"\n        )),\n        source,\n        &previous,\n"
+      },
+      {
+        "new": "    let branch = final_main_input(source, current);\n    project(\n        &runtime_json::load(runtime_json::Fixture::F34),\n        source,\n        &branch,\n",
+        "old": "    let branch = final_main_input(source, current);\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/mainf045-source-successor-20261015/current-to-f045.json\"\n        )),\n        source,\n        &branch,\n"
+      },
+      {
+        "new": "fn before_f045(source: &str, current: &str) -> String {\n    project(\n        &runtime_json::load(runtime_json::Fixture::F35),\n        source,\n        current,\n",
+        "old": "fn before_f045(source: &str, current: &str) -> String {\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/mainf045-source-successor-20261015/current-to-0bf.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let main_view = assembly_main927_input(source, current);\n    let hex_view = project(\n        &runtime_json::load(runtime_json::Fixture::F36),\n        source,\n        current,\n",
+        "old": "    let main_view = assembly_main927_input(source, current);\n    let hex_view = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/main927-hex-starter-assembly-20261015/view-hex.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "fn main927_previous(source: &str, current: &str) -> String {\n    project(\n        &runtime_json::load(runtime_json::Fixture::F37),\n        source,\n        current,\n",
+        "old": "fn main927_previous(source: &str, current: &str) -> String {\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/main927-source-successor-20261015/current-to-9b.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = view.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F38),\n        source,\n        current,\n",
+        "old": "    let current = view.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/main927-source-successor-20261015/current-to-main927.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "fn facade_hex_previous(source: &str, current: &str) -> String {\n    project(\n        &runtime_json::load(runtime_json::Fixture::F39),\n        source,\n        current,\n",
+        "old": "fn facade_hex_previous(source: &str, current: &str) -> String {\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/workspace-facade-hex-fix-9b-20261015/current-to-9b.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "fn assembly_main927_input(source: &str, current: &str) -> String {\n    project(\n        &runtime_json::load(runtime_json::Fixture::F40),\n        source,\n        current,\n",
+        "old": "fn assembly_main927_input(source: &str, current: &str) -> String {\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/main927-hex-starter-assembly-20261015/view-main927.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = previous.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F41),\n        source,\n        current,\n",
+        "old": "    let current = previous.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/setup825-relative-starter-assembly-20261015/view-d4.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = previous.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F42),\n        source,\n        current,\n",
+        "old": "    let current = previous.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/setup825-relative-starter-assembly-20261015/view-typed825.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = previous.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F43),\n        source,\n        current,\n",
+        "old": "    let current = previous.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/setup825-reference-controls-assembly-20261015/current-to-9cb.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = previous.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F44),\n        source,\n        current,\n",
+        "old": "    let current = previous.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/region-status-import-view-d4-20261015/current-to-a0c.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = previous.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F45),\n        source,\n        current,\n",
+        "old": "    let current = previous.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/constructor-complete-runtime-views-d4-20261015/current-to-aa03.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = previous.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F46),\n        source,\n        current,\n",
+        "old": "    let current = previous.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/constructor-complete-runtime-views-d4-20261015/runtime-views.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = previous.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F47),\n        source,\n        current,\n",
+        "old": "    let current = previous.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/main5ba-future-source-assembly-20261015/current-to-1c.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = previous.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F48),\n        source,\n        current,\n",
+        "old": "    let current = previous.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/main5ba-future-source-assembly-20261015/current-to-main5ba.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = previous.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F49),\n        source,\n        current,\n",
+        "old": "    let current = previous.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/compressed-fixture-841-assembly-20261015/current-to-13d.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let raw_default = final_batch_input(\"841\", source, current);\n    let _whole_raw_default_before = project(\n        &runtime_json::load(runtime_json::Fixture::F50),\n        source,\n        &raw_default,\n",
+        "old": "    let raw_default = final_batch_input(\"841\", source, current);\n    let _whole_raw_default_before = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/raw-selected-child-default-841-20261015/current-to-56dc.json\"\n        )),\n        source,\n        &raw_default,\n"
+      },
+      {
+        "new": "    let current = previous.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F51),\n        source,\n        current,\n",
+        "old": "    let current = previous.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/compressed-fixture-841-assembly-20261015/pilot-runtime-views.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = previous.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F52),\n        source,\n        current,\n",
+        "old": "    let current = previous.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/retained-registry-833-assembly-20261015/current-to-381.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = previous.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F53),\n        source,\n        current,\n",
+        "old": "    let current = previous.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/retained-registry-833-assembly-20261015/current-to-c3.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = previous.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F54),\n        source,\n        current,\n",
+        "old": "    let current = previous.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/main66517-source-assembly-20261015/current-to-397.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = previous.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F55),\n        source,\n        current,\n",
+        "old": "    let current = previous.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/retry-fixture-full-source-view-61f-20261015/current-to-61f.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = previous.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F56),\n        source,\n        current,\n",
+        "old": "    let current = previous.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/retry-fixture-full-source-view-61f-20261015/runtime-view.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = observed.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F57),\n        source,\n        current,\n",
+        "old": "    let current = observed.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/direct-canonical-carriers-831-20261015/current-to-297.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = staged.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F58),\n        source,\n        current,\n",
+        "old": "    let current = staged.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/cached-prelude-acquisition-observer-7a87/current-to-7a87.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = staged.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F59),\n        source,\n        current,\n",
+        "old": "    let current = staged.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/sourceguard-input-domains-7a87/current-to-d20.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "pub(crate) fn source36_classifier_input(source: &str, current: &str) -> String {\n    project(\n        &runtime_json::load(runtime_json::Fixture::F60),\n        source,\n        current,\n",
+        "old": "pub(crate) fn source36_classifier_input(source: &str, current: &str) -> String {\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/sourceguard-input-domains-7a87/classifier-input.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = current.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F61),\n        source,\n        current,\n",
+        "old": "    let current = current.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/actual-pin-consumer-7a87-20261015/current-to-92.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "        let previous = main27424_stage(\"523\", source, current);\n        project(\n            &runtime_json::load(runtime_json::Fixture::F62),\n            source,\n            &previous,\n",
+        "old": "        let previous = main27424_stage(\"523\", source, current);\n        project(\n            include_str!(concat!(\n                env!(\"CARGO_MANIFEST_DIR\"),\n                \"/docs/evidence/compact-old-receiver-compile-fix-844-20261015/current-to-677.json\"\n            )),\n            source,\n            &previous,\n"
+      },
+      {
+        "new": "        let previous = main27424_stage(\"7f\", source, current);\n        project(\n            &runtime_json::load(runtime_json::Fixture::F63),\n            source,\n            &previous,\n",
+        "old": "        let previous = main27424_stage(\"7f\", source, current);\n        project(\n            include_str!(concat!(\n                env!(\"CARGO_MANIFEST_DIR\"),\n                \"/docs/evidence/field-update-hir-visitor-836-20261015/current-to-677.json\"\n            )),\n            source,\n            &previous,\n"
+      },
+      {
+        "new": "    let current = current.as_str();\n    let data = match stage {\n        \"d8\" => runtime_json::load(runtime_json::Fixture::F64),\n        \"844\" => runtime_json::load(runtime_json::Fixture::F65),\n        \"846\" => runtime_json::load(runtime_json::Fixture::F66),\n        _ => panic!(\"unknown exact ready checkpoint\"),\n    };\n    project(&data, source, current)\n}\npub(crate) fn compact844_current_input(source: &str, current: &str) -> String {\n",
+        "old": "    let current = current.as_str();\n    let data = match stage {\n        \"d8\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/ready-main-844-846-836-assembly-20261015/final-to-d8.json\"\n        )),\n        \"844\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/ready-main-844-846-836-assembly-20261015/final-to-844.json\"\n        )),\n        \"846\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/ready-main-844-846-836-assembly-20261015/final-to-846.json\"\n        )),\n        _ => panic!(\"unknown exact ready checkpoint\"),\n    };\n    project(data, source, current)\n}\npub(crate) fn compact844_current_input(source: &str, current: &str) -> String {\n"
+      },
+      {
+        "new": "    let current = final_ready_input(\"844\", source, current);\n    project(\n        &runtime_json::load(runtime_json::Fixture::F67),\n        source,\n        &current,\n",
+        "old": "    let current = final_ready_input(\"844\", source, current);\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/compact-automaton-844-immediate7a87/current-to-a3.json\"\n        )),\n        source,\n        &current,\n"
+      },
+      {
+        "new": "    let current = current.as_str();\n    let data = match stage {\n        \"7f\" => runtime_json::load(runtime_json::Fixture::F68),\n        \"523\" => runtime_json::load(runtime_json::Fixture::F69),\n        \"main\" => runtime_json::load(runtime_json::Fixture::F70),\n        _ => panic!(\"unknown exact MAIN27424 source domain\"),\n    };\n    project(&data, source, current)\n}\npub(crate) fn main27424_input(source: &str, current: &str) -> String {\n",
+        "old": "    let current = current.as_str();\n    let data = match stage {\n        \"7f\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/main27424-source-integration-20261015/final-to-7f.json\"\n        )),\n        \"523\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/main27424-source-integration-20261015/final-to-523.json\"\n        )),\n        \"main\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/main27424-source-integration-20261015/final-to-main.json\"\n        )),\n        _ => panic!(\"unknown exact MAIN27424 source domain\"),\n    };\n    project(data, source, current)\n}\npub(crate) fn main27424_input(source: &str, current: &str) -> String {\n"
+      },
+      {
+        "new": "    let previous = joined_feature_input(\"453\", source, current);\n    project(\n        &runtime_json::load(runtime_json::Fixture::F71),\n        source,\n        &previous,\n",
+        "old": "    let previous = joined_feature_input(\"453\", source, current);\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/retained-function-alias-847/directory825-domain.json\"\n        )),\n        source,\n        &previous,\n"
+      },
+      {
+        "new": "    let current = current.as_str();\n    let rows = match stage {\n        \"453\" => runtime_json::load(runtime_json::Fixture::F72),\n        \"523\" => runtime_json::load(runtime_json::Fixture::F73),\n        \"7f\" => runtime_json::load(runtime_json::Fixture::F74),\n        _ => panic!(\"unknown independent feature input\"),\n    };\n    project(&rows, source, current)\n}\n\n",
+        "old": "    let current = current.as_str();\n    let rows = match stage {\n        \"453\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/retained-alias-compact-joined-20261015/final-to-453.json\"\n        )),\n        \"523\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/retained-alias-compact-joined-20261015/final-to-523.json\"\n        )),\n        \"7f\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/retained-alias-compact-joined-20261015/final-to-7f.json\"\n        )),\n        _ => panic!(\"unknown independent feature input\"),\n    };\n    project(rows, source, current)\n}\n\n"
+      },
+      {
+        "new": "    let current = final_view.as_str();\n    let previous = project(\n        &runtime_json::load(runtime_json::Fixture::F75),\n        source,\n        current,\n",
+        "old": "    let current = final_view.as_str();\n    let previous = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/cache-report-observer-796-20261015/current-to-2cf33.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = previous.as_str();\n    let prior = project(\n        &runtime_json::load(runtime_json::Fixture::F76),\n        source,\n        current,\n",
+        "old": "    let current = previous.as_str();\n    let prior = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/branch-closed-receiving-831-20261015/current-to-e93f.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = prior.as_str();\n    let previous = project(\n        &runtime_json::load(runtime_json::Fixture::F77),\n        source,\n        current,\n",
+        "old": "    let current = prior.as_str();\n    let previous = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/alias-module-loader-fix-847-20261015/current-to-340.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = previous.as_str();\n    let rows = match stage {\n        \"main\" => runtime_json::load(runtime_json::Fixture::F78),\n        \"alias\" => runtime_json::load(runtime_json::Fixture::F79),\n        _ => panic!(\"unknown exact final source front\"),\n    };\n    project(&rows, source, current)\n}\n\n",
+        "old": "    let current = previous.as_str();\n    let rows = match stage {\n        \"main\" => include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/final-main27424-alias847-assembly-20261015/final-to-main-checkpoint.json\")),\n        \"alias\" => include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/final-main27424-alias847-assembly-20261015/final-to-alias-checkpoint.json\")),\n        _ => panic!(\"unknown exact final source front\"),\n    };\n    project(rows, source, current)\n}\n\n"
+      },
+      {
+        "new": "}\nfn final_batch_input(branch: &str, source: &str, current: &str) -> String {\n    let before_transport = before_runtime_json_transport(source, current);\n    let current = before_transport.as_str();\n    let before_runtime848 = project(\n        &runtime_json::load(runtime_json::Fixture::F80),\n        source,\n        current,\n",
+        "old": "}\nfn final_batch_input(branch: &str, source: &str, current: &str) -> String {\n    let before_runtime848 = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/runtime-fixture-848-assembly-20261015/current-to-999fa.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = before_runtime848.as_str();\n    let before_main = project(\n        &runtime_json::load(runtime_json::Fixture::F81),\n        source,\n        current,\n",
+        "old": "    let current = before_runtime848.as_str();\n    let before_main = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/main-f4a448-integration-20261015/current-to-6444.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = before_main.as_str();\n    let prior_docs = project(\n        &runtime_json::load(runtime_json::Fixture::F82),\n        source,\n        current,\n",
+        "old": "    let current = before_main.as_str();\n    let prior_docs = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/final-831841845796-assembly-20261015/current-docs-to-896.json\"\n        )),\n        source,\n        current,\n"
+      },
+      {
+        "new": "    let current = prior_docs.as_str();\n    let rows = match branch {\n        \"796\" => runtime_json::load(runtime_json::Fixture::F83),\n        \"831\" => runtime_json::load(runtime_json::Fixture::F84),\n        \"841\" => runtime_json::load(runtime_json::Fixture::F85),\n        \"845\" => runtime_json::load(runtime_json::Fixture::F86),\n        _ => panic!(\"unknown independent final batch source checkpoint\"),\n    };\n    project(&rows, source, current)\n}\n\n",
+        "old": "    let current = prior_docs.as_str();\n    let rows = match branch {\n        \"796\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/final-831841845796-assembly-20261015/final-to-796.json\"\n        )),\n        \"831\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/final-831841845796-assembly-20261015/final-to-831.json\"\n        )),\n        \"841\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/final-831841845796-assembly-20261015/final-to-841.json\"\n        )),\n        \"845\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/final-831841845796-assembly-20261015/final-to-845.json\"\n        )),\n        _ => panic!(\"unknown independent final batch source checkpoint\"),\n    };\n    project(rows, source, current)\n}\n\n"
+      },
+      {
+        "new": "    let checkpoint = final_batch_input(\"845\", source, current);\n    let _complete_original845_before = project(\n        &runtime_json::load(runtime_json::Fixture::F87),\n        source,\n        &checkpoint,\n",
+        "old": "    let checkpoint = final_batch_input(\"845\", source, current);\n    let _complete_original845_before = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/initial-report-policy-845-20261015/current-to-2bfd.json\"\n        )),\n        source,\n        &checkpoint,\n"
+      },
+      {
+        "new": "// Direct runtime-fixture custody stays independent of inherited source views.\npub(crate) fn runtime848_input(source: &str, current: &str) -> String {\n    let before_transport = before_runtime_json_transport(source, current);\n    let current = before_transport.as_str();\n    project(\n        &runtime_json::load(runtime_json::Fixture::F88),\n        source,\n        current,\n    )\n}\n\n// Complete pre-transport physical inputs precede every older named view.\nfn before_runtime_json_transport(source: &str, current: &str) -> String {\n    project(\n        &runtime_json::load(runtime_json::Fixture::Custody),\n        source,\n        current,\n    )\n}\n",
+        "old": "// Direct runtime-fixture custody stays independent of inherited source views.\npub(crate) fn runtime848_input(source: &str, current: &str) -> String {\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/runtime-fixture-848-assembly-20261015/current-to-848.json\"\n        )),\n        source,\n        current,\n    )\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/hir_module_boundaries.rs",
+    "checkpoint_revision": "9ccc0e2f18e15d4d72f46262b7a940a23a66500e",
+    "archive": "docs/evidence/runtime-json-transport-848-20261015/before/tests/hir_module_boundaries.rs",
+    "current_sha256": "18b25eb3261f239384f55d31c05284194fb4b4af2e0cfe92c64e920478cbd71b",
+    "original_sha256": "ef7fee1cdb326729a2b3729589d75a976be48d06fefdf573d4cab08ab315acf5",
+    "edits": [
+      {
+        "new": "        include_str!(\"../src/cleanup_plan/replay/live_oracle/source_custody/presence.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs\"),\n        include_str!(\"../src/source_reflows_merge.rs\"), include_str!(\"../src/source_reflows_merge/runtime_json.rs\"), include_str!(\"../src/source_reflows_merge/runtime_json/inventory.rs\"), include_str!(\"../src/source_reflows_merge/runtime_json/tests.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/path_join/storage/empty_renewals.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/path_join/storage/atomic_controls.rs\"),\n",
+        "old": "        include_str!(\"../src/cleanup_plan/replay/live_oracle/source_custody/presence.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs\"),\n        include_str!(\"../src/source_reflows_merge.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/path_join/storage/empty_renewals.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/path_join/storage/atomic_controls.rs\"),\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_graph/source_inventory.rs",
+    "checkpoint_revision": "9ccc0e2f18e15d4d72f46262b7a940a23a66500e",
+    "archive": "docs/evidence/runtime-json-transport-848-20261015/before/tests/workspace/semantic_graph/source_inventory.rs",
+    "current_sha256": "003ec33a4f97aaca8414f78d8c31722c70d7502e5b7162375be4edd281dc953e",
+    "original_sha256": "8b898024215c17b4dab19fd8cd097b71ab2ef27a1b299899a8c9efe98074b9c5",
+    "edits": [
+      {
+        "new": "        include_str!(\"../../src/cleanup_plan/replay/live_oracle/source_custody/presence.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs\"),\n        include_str!(\"../../src/source_reflows_merge.rs\"), include_str!(\"../../src/source_reflows_merge/runtime_json.rs\"), include_str!(\"../../src/source_reflows_merge/runtime_json/inventory.rs\"), include_str!(\"../../src/source_reflows_merge/runtime_json/tests.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/path_join/storage/empty_renewals.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/path_join/storage/atomic_controls.rs\"),\n",
+        "old": "        include_str!(\"../../src/cleanup_plan/replay/live_oracle/source_custody/presence.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs\"),\n        include_str!(\"../../src/source_reflows_merge.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/path_join/storage/empty_renewals.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/path_join/storage/atomic_controls.rs\"),\n"
+      }
+    ]
+  },
+  {
+    "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "checkpoint_revision": "9ccc0e2f18e15d4d72f46262b7a940a23a66500e",
+    "archive": "docs/evidence/runtime-json-transport-848-20261015/before/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "current_sha256": "b7e4a1d11b3237c940dd4fa9e1210672fb656577f9c61878daf52f20e6329bf9",
+    "original_sha256": "636812b31139bcc5a863636d0fe6c261b3062f27c4d6ce94b61afb8d9dbfbbdd",
+    "edits": [
+      {
+        "new": "        include_str!(\"../../../../../src/cleanup_plan/replay/live_oracle/source_custody/presence.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs\"),\n        include_str!(\"../../../../../src/source_reflows_merge.rs\"), include_str!(\"../../../../../src/source_reflows_merge/runtime_json.rs\"), include_str!(\"../../../../../src/source_reflows_merge/runtime_json/inventory.rs\"), include_str!(\"../../../../../src/source_reflows_merge/runtime_json/tests.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/path_join/storage/empty_renewals.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/storage/atomic_controls.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/storage/atomic_controls/tests.rs\"),\n",
+        "old": "        include_str!(\"../../../../../src/cleanup_plan/replay/live_oracle/source_custody/presence.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs\"),\n        include_str!(\"../../../../../src/source_reflows_merge.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/path_join/storage/empty_renewals.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/storage/atomic_controls.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/path_join/storage/atomic_controls/tests.rs\"),\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/ARCHITECTURE.md",
+    "checkpoint_revision": "9ccc0e2f18e15d4d72f46262b7a940a23a66500e",
+    "archive": "docs/evidence/runtime-json-transport-848-20261015/before/docs/ARCHITECTURE.md",
+    "current_sha256": "60584b100221f9a3bca088e3199b086cd737fa3840a935dd19c950cc7f089011",
+    "original_sha256": "bbe7468a4de0d518b8f411973b4edab8ab36ad09be248804435a43df8ebc85cd",
+    "edits": [
+      {
+        "new": "ordinary authority and implementation audits continue to read current source.\n\nThe `cfg(test)` source-view helper `source_reflows_merge` delegates fixture transport\nto its private `runtime_json` loader, fixed inventory, and hostile-I/O tests. The\ninventory preserves 89 original repository JSON files (93,590,460 bytes), each\nbound to its compiled path, exact length, and SHA-256; one additional custody\nfixture restores the complete prior helper, three audit roots, and both changed\ndocuments before the existing historical views. Each load checks one opened\nregular-file handle, exact bounds, EOF, digest, and UTF-8 before parsing. It grants\nno production filesystem authority and uses no discovery or global cache. All\noriginal projection logic, stage order, JSON bytes, and source assertions remain\nintact; the three source audits include every new child. Test binaries require\nthe repository fixtures at runtime. This source-only transport change has no\nmeasured RAM benefit yet.\n\n\nThe bounded generic inference helpers in `source_verify/generic_inference` and\n",
+        "old": "ordinary authority and implementation audits continue to read current source.\n\n\nThe bounded generic inference helpers in `source_verify/generic_inference` and\n"
+      }
+    ]
+  },
+  {
+    "source": "CHANGELOG.md",
+    "checkpoint_revision": "9ccc0e2f18e15d4d72f46262b7a940a23a66500e",
+    "archive": "docs/evidence/runtime-json-transport-848-20261015/before/CHANGELOG.md",
+    "current_sha256": "e1aed34c5c7c8ed9b894e821ce901f0c828478113029f1ad8c08a7f1eb562875",
+    "original_sha256": "55c218d10b2c69dfe5fd5b791eb0a36b10ce862a93b935ebfaca3b4c47063027",
+    "edits": [
+      {
+        "new": "     distinct cold callers; full old receiver retained; qualification pending. -->\n# Changelog\n\n- Author fixed authenticated runtime transport for the test-only source-view helper (#848): preserve all 89 original JSON files (93,590,460 bytes), projection logic, stage order, and source guards, with a separate custody fixture. Join every new loader child into the three audits. Repository fixtures are required at test runtime; executable qualification and measured RAM benefit remain pending.\n\n- Author the sealed initial builder-report policy and actual typed CLI propagation (#845), provider-bound borrowed function aliases on the closed uncached route (#847), and a separate cached-prelude report acquisition observer (#796). Preserve original compatibility receivers, source assertions and unfunded output boundaries; executable qualification remains pending.\n",
+        "old": "     distinct cold callers; full old receiver retained; qualification pending. -->\n# Changelog\n\n- Author the sealed initial builder-report policy and actual typed CLI propagation (#845), provider-bound borrowed function aliases on the closed uncached route (#847), and a separate cached-prelude report acquisition observer (#796). Preserve original compatibility receivers, source assertions and unfunded output boundaries; executable qualification remains pending.\n"
+      }
+    ]
+  }
+]

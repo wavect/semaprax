@@ -1,0 +1,808 @@
+{
+  "source_head": "9ccc0e2f18e15d4d72f46262b7a940a23a66500e",
+  "original89_count": 89,
+  "original89_bytes": 93590460,
+  "fixtures": [
+    {
+      "ordinal": 0,
+      "fixture": "F00",
+      "literal_path": "/docs/evidence/compiler-receiving-fix-7800-20261015/predecessor-projections.json",
+      "source": "docs/evidence/compiler-receiving-fix-7800-20261015/predecessor-projections.json",
+      "git_blob": "c24dcb6726700c2659323b9340a9e0faf7008bb0",
+      "length": 113196,
+      "sha256": "2b22adba85fe3d3d95f08117fa6a7fe0969eca213d2a166111934d468479d527"
+    },
+    {
+      "ordinal": 1,
+      "fixture": "F01",
+      "literal_path": "/docs/evidence/source-composition-f813-held-20261015/pre-ours.json",
+      "source": "docs/evidence/source-composition-f813-held-20261015/pre-ours.json",
+      "git_blob": "af847a6c1d945b938853cb2f343f1d79bf52a795",
+      "length": 147463,
+      "sha256": "8eee1bb63c129384e2ffd54b5895c137b9db935c393cfa6e5dc5e311c5c88f8a"
+    },
+    {
+      "ordinal": 2,
+      "fixture": "F02",
+      "literal_path": "/docs/evidence/source36-main88884-merge-20261015/ours-projections.json",
+      "source": "docs/evidence/source36-main88884-merge-20261015/ours-projections.json",
+      "git_blob": "507ba4089ec608527d4779067113b0031a92ee7c",
+      "length": 436921,
+      "sha256": "a58a5a05526cf4ab68e9c176d720b1c20a0e5e6cf83b2290ac940d5848f17a2f"
+    },
+    {
+      "ordinal": 3,
+      "fixture": "F03",
+      "literal_path": "/docs/evidence/source-composition-f813-held-20261015/main-projections.json",
+      "source": "docs/evidence/source-composition-f813-held-20261015/main-projections.json",
+      "git_blob": "4ebe27a50710c189ac5ee4a4c782f995283cb0a9",
+      "length": 2204457,
+      "sha256": "192192521cd61c4b6acd0add780f39a58a7170a8deda6867becbf89a8c0bdf8b"
+    },
+    {
+      "ordinal": 4,
+      "fixture": "F04",
+      "literal_path": "/docs/evidence/source-composition-f813-held-20261015/held-projections.json",
+      "source": "docs/evidence/source-composition-f813-held-20261015/held-projections.json",
+      "git_blob": "7c50cf56ea295341253b62756d022f2392630d03",
+      "length": 34546,
+      "sha256": "153369a8c55e440e6a0a493c9cab849443a94cfa681363199d42ac90e2476f70"
+    },
+    {
+      "ordinal": 5,
+      "fixture": "F05",
+      "literal_path": "/docs/evidence/source-composition-f813-held-20261015/weighted-projections.json",
+      "source": "docs/evidence/source-composition-f813-held-20261015/weighted-projections.json",
+      "git_blob": "9669e5c8bdf1f8ffea95d7bbfa08cfa31cfcc44d",
+      "length": 40395,
+      "sha256": "a72d0412d3fc40d368f189643c02c4df54eaeb94325b2f04068c114e7e547a5f"
+    },
+    {
+      "ordinal": 6,
+      "fixture": "F06",
+      "literal_path": "/docs/evidence/inline-weighted-successor-842/source-inverses.json",
+      "source": "docs/evidence/inline-weighted-successor-842/source-inverses.json",
+      "git_blob": "baa11b2477e51684bcfda7236d993a112da196cc",
+      "length": 1429146,
+      "sha256": "73b32eaf57a0af165fb8377fb1bbdf3a499fe969b159e1e03eee795391c99f95"
+    },
+    {
+      "ordinal": 7,
+      "fixture": "F07",
+      "literal_path": "/docs/evidence/held-closure-receiver-843/runtime-projections.json",
+      "source": "docs/evidence/held-closure-receiver-843/runtime-projections.json",
+      "git_blob": "a2c81020cd3a27b153d663a7968a1f06151b4257",
+      "length": 602726,
+      "sha256": "fe2e11f4544bcd297fee73fe279ec38b3a8e196945b54f523eac9a1c7221ab7e"
+    },
+    {
+      "ordinal": 8,
+      "fixture": "F08",
+      "literal_path": "/docs/evidence/final-842-843-source-assembly-20261015/view-9d.json",
+      "source": "docs/evidence/final-842-843-source-assembly-20261015/view-9d.json",
+      "git_blob": "ac551b73c8ea8b0bc5f1114f048a920a0c3e4944",
+      "length": 1517319,
+      "sha256": "0da41b5915268ce70feb567bf79b929dcbb7e1ce727474933df0cb17f4f102e7"
+    },
+    {
+      "ordinal": 9,
+      "fixture": "F09",
+      "literal_path": "/docs/evidence/final-842-843-source-assembly-20261015/view-842.json",
+      "source": "docs/evidence/final-842-843-source-assembly-20261015/view-842.json",
+      "git_blob": "9e1d55b503587b19502d6c0819e88aab3d6792ab",
+      "length": 726495,
+      "sha256": "4ac7a4a6977d2b859d0736b00b3801861ac16d63cda0647d7dcbd0c67b844b2e"
+    },
+    {
+      "ordinal": 10,
+      "fixture": "F10",
+      "literal_path": "/docs/evidence/final-842-843-source-assembly-20261015/view-843.json",
+      "source": "docs/evidence/final-842-843-source-assembly-20261015/view-843.json",
+      "git_blob": "96f4df7acc3006d29e42259b9a09a5972bce1756",
+      "length": 1559346,
+      "sha256": "30b3761648acdcad75a9b13533aa987c428141f6c4c4ab50d410800acdf582cc"
+    },
+    {
+      "ordinal": 11,
+      "fixture": "F11",
+      "literal_path": "/docs/evidence/main7f-source-successor-20261015/current-to-9365.json",
+      "source": "docs/evidence/main7f-source-successor-20261015/current-to-9365.json",
+      "git_blob": "e493b3f7638cf0efc09464f3beaa96157e97bad5",
+      "length": 3919369,
+      "sha256": "e119f7695d88cd94b6dccecbd87d95ae26ca9d87fa7bf1d099cae228ab9fa552"
+    },
+    {
+      "ordinal": 12,
+      "fixture": "F12",
+      "literal_path": "/docs/evidence/main7f-source-successor-20261015/current-to-main7f.json",
+      "source": "docs/evidence/main7f-source-successor-20261015/current-to-main7f.json",
+      "git_blob": "9eed3261051cab71e073ac9df6edd08a0564f69c",
+      "length": 2206290,
+      "sha256": "d3efa3b7417f4fd0b37f390c629ddce7861436ddcf88909e5d96dee697d18c5d"
+    },
+    {
+      "ordinal": 13,
+      "fixture": "F13",
+      "literal_path": "/docs/evidence/mainff869-source-successor-20261015/current-to-mainff.json",
+      "source": "docs/evidence/mainff869-source-successor-20261015/current-to-mainff.json",
+      "git_blob": "f73a96dddbfe62a6329d06dc29e89435698cd306",
+      "length": 2206475,
+      "sha256": "d8a6696e6b3bf9afa3f0a1b4343efc31bf249eabce42a3daddba11bfe10eaae0"
+    },
+    {
+      "ordinal": 14,
+      "fixture": "F14",
+      "literal_path": "/docs/evidence/d1bb-corrective-source-successor-20261015/current-to-d1bb.json",
+      "source": "docs/evidence/d1bb-corrective-source-successor-20261015/current-to-d1bb.json",
+      "git_blob": "8cfadc2aae17462798cb92948dacf9cf1581a552",
+      "length": 130873,
+      "sha256": "5859a6a945397cb471a6f77d059321391e54a08bf0b200202d3a935b3d60cfae"
+    },
+    {
+      "ordinal": 15,
+      "fixture": "F15",
+      "literal_path": "/docs/evidence/d1bb-corrective-source-successor-20261015/scalar-policy-inputs.json",
+      "source": "docs/evidence/d1bb-corrective-source-successor-20261015/scalar-policy-inputs.json",
+      "git_blob": "967422e55e8171594d08354eb0350dadffd128fe",
+      "length": 65634,
+      "sha256": "d07a9031e043669b663bcda1dbaff3d3597ed713efb82a4caff49ae89bc231cd"
+    },
+    {
+      "ordinal": 16,
+      "fixture": "F16",
+      "literal_path": "/docs/evidence/source-consumer-closure-fixes-20261015/current-to-3d4b.json",
+      "source": "docs/evidence/source-consumer-closure-fixes-20261015/current-to-3d4b.json",
+      "git_blob": "d6dd7a75f0843e9e50eb8414b98e351396ba7f81",
+      "length": 835008,
+      "sha256": "7ac6ce516a2bad03bfb2f7ac4f096d8f500ee9c4bd823f2f588b940de8acd672"
+    },
+    {
+      "ordinal": 17,
+      "fixture": "F17",
+      "literal_path": "/docs/evidence/source-consumer-closure-fixes-20261015/decl825.json",
+      "source": "docs/evidence/source-consumer-closure-fixes-20261015/decl825.json",
+      "git_blob": "a9f6ad97ff4357cc71888cc1a1e91c05ff099264",
+      "length": 144029,
+      "sha256": "e1ed539e3b0109559a346534c9a8a301e0a852f948fd478fb92d90e398e96e4c"
+    },
+    {
+      "ordinal": 18,
+      "fixture": "F18",
+      "literal_path": "/docs/evidence/source-consumer-closure-fixes-20261015/cost825.json",
+      "source": "docs/evidence/source-consumer-closure-fixes-20261015/cost825.json",
+      "git_blob": "d6b6eddfc6c3753e14950f31ef3f229c6374839d",
+      "length": 324148,
+      "sha256": "ac3cde3c5a0098c1071e329a6638561ce68108ba4f88f1eb0ab0898dbb2c648c"
+    },
+    {
+      "ordinal": 19,
+      "fixture": "F19",
+      "literal_path": "/docs/evidence/source-consumer-closure-fixes-20261015/signature825.json",
+      "source": "docs/evidence/source-consumer-closure-fixes-20261015/signature825.json",
+      "git_blob": "001995ee66b06c7cd849aa0ff418a75217c7e631",
+      "length": 156819,
+      "sha256": "6d10a1c0532eac1d78fc6d779915b40d688eced5e602054dc3e26a8c96bb0861"
+    },
+    {
+      "ordinal": 20,
+      "fixture": "F20",
+      "literal_path": "/docs/evidence/source-consumer-closure-fixes-20261015/capacity834.json",
+      "source": "docs/evidence/source-consumer-closure-fixes-20261015/capacity834.json",
+      "git_blob": "21dc04496c1368340e265bc987368c7d3178aeda",
+      "length": 613621,
+      "sha256": "f50c83a99e315990b1c9304d4bd36fd523daa7267cb38728a77a9a48412faa13"
+    },
+    {
+      "ordinal": 21,
+      "fixture": "F21",
+      "literal_path": "/docs/evidence/source-consumer-closure-fixes-20261015/registry833.json",
+      "source": "docs/evidence/source-consumer-closure-fixes-20261015/registry833.json",
+      "git_blob": "88e408551124dd3b4fa0fcfebf7ca8b9455b6aa6",
+      "length": 98179,
+      "sha256": "8e08780d27089fcb74b18440a2cc98ed3f140cf3b2e0b18c8a8599e1a1c855fb"
+    },
+    {
+      "ordinal": 22,
+      "fixture": "F22",
+      "literal_path": "/docs/evidence/source-consumer-closure-fixes-20261015/receiving831.json",
+      "source": "docs/evidence/source-consumer-closure-fixes-20261015/receiving831.json",
+      "git_blob": "b9134f035bb93693a6bc29b74a314c03303d3955",
+      "length": 48407,
+      "sha256": "a5524f9b56a0024effc3a2fc2d2c72e2d4405f7b75afd55ce38eba2699b791d2"
+    },
+    {
+      "ordinal": 23,
+      "fixture": "F23",
+      "literal_path": "/docs/evidence/source-consumer-closure-fixes-20261015/lexical832.json",
+      "source": "docs/evidence/source-consumer-closure-fixes-20261015/lexical832.json",
+      "git_blob": "bdd588b9f6c24a222e9e1407b48135dca6cb2651",
+      "length": 614082,
+      "sha256": "ade119e1f38ebb1f08047fc66ebf44d2c89bc6128aa343730fcd0a0151f95203"
+    },
+    {
+      "ordinal": 24,
+      "fixture": "F24",
+      "literal_path": "/docs/evidence/source-consumer-closure-fixes-20261015/cold835.json",
+      "source": "docs/evidence/source-consumer-closure-fixes-20261015/cold835.json",
+      "git_blob": "2adaf99925b8f922b2233586109da9157b083bfc",
+      "length": 98184,
+      "sha256": "1430b5f5e29ae541a0071ca865ff057ec68a4ef43d05a92f06dd7f41685c230e"
+    },
+    {
+      "ordinal": 25,
+      "fixture": "F25",
+      "literal_path": "/docs/evidence/ae91-source-consumer-corrections-20261015/current-to-ae91.json",
+      "source": "docs/evidence/ae91-source-consumer-corrections-20261015/current-to-ae91.json",
+      "git_blob": "96421995f67b2b882008b8a61019e9063e6f90b7",
+      "length": 289211,
+      "sha256": "8bcc77a9cfbfce4efdbb582e3e3b1dcc298ae3edbc2d2a56a3b8dc7fd6191bd8"
+    },
+    {
+      "ordinal": 26,
+      "fixture": "F26",
+      "literal_path": "/docs/evidence/final-ae91-mainf045-assembly-20261015/fixes-ae91-reconcile.json",
+      "source": "docs/evidence/final-ae91-mainf045-assembly-20261015/fixes-ae91-reconcile.json",
+      "git_blob": "42ef88c9ee616fca87614120baed413fc32df52e",
+      "length": 32759,
+      "sha256": "e645fb5f3a11864a727b7b7e08045cad98672ec7f4c38f11fdcfdb451920ca0a"
+    },
+    {
+      "ordinal": 27,
+      "fixture": "F27",
+      "literal_path": "/docs/evidence/ae91-source-consumer-corrections-20261015/registry833-children.json",
+      "source": "docs/evidence/ae91-source-consumer-corrections-20261015/registry833-children.json",
+      "git_blob": "0ba03668fc4d516da0a44929a402fb92da62898f",
+      "length": 36585,
+      "sha256": "6b102013e4ca81b1706b33bbd59f27fa0e2e848f47c6e4023aef6b090e85be3d"
+    },
+    {
+      "ordinal": 28,
+      "fixture": "F28",
+      "literal_path": "/docs/evidence/ae91-source-consumer-corrections-20261015/cold835-children.json",
+      "source": "docs/evidence/ae91-source-consumer-corrections-20261015/cold835-children.json",
+      "git_blob": "3b9131e37ae6afc9645f72cfc344caa20569d644",
+      "length": 33160,
+      "sha256": "95422aaa693b736de60ce9fd16525993eac9005568924c91aa6e08728c0a9379"
+    },
+    {
+      "ordinal": 29,
+      "fixture": "F29",
+      "literal_path": "/docs/evidence/ae91-source-consumer-corrections-20261015/ordered838-observer.json",
+      "source": "docs/evidence/ae91-source-consumer-corrections-20261015/ordered838-observer.json",
+      "git_blob": "c43ee8a685a1b5babe72cf2539cc10c1bd9574f4",
+      "length": 26450,
+      "sha256": "8cc6e4eea88f371cbc903818b7d94e6e1b35ab3cb3c4676193dcac4e4fb966eb"
+    },
+    {
+      "ordinal": 30,
+      "fixture": "F30",
+      "literal_path": "/docs/evidence/final-ae91-mainf045-assembly-20261015/view-fixes.json",
+      "source": "docs/evidence/final-ae91-mainf045-assembly-20261015/view-fixes.json",
+      "git_blob": "83555a289ddd7aeff24cc6539377a362270d6fe2",
+      "length": 3025887,
+      "sha256": "8145d4c98651b5bddfafd4dd3ad9d7b7ce88c9c30122537a2dab573ca9488d52"
+    },
+    {
+      "ordinal": 31,
+      "fixture": "F31",
+      "literal_path": "/docs/evidence/final-ae91-mainf045-assembly-20261015/view-main.json",
+      "source": "docs/evidence/final-ae91-mainf045-assembly-20261015/view-main.json",
+      "git_blob": "519f3ff172c979175c701d0b884e26c3df84045f",
+      "length": 326416,
+      "sha256": "ed0ef018ad0f5578aeb4238bfed7dcc70006091cd31213f6b4bc650f1b67e9d8"
+    },
+    {
+      "ordinal": 32,
+      "fixture": "F32",
+      "literal_path": "/docs/evidence/mainff869-source-successor-20261015/current-to-ae91.json",
+      "source": "docs/evidence/mainff869-source-successor-20261015/current-to-ae91.json",
+      "git_blob": "725bd9665316b2a5438c68d4053136c4720f7bb7",
+      "length": 1825639,
+      "sha256": "c88576c167782a8f0dfce615604b0b7548e0c2f101c3fe4bf0f2aeba019dfb40"
+    },
+    {
+      "ordinal": 33,
+      "fixture": "F33",
+      "literal_path": "/docs/evidence/final-ae91-mainf045-assembly-20261015/main-ae91-reconcile.json",
+      "source": "docs/evidence/final-ae91-mainf045-assembly-20261015/main-ae91-reconcile.json",
+      "git_blob": "fbf604e2eaa5dd868b3964dc3412fa963c5f13c7",
+      "length": 995551,
+      "sha256": "347b59e2457836f920acba4aca0fc3c31e3611d68985842e230128bc96f54d88"
+    },
+    {
+      "ordinal": 34,
+      "fixture": "F34",
+      "literal_path": "/docs/evidence/mainf045-source-successor-20261015/current-to-f045.json",
+      "source": "docs/evidence/mainf045-source-successor-20261015/current-to-f045.json",
+      "git_blob": "1a9e22852590111055d8810140e9442df9bb9ad8",
+      "length": 55895,
+      "sha256": "b66b00fd1ed4be60072a88a606f319a9f16f7f8495b6c33f7e72b4e1b826c272"
+    },
+    {
+      "ordinal": 35,
+      "fixture": "F35",
+      "literal_path": "/docs/evidence/mainf045-source-successor-20261015/current-to-0bf.json",
+      "source": "docs/evidence/mainf045-source-successor-20261015/current-to-0bf.json",
+      "git_blob": "8a5556bbbe7dc05b0dd839a106f17db0a4dd96b5",
+      "length": 231187,
+      "sha256": "c6db1c2c36aed61e934fa476fc18838a072fa2e710bae9f6c36a476b8637b3fb"
+    },
+    {
+      "ordinal": 36,
+      "fixture": "F36",
+      "literal_path": "/docs/evidence/main927-hex-starter-assembly-20261015/view-hex.json",
+      "source": "docs/evidence/main927-hex-starter-assembly-20261015/view-hex.json",
+      "git_blob": "ca955254cb5ea746241b0172765ac0bf297c8e2f",
+      "length": 4906245,
+      "sha256": "34f1e6e2d4bb98a71cb942c7508632a0dee585fadc42df84ff1da898a5895cbb"
+    },
+    {
+      "ordinal": 37,
+      "fixture": "F37",
+      "literal_path": "/docs/evidence/main927-source-successor-20261015/current-to-9b.json",
+      "source": "docs/evidence/main927-source-successor-20261015/current-to-9b.json",
+      "git_blob": "856e32e55b5c9a9d48b91d1059d1f4dba55bd34d",
+      "length": 4869391,
+      "sha256": "b9270bad35e0c7b107971cfde8b4b2f99412530fd77edb6a617b4f84c633505a"
+    },
+    {
+      "ordinal": 38,
+      "fixture": "F38",
+      "literal_path": "/docs/evidence/main927-source-successor-20261015/current-to-main927.json",
+      "source": "docs/evidence/main927-source-successor-20261015/current-to-main927.json",
+      "git_blob": "214d74128466713e1188b0dd27e6ffe36114e98d",
+      "length": 5081115,
+      "sha256": "62a6854685792c02948087ac7105127acff2aa96e30ce2f8e26f22d3faf73d98"
+    },
+    {
+      "ordinal": 39,
+      "fixture": "F39",
+      "literal_path": "/docs/evidence/workspace-facade-hex-fix-9b-20261015/current-to-9b.json",
+      "source": "docs/evidence/workspace-facade-hex-fix-9b-20261015/current-to-9b.json",
+      "git_blob": "b5136bbe1abe243b2248616b0358cd32e76b264a",
+      "length": 139825,
+      "sha256": "1bf1b8a754378c9a115f1665d26c09ccff2e80c5f329e91e32d4c19eeae00c4c"
+    },
+    {
+      "ordinal": 40,
+      "fixture": "F40",
+      "literal_path": "/docs/evidence/main927-hex-starter-assembly-20261015/view-main927.json",
+      "source": "docs/evidence/main927-hex-starter-assembly-20261015/view-main927.json",
+      "git_blob": "49ed675c5f86aa67fc55edb6b090253c4ba63371",
+      "length": 177832,
+      "sha256": "519ea48b00df4d250ccea01e830190d002d15b7d4f9c375153035cc053009be2"
+    },
+    {
+      "ordinal": 41,
+      "fixture": "F41",
+      "literal_path": "/docs/evidence/setup825-relative-starter-assembly-20261015/view-d4.json",
+      "source": "docs/evidence/setup825-relative-starter-assembly-20261015/view-d4.json",
+      "git_blob": "fe22968b4e3d10c51120f2f557a1c56bad55af37",
+      "length": 1865132,
+      "sha256": "ffaddced2e2be3d5e2122d1105d365892afa0e58b34c26b7e57286ced3bd289f"
+    },
+    {
+      "ordinal": 42,
+      "fixture": "F42",
+      "literal_path": "/docs/evidence/setup825-relative-starter-assembly-20261015/view-typed825.json",
+      "source": "docs/evidence/setup825-relative-starter-assembly-20261015/view-typed825.json",
+      "git_blob": "b63bfa1e364c91e97fab1e644912ffbfe470a81a",
+      "length": 750638,
+      "sha256": "3139a4f4d4a789c7bd6c0778a2e070cab7d8ccea20deddc7f3ff8ee0854c95d5"
+    },
+    {
+      "ordinal": 43,
+      "fixture": "F43",
+      "literal_path": "/docs/evidence/setup825-reference-controls-assembly-20261015/current-to-9cb.json",
+      "source": "docs/evidence/setup825-reference-controls-assembly-20261015/current-to-9cb.json",
+      "git_blob": "8d503052b255479e34977cf4506f21623d0e6e94",
+      "length": 45563,
+      "sha256": "13bf20e634e031dd8b80fa34184f59eed6d6520548e411c048897c2bedd9069d"
+    },
+    {
+      "ordinal": 44,
+      "fixture": "F44",
+      "literal_path": "/docs/evidence/region-status-import-view-d4-20261015/current-to-a0c.json",
+      "source": "docs/evidence/region-status-import-view-d4-20261015/current-to-a0c.json",
+      "git_blob": "e5fdcc7b8a89e82cd1c620db3bf329b6388124d2",
+      "length": 82730,
+      "sha256": "fddd73e3becee66373f19d536c8daef5efa764cc6703f769ba16377aedcf254a"
+    },
+    {
+      "ordinal": 45,
+      "fixture": "F45",
+      "literal_path": "/docs/evidence/constructor-complete-runtime-views-d4-20261015/current-to-aa03.json",
+      "source": "docs/evidence/constructor-complete-runtime-views-d4-20261015/current-to-aa03.json",
+      "git_blob": "fbde55af1ed3fb49a3a2f4b101c715cdf807e79e",
+      "length": 135096,
+      "sha256": "3988e40c97214c1ec9dae0ded043c0707ea3ec982006f80c0f761b07a38d6d5a"
+    },
+    {
+      "ordinal": 46,
+      "fixture": "F46",
+      "literal_path": "/docs/evidence/constructor-complete-runtime-views-d4-20261015/runtime-views.json",
+      "source": "docs/evidence/constructor-complete-runtime-views-d4-20261015/runtime-views.json",
+      "git_blob": "4c5d71478da8611a290ad82614a48793fbd27d06",
+      "length": 1417735,
+      "sha256": "914a7d95dc3c93de33bae2186a68b96ed09372e737693c99db3916c9d25f3f51"
+    },
+    {
+      "ordinal": 47,
+      "fixture": "F47",
+      "literal_path": "/docs/evidence/main5ba-future-source-assembly-20261015/current-to-1c.json",
+      "source": "docs/evidence/main5ba-future-source-assembly-20261015/current-to-1c.json",
+      "git_blob": "889be6ce4fc4fbac40e89e5dcbd0acf02966864f",
+      "length": 2116146,
+      "sha256": "1227325d7f12e8c0660f411218829dc97d7b120d885b9156e7e47db32dd6626b"
+    },
+    {
+      "ordinal": 48,
+      "fixture": "F48",
+      "literal_path": "/docs/evidence/main5ba-future-source-assembly-20261015/current-to-main5ba.json",
+      "source": "docs/evidence/main5ba-future-source-assembly-20261015/current-to-main5ba.json",
+      "git_blob": "c6403700a0d556831bb39793e7809fe4f740936f",
+      "length": 565373,
+      "sha256": "e1771ce83e360bd0a7d56bb1f578f4069b62a6e9fc7b2310ed53fa2ece0ad0c3"
+    },
+    {
+      "ordinal": 49,
+      "fixture": "F49",
+      "literal_path": "/docs/evidence/compressed-fixture-841-assembly-20261015/current-to-13d.json",
+      "source": "docs/evidence/compressed-fixture-841-assembly-20261015/current-to-13d.json",
+      "git_blob": "a3d0a7d168810afbe725162d567b377551a3e89e",
+      "length": 1778045,
+      "sha256": "a0aaf59e1e7938b67f1aae59f7ad825f03adafa1abd17c263d05c0b91ec00082"
+    },
+    {
+      "ordinal": 50,
+      "fixture": "F50",
+      "literal_path": "/docs/evidence/raw-selected-child-default-841-20261015/current-to-56dc.json",
+      "source": "docs/evidence/raw-selected-child-default-841-20261015/current-to-56dc.json",
+      "git_blob": "383eb7a2665eed9005364fa60ef7906f10ed9e47",
+      "length": 108485,
+      "sha256": "22e1c46db26c0a5fc9774a4ba35a9c1ae2f64d71989ccb206442985d79f33e94"
+    },
+    {
+      "ordinal": 51,
+      "fixture": "F51",
+      "literal_path": "/docs/evidence/compressed-fixture-841-assembly-20261015/pilot-runtime-views.json",
+      "source": "docs/evidence/compressed-fixture-841-assembly-20261015/pilot-runtime-views.json",
+      "git_blob": "989c07df40c11386c8e42414d69fd1cb3b76c2b9",
+      "length": 641582,
+      "sha256": "a53d99a2f5c5d8f4d11fe8065503da01f5ee04635dd39aefd684d01c351bf399"
+    },
+    {
+      "ordinal": 52,
+      "fixture": "F52",
+      "literal_path": "/docs/evidence/retained-registry-833-assembly-20261015/current-to-381.json",
+      "source": "docs/evidence/retained-registry-833-assembly-20261015/current-to-381.json",
+      "git_blob": "9a7861d3dde6338a4feef6a10a33fffd2b67c430",
+      "length": 806529,
+      "sha256": "3911701b0c203345d2a681dbb33f3f9de7815bc56bd159a28b33f3a60212b33f"
+    },
+    {
+      "ordinal": 53,
+      "fixture": "F53",
+      "literal_path": "/docs/evidence/retained-registry-833-assembly-20261015/current-to-c3.json",
+      "source": "docs/evidence/retained-registry-833-assembly-20261015/current-to-c3.json",
+      "git_blob": "058dd411ed85ee1173a85b585fd92444aa88cefd",
+      "length": 829179,
+      "sha256": "25b3d22670c8392ee5a7ac485c04e8ddc701b1c3e58a17faefcdc63d8368201c"
+    },
+    {
+      "ordinal": 54,
+      "fixture": "F54",
+      "literal_path": "/docs/evidence/main66517-source-assembly-20261015/current-to-397.json",
+      "source": "docs/evidence/main66517-source-assembly-20261015/current-to-397.json",
+      "git_blob": "111ea86ace092ce490dd033d8db86f59b489ce2c",
+      "length": 2126152,
+      "sha256": "4c2d136676811b71143e798993227504be75038e1c779457450cf6b88301ea48"
+    },
+    {
+      "ordinal": 55,
+      "fixture": "F55",
+      "literal_path": "/docs/evidence/retry-fixture-full-source-view-61f-20261015/current-to-61f.json",
+      "source": "docs/evidence/retry-fixture-full-source-view-61f-20261015/current-to-61f.json",
+      "git_blob": "473db8fa5e134236fb1d1fd81ae618caebac0f8f",
+      "length": 123829,
+      "sha256": "e290038be7478fc1321df6516712fc48e194bf71978a4843a7d5a8b999d7bff9"
+    },
+    {
+      "ordinal": 56,
+      "fixture": "F56",
+      "literal_path": "/docs/evidence/retry-fixture-full-source-view-61f-20261015/runtime-view.json",
+      "source": "docs/evidence/retry-fixture-full-source-view-61f-20261015/runtime-view.json",
+      "git_blob": "1af5b4496e2532ea6abeb3f213c72632b4daf326",
+      "length": 75072,
+      "sha256": "7cad30590aae9f29883d4f2399e18bc6f632f71a11d57c4bde6ccf3693da5a6d"
+    },
+    {
+      "ordinal": 57,
+      "fixture": "F57",
+      "literal_path": "/docs/evidence/direct-canonical-carriers-831-20261015/current-to-297.json",
+      "source": "docs/evidence/direct-canonical-carriers-831-20261015/current-to-297.json",
+      "git_blob": "2843efa7979fb750cb13a845fb82c2b5c55fb324",
+      "length": 295767,
+      "sha256": "e0424e31cbe2d3b129bb6ba5e4d1b1e41451222ebaf42da5647aebc84fa661f2"
+    },
+    {
+      "ordinal": 58,
+      "fixture": "F58",
+      "literal_path": "/docs/evidence/cached-prelude-acquisition-observer-7a87/current-to-7a87.json",
+      "source": "docs/evidence/cached-prelude-acquisition-observer-7a87/current-to-7a87.json",
+      "git_blob": "49cb3a3d7f03f7dd0e74eacfbc16092796319231",
+      "length": 55543,
+      "sha256": "6c1e91a9d35e66758623fea1b38304aac47dc21df226859adaad382381279b84"
+    },
+    {
+      "ordinal": 59,
+      "fixture": "F59",
+      "literal_path": "/docs/evidence/sourceguard-input-domains-7a87/current-to-d20.json",
+      "source": "docs/evidence/sourceguard-input-domains-7a87/current-to-d20.json",
+      "git_blob": "c5901b50eee8e73136fead4b59253137db41b4c8",
+      "length": 301665,
+      "sha256": "5aa6737641630985fb3107137614651052f302c7abe98a7ac674f4eae583da62"
+    },
+    {
+      "ordinal": 60,
+      "fixture": "F60",
+      "literal_path": "/docs/evidence/sourceguard-input-domains-7a87/classifier-input.json",
+      "source": "docs/evidence/sourceguard-input-domains-7a87/classifier-input.json",
+      "git_blob": "26e329b4794db78b138c7dc2fafa969df12a9532",
+      "length": 19870,
+      "sha256": "895b1a917484f94989039406f9532bb7fdf9f5766ed5e479fe0b843d3e3eafec"
+    },
+    {
+      "ordinal": 61,
+      "fixture": "F61",
+      "literal_path": "/docs/evidence/actual-pin-consumer-7a87-20261015/current-to-92.json",
+      "source": "docs/evidence/actual-pin-consumer-7a87-20261015/current-to-92.json",
+      "git_blob": "ce977636222b8ea5d59e1d97f8aa1ac069e8540f",
+      "length": 274422,
+      "sha256": "f6d612293f0c73062eb838b8dd8dc377cb6e3da6227e53c7a1e01927bcb45eba"
+    },
+    {
+      "ordinal": 62,
+      "fixture": "F62",
+      "literal_path": "/docs/evidence/compact-old-receiver-compile-fix-844-20261015/current-to-677.json",
+      "source": "docs/evidence/compact-old-receiver-compile-fix-844-20261015/current-to-677.json",
+      "git_blob": "bc7d50fbc00d664ae28b9203b7ee804ba46f69ee",
+      "length": 157135,
+      "sha256": "133c56b6447b0709818c003c3b50ac2f4cf08dad49c47b1266835c6430380ef3"
+    },
+    {
+      "ordinal": 63,
+      "fixture": "F63",
+      "literal_path": "/docs/evidence/field-update-hir-visitor-836-20261015/current-to-677.json",
+      "source": "docs/evidence/field-update-hir-visitor-836-20261015/current-to-677.json",
+      "git_blob": "256e29b0572527739620ace7333869b425e5dee2",
+      "length": 80549,
+      "sha256": "b4520b4fc5503936578bdb2bc3e483b57a4448f4b2ee7a3674238648071fce80"
+    },
+    {
+      "ordinal": 64,
+      "fixture": "F64",
+      "literal_path": "/docs/evidence/ready-main-844-846-836-assembly-20261015/final-to-d8.json",
+      "source": "docs/evidence/ready-main-844-846-836-assembly-20261015/final-to-d8.json",
+      "git_blob": "1436abdcf1ffb678b98c29db365b40fe15e2bffc",
+      "length": 3859314,
+      "sha256": "de63c9c73e349ba54518aa3ec12162490e997dfa8b7a2d38ff1e40351a6053c3"
+    },
+    {
+      "ordinal": 65,
+      "fixture": "F65",
+      "literal_path": "/docs/evidence/ready-main-844-846-836-assembly-20261015/final-to-844.json",
+      "source": "docs/evidence/ready-main-844-846-836-assembly-20261015/final-to-844.json",
+      "git_blob": "babaa2c633ed2d495f49b38490cdfcac905d3332",
+      "length": 1605572,
+      "sha256": "ecd62823b50ec108b9302aaefb67ff6f847edef080d1efa31bf5115eaa49cecd"
+    },
+    {
+      "ordinal": 66,
+      "fixture": "F66",
+      "literal_path": "/docs/evidence/ready-main-844-846-836-assembly-20261015/final-to-846.json",
+      "source": "docs/evidence/ready-main-844-846-836-assembly-20261015/final-to-846.json",
+      "git_blob": "df15ff868fda8fcf86b2937f5e25540d9dda4622",
+      "length": 1603839,
+      "sha256": "c82be7096ac97fc25c9c2bcdfd861f113f55bf0675a4e284b023564b7c342c78"
+    },
+    {
+      "ordinal": 67,
+      "fixture": "F67",
+      "literal_path": "/docs/evidence/compact-automaton-844-immediate7a87/current-to-a3.json",
+      "source": "docs/evidence/compact-automaton-844-immediate7a87/current-to-a3.json",
+      "git_blob": "827343b6bc3d911f7aa66da9233d9ae113208f5b",
+      "length": 2264299,
+      "sha256": "daba9b64ee3fa68bdaa4683dafe6a6ab358b63aa4b0512bab966af4dbda622a5"
+    },
+    {
+      "ordinal": 68,
+      "fixture": "F68",
+      "literal_path": "/docs/evidence/main27424-source-integration-20261015/final-to-7f.json",
+      "source": "docs/evidence/main27424-source-integration-20261015/final-to-7f.json",
+      "git_blob": "8d48e6e8d1851785e27d3273db5155cd24b5379f",
+      "length": 2696673,
+      "sha256": "f0fd28d5a748a65483de05d1ee48b97053b531a5c0cf4e138b13c6819b7ca885"
+    },
+    {
+      "ordinal": 69,
+      "fixture": "F69",
+      "literal_path": "/docs/evidence/main27424-source-integration-20261015/final-to-523.json",
+      "source": "docs/evidence/main27424-source-integration-20261015/final-to-523.json",
+      "git_blob": "e34ffec568cbe0f3c86a6e74c86550d9e9746427",
+      "length": 2619867,
+      "sha256": "53ed4f4c9dcc9450221aa68353dc3938a31fd944db077d38b538ec9f8adad634"
+    },
+    {
+      "ordinal": 70,
+      "fixture": "F70",
+      "literal_path": "/docs/evidence/main27424-source-integration-20261015/final-to-main.json",
+      "source": "docs/evidence/main27424-source-integration-20261015/final-to-main.json",
+      "git_blob": "9ae1fd4b4e422445a7783d0ebf97138507452b32",
+      "length": 68369,
+      "sha256": "642cccb3ae268a91d961cf441e89420dc5f4bbb5067a999b0797c1e540e759fb"
+    },
+    {
+      "ordinal": 71,
+      "fixture": "F71",
+      "literal_path": "/docs/evidence/retained-function-alias-847/directory825-domain.json",
+      "source": "docs/evidence/retained-function-alias-847/directory825-domain.json",
+      "git_blob": "8697457d31e8e8efdc3fc6478799de297c6f84b7",
+      "length": 110549,
+      "sha256": "cdfe935d7ce733a8a6f19539e21d6f161f07bc198a5c49e986cc3e58d862b1d0"
+    },
+    {
+      "ordinal": 72,
+      "fixture": "F72",
+      "literal_path": "/docs/evidence/retained-alias-compact-joined-20261015/final-to-453.json",
+      "source": "docs/evidence/retained-alias-compact-joined-20261015/final-to-453.json",
+      "git_blob": "11fdc93347fb87b85ffed83b14ff497dc1a56165",
+      "length": 4447519,
+      "sha256": "7c8aeb4a63552805ab1ffd506fbfc91712860cc8bd7537a1d54bdf4df41770d0"
+    },
+    {
+      "ordinal": 73,
+      "fixture": "F73",
+      "literal_path": "/docs/evidence/retained-alias-compact-joined-20261015/final-to-523.json",
+      "source": "docs/evidence/retained-alias-compact-joined-20261015/final-to-523.json",
+      "git_blob": "b94736eccdb9cb44aa4be2af6350ac2d930ede3f",
+      "length": 1385288,
+      "sha256": "b188a256a3da85117d59a730573a6f1a9cecff03c14d7cde28f35f614933d8fa"
+    },
+    {
+      "ordinal": 74,
+      "fixture": "F74",
+      "literal_path": "/docs/evidence/retained-alias-compact-joined-20261015/final-to-7f.json",
+      "source": "docs/evidence/retained-alias-compact-joined-20261015/final-to-7f.json",
+      "git_blob": "bb9e204009436f207712e1f5c79365dc19b18a66",
+      "length": 1462096,
+      "sha256": "28119241183327e6b2cee895a615d2614f646ecdd37b66f42aa41f7f662fcb77"
+    },
+    {
+      "ordinal": 75,
+      "fixture": "F75",
+      "literal_path": "/docs/evidence/cache-report-observer-796-20261015/current-to-2cf33.json",
+      "source": "docs/evidence/cache-report-observer-796-20261015/current-to-2cf33.json",
+      "git_blob": "baa41fdcc41db8453d6ddc854036991ba571017e",
+      "length": 101427,
+      "sha256": "5c41a4c80fb64119a8093d6d3b7f236a092cc545fb480d11ba23996b41f4a206"
+    },
+    {
+      "ordinal": 76,
+      "fixture": "F76",
+      "literal_path": "/docs/evidence/branch-closed-receiving-831-20261015/current-to-e93f.json",
+      "source": "docs/evidence/branch-closed-receiving-831-20261015/current-to-e93f.json",
+      "git_blob": "7241ad71a47f3fb9d4bc5d48c20df0ecc8c0cd3d",
+      "length": 192696,
+      "sha256": "c786789375a7ebca2f8db7a9196852a86f73ff7ad31d6b6751ae296c91c496ea"
+    },
+    {
+      "ordinal": 77,
+      "fixture": "F77",
+      "literal_path": "/docs/evidence/alias-module-loader-fix-847-20261015/current-to-340.json",
+      "source": "docs/evidence/alias-module-loader-fix-847-20261015/current-to-340.json",
+      "git_blob": "2c2b8c84fe17645df0575d73caa8619e8696e7fc",
+      "length": 134579,
+      "sha256": "92d79c9f7f3b04b9da3cbba1a2a74a6b37e89f2455571fbd1eeea8c0ef6753b2"
+    },
+    {
+      "ordinal": 78,
+      "fixture": "F78",
+      "literal_path": "/docs/evidence/final-main27424-alias847-assembly-20261015/final-to-main-checkpoint.json",
+      "source": "docs/evidence/final-main27424-alias847-assembly-20261015/final-to-main-checkpoint.json",
+      "git_blob": "9d3bd8c3ec048a9b140af725fc299a4cf567d544",
+      "length": 1368192,
+      "sha256": "73be506bd69b7d3c9c557759492fedde6b968a08e357657fe3078e305f13caa3"
+    },
+    {
+      "ordinal": 79,
+      "fixture": "F79",
+      "literal_path": "/docs/evidence/final-main27424-alias847-assembly-20261015/final-to-alias-checkpoint.json",
+      "source": "docs/evidence/final-main27424-alias847-assembly-20261015/final-to-alias-checkpoint.json",
+      "git_blob": "189011e54a94ec5645342bffaf696d9cd5f161c0",
+      "length": 2606304,
+      "sha256": "d4afcfe8eed767d79fe489a417dc735dd58134f72a5e70f35aeeb7ff0b8a4104"
+    },
+    {
+      "ordinal": 80,
+      "fixture": "F80",
+      "literal_path": "/docs/evidence/runtime-fixture-848-assembly-20261015/current-to-999fa.json",
+      "source": "docs/evidence/runtime-fixture-848-assembly-20261015/current-to-999fa.json",
+      "git_blob": "b83ec545dbb25f19c8dbe9e2a434ac6bd5619a11",
+      "length": 10486,
+      "sha256": "72b3e0ff089d49c123c92034d5612d540e406c469113df20576137f69ab23103"
+    },
+    {
+      "ordinal": 81,
+      "fixture": "F81",
+      "literal_path": "/docs/evidence/main-f4a448-integration-20261015/current-to-6444.json",
+      "source": "docs/evidence/main-f4a448-integration-20261015/current-to-6444.json",
+      "git_blob": "3992a9b0ad040bff826ef7be1f496e905917b5d2",
+      "length": 68986,
+      "sha256": "53bef911379670681ce1c4e2cf7ab68ca384dd818a294bb1d4c3249c5e769ffe"
+    },
+    {
+      "ordinal": 82,
+      "fixture": "F82",
+      "literal_path": "/docs/evidence/final-831841845796-assembly-20261015/current-docs-to-896.json",
+      "source": "docs/evidence/final-831841845796-assembly-20261015/current-docs-to-896.json",
+      "git_blob": "6eeb16857e3cf7333561e4289c5816fabca9d590",
+      "length": 8725,
+      "sha256": "2211cf3705030595e4611c98b51d6d492449b6b6a3019d5ccdfafcf2e1232080"
+    },
+    {
+      "ordinal": 83,
+      "fixture": "F83",
+      "literal_path": "/docs/evidence/final-831841845796-assembly-20261015/final-to-796.json",
+      "source": "docs/evidence/final-831841845796-assembly-20261015/final-to-796.json",
+      "git_blob": "70e1be59f4190db6313c6fa1df1423c2b7722cd3",
+      "length": 1555621,
+      "sha256": "8f15bbcd4db947b1baabf2cb424f586ca5bfa1f92ab64238a67c7b8f5ab36ec5"
+    },
+    {
+      "ordinal": 84,
+      "fixture": "F84",
+      "literal_path": "/docs/evidence/final-831841845796-assembly-20261015/final-to-831.json",
+      "source": "docs/evidence/final-831841845796-assembly-20261015/final-to-831.json",
+      "git_blob": "c0150bb5f9fb527cc566493b84a20a88a89dcce5",
+      "length": 1590338,
+      "sha256": "ab20764c71e677e696a584139c27d8c4fe95599eb963834ce2720f2074fbf02c"
+    },
+    {
+      "ordinal": 85,
+      "fixture": "F85",
+      "literal_path": "/docs/evidence/final-831841845796-assembly-20261015/final-to-841.json",
+      "source": "docs/evidence/final-831841845796-assembly-20261015/final-to-841.json",
+      "git_blob": "dafac82eb033f84148dc3761df32cd1aee708ff2",
+      "length": 1672013,
+      "sha256": "e172339b5ba9916a58599bb10590a51bf8f0ff874a8d73d7e4a8637303f02c09"
+    },
+    {
+      "ordinal": 86,
+      "fixture": "F86",
+      "literal_path": "/docs/evidence/final-831841845796-assembly-20261015/final-to-845.json",
+      "source": "docs/evidence/final-831841845796-assembly-20261015/final-to-845.json",
+      "git_blob": "f9dcfb399f8224c430446dcee44dd12c0a4fcb23",
+      "length": 3680989,
+      "sha256": "0d29b4e7a459adb5b9d674ee576dfa3db3aebf7fe70abc35ae25713ff101acab"
+    },
+    {
+      "ordinal": 87,
+      "fixture": "F87",
+      "literal_path": "/docs/evidence/initial-report-policy-845-20261015/current-to-2bfd.json",
+      "source": "docs/evidence/initial-report-policy-845-20261015/current-to-2bfd.json",
+      "git_blob": "9097fd0226adb786382329b65fde2e442f8f0938",
+      "length": 1491343,
+      "sha256": "c1d98d9a72e76e5c86eeb4967553b5dcb4588c3b438927f5639edfffdfb77f23"
+    },
+    {
+      "ordinal": 88,
+      "fixture": "F88",
+      "literal_path": "/docs/evidence/runtime-fixture-848-assembly-20261015/current-to-848.json",
+      "source": "docs/evidence/runtime-fixture-848-assembly-20261015/current-to-848.json",
+      "git_blob": "88b2bf200140a5332b8f36c9834c378fbb4ed1ff",
+      "length": 6863,
+      "sha256": "6e29b7951f8f59cae08f2a6a4bec8310b7d1cea141c45c185c48f5dcb327da51"
+    }
+  ]
+}

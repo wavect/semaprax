@@ -1,6 +1,8 @@
 //! Complete physical-input successors for the immutable CI and Source36 views.
 //! This test-only projection owns no compiler authority and grants no admission.
 use sha2::{Digest, Sha256};
+#[path = "source_reflows_merge/runtime_json.rs"]
+mod runtime_json;
 fn project(rows: &str, source: &str, current: &str) -> String {
     let rows: serde_json::Value = serde_json::from_str(rows).expect("fixed merge projections");
     let matching: Vec<_> = rows
@@ -43,29 +45,20 @@ fn project(rows: &str, source: &str, current: &str) -> String {
 // Unlisted sources remain unchanged; listed inputs must match their full new SHA.
 fn before_build_fix(source: &str, current: &str) -> String {
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/compiler-receiving-fix-7800-20261015/predecessor-projections.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F00),
         source,
         current,
     )
 }
 pub(crate) fn ours(source: &str, current: &str) -> String {
     let staged = project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/source-composition-f813-held-20261015/pre-ours.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F01),
         source,
         current,
     );
     let current = staged.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/source36-main88884-merge-20261015/ours-projections.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F02),
         source,
         current,
     )
@@ -74,10 +67,7 @@ fn prior_main(source: &str, current: &str) -> String {
     let predecessor = assembled_previous(source, current);
     let current = predecessor.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/source-composition-f813-held-20261015/main-projections.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F03),
         source,
         current,
     )
@@ -87,10 +77,7 @@ pub(crate) fn held(source: &str, current: &str) -> String {
     let predecessor = assembled_previous(source, current);
     let current = predecessor.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/source-composition-f813-held-20261015/held-projections.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F04),
         source,
         current,
     )
@@ -114,10 +101,7 @@ pub(crate) fn weighted(path: &str, current: &str) -> String {
         return current.to_owned();
     }
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/source-composition-f813-held-20261015/weighted-projections.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F05),
         "src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias/tests.rs",
         current,
     )
@@ -126,10 +110,7 @@ pub(crate) fn weighted(path: &str, current: &str) -> String {
 // NEXT842 source transport precedes every immutable runtime domain.
 fn inline_weighted_previous(source: &str, current: &str) -> String {
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/inline-weighted-successor-842/source-inverses.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F06),
         source,
         current,
     )
@@ -138,10 +119,7 @@ fn inline_weighted_previous(source: &str, current: &str) -> String {
 // Separate authenticated #843 predecessor; older runtime manifests stay immutable.
 pub(crate) fn closure_previous(source: &str, current: &str) -> String {
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/held-closure-receiver-843/runtime-projections.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F07),
         source,
         current,
     )
@@ -153,21 +131,12 @@ pub(crate) fn assembly_view(stage: &str, source: &str, current: &str) -> String 
     let previous = latest_previous(source, current);
     let current = previous.as_str();
     let data = match stage {
-        "9d" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/final-842-843-source-assembly-20261015/view-9d.json"
-        )),
-        "842" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/final-842-843-source-assembly-20261015/view-842.json"
-        )),
-        "843" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/final-842-843-source-assembly-20261015/view-843.json"
-        )),
+        "9d" => runtime_json::load(runtime_json::Fixture::F08),
+        "842" => runtime_json::load(runtime_json::Fixture::F09),
+        "843" => runtime_json::load(runtime_json::Fixture::F10),
         _ => panic!("unknown immutable assembly source domain"),
     };
-    project(data, source, current)
+    project(&data, source, current)
 }
 fn assembled_previous(source: &str, current: &str) -> String {
     let repaired = assembly_view("9d", source, current);
@@ -193,10 +162,7 @@ fn latest_previous(source: &str, current: &str) -> String {
     let corrected = corrected_previous(source, current);
     let current = corrected.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/main7f-source-successor-20261015/current-to-9365.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F11),
         source,
         current,
     )
@@ -210,18 +176,12 @@ pub(crate) fn main(source: &str, current: &str) -> String {
     let _prior = prior_main(source, current);
     let corrected = corrected_previous(source, current);
     let _historical_main7f = project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/main7f-source-successor-20261015/current-to-main7f.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F12),
         source,
         &corrected,
     );
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/mainff869-source-successor-20261015/current-to-mainff.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F13),
         source,
         &physical,
     )
@@ -232,10 +192,7 @@ fn corrected_previous(source: &str, current: &str) -> String {
     let baseline = consumer_previous(source, current);
     let current = baseline.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/d1bb-corrective-source-successor-20261015/current-to-d1bb.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F14),
         source,
         current,
     )
@@ -244,10 +201,7 @@ pub(crate) fn scalar_policy_input(source: &str, current: &str) -> String {
     let previous = before_main927(source, current);
     let current = previous.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/d1bb-corrective-source-successor-20261015/scalar-policy-inputs.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F15),
         source,
         current,
     )
@@ -258,10 +212,7 @@ fn consumer_previous(source: &str, current: &str) -> String {
     let predecessor = corrected_consumers_previous(source, current);
     let current = predecessor.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/source-consumer-closure-fixes-20261015/current-to-3d4b.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F16),
         source,
         current,
     )
@@ -270,58 +221,28 @@ pub(crate) fn consumer_input(domain: &str, source: &str, current: &str) -> Strin
     let predecessor = corrected_consumers_previous(source, current);
     let current = predecessor.as_str();
     let data = match domain {
-        "decl825" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/source-consumer-closure-fixes-20261015/decl825.json"
-        )),
-        "cost825" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/source-consumer-closure-fixes-20261015/cost825.json"
-        )),
-        "signature825" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/source-consumer-closure-fixes-20261015/signature825.json"
-        )),
-        "capacity834" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/source-consumer-closure-fixes-20261015/capacity834.json"
-        )),
-        "registry833" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/source-consumer-closure-fixes-20261015/registry833.json"
-        )),
-        "receiving831" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/source-consumer-closure-fixes-20261015/receiving831.json"
-        )),
-        "lexical832" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/source-consumer-closure-fixes-20261015/lexical832.json"
-        )),
-        "cold835" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/source-consumer-closure-fixes-20261015/cold835.json"
-        )),
+        "decl825" => runtime_json::load(runtime_json::Fixture::F17),
+        "cost825" => runtime_json::load(runtime_json::Fixture::F18),
+        "signature825" => runtime_json::load(runtime_json::Fixture::F19),
+        "capacity834" => runtime_json::load(runtime_json::Fixture::F20),
+        "registry833" => runtime_json::load(runtime_json::Fixture::F21),
+        "receiving831" => runtime_json::load(runtime_json::Fixture::F22),
+        "lexical832" => runtime_json::load(runtime_json::Fixture::F23),
+        "cold835" => runtime_json::load(runtime_json::Fixture::F24),
         _ => panic!("unknown complete source consumer domain"),
     };
-    project(data, source, current)
+    project(&data, source, current)
 }
 
 fn corrected_consumers_previous(source: &str, current: &str) -> String {
     let fixes = final_fix_input(source, current);
     let fixes = project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/ae91-source-consumer-corrections-20261015/current-to-ae91.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F25),
         source,
         &fixes,
     );
     let fixes = project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/final-ae91-mainf045-assembly-20261015/fixes-ae91-reconcile.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F26),
         source,
         &fixes,
     );
@@ -338,31 +259,19 @@ pub(crate) fn consumer_child(domain: &str, source: &str, current: &str) -> Strin
     let branch = final_fix_input(source, current);
     let current = branch.as_str();
     let rows = match domain {
-        "registry833" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/ae91-source-consumer-corrections-20261015/registry833-children.json"
-        )),
-        "cold835" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/ae91-source-consumer-corrections-20261015/cold835-children.json"
-        )),
-        "ordered838" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/ae91-source-consumer-corrections-20261015/ordered838-observer.json"
-        )),
+        "registry833" => runtime_json::load(runtime_json::Fixture::F27),
+        "cold835" => runtime_json::load(runtime_json::Fixture::F28),
+        "ordered838" => runtime_json::load(runtime_json::Fixture::F29),
         _ => panic!("unknown source child domain"),
     };
-    project(rows, source, current)
+    project(&rows, source, current)
 }
 
 fn final_fix_input(source: &str, current: &str) -> String {
     let previous = before_main927(source, current);
     let current = previous.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/final-ae91-mainf045-assembly-20261015/view-fixes.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F30),
         source,
         current,
     )
@@ -371,10 +280,7 @@ fn final_main_input(source: &str, current: &str) -> String {
     let previous = before_main927(source, current);
     let current = previous.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/final-ae91-mainf045-assembly-20261015/view-main.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F31),
         source,
         current,
     )
@@ -382,18 +288,12 @@ fn final_main_input(source: &str, current: &str) -> String {
 fn ff_previous(source: &str, current: &str) -> String {
     let predecessor = before_f045(source, current);
     let previous = project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/mainff869-source-successor-20261015/current-to-ae91.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F32),
         source,
         &predecessor,
     );
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/final-ae91-mainf045-assembly-20261015/main-ae91-reconcile.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F33),
         source,
         &previous,
     )
@@ -402,20 +302,14 @@ fn ff_previous(source: &str, current: &str) -> String {
 pub(crate) fn main_f045_input(source: &str, current: &str) -> String {
     let branch = final_main_input(source, current);
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/mainf045-source-successor-20261015/current-to-f045.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F34),
         source,
         &branch,
     )
 }
 fn before_f045(source: &str, current: &str) -> String {
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/mainf045-source-successor-20261015/current-to-0bf.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F35),
         source,
         current,
     )
@@ -427,10 +321,7 @@ fn before_main927(source: &str, current: &str) -> String {
     let current = previous.as_str();
     let main_view = assembly_main927_input(source, current);
     let hex_view = project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/main927-hex-starter-assembly-20261015/view-hex.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F36),
         source,
         current,
     );
@@ -444,10 +335,7 @@ fn before_main927(source: &str, current: &str) -> String {
 }
 fn main927_previous(source: &str, current: &str) -> String {
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/main927-source-successor-20261015/current-to-9b.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F37),
         source,
         current,
     )
@@ -459,10 +347,7 @@ pub(crate) fn main927_input(source: &str, current: &str) -> String {
     let view = assembly_main927_input(source, current);
     let current = view.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/main927-source-successor-20261015/current-to-main927.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F38),
         source,
         current,
     )
@@ -471,10 +356,7 @@ pub(crate) fn main927_input(source: &str, current: &str) -> String {
 // Compiler-confirmed facade digest correction precedes immutable9b source views.
 fn facade_hex_previous(source: &str, current: &str) -> String {
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/workspace-facade-hex-fix-9b-20261015/current-to-9b.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F39),
         source,
         current,
     )
@@ -483,10 +365,7 @@ fn facade_hex_previous(source: &str, current: &str) -> String {
 // Independent complete branch inputs; neither branch is fed the other's view.
 fn assembly_main927_input(source: &str, current: &str) -> String {
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/main927-hex-starter-assembly-20261015/view-main927.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F40),
         source,
         current,
     )
@@ -497,10 +376,7 @@ fn before_setup825(source: &str, current: &str) -> String {
     let previous = before_setup_reference_controls(source, current);
     let current = previous.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/setup825-relative-starter-assembly-20261015/view-d4.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F41),
         source,
         current,
     )
@@ -510,10 +386,7 @@ pub(crate) fn setup_typed_input(source: &str, current: &str) -> String {
     let previous = before_setup_reference_controls(source, current);
     let current = previous.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/setup825-relative-starter-assembly-20261015/view-typed825.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F42),
         source,
         current,
     )
@@ -524,10 +397,7 @@ fn before_setup_reference_controls(source: &str, current: &str) -> String {
     let previous = before_region_status_view(source, current);
     let current = previous.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/setup825-reference-controls-assembly-20261015/current-to-9cb.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F43),
         source,
         current,
     )
@@ -538,10 +408,7 @@ fn before_region_status_view(source: &str, current: &str) -> String {
     let previous = before_constructor_complete_views(source, current);
     let current = previous.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/region-status-import-view-d4-20261015/current-to-a0c.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F44),
         source,
         current,
     )
@@ -551,10 +418,7 @@ fn before_constructor_complete_views(source: &str, current: &str) -> String {
     let previous = before_current_main(source, current);
     let current = previous.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/constructor-complete-runtime-views-d4-20261015/current-to-aa03.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F45),
         source,
         current,
     )
@@ -564,10 +428,7 @@ pub(crate) fn constructor_complete_input(source: &str, current: &str) -> String 
     let previous = before_current_main(source, current);
     let current = previous.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/constructor-complete-runtime-views-d4-20261015/runtime-views.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F46),
         source,
         current,
     )
@@ -578,10 +439,7 @@ fn before_current_main(source: &str, current: &str) -> String {
     let previous = before_fixture841(source, current);
     let current = previous.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/main5ba-future-source-assembly-20261015/current-to-1c.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F47),
         source,
         current,
     )
@@ -591,10 +449,7 @@ pub(crate) fn main_current_input(source: &str, current: &str) -> String {
     let previous = before_fixture841(source, current);
     let current = previous.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/main5ba-future-source-assembly-20261015/current-to-main5ba.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F48),
         source,
         current,
     )
@@ -605,10 +460,7 @@ fn before_fixture841(source: &str, current: &str) -> String {
     let previous = before_retained833(source, current);
     let current = previous.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/compressed-fixture-841-assembly-20261015/current-to-13d.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F49),
         source,
         current,
     )
@@ -618,20 +470,14 @@ pub(crate) fn compressed_fixture_input(source: &str, current: &str) -> String {
     // immediate shim view; the inherited chain below retains every old guard.
     let raw_default = final_batch_input("841", source, current);
     let _whole_raw_default_before = project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/raw-selected-child-default-841-20261015/current-to-56dc.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F50),
         source,
         &raw_default,
     );
     let previous = before_retained833(source, current);
     let current = previous.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/compressed-fixture-841-assembly-20261015/pilot-runtime-views.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F51),
         source,
         current,
     )
@@ -642,10 +488,7 @@ fn before_retained833(source: &str, current: &str) -> String {
     let previous = before_main66517(source, current);
     let current = previous.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/retained-registry-833-assembly-20261015/current-to-381.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F52),
         source,
         current,
     )
@@ -654,10 +497,7 @@ pub(crate) fn retained833_input(source: &str, current: &str) -> String {
     let previous = before_main66517(source, current);
     let current = previous.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/retained-registry-833-assembly-20261015/current-to-c3.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F53),
         source,
         current,
     )
@@ -668,10 +508,7 @@ fn before_main66517(source: &str, current: &str) -> String {
     let previous = before_retry_guard(source, current);
     let current = previous.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/main66517-source-assembly-20261015/current-to-397.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F54),
         source,
         current,
     )
@@ -682,10 +519,7 @@ fn before_retry_guard(source: &str, current: &str) -> String {
     let previous = before_direct_carriers831(source, current);
     let current = previous.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/retry-fixture-full-source-view-61f-20261015/current-to-61f.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F55),
         source,
         current,
     )
@@ -694,10 +528,7 @@ pub(crate) fn retry_fixture_input(source: &str, current: &str) -> String {
     let previous = before_direct_carriers831(source, current);
     let current = previous.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/retry-fixture-full-source-view-61f-20261015/runtime-view.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F56),
         source,
         current,
     )
@@ -708,10 +539,7 @@ fn before_direct_carriers831(source: &str, current: &str) -> String {
     let observed = before_cached_acquisition_observer(source, current);
     let current = observed.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/direct-canonical-carriers-831-20261015/current-to-297.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F57),
         source,
         current,
     )
@@ -722,10 +550,7 @@ fn before_cached_acquisition_observer(source: &str, current: &str) -> String {
     let staged = before_sourceguard_inputs(source, current);
     let current = staged.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/cached-prelude-acquisition-observer-7a87/current-to-7a87.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F58),
         source,
         current,
     )
@@ -736,20 +561,14 @@ fn before_sourceguard_inputs(source: &str, current: &str) -> String {
     let staged = before_actual_pin_consumers(source, current);
     let current = staged.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/sourceguard-input-domains-7a87/current-to-d20.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F59),
         source,
         current,
     )
 }
 pub(crate) fn source36_classifier_input(source: &str, current: &str) -> String {
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/sourceguard-input-domains-7a87/classifier-input.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F60),
         source,
         current,
     )
@@ -760,10 +579,7 @@ fn before_actual_pin_consumers(source: &str, current: &str) -> String {
     let current = final_ready_input("d8", source, current);
     let current = current.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/actual-pin-consumer-7a87-20261015/current-to-92.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F61),
         source,
         current,
     )
@@ -774,41 +590,26 @@ fn final_ready_input(stage: &str, source: &str, current: &str) -> String {
     let current = if stage == "844" {
         let previous = main27424_stage("523", source, current);
         project(
-            include_str!(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/docs/evidence/compact-old-receiver-compile-fix-844-20261015/current-to-677.json"
-            )),
+            &runtime_json::load(runtime_json::Fixture::F62),
             source,
             &previous,
         )
     } else {
         let previous = main27424_stage("7f", source, current);
         project(
-            include_str!(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/docs/evidence/field-update-hir-visitor-836-20261015/current-to-677.json"
-            )),
+            &runtime_json::load(runtime_json::Fixture::F63),
             source,
             &previous,
         )
     };
     let current = current.as_str();
     let data = match stage {
-        "d8" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/ready-main-844-846-836-assembly-20261015/final-to-d8.json"
-        )),
-        "844" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/ready-main-844-846-836-assembly-20261015/final-to-844.json"
-        )),
-        "846" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/ready-main-844-846-836-assembly-20261015/final-to-846.json"
-        )),
+        "d8" => runtime_json::load(runtime_json::Fixture::F64),
+        "844" => runtime_json::load(runtime_json::Fixture::F65),
+        "846" => runtime_json::load(runtime_json::Fixture::F66),
         _ => panic!("unknown exact ready checkpoint"),
     };
-    project(data, source, current)
+    project(&data, source, current)
 }
 pub(crate) fn compact844_current_input(source: &str, current: &str) -> String {
     final_ready_input("844", source, current)
@@ -816,10 +617,7 @@ pub(crate) fn compact844_current_input(source: &str, current: &str) -> String {
 pub(crate) fn compact844_input(source: &str, current: &str) -> String {
     let current = final_ready_input("844", source, current);
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/compact-automaton-844-immediate7a87/current-to-a3.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F67),
         source,
         &current,
     )
@@ -833,21 +631,12 @@ fn main27424_stage(stage: &str, source: &str, current: &str) -> String {
     let current = combined_ready_input("main", source, current);
     let current = current.as_str();
     let data = match stage {
-        "7f" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/main27424-source-integration-20261015/final-to-7f.json"
-        )),
-        "523" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/main27424-source-integration-20261015/final-to-523.json"
-        )),
-        "main" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/main27424-source-integration-20261015/final-to-main.json"
-        )),
+        "7f" => runtime_json::load(runtime_json::Fixture::F68),
+        "523" => runtime_json::load(runtime_json::Fixture::F69),
+        "main" => runtime_json::load(runtime_json::Fixture::F70),
         _ => panic!("unknown exact MAIN27424 source domain"),
     };
-    project(data, source, current)
+    project(&data, source, current)
 }
 pub(crate) fn main27424_input(source: &str, current: &str) -> String {
     main27424_stage("main", source, current)
@@ -863,10 +652,7 @@ pub(crate) fn retained_function847_input(source: &str, current: &str) -> String 
 pub(crate) fn directory825_input(source: &str, current: &str) -> String {
     let previous = joined_feature_input("453", source, current);
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/retained-function-alias-847/directory825-domain.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F71),
         source,
         &previous,
     )
@@ -875,21 +661,12 @@ fn joined_feature_input(stage: &str, source: &str, current: &str) -> String {
     let current = combined_ready_input("alias", source, current);
     let current = current.as_str();
     let rows = match stage {
-        "453" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/retained-alias-compact-joined-20261015/final-to-453.json"
-        )),
-        "523" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/retained-alias-compact-joined-20261015/final-to-523.json"
-        )),
-        "7f" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/retained-alias-compact-joined-20261015/final-to-7f.json"
-        )),
+        "453" => runtime_json::load(runtime_json::Fixture::F72),
+        "523" => runtime_json::load(runtime_json::Fixture::F73),
+        "7f" => runtime_json::load(runtime_json::Fixture::F74),
         _ => panic!("unknown independent feature input"),
     };
-    project(rows, source, current)
+    project(&rows, source, current)
 }
 
 // Independent final raw fronts for MAIN integration versus retained alias owners.
@@ -897,38 +674,29 @@ fn combined_ready_input(stage: &str, source: &str, current: &str) -> String {
     let final_view = final_batch_input("796", source, current);
     let current = final_view.as_str();
     let previous = project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/cache-report-observer-796-20261015/current-to-2cf33.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F75),
         source,
         current,
     );
     let current = previous.as_str();
     let prior = project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/branch-closed-receiving-831-20261015/current-to-e93f.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F76),
         source,
         current,
     );
     let current = prior.as_str();
     let previous = project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/alias-module-loader-fix-847-20261015/current-to-340.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F77),
         source,
         current,
     );
     let current = previous.as_str();
     let rows = match stage {
-        "main" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/final-main27424-alias847-assembly-20261015/final-to-main-checkpoint.json")),
-        "alias" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/final-main27424-alias847-assembly-20261015/final-to-alias-checkpoint.json")),
+        "main" => runtime_json::load(runtime_json::Fixture::F78),
+        "alias" => runtime_json::load(runtime_json::Fixture::F79),
         _ => panic!("unknown exact final source front"),
     };
-    project(rows, source, current)
+    project(&rows, source, current)
 }
 
 // The direct831 source owner has a separate immediate domain from old guards.
@@ -936,63 +704,41 @@ pub(crate) fn branch_closed831_input(source: &str, current: &str) -> String {
     final_batch_input("831", source, current)
 }
 fn final_batch_input(branch: &str, source: &str, current: &str) -> String {
+    let before_transport = before_runtime_json_transport(source, current);
+    let current = before_transport.as_str();
     let before_runtime848 = project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/runtime-fixture-848-assembly-20261015/current-to-999fa.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F80),
         source,
         current,
     );
     let current = before_runtime848.as_str();
     let before_main = project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/main-f4a448-integration-20261015/current-to-6444.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F81),
         source,
         current,
     );
     let current = before_main.as_str();
     let prior_docs = project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/final-831841845796-assembly-20261015/current-docs-to-896.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F82),
         source,
         current,
     );
     let current = prior_docs.as_str();
     let rows = match branch {
-        "796" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/final-831841845796-assembly-20261015/final-to-796.json"
-        )),
-        "831" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/final-831841845796-assembly-20261015/final-to-831.json"
-        )),
-        "841" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/final-831841845796-assembly-20261015/final-to-841.json"
-        )),
-        "845" => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/final-831841845796-assembly-20261015/final-to-845.json"
-        )),
+        "796" => runtime_json::load(runtime_json::Fixture::F83),
+        "831" => runtime_json::load(runtime_json::Fixture::F84),
+        "841" => runtime_json::load(runtime_json::Fixture::F85),
+        "845" => runtime_json::load(runtime_json::Fixture::F86),
         _ => panic!("unknown independent final batch source checkpoint"),
     };
-    project(rows, source, current)
+    project(&rows, source, current)
 }
 
 // Direct845 owners authenticate independently from inherited source guards.
 pub(crate) fn initial845_input(source: &str, current: &str) -> String {
     let checkpoint = final_batch_input("845", source, current);
     let _complete_original845_before = project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/initial-report-policy-845-20261015/current-to-2bfd.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F87),
         source,
         &checkpoint,
     );
@@ -1001,11 +747,19 @@ pub(crate) fn initial845_input(source: &str, current: &str) -> String {
 
 // Direct runtime-fixture custody stays independent of inherited source views.
 pub(crate) fn runtime848_input(source: &str, current: &str) -> String {
+    let before_transport = before_runtime_json_transport(source, current);
+    let current = before_transport.as_str();
     project(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/runtime-fixture-848-assembly-20261015/current-to-848.json"
-        )),
+        &runtime_json::load(runtime_json::Fixture::F88),
+        source,
+        current,
+    )
+}
+
+// Complete pre-transport physical inputs precede every older named view.
+fn before_runtime_json_transport(source: &str, current: &str) -> String {
+    project(
+        &runtime_json::load(runtime_json::Fixture::Custody),
         source,
         current,
     )

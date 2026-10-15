@@ -1,0 +1,19 @@
+{
+  "source_subject": "912aee2ed2e1178aef6512043d6fbfa3be15c809",
+  "status": "ACTUAL_PRIOR_HEAD_FAILURE_PRESERVED",
+  "exit_code": 101,
+  "wall_seconds": 58.373725,
+  "compiler_errors": 1,
+  "diagnostic": "E0624",
+  "executed_tests": 0,
+  "files": {
+    "docs/evidence/failed-build-912a-20261015/summary.json": "12ee83c42e0927b28300ec02eae8c5b51d5fa9735b56a44a4b1582a5b659836c",
+    "docs/evidence/failed-build-912a-20261015/memory-samples.jsonl": "6f07da031777da3dd1c328e8999491de37f794fc0e3fd6b4c57f42899441a1a4",
+    "docs/evidence/failed-build-912a-20261015/owning-build.log": "fdd2ca003816a53ffc7c06f6517d694cf1338b000151e974b32745bc8eca83f2",
+    "docs/evidence/failed-build-912a-20261015/compilation-manifest.json": "eb6ec0634e44c6cd14594ff1088f1f1d5bd0396742d956b5f94d6d9cf13f1c23",
+    "docs/evidence/failed-build-912a-20261015/expected-counts.json": "eb6ec0634e44c6cd14594ff1088f1f1d5bd0396742d956b5f94d6d9cf13f1c23",
+    "docs/evidence/failed-build-912a-20261015/owning-build-result.json": "c3eb39d8af617dd2bf3028f212d864d1dc88baa0dc3d94953f357d7c7bbefdc6",
+    "docs/evidence/failed-build-912a-20261015/owning-build.jsonl": "15acff3cc117b96a0015019e2d0da3478c12684b9b7121e34175a644e727867e",
+    "docs/evidence/failed-build-912a-20261015/preparation-receipt.json": "ed8a1b60e7031ae21ed6fc9f2b4f596e5617b4cead79c26a62b0d50ed5f30e52"
+  }
+}

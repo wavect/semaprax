@@ -1,0 +1,11 @@
+--- a/src/workspace_graph/expected_projection/import_stub/byte_helper.rs
++++ b/src/workspace_graph/expected_projection/import_stub/byte_helper.rs
+@@ -216,7 +216,7 @@
+             carrier_charged: false,
+         }
+     }
+-    pub(super) fn authorized(
++    pub(in crate::workspace_graph::expected_projection) fn authorized(
+         &mut self,
+         function: &'a Function,
+         module: &str,

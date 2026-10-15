@@ -1,0 +1,94 @@
+{
+  "source_subject": "912aee2ed2e1178aef6512043d6fbfa3be15c809",
+  "exit_code": 101,
+  "wall_seconds": 58.37372499999765,
+  "build_finished_phases": [
+    false
+  ],
+  "production_compilation_passed": false,
+  "executed_test_bodies": 0,
+  "compiler_errors": 1,
+  "errors": [
+    {
+      "code": {
+        "code": "E0624",
+        "explanation": "A private item was used outside of its scope.\n\nErroneous code example:\n\n```compile_fail,E0624\nmod inner {\n    pub struct Foo;\n\n    impl Foo {\n        fn method(&self) {}\n    }\n}\n\nlet foo = inner::Foo;\nfoo.method(); // error: method `method` is private\n```\n\nTwo possibilities are available to solve this issue:\n\n1. Only use the item in the scope it has been defined:\n\n```\nmod inner {\n    pub struct Foo;\n\n    impl Foo {\n        fn method(&self) {}\n    }\n\n    pub fn call_method(foo: &Foo) { // We create a public function.\n        foo.method(); // Which calls the item.\n    }\n}\n\nlet foo = inner::Foo;\ninner::call_method(&foo); // And since the function is public, we can call the\n                          // method through it.\n```\n\n2. Make the item public:\n\n```\nmod inner {\n    pub struct Foo;\n\n    impl Foo {\n        pub fn method(&self) {} // It's now public.\n    }\n}\n\nlet foo = inner::Foo;\nfoo.method(); // Ok!\n```\n"
+      },
+      "message": "method `authorized` is private",
+      "spans": [
+        {
+          "byte_end": 7617,
+          "byte_start": 7607,
+          "column_end": 28,
+          "column_start": 18,
+          "expansion": null,
+          "file_name": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+          "is_primary": true,
+          "label": "private method",
+          "line_end": 200,
+          "line_start": 200,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 28,
+              "highlight_start": 18,
+              "text": "                .authorized(original, target.module)"
+            }
+          ]
+        },
+        {
+          "byte_end": 6813,
+          "byte_start": 6662,
+          "column_end": 53,
+          "column_start": 5,
+          "expansion": null,
+          "file_name": "src/workspace_graph/expected_projection/import_stub/byte_helper.rs",
+          "is_primary": false,
+          "label": "private method defined here",
+          "line_end": 223,
+          "line_start": 219,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 30,
+              "highlight_start": 5,
+              "text": "    pub(super) fn authorized("
+            },
+            {
+              "highlight_end": 19,
+              "highlight_start": 1,
+              "text": "        &mut self,"
+            },
+            {
+              "highlight_end": 32,
+              "highlight_start": 1,
+              "text": "        function: &'a Function,"
+            },
+            {
+              "highlight_end": 22,
+              "highlight_start": 1,
+              "text": "        module: &str,"
+            },
+            {
+              "highlight_end": 53,
+              "highlight_start": 1,
+              "text": "    ) -> Result<bool, crate::diagnostic::Diagnostic> {"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "full_suite": false,
+  "raw_sha256": {
+    "owning-build-result.json": "c3eb39d8af617dd2bf3028f212d864d1dc88baa0dc3d94953f357d7c7bbefdc6",
+    "owning-build.jsonl": "15acff3cc117b96a0015019e2d0da3478c12684b9b7121e34175a644e727867e",
+    "owning-build.log": "fdd2ca003816a53ffc7c06f6517d694cf1338b000151e974b32745bc8eca83f2",
+    "expected-counts.json": "eb6ec0634e44c6cd14594ff1088f1f1d5bd0396742d956b5f94d6d9cf13f1c23",
+    "compilation-manifest.json": "eb6ec0634e44c6cd14594ff1088f1f1d5bd0396742d956b5f94d6d9cf13f1c23",
+    "preparation-receipt.json": "ed8a1b60e7031ae21ed6fc9f2b4f596e5617b4cead79c26a62b0d50ed5f30e52",
+    "memory-samples.jsonl": "6f07da031777da3dd1c328e8999491de37f794fc0e3fd6b4c57f42899441a1a4"
+  }
+}

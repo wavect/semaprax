@@ -1,0 +1,62 @@
+{
+  "source_subject": "912aee2ed2e1178aef6512043d6fbfa3be15c809",
+  "source_tree": "2c7f520329f8bad1bf177ad734fce2a4a1e56c9d",
+  "frozen": true,
+  "source_only": true,
+  "execution_performed": false,
+  "selected_bodies": 136,
+  "previous_actual_failed_owners_retained": 20,
+  "scope": "Focused large compiler batch: exact remaining failed owners plus affected controls; no full suite. Production lib and CLI require fresh scoped Clippy. Existing runtime priority rules apply only to selected owners.",
+  "ordered_build_commands": [
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "build",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ],
+    [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--test",
+      "language",
+      "--test",
+      "native",
+      "--test",
+      "project",
+      "--test",
+      "useful_data",
+      "--test",
+      "workspace",
+      "--no-run",
+      "--jobs",
+      "1",
+      "--message-format=json"
+    ]
+  ],
+  "manifest_sha256": "eb6ec0634e44c6cd14594ff1088f1f1d5bd0396742d956b5f94d6d9cf13f1c23",
+  "driver_sha256": {
+    "run-owning-selected.py": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450",
+    "draft_contract.py": "c3ab46afbf6c62485c5c4b3389a579d0744d889622051f1eb7f6c48d2b0745e1",
+    "semaprax_pressure_observation_v3.py": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+    "run-production-lib-cli-clippy.py": "e94eca5f0b9aa73193e1065a944b1681a459bdeba7b45e984f477a55268f4077",
+    "build-owning.py": "f959d5fdcd243fe9a624cf60506918a5c1125e799de8cefa41eed3493bbcc3cb",
+    "observed_phase.py": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+  }
+}

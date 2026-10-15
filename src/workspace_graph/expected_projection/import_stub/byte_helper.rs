@@ -216,7 +216,7 @@ impl<'a> ProviderProofs<'a> {
             carrier_charged: false,
         }
     }
-    pub(super) fn authorized(
+    pub(in crate::workspace_graph::expected_projection) fn authorized(
         &mut self,
         function: &'a Function,
         module: &str,

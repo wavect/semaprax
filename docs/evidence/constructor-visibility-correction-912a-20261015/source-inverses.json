@@ -1,0 +1,21 @@
+[
+  {
+    "status": "SOURCE_ONLY_UNEXECUTED_PRIVATE_CORRECTION",
+    "basis": "912aee2ed2e1178aef6512043d6fbfa3be15c809",
+    "source": "src/workspace_graph/expected_projection/import_stub/byte_helper.rs",
+    "archive": "docs/evidence/constructor-visibility-correction-912a-20261015/byte_helper.rs.before",
+    "original_sha256": "f99352d60b71ace1baf2ebb39559a6ac7a1be9033420c3983db5aeea37f4fd78",
+    "current_sha256": "d33172cfca6cb641d16504e2c2018b45643c1fcd199a0fc3f1b43613a9ff74c7",
+    "edits": [
+      {
+        "new": "    pub(in crate::workspace_graph::expected_projection) fn authorized(\n",
+        "before": "    pub(super) fn authorized(\n",
+        "count": 1
+      }
+    ],
+    "complete_original_reconstruction": true,
+    "unchanged_body_order_layout_and_line_count": true,
+    "scope": "Only ProviderProofs::authorized method visibility reaches existing expected_projection sibling typed caller; same owning boundary as ProviderProofs and ProviderProofs::new. No auth/control/body/carrier changes.",
+    "runtime": "Not executed; observed production E0624 needs actual terminal receipt and parent grouped qualification."
+  }
+]

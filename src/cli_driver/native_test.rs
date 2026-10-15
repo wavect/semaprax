@@ -80,7 +80,12 @@ fn host_error(message: impl Into<String>) -> Vec<Diagnostic> {
 
 pub(super) fn execute(manifest: &Path, limits: NativeTestLimits, json: bool) -> Result<(), u8> {
     let cases = project::with_authenticated_project(manifest, |snapshot| {
-        let roots = snapshot.native_test_roots()?;
+        let profile = if limits.collection_record_pure {
+            project::ProjectNativeTestProfile::CollectionRecordPureV1
+        } else {
+            project::ProjectNativeTestProfile::SourceCommandV1
+        };
+        let roots = snapshot.native_test_roots_with_profile(profile)?;
         let project_root = snapshot.root().to_path_buf();
         let mut cases = Vec::with_capacity(roots.len());
         for root in roots {
@@ -89,7 +94,11 @@ pub(super) fn execute(manifest: &Path, limits: NativeTestLimits, json: bool) -> 
                 host_error(format!("cannot create native test scratch: {error}"))
             })?;
             let result = (|| {
-                snapshot.build_native_test(root.stable_id(), scratch.path())?;
+                snapshot.build_native_test_with_profile(
+                    root.stable_id(),
+                    scratch.path(),
+                    profile,
+                )?;
                 scratch.seal().map_err(|error| {
                     host_error(format!("cannot seal native test executable: {error}"))
                 })?;
@@ -140,7 +149,7 @@ pub(super) fn execute(manifest: &Path, limits: NativeTestLimits, json: bool) -> 
             .collect();
         println!(
             "{}",
-            serde_json::json!({"schema": "semaprax.native-test.v1", "target": "native", "passed": failed == 0, "cases": results})
+            serde_json::json!({"schema": if limits.collection_record_pure { "semaprax.native-test.collection-record-pure.v1" } else { "semaprax.native-test.v1" }, "target": if limits.collection_record_pure { "native-collection-record-pure.v1" } else { "native" }, "passed": failed == 0, "cases": results})
         );
     } else if failed == 0 {
         println!(

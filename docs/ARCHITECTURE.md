@@ -1089,6 +1089,19 @@ unperformed. `cli/json_codec/suitability.rs` accepts strict optional policy and
 uses the ordinary authenticated held-input route; it has no output/publication
 boundary. Existing codec derivation remains the only source candidate consumer.
 
+`project/application_starter` composes the existing checked codec plan/replay
+with an explicit same-profile command activation, canonical authored inventory
+and exact original/generated source receipts. It performs full ordinary Project
+construction without filesystem or native execution authority. The full host's
+`new_project/application` invokes the original scaffold `publish_files` held-parent
+sequence; `project_publication/application` supplies a bounded owned-name source
+inventory to that same authority. Static template inventories and frozen capsules
+remain separate. The explicit collection-record pure native-test selector reuses
+the existing native test runner after complete typed HIR validation; the old
+native test selector retains its old admission and schema. No managed apply or
+raw-path atomicity is added. [Application Starter v1](APPLICATION-STARTER-V1.md)
+and [typed native tests](PROJECT-NATIVE-TEST-COLLECTION-RECORD-PURE-V1.md) own limits.
+
 `src/project/json_codec` owns checked-source application codec derivation and
 exact regeneration replay. Its `plan` child derives a bounded set against one
 immutable retained revision and admits the complete combined candidate through

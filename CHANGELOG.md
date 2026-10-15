@@ -2,6 +2,8 @@
      distinct cold callers; full old receiver retained; qualification pending. -->
 # Changelog
 
+- Author fresh application assembly (#837) from existing replayed codec plans and explicit command profiles through the original held-parent scaffold publisher. Bind canonical source/generation receipts and exact native routes; add an explicit pure typed v31 native-test successor while preserving old profile refusals. Full ShiftSim15/selected-file CLI49 and hostile-publication scenarios are authored; all executable qualification and the source-capacity dependency remain pending.
+
 - Author the ordinary lexical return-operand inventory (#832) on fallible paid AVL backing with borrowed identities, exact caller/facts/budget/ledger binding and certificate-boundary authentication. Preserve complete old callers and original verification charges; new directory work is additional. Rust qualification remains pending.
 
 - Author selected call-local refusal custody (#781): nineteen fixed reasons and the exact unknown-callee handle reach the paid engine through selected block replay; retain complete old receivers and prepaid success/failure controls. Source-only checkpoint; Rust qualification and whole-issue closure remain pending.

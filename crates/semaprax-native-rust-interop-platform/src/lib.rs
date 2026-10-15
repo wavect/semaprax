@@ -2,6 +2,9 @@
 
 #![forbid(unsafe_code)]
 
+mod inventory_names;
+pub use inventory_names::prepare_owned_discard_inventory;
+use inventory_names::InventoryNames;
 mod doctor;
 pub use doctor::{doctor_version_probe, DoctorProbeError};
 // Opaque settled observations only. The process-consuming unsafe collector
@@ -121,7 +124,7 @@ pub struct PreparedPublishDirectory(
 );
 
 pub struct PreparedDiscardInventory<const N: usize> {
-    names: [&'static OsStr; N],
+    names: InventoryNames<N>,
     native: semaprax_native_rust_interop_platform_sys::PreparedDiscardNames<N>,
     files: [Option<HeldRegularFile>; N],
     settled: [Option<semaprax_native_rust_interop_platform_sys::SettledRegularFile>; N],
@@ -178,7 +181,7 @@ pub fn prepare_discard_inventory<const N: usize>(
 ) -> Result<PreparedDiscardInventory<N>, Error> {
     let native = semaprax_native_rust_interop_platform_sys::prepare_discard_names(names)?;
     Ok(PreparedDiscardInventory {
-        names,
+        names: InventoryNames::Static(names),
         native,
         files: [const { None }; N],
         settled: [const { None }; N],
@@ -204,21 +207,20 @@ pub fn prepared_discard_inventory_owned_capacity<const N: usize>(
 ) -> usize {
     semaprax_native_rust_interop_platform_sys::prepared_discard_names_owned_capacity(
         &inventory.native,
-    )
+    ) + inventory.names.owned_capacity()
 }
 
 impl<const N: usize> PreparedDiscardInventory<N> {
     fn planned_slot(&self, name: &str) -> Result<usize, Error> {
-        self.names
-            .iter()
-            .position(|candidate| *candidate == OsStr::new(name))
+        (0..N)
+            .find(|index| self.names.get(*index) == OsStr::new(name))
             .ok_or(Error::Invalid)
     }
 
     pub fn validate_next(&self, name: &str) -> Result<usize, Error> {
         let index = self.attached;
         if index >= N
-            || self.names[index] != OsStr::new(name)
+            || self.names.get(index) != OsStr::new(name)
             || self.files[index].is_some()
             || self.settled[index].is_some()
         {
@@ -228,17 +230,15 @@ impl<const N: usize> PreparedDiscardInventory<N> {
     }
 
     pub fn validate_slot(&self, name: &str) -> Result<usize, Error> {
-        self.names[..self.attached]
-            .iter()
-            .position(|candidate| *candidate == OsStr::new(name))
+        (0..self.attached)
+            .find(|index| self.names.get(*index) == OsStr::new(name))
             .filter(|index| self.files[*index].is_some())
             .ok_or(Error::Invalid)
     }
 
     fn validate_settled_slot(&self, name: &str) -> Result<usize, Error> {
-        self.names[..self.attached]
-            .iter()
-            .position(|candidate| *candidate == OsStr::new(name))
+        (0..self.attached)
+            .find(|index| self.names.get(*index) == OsStr::new(name))
             .filter(|index| self.files[*index].is_none() && self.settled[*index].is_some())
             .ok_or(Error::Invalid)
     }
@@ -251,9 +251,8 @@ impl<const N: usize> PreparedDiscardInventory<N> {
     }
 
     pub fn file(&self, name: &str) -> Result<&HeldRegularFile, Error> {
-        self.names[..self.attached]
-            .iter()
-            .position(|candidate| *candidate == OsStr::new(name))
+        (0..self.attached)
+            .find(|index| self.names.get(*index) == OsStr::new(name))
             .and_then(|index| self.files[index].as_ref())
             .ok_or(Error::Changed)
     }

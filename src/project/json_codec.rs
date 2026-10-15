@@ -8,6 +8,10 @@ mod nested_request;
 mod nested_response;
 mod owned;
 mod plan;
+mod plan_input;
+pub use plan_input::decode_json_codec_plan;
+mod profile_selector;
+pub use profile_selector::{parse_json_codec_profile, parse_json_codec_bound};
 pub use plan::{
     derive_json_codec_plan, verify_json_codec_plan, JsonCodecBundle, JsonCodecBundleSource,
     JsonCodecEntryReceipt, JsonCodecPlanEntry,

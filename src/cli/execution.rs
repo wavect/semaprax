@@ -26,6 +26,7 @@ pub(crate) struct ExecutionOptions {
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub(crate) struct NativeTestLimits {
+    pub(crate) collection_record_pure: bool,
     pub(crate) diagnostic_timing: bool,
     pub(crate) timeout_ms: u64,
     pub(crate) max_output_bytes: usize,
@@ -203,7 +204,10 @@ fn parse(args: &[String], command: &str, allow_source: bool) -> Result<Execution
             }
             "--target" if command == "test" && target.is_none() => {
                 let value = option_value(args, index, command, argument)?;
-                if !matches!(value, "native" | "interpreter") {
+                if !matches!(
+                    value,
+                    "native" | "interpreter" | "native-collection-record-pure.v1"
+                ) {
                     eprintln!("test option `--target` requires native or interpreter");
                     return Err(2);
                 }
@@ -321,9 +325,16 @@ fn parse(args: &[String], command: &str, allow_source: bool) -> Result<Execution
         );
         return Err(2);
     }
-    let native_test = if target.as_deref() == Some("native") {
+    let native_test = if matches!(
+        target.as_deref(),
+        Some("native" | "native-collection-record-pure.v1")
+    ) {
         if max_steps.is_some() || max_bytes.is_some() {
             eprintln!("native test cannot use interpreter --max-steps or --max-bytes");
+            return Err(2);
+        }
+        if native_timing && target.as_deref() == Some("native-collection-record-pure.v1") {
+            eprintln!("native-collection-record-pure.v1 does not admit diagnostic timing");
             return Err(2);
         }
         if native_timing && !json {
@@ -337,6 +348,7 @@ fn parse(args: &[String], command: &str, allow_source: bool) -> Result<Execution
             return Err(2);
         }
         Some(NativeTestLimits {
+            collection_record_pure: target.as_deref() == Some("native-collection-record-pure.v1"),
             diagnostic_timing: native_timing,
             timeout_ms,
             max_output_bytes,
@@ -583,6 +595,7 @@ mod tests {
         assert_eq!(
             options.native_test,
             Some(NativeTestLimits {
+                collection_record_pure: false,
                 diagnostic_timing: false,
                 timeout_ms: 25,
                 max_output_bytes: 1024,
@@ -593,6 +606,7 @@ mod tests {
                 .unwrap()
                 .native_test,
             Some(NativeTestLimits {
+                collection_record_pure: false,
                 diagnostic_timing: false,
                 timeout_ms: 10_000,
                 max_output_bytes: 65_536
@@ -641,5 +655,52 @@ mod tests {
             assert!(parse_test(&strings(arguments)).is_err());
         }
         assert!(parse_run(&strings(&["--json", "--native-timing"])).is_err());
+    }
+    #[test]
+    fn collection_record_native_test_successor_requires_explicit_closed_selection() {
+        let selected = parse_test(&strings(&[
+            ".",
+            "--target",
+            "native-collection-record-pure.v1",
+            "--json",
+        ]))
+        .unwrap();
+        assert!(selected.native_test.unwrap().collection_record_pure);
+        assert!(
+            !parse_test(&strings(&[".", "--target", "native"]))
+                .unwrap()
+                .native_test
+                .unwrap()
+                .collection_record_pure
+        );
+        for arguments in [
+            &["--target", "native-collection-record-pure.v2"][..],
+            &[
+                "--target",
+                "native-collection-record-pure.v1",
+                "--json",
+                "--native-timing",
+            ][..],
+            &[
+                "--target",
+                "native-collection-record-pure.v1",
+                "--max-steps",
+                "10",
+            ][..],
+            &[
+                "--target",
+                "native-collection-record-pure.v1",
+                "--max-bytes",
+                "10",
+            ][..],
+            &[
+                "--target",
+                "native-collection-record-pure.v1",
+                "--target",
+                "native",
+            ][..],
+        ] {
+            assert!(parse_test(&strings(arguments)).is_err());
+        }
     }
 }

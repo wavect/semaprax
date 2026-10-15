@@ -251,7 +251,11 @@ fn general_windows_matrix_binds_the_same_explicit_nested_cargo_linker() {
 
 #[test]
 fn archive_failures_without_settlement_evidence_are_fail_stop() {
-    let platform = read("crates/semaprax-native-rust-interop-platform/src/lib.rs");
+    let platform = [
+        read("crates/semaprax-native-rust-interop-platform/src/lib.rs"),
+        read("crates/semaprax-native-rust-interop-platform/src/inventory_names.rs"),
+    ]
+    .join("\n");
     let legacy = platform
         .split("#[cfg(not(target_os = \"macos\"))]")
         .nth(1)

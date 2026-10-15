@@ -1,0 +1,76 @@
+{
+  "raw": {
+    "source_head": "f272b594b6bb4079ca728dd613c0e61711320a9d",
+    "exit_code": -15,
+    "wall_seconds": 160.81370695900114,
+    "executed_test_bodies": 0,
+    "phases": [
+      {
+        "resource_refusal": "system memory free below15percent",
+        "peak_process_group_rss_bytes": 4693327872,
+        "group_settlement": {
+          "owned_pgid": 14509,
+          "confirmed_empty": false,
+          "signals": [
+            15
+          ],
+          "operation_failures": [
+            {
+              "operation": "killpg",
+              "signal": 9,
+              "error_type": "PermissionError",
+              "errno": 1
+            }
+          ],
+          "observation_errors": [
+            "PermissionError: [Errno 1] Operation not permitted"
+          ],
+          "resource_refusal": "system memory free below15percent",
+          "finished": 94503.908762541
+        }
+      }
+    ]
+  },
+  "gzip": {
+    "source_head": "29750ef89f6823e8c8b0fde330342f585762bfb5",
+    "exit_code": 130,
+    "wall_seconds": 40.397154291000334,
+    "executed_test_bodies": 0,
+    "phases": [
+      {
+        "resource_refusal": "memory watchdog observation failed: KeyboardInterrupt",
+        "peak_process_group_rss_bytes": 3048652800,
+        "group_settlement": {
+          "owned_pgid": 23124,
+          "confirmed_empty": false,
+          "signals": [
+            15
+          ],
+          "operation_failures": [
+            {
+              "operation": "killpg",
+              "signal": 9,
+              "error_type": "PermissionError",
+              "errno": 1
+            },
+            {
+              "operation": "membership",
+              "error_type": "ObservationError",
+              "errno": null
+            }
+          ],
+          "observation_errors": [
+            "PermissionError: [Errno 1] Operation not permitted",
+            "ObservationError: command observation failed: TimeoutExpired"
+          ],
+          "resource_refusal": "memory watchdog observation failed: KeyboardInterrupt",
+          "finished": 94607.057537916
+        }
+      }
+    ]
+  },
+  "state": "BOTH_ACTUAL_ATTEMPTS_RESOURCE_REFUSED_NOT_SUCCESSFUL_COMPARISON",
+  "gain_claim": false,
+  "pins_changed": false,
+  "all_original_receipts_unchanged": true
+}

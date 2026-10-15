@@ -1,0 +1,10 @@
+{
+  "time_unix": 1792084472.29098,
+  "fresh_group_rows": {
+    "14509": [],
+    "23124": []
+  },
+  "original_unconfirmed_receipts_preserved": true,
+  "fresh_empty": true,
+  "later_observation_does_not_rewrite_attempt_receipts": true
+}

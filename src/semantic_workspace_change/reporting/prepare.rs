@@ -112,9 +112,11 @@ pub(super) fn prepare_owned_typed(
         candidate_builder_limit,
     )
     .map_err(|failure| {
-        failure.map_legacy(|diagnostics| {
-            map_change_builder_limit(diagnostics, candidate_builder_limit)
-        })
+        failure.map_change_limit(
+            candidate_builder_limit,
+            semantic_workspace::MAX_CHANGE_BUILDER_BYTES,
+            |diagnostics| map_change_builder_limit(diagnostics, candidate_builder_limit),
+        )
     })?;
     if candidate.path_set() != paths || candidate.files().len() != base_files.len() {
         return Err((replay(

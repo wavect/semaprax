@@ -1,0 +1,46 @@
+[
+  {
+    "source": "src/bounded_output/format_acceptance.rs",
+    "sha256": "9de222661015b47b97bb385c6f19f09a024a8a223563845c263d838455f2944a"
+  },
+  {
+    "source": "src/bounded_output/format_acceptance/tests.rs",
+    "sha256": "4cd75f6044cc86589c9981a1551df70b8a668011032fc12a81f2104fad285b28"
+  },
+  {
+    "source": "src/workspace_graph/diagnostics/initial.rs",
+    "sha256": "df584b70cdd1bdeb64da46bc97cfe2b9ec6d004c18d2c620a2f357468e708d4d"
+  },
+  {
+    "source": "src/workspace_graph/diagnostics/initial/context.rs",
+    "sha256": "abc5326b34bea48c77434423a92134be481cbcf4008f28346e1c1dac1a26c4ed"
+  },
+  {
+    "source": "src/workspace_graph/diagnostics/initial/tests.rs",
+    "sha256": "c5e4726c39d048ac91df734faff69d8a62cac3b690e26198e6e23c0a002d1c3f"
+  },
+  {
+    "source": "src/workspace_graph/initial_report.rs",
+    "sha256": "4561e56ae34b8620fbfd6e78c5548bc4b4450a66e0010bb7f2ba531f62454165"
+  },
+  {
+    "source": "src/workspace_graph/initial_report/before.rs",
+    "sha256": "5c7f71670fb7bfb0ffd77071fcfa60c24230692e310644ce47263a59d43ab87f"
+  },
+  {
+    "source": "src/workspace_graph/initial_report/before_mappers.rs",
+    "sha256": "d736b5a92caa2a355e5fa1a2112469297272afd673b704c4195224e782eb3e1d"
+  },
+  {
+    "source": "src/workspace_graph/initial_report/build.rs",
+    "sha256": "607af6cab243e1970aed326c8dc7ce7c211ffe902f4e425467599538aef013d1"
+  },
+  {
+    "source": "src/workspace_graph/initial_report/tests.rs",
+    "sha256": "52afb2ca386cf27e4bd8bf2e70c46565539427a51b11a1cdded57b3762570971"
+  },
+  {
+    "source": "src/workspace_report/initial.rs",
+    "sha256": "d7fe22d57ea6189b591e469e3c9d13014a7f75469b63e15c3991a0171bb04d7d"
+  }
+]

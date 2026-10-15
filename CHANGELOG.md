@@ -2,6 +2,8 @@
      distinct cold callers; full old receiver retained; qualification pending. -->
 # Changelog
 
+- Author the sealed initial builder-report policy and actual typed CLI propagation (#845), provider-bound borrowed function aliases on the closed uncached route (#847), and a separate cached-prelude report acquisition observer (#796). Preserve original compatibility receivers, source assertions and unfunded output boundaries; executable qualification remains pending.
+
 - Check frozen v11 nested-record String refusal at descriptor derivation and replay, retaining array source refusal and adding an identical Bool-field positive control. Preserve the language's admitted String records.
 
 - Acquire the fixed 129-slot formatter hygiene pattern stack only for actual patterns, retaining the complete original dispatcher and source inverses. Add the unchanged 512-payload resolver source as a canonical-budget regression.
@@ -22,7 +24,7 @@
   the full host's working directory, retaining all held no-follow reads and
   prepublication rechecks. Add relative/absolute exact-byte and symlink-refusal
   controls; source-only until focused qualification.
-- Author the bounded #841 test-only compressed-evidence pilot, preserving the raw fixture and all whole-source assertions. Source-only byte round-trip is verified; Rust qualification and paired compile-memory measurement remain pending.
+- Complete the #841 raw/gzip fixture experiment and restore the exact tested raw-arm default after gzip showed higher observed group RSS (5,930,647,552 versus 5,249,531,904 bytes). Preserve both actual arms, all decoder/source controls and the small artifact-size benefit; order/cache limitations prevent a causal speed claim, and no RAM or token saving is claimed. The integrated raw-default successor remains source-only until focused qualification.
 
 - Bind fresh application plan/activation reads (#837) to the existing no-follow bounded held regular-file owner, closing inspection/open symlink and FIFO replacement races. Add deterministic pre-open swap controls and small independent typed native-test selector owners. Source-only correction; execution remains pending.
 

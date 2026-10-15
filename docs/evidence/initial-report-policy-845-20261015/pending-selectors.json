@@ -1,0 +1,72 @@
+[
+  {
+    "package": "semaprax",
+    "harness": "lib",
+    "selector": "bounded_output::format_acceptance::tests::complete_field_and_partial_debits_match_original_formatter_at_each_byte",
+    "source": "src/bounded_output/format_acceptance/tests.rs",
+    "why": "direct initial-report policy owning control; source-only pending execution"
+  },
+  {
+    "package": "semaprax",
+    "harness": "lib",
+    "selector": "bounded_output::format_acceptance::tests::joined_fields_keep_three_original_writes_and_complete_empty_is_not_failure",
+    "source": "src/bounded_output/format_acceptance/tests.rs",
+    "why": "direct initial-report policy owning control; source-only pending execution"
+  },
+  {
+    "package": "semaprax",
+    "harness": "lib",
+    "selector": "workspace_graph::diagnostics::initial::tests::every_help_branch_matches_all_six_fields_and_partial_parent_receipts",
+    "source": "src/workspace_graph/diagnostics/initial/tests.rs",
+    "why": "direct initial-report policy owning control; source-only pending execution"
+  },
+  {
+    "package": "semaprax",
+    "harness": "lib",
+    "selector": "workspace_graph::diagnostics::initial::tests::moved_context_and_whole_drop_need_no_report_backing_or_clone",
+    "source": "src/workspace_graph/diagnostics/initial/tests.rs",
+    "why": "direct initial-report policy owning control; source-only pending execution"
+  },
+  {
+    "package": "semaprax",
+    "harness": "lib",
+    "selector": "workspace_graph::diagnostics::initial::tests::foreign_restored_tls_and_output_budgets_cannot_rewrite_captured_fields",
+    "source": "src/workspace_graph/diagnostics/initial/tests.rs",
+    "why": "direct initial-report policy owning control; source-only pending execution"
+  },
+  {
+    "package": "semaprax",
+    "harness": "lib",
+    "selector": "workspace_graph::initial_report::tests::actual_initial_attempt_then_typed_policy_removes_only_real_report_allocation",
+    "source": "src/workspace_graph/initial_report/tests.rs",
+    "why": "direct initial-report policy owning control; source-only pending execution"
+  },
+  {
+    "package": "semaprax",
+    "harness": "lib",
+    "selector": "workspace_graph::initial_report::tests::actual_mapper_contexts_keep_all_fields_and_original_empty_comparison_asymmetry",
+    "source": "src/workspace_graph/initial_report/tests.rs",
+    "why": "direct initial-report policy owning control; source-only pending execution"
+  },
+  {
+    "package": "semaprax",
+    "harness": "lib",
+    "selector": "workspace_graph::initial_report::tests::complete_independent_old_builder_and_real_typed_entry_keep_success_and_failures",
+    "source": "src/workspace_graph/initial_report/tests.rs",
+    "why": "direct initial-report policy owning control; source-only pending execution"
+  },
+  {
+    "package": "semaprax",
+    "harness": "lib",
+    "selector": "workspace_graph::initial_report::tests::later_legacy_many_and_unreceived_owners_are_never_reclassified_as_paid",
+    "source": "src/workspace_graph/initial_report/tests.rs",
+    "why": "direct initial-report policy owning control; source-only pending execution"
+  },
+  {
+    "package": "semaprax",
+    "harness": "lib",
+    "selector": "workspace_graph::initial_report::tests::complete_original_builder_mappers_and_all_current_owners_remain_authenticated",
+    "source": "src/workspace_graph/initial_report/tests.rs",
+    "why": "direct initial-report policy owning control; source-only pending execution"
+  }
+]

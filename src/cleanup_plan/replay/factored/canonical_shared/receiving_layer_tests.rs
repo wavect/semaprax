@@ -247,6 +247,8 @@ fn branch_closed_full_current_sources_restore_every_immediate_e93f_byte() {
     ];
     assert_eq!(rows.as_array().unwrap().len(), sources.len());
     for ((path, current, original), row) in sources.into_iter().zip(rows.as_array().unwrap()) {
+        let current_view = crate::source_reflows_merge::branch_closed831_input(path, current);
+        let current = current_view.as_str();
         assert_eq!(row["source"], path);
         assert_eq!(
             row["current_sha256"],

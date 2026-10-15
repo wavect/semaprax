@@ -1,0 +1,13 @@
+{
+  "status": "SOURCE_ONLY_DEFAULT_CHANGE_NOT_EXECUTED",
+  "new_test_bodies": 0,
+  "required_existing": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::selected_context::child::tests::source::finite_child_cut_sources_and_complete_old_receivers_stay_exact"
+    }
+  ],
+  "raw_arm_original_source": "57e1485ca695771d0f381ce20f4d740ee98f2b86",
+  "no_second_raw_gzip_build_requested": true
+}

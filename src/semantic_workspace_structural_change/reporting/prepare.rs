@@ -32,9 +32,12 @@ pub(super) fn prepare_owned_with_limit_typed(
         candidate_builder_limit,
     )
     .map_err(|failure| {
-        failure.map_legacy(|diagnostics| {
-            map_candidate_builder_limit(diagnostics, candidate_builder_limit)
-        })
+        failure.map_structural_limit(
+            candidate_builder_limit,
+            MAX_CANDIDATE_GRAPH_BUILDER_BYTES,
+            MAX_ANALYSIS_BUILDER_BYTES,
+            |diagnostics| map_candidate_builder_limit(diagnostics, candidate_builder_limit),
+        )
     })?;
     if candidate.path_set() != candidate_paths || candidate.files().len() != candidate_paths.len() {
         return Err((replay()).into());

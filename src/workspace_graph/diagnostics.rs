@@ -340,3 +340,5 @@ mod borrowed_help_tests;
 
 #[cfg(test)]
 pub(super) mod constructor_report_before;
+
+pub(in crate::workspace_graph) mod initial;

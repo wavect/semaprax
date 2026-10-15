@@ -822,8 +822,8 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             }
             let root = required_path(&args, 1)?;
             let proposal = required_path(&args, 2)?;
-            let output = semantic_workspace_change::preview(&root, &proposal)
-                .map_err(|errors| report(&errors, false))?;
+            let output = semantic_workspace_change::reporting::preview(&root, &proposal)
+                .map_err(|failure| report_workspace(&failure, false))?;
             print!("{output}");
             Ok(())
         }
@@ -836,8 +836,8 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             }
             let root = required_path(&args, 1)?;
             let proposal = required_path(&args, 2)?;
-            let output = semantic_workspace_change::evidence(&root, &proposal)
-                .map_err(|errors| report(&errors, false))?;
+            let output = semantic_workspace_change::reporting::evidence(&root, &proposal)
+                .map_err(|failure| report_workspace(&failure, false))?;
             print!("{output}");
             Ok(())
         }
@@ -851,8 +851,8 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             let root = required_path(&args, 1)?;
             let proposal = required_path(&args, 2)?;
             let evidence = required_path(&args, 3)?;
-            let receipt = semantic_workspace_change::verify(&root, &proposal, &evidence)
-                .map_err(|errors| report(&errors, false))?;
+            let receipt = semantic_workspace_change::reporting::verify(&root, &proposal, &evidence)
+                .map_err(|failure| report_workspace(&failure, false))?;
             print!("{receipt}");
             Ok(())
         }
@@ -866,8 +866,8 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             let root = required_path(&args, 1)?;
             let proposal = required_path(&args, 2)?;
             let evidence = required_path(&args, 3)?;
-            let receipt = semantic_workspace_change::apply(&root, &proposal, &evidence)
-                .map_err(|errors| report(&errors, false))?;
+            let receipt = semantic_workspace_change::reporting::apply(&root, &proposal, &evidence)
+                .map_err(|failure| report_workspace(&failure, false))?;
             print!("{receipt}");
             Ok(())
         }
@@ -880,8 +880,8 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             }
             let root = required_path(&args, 1)?;
             let proposal = required_path(&args, 2)?;
-            let output = semantic_workspace_structural_change::preview(&root, &proposal)
-                .map_err(|errors| report(&errors, false))?;
+            let output = semantic_workspace_structural_change::reporting::preview(&root, &proposal)
+                .map_err(|failure| report_workspace(&failure, false))?;
             print!("{output}");
             Ok(())
         }
@@ -894,8 +894,9 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             }
             let root = required_path(&args, 1)?;
             let proposal = required_path(&args, 2)?;
-            let output = semantic_workspace_structural_change::evidence(&root, &proposal)
-                .map_err(|errors| report(&errors, false))?;
+            let output =
+                semantic_workspace_structural_change::reporting::evidence(&root, &proposal)
+                    .map_err(|failure| report_workspace(&failure, false))?;
             print!("{output}");
             Ok(())
         }
@@ -909,8 +910,10 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             let root = required_path(&args, 1)?;
             let proposal = required_path(&args, 2)?;
             let evidence = required_path(&args, 3)?;
-            let receipt = semantic_workspace_structural_change::verify(&root, &proposal, &evidence)
-                .map_err(|errors| report(&errors, false))?;
+            let receipt = semantic_workspace_structural_change::reporting::verify(
+                &root, &proposal, &evidence,
+            )
+            .map_err(|failure| report_workspace(&failure, false))?;
             print!("{receipt}");
             Ok(())
         }
@@ -924,8 +927,9 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             let root = required_path(&args, 1)?;
             let proposal = required_path(&args, 2)?;
             let evidence = required_path(&args, 3)?;
-            let receipt = semantic_workspace_structural_change::apply(&root, &proposal, &evidence)
-                .map_err(|errors| report(&errors, false))?;
+            let receipt =
+                semantic_workspace_structural_change::reporting::apply(&root, &proposal, &evidence)
+                    .map_err(|failure| report_workspace(&failure, false))?;
             print!("{receipt}");
             Ok(())
         }
@@ -938,8 +942,8 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             }
             let root = required_path(&args, 1)?;
             let proposal = required_path(&args, 2)?;
-            let output = semantic_workspace_operations::derivation(&root, &proposal)
-                .map_err(|errors| report(&errors, false))?;
+            let output = semantic_workspace_operations::reporting::derivation(&root, &proposal)
+                .map_err(|failure| report_workspace(&failure, false))?;
             print!("{output}");
             Ok(())
         }
@@ -952,8 +956,9 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             }
             let root = required_path(&args, 1)?;
             let proposal = required_path(&args, 2)?;
-            let output = semantic_workspace_operations::derived_change_proposal(&root, &proposal)
-                .map_err(|errors| report(&errors, false))?;
+            let output =
+                semantic_workspace_operations::reporting::derived_change_proposal(&root, &proposal)
+                    .map_err(|failure| report_workspace(&failure, false))?;
             print!("{output}");
             Ok(())
         }
@@ -966,8 +971,8 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             }
             let root = required_path(&args, 1)?;
             let proposal = required_path(&args, 2)?;
-            let output = semantic_workspace_operations::evidence(&root, &proposal)
-                .map_err(|errors| report(&errors, false))?;
+            let output = semantic_workspace_operations::reporting::evidence(&root, &proposal)
+                .map_err(|failure| report_workspace(&failure, false))?;
             print!("{output}");
             Ok(())
         }
@@ -981,8 +986,9 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             let root = required_path(&args, 1)?;
             let proposal = required_path(&args, 2)?;
             let evidence = required_path(&args, 3)?;
-            let output = semantic_workspace_operations::verify(&root, &proposal, &evidence)
-                .map_err(|errors| report(&errors, false))?;
+            let output =
+                semantic_workspace_operations::reporting::verify(&root, &proposal, &evidence)
+                    .map_err(|failure| report_workspace(&failure, false))?;
             print!("{output}");
             Ok(())
         }
@@ -996,8 +1002,9 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             let root = required_path(&args, 1)?;
             let proposal = required_path(&args, 2)?;
             let evidence = required_path(&args, 3)?;
-            let output = semantic_workspace_operations::apply(&root, &proposal, &evidence)
-                .map_err(|errors| report(&errors, false))?;
+            let output =
+                semantic_workspace_operations::reporting::apply(&root, &proposal, &evidence)
+                    .map_err(|failure| report_workspace(&failure, false))?;
             print!("{output}");
             Ok(())
         }

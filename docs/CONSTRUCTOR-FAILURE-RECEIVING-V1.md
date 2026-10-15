@@ -57,3 +57,28 @@ Typed helper entries reserve their complete returned Result and borrowed receivi
 Semantic One still moves through the original slot and keeps all six selected fields even after a secondary sticky/detached association. A typed Budget moves inline to the existing attempt owner, which seals its original first receipt while the child is ACTIVE. No diagnostic/Vec formatting occurs at that propagation step. Complete previous helpers remain compiled under cfg(test), with whole-source inverses retaining their unchanged bodies. Existing G171 dynamic compatibility remains independent.
 
 This does not complete OPT825: registry, structural census/cost, layout, alias/type rewriting and provider-internal diagnostic producers still have legacy return ownership. Many keeps its real prior backing without paid reclassification. The public/no-owner outward Vec adapter remains explicitly allocating; no additive externally adopted typed outward API is claimed. New controls and source proofs require grouped compiler/runtime qualification before any funding claim.
+
+
+## Typed overlay directory successor
+
+The actual typed overlay's type, combined type-index and function directories
+now borrow its original affine Receiver. Each helper pays the complete returned
+Result, Vec initializer, count, checked Layout/result controls and complete exact
+backing before acquisition. The GeneratedRoots initializer is paid before its
+first directory is built. Empty directories retain those real control charges.
+No legacy charge is credited or refunded; unchanged caps can refuse earlier.
+
+A denied reservation returns typed Setup through the existing core and original
+attempt owner without creating a Diagnostic or error Vec. Checked layout or
+physical capacity failure authenticates that same owner and uses its inherited
+maximum-size physical refusal. The first setup remains sticky across retries and
+foreign/restored associations. The complete original directory helper and both
+old overlay receivers remain independently compiled and unchanged.
+
+Private source-authored controls compare exact-count contents/capacity and whole
+Drop, every byte frontier including zero/exact/short, no allocation after selected
+refusal, foreign/restored association, oversized layout, three live call sites and
+complete immediate source inverses. They have not run. Structural-cost/census,
+checked count arithmetic, registry/layout derivation, rewrite/provider and
+public/no-owner outward producers remain explicit residuals. This successor makes
+no runtime, savings, application-fit or whole-constructor funding claim.

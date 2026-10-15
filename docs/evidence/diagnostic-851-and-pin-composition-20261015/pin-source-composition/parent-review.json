@@ -1,0 +1,12 @@
+{
+  "status": "SOURCE_ONLY_REVIEWED_NOT_CURRENT_PIN_QUALIFICATION",
+  "observed_root": "85142274c2f3e73bc1a4e5150672150c4d17d95f",
+  "historical_replay_capture": "d4cab900edac07fdcc4de0cdcb1bf3daafbef5ef",
+  "successor_helper_sha256": "1beb232ee52729d8980580274f7bd4089942a9f6d08499180a8833937a7c97c2",
+  "outside_changed_block_exact": true,
+  "old_manifest_unchanged": true,
+  "all_107_original_inverse_edits_retained": true,
+  "new_runtime_execution": false,
+  "pin_apply": false,
+  "required_next_step": "Fresh final-source actual producer capture and strict readonly validation; then invoke successor compositor with immutable391 checkpoint and run actual exact pin consumers if a pin moves."
+}

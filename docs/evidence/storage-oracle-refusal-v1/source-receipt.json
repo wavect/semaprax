@@ -1,0 +1,8 @@
+{
+  "before_commit": "83f069e4c9500bc9bac7e0f3a1ba86f7dbef9c8d",
+  "complete_original_sha256": "c946aa0786e0ec977aeb233ad8b12cf186076d2e3352dcad201377bb18f7a7ca",
+  "complete_original_compiled_receiver": "src/cleanup_plan/replay/factored/continuation_receiver/before.rs",
+  "only_removed_old_registration": "#[cfg(test)]\nmod tests;\n",
+  "exact_source_inverse_changes": 4,
+  "qualification": "source inverse checked; full real-HIR funded/refusal tests authored and pending hosted execution"
+}

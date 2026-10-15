@@ -5,6 +5,109 @@ const SOURCE: &str = "module receiving; @id(\"f\") fn f()->i64 {let x=if 1==1 {2
 fn program() -> ResolvedProgram {
     crate::hir::resolve(&crate::check(SOURCE, "continuation-receiving.spx").unwrap()).unwrap()
 }
+
+#[test]
+fn complete_storage_backed_comparison_pairs_keep_the_original_funded_verdict() {
+    let program = program();
+    let (((), allocation), refused, paid, first) = with_limit_usage_refusal(usize::MAX, || {
+        measure(|| {
+            for function in &program.functions {
+                let mut old_budget = ReplayBudget::new();
+                let mut budget = ReplayBudget::new();
+                let mut old =
+                    continuation_storage::Storage::for_program(&program, &mut old_budget).unwrap();
+                let mut current =
+                    continuation_storage::Storage::for_program(&program, &mut budget).unwrap();
+                assert!(old.has_receiving_owner() && current.has_receiving_owner());
+                old.authenticate(&program, function, &mut old_budget)
+                    .unwrap();
+                current
+                    .authenticate(&program, function, &mut budget)
+                    .unwrap();
+                let saved = SKELETON_MATERIALIZATIONS.with(Cell::get);
+                before::cross_check(&program, function, &mut old);
+                assert_eq!(SKELETON_MATERIALIZATIONS.with(Cell::get), saved);
+                super::cross_check(&program, function, &mut current).unwrap();
+                assert_eq!(SKELETON_MATERIALIZATIONS.with(Cell::get), saved);
+                drop(old);
+                drop(current);
+                drop(old_budget);
+                drop(budget);
+            }
+        })
+    });
+    assert!(!refused && first.is_none());
+    assert!(!allocation.invalid && allocation.live == 0);
+    assert_eq!(allocation.allocated, allocation.freed);
+    assert!(allocation.allocated <= paid);
+}
+
+#[test]
+fn complete_cross_check_returns_refusal_at_zero_and_one_short_without_losing_the_counter() {
+    let program = program();
+    let observe = |limit| {
+        with_limit_usage_refusal(limit, || {
+            measure(|| {
+                let function = &program.functions[0];
+                let saved = SKELETON_MATERIALIZATIONS.with(Cell::get);
+                let mut budget = ReplayBudget::new();
+                let mut storage =
+                    match continuation_storage::Storage::for_program(&program, &mut budget) {
+                        Ok(storage) => storage,
+                        Err(error) => {
+                            assert_eq!(error.code, "SPX-H006");
+                            assert!(crate::bounded_output::active_refused());
+                            drop(error);
+                            return false;
+                        }
+                    };
+                assert!(storage.has_receiving_owner());
+                let result = oracle_hook::cross_check_with_storage(
+                    &program,
+                    function,
+                    &mut budget,
+                    Some(&mut storage),
+                );
+                assert_eq!(SKELETON_MATERIALIZATIONS.with(Cell::get), saved);
+                if let Err(error) = &result {
+                    assert_eq!(error.code, "SPX-H006");
+                    assert!(crate::bounded_output::active_refused());
+                    assert_eq!(
+                        (error.path.as_ref(), error.span, error.help.as_ref()),
+                        (None, None, None)
+                    );
+                }
+                let success = result.is_ok();
+                drop(result);
+                drop(storage);
+                drop(budget);
+                success
+            })
+        })
+    };
+    let ((success, allocation), refused, exact, first) = observe(usize::MAX);
+    assert!(success && !refused && first.is_none());
+    assert!(!allocation.invalid && allocation.live == 0);
+    assert_eq!(allocation.allocated, allocation.freed);
+    assert!(allocation.allocated <= exact);
+    assert!(exact > 0);
+    for limit in [0, exact - 1, exact] {
+        let ((success, allocation), refused, paid, first) = observe(limit);
+        assert!(!allocation.invalid && allocation.live == 0);
+        assert_eq!(allocation.allocated, allocation.freed);
+        assert!(allocation.allocated <= paid);
+        if limit == exact {
+            assert!(success && !refused && first.is_none());
+            assert_eq!(paid, exact);
+        } else {
+            assert!(!success && refused && first.is_some());
+            if limit == 0 {
+                assert_eq!(allocation.allocated, 0);
+            }
+        }
+    }
+}
+
 #[test]
 fn whole_original_and_current_comparison_pairs_execute_with_paid_last_drop() {
     let program = program();
@@ -287,4 +390,38 @@ fn foreign_then_restored_invocation_cannot_acquire_or_reuse_held_frames() {
         assert!(!allocation.invalid && allocation.live == 0);
         assert_eq!(allocation.allocated, allocation.freed);
     }
+}
+
+#[test]
+fn complete_prior_receiver_and_funded_disagreement_assertion_remain_byte_exact() {
+    use sha2::{Digest, Sha256};
+    let original = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/storage-oracle-refusal-v1/continuation_receiver.before.rs.txt"
+    ));
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))
+        ),
+        "c946aa0786e0ec977aeb233ad8b12cf186076d2e3352dcad201377bb18f7a7ca"
+    );
+    let before = include_str!("before.rs");
+    assert_eq!(
+        before,
+        original.strip_suffix("#[cfg(test)]\nmod tests;\n").unwrap()
+    );
+    let changes = [
+        (") -> Result<(), Diagnostic> {", ") {"),
+        ("        let verdict =\n            match compare_with_index_storage(program, function, &mut factored, None, Some(storage))\n            {\n                // A refused ledger cannot finance a verdict. Preserve the exact\n                // error and let the caller report its sticky builder refusal.\n                Err(error) if crate::bounded_output::active_refused() => {\n                    SKELETON_MATERIALIZATIONS.with(|count| count.set(saved));\n                    return Err(error);\n                }\n                verdict => verdict,\n            };\n", "        let verdict =\n            compare_with_index_storage(program, function, &mut factored, None, Some(storage));\n"),
+        ("    Ok(())\n", ""),
+        ("#[cfg(test)]\nmod before;\n", ""),
+
+    ];
+    let mut restored = include_str!("../continuation_receiver.rs").to_owned();
+    for (new, previous) in changes {
+        assert_eq!(restored.matches(new).count(), 1);
+        restored = restored.replacen(new, previous, 1);
+    }
+    assert_eq!(restored, original);
 }

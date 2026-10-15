@@ -231,7 +231,9 @@ fn a_twenty_one_kilobyte_workspace_fits_the_production_builder_budget() {
         bytes >= 21 * 1024,
         "fixture must exceed twenty-one kilobytes, got {bytes}"
     );
-    assert!(build_owned_with_builder_limit(sources, MAX_BUILDER_BYTES).is_ok());
+    if let Err(error) = build_owned_with_builder_limit(sources, MAX_BUILDER_BYTES) {
+        panic!("the unchanged twenty-one-kilobyte fixture exceeds its builder budget: {error:?}");
+    }
 }
 
 /// Issue #83. The pre-bound stays a refusal, not an advisory: a workspace the

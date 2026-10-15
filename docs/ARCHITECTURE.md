@@ -4841,6 +4841,14 @@ known leaves and exact cache hits retain the existing payer's sticky zero-byte
 check. Complete original receivers and the fixed builder cap remain. The bounded
 contract and pending qualification are in [HIR final-validation scratch v1](HIR-FINAL-VALIDATION-SCRATCH-V1.md).
 
+`cleanup_plan/renewal_profile/ordinary/record_presence.rs` owns the phase-local
+explicit-record predicate. The ordinary module-index factory pays its complete
+ordered declaration prefix once; consuming collectors authenticate the exact
+immutable declaration index before reuse and retain their full body checks.
+The legacy collector still performs its original prefix. This removes repeated
+discovery work within the existing allowance; it supplies no ownership or
+runtime authority.
+
 Late Agent identity construction lives in `hir/resolve_program/agent_identity`.
 Both the explicit and ordinary analyzed resolver thread their existing identity
 owner through this helper after the original function lowering and metadata

@@ -288,6 +288,7 @@ fn skeleton_materializations() -> usize {
     SKELETON_MATERIALIZATIONS.with(Cell::get)
 }
 
+#[track_caller]
 fn skeleton_clone<T: Clone + ClonePayload>(
     budget: &mut ReplayBudget,
     function: &ResolvedFunction,
@@ -300,6 +301,7 @@ fn skeleton_clone<T: Clone + ClonePayload>(
     Ok(value.clone())
 }
 
+#[track_caller]
 fn skeleton_push<T>(
     budget: &mut ReplayBudget,
     function: &ResolvedFunction,
@@ -319,6 +321,7 @@ fn skeleton_push<T>(
     Ok(())
 }
 
+#[track_caller]
 fn skeleton_queue_push<T>(
     budget: &mut ReplayBudget,
     function: &ResolvedFunction,

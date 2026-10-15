@@ -5,7 +5,9 @@ mod debug_contains;
 mod iterator;
 mod iterator_shape;
 mod leaf;
+mod record_presence;
 mod scratch;
+pub(crate) use record_presence::RecordPresence;
 pub(crate) mod sort;
 mod validation;
 mod vector;
@@ -92,8 +94,9 @@ impl<'a> Directory<'a> {
         if !helpers.matches_program(program) {
             return admission.refuse(Refusal::Subject);
         }
-        Self::collect_impl(program, function, helpers, admission, true)
+        Self::collect_impl(program, function, helpers, None, admission, true)
     }
+    #[cfg(test)]
     pub(crate) fn collect_current(
         member: CurrentMember<'a>,
         helpers: &crate::loop_calls::byte_writer::ModuleIndex<'a>,
@@ -103,12 +106,39 @@ impl<'a> Directory<'a> {
         if !helpers.matches_program(member.program) {
             return admission.refuse(Refusal::Subject);
         }
-        Self::collect_impl(member.program, member.function, helpers, admission, false)
+        Self::collect_impl(
+            member.program,
+            member.function,
+            helpers,
+            None,
+            admission,
+            false,
+        )
+    }
+    pub(crate) fn collect_current_with_presence(
+        member: CurrentMember<'a>,
+        helpers: &crate::loop_calls::byte_writer::ModuleIndex<'a>,
+        presence: &RecordPresence<'_>,
+        admission: &mut Admission<'_>,
+    ) -> Result<Self, Refusal> {
+        admission.units(1)?;
+        if !helpers.matches_program(member.program) {
+            return admission.refuse(Refusal::Subject);
+        }
+        Self::collect_impl(
+            member.program,
+            member.function,
+            helpers,
+            Some(presence),
+            admission,
+            false,
+        )
     }
     fn collect_impl(
         program: &'a ResolvedProgram,
         function: &'a ResolvedFunction,
         helpers: &crate::loop_calls::byte_writer::ModuleIndex<'a>,
+        presence: Option<&RecordPresence<'_>>,
         admission: &mut Admission<'_>,
         check_member: bool,
     ) -> Result<Self, Refusal> {
@@ -120,7 +150,12 @@ impl<'a> Directory<'a> {
             |output, admission| {
                 iterator::collect(program, function, output, admission)?;
                 vector::collect(program, function, output, admission)?;
-                consuming::collect(program, function, output, admission)?;
+                match presence {
+                    Some(presence) => consuming::collect_with_presence(
+                        program, function, output, presence, admission,
+                    )?,
+                    None => consuming::collect(program, function, output, admission)?,
+                }
                 leaf::collect(function, Family::ByteSet, output, admission)?;
                 leaf::collect(function, Family::String, output, admission)?;
                 let count = admission.arithmetic(

@@ -141,6 +141,28 @@ pub(super) fn collect<'a>(
     if !candidate {
         return Ok(());
     }
+    collect_body(program, function, output, admission)
+}
+
+pub(super) fn collect_with_presence<'a>(
+    program: &P,
+    function: &'a F,
+    output: &mut Scratch<Entry<'a>>,
+    presence: &super::RecordPresence<'_>,
+    admission: &mut Admission<'_>,
+) -> Result<(), Refusal> {
+    if !presence.get(&program.declarations, admission)? {
+        return Ok(());
+    }
+    collect_body(program, function, output, admission)
+}
+
+fn collect_body<'a>(
+    program: &P,
+    function: &'a F,
+    output: &mut Scratch<Entry<'a>>,
+    admission: &mut Admission<'_>,
+) -> Result<(), Refusal> {
     visit(&function.body, admission, |expression, admission| {
         let K::Block { statements, tail } = &expression.kind else {
             return Ok(());

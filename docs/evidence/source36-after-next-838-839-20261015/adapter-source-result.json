@@ -1,0 +1,11 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTED",
+  "named_views": 4,
+  "changed_view": "tests/hir_module_boundaries.rs",
+  "unchanged_prior_views": 3,
+  "active_source_inverses": 1,
+  "a_rs_unchanged_lines": 1500,
+  "b_rs_unchanged": true,
+  "old_artifacts_preserved": 32,
+  "original_runner_only_manifest_literal_adapted": true
+}

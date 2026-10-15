@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 pub(super) fn project(source: &str, current: &str) -> String {
     let rows: serde_json::Value = serde_json::from_str(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/docs/evidence/source36-after-23e8-20261015/source-projections.json"
+        "/docs/evidence/source36-after-next-838-839-20261015/source-projections.json"
     )))
     .expect("fixed current source projections");
     let rows = rows.as_array().expect("source projection array");

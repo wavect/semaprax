@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::identity_resolution::nominal_tests::legacy::public_legacy_nominal_postpass_keeps_full_hir_graph_cache_and_isolated_mutation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8872 filtered out; finished in 0.74s
+

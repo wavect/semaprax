@@ -1,0 +1,15 @@
+
+running 1 test
+test standard_library::application_json::nested_response::string_vectors::primitive_string_response_actual_item_and_byte_plus_one_refuse_before_publication ... 
+thread 'standard_library::application_json::nested_response::string_vectors::primitive_string_response_actual_item_and_byte_plus_one_refuse_before_publication' (4688692) panicked at tests/project/standard_library/application_json/nested_response/string_vectors.rs:137:6:
+called `Result::unwrap()` on an `Err` value: [Diagnostic { code: "SPX-G171", severity: Error, message: "Workspace Semantic Graph `builder_bytes` exceeds 67108864", path: None, span: None, help: Some("live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast 13020328 bytes for 12 module(s) and fit within 67108864, with `dependencies/std.data.json.doc/0.1.0/doc.spx` the largest at 4513912 bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound. resolved-core phase first sticky ledger refusal: requested 112 bytes with 16 remaining and 0 reserved floor. Authenticated internal stage: HIR final validation. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown.") }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    standard_library::application_json::nested_response::string_vectors::primitive_string_response_actual_item_and_byte_plus_one_refuse_before_publication
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 639 filtered out; finished in 1.36s
+

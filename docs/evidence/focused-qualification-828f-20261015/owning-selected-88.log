@@ -1,0 +1,16 @@
+
+running 1 test
+test hir::nominal_payload::legacy::tests::legacy_and_funded_explicit_mutation_refusal_never_falls_through_to_implicit_cow ... 
+thread 'hir::nominal_payload::legacy::tests::legacy_and_funded_explicit_mutation_refusal_never_falls_through_to_implicit_cow' (4721281) panicked at src/hir/nominal_payload.rs:231:35:
+shared nominal mutation requires try_make_mut
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'hir::nominal_payload::legacy::tests::legacy_and_funded_explicit_mutation_refusal_never_falls_through_to_implicit_cow' (4721281) panicked at src/hir/nominal_payload/map.rs:64:9:
+assertion failed: owner.is_shared()
+
+thread 'hir::nominal_payload::legacy::tests::legacy_and_funded_explicit_mutation_refusal_never_falls_through_to_implicit_cow' (4721281) panicked at src/hir/nominal_payload/map.rs:118:17:
+shared case-field mutation requires explicit paid materialization
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8872 filtered out; finished in 0.10s
+

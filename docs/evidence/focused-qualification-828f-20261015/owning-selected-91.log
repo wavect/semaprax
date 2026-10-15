@@ -1,0 +1,10 @@
+
+running 1 test
+test hir::identity_resolution::nominal_tests::legacy::complete_owned_baseline_and_public_legacy_sharing_report_real_allocation_and_drop ... legacy_nominal current=false first=false clone_allocated=22301 clone_peak=170564 before_and_reserved=(541060, 741746) full=Metrics { allocations: 1692, reallocations: 151, allocated: 563361, freed: 563361, live: 0, highwater: 170564, invalid: false }
+legacy_nominal current=false first=true clone_allocated=22301 clone_peak=170564 before_and_reserved=(541060, 741746) full=Metrics { allocations: 1692, reallocations: 151, allocated: 563361, freed: 563361, live: 0, highwater: 170564, invalid: false }
+legacy_nominal current=true first=false clone_allocated=19744 clone_peak=170260 before_and_reserved=(541316, 741746) full=Metrics { allocations: 1663, reallocations: 151, allocated: 561060, freed: 561060, live: 0, highwater: 170260, invalid: false }
+legacy_nominal current=true first=true clone_allocated=19744 clone_peak=170260 before_and_reserved=(541316, 741746) full=Metrics { allocations: 1663, reallocations: 151, allocated: 561060, freed: 561060, live: 0, highwater: 170260, invalid: false }
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8872 filtered out; finished in 0.02s
+

@@ -1,0 +1,6 @@
+
+running 1 test
+test cli_driver::cli::help::authoring::discovery::tests::existing_cards_are_discoverable_by_operation_identity_and_route ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 306 filtered out; finished in 0.00s
+

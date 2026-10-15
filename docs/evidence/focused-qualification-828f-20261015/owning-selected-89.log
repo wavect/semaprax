@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::nominal_payload::legacy::tests::legacy_512_owner_and_host_detached_payloads_keep_iterative_last_drop ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8872 filtered out; finished in 0.04s
+

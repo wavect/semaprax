@@ -1,0 +1,15 @@
+
+running 1 test
+test hir::resolve_statement::nested_byte_tests::nested_byte_source_lowering_bridge_resolves_and_independent_hir_replays ... 
+thread 'hir::resolve_statement::nested_byte_tests::nested_byte_source_lowering_bridge_resolves_and_independent_hir_replays' (4709414) panicked at src/hir/resolve_statement/nested_byte_tests.rs:128:41:
+called `Result::unwrap()` on an `Err` value: [Diagnostic { code: "SPX-H006", severity: Error, message: "borrowed byte traversal is nested in another traversal", path: None, span: None, help: None }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    hir::resolve_statement::nested_byte_tests::nested_byte_source_lowering_bridge_resolves_and_independent_hir_replays
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8872 filtered out; finished in 0.06s
+

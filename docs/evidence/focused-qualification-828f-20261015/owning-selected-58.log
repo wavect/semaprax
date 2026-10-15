@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::factored::canonical_shared::tests::exact_small_weighted_successor_capacity_and_requested_backing_are_paid_before_allocation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8872 filtered out; finished in 0.01s
+

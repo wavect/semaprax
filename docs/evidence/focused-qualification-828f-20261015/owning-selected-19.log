@@ -1,0 +1,15 @@
+
+running 1 test
+test byte_slice_for_runtime::nested::nested_byte_traversal_matches_manual_loop_on_interpreter_native_and_wasm ... 
+thread 'byte_slice_for_runtime::nested::nested_byte_traversal_matches_manual_loop_on_interpreter_native_and_wasm' (4691678) panicked at tests/useful_data/byte_slice_for_runtime/nested.rs:20:39:
+called `Result::unwrap()` on an `Err` value: [Diagnostic { code: "SPX-H006", severity: Error, message: "borrowed byte traversal is nested in another traversal", path: None, span: None, help: None }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    byte_slice_for_runtime::nested::nested_byte_traversal_matches_manual_loop_on_interpreter_native_and_wasm
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 198 filtered out; finished in 0.02s
+

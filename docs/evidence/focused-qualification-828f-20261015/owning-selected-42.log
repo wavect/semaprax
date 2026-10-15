@@ -1,0 +1,17 @@
+
+running 1 test
+test hir::declaration_index::linked_owned_data::tests::legacy::legacy_final_case_coordinates_and_detached_children_drop_512_without_new_backing ... 
+thread 'hir::declaration_index::linked_owned_data::tests::legacy::legacy_final_case_coordinates_and_detached_children_drop_512_without_new_backing' (4699749) panicked at src/hir/declaration_index/linked_owned_data/tests/legacy.rs:322:13:
+assertion `left == right` failed: complete last-owner Drop allocates nothing
+  left: 535701
+ right: 535509
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    hir::declaration_index::linked_owned_data::tests::legacy::legacy_final_case_coordinates_and_detached_children_drop_512_without_new_backing
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8872 filtered out; finished in 0.08s
+

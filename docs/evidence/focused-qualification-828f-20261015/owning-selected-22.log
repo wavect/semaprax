@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::identity_resolution::nominal_tests::legacy::legacy_postpass_keeps_full_original_diagnostics_before_any_canonicalization ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8872 filtered out; finished in 0.00s
+

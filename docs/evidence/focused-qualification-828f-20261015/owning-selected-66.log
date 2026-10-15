@@ -1,0 +1,15 @@
+
+running 1 test
+test hir::resolve_statement::nested_byte_tests::nested_byte_actual_resolver_keeps_ancestry_local_and_entry_scope_fixed ... 
+thread 'hir::resolve_statement::nested_byte_tests::nested_byte_actual_resolver_keeps_ancestry_local_and_entry_scope_fixed' (4709665) panicked at src/hir/resolve_statement/nested_byte_tests.rs:14:6:
+called `Result::unwrap()` on an `Err` value: Diagnostic { code: "SPX-P209", severity: Error, message: "code after an unconditional return is unreachable", path: Some("gate-nested.spx"), span: Some(Span { start: 152, end: 153, line: 1, column: 153 }), help: Some("remove the unreachable code or put it on a non-returning guard path") }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    hir::resolve_statement::nested_byte_tests::nested_byte_actual_resolver_keeps_ancestry_local_and_entry_scope_fixed
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8872 filtered out; finished in 0.06s
+

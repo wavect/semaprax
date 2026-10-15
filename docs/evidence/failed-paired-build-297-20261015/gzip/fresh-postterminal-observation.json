@@ -1,0 +1,88 @@
+{
+  "observed_unix": 1792084370.038112,
+  "owned_pgid": 23124,
+  "owned_rows": [],
+  "largest_rss": [
+    [
+      "23097",
+      "21896",
+      "18416",
+      "1954144",
+      "447960192",
+      "/Volumes/WavectStudio/toolchain/venvs/mlxaudio/bin/python"
+    ],
+    [
+      "71527",
+      "69987",
+      "71527",
+      "461888",
+      "441989920",
+      "claude"
+    ],
+    [
+      "18717",
+      "88734",
+      "88734",
+      "237520",
+      "436065984",
+      "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex"
+    ],
+    [
+      "18736",
+      "88734",
+      "88734",
+      "233776",
+      "1957216592",
+      "/Applications/ChatGPT.app/Contents/Frameworks/Codex Framework.framework/Versions/154.0.8037.98/Helpers/Codex (Renderer).app/Contents/MacOS/Codex (Renderer)"
+    ],
+    [
+      "88734",
+      "1",
+      "88734",
+      "195584",
+      "1953946944",
+      "/Applications/ChatGPT.app/Contents/MacOS/ChatGPT"
+    ],
+    [
+      "26313",
+      "1",
+      "26313",
+      "176144",
+      "436755488",
+      "/System/Library/Services/AppleSpell.service/Contents/MacOS/AppleSpell"
+    ],
+    [
+      "10500",
+      "1",
+      "10500",
+      "110576",
+      "487085712",
+      "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
+    ],
+    [
+      "11744",
+      "10500",
+      "10500",
+      "95632",
+      "1953432064",
+      "/Applications/Brave Browser.app/Contents/Frameworks/Brave Browser Framework.framework/Versions/155.1.97.57/Helpers/Brave Browser Helper (Renderer).app/Contents/MacOS/Brave Browser Helper (Renderer)"
+    ],
+    [
+      "55700",
+      "10500",
+      "10500",
+      "95008",
+      "1950060160",
+      "/Applications/Brave Browser.app/Contents/Frameworks/Brave Browser Framework.framework/Versions/155.1.97.57/Helpers/Brave Browser Helper (Renderer).app/Contents/MacOS/Brave Browser Helper (Renderer)"
+    ],
+    [
+      "89088",
+      "10500",
+      "10500",
+      "62432",
+      "1953515888",
+      "/Applications/Brave Browser.app/Contents/Frameworks/Brave Browser Framework.framework/Versions/155.1.97.57/Helpers/Brave Browser Helper (Renderer).app/Contents/MacOS/Brave Browser Helper (Renderer)"
+    ]
+  ],
+  "memory_pressure": "The system has 19327352832 (1179648 pages with a page size of 16384).\nSystem-wide memory free percentage: 60%\n"
+}

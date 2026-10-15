@@ -1,0 +1,209 @@
+{
+  "arm": "raw",
+  "source_head": "f272b594b6bb4079ca728dd613c0e61711320a9d",
+  "common_head": "29750ef89f6823e8c8b0fde330342f585762bfb5",
+  "target": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012",
+  "cache_condition": "Same ROOT private target, serial raw-first; existing dependencies may be warm, five new compression dependencies may compile during raw. Build wall/group RSS NOT cache-controlled causal evidence. Actual rustc/process samples and artifact bytes retained separately.",
+  "preexisting_unit_artifacts": [
+    {
+      "path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-695cde83e22a4576",
+      "bytes": 137095248,
+      "mtime_ns": 1792044138321355238
+    },
+    {
+      "path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-b86641691b7a759f",
+      "bytes": 599387440,
+      "mtime_ns": 1792061925971837605
+    },
+    {
+      "path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1019a3dd8fbc965f",
+      "bytes": 137748064,
+      "mtime_ns": 1792072149019506149
+    },
+    {
+      "path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-6e1aa145bdea358c",
+      "bytes": 187525936,
+      "mtime_ns": 1792079172408386661
+    },
+    {
+      "path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-709a36c2b718359c",
+      "bytes": 666655056,
+      "mtime_ns": 1792078946272971894
+    },
+    {
+      "path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-a4324468c12b7c71",
+      "bytes": 187553680,
+      "mtime_ns": 1792057520996969856
+    }
+  ],
+  "build_rss_cap_bytes": 7516192768,
+  "build_jobs": 1,
+  "unit_codegen_units": 64,
+  "dependency_phase_not_controlled": true,
+  "group_build_wall_not_causal_compression_comparison": true,
+  "build_command_count": 1,
+  "runtime_owner_count": 1,
+  "build_wrapper_exit_code": 1,
+  "build_wrapper_wall_seconds": 161.51964408298954,
+  "build_receipt_sha256": "ac63c3ac94031e83bdcc25d586020b9ac63c78c79766bf2fc0af158e07684b66",
+  "unit_artifacts": [],
+  "build_phases": [
+    {
+      "command": [
+        "/Users/kevin/.cargo/bin/rustup",
+        "run",
+        "1.97.1",
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--lib",
+        "--no-run",
+        "--jobs",
+        "1",
+        "--message-format=json"
+      ],
+      "executed": true,
+      "exit_code": -15,
+      "resource_refusal": "system memory free below15percent",
+      "observation_errors": [],
+      "peak_process_group_rss_bytes": 4693327872,
+      "rss_limit_bytes": 7516192768,
+      "last_system_free_percent": 7,
+      "process_high_water_marks": [
+        {
+          "pid": 14509,
+          "ppid": 14469,
+          "rss_bytes": 101580800,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/cargo"
+        },
+        {
+          "pid": 15289,
+          "ppid": 14509,
+          "rss_bytes": 32768,
+          "name": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/build/crc32fast-f1e0b8e8227d0d0c/build-script-build"
+        },
+        {
+          "pid": 15302,
+          "ppid": 14509,
+          "rss_bytes": 5963776,
+          "name": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/build/semaprax-40b59bcff6ce68fb/build-script-build"
+        },
+        {
+          "pid": 15313,
+          "ppid": 14509,
+          "rss_bytes": 110477312,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+        },
+        {
+          "pid": 15327,
+          "ppid": 14509,
+          "rss_bytes": 4666916864,
+          "name": "/Users/kevin/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+        }
+      ],
+      "wall_seconds": 160.50080791699293,
+      "baseline_telemetry": {
+        "kernel_pressure": {
+          "raw": 1,
+          "label": "normal",
+          "label_status": "exact_kernel_mapping",
+          "kernel_version": "Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:06 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6030",
+          "mapping_provenance": {
+            "source_tag": "xnu-12377.121.6",
+            "conversion_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/kern/kern_memorystatus_notify.c",
+            "conversion_spans": "1651-1679;1754-1768",
+            "constants_source": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.121.6/bsd/sys/event_private.h",
+            "constants_span": "276-278"
+          }
+        },
+        "swap": {
+          "total_bytes": 5368709120,
+          "available_bytes": 1413021696,
+          "used_bytes": 3955687424,
+          "page_size": 16384,
+          "encrypted": true,
+          "raw_sha256": "c0f1f5bf72bb54a80399d6dfe2345cd0eafb06254bf9a567d3601ccaeaf81ae9"
+        },
+        "vm": {
+          "page_size": 16384,
+          "counters": {
+            "Pages free": 158266,
+            "Pages inactive": 211076,
+            "Pages purgeable": 2840,
+            "File-backed pages": 263130,
+            "Pages occupied by compressor": 262975,
+            "Swapins": 71467097,
+            "Swapouts": 91736306
+          }
+        },
+        "windows": [
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-n",
+              "kern.memorystatus_vm_pressure_level"
+            ],
+            "started": 94345.858415291,
+            "finished": 94345.8604905
+          },
+          {
+            "command": [
+              "/usr/sbin/sysctl",
+              "-b",
+              "vm.swapusage"
+            ],
+            "started": 94345.860599041,
+            "finished": 94345.862528458
+          },
+          {
+            "command": [
+              "/usr/bin/vm_stat"
+            ],
+            "started": 94345.862556083,
+            "finished": 94345.865749083
+          }
+        ],
+        "finished": 94345.866126458,
+        "atomic": false
+      },
+      "post_stop_telemetry": null,
+      "post_stop_observation_status": "skipped_unconfirmed_group_settlement",
+      "admission_system_free_percent": 61,
+      "telemetry_sample_count": 72,
+      "maximum_positive_swap_used_delta_bytes": 5646647296,
+      "failed_telemetry_samples": [],
+      "group_settlement": {
+        "owned_pgid": 14509,
+        "confirmed_empty": false,
+        "signals": [
+          15
+        ],
+        "operation_failures": [
+          {
+            "operation": "killpg",
+            "signal": 9,
+            "error_type": "PermissionError",
+            "errno": 1
+          }
+        ],
+        "observation_errors": [
+          "PermissionError: [Errno 1] Operation not permitted"
+        ],
+        "resource_refusal": "system memory free below15percent",
+        "finished": 94503.908762541
+      },
+      "source_binding_status": "unchanged",
+      "observation_helper_path": "/Volumes/Semaprax/lane-prompts/opt841-raw-297-qualification-20261015/drivers/semaprax_pressure_observation_v3.py",
+      "observation_helper_sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+      "phase_monitor_path": "/Volumes/Semaprax/lane-prompts/opt841-raw-297-qualification-20261015/drivers/observed_phase.py",
+      "phase_monitor_sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+    }
+  ],
+  "total_wall_seconds": 161.5284864169953,
+  "final_head": "f272b594b6bb4079ca728dd613c0e61711320a9d",
+  "final_source_clean": true,
+  "restoration_performed": false
+}

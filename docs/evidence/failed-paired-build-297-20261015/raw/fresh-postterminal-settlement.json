@@ -1,0 +1,9 @@
+{
+  "observed_unix": 1792084321.647906,
+  "owned_pgid": 14509,
+  "matching_rows": [],
+  "confirmed_empty_by_fresh_ps": true,
+  "original_receipt_unchanged": true,
+  "restored_branch": "wavect/v0-10-0",
+  "restored_head": "29750ef89f6823e8c8b0fde330342f585762bfb5"
+}

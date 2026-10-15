@@ -1,0 +1,14 @@
+--- original/build-owning.py
++++ raw-only/build-owning.py
+@@ -64,7 +64,10 @@
+  return commands
+ 
+ rustup=['/Users/kevin/.cargo/bin/rustup','run','1.97.1']
+-commands=planned_commands(m,rustup)
++all_planned_commands=planned_commands(m,rustup)
++assert len(all_planned_commands)==2
++assert all_planned_commands[0]==rustup+['cargo','test','--locked','--offline','-p','semaprax','--lib','--no-run','--jobs','1','--message-format=json']
++commands=all_planned_commands[:1]
+ # The selected lib unit harness compiles first to expose cfg(test) errors early.
+ # Production lib remains required next; remaining explicit owning targets follow.
+ # External package owners remain separately and explicitly selected.

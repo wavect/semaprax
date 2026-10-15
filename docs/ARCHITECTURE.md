@@ -1029,6 +1029,8 @@ additional physical backing and complete constructor-through-Drop controls.
 
 The parser separates recursive prefix atoms from postfix construction so
 inactive postfix temporaries do not accumulate during nested atom parsing.
+`src/parser/prefix_atoms.rs` also isolates unary and parenthesized builders,
+keeping their inactive temporaries out of every recursive atom frame.
 Token order, contextual grammar, spans and diagnostics are unchanged.
 `src/parser/patterns.rs` holds match-pattern parsing and `src/parser/types.rs`
 type syntax, both moved verbatim, and `src/parser/hints.rs` attaches fix hints to rejections of habits from other
@@ -4386,6 +4388,15 @@ the contract binds the complete module. Use **original source order**, not the
 alphabetical order `mod` declarations are formatted into, whenever the contract
 slices a region between two markers. `tests/source_locked_contracts.rs` fails
 when a reader binds a module root but not its submodules.
+
+Historical byte-for-byte inverse controls use the test-only `ci_str!` reader
+when a reviewed CI formatting or lint repair changes their input bytes.
+`source_reflows` authenticates the complete current input against its SHA-256,
+applies only the explicit inverses in `src/source_reflows.json`, and authenticates
+the complete predecessor before the existing historical assertions run.
+Input drift, nonunique edits and predecessor drift fail closed. The source-lock
+coverage gate recognizes this reader exactly as it recognizes `include_str!`;
+ordinary authority and implementation audits continue to read current source.
 
 
 The bounded generic inference helpers in `source_verify/generic_inference` and

@@ -1,6 +1,6 @@
 //! Source-only row aliases lower to existing authenticated reads, never storage.
-use crate::hir::resolve_for::record::Row;
 use super::*;
+use crate::hir::resolve_for::record::Row;
 
 #[derive(Clone)]
 pub(in crate::hir) struct FrozenRow {

@@ -225,5 +225,4 @@ impl HirValidator<'_> {
         )?;
         Ok(())
     }
-
 }

@@ -279,15 +279,27 @@ fn compare_scalar_receivers(source: &str, intentional: bool) {
     drop(iterative);
     let mut live_diagnostics = Vec::new();
     let mut live = IterativeVerifier::new(
-        &program, current, live_entry_scope, &functions, &types,
-        None, true, &mut live_diagnostics,
+        &program,
+        current,
+        live_entry_scope,
+        &functions,
+        &types,
+        None,
+        true,
+        &mut live_diagnostics,
     );
     let live_value = live.run(expression).unwrap();
     // Success keeps the complete original value; error-only type withdrawal
     // is separately pinned against the complete saved receiver in operators_799.
     if iterative_diagnostics.is_empty() {
-        assert_eq!(actual.as_ref().map(|value| (&value.ty, value.mode, value.native_unit)),
-                   live_value.as_ref().map(|value| (&value.ty, value.mode, value.native_unit)));
+        assert_eq!(
+            actual
+                .as_ref()
+                .map(|value| (&value.ty, value.mode, value.native_unit)),
+            live_value
+                .as_ref()
+                .map(|value| (&value.ty, value.mode, value.native_unit))
+        );
         assert_eq!(saved_bindings.len(), live.scopes[0].bindings.len());
         for (name, expected) in &saved_bindings {
             let actual = &live.scopes[0].bindings[name];

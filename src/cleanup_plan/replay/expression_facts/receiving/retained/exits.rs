@@ -1,6 +1,6 @@
 //! Complete exits receiver borrowing only the exact authenticated status directory.
-use super::*;
 use super::super::remaining::{selected, validate_finalizer_actions};
+use super::*;
 
 const BORROW_BYTES: usize = 2 * std::mem::size_of::<&StatusSources<'static>>()
     + 2 * std::mem::size_of::<&Option<Directory<&'static StatusSourceId>>>()
@@ -19,13 +19,18 @@ pub(in crate::cleanup_plan::replay) fn validate_exits_retained(
     budget: &mut ReplayBudget,
     validated: &StatusSources<'_>,
 ) -> Result<(), Diagnostic> {
-    if !std::ptr::eq(function, validated.function)
-        || !std::ptr::eq(budget, validated.budget)
-    {
-        return Err(replay_error(function, "exit status directory belongs to another function or budget"));
+    if !std::ptr::eq(function, validated.function) || !std::ptr::eq(budget, validated.budget) {
+        return Err(replay_error(
+            function,
+            "exit status directory belongs to another function or budget",
+        ));
     }
     if !validated.ledger.current() {
-        return Err(budget.budget_refusal(function, "retained exit status invocation owner changed", ""));
+        return Err(budget.budget_refusal(
+            function,
+            "retained exit status invocation owner changed",
+            "",
+        ));
     }
     if !budget.pays_allocations() {
         return crate::cleanup_plan::replay::validate_exits(
@@ -42,12 +47,26 @@ pub(in crate::cleanup_plan::replay) fn validate_exits_retained(
     budget.charge(function, 0, "cleanup exit status directory")?;
     // New caller/receiving argument overlap, optional borrow return and actual
     // receiving directory reference are prepaid in full before borrowing ids.
-    budget.reserve_bytes(function, BORROW_BYTES, "retained exit status borrow controls")?;
-    budget.charge(function, BORROW_UNITS, "retained exit status borrow bookkeeping")?;
+    budget.reserve_bytes(
+        function,
+        BORROW_BYTES,
+        "retained exit status borrow controls",
+    )?;
+    budget.charge(
+        function,
+        BORROW_UNITS,
+        "retained exit status borrow bookkeeping",
+    )?;
     let Some(statuses) = validated.ids.as_ref() else {
         // Tree facts never lend a directory; execute the complete old receiver.
-        return super::super::remaining::validate_exits(program, function, storage,
-            leaves, return_operands, budget);
+        return super::super::remaining::validate_exits(
+            program,
+            function,
+            storage,
+            leaves,
+            return_operands,
+            budget,
+        );
     };
     let mut continuation_edges =
         Directory::new(function, budget, "cleanup exit continuation directory")?;
@@ -183,7 +202,6 @@ pub(in crate::cleanup_plan::replay) fn validate_exits_retained(
     }
     Ok(())
 }
-
 
 #[cfg(test)]
 mod tests;

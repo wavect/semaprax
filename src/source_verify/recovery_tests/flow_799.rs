@@ -101,19 +101,17 @@ fn known_match_missing_case_and_admitted_conditional_receivers_remain_exact() {
 
 #[test]
 fn complete_matching_and_arm_receivers_have_exact_full_source_inverses() {
-    let mut matching = include_str!("../iterative/matching/matching_before_799.rs")
-        .replace("before_match_799_", "");
+    let mut matching =
+        ci_str!("../iterative/matching/matching_before_799.rs").replace("before_match_799_", "");
     matching = matching.replace(
         "            variant_name: variant_name.into(),\n",
         "            variant_name,\n",
     );
     assert_eq!(
         matching,
-        include_str!(
-            "../../../docs/evidence/conditional-refusal-799/iterative__matching.rs.before"
-        )
+        ci_str!("../../../docs/evidence/conditional-refusal-799/iterative__matching.rs.before")
     );
-    let arms = include_str!("../iterative/match_arms/arms_before_799.rs")
+    let arms = ci_str!("../iterative/match_arms/arms_before_799.rs")
         .replace("before_match_799_", "")
         .replace(
             "(state.variant_name.as_ref(), state.declared_cases)",
@@ -121,9 +119,7 @@ fn complete_matching_and_arm_receivers_have_exact_full_source_inverses() {
         );
     assert_eq!(
         arms,
-        include_str!(
-            "../../../docs/evidence/conditional-refusal-799/iterative__match_arms.rs.before"
-        )
+        ci_str!("../../../docs/evidence/conditional-refusal-799/iterative__match_arms.rs.before")
     );
 }
 

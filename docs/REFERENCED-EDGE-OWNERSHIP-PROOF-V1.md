@@ -1,5 +1,9 @@
 # Referenced edge ownership proof v1
 
+Status: draft specification; qualification remains as recorded below.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The ordinary receiving replay may omit its write-only referenced-edge AVL directory only inside the complete guarded block loop. Every processed block must first pass its unchanged exact contiguous ID and region checks. Goto carries one edge; Branch must first pass the unchanged exactly-two-distinct-edge check. Each addressed edge must exist and have its exact addressed ID and the current block as owner.
 
 Those existing checks imply uniqueness: one immutable edge cannot have two distinct block owners. Two references inside the only multi-edge terminator have already been rejected before address validation. Edge inventory counts, trusted incoming IDs, cached verdicts and sorting are not premises. The first complete edge loop still authenticates contiguous edge IDs and endpoints before block processing. The helper is private and relies on these caller-side preconditions.

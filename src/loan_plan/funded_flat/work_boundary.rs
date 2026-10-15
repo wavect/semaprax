@@ -9,6 +9,10 @@ pub(super) fn apply(work: &mut WorkCounter<'_>) {
         work.limit = work.limit.min(limit);
     }
 }
+#[allow(
+    dead_code,
+    reason = "retained original receiver or refusal payload; not every legacy entry is selected by current tests"
+)]
 pub(super) fn with_limit<T>(limit: usize, operation: impl FnOnce() -> T) -> T {
     assert!(limit <= MAX_LOAN_PLAN_WORK_V1);
     struct Restore(Option<usize>);
@@ -57,7 +61,12 @@ fn actual_funded_candidate_false_and_plan_routes_keep_exact_short_guided_full_di
                 crate::bounded_output::with_limit_usage(usize::MAX, || {
                     crate::test_allocation_observer::measure(|| {
                         let owner = CfgReservation::acquire().unwrap();
-                        let result = crate::loan_plan::funded_flat::with_inventory_work_limit(limit, || crate::loan_plan::funded_flat::before_inventory_for_test(program, function, &owner));
+                        let result =
+                            crate::loan_plan::funded_flat::with_inventory_work_limit(limit, || {
+                                crate::loan_plan::funded_flat::before_inventory_for_test(
+                                    program, function, &owner,
+                                )
+                            });
                         assert!(owner.first().is_none());
                         match result {
                             Ok(plan) => {
@@ -88,8 +97,9 @@ fn actual_funded_candidate_false_and_plan_routes_keep_exact_short_guided_full_di
         // Guard restored: the ordinary current production call uses MAX again.
         let (_, refused, _) = crate::bounded_output::with_limit_usage(usize::MAX, || {
             let owner = CfgReservation::acquire().unwrap();
-            let plan = crate::loan_plan::funded_flat::before_inventory_for_test(program, function, &owner)
-                .unwrap_or_else(|_| panic!("restored production cap"));
+            let plan =
+                crate::loan_plan::funded_flat::before_inventory_for_test(program, function, &owner)
+                    .unwrap_or_else(|_| panic!("restored production cap"));
             assert_eq!(plan, function.loan_plan);
         });
         assert!(!refused);

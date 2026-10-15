@@ -22,6 +22,10 @@ pub(crate) enum FundedError<E> {
     /// The original route performs an owning allocation that has no paid twin
     /// yet. The funded route refuses instead of allocating unpaid or reporting
     /// a smaller inventory; it is never a payer refusal or a census verdict.
+    #[allow(
+        dead_code,
+        reason = "retained original receiver or refusal payload; not every legacy entry is selected by current tests"
+    )]
     Unfunded(&'static str),
 }
 

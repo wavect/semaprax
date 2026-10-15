@@ -629,8 +629,11 @@ mod cursor_work_tests {
         else {
             panic!("oversized histories must exhaust the authenticated terminal-path budget");
         };
-        assert!(error.iter().any(|error| error.code == "SPX-H006"
-            && error.message.contains("65537 terminal control-flow paths")));
+        assert!(
+            error.iter().any(|error| error.code == "SPX-H006"
+                && error.message.contains("65537 terminal control-flow paths")),
+            "{error:?}"
+        );
         // Separate roots share the same global ReplayBudget; no fresh permit
         // appears at requires/body/ensures transitions.
         let contracts_source =

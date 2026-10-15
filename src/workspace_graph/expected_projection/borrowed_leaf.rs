@@ -308,14 +308,23 @@ impl<'a> Input<'a> {
     }
     pub(in crate::workspace_graph) fn resolve_paid_with_base<'s>(
         &'s self,
-        private:Option<crate::source_verify::private_names::PrivateNames<'s>>,
-        invocation:&mut hir::prelude_bundle::Invocation<Refused>,
-        owner:&mut IdentityReservation,
-    )->Result<(hir::ResolvedProgram,hir::FunctionResolutionWork),hir::identity_resolution::NominalReceiverFailure> {
+        private: Option<crate::source_verify::private_names::PrivateNames<'s>>,
+        invocation: &mut hir::prelude_bundle::Invocation<Refused>,
+        owner: &mut IdentityReservation,
+    ) -> Result<
+        (hir::ResolvedProgram, hir::FunctionResolutionWork),
+        hir::identity_resolution::NominalReceiverFailure,
+    > {
         hir::identity_resolution::resolve_source_checked_previous_with_base(
-            self.source(),None,None,None,private,invocation,|bytes|owner.reserve(bytes))
+            self.source(),
+            None,
+            None,
+            None,
+            private,
+            invocation,
+            |bytes| owner.reserve(bytes),
+        )
     }
-
 }
 
 #[cfg(test)]

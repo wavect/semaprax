@@ -12,7 +12,6 @@ use crate::hir::DeclarationIndex;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-
 #[derive(Clone, Copy)]
 enum Observation {
     Contains,

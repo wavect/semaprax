@@ -294,7 +294,7 @@ fn has_own_root_candidate(
             }
         }
         // A borrowed byte traversal freezes its view's ultimate owner.
-        if let Some(region) = byte_census.region(program, function, expression)? {
+        if let Some(region) = byte_census.region_for(program, expression)? {
             if let Some(place) = expression_place(region.view) {
                 if ultimate_root_is_own(
                     &place.root,

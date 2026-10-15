@@ -48,12 +48,12 @@ pub(crate) fn requires_funded_with_work<E>(
     funded::charge(
         reserve,
         std::mem::size_of::<
-            [Option<super::super::ChildCursor<'_>>; crate::cache_codec::MAX_DEPTH + 1],
+            [Option<super::super::ChildCursor<'_>>; super::super::walk::PRESENCE_DEPTH],
         >(),
     )?;
     funded::charge(reserve, DEPTH_TEXT.len())?;
     work(1).map_err(FundedError::Refused)?;
-    let mut stack = [None; crate::cache_codec::MAX_DEPTH + 1];
+    let mut stack = [None; super::super::walk::PRESENCE_DEPTH];
     for root in function
         .requires
         .iter()
@@ -75,7 +75,7 @@ pub(crate) fn requires_funded_with_work<E>(
                     crate::hir::ResolvedExprKind::LexicalExit { .. }
                 )
             {
-                return Ok(true);
+                return Ok(len <= crate::cache_codec::MAX_DEPTH + 1);
             }
             if let Some(next) = frame.next_with_work(work).map_err(FundedError::Refused)? {
                 if len == stack.len() {

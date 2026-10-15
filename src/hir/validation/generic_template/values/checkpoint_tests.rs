@@ -360,7 +360,9 @@ fn full_walk(
     BTreeSet<ValueId>,
 ) {
     let mut validator = HirValidator::new(program).unwrap();
-    if !matches!(policy, Policy::Current) { validator.use_legacy_identities(); }
+    if !matches!(policy, Policy::Current) {
+        validator.use_legacy_identities();
+    }
     let execution = FunctionExecutionId::Monomorphic(template.id.clone());
     let scope = match policy {
         Policy::Current => Values::new().unwrap(),
@@ -368,7 +370,11 @@ fn full_walk(
         Policy::OwnedMap => Values::owned(),
     };
     let result = validator.validate_template_expressions_with_values(template, &execution, scope);
-    (result, validator.expression_ids.into_btree_projection(), validator.value_ids.into_btree_projection())
+    (
+        result,
+        validator.expression_ids.into_btree_projection(),
+        validator.value_ids.into_btree_projection(),
+    )
 }
 #[test]
 fn full_original_symbolic_walks_preserve_contract_closure_nested_and_late_error_diagnostics() {

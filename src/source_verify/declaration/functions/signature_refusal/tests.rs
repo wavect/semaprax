@@ -230,19 +230,19 @@ fn specialized_public_receiver_keeps_exact_six_field_authentication() {
 #[test]
 fn full_production_sources_and_complete_public_predecessors_keep_exact_inverses() {
     use sha2::{Digest, Sha256};
-    let inverse: serde_json::Value = serde_json::from_str(include_str!(concat!(
+    let inverse: serde_json::Value = serde_json::from_str(ci_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/public-template-recovery-799/whole-source-inverses.json"
     )))
     .unwrap();
     let sources = [
-        (include_str!("../../../declaration.rs"), Some(include_str!("../../public_signature_before.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/public-template-recovery-799/src__source_verify__declaration.rs.before.txt"))),
-        (include_str!("../../functions.rs"), Some(include_str!("../public_signature_before.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/public-template-recovery-799/src__source_verify__declaration__functions.rs.before.txt"))),
-        (include_str!("../../../iterative.rs"), None, include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/public-template-recovery-799/src__source_verify__iterative.rs.before.txt"))),
-        (include_str!("../../../diagnostics.rs"), None, include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/public-template-recovery-799/src__source_verify__diagnostics.rs.before.txt"))),
-        (include_str!("../../../recovery.rs"), None, include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/public-template-recovery-799/src__source_verify__recovery.rs.before.txt"))),
-        (include_str!("../../../iterative/enter.rs"), None, include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/public-template-recovery-799/src__source_verify__iterative__enter.rs.before.txt"))),
-        (include_str!("../../../recovery_tests/extended_components.rs"), None, include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/public-template-recovery-799/src__source_verify__recovery_tests__extended_components.rs.before.txt"))),
+        (ci_str!("../../../declaration.rs"), Some(ci_str!("../../public_signature_before.rs")), ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/public-template-recovery-799/src__source_verify__declaration.rs.before.txt"))),
+        (ci_str!("../../functions.rs"), Some(ci_str!("../public_signature_before.rs")), ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/public-template-recovery-799/src__source_verify__declaration__functions.rs.before.txt"))),
+        (ci_str!("../../../iterative.rs"), None, ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/public-template-recovery-799/src__source_verify__iterative.rs.before.txt"))),
+        (ci_str!("../../../diagnostics.rs"), None, ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/public-template-recovery-799/src__source_verify__diagnostics.rs.before.txt"))),
+        (ci_str!("../../../recovery.rs"), None, ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/public-template-recovery-799/src__source_verify__recovery.rs.before.txt"))),
+        (ci_str!("../../../iterative/enter.rs"), None, ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/public-template-recovery-799/src__source_verify__iterative__enter.rs.before.txt"))),
+        (ci_str!("../../../recovery_tests/extended_components.rs"), None, ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/public-template-recovery-799/src__source_verify__recovery_tests__extended_components.rs.before.txt"))),
     ];
     let fixed_original_sha256 = [
         "5c4987a9e83eb0f80c7c3d6211910e3c1f62cb91e60b9cc3b9d8f87c8000351f",

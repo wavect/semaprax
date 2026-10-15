@@ -72,10 +72,9 @@ fn numeric_memo_actual_exact_short_zero_and_partial_drop_remain_paid() {
                 }
                 if !success {
                     let at = current_metrics().allocated;
-                    assert!(
-                        memo.insert(&function, 0, &mut budget, || panic!("refused publication"))
-                            .is_err()
-                    );
+                    assert!(memo
+                        .insert(&function, 0, &mut budget, || panic!("refused publication"))
+                        .is_err());
                     assert_eq!(current_metrics().allocated, at);
                 }
                 drop(memo);

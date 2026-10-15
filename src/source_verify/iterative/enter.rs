@@ -754,7 +754,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             expression.span,
                         ));
                     }
-                    if op.is_view()
+                    if (op.is_view() || op == crate::byte_ops::ByteOp::Range)
                         && args.first().is_none_or(|argument| {
                             !source_byte_view_place_is_admitted(
                                 op,

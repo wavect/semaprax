@@ -1,7 +1,7 @@
 use super::*;
 use crate::ast::{Expr, ExprKind, Span};
-use crate::hir::resolve_expr::path_arena::{PathArena, PathId, Seg};
 use crate::hir::borrowed_root_oracle::resolve_expr_frame::capacity_old;
+use crate::hir::resolve_expr::path_arena::{PathArena, PathId, Seg};
 use crate::hir::{Binding, DeclarationId, OwnershipMode, ResolvedType, ValueId};
 use std::collections::{BTreeMap, HashSet};
 use std::rc::Rc;

@@ -2,8 +2,9 @@
 use super::*;
 mod inventory;
 pub(in crate::loan_plan) use inventory::Inventory;
-const RESULT_BYTES: usize = std::mem::size_of::<Result<Option<Inventory<'static, 'static>>, Diagnostic>>()
-    + std::mem::size_of::<Option<Inventory<'static, 'static>>>();
+const RESULT_BYTES: usize = std::mem::size_of::<
+    Result<Option<Inventory<'static, 'static>>, Diagnostic>,
+>() + std::mem::size_of::<Option<Inventory<'static, 'static>>>();
 
 pub(in crate::loan_plan) fn inspect<'a, 'p>(
     subject: funded_flat::CurrentSubject<'a>,
@@ -68,13 +69,23 @@ pub(in crate::loan_plan) fn inspect<'a, 'p>(
         }
     }
 
+    let mut byte_census = crate::hir::ByteTraversalSlot::new(program, function)?;
     // One expansion governs all five positive branches, so every initializer
     // and its affine consuming/receiving carriers have the same full payment.
     macro_rules! retain {
         () => {{
-            payer.reserve(std::mem::size_of::<Inventory<'_, '_>>() + inventory::PARTS_BYTES)
+            payer
+                .reserve(std::mem::size_of::<Inventory<'_, '_>>() + inventory::PARTS_BYTES)
                 .map_err(|_| storage::marker())?;
-            return Ok(Some(Inventory { program, function, payer, aliases, bound, ownership }));
+            return Ok(Some(Inventory {
+                program,
+                function,
+                payer,
+                aliases,
+                bound,
+                ownership,
+                byte_census,
+            }));
         }};
     }
     let mut byte_census = crate::hir::ByteTraversalSlot::new(program, function)?;
@@ -90,7 +101,7 @@ pub(in crate::loan_plan) fn inspect<'a, 'p>(
             }
         }
         // A borrowed byte traversal freezes its view's ultimate owner.
-        if let Some(region) = byte_census.region(program, function, expression)? {
+        if let Some(region) = byte_census.region_for(program, expression)? {
             if let Some(place) = storage::expression_place(region.view, Some(payer))? {
                 if ultimate_root_is_own(
                     &place.root,
@@ -199,9 +210,16 @@ mod tests;
 #[cfg(test)]
 pub(in crate::loan_plan) fn before_inventory_source(path: &str, source: &str) -> String {
     let rows: serde_json::Value = serde_json::from_str(include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"), "/docs/evidence/loan-candidate-inventory-reuse/exact-source-inverses.json"
-    ))).unwrap();
-    let row = rows.as_array().unwrap().iter().find(|row| row["source"] == path).unwrap();
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/loan-candidate-inventory-reuse/exact-source-inverses.json"
+    )))
+    .unwrap();
+    let row = rows
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["source"] == path)
+        .unwrap();
     let mut restored = source.to_owned();
     for edit in row["edits"].as_array().unwrap().iter().rev() {
         let after = edit["after"].as_str().unwrap();

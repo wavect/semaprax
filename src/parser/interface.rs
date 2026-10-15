@@ -90,7 +90,7 @@ impl Parser {
                     }
                     Type::Named { name, arguments }
                         if name == "Result"
-                            && matches!(arguments.as_slice(), [Type::Named { name, arguments }, Type::I64] if arguments.is_empty()) =>
+                            && matches!(arguments.as_slice(), [Type::Named { name: _, arguments }, Type::I64] if arguments.is_empty()) =>
                     {
                         let Type::Named { name, .. } = &arguments[0] else { unreachable!() };
                         ImportResult::OwnedResultResourceI64 { name: name.clone() }

@@ -1,9 +1,9 @@
 //! Whole old/current producers, actual held aliases, and independent budgets.
-use super::super::super::{Automaton, Label, MAX_REPLAY_WORK_UNITS, SkeletonTerminal};
-use super::super::{Canonicalizer, before_alias};
+use super::super::super::{Automaton, Label, SkeletonTerminal, MAX_REPLAY_WORK_UNITS};
+use super::super::{before_alias, Canonicalizer};
 use super::{BTreeMap, Diagnostic, Rc, ReplayBudget, ResolvedFunction};
-use crate::bounded_output::{ReservationRefusal, with_limit_usage_refusal};
-use crate::test_allocation_observer::{Metrics, current_metrics, measure};
+use crate::bounded_output::{with_limit_usage_refusal, ReservationRefusal};
+use crate::test_allocation_observer::{current_metrics, measure, Metrics};
 
 fn function() -> ResolvedFunction {
     super::super::super::lexical_plan_tests::fixture(super::super::super::lexical_plan_tests::WHILE)
@@ -201,8 +201,8 @@ fn observe(
     ((value.0, value.1, allocation), refused, paid, first)
 }
 #[test]
-fn epsilon_alias_full_diagnostics_every_work_frontier_and_exact_short_zero_physical_are_independent()
- {
+fn epsilon_alias_full_diagnostics_every_work_frontier_and_exact_short_zero_physical_are_independent(
+) {
     let function = function();
     let (a, sink, roots) = graph(&function, 3);
     let root = roots[0];
@@ -240,7 +240,7 @@ fn epsilon_alias_full_diagnostics_every_work_frontier_and_exact_short_zero_physi
             usize::MAX,
             Some(&expected),
         );
-        assert_eq!((old.0.0, old.0.1), (current.0.0, current.0.1));
+        assert_eq!((old.0 .0, old.0 .1), (current.0 .0, current.0 .1));
         assert!(!old.1 && !current.1);
     }
     for current in [false, true] {
@@ -256,7 +256,7 @@ fn epsilon_alias_full_diagnostics_every_work_frontier_and_exact_short_zero_physi
         );
         eprintln!(
             "epsilon current={current} cumulative={} allocation={:?}",
-            full.2, full.0.2
+            full.2, full.0 .2
         );
         for bytes in [0, full.2 - 1, full.2] {
             let actual = observe(
@@ -269,11 +269,11 @@ fn epsilon_alias_full_diagnostics_every_work_frontier_and_exact_short_zero_physi
                 bytes,
                 None,
             );
-            assert_eq!(actual.0.0, bytes == full.2);
+            assert_eq!(actual.0 .0, bytes == full.2);
             assert_eq!(actual.1, bytes < full.2);
             assert_eq!(actual.3.is_some(), bytes < full.2);
             if bytes == 0 {
-                assert_eq!(actual.0.2.allocated, 0);
+                assert_eq!(actual.0 .2.allocated, 0);
             }
         }
     }
@@ -355,15 +355,15 @@ fn epsilon_alias_long_chain_reports_actual_cumulative_and_peak_costs_separately(
         usize::MAX,
         Some(&expected),
     );
-    assert!(old.0.0 && current.0.0 && !old.1 && !current.1);
+    assert!(old.0 .0 && current.0 .0 && !old.1 && !current.1);
     eprintln!(
         "epsilon long-chain old cumulative={} metrics={:?}; current cumulative={} metrics={:?}",
-        old.2, old.0.2, current.2, current.0.2
+        old.2, old.0 .2, current.2, current.0 .2
     );
-    assert_eq!(old.0.1, current.0.1);
+    assert_eq!(old.0 .1, current.0 .1);
     // Only this full producer fixture claims a reduction, pending execution.
-    assert!(current.0.2.allocated < old.0.2.allocated);
-    assert!(current.0.2.allocations < old.0.2.allocations);
+    assert!(current.0 .2.allocated < old.0 .2.allocated);
+    assert!(current.0 .2.allocations < old.0 .2.allocations);
     assert!(current.2 < old.2);
 }
 

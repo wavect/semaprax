@@ -96,11 +96,9 @@ fn primitive_copy_queries_remove_actual_layout_acquisition_and_authenticate_stic
                             .unwrap(),
                         OwnershipMode::Value
                     );
-                    assert!(
-                        !current
-                            .is_owned_resource(&ResolvedType::I64, OwnershipMode::Own)
-                            .unwrap()
-                    );
+                    assert!(!current
+                        .is_owned_resource(&ResolvedType::I64, OwnershipMode::Own)
+                        .unwrap());
                 }
             })
         });
@@ -115,10 +113,9 @@ fn primitive_copy_queries_remove_actual_layout_acquisition_and_authenticate_stic
                     .unwrap(),
                 OwnershipMode::Value
             );
-            assert!(
-                !old.is_owned_resource_before(&ResolvedType::I64, OwnershipMode::Own)
-                    .unwrap()
-            );
+            assert!(!old
+                .is_owned_resource_before(&ResolvedType::I64, OwnershipMode::Own)
+                .unwrap());
         }
     });
     assert!(saved.allocated > actual.allocated);
@@ -127,16 +124,12 @@ fn primitive_copy_queries_remove_actual_layout_acquisition_and_authenticate_stic
         crate::bounded_output::with_limit_usage_refusal(0, || {
             assert!(!crate::bounded_output::reserve_active_required(1));
             measure(|| {
-                assert!(
-                    current
-                        .expected_ownership(&ResolvedType::I64, OwnershipMode::Own)
-                        .is_err()
-                );
-                assert!(
-                    current
-                        .is_owned_resource(&ResolvedType::I64, OwnershipMode::Own)
-                        .is_err()
-                );
+                assert!(current
+                    .expected_ownership(&ResolvedType::I64, OwnershipMode::Own)
+                    .is_err());
+                assert!(current
+                    .is_owned_resource(&ResolvedType::I64, OwnershipMode::Own)
+                    .is_err());
             })
         });
     assert!(refused && paid == 0 && first.unwrap().requested == 1);
@@ -232,7 +225,7 @@ fn full_nominal_fixture_keeps_missing_generic_forged_cache_and_unknown_copy_rout
 #[test]
 fn full_original_ownership_methods_and_all_hooked_sources_are_exactly_bound() {
     use sha2::{Digest, Sha256};
-    let proof: serde_json::Value = serde_json::from_str(include_str!(concat!(
+    let proof: serde_json::Value = serde_json::from_str(ci_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/ownership-copy-flags/source-provenance.json"
     )))
@@ -240,8 +233,8 @@ fn full_original_ownership_methods_and_all_hooked_sources_are_exactly_bound() {
     let sources = [
         (
             "src/hir/validation.rs",
-            include_str!("../../validation.rs"),
-            include_str!(concat!(
+            ci_str!("../../validation.rs"),
+            ci_str!(concat!(
                 env!("CARGO_MANIFEST_DIR"),
                 "/docs/evidence/ownership-copy-flags/validation.rs.before.txt"
             )),
@@ -249,8 +242,8 @@ fn full_original_ownership_methods_and_all_hooked_sources_are_exactly_bound() {
         ),
         (
             "src/hir/validation/nominal_facts.rs",
-            include_str!("../nominal_facts.rs"),
-            include_str!(concat!(
+            ci_str!("../nominal_facts.rs"),
+            ci_str!(concat!(
                 env!("CARGO_MANIFEST_DIR"),
                 "/docs/evidence/ownership-copy-flags/nominal_facts.rs.before.txt"
             )),
@@ -258,8 +251,8 @@ fn full_original_ownership_methods_and_all_hooked_sources_are_exactly_bound() {
         ),
         (
             "src/hir/validation/identity_directory/oracle_entries.rs",
-            include_str!("../identity_directory/oracle_entries.rs"),
-            include_str!(concat!(
+            ci_str!("../identity_directory/oracle_entries.rs"),
+            ci_str!(concat!(
                 env!("CARGO_MANIFEST_DIR"),
                 "/docs/evidence/ownership-copy-flags/oracle_entries.rs.before.txt"
             )),
@@ -267,8 +260,8 @@ fn full_original_ownership_methods_and_all_hooked_sources_are_exactly_bound() {
         ),
         (
             "src/hir/validation/call_parameters.rs",
-            include_str!("../call_parameters.rs"),
-            include_str!(concat!(
+            ci_str!("../call_parameters.rs"),
+            ci_str!(concat!(
                 env!("CARGO_MANIFEST_DIR"),
                 "/docs/evidence/ownership-copy-flags/call_parameters.rs.before.txt"
             )),
@@ -300,7 +293,7 @@ fn full_original_ownership_methods_and_all_hooked_sources_are_exactly_bound() {
         format!(
             "{:x}",
             crate::digest_hex::LowerHex(Sha256::digest(
-                include_str!(concat!(
+                ci_str!(concat!(
                     env!("CARGO_MANIFEST_DIR"),
                     "/docs/evidence/ownership-copy-flags/expected_ownership.before.txt"
                 ))
@@ -313,7 +306,7 @@ fn full_original_ownership_methods_and_all_hooked_sources_are_exactly_bound() {
         format!(
             "{:x}",
             crate::digest_hex::LowerHex(Sha256::digest(
-                include_str!(concat!(
+                ci_str!(concat!(
                     env!("CARGO_MANIFEST_DIR"),
                     "/docs/evidence/ownership-copy-flags/is_owned_resource.before.txt"
                 ))
@@ -580,8 +573,7 @@ fn lazy_flags_payer_keeps_zero_limit_primitives_and_full_forged_cache_precedence
 #[test]
 fn complete_original_paid_entry_and_lazy_fast_gates_stay_source_exact() {
     use sha2::{Digest, Sha256};
-    let original =
-        include_str!("../../../../docs/evidence/ownership-clone-census/paid.rs.before.txt");
+    let original = ci_str!("../../../../docs/evidence/ownership-clone-census/paid.rs.before.txt");
     assert_eq!(
         format!(
             "{:x}",
@@ -589,7 +581,7 @@ fn complete_original_paid_entry_and_lazy_fast_gates_stay_source_exact() {
         ),
         "12f1218a6606519c1facdfb622abee4fd9eb6e2a35e2c2a1a91c91cff7343d86"
     );
-    let current = include_str!("../../declaration_index/flags/paid.rs");
+    let current = ci_str!("../../declaration_index/flags/paid.rs");
     let start = current
         .find("    /// Invocation-local lazy state:")
         .unwrap();
@@ -597,7 +589,16 @@ fn complete_original_paid_entry_and_lazy_fast_gates_stay_source_exact() {
         .find("    // Keeping this constructor out of the fast receiving frame")
         .unwrap()
         + start;
-    let projected = format!("{}{}", &current[..start], &current[end..]);
+    let mut projected = format!("{}{}", &current[..start], &current[end..]);
+    // Later nominal inventory receivers add registrations only. Keep their
+    // exact text bound before replaying the complete earlier paid receiver.
+    for registration in [
+        "#[path = \"../nominal_paid_facts.rs\"]\nmod nominal_constructor;\n",
+        "\nmod inventory_constructor;\npub(crate) use inventory_constructor::{\n    identity as inventory_identity, substitute as inventory_substitute, InventoryPayer,\n};\n",
+    ] {
+        assert_eq!(projected.matches(registration).count(), 1);
+        projected = projected.replacen(registration, "", 1);
+    }
     assert_eq!(projected, original);
     let gates = |body: &str| {
         let start = body.find("        if matches!(\n").unwrap();

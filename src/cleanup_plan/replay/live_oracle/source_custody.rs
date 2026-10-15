@@ -10,3 +10,5 @@ fn undo(source: &mut String, new: &str, old: &str) {
 mod a;
 mod b;
 mod current_view;
+mod presence;
+mod presence_tests;

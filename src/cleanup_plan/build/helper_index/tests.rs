@@ -282,9 +282,10 @@ fn prior_sticky_refusal_prevents_construction_and_publication() {
     let (failure, overflowed, used, refusal) =
         crate::bounded_output::with_limit_usage_refusal(1, || {
             assert!(!crate::bounded_output::reserve_active_required(2));
-            // Refusal is sticky even though the unchanged remaining byte can
-            // still admit a smaller reservation.
-            assert!(crate::bounded_output::reserve_active_required(1));
+            // Required work stays refused while an optional error trailer can
+            // consume the remaining byte without clearing the first receipt.
+            assert!(!crate::bounded_output::reserve_active_required(1));
+            assert!(crate::bounded_output::reserve_active(1));
             attach_program_plans(&mut program)
         });
     assert_eq!(failure.unwrap_err().code, "SPX-H006");

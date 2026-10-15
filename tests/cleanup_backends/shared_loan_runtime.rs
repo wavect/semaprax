@@ -274,8 +274,8 @@ fn generated_node_adapter_rejects_every_forged_byte_range_descriptor_field() {
 
     let runtime = std::fs::read_to_string(root.join("semaprax.js")).unwrap();
     let exposed = runtime.replacen(
-        "function createByteDataRuntime(options = {})",
-        "export function createByteDataRuntime(options = {})",
+        "function createByteDataRuntime(options = {}, formatSelected = false)",
+        "export function createByteDataRuntime(options = {}, formatSelected = false)",
         1,
     );
     assert_ne!(

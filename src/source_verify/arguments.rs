@@ -1,7 +1,7 @@
 //! Argument ownership checking at call boundaries, including the
 //! invocation-local loans that borrowed byte-data arguments activate.
 
-use super::binding::{Binding, CheckedValue, SourceLoan, SourceLoanId};
+use super::binding::{Availability, Binding, CheckedValue, SourceLoan, SourceLoanId};
 use super::diagnostics::error;
 use super::loans::{has_active_overlapping_loan, mark_value_sources_moved};
 use super::place::source_place;
@@ -309,6 +309,24 @@ pub(super) fn source_byte_view_place_is_admitted(
     variables: &HashMap<String, Binding>,
     types: &TypeTable<'_>,
 ) -> bool {
+    if operation == crate::byte_ops::ByteOp::Range {
+        return match &expression.kind {
+            ExprKind::Var(_) => true, // ordinary argument checking owns its type/availability
+            ExprKind::Call {
+                name,
+                type_arguments,
+                args,
+            } if crate::byte_ops::by_name(name) == Some(crate::byte_ops::ByteOp::BytesAsSlice)
+                && type_arguments.is_empty() =>
+            {
+                matches!(args.as_slice(), [Expr { kind: ExprKind::Var(root), .. }]
+                    if variables.get(root).is_some_and(|binding|
+                        binding.ty == Type::Bytes && binding.mode == ParamMode::Own
+                        && binding.availability == Availability::Available))
+            }
+            _ => false,
+        };
+    }
     if operation == crate::byte_ops::ByteOp::StrAsBytes {
         if super::record_traversal::project(expression, variables, types)
             .is_some_and(|(_, value)| value.ty == Type::Str)

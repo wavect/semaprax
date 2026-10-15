@@ -310,12 +310,10 @@ fn persistent_requires_and_ensures_keep_hostile_flags_and_full_outer_metadata_is
                 );
                 assert_eq!(actual.is_err(), hostile);
                 if hostile && admitted {
-                    assert!(
-                        actual
-                            .unwrap_err()
-                            .message
-                            .contains("contract cannot transfer ownership into a local binding")
-                    );
+                    assert!(actual
+                        .unwrap_err()
+                        .message
+                        .contains("contract cannot transfer ownership into a local binding"));
                 }
             }
         }

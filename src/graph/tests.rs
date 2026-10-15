@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use super::{
-    agent_contract_expr_json, agent_function_json, expr_json, graph_json, graph_schema,
-    to_hir_json, AgentContextFilter, DeclarationId, GraphView, ResolvedExprKind, ResolvedMatchMode,
+    agent_contract_expr_json, agent_function_json, expr_json, graph_schema, to_hir_json,
+    AgentContextFilter, DeclarationId, GraphView, ResolvedExprKind, ResolvedMatchMode,
     ResolvedProgram,
 };
 use crate::{hir, parse};
@@ -93,7 +93,18 @@ fn explicit_match_modes_select_v21_and_are_distinct_in_graph_and_agent_views() {
         panic!("mode fixture tail is a match")
     };
     *mode = ResolvedMatchMode::Own;
-    assert_eq!(graph_schema(&own).unwrap(), "semaprax.graph.v21");
+    // A toggled mode is inspection data, not checked ownership evidence.
+    // Retain the frozen pre-static-text metadata/serializer contract below,
+    // and require the current full-program boundary to reject the forgery.
+    assert_eq!(graph_schema(&own).unwrap_err().code, "SPX-H006");
+    assert_eq!(
+        to_hir_json(&own, "forged-mode").unwrap_err().code,
+        "SPX-H006"
+    );
+    assert_eq!(
+        super::byte_helper_renewal::graph_schema(&own).unwrap(),
+        "semaprax.graph.v21"
+    );
     let own_match = own
         .functions
         .iter()
@@ -115,7 +126,7 @@ fn explicit_match_modes_select_v21_and_are_distinct_in_graph_and_agent_views() {
         .iter()
         .map(|declaration| declaration.id.clone())
         .collect::<std::collections::BTreeSet<_>>();
-    let module = graph_json(
+    let module = super::byte_helper_renewal::graph_json(
         &own,
         "test-source-revision",
         &selected_functions,
@@ -126,7 +137,7 @@ fn explicit_match_modes_select_v21_and_are_distinct_in_graph_and_agent_views() {
     assert!(module.starts_with("{\"schema\":\"semaprax.graph.v21\","));
     assert!(module.contains("\"kind\":\"match\",\"ownership_mode\":\"own\""));
     let root = DeclarationId::new("mode.read");
-    let context = graph_json(
+    let context = super::byte_helper_renewal::graph_json(
         &own,
         "test-source-revision",
         &selected_functions,
@@ -146,7 +157,15 @@ fn explicit_match_modes_select_v21_and_are_distinct_in_graph_and_agent_views() {
         panic!("mode fixture tail is a match")
     };
     *mode = ResolvedMatchMode::Borrow;
-    assert_eq!(graph_schema(&borrow).unwrap(), "semaprax.graph.v21");
+    assert_eq!(graph_schema(&borrow).unwrap_err().code, "SPX-H006");
+    assert_eq!(
+        to_hir_json(&borrow, "forged-mode").unwrap_err().code,
+        "SPX-H006"
+    );
+    assert_eq!(
+        super::byte_helper_renewal::graph_schema(&borrow).unwrap(),
+        "semaprax.graph.v21"
+    );
     let borrow_function = borrow
         .functions
         .iter()
@@ -258,7 +277,15 @@ module test.graph_instance_loan;
         end_edges: vec![0],
         cause: crate::loan_plan::LoanCause::SliceView,
     });
-    assert_eq!(graph_schema(&program).unwrap(), "semaprax.graph.v34");
+    assert_eq!(
+        super::byte_helper_renewal::graph_schema(&program).unwrap(),
+        "semaprax.graph.v34"
+    );
+    assert_eq!(graph_schema(&program).unwrap_err().code, "SPX-H006");
+    assert_eq!(
+        to_hir_json(&program, "forged-loan").unwrap_err().code,
+        "SPX-H006"
+    );
 }
 
 #[test]

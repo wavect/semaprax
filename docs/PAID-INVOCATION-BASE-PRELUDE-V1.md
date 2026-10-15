@@ -1,5 +1,7 @@
 # Paid Invocation Base Prelude v1
 
+Audience: compiler contributors, tool authors, and reviewers.
+
 Status: source-only producer and borrowed overlay, pending ordinary resolver integration and executable qualification. Tracking: issue #828. Nominal payload ownership depends on #827. This contract does not supersede Workspace Graph Prelude Forecast Accounting v1 or change graph/cache schemas, public identities, byte/work limits, or supported execution profiles.
 
 ## Ownership and construction

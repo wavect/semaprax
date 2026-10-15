@@ -145,10 +145,9 @@ fn scalar_production_stages_isolate_actual_backing_without_replacing_whole_owner
 #[test]
 fn complete_whole_chain_allocation_owner_is_retained_byte_exact() {
     use sha2::{Digest, Sha256};
-    let current = include_str!("tests.rs");
-    let original = include_str!(
-        "../../../../docs/evidence/function-scope-backing-isolation/tests.rs.before.txt"
-    );
+    let current = ci_str!("tests.rs");
+    let original =
+        ci_str!("../../../../docs/evidence/function-scope-backing-isolation/tests.rs.before.txt");
     assert_eq!(current, original);
     assert_eq!(
         format!(
@@ -161,8 +160,14 @@ fn complete_whole_chain_allocation_owner_is_retained_byte_exact() {
 
 #[test]
 fn production_stage_dispatch_preserves_original_with_only_named_permit_and_registration_hooks() {
-    let current = include_str!("../function_scope.rs");
-    let original = include_str!(
+    let current = ci_str!("../function_scope.rs");
+    let guard = "        // An absent postcondition cannot read a result binding. All result\n        // identity, body type and ownership checks above still precede success.\n        if function.ensures.is_empty() {\n            return scope_checkpoint::charge::reserve(Some(0));\n        }\n\n";
+    assert_eq!(current.matches(guard).count(), 1);
+    let current = current
+        .strip_suffix("\n#[cfg(test)]\nmod empty_ensures;\n")
+        .unwrap()
+        .replacen(guard, "", 1);
+    let original = ci_str!(
         "../../../../docs/evidence/function-scope-backing-isolation/function_scope.rs.before.txt"
     );
     assert_eq!(

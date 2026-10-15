@@ -82,9 +82,17 @@ impl<'a> NominalBytes<'a> {
             start -= 1;
             decimal[start] = b'0' + (length % 10) as u8;
             length /= 10;
-            if length == 0 { break; }
+            if length == 0 {
+                break;
+            }
         }
-        Self { identity, decimal, start, segment: 0, offset: 0 }
+        Self {
+            identity,
+            decimal,
+            start,
+            segment: 0,
+            offset: 0,
+        }
     }
 }
 impl Iterator for NominalBytes<'_> {
@@ -142,63 +150,109 @@ mod tests {
         let names = ["", "row", "0123456789", "colon:0:row", "nul\0row", "é✓.row"];
         for (ordinal, name) in names.iter().enumerate() {
             let id = DeclarationId::new(*name);
-            let ty = ResolvedType::Nominal { declaration: id.clone(), arguments: Vec::new() };
+            let ty = ResolvedType::Nominal {
+                declaration: id.clone(),
+                arguments: Vec::new(),
+            };
             let key = ty.identity_key();
             assert_eq!(Nominal(&id).bytes().collect::<Vec<_>>(), key.as_bytes());
-            index.type_facts_by_id.insert(key, TypeFacts {
-                copy: ordinal % 2 == 0,
-                contains_resource: true,
-                sized: false,
-                needs_drop: ordinal % 2 != 0,
-                layout_key: format!("hostile-layout-{ordinal}"),
-            });
+            index.type_facts_by_id.insert(
+                key,
+                TypeFacts {
+                    copy: ordinal % 2 == 0,
+                    contains_resource: true,
+                    sized: false,
+                    needs_drop: ordinal % 2 != 0,
+                    layout_key: format!("hostile-layout-{ordinal}"),
+                },
+            );
         }
         // Noncanonical neighboring keys participate in the SAME ordered tree.
-        for key in ["", "nominal:", "nominal:01:row:0:", "nominal:3:row:1:", "zz"] {
-            index.type_facts_by_id.insert(key.to_owned(), TypeFacts {
-                copy: false, contains_resource: false, sized: true, needs_drop: false,
-                layout_key: "neighbor".to_owned(),
-            });
+        for key in [
+            "",
+            "nominal:",
+            "nominal:01:row:0:",
+            "nominal:3:row:1:",
+            "zz",
+        ] {
+            index.type_facts_by_id.insert(
+                key.to_owned(),
+                TypeFacts {
+                    copy: false,
+                    contains_resource: false,
+                    sized: true,
+                    needs_drop: false,
+                    layout_key: "neighbor".to_owned(),
+                },
+            );
         }
         for name in names.iter().chain(["missing"].iter()) {
             let id = DeclarationId::new(*name);
-            let ty = ResolvedType::Nominal { declaration: id.clone(), arguments: Vec::new() };
-            let expected = index.type_facts_owned_key_oracle(&ty).as_ref().map(super::super::TypeFlags::from);
+            let ty = ResolvedType::Nominal {
+                declaration: id.clone(),
+                arguments: Vec::new(),
+            };
+            let expected = index
+                .type_facts_owned_key_oracle(&ty)
+                .as_ref()
+                .map(super::super::TypeFlags::from);
             assert_eq!(index.type_flags(&ty), expected);
             for stored in index.type_facts_by_id.keys() {
                 let query = Nominal(&id);
                 let other: &(dyn Key + '_) = stored;
-                assert_eq!((&query as &dyn Key).cmp(other), ty.identity_key().cmp(stored));
+                assert_eq!(
+                    (&query as &dyn Key).cmp(other),
+                    ty.identity_key().cmp(stored)
+                );
             }
         }
         // Generic and missing nominal types retain the untouched owned fallback.
         let generic = ResolvedType::Nominal {
-            declaration: DeclarationId::new("row"), arguments: vec![ResolvedType::I64],
+            declaration: DeclarationId::new("row"),
+            arguments: vec![ResolvedType::I64],
         };
-        assert_eq!(index.type_flags(&generic), index.type_facts_owned_key_oracle(&generic).as_ref().map(super::super::TypeFlags::from));
+        assert_eq!(
+            index.type_flags(&generic),
+            index
+                .type_facts_owned_key_oracle(&generic)
+                .as_ref()
+                .map(super::super::TypeFlags::from)
+        );
     }
 
     #[test]
     fn zero_argument_cached_flags_remove_literal_key_and_layout_requests_through_drop() {
         let mut index = DeclarationIndex::default();
         let ty = ResolvedType::Nominal {
-            declaration: DeclarationId::new("current.row"), arguments: Vec::new(),
+            declaration: DeclarationId::new("current.row"),
+            arguments: Vec::new(),
         };
         const KEY: &str = "nominal:11:current.row:0:";
         const LAYOUT: &str = "retained-layout-payload";
         const QUERIES: usize = 32;
         assert_eq!(ty.identity_key(), KEY);
-        index.type_facts_by_id.insert(KEY.to_owned(), TypeFacts {
-            copy: true, contains_resource: true, sized: false, needs_drop: true,
-            layout_key: LAYOUT.to_owned(),
-        });
+        index.type_facts_by_id.insert(
+            KEY.to_owned(),
+            TypeFacts {
+                copy: true,
+                contains_resource: true,
+                sized: false,
+                needs_drop: true,
+                layout_key: LAYOUT.to_owned(),
+            },
+        );
         let expected = super::super::TypeFlags {
-            copy: true, contains_resource: true, sized: false, needs_drop: true,
+            copy: true,
+            contains_resource: true,
+            sized: false,
+            needs_drop: true,
         };
         let (_, old) = measure(|| {
             for _ in 0..QUERIES {
                 // Saved complete owned-key lookup and layout clone API.
-                let facts = index.type_facts_owned_key_oracle(std::hint::black_box(&ty)).unwrap();
+                let facts = index
+                    .type_facts_owned_key_oracle(std::hint::black_box(&ty))
+                    .unwrap();
                 assert_eq!(super::super::TypeFlags::from(&facts), expected);
                 drop(facts);
             }
@@ -215,6 +269,15 @@ mod tests {
         // literal lower bound retains every actual old replacement request.
         assert!(old.allocated >= QUERIES * (KEY.len() + LAYOUT.len()));
         assert!(old.allocations >= 2 * QUERIES);
-        assert_eq!((new.allocations, new.reallocations, new.allocated, new.freed, new.live), (0, 0, 0, 0, 0));
+        assert_eq!(
+            (
+                new.allocations,
+                new.reallocations,
+                new.allocated,
+                new.freed,
+                new.live
+            ),
+            (0, 0, 0, 0, 0)
+        );
     }
 }

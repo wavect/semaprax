@@ -439,11 +439,9 @@ fn actual_dependency_directory_and_repeated_receiver_acquisitions_release_throug
         let old = full(&text, true);
         assert_eq!(old.len(), count + 1);
         assert_eq!(old[0].code, "SPX-T232");
-        assert!(
-            old[1..]
-                .iter()
-                .all(|diagnostic| diagnostic.code == "SPX-T205")
-        );
+        assert!(old[1..]
+            .iter()
+            .all(|diagnostic| diagnostic.code == "SPX-T205"));
         let program = crate::parse(&text, Path::new("dependent-directory.spx")).unwrap();
         let current = program
             .functions

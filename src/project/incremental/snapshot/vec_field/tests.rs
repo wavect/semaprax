@@ -56,26 +56,59 @@ fn explicit_and_row_read_origin_substitutions_have_no_cache_authority() {
     replay_source(&canonical, &ast, &original).unwrap();
     fn change(expression: &mut crate::hir::ResolvedExpr, target: hir::VecFieldReadOrigin) -> bool {
         if let ResolvedExprKind::VecFieldRead { origin, .. } = &mut expression.kind {
-            if *origin == target { *origin = match target { hir::VecFieldReadOrigin::Explicit => hir::VecFieldReadOrigin::Traversal, hir::VecFieldReadOrigin::Traversal => hir::VecFieldReadOrigin::Explicit }; return true; }
+            if *origin == target {
+                *origin = match target {
+                    hir::VecFieldReadOrigin::Explicit => hir::VecFieldReadOrigin::Traversal,
+                    hir::VecFieldReadOrigin::Traversal => hir::VecFieldReadOrigin::Explicit,
+                };
+                return true;
+            }
         }
         if let ResolvedExprKind::Block { statements, tail } = &mut expression.kind {
             for statement in statements {
                 match statement {
-                    ResolvedStatement::While { condition, body, .. } | ResolvedStatement::LexicalWhile { condition, body, .. } => {
-                        if change(condition, target) { return true; }
-                        if change(body, target) { return true; }
+                    ResolvedStatement::While {
+                        condition, body, ..
                     }
-                    _ => { if change(statement.value_mut(), target) { return true; } }
+                    | ResolvedStatement::LexicalWhile {
+                        condition, body, ..
+                    } => {
+                        if change(condition, target) {
+                            return true;
+                        }
+                        if change(body, target) {
+                            return true;
+                        }
+                    }
+                    _ => {
+                        if change(statement.value_mut(), target) {
+                            return true;
+                        }
+                    }
                 }
             }
             return change(tail, target);
         }
-        if let ResolvedExprKind::If { then_branch, else_branch, .. } = &mut expression.kind { return change(then_branch, target) || change(else_branch, target); }
+        if let ResolvedExprKind::If {
+            then_branch,
+            else_branch,
+            ..
+        } = &mut expression.kind
+        {
+            return change(then_branch, target) || change(else_branch, target);
+        }
         false
     }
-    for target in [hir::VecFieldReadOrigin::Explicit, hir::VecFieldReadOrigin::Traversal] {
+    for target in [
+        hir::VecFieldReadOrigin::Explicit,
+        hir::VecFieldReadOrigin::Traversal,
+    ] {
         let mut forged = original.clone();
-        let reader = forged.functions.iter_mut().find(|f| f.id.as_str() == "reader").unwrap();
+        let reader = forged
+            .functions
+            .iter_mut()
+            .find(|f| f.id.as_str() == "reader")
+            .unwrap();
         assert!(change(&mut reader.body, target));
         let wire = crate::cache_codec::encode(&forged).unwrap();
         let restored = crate::cache_codec::decode(&wire).unwrap();

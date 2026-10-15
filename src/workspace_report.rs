@@ -141,6 +141,10 @@ impl WorkspaceReportFailure {
     }
 }
 #[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "complete historical receiver retained for independent test comparisons"
+)]
 mod original;
 
 impl WorkspaceReportFailure {

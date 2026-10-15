@@ -277,36 +277,36 @@ fn complete_intrinsic_declaration_receivers_have_zero_backing_through_drop_and_k
 #[test]
 fn complete_intrinsic_sources_and_saved_constructor_dispatch_reconstruct_every_original_byte() {
     use sha2::{Digest, Sha256};
-    let proof: serde_json::Value = serde_json::from_str(include_str!(concat!(
+    let proof: serde_json::Value = serde_json::from_str(ci_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/constructor-intrinsic-borrowing-824/source-provenance.json"
     )))
     .unwrap();
     let currents = [
-        include_str!("../../../list_ops.rs"),
-        include_str!("../../../iterator_ops.rs"),
-        include_str!("../constructor_seed.rs"),
-        include_str!("original.rs"),
-        include_str!("../function_lookup/paid_custody.rs"),
+        ci_str!("../../../list_ops.rs"),
+        ci_str!("../../../iterator_ops.rs"),
+        ci_str!("../constructor_seed.rs"),
+        ci_str!("original.rs"),
+        ci_str!("../function_lookup/paid_custody.rs"),
     ];
     let originals = [
-        include_str!(concat!(
+        ci_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/constructor-intrinsic-borrowing-824/src__list_ops.rs.before.txt"
         )),
-        include_str!(concat!(
+        ci_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/constructor-intrinsic-borrowing-824/src__iterator_ops.rs.before.txt"
         )),
-        include_str!(concat!(
+        ci_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/constructor-intrinsic-borrowing-824/src__hir__validation__constructor_seed.rs.before.txt"
         )),
-        include_str!(concat!(
+        ci_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/constructor-intrinsic-borrowing-824/src__hir__validation__constructor_seed__original.rs.before.txt"
         )),
-        include_str!(concat!(
+        ci_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/constructor-intrinsic-borrowing-824/src__hir__validation__function_lookup__paid_custody.rs.before.txt"
         )),
@@ -327,9 +327,9 @@ fn complete_intrinsic_sources_and_saved_constructor_dispatch_reconstruct_every_o
         assert_eq!(record["sha256"].as_str().unwrap(), digest);
     }
     let saved = [
-        include_str!("../../../list_ops/original_constructor.rs"),
-        include_str!("../../../iterator_ops/original_constructor.rs"),
-        include_str!("original_intrinsics.rs"),
+        ci_str!("../../../list_ops/original_constructor.rs"),
+        ci_str!("../../../iterator_ops/original_constructor.rs"),
+        ci_str!("original_intrinsics.rs"),
     ];
     let saved_digests = [
         "9289ebd9ab42c9861644ac88641f48c7b9d30b99bbaba8a9b785f9507e3cb7a5",
@@ -404,18 +404,18 @@ fn original_intrinsic_parameter_mode_fixture_keeps_complete_parser_diagnostic() 
 #[test]
 fn corrective_controllers_reconstruct_complete_original_sources() {
     use sha2::{Digest, Sha256};
-    let records: serde_json::Value = serde_json::from_str(include_str!(concat!(
+    let records: serde_json::Value = serde_json::from_str(ci_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/intrinsic-controller-repair-85286/exact-source-inverses.json"
     )))
     .unwrap();
     let currents = [
-        include_str!("intrinsic_tests.rs"),
-        include_str!("../function_lookup/paid_custody.rs"),
+        ci_str!("intrinsic_tests.rs"),
+        ci_str!("../function_lookup/paid_custody.rs"),
     ];
     let originals = [
-        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/intrinsic-controller-repair-85286/src__hir__validation__constructor_seed__intrinsic_tests.rs.before.txt")),
-        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/intrinsic-controller-repair-85286/src__hir__validation__function_lookup__paid_custody.rs.before.txt")),
+        ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/intrinsic-controller-repair-85286/src__hir__validation__constructor_seed__intrinsic_tests.rs.before.txt")),
+        ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/intrinsic-controller-repair-85286/src__hir__validation__function_lookup__paid_custody.rs.before.txt")),
     ];
     let hashes = [
         "d42039a03f7191b9c89d879f942b0cc005b51e080d36020c5b79849c2fd042a3",

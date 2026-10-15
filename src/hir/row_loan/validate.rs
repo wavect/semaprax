@@ -149,8 +149,21 @@ fn walk<'a>(
             continue;
         };
         match &expression.kind {
-            ResolvedExprKind::VecFieldRead { origin: crate::hir::VecFieldReadOrigin::Traversal, element, args, .. } => {
-                check_field_origin(expression, element, args, regions.last(), monomorphic, closure, work)?;
+            ResolvedExprKind::VecFieldRead {
+                origin: crate::hir::VecFieldReadOrigin::Traversal,
+                element,
+                args,
+                ..
+            } => {
+                check_field_origin(
+                    expression,
+                    element,
+                    args,
+                    regions.last(),
+                    monomorphic,
+                    closure,
+                    work,
+                )?;
             }
             ResolvedExprKind::RowLoan { loan, args } => {
                 if closure || !monomorphic {
@@ -496,16 +509,47 @@ fn find_function<'a>(
 
 // Traversal form is reconstructed from its enclosing region, never accepted
 // because a cached origin tag says that a row or freeze exists.
-fn check_field_origin(expression: &ResolvedExpr, element: &ResolvedType, args: &[ResolvedExpr], region: Option<&Region<'_>>, monomorphic: bool, closure: bool, work: &mut Work) -> Result<(), Diagnostic> {
-    let fail = || refuse(expression.span, "row-derived field read lacks its exact traversal, carrier or row index");
-    if !monomorphic || closure { return Err(fail()); }
+fn check_field_origin(
+    expression: &ResolvedExpr,
+    element: &ResolvedType,
+    args: &[ResolvedExpr],
+    region: Option<&Region<'_>>,
+    monomorphic: bool,
+    closure: bool,
+    work: &mut Work,
+) -> Result<(), Diagnostic> {
+    let fail = || {
+        refuse(
+            expression.span,
+            "row-derived field read lacks its exact traversal, carrier or row index",
+        )
+    };
+    if !monomorphic || closure {
+        return Err(fail());
+    }
     let region = region.ok_or_else(fail)?;
-    let [vector, index] = args else { return Err(fail()); };
-    let (ResolvedExprKind::Place(owner), ResolvedExprKind::Place(row_index)) = (&vector.kind, &index.kind) else { return Err(fail()); };
+    let [vector, index] = args else {
+        return Err(fail());
+    };
+    let (ResolvedExprKind::Place(owner), ResolvedExprKind::Place(row_index)) =
+        (&vector.kind, &index.kind)
+    else {
+        return Err(fail());
+    };
     work.types(element, region.facts.element)?;
     work.types(&vector.ty, &region.facts.source.ty)?;
     work.places(owner, region.facts.owner)?;
     work.identities(row_index.root.as_str(), region.facts.row_index.as_str())?;
-    if vector.ty != region.facts.source.ty || vector.ownership != region.facts.source.ownership || element != region.facts.element || owner != region.facts.owner || row_index.root != *region.facts.row_index || !row_index.projections.is_empty() || index.ty != ResolvedType::Usize || index.ownership != OwnershipMode::Value { return Err(fail()); }
+    if vector.ty != region.facts.source.ty
+        || vector.ownership != region.facts.source.ownership
+        || element != region.facts.element
+        || owner != region.facts.owner
+        || row_index.root != *region.facts.row_index
+        || !row_index.projections.is_empty()
+        || index.ty != ResolvedType::Usize
+        || index.ownership != OwnershipMode::Value
+    {
+        return Err(fail());
+    }
     Ok(())
 }

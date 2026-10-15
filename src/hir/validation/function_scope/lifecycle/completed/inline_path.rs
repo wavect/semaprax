@@ -75,25 +75,7 @@ fn collect<'a>(
         .ok_or_else(|| hir_error(format!("type `{id}` has no lifecycle declaration")))?;
     match &declaration.kind {
         ResolvedTypeDeclarationKind::Resource { drop } => {
-            if let ResolvedResourceDropKind::Imported { import, .. } = &drop.kind {
-                let resolved = program
-                    .interfaces
-                    .iter()
-                    .flat_map(|interface| &interface.imports)
-                    .find(|item| item.id == *import)
-                    .ok_or_else(|| {
-                        hir_error(format!(
-                            "resource `{id}` references missing import `{import}`"
-                        ))
-                    })?;
-                for effect in &resolved.effects {
-                    if !effects.contains(effect.as_str()) {
-                        node::<String, ()>()?;
-                        fund(Some(effect.len()))?;
-                        effects.insert(effect.clone());
-                    }
-                }
-            }
+            resource_effects(program, id, &drop.kind, effects)?;
         }
         ResolvedTypeDeclarationKind::Record { fields }
         | ResolvedTypeDeclarationKind::Class { fields, .. } => {
@@ -110,6 +92,37 @@ fn collect<'a>(
         }
     }
     visiting.remove(id);
+    Ok(())
+}
+
+// Keep resource lookup/diagnostic temporaries off every recursive record frame.
+// Deep nominal chains never execute this arm until reaching their leaf.
+#[inline(never)]
+fn resource_effects(
+    program: &ResolvedProgram,
+    id: &DeclarationId,
+    drop: &ResolvedResourceDropKind,
+    effects: &mut BTreeSet<String>,
+) -> Result<(), Diagnostic> {
+    if let ResolvedResourceDropKind::Imported { import, .. } = drop {
+        let resolved = program
+            .interfaces
+            .iter()
+            .flat_map(|interface| &interface.imports)
+            .find(|item| item.id == *import)
+            .ok_or_else(|| {
+                hir_error(format!(
+                    "resource `{id}` references missing import `{import}`"
+                ))
+            })?;
+        for effect in &resolved.effects {
+            if !effects.contains(effect.as_str()) {
+                node::<String, ()>()?;
+                fund(Some(effect.len()))?;
+                effects.insert(effect.clone());
+            }
+        }
+    }
     Ok(())
 }
 

@@ -3,7 +3,6 @@
 
 use crate::ast::{MatchMode, MatchPattern, ParamMode, Type};
 use crate::diagnostic::Diagnostic;
-use crate::source_verify::IterativeVerifier;
 use crate::source_verify::binding::{Availability, Binding};
 use crate::source_verify::declared_type::generic_function_has_owned_record_composition;
 use crate::source_verify::diagnostics::{
@@ -17,8 +16,9 @@ use crate::source_verify::scope::{
 };
 use crate::source_verify::type_table::TypeTable;
 use crate::source_verify::variant_or::{
-    AGGREGATE_REFUTABLE_HELP, VariantOrContext, check_variant_or_pattern,
+    check_variant_or_pattern, VariantOrContext, AGGREGATE_REFUTABLE_HELP,
 };
+use crate::source_verify::IterativeVerifier;
 use std::collections::{BTreeSet, HashMap, HashSet};
 
 impl<'a, 'p> IterativeVerifier<'a, 'p> {

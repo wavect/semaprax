@@ -74,7 +74,7 @@ pub(crate) fn requires_funded<E>(
     const DEPTH_TEXT: &str = "lexical control scan exceeds admitted expression depth";
     funded::charge(
         reserve,
-        std::mem::size_of::<[Option<super::ChildCursor<'_>>; crate::cache_codec::MAX_DEPTH + 1]>(),
+        std::mem::size_of::<[Option<super::ChildCursor<'_>>; super::walk::PRESENCE_DEPTH]>(),
     )?;
     funded::charge(reserve, DEPTH_TEXT.len())?;
     Ok(super::requires(function).unwrap_or(false))

@@ -1,8 +1,8 @@
 //! Root classification before outer carriers; saved paid and original callbacks
 //! remain independent. Physical accounting is separate from conservative debit.
 use super::super::{
-    ReplayBudget, ResolvedProgram,
     tests::{fixtures, payer},
+    ReplayBudget, ResolvedProgram,
 };
 use super::*;
 use crate::bounded_output::{active_remaining, reserve_active_required, with_limit_usage_refusal};

@@ -3,13 +3,13 @@
 //! logical frontier; they do not claim any unpriced comparison is closed. Physical
 //! funding is exercised separately with the real caller payer through Drop.
 use super::super::{
-    ReplayBudget,
     tests::{fixtures, payer},
+    ReplayBudget,
 };
 use super::tests::SemanticPayer;
 use super::text::Storage;
 use crate::bounded_output::{
-    CappedString, active_refused, budgeted_format, set_active_floor, with_limit_usage_refusal,
+    active_refused, budgeted_format, set_active_floor, with_limit_usage_refusal, CappedString,
 };
 use crate::hir::{DeclarationId, ResolvedType, TypeFactsPayer};
 use crate::test_allocation_observer::{current_metrics, measure};

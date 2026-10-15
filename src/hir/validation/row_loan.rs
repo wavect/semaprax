@@ -13,7 +13,11 @@ impl HirValidator<'_> {
         scope: &dyn ScopeRead,
     ) -> Result<(ResolvedType, OwnershipMode, bool), Diagnostic> {
         if let ResolvedExprKind::VecFieldRead { origin, bytes, .. } = &expression.kind {
-            if *origin == crate::hir::VecFieldReadOrigin::Traversal { if let Some(observer) = self.row_loan_observer { observer.set(true); } }
+            if *origin == crate::hir::VecFieldReadOrigin::Traversal {
+                if let Some(observer) = self.row_loan_observer {
+                    observer.set(true);
+                }
+            }
             let ty = self.validate_vec_field_shape(function, expression, scope)?;
             let ownership = if matches!(ty, ResolvedType::Str | ResolvedType::SliceU8) {
                 OwnershipMode::Borrow

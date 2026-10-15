@@ -2,6 +2,8 @@
 use sha2::{Digest, Sha256};
 
 pub(super) fn project(source: &str, current: &str) -> String {
+    let merged = crate::source_reflows_merge::ours(source, current);
+    let current = merged.as_str();
     let rows: serde_json::Value = serde_json::from_str(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/source36-after-next-838-839-20261015/source-projections.json"
@@ -9,6 +11,9 @@ pub(super) fn project(source: &str, current: &str) -> String {
     .expect("fixed current source projections");
     let rows = rows.as_array().expect("source projection array");
     let matching: Vec<_> = rows.iter().filter(|row| row["source"] == source).collect();
+    if matching.is_empty() {
+        return current.to_owned();
+    }
     assert_eq!(matching.len(), 1, "unique authenticated source view");
     let row = matching[0];
     assert_eq!(

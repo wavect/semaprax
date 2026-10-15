@@ -364,7 +364,7 @@ fn complete_region_entry_and_four_variant_source_projections_restore_full_origin
         ),
         "f27fb4d28d71bb522bafb208a3da4bd8098ec61b5cca904f33d5d9858738b0e4"
     );
-    let records: serde_json::Value = serde_json::from_str(include_str!(concat!(
+    let records: serde_json::Value = serde_json::from_str(ci_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/region-entry-receiving-816/exact-source-inverses.json"
     )))
@@ -422,17 +422,17 @@ fn complete_region_entry_and_four_variant_source_projections_restore_full_origin
         }
         assert_eq!(current, original);
     }
-    let records: serde_json::Value = serde_json::from_str(include_str!(concat!(
+    let records: serde_json::Value = serde_json::from_str(ci_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/region-entry-receiving-816/receiver-projections.json"
     )))
     .unwrap();
     let originals = [
-        include_str!(concat!(
+        ci_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/region-entry-receiving-816/regions.before.txt"
         )),
-        include_str!(concat!(
+        ci_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/region-entry-receiving-816/entry.before.txt"
         )),

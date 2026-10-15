@@ -1,11 +1,5 @@
 //! Iterative expression resolution without host recursion.
 
-use std::collections::BTreeMap;
-use std::rc::Rc;
-
-use crate::ast::{BinaryOp, Expr, ExprKind, MatchPattern, Statement, TypeDeclarationKind, UnaryOp};
-use crate::diagnostic::Diagnostic;
-
 use super::expr_nodes::{
     PatternValue, ResolvedExpr, ResolvedExprKind, ResolvedFieldInitializer, ResolvedMatchArm,
     ResolvedMatchPattern, ResolvedMatchPatternField, ResolvedStatement,
@@ -20,7 +14,11 @@ use super::nodes::{
 use super::resolve_expr_frame::{take_pair, take_results, take_triple, Frame};
 use super::type_reachability::record_args_ok;
 use super::{Binding, Place, PlaceProjection, Resolver};
+use crate::ast::{BinaryOp, Expr, ExprKind, MatchPattern, Statement, TypeDeclarationKind, UnaryOp};
+use crate::diagnostic::Diagnostic;
 use path_arena::{PathArena, PathId, Seg, Step};
+use std::collections::BTreeMap;
+use std::rc::Rc;
 
 mod byte_view;
 #[cfg(test)]
@@ -28,7 +26,9 @@ mod capacity;
 mod finish;
 pub(super) mod lexical_exit;
 mod literal_format;
-pub(super) mod path_arena { pub(in crate::hir) use crate::hir::resolve_expr::path_arena::*; }
+pub(super) mod path_arena {
+    pub(in crate::hir) use crate::hir::resolve_expr::path_arena::*;
+}
 mod sort_keys;
 mod super_method;
 mod variable;

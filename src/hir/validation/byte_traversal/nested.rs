@@ -141,7 +141,9 @@ impl<'a> Census<'a> {
         self.storage
             .reserve(0)
             .map_err(|error| Failure::Storage(error).diagnostic())?;
-        if !self.context.is_some_and(|held| std::ptr::eq(held, context))
+        if !self
+            .context
+            .is_some_and(|held| std::ptr::addr_eq(held, context))
             || !std::ptr::eq(self.function, function)
         {
             return Err(Failure::semantic(

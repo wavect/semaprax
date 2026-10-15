@@ -224,7 +224,15 @@ fn pass<E>(
     )
 )]
 pub(crate) enum CallerFailure {
+    #[allow(
+        dead_code,
+        reason = "retained original receiver or refusal payload; not every legacy entry is selected by current tests"
+    )]
     Setup(crate::bounded_output::identity_reservation::Refused),
+    #[allow(
+        dead_code,
+        reason = "retained original receiver or refusal payload; not every legacy entry is selected by current tests"
+    )]
     Legacy(Failure<std::convert::Infallible>),
     Identity(Vec<Diagnostic>),
 }

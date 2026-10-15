@@ -1,8 +1,8 @@
 //! Complete original ordinary receiver with a lexical old-producer adapter.
 use super::*;
 mod expression_facts {
-    use super::*;
     pub(super) use super::super::receiving;
+    use super::*;
     pub(super) fn with_budget<'hir>(
         function: &'hir ResolvedFunction,
         budget: &mut ReplayBudget,

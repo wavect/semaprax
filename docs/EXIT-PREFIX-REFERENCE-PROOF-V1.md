@@ -1,5 +1,9 @@
 # Exit prefix reference proof v1
 
+Status: draft specification; qualification remains as recorded below.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The ordinary receiving block loop checks each block's exact contiguous enumeration ID and region before any transition or terminator. Reaching a later block therefore proves every earlier block completed successfully. The function and its plan remain immutably borrowed throughout.
 
 An exit key x was inserted by an earlier successful block exactly when its immutable declared owner o is an earlier checked block and that block's terminator is Exit(x). The original receiver immediately rejected an inserted exit whose declared owner differed from the inserting block. Earlier block IDs are distinct and index-addressable because their guards already passed. This proof uses the checked prefix, never a trusted incoming ID or an inventory count.

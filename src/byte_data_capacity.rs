@@ -1382,6 +1382,10 @@ mod fused_tests;
 
 #[cfg(test)]
 #[path = "byte_data_capacity/before.rs"]
+#[allow(
+    dead_code,
+    reason = "complete historical receiver retained for independent test comparisons"
+)]
 pub(crate) mod before;
 #[path = "byte_data_capacity/witnesses.rs"]
 pub(crate) mod witnesses;

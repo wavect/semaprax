@@ -231,10 +231,23 @@ pub(crate) fn child(expr: &ResolvedExpr, index: usize) -> Option<&ResolvedExpr> 
     }
 }
 
+// Ordinary expression admission has a 512-node boundary, plus its root cursor.
+// Lexical contours retain their narrower cache-depth contract only when an
+// actual exit selects it, matching the independent authored-source verifier.
+pub(super) const PRESENCE_DEPTH: usize = 513;
+
 /// Finite depth-first scan: no frontier allocation, identity clones or recursion.
 /// Callers charge this one source-defined function walk in their existing work census.
 pub(crate) fn requires(function: &ResolvedFunction) -> Result<bool, Diagnostic> {
-    let mut stack = [None; crate::cache_codec::MAX_DEPTH + 1];
+    scan(function, false)
+}
+
+pub(super) fn requires_validation(function: &ResolvedFunction) -> Result<bool, Diagnostic> {
+    scan(function, true)
+}
+
+fn scan(function: &ResolvedFunction, include_markers: bool) -> Result<bool, Diagnostic> {
+    let mut stack = [None; PRESENCE_DEPTH];
     for root in function
         .requires
         .iter()
@@ -248,7 +261,21 @@ pub(crate) fn requires(function: &ResolvedFunction) -> Result<bool, Diagnostic> 
                 .as_mut()
                 .expect("occupied lexical scan frame");
             let expr = frame.expression();
+            if include_markers && !frame.is_started() {
+                if expr.ty == crate::hir::ResolvedType::Never
+                    || matches!(&expr.kind, K::Block { statements, .. } | K::VecConstructor { statements, .. }
+                        if statements.iter().any(|s| matches!(s, crate::hir::ResolvedStatement::LexicalWhile { .. })))
+                {
+                    return Ok(true);
+                }
+            }
             if !frame.is_started() && matches!(&expr.kind, K::LexicalExit { .. }) {
+                if len > crate::cache_codec::MAX_DEPTH + 1 {
+                    return Err(Diagnostic::io(
+                        "SPX-H006",
+                        "lexical control scan exceeds admitted expression depth",
+                    ));
+                }
                 return Ok(true);
             }
             if let Some(next) = frame.next() {
@@ -271,7 +298,7 @@ pub(crate) fn requires(function: &ResolvedFunction) -> Result<bool, Diagnostic> 
 
 /// Admitted resolver output already obeys the HIR depth bound.
 pub(crate) fn contains(root: &ResolvedExpr) -> bool {
-    let mut stack = [None; crate::cache_codec::MAX_DEPTH + 1];
+    let mut stack = [None; PRESENCE_DEPTH];
     stack[0] = Some(ChildCursor::new(root));
     let mut len = 1;
     while len != 0 {

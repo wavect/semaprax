@@ -469,38 +469,73 @@ fn explicit_and_row_field_read_forms_are_source_bound_in_both_directions() {
 }
 @id("app.main") fn main()->i64 {0}
 "#;
-    let input = || vec![
-        canonical_source("app.spx", source),
-        canonical_source("aux.spx", "module aux; @id(\"aux.marker\") fn marker()->i64 {0}"),
-    ];
+    let input = || {
+        vec![
+            canonical_source("app.spx", source),
+            canonical_source(
+                "aux.spx",
+                "module aux; @id(\"aux.marker\") fn marker()->i64 {0}",
+            ),
+        ]
+    };
     let programs = parsed_sources(&input());
     let build = build_owned(input()).unwrap();
     super::super::record_traversal::validate(&programs, &build.hir.modules).unwrap();
     fn change(expression: &mut hir::ResolvedExpr, target: hir::VecFieldReadOrigin) -> bool {
         if let hir::ResolvedExprKind::VecFieldRead { origin, .. } = &mut expression.kind {
-            if *origin == target { *origin = match target { hir::VecFieldReadOrigin::Explicit => hir::VecFieldReadOrigin::Traversal, hir::VecFieldReadOrigin::Traversal => hir::VecFieldReadOrigin::Explicit }; return true; }
+            if *origin == target {
+                *origin = match target {
+                    hir::VecFieldReadOrigin::Explicit => hir::VecFieldReadOrigin::Traversal,
+                    hir::VecFieldReadOrigin::Traversal => hir::VecFieldReadOrigin::Explicit,
+                };
+                return true;
+            }
         }
         if let hir::ResolvedExprKind::Block { statements, tail } = &mut expression.kind {
             for statement in statements {
                 match statement {
-                    hir::ResolvedStatement::While { condition, body, .. } | hir::ResolvedStatement::LexicalWhile { condition, body, .. } => {
-                        if change(condition, target) { return true; }
-                        if change(body, target) { return true; }
+                    hir::ResolvedStatement::While {
+                        condition, body, ..
                     }
-                    _ => { if change(statement.value_mut(), target) { return true; } }
+                    | hir::ResolvedStatement::LexicalWhile {
+                        condition, body, ..
+                    } => {
+                        if change(condition, target) {
+                            return true;
+                        }
+                        if change(body, target) {
+                            return true;
+                        }
+                    }
+                    _ => {
+                        if change(statement.value_mut(), target) {
+                            return true;
+                        }
+                    }
                 }
             }
             return change(tail, target);
         }
-        if let hir::ResolvedExprKind::If { then_branch, else_branch, .. } = &mut expression.kind { return change(then_branch, target) || change(else_branch, target); }
+        if let hir::ResolvedExprKind::If {
+            then_branch,
+            else_branch,
+            ..
+        } = &mut expression.kind
+        {
+            return change(then_branch, target) || change(else_branch, target);
+        }
         false
     }
-    for target in [hir::VecFieldReadOrigin::Explicit, hir::VecFieldReadOrigin::Traversal] {
-        let mut modules = build_owned(input())
-            .unwrap()
-            .hir
-            .modules;
-        let reader = modules[0].functions.iter_mut().find(|f| f.id.as_str() == "reader").unwrap();
+    for target in [
+        hir::VecFieldReadOrigin::Explicit,
+        hir::VecFieldReadOrigin::Traversal,
+    ] {
+        let mut modules = build_owned(input()).unwrap().hir.modules;
+        let reader = modules[0]
+            .functions
+            .iter_mut()
+            .find(|f| f.id.as_str() == "reader")
+            .unwrap();
         assert!(change(&mut reader.body, target));
         let error = super::super::record_traversal::validate(&programs, &modules).unwrap_err();
         assert_eq!(error[0].code, "SPX-G173");

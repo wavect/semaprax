@@ -490,11 +490,11 @@ fn full_saved_receiver_sources_remain_byte_identical_and_program_selection_match
     use sha2::{Digest, Sha256};
     for (source, expected) in [
         (
-            include_str!("../saved.rs"),
+            ci_str!("../saved.rs"),
             "84528240afefb008d37eb14ec040f92017d56e1c404e563e4ec9147d7f445cbb",
         ),
         (
-            include_str!("../../owned_collection_record/saved.rs"),
+            ci_str!("../../owned_collection_record/saved.rs"),
             "60dc4fbe4f8610edf46d111a9b187e2fc039d81fb50706fc9c77e49461a52114",
         ),
     ] {
@@ -565,17 +565,30 @@ fn inline_scalar_children_and_paid_spills_keep_full_saved_receiver_and_drop() {
 fn explicit_collect_types_preserve_complete_prior_text_and_early_profile_controls() {
     use sha2::{Digest, Sha256};
     let sources = [
-        (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/owned_text_record/paid/tests.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/nominal-collect-test-adapters-504b/original/src__hir__owned_text_record__paid__tests.rs.before.txt")), "8ea7173a52d53b2d5fb4184e7c620cb8c8be536ac277b4e629501cfddd7a1c57"),
-        (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/function_scope/collection_tests/funded_early.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/nominal-collect-test-adapters-504b/original/src__hir__validation__function_scope__collection_tests__funded_early.rs.before.txt")), "304f391011d2bb12acd4d4cd4827f8221d7e330f7bb50f1609865ba5ecf3a264"),
+        (ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/owned_text_record/paid/tests.rs")), ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/nominal-collect-test-adapters-504b/original/src__hir__owned_text_record__paid__tests.rs.before.txt")), "8ea7173a52d53b2d5fb4184e7c620cb8c8be536ac277b4e629501cfddd7a1c57"),
+        (ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/function_scope/collection_tests/funded_early.rs")), ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/nominal-collect-test-adapters-504b/original/src__hir__validation__function_scope__collection_tests__funded_early.rs.before.txt")), "304f391011d2bb12acd4d4cd4827f8221d7e330f7bb50f1609865ba5ecf3a264"),
     ];
-    let inverse: serde_json::Value = serde_json::from_str(include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"), "/docs/evidence/nominal-collect-test-adapters-504b/exact-inverses.json"
-    ))).unwrap();
+    let inverse: serde_json::Value = serde_json::from_str(ci_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/nominal-collect-test-adapters-504b/exact-inverses.json"
+    )))
+    .unwrap();
     assert_eq!(inverse["files"].as_array().unwrap().len(), sources.len());
     for (index, (current, original, fixed)) in sources.into_iter().enumerate() {
-        assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))), fixed);
+        assert_eq!(
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))
+            ),
+            fixed
+        );
         let mut restored = current.to_owned();
-        for edit in inverse["files"][index]["splices"].as_array().unwrap().iter().rev() {
+        for edit in inverse["files"][index]["splices"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .rev()
+        {
             let at = edit["start"].as_u64().unwrap() as usize;
             let after = edit["after"].as_str().unwrap();
             assert_eq!(restored.get(at..at + after.len()), Some(after));

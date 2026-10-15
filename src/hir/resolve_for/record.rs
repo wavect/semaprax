@@ -134,7 +134,9 @@ pub(in crate::hir) fn project<'p>(
                 vec![source, index],
             )
             .map(|mut read| {
-                if let ResolvedExprKind::VecFieldRead { origin, .. } = &mut read.kind { *origin = super::super::VecFieldReadOrigin::Traversal; }
+                if let ResolvedExprKind::VecFieldRead { origin, .. } = &mut read.kind {
+                    *origin = super::super::VecFieldReadOrigin::Traversal;
+                }
                 Some(read)
             });
     }

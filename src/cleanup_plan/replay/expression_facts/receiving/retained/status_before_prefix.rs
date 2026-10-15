@@ -12,7 +12,12 @@ pub(in crate::cleanup_plan::replay) fn validate_status_sources_retained<'hir>(
     if let Facts::Tree(tree) = facts {
         super::super::super::validate_status_sources(function, tree)?;
         budget.reserve_bytes(function, CONTROL_BYTES, "retained status full controls")?;
-        return Ok(StatusSources { function, budget, ledger: ClassifierLedger::capture(), ids: None });
+        return Ok(StatusSources {
+            function,
+            budget,
+            ledger: ClassifierLedger::capture(),
+            ids: None,
+        });
     }
     let expressions: &dyn Lookup = facts;
     let mut ids = Directory::new(function, budget, "cleanup status identity directory")?;
@@ -26,9 +31,11 @@ pub(in crate::cleanup_plan::replay) fn validate_status_sources_retained<'hir>(
         // Retain the actual first lookup's borrowed payload, only through this
         // immutable source's producer match. Pay its complete receiving pointer
         // and one assignment step; no previous result/header credit is used.
-        budget.reserve_bytes(function,
+        budget.reserve_bytes(
+            function,
             std::mem::size_of::<&Option<CallFact<'_>>>(),
-            "retained status fact receiving control")?;
+            "retained status fact receiving control",
+        )?;
         budget.charge(function, 1, "retained status fact receiving assignment")?;
         let Some(fact) = expressions.fact(function, &source.id.expression, budget)? else {
             return Err(<Diagnostic as semantic_refusal::Error>::structural(
@@ -43,11 +50,13 @@ pub(in crate::cleanup_plan::replay) fn validate_status_sources_retained<'hir>(
             ) => {
                 // The payload reference is a second simultaneous receiving
                 // control; the eliminated lookup's result is not a credit.
-                budget.reserve_bytes(function, std::mem::size_of::<&CallFact<'_>>(),
-                    "retained status call receiving control")?;
+                budget.reserve_bytes(
+                    function,
+                    std::mem::size_of::<&CallFact<'_>>(),
+                    "retained status call receiving control",
+                )?;
                 budget.charge(function, 1, "retained status call receiving assignment")?;
-                let Some(call) = fact
-                else {
+                let Some(call) = fact else {
                     return Err(replay_error(
                         function,
                         "propagated-call status source does not name a call expression",
@@ -102,6 +111,10 @@ pub(in crate::cleanup_plan::replay) fn validate_status_sources_retained<'hir>(
         }
     }
     budget.reserve_bytes(function, CONTROL_BYTES, "retained status full controls")?;
-    Ok(StatusSources { function, budget, ledger: ClassifierLedger::capture(), ids: Some(ids) })
+    Ok(StatusSources {
+        function,
+        budget,
+        ledger: ClassifierLedger::capture(),
+        ids: Some(ids),
+    })
 }
-

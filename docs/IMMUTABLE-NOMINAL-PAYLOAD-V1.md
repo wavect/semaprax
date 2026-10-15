@@ -1,5 +1,9 @@
 # Immutable nominal payload ownership v1
 
+Status: draft specification; qualification remains as recorded below.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 This source implementation is pending executable qualification. Public SEMAPRAX source, semantic/graph projections, diagnostic order, ordered case/field/parameter values and cache wire bytes remain the contract. The internal Rust sequence carrier changes from Vec to NominalPayload; no pointer identity grants semantic authority.
 
 An explicit existing caller byte reservation acquires a whole immutable cases, fields or parameter owner. Already-funded Vec backing moves only after all owner/receiver/disposal reservations succeed. Case-field entries retain a validated ordinal in the same whole cases owner; no field Vec or per-case Arc is cloned. Equality/debug/codec inspect the complete ordered values. Decoding retains its actual legacy facts and never substitutes a trusted payload from an ID match.

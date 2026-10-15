@@ -162,10 +162,14 @@ impl<'a> HirValidator<'a> {
         let seed = constructor_seed::ConstructorSeed::authenticate_shared(program, functions)?;
         let canonical_loans = if let Some(storage) = storage {
             if !storage.is_current(seed.program) {
-                return Err(hir_error("canonical shared-loan storage does not belong to the current program"));
+                return Err(hir_error(
+                    "canonical shared-loan storage does not belong to the current program",
+                ));
             }
             storage
-        } else { canonical_loans::Lookup::current(&seed)? };
+        } else {
+            canonical_loans::Lookup::current(&seed)?
+        };
         Self::from_constructor(seed, canonical_loans, Some(profiles))
     }
     fn from_constructor(

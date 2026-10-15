@@ -308,7 +308,7 @@ fn ordinary_spill_teardown_keeps_exact_depth_wide_patterns_and_no_recursive_fall
 
 #[test]
 fn entire_program_source_and_original_destructor_test_stay_exact_with_four_carrier_hooks() {
-    let mut current = super::drop_method_roots::restore_source(include_str!("../ast.rs").to_owned());
+    let mut current = super::drop_method_roots::restore_source(ci_str!("../ast.rs").to_owned());
     let registration = "#[path = \"ast/drop_frontier.rs\"]\nmod drop_frontier;\n#[cfg(test)]\n#[path = \"ast/drop_original.rs\"]\nmod drop_original;\n\n";
     assert_eq!(current.matches(registration).count(), 1);
     current = current.replacen(registration, "", 1);
@@ -320,20 +320,20 @@ fn entire_program_source_and_original_destructor_test_stay_exact_with_four_carri
     }
     assert_eq!(
         current,
-        include_str!("../../docs/evidence/custody-ast-drop-frontier/ast.rs.before.txt")
+        ci_str!("../../docs/evidence/custody-ast-drop-frontier/ast.rs.before.txt")
     );
-    let original = include_str!("drop_original.rs");
+    let original = ci_str!("drop_original.rs");
     let start = original.find("impl Drop for Original {").unwrap();
     let end = original[start..].find("\n// This lexical adapter").unwrap() + start;
     let old_drop =
         original[start..end].replace("impl Drop for Original {", "impl Drop for Program {");
     assert_eq!(
         old_drop,
-        include_str!("../../docs/evidence/custody-ast-drop-frontier/program-drop.before.txt")
+        ci_str!("../../docs/evidence/custody-ast-drop-frontier/program-drop.before.txt")
     );
     assert_eq!(
-        include_str!("drop_original_tests.rs"),
-        include_str!(
+        ci_str!("drop_original_tests.rs"),
+        ci_str!(
             "../../docs/evidence/custody-ast-drop-frontier/iterative-program-drop-tests.before.txt"
         )
     );

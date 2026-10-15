@@ -1,5 +1,5 @@
 use super::*;
-use crate::cleanup_plan::replay::allocation::{OracleRefusal, OracleScope, enter};
+use crate::cleanup_plan::replay::allocation::{enter, OracleRefusal, OracleScope};
 use crate::test_allocation_observer::measure;
 
 fn fixture() -> ResolvedProgram {

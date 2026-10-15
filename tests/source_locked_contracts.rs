@@ -186,7 +186,7 @@ fn a_contract_that_reads_a_module_root_also_reads_its_submodules() {
         let Ok(text) = fs::read_to_string(&reader) else {
             continue;
         };
-        if !text.contains("include_str!") && !text.contains("read(") {
+        if !text.contains("include_str!") && !text.contains("ci_str!") && !text.contains("read(") {
             continue;
         }
         let reader_relative = reader

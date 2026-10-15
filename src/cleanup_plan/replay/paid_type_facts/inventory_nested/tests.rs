@@ -250,18 +250,46 @@ fn held_metadata_root_suffix_zero_one_short_and_sticky_work_keep_original_querie
 #[test]
 fn complete_original_nested_and_index_sources_stay_independent_and_byte_exact() {
     assert_eq!(
-        include_str!("../../../../hir/collection_outcome/nested.rs"),
-        include_str!("../../../../../docs/evidence/schema-summary/nested.rs.before")
+        ci_str!("../../../../hir/collection_outcome/nested.rs"),
+        ci_str!("../../../../../docs/evidence/schema-summary/nested.rs.before")
     );
-    let nominal:serde_json::Value=serde_json::from_str(include_str!("../../../../../docs/evidence/nominal-payload-827/exact-source-inverses-activation-v3.json")).unwrap();
-    let row=nominal.as_array().unwrap().iter().find(|row|row["source"]=="src/hir/declaration_index.rs").unwrap();
-    let mut projected=include_str!("../../../../hir/declaration_index.rs").to_owned();
-    for edit in row["edits"].as_array().unwrap() {
-        let new=edit["new"].as_str().unwrap();
-        assert_eq!(projected.matches(new).count(),1,"complete current nominal index source");
-        projected=projected.replacen(new,edit["before"].as_str().unwrap(),1);
+    let nominal: serde_json::Value = serde_json::from_str(ci_str!(
+        "../../../../../docs/evidence/nominal-payload-827/exact-source-inverses-activation-v3.json"
+    ))
+    .unwrap();
+    let row = nominal
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["source"] == "src/hir/declaration_index.rs")
+        .unwrap();
+    let mut projected = ci_str!("../../../../hir/declaration_index.rs").to_owned();
+    // Later paid construction modules and test-only legacy insertion helpers
+    // are exact named additions to the v3 nominal activation projection.
+    for registration in [
+        "mod nominal_construction;\nmod nominal_paid_values;\nmod nominal_paid_inheritance;\n",
+        "    #[cfg(test)]\n    fn insert_field(",
+        "    #[cfg(test)]\n    fn insert_case_field(",
+    ] {
+        assert_eq!(projected.matches(registration).count(), 1);
+        let prior = registration.replace("    #[cfg(test)]\n", "");
+        let prior = if registration.starts_with("mod ") {
+            ""
+        } else {
+            &prior
+        };
+        projected = projected.replacen(registration, prior, 1);
     }
-    assert_eq!(projected,include_str!("../../../../../docs/evidence/nominal-payload-827/original/src/hir/declaration_index.rs"));
+    for edit in row["edits"].as_array().unwrap() {
+        let new = edit["new"].as_str().unwrap();
+        assert_eq!(
+            projected.matches(new).count(),
+            1,
+            "complete current nominal index source"
+        );
+        projected = projected.replacen(new, edit["before"].as_str().unwrap(), 1);
+    }
+    assert_eq!(projected,ci_str!("../../../../../docs/evidence/nominal-payload-827/original/src/hir/declaration_index.rs"));
     assert_eq!(
         projected
             .replacen("pub(crate) use flags::{inventory_identity, inventory_substitute, InventoryPayer};\n", "", 1)
@@ -270,7 +298,7 @@ fn complete_original_nested_and_index_sources_stay_independent_and_byte_exact() 
             "",
             1
         ),
-        include_str!("../../../../../docs/evidence/schema-summary/declaration_index.rs.before")
+        ci_str!("../../../../../docs/evidence/schema-summary/declaration_index.rs.before")
     );
 }
 

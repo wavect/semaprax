@@ -126,8 +126,12 @@ fn empty_and_nonempty_byte_clones_receive_distinct_fresh_owner_identities() {
     let capacities = hir::analyze_byte_data_capacity(&program).unwrap();
     let summary = capacities.function("clone").unwrap();
     assert_eq!(summary.bytes_copy_sites, 4);
+    // The two unknown borrowed payloads retain the full per-value bound; the
+    // authored [9u8] allocation has exactly one byte. Keep the earlier
+    // conservative three-value bound as an independent upper limit.
+    assert!(summary.owned_byte_payload_bytes <= 3 * crate::byte_ops::MAX_OWNED_BYTE_VALUE_BYTES);
     assert_eq!(
         summary.owned_byte_payload_bytes,
-        3 * crate::byte_ops::MAX_OWNED_BYTE_VALUE_BYTES
+        2 * crate::byte_ops::MAX_OWNED_BYTE_VALUE_BYTES + 1
     );
 }

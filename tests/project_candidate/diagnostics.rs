@@ -203,7 +203,7 @@ fn rejected_attempt_retains_exact_diagnostics_and_one_fully_admitted_numeric_rep
         .zip(expected)
     {
         assert_eq!(actual["code"], expected.code);
-        assert_eq!(actual["message"], expected.message);
+        assert_eq!(actual["message"].as_str(), Some(expected.message.as_ref()));
         assert_eq!(
             actual["location_basis"],
             "uncommitted_attempt_or_constructor_input_not_authenticated_base_span"

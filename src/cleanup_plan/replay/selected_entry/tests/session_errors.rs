@@ -132,69 +132,72 @@ fn selected_session_receipt_full_carrier_exact_short_zero_sticky_report_and_drop
     let program = fixture();
     let context = primitive_fixture::Context::new(&program);
     let function = &program.functions[0];
-    let (base, overflow, _active_used) = crate::bounded_output::with_limit_usage(usize::MAX, || {
-        let owner = acquire(&context, function, usize::MAX);
-        owner.usage().1
-    });
+    let (base, overflow, _active_used) =
+        crate::bounded_output::with_limit_usage(usize::MAX, || {
+            let owner = acquire(&context, function, usize::MAX);
+            owner.usage().1
+        });
     assert!(!overflow);
     for (extra, semantic) in [(0, false), (bytes() - 1, false), (bytes(), true)] {
-        let ((), overflow, _active_used) = crate::bounded_output::with_limit_usage(usize::MAX, || {
-            let (_, observed) = measure(|| {
-                let mut owner = acquire(&context, function, base + extra);
-                assert_eq!(owner.usage().1, base);
-                let backing = owner.report.as_ref().unwrap().backing();
-                let ledger = owner.budget.physical.as_deref().unwrap() as *const _;
-                let before = current_metrics();
-                let error = selected_context::paid::refusal(
-                    function,
-                    &mut owner.budget,
-                    "selected lexical function is not held by its current context",
-                );
-                assert_eq!(
-                    matches!(&error, expression_facts::errors::EngineError::Structural(_)),
-                    semantic
-                );
-                assert_eq!(current_metrics().allocations, before.allocations);
-                if semantic {
-                    assert_eq!(owner.usage().1, base + bytes());
-                }
-                let mut refusal = owner.into_failed_preparation().refuse_engine(error);
-                assert_eq!(refusal.report().unwrap().as_ptr(), backing.0);
-                assert_eq!(refusal.report().unwrap()[0].message.as_ptr(), backing.1);
-                assert_eq!(refusal.ledger_mut().unwrap() as *const _, ledger);
-                if semantic {
-                    assert_eq!(
-                        refusal.structural_receipt().unwrap().stage(),
-                        "selected session"
+        let ((), overflow, _active_used) =
+            crate::bounded_output::with_limit_usage(usize::MAX, || {
+                let (_, observed) = measure(|| {
+                    let mut owner = acquire(&context, function, base + extra);
+                    assert_eq!(owner.usage().1, base);
+                    let backing = owner.report.as_ref().unwrap().backing();
+                    let ledger = owner.budget.physical.as_deref().unwrap() as *const _;
+                    let before = current_metrics();
+                    let error = selected_context::paid::refusal(
+                        function,
+                        &mut owner.budget,
+                        "selected lexical function is not held by its current context",
                     );
-                }
-                let first = refusal.ledger_mut().unwrap().reserve(0).unwrap_err();
-                assert_eq!(refusal.ledger_mut().unwrap().reserve(1).unwrap_err(), first);
-                assert_eq!(refusal.ledger_mut().unwrap().reserve(0).unwrap_err(), first);
-                drop(refusal.into_report(FORM).ok().unwrap());
-                assert_eq!(current_metrics().allocations, before.allocations);
+                    assert_eq!(
+                        matches!(&error, expression_facts::errors::EngineError::Structural(_)),
+                        semantic
+                    );
+                    assert_eq!(current_metrics().allocations, before.allocations);
+                    if semantic {
+                        assert_eq!(owner.usage().1, base + bytes());
+                    }
+                    let mut refusal = owner.into_failed_preparation().refuse_engine(error);
+                    assert_eq!(refusal.report().unwrap().as_ptr(), backing.0);
+                    assert_eq!(refusal.report().unwrap()[0].message.as_ptr(), backing.1);
+                    assert_eq!(refusal.ledger_mut().unwrap() as *const _, ledger);
+                    if semantic {
+                        assert_eq!(
+                            refusal.structural_receipt().unwrap().stage(),
+                            "selected session"
+                        );
+                    }
+                    let first = refusal.ledger_mut().unwrap().reserve(0).unwrap_err();
+                    assert_eq!(refusal.ledger_mut().unwrap().reserve(1).unwrap_err(), first);
+                    assert_eq!(refusal.ledger_mut().unwrap().reserve(0).unwrap_err(), first);
+                    drop(refusal.into_report(FORM).ok().unwrap());
+                    assert_eq!(current_metrics().allocations, before.allocations);
+                });
+                assert!(!observed.invalid);
+                assert_eq!(observed.live, 0);
+                assert_eq!(observed.allocated, observed.freed);
             });
-            assert!(!observed.invalid);
-            assert_eq!(observed.live, 0);
-            assert_eq!(observed.allocated, observed.freed);
-        });
         assert!(!overflow);
     }
     for work in [0, 5, 6] {
-        let ((), overflow, _active_used) = crate::bounded_output::with_limit_usage(usize::MAX, || {
-            let mut owner = acquire(&context, function, usize::MAX);
-            owner.budget.remaining = work;
-            let error = selected_context::paid::refusal(
-                function,
-                &mut owner.budget,
-                "selected profile cursor is empty",
-            );
-            assert_eq!(
-                matches!(error, expression_facts::errors::EngineError::Structural(_)),
-                work == 6
-            );
-            assert_eq!(owner.budget.remaining, 0);
-        });
+        let ((), overflow, _active_used) =
+            crate::bounded_output::with_limit_usage(usize::MAX, || {
+                let mut owner = acquire(&context, function, usize::MAX);
+                owner.budget.remaining = work;
+                let error = selected_context::paid::refusal(
+                    function,
+                    &mut owner.budget,
+                    "selected profile cursor is empty",
+                );
+                assert_eq!(
+                    matches!(error, expression_facts::errors::EngineError::Structural(_)),
+                    work == 6
+                );
+                assert_eq!(owner.budget.remaining, 0);
+            });
         assert!(!overflow);
     }
 }
@@ -205,52 +208,55 @@ fn selected_session_publication_keeps_first_named_boundary_across_later_atom_kin
     let context = primitive_fixture::Context::new(&program);
     let function = &program.functions[0];
     for selected_first in [false, true] {
-        let ((), overflow, _active_used) = crate::bounded_output::with_limit_usage(usize::MAX, || {
-            let mut owner = acquire(&context, function, usize::MAX);
-            // Both complete receiving controls are prepaid before their atoms.
-            let selected = selected_context::paid::refusal(
-                function,
-                &mut owner.budget,
-                "selected lexical function is not held by its current context",
-            );
-            // Independent full Controls<Context> census on this same owner.
-            // Keep the production acquire helper private to selected_context.
-            owner.budget.reserve_bytes(
-                function,
-                bytes(),
-                "selected session refusal controls",
-            ).unwrap();
-            owner.budget.charge(function, 6, "selected session refusal controls").unwrap();
-            let structural =
-                <expression_facts::errors::EngineError as semantic_refusal::Error>::structural(
+        let ((), overflow, _active_used) =
+            crate::bounded_output::with_limit_usage(usize::MAX, || {
+                let mut owner = acquire(&context, function, usize::MAX);
+                // Both complete receiving controls are prepaid before their atoms.
+                let selected = selected_context::paid::refusal(
                     function,
-                    semantic_refusal::Atom::UnknownStatus(function.body.id.clone()),
+                    &mut owner.budget,
+                    "selected lexical function is not held by its current context",
                 );
-            let (first, later) = if selected_first {
-                (selected, structural)
-            } else {
-                (structural, selected)
-            };
-            let mut preparation = owner.into_failed_preparation();
-            preparation.receipt = Some(first);
-            let refusal = preparation.refuse_engine(later);
-            assert_eq!(
-                refusal.refused().unwrap().stage(),
-                Some(if selected_first {
-                    "selected session"
+                // Independent full Controls<Context> census on this same owner.
+                // Keep the production acquire helper private to selected_context.
+                owner
+                    .budget
+                    .reserve_bytes(function, bytes(), "selected session refusal controls")
+                    .unwrap();
+                owner
+                    .budget
+                    .charge(function, 6, "selected session refusal controls")
+                    .unwrap();
+                let structural =
+                    <expression_facts::errors::EngineError as semantic_refusal::Error>::structural(
+                        function,
+                        semantic_refusal::Atom::UnknownStatus(function.body.id.clone()),
+                    );
+                let (first, later) = if selected_first {
+                    (selected, structural)
                 } else {
-                    "structural replay"
-                })
-            );
-            assert_eq!(
-                refusal.structural_receipt().unwrap().stage(),
-                if selected_first {
-                    "selected session"
-                } else {
-                    "structural replay"
-                }
-            );
-        });
+                    (structural, selected)
+                };
+                let mut preparation = owner.into_failed_preparation();
+                preparation.receipt = Some(first);
+                let refusal = preparation.refuse_engine(later);
+                assert_eq!(
+                    refusal.refused().unwrap().stage(),
+                    Some(if selected_first {
+                        "selected session"
+                    } else {
+                        "structural replay"
+                    })
+                );
+                assert_eq!(
+                    refusal.structural_receipt().unwrap().stage(),
+                    if selected_first {
+                        "selected session"
+                    } else {
+                        "structural replay"
+                    }
+                );
+            });
         assert!(!overflow);
     }
 }

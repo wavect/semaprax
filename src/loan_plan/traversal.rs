@@ -220,6 +220,10 @@ pub(super) fn draft(
 /// before the complete lowered region until after it. The loan is independent
 /// of the view's own liveness, which may end at its last read inside the body.
 #[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "retained original receiver or refusal payload; not every legacy entry is selected by current tests"
+)]
 pub(super) fn draft_bytes(
     expression: &ResolvedExpr,
     cfg: &Cfg<'_>,

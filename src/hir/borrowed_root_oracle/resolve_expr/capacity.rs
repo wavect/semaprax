@@ -1,6 +1,8 @@
 use super::{Frame, ResolvedExpr};
+use crate::hir::borrowed_root_oracle::resolve_expr_frame::{
+    frame_owned_capacity_with, visit_frame_scopes,
+};
 use crate::hir::capacity_probe::{note_iterative_phase_capacity, resolved_expr_owned_capacity};
-use crate::hir::borrowed_root_oracle::resolve_expr_frame::{frame_owned_capacity_with, visit_frame_scopes};
 
 pub(super) fn note(
     frames: &Vec<Frame<'_>>,

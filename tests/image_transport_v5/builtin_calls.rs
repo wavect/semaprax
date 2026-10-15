@@ -8,7 +8,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 /// Every compiler-owned byte operation, with the exact ownership its published
 /// parameters carry in left-to-right order. The arity is the list's length.
-const OPERATIONS: [(&str, &str, &[&str]); 13] = [
+const OPERATIONS: [(&str, &str, &[&str]); 14] = [
     ("core.bytes.len", "byte_len", &["borrow"]),
     ("core.bytes.get", "byte_get", &["borrow", "value"]),
     (
@@ -22,6 +22,11 @@ const OPERATIONS: [(&str, &str, &[&str]); 13] = [
     ("core.str.as-bytes", "str_as_bytes", &["borrow"]),
     ("core.string.as-str", "string_as_str", &["borrow"]),
     ("core.bytes.zeroed", "bytes_zeroed", &["value"]),
+    (
+        "core.bytes.zeroed-bounded",
+        "bytes_zeroed_bounded",
+        &["value", "value"],
+    ),
     ("core.bytes.set", "bytes_set", &["own", "value", "value"]),
     (
         "core.bytes.set5",
@@ -173,8 +178,8 @@ fn constructor_schemas_preserve_builtin_alternatives_with_numeric_string_operati
         .iter()
         .filter(|row| row["properties"]["kind"]["const"] == "builtin_call")
         .collect::<Vec<_>>();
-    // Thirteen byte operations and nine String operations.
-    assert_eq!(builtins.len(), 22);
+    // All fourteen byte operations and nine String operations are exact.
+    assert_eq!(builtins.len(), 23);
     assert_eq!(
         builtins
             .iter()

@@ -1,5 +1,7 @@
 # Prefix-certified expression lookup v1
 
+Audience: compiler contributors, tool authors, and reviewers.
+
 Status: private source checkpoint; owning runtime qualification pending.
 
 The ordinary expression-fact arena keeps its complete current insertion order,

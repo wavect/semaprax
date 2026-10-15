@@ -166,15 +166,15 @@ pub(in crate::hir::validation) fn project_current(path: &str, source: &str) -> S
 #[test]
 fn complete_constructor_preflight_and_lookup_sources_preserve_full_original_bytes() {
     for (path, current, original) in [
-        ("src/hir/validation/constructor_seed.rs", include_str!("../constructor_seed.rs"), include_str!("../../../../docs/evidence/compat-constructor-preflight-824/src__hir__validation__constructor_seed.rs.before.txt")),
-        ("src/hir/validation/function_lookup.rs", include_str!("../function_lookup.rs"), include_str!("../../../../docs/evidence/compat-constructor-preflight-824/src__hir__validation__function_lookup.rs.before.txt")),
-        ("src/hir/function_directory/caller.rs", include_str!("../../function_directory/caller.rs"), include_str!("../../../../docs/evidence/compat-constructor-preflight-824/src__hir__function_directory__caller.rs.before.txt")),
-        ("src/hir/validation.rs", include_str!("../../validation.rs"), include_str!("../../../../docs/evidence/compat-constructor-preflight-824/src__hir__validation.rs.before.txt")),
-        ("src/hir/validation/closure.rs", include_str!("../closure.rs"), include_str!("../../../../docs/evidence/compat-constructor-preflight-824/src__hir__validation__closure.rs.before.txt")),
-        ("src/hir/validation/stdin_stream.rs", include_str!("../stdin_stream.rs"), include_str!("../../../../docs/evidence/compat-constructor-preflight-824/src__hir__validation__stdin_stream.rs.before.txt")),
+        ("src/hir/validation/constructor_seed.rs", ci_str!("../constructor_seed.rs"), ci_str!("../../../../docs/evidence/compat-constructor-preflight-824/src__hir__validation__constructor_seed.rs.before.txt")),
+        ("src/hir/validation/function_lookup.rs", ci_str!("../function_lookup.rs"), ci_str!("../../../../docs/evidence/compat-constructor-preflight-824/src__hir__validation__function_lookup.rs.before.txt")),
+        ("src/hir/function_directory/caller.rs", ci_str!("../../function_directory/caller.rs"), ci_str!("../../../../docs/evidence/compat-constructor-preflight-824/src__hir__function_directory__caller.rs.before.txt")),
+        ("src/hir/validation.rs", ci_str!("../../validation.rs"), ci_str!("../../../../docs/evidence/compat-constructor-preflight-824/src__hir__validation.rs.before.txt")),
+        ("src/hir/validation/closure.rs", ci_str!("../closure.rs"), ci_str!("../../../../docs/evidence/compat-constructor-preflight-824/src__hir__validation__closure.rs.before.txt")),
+        ("src/hir/validation/stdin_stream.rs", ci_str!("../stdin_stream.rs"), ci_str!("../../../../docs/evidence/compat-constructor-preflight-824/src__hir__validation__stdin_stream.rs.before.txt")),
     ] { assert_eq!(project_current(path, current), original); }
-    assert_eq!(include_str!("../../../stdin_stream_ops/analysis.rs"), include_str!("../../../../docs/evidence/compat-constructor-preflight-824/src__stdin_stream_ops__analysis.rs.before.txt"));
-    assert_eq!(include_str!("../../../stdin_stream_ops.rs"), include_str!("../../../../docs/evidence/compat-constructor-preflight-824/src__stdin_stream_ops.rs.before.txt"));
+    assert_eq!(ci_str!("../../../stdin_stream_ops/analysis.rs"), ci_str!("../../../../docs/evidence/compat-constructor-preflight-824/src__stdin_stream_ops__analysis.rs.before.txt"));
+    assert_eq!(ci_str!("../../../stdin_stream_ops.rs"), ci_str!("../../../../docs/evidence/compat-constructor-preflight-824/src__stdin_stream_ops.rs.before.txt"));
 }
 
 #[test]
@@ -186,7 +186,8 @@ fn complete_independently_compiled_seed_and_legacy_lookup_are_exact_original_rec
     let saved_nul = "use crate::hir::inspection::validate_nul_free_identities_original as validate_nul_free_identities;\n";
     assert_eq!(current.matches(saved_nul).count(), 1);
     let current = current.replacen(saved_nul, "", 1);
-    let saved_generic_graph = "use super::super::generic_template::original_call_graph as generic_template;\n";
+    let saved_generic_graph =
+        "use super::super::generic_template::original_call_graph as generic_template;\n";
     assert_eq!(current.matches(saved_generic_graph).count(), 1);
     let current = current.replacen(saved_generic_graph, "", 1);
     let saved_intrinsics = "use super::original_intrinsics as box_intrinsic;\n";

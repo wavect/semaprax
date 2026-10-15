@@ -1565,7 +1565,7 @@ fn map_candidate_builder_limit(
     }
 }
 
+pub mod reporting;
 #[cfg(test)]
 #[path = "semantic_workspace_structural_change/tests.rs"]
 pub(super) mod tests;
-pub mod reporting;

@@ -526,8 +526,8 @@ fn validator_oracle_handles_an_exact_depth_512_late_error_with_a_nonempty_scope(
                 .unwrap();
         let index = function_index(&hostile, "hostile.depth");
         // This owner tests the expression validator's exact 512-node boundary,
-        // not the separate 256-depth full-program lexical/loan preflight.
-        // Keep that independently checked constructor subject intact while
+        // and keeps the ordinary no-exit subject outside the narrower lexical
+        // contour. Keep the independently checked constructor subject intact while
         // supplying the hostile expression to both saved expression drivers.
         let original_body = hostile.functions[index].body.clone();
         let execution = FunctionExecutionId::Monomorphic(hostile.functions[index].id.clone());
@@ -568,15 +568,11 @@ fn validator_oracle_handles_an_exact_depth_512_late_error_with_a_nonempty_scope(
         assert_eq!(depth, 512);
         expression.ownership = OwnershipMode::Borrow;
         let expression = expression.clone();
-        // Full-program acquisition retains its independent narrower contour
-        // refusal; only the private expression oracle admits the detached
-        // candidate at its own unchanged exact boundary.
-        let preflight = HirValidator::new(&hostile).err().unwrap();
-        assert_eq!(preflight.code, "SPX-H006");
-        assert_eq!(
-            preflight.message,
-            "lexical control scan exceeds admitted expression depth"
-        );
+        // No exit selects the narrower lexical contour. The ordinary exact
+        // expression boundary remains available, while full validation still
+        // independently refuses the forged ownership before publication.
+        assert!(HirValidator::new(&hostile).is_ok());
+        assert_eq!(hir::validate(&hostile).unwrap_err().code, "SPX-H006");
         hostile.functions[index].body = original_body;
         assert!(!hir::lexical_exit::requires(&hostile.functions[index]).unwrap());
         assert_eq!(

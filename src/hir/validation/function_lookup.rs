@@ -241,6 +241,10 @@ pub(super) fn authenticate_shared<'a>(
 mod tests;
 
 #[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "complete historical receiver retained for independent test comparisons"
+)]
 pub(super) mod original;
 
 fn lookup_error(

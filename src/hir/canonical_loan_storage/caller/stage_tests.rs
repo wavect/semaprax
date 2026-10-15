@@ -227,10 +227,10 @@ fn actual_shared_seal_stage_preserves_exact_short_zero_numeric_receipts_and_comp
         assert_eq!(metrics.live, 0);
         assert!(metrics.allocated <= current.2 && metrics.highwater <= current.2);
     }
-    let original = include_str!("sealed_before_stage.rs")
+    let original = ci_str!("sealed_before_stage.rs")
         .strip_prefix("//! Complete 4ec shared-sealing receiver before production stage attribution.\nuse super::*;\n").unwrap()
         .replacen("pub(super) fn prepare_before_stage<'a, T>(", "fn prepare_sealed<'a, T>(", 1);
-    let archive = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/public-template-recovery-799/src__hir__canonical_loan_storage__caller.rs.sealed-before.txt"));
+    let archive = ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/public-template-recovery-799/src__hir__canonical_loan_storage__caller.rs.sealed-before.txt"));
     use sha2::{Digest, Sha256};
     assert_eq!(
         format!(

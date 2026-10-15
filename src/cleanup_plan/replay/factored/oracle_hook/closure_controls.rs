@@ -1,7 +1,7 @@
 //! Narrow issue810 acceptance controls; full receivers remain in the parent.
 use super::*;
 use crate::bounded_output::{reserve_active_required, with_limit_usage_refusal};
-use crate::cleanup_plan::replay::allocation::{OracleScope, opt_in};
+use crate::cleanup_plan::replay::allocation::{opt_in, OracleScope};
 use crate::test_allocation_observer::measure;
 
 fn program() -> crate::hir::ResolvedProgram {

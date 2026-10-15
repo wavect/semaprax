@@ -2,7 +2,7 @@
 use super::*;
 use crate::bounded_output::cfg_reservation::CfgReservation;
 use crate::bounded_output::{with_limit_usage, with_limit_usage_refusal};
-use crate::test_allocation_observer::{Metrics, current_metrics, measure};
+use crate::test_allocation_observer::{current_metrics, measure, Metrics};
 
 fn same_cfg(current: &Cfg<'_>, old: &Cfg<'_>) {
     // Destructure every field: adding a CFG field requires extending this owner.
@@ -48,16 +48,12 @@ fn same_saved_cfg(current: &Cfg<'_>, old: &saved_planner::Cfg<'_>) {
     assert_eq!(predecessors.len(), points.len());
     for (ordinal, point) in points.iter().enumerate() {
         assert_eq!(current.nodes.get(point), nodes.get(point));
-        assert!(
-            current
-                .successors(ordinal)
-                .eq(successors[ordinal].iter().copied())
-        );
-        assert!(
-            current
-                .successor_edges(ordinal)
-                .eq(successor_edges[ordinal].iter().copied())
-        );
+        assert!(current
+            .successors(ordinal)
+            .eq(successors[ordinal].iter().copied()));
+        assert!(current
+            .successor_edges(ordinal)
+            .eq(successor_edges[ordinal].iter().copied()));
         assert_eq!(
             current.predecessors(ordinal),
             predecessors[ordinal].as_slice()
@@ -377,36 +373,36 @@ fn every_small_cfg_acquisition_frontier_preserves_sticky_first_refusal_and_compl
 
 #[test]
 fn whole_original_cfg_legacy_plan_and_child_projection_sources_remain_exact() {
-    let proof: serde_json::Value = serde_json::from_str(include_str!(
+    let proof: serde_json::Value = serde_json::from_str(ci_str!(
         "../../../docs/evidence/paid-cfg-child-scratch/exact-source-inverses.json"
     ))
     .unwrap();
     let sources = [
         (
             "src/loan_plan/paid_cfg.rs",
-            include_str!("../paid_cfg.rs"),
-            include_str!(
+            ci_str!("../paid_cfg.rs"),
+            ci_str!(
                 "../../../docs/evidence/paid-cfg-child-scratch/src__loan_plan__paid_cfg.rs.before.txt"
             ),
         ),
         (
             "src/loan_plan/paid_plan_legacy.rs",
-            include_str!("../paid_plan_legacy.rs"),
-            include_str!(
+            ci_str!("../paid_plan_legacy.rs"),
+            ci_str!(
                 "../../../docs/evidence/paid-cfg-child-scratch/src__loan_plan__paid_plan_legacy.rs.before.txt"
             ),
         ),
         (
             "src/loan_plan/adjacency.rs",
-            include_str!("../adjacency.rs"),
-            include_str!(
+            ci_str!("../adjacency.rs"),
+            ci_str!(
                 "../../../docs/evidence/paid-cfg-child-scratch/src__loan_plan__adjacency.rs.before.txt"
             ),
         ),
         (
             "src/loan_plan/cfg_directory.rs",
-            include_str!("../cfg_directory.rs"),
-            include_str!(
+            ci_str!("../cfg_directory.rs"),
+            ci_str!(
                 "../../../docs/evidence/paid-cfg-child-scratch/src__loan_plan__cfg_directory.rs.before.txt"
             ),
         ),
@@ -426,8 +422,8 @@ fn whole_original_cfg_legacy_plan_and_child_projection_sources_remain_exact() {
         }
         assert_eq!(restored, original, "complete original {path}");
     }
-    assert_eq!(include_str!("original.rs"), sources[0].2);
-    let inventory = include_str!(
+    assert_eq!(ci_str!("original.rs"), sources[0].2);
+    let inventory = ci_str!(
         "../../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
     );
     for path in [
@@ -442,12 +438,12 @@ fn whole_original_cfg_legacy_plan_and_child_projection_sources_remain_exact() {
             1
         );
     }
-    let legacy = include_str!("../paid_plan_legacy.rs");
+    let legacy = ci_str!("../paid_plan_legacy.rs");
     assert_eq!(
         legacy
             .matches("use super::paid_cfg::build_original as build_cfg;\n")
             .count(),
         1
     );
-    assert!(include_str!("../paid_cfg.rs").contains("original::build(function, work)"));
+    assert!(ci_str!("../paid_cfg.rs").contains("original::build(function, work)"));
 }

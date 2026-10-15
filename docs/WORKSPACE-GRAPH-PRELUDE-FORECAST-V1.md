@@ -1,5 +1,7 @@
 # Workspace Graph Prelude Forecast Accounting v1
 
+Audience: compiler contributors, tool authors, and reviewers.
+
 Status: source-ready accounting correction; executable qualification pending.
 
 This additive private forecast revision supersedes the fitting-receipt

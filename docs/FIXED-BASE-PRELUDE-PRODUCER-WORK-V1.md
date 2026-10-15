@@ -1,5 +1,7 @@
 # Fixed Base Prelude Producer Work v1
 
+Audience: compiler contributors, tool authors, and reviewers.
+
 Status: ROOT accepted the private activation conditions; ordinary root integration and owning execution remain pending. This is a bounded compiler-internal constructor, not a replay account, source admission route or application feature. Paid Invocation Base Prelude v1 remains unregistered. No byte/work ceiling, current corrected P, graph schema or public diagnostic boundary changes.
 
 ## Existing owner and bounded subject

@@ -14,7 +14,10 @@ pub(in crate::loan_plan) fn build(
     inventory: paid_candidate::Inventory<'_, '_>,
 ) -> Result<LoanPlan, Diagnostic> {
     let payer = work.allocation;
-    let (aliases, bound, ownership) = inventory.into_parts(program, function, payer)?;
+    // The current inventory additionally carries the nested-byte receiver.
+    // This historical builder keeps its own complete prior traversal below.
+    let (aliases, bound, ownership, _byte_census) =
+        inventory.into_parts(program, function, payer)?;
     let cfg = build_cfg(function, work)?;
 
     let mut drafts = Vec::<PaidDraft>::new();
@@ -323,4 +326,3 @@ pub(in crate::loan_plan) fn build(
         payer.expect("private funded entry"),
     )
 }
-

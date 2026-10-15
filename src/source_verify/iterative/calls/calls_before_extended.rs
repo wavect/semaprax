@@ -810,7 +810,10 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
 }
 
 impl<'a, 'p> IterativeVerifier<'a, 'p> {
-    pub(super) fn before_extended_refused_callee_return(&mut self, target: &VerifierCallTarget<'p>) -> bool {
+    pub(super) fn before_extended_refused_callee_return(
+        &mut self,
+        target: &VerifierCallTarget<'p>,
+    ) -> bool {
         let origin = match target {
             VerifierCallTarget::Ordinary(Some(VerifierFunctionSignature::Borrowed(function))) => {
                 self.recovery.callee_component_refusal(

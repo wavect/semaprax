@@ -51,7 +51,7 @@ pub struct Journal {
     index: Option<Index>,
     cache: Option<Arc<JournalIndex>>,
     /// Holds the writer lock for the journal's lifetime.
-    _lock: Option<std::fs::File>,
+    _lock: Option<WriterLock>,
     fault: Option<FaultHook>,
 }
 
@@ -183,7 +183,23 @@ fn io(path: &Path, e: impl std::fmt::Display) -> HarnessDiagnostic {
 }
 
 #[cfg(unix)]
-fn try_lock(dir: &Path, lineage: &str) -> HarnessResult<Option<std::fs::File>> {
+struct WriterLock(std::fs::File);
+
+#[cfg(not(unix))]
+struct WriterLock;
+
+#[cfg(unix)]
+impl Drop for WriterLock {
+    fn drop(&mut self) {
+        // A concurrent process launch can inherit this open file description
+        // until exec closes it. Closing our descriptor alone then leaves the
+        // flock held; explicitly unlock before releasing the owned descriptor.
+        let _ = rustix::fs::flock(&self.0, rustix::fs::FlockOperation::Unlock);
+    }
+}
+
+#[cfg(unix)]
+fn try_lock(dir: &Path, lineage: &str) -> HarnessResult<Option<WriterLock>> {
     use rustix::fs::{flock, FlockOperation};
     let lock_path = dir.join(format!("{lineage}.journal.flock"));
     let f = std::fs::OpenOptions::new()
@@ -193,7 +209,7 @@ fn try_lock(dir: &Path, lineage: &str) -> HarnessResult<Option<std::fs::File>> {
         .open(&lock_path)
         .map_err(|e| io(&lock_path, e))?;
     match flock(&f, FlockOperation::NonBlockingLockExclusive) {
-        Ok(()) => Ok(Some(f)),
+        Ok(()) => Ok(Some(WriterLock(f))),
         Err(e) if e == rustix::io::Errno::WOULDBLOCK => Err(HarnessDiagnostic::new(
             "SPX-HPD070",
             format!(
@@ -206,7 +222,7 @@ fn try_lock(dir: &Path, lineage: &str) -> HarnessResult<Option<std::fs::File>> {
 }
 
 #[cfg(not(unix))]
-fn try_lock(_: &Path, _: &str) -> HarnessResult<Option<std::fs::File>> {
+fn try_lock(_: &Path, _: &str) -> HarnessResult<Option<WriterLock>> {
     Ok(None)
 }
 
@@ -659,6 +675,40 @@ mod tests {
 
     fn idx_open(d: &Path, c: &Arc<JournalIndex>) -> HarnessResult<Journal> {
         Journal::open_wait_indexed(d, "l", Duration::from_secs(5), c)
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn drop_releases_writer_lock_while_an_inherited_descriptor_is_still_open() {
+        for indexed in [false, true] {
+            let d = tmp(if indexed {
+                "inherited-indexed"
+            } else {
+                "inherited"
+            });
+            let cache = Arc::new(JournalIndex::default());
+            let mut j = if indexed {
+                idx_open(&d, &cache).unwrap()
+            } else {
+                Journal::open(&d, "l").unwrap()
+            };
+            j.append("s", "begin", json!({})).unwrap();
+            // dup shares the open file description, just like fork before exec.
+            let inherited = j._lock.as_ref().unwrap().0.try_clone().unwrap();
+            assert!(is_busy(&Journal::open(&d, "l").err().unwrap()));
+            drop(j);
+            let next = Journal::open(&d, "l").unwrap();
+            assert!(next.unfinished("s") && !next.may_run("s"));
+            if indexed {
+                assert_eq!(cache.decoded(), 0);
+                assert!(cache.entries.lock().unwrap().contains_key(&next.path));
+            }
+            drop(inherited);
+            assert!(is_busy(&Journal::open(&d, "l").err().unwrap()));
+            drop(next);
+            drop(Journal::open(&d, "l").unwrap());
+            std::fs::remove_dir_all(d).unwrap();
+        }
     }
 
     #[test]

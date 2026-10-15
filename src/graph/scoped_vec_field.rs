@@ -105,7 +105,10 @@ pub(crate) fn graph_schema_from_parts_and_instances_with_renewal_authority(
         .chain(instances.iter().map(|i| &i.function))
         .any(function_requires)
     {
-        Err(Diagnostic::io("SPX-G410", "scoped Vec field source forms require complete current Graph v85 authority"))
+        Err(Diagnostic::io(
+            "SPX-G410",
+            "scoped Vec field source forms require complete current Graph v85 authority",
+        ))
     } else {
         match renewal_authority { None => super::owned_nested_outcome::graph_schema_from_parts_and_instances(interfaces, types, functions, templates, instances), Some(_) => super::owned_nested_outcome::graph_schema_from_parts_and_instances_with_renewal_authority(interfaces, types, functions, templates, instances, renewal_authority), }
     }

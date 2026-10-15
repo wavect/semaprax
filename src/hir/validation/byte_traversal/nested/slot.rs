@@ -47,7 +47,9 @@ impl<'a> Slot<'a> {
         self.storage
             .reserve(0)
             .map_err(|error| Failure::Storage(error).diagnostic())?;
-        if !std::ptr::eq(context, self.context) || !std::ptr::eq(function, self.function) {
+        // Trait-object vtables may be duplicated across codegen units. Only
+        // the held object's data address identifies this immutable context.
+        if !std::ptr::addr_eq(context, self.context) || !std::ptr::eq(function, self.function) {
             return Err(Failure::semantic(
                 "borrowed byte traversal census function differs from its current receiver",
             )

@@ -389,7 +389,19 @@ fn select<'a>(
             }
         }
     }
-    if module.functions.iter().chain(module.function_instances.iter().map(|i| &i.function)).any(|f| std::iter::once(&f.body).chain(&f.requires).chain(&f.ensures).any(crate::vec_field::expression_uses)) { return Ok("semaprax.graph.v85"); }
+    if module
+        .functions
+        .iter()
+        .chain(module.function_instances.iter().map(|i| &i.function))
+        .any(|f| {
+            std::iter::once(&f.body)
+                .chain(&f.requires)
+                .chain(&f.ensures)
+                .any(crate::vec_field::expression_uses)
+        })
+    {
+        return Ok("semaprax.graph.v85");
+    }
     if module
         .functions
         .iter()
@@ -477,15 +489,25 @@ fn materialize_host_fields(
     payload: &mut hir::NominalPayload<hir::ResolvedFieldDeclaration>,
 ) -> &mut Vec<hir::ResolvedFieldDeclaration> {
     let shared = payload.is_shared();
-    let (result, refused, used, first) = crate::bounded_output::with_limit_usage_refusal(
-        MAX_BUILDER_BYTES,
-        || payload.try_make_mut(|bytes| {
-            crate::bounded_output::reserve_active_required(bytes).then_some(()).ok_or(())
-        }).map(|_| ()) ,
+    let (result, refused, used, first) =
+        crate::bounded_output::with_limit_usage_refusal(MAX_BUILDER_BYTES, || {
+            payload
+                .try_make_mut(|bytes| {
+                    crate::bounded_output::reserve_active_required(bytes)
+                        .then_some(())
+                        .ok_or(())
+                })
+                .map(|_| ())
+        });
+    assert!(
+        !refused && first.is_none(),
+        "host materialization must fit the unchanged builder cap"
     );
-    assert!(!refused && first.is_none(), "host materialization must fit the unchanged builder cap");
     if shared {
-        assert!(used > 0, "a shared host payload must explicitly pay for detachment");
+        assert!(
+            used > 0,
+            "a shared host payload must explicitly pay for detachment"
+        );
     }
     result.expect("explicit paid host materialization");
     // Successful explicit materialization left the legacy owned Vec carrier.
@@ -708,17 +730,33 @@ mod tests {
             (include_str!("source_schema/static_text/primitive/records/tests.rs"), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/nominal-host-mutators-827-828/original/src__workspace_graph__source_schema__static_text__primitive__records__tests.rs")), "cb1a00842c2ee1693200cdecbb6b9d7a7fc6a3a3406964cced2f4752aed32abb"),
         ];
         let inverses: serde_json::Value = serde_json::from_str(include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"), "/docs/evidence/nominal-host-mutators-827-828/exact-inverses.json"
-        ))).unwrap();
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/nominal-host-mutators-827-828/exact-inverses.json"
+        )))
+        .unwrap();
         assert_eq!(inverses["files"].as_array().unwrap().len(), sources.len());
         for (index, (current, original, fixed_hash)) in sources.into_iter().enumerate() {
-            assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))), fixed_hash);
+            assert_eq!(
+                format!(
+                    "{:x}",
+                    crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))
+                ),
+                fixed_hash
+            );
             let mut restored = current.to_owned();
-            for splice in inverses["files"][index]["splices"].as_array().unwrap().iter().rev() {
+            for splice in inverses["files"][index]["splices"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .rev()
+            {
                 let start = splice["start"].as_u64().unwrap() as usize;
                 let after = splice["after"].as_str().unwrap();
                 assert_eq!(restored.get(start..start + after.len()), Some(after));
-                restored.replace_range(start..start + after.len(), splice["before"].as_str().unwrap());
+                restored.replace_range(
+                    start..start + after.len(),
+                    splice["before"].as_str().unwrap(),
+                );
             }
             assert_eq!(restored, original);
         }

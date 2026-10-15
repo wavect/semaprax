@@ -572,11 +572,21 @@ mod type_admission_tests {
             (0, 0, 0)
         );
         let nominal = nominal("admission.row", vec![]);
+        // The memo belongs to its validator. Observe acquisition through its
+        // actual Drop on both routes so retained entries cannot escape the
+        // settlement measurement.
         let (old, old_metrics) = crate::test_allocation_observer::measure(|| {
-            validator.validate_type_eager_oracle(&nominal)
+            let local = HirValidator::new(&program).unwrap();
+            let result = local.validate_type_eager_oracle(&nominal);
+            drop(local);
+            result
         });
-        let (actual, metrics) =
-            crate::test_allocation_observer::measure(|| validator.validate_type(&nominal));
+        let (actual, metrics) = crate::test_allocation_observer::measure(|| {
+            let local = HirValidator::new(&program).unwrap();
+            let result = local.validate_type(&nominal);
+            drop(local);
+            result
+        });
         assert!(old.is_ok() && actual.is_ok());
         for m in [old_metrics, metrics] {
             assert!(!m.invalid);

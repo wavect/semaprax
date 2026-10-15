@@ -94,11 +94,9 @@ fn actual_argument_copy_receiver_removes_layout_allocation_preserves_old_and_sti
         crate::bounded_output::with_limit_usage_refusal(0, || {
             assert!(!crate::bounded_output::reserve_active_required(1));
             measure(|| {
-                assert!(
-                    validator
-                        .validate_argument_ownership_view(&main.body, ParameterView::owned(&param))
-                        .is_err()
-                )
+                assert!(validator
+                    .validate_argument_ownership_view(&main.body, ParameterView::owned(&param))
+                    .is_err())
             })
         });
     assert!(refused && paid == 0 && first.unwrap().requested == 1);
@@ -142,7 +140,9 @@ fn full_original_byte_corpus_keeps_exact_place_and_intrinsic_borrow_diagnostics(
         let mut pending = vec![&function.body];
         while let Some(expression) = pending.pop() {
             if let ResolvedExprKind::Call {
-                callee, args: arguments, ..
+                callee,
+                args: arguments,
+                ..
             } = &expression.kind
             {
                 if let Some(operation) = crate::byte_ops::by_id(callee.as_str()) {

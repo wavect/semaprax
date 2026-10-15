@@ -1,7 +1,7 @@
 //! Complete exits/finalizers: paid retained directories, unchanged place/chain helpers.
+use super::super::remaining::selected;
 use super::super::*;
 use crate::cleanup_plan::replay::{expected_exit_regions, validate_place};
-use super::super::remaining::selected;
 
 pub(in crate::cleanup_plan::replay) fn validate_exits(
     program: &dyn crate::cleanup::ReplayContext,
@@ -215,4 +215,3 @@ pub(super) fn validate_finalizer_actions(
     }
     Ok(())
 }
-

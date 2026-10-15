@@ -1,5 +1,7 @@
 # Cleanup epsilon closure sharing v1
 
+Audience: compiler contributors, tool authors, and reviewers.
+
 Status: authored compiler optimization; qualification pending. Owner: issue #830.
 
 The ordinary factored canonical receiver may share a completed immutable child closure for exactly one expanded automaton shape: the node is not the sink, has no labeled moves, and has exactly one epsilon edge. The child lookup stays at the original first child-lookup position; missing-child diagnostics keep their complete original identity. Every other shape executes the complete a33 general producer, including duplicate-edge weight accumulation, sink membership, own labeled moves, empty maps and checked arithmetic. No graph rewrite, schema change, ID reordering or new source admission occurs.

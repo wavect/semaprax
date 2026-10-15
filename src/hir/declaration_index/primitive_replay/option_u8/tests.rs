@@ -134,22 +134,17 @@ fn option_u8_replay_builds_only_compiler_identities_within_its_reservation_throu
     assert_eq!(drop_frontier.reallocations, 0);
     assert_eq!(drop_frontier.live, 0);
     assert_eq!(drop_frontier.allocated, drop_frontier.freed);
-    // The identical replay against the actual allocator, including the real
-    // disposer frontier and every final release, stays within its reservation.
+    // The current replay owns prepaid nominal disposal backing. The complete
+    // former frontier above remains independent; current Drop requests no new
+    // allocation and every final release stays within the original reservation.
     let ((), observed) = crate::test_allocation_observer::measure(|| {
         let (result, index) = run(&DeclarationIndex::default(), 1 << 20, 1 << 20);
         assert_eq!(result.unwrap().1, charged);
         let retained = crate::test_allocation_observer::current_metrics();
         drop(index);
         let settled = crate::test_allocation_observer::current_metrics();
-        assert_eq!(
-            settled.allocations,
-            retained.allocations + drop_frontier.allocations
-        );
-        assert_eq!(
-            settled.allocated,
-            retained.allocated + drop_frontier.allocated
-        );
+        assert_eq!(settled.allocations, retained.allocations);
+        assert_eq!(settled.allocated, retained.allocated);
         assert_eq!(settled.live, 0);
     });
     assert!(!observed.invalid);

@@ -20,11 +20,11 @@ use collection_records::{APP as COLLECTION_RECORD_APP, CORE as COLLECTION_RECORD
 use sha2::{Digest, Sha256};
 
 use crate::agent_skill_bundle::generate_agent_skill_bundle;
-use crate::diagnostic::{Diagnostic, quote_json};
+use crate::diagnostic::{quote_json, Diagnostic};
 
 use super::service_host_adapter_request::ServiceHostAdapterRequestV1;
 use super::{
-    PROJECT_SCHEMA, PROJECT_SCHEMA_V31, ProjectExecutionOptions, validate_owned_project_test,
+    validate_owned_project_test, ProjectExecutionOptions, PROJECT_SCHEMA, PROJECT_SCHEMA_V31,
 };
 
 pub use collection_records::TEMPLATE as PROJECT_SCAFFOLD_TEMPLATE_STDIN_STREAM_COLLECTION_RECORD;

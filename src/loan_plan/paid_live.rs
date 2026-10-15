@@ -105,6 +105,10 @@ pub(super) fn live_nodes(
 
 #[cfg(test)]
 #[path = "paid_live/original.rs"]
+#[allow(
+    dead_code,
+    reason = "complete historical receiver retained for independent test comparisons"
+)]
 pub(super) mod original;
 #[cfg(test)]
 #[path = "paid_live/reuse_tests.rs"]

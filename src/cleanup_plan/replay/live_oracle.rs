@@ -1,7 +1,7 @@
 //! Explicit owning-test account for the live factored comparison hook.
 //! Production ActiveBuilder authority is untouched. The fixture's complete
 //! receiving body and Drop run inside this finite affine account.
-use super::allocation::{OracleScope, opt_in};
+use super::allocation::{opt_in, OracleScope};
 
 pub(crate) fn with_financed_test_oracles(body: impl FnOnce()) {
     // The already exercised prototype allowance is declared once up front;

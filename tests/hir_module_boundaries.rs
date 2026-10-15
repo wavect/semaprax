@@ -480,6 +480,9 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/loan_plan/nested_candidate_before.rs"),
         include_str!("../src/cleanup_plan/replay/selected_context/paid.rs"),
         include_str!("../src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs"),
+        include_str!("../src/cleanup_plan/replay/live_oracle/source_custody/presence.rs"),
+        include_str!("../src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs"),
+        include_str!("../src/source_reflows_merge.rs"),
         include_str!("../src/cleanup_plan/replay/expression_facts/receiving/return_operands.rs"),
         include_str!("../src/cleanup_plan/replay/expression_facts/receiving/return_operands/exits.rs"),
         include_str!("../src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs"),
@@ -785,7 +788,6 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/workspace_graph/identity_resolution/base.rs"),
         include_str!("../src/workspace_graph/identity_resolution/base/tests.rs"),
         include_str!("../src/workspace_graph/identity_resolution/base/affinity_tests.rs"),
-
         include_str!("../src/hir/function_reuse_source.rs"),
         include_str!("../src/hir/identity_resolution/previous_source.rs")
     );

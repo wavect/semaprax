@@ -99,7 +99,10 @@ mod directories_tests;
 mod work_boundary;
 
 // Constructible only after this producer's exact current-function check.
-pub(super) struct CurrentSubject<'a> { program: &'a ResolvedProgram, function: &'a ResolvedFunction }
+pub(super) struct CurrentSubject<'a> {
+    program: &'a ResolvedProgram,
+    function: &'a ResolvedFunction,
+}
 const SUBJECT_BYTES: usize = 3 * std::mem::size_of::<CurrentSubject<'static>>();
 impl<'a> CurrentSubject<'a> {
     pub(super) fn into_refs(self) -> (&'a ResolvedProgram, &'a ResolvedFunction) {
@@ -114,21 +117,34 @@ pub(super) fn with_inventory_work_limit<T>(limit: usize, operation: impl FnOnce(
     work_boundary::with_limit(limit, operation)
 }
 #[cfg(test)]
-pub(super) fn subject_for_test<'a>(program: &'a ResolvedProgram, function: &'a ResolvedFunction,
-    payer: &CfgReservation) -> Result<CurrentSubject<'a>, Diagnostic>
-{
-    payer.reserve(SUBJECT_BYTES + std::mem::size_of::<Result<CurrentSubject<'a>, Diagnostic>>())
+pub(super) fn subject_for_test<'a>(
+    program: &'a ResolvedProgram,
+    function: &'a ResolvedFunction,
+    payer: &CfgReservation,
+) -> Result<CurrentSubject<'a>, Diagnostic> {
+    payer
+        .reserve(SUBJECT_BYTES + std::mem::size_of::<Result<CurrentSubject<'a>, Diagnostic>>())
         .map_err(|_| storage::marker())?;
-    if !program.functions.iter().chain(program.function_instances.iter().map(|i| &i.function))
+    if !program
+        .functions
+        .iter()
+        .chain(program.function_instances.iter().map(|i| &i.function))
         .any(|current| std::ptr::eq(current, function))
-    { return Err(Diagnostic::io_static("SPX-H006", "funded loan planner requires the exact current function")); }
+    {
+        return Err(Diagnostic::io_static(
+            "SPX-H006",
+            "funded loan planner requires the exact current function",
+        ));
+    }
     Ok(CurrentSubject { program, function })
 }
 
 #[cfg(test)]
-pub(super) fn before_inventory_for_test(program: &ResolvedProgram, function: &ResolvedFunction,
-    payer: &CfgReservation) -> Result<LoanPlan, PlannerError>
-{
+pub(super) fn before_inventory_for_test(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    payer: &CfgReservation,
+) -> Result<LoanPlan, PlannerError> {
     inventory_before::build(program, function, payer)
 }
 

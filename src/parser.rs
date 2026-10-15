@@ -26,6 +26,7 @@ mod interface;
 mod lexical_exit;
 mod lookahead;
 mod patterns;
+mod prefix_atoms;
 mod return_flow;
 pub(crate) mod session_protocol;
 mod signed_minimum;
@@ -856,111 +857,16 @@ impl Parser {
     // temporaries on every recursive parser frame.
     fn prefix_atom(&mut self, allow_record_literals: bool) -> Result<Expr, Diagnostic> {
         let token = self.bump().clone();
-        let expression = match token.kind {
-            TokenKind::Int(value) => Expr {
-                kind: ExprKind::Int(value),
-                span: token.span,
-            },
-            TokenKind::Int32(value) => Expr {
-                kind: ExprKind::Int32(value),
-                span: token.span,
-            },
-            TokenKind::Char(value) => Expr {
-                kind: ExprKind::Char(value),
-                span: token.span,
-            },
-            TokenKind::Uint8(value) => Expr {
-                kind: ExprKind::Uint8(value),
-                span: token.span,
-            },
-            TokenKind::Usize(value) => Expr {
-                kind: ExprKind::Usize(value),
-                span: token.span,
-            },
-            TokenKind::LBracket => self.byte_array_literal(token.span)?,
-            TokenKind::String(value) => Expr {
-                kind: ExprKind::String(value),
-                span: token.span,
-            },
-            TokenKind::Ident(value) if value == "str" && self.adjacent_text_literal(token.span) => {
-                self.static_text_literal(token.span)
+        match token.kind {
+            TokenKind::LBracket => self.byte_array_literal(token.span),
+            TokenKind::Ident(value) => {
+                self.identifier_atom(value, token.span, allow_record_literals)
             }
-            TokenKind::Float(literal) => Expr {
-                kind: if literal.wide {
-                    ExprKind::Float64(literal.value.to_bits())
-                } else {
-                    ExprKind::Float32((literal.value as f32).to_bits())
-                },
-                span: token.span,
-            },
-            TokenKind::Ident(value) if value == "true" || value == "false" => Expr {
-                kind: ExprKind::Bool(value == "true"),
-                span: token.span,
-            },
-            TokenKind::Ident(value) if value == "fn" => self.closure_expression(token.span)?,
-            TokenKind::Ident(value) if value == "if" => self.if_expression(token.span)?,
-            TokenKind::Ident(value) if value == "match" => self.match_expression(token.span)?,
-            TokenKind::Ident(value) if value == "yield" => {
-                self.yield_expression(token.span, allow_record_literals)?
-            }
-            TokenKind::Ident(value) => self.ident_or_own_closure(value, token.span)?,
-            TokenKind::Minus | TokenKind::Bang => {
-                let mut ops: Vec<(UnaryOp, crate::ast::Span)> = Vec::new();
-                let mut current_token = token;
-                loop {
-                    let op = if matches!(current_token.kind, TokenKind::Minus) {
-                        UnaryOp::Neg
-                    } else {
-                        UnaryOp::Not
-                    };
-                    if op == UnaryOp::Neg && self.at_signed_minimum() {
-                        return self.signed_minimum_literal(current_token.span);
-                    }
-                    ops.push((op, current_token.span));
-                    if self.at(&TokenKind::Minus) || self.at(&TokenKind::Bang) {
-                        current_token = self.bump().clone();
-                    } else {
-                        break;
-                    }
-                }
-                let mut value = self.expression_with_record_literals(7, allow_record_literals)?;
-                for (op, span) in ops.into_iter().rev() {
-                    let new_span = span.merge(value.span);
-                    if op == UnaryOp::Neg && matches!(value.kind, ExprKind::Usize(_)) {
-                        return Err(Diagnostic::error(
-                            "SPX-T260",
-                            "usize literals cannot be negative",
-                            new_span,
-                        )
-                        .at_path(&self.path));
-                    }
-                    value = Expr {
-                        kind: ExprKind::Unary {
-                            op,
-                            value: Box::new(value),
-                        },
-                        span: new_span,
-                    };
-                }
-                value
-            }
-            TokenKind::LParen => {
-                let inner = self.expression(0)?;
-                if let Some(diagnostic) = self.tuple_literal() {
-                    return Err(diagnostic);
-                }
-                let end = self
-                    .expect(&TokenKind::RParen, "`)` after expression")?
-                    .span;
-                Expr {
-                    kind: inner.kind,
-                    span: token.span.merge(end),
-                }
-            }
-            TokenKind::LBrace => self.block_after_open(token.span)?,
-            _ => return Err(self.prefix_atom_rejection(&token)),
-        };
-        Ok(expression)
+            TokenKind::Minus | TokenKind::Bang => self.unary_atom(token, allow_record_literals),
+            TokenKind::LParen => self.parenthesized_atom(token.span),
+            TokenKind::LBrace => self.block_after_open(token.span),
+            _ => self.literal_atom(token),
+        }
     }
 
     fn postfix(

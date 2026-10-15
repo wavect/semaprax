@@ -5,7 +5,8 @@ fn refusal_evidence_keeps_first_sticky_request_and_exact_debits() {
     let (_, overflowed, used, refusal) = with_limit_usage_refusal(10, || {
         assert!(reserve_active_required(3));
         assert!(!reserve_active_required(8));
-        assert!(reserve_active_required(2));
+        assert!(!reserve_active_required(2));
+        assert!(reserve_active(2));
         assert!(!reserve_active_required(99));
     });
     assert!(overflowed);
@@ -35,7 +36,8 @@ fn refusal_evidence_distinguishes_optional_floor_and_sticky_required_floor() {
         assert_eq!(active().unwrap().first_refusal.get(), None);
         assert!(!reserve_active_required(7));
         clear_active_floor();
-        assert!(reserve_active_required(10));
+        assert!(!reserve_active_required(10));
+        assert!(reserve_active(10));
     });
     assert!(overflowed);
     assert_eq!(used, 10);

@@ -3,7 +3,6 @@
 
 use crate::ast::{BinaryOp, Expr, ExprKind, Type, UnaryOp};
 use crate::diagnostic::Diagnostic;
-use crate::source_verify::IterativeVerifier;
 use crate::source_verify::binding::{Availability, Binding, CheckedValue};
 use crate::source_verify::diagnostics::{
     error, reject_aggregate_equality, reject_native_unit_value,
@@ -13,6 +12,7 @@ use crate::source_verify::loans::join_conditional;
 use crate::source_verify::place::{join_definitely_partial, join_moved_places};
 use crate::source_verify::private_names::type_name;
 use crate::source_verify::scope::{VerifierFrame, VerifierScope};
+use crate::source_verify::IterativeVerifier;
 use std::collections::HashMap;
 
 impl<'a, 'p> IterativeVerifier<'a, 'p> {
@@ -541,7 +541,13 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 }
             }
         }
-        self.before_799_finish_if_values(expression, then_branch, else_branch, then_value, else_value);
+        self.before_799_finish_if_values(
+            expression,
+            then_branch,
+            else_branch,
+            then_value,
+            else_value,
+        );
         Ok(())
     }
 

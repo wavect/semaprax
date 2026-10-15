@@ -2,8 +2,8 @@
 use super::super::function_lookup::original as function_lookup;
 use super::super::generic_template::original_call_graph as generic_template;
 use super::original_intrinsics as box_intrinsic;
-use crate::hir::inspection::validate_nul_free_identities_original as validate_nul_free_identities;
 use super::*;
+use crate::hir::inspection::validate_nul_free_identities_original as validate_nul_free_identities;
 
 pub(in crate::hir) struct ConstructorSeed<'a> {
     pub(super) program: &'a ResolvedProgram,

@@ -7,8 +7,8 @@ use super::{
 };
 use crate::ast::program_source::{generated_roots::GeneratedRoots, SyntheticProgramView};
 use crate::ast::{Expr, ExprKind, Function, ModuleUseKind, Program, Type, TypeDeclaration};
-use std::collections::BTreeMap;
 use crate::workspace_graph::constructor_failure::{reserve, Failure};
+use std::collections::BTreeMap;
 
 pub(in crate::workspace_graph) fn construct_using<'p, 'a>(
     program: &'p Program,

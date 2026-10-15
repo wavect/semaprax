@@ -112,6 +112,10 @@ pub(crate) enum SelectedRefusal {
     /// Step 2: resolution of the original source refused.
     Resolve(Diagnostic),
     /// Step 3: typed derivation or the exact source/HIR join refused.
+    #[allow(
+        dead_code,
+        reason = "retained original receiver or refusal payload; not every legacy entry is selected by current tests"
+    )]
     Join(Refusal),
     /// Step 4: full HIR validation under the selection refused.
     Validation(Diagnostic),

@@ -61,10 +61,10 @@ fn complete_arena_ordinary_receiver_keeps_exact_same_representation_work_and_pai
 
 #[test]
 fn complete_ordinary_tree_receiver_original_owner_and_current_accounting_scope_stay_source_bound() {
-    let original = include_str!(
+    let original = ci_str!(
         "../../../../../docs/evidence/funded-planner-fact-owner/original-allocation-tests.txt"
     );
-    let original_owner = include_str!(
+    let original_owner = ci_str!(
         "../../../../../docs/evidence/funded-planner-fact-owner/original-ordinary-owner.txt"
     );
     assert!(original.contains(original_owner));
@@ -76,10 +76,10 @@ mod expression_facts {
 }
 "#;
     assert_eq!(
-        include_str!("ordinary_before.rs"),
+        ci_str!("ordinary_before.rs"),
         format!("{preamble}{original_owner}\n")
     );
-    let receiver = include_str!(
+    let receiver = ci_str!(
         "../../../../../docs/evidence/funded-planner-fact-owner/original-ordinary-receiver.txt"
     );
     let preamble = r#"//! Complete original ordinary receiver with a lexical old-producer adapter.
@@ -112,16 +112,35 @@ pub(in crate::cleanup_plan::replay) fn tree_facts_for_test<'hir>(
 }
 "#;
     assert_eq!(
-        include_str!("../../expression_facts/ordinary_before.rs"),
+        ci_str!("../../expression_facts/ordinary_before.rs"),
         format!("{preamble}{receiver}{suffix}")
     );
     // Invert exactly the paid-summary hook; compare the complete old receiver.
-    let current_replay = crate::cleanup_plan::replay::expression_facts::receiving::before_status_retention("src/cleanup_plan/replay.rs", include_str!("../../../replay.rs"));
+    let current_replay =
+        crate::cleanup_plan::replay::expression_facts::receiving::before_status_retention(
+            "src/cleanup_plan/replay.rs",
+            ci_str!("../../../replay.rs"),
+        );
     let mut current_replay = current_replay;
     assert_eq!(current_replay.matches("    expression_facts::receiving::validate_entry(function, &storage, &leaves, budget)?;").count(), 1);
-    current_replay = current_replay.replacen("    expression_facts::receiving::validate_entry(function, &storage, &leaves, budget)?;", "    validate_entry(function, &storage, &leaves)?;", 1);
-    assert_eq!(current_replay.matches("    expression_facts::receiving::validate_regions(function, &storage, budget)?;").count(), 1);
-    current_replay = current_replay.replacen("    expression_facts::receiving::validate_regions(function, &storage, budget)?;", "    validate_regions(function, &storage)?;", 1);
+    current_replay = current_replay.replacen(
+        "    expression_facts::receiving::validate_entry(function, &storage, &leaves, budget)?;",
+        "    validate_entry(function, &storage, &leaves)?;",
+        1,
+    );
+    assert_eq!(
+        current_replay
+            .matches(
+                "    expression_facts::receiving::validate_regions(function, &storage, budget)?;"
+            )
+            .count(),
+        1
+    );
+    current_replay = current_replay.replacen(
+        "    expression_facts::receiving::validate_regions(function, &storage, budget)?;",
+        "    validate_regions(function, &storage)?;",
+        1,
+    );
     assert_eq!(current_replay.matches("    expression_facts::receiving::validate_exits(\n        program,\n        function,\n        &storage,\n        &leaves,\n        &BTreeSet::new(),\n        budget,\n    )?;").count(), 1);
     current_replay = current_replay.replacen("    expression_facts::receiving::validate_exits(\n        program,\n        function,\n        &storage,\n        &leaves,\n        &BTreeSet::new(),\n        budget,\n    )?;", "    validate_exits(program, function, &storage, &leaves, &BTreeSet::new())?;", 1);
     let paid_schema_hook = "    let ordinary_schema =\n        schema::paid_summary::selected_with_budget(program, function, helpers, budget)?;";
@@ -139,19 +158,19 @@ pub(in crate::cleanup_plan::replay) fn tree_facts_for_test<'hir>(
         assert!(active.remaining > 0);"#;
     assert_eq!(original.matches(old).count(), 1);
     assert_eq!(
-        include_str!("../tests.rs"),
+        ci_str!("../tests.rs"),
         format!(
             "{}\nmod accounting_scope;\nmod ordinary_before;\n",
             original.replacen(old, new, 1)
         )
     );
-    let facts = include_str!("../../../../../docs/evidence/funded-planner-fact-owner/original-expression-facts-module.txt");
-    assert_eq!(include_str!("../../expression_facts.rs"), format!("{facts}\n#[cfg(test)]\nuse crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V20;\n#[cfg(test)]\npub(super) mod ordinary_before;\n"));
+    let facts = ci_str!("../../../../../docs/evidence/funded-planner-fact-owner/original-expression-facts-module.txt");
+    assert_eq!(ci_str!("../../expression_facts.rs"), format!("{facts}\n#[cfg(test)]\nuse crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V20;\n#[cfg(test)]\npub(super) mod ordinary_before;\n"));
     assert_eq!(
         format!(
             "{:x}",
             LowerHex(Sha256::digest(
-                include_str!("../../expression_facts/saved.rs").as_bytes()
+                ci_str!("../../expression_facts/saved.rs").as_bytes()
             ))
         ),
         "0aef16929be73f5fe43438565c98a17f00cf52cd4169a4bc33cc99e6f184650a"

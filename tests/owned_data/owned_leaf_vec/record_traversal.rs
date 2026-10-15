@@ -283,32 +283,65 @@ fn direct_previous_indexed_read_retains_the_exact_traversal_index_refusal() {
     let mut resolved = semaprax::hir::resolve(&parsed).unwrap();
     semaprax::hir::validate(&resolved).unwrap();
     fn forge(expression: &mut semaprax::hir::ResolvedExpr) -> bool {
-        use semaprax::hir::{ResolvedExprKind as K, ResolvedStatement as S, VecFieldReadOrigin as O};
-        if let K::VecFieldRead { origin: O::Explicit, args, .. } = &expression.kind {
+        use semaprax::hir::{
+            ResolvedExprKind as K, ResolvedStatement as S, VecFieldReadOrigin as O,
+        };
+        if let K::VecFieldRead {
+            origin: O::Explicit,
+            args,
+            ..
+        } = &expression.kind
+        {
             if matches!(args.get(1).map(|arg| &arg.kind), Some(K::Binary { .. })) {
-                let K::VecFieldRead { origin, .. } = &mut expression.kind else { unreachable!() };
-                *origin = O::Traversal; return true;
+                let K::VecFieldRead { origin, .. } = &mut expression.kind else {
+                    unreachable!()
+                };
+                *origin = O::Traversal;
+                return true;
             }
         }
         match &mut expression.kind {
             K::Block { statements, tail } => {
                 for statement in statements {
                     match statement {
-                        S::While { condition, body, .. } | S::LexicalWhile { condition, body, .. } => { if forge(condition) || forge(body) { return true; } }
-                        _ => if forge(statement.value_mut()) { return true; },
+                        S::While {
+                            condition, body, ..
+                        }
+                        | S::LexicalWhile {
+                            condition, body, ..
+                        } => {
+                            if forge(condition) || forge(body) {
+                                return true;
+                            }
+                        }
+                        _ => {
+                            if forge(statement.value_mut()) {
+                                return true;
+                            }
+                        }
                     }
                 }
                 forge(tail)
             }
-            K::If { then_branch, else_branch, .. } => forge(then_branch) || forge(else_branch),
+            K::If {
+                then_branch,
+                else_branch,
+                ..
+            } => forge(then_branch) || forge(else_branch),
             _ => false,
         }
     }
-    let main = resolved.functions.iter_mut().find(|f| f.id.as_str() == "app.main").unwrap();
+    let main = resolved
+        .functions
+        .iter_mut()
+        .find(|f| f.id.as_str() == "app.main")
+        .unwrap();
     assert!(forge(&mut main.body));
     let diagnostic = semaprax::hir::validate(&resolved).unwrap_err();
     assert_eq!(diagnostic.code, "SPX-H006");
-    assert!(diagnostic.message.contains("record traversal length, index, nominal reads or whole-root freeze proof is invalid"));
+    assert!(diagnostic.message.contains(
+        "record traversal length, index, nominal reads or whole-root freeze proof is invalid"
+    ));
 }
 
 #[test]
@@ -361,9 +394,14 @@ fn ordinary_lookup_failure_inside_traversal_keeps_sticky_status_and_cleanup() {
  0
 }"#;
     let source = format!("{DECLARATION}{body}");
-    let path = std::env::temp_dir().join(format!("field-origin-failure-{}-{}.spx", std::process::id(), SEQUENCE.fetch_add(1, Ordering::Relaxed)));
+    let path = std::env::temp_dir().join(format!(
+        "field-origin-failure-{}-{}.spx",
+        std::process::id(),
+        SEQUENCE.fetch_add(1, Ordering::Relaxed)
+    ));
     std::fs::write(&path, &source).unwrap();
-    let result = semaprax::interpreter::interpret(&path, "app.main", &[], &Default::default()).unwrap();
+    let result =
+        semaprax::interpreter::interpret(&path, "app.main", &[], &Default::default()).unwrap();
     std::fs::remove_file(path).unwrap();
     semaprax::interpreter::verify_envelope(&result.envelope).unwrap();
     assert!(!result.returned);

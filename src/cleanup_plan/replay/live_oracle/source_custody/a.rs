@@ -143,7 +143,7 @@ pub(super) mod phase_measurement;
         );
     }
     {
-        let mut current = include_str!("../../allocation.rs").to_owned();
+        let mut current = super::current_view::project("src/cleanup_plan/replay/allocation.rs", include_str!("../../allocation.rs"));
         undo(
             &mut current,
             r#"mod oracle;
@@ -175,7 +175,7 @@ pub(super) fn set_key<K: Ord + ClonePayload>(
         );
     }
     {
-        let mut current = include_str!("../../allocation/oracle.rs").to_owned();
+        let mut current = super::current_view::project("src/cleanup_plan/replay/allocation/oracle.rs", include_str!("../../allocation/oracle.rs"));
         undo(
             &mut current,
             r#"mod tests;
@@ -278,7 +278,7 @@ pub(in crate::cleanup_plan::replay) use metered::raw as raw_error_metered;
         );
     }
     {
-        let mut current = include_str!("../../factored.rs").to_owned(); undo(&mut current, "pub(crate) use canonical_shared::app_census::Scope as EpsilonAppCensus;", "pub(super) use canonical_shared::app_census::Scope as EpsilonAppCensus;"); undo(&mut current, "\n#[cfg(test)]\npub(super) use canonical_shared::app_census::Scope as EpsilonAppCensus;\n", ""); undo(&mut current, "        oracle_hook::cross_check_with_storage(\n            program,\n            function,\n            budget,\n            continuations,\n        )?;", "        oracle_hook::cross_check(program, function);"); undo(&mut current, "\n#[cfg(test)]\nmod continuation_receiver;\n", "");
+        let mut current = super::current_view::project("src/cleanup_plan/replay/factored.rs", include_str!("../../factored.rs")); undo(&mut current, "pub(crate) use canonical_shared::app_census::Scope as EpsilonAppCensus;", "pub(super) use canonical_shared::app_census::Scope as EpsilonAppCensus;"); undo(&mut current, "\n#[cfg(test)]\npub(super) use canonical_shared::app_census::Scope as EpsilonAppCensus;\n", ""); undo(&mut current, "        oracle_hook::cross_check_with_storage(\n            program,\n            function,\n            budget,\n            continuations,\n        )?;", "        oracle_hook::cross_check(program, function);"); undo(&mut current, "\n#[cfg(test)]\nmod continuation_receiver;\n", "");
         undo(&mut current, "#[cfg(test)]\nenum CanonicalFrame {\n    Enter(Weighted),\n    Exit(Weighted, u64, Vec<(Label, Weighted)>),\n}\n\n", "");
         // Join the complete relocated old receiver before the existing inverse.
         let before = include_str!("../../factored/canonical_before.rs");
@@ -722,7 +722,7 @@ impl<'a> Canonicalizer<'a> {
         );
     }
     {
-        let mut current = include_str!("../../factored/oracle_hook.rs").to_owned(); undo(&mut current, "/// Ordinary storage sharing changes backing only; explicitly opted oracle\n/// routes keep their complete independent account and never borrow this lease.\npub(super) fn cross_check_with_storage<'hir>(\n    program: &'hir dyn crate::cleanup::ReplayContext,\n    function: &'hir ResolvedFunction,\n    budget: &mut ReplayBudget,\n    storage: Option<&mut continuation_storage::Storage<'hir>>,\n) -> Result<(), Diagnostic> {\n    match super::super::allocation::opted() {\n        Ok(None) => match storage {\n            Some(storage) if storage.has_receiving_owner() => {\n                storage.authenticate(program, function, budget)?;\n                super::continuation_receiver::cross_check(program, function, storage);\n            }\n            _ => super::cross_check(program, function),\n        },\n        Ok(Some(lease)) => cross_check_oracle(program, function, lease),\n        Err(refusal) => panic!(\"opted oracle lease is not live: {refusal:?}\"),\n    }\n    Ok(())\n}\n\n", "");
+        let mut current = super::current_view::project("src/cleanup_plan/replay/factored/oracle_hook.rs", include_str!("../../factored/oracle_hook.rs")); undo(&mut current, "/// Ordinary storage sharing changes backing only; explicitly opted oracle\n/// routes keep their complete independent account and never borrow this lease.\npub(super) fn cross_check_with_storage<'hir>(\n    program: &'hir dyn crate::cleanup::ReplayContext,\n    function: &'hir ResolvedFunction,\n    budget: &mut ReplayBudget,\n    storage: Option<&mut continuation_storage::Storage<'hir>>,\n) -> Result<(), Diagnostic> {\n    match super::super::allocation::opted() {\n        Ok(None) => match storage {\n            Some(storage) if storage.has_receiving_owner() => {\n                storage.authenticate(program, function, budget)?;\n                super::continuation_receiver::cross_check(program, function, storage);\n            }\n            _ => super::cross_check(program, function),\n        },\n        Ok(Some(lease)) => cross_check_oracle(program, function, lease),\n        Err(refusal) => panic!(\"opted oracle lease is not live: {refusal:?}\"),\n    }\n    Ok(())\n}\n\n", "");
         undo(&mut current, r###"
 // Classification of an undecided result carries no comparison authority.
 fn require_decided(
@@ -1220,7 +1220,7 @@ fn full_classifier_string_original_body_remains_independent_of_work_receiver() {
         );
     }
     {
-        let mut current = include_str!("../../paid_type_facts/inventory_tests.rs").to_owned();
+        let mut current = super::current_view::project("src/cleanup_plan/replay/paid_type_facts/inventory_tests.rs", include_str!("../../paid_type_facts/inventory_tests.rs"));
         // Undo only the unique visibility hook before the complete old receiver.
         undo(&mut current, r###"    assert_eq!(current.matches("pub(super) struct Payer<'a> {").count(), 1);
     let current = current.replacen(

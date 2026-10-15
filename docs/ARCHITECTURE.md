@@ -4828,3 +4828,7 @@ children own the affine typed caller forks. They reuse the authenticated read
 and commit authorities; `workspace_report` retains the selected primary owner
 when the original unlock diagnostic overrides its outward report. The original
 Vec APIs remain independent compatibility receivers.
+
+The ordinary replay status receiver owns the affine [complete status-source
+case proof](STATUS-CASE-SOURCE-PROOF-V1.md). Independent complete HIR discovery
+precedes its exact held-row reuse; it grants no payer or semantic admission.

@@ -1,0 +1,224 @@
+Review concrete private #816 source only, no tools/execution. Find blockers vs uncertainties in Rust typing, exact physical carriers, authority/sticky/lifetimes. No runtime or gain claim. Existing independent validate_required_status_sources unchanged: Comparison.push compares id/lane/exactproducer/op/fullorderedcases against fixed nonempty unique HIR lists Neg[NegOverflow],Add[AddOverflow],Sub[SubOverflow],Mul[MulOverflow],Div[DivZero,DivOverflow],Rem[RemZero,RemOverflow]; complete requires exact whole table length. It finishes entire walk before selecting table mismatch, preserving later HIR error priority. New validate below calls this complete walk before minting certificate. Old full retained receiver remains independently compiled cfg(test), body unchanged. Generic/direct receivers unchanged. New complete receiver copies all old ID/expression/callee/lane/allocation branches and replaces only arithmetic Directory nonempty+unique with member(). No quota/cap/refund/work credit. ClassifierLedger.current binds actual current Rc, poisons held original on foreign mismatch; current Rc clones have no new backing. reserve0/charge0 authenticate owner sticky. Diagnostic::io(H006,String::new()) = full6field error/empty/None/None/None zeroalloc; first actual budgeterror propagated unchanged. Existing retained output has its prior full StatusSources + Result control charge. Read exact proof and receiver excerpts:
+//! Authority comes only from complete independent typed-HIR status discovery.
+//! This affine proof borrows the immutable table, never its names as authority.
+use super::*;
+use std::cell::Cell;
+use std::mem::size_of;
+
+const PHASE: &str = "complete status case proof";
+
+pub(in crate::cleanup_plan::replay) struct StatusCases<'hir> {
+    function: &'hir ResolvedFunction,
+    rows: &'hir [StatusSource],
+    budget: *const ReplayBudget,
+    ledger: ClassifierLedger,
+    failed: Cell<bool>,
+}
+
+// Affine receiving attempt: every early error/unwind poisons the held proof.
+pub(super) struct Attempt<'proof, 'hir> {
+    proof: &'proof StatusCases<'hir>,
+    complete: bool,
+}
+impl Attempt<'_, '_> {
+    pub(super) fn complete(
+        &mut self,
+        function: &ResolvedFunction,
+        budget: &mut ReplayBudget,
+    ) -> Result<(), Diagnostic> {
+        budget.charge(function, 1, PHASE)?;
+        self.complete = true;
+        Ok(())
+    }
+}
+impl Drop for Attempt<'_, '_> {
+    fn drop(&mut self) {
+        if !self.complete {
+            self.proof.failed.set(true);
+        }
+    }
+}
+
+impl<'hir> StatusCases<'hir> {
+    pub(in crate::cleanup_plan::replay) fn validate(
+        program: &dyn crate::cleanup::ReplayContext,
+        function: &'hir ResolvedFunction,
+        budget: &mut ReplayBudget,
+    ) -> Result<Self, Diagnostic> {
+        // Keep the entire independent walk, including its late HIR-error priority.
+        // No certificate, new payer request or early table mismatch precedes it.
+        crate::cleanup_plan::replay::validate_required_status_sources(program, function)?;
+        // Initializer, returned Result and actual caller's held receiving token.
+        // An error from the old walk above is forwarded unchanged, not republished.
+        budget.reserve_bytes(
+            function,
+            2 * size_of::<Self>() + size_of::<Result<Self, Diagnostic>>(),
+            PHASE,
+        )?;
+        budget.charge(function, 5, PHASE)?;
+        Ok(Self {
+            function,
+            rows: &function.cleanup_plan.status_sources,
+            budget,
+            ledger: ClassifierLedger::capture(),
+            failed: Cell::new(false),
+        })
+    }
+
+    // Do not consult/debit a foreign payer or format text after selected refusal.
+    // The first actual byte/work diagnostic is returned unchanged to its caller;
+    // subsequent attempts retain H006 and cannot publish another acquisition.
+    fn reject(&self) -> Diagnostic {
+        self.failed.set(true);
+        Diagnostic::io("SPX-H006", String::new())
+    }
+
+    pub(super) fn authenticate(
+        &self,
+        function: &ResolvedFunction,
+        budget: &mut ReplayBudget,
+    ) -> Result<(), Diagnostic> {
+        if self.failed.get()
+            || !std::ptr::eq(self.function, function)
+            || !std::ptr::eq(self.budget, budget)
+        {
+            return Err(self.reject());
+        }
+        if !self.ledger.current() {
+            return Err(self.reject());
+        }
+        // The zero request authenticates the original owner's sticky state.
+        let result = budget
+            .reserve_bytes(function, 0, PHASE)
+            .and_then(|()| budget.charge(function, 0, PHASE))
+            .and_then(|()| {
+                budget.reserve_bytes(function, size_of::<Result<(), Diagnostic>>(), PHASE)
+            });
+        if result.is_err() {
+            self.failed.set(true);
+        }
+        result
+    }
+
+    pub(super) fn begin<'proof>(
+        &'proof self,
+        function: &ResolvedFunction,
+        budget: &mut ReplayBudget,
+    ) -> Result<Attempt<'proof, 'hir>, Diagnostic> {
+        self.authenticate(function, budget)?;
+        if let Err(error) = budget
+            .reserve_bytes(
+                function,
+                2 * size_of::<Attempt<'_, '_>>() + size_of::<Result<Attempt<'_, '_>, Diagnostic>>(),
+                PHASE,
+            )
+            .and_then(|()| budget.charge(function, 2, PHASE))
+        {
+            self.failed.set(true);
+            return Err(error);
+        }
+        Ok(Attempt {
+            proof: self,
+            complete: false,
+        })
+    }
+
+    pub(super) fn member(
+        &self,
+        function: &ResolvedFunction,
+        source: &StatusSource,
+        ordinal: usize,
+        budget: &mut ReplayBudget,
+    ) -> Result<(), Diagnostic> {
+        self.authenticate(function, budget)?;
+        // Inner actual lookup receipt and the successful outer member Result.
+        // Neither the old directory's controls nor prior auth are a credit.
+        let result = budget
+            .reserve_bytes(
+                function,
+                size_of::<Option<&StatusSource>>() + size_of::<Result<(), Diagnostic>>(),
+                PHASE,
+            )
+            .and_then(|()| budget.charge(function, 2, PHASE));
+        if let Err(error) = result {
+            self.failed.set(true);
+            return Err(error);
+        }
+        let held = self.rows.get(ordinal);
+        if held.is_none_or(|held| !std::ptr::eq(held, source)) {
+            return Err(self.reject());
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests;
+
+RECEIVER EXACT ENTRY:
+//! Complete retained status receiver; only the certified arithmetic branch differs.
+use super::*;
+
+pub(in crate::cleanup_plan::replay) fn validate_status_sources_certified<'hir>(
+    function: &'hir ResolvedFunction,
+    facts: &Facts<'_>,
+    budget: &mut ReplayBudget,
+    proof: &case_proof::StatusCases<'hir>,
+) -> Result<StatusSources<'hir>, Diagnostic> {
+    let mut attempt = proof.begin(function, budget)?;
+    if let Facts::Tree(tree) = facts {
+        super::super::super::super::validate_status_sources(function, tree)?;
+        budget.reserve_bytes(function, CONTROL_BYTES, "retained status full controls")?;
+        attempt.complete(function, budget)?;
+        return Ok(StatusSources {
+            function,
+            budget,
+            ledger: ClassifierLedger::capture(),
+            ids: None,
+        });
+    }
+    let expressions: &dyn Lookup = facts;
+    let mut ids = Directory::new(function, budget, "cleanup status identity directory")?;
+    let prefix_owner = directory::StatusInsertionOwner::new(function, &ids, budget)?;
+    budget.reserve_bytes(
+        function,
+        std::mem::size_of::<usize>(),
+        "status case row ordinal",
+    )?;
+    budget.charge(function, 1, "status case row ordinal")?;
+    let mut ordinal = 0usize;
+    for source in &function.cleanup_plan.status_sources {
+        if !ids.insert_certified(function, &source.id, budget, &prefix_owner)? {
+            return Err(<Diagnostic as semantic_refusal::Error>::structural(
+                function,
+                semantic_refusal::Atom::RepeatedStatus(source.id.expression.clone()),
+            ));
+        }
+
+ONLY CHANGED SEMANTIC BRANCH:
+            (
+                StatusLane::OperationFailure,
+                StatusProducer::CheckedArithmetic {
+                    normalized_cases, ..
+                },
+            ) => {
+                // Complete independent discovery proved the exact held row.
+                // No case value is read here and no second case directory exists.
+                proof.member(function, source, ordinal, budget)?;
+                let _ = normalized_cases;
+            }
+        budget.charge(function, 1, "status case row ordinal increment")?;
+        ordinal += 1;
+    }
+    drop(prefix_owner);
+    budget.reserve_bytes(function, CONTROL_BYTES, "retained status full controls")?;
+    attempt.complete(function, budget)?;
+    Ok(StatusSources {
+        function,
+        budget,
+        ledger: ClassifierLedger::capture(),
+        ids: Some(ids),
+    })
+}
+
+Actual ordinary caller replaces old required-source call with let status_cases=StatusCases::validate(program,function,budget)?; then unchanged slots/leaves; then let statuses=validate_status_sources_certified(function,&expression_facts,budget,&status_cases)?; all later region/entry/block/exit/HIR checks unchanged. Authenticated attempt is dropped on all early errors/unwind. Authored controls full old/current6field diagnostics+whole producer/result/budget/lastDrop; all six ops/call/contract, hostile empty/repeated/reordered/wrongop/IDs/callee/lane; each own derived exact/shortzero bytes/work; foreign function/budget/forgedrow/ordinal/foreign-restoredledger and selected worksticky. No Cargo. Report concrete source issues, not execution claims.

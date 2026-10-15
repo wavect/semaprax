@@ -1,0 +1,293 @@
+{
+  "status": "SOURCE_ONLY_NOT_RUST_EXECUTION",
+  "results": [
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/bounded_output/classifier_string.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__bounded_output__classifier_string.rs.before",
+      "archive_sha256": "9d705f651e1b826c14377c3b5418a31a44bb36f069f7dca987b7f519df1c3f11",
+      "archive_bytes": 7291,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__cleanup_plan.rs.before",
+      "archive_sha256": "d4ce45f0e4193b6d54a205600d4bf2794807f9a90e9b1a6c0ea1efb11f290cc3",
+      "archive_bytes": 33522,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__cleanup_plan__replay.rs.before",
+      "archive_sha256": "4b7913d9222452a9b202c8619a476df2dcce7049da8cde74c28d15feb2ab0b25",
+      "archive_bytes": 298026,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/allocation.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__cleanup_plan__replay__allocation.rs.before",
+      "archive_sha256": "0a73a46415591abda7c1a423bdc306dcfee7c4b6ed2a25ed88dd9d1ad09e15f6",
+      "archive_bytes": 9100,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/allocation/oracle.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__cleanup_plan__replay__allocation__oracle.rs.before",
+      "archive_sha256": "219b4975a03ce4b8d7afff389e6578012cb2ebade04260477a3f92bd5b781e65",
+      "archive_bytes": 11911,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/allocation/oracle/diagnostic.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__cleanup_plan__replay__allocation__oracle__diagnostic.rs.before",
+      "archive_sha256": "e7f1d826df6158b431964d239854e0a304a53db3261f5b43539e1bb31c8bdab0",
+      "archive_bytes": 4443,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/factored.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__cleanup_plan__replay__factored.rs.before",
+      "archive_sha256": "34af23f292ac061e443a12ed1452a7cdf90fb428de994071c225d99a1500c0e2",
+      "archive_bytes": 48609,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__cleanup_plan__replay__factored__borrowed_canonical__dictionary__keys.rs.before",
+      "archive_sha256": "941a93a9ac5f18faab35ef1c914517cb93a4f849d25da15529fb0afd706a3d46",
+      "archive_bytes": 8013,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/factored/oracle_hook.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__cleanup_plan__replay__factored__oracle_hook.rs.before",
+      "archive_sha256": "85a44e74c3a96de2df781dc2daebb26318c013e4d5701c481cd0bac6cbc9f0a4",
+      "archive_bytes": 10215,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/nested_shape/paid.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__cleanup_plan__replay__nested_shape__paid.rs.before",
+      "archive_sha256": "721241eb4aa62c64e633adaba52f42f3e6635a2285722350b63218871c874174",
+      "archive_bytes": 19359,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/ordinary_inventory/substitute.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__cleanup_plan__replay__ordinary_inventory__substitute.rs.before",
+      "archive_sha256": "f765b3f192b5eb13915453fe6ac2238dcd0800df76d4f3c4ebebcd9202568eac",
+      "archive_bytes": 15855,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/paid_type_facts.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__cleanup_plan__replay__paid_type_facts.rs.before",
+      "archive_sha256": "fd8d2e7267f65b7a8e7b6b5c42d2e518bb2e39f1501c787eaaaa4e80e72d19e2",
+      "archive_bytes": 12962,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/paid_type_facts/inventory_encoded.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__cleanup_plan__replay__paid_type_facts__inventory_encoded.rs.before",
+      "archive_sha256": "409f2bf421169cf0bc66dc6ba90c81d5f4ee8a077cd87e5da2d70e7ba0c45052",
+      "archive_bytes": 1820,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/paid_type_facts/inventory_encoded/tests.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__cleanup_plan__replay__paid_type_facts__inventory_encoded__tests.rs.before",
+      "archive_sha256": "385236c80a6ea570d758abce5e015ab45c7d5f33179eec151d1897a66d9664ba",
+      "archive_bytes": 8623,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/paid_type_facts/inventory_tests.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__cleanup_plan__replay__paid_type_facts__inventory_tests.rs.before",
+      "archive_sha256": "42e146d2c9e45e9c8a897523db9e98a7a2085d55f3b10f608518f04b69c552a9",
+      "archive_bytes": 4495,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/cleanup_plan/replay/skeleton_work/oracle_entry.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__cleanup_plan__replay__skeleton_work__oracle_entry.rs.before",
+      "archive_sha256": "75d42153c3897309db6865b2cd5a840d9d4a351aabd2a7a77b08674a0add485d",
+      "archive_bytes": 4423,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "source": "src/hir/function_value.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__hir__function_value.rs.before",
+      "archive_sha256": "9d65a1b9887a48bc5023c47ee6fd81582e1a1982819adfbbb2bd45eb5678b9b5",
+      "archive_bytes": 14112,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/hir/function_value/funded.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__hir__function_value__funded.rs.before",
+      "archive_sha256": "a8535e78a333b82d2710ac86adb609acec537e5580eb6c67613e26d9c2517858",
+      "archive_bytes": 5753,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/hir/funded.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__hir__funded.rs.before",
+      "archive_sha256": "f5c742e31bdff4c65f8f67b391fb55fcf700034a3cd70e4b09321df5d77b076c",
+      "archive_bytes": 22449,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/hir/ids.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__hir__ids.rs.before",
+      "archive_sha256": "b56ddf9b438f992af32eaf36e1e4934a1473833cf4434f5712b9297091af9996",
+      "archive_bytes": 23020,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/hir/ids/metered_owner.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__hir__ids__metered_owner.rs.before",
+      "archive_sha256": "49df699d2ec98dbe7c23957bc896d4c48f6fad0c5dce84b9cb87f5f8f79d5d9b",
+      "archive_bytes": 6151,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/hir/lexical_exit.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__hir__lexical_exit.rs.before",
+      "archive_sha256": "6da9de123a6caf10c3f27b3a877d911370b06d8fd655d9f258caa235023b2be1",
+      "archive_bytes": 6653,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/hir/lexical_exit/owner_funded.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__hir__lexical_exit__owner_funded.rs.before",
+      "archive_sha256": "27cd10048ab345427a3bc85c21c0aa2a604befc4089b69c6084c32031e001ef9",
+      "archive_bytes": 4555,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/hir/lexical_exit/walk.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__hir__lexical_exit__walk.rs.before",
+      "archive_sha256": "0d40d4e0cbdd8fd119731582953648baf6600a3476f2a319a45a36cee028a10a",
+      "archive_bytes": 9981,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/literal_format.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__literal_format.rs.before",
+      "archive_sha256": "2dc03936af648327b0b891e97c6a2cc5a66ad29e6a3fbf4ff07347cd5224234c",
+      "archive_bytes": 8795,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/literal_format/funded.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__literal_format__funded.rs.before",
+      "archive_sha256": "8a408025363f3badd48cedb62ae602b1fae98ee54b3259deb7b1fdfad912775c",
+      "archive_bytes": 3705,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/project/incremental/cold_source_tests.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__project__incremental__cold_source_tests.rs.before",
+      "archive_sha256": "0e9d37a5ec3dee01db5ceee626ce1647c9e93e14d49d5ee61f6b9a0ea607181e",
+      "archive_bytes": 17069,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/string_ops.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__string_ops.rs.before",
+      "archive_sha256": "8a9721d9080945611ff3937cb4585f41191cb9252142d769a4c2820d7a212691",
+      "archive_bytes": 51707,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/string_ops/concat_funded.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__string_ops__concat_funded.rs.before",
+      "archive_sha256": "1da8f6a7f61a4ef47c13a3cf1e26b0bf1f9f9fb8c41ef4548b106e089d534be2",
+      "archive_bytes": 24311,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/string_ops/conditions.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__string_ops__conditions.rs.before",
+      "archive_sha256": "1672357b751bdd42bd8df7e2ccb9d3f1fc2bc937d833539a74330811efe8821b",
+      "archive_bytes": 4258,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/string_ops/conditions/funded.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__string_ops__conditions__funded.rs.before",
+      "archive_sha256": "2cf7b6b64ef5daf0928f308b02fd3649e8da3ae20fe2bd1635709a860cdcf475",
+      "archive_bytes": 7215,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/string_ops/take.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__string_ops__take.rs.before",
+      "archive_sha256": "578c8e8322944d3a8ee5e5730fb96f9c421cb7765a6f8c09b8841a7b6efb515c",
+      "archive_bytes": 1423,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "src/workspace_graph/identity_resolution/tests.rs",
+      "archive": "docs/evidence/opt810-live-oracle/src__workspace_graph__identity_resolution__tests.rs.before",
+      "archive_sha256": "733d6816d9ae61c082ba65dec08975a24d59b19da2fb05a0c9820486848f05bb",
+      "archive_bytes": 27090,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "source": "tests/hir_module_boundaries.rs",
+      "archive": "docs/evidence/opt810-live-oracle/tests__hir_module_boundaries.rs.before",
+      "archive_sha256": "9712bee50420446edecf3e489f7be076f9f48c150615af5c9947184e6ca31ac7",
+      "archive_bytes": 35630,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/cleanup_plan/replay/paid_type_facts/inventory_encoded/tests/constructors.rs",
+      "source": "src/hir.rs",
+      "archive": "docs/evidence/schema-summary/hir.rs.before",
+      "archive_sha256": "982d546ebb6c591537c057d9d68f95276d7ca8ca0170e6c8b99b1d9ec5b31381",
+      "archive_bytes": 57688,
+      "whole_inverse_equal": true
+    },
+    {
+      "owner": "src/hir/validation/canonical_loans/ownership_tests.rs",
+      "source": "src/hir/validation.rs",
+      "archive": "docs/evidence/compatibility-loan-custody/src__hir__validation.rs.before",
+      "archive_sha256": "530ea6ed35440a84a5b07b4143930c25a8acc7b0424b7cbdb59f24cccd0108d1",
+      "archive_bytes": 397690,
+      "whole_inverse_equal": true
+    }
+  ]
+}

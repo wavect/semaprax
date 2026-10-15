@@ -1,0 +1,480 @@
+{
+  "status": "SOURCE_ONLY_NOT_COMPILED_OR_EXECUTED",
+  "base": "d002903fef04cecff8919b604cb8e58e3cbeeeac",
+  "new": [
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::complete_old_and_certified_cases_preserve_all_operations_rows_and_whole_drop",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+      "source_binding": {
+        "source_path": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+        "line": 82,
+        "name": "complete_old_and_certified_cases_preserve_all_operations_rows_and_whole_drop",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 114,
+            "module": "cleanup_plan",
+            "attributes": [
+              "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+            ]
+          },
+          {
+            "source_path": "src/cleanup_plan.rs",
+            "line": 32,
+            "module": "replay",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay.rs",
+            "line": 13,
+            "module": "expression_facts",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts.rs",
+            "line": 8,
+            "module": "receiving",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts/receiving.rs",
+            "line": 5,
+            "module": "retained",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+            "line": 647,
+            "module": "case_proof",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof.rs",
+            "line": 176,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          }
+        ],
+        "sha256": "13a8fc1d0430530ff65026fd22147c03c16c7a5f99f1092b38d9b558d4f69ff6",
+        "ignored": false
+      }
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::complete_source_walk_rejects_hostile_cases_ids_callee_and_lane_before_certificate",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+      "source_binding": {
+        "source_path": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+        "line": 125,
+        "name": "complete_source_walk_rejects_hostile_cases_ids_callee_and_lane_before_certificate",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 114,
+            "module": "cleanup_plan",
+            "attributes": [
+              "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+            ]
+          },
+          {
+            "source_path": "src/cleanup_plan.rs",
+            "line": 32,
+            "module": "replay",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay.rs",
+            "line": 13,
+            "module": "expression_facts",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts.rs",
+            "line": 8,
+            "module": "receiving",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts/receiving.rs",
+            "line": 5,
+            "module": "retained",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+            "line": 647,
+            "module": "case_proof",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof.rs",
+            "line": 176,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          }
+        ],
+        "sha256": "13a8fc1d0430530ff65026fd22147c03c16c7a5f99f1092b38d9b558d4f69ff6",
+        "ignored": false
+      }
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::each_receiver_has_derived_exact_short_and_zero_bytes_and_work",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+      "source_binding": {
+        "source_path": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+        "line": 212,
+        "name": "each_receiver_has_derived_exact_short_and_zero_bytes_and_work",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 114,
+            "module": "cleanup_plan",
+            "attributes": [
+              "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+            ]
+          },
+          {
+            "source_path": "src/cleanup_plan.rs",
+            "line": 32,
+            "module": "replay",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay.rs",
+            "line": 13,
+            "module": "expression_facts",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts.rs",
+            "line": 8,
+            "module": "receiving",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts/receiving.rs",
+            "line": 5,
+            "module": "retained",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+            "line": 647,
+            "module": "case_proof",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof.rs",
+            "line": 176,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          }
+        ],
+        "sha256": "13a8fc1d0430530ff65026fd22147c03c16c7a5f99f1092b38d9b558d4f69ff6",
+        "ignored": false
+      }
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::proof_binds_exact_rows_function_budget_and_foreign_restored_invocation",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+      "source_binding": {
+        "source_path": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+        "line": 248,
+        "name": "proof_binds_exact_rows_function_budget_and_foreign_restored_invocation",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 114,
+            "module": "cleanup_plan",
+            "attributes": [
+              "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+            ]
+          },
+          {
+            "source_path": "src/cleanup_plan.rs",
+            "line": 32,
+            "module": "replay",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay.rs",
+            "line": 13,
+            "module": "expression_facts",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts.rs",
+            "line": 8,
+            "module": "receiving",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts/receiving.rs",
+            "line": 5,
+            "module": "retained",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+            "line": 647,
+            "module": "case_proof",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof.rs",
+            "line": 176,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          }
+        ],
+        "sha256": "13a8fc1d0430530ff65026fd22147c03c16c7a5f99f1092b38d9b558d4f69ff6",
+        "ignored": false
+      }
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::selected_member_refusal_latches_without_post_refusal_acquisition_or_drop_allocation",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+      "source_binding": {
+        "source_path": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+        "line": 330,
+        "name": "selected_member_refusal_latches_without_post_refusal_acquisition_or_drop_allocation",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 114,
+            "module": "cleanup_plan",
+            "attributes": [
+              "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+            ]
+          },
+          {
+            "source_path": "src/cleanup_plan.rs",
+            "line": 32,
+            "module": "replay",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay.rs",
+            "line": 13,
+            "module": "expression_facts",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts.rs",
+            "line": 8,
+            "module": "receiving",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts/receiving.rs",
+            "line": 5,
+            "module": "retained",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+            "line": 647,
+            "module": "case_proof",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof.rs",
+            "line": 176,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          }
+        ],
+        "sha256": "13a8fc1d0430530ff65026fd22147c03c16c7a5f99f1092b38d9b558d4f69ff6",
+        "ignored": false
+      }
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::complete_direct_receiver_and_independent_source_discovery_remain_byte_exact",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+      "source_binding": {
+        "source_path": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+        "line": 373,
+        "name": "complete_direct_receiver_and_independent_source_discovery_remain_byte_exact",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 114,
+            "module": "cleanup_plan",
+            "attributes": [
+              "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+            ]
+          },
+          {
+            "source_path": "src/cleanup_plan.rs",
+            "line": 32,
+            "module": "replay",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay.rs",
+            "line": 13,
+            "module": "expression_facts",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts.rs",
+            "line": 8,
+            "module": "receiving",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts/receiving.rs",
+            "line": 5,
+            "module": "retained",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+            "line": 647,
+            "module": "case_proof",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof.rs",
+            "line": 176,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          }
+        ],
+        "sha256": "13a8fc1d0430530ff65026fd22147c03c16c7a5f99f1092b38d9b558d4f69ff6",
+        "ignored": false
+      }
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::attempts_cannot_complete_after_poison_foreign_payer_or_successful_consumption",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+      "source_binding": {
+        "source_path": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+        "line": 404,
+        "name": "attempts_cannot_complete_after_poison_foreign_payer_or_successful_consumption",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 114,
+            "module": "cleanup_plan",
+            "attributes": [
+              "#[allow(\n    dead_code,\n    unreachable_patterns,\n    clippy::unnecessary_lazy_evaluations,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+            ]
+          },
+          {
+            "source_path": "src/cleanup_plan.rs",
+            "line": 32,
+            "module": "replay",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay.rs",
+            "line": 13,
+            "module": "expression_facts",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts.rs",
+            "line": 8,
+            "module": "receiving",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts/receiving.rs",
+            "line": 5,
+            "module": "retained",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+            "line": 647,
+            "module": "case_proof",
+            "attributes": []
+          },
+          {
+            "source_path": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof.rs",
+            "line": 176,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          }
+        ],
+        "sha256": "13a8fc1d0430530ff65026fd22147c03c16c7a5f99f1092b38d9b558d4f69ff6",
+        "ignored": false
+      }
+    }
+  ],
+  "required_existing": [
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::certified_status_insertion_keeps_complete_original_avl_shape_and_byte_lane_order",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::certified_status_actual_work_and_every_small_byte_frontier_are_sticky_through_drop",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::certified_status_foreign_restored_and_wrong_subject_never_reactivate_the_bound_owner",
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs"
+    },
+    "cleanup_plan::replay::expression_facts::receiving::retained::status_tests::complete_status_receivers_preserve_call_payload_six_fields_priority_and_drop",
+    "cleanup_plan::replay::expression_facts::receiving::retained::status_tests::actual_status_borrow_receivers_keep_own_exact_short_zero_work_and_bytes",
+    "cleanup_plan::replay::expression_facts::receiving::retained::status_tests::complete_before_status_fact_receiver_and_full_source_remain_exact",
+    "workspace_graph::tests::builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal",
+    "cleanup_plan::replay::ordinary_status::tests::borrowed_status_comparison_preserves_owned_oracle_and_late_error_priority",
+    "cleanup_plan::replay::ordinary_status::tests::borrowed_status_comparison_removes_actual_owned_table_backing_through_drop"
+  ]
+}

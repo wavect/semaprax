@@ -1,0 +1,90 @@
+{
+  "status": "SOURCE_ONLY_NO_COMPILER_OR_RUNTIME",
+  "rows": 14,
+  "verified": [
+    {
+      "source": "CHANGELOG.md",
+      "whole_projection": true,
+      "current_sha256": "f3d15561cdf989e4330253b35a174a0d9a25082df5920da4fe65625e6e753a34",
+      "original_sha256": "03fe0c43c63706f482d49cf77c9337beaf0c13a23d9ed9e03dcd47d220010fce"
+    },
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "whole_projection": true,
+      "current_sha256": "5a40e14b7c3aa9a6beb901d15abf7e1f96c8ed2c064f91de46d1c0f352888f7b",
+      "original_sha256": "6fdc5bc7b641042627d06cd4f5274460171dc3cf4a25d1fdeb2203d797b285e2"
+    },
+    {
+      "source": "docs/ARCHITECTURE.md",
+      "whole_projection": true,
+      "current_sha256": "bf5258b4d374dd8a2626e8e092b379690d2d4986a1c1cf8dc59cfc4ccada012a",
+      "original_sha256": "357d52fe537b845a7029b35653addb44bc091b26db32cffaa52805670d38e5c7"
+    },
+    {
+      "source": "src/cleanup_plan/replay.rs",
+      "whole_projection": true,
+      "current_sha256": "0cc1f2908eacc82c10fc5d1a692855b0e0bae5aa98e2c46e3cbadb620c07168d",
+      "original_sha256": "42449fd46e19cb668a435fbea806724c8c7a67e39557eddbb2b67be638aa91e4"
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/receiving.rs",
+      "whole_projection": true,
+      "current_sha256": "3cf61e0f930bb78fc350d780e9c8ddce5b722559c1585a0647c4f6b37cbdc9de",
+      "original_sha256": "be13817153b96635c9169b7ddd872ac2e32df3db263452574b11ced2c3091055"
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+      "whole_projection": true,
+      "current_sha256": "9e82df3c85ef0681db332fae7da6fbdc91cc2b7656c3634c37fa0cfbed8fbf80",
+      "original_sha256": "b567be26f4c6f73a39d80f3fbf2363684927d3da39db3d0ff326ba4c3c724dad"
+    },
+    {
+      "source": "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+      "whole_projection": true,
+      "current_sha256": "b7298b001b1af0e01ffdc6da9fcce101a2cefc17fee176704480dfe4a3973b95",
+      "original_sha256": "6e7a09cd9689cee7a778cb92b078bc37e37eb5bfa4dfd930f915ba0979cf216b"
+    },
+    {
+      "source": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "whole_projection": true,
+      "current_sha256": "a43e4540d88c6822037a5f430dd9bc0983a15c6febc2075f2a59ac8b8a27c7eb",
+      "original_sha256": "90219d6889e0881c7c32a1655a161e83f5b533076d35383edd8e0a3d225c29f9"
+    },
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "whole_projection": true,
+      "current_sha256": "e62f02609774fc49bbcc103164038b7c36636beebe645c617972c1987d8ac2d4",
+      "original_sha256": "a75fe0f81394f2579e3fe886761e0057bd68120892739fd5fe2a196028e06a8c"
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "whole_projection": true,
+      "current_sha256": "16e956d53b58665300676188f44c144ab9e97fd2e33465253d8e5ea1a173b976",
+      "original_sha256": "952c39e4f1a57a8a705acc02c06753ecf6ea67c52f2b2841699e1f4992300ccc"
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified.rs",
+      "whole_projection": true,
+      "current_sha256": "27e035e64f5b83319c654ba78af90707268f1088d737520a28a1748a26210a12",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof.rs",
+      "whole_projection": true,
+      "current_sha256": "a3c6c0e1f04c4587a93c99093140b81d092d4e9f5860fcbac6365cda77a92016",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+      "whole_projection": true,
+      "current_sha256": "13a8fc1d0430530ff65026fd22147c03c16c7a5f99f1092b38d9b558d4f69ff6",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": "docs/STATUS-CASE-SOURCE-PROOF-V1.md",
+      "whole_projection": true,
+      "current_sha256": "e145d8f84c47eaba97c04ef38c3619966351c021aa3dee10fc3dba1d28d8753f",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

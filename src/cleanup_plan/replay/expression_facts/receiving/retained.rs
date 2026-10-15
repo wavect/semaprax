@@ -14,6 +14,7 @@ pub(in crate::cleanup_plan::replay) struct StatusSources<'hir> {
     ids: Option<Directory<&'hir StatusSourceId>>,
 }
 
+#[cfg(test)]
 pub(in crate::cleanup_plan::replay) fn validate_status_sources_retained<'hir>(
     function: &'hir ResolvedFunction,
     facts: &Facts<'_>,
@@ -641,3 +642,8 @@ mod status_before_prefix;
 
 #[cfg(test)]
 mod component_before_prefix;
+
+mod case_certified;
+mod case_proof;
+pub(in crate::cleanup_plan::replay) use case_certified::validate_status_sources_certified;
+pub(in crate::cleanup_plan::replay) use case_proof::StatusCases;

@@ -7147,3 +7147,7 @@ are authored. Qualification is pending; Catalog corpus and limits are unchanged.
 - Source-only #827 Legacy successor: preserve complete old nominal validation,
   then share explicitly unfunded immutable payloads with isolated iterative COW;
   keep paid provenance and funded mutation guards separate. Qualification pending.
+
+- Source-only #816 successor: reuse complete independent status-source case
+  proof in ordinary arithmetic receiving, preserving full direct receivers,
+  exact held invocation membership and pending whole-Drop/refusal controls.

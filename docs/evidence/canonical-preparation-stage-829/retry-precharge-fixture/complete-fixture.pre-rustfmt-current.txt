@@ -1,0 +1,83 @@
+/// Tune only the fixture size, never the production bound. Select the largest
+/// count whose actual pre-core charges and unchanged legacy first reservation
+/// fit the enclosing owner. Runtime assertions must still prove the later core
+/// overflow, one nested attempt and two ordinary attempts.
+fn core_retry_fixture() -> Vec<WorkspaceSource> {
+    let sources = |count| {
+        vec![
+            stub_charge_provider(count),
+            canonical_source(
+                "stub/consumer.spx",
+                "module stub.consumer; use function @id(\"stub.wide\") from stub.provider as wide; @id(\"stub.consumer.main\") fn main() -> i64 { wide(0) }",
+            ),
+        ]
+    };
+    let fits = |count| {
+        let mut candidate = sources(count);
+        candidate.sort_by(|left, right| left.path.cmp(&right.path));
+        let programs = parsed_sources(&candidate);
+        let authored = index_authored(&programs).unwrap();
+        let Ok(legacy) = expected_projection::retention_prebound_mode(
+            &programs, &authored, false, 0,
+        ) else { return false };
+        // The fixed fixture has only ordinary modules, no frontend or native
+        // law branch. Run their actual pre-core formatter and registry owners:
+        // the enclosing ledger keeps these debits before entering core.
+        let (actual, refused, pre_core) = crate::bounded_output::with_limit_usage(
+            MAX_BUILDER_BYTES,
+            || {
+                let mut programs = Vec::with_capacity(candidate.len());
+                let mut canonical_bytes = 0usize;
+                for source in &candidate {
+                    let (program, comments) = crate::parse_with_comments(
+                        &source.source, Path::new(&source.path),
+                    ).unwrap();
+                    crate::static_protocol::validate(&program).unwrap();
+                    let remaining = MAX_BUILDER_BYTES.saturating_sub(canonical_bytes);
+                    let (canonical, overflowed) = crate::bounded_output::with_limit(
+                        remaining,
+                        || format::comments::canonical_with_comments(&program, &comments),
+                    );
+                    if overflowed { return None; }
+                    assert_eq!(canonical, source.source);
+                    canonical_bytes = canonical_bytes.checked_add(canonical.len()).unwrap();
+                    programs.push(program);
+                }
+                crate::static_protocol::validate_workspace(&programs).unwrap();
+                let _pruned = dependency_pruning::prune(&mut programs, &candidate);
+                let modules = index_modules(&programs).unwrap();
+                let authored = index_authored(&programs).unwrap();
+                validate_synthetic_main_id_collisions(&programs, &authored).unwrap();
+                let registry = expected_projection::private_layout::registry::LayoutRegistry::new(
+                    &programs, &authored,
+                );
+                import_validation::validate_uses_with_registry(
+                    &programs, &modules, &authored, Some(&registry),
+                ).unwrap();
+                let _depths = validate_dependency_dag(&programs).unwrap();
+                let initial = expected_projection::cached_exact::initial_with_registry(
+                    &programs, &authored, true,
+                    expected_projection::cached_exact::Retention::Parsed, Some(&registry),
+                ).ok()?;
+                Some((initial, registry.receipt()))
+            },
+        );
+        let Some((initial, registry)) = actual else { return false };
+        !refused && initial.0 == legacy.0 && initial.3 == 1
+            && pre_core.checked_add(registry)
+                .and_then(|paid| paid.checked_add(initial.0))
+                .is_some_and(|paid| paid <= MAX_BUILDER_BYTES)
+    };
+    assert!(fits(1));
+    assert!(!fits(1024));
+    let (mut low, mut high) = (1, 1024);
+    while low + 1 < high {
+        let middle = low + (high - low) / 2;
+        if fits(middle) {
+            low = middle;
+        } else {
+            high = middle;
+        }
+    }
+    sources(low)
+}

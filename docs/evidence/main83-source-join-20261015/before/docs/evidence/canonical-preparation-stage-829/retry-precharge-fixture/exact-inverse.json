@@ -1,0 +1,20 @@
+{
+  "original_sha256": "4c8f8a2cac574013d6acb485d7af2c86699fb3b5b09be532c90786c6ec7add24",
+  "splices": [
+    {
+      "start": 0,
+      "before": "/// Tune only the fixture size, never the production bound. The largest legacy\n/// prebound that fits leaves less than one statement of room for actual core\n/// structures, forcing a real first-attempt overflow.\n",
+      "after": "/// Tune only the fixture size, never the production bound. Select the largest\n/// count whose actual pre-core charges and unchanged legacy first reservation\n/// fit the enclosing owner. Runtime assertions must still prove the later core\n/// overflow, one nested attempt and two ordinary attempts.\n"
+    },
+    {
+      "start": 713,
+      "before": "        let programs = parsed_sources(&sources(count));\n",
+      "after": "        let mut candidate = sources(count);\n        candidate.sort_by(|left, right| left.path.cmp(&right.path));\n        let programs = parsed_sources(&candidate);\n"
+    },
+    {
+      "start": 936,
+      "before": "        expected_projection::retention_prebound_mode(&programs, &authored, false, 0).is_ok()\n",
+      "after": "        let Ok(legacy) = expected_projection::retention_prebound_mode(\n            &programs, &authored, false, 0,\n        ) else { return false };\n        // The fixed fixture has only ordinary modules, no frontend or native\n        // law branch. Run their actual pre-core formatter and registry owners:\n        // the enclosing ledger keeps these debits before entering core.\n        let (actual, refused, pre_core) = crate::bounded_output::with_limit_usage(\n            MAX_BUILDER_BYTES,\n            || {\n                let mut programs = Vec::with_capacity(candidate.len());\n                let mut canonical_bytes = 0usize;\n                for source in &candidate {\n                    let (program, comments) = crate::parse_with_comments(\n                        &source.source, Path::new(&source.path),\n                    ).unwrap();\n                    crate::static_protocol::validate(&program).unwrap();\n                    let remaining = MAX_BUILDER_BYTES.saturating_sub(canonical_bytes);\n                    let (canonical, overflowed) = crate::bounded_output::with_limit(\n                        remaining,\n                        || format::comments::canonical_with_comments(&program, &comments),\n                    );\n                    if overflowed { return None; }\n                    assert_eq!(canonical, source.source);\n                    canonical_bytes = canonical_bytes.checked_add(canonical.len()).unwrap();\n                    programs.push(program);\n                }\n                crate::static_protocol::validate_workspace(&programs).unwrap();\n                let _pruned = dependency_pruning::prune(&mut programs, &candidate);\n                let modules = index_modules(&programs).unwrap();\n                let authored = index_authored(&programs).unwrap();\n                validate_synthetic_main_id_collisions(&programs, &authored).unwrap();\n                let registry = expected_projection::private_layout::registry::LayoutRegistry::new(\n                    &programs, &authored,\n                );\n                import_validation::validate_uses_with_registry(\n                    &programs, &modules, &authored, Some(&registry),\n                ).unwrap();\n                let _depths = validate_dependency_dag(&programs).unwrap();\n                let initial = expected_projection::cached_exact::initial_with_registry(\n                    &programs, &authored, true,\n                    expected_projection::cached_exact::Retention::Parsed, Some(&registry),\n                ).ok()?;\n                Some((initial, registry.receipt()))\n            },\n        );\n        let Some((initial, registry)) = actual else { return false };\n        !refused && initial.0 == legacy.0 && initial.3 == 1\n            && pre_core.checked_add(registry)\n                .and_then(|paid| paid.checked_add(initial.0))\n                .is_some_and(|paid| paid <= MAX_BUILDER_BYTES)\n"
+    }
+  ]
+}

@@ -493,7 +493,7 @@ fn explicit_and_row_field_read_forms_are_source_bound_in_both_directions() {
         vec![
             canonical_source("app.spx", source),
             canonical_source(
-                "aux.spx",
+                "auxiliary.spx",
                 "module aux; @id(\"aux.marker\") fn marker()->i64 {0}",
             ),
         ]

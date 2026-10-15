@@ -1,0 +1,1 @@
+New Python checker initially sliced at fn core_retry_fixture rather than the existing Rust assertion start marker including its doc comment. The actual owning Rust code and fixture were unchanged. Initial local source-only assertion failed; corrected checker uses the exact original marker. No Rust/Cargo/test body ran.

@@ -758,8 +758,27 @@ pub(crate) fn runtime848_input(source: &str, current: &str) -> String {
 
 // Complete pre-transport physical inputs precede every older named view.
 fn before_runtime_json_transport(source: &str, current: &str) -> String {
+    let before_main83 = main83_physical_input(source, current);
+    let current = before_main83.as_str();
     project(
         &runtime_json::load(runtime_json::Fixture::Custody),
+        source,
+        current,
+    )
+}
+
+// MAIN83 reads its formatted fixture independently of historical preformat F56.
+pub(crate) fn main83_retry_fixture_input(source: &str, current: &str) -> String {
+    let formatted = main83_physical_input(source, current);
+    let _historical_preformat = retry_fixture_input(source, current);
+    formatted
+}
+fn main83_physical_input(source: &str, current: &str) -> String {
+    project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/main83-source-join-20261015/current-to-4f5b.json"
+        )),
         source,
         current,
     )

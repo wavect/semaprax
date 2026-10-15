@@ -1,0 +1,19 @@
+{
+  "execution": "UNEXECUTED",
+  "exact_new_owning_selectors": [
+    "workspace_graph::expected_projection::private_layout::capacity_tests::callback_occurrences_bound_exact_full_identity_inserts_on_sparse_dense_duplicate_and_imported_closures",
+    "workspace_graph::expected_projection::private_layout::capacity_tests::actual_cold_reservation_allocation_peak_and_full_drop_are_compared_without_baseline_padding",
+    "workspace_graph::expected_projection::private_layout::capacity_tests::physical_and_work_exact_short_zero_frontiers_preserve_old_order_and_honest_new_acceptance",
+    "workspace_graph::expected_projection::private_layout::capacity_tests::malformed_complete_receivers_keep_all_six_diagnostic_fields_and_priority",
+    "workspace_graph::expected_projection::private_layout::capacity_tests::owner_controls::cold_registry_exact_short_zero_and_foreign_restored_contexts_keep_receipts_sticky",
+    "workspace_graph::expected_projection::private_layout::capacity_tests::owner_controls::same_required_derived_bytes_preserve_nested_parent_floor_and_full_drop",
+    "workspace_graph::expected_projection::private_layout::capacity_tests::owner_controls::unchanged_signature_owner_rejects_foreign_type_then_cannot_recover_after_restoration",
+    "workspace_graph::expected_projection::private_layout::capacity_tests::source::complete_old_receiver_source_and_all_new_joined_sources_stay_exact"
+  ],
+  "required_direct_owning_controls": [
+    "workspace_graph::expected_projection::private_layout::registry::tests::invocation_reuses_exact_closure_across_import_forecasts_stubs_and_retry_modes",
+    "workspace_graph::expected_projection::private_layout::function_tests::function_signature_closure_and_authority_reservations_are_exact_and_stale_fields_refuse",
+    "workspace_graph::expected_projection::private_layout::owner_index::tests::held_signature_sites_match_independent_walk_without_per_query_backing",
+    "workspace_graph::expected_projection::private_layout::tests::explicit_root_retains_private_descendants_and_only_authored_edges"
+  ]
+}

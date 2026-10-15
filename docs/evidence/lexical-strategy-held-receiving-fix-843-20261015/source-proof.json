@@ -1,0 +1,29 @@
+{
+  "status": "SOURCE_ONLY_FORMATTED_NO_BUILD_OR_TEST_EXECUTION",
+  "basis": "adfb35022bdbd49aa91333501359ecabeefe01a7",
+  "full_source_inverse_equal": true,
+  "only_two_call_seams_and_one_acquisition_changed": true,
+  "one_paid_owner_across_both_roots": true,
+  "identical_unit_and_production_call_path": true,
+  "ordinary_diagnostic_and_instrumentation_staging_preserved": true,
+  "api": "Canonicalizer::id_with_receiving",
+  "existing_unselected_direct_regression": "cleanup_plan::replay::factored::strategy::activation_tests::forced_authenticated_strategies_agree_on_small_full_multisets",
+  "new_test_bodies": 0,
+  "current_sha256": "f765547003697d054f2ea6beeb3702683bed5a51a8489ae1779e972cde7638b5",
+  "original_sha256": "b1a9ed638c64cbce8ffa6a400bb6bc45ee9e61f3bbe906f4fb6e68a11f16f819",
+  "targeted_formatter": {
+    "command": [
+      "/Users/kevin/.cargo/bin/rustup",
+      "run",
+      "1.97.1",
+      "rustfmt",
+      "--edition",
+      "2021",
+      "--config",
+      "skip_children=true",
+      "src/cleanup_plan/replay/factored/strategy.rs"
+    ],
+    "exit_code": 0,
+    "only_strategy_rust_source_changed": true
+  }
+}

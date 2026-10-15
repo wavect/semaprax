@@ -143,7 +143,7 @@ fn foreign_function_facts_budget_and_restored_nested_owner_never_reuse_backing()
     let mut scan = ReplayBudget::new();
     let facts = lexical_hir::collect(f, &mut scan).unwrap();
     let other_facts = lexical_hir::collect(f, &mut scan).unwrap();
-    let _expected = Diagnostic::io_static(
+    let expected = Diagnostic::io_static(
         "SPX-H006",
         "ordinary lexical return operands lost their owner",
     );
@@ -165,10 +165,14 @@ fn foreign_function_facts_budget_and_restored_nested_owner_never_reuse_backing()
                     }
                 };
                 assert!(result.is_err());
+                assert_eq!(result.as_ref().unwrap_err(), &expected);
                 drop(result);
                 let allocated = current_metrics().allocated;
                 let remaining = active_remaining();
-                assert!(index.authenticate(f, &facts, &mut budget).is_err());
+                let retry = index.authenticate(f, &facts, &mut budget);
+                assert!(retry.is_err());
+                assert_eq!(retry.as_ref().unwrap_err(), &expected);
+                drop(retry);
                 assert_eq!(current_metrics().allocated, allocated);
                 assert_eq!(active_remaining(), remaining);
                 drop(index);

@@ -736,7 +736,7 @@ mod tests {
                         arguments: Vec::new(),
                     };
                     let ((), refused, old, first) = with_limit_usage_refusal(LIMIT, || {
-                        super::super::super::pay_default_teardown(&ty, &index).unwrap();
+                        crate::workspace_graph::expected_projection::borrowed_imports::pay_default_teardown(&ty, &index).unwrap();
                     });
                     assert!(!refused && first.is_none());
                     let ((), refused, new, first) = with_limit_usage_refusal(LIMIT, || {

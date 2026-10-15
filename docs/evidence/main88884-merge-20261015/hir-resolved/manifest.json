@@ -1,0 +1,20 @@
+[
+  {
+    "path": "src/hir/resolve_expr.rs",
+    "sha256": "8af5423c4101d8f87c06f700ec51c6728c12164669cb716778e001323a787bf0",
+    "lines": 3107,
+    "resolved_conflict_chunks": 1
+  },
+  {
+    "path": "src/hir/resolve_for.rs",
+    "sha256": "70a1fc60ee25e5944a02ae5b6916849e76a0687faf8058d2f11997ae8568af22",
+    "lines": 667,
+    "resolved_conflict_chunks": 1
+  },
+  {
+    "path": "src/hir/resolve_statement.rs",
+    "sha256": "01313ee7fbdbee953949a99229d72747787de82c802f772b4d003fb249e0c3ed",
+    "lines": 605,
+    "resolved_conflict_chunks": 3
+  }
+]

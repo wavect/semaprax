@@ -1,0 +1,149 @@
+{
+  "source_only": true,
+  "not_registered_or_frozen": true,
+  "checks": [
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "hir::declaration_index::leaf_drop_tests::nested_nominal_payloads_keep_iterative_depth_512_disposal_and_complete_settlement",
+      "expected_selected": 1,
+      "status": "SOURCE_ONLY_UNEXECUTED",
+      "definition_at_proposed_resolved_source": {
+        "path": "src/hir/declaration_index/leaf_drop_tests.rs",
+        "line": 136,
+        "name": "nested_nominal_payloads_keep_iterative_depth_512_disposal_and_complete_settlement",
+        "source_sha256": "1cde0e096101398c7d0f8071d55951d311acfd134bc6f1e5c237bb3f89140054",
+        "external_source": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-resolved/src/hir/declaration_index/leaf_drop_tests.rs",
+        "note": "External conflict resolution only; not installed, staged or registered. Final parent merged-source registration required."
+      },
+      "reasons": [
+        "Main CI repair changes shared old_drop used by the depth512 case. Preserve both independently constructed deep payloads and original complete disposal/settlement assertions; literal old queue must still handle owned nested arguments."
+      ],
+      "origins": [
+        "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-resolution-report.json"
+      ],
+      "proposed_command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--lib",
+        "hir::declaration_index::leaf_drop_tests::nested_nominal_payloads_keep_iterative_depth_512_disposal_and_complete_settlement",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "hir::declaration_index::leaf_drop_tests::sixteen_actual_leaf_fields_remove_only_the_original_literal_drop_queue",
+      "expected_selected": 1,
+      "status": "SOURCE_ONLY_UNEXECUTED",
+      "definition_at_proposed_resolved_source": {
+        "path": "src/hir/declaration_index/leaf_drop_tests.rs",
+        "line": 91,
+        "name": "sixteen_actual_leaf_fields_remove_only_the_original_literal_drop_queue",
+        "source_sha256": "1cde0e096101398c7d0f8071d55951d311acfd134bc6f1e5c237bb3f89140054",
+        "external_source": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-resolved/src/hir/declaration_index/leaf_drop_tests.rs",
+        "note": "External conflict resolution only; not installed, staged or registered. Final parent merged-source registration required."
+      },
+      "reasons": [
+        "Main CI repair changes shared old_drop to an independent literal record-field queue. Retain the original sixteen-field exact capacities/allocation/reallocation assertions against old_fixture(16), plus uninterrupted whole-lifetime old/current settlement."
+      ],
+      "origins": [
+        "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-resolution-report.json"
+      ],
+      "proposed_command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--lib",
+        "hir::declaration_index::leaf_drop_tests::sixteen_actual_leaf_fields_remove_only_the_original_literal_drop_queue",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "hir::declaration_index::leaf_drop_tests::zero_argument_nominal_fields_do_not_allocate_drop_scratch",
+      "expected_selected": 1,
+      "status": "SOURCE_ONLY_UNEXECUTED",
+      "definition_at_proposed_resolved_source": {
+        "path": "src/hir/declaration_index/leaf_drop_tests.rs",
+        "line": 119,
+        "name": "zero_argument_nominal_fields_do_not_allocate_drop_scratch",
+        "source_sha256": "1cde0e096101398c7d0f8071d55951d311acfd134bc6f1e5c237bb3f89140054",
+        "external_source": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-resolved/src/hir/declaration_index/leaf_drop_tests.rs",
+        "note": "External conflict resolution only; not installed, staged or registered. Final parent merged-source registration required."
+      },
+      "reasons": [
+        "Main CI repair changes shared old_drop. Preserve independent old_fixture(16), zero-argument nominal leaf replacement, no current scratch allocation and complete whole-lifetime old/current Drop. Historical omission is now superseded by this direct changed control."
+      ],
+      "origins": [
+        "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-resolution-report.json"
+      ],
+      "proposed_command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--lib",
+        "hir::declaration_index::leaf_drop_tests::zero_argument_nominal_fields_do_not_allocate_drop_scratch",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "hir::identity_resolution::nominal_tests::legacy::legacy_postpass_keeps_full_original_diagnostics_before_any_canonicalization",
+      "expected_selected": 1,
+      "status": "SOURCE_ONLY_UNEXECUTED",
+      "definition_at_proposed_resolved_source": {
+        "path": "src/hir/identity_resolution/nominal_tests/legacy.rs",
+        "line": 151,
+        "name": "legacy_postpass_keeps_full_original_diagnostics_before_any_canonicalization",
+        "source_sha256": "fd63f0722fe05cbf45bd3881c7cfdc80c53b1870201aa837af1381cc87075a6c",
+        "external_source": "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-resolved/src/hir/identity_resolution/nominal_tests/legacy.rs",
+        "note": "External conflict resolution only; not installed, staged or registered. Final parent merged-source registration required."
+      },
+      "reasons": [
+        "Merged fixture keeps record-only SPX-P101 parse receipt and both recursive-record real-function spellings (legacy.main and app.main). The exact existing owner must compare all six independent original/current diagnostic fields before canonicalization for every resolver case."
+      ],
+      "origins": [
+        "/Volumes/Semaprax/provenance/main88884-merge-20261015/fixtures-resolution-report.json"
+      ],
+      "proposed_command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--lib",
+        "hir::identity_resolution::nominal_tests::legacy::legacy_postpass_keeps_full_original_diagnostics_before_any_canonicalization",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ]
+    }
+  ],
+  "amended_selection": "/Volumes/Semaprax/provenance/final-selection191-plus838839-main88884-fixtures-20261015.json",
+  "literal_roles_unchanged": 14,
+  "amended_selection_sha256": "f8f7fc7677a69fa150b778b36ffb4b3c17e6cbae1f7c7a457da96aa1e764dc8d"
+}

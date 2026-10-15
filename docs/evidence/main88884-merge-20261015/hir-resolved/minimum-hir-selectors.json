@@ -1,0 +1,44 @@
+[
+  {
+    "package": "semaprax",
+    "harness": "lib",
+    "selector": "hir::resolve_for::bytes::tests::a_manual_while_cannot_create_byte_traversal_ancestry",
+    "exact": true
+  },
+  {
+    "package": "semaprax",
+    "harness": "lib",
+    "selector": "hir::resolve_expr::byte_ancestry::tests::nested_byte_ancestry_prepays_controls_and_unwinds_outermost_scope_without_allocating",
+    "exact": true
+  },
+  {
+    "package": "semaprax",
+    "harness": "lib",
+    "selector": "hir::validation::byte_traversal::nested::tests::byte_slot_preserves_context_identity_across_trait_object_coercions",
+    "exact": true
+  },
+  {
+    "package": "semaprax",
+    "harness": "lib",
+    "selector": "hir::validation::byte_traversal::nested::tests::nested_byte_full_source_hir_graph_and_cache_replay_preserves_v1_receiver_independence",
+    "exact": true
+  },
+  {
+    "package": "semaprax",
+    "harness": "lib",
+    "selector": "hir::validation::byte_traversal::nested::tests::nested_byte_ancestor_freezes_cover_every_inner_subtree_and_same_root_after_inner_exit",
+    "exact": true
+  },
+  {
+    "package": "semaprax",
+    "harness": "lib",
+    "selector": "hir::validation::byte_traversal::nested::tests::nested_byte_while_bridge_and_inner_only_exits_replay_exact_nearest_targets",
+    "exact": true
+  },
+  {
+    "package": "semaprax",
+    "harness": "lib",
+    "selector": "hir::validation::byte_traversal::nested::tests::nested_byte_same_root_release_does_not_allow_outer_move_or_renewal",
+    "exact": true
+  }
+]

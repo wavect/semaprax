@@ -5,27 +5,27 @@
     {
       "selector": "workspace_graph::expected_projection::type_rewrite::receiving::tests::typed_signature_identity_borrows_exact_original_local_import_and_static_prelude_bytes",
       "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
-      "source_sha256": "f5812b7a1c145646b9afe8eeb5a6bb7c219322ae5d4329d89063b3d77ff7764f"
+      "source_sha256": "82f515dcc791f45cbcb0f1ecfc3f58f89c4a51bc5c2dc2d2c56f87fd7eb06629"
     },
     {
       "selector": "workspace_graph::expected_projection::type_rewrite::receiving::tests::typed_signature_rewrite_matches_complete_old_success_refusals_and_all_six_json_fields",
       "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
-      "source_sha256": "f5812b7a1c145646b9afe8eeb5a6bb7c219322ae5d4329d89063b3d77ff7764f"
+      "source_sha256": "82f515dcc791f45cbcb0f1ecfc3f58f89c4a51bc5c2dc2d2c56f87fd7eb06629"
     },
     {
       "selector": "workspace_graph::expected_projection::type_rewrite::receiving::tests::typed_signature_rewrite_every_byte_frontier_keeps_first_setup_and_no_later_allocation",
       "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
-      "source_sha256": "f5812b7a1c145646b9afe8eeb5a6bb7c219322ae5d4329d89063b3d77ff7764f"
+      "source_sha256": "82f515dcc791f45cbcb0f1ecfc3f58f89c4a51bc5c2dc2d2c56f87fd7eb06629"
     },
     {
       "selector": "workspace_graph::expected_projection::type_rewrite::receiving::tests::typed_signature_rewrite_foreign_and_restored_owner_cannot_replace_or_mutate_the_source",
       "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
-      "source_sha256": "f5812b7a1c145646b9afe8eeb5a6bb7c219322ae5d4329d89063b3d77ff7764f"
+      "source_sha256": "82f515dcc791f45cbcb0f1ecfc3f58f89c4a51bc5c2dc2d2c56f87fd7eb06629"
     },
     {
       "selector": "workspace_graph::expected_projection::type_rewrite::receiving::tests::typed_signature_rewrite_complete_old_helpers_live_callers_and_whole_source_inverses_are_bound",
       "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
-      "source_sha256": "f5812b7a1c145646b9afe8eeb5a6bb7c219322ae5d4329d89063b3d77ff7764f"
+      "source_sha256": "82f515dcc791f45cbcb0f1ecfc3f58f89c4a51bc5c2dc2d2c56f87fd7eb06629"
     }
   ],
   "required_existing": [
@@ -52,17 +52,17 @@
     {
       "selector": "workspace_graph::expected_projection::borrowed_imports::typed::directory_tests::typed_overlay_directories_match_original_values_and_whole_drop_at_every_byte_frontier",
       "source": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
-      "source_sha256": "f30ca63036d60c90044ce305bb3e8700515138587b7e47d9f70a5a63eed17828"
+      "source_sha256": "835c5ffe298e1ac87fb192b4dc5813cbeada751ba05d00c0efe9d32d03e16996"
     },
     {
       "selector": "workspace_graph::expected_projection::borrowed_imports::typed::directory_tests::typed_overlay_directory_foreign_restored_and_overflow_exits_keep_original_first_setup",
       "source": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
-      "source_sha256": "f30ca63036d60c90044ce305bb3e8700515138587b7e47d9f70a5a63eed17828"
+      "source_sha256": "835c5ffe298e1ac87fb192b4dc5813cbeada751ba05d00c0efe9d32d03e16996"
     },
     {
       "selector": "workspace_graph::expected_projection::borrowed_imports::typed::directory_tests::typed_overlay_directory_complete_source_inverses_and_three_live_calls_are_bound",
       "source": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
-      "source_sha256": "f30ca63036d60c90044ce305bb3e8700515138587b7e47d9f70a5a63eed17828"
+      "source_sha256": "835c5ffe298e1ac87fb192b4dc5813cbeada751ba05d00c0efe9d32d03e16996"
     },
     {
       "selector": "workspace_graph::constructor_failure::receiving::typed::tests::typed_constructor_receiver_first_budget_and_foreign_restoration_preserve_original_owner",

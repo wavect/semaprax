@@ -1,0 +1,38 @@
+[
+  {
+    "selector": "workspace_graph::cold_canonical::tests::complete_old_and_comparison_keep_exact_short_zero_sticky_and_nested_formatter_debits",
+    "source": "src/workspace_graph/cold_canonical/tests.rs",
+    "prior": "3ec6149f26eec9a0c6c0f3b0724ffdaf2231600a6d530af720132a9ada71a4f0",
+    "current": "0d01d06a2f6f9794f9f52ffa4ebcdac1a557405a2737623ae7515422c511a148"
+  },
+  {
+    "selector": "workspace_graph::cold_canonical::tests::final_string_backing_is_removed_with_actual_allocated_reserved_peak_and_whole_drop_observation",
+    "source": "src/workspace_graph/cold_canonical/tests.rs",
+    "prior": "3ec6149f26eec9a0c6c0f3b0724ffdaf2231600a6d530af720132a9ada71a4f0",
+    "current": "0d01d06a2f6f9794f9f52ffa4ebcdac1a557405a2737623ae7515422c511a148"
+  },
+  {
+    "selector": "workspace_graph::cold_canonical::tests::whole_cold_preflight_keeps_complete_old_source_graph_diagnostics_and_priority",
+    "source": "src/workspace_graph/cold_canonical/tests.rs",
+    "prior": "3ec6149f26eec9a0c6c0f3b0724ffdaf2231600a6d530af720132a9ada71a4f0",
+    "current": "0d01d06a2f6f9794f9f52ffa4ebcdac1a557405a2737623ae7515422c511a148"
+  },
+  {
+    "selector": "workspace_graph::cold_canonical::tests::whole_cold_preflight_exact_short_zero_builder_bounds_and_early_mismatch_keep_old_refusal",
+    "source": "src/workspace_graph/cold_canonical/tests.rs",
+    "prior": "3ec6149f26eec9a0c6c0f3b0724ffdaf2231600a6d530af720132a9ada71a4f0",
+    "current": "0d01d06a2f6f9794f9f52ffa4ebcdac1a557405a2737623ae7515422c511a148"
+  },
+  {
+    "selector": "workspace_graph::cold_canonical::tests::whole_cold_preflight_observes_same_cold_setup_reserved_peak_and_complete_drop_without_output_string",
+    "source": "src/workspace_graph/cold_canonical/tests.rs",
+    "prior": "3ec6149f26eec9a0c6c0f3b0724ffdaf2231600a6d530af720132a9ada71a4f0",
+    "current": "0d01d06a2f6f9794f9f52ffa4ebcdac1a557405a2737623ae7515422c511a148"
+  },
+  {
+    "selector": "workspace_graph::cold_canonical::tests::complete_old_commented_formatter_preflight_sources_and_all_current_children_remain_exact",
+    "source": "src/workspace_graph/cold_canonical/tests.rs",
+    "prior": "3ec6149f26eec9a0c6c0f3b0724ffdaf2231600a6d530af720132a9ada71a4f0",
+    "current": "0d01d06a2f6f9794f9f52ffa4ebcdac1a557405a2737623ae7515422c511a148"
+  }
+]

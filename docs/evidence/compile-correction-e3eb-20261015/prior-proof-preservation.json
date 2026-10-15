@@ -1,0 +1,8 @@
+{
+  "path": "docs/evidence/canonical-comment-comparison-835/source-proof.json",
+  "prior_source": "e3eb476838442b58c02ccc815aae4bbdfebfd50e",
+  "prior_sha256": "e69370cae4ced4a1ed6b77885303f9d6799c33840616c6b356d8f76f3d89a068",
+  "preserved_byte_exact": true,
+  "current_source_only_result": "docs/evidence/compile-correction-e3eb-20261015/formatter-current-source-proof.json",
+  "current_sha256": "e86492ec0d7b437430bcb5a1c42df11a80cc2691d5a7548817e3bacce6d31ec4"
+}

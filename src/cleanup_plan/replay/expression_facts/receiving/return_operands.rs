@@ -63,10 +63,10 @@ impl<'facts, 'hir> ReturnOperands<'facts, 'hir> {
             // facts. Directory comparisons, relocation and rotations retain
             // their existing independently declared per-operation charges.
             budget.charge(function, 1, PHASE)?;
-            if exit.kind == LexicalExitKind::Return
-                && let Some(operand) = exit.value
-            {
-                ids.insert(function, &operand.id, budget)?;
+            if exit.kind == LexicalExitKind::Return {
+                if let Some(operand) = exit.value {
+                    ids.insert(function, &operand.id, budget)?;
+                }
             }
         }
         Ok(Self {

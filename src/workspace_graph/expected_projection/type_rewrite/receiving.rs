@@ -323,8 +323,14 @@ use type @id("row") from vector.provider as ImportedRow;
                             let report = owner.receive_typed(failure).into_legacy_unfunded();
                             assert_eq!(&report, expected);
                             assert_eq!(
-                                serde_json::to_value(&report).unwrap(),
-                                serde_json::to_value(expected).unwrap()
+                                report
+                                    .iter()
+                                    .map(|diagnostic| diagnostic.json())
+                                    .collect::<Vec<_>>(),
+                                expected
+                                    .iter()
+                                    .map(|diagnostic| diagnostic.json())
+                                    .collect::<Vec<_>>()
                             );
                             drop(report);
                         }

@@ -369,7 +369,10 @@ fn complete_old_commented_formatter_preflight_sources_and_all_current_children_r
             .find(|r| r["source"] == source)
             .unwrap();
         assert_eq!(
-            format!("{:x}", Sha256::digest(bytes.as_bytes())),
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(bytes.as_bytes()))
+            ),
             row["sha256"].as_str().unwrap()
         );
     }

@@ -364,5 +364,7 @@ fn malformed_complete_receivers_keep_all_six_diagnostic_fields_and_priority() {
     }
 }
 
+#[path = "capacity_tests/owner_controls.rs"]
 mod owner_controls;
+#[path = "capacity_tests/source.rs"]
 mod source;

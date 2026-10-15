@@ -54,7 +54,14 @@
     },
     {
       "source": "src/workspace_graph/cold_canonical/tests.rs",
-      "sha256": "3ec6149f26eec9a0c6c0f3b0724ffdaf2231600a6d530af720132a9ada71a4f0"
+      "sha256": "0d01d06a2f6f9794f9f52ffa4ebcdac1a557405a2737623ae7515422c511a148",
+      "prior_bindings": [
+        {
+          "sha256": "3ec6149f26eec9a0c6c0f3b0724ffdaf2231600a6d530af720132a9ada71a4f0",
+          "archive": "docs/evidence/compile-correction-e3eb-20261015/4.before",
+          "basis": "e3eb476838442b58c02ccc815aae4bbdfebfd50e"
+        }
+      ]
     },
     {
       "source": "src/format/comments/compare.rs",

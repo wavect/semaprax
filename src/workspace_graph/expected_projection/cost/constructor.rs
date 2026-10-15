@@ -1,6 +1,6 @@
 //! Original raw structural formulas with typed refusal custody. No old visitor
 //! or StructuralCost method is called on this actual constructor route.
-use super::{StructuralCost, absent_storage_root, literal_fixed_discount};
+use super::{absent_storage_root, literal_fixed_discount, StructuralCost};
 use crate::workspace_graph::constructor_failure::receiving::{Receiver, Setup};
 use std::mem::{size_of, size_of_val};
 

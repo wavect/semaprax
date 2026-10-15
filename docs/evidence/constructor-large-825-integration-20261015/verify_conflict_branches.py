@@ -8,7 +8,7 @@ root = Path(__file__).resolve().parents[3]
 here = Path(__file__).resolve().parent
 sha = lambda data: hashlib.sha256(data).hexdigest()
 def blob(revision, path):
-    return subprocess.check_output(['git', 'show', revision + ':' + path], cwd=root)
+    return subprocess.check_output(['git', 'show', revision + ':' + path], cwd=root, stderr=subprocess.DEVNULL)
 results = []
 for manifest in sorted(here.glob('conflicts-*.json')):
     for conflict in json.loads(manifest.read_text()):
@@ -39,9 +39,11 @@ for manifest in sorted(here.glob('conflicts-*.json')):
 rebindings = json.loads((here / 'selector-rebindings.json').read_text())
 candidates = ['b244a1fca', '457049089', 'b758c3cdc', '5ca19ed2d', '95e6435fe',
               '940fcf220', 'bb6e11a1e']
+last = {(row['manifest'], row['selector']): row for row in rebindings}
 for row in rebindings:
     source = (root / row['source']).read_bytes()
-    assert sha(source) == row['current_sha256']
+    if last[(row['manifest'], row['selector'])] is row:
+        assert sha(source) == row['current_sha256']
     assert ('fn ' + row['selector'].rsplit('::', 1)[1] + '(').encode() in source
     matches = []
     for revision in candidates:

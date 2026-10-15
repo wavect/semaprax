@@ -248,18 +248,16 @@ use type @id("row") from vector.provider as ImportedRow;
         let ((), refused, _, first) = with_limit_usage_refusal(LIMIT, || {
             let mut owner = Receiver::acquire().unwrap();
             // Static prelude Vec identity has no new String backing either.
-            assert!(
-                vector_element(
-                    original,
-                    "vector.provider",
-                    &programs[1],
-                    &programs,
-                    None,
-                    &mut owner
-                )
-                .unwrap()
-                .is_none()
-            );
+            assert!(vector_element(
+                original,
+                "vector.provider",
+                &programs[1],
+                &programs,
+                None,
+                &mut owner
+            )
+            .unwrap()
+            .is_none());
             drop(owner);
         });
         assert!(!refused && first.is_none());
@@ -574,8 +572,8 @@ use type @id("row") from vector.provider as ImportedRow;
         assert!(refused && first.is_some());
     }
     #[test]
-    fn typed_signature_rewrite_complete_old_helpers_live_callers_and_whole_source_inverses_are_bound()
-     {
+    fn typed_signature_rewrite_complete_old_helpers_live_callers_and_whole_source_inverses_are_bound(
+    ) {
         use sha2::{Digest, Sha256};
         let rows: serde_json::Value = serde_json::from_str(include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -696,10 +694,8 @@ use type @id("row") from vector.provider as ImportedRow;
             assert!(!current.contains(forbidden));
         }
         assert!(sources[5].0.contains("fn resolve_type_id("));
-        assert!(
-            sources[1]
-                .0
-                .contains("pub(in crate::workspace_graph) fn rewrite_with_layout(")
-        );
+        assert!(sources[1]
+            .0
+            .contains("pub(in crate::workspace_graph) fn rewrite_with_layout("));
     }
 }

@@ -1,6 +1,6 @@
 {
   "status": "SOURCE_ONLY_NO_RUST_OR_CARGO_EXECUTION",
-  "immutable_basis": "b244a1fca55c7880bed6d8d96cf4ee49eb80f574",
+  "immutable_basis": "39130d9237121b61e40b47f95c072c09a456554e",
   "shared_packet_count": 21,
   "shared_rows": 236,
   "additional_rows": {
@@ -55,15 +55,7 @@
     {
       "packet": "docs/evidence/borrowed-generic-membership-index-39c6/whole-source-inverses.json",
       "rows": 4,
-      "repairs": [
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 4,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -95,15 +87,7 @@
     {
       "packet": "docs/evidence/factored-closure-index/exact-source-inverses.json",
       "rows": 9,
-      "repairs": [
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 9,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -135,15 +119,7 @@
     {
       "packet": "docs/evidence/provider-proof-backing-714177/whole-source-inverses.json",
       "rows": 17,
-      "repairs": [
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 17,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -151,15 +127,7 @@
     {
       "packet": "docs/evidence/factored-continuation-receiving/exact-source-inverses.json",
       "rows": 11,
-      "repairs": [
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 11,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -175,15 +143,7 @@
     {
       "packet": "docs/evidence/dense-loan-live-scratch/exact-source-inverses.json",
       "rows": 15,
-      "repairs": [
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 15,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -191,22 +151,7 @@
     {
       "packet": "docs/evidence/borrowed-generic-type-rewrite-141387/whole-source-inverses.json",
       "rows": 3,
-      "repairs": [
-        {
-          "source": "src/workspace_graph/expected_projection/cost.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "dc82998ecf0fc9660069c46c67de574ced77a7c33a2a1013aaaa70f15a0f4dc5",
-          "current_sha256": "ddf8dc2e74e4c0cc193e4e592671ffcfd9118b8bfe91cef2d0cf19eca3a635ce",
-          "blocks": 1
-        },
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 3,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -238,15 +183,7 @@
     {
       "packet": "docs/evidence/status-prefix-insertion/exact-source-inverses.json",
       "rows": 11,
-      "repairs": [
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 11,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -262,15 +199,7 @@
     {
       "packet": "docs/evidence/prelude-extension-reuse-828/exact-source-inverses.json",
       "rows": 18,
-      "repairs": [
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 11,
       "independently_bound_new_rows": 7,
       "all_old_hooks_and_originals_preserved": true
@@ -278,15 +207,7 @@
     {
       "packet": "docs/evidence/nominal-payload-827/exact-source-inverses-activation-v14.json",
       "rows": 79,
-      "repairs": [
-        {
-          "source": "src/hir/declaration_index/leaf_drop_tests.rs",
-          "checkpoint": "fd232d362",
-          "checkpoint_sha256": "3ee21dff87932511910fb328367e4cb6d09c6ca2bc5400cda0668c46c71dbf42",
-          "current_sha256": "f2919fb1344f564493273f4ae4d888c2eff906508859bd944509b34acc98814f",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 79,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -302,15 +223,7 @@
     {
       "packet": "docs/evidence/factored-epsilon-closure-sharing/exact-source-inverses.json",
       "rows": 10,
-      "repairs": [
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 10,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -318,36 +231,7 @@
     {
       "packet": "docs/evidence/nested-byte-traversal-780/final-source-inverses-v1.json",
       "rows": 41,
-      "repairs": [
-        {
-          "source": "docs/BORROWED-BYTE-SLICE-FOR-TRAVERSAL-V2.md",
-          "checkpoint": "940fcf220",
-          "checkpoint_sha256": "1d6d25d49fc71629141c984a171746688dd724f588a1814e436aa589272a1416",
-          "current_sha256": "ed2a60ed3bf47974911b8346ffcad6ac64f756c84435544523ce37208dd5d605",
-          "blocks": 1
-        },
-        {
-          "source": "src/hir/validation/byte_traversal/nested/tests.rs",
-          "checkpoint": "940fcf220",
-          "checkpoint_sha256": "7fe239c8c7c5afe12db2c3125286b45cf8b168cac45a408d0c443cc4ecfe5427",
-          "current_sha256": "16a6195ebf472b9d328c9da1f6267a400d3f34c783e39080641e8714219f7caf",
-          "blocks": 1
-        },
-        {
-          "source": "tests/useful_data/byte_slice_for_runtime/nested.rs",
-          "checkpoint": "940fcf220",
-          "checkpoint_sha256": "d485679bb622f7765e43cd7a7b82b8ed507c41b68ecdaf6e57da986a57d7996a",
-          "current_sha256": "a937965cb7d286931639a836a94f2080cfaef94307f83dd220ceab4f79fb9a8f",
-          "blocks": 1
-        },
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 41,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -355,15 +239,7 @@
     {
       "packet": "docs/evidence/selected-session-static-refusal-781/exact-source-inverses.json",
       "rows": 19,
-      "repairs": [
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 19,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -379,15 +255,7 @@
     {
       "packet": "docs/evidence/legacy-nominal-sharing-827/exact-source-inverses.json",
       "rows": 18,
-      "repairs": [
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 18,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -395,15 +263,7 @@
     {
       "packet": "docs/evidence/projection-explicit-import-correction-a417/exact-source-inverses.json",
       "rows": 25,
-      "repairs": [
-        {
-          "source": "src/hir/validation/byte_traversal/nested/tests.rs",
-          "checkpoint": "940fcf220",
-          "checkpoint_sha256": "7fe239c8c7c5afe12db2c3125286b45cf8b168cac45a408d0c443cc4ecfe5427",
-          "current_sha256": "16a6195ebf472b9d328c9da1f6267a400d3f34c783e39080641e8714219f7caf",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 25,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -411,15 +271,7 @@
     {
       "packet": "docs/evidence/epsilon-application-census-830/exact-source-inverses.json",
       "rows": 11,
-      "repairs": [
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 11,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -427,15 +279,7 @@
     {
       "packet": "docs/evidence/status-case-proof-816/exact-source-inverses.json",
       "rows": 14,
-      "repairs": [
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 14,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -443,15 +287,7 @@
     {
       "packet": "docs/evidence/legacy-final-link-sharing-827/exact-source-inverses.json",
       "rows": 10,
-      "repairs": [
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 10,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -467,15 +303,7 @@
     {
       "packet": "docs/evidence/singleton-successor-targets-831/exact-source-inverses.json",
       "rows": 8,
-      "repairs": [
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 8,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -491,22 +319,7 @@
     {
       "packet": "docs/evidence/nested-byte-lowering-admission-a417/source-inverses.json",
       "rows": 10,
-      "repairs": [
-        {
-          "source": "docs/BORROWED-BYTE-SLICE-FOR-TRAVERSAL-V2.md",
-          "checkpoint": "940fcf220",
-          "checkpoint_sha256": "1d6d25d49fc71629141c984a171746688dd724f588a1814e436aa589272a1416",
-          "current_sha256": "ed2a60ed3bf47974911b8346ffcad6ac64f756c84435544523ce37208dd5d605",
-          "blocks": 1
-        },
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 10,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -546,15 +359,7 @@
     {
       "packet": "docs/evidence/constructor-inline-failure-825/exact-source-inverses.json",
       "rows": 5,
-      "repairs": [
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 5,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -586,22 +391,7 @@
     {
       "packet": "docs/evidence/nested-byte-candidate-adoption-780/exact-source-inverses.json",
       "rows": 14,
-      "repairs": [
-        {
-          "source": "docs/BORROWED-BYTE-SLICE-FOR-TRAVERSAL-V2.md",
-          "checkpoint": "940fcf220",
-          "checkpoint_sha256": "1d6d25d49fc71629141c984a171746688dd724f588a1814e436aa589272a1416",
-          "current_sha256": "ed2a60ed3bf47974911b8346ffcad6ac64f756c84435544523ce37208dd5d605",
-          "blocks": 1
-        },
-        {
-          "source": "src/hir/validation/byte_traversal/nested/tests.rs",
-          "checkpoint": "940fcf220",
-          "checkpoint_sha256": "7fe239c8c7c5afe12db2c3125286b45cf8b168cac45a408d0c443cc4ecfe5427",
-          "current_sha256": "16a6195ebf472b9d328c9da1f6267a400d3f34c783e39080641e8714219f7caf",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 14,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -609,15 +399,7 @@
     {
       "packet": "docs/evidence/legacy-linked-drop-reuse-828f/exact-source-inverses.json",
       "rows": 10,
-      "repairs": [
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 10,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -625,15 +407,7 @@
     {
       "packet": "docs/evidence/status-case-counter-828f/exact-source-inverses.json",
       "rows": 9,
-      "repairs": [
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 9,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -641,15 +415,7 @@
     {
       "packet": "docs/evidence/prelude-forecast-286/exact-source-inverses.json",
       "rows": 5,
-      "repairs": [
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 5,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -657,15 +423,7 @@
     {
       "packet": "docs/evidence/prelude-forecast-286/pin-capture/exact-source-inverses.json",
       "rows": 2,
-      "repairs": [
-        {
-          "source": "tests/workspace/semantic_graph.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "4af44d68c4988c4b042a6e7b08ad5aa6f6e6f726953c0858a9e4e65ca35b497a",
-          "current_sha256": "910cc41a86fb254e3aa36e2708b109ec91f7a309dd64aac051854cbf5806abab",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 2,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -673,29 +431,7 @@
     {
       "packet": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
       "rows": 15,
-      "repairs": [
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        },
-        {
-          "source": "src/workspace_graph/constructor_failure/receiving/tests.rs",
-          "checkpoint": "fd232d362",
-          "checkpoint_sha256": "b436eabdfb4ca068b05b836d449890cb42ec383fcb37566ce73d205e44e25444",
-          "current_sha256": "0146e55390a2bbe0b146b936921d5b7d800b98271d32e0f282d2004864b45e7b",
-          "blocks": 1
-        },
-        {
-          "source": "docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "5de9200a1f0725c02187b4ac3ad20bc4c05b25dcb582dcb59b716eeadd6b8500",
-          "current_sha256": "a9c09eb195590f8479ee5afc77864ad7f3b484e2ed78d047cf390248d5ebc02f",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 15,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -703,15 +439,7 @@
     {
       "packet": "docs/evidence/singleton-target-receiving-layers-831/exact-source-inverses.json",
       "rows": 10,
-      "repairs": [
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 10,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -719,36 +447,7 @@
     {
       "packet": "docs/evidence/selected-child-refusal-781/exact-source-inverses.json",
       "rows": 41,
-      "repairs": [
-        {
-          "source": "src/cleanup/inventory_builder/selected_inline.rs",
-          "checkpoint": "e72152d07",
-          "checkpoint_sha256": "87e1c5fd97d4c062e170145682e76691b888c56ee1dba06f4ddb25d559641913",
-          "current_sha256": "893b87ae8ec16924a3a6e7980d4fea6480bf5926e5ffb9003d35938ea973a3c3",
-          "blocks": 1
-        },
-        {
-          "source": "src/cleanup_plan/replay/selected_profile/paid_children/flat_records.rs",
-          "checkpoint": "e72152d07",
-          "checkpoint_sha256": "52d4cd953616f78802e9ed4d092264b5565de6d34c957d23517663eb4411de48",
-          "current_sha256": "ad70a6268c577b6d77b48174faad6d356016ccdc14bc7b746e9091efff39f6a7",
-          "blocks": 1
-        },
-        {
-          "source": "src/loop_calls/byte_writer/resolved/selected_inline.rs",
-          "checkpoint": "e72152d07",
-          "checkpoint_sha256": "5634914aba2e68e15d41835cc0cdd7f119cd3ea5e330035bd728b81d8bcf0a5c",
-          "current_sha256": "92e0068c436fc7157eab5df8bf54af86cd77cc5f651f77efebf07ef370ff9a1a",
-          "blocks": 1
-        },
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 41,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -764,36 +463,7 @@
     {
       "packet": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
       "rows": 21,
-      "repairs": [
-        {
-          "source": "docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "5de9200a1f0725c02187b4ac3ad20bc4c05b25dcb582dcb59b716eeadd6b8500",
-          "current_sha256": "a9c09eb195590f8479ee5afc77864ad7f3b484e2ed78d047cf390248d5ebc02f",
-          "blocks": 1
-        },
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        },
-        {
-          "source": "src/workspace_graph/constructor_failure/receiving/typed.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2dfd535d54278c41f56b708a817ff58dbfedfffa2e058f54eba4491c76dbfeb2",
-          "current_sha256": "151253be8cc322ec3817cc78e54efe752e865b9c703164d7abc4ed797f659b81",
-          "blocks": 1
-        },
-        {
-          "source": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "70c933e244feb594a20aa3eeab6360b09f2bbf717d265301f4ea11e8caa637a1",
-          "current_sha256": "f30ca63036d60c90044ce305bb3e8700515138587b7e47d9f70a5a63eed17828",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 21,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -801,15 +471,7 @@
     {
       "packet": "docs/evidence/integration-recovery-403d-20261015/correction-source-inverses.json",
       "rows": 4,
-      "repairs": [
-        {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "0be30e2a6",
-          "checkpoint_sha256": "2f8f57e69d32095b7dad4ecad6c52b8a0b1da4a8e478c67248514a31462a9192",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 4,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -833,15 +495,7 @@
     {
       "packet": "docs/evidence/constructor-directory-propagation-825/source-inverses.json",
       "rows": 3,
-      "repairs": [
-        {
-          "source": "src/workspace_graph/expected_projection/borrowed_imports.rs",
-          "checkpoint": "b758c3cdc",
-          "checkpoint_sha256": "d9bf45054cc66c75fe95824dc346689a633ce0eb2060f996c51f4aaae4dc4c24",
-          "current_sha256": "7f40ff2da83fac82c1d0925b9f4596e2070c7a88d819f649f8d5f412dab1c15a",
-          "blocks": 1
-        }
-      ],
+      "repairs": [],
       "whole_original_rows": 3,
       "independently_bound_new_rows": 0,
       "all_old_hooks_and_originals_preserved": true
@@ -851,17 +505,10 @@
       "rows": 11,
       "repairs": [
         {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "b758c3cdc",
-          "checkpoint_sha256": "51bcda540624e38b9a37eadb083bb988b43274d74e9a854a6352b18f1da6c70e",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
-          "blocks": 1
-        },
-        {
-          "source": "src/workspace_graph/expected_projection/borrowed_imports.rs",
-          "checkpoint": "b758c3cdc",
-          "checkpoint_sha256": "d9bf45054cc66c75fe95824dc346689a633ce0eb2060f996c51f4aaae4dc4c24",
-          "current_sha256": "7f40ff2da83fac82c1d0925b9f4596e2070c7a88d819f649f8d5f412dab1c15a",
+          "source": "src/workspace_graph/expected_projection/cost/constructor.rs",
+          "checkpoint": "39130d9237121b61e40b47f95c072c09a456554e",
+          "checkpoint_sha256": "1d42ed647e2af827aa7e01e0f14818362c26d50c0e74ca291086c7c6989ab0c0",
+          "current_sha256": "c64082f673cdb37a0b605b86b28bba6afee5794bddcf498ddc4a0bcfd1fe5286",
           "blocks": 1
         }
       ],
@@ -874,10 +521,10 @@
       "rows": 7,
       "repairs": [
         {
-          "source": "tests/workspace/semantic_graph/source_inventory.rs",
-          "checkpoint": "b758c3cdc",
-          "checkpoint_sha256": "51bcda540624e38b9a37eadb083bb988b43274d74e9a854a6352b18f1da6c70e",
-          "current_sha256": "3119a795fad8fa89e8d74b22b8412aab6a76d6cdedcd4715e806fe0322768890",
+          "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+          "checkpoint": "39130d9237121b61e40b47f95c072c09a456554e",
+          "checkpoint_sha256": "aacb43fa526b6900fc7718756d022aec64d3dffbd10bc2ebc194e370586bb23f",
+          "current_sha256": "f5812b7a1c145646b9afe8eeb5a6bb7c219322ae5d4329d89063b3d77ff7764f",
           "blocks": 1
         }
       ],

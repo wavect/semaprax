@@ -51,7 +51,7 @@
   },
   {
     "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
-    "lines": 705,
+    "lines": 701,
     "limit": 1500
   }
 ]

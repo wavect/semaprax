@@ -1,0 +1,150 @@
+{
+  "status": "source-authored exact selectors; unexecuted at integrated head",
+  "new": [
+    {
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::borrowed_imports::typed::directory_tests::typed_overlay_directories_match_original_values_and_whole_drop_at_every_byte_frontier",
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+      "source_sha256": "f30ca63036d60c90044ce305bb3e8700515138587b7e47d9f70a5a63eed17828"
+    },
+    {
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::borrowed_imports::typed::directory_tests::typed_overlay_directory_foreign_restored_and_overflow_exits_keep_original_first_setup",
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+      "source_sha256": "f30ca63036d60c90044ce305bb3e8700515138587b7e47d9f70a5a63eed17828"
+    },
+    {
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::borrowed_imports::typed::directory_tests::typed_overlay_directory_complete_source_inverses_and_three_live_calls_are_bound",
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+      "source_sha256": "f30ca63036d60c90044ce305bb3e8700515138587b7e47d9f70a5a63eed17828"
+    },
+    {
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::borrowed_imports::typed::typed_cost::tests::typed_constructor_census_keeps_all_original_raw_fields_order_and_teardown_formulas",
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+      "source_sha256": "cb7dacf49af1e4f1580dbe9ec8db60eebe596a3ba4acdfe382dad7faa655a8e2"
+    },
+    {
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::borrowed_imports::typed::typed_cost::tests::typed_constructor_cost_every_byte_frontier_and_retry_allocate_nothing_after_refusal",
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+      "source_sha256": "cb7dacf49af1e4f1580dbe9ec8db60eebe596a3ba4acdfe382dad7faa655a8e2"
+    },
+    {
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::borrowed_imports::typed::typed_cost::tests::typed_constructor_logical_cost_cap_has_no_invented_receipt_and_foreign_stays_detached",
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+      "source_sha256": "cb7dacf49af1e4f1580dbe9ec8db60eebe596a3ba4acdfe382dad7faa655a8e2"
+    },
+    {
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::borrowed_imports::typed::typed_cost::tests::typed_constructor_cost_complete_originals_live_callers_and_all_source_inverses_are_bound",
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+      "source_sha256": "cb7dacf49af1e4f1580dbe9ec8db60eebe596a3ba4acdfe382dad7faa655a8e2"
+    },
+    {
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::type_rewrite::receiving::tests::typed_signature_identity_borrows_exact_original_local_import_and_static_prelude_bytes",
+      "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+      "source_sha256": "f5812b7a1c145646b9afe8eeb5a6bb7c219322ae5d4329d89063b3d77ff7764f"
+    },
+    {
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::type_rewrite::receiving::tests::typed_signature_rewrite_matches_complete_old_success_refusals_and_all_six_json_fields",
+      "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+      "source_sha256": "f5812b7a1c145646b9afe8eeb5a6bb7c219322ae5d4329d89063b3d77ff7764f"
+    },
+    {
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::type_rewrite::receiving::tests::typed_signature_rewrite_every_byte_frontier_keeps_first_setup_and_no_later_allocation",
+      "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+      "source_sha256": "f5812b7a1c145646b9afe8eeb5a6bb7c219322ae5d4329d89063b3d77ff7764f"
+    },
+    {
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::type_rewrite::receiving::tests::typed_signature_rewrite_foreign_and_restored_owner_cannot_replace_or_mutate_the_source",
+      "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+      "source_sha256": "f5812b7a1c145646b9afe8eeb5a6bb7c219322ae5d4329d89063b3d77ff7764f"
+    },
+    {
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::type_rewrite::receiving::tests::typed_signature_rewrite_complete_old_helpers_live_callers_and_whole_source_inverses_are_bound",
+      "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+      "source_sha256": "f5812b7a1c145646b9afe8eeb5a6bb7c219322ae5d4329d89063b3d77ff7764f"
+    }
+  ],
+  "changed_and_minimal_direct_controls": [
+    {
+      "harness": "lib",
+      "selector": "hir::declaration_index::legacy_drop::tests::multiple_case_record_roots_and_function_spines_drop_iteratively_without_new_backing",
+      "reason": "changed actual failed fixture or custody owner"
+    },
+    {
+      "harness": "lib",
+      "selector": "hir::declaration_index::leaf_drop_tests::sixteen_actual_leaf_fields_remove_only_the_original_literal_drop_queue",
+      "reason": "changed actual failed fixture or custody owner"
+    },
+    {
+      "harness": "lib",
+      "selector": "workspace_graph::constructor_failure::receiving::tests::constructor_receiving_complete_old_core_body_and_actual_linked_programs_remain_independent",
+      "reason": "changed actual failed fixture or custody owner"
+    },
+    {
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::defaults::error_custody_tests::complete_static_error_source_and_independent_old_dispatch_preserve_all_original_bytes",
+      "reason": "changed actual failed fixture or custody owner"
+    },
+    {
+      "harness": "lib",
+      "selector": "hir::declaration_index::leaf_drop_tests::zero_argument_nominal_fields_do_not_allocate_drop_scratch",
+      "reason": "changed actual failed fixture or custody owner"
+    },
+    {
+      "harness": "lib",
+      "selector": "workspace_graph::constructor_failure::receiving::typed::tests::typed_core_overlay_matches_complete_old_success_and_late_semantic_failure_through_drop",
+      "reason": "direct caller integration, original payer, complete source custody, or original rewrite semantic oracle"
+    },
+    {
+      "harness": "lib",
+      "selector": "workspace_graph::constructor_failure::receiving::typed::tests::typed_helper_budget_reaches_original_same_child_prepaid_final_report_without_late_backing",
+      "reason": "direct caller integration, original payer, complete source custody, or original rewrite semantic oracle"
+    },
+    {
+      "harness": "lib",
+      "selector": "workspace_graph::constructor_failure::receiving::typed::tests::typed_constructor_complete_sources_original_helpers_and_live_caller_are_exactly_bound",
+      "reason": "direct caller integration, original payer, complete source custody, or original rewrite semantic oracle"
+    },
+    {
+      "harness": "lib",
+      "selector": "workspace_graph::constructor_failure::report::tests::constructor_report_stage_capacity_is_closed_and_original_formatter_bodies_are_complete",
+      "reason": "direct caller integration, original payer, complete source custody, or original rewrite semantic oracle"
+    },
+    {
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::defaults::inline_tests::complete_inline_sources_and_original_owners_have_exact_whole_file_inverses",
+      "reason": "direct caller integration, original payer, complete source custody, or original rewrite semantic oracle"
+    },
+    {
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::type_rewrite::tests::imported_record_vector_rewrites_only_the_authenticated_element_alias",
+      "reason": "direct caller integration, original payer, complete source custody, or original rewrite semantic oracle"
+    },
+    {
+      "harness": "lib",
+      "selector": "workspace_graph::expected_projection::type_rewrite::tests::vector_signature_rewrite_refuses_missing_nested_and_shadowed_type_authority",
+      "reason": "direct caller integration, original payer, complete source custody, or original rewrite semantic oracle"
+    },
+    {
+      "harness": "workspace",
+      "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+      "reason": "joined workspace source inventory gained the real new producer modules"
+    },
+    {
+      "harness": "lib",
+      "selector": "hir::declaration_index::linked_owned_data::tests::legacy::legacy_final_case_coordinates_and_detached_children_drop_512_without_new_backing",
+      "reason": "unchanged full hostile Drop owner remains required beside fixture correction"
+    }
+  ],
+  "omit_unchanged_prior_pass": true
+}

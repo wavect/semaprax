@@ -1,0 +1,15 @@
+
+running 1 test
+test application_starter::tiny_collection_record_selector_executes_typed_native_roots_and_keeps_legacy_refusal ... 
+thread 'application_starter::tiny_collection_record_selector_executes_typed_native_roots_and_keeps_legacy_refusal' (7655790) panicked at crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs:398:5:
+assertion failed: String::from_utf8_lossy(&legacy.stderr).contains("SPX-B104")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    application_starter::tiny_collection_record_selector_executes_typed_native_roots_and_keeps_legacy_refusal
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 27 filtered out; finished in 0.86s
+

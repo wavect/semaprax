@@ -1,0 +1,6 @@
+
+running 1 test
+test vec_ops::field_update::tests::inventory_success_and_bounds_rhs_failure_precedence ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.10s
+

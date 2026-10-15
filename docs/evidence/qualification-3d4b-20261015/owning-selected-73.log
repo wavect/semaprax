@@ -1,0 +1,6 @@
+
+running 1 test
+test owned_leaf_vec::field_reads::every_copy_field_shape_retains_its_scalar_bits ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 347 filtered out; finished in 0.30s
+

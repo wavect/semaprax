@@ -1,0 +1,15 @@
+
+running 1 test
+test standard_library::application_json::owned::shiftsim_typed_records::typed_vec_constructor_retains_exact_explicit_chain_application_control ... 
+thread 'standard_library::application_json::owned::shiftsim_typed_records::typed_vec_constructor_retains_exact_explicit_chain_application_control' (7654530) panicked at tests/project/standard_library/application_json/owned/vec_constructor_adoption.rs:22:10:
+called `Result::unwrap()` on an `Err` value: [Diagnostic { code: "SPX-G170", severity: Error, message: "workspace semantic source `src/model.spx` is not canonical", path: None, span: None, help: Some("Run `semaprax fmt <project-directory-or-manifest>` to canonicalize project source, then retry.") }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    standard_library::application_json::owned::shiftsim_typed_records::typed_vec_constructor_retains_exact_explicit_chain_application_control
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 640 filtered out; finished in 0.37s
+

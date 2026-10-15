@@ -315,6 +315,43 @@ fn full_tree_semantic_primary_and_simultaneous_hostiles_match_policy_facades_thr
 
 #[test]
 fn complete_original_tree_receiver_child_and_existing_usage_assertions_stay_byte_exact() {
+    use sha2::{Digest, Sha256};
+    // Preserve all preceding complete-source assertions on their immutable
+    // policy checkpoint, after authenticating every byte of the current view.
+    let projections: serde_json::Value = serde_json::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/scalar-source-guard-adapter-1dee-20261015/source-projections.json"
+    )))
+    .unwrap();
+    fn view(records: &serde_json::Value, source: &str, current: &str) -> String {
+        let row = records
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["source"] == source)
+            .unwrap();
+        assert_eq!(
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
+            ),
+            row["current_sha256"].as_str().unwrap()
+        );
+        let mut text = current.to_owned();
+        for edit in row["edits"].as_array().unwrap() {
+            let after = edit["new"].as_str().unwrap();
+            assert_eq!(text.matches(after).count(), 1);
+            text = text.replacen(after, edit["before"].as_str().unwrap(), 1);
+        }
+        assert_eq!(
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
+            ),
+            row["original_sha256"].as_str().unwrap()
+        );
+        text
+    }
     let original = include_str!(
         "../../../../../../docs/evidence/scalar-fact-policy-tree/original-scalar-replay.txt"
     );
@@ -331,7 +368,11 @@ fn complete_original_tree_receiver_child_and_existing_usage_assertions_stay_byte
         original_records
     );
     assert_eq!(
-        include_str!("../../../selected_entry.rs"),
+        view(
+            &projections,
+            "src/cleanup_plan/replay/selected_entry.rs",
+            include_str!("../../../selected_entry.rs")
+        ),
         include_str!(
             "../../../../../../docs/evidence/scalar-fact-policy-tree/original-selected-entry.txt"
         )
@@ -358,13 +399,21 @@ fn complete_original_tree_receiver_child_and_existing_usage_assertions_stay_byte
     })"#;
     assert_eq!(original.matches(old).count(), 1);
     assert_eq!(
-        include_str!("../../../scalar_replay.rs"),
+        view(
+            &projections,
+            "src/cleanup_plan/replay/scalar_replay.rs",
+            include_str!("../../../scalar_replay.rs")
+        ),
         original.replacen(old, new, 1)
     );
     let old_tests = include_str!(
         "../../../../../../docs/evidence/scalar-fact-policy-tree/original-fact-errors.txt"
     );
-    let current_tests = include_str!("../fact_errors.rs");
+    let current_tests = view(
+        &projections,
+        "src/cleanup_plan/replay/selected_entry/tests/fact_errors.rs",
+        include_str!("../fact_errors.rs"),
+    );
     assert_eq!(
         current_tests,
         format!("{old_tests}\n#[path = \"fact_errors/tree_policy.rs\"]\nmod tree_policy;\n")

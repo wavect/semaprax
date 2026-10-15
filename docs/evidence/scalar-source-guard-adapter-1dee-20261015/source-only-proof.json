@@ -1,0 +1,10 @@
+{
+  "status": "PASS_SOURCE_ONLY_UNEXECUTED",
+  "basis": "1dee376cad372640e13c05f95de72a7dc3632f3d",
+  "immutable_policy_checkpoint": "76aafac2e45097e92d5aa5b0e835473f35b398e8",
+  "complete_current_views_authenticated": 3,
+  "complete_immediate_test_originals": 1,
+  "all_original_complete_source_and_two_count_assertions_preserved": true,
+  "production_sources_changed": 0,
+  "rust_execution": "UNEXECUTED"
+}

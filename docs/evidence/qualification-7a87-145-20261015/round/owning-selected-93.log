@@ -1,0 +1,6 @@
+
+running 1 test
+test workspace_graph::expected_projection::private_layout::registry::tests::fallible_sort_matches_independent_order_and_stops_at_exact_work_boundary ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9101 filtered out; finished in 0.00s
+

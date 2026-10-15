@@ -1,0 +1,9 @@
+
+running 1 test
+test workspace_graph::expected_projection::private_layout::registry::scratch_tests::distinct_census_callers_keep_complete_old_layouts_and_reset_paid_scratch ... 833 caller=0 old_declared_work=1755 current_declared_work=1762
+833 caller=1 old_declared_work=1755 current_declared_work=1761
+833 caller=2 old_declared_work=1755 current_declared_work=1761
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9101 filtered out; finished in 0.00s
+

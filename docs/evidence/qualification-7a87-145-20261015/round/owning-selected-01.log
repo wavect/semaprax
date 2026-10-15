@@ -1,0 +1,17 @@
+
+running 1 test
+test application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen ... 
+thread 'application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen' (9065328) panicked at crates/semaprax-toolchain/tests/cli_new_project_v1.rs:52:5:
+command failed: new: error[SPX-G171]: Workspace Semantic Graph `builder_bytes` exceeds 67108864
+  help: live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast 47787382 bytes for 16 module(s) and fit within 67108864, with `src/schedule.spx` the largest at 23578664 bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound. resolved-core phase first sticky ledger refusal: requested 406201 bytes with 386779 remaining and 0 reserved floor. Authenticated internal stage: uncached synthetic AST peak reservation. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown.
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 28 filtered out; finished in 3.16s
+

@@ -1,0 +1,9 @@
+
+running 1 test
+test workspace_graph::expected_projection::private_layout::registry::scratch_tests::distinct_census_registry_observes_actual_allocated_reserved_peak_and_complete_drop ... 833 callers=0 old=((0, Metrics { allocations: 0, reallocations: 0, allocated: 0, freed: 0, live: 0, highwater: 0, invalid: false }), false, 0, None) current=((0, Metrics { allocations: 0, reallocations: 0, allocated: 0, freed: 0, live: 0, highwater: 0, invalid: false }), false, 0, None)
+833 callers=1 old=((34496, Metrics { allocations: 14, reallocations: 0, allocated: 34272, freed: 34272, live: 0, highwater: 31072, invalid: false }), false, 34496, None) current=((34600, Metrics { allocations: 14, reallocations: 0, allocated: 34272, freed: 34272, live: 0, highwater: 34272, invalid: false }), false, 34600, None)
+833 callers=4 old=((137039, Metrics { allocations: 50, reallocations: 0, allocated: 136743, freed: 136743, live: 0, highwater: 32786, invalid: false }), false, 137039, None) current=((137143, Metrics { allocations: 41, reallocations: 0, allocated: 50559, freed: 50559, live: 0, highwater: 35991, invalid: false }), false, 137143, None)
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9101 filtered out; finished in 0.04s
+

@@ -1,0 +1,16 @@
+
+running 1 test
+test workspace_graph::constructor_failure::publication_tests::preowned_setup_whole_old_current_all_six_fields_and_full_drop_match ... #825 preowned setup=NoOwner old=true paid=2414 actual=Metrics { allocations: 5, reallocations: 0, allocated: 908, freed: 908, live: 0, highwater: 717, invalid: false }
+#825 preowned setup=NoOwner old=false paid=2766 actual=Metrics { allocations: 3, reallocations: 0, allocated: 717, freed: 717, live: 0, highwater: 717, invalid: false }
+#825 preowned setup=Allocation old=true paid=2414 actual=Metrics { allocations: 5, reallocations: 0, allocated: 900, freed: 900, live: 0, highwater: 717, invalid: false }
+#825 preowned setup=Allocation old=false paid=2766 actual=Metrics { allocations: 3, reallocations: 0, allocated: 717, freed: 717, live: 0, highwater: 717, invalid: false }
+#825 preowned setup=Capacity old=true paid=2414 actual=Metrics { allocations: 5, reallocations: 0, allocated: 920, freed: 920, live: 0, highwater: 717, invalid: false }
+#825 preowned setup=Capacity old=false paid=2766 actual=Metrics { allocations: 3, reallocations: 0, allocated: 717, freed: 717, live: 0, highwater: 717, invalid: false }
+#825 preowned setup=Detached old=true paid=2414 actual=Metrics { allocations: 5, reallocations: 0, allocated: 924, freed: 924, live: 0, highwater: 717, invalid: false }
+#825 preowned setup=Detached old=false paid=2766 actual=Metrics { allocations: 3, reallocations: 0, allocated: 717, freed: 717, live: 0, highwater: 717, invalid: false }
+#825 preowned setup=Arithmetic old=true paid=2414 actual=Metrics { allocations: 5, reallocations: 0, allocated: 899, freed: 899, live: 0, highwater: 717, invalid: false }
+#825 preowned setup=Arithmetic old=false paid=2766 actual=Metrics { allocations: 3, reallocations: 0, allocated: 717, freed: 717, live: 0, highwater: 717, invalid: false }
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9101 filtered out; finished in 0.00s
+

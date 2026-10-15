@@ -1,0 +1,6 @@
+
+running 1 test
+test format::comments::compare::tests::full_commented_comparison_keeps_old_unicode_crlf_trailing_nested_and_noncanonical_bytes ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9101 filtered out; finished in 0.79s
+

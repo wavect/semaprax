@@ -1,0 +1,15 @@
+
+running 1 test
+test owned_leaf_vec::copy_field_update::wasm_copy_field_updates_keep_all_scalar_lanes_and_owned_identities_without_store_clones_or_drops ... 
+thread 'owned_leaf_vec::copy_field_update::wasm_copy_field_updates_keep_all_scalar_lanes_and_owned_identities_without_store_clones_or_drops' (9087558) panicked at tests/owned_data/owned_leaf_vec/copy_field_update.rs:8:64:
+called `Result::unwrap()` on an `Err` value: [Diagnostic { code: "SPX-T283", severity: Error, message: "only exact typed scalar Vec update/read operations are admitted in while bodies", path: Some("field-update-wasm.spx"), span: Some(Span { start: 539, end: 605, line: 14, column: 8 }), help: None }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    owned_leaf_vec::copy_field_update::wasm_copy_field_updates_keep_all_scalar_lanes_and_owned_identities_without_store_clones_or_drops
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 347 filtered out; finished in 0.08s
+

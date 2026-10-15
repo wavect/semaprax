@@ -1,0 +1,6 @@
+
+running 1 test
+test owned_leaf_vec::copy_field_update::wasm_exact_float_payload_matrix_preserves_every_unrelated_copy_word_and_complete_drop ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 347 filtered out; finished in 0.14s
+

@@ -1,0 +1,17 @@
+
+running 1 test
+test owned_leaf_collections::copy_field_update::copy_field_updates_preserve_eight_scalar_lanes_owned_leaf_bits_and_zero_store_heap_at_o0_o2 ... 
+thread 'owned_leaf_collections::copy_field_update::copy_field_updates_preserve_eight_scalar_lanes_owned_leaf_bits_and_zero_store_heap_at_o0_o2' (9086022) panicked at tests/cleanup_backends/owned_leaf_collections/../../support/record_copy_field_update.rs:192:13:
+assertion `left == right` failed
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    owned_leaf_collections::copy_field_update::copy_field_updates_preserve_eight_scalar_lanes_owned_leaf_bits_and_zero_store_heap_at_o0_o2
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 201 filtered out; finished in 0.02s
+

@@ -1,0 +1,17 @@
+
+running 1 test
+test cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact ... 
+thread 'cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact' (9117031) panicked at src/cleanup_plan/replay/live_oracle/source_custody.rs:3:5:
+assertion `left == right` failed: exact unique receiving edit
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::live_oracle::source_custody::a::complete_original_sources_and_compiled_owning_receivers_remain_exact
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9101 filtered out; finished in 0.08s
+

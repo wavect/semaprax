@@ -1,0 +1,10 @@
+
+running 1 test
+test diagnostic::writer::tests::whole_renderer_drop_measures_actual_intermediate_strings_and_unfavorable_bounded_route ... diagnostic-writer full=false bounded=false old=Metrics { allocations: 8, reallocations: 1, allocated: 172, freed: 172, live: 0, highwater: 164, invalid: false } current=Metrics { allocations: 0, reallocations: 0, allocated: 0, freed: 0, live: 0, highwater: 0, invalid: false }
+diagnostic-writer full=false bounded=true old=Metrics { allocations: 9, reallocations: 1, allocated: 260, freed: 260, live: 0, highwater: 252, invalid: false } current=Metrics { allocations: 9, reallocations: 1, allocated: 260, freed: 260, live: 0, highwater: 252, invalid: false }
+diagnostic-writer full=true bounded=false old=Metrics { allocations: 25, reallocations: 12, allocated: 730, freed: 730, live: 0, highwater: 606, invalid: false } current=Metrics { allocations: 3, reallocations: 0, allocated: 48, freed: 48, live: 0, highwater: 48, invalid: false }
+diagnostic-writer full=true bounded=true old=Metrics { allocations: 26, reallocations: 12, allocated: 818, freed: 818, live: 0, highwater: 694, invalid: false } current=Metrics { allocations: 26, reallocations: 12, allocated: 818, freed: 818, live: 0, highwater: 694, invalid: false }
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9168 filtered out; finished in 0.00s
+

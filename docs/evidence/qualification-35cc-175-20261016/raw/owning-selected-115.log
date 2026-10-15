@@ -1,0 +1,6 @@
+
+running 1 test
+test workspace_graph::expected_projection::borrowed_imports::typed::alias::tests::foreign_and_restored_owner_fail_before_any_projection_or_allocation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9168 filtered out; finished in 0.00s
+

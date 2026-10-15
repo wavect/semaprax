@@ -1,0 +1,8 @@
+
+running 1 test
+test cleanup_plan::replay::factored::compact_nodes::before::tests::complete_build_comparison_and_canonical_receivers_report_physical_costs_through_drop ... 844 whole comparison probe old_reserved=738518 new_reserved=740218 old=Metrics { allocations: 653, reallocations: 126, allocated: 163409, freed: 163409, live: 0, highwater: 77941, invalid: false } new=Metrics { allocations: 602, reallocations: 120, allocated: 159649, freed: 159649, live: 0, highwater: 77941, invalid: false }
+844 whole comparison probe old_reserved=1392176 new_reserved=1386606 old=Metrics { allocations: 2088, reallocations: 366, allocated: 377007, freed: 377007, live: 0, highwater: 88005, invalid: false } new=Metrics { allocations: 1851, reallocations: 355, allocated: 359847, freed: 359847, live: 0, highwater: 88005, invalid: false }
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9168 filtered out; finished in 0.04s
+

@@ -1,0 +1,15 @@
+
+running 1 test
+test owned_leaf_collections::copy_field_update::copy_field_updates_preserve_eight_scalar_lanes_owned_leaf_bits_and_zero_store_heap_at_o0_o2 ... 
+thread 'owned_leaf_collections::copy_field_update::copy_field_updates_preserve_eight_scalar_lanes_owned_leaf_bits_and_zero_store_heap_at_o0_o2' (11240990) panicked at tests/cleanup_backends/owned_leaf_collections/native.rs:15:64:
+source admission: [Diagnostic { code: "SPX-T266", severity: Error, message: "borrowed view `bytes_as_slice` requires an exact admitted storage place", path: Some("owned-leaf-native.spx"), span: Some(Span { start: 393, end: 420, line: 10, column: 102 }), help: Some("`bytes_as_slice` borrows from a named `let` binding, not from this expression; bind the owner first: `let owner = …; <view>(owner)`") }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    owned_leaf_collections::copy_field_update::copy_field_updates_preserve_eight_scalar_lanes_owned_leaf_bits_and_zero_store_heap_at_o0_o2
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 201 filtered out; finished in 15.85s
+

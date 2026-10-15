@@ -1,0 +1,15 @@
+
+running 1 test
+test standard_library::application_json::owned::shiftsim_typed_records::typed_record_shiftsim_derives_both_codecs_and_runs_retained_corpus ... 
+thread 'standard_library::application_json::owned::shiftsim_typed_records::typed_record_shiftsim_derives_both_codecs_and_runs_retained_corpus' (11244422) panicked at tests/project/standard_library/application_json/owned/shiftsim_typed_records.rs:207:6:
+called `Result::unwrap()` on an `Err` value: [Diagnostic { code: "SPX-G170", severity: Error, message: "workspace semantic source `src/model.spx` is not canonical", path: None, span: None, help: Some("Run `semaprax fmt <project-directory-or-manifest>` to canonicalize project source, then retry.") }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    standard_library::application_json::owned::shiftsim_typed_records::typed_record_shiftsim_derives_both_codecs_and_runs_retained_corpus
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 642 filtered out; finished in 0.02s
+

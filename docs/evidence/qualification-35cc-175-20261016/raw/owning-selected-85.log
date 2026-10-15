@@ -1,0 +1,15 @@
+
+running 1 test
+test semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root ... 
+thread 'semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root' (11328137) panicked at tests/workspace/semantic_graph.rs:386:5:
+assertion failed: !projection.contains("use super::*;")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 278 filtered out; finished in 0.01s
+

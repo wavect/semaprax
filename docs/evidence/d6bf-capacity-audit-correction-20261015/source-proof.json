@@ -1,0 +1,53 @@
+{
+  "basis": "d6bf8151942190a956eb57350fa8b8892a8c68e5",
+  "status": "SOURCE_ONLY_STATIC_PASS",
+  "runtime": "UNEXECUTED; actual prior failures archived, no corrective runtime result claimed",
+  "reference_slot_replacements": 61,
+  "lexical_borrow_end_replacements": 1,
+  "test_bodies_and_assertions": "UNCHANGED except two explicit imports and fixture module function",
+  "old_receiver_and_source_audit_joins": "BYTE_EXACT_UNCHANGED",
+  "direct_metadata_inverses": [
+    {
+      "metadata": "docs/evidence/constructor-cost-propagation-825/source-inverses.json",
+      "rows": 11,
+      "all_full_inverses": "PASS"
+    },
+    {
+      "metadata": "docs/evidence/constructor-signature-rewrite-825/source-inverses.json",
+      "rows": 7,
+      "all_full_inverses": "PASS"
+    },
+    {
+      "metadata": "docs/evidence/private-layout-entry-capacity-834/exact-source-inverses.json",
+      "rows": 9,
+      "all_full_inverses": "PASS"
+    }
+  ],
+  "actual_prior_receipts": [
+    {
+      "file": "owning-selected-59.log",
+      "sha256": "37ce60b83cf7c5d9dc308962e0f469c2f954968e22e578f0dffece142d1dfab2",
+      "bytes": 1122,
+      "head": "d6bf8151942190a956eb57350fa8b8892a8c68e5"
+    },
+    {
+      "file": "owning-selected-60.log",
+      "sha256": "2867fb31c3442e2e12bcf332c69e161e25d6e4a00aea8e66cff7abae3665b36d",
+      "bytes": 1089,
+      "head": "d6bf8151942190a956eb57350fa8b8892a8c68e5"
+    },
+    {
+      "file": "owning-selected-80.log",
+      "sha256": "3c976c117f4097eb677610561118f68d4a4411b36c5d1509bcf647fa5a45cfa2",
+      "bytes": 646,
+      "head": "d6bf8151942190a956eb57350fa8b8892a8c68e5"
+    },
+    {
+      "file": "clippy-production.log",
+      "sha256": "af955a78d4929ef43a3ff1e4fe11af818d83d0cc3367da4197cb50cf724717fa",
+      "bytes": 32191,
+      "head": "d6bf8151942190a956eb57350fa8b8892a8c68e5"
+    }
+  ],
+  "global_composition": "NOT RUN; parent owns integrated composition"
+}

@@ -31,7 +31,12 @@ fn fixtures() -> Vec<(&'static str, Vec<Program>)> {
     let empty = "module function_layout.app; @id(\"app.main\") fn main()->i64 {0}";
     let one = "module function_layout.provider; @id(\"payload\") record Payload {@id(\"payload.text\") text:string,} @id(\"make\") fn make()->Payload {Payload {text:\"ok\"}}";
     let at = PROVIDER.find("@id(\"report\")").unwrap();
-    let detail = PROVIDER[..at].replace("function_layout.provider", "function_layout.detail");
+    // A module must contain a function. This fixture-only declaration adds no
+    // types or imported signature roots to either paired layout derivation.
+    let detail = format!(
+        "{}\n@id(\"detail.anchor\") fn anchor()->i64 {{0}}",
+        PROVIDER[..at].replace("function_layout.provider", "function_layout.detail")
+    );
     let bridge = format!(
         "module function_layout.provider; use type @id(\"config\") from function_layout.detail as Config; use type @id(\"row\") from function_layout.detail as Row; {}",
         &PROVIDER[at..]

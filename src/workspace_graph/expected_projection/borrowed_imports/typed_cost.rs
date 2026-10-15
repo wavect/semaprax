@@ -9,7 +9,7 @@ pub(in crate::workspace_graph) fn ast_field_cost(
     field: &crate::ast::FieldDeclaration,
     cost: &mut Cost<'_>,
 ) -> Result<(), Setup> {
-    cost.frame(size_of_val(&field) + size_of_val(&cost))?;
+    cost.frame(size_of::<&crate::ast::FieldDeclaration>() + size_of::<&mut Cost<'_>>())?;
     cost.inline_type_parent(field)?;
     cost.embedded_string(&field.stable_id)?;
     cost.embedded_string(&field.name)?;
@@ -20,7 +20,7 @@ pub(in crate::workspace_graph) fn ast_function_cost(
     function: &Function,
     cost: &mut Cost<'_>,
 ) -> Result<(), Setup> {
-    cost.frame(size_of_val(&function) + size_of_val(&cost))?;
+    cost.frame(size_of::<&Function>() + size_of::<&mut Cost<'_>>())?;
     ast_function_signature_cost(function, cost)?;
     ast_function_contract_cost_into(function, cost)
 }
@@ -33,7 +33,7 @@ pub(in crate::workspace_graph) fn ast_function_signature_cost(
     function: &Function,
     cost: &mut Cost<'_>,
 ) -> Result<(), Setup> {
-    cost.frame(size_of_val(&function) + size_of_val(&cost))?;
+    cost.frame(size_of::<&Function>() + size_of::<&mut Cost<'_>>())?;
     cost.function_signature(function)?;
     cost.embedded_string(&function.stable_id)?;
     cost.embedded_string(&function.name)?;
@@ -55,7 +55,7 @@ pub(in crate::workspace_graph) fn ast_function_signature_cost(
 /// function's contract is cloned transiently and then discarded, so it is
 /// charged as a peak rather than as retained structure.
 fn ast_function_contract_cost_into(function: &Function, cost: &mut Cost<'_>) -> Result<(), Setup> {
-    cost.frame(size_of_val(&function) + size_of_val(&cost))?;
+    cost.frame(size_of::<&Function>() + size_of::<&mut Cost<'_>>())?;
     for expression in function
         .requires
         .iter()
@@ -71,7 +71,7 @@ pub(in crate::workspace_graph) fn ast_param_cost(
     param: &crate::ast::Param,
     cost: &mut Cost<'_>,
 ) -> Result<(), Setup> {
-    cost.frame(size_of_val(&param) + size_of_val(&cost))?;
+    cost.frame(size_of::<&crate::ast::Param>() + size_of::<&mut Cost<'_>>())?;
     cost.inline_type_parent(param)?;
     cost.embedded_string(&param.name)?;
     ast_type_cost(&param.ty, cost)
@@ -81,7 +81,7 @@ pub(in crate::workspace_graph) fn ast_type_cost(
     ty: &Type,
     cost: &mut Cost<'_>,
 ) -> Result<(), Setup> {
-    cost.frame(size_of_val(&ty) + size_of_val(&cost))?;
+    cost.frame(size_of::<&Type>() + size_of::<&mut Cost<'_>>())?;
     cost.value(ty)?;
     if let Type::Named { name, arguments } = ty {
         cost.embedded_string(name)?;
@@ -121,7 +121,7 @@ pub(in crate::workspace_graph) fn ast_expr_cost(
     expression: &Expr,
     cost: &mut Cost<'_>,
 ) -> Result<(), Setup> {
-    cost.frame(size_of_val(&expression) + size_of_val(&cost))?;
+    cost.frame(size_of::<&Expr>() + size_of::<&mut Cost<'_>>())?;
     ast_expr_cost_at(expression, cost, RootPosition::Delegated, true)
 }
 
@@ -132,8 +132,8 @@ fn ast_expr_cost_at(
     outside_closure: bool,
 ) -> Result<(), Setup> {
     cost.frame(
-        size_of_val(&expression)
-            + size_of_val(&cost)
+        size_of::<&Expr>()
+            + size_of::<&mut Cost<'_>>()
             + size_of_val(&position)
             + size_of_val(&outside_closure),
     )?;
@@ -392,7 +392,7 @@ fn ast_type_declaration_cost(
     declaration: &TypeDeclaration,
     cost: &mut Cost<'_>,
 ) -> Result<(), Setup> {
-    cost.frame(size_of_val(&declaration) + size_of_val(&cost))?;
+    cost.frame(size_of::<&TypeDeclaration>() + size_of::<&mut Cost<'_>>())?;
     cost.value(declaration)?;
     cost.embedded_string(&declaration.stable_id)?;
     cost.embedded_string(&declaration.name)?;
@@ -440,7 +440,7 @@ fn ast_type_declaration_cost(
     Ok(())
 }
 fn ast_pattern_cost(pattern: &crate::ast::MatchPattern, cost: &mut Cost<'_>) -> Result<(), Setup> {
-    cost.frame(size_of_val(&pattern) + size_of_val(&cost))?;
+    cost.frame(size_of::<&crate::ast::MatchPattern>() + size_of::<&mut Cost<'_>>())?;
     cost.value(pattern)?;
     match pattern {
         crate::ast::MatchPattern::Variant {
@@ -485,7 +485,7 @@ fn ast_record_pattern_field_cost(
     field: &crate::ast::RecordMatchPatternField,
     cost: &mut Cost<'_>,
 ) -> Result<(), Setup> {
-    cost.frame(size_of_val(&field) + size_of_val(&cost))?;
+    cost.frame(size_of::<&crate::ast::RecordMatchPatternField>() + size_of::<&mut Cost<'_>>())?;
     cost.inline_pattern_parent(field, &field.pattern)?;
     cost.embedded_string(&field.name)?;
     cost.value(&field.pattern)?;
@@ -506,14 +506,14 @@ fn ast_record_pattern_field_cost(
 
 pub(super) fn pay_type(declaration: &TypeDeclaration, owner: &mut Receiver) -> Result<(), Setup> {
     owner.reserve(
-        size_of::<Result<(), Setup>>() + size_of_val(&declaration) + size_of_val(&owner),
+        size_of::<Result<(), Setup>>() + size_of::<&TypeDeclaration>() + size_of::<&mut Receiver>(),
     )?;
     let mut cost = Cost::new(owner, true)?;
     ast_type_declaration_cost(declaration, &mut cost)?;
     cost.pay()
 }
 pub(super) fn pay_signature(function: &Function, owner: &mut Receiver) -> Result<(), Setup> {
-    owner.reserve(size_of::<Result<(), Setup>>() + size_of_val(&function) + size_of_val(&owner))?;
+    owner.reserve(size_of::<Result<(), Setup>>() + size_of::<&Function>() + size_of::<&mut Receiver>())?;
     let mut cost = Cost::new(owner, true)?;
     ast_function_signature_cost(function, &mut cost)?;
     cost.pay()
@@ -523,7 +523,7 @@ pub(super) fn teardown_type(
     owner: &mut Receiver,
 ) -> Result<(), Setup> {
     owner.reserve(
-        size_of::<Result<(), Setup>>() + size_of_val(&declaration) + size_of_val(&owner),
+        size_of::<Result<(), Setup>>() + size_of::<&TypeDeclaration>() + size_of::<&mut Receiver>(),
     )?;
     let mut cost = Cost::new(owner, true)?;
     ast_type_declaration_cost(declaration, &mut cost)?;
@@ -536,9 +536,9 @@ pub(super) fn teardown_function(
 ) -> Result<(), Setup> {
     owner.reserve(
         size_of::<Result<(), Setup>>()
-            + size_of_val(&function)
+            + size_of::<&Function>()
             + size_of_val(&retained)
-            + size_of_val(&owner),
+            + size_of::<&mut Receiver>(),
     )?;
     let mut cost = Cost::new(owner, true)?;
     if retained {
@@ -557,9 +557,9 @@ pub(super) fn pay_default_teardown(
 ) -> Result<(), Setup> {
     owner.reserve(
         size_of::<Result<(), Setup>>()
-            + size_of_val(&ty)
-            + size_of_val(&declarations)
-            + size_of_val(&owner),
+            + size_of::<&Type>()
+            + size_of::<&[(&str, &TypeDeclaration)]>()
+            + size_of::<&mut Receiver>(),
     )?;
     fn census(
         ty: &Type,
@@ -568,9 +568,9 @@ pub(super) fn pay_default_teardown(
     ) -> Result<usize, Setup> {
         owner.reserve(
             size_of::<Result<usize, Setup>>()
-                + size_of_val(&ty)
-                + size_of_val(&declarations)
-                + size_of_val(&owner)
+                + size_of::<&Type>()
+                + size_of::<&[(&str, &TypeDeclaration)]>()
+                + size_of::<&mut Receiver>()
                 + size_of::<usize>()
                 + size_of::<Option<usize>>(),
         )?;
@@ -602,10 +602,11 @@ pub(super) fn pay_default_teardown(
                 bytes = bytes
                     .checked_add(std::mem::size_of::<Expr>())
                     .ok_or_else(|| owner.limit())?;
-                let mut cost = Cost::new(owner, false)?;
-                ast_type_cost(ty, &mut cost)?;
-                let total = cost.raw.total;
-                drop(cost);
+                let total = {
+                    let mut cost = Cost::new(owner, false)?;
+                    ast_type_cost(ty, &mut cost)?;
+                    cost.raw.total
+                };
                 bytes = bytes.checked_add(total).ok_or_else(|| owner.limit())?;
             }
         } else if *ty == Type::Bytes || *ty == Type::StringMap {
@@ -645,7 +646,10 @@ pub(super) fn pay_teardown_minimum(owner: &mut Receiver) -> Result<(), Setup> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        ast_function_cost, ast_type_declaration_cost, pay_default_teardown, teardown_function,
+        Cost, Receiver, Setup, Type,
+    };
     use crate::bounded_output::with_limit_usage_refusal;
     use crate::test_allocation_observer::{current_metrics, measure};
     use crate::workspace_graph::constructor_failure::typed::Failure;

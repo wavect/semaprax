@@ -1,0 +1,490 @@
+[
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 12,
+    "column": 16,
+    "before": "size_of_val(&field)",
+    "new": "size_of::<&crate::ast::FieldDeclaration>()",
+    "reference_type": "&crate::ast::FieldDeclaration"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 12,
+    "column": 38,
+    "before": "size_of_val(&cost)",
+    "new": "size_of::<&mut Cost<'_>>()",
+    "reference_type": "&mut Cost<'_>"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 23,
+    "column": 16,
+    "before": "size_of_val(&function)",
+    "new": "size_of::<&Function>()",
+    "reference_type": "&Function"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 23,
+    "column": 41,
+    "before": "size_of_val(&cost)",
+    "new": "size_of::<&mut Cost<'_>>()",
+    "reference_type": "&mut Cost<'_>"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 36,
+    "column": 16,
+    "before": "size_of_val(&function)",
+    "new": "size_of::<&Function>()",
+    "reference_type": "&Function"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 36,
+    "column": 41,
+    "before": "size_of_val(&cost)",
+    "new": "size_of::<&mut Cost<'_>>()",
+    "reference_type": "&mut Cost<'_>"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 58,
+    "column": 16,
+    "before": "size_of_val(&function)",
+    "new": "size_of::<&Function>()",
+    "reference_type": "&Function"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 58,
+    "column": 41,
+    "before": "size_of_val(&cost)",
+    "new": "size_of::<&mut Cost<'_>>()",
+    "reference_type": "&mut Cost<'_>"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 74,
+    "column": 16,
+    "before": "size_of_val(&param)",
+    "new": "size_of::<&crate::ast::Param>()",
+    "reference_type": "&crate::ast::Param"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 74,
+    "column": 38,
+    "before": "size_of_val(&cost)",
+    "new": "size_of::<&mut Cost<'_>>()",
+    "reference_type": "&mut Cost<'_>"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 84,
+    "column": 16,
+    "before": "size_of_val(&ty)",
+    "new": "size_of::<&Type>()",
+    "reference_type": "&Type"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 84,
+    "column": 35,
+    "before": "size_of_val(&cost)",
+    "new": "size_of::<&mut Cost<'_>>()",
+    "reference_type": "&mut Cost<'_>"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 124,
+    "column": 16,
+    "before": "size_of_val(&expression)",
+    "new": "size_of::<&Expr>()",
+    "reference_type": "&Expr"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 124,
+    "column": 43,
+    "before": "size_of_val(&cost)",
+    "new": "size_of::<&mut Cost<'_>>()",
+    "reference_type": "&mut Cost<'_>"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 135,
+    "column": 9,
+    "before": "size_of_val(&expression)",
+    "new": "size_of::<&Expr>()",
+    "reference_type": "&Expr"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 136,
+    "column": 15,
+    "before": "size_of_val(&cost)",
+    "new": "size_of::<&mut Cost<'_>>()",
+    "reference_type": "&mut Cost<'_>"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 393,
+    "column": 16,
+    "before": "size_of_val(&declaration)",
+    "new": "size_of::<&TypeDeclaration>()",
+    "reference_type": "&TypeDeclaration"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 393,
+    "column": 44,
+    "before": "size_of_val(&cost)",
+    "new": "size_of::<&mut Cost<'_>>()",
+    "reference_type": "&mut Cost<'_>"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 441,
+    "column": 16,
+    "before": "size_of_val(&pattern)",
+    "new": "size_of::<&crate::ast::MatchPattern>()",
+    "reference_type": "&crate::ast::MatchPattern"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 441,
+    "column": 40,
+    "before": "size_of_val(&cost)",
+    "new": "size_of::<&mut Cost<'_>>()",
+    "reference_type": "&mut Cost<'_>"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 486,
+    "column": 16,
+    "before": "size_of_val(&field)",
+    "new": "size_of::<&crate::ast::RecordMatchPatternField>()",
+    "reference_type": "&crate::ast::RecordMatchPatternField"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 486,
+    "column": 38,
+    "before": "size_of_val(&cost)",
+    "new": "size_of::<&mut Cost<'_>>()",
+    "reference_type": "&mut Cost<'_>"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 507,
+    "column": 42,
+    "before": "size_of_val(&declaration)",
+    "new": "size_of::<&TypeDeclaration>()",
+    "reference_type": "&TypeDeclaration"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 507,
+    "column": 70,
+    "before": "size_of_val(&owner)",
+    "new": "size_of::<&mut Receiver>()",
+    "reference_type": "&mut Receiver"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 514,
+    "column": 52,
+    "before": "size_of_val(&function)",
+    "new": "size_of::<&Function>()",
+    "reference_type": "&Function"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 514,
+    "column": 77,
+    "before": "size_of_val(&owner)",
+    "new": "size_of::<&mut Receiver>()",
+    "reference_type": "&mut Receiver"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 524,
+    "column": 42,
+    "before": "size_of_val(&declaration)",
+    "new": "size_of::<&TypeDeclaration>()",
+    "reference_type": "&TypeDeclaration"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 524,
+    "column": 70,
+    "before": "size_of_val(&owner)",
+    "new": "size_of::<&mut Receiver>()",
+    "reference_type": "&mut Receiver"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 537,
+    "column": 15,
+    "before": "size_of_val(&function)",
+    "new": "size_of::<&Function>()",
+    "reference_type": "&Function"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 539,
+    "column": 15,
+    "before": "size_of_val(&owner)",
+    "new": "size_of::<&mut Receiver>()",
+    "reference_type": "&mut Receiver"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 558,
+    "column": 15,
+    "before": "size_of_val(&ty)",
+    "new": "size_of::<&Type>()",
+    "reference_type": "&Type"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 559,
+    "column": 15,
+    "before": "size_of_val(&declarations)",
+    "new": "size_of::<&[(&str, &TypeDeclaration)]>()",
+    "reference_type": "&[(&str, &TypeDeclaration)]"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 560,
+    "column": 15,
+    "before": "size_of_val(&owner)",
+    "new": "size_of::<&mut Receiver>()",
+    "reference_type": "&mut Receiver"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 569,
+    "column": 19,
+    "before": "size_of_val(&ty)",
+    "new": "size_of::<&Type>()",
+    "reference_type": "&Type"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 570,
+    "column": 19,
+    "before": "size_of_val(&declarations)",
+    "new": "size_of::<&[(&str, &TypeDeclaration)]>()",
+    "reference_type": "&[(&str, &TypeDeclaration)]"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "line": 571,
+    "column": 19,
+    "before": "size_of_val(&owner)",
+    "new": "size_of::<&mut Receiver>()",
+    "reference_type": "&mut Receiver"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/cost/constructor.rs",
+    "line": 79,
+    "column": 20,
+    "before": "size_of_val(&kind)",
+    "new": "size_of::<&crate::ast::ExprKind>()",
+    "reference_type": "&crate::ast::ExprKind"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/cost/constructor.rs",
+    "line": 97,
+    "column": 20,
+    "before": "size_of_val(&kind)",
+    "new": "size_of::<&crate::ast::ExprKind>()",
+    "reference_type": "&crate::ast::ExprKind"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/cost/constructor.rs",
+    "line": 118,
+    "column": 13,
+    "before": "size_of_val(&kind)",
+    "new": "size_of::<&crate::ast::ExprKind>()",
+    "reference_type": "&crate::ast::ExprKind"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/cost/constructor.rs",
+    "line": 143,
+    "column": 20,
+    "before": "size_of_val(&parent)",
+    "new": "size_of::<&T>()",
+    "reference_type": "&T"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/cost/constructor.rs",
+    "line": 143,
+    "column": 43,
+    "before": "size_of_val(&pattern)",
+    "new": "size_of::<&P>()",
+    "reference_type": "&P"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/cost/constructor.rs",
+    "line": 162,
+    "column": 20,
+    "before": "size_of_val(&parent)",
+    "new": "size_of::<&T>()",
+    "reference_type": "&T"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/cost/constructor.rs",
+    "line": 174,
+    "column": 20,
+    "before": "size_of_val(&value)",
+    "new": "size_of::<&str>()",
+    "reference_type": "&str"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/cost/constructor.rs",
+    "line": 186,
+    "column": 20,
+    "before": "size_of_val(&function)",
+    "new": "size_of::<&crate::ast::Function>()",
+    "reference_type": "&crate::ast::Function"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/cost/constructor.rs",
+    "line": 202,
+    "column": 20,
+    "before": "size_of_val(&parent)",
+    "new": "size_of::<&T>()",
+    "reference_type": "&T"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/cost/constructor.rs",
+    "line": 216,
+    "column": 20,
+    "before": "size_of_val(&arm)",
+    "new": "size_of::<&crate::ast::MatchArm>()",
+    "reference_type": "&crate::ast::MatchArm"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/cost/constructor.rs",
+    "line": 247,
+    "column": 20,
+    "before": "size_of_val(&value)",
+    "new": "size_of::<&T>()",
+    "reference_type": "&T"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/cost/constructor.rs",
+    "line": 252,
+    "column": 20,
+    "before": "size_of_val(&value)",
+    "new": "size_of::<&str>()",
+    "reference_type": "&str"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+    "line": 23,
+    "column": 15,
+    "before": "size_of_val(&module)",
+    "new": "size_of::<&str>()",
+    "reference_type": "&str"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+    "line": 24,
+    "column": 15,
+    "before": "size_of_val(&name)",
+    "new": "size_of::<&str>()",
+    "reference_type": "&str"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+    "line": 25,
+    "column": 15,
+    "before": "size_of_val(&programs)",
+    "new": "size_of::<&[Program]>()",
+    "reference_type": "&[Program]"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+    "line": 26,
+    "column": 15,
+    "before": "size_of_val(&owner)",
+    "new": "size_of::<&mut Receiver>()",
+    "reference_type": "&mut Receiver"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+    "line": 51,
+    "column": 9,
+    "before": "size_of_val(&ty)",
+    "new": "size_of::<&Type>()",
+    "reference_type": "&Type"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+    "line": 52,
+    "column": 15,
+    "before": "size_of_val(&module)",
+    "new": "size_of::<&str>()",
+    "reference_type": "&str"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+    "line": 53,
+    "column": 15,
+    "before": "size_of_val(&caller)",
+    "new": "size_of::<&Program>()",
+    "reference_type": "&Program"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+    "line": 54,
+    "column": 15,
+    "before": "size_of_val(&programs)",
+    "new": "size_of::<&[Program]>()",
+    "reference_type": "&[Program]"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+    "line": 106,
+    "column": 9,
+    "before": "size_of_val(&id)",
+    "new": "size_of::<&str>()",
+    "reference_type": "&str"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+    "line": 141,
+    "column": 9,
+    "before": "size_of_val(&ty)",
+    "new": "size_of::<&mut Type>()",
+    "reference_type": "&mut Type"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+    "line": 142,
+    "column": 15,
+    "before": "size_of_val(&target_module)",
+    "new": "size_of::<&str>()",
+    "reference_type": "&str"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+    "line": 143,
+    "column": 15,
+    "before": "size_of_val(&caller)",
+    "new": "size_of::<&Program>()",
+    "reference_type": "&Program"
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+    "line": 144,
+    "column": 15,
+    "before": "size_of_val(&programs)",
+    "new": "size_of::<&[Program]>()",
+    "reference_type": "&[Program]"
+  }
+]

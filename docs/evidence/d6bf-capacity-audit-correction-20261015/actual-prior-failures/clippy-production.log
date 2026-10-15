@@ -1,0 +1,568 @@
+   Compiling semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:12:16
+   |
+12 |     cost.frame(size_of_val(&field) + size_of_val(&cost))?;
+   |                ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+   = note: `-D clippy::size-of-ref` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::size_of_ref)]`
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:12:38
+   |
+12 |     cost.frame(size_of_val(&field) + size_of_val(&cost))?;
+   |                                      ^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:23:16
+   |
+23 |     cost.frame(size_of_val(&function) + size_of_val(&cost))?;
+   |                ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:23:41
+   |
+23 |     cost.frame(size_of_val(&function) + size_of_val(&cost))?;
+   |                                         ^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:36:16
+   |
+36 |     cost.frame(size_of_val(&function) + size_of_val(&cost))?;
+   |                ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:36:41
+   |
+36 |     cost.frame(size_of_val(&function) + size_of_val(&cost))?;
+   |                                         ^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:58:16
+   |
+58 |     cost.frame(size_of_val(&function) + size_of_val(&cost))?;
+   |                ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:58:41
+   |
+58 |     cost.frame(size_of_val(&function) + size_of_val(&cost))?;
+   |                                         ^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:74:16
+   |
+74 |     cost.frame(size_of_val(&param) + size_of_val(&cost))?;
+   |                ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:74:38
+   |
+74 |     cost.frame(size_of_val(&param) + size_of_val(&cost))?;
+   |                                      ^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:84:16
+   |
+84 |     cost.frame(size_of_val(&ty) + size_of_val(&cost))?;
+   |                ^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:84:35
+   |
+84 |     cost.frame(size_of_val(&ty) + size_of_val(&cost))?;
+   |                                   ^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:124:16
+    |
+124 |     cost.frame(size_of_val(&expression) + size_of_val(&cost))?;
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:124:43
+    |
+124 |     cost.frame(size_of_val(&expression) + size_of_val(&cost))?;
+    |                                           ^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:135:9
+    |
+135 |         size_of_val(&expression)
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:136:15
+    |
+136 |             + size_of_val(&cost)
+    |               ^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:393:16
+    |
+393 |     cost.frame(size_of_val(&declaration) + size_of_val(&cost))?;
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:393:44
+    |
+393 |     cost.frame(size_of_val(&declaration) + size_of_val(&cost))?;
+    |                                            ^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:441:16
+    |
+441 |     cost.frame(size_of_val(&pattern) + size_of_val(&cost))?;
+    |                ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:441:40
+    |
+441 |     cost.frame(size_of_val(&pattern) + size_of_val(&cost))?;
+    |                                        ^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:486:16
+    |
+486 |     cost.frame(size_of_val(&field) + size_of_val(&cost))?;
+    |                ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:486:38
+    |
+486 |     cost.frame(size_of_val(&field) + size_of_val(&cost))?;
+    |                                      ^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:507:42
+    |
+507 |         size_of::<Result<(), Setup>>() + size_of_val(&declaration) + size_of_val(&owner),
+    |                                          ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:507:70
+    |
+507 |         size_of::<Result<(), Setup>>() + size_of_val(&declaration) + size_of_val(&owner),
+    |                                                                      ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:514:52
+    |
+514 |     owner.reserve(size_of::<Result<(), Setup>>() + size_of_val(&function) + size_of_val(&owner))?;
+    |                                                    ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:514:77
+    |
+514 |     owner.reserve(size_of::<Result<(), Setup>>() + size_of_val(&function) + size_of_val(&owner))?;
+    |                                                                             ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:524:42
+    |
+524 |         size_of::<Result<(), Setup>>() + size_of_val(&declaration) + size_of_val(&owner),
+    |                                          ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:524:70
+    |
+524 |         size_of::<Result<(), Setup>>() + size_of_val(&declaration) + size_of_val(&owner),
+    |                                                                      ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:537:15
+    |
+537 |             + size_of_val(&function)
+    |               ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:539:15
+    |
+539 |             + size_of_val(&owner),
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:558:15
+    |
+558 |             + size_of_val(&ty)
+    |               ^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:559:15
+    |
+559 |             + size_of_val(&declarations)
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:560:15
+    |
+560 |             + size_of_val(&owner),
+    |               ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:569:19
+    |
+569 |                 + size_of_val(&ty)
+    |                   ^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:570:19
+    |
+570 |                 + size_of_val(&declarations)
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:571:19
+    |
+571 |                 + size_of_val(&owner)
+    |                   ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: call to `std::mem::drop` with a value that does not implement `Drop`. Dropping such a type only extends its contained lifetimes
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:606:17
+    |
+606 |                 drop(cost);
+    |                 ^^^^^^^^^^
+    |
+note: argument has type `workspace_graph::expected_projection::cost::constructor::Cost<'_>`
+   --> src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:606:22
+    |
+606 |                 drop(cost);
+    |                      ^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#drop_non_drop
+    = note: `-D clippy::drop-non-drop` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::drop_non_drop)]`
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/expected_projection/cost/constructor.rs:79:20
+   |
+79 |         self.frame(size_of_val(&kind))?;
+   |                    ^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/expected_projection/cost/constructor.rs:97:20
+   |
+97 |         self.frame(size_of_val(&kind))?;
+   |                    ^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/cost/constructor.rs:118:13
+    |
+118 |             size_of_val(&kind) + size_of_val(&carrier_free) + size_of_val(&outside_closure),
+    |             ^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/cost/constructor.rs:143:20
+    |
+143 |         self.frame(size_of_val(&parent) + size_of_val(&pattern))?;
+    |                    ^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/cost/constructor.rs:143:43
+    |
+143 |         self.frame(size_of_val(&parent) + size_of_val(&pattern))?;
+    |                                           ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/cost/constructor.rs:162:20
+    |
+162 |         self.frame(size_of_val(&parent))?;
+    |                    ^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/cost/constructor.rs:174:20
+    |
+174 |         self.frame(size_of_val(&value))?;
+    |                    ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/cost/constructor.rs:186:20
+    |
+186 |         self.frame(size_of_val(&function))?;
+    |                    ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/cost/constructor.rs:202:20
+    |
+202 |         self.frame(size_of_val(&parent))?;
+    |                    ^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/cost/constructor.rs:216:20
+    |
+216 |         self.frame(size_of_val(&arm))?;
+    |                    ^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/cost/constructor.rs:247:20
+    |
+247 |         self.frame(size_of_val(&value))?;
+    |                    ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/cost/constructor.rs:252:20
+    |
+252 |         self.frame(size_of_val(&value))?;
+    |                    ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/expected_projection/type_rewrite/receiving.rs:23:15
+   |
+23 |             + size_of_val(&module)
+   |               ^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/expected_projection/type_rewrite/receiving.rs:24:15
+   |
+24 |             + size_of_val(&name)
+   |               ^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/expected_projection/type_rewrite/receiving.rs:25:15
+   |
+25 |             + size_of_val(&programs)
+   |               ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/expected_projection/type_rewrite/receiving.rs:26:15
+   |
+26 |             + size_of_val(&owner),
+   |               ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/expected_projection/type_rewrite/receiving.rs:51:9
+   |
+51 |         size_of_val(&ty)
+   |         ^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/expected_projection/type_rewrite/receiving.rs:52:15
+   |
+52 |             + size_of_val(&module)
+   |               ^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/expected_projection/type_rewrite/receiving.rs:53:15
+   |
+53 |             + size_of_val(&caller)
+   |               ^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+  --> src/workspace_graph/expected_projection/type_rewrite/receiving.rs:54:15
+   |
+54 |             + size_of_val(&programs)
+   |               ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/type_rewrite/receiving.rs:106:9
+    |
+106 |         size_of_val(&id)
+    |         ^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/type_rewrite/receiving.rs:141:9
+    |
+141 |         size_of_val(&ty)
+    |         ^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/type_rewrite/receiving.rs:142:15
+    |
+142 |             + size_of_val(&target_module)
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/type_rewrite/receiving.rs:143:15
+    |
+143 |             + size_of_val(&caller)
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: argument to `size_of_val()` is a reference to a reference
+   --> src/workspace_graph/expected_projection/type_rewrite/receiving.rs:144:15
+    |
+144 |             + size_of_val(&programs)
+    |               ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: dereference the argument to `size_of_val()` to get the size of the value instead of the size of the reference-type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#size_of_ref
+
+error: could not compile `semaprax` (lib) due to 62 previous errors

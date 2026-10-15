@@ -1,0 +1,15 @@
+
+running 1 test
+test workspace_graph::expected_projection::private_layout::capacity_tests::actual_cold_reservation_allocation_peak_and_full_drop_are_compared_without_baseline_padding ... 
+thread 'workspace_graph::expected_projection::private_layout::capacity_tests::actual_cold_reservation_allocation_peak_and_full_drop_are_compared_without_baseline_padding' (6240439) panicked at src/workspace_graph/expected_projection/private_layout/capacity_tests.rs:44:54:
+called `Result::unwrap()` on an `Err` value: Diagnostic { code: "SPX-P101", severity: Error, message: "a module must declare at least one function", path: Some("detail.spx"), span: Some(Span { start: 232, end: 232, line: 19, column: 1 }), help: None }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    workspace_graph::expected_projection::private_layout::capacity_tests::actual_cold_reservation_allocation_peak_and_full_drop_are_compared_without_baseline_padding
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8965 filtered out; finished in 0.05s
+

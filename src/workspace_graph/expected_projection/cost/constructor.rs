@@ -76,7 +76,7 @@ impl<'r> Cost<'r> {
         &mut self,
         kind: &crate::ast::ExprKind,
     ) -> Result<(), Setup> {
-        self.frame(size_of_val(&kind))?;
+        self.frame(size_of::<&crate::ast::ExprKind>())?;
         if self.raw.inline_values {
             self.raw.literal_fixed_discount = self.owner.sum(
                 self.raw.literal_fixed_discount,
@@ -94,7 +94,7 @@ impl<'r> Cost<'r> {
         &mut self,
         kind: &crate::ast::ExprKind,
     ) -> Result<(), Setup> {
-        self.frame(size_of_val(&kind))?;
+        self.frame(size_of::<&crate::ast::ExprKind>())?;
         if let (true, Some(root)) = (self.raw.inline_values, absent_storage_root(kind)) {
             let count = &mut self.raw.exact_absent_roots[root as usize];
             *count = self.owner.sum(*count, 1)?;
@@ -115,7 +115,9 @@ impl<'r> Cost<'r> {
         outside_closure: bool,
     ) -> Result<(), Setup> {
         self.frame(
-            size_of_val(&kind) + size_of_val(&carrier_free) + size_of_val(&outside_closure),
+            size_of::<&crate::ast::ExprKind>()
+                + size_of_val(&carrier_free)
+                + size_of_val(&outside_closure),
         )?;
         if !(self.raw.inline_values && carrier_free) {
             return Ok(());
@@ -140,7 +142,7 @@ impl<'r> Cost<'r> {
         parent: &T,
         pattern: &P,
     ) -> Result<(), Setup> {
-        self.frame(size_of_val(&parent) + size_of_val(&pattern))?;
+        self.frame(size_of::<&T>() + size_of::<&P>())?;
         let bytes = std::mem::size_of_val(parent);
         self.add(if self.raw.inline_values {
             bytes
@@ -159,7 +161,7 @@ impl<'r> Cost<'r> {
         &mut self,
         parent: &T,
     ) -> Result<(), Setup> {
-        self.frame(size_of_val(&parent))?;
+        self.frame(size_of::<&T>())?;
         let bytes = std::mem::size_of_val(parent);
         self.add(if self.raw.inline_values {
             bytes
@@ -171,7 +173,7 @@ impl<'r> Cost<'r> {
     }
 
     pub(in crate::workspace_graph) fn embedded_string(&mut self, value: &str) -> Result<(), Setup> {
-        self.frame(size_of_val(&value))?;
+        self.frame(size_of::<&str>())?;
         if self.raw.embedded_headers {
             self.add_split(value.len(), value.len())
         } else {
@@ -183,7 +185,7 @@ impl<'r> Cost<'r> {
         &mut self,
         function: &crate::ast::Function,
     ) -> Result<(), Setup> {
-        self.frame(size_of_val(&function))?;
+        self.frame(size_of::<&crate::ast::Function>())?;
         if self.raw.inline_values {
             self.add(
                 std::mem::size_of_val(function)
@@ -199,7 +201,7 @@ impl<'r> Cost<'r> {
         &mut self,
         parent: &T,
     ) -> Result<(), Setup> {
-        self.frame(size_of_val(&parent))?;
+        self.frame(size_of::<&T>())?;
         self.add(if self.raw.inline_values {
             std::mem::size_of_val(parent)
                 .checked_sub(std::mem::size_of::<crate::ast::Type>())
@@ -213,7 +215,7 @@ impl<'r> Cost<'r> {
         &mut self,
         arm: &crate::ast::MatchArm,
     ) -> Result<(), Setup> {
-        self.frame(size_of_val(&arm))?;
+        self.frame(size_of::<&crate::ast::MatchArm>())?;
         if self.raw.inline_values {
             self.add(
                 std::mem::size_of_val(arm)
@@ -244,12 +246,12 @@ impl<'r> Cost<'r> {
     }
 
     pub(in crate::workspace_graph) fn value<T>(&mut self, value: &T) -> Result<(), Setup> {
-        self.frame(size_of_val(&value))?;
+        self.frame(size_of::<&T>())?;
         self.add(std::mem::size_of_val(value))
     }
 
     pub(in crate::workspace_graph) fn string(&mut self, value: &str) -> Result<(), Setup> {
-        self.frame(size_of_val(&value))?;
+        self.frame(size_of::<&str>())?;
         self.add(std::mem::size_of::<String>())?;
         self.add_split(value.len(), value.len())
     }

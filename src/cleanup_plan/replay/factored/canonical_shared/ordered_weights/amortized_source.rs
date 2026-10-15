@@ -21,6 +21,8 @@ pub(super) fn checkpoint(path: &str, source: &str) -> String {
 fn current40f(path: &str, current: &str) -> String {
     let held = crate::cleanup_plan::replay::physical_budget::authentication::previous_include(path, current);
     let current = held.as_str();
+    let merged = crate::source_reflows_merge::weighted(path, current);
+    let current = merged.as_str();
     use sha2::{Digest, Sha256};
     let rows: serde_json::Value = serde_json::from_str(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),

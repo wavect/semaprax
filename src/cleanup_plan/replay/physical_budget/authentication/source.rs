@@ -3,6 +3,8 @@ use sha2::{Digest,Sha256};
 const DATA: &str=include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/docs/evidence/held-auth-839/source-inverses.json"));
 fn hex(source: &str) -> String { format!("{:x}",crate::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))) }
 pub(in crate::cleanup_plan::replay) fn previous(path: &str,current: &str) -> String {
+    let staged=crate::source_reflows_merge::held(path,current);
+    let current=staged.as_str();
     let rows:serde_json::Value=serde_json::from_str(DATA).expect("fixed full held-auth source inverses");
     let rows=rows.as_array().unwrap();
     let matches:Vec<_>=rows.iter().filter(|row|row["path"]==path).collect();
@@ -58,14 +60,16 @@ fn held_full_current_sources_and_immediate_inverses_authenticate_every_byte() {
         ("tests/workspace/semantic_graph/source_inventory.rs",include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/tests/workspace/semantic_graph/source_inventory.rs"))),
     ];
     assert_eq!(sources.len(),rows.as_array().unwrap().len());
-    for (path,current) in sources {
+    for (path,raw_current) in sources {
+        let staged=crate::source_reflows_merge::held(path,raw_current);
+        let current=staged.as_str();
         let found:Vec<_>=rows.as_array().unwrap().iter().filter(|row|row["path"]==path).collect();
         assert_eq!(found.len(),1);let row=found[0];
         assert_eq!(hex(current),row["after_sha256"]);
         assert_eq!(current,row["after"].as_str().unwrap());
         if let Some(before)=row["before"].as_str() {
             assert_eq!(hex(before),row["before_sha256"]);
-            let inverse=previous(path,current);assert_eq!(inverse,before);
+            let inverse=previous(path,raw_current);assert_eq!(inverse,before);
             // Full-file forward and inverse replace every byte exactly once.
             assert_eq!(current.replacen(current,&inverse,1),before);
             assert_eq!(before.replacen(before,current,1),current);

@@ -1,0 +1,42 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "production_basis": "0ccaeef55025e50dd7566273b1e70bae8f3e3dfa",
+  "owned_test_helper_sha256": {
+    "src/source_reflows_merge.rs": "6bae60108596fc7b458c8508ae416a4ad2a535273740711aeea4677b429c5aac",
+    "src/cleanup_plan/replay/physical_budget/authentication/source.rs": "cd46bdc54915621da42f8e7334a04f3ac77c5154405b4672312085c542680b1a",
+    "src/cleanup_plan/replay/live_oracle/source_custody/b.rs": "7f7f0c6c5249591091a7fe7ddc6242631ceb63f6b005034036e24e5ea5ba5c50",
+    "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/amortized_source.rs": "3e99381e9497b900ce44429f54638fe81ad3f84c69d183c52b1b89555a6db55a"
+  },
+  "packet_sha256": {
+    "docs/evidence/source-composition-f813-held-20261015/verify_838.py": "c90122b62533e787252a1fb2cddd1079ab32a7186d2b59581617f57192e792b8",
+    "docs/evidence/source-composition-f813-held-20261015/composition-proof.json": "38ed4f119663ba16bc84a97052c23535b0afd1ac6a32f9b8c7b1309b037cc709",
+    "docs/evidence/source-composition-f813-held-20261015/refresh-execution.log": "a88c6bfd96d5542ccf1d51d61a3506027cde4505489cc756b243a02b310b59a5",
+    "docs/evidence/source-composition-f813-held-20261015/inherited-joined-recheck.json": "31c34ef2da33dc162cedbf3a989047bdefe03dfa925e0fca381b4519cc04fa6e",
+    "docs/evidence/source-composition-f813-held-20261015/current-to-prior.json": "1541bce0a7ddcf038af0cbfc1ee3c2037066874e8aded3fc36983bc45c22c038",
+    "docs/evidence/source-composition-f813-held-20261015/main-projections.json": "192192521cd61c4b6acd0add780f39a58a7170a8deda6867becbf89a8c0bdf8b",
+    "docs/evidence/source-composition-f813-held-20261015/verify_inherited.py": "e32b0e031728dea578b95fd51fcc4aea6d35546b75e3557a58e66c3031eb319b",
+    "docs/evidence/source-composition-f813-held-20261015/source36-execution.log": "21153cc0cf737b55f0d6163b0825d4e174adf3d535b8ed7e5ff3ad26f7c6e11b",
+    "docs/evidence/source-composition-f813-held-20261015/838-execution.log": "80afee8cf7966a4057828834f57249d4444b9db0d42516b7a201489d505b85d1",
+    "docs/evidence/source-composition-f813-held-20261015/source-inverses.json": "84ca341f45fbcd85ecb89b66e1a66e2855161ad285242548fd4a2f914f106afd",
+    "docs/evidence/source-composition-f813-held-20261015/ours-projections.json": "00d5219aa0a095e3b762cb2ab50b0f8cd8f8ea04d938b4cd90da8a2ee2d91414",
+    "docs/evidence/source-composition-f813-held-20261015/weighted-projections.json": "a72d0412d3fc40d368f189643c02c4df54eaeb94325b2f04068c114e7e547a5f",
+    "docs/evidence/source-composition-f813-held-20261015/838-current-execution.log": "90a19961d246661e8a9375891e1764f3471808c584d581d68fed9c2962f91756",
+    "docs/evidence/source-composition-f813-held-20261015/inherited-first-refusal.log": "de8fb1053c0d4bd5ede7763861eee8cadd9a859ef52ab47b42654b38a723ec37",
+    "docs/evidence/source-composition-f813-held-20261015/inherited-execution.log": "31c34ef2da33dc162cedbf3a989047bdefe03dfa925e0fca381b4519cc04fa6e",
+    "docs/evidence/source-composition-f813-held-20261015/refresh.py": "9b8fc3498b9137578f4d23c8515dc0384d2ee3dafb4c5f30cf335d37f98c7d82",
+    "docs/evidence/source-composition-f813-held-20261015/inherited-second-refusal.log": "9fbed1f212da7cd60fda4c1ae5459dafc4a85db5d1834b1fe07ec2e068d58fbb",
+    "docs/evidence/source-composition-f813-held-20261015/source36-current-execution.log": "6e6b5693d5063a92a1147f958586093b21619dd1d8c4db5364790acd010253be",
+    "docs/evidence/source-composition-f813-held-20261015/held-projections.json": "153369a8c55e440e6a0a493c9cab849443a94cfa681363199d42ac90e2476f70",
+    "docs/evidence/source-composition-f813-held-20261015/pre-ours.json": "8eee1bb63c129384e2ffd54b5895c137b9db935c393cfa6e5dc5e311c5c88f8a",
+    "docs/evidence/source-composition-f813-held-20261015/verify_source36.py": "0dd7711b9ce1e3646980db5db671e80defca8a62b8375544c52aa72fabe30b71",
+    "docs/evidence/source-composition-f813-held-20261015/HANDOFF.md": "49594c2488ba387f26e56be200e6ab1f79ccf3f751907112b5238aa0c70a653f"
+  },
+  "old_tracked_files_modified_only": [
+    "src/source_reflows_merge.rs",
+    "src/cleanup_plan/replay/physical_budget/authentication/source.rs",
+    "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/amortized_source.rs"
+  ],
+  "old_proofs_scripts_runtime_json_archives_modified": 0,
+  "qualification_pending": true
+}

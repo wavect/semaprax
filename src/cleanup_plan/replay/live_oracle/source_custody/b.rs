@@ -366,7 +366,7 @@ mod tests;
         );
     }
     {
-        let mut current = include_str!("../../../../literal_format.rs").to_owned();
+        let mut current = super::current_view::project("src/literal_format.rs", include_str!("../../../../literal_format.rs"));
         undo(
             &mut current,
             r#"        }
@@ -859,7 +859,7 @@ pub(crate) fn by_id_with_work<E>(
         );
     }
     {
-        let mut current = include_str!("../../../../string_ops/concat_funded.rs").to_owned();
+        let mut current = super::current_view::project("src/string_ops/concat_funded.rs", include_str!("../../../../string_ops/concat_funded.rs"));
         undo(
             &mut current,
             r#"        assert!(value && calls > 1 && charged > 0);

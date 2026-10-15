@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/source-composition-f813-held-20261015/verify_838.py", line 36, in <module>
+    current=read(row['source']);old=read(row['archive']);assert sha(current)==row['current_sha256'];assert sha(old)==row['original_sha256'];assert old==git(frozen,row['source'])
+                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

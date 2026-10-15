@@ -7,7 +7,8 @@ use super::super::{
     ResolvedFunction, Weighted,
 };
 
-use super::{app_census, epsilon_alias, memo, successor_targets, tests};
+use super::{app_census, epsilon_alias, successor_targets, tests};
+use super::before_held::memo;
 
 type SharedWeighted = Rc<Weighted>;
 

@@ -9,6 +9,8 @@ mod diagnostic;
 mod invocation;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod zero_tests;
 
 pub(in crate::cleanup_plan::replay) use diagnostic::{
     raw_error_funded, raw_error_metered, replay_error_funded, ReplayFailure,
@@ -228,6 +230,43 @@ impl OracleLease {
                     Err(OracleRefusal::Exhausted { requested: bytes })
                 }
             }
+        })
+    }
+
+    // Test-only scalar predicates retain the original small bool receiving
+    // values, but never manufacture a Result or Diagnostic-bearing carrier.
+    pub(in crate::cleanup_plan::replay) fn refused_zero(self) -> bool {
+        ACCOUNT.with(|account| match account.get() {
+            Some(state) if state.epoch == self.epoch => state.receipt.is_refused(),
+            _ => true,
+        })
+    }
+
+    pub(in crate::cleanup_plan::replay) fn authenticate_zero(self) -> bool {
+        ACCOUNT.with(|account| {
+            let Some(mut state) = account.get() else { return false; };
+            if state.epoch != self.epoch {
+                return false;
+            }
+            // Preserve charge(0)'s attempt count even on sticky retries, and
+            // its exact first receipt when the counter itself cannot advance.
+            let Some(ordinal) = state.receipt.calls.checked_add(1) else {
+                state.receipt.first_refusal.get_or_insert(OracleFirstRefusal {
+                    requested: 0,
+                    remaining: state.receipt.allowance - state.receipt.charged,
+                    ordinal: state.receipt.calls,
+                });
+                account.set(Some(state));
+                return false;
+            };
+            state.receipt.calls = ordinal;
+            if state.receipt.is_refused() {
+                account.set(Some(state));
+                return false;
+            }
+            // checked_add(0) always succeeds and leaves charged unchanged.
+            account.set(Some(state));
+            true
         })
     }
 

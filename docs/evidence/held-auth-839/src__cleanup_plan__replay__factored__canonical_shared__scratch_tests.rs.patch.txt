@@ -1,0 +1,37 @@
+--- a/src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs
++++ b/src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs
+@@ -1,5 +1,6 @@
+ //! Exact immediate-old receivers and physical scratch lifetime controls.
+-use super::{before_scratch, memo, Canonicalizer, Diagnostic, ReplayBudget};
++use super::{before_scratch, Canonicalizer, Diagnostic, ReplayBudget};
++use super::before_held::memo;
+ use crate::bounded_output::with_limit_usage_refusal;
+ use crate::test_allocation_observer::{current_metrics, measure};
+ 
+@@ -394,6 +395,17 @@
+ 
+ #[test]
+ fn retained_cache_receiving_fee_preserves_floor_and_sticky_refusal_without_allocation() {
++    immediate_old_floor::run();
++}
++
++mod immediate_old_floor {
++pub(super) fn run() {
++    retained_cache_receiving_fee_preserves_floor_and_sticky_refusal_without_allocation();
++}
++use super::*;
++use super::super::before_held::Canonicalizer;
++#[test]
++fn retained_cache_receiving_fee_preserves_floor_and_sticky_refusal_without_allocation() {
+     use crate::bounded_output::{
+         active_remaining, clear_active_floor, reserve_active_required, set_active_floor,
+     };
+@@ -435,6 +447,8 @@
+             !allocation.invalid && allocation.live == 0 && allocation.allocated == allocation.freed
+         );
+     }
++}
++
+ }
+ 
+ #[test]

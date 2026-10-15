@@ -1,0 +1,20 @@
+--- a/tests/hir_module_boundaries.rs
++++ b/tests/hir_module_boundaries.rs
+@@ -435,6 +435,17 @@
+             include_str!("../src/test_allocation_observer/free_order.rs"),
+         ),
+         include_str!("../src/cleanup_plan/replay/factored/canonical_shared.rs"),
++        include_str!("../src/cleanup_plan/replay/factored/canonical_shared/before_held.rs"),
++        include_str!("../src/cleanup_plan/replay/factored/canonical_shared/before_held_memo.rs"),
++        include_str!("../src/cleanup_plan/replay/factored/canonical_shared/before_held_retained.rs"),
++        include_str!("../src/cleanup_plan/replay/factored/canonical_shared/held_auth_tests.rs"),
++        include_str!("../src/cleanup_plan/replay/factored/canonical_shared/memo/retained/held_tests.rs"),
++        include_str!("../src/cleanup_plan/replay/physical_budget/authentication.rs"),
++        include_str!("../src/cleanup_plan/replay/physical_budget/authentication/tests.rs"),
++        include_str!("../src/cleanup_plan/replay/physical_budget/authentication/source.rs"),
++        include_str!("../src/cleanup_plan/replay/physical_storage.rs"),
++        include_str!("../src/cleanup_plan/replay/physical_storage/zero_tests.rs"),
++        include_str!("../src/cleanup_plan/replay/allocation/oracle/zero_tests.rs"),
+         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/ordered_weights.rs"),
+         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/tests.rs"),
+         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/receiver_tests.rs"),

@@ -23,6 +23,31 @@ impl<T> RetainedMemo<T> {
         if self.memo.failed {
             return;
         }
+        // Only a fully paid owner with a live binding may use the held slot.
+        // The cold ordinary receiver below, including every real Result fee,
+        // remains the activation boundary.
+        if self.controls_paid {
+            if let Some(binding) = &self.memo.binding {
+                let ledger_matches = binding.ledger.current();
+                if binding.function != std::ptr::from_ref(function)
+                    || binding.budget != std::ptr::from_ref(budget)
+                    || !ledger_matches
+                {
+                    self.memo.failed = true;
+                    self.refusal = Some(Diagnostic::io("SPX-H006", String::new()));
+                    return;
+                }
+                budget.authenticate_zero_into(
+                    function,
+                    "factored closure memo authentication",
+                    &mut self.refusal,
+                );
+                if self.refusal.is_some() {
+                    self.memo.failed = true;
+                }
+                return;
+            }
+        }
         // The ordinary function still constructs a Diagnostic-bearing Result
         // on every invocation, including warm zero-byte authentication. Keep
         // its actual per-call authorization-receipt charge. A unit-returning
@@ -96,3 +121,6 @@ impl<T> RetainedMemo<T> {
         result
     }
 }
+
+#[cfg(test)]
+mod held_tests;

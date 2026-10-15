@@ -1,0 +1,23 @@
+--- a/src/cleanup_plan/replay/factored/canonical_shared.rs
++++ b/src/cleanup_plan/replay/factored/canonical_shared.rs
+@@ -7,6 +7,10 @@
+     physical_clone, replay_error,
+ };
+ 
++#[cfg(test)]
++mod before_held;
++#[cfg(test)]
++mod held_auth_tests;
+ #[cfg(test)]
+ mod before_alias;
+ #[cfg(test)]
+@@ -129,7 +133,8 @@
+         }
+         // The cached route still executes its original one cursor work debit.
+         // It constructs neither a cursor Vec nor a closure_inner Result
+-        // receiver. The ordinary memo authentication Result remains paid.
++        // receiver. Cold memo authentication still pays its real Result; warm
++        // authentication writes directly into its already paid refusal slot.
+         if self.closures.contains_key(&root) {
+             budget.charge(function, 1, "factored closure cursor")?;
+             return Ok(self.closures.get(&root).cloned());

@@ -1,0 +1,22 @@
+--- a/tests/workspace/semantic_graph/source_inventory.rs
++++ b/tests/workspace/semantic_graph/source_inventory.rs
+@@ -17,6 +17,19 @@
+         include_str!("../../src/source_verify/byte_traversal/nested/tests.rs"),
+         include_str!("../../src/source_verify/iterative/while_rules/before_nested.rs"),
+         include_str!("../../src/cleanup_plan/replay/factored/canonical_shared.rs"),
++        include_str!("../../src/cleanup_plan/replay/physical_budget.rs"),
++        include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/before_held.rs"),
++        include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/before_held_memo.rs"),
++        include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/before_held_retained.rs"),
++        include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/held_auth_tests.rs"),
++        include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/memo/retained/held_tests.rs"),
++        include_str!("../../src/cleanup_plan/replay/physical_budget/authentication.rs"),
++        include_str!("../../src/cleanup_plan/replay/physical_budget/authentication/tests.rs"),
++        include_str!("../../src/cleanup_plan/replay/physical_budget/authentication/source.rs"),
++        include_str!("../../src/cleanup_plan/replay/physical_storage.rs"),
++        include_str!("../../src/cleanup_plan/replay/physical_storage/zero_tests.rs"),
++        include_str!("../../src/cleanup_plan/replay/allocation/oracle.rs"),
++        include_str!("../../src/cleanup_plan/replay/allocation/oracle/zero_tests.rs"),
+         include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/ordered_weights.rs"),
+         include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/tests.rs"),
+         include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/receiver_tests.rs"),

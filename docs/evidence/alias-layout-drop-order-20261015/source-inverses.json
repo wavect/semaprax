@@ -1,0 +1,15 @@
+[
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs",
+    "checkpoint_revision": "d719ea241120655b618ca85a185d5fe5c575a2bf",
+    "archive": "docs/evidence/alias-layout-drop-order-20261015/tests.rs.before.txt",
+    "current_sha256": "b2191c03d4dd66a071d943fe235bb743bc00032340b4928a3313faed1b9bc570",
+    "original_sha256": "3b8484243fe918fddb053d078eece28a55b33dfa737d10f87f6b8b71110a9b03",
+    "edits": [
+      {
+        "new": "        drop((actual, expected, layout, view, owner));\n        drop(registry);",
+        "old": "        drop((actual, expected, layout, view, owner, registry));"
+      }
+    ]
+  }
+]

@@ -129,7 +129,8 @@ fn retained_same_name_views_lend_actual_provider_payload_in_original_order_and_h
             Err(crate::hir::identity_resolution::before_function_alias::NominalReceiverFailure::Base(error))=>panic!("old base refusal: {error:?}"),
         }
         drop((owning, old_key, invocation, identity_owner));
-        drop((actual, expected, layout, view, owner, registry));
+        drop((actual, expected, layout, view, owner));
+        drop(registry);
     });
     assert!(!refused && first.is_none());
 }

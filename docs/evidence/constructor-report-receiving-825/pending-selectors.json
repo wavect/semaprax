@@ -1,0 +1,32 @@
+{
+  "status": "AUTHORED_UNEXECUTED_FUTURE_BATCH",
+  "new": [
+    {
+      "selector": "workspace_graph::constructor_failure::receiving::tests::constructor_receiving_exact_short_zero_preserves_full_primary_pointer_and_whole_drop",
+      "source": "src/workspace_graph/constructor_failure/receiving/tests.rs",
+      "source_sha256": "b436eabdfb4ca068b05b836d449890cb42ec383fcb37566ce73d205e44e25444"
+    },
+    {
+      "selector": "workspace_graph::constructor_failure::receiving::tests::constructor_receiving_after_sticky_moves_existing_slot_without_a_new_debit_or_allocation",
+      "source": "src/workspace_graph/constructor_failure/receiving/tests.rs",
+      "source_sha256": "b436eabdfb4ca068b05b836d449890cb42ec383fcb37566ce73d205e44e25444"
+    },
+    {
+      "selector": "workspace_graph::constructor_failure::receiving::tests::constructor_receiving_foreign_then_restored_owner_retains_primary_and_never_reactivates",
+      "source": "src/workspace_graph/constructor_failure/receiving/tests.rs",
+      "source_sha256": "b436eabdfb4ca068b05b836d449890cb42ec383fcb37566ce73d205e44e25444"
+    },
+    {
+      "selector": "workspace_graph::constructor_failure::receiving::tests::constructor_receiving_many_moves_complete_order_and_backing_without_paid_reclassification",
+      "source": "src/workspace_graph/constructor_failure/receiving/tests.rs",
+      "source_sha256": "b436eabdfb4ca068b05b836d449890cb42ec383fcb37566ce73d205e44e25444"
+    },
+    {
+      "selector": "workspace_graph::constructor_failure::receiving::tests::constructor_receiving_complete_old_core_body_and_actual_linked_programs_remain_independent",
+      "source": "src/workspace_graph/constructor_failure/receiving/tests.rs",
+      "source_sha256": "b436eabdfb4ca068b05b836d449890cb42ec383fcb37566ce73d205e44e25444"
+    }
+  ],
+  "required_existing_packet": "docs/evidence/default-static-error-custody-825/pending-selectors.json",
+  "required_existing_inline": "all5 workspace_graph::expected_projection::defaults::inline_tests bodies unchanged"
+}

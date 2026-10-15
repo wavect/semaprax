@@ -1,0 +1,157 @@
+Review a concrete FUTURE partial825 receiving seam, tool-disabled source only. No Cargo/tests permitted. Existing same child builder ledger already active at build_resolved_core_current. Proposed wiring acquires one Receiver at function start, passes original legacy constructor Failure One/Many to receive ONLY if constructor Err, propagates CoreFailure through actual core attempt before with_limit restores; outside compatibility adapter may explicitly allocate Setup/Unreceived output, not claimed funded. Existing helper-internal dynamic budget message/report acquisitions remain disclosed legacy residual; this cut only fixes genuine One→Vec receiving at actual SyntheticModule site. Complete old constructor/default/stub/overlay remains independent; no replacing existing Failure type. Own noowner/setup/final dynamichelp remainsOPEN, planned typed outward API and prepaid finite capacity render later. Do NOT approve entire825. Pressure-test ledger affinity/foreign restored/primarysixfields/Many order/actual fullcarriers+allocations/Drop/sticky. No new cap/allowance/refund/parentauthority. Intentional unused report capacity must be fully paid. Existing ClassifierLedger is Rc original; current() compares ACTIVE Rc, poisons HELD original with0 on foreign but creates no new budget; it doesn't check overflow. reserve_active_required selects sticky first on failed request (including0), active_refused reads scalar. Moving preowned slot after sticky must not acquire. ClassifierLedgerDebug only retains heldRc through result, never grants permission. Actual code:
+//! One actual core-attempt ledger owns the single-diagnostic receiving slot.
+//! This certifies neither existing multi-error helpers nor final legacy output.
+use super::Failure;
+use crate::bounded_output::{
+    ClassifierLedger, active_refused, active_remaining, reserve_active_required,
+};
+use crate::diagnostic::Diagnostic;
+use std::mem::size_of;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(in crate::workspace_graph) enum Setup {
+    NoOwner,
+    Budget,
+    Allocation,
+    Capacity,
+    Detached,
+    Arithmetic,
+}
+
+/// Affine physical backing; no Clone, factory budget, or source authority.
+pub(in crate::workspace_graph) struct Receiver {
+    ledger: ClassifierLedger,
+    report: Vec<Diagnostic>,
+}
+impl std::fmt::Debug for Receiver {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ConstructorReceiver")
+            .field("len", &self.report.len())
+            .finish_non_exhaustive()
+    }
+}
+#[derive(Debug)]
+#[allow(
+    clippy::large_enum_variant,
+    reason = "the complete primary and unreceived owner must remain inline after refusal"
+)]
+pub(in crate::workspace_graph) enum CoreFailure {
+    /// Only this one slot has genuine constructor receiving ownership.
+    Received {
+        report: Vec<Diagnostic>,
+        ledger: ClassifierLedgerDebug,
+    },
+    /// Existing full ordered Vec backing; explicitly not recertified paid.
+    Legacy(Vec<Diagnostic>),
+    Setup(Setup),
+    Unreceived {
+        primary: Failure,
+        owner: Receiver,
+        refusal: Setup,
+    },
+}
+/// Diagnostic formatting must not expose ledger access or allocate a proxy.
+pub(in crate::workspace_graph) struct ClassifierLedgerDebug(ClassifierLedger);
+impl std::fmt::Debug for ClassifierLedgerDebug {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("held original constructor ledger")
+    }
+}
+impl From<Vec<Diagnostic>> for CoreFailure {
+    fn from(report: Vec<Diagnostic>) -> Self {
+        Self::Legacy(report)
+    }
+}
+impl From<Setup> for CoreFailure {
+    fn from(failure: Setup) -> Self {
+        Self::Setup(failure)
+    }
+}
+impl CoreFailure {
+    /// Public compatibility only; setup/final/help producers are NOT funded by
+    /// the constructor slot. Called after the attempt's ledger has restored.
+    pub(in crate::workspace_graph) fn into_legacy_unfunded(self) -> Vec<Diagnostic> {
+        match self {
+            Self::Received { report, ledger } => {
+                drop(ledger);
+                report
+            }
+            Self::Legacy(report) => report,
+            Self::Unreceived {
+                primary,
+                owner,
+                refusal: _,
+            } => {
+                drop(owner);
+                primary.into_legacy_unfunded()
+            }
+            Self::Setup(_) => vec![super::super::limit_error(
+                "builder_bytes",
+                super::super::active_builder_limit(),
+            )],
+        }
+    }
+}
+impl Receiver {
+    pub(in crate::workspace_graph) fn setup_bytes() -> Option<usize> {
+        [
+            size_of::<Self>(),
+            size_of::<Option<Self>>(),
+            size_of::<Result<Self, Setup>>(),
+            size_of::<CoreFailure>(),
+            size_of::<Vec<Diagnostic>>(),
+            size_of::<Diagnostic>(),
+        ]
+        .into_iter()
+        .try_fold(0usize, usize::checked_add)
+    }
+    pub(in crate::workspace_graph) fn acquire() -> Result<Self, Setup> {
+        if active_remaining().is_none() {
+            return Err(Setup::NoOwner);
+        }
+        let bytes = Self::setup_bytes().ok_or(Setup::Arithmetic)?;
+        if !reserve_active_required(bytes) {
+            return Err(Setup::Budget);
+        }
+        let ledger = ClassifierLedger::capture();
+        let mut report = Vec::new();
+        report.try_reserve_exact(1).map_err(|_| Setup::Allocation)?;
+        if report.capacity() != 1 {
+            let excess = report
+                .capacity()
+                .saturating_sub(1)
+                .checked_mul(size_of::<Diagnostic>())
+                .ok_or(Setup::Arithmetic)?;
+            if !reserve_active_required(excess) {
+                return Err(Setup::Budget);
+            }
+            return Err(Setup::Capacity);
+        }
+        Ok(Self { ledger, report })
+    }
+    /// A selected primary may move into existing backing even when the held
+    /// ledger is sticky. This authenticates identity, observes sticky state and
+    /// performs NO new reservation/formatting/output acquisition after Err.
+    pub(in crate::workspace_graph) fn receive(mut self, failure: Failure) -> CoreFailure {
+        if !self.ledger.current() {
+            return CoreFailure::Unreceived {
+                primary: failure,
+                owner: self,
+                refusal: Setup::Detached,
+            };
+        }
+        let _selected_budget_refusal = active_refused();
+        match failure {
+            Failure::One(primary) => {
+                self.report.push(primary);
+                CoreFailure::Received {
+                    report: self.report,
+                    ledger: ClassifierLedgerDebug(self.ledger),
+                }
+            }
+            Failure::Many(report) => CoreFailure::Legacy(report),
+        }
+    }
+}
+
+Existing original constructor Failure::One(Diagnostic)/Many(Vec) conversion One=>vec![diagnostic], Many=>existing. Actual core function has ONLY1 caller, inside with_limit_usage_refusal(...); retry loop drops failed result retaining debit and only renders final live_builder_refusal after childrestore. New CoreFailure::Legacy comes ONLY from unchanged existingVec helpers; not recertified paid. Need identify concrete issues in this partial new receiver BEFORE wiring. Distinguish residual scope from new bugs. Give concise findings.

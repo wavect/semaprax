@@ -4147,7 +4147,7 @@ fn build_owned_inner(
                             .map(|layout| &layout.order[..programs.len()]),
                     )
                 )?;
-                Ok::<_, Vec<Diagnostic>>((core, custody))
+                Ok::<_, constructor_failure::receiving::CoreFailure>((core, custody))
             });
         core_builder_bytes = core_builder_bytes.max(consumed);
         if !overflowed {
@@ -4214,7 +4214,7 @@ fn build_owned_inner(
         resolve_builder_bytes = tighter;
     };
     drop(layouts);
-    let (core, custody) = core?;
+    let (core, custody) = core.map_err(constructor_failure::receiving::CoreFailure::into_legacy_unfunded)?;
     let (mut modules, module_paths, dependency_depths, declaration_facts, expected_edges) = core;
     for module in &mut modules {
         module.native_law = native_law_paths.contains(&module.path);
@@ -4341,7 +4341,13 @@ fn build_resolved_core_current(
     mut frontend: Option<&mut crate::project::incremental::FrontendPass>,
     layouts: &expected_projection::private_layout::registry::LayoutRegistry<'_>,
     compact_order: Option<&[usize]>,
-) -> Result<ResolvedCore, Vec<Diagnostic>> {
+) -> Result<ResolvedCore, constructor_failure::receiving::CoreFailure> {
+    #[cfg(test)]
+    if constructor_failure::receiving::before::active() {
+        return constructor_failure::receiving::before::build_resolved_core_current(
+            programs,module_paths,dependency_depths,authored,authenticated_sources,frontend,layouts,compact_order,
+        ).map_err(constructor_failure::receiving::CoreFailure::from);
+    }
     let retained_output_only = compact_order.is_some();
     let mut loan_scratch = loan_retention::RetentionScratch::default();
     let mut expected_edges = Vec::new();
@@ -4385,6 +4391,7 @@ fn build_resolved_core_current(
     }
     let mut core_proofs = expected_projection::CoreProviderProofs::new(authored, programs)
         .map_err(|error| vec![error])?;
+    let mut receiver = Some(constructor_failure::receiving::Receiver::acquire()?);
     let mut synthetic_ast_peak = 0usize;
     let mut selected_static_modules = static_text::SelectedModules::default();
     for index in 0..programs.len() {
@@ -4411,7 +4418,7 @@ fn build_resolved_core_current(
                 layouts,
                 &mut core_proofs,
             )
-            .map_err(constructor_failure::Failure::into_legacy_unfunded)
+            .map_err(|failure| receiver.take().expect("first constructor error exits core").receive(failure))
         )?;
         // Exact stubs/spans and the unconditional prebound govern hits.
         let cached = staged!(
@@ -4644,7 +4651,7 @@ fn build_resolved_core_current(
         return Err(vec![graph_error(
             "SPX-G173",
             "workspace dependency-depth keys disagree with authenticated modules",
-        )]);
+        )].into());
     }
     let owned_dependency_depths = staged!(
         CoreDirectories,

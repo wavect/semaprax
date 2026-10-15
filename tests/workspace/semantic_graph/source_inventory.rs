@@ -165,6 +165,9 @@ macro_rules! semantic_graph_root_source_inventory {
         include_str!("../../src/workspace_graph/identity_resolution/base/affinity_tests.rs"),
 
 include_str!("../../src/workspace_graph/constructor_failure.rs"),
+include_str!("../../src/workspace_graph/constructor_failure/receiving.rs"),
+include_str!("../../src/workspace_graph/constructor_failure/receiving/before.rs"),
+include_str!("../../src/workspace_graph/constructor_failure/receiving/tests.rs"),
 include_str!("../../src/workspace_graph/expected_projection/defaults/inline.rs"),
 include_str!("../../src/workspace_graph/expected_projection/defaults/inline_fields.rs"),
 include_str!("../../src/workspace_graph/expected_projection/defaults/inline_tests.rs"),

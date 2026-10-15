@@ -3,6 +3,8 @@
 //! These tests exercise generated C, not a handwritten model of its ownership.
 //! Every invocation must release every tracked heap owner and vector authority;
 //! a failure must retain its first status and leave the result sentinel intact.
+#[path = "owned_leaf_collections/copy_field_update.rs"]
+mod copy_field_update;
 use semaprax::{codegen, hir};
 
 #[path = "owned_leaf_collections/native.rs"]

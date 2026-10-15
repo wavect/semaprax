@@ -28,7 +28,8 @@ pub(super) fn typed_legacy_constructor(
     program: &ResolvedProgram,
     op: crate::vec_ops::VecOp,
 ) -> bool {
-    op == crate::vec_ops::VecOp::WithCapacity && uses(program)
+    op == crate::vec_ops::VecOp::WithCapacity
+        && (uses(program) || crate::vec_ops::field_update::uses(program))
 }
 
 impl FunctionPlan {

@@ -1,0 +1,8679 @@
+//! Deterministic Wasm32 lowering for executable aggregate records v1.
+//!
+//! This is deliberately isolated from the scalar encoder so existing scalar,
+//! owned-resource, callable, and Component byte contracts remain unchanged.
+use std::collections::{BTreeMap, BTreeSet, HashMap};
+pub(super) mod call_admission;
+mod cleanup;
+#[path = "closure.rs"]
+mod closure;
+mod collect_block;
+mod collect_expression;
+mod expressions;
+mod function_value;
+pub(super) mod semantic_work;
+mod target_gates;
+#[cfg(test)]
+use function_value::hex_identity;
+pub(in crate::wasm) use function_value::{
+    box_import_base, program_uses_owned_buffer, vec_import_base,
+};
+use function_value::{executable_functions, hex_execution_identity, program_uses_byte_range};
+mod binary_ops;
+mod borrowed_call;
+mod byte_partition;
+mod contract_scope;
+pub(super) mod conversions;
+mod filesystem_checked;
+mod filesystem_ops;
+mod filesystem_v2;
+mod lexical_control;
+mod literal_format;
+mod str_equality;
+mod str_helpers;
+mod str_usage;
+use str_usage::program_uses_str_ops;
+mod generic_record;
+mod generic_variant;
+mod guarded_variant;
+mod host_command;
+mod http_io;
+mod indexed_reads;
+pub(super) mod internal_strings;
+mod iterator_ops;
+pub(in crate::wasm) mod list_ops;
+pub(super) mod map_collections;
+mod nested_owned;
+mod network_io;
+mod owned_buffer;
+mod owned_stack;
+mod owned_strings;
+mod owned_try;
+mod post_transitions;
+mod process_io;
+mod provider_lowering;
+mod static_text_profile;
+mod string_replacement;
+pub(super) use static_text_profile::{
+    emit_partition, emit_scalar_exports_with_static_text, emit_with_static_text,
+};
+pub(super) mod text_toolkit;
+pub(super) use provider_lowering::{
+    lower_public_generic_provider_closure, PUBLIC_GENERIC_PROVIDER_SOURCE_INDEX_MIN,
+};
+pub(crate) fn owned_arena_capacity(
+    program: &ResolvedProgram,
+    roots: &[crate::hir::DeclarationId],
+) -> Result<u32, Diagnostic> {
+    let layouts = VariantLayoutCache::build(program, crate::variant_layout::VariantTarget::Wasm32)?;
+    owned_stack::arena_capacity(program, &layouts, roots)
+}
+mod numeric_conversions;
+
+use super::{
+    function_import, intern_type, section, write_bytes, write_i64, write_name, write_u32,
+    Signature, F32, F64, I32, I64, SCALAR_IMPORT_COUNT,
+};
+use crate::aggregate_layout::{AggregateLayout, AggregateLayoutCache, AggregateTarget};
+use crate::ast::{BinaryOp, UnaryOp};
+use crate::cleanup_plan::StatusLane;
+use crate::diagnostic::Diagnostic;
+use crate::hir::{
+    DeclarationId, ExpressionId, FunctionExecutionId, PlaceProjection, ResolvedExpr,
+    ResolvedExprKind, ResolvedFunction, ResolvedProgram, ResolvedStatement, ResolvedType,
+    ResolvedTypeDeclarationKind, ValueId,
+};
+use crate::variant_layout::{VariantLayout, VariantLayoutCache, VariantTarget};
+
+mod box_ops;
+mod row_loan;
+mod scalar_shape;
+pub(super) mod string_runtime;
+mod string_slot;
+mod variant_equality;
+mod vec_copy_record;
+mod vec_field;
+mod vec_owned_leaf;
+mod vec_owned_payload;
+mod vec_record_payload;
+use crate::wasm::vec_ops::is_wasm_owned_vec_type as owned_vec;
+use scalar_shape::{scalar_local, scalar_size_align, scalar_wasm_type, vec_element_tag};
+
+const BYTE_IMPORT_COUNT: u32 = 4;
+const OWNED_BUFFER_IMPORT_COUNT: u32 = 5;
+const VEC_IMPORT_COUNT: u32 = 6;
+const EXTENDED_VEC_IMPORT_COUNT: u32 = 3;
+/// The owned-record element adds exactly one function to the owned-payload
+/// boundary; every other operation reuses it with the record element tag.
+const RECORD_VEC_IMPORT_COUNT: u32 = 1;
+const OWNED_ITER_IMPORT_COUNT: u32 = iterator_ops::OWNED_IMPORT_COUNT;
+const BOX_IMPORT_COUNT: u32 = 4;
+const BYTE_COPY_IMPORT: u32 = SCALAR_IMPORT_COUNT;
+pub(super) const BYTE_GET_IMPORT: u32 = SCALAR_IMPORT_COUNT + 1;
+const BYTE_DROP_IMPORT: u32 = SCALAR_IMPORT_COUNT + 2;
+const BYTE_AS_SLICE_IMPORT: u32 = SCALAR_IMPORT_COUNT + 3;
+const BYTE_ZEROED_IMPORT: u32 = SCALAR_IMPORT_COUNT + BYTE_IMPORT_COUNT;
+const BYTE_SET_IMPORT: u32 = BYTE_ZEROED_IMPORT + 1;
+const BYTE_SET5_IMPORT: u32 = BYTE_SET_IMPORT + 1;
+const BYTE_SET1_OR5_IMPORT: u32 = BYTE_SET5_IMPORT + 1;
+const BYTE_SET1_OR6_OR48_IMPORT: u32 = BYTE_SET1_OR5_IMPORT + 1;
+const OWNED_UTF8_LITERAL_BASE: u32 = 196_608;
+#[derive(Default)]
+struct OwnedUtf8Literals {
+    base: Option<u32>,
+    static_pool: bool,
+    offsets: HashMap<String, u32>,
+    bytes: Vec<u8>,
+}
+
+impl OwnedUtf8Literals {
+    fn base(&self) -> u32 {
+        self.base.unwrap_or(OWNED_UTF8_LITERAL_BASE)
+    }
+    fn intern(&mut self, value: &str) -> Result<(u32, u32), Diagnostic> {
+        if let Some(offset) = self.offsets.get(value) {
+            return Ok((*offset, value.len() as u32));
+        }
+        if self.static_pool && value.is_empty() {
+            let offset = self.base();
+            self.offsets.insert(value.to_owned(), offset);
+            return Ok((offset, 0));
+        }
+        let relative = u32::try_from(self.bytes.len())
+            .map_err(|_| error("owned UTF-8 literal table overflows u32"))?;
+        let offset = self
+            .base()
+            .checked_add(relative)
+            .ok_or_else(|| error("owned UTF-8 literal address overflows"))?;
+        let length = u32::try_from(value.len())
+            .map_err(|_| error("owned UTF-8 literal length overflows u32"))?;
+        if length > 65_536 || self.bytes.len().saturating_add(value.len()) > 65_536 {
+            return Err(error("owned UTF-8 literal table exceeds 65536 bytes"));
+        }
+        self.offsets.insert(value.to_owned(), offset);
+        self.bytes.extend_from_slice(value.as_bytes());
+        Ok((offset, length))
+    }
+}
+const RANGE_DESCRIPTOR_SIZE: u32 = 32;
+const RANGE_DESCRIPTOR_TAG: u32 = 0x4000_0000;
+const RANGE_DESCRIPTOR_TAG_MASK: u32 = 0xc000_0000;
+const RANGE_DESCRIPTOR_POINTER_MASK: u32 = 0x0000_ffff;
+const RANGE_DESCRIPTOR_COOKIE_MASK: u32 = 0x1fff;
+
+pub(super) const SHADOW_STACK_TOP: u32 = 65_536;
+#[allow(dead_code)] // Used by the compile-time bound below and its unit-test witness.
+pub(super) const RANGE_DESCRIPTOR_ADDRESS_LIMIT: u32 = (RANGE_DESCRIPTOR_POINTER_MASK + 1) * 8;
+// Range descriptors are eight-byte aligned allocations in the private shadow
+// stack. The carrier stores their address in eight-byte units, so the entire
+// stack must remain representable without truncation. Function entry traps on
+// stack underflow before a descriptor can be constructed.
+const _: () = assert!(SHADOW_STACK_TOP <= RANGE_DESCRIPTOR_ADDRESS_LIMIT);
+pub(super) const STATUS_SUCCESS: i32 = 0;
+pub(super) const STATUS_ADD_OVERFLOW: i32 = 1;
+pub(super) const STATUS_SUB_OVERFLOW: i32 = 2;
+pub(super) const STATUS_MUL_OVERFLOW: i32 = 3;
+pub(super) const STATUS_DIV_ZERO: i32 = 4;
+pub(super) const STATUS_DIV_OVERFLOW: i32 = 5;
+pub(super) const STATUS_REM_ZERO: i32 = 6;
+pub(super) const STATUS_REM_OVERFLOW: i32 = 7;
+pub(super) const STATUS_NEG_OVERFLOW: i32 = 8;
+pub(super) const STATUS_REQUIRES_FALSE: i32 = 9;
+pub(super) const STATUS_ENSURES_FALSE: i32 = 10;
+pub(super) const STATUS_BYTE_RANGE_START_AFTER_END: i32 = 11;
+pub(super) const STATUS_BYTE_RANGE_END_OUT_OF_BOUNDS: i32 = 12;
+pub(super) const STATUS_VEC_PUSH_FULL: i32 = 13;
+pub(super) const STATUS_VEC_GET_OUT_OF_BOUNDS: i32 = 14;
+pub(super) const STATUS_VEC_ALLOCATION_FAILURE: i32 = 15;
+pub(super) const STATUS_BYTE_BUFFER_INDEX_OUT_OF_BOUNDS: i32 = 16;
+pub(super) const STATUS_BYTE_BUFFER_CAPACITY_EXCEEDED: i32 = 35;
+pub(super) const STATUS_BOX_ALLOCATION_FAILURE: i32 = 17;
+pub(super) const STATUS_STRING_FORMAT_FAILURE: i32 = 34;
+pub(super) const STATUS_LIST_LENGTH_LIMIT: i32 = 19;
+pub(super) const STATUS_LIST_MEMORY_LIMIT: i32 = 20;
+pub(super) const STATUS_INTERNAL_INVALID_TAG: i32 = -1;
+
+pub(in crate::wasm) struct SelectedAggregateLowering {
+    pub(in crate::wasm) types: Vec<Signature>,
+    pub(in crate::wasm) function_type_indexes: Vec<u32>,
+    pub(in crate::wasm) bodies: Vec<Vec<u8>>,
+    pub(in crate::wasm) selected_index: u32,
+}
+
+#[derive(Clone, Copy)]
+struct Pointer {
+    local: u32,
+    offset: u32,
+}
+
+#[derive(Clone)]
+enum Value {
+    /// Emitter control completion only; no local, ABI or runtime value exists.
+    Bottom,
+    Scalar {
+        local: u32,
+        ty: ResolvedType,
+    },
+    ScalarMemory {
+        pointer: Pointer,
+        ty: ResolvedType,
+    },
+    Aggregate {
+        pointer: Pointer,
+        ty: ResolvedType,
+    },
+}
+
+struct VariantMatchEmission<'a> {
+    destination: &'a Value,
+    scrutinee: Pointer,
+    layout: &'a VariantLayout,
+    arms: &'a [crate::hir::ResolvedMatchArm],
+    mode: crate::hir::ResolvedMatchMode,
+    expression: &'a ExpressionId,
+}
+
+#[derive(Default)]
+struct FrameAllocator {
+    size: u32,
+    align: u32,
+}
+
+impl FrameAllocator {
+    fn allocate(&mut self, size: u32, align: u32) -> Result<u32, Diagnostic> {
+        if !align.is_power_of_two() {
+            return Err(error("aggregate frame alignment is not a power of two"));
+        }
+        let mask = align - 1;
+        let offset = self
+            .size
+            .checked_add(mask)
+            .map(|value| value & !mask)
+            .ok_or_else(|| error("aggregate frame alignment overflows u32"))?;
+        self.size = offset
+            .checked_add(size)
+            .ok_or_else(|| error("aggregate frame size overflows u32"))?;
+        self.align = self.align.max(align);
+        Ok(offset)
+    }
+
+    fn finish(&self) -> Result<u32, Diagnostic> {
+        let align = self.align.max(8);
+        let mask = align - 1;
+        self.size
+            .checked_add(mask)
+            .map(|value| value & !mask)
+            .ok_or_else(|| error("aggregate frame rounding overflows u32"))
+    }
+}
+
+struct FunctionPlan {
+    local_types: Vec<u8>,
+    old_stack: u32,
+    frame_base: u32,
+    status: u32,
+    command_byte: Option<u32>,
+    filesystem_scan: Option<(u32, u32, u32)>,
+    filesystem_list_scan: Option<[u32; 6]>,
+    process_scan: Option<[u32; 6]>,
+    external_root_bytes: Option<u32>,
+    result_staged: Option<u32>,
+    has_try: bool,
+    result_out: u32,
+    result_stage_scalar: Option<u32>,
+    lexical_return_resume: Option<u32>,
+    result_stage_aggregate: Option<u32>,
+    scalar_expressions: HashMap<ExpressionId, u32>,
+    scalar_bindings: HashMap<ValueId, u32>,
+    aggregate_expressions: HashMap<ExpressionId, u32>,
+    aggregate_bindings: HashMap<ValueId, u32>,
+    call_out: HashMap<ExpressionId, u32>,
+    function_callables: HashMap<ExpressionId, u32>,
+    function_arguments: HashMap<ExpressionId, u32>,
+    range_descriptors: HashMap<ExpressionId, u32>,
+    literal_format_scratch: HashMap<ExpressionId, [u32; 3]>,
+    literal_format_args: HashMap<ExpressionId, Vec<Option<u32>>>,
+    range_scratch: Option<RangeScratch>,
+    copy_record_scratch: Option<[u32; 14]>,
+    owned_leaf_scratch: HashMap<ExpressionId, u32>,
+    row_loans: row_loan::Plan,
+    cleanup_flags: std::collections::BTreeMap<crate::cleanup::LivenessFlagId, u32>,
+    cleanup_place_flags: std::collections::BTreeMap<crate::cleanup_plan::CleanupPlace, u32>,
+    runtime_cleanup_storage: std::collections::BTreeSet<crate::cleanup_plan::StorageId>,
+    cleanup_storage_types: HashMap<crate::cleanup_plan::StorageId, ResolvedType>,
+    cleanup_call_argument_carriers: HashMap<crate::cleanup_plan::StorageId, u32>,
+    string_cleanup_carrier: Option<u32>,
+    frame_size: u32,
+}
+
+#[derive(Clone, Copy)]
+struct RangeScratch {
+    descriptor: u32,
+    high_word: u32,
+    ultimate: u32,
+    offset: u32,
+    length: u32,
+    binding: u32,
+}
+
+#[derive(Clone, Copy)]
+struct RangeBinding {
+    identity: u32,
+    ultimate_global: u32,
+    offset_global: u32,
+    length_global: u32,
+}
+
+type RangeBindings = Vec<(ExpressionId, RangeBinding)>;
+
+fn build_range_bindings(
+    program: &ResolvedProgram,
+    executable_functions: &[(&ResolvedFunction, FunctionExecutionId)],
+    variant_layouts: &VariantLayoutCache,
+    first_global: u32,
+) -> Result<Option<RangeBindings>, Diagnostic> {
+    if !program_uses_byte_range(program) {
+        return Ok(None);
+    }
+    let mut identities = Vec::new();
+    for (function, _) in executable_functions {
+        identities.extend(
+            FunctionPlan::build(program, function, variant_layouts)?
+                .range_descriptors
+                .into_keys(),
+        );
+    }
+    identities.sort_by(|left, right| left.as_str().cmp(right.as_str()));
+    identities.dedup();
+    if identities.len() > RANGE_DESCRIPTOR_COOKIE_MASK as usize {
+        return Err(error("Wasm module has too many byte-range bindings"));
+    }
+    Ok(Some(
+        identities
+            .into_iter()
+            .enumerate()
+            .map(|(ordinal, expression)| {
+                let identity = u32::try_from(ordinal + 1)
+                    .map_err(|_| error("byte-range binding identity overflows u32"))?;
+                let base = first_global
+                    .checked_add(
+                        u32::try_from(ordinal)
+                            .map_err(|_| error("byte-range global ordinal overflows u32"))?
+                            .checked_mul(3)
+                            .ok_or_else(|| error("byte-range global index overflows u32"))?,
+                    )
+                    .ok_or_else(|| error("byte-range global index overflows u32"))?;
+                Ok((
+                    expression,
+                    RangeBinding {
+                        identity,
+                        ultimate_global: base,
+                        offset_global: base + 1,
+                        length_global: base + 2,
+                    },
+                ))
+            })
+            .collect::<Result<RangeBindings, Diagnostic>>()?,
+    ))
+}
+
+impl FunctionPlan {
+    fn build(
+        program: &ResolvedProgram,
+        function: &ResolvedFunction,
+        variant_layouts: &VariantLayoutCache,
+    ) -> Result<Self, Diagnostic> {
+        Self::build_profile(program, function, variant_layouts, false)
+    }
+    fn build_profile(
+        program: &ResolvedProgram,
+        function: &ResolvedFunction,
+        variant_layouts: &VariantLayoutCache,
+        standalone_strings: bool,
+    ) -> Result<Self, Diagnostic> {
+        let parameter_count = u32::try_from(function.params.len())
+            .map_err(|_| error("aggregate function has too many parameters"))?;
+        let result_out = parameter_count;
+        let mut local_types = Vec::new();
+        let mut add_local = |ty: u8| -> Result<u32, Diagnostic> {
+            let relative = u32::try_from(local_types.len())
+                .map_err(|_| error("aggregate function has too many locals"))?;
+            local_types.push(ty);
+            parameter_count
+                .checked_add(1)
+                .and_then(|base| base.checked_add(relative))
+                .ok_or_else(|| error("aggregate local index overflows u32"))
+        };
+        let old_stack = add_local(I32)?;
+        let frame_base = add_local(I32)?;
+        let status = add_local(I32)?;
+        let command_byte = (!standalone_strings
+            && program
+                .permits
+                .iter()
+                .any(|effect| super::command_io::needs_command_byte(effect)))
+        .then(|| add_local(I32))
+        .transpose()?;
+        let (filesystem_scan, filesystem_list_scan) =
+            filesystem_v2::allocate_scan_locals(program, standalone_strings, &mut add_local)?;
+        let process_scan = (!standalone_strings
+            && program
+                .permits
+                .iter()
+                .any(|p| p == crate::process_ops::EFFECT))
+        .then(|| {
+            Ok::<_, Diagnostic>([
+                add_local(I64)?,
+                add_local(I64)?,
+                add_local(I64)?,
+                add_local(I64)?,
+                add_local(I64)?,
+                add_local(I64)?,
+            ])
+        })
+        .transpose()?;
+        let external_root_bytes = function
+            .params
+            .iter()
+            .any(|param| matches!(param.ty, ResolvedType::SliceU8 | ResolvedType::Str))
+            .then(|| add_local(I64))
+            .transpose()?;
+        let range_scratch = (!standalone_strings && program_uses_byte_range(program))
+            .then(|| {
+                Ok::<_, Diagnostic>(RangeScratch {
+                    descriptor: add_local(I32)?,
+                    high_word: add_local(I32)?,
+                    ultimate: add_local(I64)?,
+                    offset: add_local(I64)?,
+                    length: add_local(I64)?,
+                    binding: add_local(I32)?,
+                })
+            })
+            .transpose()?;
+        let copy_record_scratch = crate::hir::copy_record_collection::program_uses(program)
+            .then(|| {
+                let mut locals = [0; 14];
+                for local in &mut locals {
+                    *local = add_local(I64)?;
+                }
+                Ok::<_, Diagnostic>(locals)
+            })
+            .transpose()?;
+        let has_try = expressions::expression_has_try(&function.body)
+            || function.cleanup_plan.lexical_control.is_some();
+        let result_staged = if has_try { Some(add_local(I32)?) } else { None };
+        let lexical_return_resume = if function
+            .cleanup_plan
+            .lexical_control
+            .as_deref()
+            .is_some_and(|control| {
+                control.exits.iter().any(|exit| {
+                    exit.kind == crate::hir::LexicalExitKind::Return && exit.resume.is_some()
+                })
+            }) {
+            Some(add_local(I32)?)
+        } else {
+            None
+        };
+        let mut cleanup_flags = std::collections::BTreeMap::new();
+        let mut cleanup_place_flags = std::collections::BTreeMap::new();
+        let mut cleanup_storage_types = HashMap::new();
+        let mut cleanup_call_argument_carriers = HashMap::new();
+        let mut string_cleanup_carrier = None;
+        for slot in &function.cleanup_plan.slots {
+            cleanup_storage_types.insert(slot.storage.clone(), slot.ty.clone());
+            flatten_byte_leaves(
+                &slot.storage,
+                &slot.field_liveness_shape,
+                &mut Vec::new(),
+                &mut |place, flag, lifecycle| {
+                    let string_leaf =
+                        lifecycle.as_str() == crate::cleanup::STRING_DROP_LIFECYCLE_ID;
+                    if lifecycle.as_str() != crate::map_ops::DROP_ID
+                        && lifecycle.as_str() != crate::string_ops::MAP_DROP_LIFECYCLE_ID
+                        && lifecycle.as_str() != crate::cleanup::BYTES_DROP_LIFECYCLE_ID
+                        && !string_leaf
+                        && lifecycle.as_str() != crate::cleanup::VEC_DROP_LIFECYCLE_ID
+                        && lifecycle.as_str() != crate::cleanup::BOX_DROP_LIFECYCLE_ID
+                        && lifecycle.as_str() != crate::cleanup::ITER_DROP_LIFECYCLE_ID
+                        && lifecycle.as_str() != crate::hir::closure::once::DROP_ID
+                        && lifecycle.as_str() != crate::hir::closure::once::MIXED_DROP_ID
+                        && lifecycle.as_str() != crate::hir::closure::once::PAIR_DROP_ID
+                    {
+                        return Err(error("CleanupPlan leaf has an unsupported lifecycle"));
+                    }
+                    let local = add_local(I32)?;
+                    if cleanup_flags.insert(flag, local).is_some()
+                        || cleanup_place_flags.insert(place.clone(), local).is_some()
+                    {
+                        return Err(error(
+                            "Bytes CleanupPlan repeats a place or liveness identity",
+                        ));
+                    }
+                    if string_leaf && string_cleanup_carrier.is_none() {
+                        string_cleanup_carrier = Some(add_local(I64)?);
+                    }
+                    if place.projections.is_empty()
+                        && matches!(
+                            place.storage,
+                            crate::cleanup_plan::StorageId::CallArgument { .. }
+                        )
+                        && !crate::iterator_ops::is_iter(&slot.ty)
+                        && !crate::iterator_ops::is_step(&slot.ty)
+                        && !slot.ty.is_once_function()
+                    {
+                        let carrier = add_local(I64)?;
+                        if cleanup_call_argument_carriers
+                            .insert(place.storage.clone(), carrier)
+                            .is_some()
+                        {
+                            return Err(error("Bytes CleanupPlan repeats a call-argument epoch"));
+                        }
+                    }
+                    Ok(())
+                },
+            )?;
+        }
+
+        let mut frame = FrameAllocator::default();
+        let (result_stage_scalar, result_stage_aggregate) =
+            if is_aggregate(program, &function.return_type)? {
+                let (size, align) =
+                    aggregate_size_align(program, variant_layouts, &function.return_type)?;
+                (None, Some(frame.allocate(size, align)?))
+            } else {
+                (
+                    Some(add_local(scalar_wasm_type(
+                        program,
+                        &function.return_type,
+                    )?)?),
+                    None,
+                )
+            };
+        let mut plan = Self {
+            local_types,
+            old_stack,
+            frame_base,
+            status,
+            command_byte,
+            filesystem_scan,
+            process_scan,
+            filesystem_list_scan,
+            external_root_bytes,
+            result_staged,
+            has_try,
+            result_out,
+            result_stage_scalar,
+            lexical_return_resume,
+            result_stage_aggregate,
+            scalar_expressions: HashMap::new(),
+            scalar_bindings: HashMap::new(),
+            aggregate_expressions: HashMap::new(),
+            aggregate_bindings: HashMap::new(),
+            call_out: HashMap::new(),
+            function_callables: HashMap::new(),
+            function_arguments: HashMap::new(),
+            range_descriptors: HashMap::new(),
+            literal_format_scratch: HashMap::new(),
+            literal_format_args: HashMap::new(),
+            range_scratch,
+            copy_record_scratch,
+            owned_leaf_scratch: HashMap::new(),
+            row_loans: row_loan::Plan::default(),
+            cleanup_flags,
+            cleanup_place_flags,
+            runtime_cleanup_storage: cleanup::runtime_storages(&function.cleanup_plan),
+            cleanup_storage_types,
+            cleanup_call_argument_carriers,
+            string_cleanup_carrier,
+            frame_size: 0,
+        };
+        for parameter in &function.params {
+            if parameter.ty == ResolvedType::String
+                && parameter.ownership != crate::hir::OwnershipMode::Own
+            {
+                return Err(error(
+                    "String parameter must use validated owned classification",
+                ));
+            }
+        }
+        for contract in &function.requires {
+            plan.collect_expr(
+                program,
+                variant_layouts,
+                contract,
+                parameter_count,
+                &mut frame,
+            )?;
+        }
+        plan.collect_expr(
+            program,
+            variant_layouts,
+            &function.body,
+            parameter_count,
+            &mut frame,
+        )?;
+        for contract in &function.ensures {
+            plan.collect_expr(
+                program,
+                variant_layouts,
+                contract,
+                parameter_count,
+                &mut frame,
+            )?;
+        }
+        plan.collect_row_loans(program, function, &mut frame)?;
+        plan.frame_size = frame.finish()?;
+        Ok(plan)
+    }
+
+    fn add_local(&mut self, parameter_count: u32, ty: u8) -> Result<u32, Diagnostic> {
+        let relative = u32::try_from(self.local_types.len())
+            .map_err(|_| error("aggregate function has too many locals"))?;
+        self.local_types.push(ty);
+        parameter_count
+            .checked_add(1)
+            .and_then(|base| base.checked_add(relative))
+            .ok_or_else(|| error("aggregate local index overflows u32"))
+    }
+
+    fn collect_exprs(
+        &mut self,
+        program: &ResolvedProgram,
+        variant_layouts: &VariantLayoutCache,
+        expressions: &[ResolvedExpr],
+        parameter_count: u32,
+        frame: &mut FrameAllocator,
+    ) -> Result<(), Diagnostic> {
+        for expression in expressions {
+            self.collect_expr(program, variant_layouts, expression, parameter_count, frame)?;
+        }
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn collect_byte_range(
+        &mut self,
+        program: &ResolvedProgram,
+        variant_layouts: &VariantLayoutCache,
+        source: &ResolvedExpr,
+        start: &ResolvedExpr,
+        end: &ResolvedExpr,
+        parameter_count: u32,
+        frame: &mut FrameAllocator,
+    ) -> Result<(), Diagnostic> {
+        self.collect_expr(program, variant_layouts, source, parameter_count, frame)?;
+        self.collect_expr(program, variant_layouts, start, parameter_count, frame)?;
+        self.collect_expr(program, variant_layouts, end, parameter_count, frame)
+    }
+
+    fn collect_binary(
+        &mut self,
+        program: &ResolvedProgram,
+        variant_layouts: &VariantLayoutCache,
+        left: &ResolvedExpr,
+        right: &ResolvedExpr,
+        parameter_count: u32,
+        frame: &mut FrameAllocator,
+    ) -> Result<(), Diagnostic> {
+        self.collect_expr(program, variant_layouts, left, parameter_count, frame)?;
+        self.collect_expr(program, variant_layouts, right, parameter_count, frame)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn collect_if(
+        &mut self,
+        program: &ResolvedProgram,
+        variant_layouts: &VariantLayoutCache,
+        condition: &ResolvedExpr,
+        then_branch: &ResolvedExpr,
+        else_branch: &ResolvedExpr,
+        parameter_count: u32,
+        frame: &mut FrameAllocator,
+    ) -> Result<(), Diagnostic> {
+        self.collect_expr(program, variant_layouts, condition, parameter_count, frame)?;
+        self.collect_expr(
+            program,
+            variant_layouts,
+            then_branch,
+            parameter_count,
+            frame,
+        )?;
+        self.collect_expr(
+            program,
+            variant_layouts,
+            else_branch,
+            parameter_count,
+            frame,
+        )
+    }
+
+    fn collect_record_fields(
+        &mut self,
+        program: &ResolvedProgram,
+        variant_layouts: &VariantLayoutCache,
+        fields: &[crate::hir::ResolvedFieldInitializer],
+        parameter_count: u32,
+        frame: &mut FrameAllocator,
+    ) -> Result<(), Diagnostic> {
+        for field in fields {
+            self.collect_expr(
+                program,
+                variant_layouts,
+                &field.value,
+                parameter_count,
+                frame,
+            )?;
+        }
+        Ok(())
+    }
+
+    fn collect_variant_fields(
+        &mut self,
+        program: &ResolvedProgram,
+        variant_layouts: &VariantLayoutCache,
+        fields: &[crate::hir::ResolvedFieldInitializer],
+        parameter_count: u32,
+        frame: &mut FrameAllocator,
+    ) -> Result<(), Diagnostic> {
+        for field in fields {
+            self.collect_expr(
+                program,
+                variant_layouts,
+                &field.value,
+                parameter_count,
+                frame,
+            )?;
+        }
+        Ok(())
+    }
+
+    fn expr_scalar(&self, expr: &ResolvedExpr) -> Result<u32, Diagnostic> {
+        self.scalar_expressions
+            .get(&expr.id)
+            .copied()
+            .ok_or_else(|| error(format!("missing scalar local for `{}`", expr.id)))
+    }
+
+    fn expr_pointer(&self, expr: &ResolvedExpr) -> Result<Pointer, Diagnostic> {
+        self.aggregate_expressions
+            .get(&expr.id)
+            .copied()
+            .map(|offset| Pointer {
+                local: self.frame_base,
+                offset,
+            })
+            .ok_or_else(|| error(format!("missing aggregate slot for `{}`", expr.id)))
+    }
+}
+
+fn error(message: impl Into<String>) -> Diagnostic {
+    Diagnostic::io("SPX-W110", message)
+}
+
+fn flatten_byte_leaves(
+    storage: &crate::cleanup_plan::StorageId,
+    shape: &crate::cleanup::FieldLivenessShape,
+    projections: &mut Vec<DeclarationId>,
+    visit: &mut impl FnMut(
+        crate::cleanup_plan::CleanupPlace,
+        crate::cleanup::LivenessFlagId,
+        &DeclarationId,
+    ) -> Result<(), Diagnostic>,
+) -> Result<(), Diagnostic> {
+    match shape {
+        crate::cleanup::FieldLivenessShape::NoDrop => Ok(()),
+        crate::cleanup::FieldLivenessShape::Leaf { flag, lifecycle } => visit(
+            crate::cleanup_plan::CleanupPlace {
+                storage: storage.clone(),
+                projections: projections.clone(),
+            },
+            *flag,
+            lifecycle,
+        ),
+        crate::cleanup::FieldLivenessShape::Record { fields, .. } => {
+            for field in fields {
+                projections.push(field.field.clone());
+                flatten_byte_leaves(storage, &field.shape, projections, visit)?;
+                projections.pop();
+            }
+            Ok(())
+        }
+        crate::cleanup::FieldLivenessShape::Variant { cases, .. } => {
+            for case in cases {
+                projections.push(case.case.clone());
+                for field in &case.fields {
+                    projections.push(field.field.clone());
+                    flatten_byte_leaves(storage, &field.shape, projections, visit)?;
+                    projections.pop();
+                }
+                projections.pop();
+            }
+            Ok(())
+        }
+    }
+}
+
+fn resource_gate() -> Diagnostic {
+    Diagnostic::io(
+        "SPX-W111",
+        "WebAssembly aggregate resource execution remains private and is not admitted by the public backend",
+    )
+}
+
+fn is_record(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
+    if crate::map_ops::is_collection(ty) || crate::list_ops::is_list(ty) {
+        return Ok(false);
+    }
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return Ok(false);
+    };
+    let item = program
+        .types
+        .iter()
+        .find(|item| item.id == *declaration)
+        .ok_or_else(|| error(format!("unknown aggregate type `{declaration}`")))?;
+    if !matches!(
+        item.kind,
+        ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. }
+    ) {
+        return Ok(false);
+    }
+    if arguments.len() != item.type_parameters.len()
+        || (!arguments.is_empty()
+            && (!matches!(item.kind, ResolvedTypeDeclarationKind::Record { .. })
+                || !generic_record::is_admitted(program, ty)?))
+    {
+        return Err(error(format!(
+            "Wasm record representation requires admitted exact concrete arguments for `{}`",
+            ty.identity_key()
+        )));
+    }
+    Ok(true)
+}
+
+fn is_variant(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
+    if crate::iterator_ops::is_step(ty) {
+        return Ok(true);
+    }
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return Ok(false);
+    };
+    let item = program
+        .types
+        .iter()
+        .find(|item| item.id == *declaration)
+        .ok_or_else(|| error(format!("unknown aggregate type `{declaration}`")))?;
+    if !matches!(item.kind, ResolvedTypeDeclarationKind::Variant { .. }) {
+        return Ok(false);
+    }
+    if arguments.len() != item.type_parameters.len()
+        || (!crate::hir::admitted_owned_byte_prelude_instance(declaration, arguments)
+            && !crate::hir::is_admitted_concrete_owned_byte_variant(&program.declarations, ty)
+            && arguments.iter().any(|argument| {
+                !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
+                    && !(declaration.as_str() == crate::prelude::OPTION_ID
+                        && *argument == ResolvedType::U8)
+            }))
+    {
+        return Err(error(format!(
+            "Wasm variant representation requires admitted exact concrete arguments for `{}`",
+            ty.identity_key()
+        )));
+    }
+    Ok(true)
+}
+
+fn is_aggregate(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
+    if matches!(
+        ty,
+        ResolvedType::Function { .. }
+            | ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64
+    ) && crate::hir::closure::requires_runtime_closures(program)
+    {
+        return Ok(true);
+    }
+    if crate::map_ops::is_collection(ty)
+        || crate::wasm::vec_ops::is_wasm_owned_vec_type(program, ty)
+        || crate::cleanup::is_owned_bounded_box_type(ty)
+    {
+        return Ok(false);
+    }
+    if crate::iterator_ops::is_iter(ty) || crate::iterator_ops::is_step(ty) {
+        return Ok(true);
+    }
+    Ok(matches!(ty, ResolvedType::ArrayU8(_))
+        || is_record(program, ty)?
+        || is_variant(program, ty)?)
+}
+
+fn layout(program: &ResolvedProgram, ty: &ResolvedType) -> Result<AggregateLayout, Diagnostic> {
+    let layout = AggregateLayout::for_type(program, AggregateTarget::Wasm32, ty)?;
+    layout.validate(program)?;
+    Ok(layout)
+}
+
+fn variant_layout(
+    variant_layouts: &VariantLayoutCache,
+    ty: &ResolvedType,
+) -> Result<VariantLayout, Diagnostic> {
+    Ok(variant_layouts.layout(ty)?.clone())
+}
+
+fn aggregate_size_align(
+    program: &ResolvedProgram,
+    variant_layouts: &VariantLayoutCache,
+    ty: &ResolvedType,
+) -> Result<(u32, u32), Diagnostic> {
+    if matches!(
+        ty,
+        ResolvedType::Function { .. }
+            | ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::OnceFunctionI64Pair
+            | ResolvedType::MutFunctionI64
+    ) && crate::hir::closure::requires_runtime_closures(program)
+    {
+        return Ok((80, 8));
+    }
+    if crate::iterator_ops::is_iter(ty) {
+        return Ok((16, 8));
+    }
+    if crate::iterator_ops::is_step(ty) {
+        if crate::iterator_ops::element(ty).is_some_and(|element| {
+            crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+                &program.declarations,
+                element,
+            ) || crate::hir::owned_leaf_collection::layout(&program.declarations, element).is_some()
+        }) {
+            let layout = variant_layout(variant_layouts, ty)?;
+            return Ok((layout.size, layout.align));
+        }
+        return Ok((32, 8));
+    }
+    if is_record(program, ty)? {
+        let layout = layout(program, ty)?;
+        Ok((layout.size, layout.align))
+    } else if is_variant(program, ty)? {
+        let layout = variant_layout(variant_layouts, ty)?;
+        Ok((layout.size, layout.align))
+    } else if let ResolvedType::ArrayU8(length) = ty {
+        Ok((*length, 1))
+    } else {
+        Err(error(format!(
+            "aggregate layout requested for scalar `{}`",
+            ty.identity_key()
+        )))
+    }
+}
+
+#[cfg(any(test, feature = "unstable-wit-component-harness"))]
+pub(super) fn lower_selected_functions(
+    program: &ResolvedProgram,
+    ordered_function_ids: &[DeclarationId],
+    selected: &DeclarationId,
+) -> Result<SelectedAggregateLowering, Diagnostic> {
+    if ordered_function_ids.is_empty() {
+        return Err(error(
+            "selected aggregate lowering requires a function closure",
+        ));
+    }
+    if program
+        .types
+        .iter()
+        .any(|item| matches!(item.kind, ResolvedTypeDeclarationKind::Resource { .. }))
+    {
+        return Err(resource_gate());
+    }
+    let variant_layouts = VariantLayoutCache::build(program, VariantTarget::Wasm32)?;
+    let mut types = Vec::<Signature>::new();
+    let mut type_indexes = HashMap::<Signature, u32>::new();
+    let mut function_type_indexes = Vec::with_capacity(ordered_function_ids.len());
+    let mut function_indexes = HashMap::with_capacity(ordered_function_ids.len());
+    for (index, id) in ordered_function_ids.iter().enumerate() {
+        let function = program
+            .functions
+            .iter()
+            .find(|function| function.id == *id)
+            .ok_or_else(|| error(format!("selected aggregate function `{id}` is missing")))?;
+        let mut params = Vec::with_capacity(function.params.len() + 1);
+        for param in &function.params {
+            params.push(if is_aggregate(program, &param.ty)? {
+                I32
+            } else {
+                scalar_wasm_type(program, &param.ty)?
+            });
+        }
+        params.push(I32);
+        function_type_indexes.push(intern_type(
+            Signature {
+                params,
+                results: vec![I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        ));
+        let index = u32::try_from(index)
+            .map_err(|_| error("selected aggregate function index overflows u32"))?;
+        if function_indexes
+            .insert(FunctionExecutionId::Monomorphic(id.clone()), index)
+            .is_some()
+        {
+            return Err(error(format!(
+                "selected aggregate closure repeats function `{id}`"
+            )));
+        }
+    }
+    let selected_index = *function_indexes
+        .get(&FunctionExecutionId::Monomorphic(selected.clone()))
+        .ok_or_else(|| error(format!("selected aggregate closure omits `{selected}`")))?;
+    let mut bodies = Vec::with_capacity(ordered_function_ids.len());
+    for id in ordered_function_ids {
+        let function = program
+            .functions
+            .iter()
+            .find(|function| function.id == *id)
+            .ok_or_else(|| error(format!("selected aggregate function `{id}` is missing")))?;
+        bodies.push(emit_function(
+            program,
+            function,
+            &function_indexes,
+            &HashMap::new(),
+            &HashMap::new(),
+            &variant_layouts,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )?);
+    }
+    Ok(SelectedAggregateLowering {
+        types,
+        function_type_indexes,
+        bodies,
+        selected_index,
+    })
+}
+
+#[cfg(any(test, feature = "unstable-wit-component-harness"))]
+pub(super) fn lower_selected_function_instances(
+    program: &ResolvedProgram,
+    ordered_instance_ids: &[crate::hir::FunctionInstanceId],
+    selected: &crate::hir::FunctionInstanceId,
+) -> Result<SelectedAggregateLowering, Diagnostic> {
+    crate::hir::validate(program)?;
+    if ordered_instance_ids.is_empty() {
+        return Err(error(
+            "selected generic aggregate lowering requires a function-instance closure",
+        ));
+    }
+    if program
+        .types
+        .iter()
+        .any(|item| matches!(item.kind, ResolvedTypeDeclarationKind::Resource { .. }))
+    {
+        return Err(resource_gate());
+    }
+    if ordered_instance_ids.len() != program.function_instances.len()
+        || ordered_instance_ids
+            .iter()
+            .zip(&program.function_instances)
+            .any(|(expected, instance)| expected != &instance.id)
+    {
+        return Err(error(
+            "selected generic aggregate closure is not the exact reachable instance sequence",
+        ));
+    }
+    for instance in &program.function_instances {
+        if crate::hir::FunctionInstanceId::derive(&instance.template, &instance.type_arguments)
+            != instance.id
+        {
+            return Err(error(
+                "selected generic aggregate instance identity is inconsistent",
+            ));
+        }
+    }
+
+    let variant_layouts = VariantLayoutCache::build(program, VariantTarget::Wasm32)?;
+    let mut types = Vec::<Signature>::new();
+    let mut type_indexes = HashMap::<Signature, u32>::new();
+    let mut function_type_indexes = Vec::with_capacity(program.function_instances.len());
+    let mut function_indexes = HashMap::with_capacity(program.function_instances.len());
+    for (index, instance) in program.function_instances.iter().enumerate() {
+        let function = &instance.function;
+        let mut params = Vec::with_capacity(function.params.len() + 1);
+        for param in &function.params {
+            params.push(if is_aggregate(program, &param.ty)? {
+                I32
+            } else {
+                scalar_wasm_type(program, &param.ty)?
+            });
+        }
+        params.push(I32);
+        function_type_indexes.push(intern_type(
+            Signature {
+                params,
+                results: vec![I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        ));
+        let index = u32::try_from(index)
+            .map_err(|_| error("selected generic aggregate function index overflows u32"))?;
+        if function_indexes
+            .insert(FunctionExecutionId::Generic(instance.id.clone()), index)
+            .is_some()
+        {
+            return Err(error(format!(
+                "selected generic aggregate closure repeats function instance `{}`",
+                instance.id
+            )));
+        }
+    }
+    let selected_index = *function_indexes
+        .get(&FunctionExecutionId::Generic(selected.clone()))
+        .ok_or_else(|| {
+            error(format!(
+                "selected generic aggregate closure omits function instance `{selected}`"
+            ))
+        })?;
+    let bodies = program
+        .function_instances
+        .iter()
+        .map(|instance| {
+            emit_function(
+                program,
+                &instance.function,
+                &function_indexes,
+                &HashMap::new(),
+                &HashMap::new(),
+                &variant_layouts,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(SelectedAggregateLowering {
+        types,
+        function_type_indexes,
+        bodies,
+        selected_index,
+    })
+}
+
+#[cfg(test)]
+pub(super) fn emit_stdout_transcript(program: &ResolvedProgram) -> Result<Vec<u8>, Diagnostic> {
+    emit_profile(program, false, true)
+}
+
+/// Emit Public Useful Data Export v1 without widening the legacy aggregate
+/// module. The complete internal function inventory is compiled, but only the
+/// selected raw wrappers and fixed scratch metadata are exported.
+pub(super) fn emit_byte_exports(
+    program: &ResolvedProgram,
+    plans: &[super::data_exports::DataExportPlan],
+) -> Result<Vec<u8>, Diagnostic> {
+    emit_byte_exports_profile(program, plans, false, false, None, &[])
+}
+
+pub(super) fn emit_owned_data_exports(
+    program: &ResolvedProgram,
+    plans: &[super::owned_data_exports::OwnedDataExportPlan],
+) -> Result<Vec<u8>, Diagnostic> {
+    emit_byte_exports_profile(program, &[], false, false, None, plans)
+}
+
+pub(super) fn emit_byte_exports_with_stdout_transcript(
+    program: &ResolvedProgram,
+    plans: &[super::data_exports::DataExportPlan],
+) -> Result<Vec<u8>, Diagnostic> {
+    emit_byte_exports_profile(program, plans, true, false, None, &[])
+}
+
+pub(super) fn emit_useful_data_command_v2(
+    program: &ResolvedProgram,
+    plans: &[super::data_exports::DataExportPlan],
+) -> Result<Vec<u8>, Diagnostic> {
+    emit_byte_exports_profile(program, plans, true, true, None, &[])
+}
+
+pub(super) fn emit_language_command_io(
+    program: &ResolvedProgram,
+    plan: &super::command_io::CommandPlan,
+) -> Result<Vec<u8>, Diagnostic> {
+    emit_byte_exports_profile(program, &[], true, false, Some(plan), &[])
+}
+
+fn emit_byte_exports_profile(
+    program: &ResolvedProgram,
+    plans: &[super::data_exports::DataExportPlan],
+    host_output: bool,
+    publish_only_truthy: bool,
+    command_io: Option<&super::command_io::CommandPlan>,
+    owned_plans: &[super::owned_data_exports::OwnedDataExportPlan],
+) -> Result<Vec<u8>, Diagnostic> {
+    string_runtime::refuse_unimplemented_collections(program)?;
+    let uses_owned_buffer = program_uses_owned_buffer(program);
+    let private_command = command_io
+        .is_some_and(|plan| plan.is_filesystem_command() || plan.is_environment_command())
+        && plans.is_empty()
+        && owned_plans.is_empty();
+    if uses_owned_buffer && !private_command {
+        return Err(Diagnostic::io(
+            "SPX-W115",
+            "Owned Bounded Byte Buffer v1 is internal-only and has no public WebAssembly adapter",
+        ));
+    }
+    let function_value_plan = function_value::table_plan(program)?;
+    let mut executable_functions = executable_functions(program);
+    executable_functions.extend(
+        function_value_plan
+            .bodies
+            .iter()
+            .map(|body| (body, FunctionExecutionId::Monomorphic(body.id.clone()))),
+    );
+    let static_utf8 = crate::hir::validate_with_static_text(program)?;
+    if static_utf8 && (!plans.is_empty() || !owned_plans.is_empty()) {
+        return Err(Diagnostic::io(
+            "SPX-W119",
+            "static borrowed UTF-8 does not widen public data export profiles",
+        ));
+    }
+    let has_owned_utf8 = static_utf8
+        // Runtime selection follows the exact bodies emitted below, including
+        // materialized instances and closure bodies, not only their signatures.
+        || super::functions_use_strings(executable_functions.iter().map(|(function, _)| *function))
+        || (command_io.is_some_and(super::command_io::CommandPlan::is_environment_command)
+            && super::program_uses_strings(program))
+        || owned_plans
+            .iter()
+            .any(|plan| plan.result == super::owned_data_exports::ResultLayout::Utf8)
+        || executable_functions.iter().any(|(function, _)| {
+            function.return_type == ResolvedType::String
+                || crate::hir::owned_text_record::runtime_admitted(
+                    &function.return_type,
+                    &program.declarations,
+                )
+                || function.params.iter().any(|param| {
+                    param.ty == ResolvedType::String
+                        || crate::hir::owned_text_record::runtime_admitted(
+                            &param.ty,
+                            &program.declarations,
+                        )
+                })
+        });
+    let uses_str_ops = program_uses_str_ops(program);
+    let text_helper_count = if uses_str_ops { 2_u32 } else { 0 };
+    let mut owned_utf8_literals = OwnedUtf8Literals {
+        static_pool: static_utf8,
+        base: command_io
+            .filter(|plan| static_utf8 || plan.is_environment_command())
+            .map(|_| 393_216),
+        ..Default::default()
+    };
+    if (plans.is_empty() && command_io.is_none() && owned_plans.is_empty())
+        || (!super::program_uses_byte_data(program)
+            && owned_plans.is_empty()
+            && !command_io.is_some_and(super::command_io::CommandPlan::is_environment_command))
+    {
+        return Err(error(
+            "Public Useful Data Export v1 requires selected byte-data exports",
+        ));
+    }
+    let line_command_io = command_io.is_some_and(super::command_io::CommandPlan::is_line_command);
+    let network_io = command_io.is_some_and(super::command_io::CommandPlan::is_network_command);
+    let http_io = command_io.is_some_and(super::command_io::CommandPlan::is_http_command);
+    let filesystem_ops =
+        command_io.is_some_and(super::command_io::CommandPlan::is_filesystem_command);
+    let environment_io =
+        command_io.is_some_and(super::command_io::CommandPlan::is_environment_command);
+    let process_io = command_io.is_some_and(super::command_io::CommandPlan::is_process_command);
+    target_gates::reject_unsupported_profiles(program)?;
+    let variant_layouts = VariantLayoutCache::build(program, VariantTarget::Wasm32)?;
+    let record_layouts = AggregateLayoutCache::build(program, AggregateTarget::Wasm32)?;
+    for record_layout in record_layouts.layouts() {
+        record_layout.validate(program)?;
+    }
+
+    let public_global_count = if process_io {
+        20_u32
+    } else if environment_io {
+        17_u32
+    } else if filesystem_ops {
+        18_u32
+    } else if line_command_io || network_io || http_io {
+        16_u32
+    } else if command_io.is_some() {
+        15
+    } else if host_output {
+        9
+    } else {
+        4
+    };
+    let range_bindings = build_range_bindings(
+        program,
+        &executable_functions,
+        &variant_layouts,
+        public_global_count,
+    )?;
+    let mut types = Vec::<Signature>::new();
+    let mut type_indexes = HashMap::<Signature, u32>::new();
+    let binary_checked = intern_type(
+        Signature {
+            params: vec![I64, I64],
+            results: vec![I64],
+        },
+        &mut types,
+        &mut type_indexes,
+    );
+    let unary_checked = intern_type(
+        Signature {
+            params: vec![I64],
+            results: vec![I64],
+        },
+        &mut types,
+        &mut type_indexes,
+    );
+    let contract_fail = intern_type(
+        Signature {
+            // Data-export failures publish their typed status through the
+            // existing status globals and never call this imported fallback.
+            // Keep its historical void signature so legacy byte-export
+            // modules remain byte-for-byte stable; the ordinary entry wrapper
+            // below owns the status-carrying contract-failure import.
+            params: Vec::new(),
+            results: Vec::new(),
+        },
+        &mut types,
+        &mut type_indexes,
+    );
+    let byte_unary = intern_type(
+        Signature {
+            params: vec![I64],
+            results: vec![I64],
+        },
+        &mut types,
+        &mut type_indexes,
+    );
+    let byte_get = intern_type(
+        Signature {
+            params: vec![I64, I64],
+            results: vec![I32],
+        },
+        &mut types,
+        &mut type_indexes,
+    );
+    let byte_drop = intern_type(
+        Signature {
+            params: vec![I64],
+            results: Vec::new(),
+        },
+        &mut types,
+        &mut type_indexes,
+    );
+    let map_types = map_collections::import_types(program, &mut types, &mut type_indexes);
+    let byte_set_types =
+        owned_buffer::import_types(uses_owned_buffer, &mut types, &mut type_indexes);
+    let text_helper_type = uses_str_ops.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I64],
+                results: vec![I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let environment_utf8_type = environment_io.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I32, I32],
+                results: vec![I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let environment_utf8_count = u32::from(environment_utf8_type.is_some());
+    let environment_text_type = environment_io.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I64],
+                results: vec![I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let environment_text_count = environment_text_type.map_or(0, |_| 2_u32);
+
+    let mut function_types = Vec::with_capacity(executable_functions.len());
+    for (function, _) in &executable_functions {
+        let mut params = Vec::with_capacity(function.params.len() + 1);
+        for parameter in &function.params {
+            params.push(if is_aggregate(program, &parameter.ty)? {
+                I32
+            } else {
+                scalar_wasm_type(program, &parameter.ty)?
+            });
+        }
+        params.push(I32); // exact caller-owned result slot
+        function_types.push(intern_type(
+            Signature {
+                params,
+                results: vec![I32], // sticky internal status
+            },
+            &mut types,
+            &mut type_indexes,
+        ));
+    }
+    let function_type_indexes = function_value::type_indexes(
+        program,
+        &function_value_plan.signatures,
+        &mut types,
+        &mut type_indexes,
+        function_value_plan.closure_profile,
+    )?;
+    let function_tables = function_value::table_indexes(&function_value_plan.targets)?;
+    let adapter_types =
+        closure::adapter_types(program, &function_value_plan, &mut types, &mut type_indexes)?;
+
+    let mut wrapper_types = plans
+        .iter()
+        .map(|plan| {
+            intern_type(
+                Signature {
+                    params: plan.raw_params(),
+                    results: vec![plan.result.raw_wasm_type()],
+                },
+                &mut types,
+                &mut type_indexes,
+            )
+        })
+        .collect::<Vec<_>>();
+    wrapper_types.extend(owned_plans.iter().map(|plan| {
+        intern_type(
+            Signature {
+                params: plan.raw_params(),
+                results: vec![I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    }));
+    if command_io.is_some() {
+        wrapper_types.push(intern_type(
+            Signature {
+                params: Vec::new(),
+                results: vec![I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        ));
+    }
+
+    let command_import_count = command_io.map_or(0, super::command_io::CommandPlan::import_count);
+    let command_import_types = command_io.map(|_| {
+        (
+            intern_type(
+                Signature {
+                    params: Vec::new(),
+                    results: vec![I64],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+            intern_type(
+                Signature {
+                    params: vec![I64, I32],
+                    results: vec![I32],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+            intern_type(
+                Signature {
+                    params: vec![I32],
+                    results: vec![I32],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+            intern_type(
+                Signature {
+                    params: vec![I64],
+                    results: vec![I32],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+        )
+    });
+    let network_import_types =
+        network_io.then(|| super::network_io::intern_import_types(&mut types, &mut type_indexes));
+    let http_post = command_io.is_some_and(super::command_io::CommandPlan::is_http_post_command);
+    let http_import_types = http_io
+        .then(|| super::http_io::intern_import_types(&mut types, &mut type_indexes, http_post));
+    let filesystem_import_types = filesystem_ops
+        .then(|| super::filesystem_ops::intern_import_types(&mut types, &mut type_indexes));
+    let filesystem_versions =
+        super::filesystem_v3::ImportTypes::new(command_io, &mut types, &mut type_indexes);
+    let process_import_types =
+        process_io.then(|| super::process_io::intern_import_types(&mut types, &mut type_indexes));
+    let environment_import_types = environment_io
+        .then(|| super::environment_io::intern_import_types(&mut types, &mut type_indexes));
+    let owned_utf8_validate = (!owned_plans.is_empty()).then(|| {
+        intern_type(
+            Signature {
+                params: vec![I32, I32],
+                results: vec![I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+
+    let map_count = if map_types.is_some() {
+        map_collections::IMPORT_COUNT
+    } else {
+        0
+    };
+    let import_count = SCALAR_IMPORT_COUNT
+        + BYTE_IMPORT_COUNT
+        + command_import_count
+        + u32::from(owned_utf8_validate.is_some())
+        + if uses_owned_buffer {
+            OWNED_BUFFER_IMPORT_COUNT
+        } else {
+            0
+        }
+        + map_count;
+    let mut function_indexes = executable_functions
+        .iter()
+        .enumerate()
+        .map(|(index, (_, execution))| {
+            (
+                execution.clone(),
+                import_count
+                    + text_helper_count
+                    + environment_utf8_count
+                    + environment_text_count
+                    + u32::try_from(index).unwrap_or(u32::MAX),
+            )
+        })
+        .collect::<HashMap<_, _>>();
+    if uses_str_ops {
+        function_indexes.insert(
+            FunctionExecutionId::Monomorphic(DeclarationId::new(crate::str_ops::STARTS_WITH_ID)),
+            import_count,
+        );
+        function_indexes.insert(
+            FunctionExecutionId::Monomorphic(DeclarationId::new(crate::str_ops::CONTAINS_ID)),
+            import_count + 1,
+        );
+    }
+
+    if uses_owned_buffer {
+        let base = SCALAR_IMPORT_COUNT + BYTE_IMPORT_COUNT + command_import_count;
+        for (id, index) in [
+            (crate::byte_ops::ZEROED_ID, base),
+            (crate::byte_ops::SET_ID, base + 1),
+            (crate::byte_ops::SET5_ID, base + 2),
+            (crate::byte_ops::SET1_OR5_ID, base + 3),
+            (crate::byte_ops::SET1_OR6_OR48_ID, base + 4),
+        ] {
+            function_indexes.insert(
+                FunctionExecutionId::Monomorphic(DeclarationId::new(id)),
+                index,
+            );
+        }
+    }
+    if map_count != 0 {
+        map_collections::insert_indexes(&mut function_indexes, import_count - map_count);
+    }
+    let mut module = b"\0asm\x01\0\0\0".to_vec();
+    let mut type_section = Vec::new();
+    write_u32(&mut type_section, types.len() as u32);
+    for signature in &types {
+        type_section.push(0x60);
+        write_bytes(&mut type_section, &signature.params);
+        write_bytes(&mut type_section, &signature.results);
+    }
+    section(&mut module, 1, type_section);
+
+    let mut imports = Vec::new();
+    write_u32(&mut imports, import_count);
+    for name in ["spx_add", "spx_sub", "spx_mul", "spx_div", "spx_rem"] {
+        function_import(&mut imports, "env", name, binary_checked);
+    }
+    function_import(&mut imports, "env", "spx_neg", unary_checked);
+    function_import(&mut imports, "env", "spx_contract_fail", contract_fail);
+    function_import(&mut imports, "env", "spx_bytes_copy", byte_unary);
+    function_import(&mut imports, "env", "spx_bytes_get", byte_get);
+    function_import(&mut imports, "env", "spx_bytes_drop", byte_drop);
+    function_import(&mut imports, "env", "spx_bytes_as_slice", byte_unary);
+    if let Some((args_len, arg_utf8, stdin_read, owned_validate)) = command_import_types {
+        function_import(&mut imports, "env", "spx_command_args_len_v1", args_len);
+        function_import(&mut imports, "env", "spx_command_arg_utf8_v1", arg_utf8);
+        function_import(&mut imports, "env", "spx_command_stdin_read_v1", stdin_read);
+        function_import(
+            &mut imports,
+            "env",
+            "spx_command_owned_bytes_validate_v1",
+            owned_validate,
+        );
+    }
+    if let Some(types) = &network_import_types {
+        super::network_io::emit_imports(&mut imports, types);
+    }
+    if let Some(types) = &http_import_types {
+        super::http_io::emit_imports(&mut imports, types);
+    }
+    if let Some(types) = &filesystem_import_types {
+        super::filesystem_ops::emit_imports(&mut imports, types);
+    }
+    filesystem_versions.emit(&mut imports);
+    if let Some(types) = &environment_import_types {
+        super::environment_io::emit_imports(&mut imports, types);
+    }
+    if let Some(types) = &process_import_types {
+        super::process_io::emit_imports(&mut imports, types);
+    }
+    if uses_owned_buffer {
+        owned_buffer::emit_imports(&mut imports, byte_unary, &byte_set_types);
+    }
+    if let Some(ty) = owned_utf8_validate {
+        function_import(&mut imports, "env", "spx_owned_utf8_validate_v1", ty);
+    }
+    if let Some(types) = map_types {
+        map_collections::emit_imports(&mut imports, types);
+    }
+    section(&mut module, 2, imports);
+
+    let mut functions = Vec::new();
+    let function_count =
+        u32::try_from(function_types.len() + wrapper_types.len() + adapter_types.len())
+            .map_err(|_| error("too many Public Useful Data functions"))?
+            .checked_add(text_helper_count + environment_utf8_count + environment_text_count)
+            .ok_or_else(|| error("too many Public Useful Data functions"))?;
+    write_u32(&mut functions, function_count);
+    if let Some(text_helper_type) = text_helper_type {
+        write_u32(&mut functions, text_helper_type);
+        write_u32(&mut functions, text_helper_type);
+    }
+    if let Some(environment_utf8_type) = environment_utf8_type {
+        write_u32(&mut functions, environment_utf8_type);
+    }
+    if let Some(environment_text_type) = environment_text_type {
+        write_u32(&mut functions, environment_text_type);
+        write_u32(&mut functions, environment_text_type);
+    }
+    for type_index in function_types
+        .into_iter()
+        .chain(wrapper_types)
+        .chain(adapter_types.iter().copied())
+    {
+        write_u32(&mut functions, type_index);
+    }
+    section(&mut module, 3, functions);
+
+    if !function_value_plan.signatures.is_empty() {
+        let mut tables = Vec::new();
+        write_u32(&mut tables, 1);
+        tables.extend([0x70, 0x01]);
+        write_u32(&mut tables, function_value_plan.targets.len() as u32);
+        write_u32(&mut tables, function_value_plan.targets.len() as u32);
+        section(&mut module, 4, tables);
+    }
+
+    let mut memory = Vec::new();
+    write_u32(&mut memory, 1);
+    let base_memory_pages =
+        if has_owned_utf8 && (environment_io || static_utf8 && command_io.is_some()) {
+            7
+        } else if has_owned_utf8 {
+            4
+        } else if command_io.is_some() {
+            6
+        } else if host_output {
+            super::host_output::MEMORY_PAGES
+        } else {
+            super::data_exports::FIXED_MEMORY_PAGES
+        };
+    let memory_pages = base_memory_pages;
+    memory.extend([0x01, memory_pages, memory_pages]);
+    section(&mut module, 5, memory);
+
+    // Global 0 is the private shadow-stack top. The public globals follow in
+    // exact status/base/capacity order and are the only exported globals.
+    let mut globals = Vec::new();
+    let private_range_global_count = range_bindings
+        .as_ref()
+        .map_or(0_usize, |bindings| bindings.len() * 3);
+    write_u32(
+        &mut globals,
+        public_global_count
+            .checked_add(
+                u32::try_from(private_range_global_count)
+                    .map_err(|_| error("byte-range private global count overflows u32"))?,
+            )
+            .and_then(|count| count.checked_add(semantic_work::global_count()))
+            .and_then(|count| count.checked_add(call_admission::GLOBAL_COUNT))
+            .ok_or_else(|| error("byte-range global count overflows u32"))?,
+    );
+    globals.extend([I32, 0x01, 0x41]);
+    write_i64(&mut globals, 131_072);
+    globals.push(0x0b);
+    globals.extend([I32, 0x01, 0x41, 0x00, 0x0b]);
+    globals.extend([I32, 0x00, 0x41]);
+    write_i64(&mut globals, i64::from(super::data_exports::SCRATCH_BASE));
+    globals.push(0x0b);
+    globals.extend([I32, 0x00, 0x41]);
+    write_i64(
+        &mut globals,
+        i64::from(super::data_exports::SCRATCH_CAPACITY),
+    );
+    globals.push(0x0b);
+    if host_output {
+        super::host_output::append_data_globals(&mut globals);
+    }
+    if command_io.is_some() {
+        super::host_output::append_stderr_data_globals(&mut globals);
+        // Mutable marker for the authenticated command-input sub-domain.
+        // Generic language failures continue to use only the ordinary status
+        // global and must never be attributed to this domain.
+        globals.extend([I32, 0x01, 0x41, 0x00, 0x0b]);
+        if line_command_io || network_io || http_io || filesystem_ops || environment_io {
+            super::line_command_io::append_global(&mut globals);
+        }
+        if environment_io {
+            super::environment_io::append_global(&mut globals);
+        }
+        if process_io {
+            super::process_io::append_globals(&mut globals);
+        }
+        if filesystem_ops {
+            super::filesystem_ops::append_globals(&mut globals);
+        }
+    }
+    for _ in 0..private_range_global_count {
+        globals.extend([I64, 0x01, 0x42, 0x00, 0x0b]);
+    }
+    let global_base = public_global_count + private_range_global_count as u32;
+    semantic_work::append_globals(&mut globals, global_base);
+    call_admission::append_globals(&mut globals);
+    let call_admission_base = global_base + semantic_work::global_count();
+    let _call_admission = call_admission::activate(call_admission_base)?;
+    section(&mut module, 6, globals);
+    let mut exports = Vec::new();
+    write_u32(
+        &mut exports,
+        (if process_io {
+            14_u32
+        } else if environment_io {
+            13_u32
+        } else if line_command_io || network_io || http_io || filesystem_ops {
+            12_u32
+        } else if command_io.is_some() {
+            11_u32
+        } else if host_output {
+            7_u32
+        } else {
+            4_u32
+        })
+        .checked_add(
+            u32::try_from(plans.len() + owned_plans.len() + usize::from(command_io.is_some()))
+                .map_err(|_| error("too many data exports"))?,
+        )
+        .and_then(|count| count.checked_add(semantic_work::export_count()))
+        .and_then(|count| count.checked_add(1))
+        .ok_or_else(|| error("Public Useful Data export count overflows u32"))?,
+    );
+    write_name(&mut exports, super::data_exports::MEMORY_EXPORT);
+    exports.push(0x02);
+    write_u32(&mut exports, 0);
+    for (name, index) in [
+        (super::data_exports::STATUS_GLOBAL_EXPORT, 1_u32),
+        (super::data_exports::SCRATCH_BASE_EXPORT, 2_u32),
+        (super::data_exports::SCRATCH_CAPACITY_EXPORT, 3_u32),
+    ] {
+        write_name(&mut exports, name);
+        exports.push(0x03);
+        write_u32(&mut exports, index);
+    }
+    if host_output {
+        super::host_output::append_exports(&mut exports, super::host_output::DATA_GLOBALS, false);
+    }
+    filesystem_v2::append_command_exports(
+        &mut exports,
+        command_io,
+        line_command_io,
+        network_io,
+        http_io,
+        filesystem_ops,
+    );
+    if environment_io {
+        super::line_command_io::append_export(&mut exports);
+        super::environment_io::append_export(&mut exports);
+    }
+    if process_io {
+        super::process_io::append_export(&mut exports);
+    }
+    let wrapper_base = import_count
+        .checked_add(text_helper_count)
+        .and_then(|value| value.checked_add(environment_utf8_count + environment_text_count))
+        .and_then(|value| value.checked_add(u32::try_from(executable_functions.len()).ok()?))
+        .ok_or_else(|| error("Public Useful Data wrapper index overflows u32"))?;
+    for (ordinal, plan) in plans.iter().enumerate() {
+        write_name(&mut exports, &plan.wasm_export);
+        exports.push(0x00);
+        write_u32(
+            &mut exports,
+            wrapper_base
+                .checked_add(u32::try_from(ordinal).map_err(|_| error("too many wrappers"))?)
+                .ok_or_else(|| error("Public Useful Data wrapper index overflows u32"))?,
+        );
+    }
+    for (ordinal, plan) in owned_plans.iter().enumerate() {
+        write_name(&mut exports, &plan.wasm_export);
+        exports.push(0x00);
+        write_u32(
+            &mut exports,
+            wrapper_base
+                .checked_add(
+                    u32::try_from(plans.len() + ordinal).map_err(|_| error("too many wrappers"))?,
+                )
+                .ok_or_else(|| error("owned-data wrapper index overflows u32"))?,
+        );
+    }
+    if let Some(plan) = command_io {
+        write_name(&mut exports, &plan.wasm_export);
+        exports.push(0x00);
+        write_u32(
+            &mut exports,
+            wrapper_base
+                .checked_add(u32::try_from(plans.len()).map_err(|_| error("too many wrappers"))?)
+                .ok_or_else(|| error("Language Command wrapper index overflows u32"))?,
+        );
+    }
+    semantic_work::append_exports(&mut exports);
+    call_admission::append_exports(&mut exports);
+    section(&mut module, 7, exports);
+
+    let closure_adapter_base = function_indexes.values().copied().max().unwrap_or(0)
+        + 1
+        + (plans.len() + owned_plans.len() + usize::from(command_io.is_some())) as u32;
+    if !function_value_plan.signatures.is_empty() {
+        let mut elements = Vec::new();
+        write_u32(&mut elements, 1);
+        elements.extend([0x00, 0x41, 0x00, 0x0b]);
+        write_u32(&mut elements, function_value_plan.targets.len() as u32);
+        for (ordinal, target) in function_value_plan.targets.iter().enumerate() {
+            let execution = function_value::execution_target(target);
+            write_u32(
+                &mut elements,
+                if function_value_plan.closure_profile {
+                    closure_adapter_base + ordinal as u32
+                } else {
+                    *function_indexes
+                        .get(&execution)
+                        .ok_or_else(|| error("aggregate function table target is not executable"))?
+                },
+            );
+        }
+        section(&mut module, 9, elements);
+    }
+    let mut code = Vec::new();
+    let body_count = u32::try_from(
+        executable_functions.len()
+            + plans.len()
+            + owned_plans.len()
+            + usize::from(command_io.is_some())
+            + adapter_types.len(),
+    )
+    .map_err(|_| error("too many Public Useful Data bodies"))?
+    .checked_add(text_helper_count + environment_utf8_count + environment_text_count)
+    .ok_or_else(|| error("too many Public Useful Data bodies"))?;
+    write_u32(&mut code, body_count);
+    if uses_str_ops {
+        let mut starts_with = Vec::new();
+        super::text_exports::emit_starts_with_body(&mut starts_with);
+        write_u32(&mut code, starts_with.len() as u32);
+        code.extend(starts_with);
+        let mut contains = Vec::new();
+        super::text_exports::emit_contains_bounded_scan_body(&mut contains);
+        write_u32(&mut code, contains.len() as u32);
+        code.extend(contains);
+    }
+    let environment_utf8_index = environment_io.then_some(import_count + text_helper_count);
+    if environment_utf8_index.is_some() {
+        let mut validator = Vec::new();
+        super::text_exports::emit_utf8_validator_body(&mut validator);
+        write_u32(&mut code, validator.len() as u32);
+        code.extend(validator);
+        let mut starts_with = Vec::new();
+        super::environment_io::text::emit_starts_with_body(&mut starts_with);
+        write_u32(&mut code, starts_with.len() as u32);
+        code.extend(starts_with);
+        let mut contains = Vec::new();
+        super::environment_io::text::emit_contains_body(&mut contains);
+        write_u32(&mut code, contains.len() as u32);
+        code.extend(contains);
+    }
+    for (function, _) in &executable_functions {
+        let body = emit_function(
+            program,
+            function,
+            &function_indexes,
+            &function_tables,
+            &function_type_indexes,
+            &variant_layouts,
+            host_output.then_some(super::host_output::DATA_GLOBALS),
+            range_bindings.as_ref(),
+            has_owned_utf8.then_some(&mut owned_utf8_literals),
+            environment_utf8_index,
+            None,
+        )?;
+        write_u32(&mut code, body.len() as u32);
+        code.extend(body);
+    }
+    for plan in plans {
+        let target = function_indexes
+            .get(&FunctionExecutionId::Monomorphic(plan.function_id.clone()))
+            .copied()
+            .ok_or_else(|| error("selected data export target is not indexed"))?;
+        let body = if publish_only_truthy {
+            plan.emit_command_v2_wrapper_body(target, 0, 1, super::host_output::DATA_GLOBALS)?
+        } else if host_output {
+            plan.emit_wrapper_body_with_stdout_transcript(
+                target,
+                0,
+                1,
+                super::host_output::DATA_GLOBALS,
+            )?
+        } else {
+            plan.emit_wrapper_body(target, 0, 1)?
+        };
+        write_u32(&mut code, body.len() as u32);
+        code.extend(body);
+    }
+    let owned_stack_extents = if owned_plans.is_empty() {
+        None
+    } else {
+        let roots = owned_plans
+            .iter()
+            .map(|plan| plan.function_id.clone())
+            .collect::<Vec<_>>();
+        Some(owned_stack::derive(program, &variant_layouts, &roots)?)
+    };
+    for plan in owned_plans {
+        let target = function_indexes
+            .get(&FunctionExecutionId::Monomorphic(plan.function_id.clone()))
+            .copied()
+            .ok_or_else(|| error("selected owned-data export target is not indexed"))?;
+        let utf8_index = SCALAR_IMPORT_COUNT + BYTE_IMPORT_COUNT + command_import_count;
+        let frame_extent = owned_stack_extents
+            .as_ref()
+            .and_then(|extents| extents.get(&plan.function_id))
+            .copied()
+            .ok_or_else(|| error("selected owned-data stack extent is absent"))?;
+        let body = plan.emit_wrapper_body(target, utf8_index, BYTE_DROP_IMPORT, frame_extent)?;
+        write_u32(&mut code, body.len() as u32);
+        code.extend(body);
+    }
+    if let Some(plan) = command_io {
+        let target = function_indexes
+            .get(&FunctionExecutionId::Monomorphic(plan.function_id.clone()))
+            .copied()
+            .ok_or_else(|| error("selected Language Command target is not indexed"))?;
+        let body = super::command_io::emit_wrapper_body(target, plan);
+        write_u32(&mut code, body.len() as u32);
+        code.extend(body);
+    }
+    closure::append_adapters(program, &mut code, &function_value_plan, &function_indexes)?;
+    section(&mut module, 10, code);
+    if has_owned_utf8 {
+        let mut data = Vec::new();
+        write_u32(&mut data, 1);
+        data.push(0x00);
+        data.push(0x41);
+        write_i64(&mut data, i64::from(owned_utf8_literals.base()));
+        data.push(0x0b);
+        write_u32(
+            &mut data,
+            u32::try_from(owned_utf8_literals.bytes.len())
+                .map_err(|_| error("owned UTF-8 literal table overflows u32"))?,
+        );
+        data.extend_from_slice(&owned_utf8_literals.bytes);
+        section(&mut module, 11, data);
+    }
+    Ok(module)
+}
+
+/// Every body a module lowers: the monomorphic closure in canonical order,
+/// then each checked generic instance under its generic execution identity. A
+/// template is never executable.
+fn emit_profile(
+    program: &ResolvedProgram,
+    test_exports: bool,
+    host_output: bool,
+) -> Result<Vec<u8>, Diagnostic> {
+    emit_profile_with_scalar_exports(program, test_exports, host_output, &[], None)
+}
+
+fn emit_profile_with_scalar_exports(
+    program: &ResolvedProgram,
+    test_exports: bool,
+    host_output: bool,
+    scalar_exports: &[super::scalar_exports::ScalarExportPlan],
+    checked_static_utf8: Option<bool>,
+) -> Result<Vec<u8>, Diagnostic> {
+    string_runtime::refuse_unimplemented_collections(program)?;
+    let uses_string_runtime = string_runtime::program_uses_runtime(program);
+    let text_helper_count = u32::from(program_uses_str_ops(program)) * 2;
+    let uses_record_iterator = crate::iterator_ops::resolved_program_uses_record_iterator(program);
+    let uses_maps = map_collections::uses(program);
+    let uses_byte_data = super::program_uses_byte_data(program)
+        || super::program_uses_strings(program)
+        || uses_record_iterator
+        || uses_maps
+        || super::vec_ops::program_uses_owned_leaf_vec(program);
+    let uses_owned_buffer = program_uses_owned_buffer(program);
+    let uses_vec = super::program_uses_vec(program);
+    let uses_extended_vec = super::vec_ops::program_uses_extended_vec(program);
+    let uses_vec_sort = crate::vec_ops::resolved_program_uses_sort(program);
+    let uses_vec_record = super::vec_ops::program_uses_record_vec(program);
+    let uses_owned_leaf_vec = super::vec_ops::program_uses_owned_leaf_vec(program)
+        || vec_owned_leaf::binds_record_keys(program);
+    let uses_owned_iterator = crate::iterator_ops::resolved_program_uses_owned_iterator(program);
+    let uses_box = super::program_uses_box(program);
+    let uses_list = crate::list_ops::resolved_program_uses_list(program);
+    target_gates::reject_unsupported_profiles(program)?;
+    let variant_layouts = VariantLayoutCache::build(program, VariantTarget::Wasm32)?;
+    let record_layouts = AggregateLayoutCache::build(program, AggregateTarget::Wasm32)?;
+    for record_layout in record_layouts.layouts() {
+        record_layout.validate(program)?;
+    }
+
+    let main_index = program
+        .functions
+        .iter()
+        .position(|function| function.id == program.entrypoint)
+        .ok_or_else(|| error("web target requires a main function"))?;
+    let main = &program.functions[main_index];
+    if !main.params.is_empty() || main.return_type != ResolvedType::I64 {
+        return Err(error(
+            "resolved web entry point must have type `fn main() -> i64`",
+        ));
+    }
+
+    let mut types = Vec::<Signature>::new();
+    let mut type_indexes = HashMap::<Signature, u32>::new();
+    let partition_type = byte_partition::uses(program).then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I64, I64],
+                results: vec![I64, I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let binary_checked = intern_type(
+        Signature {
+            params: vec![I64, I64],
+            results: vec![I64],
+        },
+        &mut types,
+        &mut type_indexes,
+    );
+    let unary_checked = intern_type(
+        Signature {
+            params: vec![I64],
+            results: vec![I64],
+        },
+        &mut types,
+        &mut type_indexes,
+    );
+    let contract_fail = intern_type(
+        Signature {
+            params: vec![I32],
+            results: Vec::new(),
+        },
+        &mut types,
+        &mut type_indexes,
+    );
+    let byte_unary = uses_byte_data.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64],
+                results: vec![I64],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let byte_get = uses_byte_data.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I64],
+                results: vec![I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let byte_drop = uses_byte_data.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64],
+                results: Vec::new(),
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let text_helper_type =
+        str_helpers::helper_type(text_helper_count, &mut types, &mut type_indexes);
+    let string_from_char = uses_string_runtime.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I32],
+                results: vec![I64],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let string_text_binary = uses_string_runtime.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I64],
+                results: vec![I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let byte_set_types =
+        owned_buffer::import_types(uses_owned_buffer, &mut types, &mut type_indexes);
+    let vec_alloc = uses_vec.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I32, I64],
+                results: vec![I64],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let vec_push = uses_vec.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I32, I64],
+                results: vec![I64],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let vec_read = uses_vec.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I32],
+                results: vec![I64],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let vec_get = uses_vec.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I32, I64],
+                results: vec![I64],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let vec_drop = uses_vec.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64],
+                results: Vec::new(),
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let vec_record_push = uses_vec_record.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I32, I64, I64, I64],
+                results: vec![I64],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let vec_set = uses_extended_vec.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I32, I64, I64],
+                results: vec![I64],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let owned_leaf_types =
+        vec_owned_leaf::import_types(program, uses_owned_leaf_vec, &mut types, &mut type_indexes);
+    let (iter_into, iter_next, iter_drop, record_iter_next) = iterator_ops::intern_import_types(
+        uses_owned_iterator,
+        uses_record_iterator,
+        &mut types,
+        &mut type_indexes,
+    );
+    let box_new = uses_box.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I32, I64],
+                results: vec![I64],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let box_read = uses_box.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I32],
+                results: vec![I64],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let box_drop = uses_box.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64],
+                results: Vec::new(),
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+
+    let function_value_plan = function_value::table_plan(program)?;
+    let mut executable_functions = executable_functions(program);
+    executable_functions.extend(
+        function_value_plan
+            .bodies
+            .iter()
+            .map(|body| (body, FunctionExecutionId::Monomorphic(body.id.clone()))),
+    );
+    let public_global_count = if host_output { 5_u32 } else { 1_u32 };
+    let range_bindings = build_range_bindings(
+        program,
+        &executable_functions,
+        &variant_layouts,
+        public_global_count,
+    )?;
+    let mut function_types = Vec::with_capacity(executable_functions.len());
+    for (function, _) in &executable_functions {
+        let mut params = Vec::with_capacity(function.params.len() + 1);
+        for param in &function.params {
+            params.push(if is_aggregate(program, &param.ty)? {
+                I32
+            } else {
+                scalar_wasm_type(program, &param.ty)?
+            });
+        }
+        params.push(I32);
+        function_types.push(intern_type(
+            Signature {
+                params,
+                results: vec![I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        ));
+    }
+    let function_type_indexes = function_value::type_indexes(
+        program,
+        &function_value_plan.signatures,
+        &mut types,
+        &mut type_indexes,
+        function_value_plan.closure_profile,
+    )?;
+    let function_tables = function_value::table_indexes(&function_value_plan.targets)?;
+    let adapter_types =
+        closure::adapter_types(program, &function_value_plan, &mut types, &mut type_indexes)?;
+    let wrapper_type = intern_type(
+        Signature {
+            params: Vec::new(),
+            results: vec![I64],
+        },
+        &mut types,
+        &mut type_indexes,
+    );
+    let map_types = map_collections::import_types(program, &mut types, &mut type_indexes);
+    let toolkit_types = text_toolkit::import_types(program, &mut types, &mut type_indexes);
+    let format_step_type = literal_format::import_type(program, &mut types, &mut type_indexes);
+    let map_count = if uses_maps {
+        map_collections::IMPORT_COUNT
+    } else {
+        0
+    };
+    let scalar_export_types = scalar_exports
+        .iter()
+        .map(|plan| {
+            intern_type(
+                Signature {
+                    params: plan.params.iter().map(|ty| ty.wasm_type()).collect(),
+                    results: vec![plan.result.wasm_type()],
+                },
+                &mut types,
+                &mut type_indexes,
+            )
+        })
+        .collect::<Vec<_>>();
+    let mut function_indexes = executable_functions
+        .iter()
+        .enumerate()
+        .map(|(index, (_, execution))| {
+            (
+                execution.clone(),
+                SCALAR_IMPORT_COUNT
+                    + if uses_byte_data { BYTE_IMPORT_COUNT } else { 0 }
+                    + if uses_owned_buffer {
+                        OWNED_BUFFER_IMPORT_COUNT
+                    } else {
+                        0
+                    }
+                    + if uses_vec { VEC_IMPORT_COUNT } else { 0 }
+                    + if uses_extended_vec {
+                        EXTENDED_VEC_IMPORT_COUNT
+                    } else {
+                        0
+                    }
+                    + if uses_vec_record {
+                        RECORD_VEC_IMPORT_COUNT
+                    } else {
+                        0
+                    }
+                    + u32::from(uses_vec_sort)
+                    + if uses_owned_iterator {
+                        OWNED_ITER_IMPORT_COUNT
+                    } else {
+                        0
+                    }
+                    + iterator_ops::record_import_count(uses_record_iterator)
+                    + if uses_box { BOX_IMPORT_COUNT } else { 0 }
+                    + if uses_string_runtime {
+                        string_runtime::import_count(program)
+                    } else {
+                        0
+                    }
+                    + map_count
+                    + if uses_owned_leaf_vec {
+                        vec_owned_leaf::import_count(program)
+                    } else {
+                        0
+                    }
+                    + u32::from(partition_type.is_some())
+                    + text_helper_count
+                    + u32::try_from(index).unwrap_or(u32::MAX),
+            )
+        })
+        .collect::<HashMap<_, _>>();
+    let partition_index = partition_type.map(|_| {
+        function_indexes
+            .values()
+            .copied()
+            .min()
+            .expect("checked main function")
+            - text_helper_count
+            - 1
+    });
+    str_helpers::insert_indexes(text_helper_count, &mut function_indexes)?;
+    if let Some(index) = partition_index {
+        function_indexes.insert(
+            FunctionExecutionId::Monomorphic(crate::hir::DeclarationId::new(
+                crate::construction_fusion::partition::ID,
+            )),
+            index,
+        );
+    }
+
+    let mut module = b"\0asm\x01\0\0\0".to_vec();
+    let mut type_section = Vec::new();
+    write_u32(&mut type_section, types.len() as u32);
+    for signature in &types {
+        type_section.push(0x60);
+        write_bytes(&mut type_section, &signature.params);
+        write_bytes(&mut type_section, &signature.results);
+    }
+    section(&mut module, 1, type_section);
+
+    let mut imports = Vec::new();
+    write_u32(
+        &mut imports,
+        SCALAR_IMPORT_COUNT
+            + if uses_byte_data { BYTE_IMPORT_COUNT } else { 0 }
+            + if uses_owned_buffer {
+                OWNED_BUFFER_IMPORT_COUNT
+            } else {
+                0
+            }
+            + if uses_vec { VEC_IMPORT_COUNT } else { 0 }
+            + if uses_extended_vec {
+                EXTENDED_VEC_IMPORT_COUNT
+            } else {
+                0
+            }
+            + if uses_vec_record {
+                RECORD_VEC_IMPORT_COUNT
+            } else {
+                0
+            }
+            + u32::from(uses_vec_sort)
+            + if uses_owned_iterator {
+                OWNED_ITER_IMPORT_COUNT
+            } else {
+                0
+            }
+            + iterator_ops::record_import_count(uses_record_iterator)
+            + if uses_box { BOX_IMPORT_COUNT } else { 0 }
+            + if uses_string_runtime {
+                string_runtime::import_count(program)
+            } else {
+                0
+            }
+            + map_count
+            + u32::from(partition_type.is_some())
+            + if uses_owned_leaf_vec {
+                vec_owned_leaf::import_count(program)
+            } else {
+                0
+            },
+    );
+    for name in ["spx_add", "spx_sub", "spx_mul", "spx_div", "spx_rem"] {
+        function_import(&mut imports, "env", name, binary_checked);
+    }
+    function_import(&mut imports, "env", "spx_neg", unary_checked);
+    function_import(&mut imports, "env", "spx_contract_fail", contract_fail);
+    if uses_byte_data {
+        function_import(&mut imports, "env", "spx_bytes_copy", byte_unary.unwrap());
+        function_import(&mut imports, "env", "spx_bytes_get", byte_get.unwrap());
+        function_import(&mut imports, "env", "spx_bytes_drop", byte_drop.unwrap());
+        function_import(
+            &mut imports,
+            "env",
+            "spx_bytes_as_slice",
+            byte_unary.unwrap(),
+        );
+    }
+    if uses_owned_buffer {
+        owned_buffer::emit_imports(&mut imports, byte_unary.unwrap(), &byte_set_types);
+    }
+    if uses_vec {
+        let names = vec_owned_payload::import_names(program);
+        function_import(&mut imports, "env", names[0], vec_alloc.unwrap());
+        function_import(&mut imports, "env", names[1], vec_push.unwrap());
+        function_import(&mut imports, "env", names[2], vec_read.unwrap());
+        function_import(&mut imports, "env", names[3], vec_read.unwrap());
+        function_import(&mut imports, "env", names[4], vec_get.unwrap());
+        function_import(&mut imports, "env", names[5], vec_drop.unwrap());
+        if uses_extended_vec {
+            function_import(&mut imports, "env", names[6], vec_push.unwrap());
+            function_import(&mut imports, "env", names[7], vec_set.unwrap());
+            function_import(&mut imports, "env", names[8], vec_read.unwrap());
+        }
+        if uses_vec_record {
+            function_import(
+                &mut imports,
+                "env",
+                vec_record_payload::RECORD_PUSH_IMPORT,
+                vec_record_push.unwrap(),
+            );
+        }
+        if uses_vec_sort {
+            function_import(&mut imports, "env", "spx_vec_sort_v3", vec_read.unwrap());
+        }
+    }
+    if uses_owned_iterator {
+        let names = iterator_ops::owned_import_names();
+        function_import(&mut imports, "env", names[0], iter_into.unwrap());
+        function_import(&mut imports, "env", names[1], iter_next.unwrap());
+        function_import(&mut imports, "env", names[2], iter_drop.unwrap());
+    }
+    if uses_record_iterator {
+        let names = iterator_ops::record_import_names();
+        function_import(&mut imports, "env", names[0], iter_into.unwrap());
+        function_import(&mut imports, "env", names[1], record_iter_next.unwrap());
+        function_import(&mut imports, "env", names[2], iter_drop.unwrap());
+    }
+    if uses_box {
+        let names = box_ops::import_names(program);
+        function_import(&mut imports, "env", names[0], box_new.unwrap());
+        function_import(&mut imports, "env", names[1], box_read.unwrap());
+        function_import(&mut imports, "env", names[2], box_read.unwrap());
+        function_import(&mut imports, "env", names[3], box_drop.unwrap());
+    }
+    if uses_string_runtime {
+        string_runtime::emit_imports(
+            &mut imports,
+            binary_checked,
+            unary_checked,
+            string_from_char.expect("String runtime from-char type"),
+            string_text_binary.expect("String runtime text comparison type"),
+            string_runtime::program_uses_ordering(program),
+        );
+        for (operation, ty) in &toolkit_types {
+            function_import(
+                &mut imports,
+                "env",
+                text_toolkit::import_name(*operation),
+                *ty,
+            );
+        }
+        literal_format::emit_import(&mut imports, format_step_type);
+        let base = SCALAR_IMPORT_COUNT
+            + if uses_byte_data { BYTE_IMPORT_COUNT } else { 0 }
+            + if uses_owned_buffer {
+                OWNED_BUFFER_IMPORT_COUNT
+            } else {
+                0
+            }
+            + if uses_vec { VEC_IMPORT_COUNT } else { 0 }
+            + if uses_extended_vec {
+                EXTENDED_VEC_IMPORT_COUNT
+            } else {
+                0
+            }
+            + if uses_vec_record {
+                RECORD_VEC_IMPORT_COUNT
+            } else {
+                0
+            }
+            + u32::from(uses_vec_sort)
+            + if uses_owned_iterator {
+                OWNED_ITER_IMPORT_COUNT
+            } else {
+                0
+            }
+            + iterator_ops::record_import_count(uses_record_iterator)
+            + if uses_box { BOX_IMPORT_COUNT } else { 0 };
+        string_runtime::insert_function_indexes(
+            &mut function_indexes,
+            base,
+            string_runtime::program_uses_ordering(program),
+        );
+        for (offset, (operation, _)) in toolkit_types.iter().enumerate() {
+            function_indexes.insert(
+                FunctionExecutionId::Monomorphic(DeclarationId::new(operation.id())),
+                base + string_runtime::IMPORT_COUNT
+                    + u32::from(string_runtime::program_uses_ordering(program))
+                    + offset as u32,
+            );
+        }
+        literal_format::insert_index(
+            &mut function_indexes,
+            base,
+            program,
+            toolkit_types.len(),
+            format_step_type,
+        );
+    }
+    if let Some(types) = map_types {
+        let base = SCALAR_IMPORT_COUNT
+            + if uses_byte_data { BYTE_IMPORT_COUNT } else { 0 }
+            + if uses_owned_buffer {
+                OWNED_BUFFER_IMPORT_COUNT
+            } else {
+                0
+            }
+            + if uses_vec { VEC_IMPORT_COUNT } else { 0 }
+            + if uses_extended_vec {
+                EXTENDED_VEC_IMPORT_COUNT
+            } else {
+                0
+            }
+            + if uses_vec_record {
+                RECORD_VEC_IMPORT_COUNT
+            } else {
+                0
+            }
+            + u32::from(uses_vec_sort)
+            + if uses_owned_iterator {
+                OWNED_ITER_IMPORT_COUNT
+            } else {
+                0
+            }
+            + iterator_ops::record_import_count(uses_record_iterator)
+            + if uses_box { BOX_IMPORT_COUNT } else { 0 }
+            + if uses_string_runtime {
+                string_runtime::import_count(program)
+            } else {
+                0
+            };
+        map_collections::emit_imports(&mut imports, types);
+        map_collections::insert_indexes(&mut function_indexes, base);
+    }
+    if let Some(types) = owned_leaf_types {
+        vec_owned_leaf::emit_imports(&mut imports, types);
+    }
+    if let Some(ty) = partition_type {
+        function_import(&mut imports, "env", "spx_bytes_partition", ty);
+    }
+    section(&mut module, 2, imports);
+
+    let mut function_section = Vec::new();
+    write_u32(
+        &mut function_section,
+        u32::try_from(
+            function_types.len()
+                + 1
+                + scalar_export_types.len()
+                + adapter_types.len()
+                + text_helper_count as usize,
+        )
+        .map_err(|_| error("too many aggregate functions"))?,
+    );
+    if let Some(ty) = text_helper_type {
+        write_u32(&mut function_section, ty);
+        write_u32(&mut function_section, ty);
+    }
+    for ty in function_types {
+        write_u32(&mut function_section, ty);
+    }
+    write_u32(&mut function_section, wrapper_type);
+    for ty in scalar_export_types {
+        write_u32(&mut function_section, ty);
+    }
+    for ty in &adapter_types {
+        write_u32(&mut function_section, *ty);
+    }
+    section(&mut module, 3, function_section);
+    if !function_value_plan.signatures.is_empty() {
+        let mut tables = Vec::new();
+        write_u32(&mut tables, 1);
+        tables.extend([0x70, 0x01]);
+        write_u32(&mut tables, function_value_plan.targets.len() as u32);
+        write_u32(&mut tables, function_value_plan.targets.len() as u32);
+        section(&mut module, 4, tables);
+    }
+    let static_utf8 = match checked_static_utf8 {
+        Some(selected) => selected,
+        None => crate::hir::static_text::validate_pool(program)?,
+    };
+    let owned_utf8 = static_utf8 || super::program_uses_strings(program);
+    let mut utf8_literals = OwnedUtf8Literals {
+        static_pool: static_utf8,
+        ..Default::default()
+    };
+    let mut memory = Vec::new();
+    write_u32(&mut memory, 1);
+    if uses_byte_data {
+        if host_output {
+            memory.extend([
+                0x01,
+                if static_utf8 {
+                    4
+                } else {
+                    super::host_output::MEMORY_PAGES
+                },
+                if static_utf8 {
+                    4
+                } else {
+                    super::host_output::MEMORY_PAGES
+                },
+            ]);
+        } else {
+            let pages = if owned_utf8 { 4 } else { 2 };
+            memory.extend([0x01, pages, pages]);
+        }
+    } else {
+        memory.extend([0x00, 0x01]);
+    }
+    section(&mut module, 5, memory);
+
+    let mut globals = Vec::new();
+    let private_range_global_count = range_bindings
+        .as_ref()
+        .map_or(0_usize, |bindings| bindings.len() * 3);
+    write_u32(
+        &mut globals,
+        public_global_count
+            .checked_add(
+                u32::try_from(private_range_global_count)
+                    .map_err(|_| error("byte-range private global count overflows u32"))?,
+            )
+            .and_then(|count| count.checked_add(call_admission::GLOBAL_COUNT))
+            .and_then(|count| count.checked_add(u32::from(uses_list)))
+            .ok_or_else(|| error("byte-range global count overflows u32"))?,
+    );
+    globals.extend([I32, 0x01, 0x41]);
+    write_i64(
+        &mut globals,
+        i64::from(if uses_byte_data {
+            131_072
+        } else {
+            SHADOW_STACK_TOP
+        }),
+    );
+    globals.push(0x0b);
+    if host_output {
+        super::host_output::append_globals(&mut globals);
+    }
+    for _ in 0..private_range_global_count {
+        globals.extend([I64, 0x01, 0x42, 0x00, 0x0b]);
+    }
+    call_admission::append_globals(&mut globals);
+    let call_admission_base = public_global_count + private_range_global_count as u32;
+    let _call_admission = call_admission::activate(call_admission_base)?;
+    let list_heap_global =
+        list_ops::append_heap_global(&mut globals, uses_list, call_admission_base);
+    section(&mut module, 6, globals);
+
+    let mut exports = Vec::new();
+    let extra_exports = if test_exports {
+        u32::try_from(executable_functions.len())
+            .map_err(|_| error("too many aggregate test exports"))?
+            .checked_add(2)
+            .ok_or_else(|| error("aggregate test export count overflows u32"))?
+    } else {
+        0
+    };
+    let legacy_export_count =
+        1 + extra_exports + u32::from(uses_byte_data) + if host_output { 4 } else { 0 };
+    write_u32(
+        &mut exports,
+        if scalar_exports.is_empty() {
+            legacy_export_count
+        } else {
+            u32::try_from(scalar_exports.len())
+                .map_err(|_| error("too many aggregate scalar exports"))?
+                .checked_add(u32::from(uses_byte_data))
+                .ok_or_else(|| error("aggregate scalar export count overflows u32"))?
+        },
+    );
+    let wrapper_index = SCALAR_IMPORT_COUNT
+        .checked_add(if uses_byte_data { BYTE_IMPORT_COUNT } else { 0 })
+        .and_then(|value| {
+            value.checked_add(if uses_owned_buffer {
+                OWNED_BUFFER_IMPORT_COUNT
+            } else {
+                0
+            })
+        })
+        .and_then(|value| value.checked_add(if uses_vec { VEC_IMPORT_COUNT } else { 0 }))
+        .and_then(|value| {
+            value.checked_add(if uses_extended_vec {
+                EXTENDED_VEC_IMPORT_COUNT
+            } else {
+                0
+            })
+        })
+        .and_then(|value| {
+            value.checked_add(
+                if uses_vec_record {
+                    RECORD_VEC_IMPORT_COUNT
+                } else {
+                    0
+                } + u32::from(uses_vec_sort),
+            )
+        })
+        .and_then(|value| {
+            value.checked_add(if uses_owned_iterator {
+                OWNED_ITER_IMPORT_COUNT
+            } else {
+                0
+            })
+        })
+        .and_then(|value| {
+            value.checked_add(iterator_ops::record_import_count(uses_record_iterator))
+        })
+        .and_then(|value| value.checked_add(if uses_box { BOX_IMPORT_COUNT } else { 0 }))
+        .and_then(|value| {
+            value.checked_add(if uses_string_runtime {
+                string_runtime::import_count(program)
+            } else {
+                0
+            })
+        })
+        .and_then(|value| value.checked_add(map_count))
+        .and_then(|value| value.checked_add(u32::from(partition_type.is_some())))
+        .and_then(|value| {
+            value.checked_add(if uses_owned_leaf_vec {
+                vec_owned_leaf::import_count(program)
+            } else {
+                0
+            })
+        })
+        .ok_or_else(|| error("aggregate wrapper import count overflows u32"))?
+        .checked_add(text_helper_count)
+        .ok_or_else(|| error("text helper count overflows u32"))?
+        .checked_add(
+            u32::try_from(executable_functions.len()).map_err(|_| error("too many functions"))?,
+        )
+        .ok_or_else(|| error("aggregate wrapper index overflows u32"))?;
+    if scalar_exports.is_empty() {
+        write_name(&mut exports, "semaprax_main");
+        exports.push(0x00);
+        write_u32(&mut exports, wrapper_index);
+    }
+    if uses_byte_data {
+        write_name(&mut exports, "__spx_byte_memory");
+        exports.push(0x02);
+        write_u32(&mut exports, 0);
+    }
+    if scalar_exports.is_empty() && host_output {
+        super::host_output::append_exports(&mut exports, super::host_output::ROOT_GLOBALS, true);
+    }
+    if scalar_exports.is_empty() && test_exports {
+        write_name(&mut exports, "__spx_test_memory");
+        exports.push(0x02);
+        write_u32(&mut exports, 0);
+        write_name(&mut exports, "__spx_test_shadow_stack");
+        exports.push(0x03);
+        write_u32(&mut exports, 0);
+        for (_function, execution) in &executable_functions {
+            write_name(
+                &mut exports,
+                &format!("__spx_test_{}", hex_execution_identity(execution)),
+            );
+            exports.push(0x00);
+            write_u32(
+                &mut exports,
+                *function_indexes
+                    .get(execution)
+                    .ok_or_else(|| error("aggregate test function is not indexed"))?,
+            );
+        }
+    }
+    if !scalar_exports.is_empty() {
+        let scalar_export_base = wrapper_index
+            .checked_add(1)
+            .ok_or_else(|| error("aggregate scalar export index overflows u32"))?;
+        for (ordinal, plan) in scalar_exports.iter().enumerate() {
+            write_name(&mut exports, &plan.wasm_export);
+            exports.push(0x00);
+            write_u32(
+                &mut exports,
+                scalar_export_base
+                    .checked_add(
+                        u32::try_from(ordinal)
+                            .map_err(|_| error("too many aggregate scalar exports"))?,
+                    )
+                    .ok_or_else(|| error("aggregate scalar export index overflows u32"))?,
+            );
+        }
+    }
+    section(&mut module, 7, exports);
+
+    let closure_adapter_base = function_indexes.values().copied().max().unwrap_or(0)
+        + 1
+        + (1 + scalar_exports.len()) as u32;
+    if !function_value_plan.signatures.is_empty() {
+        let mut elements = Vec::new();
+        write_u32(&mut elements, 1);
+        elements.extend([0x00, 0x41, 0x00, 0x0b]);
+        write_u32(&mut elements, function_value_plan.targets.len() as u32);
+        for (ordinal, target) in function_value_plan.targets.iter().enumerate() {
+            let execution = function_value::execution_target(target);
+            write_u32(
+                &mut elements,
+                if function_value_plan.closure_profile {
+                    closure_adapter_base + ordinal as u32
+                } else {
+                    *function_indexes
+                        .get(&execution)
+                        .ok_or_else(|| error("aggregate function table target is not executable"))?
+                },
+            );
+        }
+        section(&mut module, 9, elements);
+    }
+    let mut code = Vec::new();
+    write_u32(
+        &mut code,
+        u32::try_from(
+            executable_functions.len()
+                + 1
+                + scalar_exports.len()
+                + adapter_types.len()
+                + text_helper_count as usize,
+        )
+        .map_err(|_| error("too many aggregate function bodies"))?,
+    );
+    str_helpers::append_bodies(text_helper_count, &mut code);
+    for (function, _) in &executable_functions {
+        let body = emit_function(
+            program,
+            function,
+            &function_indexes,
+            &function_tables,
+            &function_type_indexes,
+            &variant_layouts,
+            host_output.then_some(super::host_output::ROOT_GLOBALS),
+            range_bindings.as_ref(),
+            owned_utf8.then_some(&mut utf8_literals),
+            None,
+            list_heap_global,
+        )?;
+        write_u32(&mut code, body.len() as u32);
+        code.extend(body);
+    }
+    let wrapper = emit_wrapper(
+        *function_indexes
+            .get(&FunctionExecutionId::Monomorphic(main.id.clone()))
+            .ok_or_else(|| error("aggregate main function is not indexed"))?,
+        host_output,
+        list_heap_global,
+    );
+    write_u32(&mut code, wrapper.len() as u32);
+    code.extend(wrapper);
+    for plan in scalar_exports {
+        let target = function_indexes
+            .get(&FunctionExecutionId::Monomorphic(plan.function_id.clone()))
+            .copied()
+            .ok_or_else(|| error("aggregate scalar export target is not indexed"))?;
+        let adapter = emit_scalar_export_wrapper(plan, target)?;
+        write_u32(&mut code, adapter.len() as u32);
+        code.extend(adapter);
+    }
+    closure::append_adapters(program, &mut code, &function_value_plan, &function_indexes)?;
+    section(&mut module, 10, code);
+    owned_strings::emit_literal_data(&mut module, owned_utf8, &utf8_literals)?;
+    Ok(module)
+}
+
+// This adapter is the shared standard-profile boundary. The underlying
+// profile additionally receives its explicit mode flag.
+#[allow(clippy::too_many_arguments)]
+fn emit_function(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    function_indexes: &HashMap<FunctionExecutionId, u32>,
+    function_tables: &HashMap<DeclarationId, u32>,
+    function_type_indexes: &HashMap<String, u32>,
+    variant_layouts: &VariantLayoutCache,
+    host_output: Option<super::host_output::Globals>,
+    range_bindings: Option<&RangeBindings>,
+    owned_utf8_literals: Option<&mut OwnedUtf8Literals>,
+    environment_utf8_index: Option<u32>,
+    list_heap_global: Option<u32>,
+) -> Result<Vec<u8>, Diagnostic> {
+    emit_function_profile(
+        program,
+        function,
+        function_indexes,
+        function_tables,
+        function_type_indexes,
+        variant_layouts,
+        host_output,
+        range_bindings,
+        owned_utf8_literals,
+        environment_utf8_index,
+        list_heap_global,
+        false,
+        None,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn emit_function_profile(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    function_indexes: &HashMap<FunctionExecutionId, u32>,
+    function_tables: &HashMap<DeclarationId, u32>,
+    function_type_indexes: &HashMap<String, u32>,
+    variant_layouts: &VariantLayoutCache,
+    host_output: Option<super::host_output::Globals>,
+    range_bindings: Option<&RangeBindings>,
+    owned_utf8_literals: Option<&mut OwnedUtf8Literals>,
+    environment_utf8_index: Option<u32>,
+    list_heap_global: Option<u32>,
+    standalone_strings: bool,
+    byte_get_import: Option<u32>,
+) -> Result<Vec<u8>, Diagnostic> {
+    if crate::list_ops::resolved_program_uses_list(program) && list_heap_global.is_none() {
+        return Err(Diagnostic::io(
+            "SPX-W130",
+            "List carrier requires the closed Core Wasm profile",
+        ));
+    }
+    let owned_string_profile = owned_utf8_literals.is_some();
+    let plan = FunctionPlan::build_profile(program, function, variant_layouts, standalone_strings)?;
+    let mut body = Vec::new();
+    write_u32(&mut body, plan.local_types.len() as u32);
+    for ty in &plan.local_types {
+        write_u32(&mut body, 1);
+        body.push(*ty);
+    }
+    body.push(0x23);
+    write_u32(&mut body, 0);
+    body.push(0x21);
+    write_u32(&mut body, plan.old_stack);
+    if let Some(external_root_bytes) = plan.external_root_bytes {
+        emit_external_byte_root_admission(
+            &mut body,
+            program,
+            function,
+            plan.old_stack,
+            external_root_bytes,
+        )?;
+    }
+    if plan.frame_size != 0 {
+        body.push(0x20);
+        write_u32(&mut body, plan.old_stack);
+        body.push(0x41);
+        write_i64(&mut body, i64::from(plan.frame_size));
+        body.push(0x49);
+        body.extend([0x04, 0x40, 0x00, 0x0b]);
+    }
+    body.push(0x20);
+    write_u32(&mut body, plan.old_stack);
+    body.push(0x41);
+    write_i64(&mut body, i64::from(plan.frame_size));
+    body.push(0x6b);
+    body.push(0x22);
+    write_u32(&mut body, plan.frame_base);
+    body.push(0x24);
+    write_u32(&mut body, 0);
+    body.push(0x41);
+    write_i64(&mut body, i64::from(STATUS_SUCCESS));
+    body.push(0x21);
+    write_u32(&mut body, plan.status);
+    if let Some(result_staged) = plan.result_staged {
+        body.extend([0x41, 0x00, 0x21]);
+        write_u32(&mut body, result_staged);
+    }
+    for place in &function.cleanup_plan.entry_state.live_owned_parameters {
+        let flags = plan
+            .cleanup_place_flags
+            .iter()
+            .filter(|(leaf, _)| {
+                leaf.storage == place.storage && leaf.projections.starts_with(&place.projections)
+            })
+            .map(|(_, flag)| *flag)
+            .collect::<Vec<_>>();
+        if flags.is_empty() {
+            return Err(error("Bytes entry liveness has no projected flag local"));
+        }
+        for flag in flags {
+            body.extend([0x41, 0x01, 0x21]);
+            write_u32(&mut body, flag);
+        }
+    }
+    for conditional in &function
+        .cleanup_plan
+        .entry_state
+        .conditional_owned_parameters
+    {
+        let crate::cleanup_plan::StorageId::Value(parameter) = &conditional.storage else {
+            return Err(error("conditional variant entry is not parameter-rooted"));
+        };
+        let (parameter_index, parameter_ty) = function
+            .params
+            .iter()
+            .enumerate()
+            .find(|(_, candidate)| candidate.id == *parameter)
+            .map(|(index, candidate)| (index as u32, &candidate.ty))
+            .ok_or_else(|| error("conditional variant entry parameter is absent"))?;
+        let layout = variant_layout(variant_layouts, parameter_ty)?;
+        if layout.variant != conditional.variant || layout.cases.len() != conditional.cases.len() {
+            return Err(error(
+                "conditional variant entry disagrees with its concrete layout",
+            ));
+        }
+        body.extend([0x20]);
+        write_u32(&mut body, parameter_index);
+        body.extend([0x28, 0x02, 0x00, 0x41]);
+        write_i64(
+            &mut body,
+            i64::try_from(layout.cases.len())
+                .map_err(|_| error("conditional variant case count overflows i64"))?,
+        );
+        body.extend([0x4f, 0x04, 0x40, 0x00, 0x0b]);
+        for case in &conditional.cases {
+            let case_layout = layout
+                .case(&case.case)
+                .ok_or_else(|| error("conditional variant entry case is absent"))?;
+            body.push(0x20);
+            write_u32(&mut body, parameter_index);
+            body.extend([0x28, 0x02, 0x00, 0x41]);
+            write_i64(&mut body, i64::from(case_layout.tag));
+            body.extend([0x46, 0x04, 0x40]);
+            for place in &case.live_places {
+                if place.storage != conditional.storage
+                    || place.projections.first() != Some(&case.case)
+                {
+                    return Err(error(
+                        "conditional variant entry leaf is not case-qualified",
+                    ));
+                }
+                let flag = plan
+                    .cleanup_place_flags
+                    .get(place)
+                    .copied()
+                    .ok_or_else(|| error("conditional variant entry flag is absent"))?;
+                body.extend([0x41, 0x01, 0x21]);
+                write_u32(&mut body, flag);
+            }
+            body.push(0x0b);
+        }
+    }
+
+    let mut bindings = HashMap::new();
+    for (index, param) in function.params.iter().enumerate() {
+        let local = u32::try_from(index).map_err(|_| error("parameter index overflows u32"))?;
+        let value = if is_aggregate(program, &param.ty)? {
+            Value::Aggregate {
+                pointer: Pointer { local, offset: 0 },
+                ty: param.ty.clone(),
+            }
+        } else {
+            Value::Scalar {
+                local,
+                ty: param.ty.clone(),
+            }
+        };
+        bindings.insert(param.id.clone(), value);
+    }
+    body.extend([0x02, 0x40]);
+    let mut emitter = Emitter {
+        output: &mut body,
+        program,
+        function,
+        variant_layouts,
+        function_indexes,
+        function_tables,
+        function_type_indexes,
+        plan: &plan,
+        return_type: &function.return_type,
+        cleanup_plan: &function.cleanup_plan,
+        bindings,
+        call_argument_values: HashMap::new(),
+        control_depth: 0,
+        lexical_loops: Vec::new(),
+        lexical_resume: None,
+        iterator_true_match: None,
+        status_exit_extra_depth: 1,
+        try_target_enabled: false,
+        failure_expression: None,
+        host_output,
+        range_bindings,
+        owned_utf8_literals,
+        environment_utf8_index,
+        list_heap_global,
+        standalone_strings,
+        byte_get_import: byte_get_import.unwrap_or(BYTE_GET_IMPORT),
+        string_condition_reads: crate::string_ops::conditions::function_reads(function),
+    };
+    emitter.call_depth_admission()?;
+    emitter.semantic_charge()?;
+    for contract in &function.requires {
+        let condition = emitter.emit_expr(contract)?;
+        emitter.require_scalar(&condition, &ResolvedType::Bool, "precondition")?;
+        emitter.get_scalar(&condition);
+        emitter.output.push(0x45);
+        emitter.failure_expression = Some(contract.id.clone());
+        emitter.fail_if_in_lane(STATUS_REQUIRES_FALSE, StatusLane::ContractFalse)?;
+        emitter.failure_expression = None;
+        emitter.emit_contract_scope_success(&contract.id)?;
+    }
+    if plan.has_try {
+        emitter.output.extend([0x02, 0x40]);
+        emitter.status_exit_extra_depth = 2;
+        emitter.try_target_enabled = true;
+    }
+    let result = emitter.emit_expr(&function.body)?;
+    emitter.try_target_enabled = false;
+    let staged = emitter.stage_function_result(&result)?;
+    if let Some(result_staged) = plan.result_staged {
+        emitter.output.extend([0x41, 0x01, 0x21]);
+        write_u32(emitter.output, result_staged);
+        emitter.output.push(0x0b);
+        emitter.status_exit_extra_depth = 1;
+        emitter.output.push(0x20);
+        write_u32(emitter.output, result_staged);
+        emitter.output.extend([0x45, 0x04, 0x40, 0x00, 0x0b]);
+    }
+    emitter
+        .bindings
+        .insert(function.result_id.clone(), staged.clone());
+    if function.cleanup_plan.lexical_control.is_some() {
+        emitter.emit_lexical_epilogues()?;
+    } else {
+        for contract in &function.ensures {
+            let condition = emitter.emit_expr(contract)?;
+            emitter.require_scalar(&condition, &ResolvedType::Bool, "postcondition")?;
+            emitter.get_scalar(&condition);
+            emitter.output.push(0x45);
+            emitter.failure_expression = Some(contract.id.clone());
+            emitter.fail_if_in_lane(STATUS_ENSURES_FALSE, StatusLane::ContractFalse)?;
+            emitter.failure_expression = None;
+        }
+        emitter.emit_success_cleanup(&function.cleanup_plan)?;
+    }
+    let caller = if is_aggregate(program, &function.return_type)? {
+        Value::Aggregate {
+            pointer: Pointer {
+                local: plan.result_out,
+                offset: 0,
+            },
+            ty: function.return_type.clone(),
+        }
+    } else {
+        Value::Scalar {
+            local: plan.result_out,
+            ty: function.return_type.clone(),
+        }
+    };
+    if matches!(caller, Value::Aggregate { .. }) {
+        emitter.copy_value(&caller, &staged, "caller result publication")?;
+    } else {
+        let Value::Scalar { local: source, ty } = staged else {
+            return Err(error(
+                "scalar caller publication received aggregate staging",
+            ));
+        };
+        emitter.emit_pointer(Pointer {
+            local: plan.result_out,
+            offset: 0,
+        });
+        emitter.output.push(0x20);
+        write_u32(emitter.output, source);
+        emitter.store_scalar(&ty);
+        if owned_string_profile && ty == ResolvedType::String || crate::map_ops::is_collection(&ty)
+        {
+            owned_strings::emit_clear(emitter.output, source);
+        }
+    }
+    drop(emitter);
+    body.push(0x0b);
+    // Every recoverable failure branches here. Canonical CleanupPlan actions
+    // have settled every live String carrier before reaching this edge. Every
+    // entered frame incremented the call-depth counter exactly once in
+    // `call_depth_admission`, refused or not, so this decrement is
+    // unconditional too (see `call_admission`'s module documentation).
+    call_admission::emit_decrement(&mut body);
+    body.push(0x20);
+    write_u32(&mut body, plan.old_stack);
+    body.push(0x24);
+    write_u32(&mut body, 0);
+    body.push(0x20);
+    write_u32(&mut body, plan.status);
+    body.push(0x0b);
+    Ok(body)
+}
+
+fn emit_external_byte_root_admission(
+    body: &mut Vec<u8>,
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    old_stack: u32,
+    charged: u32,
+) -> Result<(), Diagnostic> {
+    let roots = function
+        .params
+        .iter()
+        .enumerate()
+        .filter(|(_, param)| matches!(param.ty, ResolvedType::SliceU8 | ResolvedType::Str))
+        .map(|(index, param)| {
+            if param.ty == ResolvedType::SliceU8 {
+                let provenance = program
+                    .declarations
+                    .byte_slice_provenance(&param.id)
+                    .ok_or_else(|| error("external Slice<u8> parameter lacks provenance"))?;
+                if provenance.root != param.id
+                    || !provenance.projections.is_empty()
+                    || provenance.projected_type != ResolvedType::SliceU8
+                    || provenance.root_kind != crate::hir::ByteSliceRootKind::FunctionParameter
+                    || provenance.root_length != crate::hir::ByteSliceExtent::ParameterLength
+                    || provenance.offset != crate::hir::ByteSliceExtent::Constant(0)
+                    || provenance.length != crate::hir::ByteSliceExtent::ParameterLength
+                {
+                    return Err(error(
+                        "external Slice<u8> parameter provenance is not an exact full root",
+                    ));
+                }
+            }
+            u32::try_from(index).map_err(|_| error("byte root parameter index overflows u32"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    if roots.is_empty() {
+        return Ok(());
+    }
+
+    // A direct test/callable export observes the untouched data-profile stack
+    // top. Internal forwarding runs below it and must not recharge roots.
+    body.push(0x20);
+    write_u32(body, old_stack);
+    body.push(0x41);
+    write_i64(body, 131_072);
+    body.extend([0x46, 0x04, 0x40]);
+    body.extend([0x42, 0x00, 0x21]);
+    write_u32(body, charged);
+    for parameter in roots {
+        // len <= 65536, root tag is zero, and offset <= 65536 - len.
+        body.push(0x20);
+        write_u32(body, parameter);
+        body.extend([0xa7, 0xad, 0x42]);
+        write_i64(body, crate::byte_ops::MAX_EXTERNAL_ROOT_BYTES as i64);
+        body.push(0x58);
+        body.push(0x20);
+        write_u32(body, parameter);
+        body.extend([0x42, 0x20, 0x88, 0x42]);
+        write_i64(body, 0x8000_0000u32 as i64);
+        body.extend([0x83, 0x50]);
+        body.push(0x20);
+        write_u32(body, parameter);
+        body.extend([0x42, 0x20, 0x88, 0xa7, 0xad, 0x42]);
+        write_i64(body, crate::byte_ops::MAX_EXTERNAL_ROOT_BYTES as i64);
+        body.push(0x20);
+        write_u32(body, parameter);
+        body.extend([
+            0xa7, 0xad, 0x7d, 0x58, 0x71, 0x71, 0x45, 0x04, 0x40, 0x00, 0x0b,
+        ]);
+
+        // charged <= 65536 - len; only then add the distinct parameter root.
+        body.push(0x20);
+        write_u32(body, charged);
+        body.push(0x42);
+        write_i64(body, crate::byte_ops::MAX_EXTERNAL_ROOT_BYTES as i64);
+        body.push(0x20);
+        write_u32(body, parameter);
+        body.extend([0xa7, 0xad, 0x7d, 0x58, 0x45, 0x04, 0x40, 0x00, 0x0b]);
+        body.push(0x20);
+        write_u32(body, charged);
+        body.push(0x20);
+        write_u32(body, parameter);
+        body.extend([0xa7, 0xad, 0x7c, 0x21]);
+        write_u32(body, charged);
+    }
+    body.push(0x0b);
+    Ok(())
+}
+
+struct Emitter<'a> {
+    output: &'a mut Vec<u8>,
+    program: &'a ResolvedProgram,
+    function: &'a ResolvedFunction,
+    variant_layouts: &'a VariantLayoutCache,
+    function_indexes: &'a HashMap<FunctionExecutionId, u32>,
+    function_tables: &'a HashMap<DeclarationId, u32>,
+    function_type_indexes: &'a HashMap<String, u32>,
+    plan: &'a FunctionPlan,
+    return_type: &'a ResolvedType,
+    cleanup_plan: &'a crate::cleanup_plan::CleanupPlan,
+    bindings: HashMap<ValueId, Value>,
+    /// Exact physical carriers for authenticated call-argument epochs.
+    call_argument_values: HashMap<crate::cleanup_plan::StorageId, Value>,
+    control_depth: u32,
+    lexical_loops: Vec<lexical_control::LoopLabel<'a>>,
+    lexical_resume: Option<crate::cleanup_plan::BlockId>,
+    iterator_true_match: Option<ExpressionId>,
+    status_exit_extra_depth: u32,
+    try_target_enabled: bool,
+    failure_expression: Option<ExpressionId>,
+    host_output: Option<super::host_output::Globals>,
+    range_bindings: Option<&'a RangeBindings>,
+    owned_utf8_literals: Option<&'a mut OwnedUtf8Literals>,
+    environment_utf8_index: Option<u32>,
+    list_heap_global: Option<u32>,
+    standalone_strings: bool,
+    byte_get_import: u32,
+    string_condition_reads: std::collections::BTreeSet<ExpressionId>,
+}
+
+impl Emitter<'_> {
+    fn emit_expr(&mut self, expr: &ResolvedExpr) -> Result<Value, Diagnostic> {
+        let value = self.emit_expr_inner(expr)?;
+        if matches!(value, Value::Bottom) {
+            return Ok(value);
+        }
+        let owned_match = matches!(
+            expr.kind,
+            ResolvedExprKind::Match {
+                mode: crate::hir::ResolvedMatchMode::Own,
+                ..
+            }
+        );
+        let owned_try = matches!(
+            &expr.kind,
+            ResolvedExprKind::Try {
+                operand,
+                result,
+                residual_type,
+                ..
+            } if owned_try::is_admitted_owned_result_try(operand, residual_type, result)
+        );
+        if !owned_match {
+            if !owned_try {
+                if self.cleanup_plan.lexical_control.is_some()
+                    && matches!(expr.kind, ResolvedExprKind::Block { .. })
+                {
+                    // The block-result handoff preceded its canonical scope end.
+                    // Remaining at-anchor continuations occur after that boundary.
+                    self.apply_post_transitions_storage(
+                        &expr.id,
+                        &value,
+                        &crate::cleanup_plan::StorageId::Temporary(expr.id.clone()),
+                        false,
+                    )?;
+                } else {
+                    self.apply_post_transitions(&expr.id, &value)?;
+                }
+            }
+            nested_owned::emit_update_scope_cleanup(self, expr)?;
+        }
+        Ok(value)
+    }
+
+    fn emit_success_cleanup(
+        &mut self,
+        plan: &crate::cleanup_plan::CleanupPlan,
+    ) -> Result<(), Diagnostic> {
+        let mut commits = plan.exits.iter().filter(|exit| {
+            plan.lexical_block_in_context(self.lexical_resume, exit.from)
+                && matches!(
+                    exit.continuation,
+                    crate::cleanup_plan::ExitContinuation::CommitResult { .. }
+                )
+        });
+        let commit = commits
+            .next()
+            .ok_or_else(|| error("CleanupPlan has no successful result commit"))?;
+        if commits.next().is_some() {
+            return Err(error("CleanupPlan has multiple successful result commits"));
+        }
+        self.emit_cleanup_actions(&commit.finalize_in_order)
+    }
+
+    fn emit_failure_cleanup(
+        &mut self,
+        expression: &ExpressionId,
+        lane: StatusLane,
+    ) -> Result<(), Diagnostic> {
+        let mut selected = None;
+        for exit in &self.cleanup_plan.exits {
+            if !self
+                .cleanup_plan
+                .lexical_block_in_context(self.lexical_resume, exit.from)
+            {
+                continue;
+            }
+            if let crate::cleanup_plan::ExitContinuation::ReturnFailure { source } =
+                &exit.continuation
+            {
+                if &source.expression == expression && source.lane == lane {
+                    if selected.is_some() {
+                        return Err(error("CleanupPlan repeats one failure exit source"));
+                    }
+                    selected = Some(exit.finalize_in_order.clone());
+                }
+            }
+        }
+        let actions = selected.ok_or_else(|| {
+            error(format!(
+                "CleanupPlan has no exact failure exit for `{expression}` in {lane:?}"
+            ))
+        })?;
+        self.emit_cleanup_actions(&actions)
+    }
+
+    fn emit_block_scope_cleanup(&mut self, expression: &ResolvedExpr) -> Result<(), Diagnostic> {
+        let anchors =
+            expressions::block_scope_anchors(&self.plan.cleanup_storage_types, expression);
+        if anchors.is_empty() {
+            return Ok(());
+        }
+        let matching = self
+            .cleanup_plan
+            .regions
+            .iter()
+            .filter(|region| self.lexical_region_in_context(region.id))
+            .filter(|region| region.slots.iter().any(|slot| anchors.contains(slot)))
+            .collect::<Vec<_>>();
+        let region = match matching.as_slice() {
+            [] => return Err(error("Bytes block has no authenticated CleanupPlan region")),
+            [region] => *region,
+            _ => {
+                // Nested operand anchors touched several regions: the block's
+                // own region is the unique one holding its direct storage.
+                let direct =
+                    expressions::block_direct_anchors(&self.plan.cleanup_storage_types, expression);
+                let mut own = matching
+                    .iter()
+                    .filter(|region| region.slots.iter().any(|slot| direct.contains(slot)));
+                match (own.next(), own.next()) {
+                    (Some(region), None) if !direct.is_empty() => *region,
+                    _ => return Err(error("Bytes block maps to multiple CleanupPlan regions")),
+                }
+            }
+        };
+        // The function body occupies the root region. Its owned values remain
+        // live through postconditions and are finalized by CommitResult or an
+        // exact failure exit, never at the syntactic end of the body block.
+        if region.parent.is_none() {
+            return Ok(());
+        }
+        let exit = self
+            .lexical_scope_end(region)
+            .ok_or_else(|| error("Bytes block region has no exact normal-scope exit"))?;
+        if !matches!(
+            exit.continuation,
+            crate::cleanup_plan::ExitContinuation::Continue(_)
+        ) || exit.leaves_regions.as_slice() != [region.id]
+        {
+            return Err(error(
+                "Bytes block region normal-scope exit is not canonical",
+            ));
+        }
+        self.emit_cleanup_actions(&exit.finalize_in_order)
+    }
+
+    fn emit_owned_record_match_cleanup(
+        &mut self,
+        pattern: &crate::hir::ResolvedMatchPattern,
+    ) -> Result<(), Diagnostic> {
+        let crate::hir::ResolvedMatchPattern::Record { fields, .. } = pattern else {
+            return Err(error("owned record match cleanup has a non-record pattern"));
+        };
+        let storage = nested_owned::owned_record_pattern_anchors(self.program, fields)?;
+        if storage.is_empty() {
+            return Err(error("owned record match has no Bytes bindings"));
+        }
+        let mut regions = self
+            .cleanup_plan
+            .regions
+            .iter()
+            .filter(|region| self.lexical_region_in_context(region.id))
+            .filter(|region| {
+                storage
+                    .iter()
+                    .all(|candidate| region.slots.contains(candidate))
+            });
+        let region = regions
+            .next()
+            .ok_or_else(|| error("owned record bindings have no CleanupPlan region"))?;
+        if regions.next().is_some() {
+            return Err(error(
+                "owned record bindings map to ambiguous cleanup regions",
+            ));
+        }
+        let exit = self
+            .lexical_scope_end(region)
+            .ok_or_else(|| error("owned record match region has no normal exit"))?;
+        if !matches!(
+            exit.continuation,
+            crate::cleanup_plan::ExitContinuation::Continue(_)
+        ) || exit.leaves_regions.as_slice() != [region.id]
+        {
+            return Err(error("owned record match cleanup exit is not canonical"));
+        }
+        self.emit_cleanup_actions(&exit.finalize_in_order)
+    }
+
+    fn cleanup_value_at(
+        &self,
+        place: &crate::cleanup_plan::CleanupPlace,
+    ) -> Result<Value, Diagnostic> {
+        let ty = self
+            .plan
+            .cleanup_storage_types
+            .get(&place.storage)
+            .cloned()
+            .ok_or_else(|| error("CleanupPlan storage has no resolved Wasm type"))?;
+        let mut value =
+            match &place.storage {
+                crate::cleanup_plan::StorageId::Value(id) => {
+                    if let Some(value) = self.bindings.get(id).cloned() {
+                        value
+                    } else if is_aggregate(self.program, &ty)? {
+                        Value::Aggregate {
+                            pointer: Pointer {
+                                local: self.plan.frame_base,
+                                offset: self.plan.aggregate_bindings.get(id).copied().ok_or_else(
+                                    || error("CleanupPlan aggregate value is absent"),
+                                )?,
+                            },
+                            ty,
+                        }
+                    } else {
+                        Value::Scalar {
+                            local: self
+                                .plan
+                                .scalar_bindings
+                                .get(id)
+                                .copied()
+                                .ok_or_else(|| error("CleanupPlan scalar value is absent"))?,
+                            ty,
+                        }
+                    }
+                }
+                crate::cleanup_plan::StorageId::Temporary(expression) => {
+                    if is_aggregate(self.program, &ty)? {
+                        Value::Aggregate {
+                            pointer: Pointer {
+                                local: self.plan.frame_base,
+                                offset: self
+                                    .plan
+                                    .aggregate_expressions
+                                    .get(expression)
+                                    .copied()
+                                    .ok_or_else(|| {
+                                        error("CleanupPlan aggregate temporary is absent")
+                                    })?,
+                            },
+                            ty,
+                        }
+                    } else {
+                        Value::Scalar {
+                            local: self
+                                .plan
+                                .scalar_expressions
+                                .get(expression)
+                                .copied()
+                                .ok_or_else(|| error("CleanupPlan scalar temporary is absent"))?,
+                            ty,
+                        }
+                    }
+                }
+                crate::cleanup_plan::StorageId::ProvisionalResult => {
+                    if is_aggregate(self.program, &ty)? {
+                        Value::Aggregate {
+                            pointer: Pointer {
+                                local: self.plan.frame_base,
+                                offset: self.plan.result_stage_aggregate.ok_or_else(|| {
+                                    error("CleanupPlan aggregate result stage is absent")
+                                })?,
+                            },
+                            ty,
+                        }
+                    } else {
+                        Value::Scalar {
+                            local: self.plan.result_stage_scalar.ok_or_else(|| {
+                                error("CleanupPlan scalar result stage is absent")
+                            })?,
+                            ty,
+                        }
+                    }
+                }
+                crate::cleanup_plan::StorageId::CallArgument { .. } => {
+                    if is_aggregate(self.program, &ty)? {
+                        let carrier = self
+                            .call_argument_values
+                            .get(&place.storage)
+                            .cloned()
+                            .ok_or_else(|| {
+                                error("aggregate call epoch has no authenticated carrier")
+                            })?;
+                        require_type(value_type(&carrier), &ty, "aggregate call epoch carrier")?;
+                        if !matches!(carrier, Value::Aggregate { .. }) {
+                            return Err(error("aggregate call epoch carrier is not aggregate"));
+                        }
+                        carrier
+                    } else if place.projections.is_empty() {
+                        Value::Scalar {
+                            local: self
+                                .plan
+                                .cleanup_call_argument_carriers
+                                .get(&place.storage)
+                                .copied()
+                                .ok_or_else(|| error("CleanupPlan call epoch carrier is absent"))?,
+                            ty,
+                        }
+                    } else {
+                        return Err(error("scalar call epoch cannot be projected"));
+                    }
+                }
+            };
+        if place.projections.len() >= 2 && is_variant(self.program, value_type(&value))? {
+            let Value::Aggregate { pointer, ty } = value else {
+                return Err(error("variant cleanup leaf base is not aggregate storage"));
+            };
+            let layout = variant_layout(self.variant_layouts, &ty)?;
+            let case = layout
+                .case(&place.projections[0])
+                .ok_or_else(|| error("variant cleanup leaf case is absent"))?;
+            let field = case
+                .field(&place.projections[1])
+                .ok_or_else(|| error("variant cleanup leaf field is absent"))?;
+            value = value_at(
+                Pointer {
+                    local: pointer.local,
+                    offset: pointer
+                        .offset
+                        .checked_add(layout.payload_offset)
+                        .and_then(|offset| offset.checked_add(field.offset))
+                        .ok_or_else(|| error("variant cleanup leaf pointer overflows"))?,
+                },
+                field.ty.clone(),
+                self.program,
+            )?;
+            for projection in &place.projections[2..] {
+                value = self.project_value(&value, projection)?;
+            }
+            return Ok(value);
+        }
+        for projection in &place.projections {
+            value = self.project_value(&value, projection)?;
+        }
+        Ok(value)
+    }
+
+    fn clear_scalar(&mut self, value: &Value) -> Result<(), Diagnostic> {
+        if !matches!(
+            value_type(value),
+            ResolvedType::Bytes | ResolvedType::String
+        ) && !crate::map_ops::is_collection(value_type(value))
+            && !owned_vec(self.program, value_type(value))
+            && !crate::cleanup::is_owned_bounded_box_type(value_type(value))
+        {
+            return Err(error(
+                "owned scalar poison requires an exact Bytes, String, or bounded Vec carrier",
+            ));
+        }
+        match value {
+            Value::Bottom => return Err(error("a bottom completion has no scalar storage")),
+            Value::Scalar { local, .. } => {
+                self.output.extend([0x42, 0x00, 0x21]);
+                write_u32(self.output, *local);
+            }
+            Value::ScalarMemory { pointer, ty } => {
+                self.emit_pointer(*pointer);
+                self.output.push(0x42);
+                write_i64(self.output, 0);
+                self.store_scalar(ty);
+            }
+            Value::Aggregate { .. } => return Err(error("owned carrier poison is not scalar")),
+        }
+        Ok(())
+    }
+
+    fn poison_owned_record(&mut self, value: &Value) -> Result<(), Diagnostic> {
+        let Value::Aggregate { pointer, ty } = value else {
+            return Err(error("owned record poison received a scalar carrier"));
+        };
+        let record_layout = layout(self.program, ty)?;
+        if !nested_owned::record_contains_owned_bytes(self.program, ty)? {
+            return Err(error("owned record poison received a Copy-only record"));
+        }
+        self.emit_pointer(*pointer);
+        self.output.push(0x41);
+        write_i64(self.output, 0);
+        self.output.push(0x41);
+        write_i64(self.output, i64::from(record_layout.size));
+        self.output.extend([0xfc, 0x0b, 0x00]);
+        Ok(())
+    }
+
+    fn set_storage_flag(
+        &mut self,
+        place: &crate::cleanup_plan::CleanupPlace,
+        live: bool,
+    ) -> Result<(), Diagnostic> {
+        let locals = self
+            .plan
+            .cleanup_place_flags
+            .iter()
+            .filter(|(leaf, _)| {
+                leaf.storage == place.storage && leaf.projections.starts_with(&place.projections)
+            })
+            .map(|(_, local)| *local)
+            .collect::<Vec<_>>();
+        if locals.is_empty() {
+            return Err(error(
+                "Bytes transition has no exact projected liveness local",
+            ));
+        }
+        for local in locals {
+            self.output.extend([0x41, u8::from(live), 0x21]);
+            write_u32(self.output, local);
+        }
+        Ok(())
+    }
+
+    fn set_variant_storage_flags_from_value(
+        &mut self,
+        place: &crate::cleanup_plan::CleanupPlace,
+        value: &Value,
+    ) -> Result<bool, Diagnostic> {
+        if !place.projections.is_empty() || !is_variant(self.program, value_type(value))? {
+            return Ok(false);
+        }
+        let leaves = self
+            .plan
+            .cleanup_place_flags
+            .iter()
+            .filter(|(leaf, _)| leaf.storage == place.storage && leaf.projections.len() >= 2)
+            .map(|(leaf, flag)| (leaf.clone(), *flag))
+            .collect::<Vec<_>>();
+        if leaves.is_empty() {
+            return Ok(false);
+        }
+        let Value::Aggregate { pointer, ty } = value else {
+            return Err(error(
+                "conditional variant flags require an aggregate carrier",
+            ));
+        };
+        let layout = variant_layout(self.variant_layouts, ty)?;
+        self.emit_pointer(*pointer);
+        self.output.extend([0x28, 0x02, 0x00, 0x41]);
+        write_i64(
+            self.output,
+            i64::try_from(layout.cases.len())
+                .map_err(|_| error("conditional variant case count overflows i64"))?,
+        );
+        self.output.push(0x4f);
+        self.trap_if();
+        for (leaf, flag) in leaves {
+            let case = layout
+                .case(&leaf.projections[0])
+                .ok_or_else(|| error("conditional variant flag case is absent"))?;
+            self.emit_pointer(*pointer);
+            self.output.extend([0x28, 0x02, 0x00, 0x41]);
+            write_i64(self.output, i64::from(case.tag));
+            self.output.extend([0x46, 0x21]);
+            write_u32(self.output, flag);
+        }
+        Ok(true)
+    }
+
+    fn assert_conditional_variant_liveness(
+        &mut self,
+        place: &crate::cleanup_plan::CleanupPlace,
+        value: &Value,
+    ) -> Result<(), Diagnostic> {
+        let Value::Aggregate { pointer, ty } = value else {
+            return Err(error(
+                "conditional variant liveness requires an aggregate carrier",
+            ));
+        };
+        let layout = variant_layout(self.variant_layouts, ty)?;
+        self.emit_pointer(*pointer);
+        self.output.extend([0x28, 0x02, 0x00, 0x41]);
+        write_i64(
+            self.output,
+            i64::try_from(layout.cases.len())
+                .map_err(|_| error("conditional variant case count overflows i64"))?,
+        );
+        self.output.push(0x4f);
+        self.trap_if();
+        let leaves = self
+            .plan
+            .cleanup_place_flags
+            .iter()
+            .filter(|(leaf, _)| {
+                leaf.storage == place.storage
+                    && leaf.projections.starts_with(&place.projections)
+                    && leaf.projections.len() >= place.projections.len() + 2
+            })
+            .map(|(leaf, flag)| (leaf.clone(), *flag))
+            .collect::<Vec<_>>();
+        if leaves.is_empty() {
+            return Err(error(
+                "conditional variant liveness has no case-qualified leaves",
+            ));
+        }
+        for (leaf, flag) in leaves {
+            let case_id = &leaf.projections[place.projections.len()];
+            let case = layout
+                .case(case_id)
+                .ok_or_else(|| error("conditional liveness case is absent"))?;
+            self.output.push(0x20);
+            write_u32(self.output, flag);
+            self.emit_pointer(*pointer);
+            self.output.extend([0x28, 0x02, 0x00, 0x41]);
+            write_i64(self.output, i64::from(case.tag));
+            self.output.extend([0x46, 0x47]);
+            self.trap_if();
+        }
+        Ok(())
+    }
+
+    fn assert_variant_destination_dead(
+        &mut self,
+        place: &crate::cleanup_plan::CleanupPlace,
+    ) -> Result<(), Diagnostic> {
+        let flags = self
+            .plan
+            .cleanup_place_flags
+            .iter()
+            .filter(|(leaf, _)| {
+                leaf.storage == place.storage && leaf.projections.starts_with(&place.projections)
+            })
+            .map(|(_, flag)| *flag)
+            .collect::<Vec<_>>();
+        if flags.is_empty() {
+            return Err(error("conditional variant destination has no flags"));
+        }
+        for flag in flags {
+            self.output.push(0x20);
+            write_u32(self.output, flag);
+            self.trap_if();
+        }
+        Ok(())
+    }
+
+    fn assert_storage_flag_state(
+        &mut self,
+        place: &crate::cleanup_plan::CleanupPlace,
+        live: bool,
+    ) -> Result<(), Diagnostic> {
+        let flags = self
+            .plan
+            .cleanup_place_flags
+            .iter()
+            .filter(|(leaf, _)| {
+                leaf.storage == place.storage && leaf.projections.starts_with(&place.projections)
+            })
+            .map(|(_, flag)| *flag)
+            .collect::<Vec<_>>();
+        if flags.is_empty() {
+            return Err(error("cleanup place has no liveness flag"));
+        }
+        for flag in flags {
+            self.output.push(0x20);
+            write_u32(self.output, flag);
+            if live {
+                self.output.push(0x45);
+            }
+            self.trap_if();
+        }
+        Ok(())
+    }
+
+    fn assert_selected_variant_liveness(
+        &mut self,
+        place: &crate::cleanup_plan::CleanupPlace,
+        selected: &DeclarationId,
+    ) -> Result<(), Diagnostic> {
+        let leaves = self
+            .plan
+            .cleanup_place_flags
+            .iter()
+            .filter(|(leaf, _)| {
+                leaf.storage == place.storage
+                    && leaf.projections.starts_with(&place.projections)
+                    && leaf.projections.len() >= place.projections.len() + 2
+            })
+            .map(|(leaf, flag)| (leaf.clone(), *flag))
+            .collect::<Vec<_>>();
+        if leaves.is_empty() {
+            return Err(error(
+                "selected variant liveness has no case-qualified leaves",
+            ));
+        }
+        for (leaf, flag) in leaves {
+            self.output.push(0x20);
+            write_u32(self.output, flag);
+            if leaf.projections.get(place.projections.len()) == Some(selected) {
+                self.output.push(0x45);
+            }
+            self.trap_if();
+        }
+        Ok(())
+    }
+
+    fn apply_call_commit(&mut self, expression: &ExpressionId) -> Result<(), Diagnostic> {
+        let transitions = self
+            .cleanup_plan
+            .blocks
+            .iter()
+            .filter(|block| {
+                self.cleanup_plan
+                    .lexical_block_in_context(self.lexical_resume, block.id)
+            })
+            .flat_map(|block| &block.transitions)
+            .filter_map(|transition| match transition {
+                crate::cleanup_plan::CleanupTransition::CallCommit { call, arguments }
+                    if call == expression =>
+                {
+                    Some(arguments.clone())
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        for arguments in transitions {
+            for argument in arguments {
+                self.set_storage_flag(&argument.source, false)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn authenticate_record_match_transfers(
+        &mut self,
+        expression: &ExpressionId,
+    ) -> Result<(), Diagnostic> {
+        self.authenticate_record_match_phase(expression, None)
+    }
+
+    fn authenticate_record_match_phase(
+        &mut self,
+        expression: &ExpressionId,
+        match_phase: Option<(&BTreeSet<crate::cleanup_plan::StorageId>, bool)>,
+    ) -> Result<(), Diagnostic> {
+        let transfers = self
+            .cleanup_plan
+            .blocks
+            .iter()
+            .filter(|block| {
+                self.cleanup_plan
+                    .lexical_block_in_context(self.lexical_resume, block.id)
+            })
+            .flat_map(|block| &block.transitions)
+            .filter_map(|transition| match transition {
+                crate::cleanup_plan::CleanupTransition::Transfer {
+                    at,
+                    source,
+                    destination,
+                }
+                | crate::cleanup_plan::CleanupTransition::Renew {
+                    at,
+                    source,
+                    destination,
+                } if at == expression
+                    && match_phase.is_none_or(|(bindings, entering)| {
+                        bindings.contains(&destination.storage) == entering
+                    }) =>
+                {
+                    Some((
+                        source.clone(),
+                        destination.clone(),
+                        self.is_string_replacement(transition),
+                    ))
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        let flags_under = |place: &crate::cleanup_plan::CleanupPlace| {
+            self.plan
+                .cleanup_place_flags
+                .iter()
+                .filter(|(leaf, _)| {
+                    leaf.storage == place.storage
+                        && leaf.projections.starts_with(&place.projections)
+                })
+                .map(|(_, flag)| *flag)
+                .collect::<Vec<_>>()
+        };
+        let mut initial = BTreeMap::<u32, bool>::new();
+        let mut simulated = BTreeMap::<u32, bool>::new();
+        for (source, destination, replacing) in transfers {
+            let source_flags = flags_under(&source);
+            let destination_flags = flags_under(&destination);
+            if source_flags.is_empty() || source_flags.len() != destination_flags.len() {
+                return Err(error(
+                    "record transfer preflight leaf cardinality disagrees",
+                ));
+            }
+            if source_flags
+                .iter()
+                .any(|flag| destination_flags.contains(flag))
+            {
+                return Err(error(
+                    "record transfer transaction aliases source and destination",
+                ));
+            }
+            for flag in &source_flags {
+                match simulated.get(flag) {
+                    Some(false) => {
+                        return Err(error(
+                            "record transfer transaction consumes a simulated dead source",
+                        ));
+                    }
+                    Some(true) => {}
+                    None => {
+                        initial.insert(*flag, true);
+                    }
+                }
+            }
+            for flag in &destination_flags {
+                if replacing {
+                    continue;
+                }
+                match simulated.get(flag) {
+                    Some(true) => {
+                        return Err(error(
+                            "record transfer transaction overwrites a simulated live destination",
+                        ));
+                    }
+                    Some(false) => {}
+                    None => {
+                        initial.insert(*flag, false);
+                    }
+                }
+            }
+            for flag in source_flags {
+                simulated.insert(flag, false);
+            }
+            for flag in destination_flags {
+                simulated.insert(flag, true);
+            }
+        }
+        for (flag, live) in initial {
+            self.output.push(0x20);
+            write_u32(self.output, flag);
+            if live {
+                self.output.push(0x45);
+            }
+            self.trap_if();
+        }
+        Ok(())
+    }
+
+    fn apply_variant_transfer_group(
+        &mut self,
+        sources: &[crate::cleanup_plan::CleanupPlace],
+        destination: &crate::cleanup_plan::CleanupPlace,
+        variant: &DeclarationId,
+        value: &Value,
+    ) -> Result<(), Diagnostic> {
+        let destination_ty = self
+            .plan
+            .cleanup_storage_types
+            .get(&destination.storage)
+            .ok_or_else(|| error("dynamic variant transfer destination type is absent"))?;
+        let layout = variant_layout(self.variant_layouts, value_type(value))?;
+        if sources.is_empty()
+            || layout.variant != *variant
+            || destination_ty != value_type(value)
+            || sources.iter().any(|source| {
+                self.plan.cleanup_storage_types.get(&source.storage) != Some(destination_ty)
+            })
+        {
+            return Err(error("dynamic variant transfer disagrees with storage"));
+        }
+        if sources.len() == 1 {
+            self.assert_conditional_variant_liveness(&sources[0], value)?;
+        } else {
+            self.assert_merged_variant_liveness(sources, value)?;
+        }
+        self.assert_variant_destination_dead(destination)?;
+        // Cleanup transitions move authority, not the physical carrier. The
+        // ordinary expression materialization already performed the one
+        // fieldwise move, so only the logical source epochs change here.
+        for source in sources {
+            self.set_storage_flag(source, false)?;
+        }
+        if !self.set_variant_storage_flags_from_value(destination, value)? {
+            return Err(error(
+                "dynamic variant transfer destination is not conditional",
+            ));
+        }
+        Ok(())
+    }
+
+    fn assert_merged_variant_liveness(
+        &mut self,
+        sources: &[crate::cleanup_plan::CleanupPlace],
+        value: &Value,
+    ) -> Result<(), Diagnostic> {
+        let Value::Aggregate { pointer, ty } = value else {
+            return Err(error(
+                "merged variant liveness requires an aggregate carrier",
+            ));
+        };
+        let layout = variant_layout(self.variant_layouts, ty)?;
+        self.emit_pointer(*pointer);
+        self.output.extend([0x28, 0x02, 0x00, 0x41]);
+        write_i64(
+            self.output,
+            i64::try_from(layout.cases.len())
+                .map_err(|_| error("merged variant case count overflows i64"))?,
+        );
+        self.output.push(0x4f);
+        self.trap_if();
+
+        let destination_leaves = self
+            .plan
+            .cleanup_place_flags
+            .keys()
+            .filter(|leaf| {
+                leaf.storage == sources[0].storage
+                    && leaf.projections.starts_with(&sources[0].projections)
+                    && leaf.projections.len() >= sources[0].projections.len() + 2
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        if destination_leaves.is_empty() {
+            return Err(error("merged conditional variant has no payload leaves"));
+        }
+        for leaf in destination_leaves {
+            let relative = leaf
+                .projections
+                .strip_prefix(sources[0].projections.as_slice())
+                .ok_or_else(|| error("merged variant leaf prefix is inconsistent"))?;
+            let case = layout
+                .case(&relative[0])
+                .ok_or_else(|| error("merged variant liveness case is absent"))?;
+            self.output.extend([0x41, 0x00]);
+            for source in sources {
+                let projections = source
+                    .projections
+                    .iter()
+                    .chain(relative)
+                    .cloned()
+                    .collect::<Vec<_>>();
+                let source_leaf = crate::cleanup_plan::CleanupPlace {
+                    storage: source.storage.clone(),
+                    projections,
+                };
+                let flag = self
+                    .plan
+                    .cleanup_place_flags
+                    .get(&source_leaf)
+                    .copied()
+                    .ok_or_else(|| error("merged variant source leaf is absent"))?;
+                self.output.push(0x20);
+                write_u32(self.output, flag);
+                self.output.push(0x6a);
+            }
+            self.emit_pointer(*pointer);
+            self.output.extend([0x28, 0x02, 0x00, 0x41]);
+            write_i64(self.output, i64::from(case.tag));
+            self.output.extend([0x46, 0x47]);
+            self.trap_if();
+        }
+        Ok(())
+    }
+
+    fn apply_variant_case_transitions(
+        &mut self,
+        expression: &ExpressionId,
+        case: &DeclarationId,
+    ) -> Result<(), Diagnostic> {
+        let transitions = self
+            .cleanup_plan
+            .blocks
+            .iter()
+            .filter(|block| {
+                self.cleanup_plan
+                    .lexical_block_in_context(self.lexical_resume, block.id)
+            })
+            .flat_map(|block| &block.transitions)
+            .filter(|transition| match transition {
+                crate::cleanup_plan::CleanupTransition::Initialize { at, destination } => {
+                    at == expression && destination.projections.first() == Some(case)
+                }
+                crate::cleanup_plan::CleanupTransition::Transfer {
+                    at,
+                    source,
+                    destination,
+                }
+                | crate::cleanup_plan::CleanupTransition::Renew {
+                    at,
+                    source,
+                    destination,
+                } => {
+                    at == expression
+                        && (source.projections.first() == Some(case)
+                            || destination.projections.first() == Some(case))
+                }
+                crate::cleanup_plan::CleanupTransition::AuthenticateVariantCase {
+                    at,
+                    case: selected,
+                    ..
+                } => at == expression && selected == case,
+                _ => false,
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        for transition in transitions {
+            match transition {
+                crate::cleanup_plan::CleanupTransition::Initialize { destination, .. } => {
+                    self.set_storage_flag(&destination, true)?;
+                }
+                crate::cleanup_plan::CleanupTransition::Transfer {
+                    source,
+                    destination,
+                    ..
+                }
+                | crate::cleanup_plan::CleanupTransition::Renew {
+                    source,
+                    destination,
+                    ..
+                } => {
+                    self.assert_storage_flag_state(&source, true)?;
+                    self.assert_storage_flag_state(&destination, false)?;
+                    self.set_storage_flag(&source, false)?;
+                    self.set_storage_flag(&destination, true)?;
+                }
+                crate::cleanup_plan::CleanupTransition::AuthenticateVariantCase {
+                    source,
+                    case: selected,
+                    ..
+                } => self.assert_selected_variant_liveness(&source, &selected)?,
+                _ => unreachable!("filtered selected variant transition"),
+            }
+        }
+        Ok(())
+    }
+
+    fn apply_try_variant_case_transitions(
+        &mut self,
+        expression: &ExpressionId,
+        case: &DeclarationId,
+        carrier: &Value,
+        transfer_residual: bool,
+    ) -> Result<(), Diagnostic> {
+        self.apply_variant_case_transitions(expression, case)?;
+        if !transfer_residual {
+            return Ok(());
+        }
+        let transfers = self
+            .cleanup_plan
+            .blocks
+            .iter()
+            .filter(|block| {
+                self.cleanup_plan
+                    .lexical_block_in_context(self.lexical_resume, block.id)
+            })
+            .flat_map(|block| &block.transitions)
+            .filter_map(|transition| match transition {
+                crate::cleanup_plan::CleanupTransition::TransferVariant {
+                    at,
+                    source,
+                    destination,
+                    variant,
+                } if at == expression => {
+                    Some((source.clone(), destination.clone(), variant.clone()))
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        for (source, destination, variant) in transfers {
+            let layout = variant_layout(self.variant_layouts, value_type(carrier))?;
+            if layout.variant != variant || layout.case(case).is_none() {
+                return Err(error(
+                    "owned Try variant transfer disagrees with its carrier",
+                ));
+            }
+            self.assert_selected_variant_liveness(&source, case)?;
+            self.assert_variant_destination_dead(&destination)?;
+            self.set_storage_flag(&source, false)?;
+            if !self.set_variant_storage_flags_from_value(&destination, carrier)? {
+                return Err(error("owned Try residual destination is not conditional"));
+            }
+        }
+        Ok(())
+    }
+
+    fn apply_owned_try_success_transitions(
+        &mut self,
+        expression: &ExpressionId,
+        selected: &DeclarationId,
+    ) -> Result<(), Diagnostic> {
+        let mut blocks = self
+            .cleanup_plan
+            .blocks
+            .iter()
+            .filter(|block| {
+                self.cleanup_plan
+                    .lexical_block_in_context(self.lexical_resume, block.id)
+            })
+            .filter(|block| {
+                block.transitions.iter().any(|transition| {
+                    matches!(transition,
+                        crate::cleanup_plan::CleanupTransition::AuthenticateVariantCase {
+                            at, case, ..
+                        } if at == expression && case == selected)
+                })
+            });
+        let block = blocks
+            .next()
+            .ok_or_else(|| error("owned Try success has no authenticated cleanup block"))?;
+        if blocks.next().is_some() {
+            return Err(error("owned Try success cleanup block is ambiguous"));
+        }
+        let transitions = block
+            .transitions
+            .iter()
+            .filter(|transition| match transition {
+                crate::cleanup_plan::CleanupTransition::Initialize { at, .. }
+                | crate::cleanup_plan::CleanupTransition::Transfer { at, .. }
+                | crate::cleanup_plan::CleanupTransition::Renew { at, .. }
+                | crate::cleanup_plan::CleanupTransition::AuthenticateVariantCase { at, .. } => {
+                    at == expression
+                }
+                _ => false,
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        for transition in transitions {
+            match transition {
+                crate::cleanup_plan::CleanupTransition::Initialize { destination, .. } => {
+                    self.assert_storage_flag_state(&destination, false)?;
+                    self.set_storage_flag(&destination, true)?;
+                }
+                crate::cleanup_plan::CleanupTransition::Transfer {
+                    source,
+                    destination,
+                    ..
+                }
+                | crate::cleanup_plan::CleanupTransition::Renew {
+                    source,
+                    destination,
+                    ..
+                } => {
+                    self.assert_storage_flag_state(&source, true)?;
+                    self.assert_storage_flag_state(&destination, false)?;
+                    self.set_storage_flag(&source, false)?;
+                    self.set_storage_flag(&destination, true)?;
+                }
+                crate::cleanup_plan::CleanupTransition::AuthenticateVariantCase {
+                    source,
+                    case,
+                    ..
+                } => {
+                    if case != *selected {
+                        return Err(error("owned Try success authentication case disagrees"));
+                    }
+                    self.assert_selected_variant_liveness(&source, selected)?;
+                }
+                _ => unreachable!("filtered owned Try success transition"),
+            }
+        }
+        Ok(())
+    }
+
+    fn materialize_owned_try_call_arguments(
+        &mut self,
+        expression: &ExpressionId,
+        value: &Value,
+    ) -> Result<(), Diagnostic> {
+        let carriers = self
+            .cleanup_plan
+            .blocks
+            .iter()
+            .filter(|block| {
+                self.cleanup_plan
+                    .lexical_block_in_context(self.lexical_resume, block.id)
+            })
+            .flat_map(|block| &block.transitions)
+            .filter_map(|transition| match transition {
+                crate::cleanup_plan::CleanupTransition::Transfer {
+                    at, destination, ..
+                }
+                | crate::cleanup_plan::CleanupTransition::Renew {
+                    at, destination, ..
+                } if at == expression => self
+                    .plan
+                    .cleanup_call_argument_carriers
+                    .get(&destination.storage)
+                    .copied(),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        for carrier in carriers {
+            if *value_type(value) != ResolvedType::Bytes
+                && *value_type(value) != ResolvedType::String
+            {
+                return Err(error(
+                    "owned Try call epoch requires an exact Bytes or String carrier",
+                ));
+            }
+            self.get_scalar(value);
+            self.output.push(0x21);
+            write_u32(self.output, carrier);
+            if *value_type(value) == ResolvedType::String {
+                self.clear_scalar(value)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn emit_complex_expr(&mut self, expr: &ResolvedExpr) -> Result<Value, Diagnostic> {
+        match &expr.kind {
+            ResolvedExprKind::LexicalExit { .. } => {
+                Err(error("lexical exit bypassed its typed emitter"))
+            }
+            ResolvedExprKind::Closure { .. } => self.emit_closure(expr),
+            ResolvedExprKind::FunctionReference { target } => {
+                self.emit_function_reference(expr, target)
+            }
+            ResolvedExprKind::Invoke { callable, args } => {
+                self.emit_function_invoke(expr, callable, args)
+            }
+            ResolvedExprKind::Int(value) => {
+                let destination = self.plan.expr_scalar(expr)?;
+                self.output.push(0x42);
+                write_i64(self.output, *value);
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+                Ok(Value::Scalar {
+                    local: destination,
+                    ty: ResolvedType::I64,
+                })
+            }
+            ResolvedExprKind::Int32(value) => {
+                let destination = self.plan.expr_scalar(expr)?;
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(*value));
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+                Ok(Value::Scalar {
+                    local: destination,
+                    ty: ResolvedType::I32,
+                })
+            }
+            ResolvedExprKind::Char(value) => {
+                let destination = self.plan.expr_scalar(expr)?;
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(*value));
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+                Ok(Value::Scalar {
+                    local: destination,
+                    ty: ResolvedType::Char,
+                })
+            }
+            ResolvedExprKind::Uint8(value) => {
+                let destination = self.plan.expr_scalar(expr)?;
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(*value));
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+                Ok(Value::Scalar {
+                    local: destination,
+                    ty: ResolvedType::U8,
+                })
+            }
+            ResolvedExprKind::Usize(value) => {
+                let destination = self.plan.expr_scalar(expr)?;
+                self.output.push(0x42);
+                write_i64(self.output, *value as i64);
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+                Ok(Value::Scalar {
+                    local: destination,
+                    ty: ResolvedType::Usize,
+                })
+            }
+            ResolvedExprKind::ArrayU8(values) => self.emit_array_literal(expr, values, None),
+            ResolvedExprKind::RepeatArrayU8 { value, count } => {
+                self.emit_array_literal(expr, &[], Some((*value, *count)))
+            }
+            ResolvedExprKind::Float32(bits) => {
+                let destination = self.plan.expr_scalar(expr)?;
+                self.output.push(0x43);
+                self.output.extend_from_slice(&bits.to_le_bytes());
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+                Ok(Value::Scalar {
+                    local: destination,
+                    ty: ResolvedType::F32,
+                })
+            }
+            ResolvedExprKind::Float64(bits) => {
+                let destination = self.plan.expr_scalar(expr)?;
+                self.output.push(0x44);
+                self.output.extend_from_slice(&bits.to_le_bytes());
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+                Ok(Value::Scalar {
+                    local: destination,
+                    ty: ResolvedType::F64,
+                })
+            }
+            ResolvedExprKind::Bool(value) => {
+                let destination = self.plan.expr_scalar(expr)?;
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(*value));
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+                Ok(Value::Scalar {
+                    local: destination,
+                    ty: ResolvedType::Bool,
+                })
+            }
+            ResolvedExprKind::BorrowedUtf8Literal(value) => {
+                if self.standalone_strings {
+                    return Err(error(
+                        "static borrowed UTF-8 is outside the standalone String arena profile",
+                    ));
+                }
+                let literals = self
+                    .owned_utf8_literals
+                    .as_deref_mut()
+                    .filter(|table| table.static_pool)
+                    .ok_or_else(|| {
+                        error("static borrowed UTF-8 lacks an authenticated literal pool")
+                    })?;
+                let (offset, length) = literals.intern(value.as_str())?;
+                let destination = self.plan.expr_scalar(expr)?;
+                self.output.push(0x42);
+                write_i64(
+                    self.output,
+                    ((u64::from(offset) << 32) | u64::from(length)) as i64,
+                );
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+                Ok(Value::Scalar {
+                    local: destination,
+                    ty: ResolvedType::Str,
+                })
+            }
+            ResolvedExprKind::String(value) => {
+                let literals = self.owned_utf8_literals.as_deref_mut().ok_or_else(|| {
+                    error("owned string literal reached a non-v10 WebAssembly profile")
+                })?;
+                let (offset, length) = literals.intern(value)?;
+                let carrier = (u64::from(offset) << 32) | u64::from(length);
+                let destination = self.plan.expr_scalar(expr)?;
+                owned_strings::emit_empty_guard(self.output, destination);
+                if self.standalone_strings {
+                    self.output.push(0x41);
+                    write_i64(self.output, i64::from(offset));
+                    self.output.push(0x41);
+                    write_i64(self.output, i64::from(length));
+                    self.output
+                        .extend([0x10, internal_strings::LITERAL_IMPORT as u8, 0x21]);
+                    write_u32(self.output, destination);
+                    self.string_capacity_guard(destination)?;
+                    return Ok(Value::Scalar {
+                        local: destination,
+                        ty: ResolvedType::String,
+                    });
+                }
+                self.output.push(0x42);
+                write_i64(self.output, carrier as i64);
+                self.output.push(0x10);
+                write_u32(self.output, BYTE_COPY_IMPORT);
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+                Ok(Value::Scalar {
+                    local: destination,
+                    ty: ResolvedType::String,
+                })
+            }
+            ResolvedExprKind::Place(place) => {
+                if let Some(value) = self.emit_row_loan_read(expr, place)? {
+                    return Ok(value);
+                }
+                let value = self.place_value(place)?;
+                if self.string_condition_reads.contains(&expr.id) {
+                    return Ok(value);
+                }
+                if self.owned_utf8_literals.is_some()
+                    && expr.ty == ResolvedType::String
+                    && expr.ownership == crate::hir::OwnershipMode::Own
+                    && !self.moves_string_owner(expr)?
+                {
+                    let local = self.plan.expr_scalar(expr)?;
+                    owned_strings::emit_empty_guard(self.output, local);
+                    self.get_scalar(&value);
+                    self.output.push(0x10);
+                    write_u32(
+                        self.output,
+                        if self.standalone_strings {
+                            internal_strings::CLONE_IMPORT
+                        } else {
+                            BYTE_COPY_IMPORT
+                        },
+                    );
+                    self.output.push(0x21);
+                    write_u32(self.output, local);
+                    if self.standalone_strings {
+                        self.string_capacity_guard(local)?;
+                    }
+                    return Ok(Value::Scalar {
+                        local,
+                        ty: ResolvedType::String,
+                    });
+                }
+                self.materialize(expr, &value)
+            }
+            ResolvedExprKind::BorrowPlace { operation, place } => {
+                self.emit_borrow_place(expr, operation, place)
+            }
+            ResolvedExprKind::ByteRange {
+                operation,
+                source,
+                start,
+                end,
+            } => self.emit_byte_range(expr, operation, source, start, end),
+            ResolvedExprKind::NativeRustImportCall(_) => Err(Diagnostic::io(
+                "SPX-W114",
+                "Native Rust imports are unavailable for WebAssembly targets",
+            )),
+            ResolvedExprKind::HostCommandCall(call) => self.emit_host_command_call(expr, call),
+            ResolvedExprKind::Unary { .. }
+            | ResolvedExprKind::Binary { .. }
+            | ResolvedExprKind::Block { .. }
+            | ResolvedExprKind::VecConstructor { .. }
+            | ResolvedExprKind::If { .. }
+            | ResolvedExprKind::Call { .. }
+            | ResolvedExprKind::LiteralFormat { .. }
+            | ResolvedExprKind::VecFieldRead { .. } => {
+                unreachable!("recursive expression is handled by the small dispatcher")
+            }
+            ResolvedExprKind::RowLoan { .. } => Err(error(
+                "row loan reached evaluation outside its call argument slot",
+            )),
+            ResolvedExprKind::ConstructRecord { record, fields } => {
+                let destination = Value::Aggregate {
+                    pointer: self.plan.expr_pointer(expr)?,
+                    ty: expr.ty.clone(),
+                };
+                let record_layout = layout(self.program, &expr.ty)?;
+                if record_layout.record != *record {
+                    return Err(error(format!(
+                        "constructor `{record}` has result type `{}`",
+                        expr.ty.identity_key()
+                    )));
+                }
+                let Value::Aggregate { pointer, .. } = &destination else {
+                    unreachable!();
+                };
+                for initializer in fields {
+                    let field = record_layout
+                        .field(&initializer.field)
+                        .cloned()
+                        .ok_or_else(|| {
+                            error(format!("unknown constructor field `{}`", initializer.field))
+                        })?;
+                    let value = self.emit_expr(&initializer.value)?;
+                    let field_destination = value_at(
+                        Pointer {
+                            local: pointer.local,
+                            offset: pointer
+                                .offset
+                                .checked_add(field.offset)
+                                .ok_or_else(|| error("field pointer overflows u32"))?,
+                        },
+                        field.ty,
+                        self.program,
+                    )?;
+                    self.copy_value(&field_destination, &value, "record field initializer")?;
+                }
+                Ok(destination)
+            }
+            ResolvedExprKind::ConstructVariant {
+                variant,
+                case,
+                fields,
+            } => {
+                let layout = variant_layout(self.variant_layouts, &expr.ty)?;
+                if layout.variant != *variant {
+                    return Err(error(format!(
+                        "variant constructor `{variant}` has result type `{}`",
+                        expr.ty.identity_key()
+                    )));
+                }
+                let case_layout = layout
+                    .case(case)
+                    .cloned()
+                    .ok_or_else(|| error(format!("variant `{variant}` has no case `{case}`")))?;
+                let destination = Value::Aggregate {
+                    pointer: self.plan.expr_pointer(expr)?,
+                    ty: expr.ty.clone(),
+                };
+                let Value::Aggregate { pointer, .. } = &destination else {
+                    unreachable!();
+                };
+                // Initialize the private carrier before the first field is
+                // evaluated. Owned field transitions become live as each
+                // initializer completes, so a later failing initializer must
+                // find the exact token in destination storage. The semantic
+                // tag is still published only after every field succeeds.
+                self.emit_pointer(*pointer);
+                self.output.extend([0x41, 0x00, 0x41]);
+                write_i64(self.output, i64::from(layout.size));
+                self.output.extend([0xfc, 0x0b, 0x00]);
+                for initializer in fields {
+                    let field =
+                        case_layout
+                            .field(&initializer.field)
+                            .cloned()
+                            .ok_or_else(|| {
+                                error(format!(
+                                    "variant case `{case}` has no field `{}`",
+                                    initializer.field
+                                ))
+                            })?;
+                    let value = self.emit_expr(&initializer.value)?;
+                    require_type(value_type(&value), &field.ty, "variant field initializer")?;
+                    let field_destination = value_at(
+                        Pointer {
+                            local: pointer.local,
+                            offset: pointer
+                                .offset
+                                .checked_add(layout.payload_offset)
+                                .and_then(|offset| offset.checked_add(field.offset))
+                                .ok_or_else(|| error("variant field pointer overflows u32"))?,
+                        },
+                        field.ty,
+                        self.program,
+                    )?;
+                    self.copy_value(&field_destination, &value, "variant field initializer")?;
+                }
+                self.emit_pointer(*pointer);
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(case_layout.tag));
+                self.output.extend([0x36, 0x02, 0x00]);
+                Ok(destination)
+            }
+            ResolvedExprKind::Match {
+                mode,
+                scrutinee,
+                arms,
+            } => {
+                let aggregate_result = is_aggregate(self.program, &expr.ty)?;
+                if aggregate_result && !self.match_result_is_admitted(expr, *mode, &scrutinee.ty) {
+                    return Err(error("copy match result must be i64 or bool"));
+                }
+                let scrutinee = if *mode == crate::hir::ResolvedMatchMode::Borrow {
+                    let ResolvedExprKind::Place(place) = &scrutinee.kind else {
+                        return Err(error("borrowed record match requires an exact place"));
+                    };
+                    if !place.projections.is_empty() {
+                        return Err(error(
+                            "borrowed record match projections are outside flat v1",
+                        ));
+                    }
+                    self.place_value(place)?
+                } else {
+                    self.emit_expr(scrutinee)?
+                };
+                // Scalar decisions and aggregate storage keep distinct lowering.
+                if crate::hir::is_refutable_match_scalar(value_type(&scrutinee)) {
+                    return self.emit_scalar_refutable_match(expr, &scrutinee, arms);
+                }
+                let Value::Aggregate { pointer, ty } = &scrutinee else {
+                    return Err(error("match scrutinee is not aggregate storage"));
+                };
+                if is_record(self.program, ty)? {
+                    let [arm] = arms.as_slice() else {
+                        return Err(error("irrefutable record match must have exactly one arm"));
+                    };
+                    let destination = if expr.ty == ResolvedType::Never {
+                        Value::Bottom
+                    } else if aggregate_result {
+                        Value::Aggregate {
+                            pointer: self.plan.expr_pointer(expr)?,
+                            ty: expr.ty.clone(),
+                        }
+                    } else {
+                        Value::Scalar {
+                            local: self.plan.expr_scalar(expr)?,
+                            ty: expr.ty.clone(),
+                        }
+                    };
+                    let saved = self.bindings.clone();
+                    // One expression identity can carry both destructuring
+                    // entry and the enclosing match's result handoff. Select
+                    // exact authored binding destinations without reordering
+                    // any canonical transition vector.
+                    let match_bindings = match &arm.pattern {
+                        crate::hir::ResolvedMatchPattern::Record { fields, .. } => {
+                            nested_owned::owned_record_pattern_anchors(self.program, fields)?
+                        }
+                        _ => BTreeSet::new(),
+                    };
+                    if *mode == crate::hir::ResolvedMatchMode::Own {
+                        self.authenticate_record_match_phase(
+                            &expr.id,
+                            Some((&match_bindings, true)),
+                        )?;
+                    }
+                    match &arm.pattern {
+                        crate::hir::ResolvedMatchPattern::Wildcard => {}
+                        crate::hir::ResolvedMatchPattern::Record {
+                            record,
+                            instance,
+                            fields,
+                        } => self.bind_record_match_pattern(
+                            &scrutinee, *mode, record, instance, fields,
+                        )?,
+                        crate::hir::ResolvedMatchPattern::Variant { .. } => {
+                            return Err(error("variant pattern has a record match scrutinee"));
+                        }
+                        crate::hir::ResolvedMatchPattern::Literal(_)
+                        | crate::hir::ResolvedMatchPattern::Or(_)
+                        | crate::hir::ResolvedMatchPattern::Binding(_) => {
+                            return Err(error(
+                                "refutable pattern has an aggregate record match scrutinee",
+                            ));
+                        }
+                    }
+                    if *mode == crate::hir::ResolvedMatchMode::Own {
+                        self.apply_post_transitions_matching(
+                            &expr.id,
+                            &scrutinee,
+                            Some((&match_bindings, true)),
+                        )?;
+                        self.poison_owned_record(&scrutinee)?;
+                    }
+                    // `emit_expr` applies the arm-value-keyed transfer before
+                    // returning. Keep the infallible physical move and the
+                    // arm cleanup in this order so transferred bindings are
+                    // dead before scope exit.
+                    let value = self.emit_expr(&arm.value)?;
+                    self.copy_value(&destination, &value, "record match arm result")?;
+                    if *mode == crate::hir::ResolvedMatchMode::Own
+                        && !matches!(value, Value::Bottom)
+                    {
+                        self.emit_owned_record_match_cleanup(&arm.pattern)?;
+                        self.authenticate_record_match_phase(
+                            &expr.id,
+                            Some((&match_bindings, false)),
+                        )?;
+                        self.apply_post_transitions_matching(
+                            &expr.id,
+                            &destination,
+                            Some((&match_bindings, false)),
+                        )?;
+                    }
+                    self.bindings = saved;
+                    return Ok(destination);
+                }
+                let layout = variant_layout(self.variant_layouts, ty)?;
+                self.emit_pointer(*pointer);
+                self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                write_i64(
+                    self.output,
+                    i64::try_from(layout.cases.len())
+                        .map_err(|_| error("variant case count overflows i64"))?,
+                );
+                self.output.push(0x4f);
+                if layout
+                    .cases
+                    .iter()
+                    .flat_map(|case| &case.fields)
+                    .any(|field| matches!(&field.ty, ResolvedType::Bytes | ResolvedType::String))
+                {
+                    self.trap_if();
+                } else {
+                    self.fail_if(STATUS_INTERNAL_INVALID_TAG)?;
+                }
+                let destination = if expr.ty == ResolvedType::Never {
+                    Value::Bottom
+                } else if aggregate_result {
+                    Value::Aggregate {
+                        pointer: self.plan.expr_pointer(expr)?,
+                        ty: expr.ty.clone(),
+                    }
+                } else {
+                    Value::Scalar {
+                        local: self.plan.expr_scalar(expr)?,
+                        ty: expr.ty.clone(),
+                    }
+                };
+                let emission = VariantMatchEmission {
+                    destination: &destination,
+                    scrutinee: *pointer,
+                    layout: &layout,
+                    arms,
+                    mode: *mode,
+                    expression: &expr.id,
+                };
+                if arms.iter().any(|arm| arm.guard.is_some()) {
+                    self.emit_guarded_variant_match(&emission)?;
+                } else {
+                    let yield_only = self.iterator_true_match.as_ref() == Some(&expr.id);
+                    let normal = self.emit_match_arms(&emission, usize::from(yield_only))?;
+                    if yield_only && !normal {
+                        return Ok(Value::Bottom);
+                    }
+                }
+                if aggregate_result {
+                    self.apply_variant_match_continuation(expr, &destination)?;
+                }
+                Ok(destination)
+            }
+            ResolvedExprKind::Try {
+                operand,
+                result,
+                ok_case,
+                ok_field,
+                err_case,
+                err_field,
+                residual_type,
+            } => {
+                if !self.try_target_enabled {
+                    return Err(error(
+                        "copy-result propagation is allowed only in a function body",
+                    ));
+                }
+                require_type(
+                    residual_type,
+                    self.return_type,
+                    "copy-result residual target",
+                )?;
+                let operand_layout = variant_layout(self.variant_layouts, &operand.ty)?;
+                let residual_layout = variant_layout(self.variant_layouts, residual_type)?;
+                if operand_layout.variant != *result || residual_layout.variant != *result {
+                    return Err(error(
+                        "copy-result propagation does not reference its resolved Result declaration",
+                    ));
+                }
+                let operand_ok = operand_layout
+                    .case(ok_case)
+                    .and_then(|case| case.field(ok_field).map(|field| (case, field)))
+                    .ok_or_else(|| error("copy-result propagation has no resolved Ok payload"))?;
+                let operand_err = operand_layout
+                    .case(err_case)
+                    .and_then(|case| case.field(err_field).map(|field| (case, field)))
+                    .ok_or_else(|| error("copy-result propagation has no resolved Err payload"))?;
+                let residual_err = residual_layout
+                    .case(err_case)
+                    .and_then(|case| case.field(err_field).map(|field| (case, field)))
+                    .ok_or_else(|| error("copy-result residual has no resolved Err payload"))?;
+                require_type(&operand_ok.1.ty, &expr.ty, "copy-result Ok payload")?;
+                require_type(
+                    &operand_err.1.ty,
+                    &residual_err.1.ty,
+                    "copy-result Err payload",
+                )?;
+
+                let owned_bytes =
+                    owned_try::is_admitted_owned_result_try(operand, residual_type, result);
+
+                let operand_value = self.emit_expr(operand)?;
+                let Value::Aggregate {
+                    pointer: operand_pointer,
+                    ty: ref operand_type,
+                } = operand_value
+                else {
+                    return Err(error("copy-result operand is not aggregate storage"));
+                };
+                require_type(operand_type, &operand.ty, "copy-result operand")?;
+                self.emit_pointer(operand_pointer);
+                self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                write_i64(
+                    self.output,
+                    i64::try_from(operand_layout.cases.len())
+                        .map_err(|_| error("Result case count overflows i64"))?,
+                );
+                self.output.push(0x4f);
+                if owned_bytes {
+                    self.trap_if();
+                } else {
+                    self.fail_if(STATUS_INTERNAL_INVALID_TAG)?;
+                }
+
+                if owned_bytes {
+                    self.emit_pointer(operand_pointer);
+                    self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                    write_i64(self.output, i64::from(operand_err.0.tag));
+                    self.output.extend([0x46, 0x04, 0x40]);
+                    let residual_offset = self
+                        .plan
+                        .result_stage_aggregate
+                        .ok_or_else(|| error("owned Result residual has no result staging slot"))?;
+                    let residual = Value::Aggregate {
+                        pointer: Pointer {
+                            local: self.plan.frame_base,
+                            offset: residual_offset,
+                        },
+                        ty: residual_type.clone(),
+                    };
+                    self.apply_try_variant_case_transitions(
+                        &expr.id,
+                        err_case,
+                        &operand_value,
+                        operand.ty == *residual_type,
+                    )?;
+                    if operand.ty == *residual_type {
+                        self.copy_value(&residual, &operand_value, "owned Result residual move")?;
+                    } else {
+                        let Value::Aggregate {
+                            pointer: residual_pointer,
+                            ..
+                        } = &residual
+                        else {
+                            unreachable!("owned Result residual is aggregate storage")
+                        };
+                        self.reconstruct_owned_result_error(
+                            (operand_pointer, &operand_layout, operand_err.1),
+                            (
+                                *residual_pointer,
+                                &residual_layout,
+                                residual_err.0,
+                                residual_err.1,
+                            ),
+                        )?;
+                    }
+                    let result_staged = self.plan.result_staged.ok_or_else(|| {
+                        error("owned Result propagation has no result-state local")
+                    })?;
+                    self.output.extend([0x41, 0x01, 0x21]);
+                    write_u32(self.output, result_staged);
+                    self.output.push(0x0c);
+                    write_u32(self.output, self.control_depth + 1);
+                    self.output.push(0x0b);
+
+                    self.emit_pointer(operand_pointer);
+                    self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                    write_i64(self.output, i64::from(operand_ok.0.tag));
+                    self.output.push(0x47);
+                    self.trap_if();
+                    let destination = Value::Scalar {
+                        local: self.plan.expr_scalar(expr)?,
+                        ty: expr.ty.clone(),
+                    };
+                    let source = Value::ScalarMemory {
+                        pointer: Pointer {
+                            local: operand_pointer.local,
+                            offset: operand_pointer
+                                .offset
+                                .checked_add(operand_layout.payload_offset)
+                                .and_then(|offset| offset.checked_add(operand_ok.1.offset))
+                                .ok_or_else(|| error("owned Result Ok pointer overflows u32"))?,
+                        },
+                        ty: operand_ok.1.ty.clone(),
+                    };
+                    self.apply_owned_try_success_transitions(&expr.id, ok_case)?;
+                    self.copy_value(&destination, &source, "owned Result Ok extraction")?;
+                    if expr.ownership == crate::hir::OwnershipMode::Own {
+                        self.materialize_owned_try_call_arguments(&expr.id, &destination)?;
+                    }
+                    return Ok(destination);
+                }
+
+                self.emit_pointer(operand_pointer);
+                self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                write_i64(self.output, i64::from(operand_err.0.tag));
+                self.output.extend([0x46, 0x04, 0x40]);
+                let residual_offset = self
+                    .plan
+                    .result_stage_aggregate
+                    .ok_or_else(|| error("copy-result residual has no result staging slot"))?;
+                let residual_pointer = Pointer {
+                    local: self.plan.frame_base,
+                    offset: residual_offset,
+                };
+                self.emit_pointer(residual_pointer);
+                self.output.extend([0x41, 0x00, 0x41]);
+                write_i64(self.output, i64::from(residual_layout.size));
+                self.output.extend([0xfc, 0x0b, 0x00]);
+                let source = Value::ScalarMemory {
+                    pointer: Pointer {
+                        local: operand_pointer.local,
+                        offset: operand_pointer
+                            .offset
+                            .checked_add(operand_layout.payload_offset)
+                            .and_then(|offset| offset.checked_add(operand_err.1.offset))
+                            .ok_or_else(|| error("Result Err source pointer overflows u32"))?,
+                    },
+                    ty: operand_err.1.ty.clone(),
+                };
+                let destination = Value::ScalarMemory {
+                    pointer: Pointer {
+                        local: residual_pointer.local,
+                        offset: residual_pointer
+                            .offset
+                            .checked_add(residual_layout.payload_offset)
+                            .and_then(|offset| offset.checked_add(residual_err.1.offset))
+                            .ok_or_else(|| error("Result Err destination pointer overflows u32"))?,
+                    },
+                    ty: residual_err.1.ty.clone(),
+                };
+                self.copy_value(&destination, &source, "copy-result Err reconstruction")?;
+                self.emit_pointer(residual_pointer);
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(residual_err.0.tag));
+                self.output.extend([0x36, 0x02, 0x00]);
+                let result_staged = self
+                    .plan
+                    .result_staged
+                    .ok_or_else(|| error("copy-result propagation has no result-state local"))?;
+                self.output.extend([0x41, 0x01, 0x21]);
+                write_u32(self.output, result_staged);
+                self.output.push(0x0c);
+                write_u32(self.output, self.control_depth + 1);
+                self.output.push(0x0b);
+
+                self.emit_pointer(operand_pointer);
+                self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                write_i64(self.output, i64::from(operand_ok.0.tag));
+                self.output.push(0x47);
+                self.fail_if(STATUS_INTERNAL_INVALID_TAG)?;
+                let destination = Value::Scalar {
+                    local: self.plan.expr_scalar(expr)?,
+                    ty: expr.ty.clone(),
+                };
+                let source = Value::ScalarMemory {
+                    pointer: Pointer {
+                        local: operand_pointer.local,
+                        offset: operand_pointer
+                            .offset
+                            .checked_add(operand_layout.payload_offset)
+                            .and_then(|offset| offset.checked_add(operand_ok.1.offset))
+                            .ok_or_else(|| error("Result Ok pointer overflows u32"))?,
+                    },
+                    ty: operand_ok.1.ty.clone(),
+                };
+                self.copy_value(&destination, &source, "copy-result Ok extraction")?;
+                Ok(destination)
+            }
+            ResolvedExprKind::TryOption {
+                operand,
+                option,
+                some_case,
+                some_field,
+                none_case,
+                residual_type,
+            } => {
+                if !self.try_target_enabled {
+                    return Err(error(
+                        "copy-Option propagation is allowed only in a function body",
+                    ));
+                }
+                require_type(
+                    residual_type,
+                    self.return_type,
+                    "copy-Option residual target",
+                )?;
+                let operand_layout = variant_layout(self.variant_layouts, &operand.ty)?;
+                let residual_layout = variant_layout(self.variant_layouts, residual_type)?;
+                if operand_layout.variant != *option || residual_layout.variant != *option {
+                    return Err(error(
+                        "copy-Option propagation does not reference its resolved Option declaration",
+                    ));
+                }
+                let operand_some = operand_layout
+                    .case(some_case)
+                    .and_then(|case| case.field(some_field).map(|field| (case, field)))
+                    .ok_or_else(|| error("copy-Option propagation has no resolved Some payload"))?;
+                let operand_none = operand_layout
+                    .case(none_case)
+                    .ok_or_else(|| error("copy-Option propagation has no resolved None case"))?;
+                let residual_none = residual_layout
+                    .case(none_case)
+                    .ok_or_else(|| error("copy-Option residual has no resolved None case"))?;
+                if !operand_none.fields.is_empty() || !residual_none.fields.is_empty() {
+                    return Err(error("copy-Option None case unexpectedly has a payload"));
+                }
+                require_type(&operand_some.1.ty, &expr.ty, "copy-Option Some payload")?;
+
+                let operand_value = self.emit_expr(operand)?;
+                let Value::Aggregate {
+                    pointer: operand_pointer,
+                    ty: operand_type,
+                } = operand_value
+                else {
+                    return Err(error("copy-Option operand is not aggregate storage"));
+                };
+                require_type(&operand_type, &operand.ty, "copy-Option operand")?;
+                self.emit_pointer(operand_pointer);
+                self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                write_i64(
+                    self.output,
+                    i64::try_from(operand_layout.cases.len())
+                        .map_err(|_| error("Option case count overflows i64"))?,
+                );
+                self.output.push(0x4f);
+                self.fail_if(STATUS_INTERNAL_INVALID_TAG)?;
+
+                self.emit_pointer(operand_pointer);
+                self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                write_i64(self.output, i64::from(operand_none.tag));
+                self.output.extend([0x46, 0x04, 0x40]);
+                let residual_offset = self
+                    .plan
+                    .result_stage_aggregate
+                    .ok_or_else(|| error("copy-Option residual has no result staging slot"))?;
+                let residual_pointer = Pointer {
+                    local: self.plan.frame_base,
+                    offset: residual_offset,
+                };
+                self.emit_pointer(residual_pointer);
+                self.output.extend([0x41, 0x00, 0x41]);
+                write_i64(self.output, i64::from(residual_layout.size));
+                self.output.extend([0xfc, 0x0b, 0x00]);
+                self.emit_pointer(residual_pointer);
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(residual_none.tag));
+                self.output.extend([0x36, 0x02, 0x00]);
+                let result_staged = self
+                    .plan
+                    .result_staged
+                    .ok_or_else(|| error("copy-Option propagation has no result-state local"))?;
+                self.output.extend([0x41, 0x01, 0x21]);
+                write_u32(self.output, result_staged);
+                self.output.push(0x0c);
+                write_u32(self.output, self.control_depth + 1);
+                self.output.push(0x0b);
+
+                self.emit_pointer(operand_pointer);
+                self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                write_i64(self.output, i64::from(operand_some.0.tag));
+                self.output.push(0x47);
+                self.fail_if(STATUS_INTERNAL_INVALID_TAG)?;
+                let destination = Value::Scalar {
+                    local: self.plan.expr_scalar(expr)?,
+                    ty: expr.ty.clone(),
+                };
+                let source = Value::ScalarMemory {
+                    pointer: Pointer {
+                        local: operand_pointer.local,
+                        offset: operand_pointer
+                            .offset
+                            .checked_add(operand_layout.payload_offset)
+                            .and_then(|offset| offset.checked_add(operand_some.1.offset))
+                            .ok_or_else(|| error("Option Some pointer overflows u32"))?,
+                    },
+                    ty: operand_some.1.ty.clone(),
+                };
+                self.copy_value(&destination, &source, "copy-Option Some extraction")?;
+                Ok(destination)
+            }
+            ResolvedExprKind::Project { base, field } => {
+                let base = self.emit_expr(base)?;
+                let projected = self.project_value(&base, field)?;
+                self.materialize(expr, &projected)
+            }
+            // Resumable Effects v1 (issue #204): explicit, tested refusal,
+            // matching the Core Wasm scalar lane's -- see
+            // `docs/RESUMABLE-EFFECTS-V1.md`.
+            ResolvedExprKind::Yield { .. } => {
+                return Err(Diagnostic::io(
+                    "SPX-W126",
+                    "`yield` is not yet lowered by the WebAssembly backend; a `yields`-declaring \
+                     function is not admitted for this target",
+                ));
+            }
+            ResolvedExprKind::Upcast { source } => {
+                // Class Inheritance v1: copy the ancestor prefix fields from
+                // the consumed descendant value; canonical layouts guarantee
+                // identical offsets on both sides.
+                let value = self.emit_expr(source)?;
+                let destination = Value::Aggregate {
+                    pointer: self.plan.expr_pointer(expr)?,
+                    ty: expr.ty.clone(),
+                };
+                let target_layout = layout(self.program, &expr.ty)?;
+                let source_layout = layout(self.program, value_type(&value))?;
+                if target_layout.record == source_layout.record {
+                    return Err(error("upcast requires a descendant source layout"));
+                }
+                let Value::Aggregate { pointer, .. } = &destination else {
+                    unreachable!();
+                };
+                for field in &target_layout.fields {
+                    if source_layout.field(&field.field).map(|candidate| {
+                        (candidate.offset, candidate.size, candidate.align)
+                            == (field.offset, field.size, field.align)
+                    }) != Some(true)
+                    {
+                        return Err(error(
+                            "upcast source prefix disagrees with the ancestor layout",
+                        ));
+                    }
+                    let field_destination = value_at(
+                        Pointer {
+                            local: pointer.local,
+                            offset: pointer
+                                .offset
+                                .checked_add(field.offset)
+                                .ok_or_else(|| error("field pointer overflows u32"))?,
+                        },
+                        field.ty.clone(),
+                        self.program,
+                    )?;
+                    let field_source = self.project_value(&value, &field.field)?;
+                    self.copy_value(&field_destination, &field_source, "upcast prefix field")?;
+                }
+                Ok(destination)
+            }
+            ResolvedExprKind::UpdateRecord {
+                base,
+                record,
+                fields,
+            } => {
+                let base = self.emit_expr(base)?;
+                if nested_owned::record_update_uses_owned_plan(self.program, &expr.ty)? {
+                    return self.emit_nested_update_record(expr, &base, record, fields);
+                }
+                let destination = Value::Aggregate {
+                    pointer: self.plan.expr_pointer(expr)?,
+                    ty: expr.ty.clone(),
+                };
+                self.copy_value(&destination, &base, "record update base")?;
+                let record_layout = layout(self.program, &expr.ty)?;
+                if record_layout.record != *record {
+                    return Err(error(format!(
+                        "record update `{record}` has result type `{}`",
+                        expr.ty.identity_key()
+                    )));
+                }
+                let Value::Aggregate { pointer, .. } = &destination else {
+                    unreachable!();
+                };
+                for replacement in fields {
+                    let field = record_layout
+                        .field(&replacement.field)
+                        .cloned()
+                        .ok_or_else(|| {
+                            error(format!("unknown update field `{}`", replacement.field))
+                        })?;
+                    let value = self.emit_expr(&replacement.value)?;
+                    let field_destination = value_at(
+                        Pointer {
+                            local: pointer.local,
+                            offset: pointer
+                                .offset
+                                .checked_add(field.offset)
+                                .ok_or_else(|| error("field pointer overflows u32"))?,
+                        },
+                        field.ty,
+                        self.program,
+                    )?;
+                    self.copy_value(&field_destination, &value, "record update field")?;
+                }
+                Ok(destination)
+            }
+        }
+    }
+
+    fn emit_nested_update_record(
+        &mut self,
+        expr: &ResolvedExpr,
+        base: &Value,
+        record: &DeclarationId,
+        fields: &[crate::hir::ResolvedFieldInitializer],
+    ) -> Result<Value, Diagnostic> {
+        require_type(value_type(base), &expr.ty, "nested record update base")?;
+        let record_layout = layout(self.program, &expr.ty)?;
+        if record_layout.record != *record {
+            return Err(error("nested record update identity changed"));
+        }
+        let destination = Value::Aggregate {
+            pointer: self.plan.expr_pointer(expr)?,
+            ty: expr.ty.clone(),
+        };
+        let mut seen = std::collections::BTreeSet::new();
+        for replacement in fields {
+            let field = record_layout
+                .field(&replacement.field)
+                .cloned()
+                .ok_or_else(|| error("nested record update field is absent"))?;
+            if !seen.insert(field.field.clone()) {
+                return Err(error("nested record update repeats a field"));
+            }
+            let value = self.emit_expr(&replacement.value)?;
+            require_type(value_type(&value), &field.ty, "nested record update field")?;
+            let target = self.project_value(&destination, &field.field)?;
+            // CleanupPlan transfers replacement authority at the initializer's
+            // successful completion. Materialize that exact field immediately,
+            // before a later initializer can fail and invoke partial-result
+            // cleanup against the destination epoch.
+            self.copy_value(&target, &value, "nested record update replacement")?;
+        }
+        self.authenticate_record_match_transfers(&expr.id)?;
+        for field in &record_layout.fields {
+            if seen.contains(&field.field) {
+                continue;
+            }
+            let source = self.project_value(base, &field.field)?;
+            let target = self.project_value(&destination, &field.field)?;
+            self.copy_value(&target, &source, "nested record update retained field")?;
+        }
+        Ok(destination)
+    }
+
+    fn materialize(&mut self, expr: &ResolvedExpr, source: &Value) -> Result<Value, Diagnostic> {
+        if matches!(source, Value::Bottom) {
+            return Ok(Value::Bottom);
+        }
+        let destination = if is_aggregate(self.program, &expr.ty)? {
+            Value::Aggregate {
+                pointer: self.plan.expr_pointer(expr)?,
+                ty: expr.ty.clone(),
+            }
+        } else {
+            Value::Scalar {
+                local: self.plan.expr_scalar(expr)?,
+                ty: expr.ty.clone(),
+            }
+        };
+        if expr.ownership == crate::hir::OwnershipMode::Borrow
+            && (matches!(expr.ty, ResolvedType::Bytes | ResolvedType::String)
+                || crate::map_ops::is_collection(&expr.ty)
+                || owned_vec(self.program, &expr.ty))
+        {
+            self.copy_borrowed_scalar_alias(&destination, source)?;
+        } else {
+            self.copy_value(&destination, source, "expression materialization")?;
+        }
+        Ok(destination)
+    }
+
+    fn emit_match_arms(
+        &mut self,
+        emission: &VariantMatchEmission<'_>,
+        index: usize,
+    ) -> Result<bool, Diagnostic> {
+        let VariantMatchEmission {
+            destination,
+            scrutinee,
+            layout,
+            arms,
+            mode,
+            expression,
+        } = emission;
+        let scrutinee = *scrutinee;
+        let mode = *mode;
+        let Some(arm) = arms.get(index) else {
+            self.output.push(0x00);
+            return Ok(false);
+        };
+        let saved = self.bindings.clone();
+        let mut normal = false;
+        if arm.guard.is_some() {
+            return Err(error("guards are outside aggregate match lowering"));
+        }
+        match &arm.pattern {
+            crate::hir::ResolvedMatchPattern::Variant {
+                variant,
+                case,
+                fields,
+            } => {
+                if *variant != layout.variant {
+                    return Err(error(format!(
+                        "match arm variant `{variant}` disagrees with `{}`",
+                        layout.variant
+                    )));
+                }
+                let case_layout = layout
+                    .case(case)
+                    .cloned()
+                    .ok_or_else(|| error(format!("match arm references unknown case `{case}`")))?;
+                self.emit_pointer(scrutinee);
+                self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                write_i64(self.output, i64::from(case_layout.tag));
+                self.output.extend([0x46, 0x04, 0x40]);
+                self.control_depth += 1;
+                if mode == crate::hir::ResolvedMatchMode::Own {
+                    self.apply_variant_case_transitions(expression, case)?;
+                }
+                self.bind_variant_match_fields(
+                    fields,
+                    &case_layout,
+                    scrutinee,
+                    layout.payload_offset,
+                    mode,
+                )?;
+                if mode == crate::hir::ResolvedMatchMode::Own {
+                    self.emit_pointer(scrutinee);
+                    self.output.extend([0x41, 0x00, 0x41]);
+                    write_i64(self.output, i64::from(layout.size));
+                    self.output.extend([0xfc, 0x0b, 0x00]);
+                }
+                let value = self.emit_expr(&arm.value)?;
+                normal |= !matches!(value, Value::Bottom);
+                self.copy_value(destination, &value, "match arm result")?;
+                if mode == crate::hir::ResolvedMatchMode::Own && !matches!(value, Value::Bottom) {
+                    self.emit_owned_variant_match_cleanup(fields)?;
+                }
+                self.bindings = saved.clone();
+                self.output.push(0x05);
+                normal |= self.emit_match_arms(emission, index + 1)?;
+                self.control_depth -= 1;
+                self.output.push(0x0b);
+            }
+            crate::hir::ResolvedMatchPattern::Wildcard => {
+                if mode == crate::hir::ResolvedMatchMode::Own {
+                    return Err(error("owned variant wildcard cannot hide a live payload"));
+                }
+                let value = self.emit_expr(&arm.value)?;
+                normal |= !matches!(value, Value::Bottom);
+                self.copy_value(destination, &value, "wildcard match arm result")?;
+            }
+            crate::hir::ResolvedMatchPattern::Record { .. } => {
+                return Err(error("record pattern has a variant match scrutinee"));
+            }
+            crate::hir::ResolvedMatchPattern::Or(alternatives) => {
+                self.emit_case_or_arm(emission, index, alternatives)?;
+                normal = true;
+            }
+            crate::hir::ResolvedMatchPattern::Literal(_)
+            | crate::hir::ResolvedMatchPattern::Binding(_) => {
+                return Err(error(
+                    "refutable pattern has an aggregate variant match scrutinee",
+                ));
+            }
+        }
+        self.bindings = saved;
+        Ok(normal)
+    }
+
+    /// Refutable Match v1 aggregate-lane lowering. The scrutinee is a scalar
+    /// already staged in its own planned local, so every arm test re-reads it
+    /// with `local.get` — one evaluation, many reads. Each arm nests one
+    /// reject block whose `br_if 0` falls through to the following arms and
+    /// one outer `br` that exits the whole chain after selection; a guard is
+    /// an ordinary emitted bool expression short-circuited after the pattern
+    /// test so it evaluates exactly once per reached matching arm.
+    fn emit_scalar_refutable_match(
+        &mut self,
+        expr: &ResolvedExpr,
+        scrutinee: &Value,
+        arms: &[crate::hir::ResolvedMatchArm],
+    ) -> Result<Value, Diagnostic> {
+        let Value::Scalar {
+            local: scrutinee_local,
+            ty: scrutinee_ty,
+        } = scrutinee
+        else {
+            return Err(error("scalar match scrutinee is not scalar storage"));
+        };
+        let destination = if expr.ty == ResolvedType::Never {
+            Value::Bottom
+        } else if crate::variant_guards::copy_variant(&self.program.declarations, &expr.ty) {
+            Value::Aggregate {
+                pointer: self.plan.expr_pointer(expr)?,
+                ty: expr.ty.clone(),
+            }
+        } else {
+            Value::Scalar {
+                local: self.plan.expr_scalar(expr)?,
+                ty: expr.ty.clone(),
+            }
+        };
+        // block $done (void): selecting any arm jumps here after storing.
+        self.output.extend([0x02, 0x40]);
+        self.control_depth += 1;
+        for (index, arm) in arms.iter().enumerate() {
+            let final_arm = index + 1 == arms.len();
+            if !final_arm {
+                // block $reject: `br_if 0` exits this arm only.
+                self.output.extend([0x02, 0x40]);
+                self.control_depth += 1;
+                self.emit_scalar_pattern_test(scrutinee_local, scrutinee_ty, &arm.pattern)?;
+                self.output.push(0x45); // i32.eqz
+                self.output.extend([0x0d, 0x00]); // br_if 0 -> next arm
+            }
+            let saved = self.bindings.clone();
+            if let crate::hir::ResolvedMatchPattern::Binding(binding) = &arm.pattern {
+                let local = self
+                    .plan
+                    .scalar_bindings
+                    .get(&binding.id)
+                    .copied()
+                    .ok_or_else(|| error(format!("missing match binding `{}`", binding.id)))?;
+                require_type(&binding.ty, scrutinee_ty, "scalar match binding")?;
+                self.output.push(0x20);
+                write_u32(self.output, *scrutinee_local);
+                self.output.push(0x21);
+                write_u32(self.output, local);
+                self.bindings.insert(
+                    binding.id.clone(),
+                    Value::Scalar {
+                        local,
+                        ty: binding.ty.clone(),
+                    },
+                );
+            }
+            if let Some(guard) = &arm.guard {
+                // Guard false must fall through to the following arms: emit
+                // the guard, invert, and branch to the reject label of this
+                // same arm. The reject block is still the innermost label at
+                // depth zero because selection has not happened yet.
+                let flag = self.emit_expr(guard)?;
+                require_type(value_type(&flag), &ResolvedType::Bool, "match guard")?;
+                // Keep the computed result below the child-region finalizers;
+                // `br_if` consumes it only after those String owners settle.
+                self.get_scalar(&flag);
+                self.emit_scalar_match_guard_cleanup(expr, guard)?;
+                self.output.push(0x45); // i32.eqz
+                self.output.extend([0x0d, 0x00]); // br_if 0 -> next arm
+            }
+            let value = self.emit_expr(&arm.value)?;
+            self.copy_value(&destination, &value, "refutable match arm result")?;
+            if !matches!(value, Value::Bottom) && !(arms.len() == 1 && arm.guard.is_none()) {
+                self.emit_scalar_match_value_cleanup(expr, &arm.value)?;
+            }
+            self.bindings = saved;
+            if !final_arm {
+                // Selecting this arm exits the whole chain. The only labels
+                // enclosing this point are this arm's own reject block (0)
+                // and `$done` (1); every earlier arm's block was already
+                // closed. The trailing catch-all arm simply falls out of
+                // `$done` without a branch.
+                self.output.extend([0x0c, 0x01]); // br 1 -> $done
+                self.output.push(0x0b); // end reject block
+                self.control_depth -= 1;
+            }
+        }
+        self.output.push(0x0b); // end $done
+        self.control_depth -= 1;
+        Ok(destination)
+    }
+
+    /// Pushes an i32 truth value: does the staged scalar equal any literal
+    /// alternative of this pattern?
+    fn emit_scalar_pattern_test(
+        &mut self,
+        scrutinee_local: &u32,
+        scrutinee_ty: &ResolvedType,
+        pattern: &crate::hir::ResolvedMatchPattern,
+    ) -> Result<(), Diagnostic> {
+        let alternatives: Vec<crate::hir::PatternValue> = match pattern {
+            crate::hir::ResolvedMatchPattern::Literal(value) => vec![*value],
+            crate::hir::ResolvedMatchPattern::Or(alternatives) => alternatives
+                .iter()
+                .map(|alternative| match alternative {
+                    crate::hir::ResolvedMatchPattern::Literal(value) => *value,
+                    _ => unreachable!("or-pattern alternatives are literals"),
+                })
+                .collect(),
+            crate::hir::ResolvedMatchPattern::Wildcard
+            | crate::hir::ResolvedMatchPattern::Binding(_) => {
+                // Irrefutable pattern: constant true; a guard decides. An
+                // unguarded irrefutable arm is the trailing catch-all, which
+                // never reaches test emission.
+                self.output.extend([0x41, 0x01]); // i32.const 1
+                return Ok(());
+            }
+            crate::hir::ResolvedMatchPattern::Variant { .. }
+            | crate::hir::ResolvedMatchPattern::Record { .. } => {
+                return Err(error("aggregate pattern has a Copy-scalar match scrutinee"));
+            }
+        };
+        for (position, value) in alternatives.iter().enumerate() {
+            require_type(&value.ty(), scrutinee_ty, "literal pattern type")?;
+            self.output.push(0x20);
+            write_u32(self.output, *scrutinee_local);
+            match (scrutinee_ty, value) {
+                (ResolvedType::I64, crate::hir::PatternValue::Int(inner)) => {
+                    self.output.push(0x42);
+                    write_i64(self.output, *inner);
+                    self.output.push(0x51); // i64.eq -> i32
+                }
+                (ResolvedType::I32, crate::hir::PatternValue::Int32(inner)) => {
+                    self.output.push(0x41);
+                    write_i64(self.output, i64::from(*inner));
+                    self.output.push(0x46); // i32.eq
+                }
+                (ResolvedType::U8, crate::hir::PatternValue::Uint8(inner)) => {
+                    self.output.push(0x41);
+                    write_i64(self.output, i64::from(*inner));
+                    self.output.push(0x46);
+                }
+                (ResolvedType::Usize, crate::hir::PatternValue::Usize(inner)) => {
+                    self.output.push(0x42);
+                    write_i64(self.output, *inner as i64);
+                    self.output.push(0x51);
+                }
+                (ResolvedType::Char, crate::hir::PatternValue::Char(inner)) => {
+                    self.output.push(0x41);
+                    write_i64(self.output, i64::from(*inner));
+                    self.output.push(0x46);
+                }
+                (ResolvedType::Bool, crate::hir::PatternValue::Bool(inner)) => {
+                    self.output.push(0x41);
+                    write_i64(self.output, i64::from(*inner));
+                    self.output.push(0x46);
+                }
+                _ => return Err(error("literal pattern disagrees with its scrutinee type")),
+            }
+            if position != 0 {
+                self.output.push(0x72); // i32.or combines equality flags
+            }
+        }
+        Ok(())
+    }
+
+    fn bind_record_match_pattern(
+        &mut self,
+        base: &Value,
+        mode: crate::hir::ResolvedMatchMode,
+        record: &DeclarationId,
+        instance: &ResolvedType,
+        fields: &[crate::hir::ResolvedRecordMatchPatternField],
+    ) -> Result<(), Diagnostic> {
+        nested_owned::bind_record_match_pattern(self, base, mode, record, instance, fields)
+    }
+
+    fn emit_command_transcript_write(
+        &mut self,
+        expression: &ExpressionId,
+        carrier_local: u32,
+        channel: super::host_output::Globals,
+        other: super::host_output::Globals,
+    ) -> Result<(), Diagnostic> {
+        // len > capacity - other.len => sticky bounded-output failure.
+        self.output.push(0x20);
+        write_u32(self.output, carrier_local);
+        self.output.push(0xa7);
+        self.output.push(0x41);
+        write_i64(
+            self.output,
+            i64::from(super::host_output::TRANSCRIPT_CAPACITY),
+        );
+        self.output.push(0x23);
+        write_u32(self.output, other.staged_length);
+        self.output.extend([0x6b, 0x4b]);
+        self.emit_command_failure_if(expression, channel, other)?;
+
+        // Copy while the source carrier is live. `spx_bytes_get` authenticates
+        // both fixed-memory roots and tagged arena tokens; this avoids ever
+        // reinterpreting token bits as a guest pointer.
+        self.output.extend([0x41, 0x00, 0x21]);
+        write_u32(self.output, self.plan.status);
+        self.output.extend([0x02, 0x40, 0x03, 0x40, 0x20]);
+        write_u32(self.output, self.plan.status);
+        self.output.push(0x20);
+        write_u32(self.output, carrier_local);
+        self.output.extend([0xa7, 0x4f, 0x0d, 0x01, 0x41]);
+        write_i64(self.output, i64::from(channel.range_base));
+        self.output.push(0x20);
+        write_u32(self.output, self.plan.status);
+        self.output.extend([0x6a, 0x20]);
+        write_u32(self.output, carrier_local);
+        self.output.push(0x20);
+        write_u32(self.output, self.plan.status);
+        self.output.extend([0xad, 0x10]);
+        write_u32(self.output, self.byte_get_import);
+        self.output.push(0x22);
+        write_u32(
+            self.output,
+            self.plan
+                .command_byte
+                .ok_or_else(|| error("command transcript byte local is absent"))?,
+        );
+        self.output.extend([0x41]);
+        write_i64(self.output, 255);
+        self.output.extend([0x4b, 0x04, 0x40]);
+        self.output.push(0x41);
+        write_i64(self.output, i64::from(STATUS_INTERNAL_INVALID_TAG));
+        self.output.push(0x21);
+        write_u32(self.output, self.plan.status);
+        self.output.extend([0x0c, 0x02, 0x0b, 0x20]);
+        write_u32(
+            self.output,
+            self.plan
+                .command_byte
+                .ok_or_else(|| error("command transcript byte local is absent"))?,
+        );
+        self.output.extend([0x3a, 0x00, 0x00, 0x20]);
+        write_u32(self.output, self.plan.status);
+        self.output.extend([0x41, 0x01, 0x6a, 0x21]);
+        write_u32(self.output, self.plan.status);
+        self.output.extend([0x0c, 0x00, 0x0b, 0x0b]);
+        self.output.push(0x20);
+        write_u32(self.output, self.plan.status);
+        self.output.push(0x41);
+        write_i64(self.output, i64::from(STATUS_INTERNAL_INVALID_TAG));
+        self.output.push(0x46);
+        self.emit_command_failure_if(expression, channel, other)?;
+        self.output.push(0x20);
+        write_u32(self.output, carrier_local);
+        self.output.extend([0xa7, 0x24]);
+        write_u32(self.output, channel.staged_length);
+        self.output.push(0x20);
+        write_u32(self.output, carrier_local);
+        self.output.extend([0xa7, 0xad, 0x21]);
+        write_u32(self.output, carrier_local);
+        self.output.extend([0x41, 0x00, 0x21]);
+        write_u32(self.output, self.plan.status);
+        Ok(())
+    }
+
+    fn emit_command_transcript_append(
+        &mut self,
+        expression: &ExpressionId,
+        carrier_local: u32,
+        channel: super::host_output::Globals,
+        other: super::host_output::Globals,
+    ) -> Result<(), Diagnostic> {
+        // The two staged channels share one exact cumulative budget. Test the
+        // complete call before copying a byte so capacity failure is atomic.
+        self.output.push(0x20);
+        write_u32(self.output, carrier_local);
+        self.output.push(0xa7);
+        self.output.push(0x41);
+        write_i64(
+            self.output,
+            i64::from(crate::command_io_ops::MAX_OUTPUT_BYTES as u32),
+        );
+        self.output.push(0x23);
+        write_u32(self.output, channel.staged_length);
+        self.output.extend([0x6b, 0x23]);
+        write_u32(self.output, other.staged_length);
+        self.output.extend([0x6b, 0x4b, 0x04, 0x40]);
+        self.output.push(0x41);
+        write_i64(
+            self.output,
+            i64::from(crate::command_io_ops::OUTPUT_CAPACITY_EXCEEDED),
+        );
+        self.output.push(0x21);
+        write_u32(self.output, self.plan.status);
+        self.output.push(0x41);
+        write_i64(
+            self.output,
+            i64::from(crate::command_io_ops::OUTPUT_CAPACITY_EXCEEDED),
+        );
+        self.output.push(0x24);
+        write_u32(self.output, super::line_command_io::OUTPUT_STATUS_GLOBAL);
+        self.emit_failure_cleanup(expression, StatusLane::OperationFailure)?;
+        self.output.push(0x0c);
+        write_u32(
+            self.output,
+            self.control_depth + self.status_exit_extra_depth,
+        );
+        self.output.push(0x0b);
+
+        // Copy only after admission. `spx_bytes_get` authenticates ordinary
+        // fixed roots and owned-token roots before each byte is committed.
+        self.output.extend([0x41, 0x00, 0x21]);
+        write_u32(self.output, self.plan.status);
+        self.output.extend([0x02, 0x40, 0x03, 0x40, 0x20]);
+        write_u32(self.output, self.plan.status);
+        self.output.push(0x20);
+        write_u32(self.output, carrier_local);
+        self.output.extend([0xa7, 0x4f, 0x0d, 0x01, 0x41]);
+        write_i64(self.output, i64::from(channel.range_base));
+        self.output.push(0x23);
+        write_u32(self.output, channel.staged_length);
+        self.output.extend([0x6a, 0x20]);
+        write_u32(self.output, self.plan.status);
+        self.output.extend([0x6a, 0x20]);
+        write_u32(self.output, carrier_local);
+        self.output.push(0x20);
+        write_u32(self.output, self.plan.status);
+        self.output.extend([0xad, 0x10]);
+        write_u32(self.output, self.byte_get_import);
+        self.output.push(0x22);
+        write_u32(
+            self.output,
+            self.plan
+                .command_byte
+                .ok_or_else(|| error("command transcript byte local is absent"))?,
+        );
+        self.output.extend([0x41]);
+        write_i64(self.output, 255);
+        self.output.extend([0x4b, 0x04, 0x40, 0x41]);
+        write_i64(self.output, i64::from(STATUS_INTERNAL_INVALID_TAG));
+        self.output.push(0x21);
+        write_u32(self.output, self.plan.status);
+        self.output.extend([0x0c, 0x02, 0x0b, 0x20]);
+        write_u32(
+            self.output,
+            self.plan
+                .command_byte
+                .ok_or_else(|| error("command transcript byte local is absent"))?,
+        );
+        self.output.extend([0x3a, 0x00, 0x00, 0x20]);
+        write_u32(self.output, self.plan.status);
+        self.output.extend([0x41, 0x01, 0x6a, 0x21]);
+        write_u32(self.output, self.plan.status);
+        self.output.extend([0x0c, 0x00, 0x0b, 0x0b]);
+        self.output.push(0x20);
+        write_u32(self.output, self.plan.status);
+        self.output.push(0x41);
+        write_i64(self.output, i64::from(STATUS_INTERNAL_INVALID_TAG));
+        self.output.push(0x46);
+        self.emit_command_failure_if(expression, channel, other)?;
+
+        self.output.push(0x23);
+        write_u32(self.output, channel.staged_length);
+        self.output.push(0x20);
+        write_u32(self.output, carrier_local);
+        self.output.extend([0xa7, 0x6a, 0x24]);
+        write_u32(self.output, channel.staged_length);
+        self.output.push(0x20);
+        write_u32(self.output, carrier_local);
+        self.output.extend([0xa7, 0xad, 0x21]);
+        write_u32(self.output, carrier_local);
+        self.output.extend([0x41, 0x00, 0x21]);
+        write_u32(self.output, self.plan.status);
+        Ok(())
+    }
+
+    /// Consume a command-boundary invariant failure through the ordinary
+    /// expression failure exit. This is deliberately not a Wasm trap: an
+    /// owned stdin carrier may still be live, and the cleanup plan is the
+    /// only authority that may settle that token exactly once.
+    fn emit_command_failure_if(
+        &mut self,
+        _expression: &ExpressionId,
+        channel: super::host_output::Globals,
+        other: super::host_output::Globals,
+    ) -> Result<(), Diagnostic> {
+        self.output.extend([0x04, 0x40, 0x41]);
+        write_i64(self.output, i64::from(STATUS_INTERNAL_INVALID_TAG));
+        self.output.push(0x21);
+        write_u32(self.output, self.plan.status);
+        super::host_output::emit_discard(self.output, channel);
+        super::host_output::emit_discard(self.output, other);
+        // Command provider invariant failures are backend fail-stop edges, not
+        // source-level fallible expressions, so CleanupPlan intentionally has
+        // no ReturnFailure exit keyed by this expression. Execute the plan's
+        // canonical finalization inventory under its live flags instead: only
+        // storage that is live at this exact point is settled, exactly once.
+        let cleanup_plan = self.cleanup_plan.clone();
+        self.emit_success_cleanup(&cleanup_plan)?;
+        self.output.push(0x0c);
+        write_u32(
+            self.output,
+            self.control_depth + self.status_exit_extra_depth,
+        );
+        self.output.push(0x0b);
+        Ok(())
+    }
+
+    fn emit_call(
+        &mut self,
+        expr: &ResolvedExpr,
+        callee: &DeclarationId,
+        instance: Option<&crate::hir::FunctionInstanceId>,
+        type_arguments: &[ResolvedType],
+        args: &[ResolvedExpr],
+    ) -> Result<Value, Diagnostic> {
+        if instance.is_none() {
+            if let Some(op) =
+                crate::string_ops::by_id(callee.as_str()).filter(|op| op.is_integer_conversion())
+            {
+                return self.emit_integer_conversion(expr, op, args);
+            }
+            if let Some(op) = crate::map_ops::by_id(callee.as_str()) {
+                return self.emit_collection_operation(
+                    expr,
+                    op,
+                    type_arguments,
+                    args,
+                    op.legacy(type_arguments).is_some(),
+                );
+            }
+            if let Some(op) =
+                crate::string_ops::by_id(callee.as_str()).and_then(map_collections::legacy_op)
+            {
+                return self.emit_collection_operation(
+                    expr,
+                    op,
+                    &[ResolvedType::String, ResolvedType::I64],
+                    args,
+                    true,
+                );
+            }
+        }
+        if self.standalone_strings && instance.is_none() {
+            if let Some(operation) = crate::string_ops::by_id(callee.as_str()) {
+                return self.emit_internal_string_operation(expr, operation, args);
+            }
+        }
+        if instance.is_none() {
+            if let Some(op) = crate::list_ops::by_id(callee.as_str()) {
+                return self.emit_list_op(expr, op, type_arguments, args);
+            }
+            if let Some(operation) = crate::string_ops::by_id(callee.as_str()) {
+                return self.emit_aggregate_string_operation(expr, operation, args);
+            }
+            if let Some(op) = crate::iterator_ops::by_id(callee.as_str()) {
+                return self.emit_iterator_op(expr, op, type_arguments, args);
+            }
+            if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {
+                return self.emit_vec_op(expr, op, type_arguments, args);
+            }
+            if let Some(op) = crate::box_ops::by_id(callee.as_str()) {
+                return self.emit_box_op(expr, op, type_arguments, args);
+            }
+            if crate::host_io_ops::by_id(callee.as_str()).is_some() {
+                if self.host_output.is_none() {
+                    return Err(error(
+                        "host stdout write requires the Wasm stdout-transcript profile",
+                    ));
+                }
+                if args.len() != 1 {
+                    return Err(error("host stdout write arity disagrees with resolved HIR"));
+                }
+                let value = self.emit_expr(&args[0])?;
+                self.require_scalar(&value, &ResolvedType::SliceU8, "host stdout write argument")?;
+                require_type(&expr.ty, &ResolvedType::Usize, "host stdout write result")?;
+                self.apply_call_commit(&expr.id)?;
+                let local = self.plan.expr_scalar(expr)?;
+                self.get_scalar(&value);
+                self.output.push(0x21);
+                write_u32(self.output, local);
+                let staged = Value::Scalar {
+                    local,
+                    ty: ResolvedType::SliceU8,
+                };
+                self.validate_byte_slice(&staged);
+                let stdout = self.host_output.expect("checked stdout transcript profile");
+                if self.program.permits
+                    == [
+                        crate::command_io_ops::ARGS_READ_EFFECT,
+                        crate::command_io_ops::STDERR_WRITE_EFFECT,
+                        crate::command_io_ops::STDIN_READ_EFFECT,
+                        crate::host_io_ops::STDOUT_WRITE_EFFECT,
+                    ]
+                {
+                    self.emit_command_transcript_write(
+                        &expr.id,
+                        local,
+                        super::host_output::COMMAND_STDOUT_GLOBALS,
+                        super::host_output::COMMAND_STDERR_GLOBALS,
+                    )?;
+                } else {
+                    super::host_output::emit_write(self.output, local, local, stdout);
+                }
+                return Ok(Value::Scalar {
+                    local,
+                    ty: ResolvedType::Usize,
+                });
+            }
+            if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
+                return self.emit_byte_op(expr, op, args);
+            }
+            if let Some(op) = crate::str_ops::by_id(callee.as_str()) {
+                return self.emit_str_op(expr, op, args);
+            }
+        }
+        let target = self
+            .program
+            .resolve_call_target(callee, instance)
+            .ok_or_else(|| error(format!("unknown aggregate callee `{callee}`")))?;
+        if target.params.len() != args.len() {
+            return Err(error(format!(
+                "aggregate call `{callee}` has {} arguments; expected {}",
+                args.len(),
+                target.params.len()
+            )));
+        }
+        let mut values = Vec::with_capacity(args.len());
+        for (index, (argument, parameter)) in args.iter().zip(&target.params).enumerate() {
+            let borrowed_bytes = parameter.ownership == crate::hir::OwnershipMode::Borrow
+                && parameter.ty == ResolvedType::Bytes;
+            let borrowed_vec = parameter.ownership == crate::hir::OwnershipMode::Borrow
+                && owned_vec(self.program, &parameter.ty);
+            let borrowed_box = parameter.ownership == crate::hir::OwnershipMode::Borrow
+                && crate::cleanup::is_owned_bounded_box_type(&parameter.ty);
+            let borrowed_aggregate = parameter.ownership == crate::hir::OwnershipMode::Borrow
+                && is_aggregate(self.program, &parameter.ty)?;
+            let value = if matches!(argument.kind, ResolvedExprKind::RowLoan { .. }) {
+                self.emit_row_loan_argument(argument)?
+            } else if borrowed_bytes || borrowed_vec || borrowed_box || borrowed_aggregate {
+                self.borrowed_call_argument(argument, borrowed_bytes)?
+            } else {
+                self.emit_expr(argument)?
+            };
+            require_type(value_type(&value), &parameter.ty, "call argument")?;
+            if parameter.ownership == crate::hir::OwnershipMode::Own {
+                let parameter_index = u32::try_from(index)
+                    .map_err(|_| error("aggregate call argument index overflows u32"))?;
+                let epoch = crate::cleanup_plan::StorageId::CallArgument {
+                    call: expr.id.clone(),
+                    parameter_index,
+                    value_expression: argument.id.clone(),
+                };
+                if is_aggregate(self.program, &parameter.ty)?
+                    && self.plan.cleanup_storage_types.contains_key(&epoch)
+                    && self
+                        .call_argument_values
+                        .insert(epoch.clone(), value.clone())
+                        .is_some()
+                {
+                    return Err(error("projected call epoch carrier is not unique"));
+                }
+                values.push(
+                    self.plan
+                        .cleanup_call_argument_carriers
+                        .get(&epoch)
+                        .copied()
+                        .map_or(value, |local| Value::Scalar {
+                            local,
+                            ty: parameter.ty.clone(),
+                        }),
+                );
+            } else {
+                values.push(value);
+            }
+        }
+        self.apply_call_commit(&expr.id)?;
+        for value in &values {
+            match value {
+                Value::Bottom => return Err(error("Never cannot be passed through a call ABI")),
+                Value::Scalar { local, .. } => {
+                    self.output.push(0x20);
+                    write_u32(self.output, *local);
+                }
+                Value::ScalarMemory { .. } => self.get_scalar(value),
+                Value::Aggregate { pointer, .. } => self.emit_pointer(*pointer),
+            }
+        }
+        // All arguments have evaluated successfully. Their values are now on
+        // the operand stack; no fallible semantic work precedes the call.
+        if self.owned_utf8_literals.is_some() {
+            for value in &values {
+                if let Value::Scalar {
+                    local,
+                    ty: ResolvedType::String,
+                } = value
+                {
+                    owned_strings::emit_clear(self.output, *local);
+                }
+            }
+        }
+        let (result, result_pointer) =
+            if is_aggregate(self.program, &expr.ty)? {
+                let pointer = self.plan.expr_pointer(expr)?;
+                (
+                    Value::Aggregate {
+                        pointer,
+                        ty: expr.ty.clone(),
+                    },
+                    pointer,
+                )
+            } else {
+                let offset =
+                    self.plan.call_out.get(&expr.id).copied().ok_or_else(|| {
+                        error(format!("missing scalar call out slot `{}`", expr.id))
+                    })?;
+                (
+                    Value::Scalar {
+                        local: self.plan.expr_scalar(expr)?,
+                        ty: expr.ty.clone(),
+                    },
+                    Pointer {
+                        local: self.plan.frame_base,
+                        offset,
+                    },
+                )
+            };
+        self.emit_pointer(result_pointer);
+        self.output.push(0x10);
+        let execution = instance.map_or_else(
+            || FunctionExecutionId::Monomorphic(callee.clone()),
+            |instance| FunctionExecutionId::Generic(instance.clone()),
+        );
+        write_u32(
+            self.output,
+            *self
+                .function_indexes
+                .get(&execution)
+                .ok_or_else(|| error(format!("callee `{callee}` is not indexed")))?,
+        );
+        self.output.push(0x22);
+        write_u32(self.output, self.plan.status);
+        self.output.extend([0x04, 0x40]);
+        self.emit_failure_cleanup(&expr.id, StatusLane::OperationFailure)?;
+        self.output.push(0x0c);
+        write_u32(
+            self.output,
+            self.control_depth + self.status_exit_extra_depth,
+        );
+        self.output.push(0x0b);
+        if let Value::Scalar { local, ty } = &result {
+            let offset = self.plan.call_out[&expr.id];
+            if self.owned_utf8_literals.is_some() && *ty == ResolvedType::String {
+                owned_strings::emit_empty_guard(self.output, *local);
+            }
+            self.emit_pointer(Pointer {
+                local: self.plan.frame_base,
+                offset,
+            });
+            self.load_scalar(ty);
+            self.output.push(0x21);
+            write_u32(self.output, *local);
+            if self.owned_utf8_literals.is_some() && *ty == ResolvedType::String {
+                // The loaded local alone owns the result. The initialized
+                // transport word is cleared, never treated as another owner.
+                self.emit_pointer(result_pointer);
+                self.output.extend([0x42, 0x00]);
+                self.store_scalar(ty);
+            }
+        }
+        Ok(result)
+    }
+
+    fn emit_vec_op(
+        &mut self,
+        expr: &ResolvedExpr,
+        op: crate::vec_ops::VecOp,
+        type_arguments: &[ResolvedType],
+        args: &[ResolvedExpr],
+    ) -> Result<Value, Diagnostic> {
+        if op == crate::vec_ops::VecOp::StrAt {
+            return self.emit_string_slot(expr);
+        }
+        if op == crate::vec_ops::VecOp::UniqueBy {
+            return self.emit_field_unique(expr);
+        }
+        let [element] = type_arguments else {
+            return Err(error("Vec operation requires one exact type argument"));
+        };
+        if crate::hir::copy_record_collection::admitted(&self.program.declarations, element) {
+            return self.emit_copy_record_vec(expr, op, element, args);
+        }
+        if crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+            &self.program.declarations,
+            element,
+        ) && !op.owned_leaf_only()
+            && !vec_field::typed_legacy_constructor(self.program, op)
+        {
+            return self.emit_vec_record_payload(expr, op, element, args);
+        }
+        if crate::hir::owned_leaf_collection::layout(&self.program.declarations, element).is_some()
+        {
+            return self.emit_owned_leaf_vec(expr, op, element, args);
+        }
+        if !crate::vec_ops::resolved_operation_element_is_admitted(op, element)
+            || args.len() != op.arity()
+        {
+            return Err(error(
+                "Vec operation disagrees with its admitted scalar profile",
+            ));
+        }
+        for (index, argument) in args.iter().enumerate() {
+            if !op.accepts_resolved(index, &argument.ty, element) {
+                return Err(error(
+                    "Vec operation argument type disagrees with resolved HIR",
+                ));
+            }
+        }
+        require_type(
+            &expr.ty,
+            &op.resolved_return_type(element),
+            "Vec operation result",
+        )?;
+        if *element == ResolvedType::Bytes {
+            return self.emit_vec_owned_payload(expr, op, args);
+        }
+        let tag = vec_element_tag(element)?;
+        let base = vec_import_base(self.program);
+        match op {
+            crate::vec_ops::VecOp::WithCapacity => {
+                let capacity = self.emit_expr(&args[0])?;
+                self.require_scalar(&capacity, &ResolvedType::Usize, "Vec capacity")?;
+                let result = Value::Scalar {
+                    local: self.plan.expr_scalar(expr)?,
+                    ty: expr.ty.clone(),
+                };
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(tag));
+                self.get_scalar(&capacity);
+                self.output.push(0x10);
+                write_u32(self.output, base);
+                self.output.push(0x21);
+                write_u32(self.output, scalar_local(&result)?);
+                self.get_scalar(&result);
+                self.output.push(0x50); // i64.eqz
+                self.emit_vec_failure_if(expr, STATUS_VEC_ALLOCATION_FAILURE)?;
+                Ok(result)
+            }
+            crate::vec_ops::VecOp::Push => {
+                let source_value = self.emit_expr(&args[0])?;
+                let element_value = self.emit_expr(&args[1])?;
+                self.require_scalar(
+                    &source_value,
+                    &crate::vec_ops::resolved_vec(element.clone()),
+                    "Vec push owner",
+                )?;
+                self.require_scalar(&element_value, element, "Vec push element")?;
+                let source_epoch = crate::cleanup_plan::StorageId::CallArgument {
+                    call: expr.id.clone(),
+                    parameter_index: 0,
+                    value_expression: args[0].id.clone(),
+                };
+                let source = Value::Scalar {
+                    local: self
+                        .plan
+                        .cleanup_call_argument_carriers
+                        .get(&source_epoch)
+                        .copied()
+                        .ok_or_else(|| {
+                            error("Vec push has no authenticated call-argument carrier")
+                        })?,
+                    ty: crate::vec_ops::resolved_vec(element.clone()),
+                };
+                let result = Value::Scalar {
+                    local: self.plan.expr_scalar(expr)?,
+                    ty: expr.ty.clone(),
+                };
+                self.get_scalar(&source);
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(tag));
+                self.emit_vec_element_bits(&element_value, element)?;
+                self.output.push(0x10);
+                write_u32(self.output, base + 1);
+                self.output.push(0x21);
+                write_u32(self.output, scalar_local(&result)?);
+                self.get_scalar(&result);
+                self.output.push(0x50); // i64.eqz
+                self.emit_vec_failure_if(expr, STATUS_VEC_PUSH_FULL)?;
+                self.apply_call_commit(&expr.id)?;
+                self.clear_scalar(&source)?;
+                Ok(result)
+            }
+            crate::vec_ops::VecOp::ReserveExact => {
+                let source_value = self.emit_expr(&args[0])?;
+                let additional = self.emit_expr(&args[1])?;
+                self.require_scalar(
+                    &source_value,
+                    &crate::vec_ops::resolved_vec(element.clone()),
+                    "Vec reserve owner",
+                )?;
+                self.require_scalar(&additional, &ResolvedType::Usize, "Vec reserve additional")?;
+                let source_epoch = crate::cleanup_plan::StorageId::CallArgument {
+                    call: expr.id.clone(),
+                    parameter_index: 0,
+                    value_expression: args[0].id.clone(),
+                };
+                let source = Value::Scalar {
+                    local: self
+                        .plan
+                        .cleanup_call_argument_carriers
+                        .get(&source_epoch)
+                        .copied()
+                        .ok_or_else(|| {
+                            error("Vec reserve has no authenticated call-argument carrier")
+                        })?,
+                    ty: crate::vec_ops::resolved_vec(element.clone()),
+                };
+                let result = Value::Scalar {
+                    local: self.plan.expr_scalar(expr)?,
+                    ty: expr.ty.clone(),
+                };
+                self.get_scalar(&source);
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(tag));
+                self.get_scalar(&additional);
+                self.output.push(0x10);
+                write_u32(self.output, base + VEC_IMPORT_COUNT);
+                self.output.push(0x21);
+                write_u32(self.output, scalar_local(&result)?);
+                self.get_scalar(&result);
+                self.output.push(0x50);
+                self.emit_vec_failure_if(expr, STATUS_VEC_ALLOCATION_FAILURE)?;
+                self.apply_call_commit(&expr.id)?;
+                self.clear_scalar(&source)?;
+                Ok(result)
+            }
+            crate::vec_ops::VecOp::Set => {
+                let source_value = self.emit_expr(&args[0])?;
+                let index = self.emit_expr(&args[1])?;
+                let element_value = self.emit_expr(&args[2])?;
+                self.require_scalar(
+                    &source_value,
+                    &crate::vec_ops::resolved_vec(element.clone()),
+                    "Vec set owner",
+                )?;
+                self.require_scalar(&index, &ResolvedType::Usize, "Vec set index")?;
+                self.require_scalar(&element_value, element, "Vec set element")?;
+                let source_epoch = crate::cleanup_plan::StorageId::CallArgument {
+                    call: expr.id.clone(),
+                    parameter_index: 0,
+                    value_expression: args[0].id.clone(),
+                };
+                let source = Value::Scalar {
+                    local: self
+                        .plan
+                        .cleanup_call_argument_carriers
+                        .get(&source_epoch)
+                        .copied()
+                        .ok_or_else(|| {
+                            error("Vec set has no authenticated call-argument carrier")
+                        })?,
+                    ty: crate::vec_ops::resolved_vec(element.clone()),
+                };
+                let result = Value::Scalar {
+                    local: self.plan.expr_scalar(expr)?,
+                    ty: expr.ty.clone(),
+                };
+                self.get_scalar(&source);
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(tag));
+                self.get_scalar(&index);
+                self.emit_vec_element_bits(&element_value, element)?;
+                self.output.push(0x10);
+                write_u32(self.output, base + VEC_IMPORT_COUNT + 1);
+                self.output.push(0x21);
+                write_u32(self.output, scalar_local(&result)?);
+                self.get_scalar(&result);
+                self.output.push(0x50);
+                self.emit_vec_failure_if(expr, STATUS_VEC_GET_OUT_OF_BOUNDS)?;
+                self.apply_call_commit(&expr.id)?;
+                self.clear_scalar(&source)?;
+                Ok(result)
+            }
+            crate::vec_ops::VecOp::Clear | crate::vec_ops::VecOp::Sort => {
+                let source_value = self.emit_expr(&args[0])?;
+                self.require_scalar(
+                    &source_value,
+                    &crate::vec_ops::resolved_vec(element.clone()),
+                    "Vec clear owner",
+                )?;
+                let source_epoch = crate::cleanup_plan::StorageId::CallArgument {
+                    call: expr.id.clone(),
+                    parameter_index: 0,
+                    value_expression: args[0].id.clone(),
+                };
+                let source = Value::Scalar {
+                    local: self
+                        .plan
+                        .cleanup_call_argument_carriers
+                        .get(&source_epoch)
+                        .copied()
+                        .ok_or_else(|| {
+                            error("Vec clear has no authenticated call-argument carrier")
+                        })?,
+                    ty: crate::vec_ops::resolved_vec(element.clone()),
+                };
+                let result = Value::Scalar {
+                    local: self.plan.expr_scalar(expr)?,
+                    ty: expr.ty.clone(),
+                };
+                self.get_scalar(&source);
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(tag));
+                self.output.push(0x10);
+                let operation = if op == crate::vec_ops::VecOp::Sort {
+                    base + VEC_IMPORT_COUNT
+                        + if super::vec_ops::program_uses_extended_vec(self.program) {
+                            EXTENDED_VEC_IMPORT_COUNT
+                        } else {
+                            0
+                        }
+                        + if super::vec_ops::program_uses_record_vec(self.program) {
+                            RECORD_VEC_IMPORT_COUNT
+                        } else {
+                            0
+                        }
+                } else {
+                    base + VEC_IMPORT_COUNT + 2
+                };
+                write_u32(self.output, operation);
+                self.output.push(0x21);
+                write_u32(self.output, scalar_local(&result)?);
+                self.get_scalar(&result);
+                self.output.push(0x50);
+                self.trap_if();
+                self.apply_call_commit(&expr.id)?;
+                self.clear_scalar(&source)?;
+                Ok(result)
+            }
+            crate::vec_ops::VecOp::Len | crate::vec_ops::VecOp::Capacity => {
+                let source = self.emit_vec_borrow_place(&args[0], element)?;
+                let result = Value::Scalar {
+                    local: self.plan.expr_scalar(expr)?,
+                    ty: ResolvedType::Usize,
+                };
+                self.get_scalar(&source);
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(tag));
+                self.output.push(0x10);
+                write_u32(
+                    self.output,
+                    base + if op == crate::vec_ops::VecOp::Len {
+                        2
+                    } else {
+                        3
+                    },
+                );
+                self.output.push(0x21);
+                write_u32(self.output, scalar_local(&result)?);
+                Ok(result)
+            }
+            crate::vec_ops::VecOp::Get => {
+                let source = self.emit_vec_borrow_place(&args[0], element)?;
+                let index = self.emit_expr(&args[1])?;
+                self.require_scalar(&index, &ResolvedType::Usize, "Vec get index")?;
+                self.get_scalar(&index);
+                self.get_scalar(&source);
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(tag));
+                self.output.push(0x10);
+                write_u32(self.output, base + 2);
+                self.output.push(0x5a); // i64.ge_u
+                self.emit_vec_failure_if(expr, STATUS_VEC_GET_OUT_OF_BOUNDS)?;
+                let result = Value::Scalar {
+                    local: self.plan.expr_scalar(expr)?,
+                    ty: element.clone(),
+                };
+                self.get_scalar(&source);
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(tag));
+                self.get_scalar(&index);
+                self.output.push(0x10);
+                write_u32(self.output, base + 4);
+                self.store_vec_element_bits(&result, element)?;
+                Ok(result)
+            }
+            crate::vec_ops::VecOp::StrAt
+            | crate::vec_ops::VecOp::CloneAt
+            | crate::vec_ops::VecOp::Replace
+            | crate::vec_ops::VecOp::ReserveOwned
+            | crate::vec_ops::VecOp::SortOwned
+            | crate::vec_ops::VecOp::SortBy
+            | crate::vec_ops::VecOp::UniqueBy => {
+                Err(error("owned-leaf Vec operation has no admitted element"))
+            }
+        }
+    }
+
+    fn emit_vec_borrow_place(
+        &self,
+        argument: &ResolvedExpr,
+        element: &ResolvedType,
+    ) -> Result<Value, Diagnostic> {
+        let ResolvedExprKind::Place(place) = &argument.kind else {
+            return Err(error("borrowed Vec argument is not an exact place"));
+        };
+        if !place.projections.is_empty()
+            && !crate::hir::owned_collection_record::projected_field(
+                &self.program.declarations,
+                place,
+                &argument.ty,
+            )
+        {
+            return Err(error("borrowed Vec field path is unauthenticated"));
+        }
+        let value = self.place_value(place)?;
+        require_type(
+            value_type(&value),
+            &crate::vec_ops::resolved_vec(element.clone()),
+            "borrowed Vec carrier",
+        )?;
+        Ok(value)
+    }
+
+    fn emit_vec_failure_if(
+        &mut self,
+        expression: &ResolvedExpr,
+        status: i32,
+    ) -> Result<(), Diagnostic> {
+        let saved = self.failure_expression.replace(expression.id.clone());
+        self.fail_if(status)?;
+        self.failure_expression = saved;
+        Ok(())
+    }
+
+    fn emit_vec_element_bits(
+        &mut self,
+        value: &Value,
+        ty: &ResolvedType,
+    ) -> Result<(), Diagnostic> {
+        self.get_scalar(value);
+        match ty {
+            ResolvedType::I64 | ResolvedType::Usize => {}
+            ResolvedType::F64 => self.output.push(0xbd), // i64.reinterpret_f64
+            ResolvedType::F32 => self.output.extend([0xbc, 0xad]),
+            ResolvedType::I32 => self.output.push(0xac), // i64.extend_i32_s
+            ResolvedType::U8 | ResolvedType::Char | ResolvedType::Bool => self.output.push(0xad),
+            _ => {
+                return Err(error(
+                    "Vec element type is outside the admitted scalar profile",
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    fn store_vec_element_bits(
+        &mut self,
+        destination: &Value,
+        ty: &ResolvedType,
+    ) -> Result<(), Diagnostic> {
+        match ty {
+            ResolvedType::I64 | ResolvedType::Usize => {}
+            ResolvedType::F64 => self.output.push(0xbf), // f64.reinterpret_i64
+            ResolvedType::F32 => self.output.extend([0xa7, 0xbe]),
+            ResolvedType::I32 | ResolvedType::U8 | ResolvedType::Char | ResolvedType::Bool => {
+                self.output.push(0xa7)
+            }
+            _ => {
+                return Err(error(
+                    "Vec element type is outside the admitted scalar profile",
+                ));
+            }
+        }
+        self.output.push(0x21);
+        write_u32(self.output, scalar_local(destination)?);
+        Ok(())
+    }
+
+    fn emit_byte_op(
+        &mut self,
+        expr: &ResolvedExpr,
+        op: crate::byte_ops::ByteOp,
+        args: &[ResolvedExpr],
+    ) -> Result<Value, Diagnostic> {
+        if args.len() != op.arity() {
+            return Err(error("byte operation arity disagrees with resolved HIR"));
+        }
+        let mut values = Vec::with_capacity(args.len());
+        for (argument, expected) in args.iter().zip(op.param_types()) {
+            let value = self.emit_expr(argument)?;
+            require_type(value_type(&value), expected, "byte operation argument")?;
+            values.push(value);
+        }
+        if op == crate::byte_ops::ByteOp::ZeroedBounded {
+            self.emit_owned_buffer_capacity_failure(&expr.id, &values[0], &values[1])?;
+        } else if op == crate::byte_ops::ByteOp::Set {
+            // The element bound is checked in generated code before the owner
+            // transfer commits, so a failed store runs the canonical failure
+            // cleanup with the buffer still in its call-argument slot. The
+            // host import keeps its own independent gate, which admitted
+            // programs can no longer reach.
+            self.emit_owned_buffer_index_failure(&expr.id, &values[0], &values[1])?;
+        } else if op == crate::byte_ops::ByteOp::Set5 {
+            self.emit_owned_buffer_set5_failure(&expr.id, &values[0], &values[1])?;
+        } else if op == crate::byte_ops::ByteOp::Set1Or5 {
+            self.emit_owned_buffer_set1_or5_failure(&expr.id, &values[0], &values[1], &values[4])?;
+        } else if op == crate::byte_ops::ByteOp::Set1Or6Or48 {
+            self.emit_owned_buffer_set1_or6_or48_failure(
+                &expr.id, &values[0], &values[1], &values[4],
+            )?;
+        }
+        if op == crate::byte_ops::ByteOp::Partition {
+            return self.emit_byte_partition(expr, &values);
+        }
+        self.apply_call_commit(&expr.id)?;
+        if self.standalone_strings
+            && matches!(
+                op,
+                crate::byte_ops::ByteOp::Len | crate::byte_ops::ByteOp::Get
+            )
+        {
+            let ResolvedExprKind::Place(place) = &args[0].kind else {
+                return Err(error("standalone byte view lacks a retained place root"));
+            };
+            if !place.projections.is_empty() {
+                return Err(error("standalone byte view has a projected root"));
+            }
+            let provenance = self
+                .program
+                .declarations
+                .byte_slice_provenance(&place.root)
+                .ok_or_else(|| error("standalone byte view lacks authenticated provenance"))?;
+            return match provenance.root_kind {
+                crate::hir::ByteSliceRootKind::FixedArray => {
+                    self.emit_internal_copy_byte_op(expr, op, &values)
+                }
+                crate::hir::ByteSliceRootKind::OwnedString
+                | crate::hir::ByteSliceRootKind::BorrowedStr => {
+                    // The String view carries an arena token, not a guest-memory
+                    // pointer. Its host imports authenticate both token and extent.
+                    if op == crate::byte_ops::ByteOp::Len {
+                        let local = self.plan.expr_scalar(expr)?;
+                        self.get_scalar(&values[0]);
+                        self.output.push(0x10);
+                        write_u32(self.output, internal_strings::BYTE_LEN_IMPORT);
+                        self.output.push(0x21);
+                        write_u32(self.output, local);
+                        Ok(Value::Scalar {
+                            local,
+                            ty: ResolvedType::Usize,
+                        })
+                    } else {
+                        self.emit_indexed_byte_get(expr, &values)
+                    }
+                }
+                crate::hir::ByteSliceRootKind::SourceExprStatic => Err(error(
+                    "static borrowed UTF-8 is outside the standalone String arena profile",
+                )),
+                crate::hir::ByteSliceRootKind::OwnedVectorField
+                | crate::hir::ByteSliceRootKind::OwnedVectorStringSlot => {
+                    Err(error("standalone byte view excludes owned vector fields"))
+                }
+                _ => Err(error("standalone byte view has an unsupported root")),
+            };
+        }
+        if !matches!(
+            op,
+            crate::byte_ops::ByteOp::Zeroed | crate::byte_ops::ByteOp::ZeroedBounded
+        ) {
+            self.validate_byte_slice(&values[0]);
+        }
+        require_type(&expr.ty, &op.return_type(), "byte operation result")?;
+        match op {
+            crate::byte_ops::ByteOp::Partition => {
+                return Err(error(
+                    "byte partition requires its checked private receiver",
+                ));
+            }
+            crate::byte_ops::ByteOp::Len => {
+                let local = self.plan.expr_scalar(expr)?;
+                self.get_scalar(&values[0]);
+                self.output.push(0x10);
+                write_u32(self.output, BYTE_AS_SLICE_IMPORT);
+                self.output.extend([0xa7, 0xad, 0x21]);
+                write_u32(self.output, local);
+                Ok(Value::Scalar {
+                    local,
+                    ty: ResolvedType::Usize,
+                })
+            }
+            crate::byte_ops::ByteOp::Get => self.emit_indexed_byte_get(expr, &values),
+            crate::byte_ops::ByteOp::Copy => {
+                let local = self.plan.expr_scalar(expr)?;
+                self.get_scalar(&values[0]);
+                self.output.push(0x10);
+                write_u32(self.output, BYTE_COPY_IMPORT);
+                self.output.push(0x21);
+                write_u32(self.output, local);
+                Ok(Value::Scalar {
+                    local,
+                    ty: ResolvedType::Bytes,
+                })
+            }
+            crate::byte_ops::ByteOp::BytesAsSlice => {
+                let local = self.plan.expr_scalar(expr)?;
+                self.get_scalar(&values[0]);
+                self.output.push(0x10);
+                write_u32(self.output, BYTE_AS_SLICE_IMPORT);
+                self.output.push(0x21);
+                write_u32(self.output, local);
+                Ok(Value::Scalar {
+                    local,
+                    ty: ResolvedType::SliceU8,
+                })
+            }
+            crate::byte_ops::ByteOp::ArrayAsSlice | crate::byte_ops::ByteOp::StrAsBytes => Err(
+                error("byte view operation must lower from authenticated BorrowPlace HIR"),
+            ),
+            crate::byte_ops::ByteOp::StringAsStr => Err(error(
+                "owned String view must lower from authenticated BorrowPlace HIR",
+            )),
+            crate::byte_ops::ByteOp::Range => Err(error(
+                "byte range must lower from authenticated ByteRange HIR",
+            )),
+            crate::byte_ops::ByteOp::Zeroed | crate::byte_ops::ByteOp::ZeroedBounded => {
+                let local = self.plan.expr_scalar(expr)?;
+                self.get_scalar(&values[0]);
+                self.output.push(0x10);
+                write_u32(
+                    self.output,
+                    self.function_indexes
+                        .get(&FunctionExecutionId::Monomorphic(DeclarationId::new(
+                            crate::byte_ops::ZEROED_ID,
+                        )))
+                        .copied()
+                        .unwrap_or(BYTE_ZEROED_IMPORT),
+                );
+                self.output.push(0x21);
+                write_u32(self.output, local);
+                Ok(Value::Scalar {
+                    local,
+                    ty: ResolvedType::Bytes,
+                })
+            }
+            crate::byte_ops::ByteOp::Set => {
+                let local = self.plan.expr_scalar(expr)?;
+                self.get_scalar(&values[0]);
+                self.get_scalar(&values[1]);
+                self.get_scalar(&values[2]);
+                self.output.push(0x10);
+                write_u32(
+                    self.output,
+                    self.function_indexes
+                        .get(&FunctionExecutionId::Monomorphic(DeclarationId::new(
+                            crate::byte_ops::SET_ID,
+                        )))
+                        .copied()
+                        .unwrap_or(BYTE_SET_IMPORT),
+                );
+                self.output.push(0x21);
+                write_u32(self.output, local);
+                Ok(Value::Scalar {
+                    local,
+                    ty: ResolvedType::Bytes,
+                })
+            }
+            crate::byte_ops::ByteOp::Set5 => self.emit_owned_buffer_set5(expr, &values),
+            crate::byte_ops::ByteOp::Set1Or5 => self.emit_owned_buffer_set1_or5(expr, &values),
+            crate::byte_ops::ByteOp::Set1Or6Or48 => {
+                self.emit_owned_buffer_set1_or6_or48(expr, &values)
+            }
+        }
+    }
+
+    fn emit_str_op(
+        &mut self,
+        expr: &ResolvedExpr,
+        op: crate::str_ops::StrOp,
+        args: &[ResolvedExpr],
+    ) -> Result<Value, Diagnostic> {
+        if args.len() != op.arity() {
+            return Err(error(
+                "borrowed text operation arity disagrees with resolved HIR",
+            ));
+        }
+        let mut values = Vec::with_capacity(args.len());
+        for (argument, expected) in args.iter().zip(op.param_types()) {
+            let value = self.emit_expr(argument)?;
+            require_type(
+                value_type(&value),
+                expected,
+                "borrowed text operation argument",
+            )?;
+            values.push(value);
+        }
+        self.apply_call_commit(&expr.id)?;
+        require_type(
+            &expr.ty,
+            &op.return_type(),
+            "borrowed text operation result",
+        )?;
+        if op == crate::str_ops::StrOp::ByteAt {
+            self.validate_byte_slice(&values[0]);
+            return self.emit_indexed_byte_get(expr, &values);
+        }
+        let local = self.plan.expr_scalar(expr)?;
+        match op {
+            crate::str_ops::StrOp::ByteAt => unreachable!("byte read returned above"),
+            crate::str_ops::StrOp::LenBytes | crate::str_ops::StrOp::IsEmpty => {
+                self.get_scalar(&values[0]);
+                self.output.push(0xa7); // i32.wrap_i64: aggregate carrier length
+                if op == crate::str_ops::StrOp::IsEmpty {
+                    self.output.push(0x45); // i32.eqz
+                } else {
+                    self.output.push(0xad); // i64.extend_i32_u
+                }
+            }
+            crate::str_ops::StrOp::StartsWith | crate::str_ops::StrOp::Contains => {
+                let helper = if let Some(runtime) = self.owned_str_predicate(op, &values) {
+                    runtime
+                } else if let Some(validator) = self.environment_utf8_index {
+                    // Environment helper parameters retain aggregate byte
+                    // carriers and authenticate every byte through the host.
+                    self.emit_text_helper_view(&values[0]);
+                    self.emit_text_helper_view(&values[1]);
+                    validator
+                        + if op == crate::str_ops::StrOp::StartsWith {
+                            1
+                        } else {
+                            2
+                        }
+                } else {
+                    self.emit_text_helper_view(&values[0]);
+                    self.emit_text_helper_view(&values[1]);
+                    let execution = FunctionExecutionId::Monomorphic(DeclarationId::new(op.id()));
+                    self.function_indexes
+                        .get(&execution)
+                        .copied()
+                        .ok_or_else(|| error("borrowed text helper is not indexed"))?
+                };
+                self.output.push(0x10);
+                write_u32(self.output, helper);
+            }
+        }
+        self.output.push(0x21);
+        write_u32(self.output, local);
+        Ok(Value::Scalar {
+            local,
+            ty: expr.ty.clone(),
+        })
+    }
+
+    fn emit_text_helper_view(&mut self, value: &Value) {
+        // Aggregate byte carriers encode pointer-high/length-low, while the
+        // shared text helpers use pointer-low/length-high.
+        self.get_scalar(value);
+        self.output.push(0x42);
+        write_i64(self.output, 32);
+        self.output.push(0x88); // pointer into the low half
+        self.get_scalar(value);
+        self.output.push(0x42);
+        write_i64(self.output, 32);
+        self.output.push(0x86); // length into the high half
+        self.output.push(0x84); // i64.or
+    }
+
+    fn emit_array_literal(
+        &mut self,
+        expr: &ResolvedExpr,
+        values: &[u8],
+        repeated: Option<(u8, u32)>,
+    ) -> Result<Value, Diagnostic> {
+        let ResolvedType::ArrayU8(length) = &expr.ty else {
+            return Err(error("byte-array literal lacks an exact array type"));
+        };
+        if values.len() as u32 != *length && repeated.is_none() {
+            return Err(error("byte-array literal length disagrees with its type"));
+        }
+        if repeated.is_some_and(|(_, count)| count != *length) {
+            return Err(error("repeated byte-array length disagrees with its type"));
+        }
+        let destination = Value::Aggregate {
+            pointer: self.plan.expr_pointer(expr)?,
+            ty: expr.ty.clone(),
+        };
+        let Value::Aggregate { pointer, .. } = destination.clone() else {
+            unreachable!();
+        };
+        for index in 0..*length {
+            self.emit_pointer(Pointer {
+                local: pointer.local,
+                offset: pointer
+                    .offset
+                    .checked_add(index)
+                    .ok_or_else(|| error("byte-array pointer overflows u32"))?,
+            });
+            let byte = match repeated {
+                Some((value, _)) => value,
+                None => values[index as usize],
+            };
+            self.output.extend([0x41]);
+            write_i64(self.output, i64::from(byte));
+            self.output.extend([0x3a, 0x00, 0x00]);
+        }
+        Ok(destination)
+    }
+
+    fn emit_borrow_place(
+        &mut self,
+        expr: &ResolvedExpr,
+        operation: &DeclarationId,
+        place: &crate::hir::Place,
+    ) -> Result<Value, Diagnostic> {
+        if !borrow_place_shape_is_admitted(operation, place) {
+            return Err(error(
+                "borrowed place is outside the exact admitted direct-root or owned-Bytes field profile",
+            ));
+        }
+        let source = self.place_value(place)?;
+        let local = self.plan.expr_scalar(expr)?;
+        match (operation.as_str(), &source) {
+            (
+                crate::byte_ops::ARRAY_AS_SLICE_ID,
+                Value::Aggregate {
+                    pointer,
+                    ty: ResolvedType::ArrayU8(length),
+                },
+            ) => {
+                if *length == 0 {
+                    self.output.extend([0x42, 0x00]);
+                } else {
+                    self.emit_pointer(*pointer);
+                    self.output.extend([0xad, 0x42, 0x20, 0x86]);
+                    self.output.push(0x42);
+                    write_i64(self.output, i64::from(*length));
+                    self.output.push(0x84);
+                }
+            }
+            (
+                crate::byte_ops::BYTES_AS_SLICE_ID,
+                Value::Scalar { .. } | Value::ScalarMemory { .. },
+            ) => {
+                require_type(value_type(&source), &ResolvedType::Bytes, "bytes view root")?;
+                self.get_scalar(&source);
+                self.output.push(0x10);
+                write_u32(self.output, BYTE_AS_SLICE_IMPORT);
+            }
+            (
+                crate::byte_ops::STR_AS_BYTES_ID,
+                Value::Scalar { .. } | Value::ScalarMemory { .. },
+            ) => {
+                let internal_string_toolkit = self.standalone_strings
+                    && self
+                        .function_indexes
+                        .contains_key(&FunctionExecutionId::Monomorphic(DeclarationId::new(
+                            crate::string_ops::COMPARE_ID,
+                        )));
+                let source_type = value_type(&source);
+                if source_type == &ResolvedType::String {
+                    if self.standalone_strings && !internal_string_toolkit {
+                        return Err(error(
+                            "standalone internal-String profile does not admit borrowed str views",
+                        ));
+                    }
+                } else {
+                    if self.standalone_strings && !internal_string_toolkit {
+                        return Err(error(
+                            "standalone internal-String profile does not admit borrowed str views",
+                        ));
+                    }
+                    require_type(source_type, &ResolvedType::Str, "borrowed str root")?;
+                }
+                self.get_scalar(&source);
+                if !internal_string_toolkit {
+                    self.output.push(0x10);
+                    write_u32(self.output, BYTE_AS_SLICE_IMPORT);
+                }
+            }
+            (
+                crate::byte_ops::STRING_AS_STR_ID,
+                Value::Scalar { .. } | Value::ScalarMemory { .. },
+            ) => {
+                require_type(
+                    value_type(&source),
+                    &ResolvedType::String,
+                    "String view root",
+                )?;
+                if self.standalone_strings {
+                    if !self
+                        .function_indexes
+                        .contains_key(&FunctionExecutionId::Monomorphic(DeclarationId::new(
+                            crate::string_ops::COMPARE_ID,
+                        )))
+                    {
+                        return Err(error(
+                            "standalone internal-String profile does not admit borrowed str views",
+                        ));
+                    }
+                    self.get_scalar(&source);
+                } else {
+                    self.get_scalar(&source);
+                    self.output.push(0x10);
+                    write_u32(self.output, BYTE_AS_SLICE_IMPORT);
+                }
+            }
+            _ => return Err(error("borrowed view root disagrees with its operation")),
+        }
+        self.output.push(0x21);
+        write_u32(self.output, local);
+        let result = Value::Scalar {
+            local,
+            ty: expr.ty.clone(),
+        };
+        if operation.as_str() == crate::byte_ops::STR_AS_BYTES_ID
+            && crate::vec_ops::string_slot::resolved_uses(self.program)
+        {
+            self.validate_byte_slice(&result);
+        }
+        Ok(result)
+    }
+
+    fn emit_byte_range(
+        &mut self,
+        expr: &ResolvedExpr,
+        operation: &DeclarationId,
+        source: &ResolvedExpr,
+        start: &ResolvedExpr,
+        end: &ResolvedExpr,
+    ) -> Result<Value, Diagnostic> {
+        if operation.as_str() != crate::byte_ops::RANGE_ID {
+            return Err(error("byte range carries an unknown operation identity"));
+        }
+        let source = self.emit_expr(source)?;
+        let start = self.emit_expr(start)?;
+        let end = self.emit_expr(end)?;
+        self.require_scalar(&source, &ResolvedType::SliceU8, "byte range source")?;
+        self.require_scalar(&start, &ResolvedType::Usize, "byte range start")?;
+        self.require_scalar(&end, &ResolvedType::Usize, "byte range end")?;
+        self.apply_call_commit(&expr.id)?;
+        self.validate_byte_slice(&source);
+
+        self.get_scalar(&start);
+        self.get_scalar(&end);
+        self.output.push(0x56); // i64.gt_u
+        self.emit_byte_range_failure_if(&expr.id, crate::byte_ops::RANGE_START_AFTER_END_CODE)?;
+        self.get_scalar(&end);
+        self.get_scalar(&source);
+        self.output.extend([0xa7, 0xad, 0x56]); // end > source.length
+        self.emit_byte_range_failure_if(&expr.id, crate::byte_ops::RANGE_END_OUT_OF_BOUNDS_CODE)?;
+
+        let scratch = self
+            .plan
+            .range_scratch
+            .ok_or_else(|| error("byte range scratch locals are absent"))?;
+        self.get_scalar(&source);
+        self.output.push(0x21);
+        write_u32(self.output, scratch.ultimate);
+        self.output.extend([0x42, 0x00, 0x21]);
+        write_u32(self.output, scratch.offset);
+
+        // A nested range is flattened to its already authenticated ultimate
+        // root and absolute offset; descriptors never form a runtime chain.
+        self.get_scalar(&source);
+        self.output.extend([0x42, 0x20, 0x88, 0xa7, 0x22]);
+        write_u32(self.output, scratch.high_word);
+        self.output.push(0x41);
+        write_i64(self.output, i64::from(RANGE_DESCRIPTOR_TAG_MASK as i32));
+        self.output.extend([0x71, 0x41]);
+        write_i64(self.output, i64::from(RANGE_DESCRIPTOR_TAG));
+        self.output.extend([0x46, 0x04, 0x40]);
+        self.emit_decode_validated_range_descriptor(&source)?;
+        self.output.push(0x20);
+        write_u32(self.output, scratch.descriptor);
+        self.output.extend([0x29, 0x03, 0x08, 0x21]);
+        write_u32(self.output, scratch.ultimate);
+        self.output.push(0x20);
+        write_u32(self.output, scratch.descriptor);
+        self.output.extend([0x29, 0x03, 0x10, 0x21]);
+        write_u32(self.output, scratch.offset);
+        self.output.push(0x0b);
+        self.output.push(0x20);
+        write_u32(self.output, scratch.offset);
+        self.get_scalar(&start);
+        self.output.extend([0x7c, 0x21]);
+        write_u32(self.output, scratch.offset);
+        self.get_scalar(&end);
+        self.get_scalar(&start);
+        self.output.extend([0x7d, 0x21]);
+        write_u32(self.output, scratch.length);
+
+        let descriptor_offset = self
+            .plan
+            .range_descriptors
+            .get(&expr.id)
+            .copied()
+            .ok_or_else(|| error("byte range has no invocation-local descriptor slot"))?;
+        let descriptor = Pointer {
+            local: self.plan.frame_base,
+            offset: descriptor_offset,
+        };
+        let binding = self
+            .range_bindings
+            .and_then(|bindings| {
+                bindings
+                    .iter()
+                    .find(|(expression, _)| expression == &expr.id)
+                    .map(|(_, binding)| *binding)
+            })
+            .ok_or_else(|| error("byte range has no private descriptor binding"))?;
+        self.emit_pointer(descriptor);
+        self.output.push(0x22);
+        write_u32(self.output, scratch.descriptor);
+        self.output.push(0x41);
+        write_i64(self.output, i64::from(binding.identity));
+        self.output.extend([0x36, 0x02, 0x00]);
+        self.emit_pointer(Pointer {
+            local: descriptor.local,
+            offset: descriptor.offset + 4,
+        });
+        self.output.push(0x20);
+        write_u32(self.output, scratch.descriptor);
+        self.output.extend([0x36, 0x02, 0x00]);
+        for (offset, local) in [
+            (8_u32, scratch.ultimate),
+            (16_u32, scratch.offset),
+            (24_u32, scratch.length),
+        ] {
+            self.emit_pointer(Pointer {
+                local: descriptor.local,
+                offset: descriptor.offset + offset,
+            });
+            self.output.push(0x20);
+            write_u32(self.output, local);
+            self.output.extend([0x37, 0x03, 0x00]);
+        }
+        for (local, global) in [
+            (scratch.ultimate, binding.ultimate_global),
+            (scratch.offset, binding.offset_global),
+            (scratch.length, binding.length_global),
+        ] {
+            self.output.push(0x20);
+            write_u32(self.output, local);
+            self.output.push(0x24);
+            write_u32(self.output, global);
+        }
+
+        let local = self.plan.expr_scalar(expr)?;
+        self.output.push(0x20);
+        write_u32(self.output, scratch.descriptor);
+        self.output.extend([0x41, 0x03, 0x76, 0x41]); // ptr / 8
+        write_i64(self.output, i64::from(RANGE_DESCRIPTOR_POINTER_MASK));
+        self.output.extend([0x71, 0x41]);
+        write_i64(self.output, i64::from(binding.identity << 16));
+        self.output.push(0x41);
+        write_i64(self.output, i64::from(RANGE_DESCRIPTOR_TAG));
+        self.output.extend([0x72, 0x72, 0xad, 0x42, 0x20, 0x86]);
+        self.output.push(0x20);
+        write_u32(self.output, scratch.length);
+        self.output.extend([0x84, 0x21]);
+        write_u32(self.output, local);
+        Ok(Value::Scalar {
+            local,
+            ty: ResolvedType::SliceU8,
+        })
+    }
+
+    fn emit_byte_range_failure_if(
+        &mut self,
+        expression: &ExpressionId,
+        code: u32,
+    ) -> Result<(), Diagnostic> {
+        self.output.extend([0x04, 0x40, 0x41]);
+        let encoded = match code {
+            crate::byte_ops::RANGE_START_AFTER_END_CODE => STATUS_BYTE_RANGE_START_AFTER_END,
+            crate::byte_ops::RANGE_END_OUT_OF_BOUNDS_CODE => STATUS_BYTE_RANGE_END_OUT_OF_BOUNDS,
+            _ => return Err(error("byte range failure has an unknown status code")),
+        };
+        write_i64(self.output, i64::from(encoded));
+        self.output.push(0x21);
+        write_u32(self.output, self.plan.status);
+        self.emit_failure_cleanup(expression, StatusLane::OperationFailure)?;
+        self.output.push(0x0c);
+        write_u32(
+            self.output,
+            self.control_depth + self.status_exit_extra_depth,
+        );
+        self.output.push(0x0b);
+        Ok(())
+    }
+
+    fn emit_decode_validated_range_descriptor(&mut self, value: &Value) -> Result<(), Diagnostic> {
+        let scratch = self
+            .plan
+            .range_scratch
+            .ok_or_else(|| error("byte range scratch locals are absent"))?;
+        self.get_scalar(value);
+        self.output.extend([0x42, 0x20, 0x88, 0xa7, 0x22]);
+        write_u32(self.output, scratch.high_word);
+        self.output.push(0x41);
+        write_i64(self.output, i64::from(RANGE_DESCRIPTOR_POINTER_MASK));
+        self.output.extend([0x71, 0x41, 0x03, 0x74, 0x21]);
+        write_u32(self.output, scratch.descriptor);
+
+        // pointer + descriptor size <= current memory bytes
+        self.output.push(0x20);
+        write_u32(self.output, scratch.descriptor);
+        self.output.push(0x41);
+        write_i64(self.output, i64::from(RANGE_DESCRIPTOR_SIZE));
+        self.output
+            .extend([0x6a, 0x3f, 0x00, 0x41, 0x10, 0x74, 0x4d, 0x45]);
+        self.output.extend([0x04, 0x40, 0x00, 0x0b]);
+
+        // The self-pointer is independently authenticated before fields are
+        // loaded into the invocation-local binding scratch.
+        self.output.push(0x20);
+        write_u32(self.output, scratch.descriptor);
+        self.output.extend([0x28, 0x02, 0x04, 0x20]);
+        write_u32(self.output, scratch.descriptor);
+        self.output.extend([0x47, 0x04, 0x40, 0x00, 0x0b]);
+
+        self.output.push(0x20);
+        write_u32(self.output, scratch.descriptor);
+        self.output.extend([0x29, 0x03, 0x08, 0x21]);
+        write_u32(self.output, scratch.ultimate);
+        self.output.push(0x20);
+        write_u32(self.output, scratch.descriptor);
+        self.output.extend([0x29, 0x03, 0x10, 0x21]);
+        write_u32(self.output, scratch.offset);
+        self.output.push(0x20);
+        write_u32(self.output, scratch.descriptor);
+        self.output.extend([0x29, 0x03, 0x18, 0x21]);
+        write_u32(self.output, scratch.length);
+
+        // The carrier selects one private, non-exported binding. Descriptor memory must equal that authoritative tuple on every access.
+        self.output.push(0x20);
+        write_u32(self.output, scratch.high_word);
+        self.output.extend([0x41, 0x10, 0x76, 0x41]);
+        write_i64(self.output, i64::from(RANGE_DESCRIPTOR_COOKIE_MASK));
+        self.output.extend([0x71, 0x21]);
+        write_u32(self.output, scratch.binding);
+        self.output.push(0x20);
+        write_u32(self.output, scratch.descriptor);
+        self.output.extend([0x28, 0x02, 0x00, 0x20]);
+        write_u32(self.output, scratch.binding);
+        self.output.extend([0x47, 0x04, 0x40, 0x00, 0x0b]);
+        let range_bindings = self
+            .range_bindings
+            .ok_or_else(|| error("byte range has no private binding inventory"))?;
+        for (_, binding) in range_bindings {
+            self.output.push(0x20);
+            write_u32(self.output, scratch.binding);
+            self.output.push(0x41);
+            write_i64(self.output, i64::from(binding.identity));
+            self.output.extend([0x46, 0x04, 0x40]);
+            for (local, global) in [
+                (scratch.ultimate, binding.ultimate_global),
+                (scratch.offset, binding.offset_global),
+                (scratch.length, binding.length_global),
+            ] {
+                self.output.push(0x20);
+                write_u32(self.output, local);
+                self.output.push(0x23);
+                write_u32(self.output, global);
+                self.output.push(0x52); // i64.ne
+            }
+            self.output.extend([0x72, 0x72, 0x04, 0x40, 0x00, 0x0b]);
+            self.output.extend([0x41, 0x00, 0x21]);
+            write_u32(self.output, scratch.binding);
+            self.output.push(0x0b);
+        }
+        self.output.push(0x20);
+        write_u32(self.output, scratch.binding);
+        self.output.extend([0x45, 0x45, 0x04, 0x40, 0x00, 0x0b]);
+
+        // Descriptor length must equal carrier length and fit within the ultimate carrier after the absolute offset. Nested descriptors are forbidden
+        // because creation always flattens them.
+        self.output.push(0x20);
+        write_u32(self.output, scratch.length);
+        self.get_scalar(value);
+        self.output.extend([0xa7, 0xad, 0x52, 0x20]);
+        write_u32(self.output, scratch.ultimate);
+        self.output.extend([0x42, 0x20, 0x88, 0xa7, 0x41]);
+        write_i64(self.output, i64::from(RANGE_DESCRIPTOR_TAG_MASK as i32));
+        self.output.extend([0x71, 0x41]);
+        write_i64(self.output, i64::from(RANGE_DESCRIPTOR_TAG));
+        self.output.extend([0x46, 0x72, 0x20]);
+        write_u32(self.output, scratch.offset);
+        self.output.push(0x20);
+        write_u32(self.output, scratch.ultimate);
+        self.output.extend([0xa7, 0xad, 0x56, 0x72, 0x20]);
+        write_u32(self.output, scratch.length);
+        self.output.push(0x20);
+        write_u32(self.output, scratch.ultimate);
+        self.output.extend([0xa7, 0xad, 0x20]);
+        write_u32(self.output, scratch.offset);
+        self.output
+            .extend([0x7d, 0x56, 0x72, 0x04, 0x40, 0x00, 0x0b]);
+
+        // Untagged ultimate roots are guest-memory ranges and are rechecked against the current memory size on every descriptor access. Tagged owned roots
+        // are authenticated by the byte provider on the ensuing operation, exactly as for legacy carriers.
+        self.output.push(0x20);
+        write_u32(self.output, scratch.ultimate);
+        self.output.extend([0x42, 0x20, 0x88, 0xa7, 0x41]);
+        write_i64(self.output, i64::from(i32::MIN));
+        self.output.extend([0x71, 0x45, 0x04, 0x40, 0x20]);
+        write_u32(self.output, scratch.ultimate);
+        self.output.extend([0x42, 0x20, 0x88, 0xa7, 0x20]);
+        write_u32(self.output, scratch.ultimate);
+        self.output
+            .extend([0xa7, 0x6a, 0x3f, 0x00, 0x41, 0x10, 0x74, 0x4d, 0x45]);
+        self.output.extend([0x04, 0x40, 0x00, 0x0b, 0x0b]);
+        Ok(())
+    }
+
+    fn validate_byte_slice(&mut self, value: &Value) {
+        if self.plan.range_scratch.is_some() {
+            let scratch = self.plan.range_scratch.expect("range scratch retained");
+            self.get_scalar(value);
+            self.output.extend([0x42, 0x20, 0x88, 0xa7, 0x22]);
+            write_u32(self.output, scratch.high_word);
+            self.output.push(0x41);
+            write_i64(self.output, i64::from(RANGE_DESCRIPTOR_TAG_MASK as i32));
+            self.output.extend([0x71, 0x41]);
+            write_i64(self.output, i64::from(RANGE_DESCRIPTOR_TAG));
+            self.output.extend([0x46, 0x04, 0x40]);
+            self.emit_decode_validated_range_descriptor(value)
+                .expect("range validation scratch is present");
+            self.output.push(0x05);
+        }
+        // Every internal slice may view an owned 128 KiB Bytes result. Entry roots retain their independent 64 KiB limit in `emit_root_admission`.
+        self.get_scalar(value);
+        self.output.extend([0xa7, 0xad, 0x42]);
+        write_i64(
+            self.output,
+            crate::byte_ops::MAX_OWNED_BYTE_VALUE_BYTES as i64,
+        );
+        self.output.push(0x58); // i64.le_u
+        self.get_scalar(value);
+        self.output.extend([0x42, 0x20, 0x88, 0x42]);
+        write_i64(self.output, 0x8000_0000u32 as i64);
+        self.output.extend([0x83, 0x50, 0x45]);
+        self.get_scalar(value);
+        self.output.extend([0x42, 0x20, 0x88, 0xa7, 0xad, 0x42]);
+        write_i64(self.output, 131_072);
+        self.get_scalar(value);
+        self.output.extend([0xa7, 0xad, 0x7d, 0x58]);
+        if let Some(base) = self
+            .owned_utf8_literals
+            .as_deref()
+            .filter(|table| table.static_pool)
+            .map(OwnedUtf8Literals::base)
+        {
+            // Only this selected module owns this immutable constant interval.
+            // Foreign entry descriptors retain their independent admission fence.
+            self.get_scalar(value);
+            self.output.extend([0xa7, 0xad, 0x42]);
+            write_i64(self.output, 65_536);
+            self.output.push(0x58);
+            self.get_scalar(value);
+            self.output.extend([0x42, 0x20, 0x88, 0xa7, 0xad, 0x42]);
+            write_i64(self.output, i64::from(base));
+            self.output.extend([0x5a, 0x71]);
+            self.get_scalar(value);
+            self.output.extend([0x42, 0x20, 0x88, 0xa7, 0xad, 0x42]);
+            write_i64(self.output, i64::from(base) + 65_536);
+            self.get_scalar(value);
+            self.output.extend([0xa7, 0xad, 0x7d, 0x58, 0x71, 0x72]);
+        }
+        self.output
+            .extend([0x72, 0x71, 0x45, 0x04, 0x40, 0x00, 0x0b]);
+        if self.plan.range_scratch.is_some() {
+            self.output.push(0x0b);
+        }
+    }
+
+    fn emit_unary(
+        &mut self,
+        expr: &ResolvedExpr,
+        op: UnaryOp,
+        operand: &ResolvedExpr,
+    ) -> Result<Value, Diagnostic> {
+        let operand = self.emit_expr(operand)?;
+        let destination = self.plan.expr_scalar(expr)?;
+        match op {
+            UnaryOp::Not => {
+                self.require_scalar(&operand, &ResolvedType::Bool, "logical not")?;
+                self.get_scalar(&operand);
+                self.output.push(0x45);
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+            }
+            UnaryOp::Neg => {
+                let operand_ty = value_type(&operand);
+                match operand_ty {
+                    ResolvedType::F32 | ResolvedType::F64 => {
+                        self.get_scalar(&operand);
+                        self.output.push(match operand_ty {
+                            ResolvedType::F32 => 0x8c,
+                            _ => 0x9a,
+                        });
+                        self.output.push(0x21);
+                        write_u32(self.output, destination);
+                    }
+                    ResolvedType::I32 => {
+                        self.get_scalar(&operand);
+                        self.output.push(0x41);
+                        write_i64(self.output, i32::MIN as i64);
+                        self.output.push(0x46);
+                        self.fail_if(STATUS_NEG_OVERFLOW)?;
+                        self.output.extend([0x41, 0x00]);
+                        self.get_scalar(&operand);
+                        self.output.push(0x6b);
+                        self.output.push(0x21);
+                        write_u32(self.output, destination);
+                    }
+                    _ => {
+                        if operand_ty != &ResolvedType::I64 {
+                            return Err(error("numeric negation requires an i64 or float operand"));
+                        }
+                        self.get_scalar(&operand);
+                        self.output.push(0x42);
+                        write_i64(self.output, i64::MIN);
+                        self.output.push(0x51);
+                        self.fail_if(STATUS_NEG_OVERFLOW)?;
+                        self.output.push(0x42);
+                        write_i64(self.output, 0);
+                        self.get_scalar(&operand);
+                        self.output.push(0x7d);
+                        self.output.push(0x21);
+                        write_u32(self.output, destination);
+                    }
+                }
+            }
+        }
+        Ok(Value::Scalar {
+            local: destination,
+            ty: expr.ty.clone(),
+        })
+    }
+
+    /// Lowers total IEEE-754 arithmetic with native Wasm opcodes; no checked
+    /// failure status exists for float operations.
+    fn emit_float_binary(
+        &mut self,
+        expr: &ResolvedExpr,
+        op: BinaryOp,
+        left: &Value,
+        right: &Value,
+        destination: u32,
+    ) -> Result<Value, Diagnostic> {
+        let operand_ty = value_type(left);
+        require_type(
+            value_type(right),
+            &operand_ty.clone(),
+            "float right operand",
+        )?;
+        self.get_scalar(left);
+        self.get_scalar(right);
+        let wide = matches!(operand_ty, ResolvedType::F64);
+        self.output.push(match (op, wide) {
+            (BinaryOp::Add, true) => 0xa0,
+            (BinaryOp::Sub, true) => 0xa1,
+            (BinaryOp::Mul, true) => 0xa2,
+            (BinaryOp::Div, true) => 0xa3,
+            (BinaryOp::Add, false) => 0x92,
+            (BinaryOp::Sub, false) => 0x93,
+            (BinaryOp::Mul, false) => 0x94,
+            (BinaryOp::Div, false) => 0x95,
+            (BinaryOp::Rem, _) => {
+                return Err(error(
+                    "floating-point remainder has no admitted Wasm lowering",
+                ));
+            }
+            _ => unreachable!("float binary operation was matched above"),
+        });
+        self.output.push(0x21);
+        write_u32(self.output, destination);
+        Ok(Value::Scalar {
+            local: destination,
+            ty: expr.ty.clone(),
+        })
+    }
+
+    fn emit_checked_add(
+        &mut self,
+        left: &Value,
+        right: &Value,
+        destination: u32,
+    ) -> Result<(), Diagnostic> {
+        self.require_i64_pair(left, right, "addition")?;
+        self.get_scalar(left);
+        self.get_scalar(right);
+        self.output.push(0x7c);
+        self.output.push(0x21);
+        write_u32(self.output, destination);
+        self.get_scalar(left);
+        self.output.push(0x20);
+        write_u32(self.output, destination);
+        self.output.push(0x85);
+        self.get_scalar(right);
+        self.output.push(0x20);
+        write_u32(self.output, destination);
+        self.output.push(0x85);
+        self.output.push(0x83);
+        self.output.push(0x42);
+        write_i64(self.output, 0);
+        self.output.push(0x53);
+        self.fail_if(STATUS_ADD_OVERFLOW)?;
+        Ok(())
+    }
+
+    fn emit_checked_sub(
+        &mut self,
+        left: &Value,
+        right: &Value,
+        destination: u32,
+    ) -> Result<(), Diagnostic> {
+        self.require_i64_pair(left, right, "subtraction")?;
+        self.get_scalar(left);
+        self.get_scalar(right);
+        self.output.push(0x7d);
+        self.output.push(0x21);
+        write_u32(self.output, destination);
+        self.get_scalar(left);
+        self.get_scalar(right);
+        self.output.push(0x85);
+        self.get_scalar(left);
+        self.output.push(0x20);
+        write_u32(self.output, destination);
+        self.output.push(0x85);
+        self.output.push(0x83);
+        self.output.push(0x42);
+        write_i64(self.output, 0);
+        self.output.push(0x53);
+        self.fail_if(STATUS_SUB_OVERFLOW)?;
+        Ok(())
+    }
+
+    fn emit_checked_mul(
+        &mut self,
+        left: &Value,
+        right: &Value,
+        destination: u32,
+    ) -> Result<(), Diagnostic> {
+        self.require_i64_pair(left, right, "multiplication")?;
+        self.get_scalar(left);
+        self.output.push(0x42);
+        write_i64(self.output, i64::MIN);
+        self.output.push(0x51);
+        self.get_scalar(right);
+        self.output.push(0x42);
+        write_i64(self.output, -1);
+        self.output.push(0x51);
+        self.output.push(0x71);
+        self.get_scalar(right);
+        self.output.push(0x42);
+        write_i64(self.output, i64::MIN);
+        self.output.push(0x51);
+        self.get_scalar(left);
+        self.output.push(0x42);
+        write_i64(self.output, -1);
+        self.output.push(0x51);
+        self.output.push(0x71);
+        self.output.push(0x72);
+        self.fail_if(STATUS_MUL_OVERFLOW)?;
+
+        self.get_scalar(left);
+        self.get_scalar(right);
+        self.output.push(0x7e);
+        self.output.push(0x21);
+        write_u32(self.output, destination);
+        self.get_scalar(right);
+        self.output.push(0x50);
+        self.output.push(0x45);
+        self.output.extend([0x04, 0x40]);
+        self.control_depth += 1;
+        self.output.push(0x20);
+        write_u32(self.output, destination);
+        self.get_scalar(right);
+        self.output.push(0x7f);
+        self.get_scalar(left);
+        self.output.push(0x52);
+        self.fail_if(STATUS_MUL_OVERFLOW)?;
+        self.control_depth -= 1;
+        self.output.push(0x0b);
+        Ok(())
+    }
+
+    fn emit_checked_div_rem(
+        &mut self,
+        left: &Value,
+        right: &Value,
+        destination: u32,
+        remainder: bool,
+    ) -> Result<(), Diagnostic> {
+        self.require_i64_pair(
+            left,
+            right,
+            if remainder { "remainder" } else { "division" },
+        )?;
+        self.get_scalar(right);
+        self.output.push(0x50);
+        self.fail_if(if remainder {
+            STATUS_REM_ZERO
+        } else {
+            STATUS_DIV_ZERO
+        })?;
+        self.get_scalar(left);
+        self.output.push(0x42);
+        write_i64(self.output, i64::MIN);
+        self.output.push(0x51);
+        self.get_scalar(right);
+        self.output.push(0x42);
+        write_i64(self.output, -1);
+        self.output.push(0x51);
+        self.output.push(0x71);
+        self.fail_if(if remainder {
+            STATUS_REM_OVERFLOW
+        } else {
+            STATUS_DIV_OVERFLOW
+        })?;
+        self.get_scalar(left);
+        self.get_scalar(right);
+        self.output.push(if remainder { 0x81 } else { 0x7f });
+        self.output.push(0x21);
+        write_u32(self.output, destination);
+        Ok(())
+    }
+
+    fn emit_checked_i32_add(
+        &mut self,
+        left: &Value,
+        right: &Value,
+        destination: u32,
+    ) -> Result<(), Diagnostic> {
+        self.require_i32_pair(left, right, "addition")?;
+        self.get_scalar(left);
+        self.get_scalar(right);
+        self.output.push(0x6a);
+        self.output.push(0x21);
+        write_u32(self.output, destination);
+        self.get_scalar(left);
+        self.output.push(0x20);
+        write_u32(self.output, destination);
+        self.output.push(0x73);
+        self.get_scalar(right);
+        self.output.push(0x20);
+        write_u32(self.output, destination);
+        self.output.push(0x73);
+        self.output.push(0x71);
+        self.output.push(0x41);
+        write_i64(self.output, 0);
+        self.output.push(0x48);
+        self.fail_if(STATUS_ADD_OVERFLOW)?;
+        Ok(())
+    }
+
+    fn emit_checked_i32_sub(
+        &mut self,
+        left: &Value,
+        right: &Value,
+        destination: u32,
+    ) -> Result<(), Diagnostic> {
+        self.require_i32_pair(left, right, "subtraction")?;
+        self.get_scalar(left);
+        self.get_scalar(right);
+        self.output.push(0x6b);
+        self.output.push(0x21);
+        write_u32(self.output, destination);
+        self.get_scalar(left);
+        self.get_scalar(right);
+        self.output.push(0x73);
+        self.get_scalar(left);
+        self.output.push(0x20);
+        write_u32(self.output, destination);
+        self.output.push(0x73);
+        self.output.push(0x71);
+        self.output.push(0x41);
+        write_i64(self.output, 0);
+        self.output.push(0x48);
+        self.fail_if(STATUS_SUB_OVERFLOW)?;
+        Ok(())
+    }
+
+    fn emit_checked_i32_mul(
+        &mut self,
+        left: &Value,
+        right: &Value,
+        destination: u32,
+    ) -> Result<(), Diagnostic> {
+        self.require_i32_pair(left, right, "multiplication")?;
+        self.get_scalar(left);
+        self.output.push(0xac);
+        self.get_scalar(right);
+        self.output.push(0xac);
+        self.output.push(0x7e);
+        self.output.push(0xa7);
+        self.output.push(0x21);
+        write_u32(self.output, destination);
+        self.get_scalar(left);
+        self.output.push(0xac);
+        self.get_scalar(right);
+        self.output.push(0xac);
+        self.output.push(0x7e);
+        self.output.push(0x20);
+        write_u32(self.output, destination);
+        self.output.push(0xac);
+        self.output.push(0x51);
+        self.output.push(0x45);
+        self.fail_if(STATUS_MUL_OVERFLOW)?;
+        Ok(())
+    }
+
+    fn emit_checked_i32_div_rem(
+        &mut self,
+        left: &Value,
+        right: &Value,
+        destination: u32,
+        remainder: bool,
+    ) -> Result<(), Diagnostic> {
+        self.require_i32_pair(
+            left,
+            right,
+            if remainder { "remainder" } else { "division" },
+        )?;
+        self.get_scalar(right);
+        self.output.push(0x45);
+        self.fail_if(numeric_conversions::division_status(remainder, true))?;
+        {
+            self.get_scalar(right);
+            self.output.push(0x41);
+            write_i64(self.output, -1);
+            self.output.push(0x46);
+            self.get_scalar(left);
+            self.output.push(0x41);
+            write_i64(self.output, i32::MIN as i64);
+            self.output.push(0x46);
+            self.output.push(0x71);
+            self.fail_if(numeric_conversions::division_status(remainder, false))?;
+        }
+        self.get_scalar(left);
+        self.get_scalar(right);
+        self.output.push(if remainder { 0x6f } else { 0x6d });
+        self.output.push(0x21);
+        write_u32(self.output, destination);
+        Ok(())
+    }
+
+    fn require_i32_pair(
+        &self,
+        left: &Value,
+        right: &Value,
+        context: &str,
+    ) -> Result<(), Diagnostic> {
+        self.require_scalar(left, &ResolvedType::I32, context)?;
+        self.require_scalar(right, &ResolvedType::I32, context)
+    }
+
+    fn require_i64_pair(
+        &self,
+        left: &Value,
+        right: &Value,
+        context: &str,
+    ) -> Result<(), Diagnostic> {
+        self.require_scalar(left, &ResolvedType::I64, context)?;
+        self.require_scalar(right, &ResolvedType::I64, context)
+    }
+
+    /// Checked u8 arithmetic mirrors the i64 status contract on the i32
+    /// valtype: bounded operands make the unsigned opcodes exact and one
+    /// unsigned range check selects the matching arithmetic status.
+    fn emit_u8_binary(
+        &mut self,
+        expr: &ResolvedExpr,
+        op: BinaryOp,
+        left: &Value,
+        right: &Value,
+        destination: u32,
+    ) -> Result<Value, Diagnostic> {
+        let context = match op {
+            BinaryOp::Add => "addition",
+            BinaryOp::Sub => "subtraction",
+            BinaryOp::Mul => "multiplication",
+            BinaryOp::Div => "division",
+            BinaryOp::Rem => "remainder",
+            _ => return Err(error("u8 binary operation is not arithmetic")),
+        };
+        self.require_scalar(left, &ResolvedType::U8, context)?;
+        self.require_scalar(right, &ResolvedType::U8, context)?;
+        match op {
+            BinaryOp::Div | BinaryOp::Rem => {
+                self.get_scalar(right);
+                self.output.push(0x45);
+                self.fail_if(if op == BinaryOp::Div {
+                    STATUS_DIV_ZERO
+                } else {
+                    STATUS_REM_ZERO
+                })?;
+                self.get_scalar(left);
+                self.get_scalar(right);
+                self.output
+                    .push(if op == BinaryOp::Div { 0x6e } else { 0x70 });
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+            }
+            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul => {
+                self.get_scalar(left);
+                self.get_scalar(right);
+                self.output.push(match op {
+                    BinaryOp::Add => 0x6a,
+                    BinaryOp::Sub => 0x6b,
+                    _ => 0x6c,
+                });
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+                self.output.push(0x20);
+                write_u32(self.output, destination);
+                self.output.push(0x41);
+                write_i64(self.output, 255);
+                self.output.push(0x4b);
+                self.fail_if(match op {
+                    BinaryOp::Add => STATUS_ADD_OVERFLOW,
+                    BinaryOp::Sub => STATUS_SUB_OVERFLOW,
+                    _ => STATUS_MUL_OVERFLOW,
+                })?;
+            }
+            _ => unreachable!("u8 operation was matched above"),
+        }
+        Ok(Value::Scalar {
+            local: destination,
+            ty: expr.ty.clone(),
+        })
+    }
+
+    fn emit_usize_binary(
+        &mut self,
+        expr: &ResolvedExpr,
+        op: BinaryOp,
+        left: &Value,
+        right: &Value,
+        destination: u32,
+    ) -> Result<Value, Diagnostic> {
+        self.require_scalar(left, &ResolvedType::Usize, "usize arithmetic")?;
+        self.require_scalar(right, &ResolvedType::Usize, "usize arithmetic")?;
+        match op {
+            BinaryOp::Add => {
+                self.get_scalar(left);
+                self.get_scalar(right);
+                self.output.push(0x7c);
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+                self.output.push(0x20);
+                write_u32(self.output, destination);
+                self.get_scalar(left);
+                self.output.push(0x54);
+                self.fail_if(STATUS_ADD_OVERFLOW)?;
+            }
+            BinaryOp::Sub => {
+                self.get_scalar(left);
+                self.get_scalar(right);
+                self.output.push(0x54);
+                self.fail_if(STATUS_SUB_OVERFLOW)?;
+                self.get_scalar(left);
+                self.get_scalar(right);
+                self.output.push(0x7d);
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+            }
+            BinaryOp::Mul => {
+                self.get_scalar(right);
+                self.output.push(0x50);
+                self.output.push(0x45);
+                self.output.extend([0x04, 0x40]); // if right != 0
+                self.control_depth += 1;
+                self.get_scalar(left);
+                self.output.push(0x42);
+                write_i64(self.output, -1);
+                self.get_scalar(right);
+                self.output.push(0x80);
+                self.output.push(0x56);
+                self.fail_if(STATUS_MUL_OVERFLOW)?;
+                self.control_depth -= 1;
+                self.output.push(0x0b);
+                self.get_scalar(left);
+                self.get_scalar(right);
+                self.output.push(0x7e);
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+            }
+            BinaryOp::Div | BinaryOp::Rem => {
+                self.get_scalar(right);
+                self.output.push(0x50);
+                self.fail_if(if op == BinaryOp::Div {
+                    STATUS_DIV_ZERO
+                } else {
+                    STATUS_REM_ZERO
+                })?;
+                self.get_scalar(left);
+                self.get_scalar(right);
+                self.output
+                    .push(if op == BinaryOp::Div { 0x80 } else { 0x82 });
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+            }
+            _ => return Err(error("usize binary operation is not arithmetic")),
+        }
+        Ok(Value::Scalar {
+            local: destination,
+            ty: expr.ty.clone(),
+        })
+    }
+
+    fn place_value(&self, place: &crate::hir::Place) -> Result<Value, Diagnostic> {
+        let mut value =
+            self.bindings.get(&place.root).cloned().ok_or_else(|| {
+                error(format!("aggregate value `{}` is not in scope", place.root))
+            })?;
+        for projection in &place.projections {
+            let PlaceProjection::Field(field) = projection else {
+                return Err(error(
+                    "variant-field place projection is outside executable records v1",
+                ));
+            };
+            value = self.project_value(&value, field)?;
+        }
+        Ok(value)
+    }
+
+    fn project_value(&self, base: &Value, field: &DeclarationId) -> Result<Value, Diagnostic> {
+        let Value::Aggregate { pointer, ty } = base else {
+            return Err(error("record projection base is not aggregate storage"));
+        };
+        let record = layout(self.program, ty)?;
+        let field = record
+            .field(field)
+            .cloned()
+            .ok_or_else(|| error(format!("record `{}` has no field `{field}`", record.record)))?;
+        value_at(
+            Pointer {
+                local: pointer.local,
+                offset: pointer
+                    .offset
+                    .checked_add(field.offset)
+                    .ok_or_else(|| error("projection pointer overflows u32"))?,
+            },
+            field.ty,
+            self.program,
+        )
+    }
+
+    fn copy_value(
+        &mut self,
+        destination: &Value,
+        source: &Value,
+        context: &str,
+    ) -> Result<(), Diagnostic> {
+        if matches!(source, Value::Bottom) {
+            return Ok(());
+        }
+        require_type(value_type(source), value_type(destination), context)?;
+        match destination {
+            Value::Bottom => return Err(error("a bottom completion cannot be stored")),
+            Value::Scalar { local, ty } => {
+                if self.owned_utf8_literals.is_some() && *ty == ResolvedType::String {
+                    owned_strings::emit_empty_guard(self.output, *local);
+                }
+                self.get_scalar(source);
+                self.output.push(0x21);
+                write_u32(self.output, *local);
+                scalar_wasm_type(self.program, ty)?;
+                if matches!(ty, ResolvedType::Bytes | ResolvedType::String)
+                    || owned_vec(self.program, ty)
+                    || crate::cleanup::is_owned_bounded_box_type(ty)
+                {
+                    self.clear_scalar(source)?;
+                }
+            }
+            Value::ScalarMemory { pointer, ty } => {
+                self.emit_pointer(*pointer);
+                self.get_scalar(source);
+                self.store_scalar(ty);
+                if matches!(ty, ResolvedType::Bytes | ResolvedType::String)
+                    || owned_vec(self.program, ty)
+                    || crate::cleanup::is_owned_bounded_box_type(ty)
+                {
+                    self.clear_scalar(source)?;
+                }
+            }
+            Value::Aggregate {
+                pointer: destination,
+                ty,
+            } => {
+                let Value::Aggregate {
+                    pointer: source, ..
+                } = source
+                else {
+                    return Err(error(format!(
+                        "{context} mixes scalar and aggregate values"
+                    )));
+                };
+                // The planner aliases only a literal initializer's exact
+                // ArrayU8 slot with its binding. The literal has already run
+                // through emit_expr, including all canonical post transitions.
+                if matches!(ty, ResolvedType::ArrayU8(_))
+                    && destination.local == source.local
+                    && destination.offset == source.offset
+                {
+                    return Ok(());
+                }
+                if self.copy_iterator_value(*destination, *source, ty)? {
+                    return Ok(());
+                }
+                if is_record(self.program, ty)? {
+                    let record_layout = layout(self.program, ty)?;
+                    if nested_owned::record_contains_owned_bytes(self.program, ty)? {
+                        for field in &record_layout.fields {
+                            let destination_field = value_at(
+                                Pointer {
+                                    local: destination.local,
+                                    offset: destination
+                                        .offset
+                                        .checked_add(field.offset)
+                                        .ok_or_else(|| {
+                                            error("record move destination overflows")
+                                        })?,
+                                },
+                                field.ty.clone(),
+                                self.program,
+                            )?;
+                            let source_field = value_at(
+                                Pointer {
+                                    local: source.local,
+                                    offset: source
+                                        .offset
+                                        .checked_add(field.offset)
+                                        .ok_or_else(|| error("record move source overflows"))?,
+                                },
+                                field.ty.clone(),
+                                self.program,
+                            )?;
+                            self.copy_value(
+                                &destination_field,
+                                &source_field,
+                                "owned-byte record field move",
+                            )?;
+                        }
+                        return Ok(());
+                    }
+                }
+                if is_variant(self.program, ty)? {
+                    let variant = variant_layout(self.variant_layouts, ty)?;
+                    if generic_variant::has_owned_payload(&variant) {
+                        // Authenticate the tag before reading any union payload.
+                        self.emit_pointer(*source);
+                        self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                        write_i64(
+                            self.output,
+                            i64::try_from(variant.cases.len())
+                                .map_err(|_| error("owned variant case count overflows i64"))?,
+                        );
+                        self.output.push(0x4f);
+                        self.trap_if();
+                        self.emit_pointer(*destination);
+                        self.output.extend([0x41, 0x00, 0x41]);
+                        write_i64(self.output, i64::from(variant.size));
+                        self.output.extend([0xfc, 0x0b, 0x00]);
+                        for case in &variant.cases {
+                            self.emit_pointer(*source);
+                            self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                            write_i64(self.output, i64::from(case.tag));
+                            self.output.extend([0x46, 0x04, 0x40]);
+                            for field in &case.fields {
+                                let source_field = value_at(
+                                    Pointer {
+                                        local: source.local,
+                                        offset: source
+                                            .offset
+                                            .checked_add(variant.payload_offset)
+                                            .and_then(|offset| offset.checked_add(field.offset))
+                                            .ok_or_else(|| {
+                                                error("owned variant source field overflows")
+                                            })?,
+                                    },
+                                    field.ty.clone(),
+                                    self.program,
+                                )?;
+                                let destination_field = value_at(
+                                    Pointer {
+                                        local: destination.local,
+                                        offset: destination
+                                            .offset
+                                            .checked_add(variant.payload_offset)
+                                            .and_then(|offset| offset.checked_add(field.offset))
+                                            .ok_or_else(|| {
+                                                error("owned variant destination field overflows")
+                                            })?,
+                                    },
+                                    field.ty.clone(),
+                                    self.program,
+                                )?;
+                                self.copy_value(
+                                    &destination_field,
+                                    &source_field,
+                                    "owned variant selected field move",
+                                )?;
+                            }
+                            // Publish the tag only after the selected payload is complete.
+                            self.emit_pointer(*destination);
+                            self.output.push(0x41);
+                            write_i64(self.output, i64::from(case.tag));
+                            self.output.extend([0x36, 0x02, 0x00, 0x0b]);
+                        }
+                        // The source is now an inert, non-live stage.
+                        self.emit_pointer(*source);
+                        self.output.extend([0x41, 0x00, 0x41]);
+                        write_i64(self.output, i64::from(variant.size));
+                        self.output.extend([0xfc, 0x0b, 0x00]);
+                        return Ok(());
+                    }
+                }
+                let (size, _) = aggregate_size_align(self.program, self.variant_layouts, ty)?;
+                self.emit_pointer(*destination);
+                self.emit_pointer(*source);
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(size));
+                self.output.extend([0xfc, 0x0a, 0x00, 0x00]);
+            }
+        }
+        Ok(())
+    }
+
+    fn copy_borrowed_scalar_alias(
+        &mut self,
+        destination: &Value,
+        source: &Value,
+    ) -> Result<(), Diagnostic> {
+        require_type(
+            value_type(source),
+            value_type(destination),
+            "borrowed record field alias",
+        )?;
+        if !nested_owned::borrowed_leaf_is_admitted(self.program, value_type(source)) {
+            return Err(error(
+                "borrowed record field alias requires an exact Bytes or String carrier",
+            ));
+        }
+        match destination {
+            Value::Bottom => return Err(error("a bottom completion cannot be stored")),
+            Value::Scalar { local, .. } => {
+                self.get_scalar(source);
+                self.output.push(0x21);
+                write_u32(self.output, *local);
+            }
+            Value::ScalarMemory { pointer, ty } => {
+                self.emit_pointer(*pointer);
+                self.get_scalar(source);
+                self.store_scalar(ty);
+            }
+            Value::Aggregate { .. } => {
+                return Err(error("borrowed record field alias is aggregate"));
+            }
+        }
+        Ok(())
+    }
+
+    fn require_scalar(
+        &self,
+        value: &Value,
+        ty: &ResolvedType,
+        context: &str,
+    ) -> Result<(), Diagnostic> {
+        if matches!(value, Value::Aggregate { .. }) {
+            return Err(error(format!("{context} requires a scalar")));
+        }
+        require_type(value_type(value), ty, context)
+    }
+
+    fn get_scalar(&mut self, value: &Value) {
+        match value {
+            Value::Scalar { local, .. } => {
+                self.output.push(0x20);
+                write_u32(self.output, *local);
+            }
+            Value::ScalarMemory { pointer, ty } => {
+                self.emit_pointer(*pointer);
+                self.load_scalar(ty);
+            }
+            Value::Aggregate { .. } | Value::Bottom => unreachable!("validated scalar value"),
+        }
+    }
+
+    fn emit_pointer(&mut self, pointer: Pointer) {
+        self.output.push(0x20);
+        write_u32(self.output, pointer.local);
+        if pointer.offset != 0 {
+            self.output.push(0x41);
+            write_i64(self.output, i64::from(pointer.offset));
+            self.output.push(0x6a);
+        }
+    }
+
+    fn load_scalar(&mut self, ty: &ResolvedType) {
+        if crate::map_ops::is_collection(ty) {
+            self.output.extend([0x29, 0x03, 0]);
+            return;
+        }
+        match ty {
+            ResolvedType::I64
+            | ResolvedType::Usize
+            | ResolvedType::SliceU8
+            | ResolvedType::Str
+            | ResolvedType::Bytes
+            | ResolvedType::String => self.output.extend([0x29, 0x03, 0x00]),
+            ResolvedType::F64 => self.output.extend([0x2b, 0x03, 0x00]),
+            ResolvedType::F32 => self.output.extend([0x2a, 0x02, 0x00]),
+            ResolvedType::Bool | ResolvedType::Char | ResolvedType::I32 | ResolvedType::U8 => {
+                self.output.extend([0x28, 0x02, 0x00])
+            }
+            ty if owned_vec(self.program, ty) => self.output.extend([0x29, 0x03, 0x00]),
+            ty if crate::list_ops::is_list(ty) => self.output.extend([0x28, 0x02, 0x00]),
+            ty if crate::cleanup::is_owned_bounded_box_type(ty) => {
+                self.output.extend([0x29, 0x03, 0x00])
+            }
+            _ => unreachable!("validated scalar load"),
+        }
+    }
+
+    fn store_scalar(&mut self, ty: &ResolvedType) {
+        if crate::map_ops::is_collection(ty) {
+            self.output.extend([0x37, 0x03, 0]);
+            return;
+        }
+        match ty {
+            ResolvedType::I64
+            | ResolvedType::Usize
+            | ResolvedType::SliceU8
+            | ResolvedType::Str
+            | ResolvedType::Bytes
+            | ResolvedType::String => self.output.extend([0x37, 0x03, 0x00]),
+            ResolvedType::F64 => self.output.extend([0x39, 0x03, 0x00]),
+            ResolvedType::F32 => self.output.extend([0x38, 0x02, 0x00]),
+            ResolvedType::Bool | ResolvedType::Char | ResolvedType::I32 | ResolvedType::U8 => {
+                self.output.extend([0x36, 0x02, 0x00])
+            }
+            ty if owned_vec(self.program, ty) => self.output.extend([0x37, 0x03, 0x00]),
+            ty if crate::list_ops::is_list(ty) => self.output.extend([0x36, 0x02, 0x00]),
+            ty if crate::cleanup::is_owned_bounded_box_type(ty) => {
+                self.output.extend([0x37, 0x03, 0x00])
+            }
+            _ => unreachable!("validated scalar store"),
+        }
+    }
+
+    fn fail_if(&mut self, status: i32) -> Result<(), Diagnostic> {
+        self.fail_if_in_lane(status, StatusLane::OperationFailure)
+    }
+
+    fn fail_if_in_lane(&mut self, status: i32, lane: StatusLane) -> Result<(), Diagnostic> {
+        self.output.extend([0x04, 0x40, 0x41]);
+        write_i64(self.output, i64::from(status));
+        self.output.push(0x21);
+        write_u32(self.output, self.plan.status);
+        if let Some(expression) = self.failure_expression.clone() {
+            self.emit_failure_cleanup(&expression, lane)?;
+        }
+        self.output.push(0x0c);
+        write_u32(
+            self.output,
+            self.control_depth + self.status_exit_extra_depth,
+        );
+        self.output.push(0x0b);
+        Ok(())
+    }
+
+    /// A violated cleanup-liveness assertion means the compiler-owned
+    /// ownership ledger and the physical carrier disagree. No recoverable
+    /// status can safely settle an unknown owner, so fail-stop by trapping the
+    /// instance before any later action.
+    fn trap_if(&mut self) {
+        self.output.extend([0x04, 0x40, 0x00, 0x0b]);
+    }
+}
+
+/// Authenticated owned records admit Bytes slices and projected String views
+/// through a stable field-ID path. Such a path enters
+/// each owning record declaration at most once, so a field ID cannot repeat
+/// along it: a repeated or variant projection is a forged path, not a deeper
+/// legal one, and stays rejected here.
+fn borrow_place_shape_is_admitted(operation: &DeclarationId, place: &crate::hir::Place) -> bool {
+    if place.projections.is_empty() {
+        return true;
+    }
+    let mut walked: Vec<&DeclarationId> = Vec::with_capacity(place.projections.len());
+    for item in &place.projections {
+        let crate::hir::PlaceProjection::Field(field) = item else {
+            return false;
+        };
+        if walked.contains(&field) {
+            return false;
+        }
+        walked.push(field);
+    }
+    matches!(
+        operation.as_str(),
+        crate::byte_ops::BYTES_AS_SLICE_ID
+            | crate::byte_ops::STRING_AS_STR_ID
+            | crate::byte_ops::STR_AS_BYTES_ID
+    )
+}
+
+use function_value::value_type;
+
+use function_value::value_at;
+
+fn require_type(
+    actual: &ResolvedType,
+    expected: &ResolvedType,
+    context: &str,
+) -> Result<(), Diagnostic> {
+    if actual == expected {
+        Ok(())
+    } else {
+        Err(error(format!(
+            "inconsistent HIR type for {context}: expected `{}`, found `{}`",
+            expected.identity_key(),
+            actual.identity_key()
+        )))
+    }
+}
+
+fn emit_scalar_export_wrapper(
+    plan: &super::scalar_exports::ScalarExportPlan,
+    target: u32,
+) -> Result<Vec<u8>, Diagnostic> {
+    let parameter_count = u32::try_from(plan.params.len())
+        .map_err(|_| error("aggregate scalar export parameter count overflows u32"))?;
+    let old_stack = parameter_count;
+    let frame_base = old_stack + 1;
+    let status = old_stack + 2;
+    let result = old_stack + 3;
+    let mut body = Vec::new();
+    write_u32(&mut body, 2);
+    write_u32(&mut body, 3);
+    body.push(I32);
+    write_u32(&mut body, 1);
+    body.push(plan.result.wasm_type());
+
+    for (index, parameter) in plan.params.iter().enumerate() {
+        super::scalar_exports::emit_boundary_trap(&mut body, *parameter, index as u32);
+    }
+
+    body.push(0x23); // global.get shadow stack
+    write_u32(&mut body, 0);
+    body.push(0x22); // local.tee old stack
+    write_u32(&mut body, old_stack);
+    body.push(0x41); // i32.const
+    write_i64(&mut body, 8);
+    body.push(0x49); // i32.lt_u
+    body.extend([0x04, 0x40, 0x00, 0x0b]); // if; unreachable; end
+    body.push(0x20); // local.get old stack
+    write_u32(&mut body, old_stack);
+    body.push(0x41); // i32.const
+    write_i64(&mut body, 8);
+    body.push(0x6b); // i32.sub
+    body.push(0x22); // local.tee frame base
+    write_u32(&mut body, frame_base);
+    body.push(0x24); // global.set shadow stack
+    write_u32(&mut body, 0);
+
+    for index in 0..parameter_count {
+        body.push(0x20); // local.get public parameter
+        write_u32(&mut body, index);
+    }
+    body.push(0x20); // local.get hidden result pointer
+    write_u32(&mut body, frame_base);
+    body.push(0x10); // call internal aggregate-lane function
+    write_u32(&mut body, target);
+    body.push(0x21); // local.set status
+    write_u32(&mut body, status);
+    body.push(0x20); // local.get old stack
+    write_u32(&mut body, old_stack);
+    body.push(0x24); // global.set shadow stack
+    write_u32(&mut body, 0);
+
+    emit_aggregate_status_traps(&mut body, status);
+
+    body.push(0x20); // local.get result pointer
+    write_u32(&mut body, frame_base);
+    let (opcode, alignment) = match plan.result.wasm_type() {
+        I64 => (0x29, 3),
+        I32 => (0x28, 2),
+        F32 => (0x2a, 2),
+        F64 => (0x2b, 3),
+        _ => return Err(error("aggregate scalar export has invalid result type")),
+    };
+    body.extend([opcode, alignment, 0x00]);
+    body.push(0x21); // local.set result
+    write_u32(&mut body, result);
+    super::scalar_exports::emit_boundary_trap(&mut body, plan.result, result);
+    body.push(0x20); // local.get result
+    write_u32(&mut body, result);
+    body.push(0x0b);
+    Ok(body)
+}
+
+fn emit_aggregate_status_traps(body: &mut Vec<u8>, status: u32) {
+    body.push(0x20);
+    write_u32(body, status);
+    body.push(0x41);
+    write_i64(body, i64::from(STATUS_INTERNAL_INVALID_TAG));
+    body.extend([0x46, 0x04, 0x40, 0x00, 0x0b]);
+
+    emit_arithmetic_trap_case(body, status, STATUS_ADD_OVERFLOW, 0, i64::MAX, 1);
+    emit_arithmetic_trap_case(body, status, STATUS_SUB_OVERFLOW, 1, i64::MIN, 1);
+    emit_arithmetic_trap_case(body, status, STATUS_MUL_OVERFLOW, 2, i64::MAX, 2);
+    emit_arithmetic_trap_case(body, status, STATUS_DIV_ZERO, 3, 1, 0);
+    emit_arithmetic_trap_case(body, status, STATUS_DIV_OVERFLOW, 3, i64::MIN, -1);
+    emit_arithmetic_trap_case(body, status, STATUS_REM_ZERO, 4, 1, 0);
+    emit_arithmetic_trap_case(body, status, STATUS_REM_OVERFLOW, 4, i64::MIN, -1);
+    body.push(0x20);
+    write_u32(body, status);
+    body.push(0x41);
+    write_i64(body, i64::from(STATUS_NEG_OVERFLOW));
+    body.push(0x46);
+    body.extend([0x04, 0x40, 0x42]);
+    write_i64(body, i64::MIN);
+    body.push(0x10);
+    write_u32(body, 5);
+    body.extend([0x1a, 0x00, 0x0b]);
+
+    body.push(0x20);
+    write_u32(body, status);
+    body.push(0x45);
+    body.extend([0x04, 0x40]);
+    body.push(0x05);
+    body.push(0x20);
+    write_u32(body, status);
+    body.push(0x10);
+    write_u32(body, 6);
+    body.push(0x00);
+    body.push(0x0b);
+}
+
+fn emit_wrapper(main_index: u32, host_output: bool, list_heap_global: Option<u32>) -> Vec<u8> {
+    let old_stack = 0_u32;
+    let frame_base = 1_u32;
+    let status = 2_u32;
+    let mut body = Vec::new();
+    write_u32(&mut body, 3);
+    write_u32(&mut body, 1);
+    body.push(I32);
+    write_u32(&mut body, 1);
+    body.push(I32);
+    write_u32(&mut body, 1);
+    body.push(I32);
+    list_ops::emit_heap_reset(&mut body, list_heap_global);
+    if host_output {
+        super::host_output::emit_reset(&mut body, super::host_output::ROOT_GLOBALS);
+    }
+
+    body.push(0x23);
+    write_u32(&mut body, 0);
+    body.push(0x22);
+    write_u32(&mut body, old_stack);
+    body.push(0x41);
+    write_i64(&mut body, 8);
+    body.push(0x49);
+    body.extend([0x04, 0x40, 0x00, 0x0b]);
+    body.push(0x20);
+    write_u32(&mut body, old_stack);
+    body.push(0x41);
+    write_i64(&mut body, 8);
+    body.push(0x6b);
+    body.push(0x22);
+    write_u32(&mut body, frame_base);
+    body.push(0x24);
+    write_u32(&mut body, 0);
+    body.push(0x20);
+    write_u32(&mut body, frame_base);
+    body.push(0x10);
+    write_u32(&mut body, main_index);
+    body.push(0x21);
+    write_u32(&mut body, status);
+    body.push(0x20);
+    write_u32(&mut body, old_stack);
+    body.push(0x24);
+    write_u32(&mut body, 0);
+
+    if host_output {
+        body.push(0x20);
+        write_u32(&mut body, status);
+        body.extend([0x04, 0x40]);
+        super::host_output::emit_discard(&mut body, super::host_output::ROOT_GLOBALS);
+        body.push(0x05);
+        super::host_output::emit_publish(&mut body, super::host_output::ROOT_GLOBALS);
+        body.push(0x0b);
+    }
+
+    body.push(0x20);
+    write_u32(&mut body, status);
+    body.push(0x41);
+    write_i64(&mut body, i64::from(STATUS_INTERNAL_INVALID_TAG));
+    body.extend([0x46, 0x04, 0x40, 0x00, 0x0b]);
+
+    emit_arithmetic_trap_case(&mut body, status, STATUS_ADD_OVERFLOW, 0, i64::MAX, 1);
+    emit_arithmetic_trap_case(&mut body, status, STATUS_SUB_OVERFLOW, 1, i64::MIN, 1);
+    emit_arithmetic_trap_case(&mut body, status, STATUS_MUL_OVERFLOW, 2, i64::MAX, 2);
+    emit_arithmetic_trap_case(&mut body, status, STATUS_DIV_ZERO, 3, 1, 0);
+    emit_arithmetic_trap_case(&mut body, status, STATUS_DIV_OVERFLOW, 3, i64::MIN, -1);
+    emit_arithmetic_trap_case(&mut body, status, STATUS_REM_ZERO, 4, 1, 0);
+    emit_arithmetic_trap_case(&mut body, status, STATUS_REM_OVERFLOW, 4, i64::MIN, -1);
+    body.push(0x20);
+    write_u32(&mut body, status);
+    body.push(0x41);
+    write_i64(&mut body, i64::from(STATUS_NEG_OVERFLOW));
+    body.push(0x46);
+    body.extend([0x04, 0x40, 0x42]);
+    write_i64(&mut body, i64::MIN);
+    body.push(0x10);
+    write_u32(&mut body, 5);
+    body.extend([0x1a, 0x00, 0x0b]);
+
+    body.push(0x20);
+    write_u32(&mut body, status);
+    body.push(0x45);
+    body.extend([0x04, 0x40]);
+    body.push(0x05);
+    body.push(0x20);
+    write_u32(&mut body, status);
+    body.push(0x10);
+    write_u32(&mut body, 6);
+    body.push(0x00);
+    body.push(0x0b);
+    body.push(0x20);
+    write_u32(&mut body, frame_base);
+    body.extend([0x29, 0x03, 0x00, 0x0b]);
+    body
+}
+use expressions::emit_arithmetic_trap_case;
+#[cfg(test)]
+#[path = "aggregate_range_tests.rs"]
+mod range_tests;
+#[cfg(test)]
+mod tests;

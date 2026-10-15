@@ -1,6 +1,7 @@
 //! Private Core-Wasm carrier for directly owned String/Bytes vector leaves.
 //! The old tag-10 two-Bytes carrier remains byte-for-byte on its old routes.
 mod field_unique;
+mod field_update;
 mod sort_keys;
 use super::*;
 use sha2::{Digest, Sha256};
@@ -107,6 +108,7 @@ pub(super) struct Imports {
     field: Option<u32>,
     keys: Option<u32>,
     unique: Option<u32>,
+    update: Option<u32>,
 }
 
 pub(super) fn import_count(program: &ResolvedProgram) -> u32 {
@@ -117,6 +119,7 @@ pub(super) fn import_count(program: &ResolvedProgram) -> u32 {
     }) + u32::from(super::vec_field::uses(program))
         + u32::from(binds_record_keys(program))
         + u32::from(crate::vec_ops::field_unique::uses(program))
+        + u32::from(crate::vec_ops::field_update::uses(program))
 }
 
 pub(super) fn import_types(
@@ -171,11 +174,22 @@ pub(super) fn import_types(
                 indexes,
             )
         });
+        let update = crate::vec_ops::field_update::uses(program).then(|| {
+            intern_type(
+                Signature {
+                    params: vec![I64; 6],
+                    results: vec![I64],
+                },
+                types,
+                indexes,
+            )
+        });
         Imports {
             legacy,
             field,
             keys,
             unique,
+            update,
         }
     })
 }
@@ -207,6 +221,9 @@ pub(super) fn emit_imports(output: &mut Vec<u8>, types: Imports) {
     }
     if let Some(ty) = types.unique {
         function_import(output, "env", field_unique::IMPORT, ty);
+    }
+    if let Some(ty) = types.update {
+        function_import(output, "env", field_update::IMPORT, ty);
     }
 }
 
@@ -668,7 +685,7 @@ impl Emitter<'_> {
             VecOp::StrAt | VecOp::Get | VecOp::Set | VecOp::ReserveExact | VecOp::Sort => {
                 return Err(error("owned-leaf Vec old operation is not admitted"));
             }
-            VecOp::UniqueBy => {
+            VecOp::UniqueBy | VecOp::UpdateField => {
                 return Err(error(
                     "field uniqueness requires its exact borrowed receiver",
                 ));

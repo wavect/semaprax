@@ -122,6 +122,7 @@ pub(super) fn program_uses_owned_leaf(program: &crate::hir::ResolvedProgram) -> 
                                             || matches!(
                                                 op,
                                                 crate::vec_ops::VecOp::CloneAt
+                                                    | crate::vec_ops::VecOp::UpdateField
                                                     | crate::vec_ops::VecOp::Replace
                                                     | crate::vec_ops::VecOp::ReserveOwned
                                                     | crate::vec_ops::VecOp::SortOwned

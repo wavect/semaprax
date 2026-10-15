@@ -1,0 +1,45 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED_NO_RUST_C_NODE_WASM_OR_REVIEW",
+  "basis": "e3eb476838442b58c02ccc815aae4bbdfebfd50e",
+  "dependency_original_interface": "2677c34b33cb52a0e3fc0523850feb07b40f4a3d",
+  "dependency_frontend_continuation": "4855f3363e9f6db449433167e789c840203503d1",
+  "backend_owners": 13,
+  "current_children": [
+    {
+      "source": "src/codegen/native_emit/expression/vec_ops/field_update.rs",
+      "sha256": "5c2ff64a52303ee80eb069570ac96e892d15391eaaee81b054a1e40b108474af"
+    },
+    {
+      "source": "src/codegen/native_vec/field_update.c",
+      "sha256": "b3e560f838d52dcfb17eacc7161b6a20acaffc0f2457fabb22a7feadcb3e5481"
+    },
+    {
+      "source": "src/wasm/aggregate/vec_owned_leaf/field_update.rs",
+      "sha256": "dd2ac350b0a6b57898a6070c4e4ed303d435e88ca8df02767391627d9a5720c8"
+    },
+    {
+      "source": "tests/support/record_copy_field_update.rs",
+      "sha256": "4c5173b73972b419ffcd6e5c55a6623d862003740cb947157e803c18fe70a635"
+    },
+    {
+      "source": "tests/cleanup_backends/owned_leaf_collections/copy_field_update.rs",
+      "sha256": "b8f7454d65ad23c8c766f7f75f80bb3c40dc217d4efe17823711f1b5240688d3"
+    },
+    {
+      "source": "tests/owned_data/owned_leaf_vec/copy_field_update.rs",
+      "sha256": "ef767c338c083a8332f142bc747c192ceeb65f50e7d01661ba5401633718523c"
+    }
+  ],
+  "complete_old_worker_and_probe_sources_unchanged": 5,
+  "all_new_sources_joined_in_shared_backend_source_guard": true,
+  "registered_exact_new_bodies": 5,
+  "required_exact_existing_controls": 5,
+  "module_budget_violations": [],
+  "module_budget_rust_files": 6276,
+  "wasm_root_lines": 8683,
+  "wasm_root_budget": 8698,
+  "actual_backend_results": null,
+  "allocation_or_application_gain_claim": false,
+  "global_Source36_and_67packets": "Unchanged prior-head meaning; integrator composes once after adoption",
+  "qualification_dependency": "Frontend continuation required beyond interface commit before compiler/runtime batch"
+}

@@ -1,0 +1,377 @@
+diff --git b/docs/OWNED-RECORD-SCALAR-FIELD-UPDATE-V1.md a/docs/OWNED-RECORD-SCALAR-FIELD-UPDATE-V1.md
+index 58ab076ad..df85f85bb 100644
+--- b/docs/OWNED-RECORD-SCALAR-FIELD-UPDATE-V1.md
++++ a/docs/OWNED-RECORD-SCALAR-FIELD-UPDATE-V1.md
+@@ -118,8 +117,0 @@ Minimum next grouped selection, owned by the integration parent:
+-- `cargo test --locked -p semaprax --lib interpreter::owned_vec::field_update::tests -- --nocapture`
+-  authors checked-source construction-through-Drop controls for unique stores,
+-  vector/row Arc alias refusals and generation overflow before commit. The
+-  unique-store measurement pays the same actual descriptor checks in its
+-  independent no-store control; raw unrelated f32/f64 bits, String/Bytes owner
+-  identity and materialization counters remain observable. Overflow retains its
+-  exact invariant guard through ordinary source-frame failure and owner Drop;
+-  it is not converted into a language-visible status.
+diff --git b/src/interpreter/owned_vec/field_update.rs a/src/interpreter/owned_vec/field_update.rs
+index 97523b54b..2052535df 100644
+--- b/src/interpreter/owned_vec/field_update.rs
++++ a/src/interpreter/owned_vec/field_update.rs
+@@ -53,3 +52,0 @@ impl Evaluator<'_> {
+-
+-#[cfg(test)]
+-mod tests;
+diff --git b/src/interpreter/owned_vec/field_update/tests.rs a/src/interpreter/owned_vec/field_update/tests.rs
+deleted file mode 100644
+index 92773640e..000000000
+--- b/src/interpreter/owned_vec/field_update/tests.rs
++++ /dev/null
+@@ -1,350 +0,0 @@
+-//! Checked-source construction and complete real Drop surround the private
+-//! runtime boundary. Only hostile Arc/generation state is injected here; no
+-//! source primitive, unchecked HIR or substitute store is introduced.
+-use crate::interpreter::*;
+-use crate::test_allocation_observer::{measure, Metrics};
+-
+-const SOURCE: &str = r#"module update.runtime;
+-@id("update.row") record Row {
+- @id("update.row.bytes") bytes:Bytes,
+- @id("update.row.name") name:string,
+- @id("update.row.count") count:i64,
+- @id("update.row.spare32") spare32:f32,
+- @id("update.row.spare64") spare64:f64,
+-}
+-@id("update.make") fn make(spare32:f32,spare64:f64)->Vec<Row> {
+- let row=Row{bytes:bytes_zeroed(3usize),name:"N\u{0}\u{e9}",count:7,spare32:spare32,spare64:spare64};
+- vec_push<Row>(vec_with_capacity<Row>(1usize),row)
+-}
+-@id("update.apply") fn apply(rows:own Vec<Row>)->Vec<Row> {
+- vec_update_field<Row>(rows,0usize,9,"count")
+-}
+-@id("update.main") fn main()->i64 {0}
+-"#;
+-
+-fn program() -> hir::ResolvedProgram {
+-    let program = hir::resolve(&crate::check(SOURCE, "update-runtime.spx").unwrap()).unwrap();
+-    hir::validate(&program).unwrap();
+-    program
+-}
+-fn function<'a>(program: &'a hir::ResolvedProgram, id: &str) -> &'a ResolvedFunction {
+-    program
+-        .functions
+-        .iter()
+-        .find(|f| f.id.as_str() == id)
+-        .unwrap()
+-}
+-fn make(
+-    evaluator: &mut Evaluator<'_>,
+-    program: &hir::ResolvedProgram,
+-    bits32: u32,
+-    bits64: u64,
+-) -> Arc<owned_vec::OwnedVecValue> {
+-    let make = function(program, "update.make");
+-    let values = vec![
+-        (
+-            make.params[0].id.clone(),
+-            Value::Float32(f32::from_bits(bits32)),
+-        ),
+-        (
+-            make.params[1].id.clone(),
+-            Value::Float64(f64::from_bits(bits64)),
+-        ),
+-    ];
+-    let result = evaluator.call_frame(make, values, 0);
+-    let Ok(Value::Vec(vector)) = result else {
+-        panic!("{result:?}")
+-    };
+-    vector
+-}
+-fn apply(
+-    evaluator: &mut Evaluator<'_>,
+-    program: &hir::ResolvedProgram,
+-    vector: Arc<owned_vec::OwnedVecValue>,
+-) -> Result<Value, Flow> {
+-    let apply = function(program, "update.apply");
+-    evaluator.call_frame(
+-        apply,
+-        vec![(apply.params[0].id.clone(), Value::Vec(vector))],
+-        0,
+-    )
+-}
+-fn row(vector: &owned_vec::OwnedVecValue) -> &Arc<OwnedRecordValue> {
+-    let [Value::Record(row)] = vector.values.as_slice() else {
+-        panic!("row")
+-    };
+-    row
+-}
+-fn field<'a>(row: &'a OwnedRecordValue, id: &str) -> &'a Value {
+-    row.fields
+-        .iter()
+-        .find(|(key, _)| key.as_str() == id)
+-        .unwrap()
+-        .1
+-}
+-#[derive(Debug, Eq, PartialEq)]
+-struct RowSnapshot {
+-    carrier: usize,
+-    string: usize,
+-    string_len: usize,
+-    bytes: usize,
+-    bytes_len: usize,
+-    byte_owner: u32,
+-    count: i64,
+-    spare32: u32,
+-    spare64: u64,
+-}
+-fn snapshot(row: &Arc<OwnedRecordValue>) -> RowSnapshot {
+-    let Value::String(name) = field(row, "update.row.name") else {
+-        panic!("String")
+-    };
+-    let Value::Bytes(bytes) = field(row, "update.row.bytes") else {
+-        panic!("Bytes")
+-    };
+-    let Value::Int(count) = field(row, "update.row.count") else {
+-        panic!("count")
+-    };
+-    let Value::Float32(spare32) = field(row, "update.row.spare32") else {
+-        panic!("f32")
+-    };
+-    let Value::Float64(spare64) = field(row, "update.row.spare64") else {
+-        panic!("f64")
+-    };
+-    assert_eq!(name.as_bytes(), b"N\0\xc3\xa9");
+-    assert_eq!(bytes.bytes.as_ref(), &[0, 0, 0]);
+-    RowSnapshot {
+-        carrier: Arc::as_ptr(row) as usize,
+-        string: name.as_ptr() as usize,
+-        string_len: name.len(),
+-        bytes: bytes.bytes.as_ptr() as usize,
+-        bytes_len: bytes.bytes.len(),
+-        byte_owner: bytes.allocation,
+-        count: *count,
+-        spare32: spare32.to_bits(),
+-        spare64: spare64.to_bits(),
+-    }
+-}
+-fn balanced(metrics: Metrics) {
+-    assert!(!metrics.invalid, "{metrics:?}");
+-    assert_eq!(metrics.live, 0, "{metrics:?}");
+-    assert_eq!(metrics.allocated, metrics.freed, "{metrics:?}");
+-}
+-fn counters(evaluator: &Evaluator<'_>) -> (u32, u64, (u64, u64)) {
+-    (
+-        evaluator.next_byte_allocation,
+-        evaluator.allocated_byte_payload,
+-        evaluator.utf8_materialization_budget.usage(),
+-    )
+-}
+-
+-#[test]
+-fn unique_scalar_store_preserves_owned_leaf_identity_and_unrelated_float_bits_without_materialization(
+-) {
+-    let program = program();
+-    let admitted = program
+-        .functions
+-        .iter()
+-        .map(|f| (f.id.as_str(), f))
+-        .collect();
+-    let element = ResolvedType::Nominal {
+-        declaration: hir::DeclarationId::new("update.row"),
+-        arguments: vec![],
+-    };
+-    let identity = crate::vec_ops::field_update::resolve(&program.declarations, &element, "count")
+-        .unwrap()
+-        .identity()
+-        .unwrap();
+-    for (bits32, bits64) in [
+-        (0x8000_0000, 0x7ff8_0000_0000_0042),
+-        (0x7fc0_0123, 0x8000_0000_0000_0000),
+-        (0xff80_0000, 0x7ff0_0000_0000_0000),
+-    ] {
+-        let mut observations = Vec::new();
+-        for store in [false, true] {
+-            let mut evaluator = Evaluator::new_prepared(
+-                FunctionLookup::Borrowed(&admitted),
+-                BTreeMap::new(),
+-                &program.declarations,
+-                100_000,
+-                0,
+-                PreparedCancellation::Never,
+-            );
+-            evaluator.utf8_materialization_budget = Utf8MaterializationBudget::fixed();
+-            let ((), metrics) = measure(|| {
+-                let vector = make(&mut evaluator, &program, bits32, bits64);
+-                let vector_pointer = Arc::as_ptr(&vector);
+-                let generation = vector.generation;
+-                let capacity = vector.capacity;
+-                let mut expected = snapshot(row(&vector));
+-                assert_eq!(expected.count, 7);
+-                assert_eq!(expected.spare32, bits32);
+-                assert_eq!(expected.spare64, bits64);
+-                let paid = counters(&evaluator);
+-                let operands = vec![Value::Vec(vector), Value::Usize(0), Value::Int(9)];
+-                if store {
+-                    let result = evaluator.update_owned_vec_field(&element, &identity, operands);
+-                    let Ok(Value::Vec(vector)) = result else {
+-                        panic!("{result:?}")
+-                    };
+-                    expected.count = 9;
+-                    assert_eq!(snapshot(row(&vector)), expected);
+-                    assert_eq!(Arc::as_ptr(&vector), vector_pointer);
+-                    assert_eq!(vector.generation, generation + 1);
+-                    assert_eq!(vector.capacity, capacity);
+-                    assert_eq!(vector.values.len(), 1);
+-                    drop(vector);
+-                } else {
+-                    // Pay the ACTUAL same descriptor controls as production.
+-                    // This independent no-store construction-through-Drop
+-                    // control neither substitutes a store nor omits its costs.
+-                    let descriptor = crate::vec_ops::field_update::replay(
+-                        &program.declarations,
+-                        &element,
+-                        &identity,
+-                    )
+-                    .unwrap();
+-                    let (_, field) = crate::vec_ops::field_update::position(
+-                        &program.declarations,
+-                        &element,
+-                        &identity,
+-                    )
+-                    .unwrap();
+-                    assert_eq!(field, ResolvedType::I64);
+-                    drop(operands);
+-                    drop(descriptor);
+-                }
+-                assert_eq!(
+-                    counters(&evaluator),
+-                    paid,
+-                    "store materialized an owned leaf"
+-                );
+-            });
+-            balanced(metrics);
+-            observations.push(metrics);
+-        }
+-        // Full actual acquisition and Drop are included in both measurements;
+-        // authenticated descriptor controls stay paid. The store adds no
+-        // allocation/reallocation or requested backing, including row/leaf copies.
+-        assert_eq!(observations[0].allocations, observations[1].allocations);
+-        assert_eq!(observations[0].reallocations, observations[1].reallocations);
+-        assert_eq!(observations[0].allocated, observations[1].allocated);
+-        assert_eq!(observations[0].freed, observations[1].freed);
+-    }
+-}
+-
+-#[test]
+-fn aliased_vector_and_row_are_refused_before_the_scalar_store_and_drop_once() {
+-    let program = program();
+-    let admitted = program
+-        .functions
+-        .iter()
+-        .map(|f| (f.id.as_str(), f))
+-        .collect();
+-    for alias_vector in [true, false] {
+-        let mut evaluator = Evaluator::new_prepared(
+-            FunctionLookup::Borrowed(&admitted),
+-            BTreeMap::new(),
+-            &program.declarations,
+-            100_000,
+-            0,
+-            PreparedCancellation::Never,
+-        );
+-        evaluator.utf8_materialization_budget = Utf8MaterializationBudget::fixed();
+-        let ((), metrics) = measure(|| {
+-            let vector = make(&mut evaluator, &program, 0x7fc0_0123, 0x8000_0000_0000_0000);
+-            let expected = snapshot(row(&vector));
+-            let paid = counters(&evaluator);
+-            if alias_vector {
+-                let witness = Arc::clone(&vector);
+-                let generation = witness.generation;
+-                let result = apply(&mut evaluator, &program, vector);
+-                assert!(
+-                    matches!(result, Err(Flow::Guard("aliased scalar update vector"))),
+-                    "{result:?}"
+-                );
+-                assert_eq!(witness.generation, generation);
+-                assert_eq!(snapshot(row(&witness)), expected);
+-                assert_eq!(Arc::strong_count(&witness), 1);
+-                assert!(
+-                    crate::test_allocation_observer::live_bytes_matching(|p| p == expected.string)
+-                        > 0
+-                );
+-                drop(witness);
+-            } else {
+-                let witness = Arc::clone(row(&vector));
+-                let result = apply(&mut evaluator, &program, vector);
+-                assert!(
+-                    matches!(result, Err(Flow::Guard("aliased scalar update row"))),
+-                    "{result:?}"
+-                );
+-                assert_eq!(snapshot(&witness), expected);
+-                assert_eq!(Arc::strong_count(&witness), 1);
+-                assert!(
+-                    crate::test_allocation_observer::live_bytes_matching(|p| p == expected.string)
+-                        > 0
+-                );
+-                drop(witness);
+-            }
+-            assert_eq!(counters(&evaluator), paid);
+-            assert_eq!(
+-                crate::test_allocation_observer::live_bytes_matching(|p| p == expected.string),
+-                0
+-            );
+-        });
+-        balanced(metrics);
+-    }
+-}
+-
+-#[test]
+-fn generation_overflow_is_selected_before_row_alias_and_survives_complete_owner_settlement() {
+-    let program = program();
+-    let admitted = program
+-        .functions
+-        .iter()
+-        .map(|f| (f.id.as_str(), f))
+-        .collect();
+-    let mut evaluator = Evaluator::new_prepared(
+-        FunctionLookup::Borrowed(&admitted),
+-        BTreeMap::new(),
+-        &program.declarations,
+-        100_000,
+-        0,
+-        PreparedCancellation::Never,
+-    );
+-    evaluator.utf8_materialization_budget = Utf8MaterializationBudget::fixed();
+-    let ((), metrics) = measure(|| {
+-        let mut vector = make(&mut evaluator, &program, 0xff80_0000, 0x7ff8_0000_0000_0042);
+-        // Trusted hostile-carrier fixture only. Construction, parameter staging,
+-        // update dispatch and all settlement still use their ordinary receivers.
+-        Arc::get_mut(&mut vector).unwrap().generation = u64::MAX;
+-        let witness = Arc::clone(row(&vector));
+-        let expected = snapshot(&witness);
+-        let paid = counters(&evaluator);
+-        let result = apply(&mut evaluator, &program, vector);
+-        // Row alias would independently refuse later. It cannot replace the
+-        // already selected generation-overflow invariant failure.
+-        assert!(
+-            matches!(
+-                result,
+-                Err(Flow::Guard("scalar update generation overflow"))
+-            ),
+-            "{result:?}"
+-        );
+-        assert_eq!(snapshot(&witness), expected);
+-        assert_eq!(Arc::strong_count(&witness), 1);
+-        assert_eq!(counters(&evaluator), paid);
+-        assert!(crate::test_allocation_observer::live_bytes_matching(|p| p == expected.string) > 0);
+-        drop(witness);
+-        assert_eq!(
+-            crate::test_allocation_observer::live_bytes_matching(|p| p == expected.string),
+-            0
+-        );
+-        // Actual source-frame and original owner Drop leave the exact guard
+-        // selected; no replacement language status or result is manufactured.
+-        assert!(matches!(
+-            result,
+-            Err(Flow::Guard("scalar update generation overflow"))
+-        ));
+-    });
+-    balanced(metrics);
+-}

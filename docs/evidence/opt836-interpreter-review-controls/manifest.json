@@ -1,0 +1,36 @@
+{
+  "schema": "semaprax.opt836.interpreter-review-controls.v1",
+  "immediate_prior_commit": "6a3f309d101f84ad8a6673233eec474b83877156",
+  "execution": "none_source_only",
+  "source_records": [
+    {
+      "path": "docs/OWNED-RECORD-SCALAR-FIELD-UPDATE-V1.md",
+      "new_sha256": "a777fd42ba1f3f3384b21e6f031f85f4d4dacc976b4c980288e7adba9dba7165",
+      "prior_sha256": "be1934a80d6e232e5bfea78f7db4018ca80baecb8a090892b8ddf257a22f87ba",
+      "prior_archive": "docs/evidence/opt836-interpreter-review-controls/prior/docs__OWNED-RECORD-SCALAR-FIELD-UPDATE-V1.md.txt"
+    },
+    {
+      "path": "src/interpreter/owned_vec/field_update.rs",
+      "new_sha256": "fb21e8fab1c505eaeec0468c319d50e82faa183f75fedc6965506f5014b01757",
+      "prior_sha256": "81dff930c475884e8eae9fcf37ab07a594771e21ee7dc4cfbb989e40e4effd25",
+      "prior_archive": "docs/evidence/opt836-interpreter-review-controls/prior/src__interpreter__owned_vec__field_update.rs.txt"
+    },
+    {
+      "path": "src/interpreter/owned_vec/field_update/tests.rs",
+      "new_sha256": "6b137573a59e93282aac0c325bfee0b274f239b8c07dd908b864adfa89af44d8",
+      "prior_sha256": null,
+      "prior_archive": null
+    }
+  ],
+  "patch_context": "zero_context_apply_with_git_apply_--unidiff-zero",
+  "global_historical_metadata_composition": "intentionally_uncomposed_parent_integration_once",
+  "scope": "Interpreter-only private runtime controls. No public profiles, capabilities, production behavior, old oracle or existing test changes.",
+  "pending_selector": "cargo test --locked -p semaprax --lib interpreter::owned_vec::field_update::tests -- --nocapture",
+  "pending_test_names": [
+    "unique_scalar_store_preserves_owned_leaf_identity_and_unrelated_float_bits_without_materialization",
+    "aliased_vector_and_row_are_refused_before_the_scalar_store_and_drop_once",
+    "generation_overflow_is_selected_before_row_alias_and_survives_complete_owner_settlement"
+  ],
+  "backend_whole_corpus_interpreter_execution": "separate backend lane uses existing public interpret + verify_envelope; no visibility widening",
+  "limits": "Generation exhaustion remains a private invariant guard, not a fabricated language status. Measurement includes actual descriptor controls and complete source construction-through-Drop; no execution evidence is claimed."
+}

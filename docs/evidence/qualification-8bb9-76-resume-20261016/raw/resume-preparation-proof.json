@@ -1,0 +1,12 @@
+{
+  "mode": "METADATA_ONLY_NO_BUILD_EXECUTION",
+  "original_source_profile_selection_equal": true,
+  "original_pure_planner_AST_exact": true,
+  "original_six_driver_hashes_exact": true,
+  "unit_artifact_current_hash_exact": "6e8f6bef93669b0994b0430dd7ceabf9484928cf18e5d4e46c90739e0d30e0ce",
+  "original_stop_receipt_unchanged": true,
+  "prefixes_exclude_interrupted_command": true,
+  "resumption_record_sha256": "c40e78f5a5a890c6851cdc1d8db8a57bcf887d35a29644e130278bde8cfe933e",
+  "new_manifest_sha256": "c9daa1a718376f245b20fba1fff9f94599616d57011eca9cad91226b020fe2cb",
+  "actual_new_commands_pending": 2
+}

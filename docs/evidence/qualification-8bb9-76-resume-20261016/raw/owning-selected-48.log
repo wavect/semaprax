@@ -1,0 +1,10 @@
+
+running 1 test
+test workspace_graph::constructor_failure::typed::before_function_alias_core::tests::actual_uncached_core_old_and_current_include_new_entry_controls_and_all_drop ... 847 complete uncached core old paid=6189838 physical=Metrics { allocations: 48839, reallocations: 11410, allocated: 5234721, freed: 5234721, live: 0, highwater: 233773, invalid: false }; current paid=6124710 physical=Metrics { allocations: 48786, reallocations: 11410, allocated: 5232001, freed: 5232001, live: 0, highwater: 231053, invalid: false }
+847 outer probe limit=0 internal_ok=false overflowed=true paid=0 first=Some(ReservationRefusal { requested: 9, remaining: 0, floor: 0, stage: Some(ExpectedEdges) }) site=Some(Location { file: "src/bounded_output.rs", line: 474, column: 33 })
+847 outer probe limit=6124709 internal_ok=true overflowed=true paid=6124695 first=Some(ReservationRefusal { requested: 15, remaining: 14, floor: 0, stage: Some(CoreDirectories) }) site=Some(Location { file: "src/bounded_output.rs", line: 501, column: 9 })
+847 outer probe limit=6124710 internal_ok=true overflowed=false paid=6124710 first=None site=None
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9187 filtered out; finished in 1.20s
+

@@ -1,0 +1,6 @@
+
+running 1 test
+test scalar_browser_ci_contract::historical_builder::current_hosted_wires_reproduce_every_prior_byte_after_only_bill_and_digest_restoration ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 48 filtered out; finished in 0.00s
+

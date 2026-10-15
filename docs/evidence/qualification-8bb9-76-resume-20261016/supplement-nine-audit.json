@@ -1,0 +1,70 @@
+{
+  "source": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+  "scope": "SEPARATE_NINE_NOT_ORIGINAL_85",
+  "original76": {
+    "PASS": 56,
+    "FAIL": 20
+  },
+  "supplement9": {
+    "PASS": 9,
+    "FAIL": 0
+  },
+  "supplement_result_sha256": "abe0a45c5da123e244dde1c65fec3c2f58e6aed21985fe8320b9132cf8745e82",
+  "shared_complete_payload_aliases": [
+    {
+      "supplement_path": "drivers/build-owning-low-ram.py",
+      "shared_payload_path": "raw/drivers/build-owning-low-ram.py",
+      "sha256": "07e56f83ca7a8af214761b21b0e003a9e99f803b632ca207e098199b558e4c46"
+    },
+    {
+      "supplement_path": "drivers/build-owning.py",
+      "shared_payload_path": "raw/drivers/build-owning.py",
+      "sha256": "7d9eb4e4d3aab9ba94afad0d236ebb32a895eb1cd3db8e1d738438a893787888"
+    },
+    {
+      "supplement_path": "drivers/draft_contract.py",
+      "shared_payload_path": "raw/drivers/draft_contract.py",
+      "sha256": "c3ab46afbf6c62485c5c4b3389a579d0744d889622051f1eb7f6c48d2b0745e1"
+    },
+    {
+      "supplement_path": "drivers/observed_phase.py",
+      "shared_payload_path": "raw/drivers/observed_phase.py",
+      "sha256": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+    },
+    {
+      "supplement_path": "drivers/run-extra-production-clippy.py",
+      "shared_payload_path": "raw/drivers/run-extra-production-clippy.py",
+      "sha256": "47ff9dd51db73eb2b1e6b666c06ad37429d34e2959253179ed14ecb81f2ac8fe"
+    },
+    {
+      "supplement_path": "drivers/run-owning-selected.py",
+      "shared_payload_path": "raw/drivers/run-owning-selected.py",
+      "sha256": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450"
+    },
+    {
+      "supplement_path": "drivers/run-production-lib-cli-clippy.py",
+      "shared_payload_path": "raw/drivers/run-production-lib-cli-clippy.py",
+      "sha256": "e94eca5f0b9aa73193e1065a944b1681a459bdeba7b45e984f477a55268f4077"
+    },
+    {
+      "supplement_path": "drivers/semaprax_pressure_observation_v3.py",
+      "shared_payload_path": "raw/drivers/semaprax_pressure_observation_v3.py",
+      "sha256": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b"
+    },
+    {
+      "supplement_path": "owning-build-result.json",
+      "shared_payload_path": "raw/owning-build-result.json",
+      "sha256": "adaeeaa70d39722dfe0110b7e073f8300988d7fc337c33c80f500d92b945bc4f"
+    },
+    {
+      "supplement_path": "owning-build.jsonl",
+      "shared_payload_path": "raw/owning-build.jsonl",
+      "sha256": "957e9470c4f89cd1aaf9742c9cc0d65a9bb8fca9087b96d422385a8bd57ba12e"
+    }
+  ],
+  "both_clippy_exit_codes": [
+    101,
+    101
+  ],
+  "closure_requires_issue_specific_parent_review": true
+}

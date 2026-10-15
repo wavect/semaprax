@@ -1,0 +1,17 @@
+
+running 1 test
+test workspace_graph::tests::builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal ... identity-retry-parent before=Some(67108864) after=Some(26)
+identity-retry-contract legacy=(67086510, 67087604) tight=(53668966, 53670060) actual_initial=(67086510, 67087604, true, 1) registry_receipt=0 nested_overflow=false nested_debit=67108838 first_refusal=None trace=Some(Trace { owner: 33542193264, operation: None, first_operation_refusal: Some(OperationRefusal { operation: None, requested: 40, remaining: 26, floor: 0, stage: Some(FreshResolution) }), first_site: Some(Location { file: "src/bounded_output/identity_reservation.rs", line: 101, column: 8 }), initial: 67107938, consumed: 67107912, prebound: 67086510, layouts: 0, mode: 1, debits: [4018, 6604, 0, 0, 0, 0, 0, 0, 0, 67086510, 768, 0, 0, 0, 0, 0, 0, 8606, 0, 1406, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] })
+
+thread 'workspace_graph::tests::builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal' (12001787) panicked at src/workspace_graph/tests/builder_limits.rs:484:84:
+called `Result::unwrap()` on an `Err` value: [Diagnostic { code: "SPX-G171", severity: Error, message: "Workspace Semantic Graph `builder_bytes` exceeds 67108864", path: None, span: None, help: Some("live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast 32429998 bytes for 2 module(s) and fit within 67108864, with `stub/provider.spx` the largest at 32323800 bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound. resolved-core phase first sticky ledger refusal: requested 144 bytes with 78 remaining and 0 reserved floor. Authenticated internal stage: HIR final validation. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown.") }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    workspace_graph::tests::builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9187 filtered out; finished in 106.25s
+

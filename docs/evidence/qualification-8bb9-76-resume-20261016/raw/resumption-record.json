@@ -1,0 +1,75 @@
+{
+  "schema": "semaprax.explicit-two-phase-resumption.v1",
+  "source_head": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+  "source_tree": "85707059ff5ac6d7a41300a04e5b1d78011cd330",
+  "original_round": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016",
+  "original_receipt_sha256": "12a6367d287dd6717428a38d39dfd6c79d70325a9871ad6e237d2a1ca3ff0fab",
+  "original_manifest_sha256": "11120415eae9ff60896c785ceef7f19ba9b73448a40e4d59b86430882afb9825",
+  "original_exit_code": 130,
+  "original_third_group_remains_UNCONFIRMED": true,
+  "later_independent_settlement_sha256": "6a8ab48a36542b0251f1c9bfaf4559983fe6c30fc3c07ee344d6b2a77f2aea14",
+  "reused_completed_command_indices": [
+    0,
+    1
+  ],
+  "execute_only_command_indices": [
+    2,
+    3
+  ],
+  "unit_artifact": {
+    "package_id": "path+file:///Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang#semaprax@0.9.0",
+    "target": {
+      "kind": [
+        "lib"
+      ],
+      "crate_types": [
+        "lib"
+      ],
+      "name": "semaprax",
+      "src_path": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/src/lib.rs",
+      "edition": "2021",
+      "doc": true,
+      "doctest": true,
+      "test": true
+    },
+    "executable": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04",
+    "executable_sha256": "6e8f6bef93669b0994b0430dd7ceabf9484928cf18e5d4e46c90739e0d30e0ce"
+  },
+  "source_profile_environment_exact": true,
+  "no_original_130_promotion": true,
+  "command_origin_plan": [
+    {
+      "index": 0,
+      "origin": "REUSED_ACTUAL_ORIGINAL_SUCCESS",
+      "receipt": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016/owning-build-result.json"
+    },
+    {
+      "index": 1,
+      "origin": "REUSED_ACTUAL_ORIGINAL_SUCCESS",
+      "receipt": "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016/owning-build-result.json"
+    },
+    {
+      "index": 2,
+      "origin": "NEW_RESUME_COMMAND_REQUIRED",
+      "receipt": "new owning-build-result.json"
+    },
+    {
+      "index": 3,
+      "origin": "NEW_RESUME_COMMAND_REQUIRED",
+      "receipt": "new owning-build-result.json"
+    }
+  ],
+  "immutable_inputs_sha256": {
+    "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016/owning-build-result.json": "12a6367d287dd6717428a38d39dfd6c79d70325a9871ad6e237d2a1ca3ff0fab",
+    "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016/expected-counts.json": "11120415eae9ff60896c785ceef7f19ba9b73448a40e4d59b86430882afb9825",
+    "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016/owning-build.jsonl": "77d8525e600dfd7a11dbaf73d9bf99a938b04d21d1fdc24a30e692c08884d18e",
+    "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016/owning-build.log": "130fa9f91a99e9b0e55341fa28bd015d4483d26b95155d1c9e17d6ba7b6e994d",
+    "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016/memory-samples.jsonl": "8677811a2beaf460479d530aa4a913f9b3a553d35ba780cd426d1aa88656fc81",
+    "/Volumes/Semaprax/provenance/8bb76-resource-stop-independent-settlement-20261016.json": "6a8ab48a36542b0251f1c9bfaf4559983fe6c30fc3c07ee344d6b2a77f2aea14",
+    "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/reuse-completed/memory-samples.jsonl": "f52df18522a0fd80d550d30eee3e9e328c8b3974cfd183cb0b07c28fc3f96bdb",
+    "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/reuse-completed/owning-build.log": "54d3ec25312d4aaf4a6197f376a5af4182355e5f4635a6b70c26d9e7927c4b38",
+    "/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/reuse-completed/owning-build.jsonl": "cfa83ddfdcc4c3b0e58bdef6ad4134aeb8792050781ea767a63b89bee9018166",
+    "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016/pressure-guardian.jsonl": "d0b406ac2a301bda7326f455e198bebd8b576f4f55d89869ac357430bcd50b6f",
+    "/Volumes/Semaprax/lane-prompts/final-8bb9-76-qualification-20261016/pressure-guardian-source.py": "115dfba227713331fe0b021d787e9c7ddff44e3cf5ad1524526da45bb322021a"
+  }
+}

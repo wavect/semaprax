@@ -1,0 +1,27 @@
+{
+  "source": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+  "original_receipt_sha256": "12a6367d287dd6717428a38d39dfd6c79d70325a9871ad6e237d2a1ca3ff0fab",
+  "status": "LATER_INDEPENDENT_INVENTORY_EMPTY_ORIGINAL_UNCONFIRMED_UNCHANGED",
+  "snapshots": [
+    {
+      "time_unix": 1792105825.388813,
+      "owned_groups": [
+        20175,
+        40850,
+        50172
+      ],
+      "members": [],
+      "inventory_sha256": "90bd422bd02daa9c6eee46d07fac584f2937460c34cd6ac27d66877565162724"
+    },
+    {
+      "time_unix": 1792105826.418174,
+      "owned_groups": [
+        20175,
+        40850,
+        50172
+      ],
+      "members": [],
+      "inventory_sha256": "37d23b180f304fe49121a5b9a0c005018df488bf0a4916fd5e62f3f561752b03"
+    }
+  ]
+}

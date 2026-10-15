@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::factored::compact_nodes::before::tests::nested_floor_keeps_original_first_refusal_and_terminal_retry_fields ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9187 filtered out; finished in 0.05s
+

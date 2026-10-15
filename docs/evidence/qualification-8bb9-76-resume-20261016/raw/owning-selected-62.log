@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::renewal_profile::ordinary::record_presence::tests::scalar_callable_boundary_reuses_one_census_under_the_unchanged_work_limit ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9187 filtered out; finished in 1.26s
+

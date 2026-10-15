@@ -1,0 +1,6 @@
+
+running 1 test
+test owned_leaf_collections::copy_field_update::copy_field_updates_preserve_eight_scalar_lanes_owned_leaf_bits_and_zero_store_heap_at_o0_o2 ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 201 filtered out; finished in 17.90s
+

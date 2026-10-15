@@ -1,0 +1,6 @@
+
+running 1 test
+test diagnostic::writer::tests::writer_failure_keeps_first_io_error_and_does_not_touch_later_diagnostics ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9187 filtered out; finished in 0.00s
+

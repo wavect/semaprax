@@ -1,0 +1,22 @@
+{
+  "source": "8bb9f5b7b99e1e71a797460c46180daf716b234b",
+  "selected": 76,
+  "roles": 9,
+  "new_commands": 2,
+  "reused_successful_commands": 2,
+  "manifest_sha256": "c9daa1a718376f245b20fba1fff9f94599616d57011eca9cad91226b020fe2cb",
+  "resume_driver_sha256": "07e56f83ca7a8af214761b21b0e003a9e99f803b632ca207e098199b558e4c46",
+  "original_six_driver_sha256": {
+    "build-owning.py": "7d9eb4e4d3aab9ba94afad0d236ebb32a895eb1cd3db8e1d738438a893787888",
+    "draft_contract.py": "c3ab46afbf6c62485c5c4b3389a579d0744d889622051f1eb7f6c48d2b0745e1",
+    "observed_phase.py": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867",
+    "run-owning-selected.py": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450",
+    "run-production-lib-cli-clippy.py": "e94eca5f0b9aa73193e1065a944b1681a459bdeba7b45e984f477a55268f4077",
+    "semaprax_pressure_observation_v3.py": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b"
+  },
+  "resumption_record_sha256": "c40e78f5a5a890c6851cdc1d8db8a57bcf887d35a29644e130278bde8cfe933e",
+  "original_failed_receipt_sha256": "12a6367d287dd6717428a38d39dfd6c79d70325a9871ad6e237d2a1ca3ff0fab",
+  "unit_artifact_sha256": "6e8f6bef93669b0994b0430dd7ceabf9484928cf18e5d4e46c90739e0d30e0ce",
+  "execution_performed": false,
+  "operator_command": "TMPDIR=/Volumes/Semaprax/tmp/static-8bb9-76 python3 /Volumes/Semaprax/provenance/focused-build-pressure-wrapper-v5-20261015.py --round /Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016 --rss-limit-gib 8 --build-driver build-owning-low-ram.py"
+}

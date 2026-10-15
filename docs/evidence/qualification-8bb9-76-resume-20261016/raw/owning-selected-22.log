@@ -1,0 +1,17 @@
+
+running 1 test
+test workspace_graph::type_proof_tests::projection_tests::rendered_document_has_literal_sha_exact_wire_order_and_digest_binding ... 
+thread 'workspace_graph::type_proof_tests::projection_tests::rendered_document_has_literal_sha_exact_wire_order_and_digest_binding' (11981527) panicked at src/workspace_graph/type_proof_tests.rs:896:9:
+assertion `left == right` failed
+  left: "sha256:83f35080f590a8ec0e2ac30c40fa59a695ab0fc80d5fd7dfd5bbd5e3dcd374dd"
+ right: "sha256:74dd9cc25b0f9f331aa831d6fac0e44f1d51488d6c3a548f3c60b6a86ff8eb04"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    workspace_graph::type_proof_tests::projection_tests::rendered_document_has_literal_sha_exact_wire_order_and_digest_binding
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9187 filtered out; finished in 0.86s
+

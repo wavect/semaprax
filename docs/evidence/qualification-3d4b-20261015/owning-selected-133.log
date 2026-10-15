@@ -1,0 +1,17 @@
+
+running 1 test
+test workspace_graph::expected_projection::borrowed_imports::typed::typed_cost::tests::typed_constructor_cost_complete_originals_live_callers_and_all_source_inverses_are_bound ... 
+thread 'workspace_graph::expected_projection::borrowed_imports::typed::typed_cost::tests::typed_constructor_cost_complete_originals_live_callers_and_all_source_inverses_are_bound' (7669819) panicked at src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs:966:13:
+assertion `left == right` failed
+  left: "979326a3b01901b8dcd6e62d0505078c7e13c43885dfc4c13117a637a0eb7163"
+ right: "4a1920f6abdff90036fe9afabe687c091b08a38d4f26a28e2e7c7feb678cbd14"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    workspace_graph::expected_projection::borrowed_imports::typed::typed_cost::tests::typed_constructor_cost_complete_originals_live_callers_and_all_source_inverses_are_bound
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.06s
+

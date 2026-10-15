@@ -1,0 +1,11 @@
+
+running 1 test
+test cleanup_plan::replay::factored::canonical_shared::singleton_target_tests::singleton_targets_actual_before_current_reserved_allocated_peak_and_complete_drop ... singleton-targets width=0 old/current=[(1864, Metrics { allocations: 10, reallocations: 0, allocated: 976, freed: 976, live: 0, highwater: 960, invalid: false }), (4049, Metrics { allocations: 10, reallocations: 0, allocated: 912, freed: 912, live: 0, highwater: 912, invalid: false })]
+singleton-targets width=1 old/current=[(8584, Metrics { allocations: 34, reallocations: 2, allocated: 3984, freed: 3984, live: 0, highwater: 1920, invalid: false }), (9569, Metrics { allocations: 24, reallocations: 4, allocated: 2608, freed: 2608, live: 0, highwater: 1352, invalid: false })]
+singleton-targets width=2 old/current=[(9816, Metrics { allocations: 37, reallocations: 2, allocated: 4248, freed: 4248, live: 0, highwater: 2168, invalid: false }), (11897, Metrics { allocations: 28, reallocations: 4, allocated: 2968, freed: 2968, live: 0, highwater: 1456, invalid: false })]
+singleton-targets width=3 old/current=[(11048, Metrics { allocations: 40, reallocations: 2, allocated: 4512, freed: 4512, live: 0, highwater: 2416, invalid: false }), (13305, Metrics { allocations: 30, reallocations: 5, allocated: 3184, freed: 3184, live: 0, highwater: 1544, invalid: false })]
+singleton-targets width=4 old/current=[(12280, Metrics { allocations: 43, reallocations: 2, allocated: 4776, freed: 4776, live: 0, highwater: 2664, invalid: false }), (13977, Metrics { allocations: 31, reallocations: 5, allocated: 3272, freed: 3272, live: 0, highwater: 1632, invalid: false })]
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.03s
+

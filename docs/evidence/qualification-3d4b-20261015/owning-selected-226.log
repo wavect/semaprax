@@ -1,0 +1,6 @@
+
+running 1 test
+test hir::cache_codec::record_traversal_tests::maximum_owned_traversal_roundtrips_source_and_both_cache_projections_with_fresh_selection ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 1.37s
+

@@ -1,0 +1,17 @@
+
+running 1 test
+test workspace_graph::expected_projection::private_layout::capacity_tests::source::complete_old_receiver_source_and_all_new_joined_sources_stay_exact ... 
+thread 'workspace_graph::expected_projection::private_layout::capacity_tests::source::complete_old_receiver_source_and_all_new_joined_sources_stay_exact' (7668233) panicked at src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs:69:13:
+assertion `left == right` failed: crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    workspace_graph::expected_projection::private_layout::capacity_tests::source::complete_old_receiver_source_and_all_new_joined_sources_stay_exact
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.06s
+

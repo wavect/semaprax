@@ -1,0 +1,8 @@
+
+running 1 test
+test cleanup_plan::replay::factored::canonical_shared::singleton_target_tests::singleton_promotion_acquires_both_tree_nodes_before_first_allocation_and_stays_inline_on_refusal ... singleton-layout old=24 new=32 one_fee=248 promotion_fee=280 node=296
+outer-label-node old=560 new=648
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.01s
+

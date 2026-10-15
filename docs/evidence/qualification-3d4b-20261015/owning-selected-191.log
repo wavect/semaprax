@@ -1,0 +1,18 @@
+
+running 1 test
+test hir::resolve_for::bytes::tests::a_manual_while_cannot_create_byte_traversal_ancestry ... 
+thread 'hir::resolve_for::bytes::tests::a_manual_while_cannot_create_byte_traversal_ancestry' (7693623) panicked at src/hir/resolve_for/bytes/tests.rs:297:5:
+assertion failed: hir_errors.iter().any(|e|
+        e.code == "SPX-H006" &&
+            e.message ==
+                "nested for traversal reached bounded-loop HIR admission")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    hir::resolve_for::bytes::tests::a_manual_while_cannot_create_byte_traversal_ancestry
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.05s
+

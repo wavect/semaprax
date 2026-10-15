@@ -1,0 +1,15 @@
+
+running 1 test
+test cleanup_plan::replay::factored::canonical_shared::ordered_weights::tests::ordered_growth_receiving_and_initializers_are_paid_then_warm_insertion_constructs_no_result ... 
+thread 'cleanup_plan::replay::factored::canonical_shared::ordered_weights::tests::ordered_growth_receiving_and_initializers_are_paid_then_warm_insertion_constructs_no_result' (7680578) panicked at src/test_allocation_observer.rs:276:5:
+live metrics require an active observation
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::factored::canonical_shared::ordered_weights::tests::ordered_growth_receiving_and_initializers_are_paid_then_warm_insertion_constructs_no_result
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.07s
+

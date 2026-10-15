@@ -1,0 +1,15 @@
+
+running 1 test
+test cleanup_plan::replay::factored::canonical_shared::singleton_target_tests::singleton_actual_receiver_foreign_restored_function_budget_and_stale_owner_fail_before_new_targets ... 
+thread 'cleanup_plan::replay::factored::canonical_shared::singleton_target_tests::singleton_actual_receiver_foreign_restored_function_budget_and_stale_owner_fail_before_new_targets' (7688849) panicked at src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs:327:21:
+assertion failed: !child_refused && child_paid == 0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::factored::canonical_shared::singleton_target_tests::singleton_actual_receiver_foreign_restored_function_budget_and_stale_owner_fail_before_new_targets
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9061 filtered out; finished in 0.09s
+

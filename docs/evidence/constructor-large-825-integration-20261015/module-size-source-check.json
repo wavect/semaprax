@@ -1,0 +1,57 @@
+[
+  {
+    "source": "src/hir/declaration_index/leaf_drop_tests.rs",
+    "lines": 155,
+    "limit": 1500
+  },
+  {
+    "source": "src/hir/declaration_index/legacy_drop/tests.rs",
+    "lines": 159,
+    "limit": 1500
+  },
+  {
+    "source": "src/workspace_graph/constructor_failure/receiving/tests.rs",
+    "lines": 213,
+    "limit": 1500
+  },
+  {
+    "source": "src/workspace_graph/constructor_failure/receiving/typed.rs",
+    "lines": 116,
+    "limit": 1500
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+    "lines": 459,
+    "limit": 1500
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "lines": 1004,
+    "limit": 1500
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/cost.rs",
+    "lines": 985,
+    "limit": 1500
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/cost/constructor.rs",
+    "lines": 256,
+    "limit": 1500
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/defaults/error_custody_tests.rs",
+    "lines": 234,
+    "limit": 1500
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/type_rewrite.rs",
+    "lines": 309,
+    "limit": 1500
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+    "lines": 705,
+    "limit": 1500
+  }
+]

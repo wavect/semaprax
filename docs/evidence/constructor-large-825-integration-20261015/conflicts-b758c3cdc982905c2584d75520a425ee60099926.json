@@ -1,0 +1,30 @@
+[
+  {
+    "path": "docs/evidence/borrowed-generic-type-rewrite-141387/whole-source-inverses.json",
+    "incoming_revision": "b758c3cdc982905c2584d75520a425ee60099926",
+    "root_sha256": "95cf0fd90af51ab76832be303c5b5418f2f09d89570fa7bfff275243adb63b8f",
+    "incoming_sha256": "fd6a0edba975a39f60a6e27c683458c35df3c25f465eadd769b81f8fdbf40014",
+    "base_sha256": "927d43d0c177adeab16b69747bb5248eeea73114635bb887adb4befd39dc795e"
+  },
+  {
+    "path": "docs/evidence/constructor-inline-failure-825/exact-source-inverses.json",
+    "incoming_revision": "b758c3cdc982905c2584d75520a425ee60099926",
+    "root_sha256": "12267d41f31d4644b514b12ffd74c1f84afe8293e3e520f54260cc37c3197ff6",
+    "incoming_sha256": "cbc2790c429e9d8ae543c584abac4cea194359a3a7ef46812d951d42c0c6c21c",
+    "base_sha256": "e21ff747937a013a4fc41be484cfc7360e21396eb49c463fa0aa2d908d4362fe"
+  },
+  {
+    "path": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+    "incoming_revision": "b758c3cdc982905c2584d75520a425ee60099926",
+    "root_sha256": "a7ecb6dc6d9182702d7b9a6c45ccda1e2a0cd74f8380d22b8a646e761bbf9145",
+    "incoming_sha256": "c76ad110ff9804f1e5a34a464467ea8a8e793d98baeffde784fce9806b4c5a19",
+    "base_sha256": "f7cb8e3afbef92579930ae04a7b3a05cbd75811a27217cb432fcbbe3393b0e17"
+  },
+  {
+    "path": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+    "incoming_revision": "b758c3cdc982905c2584d75520a425ee60099926",
+    "root_sha256": "c73d1f43ee52f8a6b9b8de37a5a01a93411a2e4c355a51a40328f30c13157c74",
+    "incoming_sha256": "da2983a6a56db12eb8b308e9ee8901997b98bbdc7ae3a7181f71d8c11b539ee5",
+    "base_sha256": "dec1984958058568261afb6fe9e4ba8b61976b339eb92dc885a2745919cd605b"
+  }
+]

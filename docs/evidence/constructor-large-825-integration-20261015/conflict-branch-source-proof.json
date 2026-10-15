@@ -1,0 +1,625 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "incoming_original_rows": 88,
+  "retained_conflict_manifests": 8,
+  "all_incoming_hooks_and_archives_preserved": true,
+  "rows": [
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/borrowed-generic-type-rewrite-141387/whole-source-inverses.json",
+      "source": "src/workspace_graph/generic_type_import.rs",
+      "old_hooks_preserved": 9,
+      "original_sha256": "24d2c8507f1090f5a6124629be65423b0d38fc6eb12f6e626787e7365925f2da"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/borrowed-generic-type-rewrite-141387/whole-source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/cost.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "3532096b8263254cde98b49ea670e7a6eb9cffe43d8ca5cc7fa4b42d8c805de6"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/borrowed-generic-type-rewrite-141387/whole-source-inverses.json",
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "old_hooks_preserved": 32,
+      "original_sha256": "09709f230713532dd49a29270b37496701773ef55a6ffab290f2472498a8f829"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-inline-failure-825/exact-source-inverses.json",
+      "source": "src/workspace_graph.rs",
+      "old_hooks_preserved": 3,
+      "original_sha256": "e317564f022117d91c7ca4d9df93caaa51171ee6a0a1ad2da837551ec1a31a37"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-inline-failure-825/exact-source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/defaults.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "254b5e7c88fdc8cdcff21dbe7b38544ac0150b2dbba50fc456dc97b2dd405f49"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-inline-failure-825/exact-source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/import_stub.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "935a023143d421321ad24a90372bb899d7b014fea0dd95672000e90ccd901713"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-inline-failure-825/exact-source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/borrowed_imports.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "f0c6dc18bbc58c8792a7ee466a6ae93c4d051f19ed7f963a10f99024230052ae"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-inline-failure-825/exact-source-inverses.json",
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "old_hooks_preserved": 7,
+      "original_sha256": "6ef5c9eb9182d70aa6906dc884da701c445739c64d1935bea1ecab86bc289fb7"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/workspace_graph.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "c82d3bb6176c847fd9ff171f02d9c5aedd113e72b1eb9b1739ffee062319c11b"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "dbc0a8e8da3d168ad5b5bbe3ef9a950e36aad762e78a977e700995e8ad65f864"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "old_hooks_preserved": 3,
+      "original_sha256": "26fbf494bd0ff23f63f1239a43d44a2628c86812c6b4a0163e5ae5a5fab306af"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/receiving.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/receiving/before.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/receiving/tests.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md",
+      "old_hooks_preserved": 4,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/bounded_output/classifier_string.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "c301a761a04ef7036c7eed8375e0ee77c34266eeb89b6e1c3ae38eaad5a86193"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/workspace_graph/diagnostics.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "fc3c1ccaccd725e8440883ab47e9eda3c0618983a5d40a28ef213f6a56e6b083"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/workspace_graph/diagnostics/constructor_report_before.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/attempt.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/report.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/report/stages.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/report/tests.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/bounded_output.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "e8fd2b3a9299b714b6a54e0c0e72dc85173a01e1a87b1ee19697c9da2e9c0068"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md",
+      "old_hooks_preserved": 3,
+      "original_sha256": "45fcd2cc3564e9fef203f33439df8c94c678fcbe2662a64fc07de1cdd5b4fb09"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "0014cda6a016f64d13ccc85f8950837dffe973c043d498e2c56eafdc1413b073"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure.rs",
+      "old_hooks_preserved": 6,
+      "original_sha256": "1d84f2618b421470ae8ad5a80a261d4840f34e293be44d74f55fc49e2e064158"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/attempt.rs",
+      "old_hooks_preserved": 4,
+      "original_sha256": "e7800b4754fd459b2f09eb81c3ce734dfbce0182cc069bb9dbe440f85c248df8"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/receiving.rs",
+      "old_hooks_preserved": 5,
+      "original_sha256": "173b537190be876a52843c69a3be7258e4f1a0f0d425b0ccb65dfb291f2203b1"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/report.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "5ac6527ad7221435908ca66c03a006b994428d9053535f5b2de4498b4f0dfa5a"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/borrowed_imports.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "cbea3d04790517cf7584fe1163000314dbf514990b5cd5ed4429564e59f23675"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/defaults.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "e97250b91fc9c8bb8f60e6ea1ef7d90a332dcb9dcf3fffdbd66348a9f3e2a366"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/import_stub.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "047c449c4f14513e0288d0cefd71d101aa3fa72794ec3dcb5d9a4a9320737e55"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "630623082162858c33de36d20b5b2a72b9060a1ef765ac2b13f57a189afe7631"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/receiving/typed.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/typed.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+      "old_hooks_preserved": 3,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/defaults/typed.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/defaults/typed_fields.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/import_stub/typed.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/defaults/inline.rs",
+      "old_hooks_preserved": 0,
+      "original_sha256": "b91f7cb165ac3806770aac15b7df941acaaf92c3fcd02d4fe04df7a69994cdec"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/defaults/inline_fields.rs",
+      "old_hooks_preserved": 0,
+      "original_sha256": "959f964c2411a476a8e8e4aa6b7a1955e6e7606f2d160ae2990a3211b58b50f7"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/inline.rs",
+      "old_hooks_preserved": 0,
+      "original_sha256": "21e084ec204ca71b1b43aae82bf850176e60b972020efc3971b9ff3db08166f3"
+    },
+    {
+      "revision": "5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/receiving/before.rs",
+      "old_hooks_preserved": 0,
+      "original_sha256": "b0b5aa9f784cd8e5a3273a8b8e0265fffa829dd061e85f592b7190394c266b51"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/borrowed-generic-type-rewrite-141387/whole-source-inverses.json",
+      "source": "src/workspace_graph/generic_type_import.rs",
+      "old_hooks_preserved": 9,
+      "original_sha256": "24d2c8507f1090f5a6124629be65423b0d38fc6eb12f6e626787e7365925f2da"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/borrowed-generic-type-rewrite-141387/whole-source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/cost.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "3532096b8263254cde98b49ea670e7a6eb9cffe43d8ca5cc7fa4b42d8c805de6"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/borrowed-generic-type-rewrite-141387/whole-source-inverses.json",
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "old_hooks_preserved": 33,
+      "original_sha256": "09709f230713532dd49a29270b37496701773ef55a6ffab290f2472498a8f829"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-inline-failure-825/exact-source-inverses.json",
+      "source": "src/workspace_graph.rs",
+      "old_hooks_preserved": 3,
+      "original_sha256": "e317564f022117d91c7ca4d9df93caaa51171ee6a0a1ad2da837551ec1a31a37"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-inline-failure-825/exact-source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/defaults.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "254b5e7c88fdc8cdcff21dbe7b38544ac0150b2dbba50fc456dc97b2dd405f49"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-inline-failure-825/exact-source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/import_stub.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "935a023143d421321ad24a90372bb899d7b014fea0dd95672000e90ccd901713"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-inline-failure-825/exact-source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/borrowed_imports.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "f0c6dc18bbc58c8792a7ee466a6ae93c4d051f19ed7f963a10f99024230052ae"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-inline-failure-825/exact-source-inverses.json",
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "old_hooks_preserved": 8,
+      "original_sha256": "6ef5c9eb9182d70aa6906dc884da701c445739c64d1935bea1ecab86bc289fb7"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/workspace_graph.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "c82d3bb6176c847fd9ff171f02d9c5aedd113e72b1eb9b1739ffee062319c11b"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "dbc0a8e8da3d168ad5b5bbe3ef9a950e36aad762e78a977e700995e8ad65f864"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "old_hooks_preserved": 4,
+      "original_sha256": "26fbf494bd0ff23f63f1239a43d44a2628c86812c6b4a0163e5ae5a5fab306af"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/receiving.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/receiving/before.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/receiving/tests.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md",
+      "old_hooks_preserved": 5,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/bounded_output/classifier_string.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "c301a761a04ef7036c7eed8375e0ee77c34266eeb89b6e1c3ae38eaad5a86193"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/workspace_graph/diagnostics.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "fc3c1ccaccd725e8440883ab47e9eda3c0618983a5d40a28ef213f6a56e6b083"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/workspace_graph/diagnostics/constructor_report_before.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/attempt.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/report.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/report/stages.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/report/tests.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-report-receiving-825/source-inverses.json",
+      "source": "src/bounded_output.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "e8fd2b3a9299b714b6a54e0c0e72dc85173a01e1a87b1ee19697c9da2e9c0068"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md",
+      "old_hooks_preserved": 4,
+      "original_sha256": "45fcd2cc3564e9fef203f33439df8c94c678fcbe2662a64fc07de1cdd5b4fb09"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "0014cda6a016f64d13ccc85f8950837dffe973c043d498e2c56eafdc1413b073"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure.rs",
+      "old_hooks_preserved": 6,
+      "original_sha256": "1d84f2618b421470ae8ad5a80a261d4840f34e293be44d74f55fc49e2e064158"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/attempt.rs",
+      "old_hooks_preserved": 4,
+      "original_sha256": "e7800b4754fd459b2f09eb81c3ce734dfbce0182cc069bb9dbe440f85c248df8"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/receiving.rs",
+      "old_hooks_preserved": 5,
+      "original_sha256": "173b537190be876a52843c69a3be7258e4f1a0f0d425b0ccb65dfb291f2203b1"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/report.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "5ac6527ad7221435908ca66c03a006b994428d9053535f5b2de4498b4f0dfa5a"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/borrowed_imports.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "cbea3d04790517cf7584fe1163000314dbf514990b5cd5ed4429564e59f23675"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/defaults.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "e97250b91fc9c8bb8f60e6ea1ef7d90a332dcb9dcf3fffdbd66348a9f3e2a366"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/import_stub.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "047c449c4f14513e0288d0cefd71d101aa3fa72794ec3dcb5d9a4a9320737e55"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "old_hooks_preserved": 3,
+      "original_sha256": "630623082162858c33de36d20b5b2a72b9060a1ef765ac2b13f57a189afe7631"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/receiving/typed.rs",
+      "old_hooks_preserved": 2,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/typed.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+      "old_hooks_preserved": 4,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/defaults/typed.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/defaults/typed_fields.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/import_stub/typed.rs",
+      "old_hooks_preserved": 1,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/defaults/inline.rs",
+      "old_hooks_preserved": 0,
+      "original_sha256": "b91f7cb165ac3806770aac15b7df941acaaf92c3fcd02d4fe04df7a69994cdec"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/defaults/inline_fields.rs",
+      "old_hooks_preserved": 0,
+      "original_sha256": "959f964c2411a476a8e8e4aa6b7a1955e6e7606f2d160ae2990a3211b58b50f7"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/inline.rs",
+      "old_hooks_preserved": 0,
+      "original_sha256": "21e084ec204ca71b1b43aae82bf850176e60b972020efc3971b9ff3db08166f3"
+    },
+    {
+      "revision": "b758c3cdc982905c2584d75520a425ee60099926",
+      "manifest": "docs/evidence/constructor-typed-propagation-825/source-inverses.json",
+      "source": "src/workspace_graph/constructor_failure/receiving/before.rs",
+      "old_hooks_preserved": 0,
+      "original_sha256": "b0b5aa9f784cd8e5a3273a8b8e0265fffa829dd061e85f592b7190394c266b51"
+    }
+  ],
+  "authenticated_selector_rebindings": 61
+}

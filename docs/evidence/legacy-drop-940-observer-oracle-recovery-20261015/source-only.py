@@ -20,6 +20,23 @@ prior = json.loads((packet / 'legacy-inverses.before.json').read_text())
 active_path = root / 'docs/evidence/legacy-linked-drop-reuse-828f/exact-source-inverses.json'
 active = json.loads(active_path.read_text())
 restored = json.loads(active_path.read_text())
+# Later combined inventories can add an exact full-source prefix. Verify that
+# prefix against the frozen integration metadata before checking the unchanged
+# corrective/original histories below; never discard or reinterpret old hooks.
+integration = root / 'docs/evidence/constructor-large-825-integration-20261015'
+if (integration / 'legacy-inverses.precomposition.json').exists():
+    frozen = json.loads((integration / 'legacy-inverses.precomposition.json').read_text())
+    for row, old in zip(restored, frozen):
+        assert row['source'] == old['source']
+        if row['edits'] != old['edits']:
+            assert len(row['edits']) == len(old['edits']) + 1
+            assert row['edits'][1:] == old['edits']
+            prefix = row['edits'][0]
+            assert sha(prefix['new']) == row['current_sha256']
+            assert sha(prefix['before']) == old['current_sha256']
+            row['edits'].pop(0)
+            row['current_sha256'] = old['current_sha256']
+    assert restored == frozen
 subject = 'src/hir/declaration_index/legacy_drop/tests.rs'
 record = next(record for record in restored if record['source'] == subject)
 original_record = next(record for record in prior if record['source'] == subject)

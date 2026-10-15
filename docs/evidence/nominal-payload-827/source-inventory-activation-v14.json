@@ -89,7 +89,7 @@
     },
     {
       "source": "src/hir/declaration_index/leaf_drop_tests.rs",
-      "sha256": "3ee21dff87932511910fb328367e4cb6d09c6ca2bc5400cda0668c46c71dbf42",
+      "sha256": "f2919fb1344f564493273f4ae4d888c2eff906508859bd944509b34acc98814f",
       "original": "docs/evidence/nominal-payload-827/original/src/hir/declaration_index/leaf_drop_tests.rs",
       "original_sha256": "abd2cc7eb9eb8bf41a7dfcfbf969e5f2e1e0e12faa29b5af474c37ae4a3c74ec",
       "new_file": false
@@ -562,5 +562,5 @@
   "repair_basis": "actual a33c16996b4f095ffa2cf631bc39db4589e28302 composed with corrected nested-byte source; source-only no runtime claim",
   "combined_final_source_basis": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
   "explicit_import_source_basis": "a41774c0b",
-  "ordered_integrated_source_basis": "17b52bb5cd259ed38cc9fb0acd4fa1f8b0dc60ca"
+  "ordered_integrated_source_basis": "b244a1fca55c7880bed6d8d96cf4ee49eb80f574"
 }

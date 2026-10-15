@@ -936,6 +936,15 @@ pub(crate) fn branch_closed831_input(source: &str, current: &str) -> String {
     final_batch_input("831", source, current)
 }
 fn final_batch_input(branch: &str, source: &str, current: &str) -> String {
+    let before_runtime848 = project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/runtime-fixture-848-assembly-20261015/current-to-999fa.json"
+        )),
+        source,
+        current,
+    );
+    let current = before_runtime848.as_str();
     let before_main = project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -988,4 +997,16 @@ pub(crate) fn initial845_input(source: &str, current: &str) -> String {
         &checkpoint,
     );
     checkpoint
+}
+
+// Direct runtime-fixture custody stays independent of inherited source views.
+pub(crate) fn runtime848_input(source: &str, current: &str) -> String {
+    project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/runtime-fixture-848-assembly-20261015/current-to-848.json"
+        )),
+        source,
+        current,
+    )
 }

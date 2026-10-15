@@ -1,0 +1,781 @@
+[
+  {
+    "source": "CHANGELOG.md",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/CHANGELOG.md",
+    "current_sha256": "55c218d10b2c69dfe5fd5b791eb0a36b10ce862a93b935ebfaca3b4c47063027",
+    "original_sha256": "98b55f0f7ac4970c03fac3abd912fcb8f0579d10e5e812ab3140be84190c618d",
+    "edits": [
+      {
+        "new": "     distinct cold callers; full old receiver retained; qualification pending. -->\n# Changelog\n\n- Author the sealed initial builder-report policy and actual typed CLI propagation (#845), provider-bound borrowed function aliases on the closed uncached route (#847), and a separate cached-prelude report acquisition observer (#796). Preserve original compatibility receivers, source assertions and unfunded output boundaries; executable qualification remains pending.\n- Decline optional scalar-helper capture when the complete source hash cannot fit its unchanged work bound, preserving ordinary scalar imports and the full G410 receiving refusal for a missing proof. Retain the large Explorer snapshot regression and independent capture controls.\n\n- Refresh browser graph pins from complete hosted 17104e20c records after paid-scratch bill reductions, retaining every historical graph byte and adding an exact previous-capture reconstruction gate.\n\n- Reject reached Useful Data v1 dependency signatures at import admission with G172, preserving H006 for body-only authored-type refusals and admission of unreached newer bundled declarations.\n\n- Grow the actual supplemental receiving cursor from two frames under its unchanged 1,028-frame bound, paying complete overlapping replacements and live-frame moves. Retain the full original receiver and shallow reuse gate; expose callers through remaining array and path-join reservation wrappers.\n\n- Cover admitted internal owning-record imports together with exact public-v8 owning-parameter refusal, retaining the original type-import and unsupported-variant cases and no-write checks.\n\n- Refuse an authored owning row-helper parameter with T284 before retained-HIR projection, preserving cold/warm diagnostic parity and G173 for all existing descriptor forgeries.\n\n- Pin mutable command-argument source refusal to its earlier T264 diagnostic and retain the exact H006 immutability guard through an independently validated, tampered Project HIR control.\n\n- Check frozen v11 nested-record String refusal at descriptor derivation and replay, retaining array source refusal and adding an identical Bool-field positive control. Preserve the language's admitted String records.\n",
+        "old": "     distinct cold callers; full old receiver retained; qualification pending. -->\n# Changelog\n\n- Check frozen v11 nested-record String refusal at descriptor derivation and replay, retaining array source refusal and adding an identical Bool-field positive control. Preserve the language's admitted String records.\n"
+      },
+      {
+        "new": "  prepublication rechecks. Add relative/absolute exact-byte and symlink-refusal\n  controls; source-only until focused qualification.\n- Complete the #841 raw/gzip fixture experiment and restore the exact tested raw-arm default after gzip showed higher observed group RSS (5,930,647,552 versus 5,249,531,904 bytes). Preserve both actual arms, all decoder/source controls and the small artifact-size benefit; order/cache limitations prevent a causal speed claim, and no RAM or token saving is claimed. The integrated raw-default successor remains source-only until focused qualification.\n\n- Bind fresh application plan/activation reads (#837) to the existing no-follow bounded held regular-file owner, closing inspection/open symlink and FIFO replacement races. Add deterministic pre-open swap controls and small independent typed native-test selector owners. Source-only correction; execution remains pending.\n",
+        "old": "  prepublication rechecks. Add relative/absolute exact-byte and symlink-refusal\n  controls; source-only until focused qualification.\n- Author the bounded #841 test-only compressed-evidence pilot, preserving the raw fixture and all whole-source assertions. Source-only byte round-trip is verified; Rust qualification and paired compile-memory measurement remain pending.\n\n- Bind fresh application plan/activation reads (#837) to the existing no-follow bounded held regular-file owner, closing inspection/open symlink and FIFO replacement races. Add deterministic pre-open swap controls and small independent typed native-test selector owners. Source-only correction; execution remains pending.\n"
+      }
+    ]
+  },
+  {
+    "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "current_sha256": "636812b31139bcc5a863636d0fe6c261b3062f27c4d6ce94b61afb8d9dbfbbdd",
+    "original_sha256": "f6e69c1d6a5987336c97c9d3ba6c75cbf48b7a1422d083b077c3c1d29c49cbeb",
+    "edits": [
+      {
+        "new": "        include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/blocks.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/blocks_before_receipt.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/call_receiving.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/supplemental/receiving.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/supplemental/receiving/tests.rs\"),\n        concat!(include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs\")),\n        include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/custody_tests.rs\"),\n",
+        "old": "        include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/blocks.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/blocks_before_receipt.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/call_receiving.rs\"),\n        concat!(include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs\")),\n        include_str!(\"../../../../../src/cleanup_plan/replay/structural_control/calls/custody_tests.rs\"),\n"
+      },
+      {
+        "new": "        include_str!(\"../../../../../src/loan_plan/paid_plan/retained_before_dense.rs\"),\n        include_str!(\"../../../../../src/loan_plan/funded_flat/before_dense.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared.rs\"), include_str!(\"../../../../../src/bounded_output/format_acceptance.rs\"), include_str!(\"../../../../../src/bounded_output/format_acceptance/tests.rs\"), include_str!(\"../../../../../src/workspace_graph/diagnostics/initial.rs\"), include_str!(\"../../../../../src/workspace_graph/diagnostics/initial/context.rs\"), include_str!(\"../../../../../src/workspace_graph/diagnostics/initial/tests.rs\"), include_str!(\"../../../../../src/workspace_graph/initial_report.rs\"), include_str!(\"../../../../../src/workspace_graph/initial_report/before.rs\"), include_str!(\"../../../../../src/workspace_graph/initial_report/before_mappers.rs\"), include_str!(\"../../../../../src/workspace_graph/initial_report/build.rs\"), include_str!(\"../../../../../src/workspace_graph/initial_report/tests.rs\"), include_str!(\"../../../../../src/workspace_report/initial.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/before/storage.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/before/strategy.rs\"), include_str!(\"../../../../../src/ast/program_source/decl_slices/alias_tests.rs\"), include_str!(\"../../../../../src/ast/program_source/decl_slices/before_alias.rs\"), include_str!(\"../../../../../src/ast/program_source/function_alias.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/borrowed_imports/typed/before_alias.rs\"), include_str!(\"../../../../../src/workspace_graph/function_alias/before_core.rs\"), include_str!(\"../../../../../src/workspace_graph/function_alias/before_core/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/tests.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs\"),\n",
+        "old": "        include_str!(\"../../../../../src/loan_plan/paid_plan/retained_before_dense.rs\"),\n        include_str!(\"../../../../../src/loan_plan/funded_flat/before_dense.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/before/storage.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/before/strategy.rs\"), include_str!(\"../../../../../src/ast/program_source/decl_slices/alias_tests.rs\"), include_str!(\"../../../../../src/ast/program_source/decl_slices/before_alias.rs\"), include_str!(\"../../../../../src/ast/program_source/function_alias.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs\"), include_str!(\"../../../../../src/workspace_graph/expected_projection/borrowed_imports/typed/before_alias.rs\"), include_str!(\"../../../../../src/workspace_graph/function_alias/before_core.rs\"), include_str!(\"../../../../../src/workspace_graph/function_alias/before_core/tests.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/factored/compact_nodes/tests.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs\"),\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/AGENT-SKILL-BUNDLE-V1.json",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/docs/AGENT-SKILL-BUNDLE-V1.json",
+    "current_sha256": "6a95041037b52f3b75abbffb2f5b3c3877e871ef8d7d66a01cba9e01e0eb3580",
+    "original_sha256": "8eb0e4fbbd5ee5d47e001138331dfbd540a4c35e64305719356e080cfd3ea08c",
+    "edits": [
+      {
+        "new": "{\"schema\":\"semaprax.agent-skill.v1\",\"digest\":\"sha256:e4e0988c8dd824d71339beb88ada394c6e5ba79ec91fff1a8a30f1241b70f013\",\"bytes\":5401,\"payload\":{\"schema\":\"semaprax.agent-skill.v1\",\"authority\":false,\"compiler\":{\"binary_identity_claimed\":false,\"build_commit\":null,\"package\":\"semaprax\",\"version\":\"0.9.0\"},\"authority_classes\":[\"candidate_only\",\"publication\",\"read_only\",\"source_write\",\"test_execute\"],\"target_profiles\":[\"core-wasm\",\"interpreter\",\"native-c11\"],\"package_status\":{\"digest\":\"sha256:cb620f216f1fe93bad2c50db7e07448679497e73857a0104c499f3d22238ea3c\",\"module_count\":53,\"schema\":\"semaprax.standard-library-catalog.v1\"},\"discovery\":{\"schema\":\"semaprax.semantic-discovery.v1\",\"operations\":[{\"name\":\"agent_context\",\"surface\":\"cli\",\"tool_class\":\"read_only_query\",\"payload_schemas\":[\"semaprax.agent-context.v1\",\"semaprax.agent-context.v2\"]},{\"name\":\"agent_interaction_schema\",\"surface\":\"library\",\"tool_class\":\"read_only_schema\",\"payload_schemas\":[\"semaprax.agent-interaction-schema.v1\"]},{\"name\":\"agent_skill\",\"surface\":\"cli\",\"tool_class\":\"read_only_report\",\"payload_schemas\":[\"semaprax.agent-skill.v1\"]},{\"name\":\"assurance_manifest\",\"surface\":\"library\",\"tool_class\":\"read_only_report\",\"payload_schemas\":[\"semaprax.assurance-manifest.v1\"]},{\"name\":\"capability_manifest\",\"surface\":\"cli\",\"tool_class\":\"read_only_report\",\"payload_schemas\":[\"semaprax.capability-manifest.v1\"]},{\"name\":\"context_delta\",\"surface\":\"library\",\"tool_class\":\"read_only_delta\",\"payload_schemas\":[\"semaprax.semantic-discovery.context-delta.v1\"]},{\"name\":\"installed_diagnostic_catalog\",\"surface\":\"cli\",\"tool_class\":\"read_only_help\",\"payload_schemas\":[\"semaprax.installed-diagnostic-catalog.v1\"],\"digest\":\"sha256:95d14c350ca420420dbf220302d4454431b17b46019261cc3fe1930c11d98416\",\"code_count\":1513},{\"name\":\"installed_query_capabilities\",\"surface\":\"cli\",\"tool_class\":\"read_only_help\",\"payload_schemas\":[\"semaprax.installed-query-capabilities.v1\"],\"digest\":\"sha256:ada51a13bd79de7cfe9d3424cff440977fadff49bd285378ea1b552ea863c312\"},{\"name\":\"installed_skill\",\"surface\":\"cli\",\"tool_class\":\"read_only_help\",\"payload_schemas\":[\"semaprax.installed-skill.v1\"]},{\"name\":\"region_report\",\"surface\":\"cli\",\"tool_class\":\"read_only_report\",\"payload_schemas\":[\"semaprax.region-report.v1\"]}]},\"public_workflow\":[{\"verb\":\"apply\",\"authority_class\":\"source_write\",\"cli_command\":\"apply-semantic-workspace-change-evidence\",\"cli_usage\":\"semaprax apply-semantic-workspace-change-evidence <root> <proposal.json> <evidence.json>\",\"note\":\"commits one evidence-gated proposal to source; requires a prior propose/preview and its exact evidence\"},{\"verb\":\"context\",\"authority_class\":\"read_only\",\"cli_command\":\"context\",\"cli_usage\":\"semaprax context <file|project> <symbol|stable-id> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--filters ...]\",\"note\":\"one bounded, targeted question about one declaration; see AGENTS.md's own worked example\"},{\"verb\":\"impact\",\"authority_class\":\"read_only\",\"cli_command\":\"impact\",\"cli_usage\":\"semaprax impact <file> <patch.spatch> [--depth N] [--max-bytes N] [--max-nodes N]\",\"note\":\"bounded blast-radius of one candidate patch before requesting a preview\"},{\"verb\":\"inspect\",\"authority_class\":\"read_only\",\"cli_command\":\"graph\",\"cli_usage\":\"semaprax graph <file>\",\"note\":\"whole-module structural read; reserve for tools that need the complete document, prefer `context` otherwise\"},{\"verb\":\"propose\",\"authority_class\":\"candidate_only\",\"cli_command\":\"change\",\"cli_usage\":\"semaprax change preview <project> <operation> ... [--evidence|--structural-diff]\",\"note\":\"produces a candidate preview/evidence capsule; never writes source and never publishes\"},{\"verb\":\"publish\",\"authority_class\":\"publication\",\"cli_command\":\"project-candidate-git-publish\",\"cli_usage\":\"semaprax project-candidate-git-publish <manifest> <capsule.json> <approved-candidate-digest> <host-policy.json>\",\"note\":\"the one terminal step that publishes an already-approved candidate; requires an explicit prior approval digest\"},{\"verb\":\"rebase\",\"authority_class\":\"candidate_only\",\"cli_command\":\"change\",\"cli_usage\":\"semaprax change rebase <base-project> <operation> ... --onto <onto-project> [--revision digest] [--onto-revision digest]\",\"note\":\"re-targets a pending proposal onto a newer revision; still produces a candidate, never writes source\"},{\"verb\":\"repair\",\"authority_class\":\"source_write\",\"cli_command\":\"repair\",\"cli_usage\":\"semaprax repair <file> <repair-id> --persistent-id <persistent-id>\",\"note\":\"applies one installed, compiler-checked fix plan; writes source\"},{\"verb\":\"review\",\"authority_class\":\"read_only\",\"cli_command\":\"review\",\"cli_usage\":\"semaprax review <file> <patch.spatch>\",\"note\":\"read-only, bound to exact source and patch bytes; source drift fails closed\"},{\"verb\":\"test\",\"authority_class\":\"test_execute\",\"cli_command\":\"test\",\"cli_usage\":\"semaprax test [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\",\"note\":\"executes the project's own compiler-checked tests; the only public verb that runs code\"}],\"known_limitations\":[\"a_static_bundle_carries_no_authority_and_must_not_be_treated_as_a_live_capability_grant\",\"an_operation_or_command_listed_here_must_still_be_reconfirmed_against_the_installed_compiler_before_use\",\"does_not_replace_reading_the_owning_specification_for_the_syntax_protocol_or_command_it_names\",\"package_status_is_the_bundled_standard_library_catalog_not_an_ordinary_package_registry_inventory\",\"public_workflow_wraps_existing_commands_and_does_not_widen_or_narrow_their_admitted_semantics\"]}}",
+        "old": "{\"schema\":\"semaprax.agent-skill.v1\",\"digest\":\"sha256:8fe69acd3f2590bfb750bc209b789363436d911897a3c3bdb122269305889d7c\",\"bytes\":5401,\"payload\":{\"schema\":\"semaprax.agent-skill.v1\",\"authority\":false,\"compiler\":{\"binary_identity_claimed\":false,\"build_commit\":null,\"package\":\"semaprax\",\"version\":\"0.9.0\"},\"authority_classes\":[\"candidate_only\",\"publication\",\"read_only\",\"source_write\",\"test_execute\"],\"target_profiles\":[\"core-wasm\",\"interpreter\",\"native-c11\"],\"package_status\":{\"digest\":\"sha256:cb620f216f1fe93bad2c50db7e07448679497e73857a0104c499f3d22238ea3c\",\"module_count\":53,\"schema\":\"semaprax.standard-library-catalog.v1\"},\"discovery\":{\"schema\":\"semaprax.semantic-discovery.v1\",\"operations\":[{\"name\":\"agent_context\",\"surface\":\"cli\",\"tool_class\":\"read_only_query\",\"payload_schemas\":[\"semaprax.agent-context.v1\",\"semaprax.agent-context.v2\"]},{\"name\":\"agent_interaction_schema\",\"surface\":\"library\",\"tool_class\":\"read_only_schema\",\"payload_schemas\":[\"semaprax.agent-interaction-schema.v1\"]},{\"name\":\"agent_skill\",\"surface\":\"cli\",\"tool_class\":\"read_only_report\",\"payload_schemas\":[\"semaprax.agent-skill.v1\"]},{\"name\":\"assurance_manifest\",\"surface\":\"library\",\"tool_class\":\"read_only_report\",\"payload_schemas\":[\"semaprax.assurance-manifest.v1\"]},{\"name\":\"capability_manifest\",\"surface\":\"cli\",\"tool_class\":\"read_only_report\",\"payload_schemas\":[\"semaprax.capability-manifest.v1\"]},{\"name\":\"context_delta\",\"surface\":\"library\",\"tool_class\":\"read_only_delta\",\"payload_schemas\":[\"semaprax.semantic-discovery.context-delta.v1\"]},{\"name\":\"installed_diagnostic_catalog\",\"surface\":\"cli\",\"tool_class\":\"read_only_help\",\"payload_schemas\":[\"semaprax.installed-diagnostic-catalog.v1\"],\"digest\":\"sha256:a8215f00810946c386cfb31c59e76e854a8ea3f0769d796e93da4d0557d2b972\",\"code_count\":1513},{\"name\":\"installed_query_capabilities\",\"surface\":\"cli\",\"tool_class\":\"read_only_help\",\"payload_schemas\":[\"semaprax.installed-query-capabilities.v1\"],\"digest\":\"sha256:ada51a13bd79de7cfe9d3424cff440977fadff49bd285378ea1b552ea863c312\"},{\"name\":\"installed_skill\",\"surface\":\"cli\",\"tool_class\":\"read_only_help\",\"payload_schemas\":[\"semaprax.installed-skill.v1\"]},{\"name\":\"region_report\",\"surface\":\"cli\",\"tool_class\":\"read_only_report\",\"payload_schemas\":[\"semaprax.region-report.v1\"]}]},\"public_workflow\":[{\"verb\":\"apply\",\"authority_class\":\"source_write\",\"cli_command\":\"apply-semantic-workspace-change-evidence\",\"cli_usage\":\"semaprax apply-semantic-workspace-change-evidence <root> <proposal.json> <evidence.json>\",\"note\":\"commits one evidence-gated proposal to source; requires a prior propose/preview and its exact evidence\"},{\"verb\":\"context\",\"authority_class\":\"read_only\",\"cli_command\":\"context\",\"cli_usage\":\"semaprax context <file|project> <symbol|stable-id> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--filters ...]\",\"note\":\"one bounded, targeted question about one declaration; see AGENTS.md's own worked example\"},{\"verb\":\"impact\",\"authority_class\":\"read_only\",\"cli_command\":\"impact\",\"cli_usage\":\"semaprax impact <file> <patch.spatch> [--depth N] [--max-bytes N] [--max-nodes N]\",\"note\":\"bounded blast-radius of one candidate patch before requesting a preview\"},{\"verb\":\"inspect\",\"authority_class\":\"read_only\",\"cli_command\":\"graph\",\"cli_usage\":\"semaprax graph <file>\",\"note\":\"whole-module structural read; reserve for tools that need the complete document, prefer `context` otherwise\"},{\"verb\":\"propose\",\"authority_class\":\"candidate_only\",\"cli_command\":\"change\",\"cli_usage\":\"semaprax change preview <project> <operation> ... [--evidence|--structural-diff]\",\"note\":\"produces a candidate preview/evidence capsule; never writes source and never publishes\"},{\"verb\":\"publish\",\"authority_class\":\"publication\",\"cli_command\":\"project-candidate-git-publish\",\"cli_usage\":\"semaprax project-candidate-git-publish <manifest> <capsule.json> <approved-candidate-digest> <host-policy.json>\",\"note\":\"the one terminal step that publishes an already-approved candidate; requires an explicit prior approval digest\"},{\"verb\":\"rebase\",\"authority_class\":\"candidate_only\",\"cli_command\":\"change\",\"cli_usage\":\"semaprax change rebase <base-project> <operation> ... --onto <onto-project> [--revision digest] [--onto-revision digest]\",\"note\":\"re-targets a pending proposal onto a newer revision; still produces a candidate, never writes source\"},{\"verb\":\"repair\",\"authority_class\":\"source_write\",\"cli_command\":\"repair\",\"cli_usage\":\"semaprax repair <file> <repair-id> --persistent-id <persistent-id>\",\"note\":\"applies one installed, compiler-checked fix plan; writes source\"},{\"verb\":\"review\",\"authority_class\":\"read_only\",\"cli_command\":\"review\",\"cli_usage\":\"semaprax review <file> <patch.spatch>\",\"note\":\"read-only, bound to exact source and patch bytes; source drift fails closed\"},{\"verb\":\"test\",\"authority_class\":\"test_execute\",\"cli_command\":\"test\",\"cli_usage\":\"semaprax test [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\",\"note\":\"executes the project's own compiler-checked tests; the only public verb that runs code\"}],\"known_limitations\":[\"a_static_bundle_carries_no_authority_and_must_not_be_treated_as_a_live_capability_grant\",\"an_operation_or_command_listed_here_must_still_be_reconfirmed_against_the_installed_compiler_before_use\",\"does_not_replace_reading_the_owning_specification_for_the_syntax_protocol_or_command_it_names\",\"package_status_is_the_bundled_standard_library_catalog_not_an_ordinary_package_registry_inventory\",\"public_workflow_wraps_existing_commands_and_does_not_widen_or_narrow_their_admitted_semantics\"]}}"
+      }
+    ]
+  },
+  {
+    "source": "docs/ARCHITECTURE.md",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/docs/ARCHITECTURE.md",
+    "current_sha256": "bbe7468a4de0d518b8f411973b4edab8ab36ad09be248804435a43df8ebc85cd",
+    "original_sha256": "fda0dc80f43b0db93a1074abc2a8469b659f0ee52bae2e555c056d34cb631f7a",
+    "edits": [
+      {
+        "new": "original deep-root owner independently; whole-source and actual free-order\ncontrols accompany the unchanged custody receiving observer.\n`ast/program_source` owns sealed ordinary and projected declaration views and a\nconcrete presentation identity. `workspace_graph/expected_projection/borrowed_leaf`\nlends authored AST collections for admitted import-free synthetic inputs and\nowns only their optional scalar main. The ordinary imported route owns generated\naliases and checking bodies while lending immutable authored slices. The source verifier,\nprelude/declaration index and resolver consume that exact input; invariant\ntransformations and semantic cache publication keep genuine owning boundaries.\n`ast/program_source/function_alias.rs` owns provider-bound borrowed function\nviews and the projected `DeclSlices` directory. A view requires the exact\nprovider member and unchanged function name; pointer identity grants no authority.\nIts `FunctionDirectory` retains one `GeneratedRoots` owner for all generated\ntypes and fallback functions, including partial-construction teardown.\n`expected_projection/borrowed_imports/typed/alias.rs` owns the ordered import\nwalk. The original wrapper classifier still admits the shape, and renamed or\nunsupported aliases retain the owning fallback. The actual core selects this\ntransient route only for retained-output uncached construction without a\nfrontend; it cannot publish a checked cache key. Existing semantic replay and\nfinal owning products retain their original boundaries.\n`expected_projection/borrowed_imports/receiving.rs` owns the actual core import\nwalk, retaining the full standalone producer as an independent receiver. Its\n",
+        "old": "original deep-root owner independently; whole-source and actual free-order\ncontrols accompany the unchanged custody receiving observer.\n`ast/program_source` owns a sealed two-slice compiler input and a concrete\npresentation identity. `workspace_graph/expected_projection/borrowed_leaf`\nlends authored AST collections for admitted import-free synthetic inputs and\nowns only their optional scalar main. Imported views own generated aliases and\nchecking bodies while lending immutable authored slices. The source verifier,\nprelude/declaration index and resolver consume that exact input; invariant\ntransformations and semantic cache publication keep genuine owning boundaries.\n`expected_projection/borrowed_imports/receiving.rs` owns the actual core import\nwalk, retaining the full standalone producer as an independent receiver. Its\n"
+      },
+      {
+        "new": "equivalences are checked before higher Graph selectors can mask a mismatch;\nfrozen from-parts routes without declaration provenance retain their refusal.\n`workspace_report.rs` retains the affine selected-replay failure and its exact\nledger/backing, an opaque initial report, or a complete unreceived primary and\nfailed owner. `workspace_graph/initial_report.rs` and `initial_report/build.rs`\nown the sealed builder error policy: the legacy Vec strategy invokes the\noriginal lexical renderer once, while the typed strategy records complete\nmessage/help/evidence/combined-help acceptance on the real active parent before\ninvocation restoration. `diagnostics/initial` then moves the existing attribution\nStrings and renders later without consulting TLS or spending that original\npayer again. Initial inline controls and ordinary caller output are explicitly\nunfunded; explicit legacy materialization remains an allocating boundary.\n`semantic_workspace/reporting.rs` owns checked preflight and its independent\nreceiving replay; its manifest/revision view grants no filesystem lock or\npublication authority. The actual typed change, structural-change and operations\ncallers retain their existing read/commit authorities. Snapshot/base-operations\ncompatibility routes and unmatched legacy reports remain explicit boundaries;\nthis policy does not certify complete report funding. See\n[Workspace Report Owner v1](WORKSPACE-REPORT-OWNER-V1.md).\n`workspace_graph/paid_view.rs` owns the typed change, operation and schema\n",
+        "old": "equivalences are checked before higher Graph selectors can mask a mismatch;\nfrozen from-parts routes without declaration provenance retain their refusal.\n`workspace_report.rs` retains one affine selected-replay failure, its exact\nledger and any paid diagnostic backing; explicit legacy materialization stays\nan allocating boundary. `semantic_workspace/reporting.rs` owns the additive\nsource-only checked preflight and its independent receiving replay. Its checked\nmanifest/revision view grants no filesystem lock or publication authority.\nFilesystem preparers and dynamic directory/TLS attribution remain legacy;\nthis source-only route does not qualify those reports as funded. See\n[Workspace Report Owner v1](WORKSPACE-REPORT-OWNER-V1.md).\n`workspace_graph/paid_view.rs` owns the typed change, operation and schema\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/BOUNDED-LANGUAGE-COMMAND-IO-V1.md",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/docs/BOUNDED-LANGUAGE-COMMAND-IO-V1.md",
+    "current_sha256": "3ce130aa4cf46770d1e14df58a8384c5b70adadd15ac6639587968856b721bdf",
+    "original_sha256": "a38e4577660312e79bff621a860a9a35d5ce3cdd6775e54847ea6a7564134e76",
+    "edits": [
+      {
+        "new": "projected through `str_as_bytes`, but cannot escape, be stored, enter an\naggregate, cross an import/callback/async boundary, or outlive settlement.\n\nA mutable local holding this borrowed `str` is refused during source checking\nwith `SPX-T264`. Independently validating retained HIR still refuses a forged\nmutable alias with `SPX-H006`; the earlier source diagnostic does not replace\nthe HIR immutability check.\n\n[Owned String Loops v2](OWNED-STRING-LOOPS-V2.md#immutable-input-and-borrowed-views-590)\n",
+        "old": "projected through `str_as_bytes`, but cannot escape, be stored, enter an\naggregate, cross an import/callback/async boundary, or outlive settlement.\n\n[Owned String Loops v2](OWNED-STRING-LOOPS-V2.md#immutable-input-and-borrowed-views-590)\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md",
+    "current_sha256": "89c130985e39510d412be145973211fd87daedd24ba78d5e88507518325bc5b3",
+    "original_sha256": "6db23a35c4d39a7830bc120e55e09f5107b7033dbb27a32e76fcdf8c28efe7f5",
+    "edits": [
+      {
+        "new": "the real remaining dynamic/Many compatibility routes. They are source-only\nuntil the parent records their actual qualification.\n\n\n## Initial workspace report policy (#845; source-ready, executable gates pending)\n\nThe retaining-source builder now selects a sealed error policy at the original\nlexical failure producer. The legacy policy invokes the original renderer there;\nthe typed policy records message, base help, evidence and combined-help acceptance\nagainst the real live parent, then moves the existing invocation context before\nrestoration. A refused formatting field discards its entire text while retaining\nall earlier debits. Dynamic field formatting and the three combined-help writes\nkeep their original order. Later replay does not inspect invocation TLS or bill\nthe original payer again. Initial inline controls are **unfunded caller stack**;\nno report Vec, Box or report text is acquired on that typed initial boundary.\n\nThe existing typed preflight and thirteen CLI report consumers use this policy.\nJSON escaping continues to obey the ordinary current output budget; explicitly\nmaterializing legacy diagnostics is ordinary caller IO, not prepaid output.\nExisting Budget/Rc bootstrap, early parser/static-preflight/snapshot diagnostics,\nlater LegacyMany and unreceived-child publication remain explicit #825 residuals.\nThis route does not claim a global zero-cap constructor ABI or close #825.\n",
+        "old": "the real remaining dynamic/Many compatibility routes. They are source-only\nuntil the parent records their actual qualification.\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/PRIVATE-NOMINAL-LAYOUT-CLOSURE-V1.md",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/docs/PRIVATE-NOMINAL-LAYOUT-CLOSURE-V1.md",
+    "current_sha256": "87ae690a55bc0a9c55bfdf3a0823bffcdc4599880080e11c4ee56ccfeed848dc",
+    "original_sha256": "bb8bc1c5096a80630f7be5ae554433b94c38caf973bcd3495755613ca55f79ef",
+    "edits": [
+      {
+        "new": "only `Decoded` and its cases. This is internal layout reconstruction, not a new\nsource import, public descriptor, capability, graph edge, or lifetime grant.\n\nThe internal nongeneric record-signature lane includes owning record\nparameters. It does not admit those parameters through the public Project-v8\ndescriptor: selecting the same function there retains `SPX-J113` for an\nunsupported parameter. The internal signature-root route also keeps unsupported\nvariant families closed under their existing `SPX-G172` refusal.\n\n## Authority and visibility\n",
+        "old": "only `Decoded` and its cases. This is internal layout reconstruction, not a new\nsource import, public descriptor, capability, graph edge, or lifetime grant.\n\n## Authority and visibility\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/RFC-STATIC-BORROWED-UTF8-LITERALS-V1.md",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/docs/RFC-STATIC-BORROWED-UTF8-LITERALS-V1.md",
+    "current_sha256": "e2de3024c53dda109872b42564211484a0bc09029620028337be69012a2aff8a",
+    "original_sha256": "5ae8318fa8737db35d7362a089f242647b316996f71de70694d718971ef86bff",
+    "edits": [
+      {
+        "new": "validation. No signature-only, generated-name, stub, or attached-index shortcut\nmay authorize an allocating or unknown producer.\n\nScalar-helper capture is optional. If the complete defining-source hash cannot\nfit its existing capture work allowance, capture returns no inventory before\nallocating digest scratch or hashing source bytes. Ordinary checked scalar\nimports retain their existing route. A static-source receiver still requires\nthe complete independently replayed inventory and refuses a missing inventory\nwith `SPX-G410`; a decline does not authorize a partial or unhashed proof.\nThe work bound, source-size bounds and full hash prices are unchanged.\n\nSource edits invalidate revision-scoped literal facts even if display names or\n",
+        "old": "validation. No signature-only, generated-name, stub, or attached-index shortcut\nmay authorize an allocating or unknown producer.\n\nSource edits invalidate revision-scoped literal facts even if display names or\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/SCOPED-RECORD-ROW-LOAN-V1.md",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/docs/SCOPED-RECORD-ROW-LOAN-V1.md",
+    "current_sha256": "284cc4b7d34384ed3024ecca2e0894dbfb24b4c5733d2d18631e6bcbacf6f8f8",
+    "original_sha256": "a2e82e7eebb674722e8268660a01930be7de0e5f7d81eed4343585840fa13f22",
+    "edits": [
+      {
+        "new": "source; retained primitive bodies hash every descriptor identity.\n\nWhen current provider source changes a lent parameter to `own R`, source\nprojection reports the ordinary `SPX-T284` row-escape diagnostic at the caller\nargument before interpreting a retained descriptor. This applies equally to a\ncold build and a warm consumer. A forged descriptor against still-admitted\nborrowed-provider source retains its independent `SPX-G173` mismatch refusal.\n\n## Qualification definitions\n\n",
+        "old": "source; retained primitive bodies hash every descriptor identity.\n\n## Qualification definitions\n\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
+    "current_sha256": "ffc4aa81cec6648f9dcc55b6389ba069c91cf45e6180477b12fc93608d2462d4",
+    "original_sha256": "7d05ff5cfafdd4c47e349c183d38faa42975e3d5b94882ade6197e055381da7b",
+    "edits": [
+      {
+        "new": "pending CI; isolated carrier probes do not establish application fit.\n\nSupplemental receiving has its own independent 1,028-frame ceiling. Its paid\nscratch owner acquires two initial frames and keeps that backing across complete\nroot walks. Deeper pending continuations acquire a full replacement, two vector\ncontrols and a frame control while old backing remains live. Only moved live\nframes consume relocation work; unused capacity is never initialized as a\nsemantic frame. The receiver's dispatch, parameter views, shape derivation,\nflag order, callback order and original depth errors remain unchanged. Its\ncomplete fixed-capacity receiver remains independently compiled, with a complete\nsource inverse and real-HIR callback-parity controls. Deep walks can pay more\ncumulative backing than the original eager buffer; application qualification\nrequires the full owning gates.\n\nPhysical reservation wrappers propagate the compiler's caller coordinate to the\nexisting first-refusal receipt. This preserves all requests, debits, refusal\n",
+        "old": "pending CI; isolated carrier probes do not establish application fit.\n\nPhysical reservation wrappers propagate the compiler's caller coordinate to the\nexisting first-refusal receipt. This preserves all requests, debits, refusal\n"
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/structural-call-cursor-v1/README.md",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/docs/evidence/structural-call-cursor-v1/README.md",
+    "current_sha256": "e45f575a12e2ac3f1c5523a7a6a67713ffab603816551208601cfdc10b3caefc",
+    "original_sha256": "248b73dd255e729ee2f6349fd4001f5848bd8ce475200cdde7aed8116a542bcb",
+    "edits": [
+      {
+        "new": "matches that request. The shared wrapper alone cannot prove it was the only\nremaining cost. Caller-coordinate propagation makes later refusals attributable.\n\nFollow-up hosted evidence on `6dec6f011` identifies the same-sized refused\nrequest in supplemental receiving through `ordinary_inventory/storage.rs`.\nThe original numerical match did not identify its caller. The structural-call\nchange is a separately tested storage optimization; it did not resolve that\nSTD-08 refusal. [Supplemental cursor growth](../supplemental-cursor-growth-v1/README.md)\nrecords the actual receiving owner and its separate qualification.\n\n`calls.before.rs.txt` retains the complete original module. The independently\n",
+        "old": "matches that request. The shared wrapper alone cannot prove it was the only\nremaining cost. Caller-coordinate propagation makes later refusals attributable.\n\n`calls.before.rs.txt` retains the complete original module. The independently\n"
+      }
+    ]
+  },
+  {
+    "source": "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    "current_sha256": "159681fd79461fd624409c26e533a73a3797eb207b37f1fa3f04c41f94dc3f55",
+    "original_sha256": "0f06e21855a419b0192babf562da0caaebc1fdf1184d5a59935008333a71ea94",
+    "edits": [
+      {
+        "new": "    project_revision: \"sha256:8576caa566cb7f0d265354927c5bc7b481146f05e616f76917f340b4af26f053\",\n    workspace_revision: \"sha256:f0454397a2b339677bc49c9ccd8e8491917426202c6aba2475221879e02ae3f6\",\n    project_graph_digest: \"sha256:dcd4f20c52e9b8cc52ac7695f4ef7f0668a4bb5d7c735434ede9e0c0361ee363\",\n  },\n  {\n",
+        "old": "    project_revision: \"sha256:8576caa566cb7f0d265354927c5bc7b481146f05e616f76917f340b4af26f053\",\n    workspace_revision: \"sha256:f0454397a2b339677bc49c9ccd8e8491917426202c6aba2475221879e02ae3f6\",\n    project_graph_digest: \"sha256:91a02f54eb2652f8cb43a46f58515393e3d30d1cfa706bde4c5f6569b5ada8ac\",\n  },\n  {\n"
+      },
+      {
+        "new": "    project_revision: \"sha256:afa7b35b6b057eaa1cbf89c68ccd1e19a8d988f4168049f70717f80c28218fb7\",\n    workspace_revision: \"sha256:8fcf973950f10bf9393ff5597484333b178e5f93c5d2a1847f6ccc18d6185f71\",\n    project_graph_digest: \"sha256:322b05af9bab447a12c7f9f2cda2ef3f7b2959ced4b68af04a716aa54b127122\",\n  },\n];\n",
+        "old": "    project_revision: \"sha256:afa7b35b6b057eaa1cbf89c68ccd1e19a8d988f4168049f70717f80c28218fb7\",\n    workspace_revision: \"sha256:8fcf973950f10bf9393ff5597484333b178e5f93c5d2a1847f6ccc18d6185f71\",\n    project_graph_digest: \"sha256:a03e245fcf85a4d3e63aa266ed1f3a30e5ab809fe196dcd817a63c1c7201cc55\",\n  },\n];\n"
+      }
+    ]
+  },
+  {
+    "source": "src/bounded_output.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/bounded_output.rs",
+    "current_sha256": "aea2c8c6ae3ee6f6362316e5a4d5197316e0aedcda5896b6d4e47dca5e7c0d94",
+    "original_sha256": "768679e2270f871eca624a95d1e047d74738e783d5ba326d7d041de0379baa54",
+    "edits": [
+      {
+        "new": "pub(crate) mod format_acceptance;\npub(crate) mod cfg_reservation;\npub(crate) mod identity_reservation;\n",
+        "old": "pub(crate) mod cfg_reservation;\npub(crate) mod identity_reservation;\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "current_sha256": "6563851258e3b981fe1bc3d82711e1d6501b575e37930bf748540f097af976e5",
+    "original_sha256": "0d38ff02896c97ad7bc4a848023f9c1934d17940e22e2f146dfa41ba3cae8dd4",
+    "edits": [
+      {
+        "new": "        receiving: &mut closure_receiving::ClosureReceiving,\n    ) -> Result<Option<(u64, Vec<(Label, SharedWeighted)>)>, Diagnostic> {\n        // Only the selected branch initializes its owner. The common view is\n        // a borrow, not a large enum containing both possible owner layouts.\n        let borrowed;\n        let mut owned;\n        let closed = if let [(node, 1)] = state.as_slice() {\n            if budget.pays_allocations() {\n                budget.reserve_bytes(\n                    function,\n                    2 * std::mem::size_of::<Rc<ordered_weights::OrderedWeights>>()\n                        + 2 * std::mem::size_of::<&ordered_weights::OrderedWeights>(),\n                    \"factored borrowed closed receiving controls\",\n                )?;\n            }\n            let Some(closure) = self.closure_with_receiving(function, *node, budget, receiving)?\n            else {\n",
+        "old": "        receiving: &mut closure_receiving::ClosureReceiving,\n    ) -> Result<Option<(u64, Vec<(Label, SharedWeighted)>)>, Diagnostic> {\n        if budget.pays_allocations() {\n            budget.reserve_bytes(\n                function,\n                ordered_weights::Closed::CONTROLS,\n                \"factored ordered closed receiving controls\",\n            )?;\n        }\n        let closed = if let [(node, 1)] = state.as_slice() {\n            let Some(closure) = self.closure_with_receiving(function, *node, budget, receiving)?\n            else {\n"
+      },
+      {
+        "new": "                budget.charge(function, 1, \"factored weighted route addition\")?;\n            }\n            borrowed = closure;\n            &*borrowed\n        } else {\n            if budget.pays_allocations() {\n                budget.reserve_bytes(\n                    function,\n                    ordered_weights::OrderedWeights::CONTROLS\n                        + 2 * std::mem::size_of::<&ordered_weights::OrderedWeights>(),\n                    \"factored ordered accumulator controls\",\n                )?;\n            }\n            owned = ordered_weights::OrderedWeights::new();\n            for (node, weight) in state.iter() {\n                let Some(closure) =\n",
+        "old": "                budget.charge(function, 1, \"factored weighted route addition\")?;\n            }\n            ordered_weights::Closed::Borrowed(closure)\n        } else {\n            if budget.pays_allocations() {\n                budget.reserve_bytes(\n                    function,\n                    ordered_weights::OrderedWeights::CONTROLS,\n                    \"factored ordered accumulator controls\",\n                )?;\n            }\n            let mut closed = ordered_weights::OrderedWeights::new();\n            for (node, weight) in state.iter() {\n                let Some(closure) =\n"
+      },
+      {
+        "new": "                for (inner, routes) in closure.iter() {\n                    let Some(sum) = routes.checked_mul(*weight).and_then(|product| {\n                        owned.get(inner).copied().unwrap_or(0).checked_add(product)\n                    }) else {\n                        return Ok(None);\n                    };\n                    budget.charge(function, 1, \"factored weighted route addition\")?;\n                    if owned.get(inner).is_none() {\n                        if owned.needs_capacity() {\n                            owned.grow(function, budget)?;\n                        }\n                        owned.insert_prepaid(*inner, 0_u64);\n                    }\n                    *owned.get_mut(inner).expect(\"inserted ordered weight\") = sum;\n                }\n            }\n            &owned\n        };\n        let accepted = closed.get(&self.sink).copied().unwrap_or(0);\n        if budget.pays_allocations() {\n",
+        "old": "                for (inner, routes) in closure.iter() {\n                    let Some(sum) = routes.checked_mul(*weight).and_then(|product| {\n                        closed.get(inner).copied().unwrap_or(0).checked_add(product)\n                    }) else {\n                        return Ok(None);\n                    };\n                    budget.charge(function, 1, \"factored weighted route addition\")?;\n                    if closed.get(inner).is_none() {\n                        if closed.needs_capacity() {\n                            closed.grow(function, budget)?;\n                        }\n                        closed.insert_prepaid(*inner, 0_u64);\n                    }\n                    *closed.get_mut(inner).expect(\"inserted ordered weight\") = sum;\n                }\n            }\n            ordered_weights::Closed::Owned(closed)\n        };\n        let closed = closed.weights();\n        let accepted = closed.get(&self.sink).copied().unwrap_or(0);\n        if budget.pays_allocations() {\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/cleanup_plan/replay/factored/canonical_shared/ordered_weights.rs",
+    "current_sha256": "e2fba8d3c949efe1620a333d0c255b3476b83793cfc98d2ac623d5313a7edf20",
+    "original_sha256": "e1180f3262dc5aeab4982a7c0a002d2bd9b8020f9fc5934c5f6eae05e41d784c",
+    "edits": [
+      {
+        "new": "// Both variants borrow the existing immutable closure or own one paid arena.\n// The singleton receiver moves its already-authenticated Rc, never clones a map.\n#[cfg(test)]\n#[derive(Debug)]\npub(super) enum Closed {\n",
+        "old": "// Both variants borrow the existing immutable closure or own one paid arena.\n// The singleton receiver moves its already-authenticated Rc, never clones a map.\n#[derive(Debug)]\npub(super) enum Closed {\n"
+      },
+      {
+        "new": "    Owned(OrderedWeights),\n}\n#[cfg(test)]\nimpl Closed {\n    pub(super) const CONTROLS: usize = 2 * size_of::<Self>() + size_of::<&OrderedWeights>();\n",
+        "old": "    Owned(OrderedWeights),\n}\nimpl Closed {\n    pub(super) const CONTROLS: usize = 2 * size_of::<Self>() + size_of::<&OrderedWeights>();\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+    "current_sha256": "22358b445b982ce13d5a55dfff11df4eb0d1ec0133ad9fae9008c66c26efe029",
+    "original_sha256": "4a848cbfadb3b15d5c7af9b93ca902555266d7d1c971590b67c9adb3366716e7",
+    "edits": [
+      {
+        "new": "    assert_eq!(helpers, include_str!(\"../../../../../docs/evidence/singleton-target-receiving-layers-831/complete-target-helpers-before.rs.txt\"));\n}\n\n#[test]\nfn branch_closed_full_current_sources_restore_every_immediate_e93f_byte() {\n    use sha2::{Digest, Sha256};\n    let rows: serde_json::Value = serde_json::from_str(include_str!(concat!(\n        env!(\"CARGO_MANIFEST_DIR\"),\n        \"/docs/evidence/branch-closed-receiving-831-20261015/current-to-e93f.json\"\n    )))\n    .unwrap();\n    let sources = [\n        (\n            \"src/cleanup_plan/replay/factored/canonical_shared.rs\",\n            include_str!(\"../canonical_shared.rs\"),\n            include_str!(concat!(\n                env!(\"CARGO_MANIFEST_DIR\"),\n                \"/docs/evidence/branch-closed-receiving-831-20261015/before-0.txt\"\n            )),\n        ),\n        (\n            \"src/cleanup_plan/replay/factored/canonical_shared/ordered_weights.rs\",\n            include_str!(\"ordered_weights.rs\"),\n            include_str!(concat!(\n                env!(\"CARGO_MANIFEST_DIR\"),\n                \"/docs/evidence/branch-closed-receiving-831-20261015/before-1.txt\"\n            )),\n        ),\n        (\n            \"src/source_reflows_merge.rs\",\n            include_str!(\"../../../../source_reflows_merge.rs\"),\n            include_str!(concat!(\n                env!(\"CARGO_MANIFEST_DIR\"),\n                \"/docs/evidence/branch-closed-receiving-831-20261015/before-2.txt\"\n            )),\n        ),\n        (\n            \"src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs\",\n            include_str!(\"receiving_layer_tests.rs\"),\n            include_str!(concat!(\n                env!(\"CARGO_MANIFEST_DIR\"),\n                \"/docs/evidence/branch-closed-receiving-831-20261015/before-3.txt\"\n            )),\n        ),\n    ];\n    assert_eq!(rows.as_array().unwrap().len(), sources.len());\n    for ((path, current, original), row) in sources.into_iter().zip(rows.as_array().unwrap()) {\n        let current_view = crate::source_reflows_merge::branch_closed831_input(path, current);\n        let current = current_view.as_str();\n        assert_eq!(row[\"source\"], path);\n        assert_eq!(\n            row[\"current_sha256\"],\n            format!(\n                \"{:x}\",\n                crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))\n            )\n        );\n        assert_eq!(\n            row[\"original_sha256\"],\n            format!(\n                \"{:x}\",\n                crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))\n            )\n        );\n        let edits = row[\"edits\"].as_array().unwrap();\n        assert_eq!(edits.len(), 1);\n        assert_eq!(edits[0][\"new\"], current);\n        assert_eq!(edits[0][\"old\"], original);\n    }\n}\n",
+        "old": "    assert_eq!(helpers, include_str!(\"../../../../../docs/evidence/singleton-target-receiving-layers-831/complete-target-helpers-before.rs.txt\"));\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_inventory/storage.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/cleanup_plan/replay/ordinary_inventory/storage.rs",
+    "current_sha256": "02b60b9d594abb7661e3621bceb7a81cb967db5791c63e0f145d19141be6a0ed",
+    "original_sha256": "ceafd84aeeb6df98ba9122b03db0bd05f3bc6b085ae2b881f110fe48fbe2658b",
+    "edits": [
+      {
+        "new": "use super::super::{Diagnostic, ReplayBudget, ResolvedFunction};\n\n#[track_caller]\npub(in crate::cleanup_plan::replay) fn array<T>(\n    function: &ResolvedFunction,\n",
+        "old": "use super::super::{Diagnostic, ReplayBudget, ResolvedFunction};\n\npub(in crate::cleanup_plan::replay) fn array<T>(\n    function: &ResolvedFunction,\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/storage.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/cleanup_plan/replay/path_join/storage.rs",
+    "current_sha256": "671900b2a5b62cba38ad34777f69d8f7fa2169bacac174a4237e1a24fbaf07c5",
+    "original_sha256": "9771d1d267855c57cf9db3e67a6e3270ed316f1442069b573a7a277bb8985ad9",
+    "edits": [
+      {
+        "new": "    Some(bytes)\n}\n#[track_caller]\npub(in crate::cleanup_plan::replay) fn reserve_btree_node<K, V>(\n    function: &ResolvedFunction,\n",
+        "old": "    Some(bytes)\n}\npub(in crate::cleanup_plan::replay) fn reserve_btree_node<K, V>(\n    function: &ResolvedFunction,\n"
+      },
+      {
+        "new": "}\n\n#[track_caller]\npub(in crate::cleanup_plan::replay) fn insert_set<K: Ord>(\n    function: &ResolvedFunction,\n",
+        "old": "}\n\npub(in crate::cleanup_plan::replay) fn insert_set<K: Ord>(\n    function: &ResolvedFunction,\n"
+      },
+      {
+        "new": "    Ok(target.insert(value))\n}\n#[track_caller]\npub(in crate::cleanup_plan::replay) fn insert_map<K: Ord, V>(\n    function: &ResolvedFunction,\n",
+        "old": "    Ok(target.insert(value))\n}\npub(in crate::cleanup_plan::replay) fn insert_map<K: Ord, V>(\n    function: &ResolvedFunction,\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/supplemental/receiving.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/cleanup_plan/replay/supplemental/receiving.rs",
+    "current_sha256": "b10bab9c98eca0da61d2cfe60fac0b2adb1b68f3ea0419cb480440c17672fd6e",
+    "original_sha256": "bd8aaab3ba25a6a5b89c16dfd0453bab1becabbb6b631cd744b3bf2e1573b238",
+    "edits": [
+      {
+        "new": "//! One paid depth-bounded cursor, reused after each complete expression walk.\n//! Synthetic owning parameter providers retain their explicit legacy fallback.\nuse super::*;\nuse crate::cleanup_plan::replay::nested_shape::type_needs_drop_with_budget;\nconst FRAME_CAPACITY: usize = 1028;\n\nenum Frame<'a> {\n",
+        "old": "//! One real paid fixed cursor, reused after each complete source-expression walk.\n//! Synthetic owning parameter providers retain their explicit legacy fallback.\nuse super::*;\nuse crate::cleanup_plan::replay::nested_shape::type_needs_drop_with_budget;\nuse crate::cleanup_plan::replay::ordinary_inventory::storage::array;\n\nenum Frame<'a> {\n"
+      },
+      {
+        "new": "        budget: &mut ReplayBudget,\n    ) -> Result<Self, Diagnostic> {\n        budget.reserve_array::<Self>(function, 1, \"supplemental cursor owner\")?;\n        let mut frames = Vec::new();\n        reserve_frames(&mut frames, 1, function, budget)?;\n        Ok(Self { frames })\n    }\n}\n",
+        "old": "        budget: &mut ReplayBudget,\n    ) -> Result<Self, Diagnostic> {\n        Ok(Self {\n            frames: array(function, 1028, budget, \"supplemental fixed cursor\")?,\n        })\n    }\n}\n"
+      },
+      {
+        "new": "    let frames = &mut scratch.frames;\n    debug_assert!(frames.is_empty());\n    reserve_frames(frames, 1, function, budget)?;\n    frames.push(Frame::Expr(expression, 0));\n    while let Some(frame) = frames.pop() {\n",
+        "old": "    let frames = &mut scratch.frames;\n    debug_assert!(frames.is_empty());\n    frames.push(Frame::Expr(expression, 0));\n    while let Some(frame) = frames.pop() {\n"
+      },
+      {
+        "new": "                    }\n                    if let Some(argument) = args.get(next) {\n                        if frames.len() + 3 > FRAME_CAPACITY {\n                            return Err(replay_error(\n                                function,\n",
+        "old": "                    }\n                    if let Some(argument) = args.get(next) {\n                        if frames.len() + 3 > frames.capacity() {\n                            return Err(replay_error(\n                                function,\n"
+      },
+      {
+        "new": "                            ));\n                        }\n                        reserve_frames(frames, 3, function, budget)?;\n                        frames.push(Frame::Expr(expression, next + 1));\n                        frames.push(Frame::CallArgument(expression, next));\n",
+        "old": "                            ));\n                        }\n                        frames.push(Frame::Expr(expression, next + 1));\n                        frames.push(Frame::CallArgument(expression, next));\n"
+      },
+      {
+        "new": "                    }\n                } else if let Some(child) = replay_expression_child(expression, next) {\n                    if frames.len() + 2 > FRAME_CAPACITY {\n                        return Err(replay_error(\n                            function,\n",
+        "old": "                    }\n                } else if let Some(child) = replay_expression_child(expression, next) {\n                    if frames.len() + 2 > frames.capacity() {\n                        return Err(replay_error(\n                            function,\n"
+      },
+      {
+        "new": "                        ));\n                    }\n                    reserve_frames(frames, 2, function, budget)?;\n                    frames.push(Frame::Expr(expression, next + 1));\n                    frames.push(Frame::Expr(child, 0));\n",
+        "old": "                        ));\n                    }\n                    frames.push(Frame::Expr(expression, next + 1));\n                    frames.push(Frame::Expr(child, 0));\n"
+      },
+      {
+        "new": "    Ok(())\n}\n\n// Capacity never supplies traversal authority. Replacements retain every live\n// continuation and pay their full backing while the old buffer is still held.\nfn reserve_frames<'a>(\n    frames: &mut Vec<Frame<'a>>,\n    additional: usize,\n    function: &ResolvedFunction,\n    budget: &mut ReplayBudget,\n) -> Result<(), Diagnostic> {\n    budget.reserve_bytes(function, 0, \"supplemental fixed cursor\")?;\n    let required = frames\n        .len()\n        .checked_add(additional)\n        .filter(|n| *n <= FRAME_CAPACITY)\n        .ok_or_else(|| {\n            replay_error(\n                function,\n                \"supplemental-slot traversal exceeds the admitted depth\",\n            )\n        })?;\n    if required <= frames.capacity() {\n        return Ok(());\n    }\n    let target = frames\n        .capacity()\n        .saturating_mul(2)\n        .clamp(required.max(2), FRAME_CAPACITY);\n    if !frames.is_empty() {\n        budget.charge(function, frames.len(), \"supplemental cursor relocation\")?;\n    }\n    budget.reserve_bytes(\n        function,\n        2 * std::mem::size_of::<Vec<Frame<'a>>>() + std::mem::size_of::<Frame<'a>>(),\n        \"supplemental cursor controls\",\n    )?;\n    budget.reserve_array::<Frame<'a>>(function, target, \"supplemental fixed cursor\")?;\n    let mut replacement = Vec::new();\n    replacement.try_reserve_exact(target).map_err(|_| {\n        budget.budget_refusal(\n            function,\n            \"cleanup replay physical vector allocation failed\",\n            \"\",\n        )\n    })?;\n    if replacement.capacity() != target {\n        return Err(budget.budget_refusal(\n            function,\n            \"cleanup replay physical vector capacity disagrees with its reservation\",\n            \"\",\n        ));\n    }\n    replacement.append(frames);\n    *frames = replacement;\n    Ok(())\n}\n\n#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"complete independently compiled original receiving walk\"\n)]\n#[path = \"../../../../docs/evidence/supplemental-cursor-growth-v1/receiving.before.rs.txt\"]\nmod before;\n#[cfg(test)]\nmod tests;\n",
+        "old": "    Ok(())\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cli_driver.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/cli_driver.rs",
+    "current_sha256": "2cc325a8ea74cfedb0c30fb93452969eae6f1f9ea295e8c4f3b3b1972d002af5",
+    "original_sha256": "303127deb689f5886c70fa5c149741baa7c0a2213326b2d582aca5b94d02f32c",
+    "edits": [
+      {
+        "new": "            let root = required_path(&args, 1)?;\n            let proposal = required_path(&args, 2)?;\n            let output = semantic_workspace_change::reporting::preview(&root, &proposal)\n                .map_err(|failure| report_workspace(&failure, false))?;\n            print!(\"{output}\");\n            Ok(())\n",
+        "old": "            let root = required_path(&args, 1)?;\n            let proposal = required_path(&args, 2)?;\n            let output = semantic_workspace_change::preview(&root, &proposal)\n                .map_err(|errors| report(&errors, false))?;\n            print!(\"{output}\");\n            Ok(())\n"
+      },
+      {
+        "new": "            let root = required_path(&args, 1)?;\n            let proposal = required_path(&args, 2)?;\n            let output = semantic_workspace_change::reporting::evidence(&root, &proposal)\n                .map_err(|failure| report_workspace(&failure, false))?;\n            print!(\"{output}\");\n            Ok(())\n",
+        "old": "            let root = required_path(&args, 1)?;\n            let proposal = required_path(&args, 2)?;\n            let output = semantic_workspace_change::evidence(&root, &proposal)\n                .map_err(|errors| report(&errors, false))?;\n            print!(\"{output}\");\n            Ok(())\n"
+      },
+      {
+        "new": "            let proposal = required_path(&args, 2)?;\n            let evidence = required_path(&args, 3)?;\n            let receipt = semantic_workspace_change::reporting::verify(&root, &proposal, &evidence)\n                .map_err(|failure| report_workspace(&failure, false))?;\n            print!(\"{receipt}\");\n            Ok(())\n",
+        "old": "            let proposal = required_path(&args, 2)?;\n            let evidence = required_path(&args, 3)?;\n            let receipt = semantic_workspace_change::verify(&root, &proposal, &evidence)\n                .map_err(|errors| report(&errors, false))?;\n            print!(\"{receipt}\");\n            Ok(())\n"
+      },
+      {
+        "new": "            let proposal = required_path(&args, 2)?;\n            let evidence = required_path(&args, 3)?;\n            let receipt = semantic_workspace_change::reporting::apply(&root, &proposal, &evidence)\n                .map_err(|failure| report_workspace(&failure, false))?;\n            print!(\"{receipt}\");\n            Ok(())\n",
+        "old": "            let proposal = required_path(&args, 2)?;\n            let evidence = required_path(&args, 3)?;\n            let receipt = semantic_workspace_change::apply(&root, &proposal, &evidence)\n                .map_err(|errors| report(&errors, false))?;\n            print!(\"{receipt}\");\n            Ok(())\n"
+      },
+      {
+        "new": "            let root = required_path(&args, 1)?;\n            let proposal = required_path(&args, 2)?;\n            let output = semantic_workspace_structural_change::reporting::preview(&root, &proposal)\n                .map_err(|failure| report_workspace(&failure, false))?;\n            print!(\"{output}\");\n            Ok(())\n",
+        "old": "            let root = required_path(&args, 1)?;\n            let proposal = required_path(&args, 2)?;\n            let output = semantic_workspace_structural_change::preview(&root, &proposal)\n                .map_err(|errors| report(&errors, false))?;\n            print!(\"{output}\");\n            Ok(())\n"
+      },
+      {
+        "new": "            let root = required_path(&args, 1)?;\n            let proposal = required_path(&args, 2)?;\n            let output =\n                semantic_workspace_structural_change::reporting::evidence(&root, &proposal)\n                    .map_err(|failure| report_workspace(&failure, false))?;\n            print!(\"{output}\");\n            Ok(())\n",
+        "old": "            let root = required_path(&args, 1)?;\n            let proposal = required_path(&args, 2)?;\n            let output = semantic_workspace_structural_change::evidence(&root, &proposal)\n                .map_err(|errors| report(&errors, false))?;\n            print!(\"{output}\");\n            Ok(())\n"
+      },
+      {
+        "new": "            let proposal = required_path(&args, 2)?;\n            let evidence = required_path(&args, 3)?;\n            let receipt = semantic_workspace_structural_change::reporting::verify(\n                &root, &proposal, &evidence,\n            )\n            .map_err(|failure| report_workspace(&failure, false))?;\n            print!(\"{receipt}\");\n            Ok(())\n",
+        "old": "            let proposal = required_path(&args, 2)?;\n            let evidence = required_path(&args, 3)?;\n            let receipt = semantic_workspace_structural_change::verify(&root, &proposal, &evidence)\n                .map_err(|errors| report(&errors, false))?;\n            print!(\"{receipt}\");\n            Ok(())\n"
+      },
+      {
+        "new": "            let proposal = required_path(&args, 2)?;\n            let evidence = required_path(&args, 3)?;\n            let receipt =\n                semantic_workspace_structural_change::reporting::apply(&root, &proposal, &evidence)\n                    .map_err(|failure| report_workspace(&failure, false))?;\n            print!(\"{receipt}\");\n            Ok(())\n",
+        "old": "            let proposal = required_path(&args, 2)?;\n            let evidence = required_path(&args, 3)?;\n            let receipt = semantic_workspace_structural_change::apply(&root, &proposal, &evidence)\n                .map_err(|errors| report(&errors, false))?;\n            print!(\"{receipt}\");\n            Ok(())\n"
+      },
+      {
+        "new": "            let root = required_path(&args, 1)?;\n            let proposal = required_path(&args, 2)?;\n            let output = semantic_workspace_operations::reporting::derivation(&root, &proposal)\n                .map_err(|failure| report_workspace(&failure, false))?;\n            print!(\"{output}\");\n            Ok(())\n",
+        "old": "            let root = required_path(&args, 1)?;\n            let proposal = required_path(&args, 2)?;\n            let output = semantic_workspace_operations::derivation(&root, &proposal)\n                .map_err(|errors| report(&errors, false))?;\n            print!(\"{output}\");\n            Ok(())\n"
+      },
+      {
+        "new": "            let root = required_path(&args, 1)?;\n            let proposal = required_path(&args, 2)?;\n            let output =\n                semantic_workspace_operations::reporting::derived_change_proposal(&root, &proposal)\n                    .map_err(|failure| report_workspace(&failure, false))?;\n            print!(\"{output}\");\n            Ok(())\n",
+        "old": "            let root = required_path(&args, 1)?;\n            let proposal = required_path(&args, 2)?;\n            let output = semantic_workspace_operations::derived_change_proposal(&root, &proposal)\n                .map_err(|errors| report(&errors, false))?;\n            print!(\"{output}\");\n            Ok(())\n"
+      },
+      {
+        "new": "            let root = required_path(&args, 1)?;\n            let proposal = required_path(&args, 2)?;\n            let output = semantic_workspace_operations::reporting::evidence(&root, &proposal)\n                .map_err(|failure| report_workspace(&failure, false))?;\n            print!(\"{output}\");\n            Ok(())\n",
+        "old": "            let root = required_path(&args, 1)?;\n            let proposal = required_path(&args, 2)?;\n            let output = semantic_workspace_operations::evidence(&root, &proposal)\n                .map_err(|errors| report(&errors, false))?;\n            print!(\"{output}\");\n            Ok(())\n"
+      },
+      {
+        "new": "            let proposal = required_path(&args, 2)?;\n            let evidence = required_path(&args, 3)?;\n            let output =\n                semantic_workspace_operations::reporting::verify(&root, &proposal, &evidence)\n                    .map_err(|failure| report_workspace(&failure, false))?;\n            print!(\"{output}\");\n            Ok(())\n",
+        "old": "            let proposal = required_path(&args, 2)?;\n            let evidence = required_path(&args, 3)?;\n            let output = semantic_workspace_operations::verify(&root, &proposal, &evidence)\n                .map_err(|errors| report(&errors, false))?;\n            print!(\"{output}\");\n            Ok(())\n"
+      },
+      {
+        "new": "            let proposal = required_path(&args, 2)?;\n            let evidence = required_path(&args, 3)?;\n            let output =\n                semantic_workspace_operations::reporting::apply(&root, &proposal, &evidence)\n                    .map_err(|failure| report_workspace(&failure, false))?;\n            print!(\"{output}\");\n            Ok(())\n",
+        "old": "            let proposal = required_path(&args, 2)?;\n            let evidence = required_path(&args, 3)?;\n            let output = semantic_workspace_operations::apply(&root, &proposal, &evidence)\n                .map_err(|errors| report(&errors, false))?;\n            print!(\"{output}\");\n            Ok(())\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cli_driver/source_execution.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/cli_driver/source_execution.rs",
+    "current_sha256": "9cae813b1bc2c083231074c4e1bf7c1b9c733c05013dc0e83a20dd69ed2e8567",
+    "original_sha256": "4f1d783d147f150e3667d2b9cf8616385b680efe21aba2cd6ab4e3ee1c978b7c",
+    "edits": [
+      {
+        "new": "    fused_profile::run(path, options)\n}\n\n/// Opaque initial fields borrow their captured invocation; output remains\n/// ordinary stdout/stderr IO. No implicit compatibility Vec is requested.\npub(super) fn report_workspace(\n    failure: &semaprax::workspace_report::WorkspaceReportFailure,\n    json: bool,\n) -> u8 {\n    use semaprax::diagnostic::writer::IoWriter;\n    if json {\n        let stdout = std::io::stdout();\n        let mut stream = stdout.lock();\n        let _ = failure.write_lines(&mut IoWriter::new(&mut stream), true);\n    } else {\n        let stderr = std::io::stderr();\n        let mut stream = stderr.lock();\n        let _ = failure.write_lines(&mut IoWriter::new(&mut stream), false);\n    }\n    1\n}\n",
+        "old": "    fused_profile::run(path, options)\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "src/semantic_workspace/reporting.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/semantic_workspace/reporting.rs",
+    "current_sha256": "a24be6d24d1fb928ba298fd32621cdf04f99d58623962c99876d2bbfb49f162c",
+    "original_sha256": "6a1ee6dbaf59fd894b91feb841d54ad09f019add0b2d27aa22fe2c4ea5ea11ac",
+    "edits": [
+      {
+        "new": "        .collect();\n    let (graph, recovered_sources) = if let Some(change_builder_limit) = change_builder_limit {\n        workspace_graph::build_owned_retaining_sources_with_frontend_limit::<WorkspaceReportFailure>(\n            graph_sources,\n            if retain_operations {\n                graph_builder_limit.expect(\"operations preflight supplies Graph limit\")\n            } else {\n                workspace_graph::MAX_BUILDER_BYTES\n            },\n            Some(change_builder_limit),\n            retain_operations,\n            None,\n        )?\n    } else {\n        workspace_graph::build_owned_retaining_sources_with_frontend_limit::<WorkspaceReportFailure>(\n            graph_sources,\n            workspace_graph::MAX_BUILDER_BYTES,\n            None,\n            false,\n            frontend.as_deref_mut(),\n        )?\n    };\n    // The exact sources this build consumed are the receiving authority.\n",
+        "old": "        .collect();\n    let (graph, recovered_sources) = if let Some(change_builder_limit) = change_builder_limit {\n        if retain_operations {\n            workspace_graph::build_owned_retaining_sources_for_operations(\n                graph_sources,\n                graph_builder_limit.expect(\"operations preflight supplies Graph limit\"),\n                change_builder_limit,\n            )?\n        } else {\n            workspace_graph::build_owned_retaining_sources_for_change(\n                graph_sources,\n                change_builder_limit,\n            )?\n        }\n    } else if let Some(frontend) = frontend.as_deref_mut() {\n        workspace_graph::build_owned_retaining_sources_with_frontend(graph_sources, frontend)?\n    } else {\n        workspace_graph::build_owned_retaining_sources(graph_sources)?\n    };\n    // The exact sources this build consumed are the receiving authority.\n"
+      }
+    ]
+  },
+  {
+    "source": "src/semantic_workspace_change/reporting/prepare.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/semantic_workspace_change/reporting/prepare.rs",
+    "current_sha256": "8f3364122cb5d3b9fca05a68325f722370ab42bfd4c992dec18ef7109d8398c7",
+    "original_sha256": "09dc45ac81a5716fd27c271547680e37c17c299511e4ffbfa115c59d257b59af",
+    "edits": [
+      {
+        "new": "    )\n    .map_err(|failure| {\n        failure.map_change_limit(\n            candidate_builder_limit,\n            semantic_workspace::MAX_CHANGE_BUILDER_BYTES,\n            |diagnostics| map_change_builder_limit(diagnostics, candidate_builder_limit),\n        )\n    })?;\n    if candidate.path_set() != paths || candidate.files().len() != base_files.len() {\n",
+        "old": "    )\n    .map_err(|failure| {\n        failure.map_legacy(|diagnostics| {\n            map_change_builder_limit(diagnostics, candidate_builder_limit)\n        })\n    })?;\n    if candidate.path_set() != paths || candidate.files().len() != base_files.len() {\n"
+      }
+    ]
+  },
+  {
+    "source": "src/semantic_workspace_operations/reporting/prepare.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/semantic_workspace_operations/reporting/prepare.rs",
+    "current_sha256": "70c6ad7a3ad57ecbc7fa7ffae1688c7446faf94b7cbb759a40006785cfa12705",
+    "original_sha256": "240643a234b7c70f12cb7ad0adc94b9d84cc2e53ae4d8ecafe0765c126608f27",
+    "edits": [
+      {
+        "new": "    )\n    .map_err(|failure| {\n        failure.map_operations_limit(\n            candidate_graph_limit,\n            MAX_CANDIDATE_GRAPH_BUILDER_BYTES,\n            MAX_OPERATIONS_BUILDER_BYTES,\n            |diagnostics| {\n                map_candidate_diagnostics(diagnostics, candidate_graph_limit, remaining_operations)\n            },\n        )\n    })?;\n    let (candidate_files, candidate_manifest, candidate_revision, candidate_build) =\n",
+        "old": "    )\n    .map_err(|failure| {\n        failure.map_legacy(|diagnostics| {\n            map_candidate_diagnostics(diagnostics, candidate_graph_limit, remaining_operations)\n        })\n    })?;\n    let (candidate_files, candidate_manifest, candidate_revision, candidate_build) =\n"
+      }
+    ]
+  },
+  {
+    "source": "src/semantic_workspace_structural_change/reporting/prepare.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/semantic_workspace_structural_change/reporting/prepare.rs",
+    "current_sha256": "8ae642f92ceb0ba47d207fe8f3c30cc3dd24771afd05a0e9074d9ea1c6f53fd6",
+    "original_sha256": "fd016c1365373fb935a974c1c44f93b87e0e4da2d9e308c39cab558fd89e3cb8",
+    "edits": [
+      {
+        "new": "    )\n    .map_err(|failure| {\n        failure.map_structural_limit(\n            candidate_builder_limit,\n            MAX_CANDIDATE_GRAPH_BUILDER_BYTES,\n            MAX_ANALYSIS_BUILDER_BYTES,\n            |diagnostics| map_candidate_builder_limit(diagnostics, candidate_builder_limit),\n        )\n    })?;\n    if candidate.path_set() != candidate_paths || candidate.files().len() != candidate_paths.len() {\n",
+        "old": "    )\n    .map_err(|failure| {\n        failure.map_legacy(|diagnostics| {\n            map_candidate_builder_limit(diagnostics, candidate_builder_limit)\n        })\n    })?;\n    if candidate.path_set() != candidate_paths || candidate.files().len() != candidate_paths.len() {\n"
+      }
+    ]
+  },
+  {
+    "source": "src/source_reflows_merge.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/source_reflows_merge.rs",
+    "current_sha256": "e9fe80d852127bf0f8c703da174d64c4aa5eda393e611d21dcc8b2f97cb204e5",
+    "original_sha256": "3edace7244103998f8e67cc6a60265d34ee66dabe6f6d49426c1b2e59fc926fd",
+    "edits": [
+      {
+        "new": "}\npub(crate) fn compressed_fixture_input(source: &str, current: &str) -> String {\n    // Independently authenticate the raw-default checkpoint and its complete\n    // immediate shim view; the inherited chain below retains every old guard.\n    let raw_default = final_batch_input(\"841\", source, current);\n    let _whole_raw_default_before = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/raw-selected-child-default-841-20261015/current-to-56dc.json\"\n        )),\n        source,\n        &raw_default,\n    );\n    let previous = before_retained833(source, current);\n    let current = previous.as_str();\n",
+        "old": "}\npub(crate) fn compressed_fixture_input(source: &str, current: &str) -> String {\n    let previous = before_retained833(source, current);\n    let current = previous.as_str();\n"
+      },
+      {
+        "new": "// Independent final raw fronts for MAIN integration versus retained alias owners.\nfn combined_ready_input(stage: &str, source: &str, current: &str) -> String {\n    let final_view = final_batch_input(\"796\", source, current);\n    let current = final_view.as_str();\n    let previous = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/cache-report-observer-796-20261015/current-to-2cf33.json\"\n        )),\n        source,\n        current,\n    );\n    let current = previous.as_str();\n    let prior = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/branch-closed-receiving-831-20261015/current-to-e93f.json\"\n        )),\n        source,\n        current,\n    );\n    let current = prior.as_str();\n    let previous = project(\n        include_str!(concat!(\n",
+        "old": "// Independent final raw fronts for MAIN integration versus retained alias owners.\nfn combined_ready_input(stage: &str, source: &str, current: &str) -> String {\n    let raw848 = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/runtime-selected-child-fixture-848/current-to-c37.json\"\n        )),\n        source,\n        current,\n    );\n    let current = raw848.as_str();\n    let previous_raw = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/raw-selected-child-default-841-20261015/current-to-56dc.json\"\n        )),\n        source,\n        current,\n    );\n    let current = previous_raw.as_str();\n    let previous = project(\n        include_str!(concat!(\n"
+      },
+      {
+        "new": "}\n\n// The direct831 source owner has a separate immediate domain from old guards.\npub(crate) fn branch_closed831_input(source: &str, current: &str) -> String {\n    final_batch_input(\"831\", source, current)\n}\nfn final_batch_input(branch: &str, source: &str, current: &str) -> String {\n    let before_runtime848 = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/runtime-fixture-848-assembly-20261015/current-to-999fa.json\"\n        )),\n        source,\n        current,\n    );\n    let current = before_runtime848.as_str();\n    let before_main = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/main-f4a448-integration-20261015/current-to-6444.json\"\n        )),\n        source,\n        current,\n    );\n    let current = before_main.as_str();\n    let prior_docs = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/final-831841845796-assembly-20261015/current-docs-to-896.json\"\n        )),\n        source,\n        current,\n    );\n    let current = prior_docs.as_str();\n    let rows = match branch {\n        \"796\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/final-831841845796-assembly-20261015/final-to-796.json\"\n        )),\n        \"831\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/final-831841845796-assembly-20261015/final-to-831.json\"\n        )),\n        \"841\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/final-831841845796-assembly-20261015/final-to-841.json\"\n        )),\n        \"845\" => include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/final-831841845796-assembly-20261015/final-to-845.json\"\n        )),\n        _ => panic!(\"unknown independent final batch source checkpoint\"),\n    };\n    project(rows, source, current)\n}\n\n// Direct845 owners authenticate independently from inherited source guards.\npub(crate) fn initial845_input(source: &str, current: &str) -> String {\n    let checkpoint = final_batch_input(\"845\", source, current);\n    let _complete_original845_before = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/initial-report-policy-845-20261015/current-to-2bfd.json\"\n        )),\n        source,\n        &checkpoint,\n    );\n    checkpoint\n}\n\n// Direct runtime-fixture custody stays independent of inherited source views.\npub(crate) fn runtime848_input(source: &str, current: &str) -> String {\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/runtime-fixture-848-assembly-20261015/current-to-848.json\"\n        )),\n        source,\n        current,\n    )\n}\n",
+        "old": "}\n\n// Independent current848 input; a later compositor supplies its full raw view.\npub(crate) fn runtime848_input(_source: &str, current: &str) -> String {\n    current.to_owned()\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/workspace_graph.rs",
+    "current_sha256": "27a1890289de10350bb4d5e00081f504cda4f7384c3f6f661cd5f99ff6327bdf",
+    "original_sha256": "779f794a88a656aa4010bfab35b3c245bab510e85d2c4d8f7bb83af219852a47",
+    "edits": [
+      {
+        "new": "    retain_operation_programs: bool,\n) -> Result<(WorkspaceGraphBuild, current_source::SourceFacts), Vec<Diagnostic>> {\n    build_owned_retaining_sources_with_frontend_limit::<Vec<Diagnostic>>(\n        sources,\n        builder_limit,\n",
+        "old": "    retain_operation_programs: bool,\n) -> Result<(WorkspaceGraphBuild, current_source::SourceFacts), Vec<Diagnostic>> {\n    build_owned_retaining_sources_with_frontend_limit(\n        sources,\n        builder_limit,\n"
+      },
+      {
+        "new": "    frontend: &mut crate::project::incremental::FrontendPass,\n) -> Result<(WorkspaceGraphBuild, current_source::SourceFacts), Vec<Diagnostic>> {\n    build_owned_retaining_sources_with_frontend_limit::<Vec<Diagnostic>>(\n        sources,\n        MAX_BUILDER_BYTES,\n",
+        "old": "    frontend: &mut crate::project::incremental::FrontendPass,\n) -> Result<(WorkspaceGraphBuild, current_source::SourceFacts), Vec<Diagnostic>> {\n    build_owned_retaining_sources_with_frontend_limit(\n        sources,\n        MAX_BUILDER_BYTES,\n"
+      },
+      {
+        "new": "}\n\npub(crate) fn build_owned_retaining_sources_with_frontend_limit<E: initial_report::Policy>(\n    sources: Vec<WorkspaceSource>,\n    builder_limit: usize,\n",
+        "old": "}\n\nfn build_owned_retaining_sources_with_frontend_limit(\n    sources: Vec<WorkspaceSource>,\n    builder_limit: usize,\n"
+      },
+      {
+        "new": "    retain_operation_programs: bool,\n    frontend: Option<&mut crate::project::incremental::FrontendPass>,\n) -> Result<(WorkspaceGraphBuild, current_source::SourceFacts), E> {\n    assert!(\n        builder_limit <= MAX_BUILDER_BYTES,\n        \"private Workspace Semantic Graph builder limit cannot exceed the production maximum\"\n    );\n    if let Some(limit) = change_builder_limit {\n        if retain_operation_programs {\n            assert!(limit <= 67_108_864, \"private Semantic Workspace Operations builder limit cannot exceed the production maximum\");\n        } else {\n            assert!(limit <= MAX_CHANGE_BUILDER_BYTES);\n        }\n    }\n    struct Restore(usize);\n    impl Drop for Restore {\n",
+        "old": "    retain_operation_programs: bool,\n    frontend: Option<&mut crate::project::incremental::FrontendPass>,\n) -> Result<(WorkspaceGraphBuild, current_source::SourceFacts), Vec<Diagnostic>> {\n    assert!(\n        builder_limit <= MAX_BUILDER_BYTES,\n        \"private Workspace Semantic Graph builder limit cannot exceed the production maximum\"\n    );\n    struct Restore(usize);\n    impl Drop for Restore {\n"
+      },
+      {
+        "new": "}\n\nuse initial_report::build_owned_inner;\n\ntype ResolvedCore = (\n",
+        "old": "}\n\nfn build_owned_inner(\n    mut sources: Vec<WorkspaceSource>,\n    change_builder_limit: Option<usize>,\n    retain_operation_programs: bool,\n    mut frontend: Option<&mut crate::project::incremental::FrontendPass>,\n) -> Result<(WorkspaceGraphBuild, current_source::SourceFacts), Vec<Diagnostic>> {\n    let _diagnostics = diagnostics::invocation_scope();\n    if sources.len() < 2 {\n        return Err(vec![graph_error(\n            \"SPX-G170\",\n            \"Workspace Semantic Graph requires 2..32 source files\",\n        )]);\n    }\n    if sources.len() > MAX_FILES {\n        return Err(vec![limit_error(\"files\", MAX_FILES)]);\n    }\n    sources.sort_by(|left, right| left.path.cmp(&right.path));\n    let mut seen_paths = BTreeSet::new();\n    let mut source_bytes = 0usize;\n    for source in &sources {\n        workspace::validate_logical_path(&source.path).map_err(|_| {\n            vec![graph_error(\n                \"SPX-G170\",\n                format!(\n                    \"workspace semantic source path `{}` is not canonical\",\n                    source.path\n                ),\n            )]\n        })?;\n        if !seen_paths.insert(source.path.clone()) {\n            return Err(vec![graph_error(\n                \"SPX-G170\",\n                format!(\"duplicate workspace semantic source path `{}`\", source.path),\n            )]);\n        }\n        source_bytes = checked_usage(\n            source_bytes,\n            source.source.len(),\n            \"total_source_bytes\",\n            MAX_TOTAL_SOURCE_BYTES,\n        )?;\n    }\n    let mut programs = Vec::with_capacity(sources.len());\n    let mut native_law_paths = BTreeSet::new();\n    let mut declarations = 0usize;\n    let mut callables = 0usize;\n    let mut calls = 0usize;\n    let mut uses = 0usize;\n    let mut canonical_bytes = 0usize;\n    for source in &sources {\n        let remaining = active_builder_limit().saturating_sub(canonical_bytes);\n        if let Some((inert, canonical_len)) = native_law::inert_program(source, remaining)? {\n            canonical_bytes = checked_usage(\n                canonical_bytes,\n                canonical_len,\n                \"builder_bytes\",\n                active_builder_limit(),\n            )?;\n            native_law_paths.insert(source.path.clone());\n            programs.push(inert);\n            continue;\n        }\n        let cached = frontend\n            .as_deref_mut()\n            .and_then(|cache| cache.lookup(&source.path, &source.source));\n        let reused = cached.is_some();\n        let (mut program, comments) = if let Some(program) = cached {\n            (program, None)\n        } else {\n            let (program, comments) =\n                crate::parse_with_comments(&source.source, Path::new(&source.path))\n                    .map_err(|error| vec![error])?;\n            if let Some(frontend) = frontend.as_deref_mut() {\n                frontend.parsed(source.source.len());\n            }\n            (program, Some(comments))\n        };\n        if let Some(frontend) = frontend.as_deref() {\n            crate::project::indexed_rust::bind_program(&mut program, &frontend.indexed_imports)?;\n        }\n        // Check source-local conformance before imported declarations become\n        // synthetic stubs. A stub must never acquire local implementation\n        // authority merely because it has an authenticated imported identity.\n        crate::static_protocol::validate(&program).map_err(|error| vec![error])?;\n        let remaining = active_builder_limit().saturating_sub(canonical_bytes);\n        let canonical_len = if reused {\n            source.source.len()\n        } else {\n            let comments = comments\n                .as_ref()\n                .expect(\"cold workspace parse retains its exact comments\");\n            let (canonical, overflowed) = crate::bounded_output::with_limit(remaining, || {\n                format::comments::canonical_comparison(&program, comments, &source.source)\n            });\n            if overflowed || canonical.bytes.is_none() {\n                return Err(vec![limit_error(\"builder_bytes\", active_builder_limit())]);\n            }\n            if !canonical.matches {\n                return Err(vec![graph_error(\n                    \"SPX-G170\",\n                    format!(\n                        \"workspace semantic source `{}` is not canonical\",\n                        source.path\n                    ),\n                )\n                .with_help(\n                    \"Run `semaprax fmt <project-directory-or-manifest>` to canonicalize project source, then retry.\",\n                )]);\n            }\n            if let Some(frontend) = frontend.as_deref_mut() {\n                frontend.canonicalized();\n            }\n            canonical.bytes.expect(\"canonical byte count checked before source equality\")\n        };\n        canonical_bytes = checked_usage(\n            canonical_bytes,\n            canonical_len,\n            \"builder_bytes\",\n            active_builder_limit(),\n        )?;\n        declarations = checked_usage(\n            declarations,\n            declaration_count(&program)\n                .ok_or_else(|| vec![limit_error(\"declarations\", MAX_DECLARATIONS)])?,\n            \"declarations\",\n            MAX_DECLARATIONS,\n        )?;\n        callables = checked_usage(\n            callables,\n            program.functions.len(),\n            \"callables\",\n            MAX_CALLABLES,\n        )?;\n        calls = checked_usage(\n            calls,\n            call_count(&program).ok_or_else(|| vec![limit_error(\"calls\", MAX_CALLS)])?,\n            \"calls\",\n            MAX_CALLS,\n        )?;\n        uses = checked_usage(uses, program.module_uses.len(), \"uses\", MAX_USES)?;\n        programs.push(program);\n    }\n    crate::static_protocol::validate_workspace(&programs).map_err(|error| vec![error])?;\n    // Every module's own source is parsed, canonical-checked and\n    // static-protocol validated above. Only after that does a bundled\n    // dependency's unreachable surface stop being built into HIR: the\n    // builder charges whole translation units, so a standard-library package\n    // costs its entire declaration set however little of it a consumer can\n    // reach. See `dependency_pruning` for the soundness argument.\n    let pruned_dependency_functions = dependency_pruning::prune(&mut programs, &sources);\n    let module_paths = index_modules(&programs)?;\n    let authored = index_authored(&programs)?;\n    validate_synthetic_main_id_collisions(&programs, &authored)?;\n    let layouts =\n        expected_projection::private_layout::registry::LayoutRegistry::new(&programs, &authored);\n    import_validation::validate_uses_with_registry(\n        &programs,\n        &module_paths,\n        &authored,\n        Some(&layouts),\n    )?;\n    let dependency_depths = validate_dependency_dag(&programs)?;\n    let retention = if frontend\n        .as_deref()\n        .is_some_and(|cache| cache.retains_checked_hir())\n    {\n        expected_projection::cached_exact::Retention::Semantic\n    } else {\n        expected_projection::cached_exact::Retention::Parsed\n    };\n    let (mut resolve_builder_bytes, checked_retention_prebound, allow_uncached_peak, initial_mode) =\n        expected_projection::cached_exact::initial_with_registry(\n            &programs,\n            &authored,\n            frontend.is_none(),\n            retention,\n            Some(&layouts),\n        )?;\n    if let Some(cache) = frontend.as_deref() {\n        cache.checked_retention_prebound(checked_usage(\n            checked_retention_prebound,\n            layouts.receipt(),\n            \"builder_bytes\",\n            active_builder_limit(),\n        )?)?;\n    }\n    // Each isolated attempt keeps the parent's monotonic debit.\n    let mut retry_allowed = active_builder_limit() == MAX_BUILDER_BYTES\n        && crate::bounded_output::active_remaining().is_none();\n    let mut checkpoint = if retry_allowed {\n        frontend\n            .as_deref()\n            .and_then(|cache| cache.checkpoint_core_attempt())\n    } else {\n        None\n    };\n    retry_allowed &= frontend.is_none() || checkpoint.is_some();\n    let mut core_builder_bytes = 0usize;\n    let mut fallback_mode = initial_mode;\n    let core = loop {\n        #[cfg(test)]\n        CORE_BUILD_ATTEMPTS.with(|attempts| attempts.set(attempts.get() + 1));\n        let compact_layout = (fallback_mode == 6)\n            .then(|| {\n                expected_projection::uncached_peak::uncached_output_layout_with_registry(\n                    &programs,\n                    &authored,\n                    Some(&layouts),\n                )\n            })\n            .transpose()?;\n        layouts.release_scratch();\n        let (core, overflowed, consumed, refusal, site) =\n            crate::bounded_output::with_limit_usage_refusal_site(active_builder_limit(), || {\n                #[cfg(test)]\n                let _trace = crate::bounded_output::stage_debits::start(\n                    resolve_builder_bytes,\n                    layouts.receipt(),\n                    fallback_mode,\n                );\n                constructor_failure::attempt::run(active_builder_limit(), || {\n                    constructor_failure::attempt::reserve(layouts.receipt())?;\n                    staged!(CorePrebound, constructor_failure::attempt::reserve(resolve_builder_bytes))?;\n                    let custody = custody::SourceCustody::plan(\n                        &sources,\n                        &programs,\n                        &pruned_dependency_functions,\n                    )\n                    .map_err(|error| match error {\n                        custody::CustodyError::Prepaid(_) => {\n                            vec![limit_error(\"builder_bytes\", active_builder_limit())]\n                        }\n                        _ => vec![graph_error(\n                            \"SPX-G173\",\n                            \"current parsed source custody is inconsistent\",\n                        )],\n                    })?;\n                    let core = staged!(\n                        ResolvedCore,\n                        build_resolved_core_current(\n                            &programs,\n                            &module_paths,\n                            &dependency_depths,\n                            &authored,\n                            Some(&sources),\n                            frontend.as_deref_mut(),\n                            &layouts,\n                            compact_layout\n                                .as_ref()\n                                .map(|layout| &layout.order[..programs.len()]),\n                        )\n                    )?;\n                    Ok::<_, constructor_failure::receiving::CoreFailure>((core, custody))\n                })\n            });\n        let (core, paid_refusal) = core.into_parts();\n        core_builder_bytes = core_builder_bytes.max(consumed);\n        if !overflowed {\n            break core;\n        }\n        // Drop partial trees; retain their debit in the maximum phase receipt.\n        drop(core);\n        if fallback_mode\n            >= if allow_uncached_peak {\n                6\n            } else {\n                expected_projection::cached_exact::MODE\n            }\n            || !retry_allowed\n        {\n            return Err(paid_refusal.unwrap_or_else(|| {\n                vec![diagnostics::live_builder_refusal_at(\n                    active_builder_limit(),\n                    refusal,\n                    site,\n                )]\n            }));\n        }\n        // Mode six replaces an overflowing all-HIR carrier with the bounded\n        // sequential filtered-output/index plus one-full-HIR peak.\n        if fallback_mode == 5 {\n            let (tighter, _) = expected_projection::uncached_output_peak_prebound_with_registry(\n                &programs,\n                &authored,\n                Some(&layouts),\n            )?;\n            resolve_builder_bytes = tighter;\n            fallback_mode = 6;\n            continue;\n        }\n        if let (Some(cache), Some(saved)) = (frontend.as_deref_mut(), checkpoint.take()) {\n            cache.rollback_core_attempt(saved);\n            checkpoint = cache.checkpoint_core_attempt();\n        }\n        let (tighter, total) = if allow_uncached_peak {\n            expected_projection::next_retention_prebound_with_uncached_peak_with_registry(\n                &programs,\n                &authored,\n                resolve_builder_bytes,\n                &mut fallback_mode,\n                true,\n                Some(&layouts),\n            )?\n        } else {\n            expected_projection::cached_exact::next_with_registry(\n                &programs,\n                &authored,\n                resolve_builder_bytes,\n                &mut fallback_mode,\n                retention,\n                Some(&layouts),\n            )?\n        };\n        if let Some(cache) = frontend.as_deref() {\n            cache.checked_retention_prebound(checked_usage(\n                total,\n                layouts.receipt(),\n                \"builder_bytes\",\n                active_builder_limit(),\n            )?)?;\n        }\n        resolve_builder_bytes = tighter;\n    };\n    drop(layouts);\n    let (core, custody) =\n        core.map_err(constructor_failure::receiving::CoreFailure::into_legacy_unfunded)?;\n    let (mut modules, module_paths, dependency_depths, declaration_facts, expected_edges) = core;\n    for module in &mut modules {\n        module.native_law = native_law_paths.contains(&module.path);\n    }\n    let dependency_depth = dependency_depths.values().copied().max().unwrap_or(0);\n    let resolved_cross_file_edges = expected_edges.len();\n    let graph_builder_bytes = canonical_bytes.max(core_builder_bytes);\n    let (change_fingerprints, operation_sidecar, change_builder_bytes, operation_builder_bytes) =\n        if let Some(change_builder_limit) = change_builder_limit {\n            let (result, overflowed, consumed) =\n                crate::bounded_output::with_limit_usage(change_builder_limit, || {\n                    if retain_operation_programs {\n                        reserve_builder_structure(graph_builder_bytes)?;\n                    }\n                    let fingerprints = authenticated_declaration_fingerprints(\n                        &programs,\n                        &sources,\n                        &declaration_facts,\n                    )?;\n                    let sidecar = retain_operation_programs\n                        .then(|| build_operation_sidecar(&programs, &sources, &modules, &authored))\n                        .transpose()?;\n                    Ok::<_, Vec<Diagnostic>>((fingerprints, sidecar))\n                });\n            if overflowed {\n                return Err(vec![limit_error(\n                    \"change_builder_bytes\",\n                    change_builder_limit,\n                )]);\n            }\n            let (fingerprints, sidecar) = result?;\n            (\n                Some(fingerprints),\n                sidecar,\n                consumed,\n                if retain_operation_programs {\n                    consumed\n                } else {\n                    0\n                },\n            )\n        } else {\n            (None, None, 0, 0)\n        };\n    let shared_prelude_ids = prelude_binding::ids_from_facts(&programs, &declaration_facts);\n    let mut build = WorkspaceGraphBuild {\n        current_sources: None,\n        hir: ValidatedWorkspaceHir {\n            modules,\n            module_paths,\n            dependency_depths,\n            declarations: declaration_facts,\n            shared_prelude_ids,\n        },\n        edges: expected_edges,\n        usage: WorkspaceGraphWorkUsage {\n            managed_files: sources.len(),\n            total_source_bytes: source_bytes,\n            declarations,\n            callables,\n            call_sites: calls,\n            uses,\n            resolved_cross_file_edges,\n            dependency_depth,\n            builder_bytes: graph_builder_bytes,\n        },\n        change_fingerprints,\n        change_builder_bytes,\n        operation_sidecar,\n        operation_builder_bytes,\n    };\n    // Restore before any owning cache publication, exactly as the original\n    // provider/pruning receiver. Both ordinary and checked Project linking use\n    // these actual parsed owners instead of reparsing an equal source later.\n    pruned_dependency_functions.restore(&mut programs);\n    let custody = custody.complete(sources, programs).map_err(|_| {\n        vec![graph_error(\n            \"SPX-G173\",\n            \"current parsed source custody is inconsistent\",\n        )]\n    })?;\n    if let Some(frontend) = frontend {\n        frontend.retain_current(&custody, resolve_builder_bytes)?;\n    }\n    let (sources, owners) = custody.into_parts();\n    build.current_sources = Some(owners);\n    Ok((build, sources))\n}\n\ntype ResolvedCore = (\n"
+      },
+      {
+        "new": "pub(crate) mod current_source;\npub(crate) mod custody;\n\npub(crate) mod initial_report;\npub(crate) use diagnostics::initial::Captured as InitialReport;\n",
+        "old": "pub(crate) mod current_source;\npub(crate) mod custody;\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/diagnostics.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/workspace_graph/diagnostics.rs",
+    "current_sha256": "1c1552d56400ec781eb96ff6fd825bbbeec854f5042fab960e4d3d2941e60127",
+    "original_sha256": "3cd973bcfc5dd7ef0d766a52da852dcdd20767521462a384b76ba339088df062",
+    "edits": [
+      {
+        "new": "#[cfg(test)]\npub(super) mod constructor_report_before;\n\npub(in crate::workspace_graph) mod initial;\n",
+        "old": "#[cfg(test)]\npub(super) mod constructor_report_before;\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/identity_resolution.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/workspace_graph/identity_resolution.rs",
+    "current_sha256": "7c9cfacbbe95fc77cd3ca739b73ff4c98b3bdd3e33650901077a9eb19b33087d",
+    "original_sha256": "0261f6b87a6c2f0d5f3540cd509ca54ffc855721d704c9f7eae107f18737ab4f",
+    "edits": [
+      {
+        "new": "    static ACQUIRED: std::cell::Cell<(usize, Option<(usize, usize)>)> =\n        const { std::cell::Cell::new((0, None)) };\n    // Classification only: these real report owners also remain in ACQUIRED.\n    static CACHED_PRELUDE_ACQUIRED: std::cell::Cell<usize> =\n        const { std::cell::Cell::new(0) };\n}\n\n",
+        "old": "    static ACQUIRED: std::cell::Cell<(usize, Option<(usize, usize)>)> =\n        const { std::cell::Cell::new((0, None)) };\n}\n\n"
+      },
+      {
+        "new": "\n#[cfg(test)]\nfn observe_cached_prelude_acquired() {\n    CACHED_PRELUDE_ACQUIRED.with(|acquired| acquired.set(acquired.get() + 1));\n}\n\n#[cfg(test)]\npub(super) fn cached_prelude_acquisitions() -> usize {\n    CACHED_PRELUDE_ACQUIRED.with(std::cell::Cell::get)\n}\n\n#[cfg(test)]\nmod tests;\n\n",
+        "old": "\n#[cfg(test)]\nmod tests;\n\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/identity_resolution/base/cache_billing.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/workspace_graph/identity_resolution/base/cache_billing.rs",
+    "current_sha256": "895015a789a4015585fb6aac8bd1557eed5ca7f533547649529effb39223fe94",
+    "original_sha256": "233ebb49e81aecdc47da0c0326d38bbafd01af5731535938c48247eea42cf1b5",
+    "edits": [
+      {
+        "new": "    let mut owner = IdentityReservation::acquire().map_err(ModuleFailure::Setup)?;\n    #[cfg(test)]\n    {\n        observe_acquired(&owner);\n        observe_cached_prelude_acquired();\n    }\n    let result = core\n        .base_prelude\n",
+        "old": "    let mut owner = IdentityReservation::acquire().map_err(ModuleFailure::Setup)?;\n    #[cfg(test)]\n    observe_acquired(&owner);\n    let result = core\n        .base_prelude\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/record_traversal/row_loan.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/workspace_graph/record_traversal/row_loan.rs",
+    "current_sha256": "9963ef65b0fd8b6cd0245a04f7188eba1576f11bf039c9a523c7d1f74b755511",
+    "original_sha256": "4ab109a4db71dc995bafebcf85b9baa02ab834e1493a9457fb0d56fa15001969",
+    "edits": [
+      {
+        "new": "        let (context, target) = callee(program, programs, name).ok_or_else(refusal)?;\n        let parameter = target.params.get(position).ok_or_else(refusal)?;\n        // This is an authored source error, before any retained descriptor is\n        // inspected. A current provider's owning parameter cannot receive a\n        // borrowed traversal row, even when the consumer was checked before\n        // that provider signature changed. Retained-HIR mismatches below keep\n        // their independent G173 refusal.\n        if parameter.mode == crate::ast::ParamMode::Own {\n            return Err(vec![Diagnostic::error(\n                \"SPX-T284\",\n                \"record traversal row cannot escape or materialize aggregate storage; select a field\",\n                argument.span,\n            )\n            .at_path(&program.path)]);\n        }\n        let Type::Named {\n            name: record,\n",
+        "old": "        let (context, target) = callee(program, programs, name).ok_or_else(refusal)?;\n        let parameter = target.params.get(position).ok_or_else(refusal)?;\n        let Type::Named {\n            name: record,\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/retained_validation/dependency_closure.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/workspace_graph/retained_validation/dependency_closure.rs",
+    "current_sha256": "b2ac81e2f08617dd1c5bd7668dbda327b0aa345c21d6e13c6c14fbbdad5416ff",
+    "original_sha256": "574cf8cb6fbcb7d9b5c947c00dd1d87df25d9e3831bb989c495e5c5c0d5c3b52",
+    "edits": [
+      {
+        "new": "            )]);\n        };\n        // A reached dependency must pass the same signature admission as an\n        // imported target. Body-only profile refusals still belong to the HIR\n        // linker, which can identify the unsupported authored type precisely.\n        if incompatible.contains(&id)\n            && (!hir::useful_data_workspace_return_admitted(&linked.function.return_type)\n                || linked.function.params.iter().any(|parameter| {\n                    !hir::useful_data_workspace_parameter_admitted(\n                        &parameter.ty,\n                        parameter.ownership,\n                    )\n                }))\n        {\n            return Err(vec![super::super::graph_error(\n                \"SPX-G172\",\n                super::super::package::import_profile_refusal(),\n            )]);\n        }\n        if !retained.insert(id) {\n            continue;\n",
+        "old": "            )]);\n        };\n        if !retained.insert(id) {\n            continue;\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/source_schema/static_text/primitive/helpers/tests.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/workspace_graph/source_schema/static_text/primitive/helpers/tests.rs",
+    "current_sha256": "748cb1f3763f6dc7e5ee537d2658f0aa6f630cb2632e8d9ddc644accc8833e1e",
+    "original_sha256": "a71c4a0ed3cdf0ea27b5151e9dae6fb2d9164174726a3e05994667652050223b",
+    "edits": [
+      {
+        "new": "    assert!(errors.iter().any(|error| error.code == \"SPX-T207\"));\n}\n\n#[test]\nfn a_large_comment_keeps_ordinary_imports_admitted_without_authorizing_a_selected_helper() {\n    let leaf = format!(\"{LEAF}\\n//{}\\n\", \"x\".repeat(1_048_576));\n    let ordinary_caller = r#\"module scalar.app;\nuse function @id(\"helper.step\") from scalar.helper as step;\n@id(\"app.main\") fn main()->i64 {step(41)}\n\"#;\n    let ordinary = build(ordinary_caller, PROVIDER, &leaf).unwrap();\n    let provider = ordinary\n        .hir\n        .modules\n        .iter()\n        .find(|module| module.module == \"scalar.leaf\")\n        .unwrap();\n    assert!(provider.scalar_helpers.is_none());\n    assert!(schema(&ordinary).is_ok());\n    let linked = ordinary\n        .linked_owned_data_api_program_with_roots(\"scalar.app\", &[])\n        .unwrap();\n    crate::hir::validate(&linked).unwrap();\n\n    // The same source cannot supply a partial or unhashed proof to the static\n    // receiver. Its existing full-inventory guard remains the refusal gate.\n    let selected = build(CALLER, PROVIDER, &leaf).unwrap();\n    let provider = selected\n        .hir\n        .modules\n        .iter()\n        .find(|module| module.module == \"scalar.leaf\")\n        .unwrap();\n    assert!(provider.scalar_helpers.is_none());\n    let errors = schema(&selected).unwrap_err();\n    assert_eq!(errors.len(), 1);\n    assert_eq!(errors[0].code, \"SPX-G410\");\n    assert_eq!(\n        errors[0].message,\n        \"retained static UTF-8 source-site authority disagrees\"\n    );\n}\n",
+        "old": "    assert!(errors.iter().any(|error| error.code == \"SPX-T207\"));\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/static_text/scalar_helpers.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/workspace_graph/static_text/scalar_helpers.rs",
+    "current_sha256": "9700af77f59fe5203f2d5c69e2ab9514a9f0890f1f42bc70b655a91a4b5958b5",
+    "original_sha256": "abdb8ca8cfaa1e617562bcb90458882bbfa588765b6293a3e272d33e80f81cd0",
+    "edits": [
+      {
+        "new": "    *work = work.checked_sub(units).ok_or_else(fail)?;\n    Ok(())\n}\nfn pay_source_revision_work(\n    path: &str,\n    module: &str,\n    source: &str,\n    work: &mut usize,\n) -> Result<bool, Vec<Diagnostic>> {\n    let units = source\n        .len()\n        .checked_add(path.len())\n        .and_then(|n| n.checked_add(module.len()))\n        .and_then(|n| n.checked_add(24 + b\"semaprax.retained-primitive-source.v1\\0\".len()))\n        .ok_or_else(fail)?;\n    let Some(remaining) = work.checked_sub(units) else {\n        return Ok(false);\n    };\n    *work = remaining;\n    Ok(true)\n}\n/// Pure still includes checked arithmetic and failing pre/postconditions.\n",
+        "old": "    *work = work.checked_sub(units).ok_or_else(fail)?;\n    Ok(())\n}\n/// Pure still includes checked arithmetic and failing pre/postconditions.\n"
+      },
+      {
+        "new": "    }\n    let source = selected.ok_or_else(fail)?;\n    // Capture is optional; a source that cannot fit the hash work retains no\n    // proof. A selected receiver still requires and independently replays the\n    // complete inventory. Decline before allocating scratch or hashing bytes.\n    if !pay_source_revision_work(&program.path, &program.module, &source.source, &mut work)? {\n        return Ok(None);\n    }\n    reserve_builder_structure(\n        body_digest::scratch_bytes()\n",
+        "old": "    }\n    let source = selected.ok_or_else(fail)?;\n    reserve_builder_structure(\n        body_digest::scratch_bytes()\n"
+      },
+      {
+        "new": "            )\n            .ok_or_else(capacity)?,\n    )?;\n    let revision = body_digest::source(&program.path, &program.module, &source.source);\n",
+        "old": "            )\n            .ok_or_else(capacity)?,\n    )?;\n    debit(\n        &mut work,\n        source\n            .source\n            .len()\n            .checked_add(program.path.len())\n            .and_then(|n| n.checked_add(program.module.len()))\n            .and_then(|n| n.checked_add(24 + b\"semaprax.retained-primitive-source.v1\\0\".len()))\n            .ok_or_else(fail)?,\n    )?;\n    let revision = body_digest::source(&program.path, &program.module, &source.source);\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/static_text/scalar_helpers/capture_directory/tests.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/workspace_graph/static_text/scalar_helpers/capture_directory/tests.rs",
+    "current_sha256": "1cc0489a52cad126d7516d2b57b91cf4ad5d8064a880eea97b247e4a0936d82b",
+    "original_sha256": "95e1223a382a5f3209a46126d623881641ea067daba105290cbe7a6d895ea118",
+    "edits": [
+      {
+        "new": "use crate::workspace_graph::{index_authored, AuthoredDeclaration, AuthoredKind, WorkspaceSource};\nuse std::collections::BTreeMap;\n\n#[test]\nfn optional_source_hash_work_keeps_exact_prices_and_declines_every_short_budget() {\n    let path = \"provider.spx\";\n    let module = \"scalar.leaf\";\n    let source = \"\u00e9\\0\";\n    // Three length prefixes, the full domain and UTF-8 bytes are all paid.\n    let units = 24\n        + b\"semaprax.retained-primitive-source.v1\\0\".len()\n        + path.len()\n        + module.len()\n        + source.len();\n    let ((), metrics) = crate::test_allocation_observer::measure(|| {\n        for available in 0..units {\n            let mut work = available;\n            assert!(\n                !super::super::pay_source_revision_work(path, module, source, &mut work).unwrap()\n            );\n            assert_eq!(work, available);\n        }\n        for spare in [0, 1, 1024] {\n            let mut work = units + spare;\n            assert!(\n                super::super::pay_source_revision_work(path, module, source, &mut work).unwrap()\n            );\n            assert_eq!(work, spare);\n        }\n    });\n    assert_eq!(metrics, crate::test_allocation_observer::Metrics::default());\n}\n\nfn source(count: usize) -> String {\n",
+        "old": "use crate::workspace_graph::{index_authored, AuthoredDeclaration, AuthoredKind, WorkspaceSource};\nuse std::collections::BTreeMap;\n\nfn source(count: usize) -> String {\n"
+      },
+      {
+        "new": "    assert!(!refused);\n}\n\n#[test]\nfn optional_source_work_selection_preserves_the_complete_prior_capture_body() {\n    let current = include_str!(\"../../scalar_helpers.rs\");\n    let original = include_str!(concat!(\n        env!(\"CARGO_MANIFEST_DIR\"),\n        \"/docs/evidence/optional-helper-source-work-v1/scalar_helpers.before.rs.txt\"\n    ));\n    let helper = \"fn pay_source_revision_work(\\n    path: &str,\\n    module: &str,\\n    source: &str,\\n    work: &mut usize,\\n) -> Result<bool, Vec<Diagnostic>> {\\n    let units = source\\n        .len()\\n        .checked_add(path.len())\\n        .and_then(|n| n.checked_add(module.len()))\\n        .and_then(|n| n.checked_add(24 + b\\\"semaprax.retained-primitive-source.v1\\\\0\\\".len()))\\n        .ok_or_else(fail)?;\\n    let Some(remaining) = work.checked_sub(units) else {\\n        return Ok(false);\\n    };\\n    *work = remaining;\\n    Ok(true)\\n}\\n\";\n    let guard = \"    // Capture is optional; a source that cannot fit the hash work retains no\\n    // proof. A selected receiver still requires and independently replays the\\n    // complete inventory. Decline before allocating scratch or hashing bytes.\\n    if !pay_source_revision_work(&program.path, &program.module, &source.source, &mut work)? {\\n        return Ok(None);\\n    }\\n\";\n    let debit = \"    debit(\\n        &mut work,\\n        source\\n            .source\\n            .len()\\n            .checked_add(program.path.len())\\n            .and_then(|n| n.checked_add(program.module.len()))\\n            .and_then(|n| n.checked_add(24 + b\\\"semaprax.retained-primitive-source.v1\\\\0\\\".len()))\\n            .ok_or_else(fail)?,\\n    )?;\\n\";\n    let anchor =\n        \"    let revision = body_digest::source(&program.path, &program.module, &source.source);\";\n    let mut restored = current.to_owned();\n    for addition in [helper, guard] {\n        assert_eq!(restored.matches(addition).count(), 1);\n        restored = restored.replacen(addition, \"\", 1);\n    }\n    assert_eq!(restored.matches(anchor).count(), 1);\n    restored = restored.replacen(anchor, &format!(\"{debit}{anchor}\"), 1);\n    assert_eq!(restored, original);\n}\n",
+        "old": "    assert!(!refused);\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/tests/cache_stage_debits.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/workspace_graph/tests/cache_stage_debits.rs",
+    "current_sha256": "74c55436f47da7bfe4f248219985587f8bb5eb9b096df29b0ccbc467b7072947",
+    "original_sha256": "3cadd92d8ec82580b7db146378ac6f89a45ee1fe99e154763c25ac9c3b6669b9",
+    "edits": [
+      {
+        "new": "    take_completed();\n    let acquired_ordinary = identity_resolution::acquisitions();\n    let cached_ordinary = identity_resolution::cached_prelude_acquisitions();\n    let warm = cache.build(&manifest, &fixture.sources(&manifest)).unwrap();\n    let warm_trace = trace();\n    // Exact hits still acquire their actual cached-prelude report receivers.\n    // Excluding only that independently classified acquisition preserves the\n    // original no-fresh-resolution/index predicate; the total stays truthful.\n    let cached_warm = identity_resolution::cached_prelude_acquisitions();\n    assert_eq!(cached_warm - cached_ordinary, 3);\n    assert_eq!(\n        identity_resolution::acquisitions() - cached_warm,\n        acquired_ordinary - cached_ordinary\n    );\n    let report: serde_json::Value = serde_json::from_str(warm.to_json()).unwrap();\n    assert_eq!(report[\"work\"][\"modules_resolved\"], 0);\n",
+        "old": "    take_completed();\n    let acquired_ordinary = identity_resolution::acquisitions();\n    let warm = cache.build(&manifest, &fixture.sources(&manifest)).unwrap();\n    let warm_trace = trace();\n    // Exact hits validate and charge only the stored residual: no new\n    // identity report is acquired and no index is rebuilt.\n    assert_eq!(identity_resolution::acquisitions(), acquired_ordinary);\n    let report: serde_json::Value = serde_json::from_str(warm.to_json()).unwrap();\n    assert_eq!(report[\"work\"][\"modules_resolved\"], 0);\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/tests/record_traversal.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/workspace_graph/tests/record_traversal.rs",
+    "current_sha256": "a520fc4f24aec98b9236650c070912c8a38cd8d299d6e7fa1c5bf27c2b193c5e",
+    "original_sha256": "5b258db7449d08f6fb95c9a14be060056445ca0d1045511db00e3b44aa33bdfb",
+    "edits": [
+      {
+        "new": "    let build = build_owned(input.clone()).unwrap();\n    super::super::record_traversal::validate(&programs, &build.hir.modules).unwrap();\n    // Current authored provider ownership is a source refusal. Replaying old\n    // consumer HIR must not misclassify this source edit as a forged descriptor.\n    let mut owning_input = input.clone();\n    owning_input[0].source = owning_input[0]\n        .source\n        .replace(\"row: borrow Row\", \"row: own Row\");\n    assert_ne!(owning_input[0].source, input[0].source);\n    let owning_programs = parsed_sources(&owning_input);\n    let errors =\n        super::super::record_traversal::validate(&owning_programs, &build.hir.modules).unwrap_err();\n    assert_eq!(errors[0].code, \"SPX-T284\");\n    assert_eq!(\n        errors[0].message,\n        \"record traversal row cannot escape or materialize aggregate storage; select a field\"\n    );\n    assert_eq!(errors[0].path.as_deref(), Some(\"app.spx\"));\n    assert!(errors[0].span.is_some());\n    let errors = build_owned(owning_input)\n        .err()\n        .expect(\"owning provider must refuse\");\n    assert!(errors.iter().any(|error| error.code == \"SPX-T284\"));\n    for attack in 0..4 {\n        let mut build = build_owned(input.clone()).unwrap();\n",
+        "old": "    let build = build_owned(input.clone()).unwrap();\n    super::super::record_traversal::validate(&programs, &build.hir.modules).unwrap();\n    for attack in 0..4 {\n        let mut build = build_owned(input.clone()).unwrap();\n"
+      },
+      {
+        "new": "            }\n        }\n        let errors =\n            super::super::record_traversal::validate(&programs, &build.hir.modules).unwrap_err();\n        assert_eq!(errors[0].code, \"SPX-G173\", \"attack {attack}\");\n    }\n}\n",
+        "old": "            }\n        }\n        assert!(\n            super::super::record_traversal::validate(&programs, &build.hir.modules).is_err(),\n            \"attack {attack}\"\n        );\n    }\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_report.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/src/workspace_report.rs",
+    "current_sha256": "fa7df387eb05aebefbd4c86c11ded727d9db05f11d79016e63579c33ed24db1b",
+    "original_sha256": "7a02ad4282f096b36a488cb44106a47aeef76991314580f664cd67a84816f34d",
+    "edits": [
+      {
+        "new": ")]\nenum Owner {\n    Initial(crate::workspace_graph::InitialReport),\n    Unreceived(crate::workspace_graph::initial_report::Unreceived),\n    Existing(Vec<Diagnostic>),\n    Selected {\n",
+        "old": ")]\nenum Owner {\n    Existing(Vec<Diagnostic>),\n    Selected {\n"
+      },
+      {
+        "new": "pub struct WorkspaceReportFailure(Owner, Option<Vec<Diagnostic>>);\nimpl WorkspaceReportFailure {\n    pub(crate) fn initial(failure: crate::workspace_graph::InitialReport) -> Self {\n        Self(Owner::Initial(failure), None)\n    }\n    pub(crate) fn unreceived(failure: crate::workspace_graph::initial_report::Unreceived) -> Self {\n        Self(Owner::Unreceived(failure), None)\n    }\n    pub(crate) fn existing(diagnostics: Vec<Diagnostic>) -> Self {\n        Self(Owner::Existing(diagnostics), None)\n",
+        "old": "pub struct WorkspaceReportFailure(Owner, Option<Vec<Diagnostic>>);\nimpl WorkspaceReportFailure {\n    pub(crate) fn existing(diagnostics: Vec<Diagnostic>) -> Self {\n        Self(Owner::Existing(diagnostics), None)\n"
+      },
+      {
+        "new": "        match &self.0 {\n            Owner::Existing(diagnostics) => Some(diagnostics),\n            Owner::Initial(_) => None,\n            Owner::Unreceived(failure) => Some(failure.diagnostics()),\n            Owner::Selected { failure, form } => failure.published_for(*form),\n        }\n",
+        "old": "        match &self.0 {\n            Owner::Existing(diagnostics) => Some(diagnostics),\n            Owner::Selected { failure, form } => failure.published_for(*form),\n        }\n"
+      },
+      {
+        "new": "        match self.0 {\n            Owner::Existing(diagnostics) => diagnostics,\n            Owner::Initial(failure) => vec![failure.materialize_unfunded()],\n            Owner::Unreceived(failure) => failure.into_legacy_unfunded(),\n            Owner::Selected { failure, form } => failure\n                .into_report(form)\n",
+        "old": "        match self.0 {\n            Owner::Existing(diagnostics) => diagnostics,\n            Owner::Selected { failure, form } => failure\n                .into_report(form)\n"
+      },
+      {
+        "new": "        let form = match &self.0 {\n            Owner::Selected { form, .. } => *form,\n            Owner::Initial(failure) => return failure.write_human(out),\n            Owner::Existing(_) | Owner::Unreceived(_) => unreachable!(),\n        };\n        fmt::Display::fmt(&Diagnostic::io_static(form.code(), form.message()), out)\n",
+        "old": "        let form = match &self.0 {\n            Owner::Selected { form, .. } => *form,\n            Owner::Existing(_) => unreachable!(),\n        };\n        fmt::Display::fmt(&Diagnostic::io_static(form.code(), form.message()), out)\n"
+      },
+      {
+        "new": "        match self {\n            Self(Owner::Existing(report), None) => Self::existing(mapper(report)),\n            // Explicit remaining unreceived-child compatibility allocation;\n            // the original primary and failed owner survive until this edge.\n            Self(Owner::Unreceived(failure), None) => {\n                Self::existing(mapper(failure.into_legacy_unfunded()))\n            }\n            owner => owner,\n        }\n",
+        "old": "        match self {\n            Self(Owner::Existing(report), None) => Self::existing(mapper(report)),\n            owner => owner,\n        }\n"
+      },
+      {
+        "new": "    }\n}\n\nmod initial;\n",
+        "old": "    }\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/hir_module_boundaries.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/tests/hir_module_boundaries.rs",
+    "current_sha256": "ef7fee1cdb326729a2b3729589d75a976be48d06fefdf573d4cab08ab315acf5",
+    "original_sha256": "315aab9b2fb8532c19fc9ef87a71a3b686c577950eb04ab3821622c1cb530ee0",
+    "edits": [
+      {
+        "new": "            include_str!(\"../src/test_allocation_observer/free_order.rs\"),\n        ),\n        include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared.rs\"), include_str!(\"../src/bounded_output/format_acceptance.rs\"), include_str!(\"../src/bounded_output/format_acceptance/tests.rs\"), include_str!(\"../src/workspace_graph/diagnostics/initial.rs\"), include_str!(\"../src/workspace_graph/diagnostics/initial/context.rs\"), include_str!(\"../src/workspace_graph/diagnostics/initial/tests.rs\"), include_str!(\"../src/workspace_graph/initial_report.rs\"), include_str!(\"../src/workspace_graph/initial_report/before.rs\"), include_str!(\"../src/workspace_graph/initial_report/before_mappers.rs\"), include_str!(\"../src/workspace_graph/initial_report/build.rs\"), include_str!(\"../src/workspace_graph/initial_report/tests.rs\"), include_str!(\"../src/workspace_report/initial.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/before/storage.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/before/strategy.rs\"), include_str!(\"../src/ast/program_source/decl_slices/alias_tests.rs\"), include_str!(\"../src/ast/program_source/decl_slices/before_alias.rs\"), include_str!(\"../src/ast/program_source/function_alias.rs\"), include_str!(\"../src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs\"), include_str!(\"../src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs\"), include_str!(\"../src/workspace_graph/expected_projection/borrowed_imports/typed/before_alias.rs\"), include_str!(\"../src/workspace_graph/function_alias/before_core.rs\"), include_str!(\"../src/workspace_graph/function_alias/before_core/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/tests.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs\"),\n",
+        "old": "            include_str!(\"../src/test_allocation_observer/free_order.rs\"),\n        ),\n        include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/before/storage.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/before/strategy.rs\"), include_str!(\"../src/ast/program_source/decl_slices/alias_tests.rs\"), include_str!(\"../src/ast/program_source/decl_slices/before_alias.rs\"), include_str!(\"../src/ast/program_source/function_alias.rs\"), include_str!(\"../src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs\"), include_str!(\"../src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs\"), include_str!(\"../src/workspace_graph/expected_projection/borrowed_imports/typed/before_alias.rs\"), include_str!(\"../src/workspace_graph/function_alias/before_core.rs\"), include_str!(\"../src/workspace_graph/function_alias/before_core/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/factored/compact_nodes/tests.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs\"),\n"
+      },
+      {
+        "new": "        include_str!(\"../src/cleanup_plan/replay/structural_control/blocks.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/structural_control/blocks_before_receipt.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/structural_control/call_receiving.rs\"), include_str!(\"../src/cleanup_plan/replay/supplemental/receiving.rs\"), include_str!(\"../src/cleanup_plan/replay/supplemental/receiving/tests.rs\"),\n        concat!(include_str!(\"../src/cleanup_plan/replay/structural_control/calls.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs\")),\n        include_str!(\"../src/cleanup_plan/replay/structural_control/calls/custody_tests.rs\"),\n",
+        "old": "        include_str!(\"../src/cleanup_plan/replay/structural_control/blocks.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/structural_control/blocks_before_receipt.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/structural_control/call_receiving.rs\"),\n        concat!(include_str!(\"../src/cleanup_plan/replay/structural_control/calls.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs\"), include_str!(\"../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs\")),\n        include_str!(\"../src/cleanup_plan/replay/structural_control/calls/custody_tests.rs\"),\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/project/command_argument_borrow.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/tests/project/command_argument_borrow.rs",
+    "current_sha256": "e7c5566d803226f8cc3ee88f913053fd1c67cd61c4476fc3b4e0477c93c10420",
+    "original_sha256": "3064e22e4c2120e76acb3d88c4ea600d7608dbaadfc193a05ec04563c3b8e135",
+    "edits": [
+      {
+        "new": "    .expect_err(\"a mutable borrowed-str command local must fail closed\");\n    assert!(\n        errors.iter().any(|error| error.code == \"SPX-T264\"\n            && error.message\n                == \"byte-slice alias `needle_text` must be immutable and cannot be reassigned\"),\n        \"{errors:?}\"\n    );\n}\n\n#[test]\nfn retained_hir_still_rejects_a_mutable_command_argument_alias_independently() {\n    use semaprax::hir::{self, ResolvedExprKind, ResolvedStatement};\n    let (example, files) = COMMITTED_COMMAND_PROJECTS[3];\n    let project = fixture(example, files);\n    let mut program = with_authenticated_project(&project.0.join(\"semaprax.toml\"), |snapshot| {\n        snapshot.check()?;\n        Ok(snapshot.entry_program().clone())\n    })\n    .unwrap();\n    hir::validate(&program).unwrap();\n    let function = program\n        .functions\n        .iter_mut()\n        .find(|function| function.id.as_str() == \"spxgrep-lines.run\")\n        .unwrap();\n    let ResolvedExprKind::Block { tail, .. } = &mut function.body.kind else {\n        panic!(\"the checked command retains its block body\");\n    };\n    let ResolvedExprKind::If { then_branch, .. } = &mut tail.kind else {\n        panic!(\"the checked command retains its argument-count condition\");\n    };\n    let ResolvedExprKind::Block { statements, .. } = &mut then_branch.kind else {\n        panic!(\"the argument branch retains its checked bindings\");\n    };\n    let mut changed = false;\n    for statement in statements {\n        let ResolvedStatement::Let {\n            binding, mutable, ..\n        } = statement\n        else {\n            continue;\n        };\n        if binding.name != \"needle_text\" {\n            continue;\n        }\n        assert!(!*mutable);\n        *mutable = true;\n        changed = true;\n    }\n    assert!(\n        changed,\n        \"the original command-argument binding must be changed\"\n    );\n    let error = hir::validate(&program).unwrap_err();\n    assert_eq!(error.code, \"SPX-H006\");\n    assert_eq!(\n        error.message,\n        \"borrowed-str local alias must be immutable and unprojected\"\n    );\n}\n",
+        "old": "    .expect_err(\"a mutable borrowed-str command local must fail closed\");\n    assert!(\n        errors.iter().any(|error| error.code == \"SPX-H006\"\n            && error.message == \"borrowed-str local alias must be immutable and unprojected\"),\n        \"{errors:?}\"\n    );\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/project/signature_owned_values.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/tests/project/signature_owned_values.rs",
+    "current_sha256": "4a113e33e046dff73ca5b64278f128e9ed0db9066835fe1f81d2f7b09c18aa85",
+    "original_sha256": "dc3e5e52dbac50782673b0225d9c9fd90092bd6c87ffaa4889cae0071f12995c",
+    "edits": [
+      {
+        "new": "\n#[test]\nfn internal_record_imports_keep_variant_imports_and_public_owned_parameters_closed() {\n    for (import, target, admitted) in [\n        (\n",
+        "old": "\n#[test]\nfn owned_type_imports_are_admitted_but_owned_argument_function_imports_remain_closed() {\n    for (import, target, admitted) in [\n        (\n"
+      },
+      {
+        "new": "            \"use function @id(\\\"owned.record-select\\\") from owned.core as select_frame;\",\n            \"owned.record-select\",\n            true,\n        ),\n        (\n",
+        "old": "            \"use function @id(\\\"owned.record-select\\\") from owned.core as select_frame;\",\n            \"owned.record-select\",\n            false,\n        ),\n        (\n"
+      },
+      {
+        "new": "        let disk = fixture.bytes();\n        let opened = with_authenticated_project(&fixture.0.join(\"semaprax.toml\"), |snapshot| {\n            if target == \"owned.record-select\" {\n                // Internal nongeneric record calls are an admitted library\n                // route. Selecting that same owning signature as a public v8\n                // API must still fail at the closed public boundary.\n                let positive = snapshot.public_api_descriptor().unwrap();\n                assert_eq!(positive.exports().len(), 1);\n                assert_eq!(positive.exports()[0].stable_id().as_str(), \"owned.public\");\n                let revision = snapshot.retain_revision();\n                let error = semaprax::project::derive_public_api_descriptor(\n                    snapshot.entry_program(),\n                    &[target.to_owned()],\n                    semaprax::project::PublicApiSubject {\n                        project_schema: semaprax::project::PUBLIC_OWNED_DATA_PROJECT_SCHEMA,\n                        project_revision: snapshot.project_revision(),\n                        workspace_revision: snapshot.workspace_revision(),\n                        project_graph_digest: revision.semantic_graph_digest(),\n                    },\n                )\n                .unwrap_err();\n                assert_eq!(error.code, \"SPX-J113\");\n                assert_eq!(\n                    error.message,\n                    \"selected public API export `owned.record-select` has an unsupported parameter\"\n                );\n            }\n            Ok(snapshot.semantic_graph().to_owned())\n        });\n",
+        "old": "        let disk = fixture.bytes();\n        let opened = with_authenticated_project(&fixture.0.join(\"semaprax.toml\"), |snapshot| {\n            Ok(snapshot.semantic_graph().to_owned())\n        });\n"
+      },
+      {
+        "new": "            let graph = opened.unwrap();\n            assert!(graph.contains(&format!(\"\\\"target\\\":\\\"{target}\\\"\")));\n            let kind = if import.starts_with(\"use type \") {\n                \"type_import\"\n            } else {\n                \"function_import\"\n            };\n            assert!(graph.contains(&format!(\"\\\"kind\\\":\\\"{kind}\\\"\")));\n        } else {\n            code(opened, \"SPX-G172\");\n",
+        "old": "            let graph = opened.unwrap();\n            assert!(graph.contains(&format!(\"\\\"target\\\":\\\"{target}\\\"\")));\n            assert!(graph.contains(\"\\\"kind\\\":\\\"type_import\\\"\"));\n        } else {\n            code(opened, \"SPX-G172\");\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+    "current_sha256": "791302195066b0306ead01d0e8e25d579eb2b4dede7ca93901c3c8740e229115",
+    "original_sha256": "5424f231b52547e3ef1e04ea04ced1042b0b5e624f2358205e80bcaad1558fb8",
+    "edits": [
+      {
+        "new": "];\nconst CAPTURED: [&str; 2] = [\n    include_str!(\"../../../docs/evidence/browser-graph-pins-17104e20c/current-hosted-calculator-baseline.json\"),\n    include_str!(\"../../../docs/evidence/browser-graph-pins-17104e20c/current-hosted-calculator-renamed.json\"),\n];\nfn hash(domain: &[u8], bytes: &[u8]) -> String {\n",
+        "old": "];\nconst CAPTURED: [&str; 2] = [\n    include_str!(\"../../../docs/evidence/browser-graph-pins-268cb0523/current-hosted-calculator-baseline.json\"),\n    include_str!(\"../../../docs/evidence/browser-graph-pins-268cb0523/current-hosted-calculator-renamed.json\"),\n];\nfn hash(domain: &[u8], bytes: &[u8]) -> String {\n"
+      },
+      {
+        "new": "        parsed[\"graph_digest\"].as_str().unwrap()\n    );\n    assert_eq!(parsed[\"budget\"][\"used_builder_bytes\"], 3_930_276);\n    let historical = HISTORICAL\n        .iter()\n",
+        "old": "        parsed[\"graph_digest\"].as_str().unwrap()\n    );\n    assert_eq!(parsed[\"budget\"][\"used_builder_bytes\"], 4_393_980);\n    let historical = HISTORICAL\n        .iter()\n"
+      },
+      {
+        "new": "        previous[\"graph_digest\"].as_str().unwrap()\n    );\n    let field = \"\\\"used_builder_bytes\\\":3930276\";\n    assert_eq!(graph.matches(field).count(), 1);\n    let restored = graph.replacen(field, \"\\\"used_builder_bytes\\\":1214409\", 1);\n",
+        "old": "        previous[\"graph_digest\"].as_str().unwrap()\n    );\n    let field = \"\\\"used_builder_bytes\\\":4393980\";\n    assert_eq!(graph.matches(field).count(), 1);\n    let restored = graph.replacen(field, \"\\\"used_builder_bytes\\\":1214409\", 1);\n"
+      },
+      {
+        "new": "        assert_eq!(digest(graph), expected);\n        assert!(runner.contains(&graph_digest(graph)));\n    }\n}\n#[test]\nfn current_hosted_wires_reproduce_every_prior_byte_after_only_bill_and_digest_restoration() {\n    let previous = [\n        include_str!(\"../../../docs/evidence/browser-graph-pins-268cb0523/current-hosted-calculator-baseline.json\"),\n        include_str!(\"../../../docs/evidence/browser-graph-pins-268cb0523/current-hosted-calculator-renamed.json\"),\n    ];\n    for (captured, previous) in CAPTURED.into_iter().zip(previous) {\n        let graph = captured.strip_suffix('\\n').unwrap();\n        let previous = previous.strip_suffix('\\n').unwrap();\n        let parsed: serde_json::Value = serde_json::from_str(graph).unwrap();\n        let prior: serde_json::Value = serde_json::from_str(previous).unwrap();\n        assert_eq!(graph_digest(graph), parsed[\"graph_digest\"]);\n        assert_eq!(graph_digest(previous), prior[\"graph_digest\"]);\n        assert_eq!(parsed[\"budget\"][\"used_builder_bytes\"], 3_930_276);\n        assert_eq!(prior[\"budget\"][\"used_builder_bytes\"], 4_393_980);\n        let field = \"\\\"used_builder_bytes\\\":3930276\";\n        assert_eq!(graph.matches(field).count(), 1);\n        let restored = graph.replacen(field, \"\\\"used_builder_bytes\\\":4393980\", 1);\n        let field = format!(\"\\\"graph_digest\\\":{}\", parsed[\"graph_digest\"]);\n        assert_eq!(restored.matches(&field).count(), 1);\n        let restored = restored.replacen(\n            &field,\n            &format!(\"\\\"graph_digest\\\":{}\", prior[\"graph_digest\"]),\n            1,\n        );\n        assert_eq!(restored, previous, \"complete prior hosted graph bytes\");\n    }\n}\n",
+        "old": "        assert_eq!(digest(graph), expected);\n        assert!(runner.contains(&graph_digest(graph)));\n    }\n}\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_graph/source_inventory.rs",
+    "checkpoint_revision": "8c974ceb05e0bbd63fda796054b00f68f90b5938",
+    "archive": "docs/evidence/runtime-fixture-848-assembly-20261015/before/848/tests/workspace/semantic_graph/source_inventory.rs",
+    "current_sha256": "8b898024215c17b4dab19fd8cd097b71ab2ef27a1b299899a8c9efe98074b9c5",
+    "original_sha256": "692aaceda108dfd32ef36f775ddd934a360d7a4e0494a9ff24cb143cbd9b084f",
+    "edits": [
+      {
+        "new": "        include_str!(\"../../src/source_verify/byte_traversal/nested/tests.rs\"),\n        include_str!(\"../../src/source_verify/iterative/while_rules/before_nested.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared.rs\"), include_str!(\"../../src/bounded_output/format_acceptance.rs\"), include_str!(\"../../src/bounded_output/format_acceptance/tests.rs\"), include_str!(\"../../src/workspace_graph/diagnostics/initial.rs\"), include_str!(\"../../src/workspace_graph/diagnostics/initial/context.rs\"), include_str!(\"../../src/workspace_graph/diagnostics/initial/tests.rs\"), include_str!(\"../../src/workspace_graph/initial_report.rs\"), include_str!(\"../../src/workspace_graph/initial_report/before.rs\"), include_str!(\"../../src/workspace_graph/initial_report/before_mappers.rs\"), include_str!(\"../../src/workspace_graph/initial_report/build.rs\"), include_str!(\"../../src/workspace_graph/initial_report/tests.rs\"), include_str!(\"../../src/workspace_report/initial.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/before/storage.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/before/strategy.rs\"), include_str!(\"../../src/ast/program_source/decl_slices/alias_tests.rs\"), include_str!(\"../../src/ast/program_source/decl_slices/before_alias.rs\"), include_str!(\"../../src/ast/program_source/function_alias.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/borrowed_imports/typed/before_alias.rs\"), include_str!(\"../../src/workspace_graph/function_alias/before_core.rs\"), include_str!(\"../../src/workspace_graph/function_alias/before_core/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/tests.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs\"),\n",
+        "old": "        include_str!(\"../../src/source_verify/byte_traversal/nested/tests.rs\"),\n        include_str!(\"../../src/source_verify/iterative/while_rules/before_nested.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/before/borrowed.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/before/storage.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/before/strategy.rs\"), include_str!(\"../../src/ast/program_source/decl_slices/alias_tests.rs\"), include_str!(\"../../src/ast/program_source/decl_slices/before_alias.rs\"), include_str!(\"../../src/ast/program_source/function_alias.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs\"), include_str!(\"../../src/workspace_graph/expected_projection/borrowed_imports/typed/before_alias.rs\"), include_str!(\"../../src/workspace_graph/function_alias/before_core.rs\"), include_str!(\"../../src/workspace_graph/function_alias/before_core/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/factored/compact_nodes/tests.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs\"),\n"
+      },
+      {
+        "new": "                concat!(\n                    concat!(\n                    concat!(concat!(concat!(include_str!(\"../../src/workspace_graph.rs\"), include_str!(\"../../src/workspace_graph/initial_report.rs\"), include_str!(\"../../src/workspace_graph/initial_report/before.rs\"), include_str!(\"../../src/workspace_graph/initial_report/before_mappers.rs\"), include_str!(\"../../src/workspace_graph/initial_report/build.rs\"), include_str!(\"../../src/workspace_graph/initial_report/tests.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/live_oracle/source_custody/presence.rs\"),\n",
+        "old": "                concat!(\n                    concat!(\n                    concat!(concat!(concat!(include_str!(\"../../src/workspace_graph.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/live_oracle/source_custody/presence.rs\"),\n"
+      },
+      {
+        "new": "        include_str!(\"../../src/cleanup_plan/replay/structural_control/blocks.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/structural_control/blocks_before_receipt.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/structural_control/call_receiving.rs\"), include_str!(\"../../src/cleanup_plan/replay/supplemental/receiving.rs\"), include_str!(\"../../src/cleanup_plan/replay/supplemental/receiving/tests.rs\"),\n        concat!(include_str!(\"../../src/cleanup_plan/replay/structural_control/calls.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs\")),\n        include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/custody_tests.rs\"),\n",
+        "old": "        include_str!(\"../../src/cleanup_plan/replay/structural_control/blocks.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/structural_control/blocks_before_receipt.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/structural_control/call_receiving.rs\"),\n        concat!(include_str!(\"../../src/cleanup_plan/replay/structural_control/calls.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs\"), include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs\")),\n        include_str!(\"../../src/cleanup_plan/replay/structural_control/calls/custody_tests.rs\"),\n"
+      }
+    ]
+  }
+]

@@ -6,12 +6,15 @@ use std::io::Read;
 
 const OUTPUT_CAP: usize = 5_196_870;
 const COMPRESSED_CAP: usize = 524_288;
-const BYTES: &[u8] = include_bytes!(concat!(
+// This owner now requires its immutable repository fixture at TEST runtime.
+// A compiled length/hash authenticates all bytes before the original assertions.
+const FIXTURE_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/docs/evidence/selected-child-refusal-781/exact-source-inverses.json"
-));
+);
 #[derive(Debug, Eq, PartialEq)]
 enum Failure {
+    Input,
     Bound,
     CompressedDigest,
     Allocation,
@@ -62,8 +65,7 @@ fn decode(
     }
     String::from_utf8(output).map_err(|_| Failure::Utf8)
 }
-// Common in both paired builds: only the single BYTES include path changes.
-// The raw transport authenticates the same length/hash/UTF-8 before copying.
+// Independent historical raw decoder controls remain identical to the paired pilot.
 fn plain(bytes: &[u8], expected_len: usize, raw_sha: [u8; 32]) -> Result<String, Failure> {
     if expected_len > OUTPUT_CAP || bytes.len() != expected_len {
         return Err(Failure::Bound);
@@ -77,17 +79,52 @@ fn plain(bytes: &[u8], expected_len: usize, raw_sha: [u8; 32]) -> Result<String,
 }
 pub(super) fn load() -> String {
     check_decoder_contract();
-    let loaded = if BYTES.starts_with(&[0x1f, 0x8b]) {
-        decode(BYTES, OUTPUT_CAP, GZIP_SHA, RAW_SHA)
-    } else {
-        plain(BYTES, OUTPUT_CAP, RAW_SHA)
-    };
-    loaded.expect("complete authenticated immutable fixture")
+    read_fixture(std::path::Path::new(FIXTURE_PATH), OUTPUT_CAP, RAW_SHA)
+        .expect("complete authenticated immutable runtime fixture")
 }
-const GZIP_SHA: [u8; 32] = [
-    108, 122, 171, 139, 39, 30, 147, 21, 28, 217, 60, 121, 234, 223, 41, 85, 216, 240, 207, 159,
-    174, 59, 220, 223, 129, 110, 24, 28, 242, 191, 202, 17,
-];
+
+fn read_fixture(
+    path: &std::path::Path,
+    expected_len: usize,
+    raw_sha: [u8; 32],
+) -> Result<String, Failure> {
+    if expected_len > OUTPUT_CAP {
+        return Err(Failure::Bound);
+    }
+    // One handle binds metadata and bytes. Missing or non-regular input fails
+    // closed; no buffer is acquired before the exact fixed length is checked.
+    let mut file = std::fs::File::open(path).map_err(|_| Failure::Input)?;
+    let metadata = file.metadata().map_err(|_| Failure::Input)?;
+    if !metadata.is_file() || metadata.len() != expected_len as u64 {
+        return Err(Failure::Bound);
+    }
+    read_fixture_body(&mut file, expected_len, raw_sha)
+}
+
+fn read_fixture_body(
+    input: &mut impl Read,
+    expected_len: usize,
+    raw_sha: [u8; 32],
+) -> Result<String, Failure> {
+    if expected_len > OUTPUT_CAP {
+        return Err(Failure::Bound);
+    }
+    let mut bytes = Vec::new();
+    bytes
+        .try_reserve_exact(expected_len)
+        .map_err(|_| Failure::Allocation)?;
+    bytes.resize(expected_len, 0);
+    input.read_exact(&mut bytes).map_err(|_| Failure::Decode)?;
+    let mut extra = [0_u8; 1];
+    if input.read(&mut extra).map_err(|_| Failure::Decode)? != 0 {
+        return Err(Failure::TrailingInput);
+    }
+    if digest(&bytes) != raw_sha {
+        return Err(Failure::DecodedDigest);
+    }
+    String::from_utf8(bytes).map_err(|_| Failure::Utf8)
+}
+
 const RAW_SHA: [u8; 32] = [
     47, 243, 227, 113, 200, 191, 222, 135, 110, 222, 79, 94, 116, 69, 162, 96, 103, 133, 142, 74,
     13, 132, 97, 12, 202, 148, 213, 179, 204, 193, 36, 14,
@@ -205,3 +242,109 @@ const CURRENT_SHA_4: [u8; 32] = [
     55, 171, 9, 110, 116, 49, 7, 85, 141, 37, 147, 143, 204, 246, 44, 197, 227, 99, 107, 209, 10,
     215, 172, 117, 29, 104, 132, 215, 55, 139, 152, 154,
 ];
+
+#[test]
+fn runtime_fixture_reads_complete_bytes_and_rejects_missing_bounds_tamper_and_stream_drift() {
+    verify_runtime_source_custody();
+    use std::io::Cursor;
+    static SERIAL: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    struct Directory(std::path::PathBuf);
+    impl Drop for Directory {
+        fn drop(&mut self) {
+            std::fs::remove_dir_all(&self.0).unwrap();
+        }
+    }
+    let directory_path = std::env::temp_dir().join(format!(
+        "semaprax-immutable-fixture-{}-{}",
+        std::process::id(),
+        SERIAL.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    ));
+    std::fs::create_dir(&directory_path).unwrap();
+    let directory = Directory(directory_path);
+    let path = directory.0.join("fixture");
+    let raw = b"authenticated fixture";
+    let hash = digest(raw);
+    assert_eq!(read_fixture(&path, raw.len(), hash), Err(Failure::Input));
+    assert_eq!(
+        read_fixture(&path, OUTPUT_CAP + 1, hash),
+        Err(Failure::Bound)
+    );
+    // Windows may reject a directory at open; Unix admits a handle and then
+    // rejects its non-regular metadata. Neither route acquires the output Vec.
+    assert!(matches!(
+        read_fixture(&directory.0, 0, hash),
+        Err(Failure::Input | Failure::Bound)
+    ));
+    std::fs::write(&path, raw).unwrap();
+    assert_eq!(
+        read_fixture(&path, raw.len(), hash).unwrap().as_bytes(),
+        raw
+    );
+    assert_eq!(
+        read_fixture(&path, raw.len() + 1, hash),
+        Err(Failure::Bound)
+    );
+    assert_eq!(
+        read_fixture(&path, raw.len() - 1, hash),
+        Err(Failure::Bound)
+    );
+    let mut tampered = raw.to_vec();
+    tampered[0] ^= 1;
+    std::fs::write(&path, &tampered).unwrap();
+    assert_eq!(
+        read_fixture(&path, raw.len(), hash),
+        Err(Failure::DecodedDigest)
+    );
+    std::fs::write(&path, raw).unwrap();
+    // Direct stream controls model truncation/growth after the handle metadata
+    // check without a timing-dependent filesystem race or an easier corpus.
+    assert_eq!(
+        read_fixture_body(&mut Cursor::new(raw), raw.len() + 1, hash),
+        Err(Failure::Decode)
+    );
+    assert_eq!(
+        read_fixture_body(&mut Cursor::new(raw), raw.len() - 1, hash),
+        Err(Failure::TrailingInput)
+    );
+    assert_eq!(
+        read_fixture_body(&mut Cursor::new(raw), OUTPUT_CAP + 1, hash),
+        Err(Failure::Bound)
+    );
+    std::fs::write(&path, [255]).unwrap();
+    assert_eq!(read_fixture(&path, 1, digest(&[255])), Err(Failure::Utf8));
+    std::fs::write(&path, []).unwrap();
+    assert_eq!(read_fixture(&path, 0, digest(&[])).unwrap(), "");
+}
+
+// Complete source custody is part of the same bounded IO owner, not a new gate.
+fn verify_runtime_source_custody() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let rows: serde_json::Value = serde_json::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/runtime-selected-child-fixture-848/current-to-c37.json"
+    )))
+    .unwrap();
+    for row in rows.as_array().unwrap() {
+        let path = row["source"].as_str().unwrap();
+        let raw = std::fs::read_to_string(root.join(path)).unwrap();
+        let mut current = crate::source_reflows_merge::runtime848_input(path, &raw);
+        assert_eq!(
+            digest(current.as_bytes()).as_slice(),
+            row["current_digest"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|v| v.as_u64().unwrap() as u8)
+                .collect::<Vec<_>>()
+        );
+        for edit in row["edits"].as_array().unwrap() {
+            let new = edit["new"].as_str().unwrap();
+            assert_eq!(current.matches(new).count(), 1);
+            current = current.replacen(new, edit["old"].as_str().unwrap(), 1);
+        }
+        assert_eq!(
+            current,
+            std::fs::read_to_string(root.join(row["archive"].as_str().unwrap())).unwrap()
+        );
+    }
+}

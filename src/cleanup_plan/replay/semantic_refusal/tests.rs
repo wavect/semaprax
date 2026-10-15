@@ -68,6 +68,25 @@ fn sealed_atoms_keep_saved_detailed_text_and_allocate_no_identity_payload() {
 fn complete_original_legacy(receipt: Receipt, function: &ResolvedFunction) -> Diagnostic {
     let message = match receipt.atom {
         Atom::SelectedSession(detail) => detail.to_owned(),
+        Atom::SelectedChild(reason) => {
+            let message = if reason.prefixed() {
+                format!(
+                    "cleanup plan for function `{}` failed independent replay: {}",
+                    function.id,
+                    reason.detail()
+                )
+            } else {
+                reason.detail().to_owned()
+            };
+            return Diagnostic {
+                code: "SPX-H006",
+                severity: crate::diagnostic::Severity::Error,
+                message: std::borrow::Cow::Owned(message),
+                path: None,
+                span: None,
+                help: None,
+            };
+        }
         Atom::RepeatedStatus(id) => format!("status source for `{id}` is repeated"),
         Atom::UnknownStatus(id) => {
             format!("status source references unknown expression `{id}`")
@@ -107,7 +126,7 @@ fn every_atom_matches_complete_original_diagnostic_under_finite_account_through_
     .unwrap();
     let function = &program.functions[0];
     let id = &function.body.id;
-    let constructors: [fn(ExpressionId) -> Atom; 8] = [
+    let constructors: [fn(ExpressionId) -> Atom; 10] = [
         Atom::RepeatedStatus,
         Atom::UnknownStatus,
         |_| Atom::NoncontiguousSlot(7),
@@ -116,6 +135,8 @@ fn every_atom_matches_complete_original_diagnostic_under_finite_account_through_
         |id| Atom::RepeatedCallFlag(id, LivenessFlagId(17)),
         Atom::RepeatedVariantEpoch,
         Atom::MismatchedFailure,
+        |_| Atom::SelectedChild(crate::cleanup_plan::renewal_profile::child_refusal::Refusal::LexicalDepth),
+        |_| Atom::SelectedChild(crate::cleanup_plan::renewal_profile::child_refusal::Refusal::RenewalWork),
     ];
     for make in constructors {
         let old = complete_original_legacy(

@@ -7,7 +7,7 @@ use super::super::{
     physical_clone, replay_error,
 };
 
-use super::{epsilon_alias, memo, successor_targets, tests};
+use super::{app_census, epsilon_alias, memo, successor_targets, tests};
 
 type SharedWeighted = Rc<Weighted>;
 

@@ -18,10 +18,10 @@ fn certified_while_counter_preserves_complete_before_fields_work_and_receiving_d
     let mut preparation = ReplayBudget::unobserved();
     let facts = Facts::Arena(
         crate::cleanup_plan::replay::expression_facts::arena::build::<
-            crate::cleanup_plan::replay::errors::Legacy,
+            crate::cleanup_plan::replay::expression_facts::errors::Legacy,
         >(
             function,
-            crate::cleanup_plan::replay::capacity::Payer::Selected(
+            crate::cleanup_plan::replay::expression_facts::capacity::Payer::Selected(
                 &mut crate::cleanup_plan::replay::physical_storage::PhysicalReservation::new(
                     usize::MAX,
                 ),

@@ -483,6 +483,8 @@ macro_rules! semantic_graph_projection_root_source_inventory {
                 include_str!("../../src/workspace_graph/expected_projection/borrowed_leaf/checked_key.rs"),
                 include_str!("../../src/workspace_graph/expected_projection/borrowed_leaf/checked_key/tests.rs"),
                 include_str!("../../src/workspace_graph/expected_projection/borrowed_imports.rs"),
+                include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/typed.rs"),
+
             include_str!("../../src/workspace_graph/expected_projection/borrowed_imports_original.rs"),
                 include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/alias_clone.rs"),
                 include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/tests.rs"),
@@ -550,6 +552,9 @@ macro_rules! semantic_graph_projection_child_source_inventory {
     (defaults) => {
         concat!(
             include_str!("../../src/workspace_graph/expected_projection/defaults.rs"),
+                include_str!("../../src/workspace_graph/expected_projection/defaults/typed.rs"),
+                include_str!("../../src/workspace_graph/expected_projection/defaults/typed_fields.rs"),
+
             include_str!(
                 "../../src/workspace_graph/expected_projection/defaults/field_directory.rs"
             ),
@@ -565,6 +570,8 @@ macro_rules! semantic_graph_projection_child_source_inventory {
     (import_stub) => {
         concat!(
             include_str!("../../src/workspace_graph/expected_projection/import_stub.rs"),
+                include_str!("../../src/workspace_graph/expected_projection/import_stub/typed.rs"),
+
             include_str!(
                 "../../src/workspace_graph/expected_projection/import_stub/byte_helper.rs"
             ),

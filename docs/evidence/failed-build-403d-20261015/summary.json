@@ -1,0 +1,230 @@
+{
+  "source_subject": "403d8a409417baa8e99e6d488c567e6b9b6acc74",
+  "exit_code": 101,
+  "wall_seconds": 300.9191312500043,
+  "production_compilation_passed": true,
+  "executed_test_bodies": 0,
+  "compiler_errors": 7,
+  "errors": [
+    {
+      "code": {
+        "code": "E0433",
+        "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+      },
+      "message": "cannot find `errors` in `replay`",
+      "spans": [
+        {
+          "byte_end": 1014,
+          "byte_start": 1008,
+          "column_end": 48,
+          "column_start": 42,
+          "expansion": null,
+          "file_name": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs",
+          "is_primary": true,
+          "label": "could not find `errors` in `replay`",
+          "line_end": 21,
+          "line_start": 21,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 48,
+              "highlight_start": 42,
+              "text": "            crate::cleanup_plan::replay::errors::Legacy,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": {
+        "code": "E0433",
+        "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+      },
+      "message": "cannot find `capacity` in `replay`",
+      "spans": [
+        {
+          "byte_end": 1106,
+          "byte_start": 1098,
+          "column_end": 50,
+          "column_start": 42,
+          "expansion": null,
+          "file_name": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs",
+          "is_primary": true,
+          "label": "could not find `capacity` in `replay`",
+          "line_end": 24,
+          "line_start": 24,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 50,
+              "highlight_start": 42,
+              "text": "            crate::cleanup_plan::replay::capacity::Payer::Selected("
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": {
+        "code": "E0433",
+        "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+      },
+      "message": "cannot find module or crate `app_census` in this scope",
+      "spans": [
+        {
+          "byte_end": 4915,
+          "byte_start": 4905,
+          "column_end": 27,
+          "column_start": 17,
+          "expansion": null,
+          "file_name": "src/cleanup_plan/replay/factored/canonical_shared/before_receiving_layers.rs",
+          "is_primary": true,
+          "label": "use of unresolved module or unlinked crate `app_census`",
+          "line_end": 124,
+          "line_start": 124,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 27,
+              "highlight_start": 17,
+              "text": "                app_census::eligible();"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": {
+        "code": "E0433",
+        "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+      },
+      "message": "cannot find module or crate `app_census` in this scope",
+      "spans": [
+        {
+          "byte_end": 5169,
+          "byte_start": 5159,
+          "column_end": 27,
+          "column_start": 17,
+          "expansion": null,
+          "file_name": "src/cleanup_plan/replay/factored/canonical_shared/before_receiving_layers.rs",
+          "is_primary": true,
+          "label": "use of unresolved module or unlinked crate `app_census`",
+          "line_end": 129,
+          "line_start": 129,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 27,
+              "highlight_start": 17,
+              "text": "                app_census::child_ready(inner.len());"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": {
+        "code": "E0433",
+        "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+      },
+      "message": "cannot find module or crate `app_census` in this scope",
+      "spans": [
+        {
+          "byte_end": 5557,
+          "byte_start": 5547,
+          "column_end": 27,
+          "column_start": 17,
+          "expansion": null,
+          "file_name": "src/cleanup_plan/replay/factored/canonical_shared/before_receiving_layers.rs",
+          "is_primary": true,
+          "label": "use of unresolved module or unlinked crate `app_census`",
+          "line_end": 138,
+          "line_start": 138,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 27,
+              "highlight_start": 17,
+              "text": "                app_census::acquired();"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": {
+        "code": "E0433",
+        "explanation": "An undeclared crate, module, or type was used.\n\nErroneous code example:\n\n```compile_fail,E0433\nlet map = HashMap::new();\n// error: failed to resolve: use of undeclared type `HashMap`\n```\n\nPlease verify you didn't misspell the type/module's name or that you didn't\nforget to import it:\n\n```\nuse std::collections::HashMap; // HashMap has been imported.\nlet map: HashMap<u32, u32> = HashMap::new(); // So it can be used!\n```\n\nIf you've expected to use a crate name:\n\n```compile_fail\nuse ferris_wheel::BigO;\n// error: failed to resolve: use of undeclared module or unlinked crate\n```\n\nMake sure the crate has been added as a dependency in `Cargo.toml`.\n\nTo use a module from your current crate, add the `crate::` prefix to the path.\n"
+      },
+      "message": "cannot find module or crate `app_census` in this scope",
+      "spans": [
+        {
+          "byte_end": 5700,
+          "byte_start": 5690,
+          "column_end": 27,
+          "column_start": 17,
+          "expansion": null,
+          "file_name": "src/cleanup_plan/replay/factored/canonical_shared/before_receiving_layers.rs",
+          "is_primary": true,
+          "label": "use of unresolved module or unlinked crate `app_census`",
+          "line_end": 141,
+          "line_start": 141,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 27,
+              "highlight_start": 17,
+              "text": "                app_census::published();"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": {
+        "code": "E0004",
+        "explanation": "This error indicates that the compiler cannot guarantee a matching pattern for\none or more possible inputs to a match expression. Guaranteed matches are\nrequired in order to assign values to match expressions, or alternatively,\ndetermine the flow of execution.\n\nErroneous code example:\n\n```compile_fail,E0004\nenum Terminator {\n    HastaLaVistaBaby,\n    TalkToMyHand,\n}\n\nlet x = Terminator::HastaLaVistaBaby;\n\nmatch x { // error: non-exhaustive patterns: `HastaLaVistaBaby` not covered\n    Terminator::TalkToMyHand => {}\n}\n```\n\nIf you encounter this error you must alter your patterns so that every possible\nvalue of the input type is matched. For types with a small number of variants\n(like enums) you should probably cover all cases explicitly. Alternatively, the\nunderscore `_` wildcard pattern can be added after all other patterns to match\n\"anything else\". Example:\n\n```\nenum Terminator {\n    HastaLaVistaBaby,\n    TalkToMyHand,\n}\n\nlet x = Terminator::HastaLaVistaBaby;\n\nmatch x {\n    Terminator::TalkToMyHand => {}\n    Terminator::HastaLaVistaBaby => {}\n}\n\n// or:\n\nmatch x {\n    Terminator::TalkToMyHand => {}\n    _ => {}\n}\n```\n"
+      },
+      "message": "non-exhaustive patterns: `cleanup_plan::replay::semantic_refusal::Atom::SelectedChild(_)` not covered",
+      "spans": [
+        {
+          "byte_end": 2511,
+          "byte_start": 2499,
+          "column_end": 37,
+          "column_start": 25,
+          "expansion": null,
+          "file_name": "src/cleanup_plan/replay/semantic_refusal/tests.rs",
+          "is_primary": true,
+          "label": "pattern `cleanup_plan::replay::semantic_refusal::Atom::SelectedChild(_)` not covered",
+          "line_end": 69,
+          "line_start": 69,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 37,
+              "highlight_start": 25,
+              "text": "    let message = match receipt.atom {"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "full_suite": false,
+  "raw_sha256": {
+    "owning-build-result.json": "e7565c043328d5d1827a32b1962d315a6c38289970bea04f4c2a30642228dc90",
+    "owning-build.jsonl": "ed3ec1820544ab3ff9e1fc645195ff72cc910804c30b9e391d980c0c040d6e70",
+    "owning-build.log": "f6b7dd6f99a67197febb16563e6fa500492c34615a61e288f2ce95507f147a9a",
+    "expected-counts.json": "39f38db74a57cb297e8cb9736cb2431ba1c29b31cad972e4282949e2de9a5491",
+    "compilation-manifest.json": "39f38db74a57cb297e8cb9736cb2431ba1c29b31cad972e4282949e2de9a5491",
+    "preparation-receipt.json": "48a5dd9e3a2dea004d3b40bfeabaebcc8b029b656cb541d4ccecef831c5165ed",
+    "memory-samples.jsonl": "f2992898b9ecc85e8e0f39f11efe8272d24ebe7e80acf9af66745e4f3998dd93"
+  }
+}

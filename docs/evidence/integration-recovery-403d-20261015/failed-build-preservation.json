@@ -1,0 +1,16 @@
+{
+  "status": "PRESERVED_ACTUAL_PRIOR_HEAD_FAILURE_NOT_CURRENT_EXECUTION",
+  "prior_head": "403d8a409417baa8e99e6d488c567e6b9b6acc74",
+  "production": "PASS 98s (prior head)",
+  "lib_test_compilation": "FAIL 7 compiler errors; 0 tests executed (prior head)",
+  "files": {
+    "docs/evidence/failed-build-403d-20261015/summary.json": "959850664b79f5778729ae8fa456eff01d90c46d35125387c118f4c67ab3bb11",
+    "docs/evidence/failed-build-403d-20261015/memory-samples.jsonl": "f2992898b9ecc85e8e0f39f11efe8272d24ebe7e80acf9af66745e4f3998dd93",
+    "docs/evidence/failed-build-403d-20261015/owning-build.log": "f6b7dd6f99a67197febb16563e6fa500492c34615a61e288f2ce95507f147a9a",
+    "docs/evidence/failed-build-403d-20261015/compilation-manifest.json": "39f38db74a57cb297e8cb9736cb2431ba1c29b31cad972e4282949e2de9a5491",
+    "docs/evidence/failed-build-403d-20261015/expected-counts.json": "39f38db74a57cb297e8cb9736cb2431ba1c29b31cad972e4282949e2de9a5491",
+    "docs/evidence/failed-build-403d-20261015/owning-build-result.json": "e7565c043328d5d1827a32b1962d315a6c38289970bea04f4c2a30642228dc90",
+    "docs/evidence/failed-build-403d-20261015/owning-build.jsonl": "ed3ec1820544ab3ff9e1fc645195ff72cc910804c30b9e391d980c0c040d6e70",
+    "docs/evidence/failed-build-403d-20261015/preparation-receipt.json": "48a5dd9e3a2dea004d3b40bfeabaebcc8b029b656cb541d4ccecef831c5165ed"
+  }
+}

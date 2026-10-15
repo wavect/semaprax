@@ -1,0 +1,9 @@
+{
+  "source_basis": "677e658f6f3671fdcc5942c1f3522598d83ab7b2",
+  "original": "/Volumes/Semaprax/provenance/677-compile-errors-20261015.json",
+  "sha256": "351b694cf85b5f280d53fac0bab083ae6b277aebcd664f0826b0bd7c4085a63f",
+  "qualification_round": "/Volumes/Semaprax/lane-prompts/final-677-101-qualification-20261015",
+  "actual_exit_code": 101,
+  "rust_test_bodies": 0,
+  "note": "Full actual15-error census retained; two836testvisitor errors fixed here; other13owned by weightedlane."
+}

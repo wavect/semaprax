@@ -1,0 +1,27 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST",
+  "full_source_inverses": 2,
+  "test_body_change": "only nonexistent Expr child API replaced by owning ChildCursor Iterator",
+  "all_positive_negative_and_exact_runtime_child_assertions_unchanged": true,
+  "new_selectors": 0,
+  "production_changed": false,
+  "whole_previous_joined_source_proof": {
+    "status": "SOURCE_ONLY_JOINED_NOT_QUALIFIED",
+    "named_view_rows": {
+      "d8": 44,
+      "844": 5,
+      "846": 5,
+      "836": 1,
+      "main": 5
+    },
+    "full_844_original_rows": 26,
+    "immediate_844_old_receivers": 5,
+    "new_846_owner_bindings": 3,
+    "old_836_full_input_checks": 25,
+    "actual_MAIN_inputs_byte_exact": 20,
+    "old_packet_files_byte_exact": 222,
+    "new_children_in_each_of_three_audits": 14,
+    "rust_execution": false,
+    "new_head_pin_proof": false
+  }
+}

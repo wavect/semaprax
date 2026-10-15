@@ -244,9 +244,7 @@ fn while_source_selector_is_metadata_and_hir_keeps_three_runtime_children() {
                 stores += 1;
             }
         }
-        for index in 0..expression.child_count() {
-            pending.push(expression.child(index).unwrap());
-        }
+        pending.extend(crate::hir::lexical_exit::ChildCursor::new(expression));
     }
     assert_eq!(stores, 1);
     crate::hir::validate(&program).unwrap();

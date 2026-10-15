@@ -323,13 +323,21 @@ pub(in crate::cleanup_plan::replay) fn validate_authenticated(
                 plan_root,
             } = &candidate.built;
             let mut canonical = canonical_shared::Canonicalizer::new(automaton, *sink);
+            let mut receiving =
+                canonical_shared::closure_receiving::ClosureReceiving::acquire(function, budget)?;
             budget.reserve_array::<(usize, u64)>(function, 1, "lexical HIR weighted root")?;
-            let hir = canonical.id(function, vec![(*hir_root, 1)], budget);
+            let hir =
+                canonical.id_with_receiving(function, vec![(*hir_root, 1)], budget, &mut receiving);
             #[cfg(test)]
             instrumentation::phase(function, budget, "HIR canonicalization", None);
             let hir = hir?;
             budget.reserve_array::<(usize, u64)>(function, 1, "lexical plan weighted root")?;
-            let plan = canonical.id(function, vec![(*plan_root, 1)], budget);
+            let plan = canonical.id_with_receiving(
+                function,
+                vec![(*plan_root, 1)],
+                budget,
+                &mut receiving,
+            );
             #[cfg(test)]
             instrumentation::phase(function, budget, "plan canonicalization", None);
             let plan = plan?;

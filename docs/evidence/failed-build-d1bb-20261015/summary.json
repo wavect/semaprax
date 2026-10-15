@@ -1,0 +1,159 @@
+{
+  "source_subject": "d1bb8d4149e9ec96968ffbd8ec26a86d23ea9ae2",
+  "original_external_round": "/Volumes/Semaprax/lane-prompts/final-d1bb-309-qualification-20261015",
+  "build_exit": 101,
+  "wall_seconds": 283.58648612498655,
+  "executed_test_bodies": 0,
+  "actual_compiler_errors": [
+    {
+      "rendered": "error[E0599]: no method named `id` found for struct `Canonicalizer<'a>` in the current scope\n   --> src/cleanup_plan/replay/factored/strategy.rs:327:33\n    |\n327 |             let hir = canonical.id(function, vec![(*hir_root, 1)], budget);\n    |                                 ^^ method not found in `Canonicalizer<'_>`\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared.rs:113:1\n    |\n113 | pub(super) struct Canonicalizer<'a> {\n    | ----------------------------------- method `id` not found for this struct\n    |\n    = help: items from traits can only be used if the trait is implemented and in scope\n    = note: the following traits define an item `id`, perhaps you need to implement one of them:\n            candidate #1: `aws_lc_rs::key_wrap::BlockCipher`\n            candidate #2: `wasm_encoder::ComponentSection`\n            candidate #3: `wasm_encoder::Section`\n\n",
+      "$message_type": "diagnostic",
+      "children": [
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "items from traits can only be used if the trait is implemented and in scope",
+          "rendered": null,
+          "spans": []
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "note",
+          "message": "the following traits define an item `id`, perhaps you need to implement one of them:\ncandidate #1: `aws_lc_rs::key_wrap::BlockCipher`\ncandidate #2: `wasm_encoder::ComponentSection`\ncandidate #3: `wasm_encoder::Section`",
+          "rendered": null,
+          "spans": []
+        }
+      ],
+      "level": "error",
+      "message": "no method named `id` found for struct `Canonicalizer<'a>` in the current scope",
+      "spans": [
+        {
+          "byte_end": 11496,
+          "byte_start": 11494,
+          "column_end": 35,
+          "column_start": 33,
+          "expansion": null,
+          "file_name": "src/cleanup_plan/replay/factored/strategy.rs",
+          "is_primary": true,
+          "label": "method not found in `Canonicalizer<'_>`",
+          "line_end": 327,
+          "line_start": 327,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 35,
+              "highlight_start": 33,
+              "text": "            let hir = canonical.id(function, vec![(*hir_root, 1)], budget);"
+            }
+          ]
+        },
+        {
+          "byte_end": 3723,
+          "byte_start": 3688,
+          "column_end": 36,
+          "column_start": 1,
+          "expansion": null,
+          "file_name": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "is_primary": false,
+          "label": "method `id` not found for this struct",
+          "line_end": 113,
+          "line_start": 113,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 36,
+              "highlight_start": 1,
+              "text": "pub(super) struct Canonicalizer<'a> {"
+            }
+          ]
+        }
+      ],
+      "code": {
+        "code": "E0599",
+        "explanation": "This error occurs when a method is used on a type which doesn't implement it:\n\nErroneous code example:\n\n```compile_fail,E0599\nstruct Mouth;\n\nlet x = Mouth;\nx.chocolate(); // error: no method named `chocolate` found for type `Mouth`\n               //        in the current scope\n```\n\nIn this case, you need to implement the `chocolate` method to fix the error:\n\n```\nstruct Mouth;\n\nimpl Mouth {\n    fn chocolate(&self) { // We implement the `chocolate` method here.\n        println!(\"Hmmm! I love chocolate!\");\n    }\n}\n\nlet x = Mouth;\nx.chocolate(); // ok!\n```\n"
+      }
+    },
+    {
+      "rendered": "error[E0599]: no method named `id` found for struct `Canonicalizer<'a>` in the current scope\n   --> src/cleanup_plan/replay/factored/strategy.rs:332:34\n    |\n332 |             let plan = canonical.id(function, vec![(*plan_root, 1)], budget);\n    |                                  ^^ method not found in `Canonicalizer<'_>`\n    |\n   ::: src/cleanup_plan/replay/factored/canonical_shared.rs:113:1\n    |\n113 | pub(super) struct Canonicalizer<'a> {\n    | ----------------------------------- method `id` not found for this struct\n    |\n    = help: items from traits can only be used if the trait is implemented and in scope\n    = note: the following traits define an item `id`, perhaps you need to implement one of them:\n            candidate #1: `aws_lc_rs::key_wrap::BlockCipher`\n            candidate #2: `wasm_encoder::ComponentSection`\n            candidate #3: `wasm_encoder::Section`\n\n",
+      "$message_type": "diagnostic",
+      "children": [
+        {
+          "children": [],
+          "code": null,
+          "level": "help",
+          "message": "items from traits can only be used if the trait is implemented and in scope",
+          "rendered": null,
+          "spans": []
+        },
+        {
+          "children": [],
+          "code": null,
+          "level": "note",
+          "message": "the following traits define an item `id`, perhaps you need to implement one of them:\ncandidate #1: `aws_lc_rs::key_wrap::BlockCipher`\ncandidate #2: `wasm_encoder::ComponentSection`\ncandidate #3: `wasm_encoder::Section`",
+          "rendered": null,
+          "spans": []
+        }
+      ],
+      "level": "error",
+      "message": "no method named `id` found for struct `Canonicalizer<'a>` in the current scope",
+      "spans": [
+        {
+          "byte_end": 11804,
+          "byte_start": 11802,
+          "column_end": 36,
+          "column_start": 34,
+          "expansion": null,
+          "file_name": "src/cleanup_plan/replay/factored/strategy.rs",
+          "is_primary": true,
+          "label": "method not found in `Canonicalizer<'_>`",
+          "line_end": 332,
+          "line_start": 332,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 36,
+              "highlight_start": 34,
+              "text": "            let plan = canonical.id(function, vec![(*plan_root, 1)], budget);"
+            }
+          ]
+        },
+        {
+          "byte_end": 3723,
+          "byte_start": 3688,
+          "column_end": 36,
+          "column_start": 1,
+          "expansion": null,
+          "file_name": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+          "is_primary": false,
+          "label": "method `id` not found for this struct",
+          "line_end": 113,
+          "line_start": 113,
+          "suggested_replacement": null,
+          "suggestion_applicability": null,
+          "text": [
+            {
+              "highlight_end": 36,
+              "highlight_start": 1,
+              "text": "pub(super) struct Canonicalizer<'a> {"
+            }
+          ]
+        }
+      ],
+      "code": {
+        "code": "E0599",
+        "explanation": "This error occurs when a method is used on a type which doesn't implement it:\n\nErroneous code example:\n\n```compile_fail,E0599\nstruct Mouth;\n\nlet x = Mouth;\nx.chocolate(); // error: no method named `chocolate` found for type `Mouth`\n               //        in the current scope\n```\n\nIn this case, you need to implement the `chocolate` method to fix the error:\n\n```\nstruct Mouth;\n\nimpl Mouth {\n    fn chocolate(&self) { // We implement the `chocolate` method here.\n        println!(\"Hmmm! I love chocolate!\");\n    }\n}\n\nlet x = Mouth;\nx.chocolate(); // ok!\n```\n"
+      }
+    }
+  ],
+  "unit_no_run_success": true,
+  "unit_no_run_not_runtime_qualification": true,
+  "pressure_interrupted": false,
+  "signals_sent": false,
+  "status": "ACTUAL_PRODUCTION_COMPILER_FAILURE_AFTER_UNIT_COMPILATION_SUCCESS",
+  "regeneratable_tmp_and_pyc_excluded": true
+}

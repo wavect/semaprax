@@ -1,0 +1,4 @@
+   Compiling semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+    Finished `test` profile [unoptimized] target(s) in 3m 54s
+   Compiling semaprax v0.9.0 (/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang)
+error: could not compile `semaprax` (lib) due to 2 previous errors; 1 warning emitted

@@ -1,5 +1,9 @@
 # Bounded author guidance correction — source-only
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Current bounded library lookup already addresses OPT823's observed ShiftSim full-catalog exposure. Five historical e045 attempts contain real syntax/profile/loan errors as well as help output; only actual error[SPX-*] lines were considered authoring failures. Current quickref already teaches the observed manifest, str_as_bytes storage-place and bounded Vec/Bytes fixes. No new prompts, catalog APIs or corpus changes are justified by those historical traces. No benchmark was run, and no net-token or billed-cost claim follows.
 
 The actual85286 Catalog owner log still tells users reducing reachable source is the only lever, despite a distinct live compiler boundary after fitting admission. Quickref now distinguishes source mitigation from compiler-owner optimization, asks users to preserve required behavior/caps and retain a revision/source/diagnostic receipt, and explains that first-refusal bytes are not total program deficit. It does not call every refusal a compiler bug or promise current applications fit.

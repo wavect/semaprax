@@ -1,5 +1,9 @@
 # OPT810 prior fast receiver dispatch
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only private base 8ce5c0fb7d65d1a13e150bf2044c8aed011f57bf. Frozen346690 row238 actually refused with empty SPX-H006 at oracle/tests.rs799. The zero-backing owner declared original_fast_type_probe as nested_shape but still called the fully qualified current financed route, so its alias never selected the retained old fast receiver.
 
 Only that exact call now uses its declared alias. The complete prior helper still authenticates the actual ReplayContext/function via allocation::authority, requires the same live account, creates ReplayBudget with that exact oracle lease, uses ClassifierLedger::oracle_marker rather than production ACTIVE capture, and executes the complete unchanged prior needs_drop_paid receiver. Its Never/I64/Bytes/String fast gates authenticate zero backing without making a new allowance or returning to an unpriced ordinary payer. All original zero-work/backing, live-production0, verdict, first-refusal and Drop assertions stay unchanged. No production function or accounting changed.

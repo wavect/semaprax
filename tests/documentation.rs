@@ -2,6 +2,9 @@
 
 use std::path::{Path, PathBuf};
 
+#[path = "documentation/archived_sources.rs"]
+mod archived_sources;
+
 #[path = "documentation/benchmark_fixtures.rs"]
 mod benchmark_fixtures;
 #[path = "documentation/benchmark_project_equivalence.rs"]
@@ -33,6 +36,8 @@ fn local_markdown_links_resolve() {
 
     for document in documents {
         let source = std::fs::read_to_string(&document).unwrap();
+        let origin = archived_sources::origin(root, &document);
+        let link_source = origin.as_deref().unwrap_or(&document);
         for target in markdown_targets(&source) {
             if target.starts_with("https://")
                 || target.starts_with("http://")
@@ -45,7 +50,7 @@ fn local_markdown_links_resolve() {
             if target.is_empty() {
                 continue;
             }
-            let resolved = document.parent().unwrap().join(target);
+            let resolved = link_source.parent().unwrap().join(target);
             assert!(
                 resolved.exists(),
                 "{} links to missing local target {target}",
@@ -65,6 +70,11 @@ fn documentation_catalog_and_metadata_are_complete() {
     documents.sort();
 
     for document in documents {
+        // Byte-locked copies are authenticated evidence of an original
+        // document, which is separately checked and cataloged at its live path.
+        if archived_sources::origin(root, &document).is_some() {
+            continue;
+        }
         let source = std::fs::read_to_string(&document).unwrap();
         let mut lines = source.lines();
         let title = lines.next().unwrap_or_default();

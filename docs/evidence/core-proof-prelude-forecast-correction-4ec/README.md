@@ -1,5 +1,9 @@
 # Core-proof historical forecast comparison correction
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Production baseline: `4ec48420b6e78b1035a66cc406893c46c3028464`.
 
 The actual existing full receiver failed because its complete original forecast

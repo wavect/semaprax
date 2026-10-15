@@ -1,5 +1,9 @@
 # Complete-observer global ownership discrimination — source candidate
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Actual9dd owner83 failed live6420==0 at linked tests.rs270. This is a live
 retention failure, not evidence of allocation during Drop. The complete log and
 complete prior regression source are retained unchanged.

@@ -1,5 +1,9 @@
 # Private source admission checkpoint — not integration ready
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Basis a2311ae7. Existing verifier frames/scopes supply byte-only ancestry and
 outer-entry typed view lookups; no new verifier/frame field or owned snapshot.
 Non-byte/mixed/computed/mutable/unavailable/inside-body sources retain their

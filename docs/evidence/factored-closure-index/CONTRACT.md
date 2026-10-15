@@ -1,5 +1,7 @@
 # Private numeric closure memo v1
 
+Audience: compiler contributors, tool authors, and reviewers.
+
 Status: source-authored; owning runtime qualification pending.
 
 The ordinary shared canonical receiver preserves the complete epsilon-closure walk, checked route-weight arithmetic, cycle selection, weighted signature algebra and all logical work charges. Only its outer numeric-key memo changes from per-entry BTree nodes to lazy eight-slot chunks. Inner closure maps and Rc payloads remain unchanged. `before_index.rs` preserves the complete old producer body; only its lexical parent import, original test-hook import, and registration of its original test module differ. All original tests remain registered on the current receiver, with the old receiver available independently. The older pre-sharing receiver is untouched.

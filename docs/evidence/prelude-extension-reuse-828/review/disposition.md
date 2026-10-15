@@ -1,5 +1,9 @@
 # Bounded Vec prototype review disposition
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The single 9,864-byte source review completed in 59.5729s, exit 0, peak RSS 327385088 bytes, provider list cost $0.094894. Raw verdict/receipt remain unchanged. It reviewed commit6be3bb0 only, not later expansion, and executed no compiler/runtime.
 
 The review found two actionable outer-carrier omissions. The corrective source now prices both raw and mapped identity Results, mapped funded nominal Result, explicit empty record Vec/payload initializers, and the caller's mapped ExtensionPayer Result before acquisition. These are exact size_of types on the same byte owner; no allowance or arbitrary margin was added.

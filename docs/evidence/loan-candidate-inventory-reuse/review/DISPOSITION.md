@@ -1,5 +1,9 @@
 # Source review disposition
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 One tools-disabled Sonnet5-5 call completed89.886s, exit0, peak329220096 bytes under768MiB, payload8867 bytes. Provider list-cost USD0.130976; actual billing unknown. Receipt source_commit084ccc427 is the authoring context; the exact reviewed uncommitted draft (leading indentation removed for bounded transport) is retained in payload.txt. No second review call occurred.
 
 The review confirms identical inventory statements and no definite typing error.

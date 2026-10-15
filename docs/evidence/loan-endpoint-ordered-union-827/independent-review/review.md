@@ -1,5 +1,9 @@
 # Review of the materializer and `ordered_union` (source only, nothing executed)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 I found no definite blocker in the pasted code. The risks are uncertainties that depend on APIs and tests I can't see.
 
 ## Likely correct

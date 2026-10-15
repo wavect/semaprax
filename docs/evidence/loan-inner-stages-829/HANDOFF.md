@@ -1,5 +1,9 @@
 # Loan inner reservation phases — source-only #829 follow-up
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Ordered after CFG rootmap480999d47. Five fixed ReservationStage variants/static
 labels identify candidate inventory, CFG discovery, point directories, edges,
 and canonical append. Existing production first-refusal capture and G171 stage

@@ -1,5 +1,9 @@
 # Concrete carrier and fixed-base Index seam correction
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source baseline 18054f3e3. Review is manual source audit only: the earlier Claude request timed out with no verdict. No repeat request or Cargo/build/runtime ran.
 
 The original bundle acquisition precharged the Arc allocation but omitted simultaneously live initializer and receiving carriers. The corrected first request is the checked sum of actual Contents, BasePreludeBundle and Result<BasePreludeBundle,Failure<E>> layouts; final Arc backing remains a separate actual-layout request. Exact carrier-only / one-short / zero controls require refusal before any producer allocation and preserve spent debits. Existing full-acquisition exact/short/work/each-site controls now cover this first request, and observer scopes additionally finish last retained-lease Drop and compare real highwater to paid bytes.

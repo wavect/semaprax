@@ -1,5 +1,9 @@
 # OPT811 telemetry packet: patch and critique
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only review. Nothing was compiled or run, and I couldn't see `legacy.rs` or `lexical_control`.
 
 ## Critique of the proposal and of the existing code

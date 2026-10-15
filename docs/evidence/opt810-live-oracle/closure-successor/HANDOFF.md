@@ -1,5 +1,9 @@
 # OPT810 narrow closure successor
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Private base d8df12a3b0283c9a8c3947021b4dcd3faf8565a0; no root edits, Cargo, builds, compiler gate, tests, push or GitHub mutation. This follows the outside-repository acceptance map `/Volumes/Semaprax/lane-prompts/opt796-810-closure-map-d8df12-20261014.json`.
 
 The opted receiver now refuses `Ok(None)` with an explicit undecided comparison assertion before the complete unchanged original semantic mismatch assertion. `Ok(Some(false))` remains a decided mismatch; no comparator, authority check, payer, allowance or old owner is replaced. The direct diagnostic control tests the distinction; it makes no claim to execute a backend or manufacture a comparator verdict.

@@ -1,3 +1,9 @@
+# review (review)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 **Verdict: no concrete blocker found in the diff itself.** One risk lies outside the diff and is flagged below. I did not compile or run anything, so every point is source-read only.
 
 ## 1. Borrowed renewal adapters (`renewal_probes.rs:63, 70`)

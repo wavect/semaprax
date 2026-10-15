@@ -1,5 +1,9 @@
 # Review of the status-prefix certified insertion proposal
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 I reviewed only the pasted text. I ran nothing, and none of this is an approval claim.
 
 ## Answers to the questions

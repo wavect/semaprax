@@ -1,5 +1,9 @@
 # Composed source-domain and receiver registration repair
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only. No Cargo/build/test execution. Source base a1edab67b.
 
 Both current and independently compiled saved SourceIndex receivers now explicitly register the same complete source_index/tests.rs child. Current implicit registration was valid; the saved receiver's changed filename otherwise selected a nonexistent source_index_original/tests.rs directory. All three complete test bodies remain untouched.

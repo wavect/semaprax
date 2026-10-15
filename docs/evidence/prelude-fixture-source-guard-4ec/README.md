@@ -1,5 +1,9 @@
 # Exact test-budget identifier exception in the full source audit
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Base: `4ec48420b6e78b1035a66cc406893c46c3028464`.
 
 The actual unchanged source-boundary gate failed at `ACTIVE` after the complete

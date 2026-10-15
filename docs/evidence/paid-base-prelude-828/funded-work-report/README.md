@@ -1,5 +1,9 @@
 # Honest work report from the existing paid owner
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 ROOT accepted the fixed-schema producer activation conditions, pending integration and execution. Direct agreement with #827 assigns this lane only the new identity_reservation/base_prelude child and controls; #827 owns registration and distinct typed Work routing through constructor/identity/selective receivers. No shared parent root or existing IdentityReservation method is changed here.
 
 FixedFailure::Work remains a typed work receipt, not a fabricated byte Refused. The new publisher moves the original acquired empty Diagnostic slot and original exact 48-byte text buffer, writing a shorter fixed honest work message with a compile-time capacity proof. It formats no receipt, requests no replacement backing and publishes all six H006 fields. Bytes(E) remains the same original typed E; counter setup byte failure cannot become a work failure or work report.

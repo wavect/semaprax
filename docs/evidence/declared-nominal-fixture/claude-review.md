@@ -1,3 +1,9 @@
+# claude review (declared-nominal-fixture)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 **Verdict:** the logic holds up on the code shown. I found no definite errors. The remaining risks are things I couldn't see, mainly whether the new fixture source passes `check`/`resolve` and whether a few identifiers resolve.
 
 ## Definite (from the supplied source)

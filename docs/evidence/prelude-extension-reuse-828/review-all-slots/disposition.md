@@ -1,5 +1,9 @@
 # Source-only disposition
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 One actual review of the distinct complete-slot work/partial-variant seam, terminal exit0,108.957s; no tools or code execution. Raw verdict and actual usage retained. This is not compile/runtime qualification.
 
 - B1 resolved from `src/hir/ids.rs:27..33`: DeclarationId Clone retains either a static str or Arc<str>, allocating no backing. A source comment states this at the parameter clone. Inline resolved roots are already charged; no clone backing payment is invented.

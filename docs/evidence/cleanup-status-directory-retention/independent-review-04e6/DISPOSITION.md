@@ -1,5 +1,9 @@
 # Predecessor review disposition
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 One bounded tool-disabled Sonnet source review completed in 74.2504 seconds, exit0, peak requested process-group RSS316129280 bytes under768MiB. Raw payload, actual process receipt, result and stderr are retained. Provider list costUSD0.191466; actual billing unknown. No tools, Cargo, runtime or retry. Fixed subject04e6fa2db; this review does not approve later fixes.
 
 B1 (exact ACTIVE owner absent) and B2 (only unobserved/address-swap controls) agree with the local audit and were sent to ROOT/author. Author subsequently reported fa3d7e91a adds existing ClassifierLedger capture, explicit full token/Result carrier acquisition and an actual nested/restored/exact/short/zero control. That successor needs its own compilation and executable qualification; this predecessor review is no proof it passes.

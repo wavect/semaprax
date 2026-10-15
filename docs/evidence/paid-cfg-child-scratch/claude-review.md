@@ -1,3 +1,9 @@
+# claude review (paid-cfg-child-scratch)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 ## Verdict
 
 I see no semantic, Drop, ordering or first-error blocker in the proposed edit, and retaining one child backing preserves old behavior except for the intended debit change. Efficiency is plausible from the source, but its magnitude is unproven, and the 11-byte margin cannot be read as evidence of it.

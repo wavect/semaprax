@@ -1,3 +1,9 @@
+# review (review)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 ## Verdict
 I see no definite semantic or typing blocker in the pasted hunks. Compile success rests on three unseen items, listed under uncertainties.
 

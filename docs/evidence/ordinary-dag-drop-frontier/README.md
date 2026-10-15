@@ -1,5 +1,9 @@
 # Ordinary DAG incoming ownership reachability (#819)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 This source-only audit is bound to `cb55986d65e4707c203a950d38e76d55575927c6`.
 No Cargo, compiler or test binary was executed. No production or test source,
 original receiver, diagnostic, limit or numeric assertion changed. The adjacent

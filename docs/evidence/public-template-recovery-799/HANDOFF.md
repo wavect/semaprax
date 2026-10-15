@@ -1,5 +1,9 @@
 # Public generic parameter recovery — source-only correction
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Actual published 4ec350 owner215 failed: the complete public verifier emitted T224 profile, T220 unknown Missing, independent T202 missing_sibling and dependent T208 operator; the component-only custom receiver emitted the intended T220/T202. The actual old full fields remain in the preserved prior public producers and new control, not a four-error golden for the current route.
 
 Two source causes are addressed. Parameter profile classification previously emitted a shape symptom before the real missing-component receipt. The public body producer then scalar-specialized the template and cleared type-parameter names; recovery's exact recheck consequently produced T001 scratch instead of the authoritative T220 and correctly refused authentication. The fix classifies only the invalid component with the ordinary checker, and carries the actual template context from the same producer into the actual specialized receiver. Known sibling profile diagnostics survive; actual bindings and all admitted scalar substitutions remain.

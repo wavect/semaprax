@@ -1,5 +1,9 @@
 # Legacy schema-summary test receiver
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Base f8d39034fbe2145590160442ae17c4d69145134d; source-only, no Cargo/build/test/root edits or dead-code allowances.
 
 The exhaustive Rust module references show only the cleanup registration, one complete root inverse and HIR/Interop source inventories. No external production reference names or imports this module. Graft callers reports no incoming edges to the legacy collect but warns its name is ambiguous; exhaustive module-reference evidence and actual owning source routes supplement that result. All legacy collect calls remain within the module's owning tests. Production paid_summary uses inventory_summary, and the unfunded compatibility schema still uses the full build_inventory receiver.

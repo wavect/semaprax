@@ -1,5 +1,9 @@
 # Source handoff
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The production Lookup::fact dispatch now uses an allocation-free prefix-certified
 lookup over the same Arena. Arena storage, insertion, ordering and full original
 find are intact; the old method is test-only and exercised independently. Paid

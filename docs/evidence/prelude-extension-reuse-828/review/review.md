@@ -1,5 +1,9 @@
 # Review of `6be3bb0` (pasted source only, nothing executed)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Line numbers are approximate. I cite by function and expression because the pasted line ranges are partial and I did not count absolute lines. I found no definite compile error in the visible text. Several items depend on code that was not pasted.
 
 ## Probable blocker (depends on intended contract)

@@ -1,5 +1,9 @@
 # Paid expression-fact arena source proposal (OPT813)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The ordinary builder and paid selected callers construct an online indexed AVL directory retaining exact ExpressionId ordering and every complete borrowed CallFact payload. A replacement Vec is charged in full while its prior backing remains live, allocated fallibly, then populated by moves. The complete old BTreeMap producer and receivers remain independently compiled; old selected exact-budget controls keep that route.
 
 Insertion compares exact full text and refuses duplicates immediately after the unchanged full preorder dispatcher. Search, ancestor update/rotation and relocation work is paid before execution from the caller's existing ReplayBudget; the old local type/depth/work ceiling also remains. Receiving lookup checks sticky physical/work state and charges full comparisons. In-order iteration uses retained successor indices and prepays receiving visits. Conservative old payload clone byte reservations remain; no cap, quota, refund, forecast or admission change.

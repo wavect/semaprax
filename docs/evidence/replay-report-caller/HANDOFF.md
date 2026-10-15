@@ -1,5 +1,9 @@
 # OPT781 typed filesystem report custody
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The full original change, structural and operations preparers remain compiled;
 the new reporting children preserve their complete execution order while passing
 selected replay failures by move through candidate preflight, graph view setup,

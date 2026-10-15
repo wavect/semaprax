@@ -1,5 +1,9 @@
 # OPT816 paid receiving directories
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Private base: `d58b68ed867c8e5d7bd5736237c383e2fbd58427`. Qualification remains source-only; no Cargo, tests, builds, Clippy or application execution.
 
 The ordinary Arena receiving path now retains full-key indexed AVL directories for statuses, referenced edges/exits, committed/expected calls, arithmetic cases, transfer flags and consumed flags. Every constructor/reuse authenticates the same invocation ReplayBudget with reserve(0); every actual replacement array is reserved before acquisition, and searches, insertion, relocation, rotations and ordered merge walks charge that same work payer. Stable expression/status keys are borrowed; numeric IDs retain their complete original Ord. No persistent cache, key fingerprint, cap change, refund or producer allocation credit.

@@ -1,5 +1,9 @@
 # Borrowed rewrite fixture admission repairs
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only from4d5d4209; no Cargo/build/test run. Actual frozen failures were indexes78–83 (P101 or scalar G172),90 (snapshot token in complete pure inventory),129/130 (P101).
 
 The record/context/ordinal provider fixtures now retain their complete original no-top-level-function source as a P101 negative and append an explicit stable-ID no-op function for the positive fixture. Type/member order, parameter/field/method/case widths, full old/current comparison loops, physical counters, exact/short/sticky assertions and old receiver bodies remain unchanged.

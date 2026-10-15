@@ -1,5 +1,9 @@
 # Bounded source review disposition
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Claude Sonnet5.5 reviewed a 20,953-byte authorized source packet with tools disabled. Actual process exit0,69.09s,324,304,896-byte peak; full conditional findings and original source binding are retained. The CLI list-cost estimate is not provider-billed cost. No Rust/test/runtime qualification is implied.
 
 1. Confirmed: new ROUTES was2,083 UTF-8 bytes, above2,048. Removed only its redundant topic-footer line; all33 route rows and summaries remain unchanged. Exact topics/full-reference access remain in the unchanged guide and normal topic surface. Final ROUTES is2041bytes. Existing whole-route bound assertions remain intact.

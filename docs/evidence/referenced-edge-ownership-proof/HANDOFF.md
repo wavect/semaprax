@@ -1,3 +1,9 @@
+# HANDOFF (referenced-edge-ownership-proof)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Private source from c237c705e, with already handed-off a75 custody and9a82 shared-TLS correction cherry-picked as parents. Integrate only the final feature commit after those fixes, not duplicate parents. No Cargo/Rust tests/build/Clippy/runtime. Parent ROOT untouched.
 
 Ordinary retained blocks receiver removes only write-only referenced_edges AVL. Existing checked contiguous block IDs, per-edge exact addressed identity/current owner, and Branch distinctness prove duplicate insert rejection unreachable. No replacement carrier/index; every surviving operation keeps its unit price, caps unchanged. Exit directory/body/error order unchanged. Full prior retained receiving function independently compiled in edge_before.rs, byte-exact against the pinned complete retained archive. Full initial receiving.rs and all other old receivers remain unchanged.

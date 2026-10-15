@@ -1,5 +1,9 @@
 # Source-only nested byte packet
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Basis: immutable `5b562965d`; apply the feature delta against that basis, preserving later ROOT corrections. This private branch includes a merge of that exact basis so its production dense/retained route is preserved. Do not take inherited basis changes as new work or replace later metadata wholesale.
 
 The narrow v2 implementation and 10 newly authored owning selectors are ready for the first combined compiler/runtime check. New semantic scope is only nested immutable byte sources available at outermost entry; no blanket ordinary While/Vec restriction, origin descriptor, quota, forecast discount or cached admission authority.

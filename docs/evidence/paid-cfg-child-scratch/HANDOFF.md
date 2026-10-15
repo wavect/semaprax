@@ -1,5 +1,9 @@
 # Caller-paid CFG child scratch reuse
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only successor to `346690b8cdf82da5c21416ecd5792204ea762da0`, authored while the root independently qualifies that frozen batch. No Cargo/build/tests were run here.
 
 Actual frozen f8 Catalog95 is a valid exhausted live ledger, not proof of an unfunded64-byte request: prebound51,697,600; initial HirLoanPlans10,888,462; final HirValidation3,572,326; first operation CanonicalLoanStorage requests64 with11 remaining under the unchanged67,108,864 cap. Service J115 wraps G171 and lacks the inner operation detail; it cannot honestly be attributed to this exact child from its text. No application fit or measured savings claim follows.

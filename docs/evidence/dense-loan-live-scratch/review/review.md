@@ -1,3 +1,9 @@
+# review (review)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 **Scope:** I reviewed the pasted source only and ran nothing. I found no definite compile or logic blocker in the pasted code. The risks below are uncertainties that need confirmation outside the paste.
 
 ## Blockers

@@ -1,5 +1,9 @@
 # OPT811 actual receiving attribution
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Private source-only batch from f18f5a4ace2d7e4786f54f1fccbbfb77465e44e8. No Cargo, tests, build, Clippy, owning producer, pin regeneration or GitHub mutation was performed.
 
 The historical model remains unchanged: identity text lengths, BTree item/header allowances and alias repetitions are modeled terms; separate component maxima and phase samples remain distinct from the actual allocator. No estimate is renamed an actual layout, no arithmetic offset/normalization/credit is applied, and no cap, original corpus, numerical pin or upper budget changes. `build.rs` is wholly byte-identical, including the original hostile-family body and all assertions.

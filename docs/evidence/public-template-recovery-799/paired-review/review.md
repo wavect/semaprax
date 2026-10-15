@@ -1,5 +1,9 @@
 # Review of b2be954: findings
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only review. Nothing was executed, and `callee_components`, `Subject`, `TypeTable::declaration`, and `Recovery::{reads_value, view}` were not in the paste.
 
 ## F1: Known built-in outer carriers may lose T224 (severity: potential blocker, uncertain)

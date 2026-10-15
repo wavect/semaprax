@@ -1,5 +1,9 @@
 # Bounded Session test correction review
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 One 6,747-byte tool-disabled source review completed in 35.46 seconds, exit zero, peak process-group RSS 321,617,920 bytes. Raw conditional findings remain in review.md. The first oversized local packet was rejected before a payload existed and before any Claude process started; there was one actual dispatch and no repeat.
 
 The review found no definite typing or semantic blocker in the pasted corrections. This is not compiler/runtime approval. The three callbacks really return unit; with_limit_usage's actual signature is (T,bool,usize). The selected baseline really comes from the callback's Session::usage().1, the held physical reservation's charged bytes. Its previous third-field binding instead read the independent ACTIVE budget consumption. The exact/one-short/zero inputs and every original assertion stay unchanged; one extra assertion now checks each limited owner's setup debit equals that independently derived baseline before the semantic request.

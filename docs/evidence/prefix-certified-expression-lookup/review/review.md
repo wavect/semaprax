@@ -1,3 +1,9 @@
+# review (review)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 **Review of the pasted source only. I ran nothing. These findings come from reading the code.**
 
 ## Blockers

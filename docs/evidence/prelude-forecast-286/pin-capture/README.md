@@ -1,5 +1,9 @@
 # Source-only pin capture plan
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 No producer or compiled gate ran in this lane. No pin literal is changed here.
 The exact existing owners and separate ignored producer are registered in
 `selectors.json`. Their original assertions remain active. There was no existing

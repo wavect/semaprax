@@ -1,5 +1,9 @@
 # Common production walker acquisition repair
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Base17efd. Source-only batch: no builds/tests/Clippy/full gates executed. Rustfmt and diff whitespace checks complete. Full original source snapshots match base git objects, and all original walk/presence function bodies remain compiled unchanged. The complete original mutable/borrowed validate_uses bodies are independently compiled cfg(test) controls. The mutable source contract keeps the immutable original digest and proves exact full-current equality after precisely three named fallible walk hooks; no other byte is waived. New descendants join existing builder and HIR source audits.
 
 The actual receiving failures14/18 already fail on current=false with4374897 paid and5372235 allocated, all freed. Resolution and validation both contribute; no whole deficit is attributed to this patch. The concrete unpriced route is function_value::walk's Vec-backed pending root/children traversal, repeatedly called by mutable/borrowed HIR use validators before the no-function-values gate. Its test-only funded twin did not cover production.

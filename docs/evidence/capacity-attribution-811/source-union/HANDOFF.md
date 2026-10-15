@@ -1,5 +1,9 @@
 # OPT811 final source-audit union
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Base5527299c0d053e65c7df8e0f367e1f63432e3fb3; source-only, no Cargo/build/test/Claude/root edits.
 
 Three complete descendants (actual_attribution.rs, actual_attribution/tests.rs, helper_index/original_plans.rs) join the HIR boundary, Workspace graph root inventory and Interop lower inventory. All eleven held-profile/fixed-identity joins remain exactly present. Existing OPT810 full HIR inverse strips only the new three-line bundle before its complete preserved comparison. No original code or archive interior is excluded.

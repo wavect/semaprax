@@ -1,5 +1,9 @@
 # OPT810 source handoff
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Base: `1246befe2ff7ad9ec8f789ffd3f60567745cd12a`. Source-only; no Cargo, build, compiler gate, runtime test, push or issue closure was performed. Registration and exact receipt qualification are pending root's consolidated focused batch.
 
 The two owning tests now explicitly select the existing prototype's finite 64 MiB backing / 32 Mi work test account once. The live production 1 MiB identity ledger and every original test assertion, first-refusal retry and receiving Drop remain unchanged. Their entire original bodies are compiled in `oracle_owner_before` children and invoked synchronously within the scope. Actual borrowed context/function invocation tokens authenticate every account operation; the lease grants no semantic authority. Ordinary unopted callers still execute the complete original cross-check and original classifiers/helpers.

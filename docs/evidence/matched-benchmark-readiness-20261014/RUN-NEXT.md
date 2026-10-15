@@ -1,5 +1,9 @@
 # Exact next commands (prepared, not executed)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Set these inputs to actual reviewed artifacts. Do not relabel older qualification. Run one campaign at a time. The compiled source ref must name the commit that actually produced the selected binary; the seed ref must preserve the frozen public inputs. Use absolute receipt-bound runtime/tool paths and fresh artifact destinations outside the repository.
 
 Required variables: `BENCH_REPO`, `BENCH_SEED_REF`, `BENCH_COMPILER_REF`, `BENCH_COMPILER`, `BENCH_CODEX`, `BENCH_TOKENIZER`, `BENCH_NODE`, `BENCH_NPM`, `BENCH_PLAYWRIGHT`, `BENCH_WEB_TS_RECEIPT`, `BENCH_CLI_TS_RECEIPT`, `BENCH_SHIFT_TS_RECEIPT`, `BENCH_CLI_BUILD_RECEIPT`, `BENCH_SHIFT_V6_EVIDENCE`, `BENCH_WEB_ARTIFACTS`, `BENCH_CLI_ARTIFACTS`, `BENCH_SHIFT_ARTIFACTS`.

@@ -1,5 +1,9 @@
 # Actual workspace source cut: integration candidate v3
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The actual main workspace core now owns one base bundle, binds it to its existing captured ledger, and forwards it through fresh owned/borrowed and selective resolution. Full source verification precedes producer acquisition. Complete maps, old wire and Eq remain present; base payload substitution requires exact current compiler-owned source-pair pointers. Original receiver text equality and all full originals/inverses are statically checked in the adjacent JSON. This is source-only evidence; Cargo/build/tests/runtime/Clippy have not run in this lane.
 
 The independent Sol source audit checked core affinity, source-before-producer, full map-node funding, last-owner Arc retention and distinct typed work publication; it found a CaseFields representation typo which is fixed. The bounded Claude process timed out and gave no review approval; its raw receipt is preserved.

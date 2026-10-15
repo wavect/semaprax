@@ -1,5 +1,9 @@
 # Final composed whole-source inverse repair
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only successor to `ec94a0a114b8a1231c0aa7c16f26bb866e588289`. Only the two existing OPT810 source-custody owners change, with three additive exact-unique receiving hooks. Every original archive and independent compiled receiver is unchanged.
 
 Owner a inverses the later real paid raw-owner setup, and the complete appended independent original raw receiver plus its full source-control owner from #43db. The append is a named complete literal block, not a header slice, loose suffix, or ignored region. Existing old-side hook literals remain unchanged, and the final comparison still reconstructs the entire OPT810 original file.

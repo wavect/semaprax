@@ -1,5 +1,9 @@
 # Cleanup shape cursor — source-only handoff
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Base frozen 17efd2ed52a97f41eec05c75d56e01ade219b392, child of ready paid_walk 2528ce449. No root writes, Cargo/build/test/Clippy.
 
 Production collect_leaves_paid formerly constructed a fresh paid heap event Vec for every slot, even NoDrop and one leaf. One cursor now retains 32 inline borrowed Shape/Push/Pop events and ordinary prepaid fallible spill across slots. Inline storage is actual stack backing, never an admission/traversal cap. Spill replacement is paid in full before acquisition by unchanged ReplayBudget; every group retains sticky zero-byte authentication. No credit, offset, observer exclusion or forecast/cap change.

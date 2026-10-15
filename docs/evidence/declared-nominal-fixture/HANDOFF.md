@@ -1,5 +1,9 @@
 # Declared nominal collection fixture correction
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only base fb1bbbeef; no Cargo/build/tests or observer edits. Production classifiers, full owned receiver, saved function_scope and original limits are unchanged.
 
 Frozen bf29 inventory has one related failure: log46 at the positive contains assertion, SHA verified. The original checked CollectionCarrier rows:Vec<CollectionText> genuinely passes owned_collection_record::admitted: explicit monomorphic record, authenticated Vec, one String leaf element. Both complete original contains and funded contains therefore early-return false. This is a fixture classification mistake, not a production defect.

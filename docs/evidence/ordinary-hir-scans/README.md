@@ -1,5 +1,9 @@
 # Ordinary function preflight scratch (#817)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only private implementation from47cbc. The production function boundary adopts paid iterator, renewal and unsafe variants at the original three positions. The inline16 carrier selects physical storage only; complete spill remains admitted and its full new backing is prepaid while old backing stays live. IDs and expression children borrow the actual function. Existing active required-byte authority authenticates zero requests and every acquisition; no work allowance, reset, refund or byte-as-work unit is introduced.
 
 The walks remain distinct: renewal keeps forward statement scheduling and the original in-loop bits; authored children include match guards; unsafe keeps forward capture insertion, reverse popping, closure-body exclusion and the original omission of match guards. Iterator seed/slot checks and delayed unauthorized replacement remain in their original order. Its one reconstructed Iter type comparison now borrows exactly the same compiler identity and entire argument. Semantic fixed-literal errors use existing static diagnostic storage, with all six diagnostic fields unchanged.

@@ -1,5 +1,9 @@
 # Source-only review of OPT829 enclosing-stage attribution (commit 5dc34d3)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Nothing was executed. I found no confirmed blocker in the pasted source. Several claims in the packet rest on code that isn't shown, and some test gaps are noted below.
 
 ## Production delta

@@ -1,3 +1,9 @@
+# review (authoring-repair-guidance)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 **Source-only review.** I did not run or build anything, so nothing here is a claim that tests pass. I found no blocker I can prove from the supplied text. A few points depend on definitions that weren't included.
 
 ## Verified from the supplied source

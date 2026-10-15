@@ -1,5 +1,9 @@
 # Ordinary DAG destruction source packet (#819)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 This private source batch prepays ordinary destruction backing before node
 publication. No Cargo, compiler, test binary or Clippy was executed by this lane.
 Authored allocation counts, bounds and selectors are pending runtime evidence.

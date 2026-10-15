@@ -1,5 +1,9 @@
 # Receiving test digest formatting API correction
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Base: `93fdc103c89fda0230538e568b3f8f661c55f399`.
 
 The actual focused build reported seven `LowerHex` trait failures in the two

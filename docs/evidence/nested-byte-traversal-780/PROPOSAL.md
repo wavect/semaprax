@@ -1,5 +1,9 @@
 # OPT780 nested immutable byte traversal: proposed implementation cut
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source basis: a2311ae7be96f5529b63b9a8f38deef709a8e51c. Proposal only:
 no production changes, compiler/runtime execution, savings or recovery claim.
 

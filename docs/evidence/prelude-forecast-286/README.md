@@ -1,5 +1,9 @@
 # Base prelude forecast correction, source-ready
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Base: `636515f72d3da9912de42b55d1e501def0ceb587`.
 
 The retained receipt at

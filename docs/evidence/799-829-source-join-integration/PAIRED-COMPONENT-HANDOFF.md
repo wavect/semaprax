@@ -1,5 +1,9 @@
 # Exact generic signature component correction
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 A missing root such as `Missing<T>` changes its actual binding to `Missing<i64>` during validation specialization. The previous borrowed-template route compared that actual binding against the authored type and therefore could retain dependent body and contract failures. The new producer-origin receiver checks the exact current parameter type and mode while rechecking the original receipt against its exact paired authored parameter and generic environment. The complete preceding `Recovery::signature` function remains unchanged and compiled.
 
 A generic missing-root return produced T220 while the old return path recognized only T001. The same opaque origin now authenticates the full original return diagnostic before suppressing its dependent T103. An unresolved root also defers its generic return shape profile; known outer return carriers retain their independent T224. Postcondition `result` acquires a dependency only for the actual current return carrier by pointer identity. The requires and ordinary body entries gain no result availability.

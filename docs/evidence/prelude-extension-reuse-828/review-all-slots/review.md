@@ -1,5 +1,9 @@
 # Review of the nine-slot extension producer (source only, nothing executed)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 ## Blockers
 
 **B1. Unpaid `DeclarationId` clones (`extension_producer.rs`, `field_type`).**

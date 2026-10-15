@@ -1,5 +1,9 @@
 # OPT824 error-output custody — bounded source review
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Reviewed private sealed6e265 successor, source SHA bindings in sibling JSON. No source modification, build, tests or allocation measurements.
 
 ## Exact obstruction

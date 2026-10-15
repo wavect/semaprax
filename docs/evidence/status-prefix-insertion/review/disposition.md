@@ -1,3 +1,9 @@
+# disposition (review)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The actual one-shot9500-byte tool-disabled review completed60.16s, peak322MB,
 exit0; raw conditional findings are retained. This is a proposal review, not
 execution, implementation approval or a successful qualification.

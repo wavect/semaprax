@@ -1,5 +1,9 @@
 # Complete source inverse composition repair
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Base `3c351d58f2dc008afd497bb435af62d3ab299edf`. Source-only; no Cargo, Rust tests, build, Claude call or root edits.
 
 The ownership full-source projection now reverses every exact 812 retained-profile hook and 824 canonical-custody hook before comparing all four original files byte for byte. Original archive bytes and SHA constants remain unchanged. The source guard still requires each named hook to occur exactly once and compares the complete final original source.

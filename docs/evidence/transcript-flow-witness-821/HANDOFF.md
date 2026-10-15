@@ -1,5 +1,9 @@
 # OPT821 checked transcript witnesses — source-only handoff
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Base: `74d9031bf12d12a5d77226aeaae0be7e937cef37`.
 
 After the unchanged T269 primary refusal is selected, bounded optional help derives first-two-write call paths from one checked alternative, the selected enclosing loop component and its actual reachable writer, or a genuine closed checked call chain. This is checked projection evidence, not a runtime execution trace. Alternative branches are never combined sequentially; loop source locations are not invented. Successful summaries, TranscriptPath ordering/deduplication, all existing limits and primary code/message/span/error selection remain unchanged.

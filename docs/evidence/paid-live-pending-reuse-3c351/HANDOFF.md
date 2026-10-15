@@ -1,3 +1,9 @@
+# HANDOFF (paid-live-pending-reuse-3c351)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Private source-only improvement: one pending Vec belongs to a paid_plan::build invocation and serves consecutive initial-loan and reborrow-parent liveness visits. It is released before overlap/edge construction. Each live set remains independently owned. Seed iteration, start push, LIFO/predecessor order, every checked-work call, source/current-function admission and semantic diagnostics remain unchanged. Storage::push continues to reserve before every genuine capacity acquisition and checks the same sticky owner. Retained spare is used without a credit, refund, cap reset, new quota or forecast change.
 
 The before3c paid_live helper, complete paid_plan and complete funded facade are independently compiled, with only lexical module-path/bridge adapters. Their entire old bodies and original test child files remain exact. The older paid_plan_legacy/BTree and saved_planner receivers are untouched. Three complete current sources (live, plan, interop inventory) reconstruct before3c bytes through exact counted hooks, with no sliced headers or excluded bodies. Four new children are joined into the existing interop loan CFG inventory; no unrelated HIR validation joins added.

@@ -1,5 +1,9 @@
 # Bounded implementation review disposition
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 One 7,696-byte tool-disabled source review completed in 48.50 seconds, exit zero, peak process-group RSS 315,801,600 bytes. Raw conditional findings remain in review.md. This is no compile/runtime approval and no measured application benefit. No repeat was dispatched.
 
 The review found no confirmed blocker in its pasted scope. Its first concern is retained as a boundary: the a33 general producer remains unchanged. Only the new helper error arm immediately marks Memo failed while returning the actual error unchanged. General errors propagate through closure -> successors -> id -> equivalent via `?`; equivalent drops the local Canonicalizer on any error. The actual producer cannot continue acquisition after error. Every small-fixture old/current work frontier compares the complete result and diagnostic, then exercises sticky retry and whole Drop. No already returned Rc value or Rust borrow is revoked by the bool setter.

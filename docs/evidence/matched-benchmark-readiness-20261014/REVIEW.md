@@ -1,5 +1,9 @@
 # Matched web / LogLens / ShiftSim readiness
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Reviewed source 211619bfd. No campaign, plan, calibration, compiler, test, or model benchmark ran. The adapter source hashes and complete original prompt definitions are retained in source-bindings.json. No adapter, prompt, acceptance check or reporting implementation was changed.
 
 All three Codex adapters pin gpt-6.1-sol at medium effort, 1800-second attempts and alternating language arms. Use five attempts per arm for the next cohort; failures remain attempted tasks and calibration remains separate. Web requires exactly five; LogLens and ShiftSim permit at least five. Strong TypeScript provisioning already exists. The next-run commands require its receipt explicitly for every cohort and use the receipt-bound Node (and npm where applicable), avoiding an unprepared legacy no-bootstrap launch. Dependencies supply tools only, not application source. SEM retains the ordinary full compiler/profile checks and all original application requirements.

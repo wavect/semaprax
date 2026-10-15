@@ -1,5 +1,9 @@
 # OPT826 exact small weighted successor backing
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Independent source-only correction from `93fdc103c`; no Cargo/build/test execution.
 The frozen root is unchanged.
 

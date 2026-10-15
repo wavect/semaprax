@@ -1,5 +1,9 @@
 # OPT812 held generic profile boundary
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 This is source-only design evidence for [OPT812](https://github.com/wavect/semaprax/issues/812), not an implementation or a G171 improvement receipt. No Rust build or test ran. The attempted production memo was rejected during review and removed completely; the current classifier, caller, independent original receivers and source joins remain unchanged. `source-review.json` binds the inspected private source bytes and the actual bounded Claude review.
 
 ## Why the parameter runtime memo was rejected

@@ -1,3 +1,9 @@
+# review (independent-review)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 ## Verdict
 
 I found no concrete blocker in the diff. I did not run anything, so everything below comes from reading the pasted source. Three items are uncertainties or coverage gaps, not proven defects.

@@ -1,5 +1,9 @@
 # Borrowed generic declaration rewrite scratch
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only, unexecuted. This packet removes unpriced temporary ownership in the generic declaration rewrite helper: cloned parameter names and BTreeSet nodes, and the collected immutable/mutable type-reference vectors. Borrowed exact string equality preserves duplicate and empty-name membership; direct visitors retain record field order, class field then method parameter/return order, and variant case/field order. First errors and partially rewritten declarations are compared with the complete prior receiver.
 
 The complete 8,134-byte original file is archived and independently compiled byte-for-byte. A scoped test-only dispatch lets the real workspace build/link/HIR graph path execute that receiver. It restores its thread-local selection on unwind; it supplies no payer, receipt reset or authority. A separate test-only cost child exhaustively destructures every StructuralCost field. All three modified roots have exact named inverse blocks restoring their complete original bytes, with no excluded interior or header slicing. New children remain in the owning workspace source inventories.

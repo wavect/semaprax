@@ -1,5 +1,9 @@
 # Diagnosis and draft: `expected_ownership` unpaid fallback
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 This is source-only. Nothing was compiled or run, and I haven't seen the other `Payer` impls or `nominal_facts.get`, so the signature guesses below are marked.
 
 ## Diagnosis (suspect, not proven)

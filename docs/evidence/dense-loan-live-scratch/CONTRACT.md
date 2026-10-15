@@ -1,5 +1,9 @@
 # Private point-domain live scratch
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only candidate from a231 plus the owner123 fixture correction (18e479).
 The ordinary authenticated funded planner now builds only its temporary live
 sets as bit words. Seeds, parent temporary unions, aliases, bindings, terminal

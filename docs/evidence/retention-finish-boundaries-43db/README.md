@@ -1,5 +1,9 @@
 # Complete retention and finish attribution
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only packet from `43db802ea9d892a5a9a44d2eafa8468d98633979`, for actual frozen f8 owners 82 and 201. No production funding repair is claimed without an attributed actual deficit.
 
 Owner 82 still constructs the real current `HirValidator::new`, runs either the current function receiver or its independently compiled complete lifecycle receiver, and drops the validator/result inside the one original allocator observation and active budget. Five fixed inline snapshots record metrics and active remaining bytes before construction, after construction, after validation before validator Drop, after validator Drop, and after result Drop. The original allocated/highwater <= paid predicates, old receiver predicates, strict improvement, exact successful budget, one-byte-short, zero-budget and sticky failure checks are retained. No child budget or child measurement is created; the metrics and ledger are never rewritten. Formatting happens only in a failed assertion after observation completion.

@@ -1,5 +1,9 @@
 # One bounded review disposition
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 One8428-byte tool-disabled Sonnet dispatch completed39.35s, exit0,
 peak279101440 bytes, provider list costUSD0.061756; actual billing unknown.
 Raw payload/result/receipt retained. No execution or broad approval follows.

@@ -1,3 +1,9 @@
+# f8 fixture review result (held-generic-call-profiles-812)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 **Findings (from the code shown; I can't see `HirValidator::new`, `check`, or the ownership pass, so those points are marked as such):**
 
 1. **The `HirValidator::new(&changed).unwrap()` in the changed-argument loop will probably panic for the new `Bag<Vec<i64>>` case.**

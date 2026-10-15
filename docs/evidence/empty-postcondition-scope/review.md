@@ -1,3 +1,9 @@
+# review (empty-postcondition-scope)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 **No concrete blocker found.** I read the source only; nothing was executed and no test results are claimed.
 
 **Does the omitted local carrier have a consumer? No.**

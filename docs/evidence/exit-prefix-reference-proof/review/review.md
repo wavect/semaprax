@@ -1,5 +1,9 @@
 # Review: DISTINCT removal of `referenced_exits`
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 I reviewed only the pasted text, so I am not claiming any execution or compilation. The snippets have no line numbers, so I cite them by label and quoted expression.
 
 ## Verdict

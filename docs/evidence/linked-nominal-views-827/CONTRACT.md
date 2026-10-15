@@ -1,5 +1,9 @@
 # Linked nominal borrowed metadata v1
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 This source candidate changes storage operations inside the existing final-link
 closure reconstruction. It retains every Phase-A kind/owner/membership check,
 its source order, partial receiving-map contents, and complete diagnostic fields.

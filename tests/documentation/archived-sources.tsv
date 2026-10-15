@@ -1,0 +1,13 @@
+# Exact Markdown source snapshots, logical original paths, and SHA-256.
+docs/evidence/dense-loan-live-scratch/original/docs__SHARED-LOAN-PLAN-V1.md	docs/SHARED-LOAN-PLAN-V1.md	995baa2f183236c6316d09e86389582a8f91732b4686ab4b575af6c6428acbe3
+docs/evidence/factored-epsilon-closure-sharing/original/docs__ARCHITECTURE.md	docs/ARCHITECTURE.md	a73d2ac6aca13cd1775b9bc0525428c567fe488d59bbaef2f7e90e6ec7b9a349
+docs/evidence/nested-byte-traversal-780/control-original/CHANGELOG.md	CHANGELOG.md	33b80e05f020b6a0cd5e343af324187e5be98a608abb474a1d448a00d8caefbb
+docs/evidence/nested-byte-traversal-780/control-original/docs__AGENT-QUICK-REFERENCE.md	docs/AGENT-QUICK-REFERENCE.md	4981d511167a4bdc7ec22d23bf6358d10782e8c0f654362cc29e7cc148e772ef
+docs/evidence/nested-byte-traversal-780/control-original/docs__ARCHITECTURE.md	docs/ARCHITECTURE.md	71fb57b7079b79e423950047f5af0c2d8b2dfe5323432a5c567cbc7c81039929
+docs/evidence/nested-byte-traversal-780/control-original/docs__BORROWED-BYTE-SLICE-FOR-TRAVERSAL-V1.md	docs/BORROWED-BYTE-SLICE-FOR-TRAVERSAL-V1.md	dd8fe1a6789e8fc20eb21b30ced4c45b44880b1e08eae04f1c3c7e92664a5bd9
+docs/evidence/nested-byte-traversal-780/control-original/docs__DEVELOPMENT.md	docs/DEVELOPMENT.md	d2d64f3346b6538388d7381f58f88ca7dca0923b65eff57db117d85e8dd7ede2
+docs/evidence/nested-byte-traversal-780/final-original/CHANGELOG.md	CHANGELOG.md	33b80e05f020b6a0cd5e343af324187e5be98a608abb474a1d448a00d8caefbb
+docs/evidence/nested-byte-traversal-780/final-original/docs__AGENT-QUICK-REFERENCE.md	docs/AGENT-QUICK-REFERENCE.md	4981d511167a4bdc7ec22d23bf6358d10782e8c0f654362cc29e7cc148e772ef
+docs/evidence/nested-byte-traversal-780/final-original/docs__ARCHITECTURE.md	docs/ARCHITECTURE.md	71fb57b7079b79e423950047f5af0c2d8b2dfe5323432a5c567cbc7c81039929
+docs/evidence/nested-byte-traversal-780/final-original/docs__BORROWED-BYTE-SLICE-FOR-TRAVERSAL-V1.md	docs/BORROWED-BYTE-SLICE-FOR-TRAVERSAL-V1.md	dd8fe1a6789e8fc20eb21b30ced4c45b44880b1e08eae04f1c3c7e92664a5bd9
+docs/evidence/nested-byte-traversal-780/final-original/docs__DEVELOPMENT.md	docs/DEVELOPMENT.md	d2d64f3346b6538388d7381f58f88ca7dca0923b65eff57db117d85e8dd7ede2

@@ -1,5 +1,9 @@
 # Review of #830 (source only, nothing executed)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 ## Blockers
 
 None confirmed from the pasted text. The fast-path predicate and the work-charge sequence both look correct. The items below are the closest to blockers.

@@ -1,5 +1,9 @@
 # Review of commit 5d9e6b125 (source-only, nothing executed)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 I found no confirmed blocker in the pasted lines. Everything below the first section depends on code I can't see, and I've labeled it as uncertain.
 
 ## Checked and consistent

@@ -1,5 +1,9 @@
 # Scalar error-policy parity with independent original Tree replay
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The test-only `scalar_replay::validate` facade now acquires the genuine Legacy-policy Arena through `expression_facts::with_budget`, matching the existing lexical facade and the paid scalar Arena route. It retains the physical-backing precondition. Production `validate_paid`, all common driver stages, every budget ceiling, and both original `assert_eq!(old.usage(), paid.usage());` assertions are unchanged.
 
 The previous equality compared two different representations. The complete Tree producer's ordinary map receiving/search is unmetered, while the Arena pays AVL/key/cursor work. The historical 74d owner reported remaining-work/reserved-backing tuples `(31999854, 406270)` and `(31999543, 404670)`: actual representation accounting, not numeric pins or token savings. Comparing error policies on the same representation resolves that test seam without padding either account.

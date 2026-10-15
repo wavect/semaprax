@@ -1,5 +1,9 @@
 # Borrowed compiler input correction
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Actual be8f owners94/101 failed complete producer/refusal/Drop observation with retained allocations. The complete-slot producer fetched global compiler declarations before its first work debit. Cold direct-producer tests therefore initialized the process-lifetime compiler AST inside the allocation window, including zero-work refusal. This is an input-owner construction, not a reusable extension payload owned by the invocation.
 
 The producer now receives an explicit borrowed compiler TypeDeclaration from the already-authenticated selected prefix. It no longer fetches or initializes global compiler AST. The actual caller authenticates exact immutable prefix identity before this call; all name/ID/kind and foreign-AST controls remain. Direct owning controls prepare that existing immutable input outside the observer, and keep the complete paid producer, every partial refusal, all allocations and final Drop inside. Every old allocation/free/invalid/live/work/sticky assertion is unchanged. No duplicate AST, paid model discount, extra quota, cap or work-bound change.

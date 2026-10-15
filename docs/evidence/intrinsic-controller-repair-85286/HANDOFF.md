@@ -1,5 +1,9 @@
 # Intrinsic controller corrections
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only successor of frozen 85286. No production implementation changes, no Rust execution, and no old archive or diagnostic/assertion weakening.
 
 The original intrinsic fixture placed `own` before the parameter name. The admitted positive places it after the colon (`value: own Iter<i64>`). The byte-exact invalid original is retained as an explicit full SPX-P106 diagnostic control (including span/path/help). Both original admitted receiver controls remain unchanged beyond this syntax correction.

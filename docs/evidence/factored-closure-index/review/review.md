@@ -1,5 +1,9 @@
 # Review: lazy chunk memo (pasted source only, nothing executed)
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The paste has no line numbers, so I cite quoted expressions. `physical_budget.rs` is cut off at `budget_refusal`, and `canonical_shared.rs` is cut off after `closure`. Anything depending on those is marked as absent context.
 
 ## Blockers

@@ -1,5 +1,9 @@
 # Nominal payload 827: private source checkpoint v1
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Basis: `4ec48420b6e78b1035a66cc406893c46c3028464`. This is an unfinished private source checkpoint, not an integration candidate or a completed optimization. No Cargo, build, test, runtime, or performance qualification has run on it.
 
 The draft introduces an explicitly funded immutable outer nominal sequence, case-field coordinates retaining the complete outer cases owner, exact legacy Vec wire projections, and separate legacy constructors. The original pre-change files are retained in full under `original/`, bound by `source-inventory.json`. The complete old index constructor is independently compiled under cfg(test) in `nominal_original.rs`; the existing complete old resolver remains present with representation-only adapters.

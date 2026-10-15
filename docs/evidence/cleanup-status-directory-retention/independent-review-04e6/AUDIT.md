@@ -1,5 +1,9 @@
 # Bounded retained status-directory source review
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Subject04e6fa2db, implementation64e2babd7. Source-only; no Cargo/runtime or broader approval.
 
 Concrete gaps sent to ROOT and constructor author before qualification:

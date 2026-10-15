@@ -1,5 +1,9 @@
 # OPT814 complete private paid inventory adoption
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Current private source replaces the discarded complete ordinary inventory in the actual cleanup-schema caller with a streaming summary. The complete original inventory, schema function and receiving function remain independently compiled and source-bound. Every original signature, contract, body, pattern, update, lifecycle and generic shape branch is validated before publication. Full immutable shape validation finishes before the retained nested/variant/iterator summary can select a schema.
 
 The new route uses the existing builder-like ReplayBudget for comparison/traversal work and fallible backing before acquisition, including old/new overlap and future receiving release. Unfunded and reservation-only compatibility retains the complete original route. No selected profile policy, quota, cap, refund or credit changes. Other existing schema probes retain their original implementation; this change does not establish aggregate funding of the whole schema receiver.

@@ -1,5 +1,9 @@
 # Retain the ordinary validated status directory
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only optimization of the actual owner17 H006 during the second status-directory construction. The first pass already pays every identity insertion, comparison, allocation and rotation. The unchanged immutable function is borrowed through the later block/edge pass; that pass reuses those exact keys and removes its redundant reconstruction. It still authenticates the same payer and charges every actual membership probe. A private token binds exact function and budget addresses. Regions/entry retain their original execution order. The ordinary driver alone selects this route; full previous status and block receivers remain independently compiled and the lexical route remains unchanged. No quota, work unit, ceiling, refund or fixture assertion changes.
 
 The retained directory lives longer across region/entry validation; its original complete allocation remains paid. It does not allocate or clone another directory. Later exhausted membership phases now name the retained identity directory; first semantic error order and all six fields are compared on ample accounts. Tests observe both complete status/block phase receivers and Drop, with facts and fixtures prepared explicitly outside that phase observer. Auth controls reject foreign function/budget and work refusal remains sticky. Existing exact/short/zero paid-directory controls remain unchanged. The actual full owner17 retry control remains required: source redundancy removal alone does not prove that the 32-million work ceiling now admits this fixture.

@@ -1,5 +1,9 @@
 # Paid CFG identity directory reuse v1
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source candidate from9dd051bce. No private compile/test execution and no actual
 normalizer fit, savings, or first-refusal-cause claim follows.
 

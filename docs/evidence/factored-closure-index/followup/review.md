@@ -1,3 +1,9 @@
+# review (followup)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 **Scope:** source-only review of the pasted code. Nothing was executed, and `reserve_vec`, `reserve_bytes`, `ClassifierLedger`, the closure loop and the tests are not pasted, so findings that depend on them are marked conditional.
 
 ## Blocker (conditional)

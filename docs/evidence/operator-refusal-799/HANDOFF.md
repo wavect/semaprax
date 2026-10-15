@@ -1,5 +1,9 @@
 # OPT799 operator refusal propagation
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Issue: https://github.com/wavect/semaprax/issues/799
 
 Unary native-unit refusal and binary missing/refused operands no longer publish a synthetic checked result. Binary checks, left-to-right child checking and lazy ownership joins retain their original ordering. Only diagnostics produced by the operator itself gate its publication; earlier independent diagnostics do not poison a still-checked operand.

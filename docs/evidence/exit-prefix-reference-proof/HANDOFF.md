@@ -1,3 +1,9 @@
+# HANDOFF (exit-prefix-reference-proof)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Private production from ff742f7cf, with d660 closed status-custody correction cherry-picked as22fc65b96 parent. Root already has both; integrate ONLY this final feature commit, not its parents. No ROOT writes/Cargo/build/Clippy/runtime.
 
 Valid route removes the write-only referenced-exits AVL only. Existing bounds/owner check and constructor/per-exit zero authentication remain in their exact order/labels. Cold wrong-owner route prepays complete initialized/receiving Probe overlap + lookup Option + previous/seen bindings + booleans and20 explicit primitive steps before new reads. Earlier checked owner block's same Exit(x) reproduces original repeat-over-wrong-owner priority; other/future/out-of-range owners retain wrong-owner. No incoming-ID/count assumption, replacement AVL, quota/unit/cap change or old-header credit.

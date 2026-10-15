@@ -1,5 +1,9 @@
 # Integrated source projection inverses
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Source-only successor to `797b45b1a7378981c3d108eb1528cb1988117788`. Frozen f8 owners 19/161/223/224 failed their source inverses; this packet does not claim those executable gates passed.
 
 The complete constructor HIR comparison now uniquely inverts the later immutable source receiver, nested scalar adapter, and deterministic style edits, after retaining its original two classifier adapter inverses. The complete compatibility constructor validation comparison uniquely inverts all five integrated #812 held-call edits before its unchanged original #824 custody inverses. Both comparisons still end at the full original archives.

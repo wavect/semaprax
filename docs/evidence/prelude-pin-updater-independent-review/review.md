@@ -1,5 +1,9 @@
 # Source-only review of `update-prelude-forecast-pins.py`
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Nothing was run. Line numbers for the updater are quoted statements, since the paste carries no numbering. Other line numbers are my counts from the supplied scopes and may be off by a few lines.
 
 ## Blockers

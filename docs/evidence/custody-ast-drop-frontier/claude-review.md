@@ -1,3 +1,9 @@
+# claude review (custody-ast-drop-frontier)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 **No definite blockers found.** I checked this by reading only, with no tools and no test runs.
 
 **Compile and path**

@@ -1,3 +1,9 @@
+# DISPOSITION (review)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 One tool-disabled Sonnet review of the7,688-byte actual old/current producers and lookup/payment contract completed36.9274s, exit0, model claude-sonnet-5-5, peak320,700,416bytes. Provider list priceUSD0.059878; actual billing unknown. Raw request/result/usage/argv retained. No retry.
 
 No concrete semantic/authority/typing blocker was identified under the actual immutable Facts/Lookup signature. A strict accounting uncertainty was actionable: fact:&Option<CallFact> and call:&CallFact are two simultaneous receiving controls. The final source explicitly prepays both complete reference layouts plus one assignment unit each, with the second payment before the call pattern initializes its reference. No eliminated result/header credit is used. This deterministic correction was not re-reviewed. Non-call producers honestly incur their first receiving control; old/current exact gates remain separate. Physical first-refusal operation labels may change under truly tight budgets.

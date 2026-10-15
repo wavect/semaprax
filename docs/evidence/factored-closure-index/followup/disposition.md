@@ -1,5 +1,9 @@
 # Source-only followup disposition
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The raw conditional verdict and all seven uncertainties remain in review.md; this is no runtime approval. One 8,404-byte tool-disabled dispatch completed in 72.38 seconds, peak process-group RSS 324,435,968 bytes. No repeat was dispatched.
 
 B1 is resolved by the actual existing physical_budget.rs reserve_vec producer: it precharges the full target, performs try_reserve_exact on the same Vec and checks exact capacity before returning. resize_with then cannot allocate on the paying path. A sparse-high-first and subsequent boundary-growth control now asserts actual capacity equals the exact producer target.

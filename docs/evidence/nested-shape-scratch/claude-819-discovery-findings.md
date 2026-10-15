@@ -1,5 +1,9 @@
 # OPT819 ordinary DAG teardown: source-only review
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 This is based only on the pasted source. I did not see `SkeletonWork`, `ReplayBudget` ownership, `Observation`, the memo, or `pays_allocations` callers, so several points below are conditions to verify.
 
 ## 1. Order preservation

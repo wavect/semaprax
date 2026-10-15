@@ -1,5 +1,9 @@
 # Paid helper comparison scope correction
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Actual5b56 owner83 failed universal old/current strict savings; owner103 failed work equation8271vs8451. The protected whole old edge/exit receivers still call original validate_place, whose leaf-output Vec was physically allocated but not cumulatively paid or charged for new helper controls/work. Current uses the paid transitive helper11sites. Treating these whole costs as identical was false.
 
 Both complete old receivers remain untouched, independently compiled and executed in the full observer window. Added complete paid-before bodies differ only by11 actual helper substitutions plus a function-name namespace adapter; exact Rust source audits reverse these and compare whole originals, and Python source proof passed. No literal dedent. The original unpriced physical allocations remain included, and are not treated as funding authority.

@@ -1,5 +1,9 @@
 # Distinct compiler repair review
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 One tool-disabled Sonnet call reviewed exact33801deb384e912b059409b0ca408f41a54b3664 production repair against complete504b originals and all16 actual rendered compiler errors. It completed in42.162638583seconds, exit0, peak process-group RSS327401472bytes, no resource refusal. Returned model claude-sonnet-5-5; provider list cost USD0.129264, actual billing unknown. Full raw usage/model receipt is preserved. No old827 review was retried.
 
 Claude found no concrete blocker in the three-file diff. It concluded the borrowed Result/Option adapters preserve work, first-error propagation, values and borrowed lifetimes without cloning. It identified source uncertainties rather than asserting compilation.

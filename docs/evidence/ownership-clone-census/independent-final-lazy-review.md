@@ -1,3 +1,9 @@
+# independent final lazy review (ownership-clone-census)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 **Verdict: no definite compile, API or logic errors in the added controls.** This is a source-only read of the pasted excerpts, with nothing built or run.
 
 **What I checked and found consistent**

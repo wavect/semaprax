@@ -1,5 +1,9 @@
 # Actual cache receiver control corrections
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 The actual 1a0b qualification failed these two existing bodies. This packet preserves their complete original source files and raw failed logs. It changes tests only; no compiler policy, quota, forecast or current P changes. No Cargo, build or runtime qualification was performed here.
 
 Control 123 passed its complete old/current HIR and function-work comparisons, then compared a current nominal setup refusal with the old first identity allocation. The independent pre-nominal paid resolver now retains the original aligned two-word-plus-11-byte identity request and exact typed caller Budget receipt under its own equivalent report-only owner. The current selective receiver retains its exact typed Budget receipt, with the first request independently derived from replay_btree_node_upper<DeclarationId, NominalPayload<ResolvedTypeParameterDeclaration>> as in the actual source-owning setup. Remaining/floor/stage are exact and no observed numeric request is a new code golden. Checked reuse and all original work/diagnostic comparisons remain.

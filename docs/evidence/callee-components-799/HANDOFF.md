@@ -1,5 +1,9 @@
 # OPT799 direct callee declaration components
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Issue: https://github.com/wavect/semaprax/issues/799
 
 A direct borrowed source-function target authenticates an already emitted T001 against the exact declaration component and full diagnostic fields. An unknown parameter excuses only its expected-type comparison. Valid sibling parameters, ownership checks, evaluation and independently valid result signatures remain active. An unknown return publishes no checked type and records the actual dependency for a later refused initializer, including zero-argument calls.

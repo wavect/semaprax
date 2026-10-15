@@ -1,3 +1,9 @@
+# full walker discovery (ownership-clone-census)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 I reviewed the pasted code only (no tools run), so every "verify" below is a claim I couldn't check from these files.
 
 ## The 514-frame census: inline accounting, not a heap deficit

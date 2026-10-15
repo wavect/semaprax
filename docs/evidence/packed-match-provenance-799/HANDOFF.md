@@ -1,5 +1,9 @@
 # Packed match refusal custody
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Parent's actual compiler probe a2e408 proves current pre-repair VerifierFrame336 and VariantMatchState328, rather than the existing320/312 physical models. No tests executed in that failed production-only probe. This source-only candidate keeps all numeric model constants and original assertions unchanged. It adds an equality between actual compiler sizes of VariantMatchName and Option<String>; the parent must compile-prove this before integration.
 
 The variant name and refused-input provenance are mutually exclusive. Known(String) retains the original exact owned String allocation/capacity and original drop. Unknown(Option<usize>) stores the complete original ordinal, including zero/usize::MAX without encoding, bounds, heap, unsafe or invented name/type. No independent refusal field is retained. Ordinary raw input construction chooses one arm from the actual scrutinee classification. Existing name views and all cases/arguments/ownership/result metadata remain unchanged. Physical owned-name and type capacity accounting is unchanged.

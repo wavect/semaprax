@@ -1,5 +1,9 @@
 # Bounded base-invocation receiving audit
 
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 Scope: actual CoreProviderProofs-to-base receiver, source-before-producer ordering, same-ledger custody, typed work error and returned nominal payload lifetime. This is a read-only source assessment of an actively changing private worktree. The accompanying hashes bind the source observed after the reported correction; they are not a production approval, runtime receipt or full allocation proof. No Cargo or tests were run.
 
 Concrete finding resolved during review: CaseFields is a struct containing CaseStorage, but its Deref implementation initially matched nonexistent Self::Owned. The source author corrected this to match &self.storage and CaseStorage variants. The current snapshot includes that correction.

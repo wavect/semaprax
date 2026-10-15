@@ -1,3 +1,9 @@
+# constructor intrinsic 824 final review (constructor-intrinsic-borrowing-824)
+
+Status: retained evidence; the recorded scope and qualification below apply.
+
+Audience: compiler contributors, tool authors, and reviewers.
+
 **Verdict:** from the pasted source I found no concrete blocker. I found one independence gap and several items I can't confirm without files you didn't paste.
 
 ## Parity, which holds for what's shown

@@ -1,0 +1,8 @@
+{
+  "status": "SOURCE_ONLY_NOT_RUST_EXECUTION",
+  "basis": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
+  "files": 25,
+  "exact_wildcard_occurrences_replaced": 28,
+  "whole_prior_sources_archived": true,
+  "all_bodies_identical_after_removing_only_use_declarations_and_explicit_session_mirror_alias": true
+}

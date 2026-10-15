@@ -1,5 +1,10 @@
 //! Full old/current logical work and actual receiving-to-last-Drop controls.
-use super::*;
+use super::{CfgReservation, Nodes, edge_liveness, live_nodes_with_pending, size_of};
+use super::super::super::{
+    Diagnostic, LoanId, MAX_LOAN_PLAN_WORK_V1, OwnershipMode, Place, ResolvedExprKind,
+    ResolvedStatement, ResolvedType, WorkCounter, boundary_tests, build_cfg, cfg_directory,
+    funded_flat, saved_planner, storage, work,
+};
 use crate::bounded_output::{active_remaining, with_limit_usage, with_limit_usage_refusal};
 use crate::test_allocation_observer::{current_metrics, measure};
 

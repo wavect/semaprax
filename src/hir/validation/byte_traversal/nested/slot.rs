@@ -1,7 +1,9 @@
 //! A paid receiving carrier lazily holds one independently replayed census.
 //! Selection reuses the existing complete v1 region check; it creates no extra
 //! cursor scan, temporary owned error text or unpriced selector workspace.
-use super::*;
+use super::{
+    Census, Diagnostic, Failure, Refused, Region, ResolvedExpr, ResolvedFunction, Storage,
+};
 pub(crate) struct Slot<'a> {
     context: &'a dyn crate::cleanup::ReplayContext,
     function: &'a ResolvedFunction,

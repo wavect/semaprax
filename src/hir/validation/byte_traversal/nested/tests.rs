@@ -1,5 +1,9 @@
 //! Authored controls: no compilation/runtime evidence is claimed by this file.
-use super::*;
+use super::{Census, Diagnostic, ResolvedExpr, ResolvedFunction, Slot, shape};
+use super::super::{
+    ControlTarget, ExpressionId, FunctionExecutionId, ResolvedExprKind, ResolvedProgram,
+    ResolvedStatement,
+};
 use crate::bounded_output::{reserve_active_required, with_limit_usage_refusal};
 use crate::test_allocation_observer::{current_metrics, measure};
 use std::cell::{Cell, RefCell};

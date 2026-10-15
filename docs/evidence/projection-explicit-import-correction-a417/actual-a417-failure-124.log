@@ -1,0 +1,17 @@
+
+running 1 test
+test cleanup_plan::replay::selected_entry::tests::session_errors::source::selected_session_complete_source_inverses_and_old_layout_definitions_stay_bound ... 
+thread 'cleanup_plan::replay::selected_entry::tests::session_errors::source::selected_session_complete_source_inverses_and_old_layout_definitions_stay_bound' (4365926) panicked at src/cleanup_plan/replay/selected_entry/tests/session_errors/source.rs:55:5:
+assertion `left == right` failed
+  left: "Failed,Owned(Diagnostic),Fact(FactReceipt),Structural(semantic_refusal::Receipt),"
+ right: "Failed,Owned(Diagnostic),Fact(FactReceipt),Structural(Receipt),"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::selected_entry::tests::session_errors::source::selected_session_complete_source_inverses_and_old_layout_definitions_stay_bound
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8847 filtered out; finished in 0.05s
+

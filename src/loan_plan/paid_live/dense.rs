@@ -1,5 +1,6 @@
 //! Private live scratch only: exact point-domain bits, canonical ascending keys.
-use super::*;
+use super::Membership;
+use super::super::{Cfg, Diagnostic, LoanId, WorkCounter, cfg_directory, charge, storage, work};
 use crate::bounded_output::cfg_reservation::CfgReservation;
 use std::mem::size_of;
 

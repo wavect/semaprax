@@ -2,7 +2,10 @@
 //! Frames, open states and completed memo keys share only owned immutable
 //! vectors. Label order, route weights, signature algebra and work debits keep
 //! the complete original receiver in canonical_before.rs as an independent control.
-use super::*;
+use super::{
+    Automaton, BTreeMap, BTreeSet, Diagnostic, Label, Rc, ReplayBudget, ResolvedFunction, Weighted,
+    physical_clone, replay_error,
+};
 
 mod epsilon_alias;
 #[cfg(test)]

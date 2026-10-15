@@ -1,5 +1,10 @@
 //! Selected-local error data only; no whole-engine funding or application claim.
-use super::*;
+use super::{
+    Acquired, Diagnostic, ExpressionId, PhysicalReservation, ReplayContext, ReportForm,
+    ResolvedFunction, ResolvedProgram, Session, StorageId, expression_facts, primitive_fixture,
+    selected_context, semantic_refusal,
+};
+use crate::cleanup_plan::LivenessFlagId;
 use crate::test_allocation_observer::{current_metrics, measure};
 const FORM: ReportForm = ReportForm::new("SPX-T781", "selected session refusal");
 fn fixture() -> ResolvedProgram {
@@ -255,7 +260,7 @@ fn selected_session_publication_keeps_first_named_boundary_across_later_atom_kin
     reason = "complete independent historical enum layout, no constructors or runtime work"
 )]
 mod prior_layout {
-    use super::*;
+    use super::{Diagnostic, ExpressionId, LivenessFlagId, StorageId, expression_facts};
     pub(super) enum Atom {
         RepeatedStatus(ExpressionId),
         UnknownStatus(ExpressionId),
@@ -270,11 +275,16 @@ mod prior_layout {
         source: ExpressionId,
         atom: Atom,
     }
+    // Preserve the archive's real module-qualified field spelling while this
+    // independent mirror retains the historical (not selected-static) Receipt.
+    mod semantic_refusal {
+        pub(super) use super::Receipt;
+    }
     pub(super) enum EngineError {
         Failed,
         Owned(Diagnostic),
         Fact(expression_facts::errors::FactReceipt),
-        Structural(Receipt),
+        Structural(semantic_refusal::Receipt),
     }
 }
 #[test]

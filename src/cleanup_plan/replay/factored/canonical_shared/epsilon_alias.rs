@@ -1,5 +1,5 @@
 //! Exact single-epsilon closure receiver, authenticated by the enclosing memo.
-use super::*;
+use super::{BTreeMap, Diagnostic, Rc, ReplayBudget, ResolvedFunction};
 use std::mem::size_of;
 
 type Closure = Rc<BTreeMap<usize, u64>>;

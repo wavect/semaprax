@@ -1,5 +1,8 @@
 //! Complete status-fact reuse receiver before prefix insertion, independently compiled.
-use super::*;
+use super::{
+    CONTROL_BYTES, CallFact, ClassifierLedger, Diagnostic, Directory, Facts, Lookup, ReplayBudget,
+    ResolvedFunction, StatusLane, StatusProducer, StatusSources, replay_error, semantic_refusal,
+};
 
 pub(in crate::cleanup_plan::replay) fn validate_status_sources_retained<'hir>(
     function: &'hir ResolvedFunction,

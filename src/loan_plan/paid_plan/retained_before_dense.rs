@@ -1,5 +1,11 @@
 //! Complete prior plan builder after moving its actual first paid inventories.
-use super::*;
+use super::{
+    Diagnostic, LOAN_PLAN_SCHEMA_V3, LoanCause, LoanId, LoanPlan, LoanPointPhase,
+    MAX_LOANS_PER_FUNCTION_V1, OwnershipMode, PaidDraft, ResolvedExprKind, ResolvedFunction,
+    ResolvedProgram, ResolvedType, WorkCounter, build_cfg, call_arguments, cfg_directory, charge,
+    error, native_view, origin, paid_candidate, paid_live, paid_materialize, paid_predicates,
+    provisional_result, reject_cfg_overlaps_paid, resolve_parent_paid, storage, traversal, work,
+};
 
 pub(in crate::loan_plan) fn build(
     program: &ResolvedProgram,

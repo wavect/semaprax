@@ -1,5 +1,9 @@
 //! Independent full-old algebra and actual allocation/drop controls.
-use super::*;
+use super::{Canonicalizer, own_weighted, share_weighted, weighted_successor};
+use super::super::{
+    Automaton, BTreeMap, Diagnostic, Label, MAX_REPLAY_WORK_UNITS, Rc, ReplayBudget,
+    ResolvedFunction, SkeletonTerminal, Weighted, canonical_before, physical_clone,
+};
 
 fn fixture() -> ResolvedFunction {
     super::super::lexical_plan_tests::fixture(super::super::lexical_plan_tests::WHILE).1

@@ -1,0 +1,19 @@
+{
+  "status": "SOURCE_ONLY_CORRECTION_NO_RUNTIME_EXECUTION",
+  "base": "a41774c0b3522ea7e13798f1a337b0aa5f35714e",
+  "existing_required": [
+    {
+      "package": "semaprax",
+      "harness": "workspace",
+      "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+      "source": "tests/workspace/semantic_graph.rs"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::selected_entry::tests::session_errors::source::selected_session_complete_source_inverses_and_old_layout_definitions_stay_bound",
+      "source": "src/cleanup_plan/replay/selected_entry/tests/session_errors/source.rs"
+    }
+  ],
+  "retain_all_existing_runtime_layout_and_receiving_controls": true
+}

@@ -1,6 +1,7 @@
 //! Exact borrowed node/definition index. Sorting touches private lookup rows,
 //! never HIR, cleanup vectors, or runtime evaluation order.
-use super::*;
+use super::{Event, Failure, ResolvedExpr, ResolvedFunction, Storage, Walker, shape};
+use super::super::{ResolvedExprKind, ResolvedStatement, ResolvedType, ValueId, bare_place};
 #[derive(Clone, Copy)]
 pub(super) struct Node<'a> {
     pub(super) expression: &'a ResolvedExpr,

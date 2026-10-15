@@ -1,6 +1,6 @@
 //! Invocation-local nested byte proof. References bind this census to one
 //! immutable function; shape discovery is distinct from late provenance replay.
-use super::*;
+use super::{DeclarationIndex, Diagnostic, Region, ResolvedExpr, ResolvedFunction};
 mod check;
 mod index;
 mod intervals;

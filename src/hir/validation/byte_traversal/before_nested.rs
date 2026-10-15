@@ -16,7 +16,11 @@
 //! the body, and loan planning starts an ordinary `TraversalFreeze` loan on
 //! that root before the region and ends it only after the region, so a move
 //! or transfer of an owned root anywhere in the traversal overlaps it.
-use super::*;
+use super::{
+    DeclarationIndex, Diagnostic, LoopLatchKind, OwnershipMode, Place, ResolvedBinding,
+    ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedMatchMode, ResolvedMatchPattern,
+    ResolvedProgram, ResolvedStatement, ResolvedType, SourceForKind, ValueId,
+};
 
 fn fail(message: &str) -> Diagnostic {
     Diagnostic::io("SPX-H006", message)

@@ -1,8 +1,12 @@
 //! Private funding route for the authenticated canonical caller. Legacy
 //! semantic diagnostics and upstream compiler preflight remain outside this
 //! storage protocol; no whole-validator funding claim follows.
-use super::storage::{classify, PlannerError};
-use super::*;
+use super::storage::{PlannerError, classify};
+use super::{
+    CurrentSubject, Diagnostic, LOAN_PLAN_SCHEMA_V3, LoanPlan, MAX_LOAN_PLAN_WORK_V1, ResolvedExpr,
+    ResolvedFunction, ResolvedProgram, SUBJECT_BYTES, WorkCounter, error, guidance, paid_candidate,
+    traversal, work_boundary,
+};
 use crate::bounded_output::cfg_reservation::CfgReservation;
 
 pub(in crate::loan_plan) fn build(

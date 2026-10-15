@@ -1,6 +1,9 @@
 //! Selected-session error data, paid before the first local refusal can exist.
 //! This adds no source/replay authority. Unmigrated child Diagnostics stay owned.
-use super::*;
+use super::{
+    Context, ReplayBudget, ReplayContext, ResolvedFunction, expression_facts, replay_error,
+    selected_owner, selected_profile, semantic_refusal,
+};
 type Error = expression_facts::errors::EngineError;
 /// Every added full carrier is charged independently; no old-header credit.
 /// Six initialized/receiving controls, including the retained optional receipt.

@@ -1,5 +1,5 @@
 //! Source only: complete v1 refusal oracle stays compiled independently.
-use super::*;
+use super::{before_selected, with_before};
 const BASE: &str = r#"module nested.bytes;
 @id("nested.sum") fn sum(left: borrow Slice<u8>, right: borrow Slice<u8>)->i64 {
  let mut total=0;

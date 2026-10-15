@@ -1,0 +1,34 @@
+{
+  "basis": "940fcf220e47d1975f757e76f0b3401691db9358",
+  "status": "source-authored; unexecuted",
+  "required": [
+    "hir::declaration_index::legacy_drop::tests::multiple_case_record_roots_and_function_spines_drop_iteratively_without_new_backing",
+    "hir::declaration_index::leaf_drop_tests::sixteen_actual_leaf_fields_remove_only_the_original_literal_drop_queue",
+    "workspace_graph::constructor_failure::receiving::tests::constructor_receiving_complete_old_core_body_and_actual_linked_programs_remain_independent",
+    "workspace_graph::expected_projection::defaults::error_custody_tests::complete_static_error_source_and_independent_old_dispatch_preserve_all_original_bytes",
+    "hir::declaration_index::leaf_drop_tests::zero_argument_nominal_fields_do_not_allocate_drop_scratch",
+    "hir::declaration_index::leaf_drop_tests::nested_nominal_payloads_keep_iterative_depth_512_disposal_and_complete_settlement",
+    "hir::declaration_index::linked_owned_data::tests::legacy::legacy_final_case_coordinates_and_detached_children_drop_512_without_new_backing",
+    "hir::declaration_index::legacy_drop::tests::detached_legacy_case_roots_reuse_argument_backing_and_keep_complete_old_drop_independent",
+    "hir::declaration_index::legacy_drop::tests::branching_unfunded_disposal_settles_every_allocation_and_original_sticky_ledger",
+    "hir::declaration_index::legacy_drop::tests::complete_previous_drop_and_existing_mixed_case_512_owner_remain_exact"
+  ],
+  "source_bindings": [
+    {
+      "source": "src/hir/declaration_index/leaf_drop_tests.rs",
+      "sha256": "f2919fb1344f564493273f4ae4d888c2eff906508859bd944509b34acc98814f"
+    },
+    {
+      "source": "src/hir/declaration_index/legacy_drop/tests.rs",
+      "sha256": "e59a8ac38d8c4652c7e915773ae9fc21cc24a4608f7973d5973a3d172b7fe440"
+    },
+    {
+      "source": "src/workspace_graph/constructor_failure/receiving/tests.rs",
+      "sha256": "0146e55390a2bbe0b146b936921d5b7d800b98271d32e0f282d2004864b45e7b"
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/defaults/error_custody_tests.rs",
+      "sha256": "bfe95330e6e1d8cd4a5edb2745f76267cd3d02fb3c49f794809a4b16e1e7b154"
+    }
+  ]
+}

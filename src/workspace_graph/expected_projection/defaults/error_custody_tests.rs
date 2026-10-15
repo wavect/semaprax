@@ -158,7 +158,52 @@ fn complete_static_error_source_and_independent_old_dispatch_preserve_all_origin
         record["before_sha256"].as_str().unwrap()
     );
     let mut current = include_str!("../defaults.rs").to_owned();
-    assert_eq!(record["edits"].as_array().unwrap().len(), 12);
+    let edits = record["edits"].as_array().unwrap();
+    // Preserve the twelve original adapters and identify the integrated whole
+    // source preinverse explicitly; it is applied first by the reverse walk.
+    assert_eq!(
+        edits
+            .iter()
+            .map(|edit| edit["name"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        [
+            "closed-static-default-error-0",
+            "closed-static-default-error-1",
+            "closed-static-default-error-2",
+            "closed-static-default-error-3",
+            "closed-static-default-error-4",
+            "closed-static-default-error-5",
+            "closed-static-default-error-6",
+            "closed-static-default-error-7",
+            "closed-default-error-custody-controls",
+            "explicit-default-module-path-1",
+            "explicit-default-module-path-2",
+            "explicit-default-module-path-3",
+            "ordered-large-integrated-whole-source-preinverse",
+        ]
+    );
+    let integrated = &edits[12];
+    assert_eq!(integrated["count"].as_u64(), Some(1));
+    for (field, expected) in [
+        (
+            "after",
+            "2485211074d2424a39b29dcf1ffaee1c48807c7a0368a211395c367162b8cedb",
+        ),
+        (
+            "before",
+            "e97250b91fc9c8bb8f60e6ea1ef7d90a332dcb9dcf3fffdbd66348a9f3e2a366",
+        ),
+    ] {
+        assert_eq!(
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(
+                    integrated[field].as_str().unwrap().as_bytes()
+                ))
+            ),
+            expected
+        );
+    }
     for edit in record["edits"].as_array().unwrap().iter().rev() {
         let after = edit["after"].as_str().unwrap();
         assert_eq!(current.matches(after).count(), 1);

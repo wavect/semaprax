@@ -1,5 +1,5 @@
 //! Actual receiving slot; legacy helper/public-output funding stays separate.
-use super::{CoreFailure, Receiver, Setup, before};
+use super::{before, CoreFailure, Receiver, Setup};
 use crate::bounded_output::{reserve_active_required, with_limit_usage_refusal};
 use crate::diagnostic::Diagnostic;
 use crate::test_allocation_observer::measure;
@@ -178,13 +178,24 @@ fn constructor_receiving_complete_old_core_body_and_actual_linked_programs_remai
         crate::workspace_graph::WorkspaceSource{path:"test/main.spx".to_owned(),source:"module test.main; use function @id(\"value\") from lib.value as value; @id(\"test.main\") fn main()->i64{value()+2}".to_owned()},
     ]
     };
+    let canonical_sources = || {
+        sources()
+            .into_iter()
+            .map(|mut source| {
+                let parsed =
+                    crate::parse(&source.source, std::path::Path::new(&source.path)).unwrap();
+                source.source = crate::format::canonical(&parsed);
+                source
+            })
+            .collect()
+    };
     let old = before::with_before(|| {
-        crate::workspace_graph::build_owned(sources())
+        crate::workspace_graph::build_owned(canonical_sources())
             .unwrap()
             .into_linked_scalar_programs("app.main", "test.main")
             .unwrap()
     });
-    let current = crate::workspace_graph::build_owned(sources())
+    let current = crate::workspace_graph::build_owned(canonical_sources())
         .unwrap()
         .into_linked_scalar_programs("app.main", "test.main")
         .unwrap();

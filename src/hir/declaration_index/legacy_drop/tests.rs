@@ -2,7 +2,7 @@
 use super::super::{DeclarationId, DeclarationIndex, ResolvedFieldDeclaration, ResolvedType};
 use crate::ast::Span;
 use crate::bounded_output::{reserve_active_required, with_limit_usage_refusal};
-use crate::test_allocation_observer::{current_metrics, measure};
+use crate::test_allocation_observer::{current_metrics, measure, measure_with_capacity};
 
 fn chain(depth: usize, functions: bool) -> ResolvedType {
     let mut ty = ResolvedType::I64;
@@ -68,7 +68,13 @@ fn detached_legacy_case_roots_reuse_argument_backing_and_keep_complete_old_drop_
 #[test]
 fn multiple_case_record_roots_and_function_spines_drop_iteratively_without_new_backing() {
     for functions in [false, true] {
-        let ((), whole) = measure(|| {
+        // Sixteen depth-512 roots retain an argument Vec and identity Arc
+        // per nominal node: those alone fill the fixed 16,384-pointer table.
+        // Three slots per node cover both retained allocations and the
+        // transient identity String; eight per root cover field/map metadata.
+        // This preallocated observer storage changes no compiler/runtime quota.
+        let pointer_limit = 2 * 8 * (3 * 512 + 8);
+        let ((), whole) = measure_with_capacity(pointer_limit, || {
             let index = index(8, functions);
             let stopped = current_metrics().allocated;
             drop(index);

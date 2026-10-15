@@ -4,7 +4,7 @@ use super::parameter_names::{self, BorrowedNames};
 use crate::ast::{Program, Type, TypeDeclaration, TypeDeclarationKind};
 use crate::workspace_graph::constructor_failure::{receiving::Receiver, typed::Failure};
 use crate::workspace_graph::expected_projection::{private_layout::LayoutClosure, type_rewrite};
-use std::mem::size_of_val;
+use std::mem::{size_of, size_of_val};
 
 fn one(
     ty: &mut Type,
@@ -16,11 +16,11 @@ fn one(
 ) -> Result<(), Failure> {
     owner.entry::<()>()?;
     owner.reserve(
-        size_of_val(&ty)
-            + size_of_val(&parameters)
-            + size_of_val(&target_module)
-            + size_of_val(&caller)
-            + size_of_val(&programs),
+        size_of::<&mut Type>()
+            + size_of::<&BorrowedNames<'_>>()
+            + size_of::<&str>()
+            + size_of::<&Program>()
+            + size_of::<&[Program]>(),
     )?;
     if !matches!(&*ty, Type::Named { name, arguments } if arguments.is_empty() && parameters.contains(name))
     {
@@ -44,10 +44,10 @@ fn ordinary(
 ) -> Result<(), Failure> {
     owner.entry::<()>()?;
     owner.reserve(
-        size_of_val(&declaration)
-            + size_of_val(&target_module)
-            + size_of_val(&caller)
-            + size_of_val(&programs),
+        size_of::<&mut TypeDeclaration>()
+            + size_of::<&str>()
+            + size_of::<&Program>()
+            + size_of::<&[Program]>(),
     )?;
     let parameters = parameter_names::receiving::new(&declaration.type_parameters, owner)?;
     match &mut declaration.kind {
@@ -136,10 +136,10 @@ pub(in crate::workspace_graph) fn rewrite_declaration_with_layout(
     }
     owner.entry::<()>()?;
     owner.reserve(
-        size_of_val(&declaration)
-            + size_of_val(&target_module)
-            + size_of_val(&caller)
-            + size_of_val(&programs)
+        size_of::<&mut TypeDeclaration>()
+            + size_of::<&str>()
+            + size_of::<&Program>()
+            + size_of::<&[Program]>()
             + size_of_val(&layout),
     )?;
     if layout.is_none_or(|l| l.is_empty()) {

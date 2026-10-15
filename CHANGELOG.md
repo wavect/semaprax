@@ -2,6 +2,8 @@
      distinct cold callers; full old receiver retained; qualification pending. -->
 # Changelog
 
+- Bind fresh application plan/activation reads (#837) to the existing no-follow bounded held regular-file owner, closing inspection/open symlink and FIFO replacement races. Add deterministic pre-open swap controls and small independent typed native-test selector owners. Source-only correction; execution remains pending.
+
 - Author fresh application assembly (#837) from existing replayed codec plans and explicit command profiles through the original held-parent scaffold publisher. Bind canonical source/generation receipts and exact native routes; add an explicit pure typed v31 native-test successor while preserving old profile refusals. Full ShiftSim15/selected-file CLI49 and hostile-publication scenarios are authored; all executable qualification and the source-capacity dependency remain pending.
 
 - Author the ordinary lexical return-operand inventory (#832) on fallible paid AVL backing with borrowed identities, exact caller/facts/budget/ledger binding and certificate-boundary authentication. Preserve complete old callers and original verification charges; new directory work is additional. Rust qualification remains pending.

@@ -352,3 +352,70 @@ fn application_starter_selected_file_declared_native_tests_and_unchanged_cli49()
         std::fs::read(reference.join("tests.mjs")).unwrap()
     );
 }
+
+#[test]
+fn tiny_collection_record_selector_executes_typed_native_roots_and_keeps_legacy_refusal() {
+    let fixture = Fixture::new("tiny-pure-native-selector");
+    assert_success(&cli(
+        &fixture.root,
+        &[
+            "new",
+            "typed",
+            "--name",
+            "tiny",
+            "--template",
+            "stdin-stream-collection-record",
+        ],
+    ));
+    let root = fixture.root.join("typed");
+    semaprax::project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
+        assert_eq!(
+            snapshot.manifest().schema(),
+            semaprax::project::PROJECT_SCHEMA_V31
+        );
+        assert_eq!(
+            snapshot.native_test_roots().unwrap_err()[0].code,
+            "SPX-B104"
+        );
+        let profile = semaprax::project::ProjectNativeTestProfile::CollectionRecordPureV1;
+        let roots = snapshot.native_test_roots_with_profile(profile)?;
+        assert_eq!(roots.len(), 2);
+        assert!(roots.iter().all(|root| !root.result_is_exit_status()));
+        let undeclared = root.join("undeclared-native-root");
+        assert_eq!(
+            snapshot
+                .build_native_test_with_profile("tiny.not-a-declared-test", &undeclared, profile)
+                .unwrap_err()[0]
+                .code,
+            "SPX-G172"
+        );
+        assert!(!undeclared.exists());
+        Ok(())
+    })
+    .unwrap();
+    let legacy = cli(&root, &["test", ".", "--target", "native", "--json"]);
+    assert!(!legacy.status.success());
+    assert!(String::from_utf8_lossy(&legacy.stderr).contains("SPX-B104"));
+    let explicit = cli(
+        &root,
+        &[
+            "test",
+            ".",
+            "--target",
+            "native-collection-record-pure.v1",
+            "--json",
+        ],
+    );
+    assert_success(&explicit);
+    let result: serde_json::Value = serde_json::from_slice(&explicit.stdout).unwrap();
+    assert_eq!(
+        result["schema"],
+        "semaprax.native-test.collection-record-pure.v1"
+    );
+    assert_eq!(result["passed"], true);
+    let cases = result["cases"].as_array().unwrap();
+    assert_eq!(cases.len(), 2);
+    assert!(cases
+        .iter()
+        .all(|case| case["result"] == 0 && case["stdout"] == "0\n" && case["stderr"] == ""));
+}

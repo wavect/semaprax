@@ -1,0 +1,101 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "workspace_graph::identity_resolution::base::affinity_tests::actual_base_foreign_then_restored_owner_cannot_construct_or_reset_first_detachment",
+    "source_path": "src/workspace_graph/identity_resolution/base/affinity_tests.rs",
+    "source_sha256": "e0e7749485042d626ee341dbb51edc466f598e857e24b700a1193e168c38b78f",
+    "line": 117,
+    "reasons": [
+      "latestMAIN exact changed refusal-site/source-owner/offline-help owner"
+    ]
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "workspace_graph::identity_resolution::base::affinity_tests::actual_base_foreign_then_restored_owner_cannot_reuse_cached_payload_or_reset_detachment",
+    "source_path": "src/workspace_graph/identity_resolution/base/affinity_tests.rs",
+    "source_sha256": "e0e7749485042d626ee341dbb51edc466f598e857e24b700a1193e168c38b78f",
+    "line": 122,
+    "reasons": [
+      "latestMAIN exact changed refusal-site/source-owner/offline-help owner"
+    ]
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "bounded_output::refusal_tests::compiler_refusal_site_tracks_only_the_first_required_request",
+    "source_path": "src/bounded_output/refusal_tests.rs",
+    "source_sha256": "9b2060b52bf47c6d6381a2c849b1abf394bff324bc62c683b9c955d785ad5163",
+    "line": 223,
+    "reasons": [
+      "latestMAIN exact changed refusal-site/source-owner/offline-help owner"
+    ]
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "bounded_output::refusal_tests::compiler_refusal_sites_are_nested_scope_local_without_changing_parent_debits",
+    "source_path": "src/bounded_output/refusal_tests.rs",
+    "source_sha256": "9b2060b52bf47c6d6381a2c849b1abf394bff324bc62c683b9c955d785ad5163",
+    "line": 248,
+    "reasons": [
+      "latestMAIN exact changed refusal-site/source-owner/offline-help owner"
+    ]
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "bounded_output::refusal_tests::compiler_refusal_site_capture_allocates_no_backing_after_refusal",
+    "source_path": "src/bounded_output/refusal_tests.rs",
+    "source_sha256": "9b2060b52bf47c6d6381a2c849b1abf394bff324bc62c683b9c955d785ad5163",
+    "line": 274,
+    "reasons": [
+      "latestMAIN exact changed refusal-site/source-owner/offline-help owner"
+    ]
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "workspace_graph::diagnostics::refusal_tests::actual_reservation_site_extends_only_outward_help_and_stays_omitted_under_a_budget",
+    "source_path": "src/workspace_graph/diagnostics/refusal_tests.rs",
+    "source_sha256": "3d0c661a36e2152f24ab99c4228dc43d56768fb3254b2e87826bf11b14ecb325",
+    "line": 157,
+    "reasons": [
+      "latestMAIN exact changed refusal-site/source-owner/offline-help owner"
+    ]
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "bounded_output::source_owner_scope::tests::source_owner_callback_restores_ambient_and_reports_complete_real_debits",
+    "source_path": "src/bounded_output/source_owner_scope.rs",
+    "source_sha256": "dbbf0f53cd11e52219782792b7db2d12479a1195fa777b9a74ee68d99a582d55",
+    "line": 43,
+    "reasons": [
+      "latestMAIN exact changed refusal-site/source-owner/offline-help owner"
+    ]
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "bounded_output::source_owner_scope::tests::source_owner_refusal_is_first_sticky_and_has_no_payer_substitution",
+    "source_path": "src/bounded_output/source_owner_scope.rs",
+    "source_sha256": "dbbf0f53cd11e52219782792b7db2d12479a1195fa777b9a74ee68d99a582d55",
+    "line": 62,
+    "reasons": [
+      "latestMAIN exact changed refusal-site/source-owner/offline-help owner"
+    ]
+  },
+  {
+    "package": "semaprax",
+    "kind": "test:offline_package",
+    "selector": "resolver_cli::help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot",
+    "source_path": "tests/offline_package/resolver_cli.rs",
+    "source_sha256": "93923e742231b964a3987ac5dad9fec7b6648450df993b4f1b1fe7889f7abcff",
+    "line": 36,
+    "reasons": [
+      "latestMAIN exact changed refusal-site/source-owner/offline-help owner"
+    ]
+  }
+]

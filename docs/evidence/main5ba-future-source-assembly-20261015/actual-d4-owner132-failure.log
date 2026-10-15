@@ -1,0 +1,17 @@
+
+running 1 test
+test semantic_cache::same_length_provider_edits_after_a_checked_hit_keep_full_cold_graph_and_image_bytes ... 
+thread 'semantic_cache::same_length_provider_edits_after_a_checked_hit_keep_full_cold_graph_and_image_bytes' (8358806) panicked at tests/project/semantic_cache.rs:115:5:
+assertion `left == right` failed
+  left: String("semaprax.project-checked-module-hir.v12")
+ right: "semaprax.project-checked-module-hir.v11"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    semantic_cache::same_length_provider_edits_after_a_checked_hit_keep_full_cold_graph_and_image_bytes
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 641 filtered out; finished in 0.30s
+

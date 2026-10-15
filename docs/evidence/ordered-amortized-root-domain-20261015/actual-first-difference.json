@@ -1,0 +1,10 @@
+{
+  "log_sha256": "0466b0089ffecb06e3cc98c17f9c27aa430f8e444a197ea0605a87f3d61ccf1d",
+  "left_bytes": 14012,
+  "right_bytes": 14038,
+  "first_difference_byte": 12256,
+  "line": 342,
+  "left_preview": "derive(Debug)]\npub(super) enum Closed {\n    Borrowed(std::rc::Rc<OrderedWeights>),\n    Owned(OrderedWeights),\n}\nimpl Clo",
+  "right_preview": "cfg(test)]\n#[derive(Debug)]\npub(super) enum Closed {\n    Borrowed(std::rc::Rc<OrderedWeights>),\n    Owned(OrderedWeights",
+  "cause": "New831cfgtest envelope retention bypassed inherited fullsource projection for ../ordered_weights.rs"
+}

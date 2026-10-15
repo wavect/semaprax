@@ -1,0 +1,28 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/amortized_source.rs",
+    "checkpoint_revision": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+    "archive": "docs/evidence/ordered-amortized-root-domain-20261015/before/src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/amortized_source.rs",
+    "current_sha256": "addd5d1825377a0eed8f57348fae259dbb156beea659f0f02f8c5b23738c9812",
+    "original_sha256": "45738037ecd4a6f0ea862082ced32e975ac5bca2c134c651ed4bf72e109370b9",
+    "edits": [
+      {
+        "new": "        current.to_owned()\n    };\n    let current = observed.as_str();\n    let held = if path == \"../ordered_weights.rs\" {\n        crate::cleanup_plan::replay::physical_budget::authentication::previous(\n            \"src/cleanup_plan/replay/factored/canonical_shared/ordered_weights.rs\",\n            current,\n        )\n    } else {\n        crate::cleanup_plan::replay::physical_budget::authentication::previous_include(path, current)\n    };\n    let current = held.as_str();\n    let merged = crate::source_reflows_merge::weighted(path, current);\n    let current = merged.as_str();\n",
+        "old": "        current.to_owned()\n    };\n    let current = observed.as_str();\n    let held = crate::cleanup_plan::replay::physical_budget::authentication::previous_include(\n        path, current,\n    );\n    let current = held.as_str();\n    let merged = crate::source_reflows_merge::weighted(path, current);\n    let current = merged.as_str();\n"
+      }
+    ]
+  },
+  {
+    "source": "src/source_reflows_merge.rs",
+    "checkpoint_revision": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+    "archive": "docs/evidence/ordered-amortized-root-domain-20261015/before/src/source_reflows_merge.rs",
+    "current_sha256": "ee73c47669fda81fbe47c84c51a4a1ef456aab021dcf86118cf1fb2232514306",
+    "original_sha256": "fe78ac928143881546bd5ea7e84dd8c2821fbf65de68c4bb06291ee85c247d12",
+    "edits": [
+      {
+        "new": "\n// Full post-compiler-fix inputs precede the immutable MAIN83 and older domains.\nfn before_storage_oracle_join(source: &str, current: &str) -> String {\n    let previous = project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/docs/evidence/ordered-amortized-root-domain-20261015/current-to-35cc.json\"\n        )),\n        source,\n        current,\n    );\n    let current = previous.as_str();\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n",
+        "old": "\n// Full post-compiler-fix inputs precede the immutable MAIN83 and older domains.\nfn before_storage_oracle_join(source: &str, current: &str) -> String {\n    project(\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n"
+      }
+    ]
+  }
+]

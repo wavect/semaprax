@@ -1,0 +1,17 @@
+--- before/tests/hir_module_boundaries.rs
++++ current/tests/hir_module_boundaries.rs
+@@ -434,8 +434,14 @@
+             include_str!("../src/test_allocation_observer.rs"),
+             include_str!("../src/test_allocation_observer/free_order.rs"),
+         ),
+         include_str!("../src/cleanup_plan/replay/factored/canonical_shared.rs"),
++        include_str!("../src/cleanup_plan/replay/factored/canonical_shared/ordered_weights.rs"),
++        include_str!("../src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/tests.rs"),
++        include_str!("../src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/receiver_tests.rs"),
++        include_str!("../src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/source.rs"),
++        include_str!("../src/cleanup_plan/replay/factored/canonical_shared/ordered_alias.rs"),
++        include_str!("../src/cleanup_plan/replay/factored/canonical_shared/before_ordered.rs"),
+         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/successor_targets.rs"),
+         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/before_targets.rs"),
+         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs"),
+         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/before_receiving_layers.rs"),

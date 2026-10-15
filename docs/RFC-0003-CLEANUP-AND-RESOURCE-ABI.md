@@ -387,6 +387,15 @@ storage. Its complete old receiver, ordinary Memo, work/arithmetic/diagnostic
 contract and independent HIR/plan roots remain controls. Focused executable
 qualification is pending; it grants no application-budget or support claim.
 
+The source-only [OPT838 ordered numeric storage draft](evidence/weighted-storage-838/README.md)
+changes closure and weighted closed-accumulator storage to a dense paid AVL
+arena. A unit-singleton state borrows an authenticated immutable closure while
+retaining each original weighted-addition debit and checked operation. General
+multi-input states keep numeric ascending traversal, duplicate multiplicities,
+first overflow and original work-refusal frontiers. The independent full BTree
+receiver and prior controls remain executable test sources. Reservation,
+allocation, application recovery and behavior qualification remain pending.
+
 ## Conformance trace
 
 Backend equivalence tests use the versioned [conformance trace v1](CONFORMANCE-TRACE-V1.md): a target-neutral event trace containing stable import/lifecycle IDs, semantic storage/place IDs, expression IDs for transitions, event kind (`initialize`, `transfer`, `call_commit`, `import_begin`, `import_end`, `select_failure`, `finalize_begin`, `finalize_end`, or `result_commit`), and normalized status. `select_failure` exposes the exact write-once source selected by every nested frame as well as the root. Callable imports may complete with a normalized failure; automatic-finalizer import completion is success-only in the type system. A trivial strategy emits both finalization events with success even though it performs no host call. Physical pointers, Wasm handles, status tokens, stack offsets, and host exception objects are excluded. Two backends conform only when they produce the same ordered semantic events and normalized final status for the same verified program and injected import outcomes.

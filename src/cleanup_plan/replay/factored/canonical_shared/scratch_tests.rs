@@ -25,9 +25,9 @@ fn retained_scratch_complete_old_ids_weights_signatures_work_and_diagnostics() {
         assert_eq!(&current.ids, old.signatures());
         assert_eq!(&current.states, old.states());
         assert!(current.frames.is_empty() && current.open.is_empty() && current.cursor.is_empty());
-        assert_eq!(
-            old.closure(&function, *root, &mut old_budget),
-            current.closure(&function, *root, &mut budget),
+        super::ordered_weights::assert_closure_result(
+            &current.closure(&function, *root, &mut budget),
+            &old.closure(&function, *root, &mut old_budget),
         );
         assert_eq!(budget.remaining, old_budget.remaining);
     }

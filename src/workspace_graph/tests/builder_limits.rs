@@ -538,6 +538,7 @@ fn retained_output_reuses_only_complete_exact_carriers_and_charges_all_sidecars(
 
 #[test]
 fn catalog_normalizer_compact_core_fits_production_builder_cap() {
+    let _epsilon_app_census = crate::cleanup_plan::EpsilonAppCensus::normalizer();
     let manifest = crate::project::ProjectManifest::parse(include_str!(
         "../../../examples/catalog-normalizer-project/semaprax.toml"
     ))

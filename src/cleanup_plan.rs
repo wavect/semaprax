@@ -903,3 +903,6 @@ pub(crate) use replay::replay_btree_node_upper as compiler_btree_node_upper;
 
 #[cfg(test)]
 pub(crate) use replay::with_financed_test_oracles;
+
+#[cfg(test)]
+pub(crate) use replay::EpsilonAppCensus;

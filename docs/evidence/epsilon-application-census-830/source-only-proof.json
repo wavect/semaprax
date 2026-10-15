@@ -1,0 +1,11 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "basis": "1343d0b9f75ba92588353f65e0a85a1e91f998cf",
+  "own_whole_rows": 11,
+  "fixed_tls_initialized_by_first_owner_local_before_input_preparation": true,
+  "complete_owner_module_byte_equal_after_single_scope_prefix_removal": true,
+  "all_four_production_sources_byte_equal_after_exact_cfg_test_hook_removal": true,
+  "no_dynamic_census_backing_or_budget_debit_sites": true,
+  "all_joined_sources_preserve_purity_literal_guard": true,
+  "note": "stderr reporting occurs only after previous TLS restored and whole owner body/inner guards teardown; no runtime frequency or memory claim"
+}

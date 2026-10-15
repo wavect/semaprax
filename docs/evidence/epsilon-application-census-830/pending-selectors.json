@@ -1,0 +1,14 @@
+{
+  "status": "SOURCE_ONLY_NOT_EXECUTED",
+  "required_existing": [
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+      "source": "src/workspace_graph/tests/builder_limits.rs"
+    }
+  ],
+  "new_test_bodies": 0,
+  "retain_all_six_alias_owners": true,
+  "scope": "sole unchanged normalizer owner; cumulative events, partial prefix if unwind"
+}

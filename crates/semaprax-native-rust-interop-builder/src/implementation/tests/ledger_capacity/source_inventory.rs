@@ -162,6 +162,7 @@ macro_rules! loan_cfg_source_inventory {
         include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/memo.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/memo/tests.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias.rs"),
+        include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/app_census.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias/tests.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_alias.rs"),
         include_str!("../../../../../src/cleanup_plan/replay/factored/canonical_shared/before_index.rs"),

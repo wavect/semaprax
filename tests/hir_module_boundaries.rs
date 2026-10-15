@@ -439,6 +439,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/memo.rs"),
         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/memo/tests.rs"),
         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias.rs"),
+        include_str!("../src/cleanup_plan/replay/factored/canonical_shared/app_census.rs"),
         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/epsilon_alias/tests.rs"),
         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/before_alias.rs"),
         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/before_index.rs"),

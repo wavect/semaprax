@@ -970,3 +970,6 @@ mod oracle_order;
 
 #[cfg(test)]
 mod continuation_receiver;
+
+#[cfg(test)]
+pub(super) use canonical_shared::app_census::Scope as EpsilonAppCensus;

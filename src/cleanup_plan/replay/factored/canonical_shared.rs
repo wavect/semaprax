@@ -125,9 +125,13 @@ impl<'a> Canonicalizer<'a> {
             // Sink/own-move/duplicate-edge and all other shapes keep the full
             // general producer below, including checked route accumulation.
             if node != self.sink && state.moves.is_empty() && state.epsilon.len() == 1 {
+                #[cfg(test)]
+                app_census::eligible();
                 let Some(inner) = self.closures.get(&state.epsilon[0]) else {
                     return Err(replay_error(function, "cleanup CFG contains a cycle"));
                 };
+                #[cfg(test)]
+                app_census::child_ready(inner.len());
                 let shared = match epsilon_alias::share(function, inner, budget) {
                     Ok(shared) => shared,
                     Err(error) => {
@@ -135,7 +139,11 @@ impl<'a> Canonicalizer<'a> {
                         return Err(error);
                     }
                 };
+                #[cfg(test)]
+                app_census::acquired();
                 self.closures.insert(function, node, budget, || shared)?;
+                #[cfg(test)]
+                app_census::published();
                 continue;
             }
             let mut closure = BTreeMap::new();
@@ -353,3 +361,6 @@ impl<'a> Canonicalizer<'a> {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+pub(super) mod app_census;

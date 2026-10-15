@@ -51,7 +51,7 @@ impl ClassifierLedger {
         );
     }
     {
-        let mut current = include_str!("../../../../cleanup_plan.rs").to_owned();
+        let mut current = include_str!("../../../../cleanup_plan.rs").to_owned(); undo(&mut current, "\n#[cfg(test)]\npub(crate) use replay::EpsilonAppCensus;\n", "");
         undo(
             &mut current,
             r#"
@@ -75,7 +75,7 @@ pub(crate) use replay::replay_btree_node_upper as compiler_btree_node_upper;
         );
     }
     {
-        let mut current = include_str!("../../../replay.rs").to_owned(); undo(&mut current, "    let mut continuations = continuation_storage::Storage::for_program(full, &mut budget)?;\n", ""); undo(&mut current, "    let mut budget = ReplayBudget::new();\n    let helpers = ordinary_renewals::index(full, &mut budget)?;", "    let mut budget = ReplayBudget::new();\n    let mut continuations = continuation_storage::Storage::new(full);\n    let helpers = ordinary_renewals::index(full, &mut budget)?;");
+        let mut current = include_str!("../../../replay.rs").to_owned(); undo(&mut current, "\n#[cfg(test)]\npub(crate) use factored::EpsilonAppCensus;\n", ""); undo(&mut current, "    let mut continuations = continuation_storage::Storage::for_program(full, &mut budget)?;\n", ""); undo(&mut current, "    let mut budget = ReplayBudget::new();\n    let helpers = ordinary_renewals::index(full, &mut budget)?;", "    let mut budget = ReplayBudget::new();\n    let mut continuations = continuation_storage::Storage::new(full);\n    let helpers = ordinary_renewals::index(full, &mut budget)?;");
         undo(&mut current, "    expression_facts::receiving::validate_exits_retained(\n        program,\n        function,\n        &storage,\n        &leaves,\n        &BTreeSet::new(),\n        budget,\n        &statuses,\n    )?;\n", "    expression_facts::receiving::validate_exits(\n        program,\n        function,\n        &storage,\n        &leaves,\n        &BTreeSet::new(),\n        budget,\n    )?;\n");
         undo(&mut current,
             r#"    let statuses = expression_facts::receiving::validate_status_sources_retained(
@@ -278,7 +278,7 @@ pub(in crate::cleanup_plan::replay) use metered::raw as raw_error_metered;
         );
     }
     {
-        let mut current = include_str!("../../factored.rs").to_owned(); undo(&mut current, "        oracle_hook::cross_check_with_storage(\n            program,\n            function,\n            budget,\n            continuations,\n        )?;", "        oracle_hook::cross_check(program, function);"); undo(&mut current, "\n#[cfg(test)]\nmod continuation_receiver;\n", "");
+        let mut current = include_str!("../../factored.rs").to_owned(); undo(&mut current, "\n#[cfg(test)]\npub(super) use canonical_shared::app_census::Scope as EpsilonAppCensus;\n", ""); undo(&mut current, "        oracle_hook::cross_check_with_storage(\n            program,\n            function,\n            budget,\n            continuations,\n        )?;", "        oracle_hook::cross_check(program, function);"); undo(&mut current, "\n#[cfg(test)]\nmod continuation_receiver;\n", "");
         undo(&mut current, "#[cfg(test)]\nenum CanonicalFrame {\n    Enter(Weighted),\n    Exit(Weighted, u64, Vec<(Label, Weighted)>),\n}\n\n", "");
         // Join the complete relocated old receiver before the existing inverse.
         let before = include_str!("../../factored/canonical_before.rs");

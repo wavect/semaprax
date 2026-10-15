@@ -7289,3 +7289,6 @@ pub(super) mod phase_measurement;
 mod live_oracle;
 #[cfg(test)]
 pub(crate) use live_oracle::with_financed_test_oracles;
+
+#[cfg(test)]
+pub(crate) use factored::EpsilonAppCensus;

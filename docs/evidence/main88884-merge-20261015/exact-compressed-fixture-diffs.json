@@ -1,0 +1,42 @@
+[
+  {
+    "original_path": "docs/evidence/main88884-merge-20261015/fixtures-diffs/src/cleanup_plan/renewal_profile.rs.patch",
+    "original_git_blob": "6d124c6b0d35b81a676acccce518d98b7a93d147",
+    "raw_sha256": "01800fdbba86531b55e80af85a05b4feba8ac1f54507457d4b1deb6b9cb03e28",
+    "compressed_path": "docs/evidence/main88884-merge-20261015/fixtures-diffs/src/cleanup_plan/renewal_profile.rs.patch.gz",
+    "compressed_sha256": "a61f9b8d7ec675635dbad7c4366a191d69dda738f64a267a12c6c0b623fb5920",
+    "raw_bytes": 519
+  },
+  {
+    "original_path": "docs/evidence/main88884-merge-20261015/fixtures-diffs/src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs.patch",
+    "original_git_blob": "cedb3ec41f3990f0fe87fe1cd96461fdffaf6493",
+    "raw_sha256": "fbf7f455963d68000f343e6da85ed9caa53d335b8047361a7d1162a9a3cb6bba",
+    "compressed_path": "docs/evidence/main88884-merge-20261015/fixtures-diffs/src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs.patch.gz",
+    "compressed_sha256": "e1310433acb8abfd5c44cd9f9ff282f37e296678c3b87373d374b9c3ae481879",
+    "raw_bytes": 2191
+  },
+  {
+    "original_path": "docs/evidence/main88884-merge-20261015/fixtures-diffs/src/hir/declaration_index/leaf_drop_tests.rs.patch",
+    "original_git_blob": "6c44b99bfa3199a908d24c9e5a06e4f796d93522",
+    "raw_sha256": "d767df8d3f3b038770e2baa4c645dfa64c9502d00a4b23cbef564f763481563e",
+    "compressed_path": "docs/evidence/main88884-merge-20261015/fixtures-diffs/src/hir/declaration_index/leaf_drop_tests.rs.patch.gz",
+    "compressed_sha256": "2f76bcb859d0f273dbb9be3b89ba9af8329ba5097603147bf7408a1ec3aa9468",
+    "raw_bytes": 1011
+  },
+  {
+    "original_path": "docs/evidence/main88884-merge-20261015/fixtures-diffs/src/hir/identity_resolution/nominal_tests/legacy.rs.patch",
+    "original_git_blob": "4f97895bdcfe064f1a3a6cf2671940efd3fd2520",
+    "raw_sha256": "dce39c0bf5c87f288ffe6689dc55d0be1a47118ee9ae4c198714d7dfb0d719a6",
+    "compressed_path": "docs/evidence/main88884-merge-20261015/fixtures-diffs/src/hir/identity_resolution/nominal_tests/legacy.rs.patch.gz",
+    "compressed_sha256": "9b40ac95cd710b4df4f0c9a2ad477fb458f96f44b8a76cb126206a83b8467eda",
+    "raw_bytes": 805
+  },
+  {
+    "original_path": "docs/evidence/main88884-merge-20261015/fixtures-diffs/src/workspace_graph/expected_projection/borrowed_imports/tests.rs.patch",
+    "original_git_blob": "467a1e4590642ce54f2503ff09051b3082d6983a",
+    "raw_sha256": "790b7d9c158d6b26d3f88c96a154ae64d73d208b22cd5664db9288a9ef800921",
+    "compressed_path": "docs/evidence/main88884-merge-20261015/fixtures-diffs/src/workspace_graph/expected_projection/borrowed_imports/tests.rs.patch.gz",
+    "compressed_sha256": "565df20f159e1de99ca9ba7e6df8675366f810ce732a197e8e1496aaeb0187a8",
+    "raw_bytes": 618
+  }
+]

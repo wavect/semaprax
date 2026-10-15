@@ -15,8 +15,18 @@ fn compact_layout_and_original_label_order_are_actual_and_source_independent() {
         2 * std::mem::size_of::<Vec<usize>>()
     );
     if std::mem::size_of::<usize>() == 8 {
-        assert_eq!(std::mem::size_of::<current::Node>(), 32);
+        // Derive the occupied inline payload independently from its fields.
+        // The pinned compiler uses Label's spare discriminants for Node tags.
+        let inline_payload = std::alloc::Layout::new::<current::Label>()
+            .extend(std::alloc::Layout::new::<usize>())
+            .unwrap()
+            .0
+            .pad_to_align()
+            .size();
+        assert_eq!(inline_payload, 24);
+        assert_eq!(std::mem::size_of::<current::Node>(), inline_payload);
         assert_eq!(std::mem::size_of::<Node>(), 48);
+        assert!(std::mem::size_of::<current::Node>() < std::mem::size_of::<Node>());
     }
     assert_eq!(
         std::mem::size_of::<current::Label>(),
@@ -363,8 +373,12 @@ fn nested_floor_keeps_original_first_refusal_and_terminal_retry_fields() {
     let (_, function) = fixture();
     let observe = |old| {
         with_limit_usage_refusal(8192, || {
+            assert!(crate::bounded_output::set_active_floor(8192));
             with_limit_usage_refusal(4096, || {
-                assert!(crate::bounded_output::set_active_floor(4096));
+                // One real child debit crosses the restored parent's floor;
+                // an unspent child refusal alone does not refuse its parent.
+                assert!(crate::bounded_output::reserve_active_required(1));
+                assert!(crate::bounded_output::set_active_floor(4095));
                 let mut budget = ReplayBudget::new();
                 let first = if old {
                     Automaton::default().node(&function, &mut budget)
@@ -387,6 +401,15 @@ fn nested_floor_keeps_original_first_refusal_and_terminal_retry_fields() {
         "complete first and retry Diagnostics, both ledger receipts, and work"
     );
     assert!(a.0 .0 .0.is_err() && a.0 .0 .1.is_err() && a.0 .1 && a.1);
+    assert_eq!((a.0 .2, a.2), (1, 1));
+    let child = a.0 .3.unwrap();
+    assert!(child.requested > 0);
+    assert_eq!((child.remaining, child.floor), (4095, 4095));
+    let parent = a.3.unwrap();
+    assert_eq!(
+        (parent.requested, parent.remaining, parent.floor),
+        (1, 8192, 8192)
+    );
 }
 
 #[test]

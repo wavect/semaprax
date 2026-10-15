@@ -1,0 +1,23 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/factored/compact_nodes/tests.rs",
+    "checkpoint_revision": "35cc6325790e00f7bcbd0c0bedf51518939f9b47",
+    "archive": "docs/evidence/compact-node-layout-floor-controls-20261015/tests.rs.before.txt",
+    "current_sha256": "426cfc4c1ac2c23fc0ecbe8ab3a2879f20a06a0ec35d6b8aa85200ca130d20fd",
+    "original_sha256": "19af35421a90452835f838120d278ba8198fc8b23588cfa9a85e69e385a409de",
+    "edits": [
+      {
+        "new": "    );\n    if std::mem::size_of::<usize>() == 8 {\n        // Derive the occupied inline payload independently from its fields.\n        // The pinned compiler uses Label's spare discriminants for Node tags.\n        let inline_payload = std::alloc::Layout::new::<current::Label>()\n            .extend(std::alloc::Layout::new::<usize>())\n            .unwrap()\n            .0\n            .pad_to_align()\n            .size();\n        assert_eq!(inline_payload, 24);\n        assert_eq!(std::mem::size_of::<current::Node>(), inline_payload);\n        assert_eq!(std::mem::size_of::<Node>(), 48);\n        assert!(std::mem::size_of::<current::Node>() < std::mem::size_of::<Node>());\n    }\n    assert_eq!(\n",
+        "old": "    );\n    if std::mem::size_of::<usize>() == 8 {\n        assert_eq!(std::mem::size_of::<current::Node>(), 32);\n        assert_eq!(std::mem::size_of::<Node>(), 48);\n    }\n    assert_eq!(\n"
+      },
+      {
+        "new": "    let observe = |old| {\n        with_limit_usage_refusal(8192, || {\n            assert!(crate::bounded_output::set_active_floor(8192));\n            with_limit_usage_refusal(4096, || {\n                // One real child debit crosses the restored parent's floor;\n                // an unspent child refusal alone does not refuse its parent.\n                assert!(crate::bounded_output::reserve_active_required(1));\n                assert!(crate::bounded_output::set_active_floor(4095));\n                let mut budget = ReplayBudget::new();\n                let first = if old {\n",
+        "old": "    let observe = |old| {\n        with_limit_usage_refusal(8192, || {\n            with_limit_usage_refusal(4096, || {\n                assert!(crate::bounded_output::set_active_floor(4096));\n                let mut budget = ReplayBudget::new();\n                let first = if old {\n"
+      },
+      {
+        "new": "    );\n    assert!(a.0 .0 .0.is_err() && a.0 .0 .1.is_err() && a.0 .1 && a.1);\n    assert_eq!((a.0 .2, a.2), (1, 1));\n    let child = a.0 .3.unwrap();\n    assert!(child.requested > 0);\n    assert_eq!((child.remaining, child.floor), (4095, 4095));\n    let parent = a.3.unwrap();\n    assert_eq!(\n        (parent.requested, parent.remaining, parent.floor),\n        (1, 8192, 8192)\n    );\n}\n\n",
+        "old": "    );\n    assert!(a.0 .0 .0.is_err() && a.0 .0 .1.is_err() && a.0 .1 && a.1);\n}\n\n"
+      }
+    ]
+  }
+]

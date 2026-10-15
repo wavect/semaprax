@@ -1,6 +1,6 @@
 #[test]
 fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
-    let validation = concat!(
+    let validation_raw = concat!(
         concat!(
             concat!(
                 include_str!("../src/hir/validation.rs"),
@@ -502,7 +502,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs"),
         include_str!("../src/cleanup_plan/replay/live_oracle/source_custody/presence.rs"),
         include_str!("../src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs"),
-        include_str!("../src/source_reflows_merge.rs"), include_str!("../src/source_reflows_merge/runtime_json.rs"), include_str!("../src/source_reflows_merge/runtime_json/inventory.rs"), include_str!("../src/source_reflows_merge/runtime_json/tests.rs"), include_str!("../src/source_reflows_merge/runtime_json/membership.rs"),
+        include_str!("../src/source_reflows_merge.rs"), include_str!("../src/source_reflows_merge/runtime_json.rs"), include_str!("../src/source_reflows_merge/runtime_json/inventory.rs"), include_str!("../src/source_reflows_merge/runtime_json/tests.rs"), include_str!("../tests/support/production_source_inventory.rs"), include_str!("../src/source_reflows_merge/runtime_json/membership.rs"),
         include_str!("../src/cleanup_plan/replay/path_join/storage/empty_renewals.rs"),
         include_str!("../src/cleanup_plan/replay/path_join/storage/atomic_controls.rs"),
         include_str!("../src/cleanup_plan/replay/path_join/storage/empty_renewals/tests.rs"),
@@ -730,6 +730,10 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/hir/validation/generic_template/values/charge/refusal_tests.rs"),
         include_str!("../src/hir/validation/iterator_loops/field_scope/refusal_tests.rs"),
     );
+    let validation = production_source_inventory::production(
+        validation_raw,
+        include_str!("../docs/evidence/production-source-authority-partition-20261016/hir.json"),
+    );
     for forbidden in [
         "struct Resolver",
         "impl Resolver",
@@ -845,3 +849,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
 #[cfg(test)]
 #[path = "hir_module_boundaries/oracle_source_inventory.rs"]
 mod oracle_source_inventory;
+
+#[cfg(test)]
+#[path = "support/production_source_inventory.rs"]
+mod production_source_inventory;

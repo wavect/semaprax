@@ -382,8 +382,14 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     let projection = format!(
         "{projection_private_layout}\n{projection_type_rewrite}\n{projection_import_stub}\n{projection_uncached_peak}\n{projection_root}\n{projection_local_identity}\n{projection_call_identity}\n{projection_call_sites}\n{projection_cost}\n{projection_declaration_cost}\n{projection_identity_slots}\n{projection_statement_segment}\n{projection_defaults}"
     );
+    let production_projection = production_source_inventory::production(
+        &projection,
+        include_str!(
+            "../../docs/evidence/production-source-authority-partition-20261016/projection.json"
+        ),
+    );
     assert!(root.contains("mod expected_projection;"));
-    assert!(!projection.contains("use super::*;"));
+    assert!(!production_projection.contains("use super::*;"));
     assert!(projection_root.contains("pub(super) use uncached_peak::{\n    initial_core_prebound, next_retention_prebound_with_uncached_peak,\n    uncached_output_peak_prebound,\n};"));
     let exact_facade = [
         // These helpers are deliberately visible only inside workspace_graph;
@@ -529,6 +535,7 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     let runtime_fixture = include_str!(
         "../../src/workspace_graph/expected_projection/private_layout/function_runtime.rs"
     );
+    assert_eq!(projection.matches(runtime_fixture).count(), 1);
     // Scoped builder-limit mutation belongs only to this exact test child;
     // its complete bytes still participate in every structural audit above.
     let cost_root = include_str!("../../src/workspace_graph/expected_projection/cost.rs");
@@ -542,9 +549,9 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     let absence_fixture =
         include_str!("../../src/workspace_graph/expected_projection/uncached_absence_tests.rs");
     assert_eq!(projection.matches(absence_fixture).count(), 1);
-    // Keep every byte of the new forecast fixture under the authority audit.
-    // Only these six exact test-budget TLS references receive an inert name
-    // for the forbidden-word scan; filesystem/process/other ACTIVE text stays.
+    // Keep every byte and all six original test-budget TLS references in the
+    // raw audit. Its exact cfg(test) registration closes the test authority;
+    // production source remains unmodified for every forbidden-word scan.
     let prelude_cost_root =
         include_str!("../../src/workspace_graph/expected_projection/prelude_forecast.rs");
     assert!(prelude_cost_root
@@ -559,11 +566,10 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     for (offset, _) in prelude_fixture.match_indices(budget_tls) {
         assert!(prelude_fixture[offset + budget_tls.len()..].starts_with(".with("));
     }
-    let prelude_authority_fixture = prelude_fixture.replace(budget_tls, "test_only_builder_limit");
-    let authority_projection = projection
-        .replacen(prelude_fixture, &prelude_authority_fixture, 1)
-        .replace(runtime_fixture, "")
-        .replace(absence_fixture, "");
+    // The raw custody union above stays complete, including these exact test
+    // children. Authority checks consume the independently closed production
+    // partition; no source text is stripped or rewritten for this scan.
+    let authority_projection = production_projection.as_str();
     for forbidden in [
         "workspace::",
         "std::fs",
@@ -1354,3 +1360,7 @@ fn historical_projection_root_facade(current: &str) -> String {
     );
     original.to_owned()
 }
+
+#[cfg(test)]
+#[path = "../support/production_source_inventory.rs"]
+mod production_source_inventory;

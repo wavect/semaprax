@@ -1,0 +1,17 @@
+{
+  "current_head": "df9718f64732e827d805ff1c8545f09ef5a8b7c7",
+  "historical_subject": "654846173bb90874779dfee44ab0832c03715e84",
+  "nine_whole_sources_exact": [
+    "src/codegen/native_emit/expression/str_equality.rs",
+    "src/wasm/aggregate/str_equality.rs",
+    "src/wasm/borrowed_equality.rs",
+    "src/wasm/aggregate/binary_ops.rs",
+    "src/wasm/aggregate/str_helpers.rs",
+    "tests/language/borrowed_str_equality.rs",
+    "tests/language/borrowed_str_equality/aggregate.mjs",
+    "tests/language/borrowed_str_equality/public.mjs",
+    "tests/owned_data/owned_leaf_vec/string_slots.rs"
+  ],
+  "five_whole_shared_hashes_and_unedited_diffs_verified": true,
+  "production_and_equality_inputs_unchanged_after_848_merge": true
+}

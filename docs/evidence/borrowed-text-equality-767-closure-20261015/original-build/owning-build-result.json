@@ -1,0 +1,288 @@
+{
+  "schema": "semaprax.owning-build-bound.v2",
+  "source_subject": "654846173bb90874779dfee44ab0832c03715e84",
+  "source_tree": "3609c8da904ffbac2c4ee9c42a0d9b8c2a1c5d1f",
+  "cargo_lock_sha256": "7549892c22d2e25ecd2d7c2082456b5b1e80e300c4ee8d10fb988f5534da2046",
+  "manifest_sha256": "ec54c09e242a0143051307d6156583fdd85fc75c2936e6e2c1e87068e38a63b9",
+  "driver_sha256": "dad90cf0276aa73a0c4b5e25cbe49147db927b9291895b108990bcb83448db8f",
+  "command": [
+    "/Users/kevin/.cargo/bin/rustup",
+    "run",
+    "1.97.1",
+    "cargo",
+    "build",
+    "--locked",
+    "--offline",
+    "-p",
+    "semaprax",
+    "--bin",
+    "semaprax",
+    "--keep-going",
+    "--message-format=json",
+    "--test",
+    "doctor_production_provisioner_v1",
+    "--test",
+    "documentation",
+    "--test",
+    "language",
+    "--test",
+    "owned_data",
+    "--test",
+    "project",
+    "--test",
+    "project_cli_v1",
+    "--test",
+    "quickstart_v1"
+  ],
+  "unit_command": [
+    "/Users/kevin/.cargo/bin/rustup",
+    "run",
+    "1.97.1",
+    "cargo",
+    "test",
+    "--locked",
+    "--offline",
+    "-p",
+    "semaprax",
+    "--lib",
+    "--bin",
+    "semaprax",
+    "--no-run",
+    "--message-format=json"
+  ],
+  "results": [
+    {
+      "command": [
+        "/Users/kevin/.cargo/bin/rustup",
+        "run",
+        "1.97.1",
+        "cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--bin",
+        "semaprax",
+        "--keep-going",
+        "--message-format=json",
+        "--test",
+        "doctor_production_provisioner_v1",
+        "--test",
+        "documentation",
+        "--test",
+        "language",
+        "--test",
+        "owned_data",
+        "--test",
+        "project",
+        "--test",
+        "project_cli_v1",
+        "--test",
+        "quickstart_v1"
+      ],
+      "exit_code": 0,
+      "resource_refusal": null,
+      "wall_seconds": 115.4188952500117
+    },
+    {
+      "command": [
+        "/Users/kevin/.cargo/bin/rustup",
+        "run",
+        "1.97.1",
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--lib",
+        "--bin",
+        "semaprax",
+        "--no-run",
+        "--message-format=json"
+      ],
+      "exit_code": 0,
+      "resource_refusal": null,
+      "wall_seconds": 154.34163108299254
+    }
+  ],
+  "exit_code": 0,
+  "wall_seconds": 271.32083320899983,
+  "executed_test_bodies": 0,
+  "artifacts": [
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "project",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang/tests/project.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang/target/final-batch-20261010/debug/deps/project-9bc7c8c1113ee95a",
+      "executable_sha256": "3b42a1e5acd24f74047d5234d7fd15b13b5d2f5d1099324a4b247d3760e0507d"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "documentation",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang/tests/documentation.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang/target/final-batch-20261010/debug/deps/documentation-e59a354914352edb",
+      "executable_sha256": "b1ae28490b053b179a1c00eca2eb8509680c267dccd005d6cc508dd6c97695ba"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "language",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang/tests/language.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang/target/final-batch-20261010/debug/deps/language-63abefdf82f4560b",
+      "executable_sha256": "9b0db4ed259d7d9246aaa8e5d62b0481fc8577b2a37697efacaf33dd7b4e03a4"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "owned_data",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang/tests/owned_data.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang/target/final-batch-20261010/debug/deps/owned_data-ba57de47a84533f4",
+      "executable_sha256": "727a8272b75653c29b5a639b42acc603b6ed071b6849f5419f0bd6929d4df5d8"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "doctor_production_provisioner_v1",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang/tests/doctor_production_provisioner_v1.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang/target/final-batch-20261010/debug/deps/doctor_production_provisioner_v1-383741daf0751d6c",
+      "executable_sha256": "9aac01475b444b851a6c558ced0bf8dbf444bd05603a889dd3a2e3d31d30c664"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "quickstart_v1",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang/tests/quickstart_v1.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang/target/final-batch-20261010/debug/deps/quickstart_v1-69f1845f8299af2f",
+      "executable_sha256": "d8bac5f1d2885376241f72750c1ebef999680770bdcb5e37ad24498e8fcc2661"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "project_cli_v1",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang/tests/project_cli_v1.rs",
+        "edition": "2021",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang/target/final-batch-20261010/debug/deps/project_cli_v1-a2fd73cec09dbcdc",
+      "executable_sha256": "074538550014a5990120a6545c6d08f66f4691568fa901a605e0bbe6eceb7a73"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "bin"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "semaprax",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang/src/main.rs",
+        "edition": "2021",
+        "doc": true,
+        "doctest": false,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-0fdb73a06f01a484",
+      "executable_sha256": "3f21cf5ea7bb9b35c249517e1754a711cdf1c41b91b574fef5fc9074788f6707"
+    },
+    {
+      "package_id": "path+file:///Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang#semaprax@0.9.0",
+      "target": {
+        "kind": [
+          "lib"
+        ],
+        "crate_types": [
+          "lib"
+        ],
+        "name": "semaprax",
+        "src_path": "/Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang/src/lib.rs",
+        "edition": "2021",
+        "doc": true,
+        "doctest": true,
+        "test": true
+      },
+      "executable": "/Volumes/Semaprax/worktrees/opt-next-large-758-759/AI-Lang/target/final-batch-20261010/debug/deps/semaprax-54394a8d32577f72",
+      "executable_sha256": "1c5ec304ffbb2f0da71e313aafbfa34442a475d09edee30d582b482297e19ef9"
+    }
+  ],
+  "owning_build_metadata_sha256": "0157d77fb03020bd0835f2518fdb06ab03aa9a6fba620c9d2b4357484429035c",
+  "log_sha256": "8762f9da954b8e34ee12a37ad1e051485122f1a3926f33fa3a3ffe7660eec1ff"
+}

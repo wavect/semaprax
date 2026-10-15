@@ -118,6 +118,7 @@ fn copy_field_updates_preserve_eight_scalar_lanes_owned_leaf_bits_and_zero_store
     run(&corpus::evaluation_order_source(), "", 0, 29, 1, 0);
     for (ty, value, expected) in corpus::cases() {
         run(&corpus::source(ty, value, expected), "", 0, 29, 4, 0);
+        run(&corpus::multi_source(ty, value, expected), "", 0, 29, 4, 0);
     }
     let legacy = corpus::source("i64", "-9", "got==-9")
         .replace("title:string", "title:Bytes")
@@ -164,3 +165,6 @@ fn copy_field_update_index_and_rhs_failures_select_once_before_commit_and_drop_a
         0,
     );
 }
+
+#[path = "copy_field_update_boundary.rs"]
+mod boundary;

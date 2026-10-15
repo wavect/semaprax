@@ -10,7 +10,7 @@
       "harness": "test:cleanup_backends",
       "selector": "owned_leaf_collections::copy_field_update::copy_field_updates_preserve_eight_scalar_lanes_owned_leaf_bits_and_zero_store_heap_at_o0_o2",
       "source": "tests/cleanup_backends/owned_leaf_collections/copy_field_update.rs",
-      "source_sha256": "b8f7454d65ad23c8c766f7f75f80bb3c40dc217d4efe17823711f1b5240688d3",
+      "source_sha256": "b385f28f7d6862a3ca7209cd54fea521d6281ba728cb29c8e60e58c18b1b0974",
       "source_binding": {
         "source_path": "tests/cleanup_backends/owned_leaf_collections/copy_field_update.rs",
         "line": 116,
@@ -36,7 +36,7 @@
             ]
           }
         ],
-        "sha256": "b8f7454d65ad23c8c766f7f75f80bb3c40dc217d4efe17823711f1b5240688d3",
+        "sha256": "b385f28f7d6862a3ca7209cd54fea521d6281ba728cb29c8e60e58c18b1b0974",
         "ignored": false
       },
       "role": "new",
@@ -47,10 +47,10 @@
       "harness": "test:cleanup_backends",
       "selector": "owned_leaf_collections::copy_field_update::copy_field_update_index_and_rhs_failures_select_once_before_commit_and_drop_all_native_owners",
       "source": "tests/cleanup_backends/owned_leaf_collections/copy_field_update.rs",
-      "source_sha256": "b8f7454d65ad23c8c766f7f75f80bb3c40dc217d4efe17823711f1b5240688d3",
+      "source_sha256": "b385f28f7d6862a3ca7209cd54fea521d6281ba728cb29c8e60e58c18b1b0974",
       "source_binding": {
         "source_path": "tests/cleanup_backends/owned_leaf_collections/copy_field_update.rs",
-        "line": 136,
+        "line": 137,
         "name": "copy_field_update_index_and_rhs_failures_select_once_before_commit_and_drop_all_native_owners",
         "attributes": [
           "#[test]"
@@ -73,7 +73,7 @@
             ]
           }
         ],
-        "sha256": "b8f7454d65ad23c8c766f7f75f80bb3c40dc217d4efe17823711f1b5240688d3",
+        "sha256": "b385f28f7d6862a3ca7209cd54fea521d6281ba728cb29c8e60e58c18b1b0974",
         "ignored": false
       },
       "role": "new",
@@ -84,7 +84,7 @@
       "harness": "test:owned_data",
       "selector": "owned_leaf_vec::copy_field_update::wasm_copy_field_updates_keep_all_scalar_lanes_and_owned_identities_without_store_clones_or_drops",
       "source": "tests/owned_data/owned_leaf_vec/copy_field_update.rs",
-      "source_sha256": "ef767c338c083a8332f142bc747c192ceeb65f50e7d01661ba5401633718523c",
+      "source_sha256": "af7cf8420cfad1dfcf6434fcf58b71e504f3c6ff365ab0aa3d37c168b14c217c",
       "source_binding": {
         "source_path": "tests/owned_data/owned_leaf_vec/copy_field_update.rs",
         "line": 35,
@@ -110,7 +110,7 @@
             ]
           }
         ],
-        "sha256": "ef767c338c083a8332f142bc747c192ceeb65f50e7d01661ba5401633718523c",
+        "sha256": "af7cf8420cfad1dfcf6434fcf58b71e504f3c6ff365ab0aa3d37c168b14c217c",
         "ignored": false
       },
       "role": "new",
@@ -121,10 +121,10 @@
       "harness": "test:owned_data",
       "selector": "owned_leaf_vec::copy_field_update::wasm_copy_field_update_index_rhs_and_host_authority_failures_keep_the_single_commit_boundary",
       "source": "tests/owned_data/owned_leaf_vec/copy_field_update.rs",
-      "source_sha256": "ef767c338c083a8332f142bc747c192ceeb65f50e7d01661ba5401633718523c",
+      "source_sha256": "af7cf8420cfad1dfcf6434fcf58b71e504f3c6ff365ab0aa3d37c168b14c217c",
       "source_binding": {
         "source_path": "tests/owned_data/owned_leaf_vec/copy_field_update.rs",
-        "line": 60,
+        "line": 66,
         "name": "wasm_copy_field_update_index_rhs_and_host_authority_failures_keep_the_single_commit_boundary",
         "attributes": [
           "#[test]"
@@ -147,7 +147,7 @@
             ]
           }
         ],
-        "sha256": "ef767c338c083a8332f142bc747c192ceeb65f50e7d01661ba5401633718523c",
+        "sha256": "af7cf8420cfad1dfcf6434fcf58b71e504f3c6ff365ab0aa3d37c168b14c217c",
         "ignored": false
       },
       "role": "new",
@@ -158,10 +158,10 @@
       "harness": "test:owned_data",
       "selector": "owned_leaf_vec::copy_field_update::field_update_import_and_native_store_are_absent_from_the_complete_old_row_oracle",
       "source": "tests/owned_data/owned_leaf_vec/copy_field_update.rs",
-      "source_sha256": "ef767c338c083a8332f142bc747c192ceeb65f50e7d01661ba5401633718523c",
+      "source_sha256": "af7cf8420cfad1dfcf6434fcf58b71e504f3c6ff365ab0aa3d37c168b14c217c",
       "source_binding": {
         "source_path": "tests/owned_data/owned_leaf_vec/copy_field_update.rs",
-        "line": 96,
+        "line": 102,
         "name": "field_update_import_and_native_store_are_absent_from_the_complete_old_row_oracle",
         "attributes": [
           "#[test]"
@@ -184,7 +184,7 @@
             ]
           }
         ],
-        "sha256": "ef767c338c083a8332f142bc747c192ceeb65f50e7d01661ba5401633718523c",
+        "sha256": "af7cf8420cfad1dfcf6434fcf58b71e504f3c6ff365ab0aa3d37c168b14c217c",
         "ignored": false
       },
       "role": "new",

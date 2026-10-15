@@ -1,0 +1,185 @@
+Source-only831 refinement; no tools/execution. Same existing successors Result is outer receiver. Remove one/promote/finish method Result/argument layers; oldhelpers remaincfgtest+complete frozenreceiver independent; original7controls unchanged. Targets One{usize,u64}/Many(BTreeMapusizeu64) unchangedlayout. own_weighted reservesRc backing/returnsResultRc. NewOne reserves sameRc backing+constructsRc directly, so no finish/ownweightedResult. Many still calls weighted_successor(reservearray,Veccaplen,extendtree,own_weighted); realmaparg+Resultcharged. Keep realinitializer/node/map/Option/Vec/Rc/iterator fees, no credits/refund/quota. Check all remainingcarriers/checked_add/work/acquisition order/sticky/overflow/order. Empty route reservearray0 authenticates before omitting unusediterator. Actualold831 paidregressionmotivates; no netgainmeasured yet.
+
+ACTUAL PRODUCTION SUCCESSOR BODY AFTER UNCHANGED CLOSED PREFIX:
+        let accepted = closed.get(&self.sink).copied().unwrap_or(0);
+        if budget.pays_allocations() {
+            budget.reserve_bytes(
+                function,
+                std::mem::size_of::<BTreeMap<Label, successor_targets::Targets>>()
+                    + std::mem::size_of::<Option<&mut successor_targets::Targets>>(),
+                "factored successor label receiving controls",
+            )?;
+        }
+        let mut successors = BTreeMap::<Label, successor_targets::Targets>::new();
+        for (node, weight) in &closed {
+            let moves = &self.automaton.nodes[*node].moves;
+            budget.charge(
+                function,
+                moves.len().saturating_add(1),
+                "factored skeleton subset construction",
+            )?;
+            for (label, child) in moves {
+                if !successors.contains_key(label) {
+                    budget.reserve_btree_node::<Label, successor_targets::Targets>(
+                        function,
+                        "factored successor label node",
+                    )?;
+                    if budget.pays_allocations() {
+                        budget.reserve_bytes(
+                            function,
+                            2 * std::mem::size_of::<successor_targets::Targets>()
+                                + std::mem::size_of::<Option<u64>>()
+                                + std::mem::size_of::<Option<successor_targets::Targets>>(),
+                            "factored inline singleton target initializer and receiving",
+                        )?;
+                    }
+                    budget.reserve_bytes(
+                        function,
+                        0,
+                        "factored singleton target authentication",
+                    )?;
+                    let weight = 0_u64
+                        .checked_add(*weight)
+                        .expect("zero plus u64 cannot overflow");
+                    successors.insert(
+                        label.clone(),
+                        successor_targets::Targets::One {
+                            child: *child,
+                            weight,
+                        },
+                    );
+                } else {
+                    let targets = successors.get_mut(label).expect("existing label");
+                    match targets {
+                        successor_targets::Targets::One {
+                            child: first,
+                            weight: total,
+                        } if *first == *child => {
+                            // Same repeated-child checked_add before any later
+                            // target acquisition or error, as in the old map.
+                            let Some(sum) = total.checked_add(*weight) else {
+                                return Ok(None);
+                            };
+                            *total = sum;
+                        }
+                        successor_targets::Targets::One {
+                            child: first,
+                            weight: total,
+                        } => {
+                            assert_ne!(*first, *child);
+                            if budget.pays_allocations() {
+                                budget.reserve_bytes(
+                                    function,
+                                    2 * std::mem::size_of::<BTreeMap<usize, u64>>()
+                                        + std::mem::size_of::<successor_targets::Targets>()
+                                        + 2 * std::mem::size_of::<Option<u64>>()
+                                        + 2 * std::mem::size_of::<(usize, u64)>(),
+                                    "factored inline successor promotion carriers",
+                                )?;
+                            }
+                            budget.reserve_bytes(
+                                function,
+                                0,
+                                "factored successor target promotion authentication",
+                            )?;
+                            budget.reserve_btree_node::<usize, u64>(
+                                function,
+                                "factored successor target node",
+                            )?;
+                            budget.reserve_btree_node::<usize, u64>(
+                                function,
+                                "factored successor target node",
+                            )?;
+                            let mut promoted = BTreeMap::new();
+                            promoted.insert(*first, *total);
+                            let sum = 0_u64
+                                .checked_add(*weight)
+                                .expect("zero plus u64 cannot overflow");
+                            promoted.insert(*child, sum);
+                            *targets = successor_targets::Targets::Many(promoted);
+                        }
+                        successor_targets::Targets::Many(targets) => {
+                            if !targets.contains_key(child) {
+                                budget.reserve_btree_node::<usize, u64>(
+                                    function,
+                                    "factored successor target node",
+                                )?;
+                            }
+                            let slot = targets.entry(*child).or_insert(0);
+                            let Some(sum) = slot.checked_add(*weight) else {
+                                return Ok(None);
+                            };
+                            *slot = sum;
+                        }
+                    }
+                }
+            }
+        }
+        budget.reserve_array::<(Label, SharedWeighted)>(
+            function,
+            successors.len(),
+            "factored successor vector",
+        )?;
+        let mut result = Vec::with_capacity(successors.len());
+        // Do not initialize an owning map iterator or its receiving tuple on
+        // the empty route. Zero-byte vector authentication above still runs.
+        if !successors.is_empty() {
+            if budget.pays_allocations() {
+                budget.reserve_bytes(
+                    function,
+                    std::mem::size_of::<
+                        std::collections::btree_map::IntoIter<Label, successor_targets::Targets>,
+                    >() + std::mem::size_of::<Option<(Label, successor_targets::Targets)>>()
+                        + std::mem::size_of::<(Label, successor_targets::Targets)>(),
+                    "factored successor target iterator receiving",
+                )?;
+            }
+            for (label, targets) in successors {
+                if budget.pays_allocations() {
+                    budget.reserve_bytes(
+                        function,
+                        2 * std::mem::size_of::<SharedWeighted>()
+                            + std::mem::size_of::<Vec<(usize, u64)>>()
+                            + std::mem::size_of::<(usize, u64)>(),
+                        "factored inline successor finish receiving",
+                    )?;
+                }
+                budget.reserve_bytes(
+                    function,
+                    0,
+                    "factored successor target finish authentication",
+                )?;
+                let state = match targets {
+                    successor_targets::Targets::One { child, weight } => {
+                        budget.reserve_array::<(usize, u64)>(
+                            function,
+                            1,
+                            "factored weighted successor vector",
+                        )?;
+                        let mut state = Vec::with_capacity(1);
+                        state.push((child, weight));
+                        budget.reserve_bytes(
+                            function,
+                            physical_clone::rc_backing_bytes::<Weighted>(),
+                            "factored weighted shared header",
+                        )?;
+                        Rc::new(state)
+                    }
+                    successor_targets::Targets::Many(targets) => {
+                        // The remaining fallible weighted producer still has
+                        // its real map argument and Result receiving carrier.
+                        if budget.pays_allocations() {
+                            budget.reserve_bytes(
+                                function,
+                                std::mem::size_of::<BTreeMap<usize, u64>>()
+                                    + std::mem::size_of::<Result<SharedWeighted, Diagnostic>>(),
+                                "factored many weighted producer receiving",
+                            )?;
+                        }
+                        weighted_successor(function, budget, targets)?
+                    }
+                };
+                result.push((label, state));
+            }
+        }
+        Ok(Some((accepted, result)))

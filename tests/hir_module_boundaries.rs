@@ -438,6 +438,8 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/successor_targets.rs"),
         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/before_targets.rs"),
         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs"),
+        include_str!("../src/cleanup_plan/replay/factored/canonical_shared/before_receiving_layers.rs"),
+        include_str!("../src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs"),
         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/tests.rs"),
         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/memo.rs"),
         include_str!("../src/cleanup_plan/replay/factored/canonical_shared/memo/tests.rs"),

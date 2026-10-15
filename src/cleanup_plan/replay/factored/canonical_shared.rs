@@ -3,8 +3,8 @@
 //! vectors. Label order, route weights, signature algebra and work debits keep
 //! the complete original receiver in canonical_before.rs as an independent control.
 use super::{
-    Automaton, BTreeMap, BTreeSet, Diagnostic, Label, Rc, ReplayBudget, ResolvedFunction, Weighted,
-    physical_clone, replay_error,
+    physical_clone, replay_error, Automaton, BTreeMap, BTreeSet, Diagnostic, Label, Rc,
+    ReplayBudget, ResolvedFunction, Weighted,
 };
 
 #[cfg(test)]
@@ -241,9 +241,30 @@ impl<'a> Canonicalizer<'a> {
                         function,
                         "factored successor label node",
                     )?;
-                    let targets =
-                        successor_targets::Targets::one(function, budget, *child, *weight)?;
-                    successors.insert(label.clone(), targets);
+                    if budget.pays_allocations() {
+                        budget.reserve_bytes(
+                            function,
+                            2 * std::mem::size_of::<successor_targets::Targets>()
+                                + std::mem::size_of::<Option<u64>>()
+                                + std::mem::size_of::<Option<successor_targets::Targets>>(),
+                            "factored inline singleton target initializer and receiving",
+                        )?;
+                    }
+                    budget.reserve_bytes(
+                        function,
+                        0,
+                        "factored singleton target authentication",
+                    )?;
+                    let weight = 0_u64
+                        .checked_add(*weight)
+                        .expect("zero plus u64 cannot overflow");
+                    successors.insert(
+                        label.clone(),
+                        successor_targets::Targets::One {
+                            child: *child,
+                            weight,
+                        },
+                    );
                 } else {
                     let targets = successors.get_mut(label).expect("existing label");
                     match targets {
@@ -258,8 +279,41 @@ impl<'a> Canonicalizer<'a> {
                             };
                             *total = sum;
                         }
-                        successor_targets::Targets::One { .. } => {
-                            targets.promote(function, budget, *child, *weight)?;
+                        successor_targets::Targets::One {
+                            child: first,
+                            weight: total,
+                        } => {
+                            assert_ne!(*first, *child);
+                            if budget.pays_allocations() {
+                                budget.reserve_bytes(
+                                    function,
+                                    2 * std::mem::size_of::<BTreeMap<usize, u64>>()
+                                        + std::mem::size_of::<successor_targets::Targets>()
+                                        + 2 * std::mem::size_of::<Option<u64>>()
+                                        + 2 * std::mem::size_of::<(usize, u64)>(),
+                                    "factored inline successor promotion carriers",
+                                )?;
+                            }
+                            budget.reserve_bytes(
+                                function,
+                                0,
+                                "factored successor target promotion authentication",
+                            )?;
+                            budget.reserve_btree_node::<usize, u64>(
+                                function,
+                                "factored successor target node",
+                            )?;
+                            budget.reserve_btree_node::<usize, u64>(
+                                function,
+                                "factored successor target node",
+                            )?;
+                            let mut promoted = BTreeMap::new();
+                            promoted.insert(*first, *total);
+                            let sum = 0_u64
+                                .checked_add(*weight)
+                                .expect("zero plus u64 cannot overflow");
+                            promoted.insert(*child, sum);
+                            *targets = successor_targets::Targets::Many(promoted);
                         }
                         successor_targets::Targets::Many(targets) => {
                             if !targets.contains_key(child) {
@@ -284,18 +338,72 @@ impl<'a> Canonicalizer<'a> {
             "factored successor vector",
         )?;
         let mut result = Vec::with_capacity(successors.len());
-        if budget.pays_allocations() {
-            budget.reserve_bytes(
-                function,
-                std::mem::size_of::<
-                    std::collections::btree_map::IntoIter<Label, successor_targets::Targets>,
-                >() + std::mem::size_of::<Option<(Label, successor_targets::Targets)>>()
-                    + std::mem::size_of::<(Label, successor_targets::Targets)>(),
-                "factored successor target iterator receiving",
-            )?;
-        }
-        for (label, targets) in successors {
-            result.push((label, targets.finish(function, budget)?));
+        // Do not initialize an owning map iterator or its receiving tuple on
+        // the empty route. Zero-byte vector authentication above still runs.
+        if !successors.is_empty() {
+            if budget.pays_allocations() {
+                budget.reserve_bytes(
+                    function,
+                    std::mem::size_of::<
+                        std::collections::btree_map::IntoIter<Label, successor_targets::Targets>,
+                    >() + std::mem::size_of::<Option<(Label, successor_targets::Targets)>>()
+                        + std::mem::size_of::<(Label, successor_targets::Targets)>(),
+                    "factored successor target iterator receiving",
+                )?;
+            }
+            for (label, targets) in successors {
+                if budget.pays_allocations() {
+                    budget.reserve_bytes(
+                        function,
+                        2 * std::mem::size_of::<SharedWeighted>()
+                            + std::mem::size_of::<Vec<(usize, u64)>>()
+                            + std::mem::size_of::<(usize, u64)>(),
+                        "factored inline successor finish receiving",
+                    )?;
+                }
+                budget.reserve_bytes(
+                    function,
+                    0,
+                    "factored successor target finish authentication",
+                )?;
+                let state = match targets {
+                    successor_targets::Targets::One { child, weight } => {
+                        budget.reserve_array::<(usize, u64)>(
+                            function,
+                            1,
+                            "factored weighted successor vector",
+                        )?;
+                        if budget.pays_allocations() {
+                            budget.reserve_bytes(
+                                function,
+                                std::mem::size_of::<[(usize, u64); 1]>(),
+                                "factored one-entry array initializer",
+                            )?;
+                        }
+                        let state = Vec::from([(child, weight)]);
+                        budget.reserve_bytes(
+                            function,
+                            physical_clone::rc_backing_bytes::<Weighted>(),
+                            "factored weighted shared header",
+                        )?;
+                        Rc::new(state)
+                    }
+                    successor_targets::Targets::Many(targets) => {
+                        // The remaining fallible weighted producer still has
+                        // its real map argument and Result receiving carrier.
+                        if budget.pays_allocations() {
+                            budget.reserve_bytes(
+                                function,
+                                std::mem::size_of::<BTreeMap<usize, u64>>()
+                                    + std::mem::size_of::<Result<SharedWeighted, Diagnostic>>(),
+                                "factored many weighted producer receiving",
+                            )?;
+                        }
+                        weighted_successor(function, budget, targets)?
+                    }
+                };
+                result.push((label, state));
+            }
         }
         Ok(Some((accepted, result)))
     }
@@ -410,3 +518,8 @@ mod tests;
 
 #[cfg(test)]
 pub(super) mod app_census;
+
+#[cfg(test)]
+mod before_receiving_layers;
+#[cfg(test)]
+mod receiving_layer_tests;

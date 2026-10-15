@@ -1,0 +1,63 @@
+{
+  "status": "SOURCE_ONLY_NOT_COMPILED_OR_EXECUTED",
+  "basis": "36fe9f92b847db41f26c685b079d06acf60a22f4",
+  "new": [
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_complete_immediate_receiver_keeps_states_signatures_and_every_work_frontier",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+      "source_sha256": "6a920b9bf01970a5d7cccc248f7a18b86ac8f303b6dd0242b8cc896d06f54cbe"
+    },
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+      "source_sha256": "6a920b9bf01970a5d7cccc248f7a18b86ac8f303b6dd0242b8cc896d06f54cbe"
+    },
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::inline_successors_every_actual_byte_cut_covers_promotion_finish_and_zero_without_post_error_drop",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+      "source_sha256": "6a920b9bf01970a5d7cccc248f7a18b86ac8f303b6dd0242b8cc896d06f54cbe"
+    },
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::receiving_layer_tests::complete_immediate_receiver_helpers_and_all_seven_original_controls_remain_exact",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+      "source_sha256": "6a920b9bf01970a5d7cccc248f7a18b86ac8f303b6dd0242b8cc896d06f54cbe"
+    }
+  ],
+  "required_existing": [
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::singleton_target_tests::singleton_targets_complete_before_receiver_keeps_widths_repeats_signatures_and_overflow_work",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+      "source_sha256": "129171ccd7c422ead56006fe7502449a4d91e48713154ab1d9fe582a18f8dc84"
+    },
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::singleton_target_tests::singleton_targets_actual_before_current_reserved_allocated_peak_and_complete_drop",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+      "source_sha256": "129171ccd7c422ead56006fe7502449a4d91e48713154ab1d9fe582a18f8dc84"
+    },
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::singleton_target_tests::singleton_targets_full_receiver_exact_short_zero_bytes_and_work_keep_all_drop",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+      "source_sha256": "129171ccd7c422ead56006fe7502449a4d91e48713154ab1d9fe582a18f8dc84"
+    },
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::singleton_target_tests::singleton_target_promotions_sort_and_preserve_same_child_overflow_before_later_acquisition",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+      "source_sha256": "129171ccd7c422ead56006fe7502449a4d91e48713154ab1d9fe582a18f8dc84"
+    },
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::singleton_target_tests::singleton_promotion_acquires_both_tree_nodes_before_first_allocation_and_stays_inline_on_refusal",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+      "source_sha256": "129171ccd7c422ead56006fe7502449a4d91e48713154ab1d9fe582a18f8dc84"
+    },
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::singleton_target_tests::singleton_actual_receiver_foreign_restored_function_budget_and_stale_owner_fail_before_new_targets",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+      "source_sha256": "129171ccd7c422ead56006fe7502449a4d91e48713154ab1d9fe582a18f8dc84"
+    },
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::singleton_target_tests::singleton_finish_every_real_carrier_vector_and_rc_boundary_refuses_before_unpaid_backing",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs",
+      "source_sha256": "129171ccd7c422ead56006fe7502449a4d91e48713154ab1d9fe582a18f8dc84"
+    }
+  ]
+}

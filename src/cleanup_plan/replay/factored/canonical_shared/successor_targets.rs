@@ -1,13 +1,18 @@
 //! A label starts with one target; only a second distinct child owns a tree.
+#[cfg(test)]
 use super::{
     own_weighted, weighted_successor, Diagnostic, ReplayBudget, ResolvedFunction, SharedWeighted,
 };
-use std::{collections::BTreeMap, mem::size_of};
+use std::collections::BTreeMap;
+#[cfg(test)]
+use std::mem::size_of;
 
 pub(super) enum Targets {
     One { child: usize, weight: u64 },
     Many(BTreeMap<usize, u64>),
 }
+// Complete prior helpers qualify old receiving boundaries only.
+#[cfg(test)]
 impl Targets {
     pub(super) fn one(
         function: &ResolvedFunction,

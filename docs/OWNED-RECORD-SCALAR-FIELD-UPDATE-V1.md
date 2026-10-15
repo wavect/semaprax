@@ -115,6 +115,14 @@ updates `count` and `active` while preserving `sku` and the other row.
 Minimum next grouped selection, owned by the integration parent:
 
 - `cargo test --locked -p semaprax --lib vec_ops::field_update::tests -- --nocapture`
+- `cargo test --locked -p semaprax --lib interpreter::owned_vec::field_update::tests -- --nocapture`
+  authors checked-source construction-through-Drop controls for unique stores,
+  vector/row Arc alias refusals and generation overflow before commit. The
+  unique-store measurement pays the same actual descriptor checks in its
+  independent no-store control; raw unrelated f32/f64 bits, String/Bytes owner
+  identity and materialization counters remain observable. Overflow retains its
+  exact invariant guard through ordinary source-frame failure and owner Drop;
+  it is not converted into a language-visible status.
 - `cargo test --locked -p semaprax --lib project::incremental::snapshot::field_update::tests -- --nocapture`
 - `cargo test --locked -p semaprax --bin semaprax scalar_field_update_card -- --nocapture`
 - Existing owned-data backend harness's `field_update` module: same-source

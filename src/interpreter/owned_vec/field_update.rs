@@ -50,3 +50,6 @@ impl Evaluator<'_> {
         Ok(Value::Vec(vector))
     }
 }
+
+#[cfg(test)]
+mod tests;

@@ -10,8 +10,8 @@ const HISTORICAL: [&str; 2] = [
     ),
 ];
 const CAPTURED: [&str; 2] = [
-    include_str!("../../../docs/evidence/browser-graph-pins-268cb0523/current-hosted-calculator-baseline.json"),
-    include_str!("../../../docs/evidence/browser-graph-pins-268cb0523/current-hosted-calculator-renamed.json"),
+    include_str!("../../../docs/evidence/browser-graph-pins-17104e20c/current-hosted-calculator-baseline.json"),
+    include_str!("../../../docs/evidence/browser-graph-pins-17104e20c/current-hosted-calculator-renamed.json"),
 ];
 fn hash(domain: &[u8], bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
@@ -41,7 +41,7 @@ pub(super) fn digest(graph: &str) -> String {
         graph_digest(graph),
         parsed["graph_digest"].as_str().unwrap()
     );
-    assert_eq!(parsed["budget"]["used_builder_bytes"], 4_393_980);
+    assert_eq!(parsed["budget"]["used_builder_bytes"], 3_930_276);
     let historical = HISTORICAL
         .iter()
         .map(|text| text.strip_suffix('\n').unwrap())
@@ -56,7 +56,7 @@ pub(super) fn digest(graph: &str) -> String {
         graph_digest(historical),
         previous["graph_digest"].as_str().unwrap()
     );
-    let field = "\"used_builder_bytes\":4393980";
+    let field = "\"used_builder_bytes\":3930276";
     assert_eq!(graph.matches(field).count(), 1);
     let restored = graph.replacen(field, "\"used_builder_bytes\":1214409", 1);
     let current_digest = format!("\"graph_digest\":{}", parsed["graph_digest"]);
@@ -80,6 +80,34 @@ fn current_hosted_wires_replay_complete_historical_cursor_controls() {
         let graph = captured.strip_suffix('\n').unwrap();
         assert_eq!(digest(graph), expected);
         assert!(runner.contains(&graph_digest(graph)));
+    }
+}
+#[test]
+fn current_hosted_wires_reproduce_every_prior_byte_after_only_bill_and_digest_restoration() {
+    let previous = [
+        include_str!("../../../docs/evidence/browser-graph-pins-268cb0523/current-hosted-calculator-baseline.json"),
+        include_str!("../../../docs/evidence/browser-graph-pins-268cb0523/current-hosted-calculator-renamed.json"),
+    ];
+    for (captured, previous) in CAPTURED.into_iter().zip(previous) {
+        let graph = captured.strip_suffix('\n').unwrap();
+        let previous = previous.strip_suffix('\n').unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(graph).unwrap();
+        let prior: serde_json::Value = serde_json::from_str(previous).unwrap();
+        assert_eq!(graph_digest(graph), parsed["graph_digest"]);
+        assert_eq!(graph_digest(previous), prior["graph_digest"]);
+        assert_eq!(parsed["budget"]["used_builder_bytes"], 3_930_276);
+        assert_eq!(prior["budget"]["used_builder_bytes"], 4_393_980);
+        let field = "\"used_builder_bytes\":3930276";
+        assert_eq!(graph.matches(field).count(), 1);
+        let restored = graph.replacen(field, "\"used_builder_bytes\":4393980", 1);
+        let field = format!("\"graph_digest\":{}", parsed["graph_digest"]);
+        assert_eq!(restored.matches(&field).count(), 1);
+        let restored = restored.replacen(
+            &field,
+            &format!("\"graph_digest\":{}", prior["graph_digest"]),
+            1,
+        );
+        assert_eq!(restored, previous, "complete prior hosted graph bytes");
     }
 }
 #[test]

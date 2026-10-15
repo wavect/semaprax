@@ -1,0 +1,1 @@
+New verifier unjustifiably required MAIN complete original to equal6444 original after removing newline. Actual literal MAIN receiving source inverse already passed; compare exact full origins instead. Original failure: AssertionError at verify.py42, no Cargo or test bodies executed.

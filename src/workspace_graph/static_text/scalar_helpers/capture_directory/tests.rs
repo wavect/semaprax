@@ -5,6 +5,36 @@ use crate::hir::{OwnershipMode, ResolvedType};
 use crate::workspace_graph::{index_authored, AuthoredDeclaration, AuthoredKind, WorkspaceSource};
 use std::collections::BTreeMap;
 
+#[test]
+fn optional_source_hash_work_keeps_exact_prices_and_declines_every_short_budget() {
+    let path = "provider.spx";
+    let module = "scalar.leaf";
+    let source = "é\0";
+    // Three length prefixes, the full domain and UTF-8 bytes are all paid.
+    let units = 24
+        + b"semaprax.retained-primitive-source.v1\0".len()
+        + path.len()
+        + module.len()
+        + source.len();
+    let ((), metrics) = crate::test_allocation_observer::measure(|| {
+        for available in 0..units {
+            let mut work = available;
+            assert!(
+                !super::super::pay_source_revision_work(path, module, source, &mut work).unwrap()
+            );
+            assert_eq!(work, available);
+        }
+        for spare in [0, 1, 1024] {
+            let mut work = units + spare;
+            assert!(
+                super::super::pay_source_revision_work(path, module, source, &mut work).unwrap()
+            );
+            assert_eq!(work, spare);
+        }
+    });
+    assert_eq!(metrics, crate::test_allocation_observer::Metrics::default());
+}
+
 fn source(count: usize) -> String {
     let mut text = String::from("module helpers;");
     for n in (0..count).rev() {
@@ -479,4 +509,26 @@ fn real_utf8_provider_matches_original_capture_without_literal_inventory() {
         equal(&new, &old);
     });
     assert!(!refused);
+}
+
+#[test]
+fn optional_source_work_selection_preserves_the_complete_prior_capture_body() {
+    let current = include_str!("../../scalar_helpers.rs");
+    let original = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/optional-helper-source-work-v1/scalar_helpers.before.rs.txt"
+    ));
+    let helper = "fn pay_source_revision_work(\n    path: &str,\n    module: &str,\n    source: &str,\n    work: &mut usize,\n) -> Result<bool, Vec<Diagnostic>> {\n    let units = source\n        .len()\n        .checked_add(path.len())\n        .and_then(|n| n.checked_add(module.len()))\n        .and_then(|n| n.checked_add(24 + b\"semaprax.retained-primitive-source.v1\\0\".len()))\n        .ok_or_else(fail)?;\n    let Some(remaining) = work.checked_sub(units) else {\n        return Ok(false);\n    };\n    *work = remaining;\n    Ok(true)\n}\n";
+    let guard = "    // Capture is optional; a source that cannot fit the hash work retains no\n    // proof. A selected receiver still requires and independently replays the\n    // complete inventory. Decline before allocating scratch or hashing bytes.\n    if !pay_source_revision_work(&program.path, &program.module, &source.source, &mut work)? {\n        return Ok(None);\n    }\n";
+    let debit = "    debit(\n        &mut work,\n        source\n            .source\n            .len()\n            .checked_add(program.path.len())\n            .and_then(|n| n.checked_add(program.module.len()))\n            .and_then(|n| n.checked_add(24 + b\"semaprax.retained-primitive-source.v1\\0\".len()))\n            .ok_or_else(fail)?,\n    )?;\n";
+    let anchor =
+        "    let revision = body_digest::source(&program.path, &program.module, &source.source);";
+    let mut restored = current.to_owned();
+    for addition in [helper, guard] {
+        assert_eq!(restored.matches(addition).count(), 1);
+        restored = restored.replacen(addition, "", 1);
+    }
+    assert_eq!(restored.matches(anchor).count(), 1);
+    restored = restored.replacen(anchor, &format!("{debit}{anchor}"), 1);
+    assert_eq!(restored, original);
 }

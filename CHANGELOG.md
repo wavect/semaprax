@@ -3,6 +3,19 @@
 # Changelog
 
 - Author the sealed initial builder-report policy and actual typed CLI propagation (#845), provider-bound borrowed function aliases on the closed uncached route (#847), and a separate cached-prelude report acquisition observer (#796). Preserve original compatibility receivers, source assertions and unfunded output boundaries; executable qualification remains pending.
+- Decline optional scalar-helper capture when the complete source hash cannot fit its unchanged work bound, preserving ordinary scalar imports and the full G410 receiving refusal for a missing proof. Retain the large Explorer snapshot regression and independent capture controls.
+
+- Refresh browser graph pins from complete hosted 17104e20c records after paid-scratch bill reductions, retaining every historical graph byte and adding an exact previous-capture reconstruction gate.
+
+- Reject reached Useful Data v1 dependency signatures at import admission with G172, preserving H006 for body-only authored-type refusals and admission of unreached newer bundled declarations.
+
+- Grow the actual supplemental receiving cursor from two frames under its unchanged 1,028-frame bound, paying complete overlapping replacements and live-frame moves. Retain the full original receiver and shallow reuse gate; expose callers through remaining array and path-join reservation wrappers.
+
+- Cover admitted internal owning-record imports together with exact public-v8 owning-parameter refusal, retaining the original type-import and unsupported-variant cases and no-write checks.
+
+- Refuse an authored owning row-helper parameter with T284 before retained-HIR projection, preserving cold/warm diagnostic parity and G173 for all existing descriptor forgeries.
+
+- Pin mutable command-argument source refusal to its earlier T264 diagnostic and retain the exact H006 immutability guard through an independently validated, tampered Project HIR control.
 
 - Check frozen v11 nested-record String refusal at descriptor derivation and replay, retaining array source refusal and adding an identical Bool-field positive control. Preserve the language's admitted String records.
 

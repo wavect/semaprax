@@ -36,6 +36,24 @@ fn debit(work: &mut usize, units: usize) -> Result<(), Vec<Diagnostic>> {
     *work = work.checked_sub(units).ok_or_else(fail)?;
     Ok(())
 }
+fn pay_source_revision_work(
+    path: &str,
+    module: &str,
+    source: &str,
+    work: &mut usize,
+) -> Result<bool, Vec<Diagnostic>> {
+    let units = source
+        .len()
+        .checked_add(path.len())
+        .and_then(|n| n.checked_add(module.len()))
+        .and_then(|n| n.checked_add(24 + b"semaprax.retained-primitive-source.v1\0".len()))
+        .ok_or_else(fail)?;
+    let Some(remaining) = work.checked_sub(units) else {
+        return Ok(false);
+    };
+    *work = remaining;
+    Ok(true)
+}
 /// Pure still includes checked arithmetic and failing pre/postconditions.
 /// No builtin provider, lexical exits, mutable borrow or carrier is inferred.
 pub(in crate::workspace_graph) fn pure(
@@ -289,6 +307,12 @@ pub(in crate::workspace_graph) fn capture(
         }
     }
     let source = selected.ok_or_else(fail)?;
+    // Capture is optional; a source that cannot fit the hash work retains no
+    // proof. A selected receiver still requires and independently replays the
+    // complete inventory. Decline before allocating scratch or hashing bytes.
+    if !pay_source_revision_work(&program.path, &program.module, &source.source, &mut work)? {
+        return Ok(None);
+    }
     reserve_builder_structure(
         body_digest::scratch_bytes()
             .checked_add(
@@ -299,16 +323,6 @@ pub(in crate::workspace_graph) fn capture(
                     .ok_or_else(capacity)?,
             )
             .ok_or_else(capacity)?,
-    )?;
-    debit(
-        &mut work,
-        source
-            .source
-            .len()
-            .checked_add(program.path.len())
-            .and_then(|n| n.checked_add(program.module.len()))
-            .and_then(|n| n.checked_add(24 + b"semaprax.retained-primitive-source.v1\0".len()))
-            .ok_or_else(fail)?,
     )?;
     let revision = body_digest::source(&program.path, &program.module, &source.source);
     let candidates = capture_directory::Directory::new(program, resolved, &mut work)?;

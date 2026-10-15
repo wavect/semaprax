@@ -1,8 +1,8 @@
-//! One real paid fixed cursor, reused after each complete source-expression walk.
+//! One paid depth-bounded cursor, reused after each complete expression walk.
 //! Synthetic owning parameter providers retain their explicit legacy fallback.
 use super::*;
 use crate::cleanup_plan::replay::nested_shape::type_needs_drop_with_budget;
-use crate::cleanup_plan::replay::ordinary_inventory::storage::array;
+const FRAME_CAPACITY: usize = 1028;
 
 enum Frame<'a> {
     Expr(&'a ResolvedExpr, usize),
@@ -16,9 +16,10 @@ impl Scratch<'_> {
         function: &ResolvedFunction,
         budget: &mut ReplayBudget,
     ) -> Result<Self, Diagnostic> {
-        Ok(Self {
-            frames: array(function, 1028, budget, "supplemental fixed cursor")?,
-        })
+        budget.reserve_array::<Self>(function, 1, "supplemental cursor owner")?;
+        let mut frames = Vec::new();
+        reserve_frames(&mut frames, 1, function, budget)?;
+        Ok(Self { frames })
     }
 }
 
@@ -34,6 +35,7 @@ pub(in crate::cleanup_plan::replay) fn walk<'a>(
     budget.reserve_bytes(function, 0, "supplemental receiving cursor")?;
     let frames = &mut scratch.frames;
     debug_assert!(frames.is_empty());
+    reserve_frames(frames, 1, function, budget)?;
     frames.push(Frame::Expr(expression, 0));
     while let Some(frame) = frames.pop() {
         match frame {
@@ -60,23 +62,25 @@ pub(in crate::cleanup_plan::replay) fn walk<'a>(
                         ));
                     }
                     if let Some(argument) = args.get(next) {
-                        if frames.len() + 3 > frames.capacity() {
+                        if frames.len() + 3 > FRAME_CAPACITY {
                             return Err(replay_error(
                                 function,
                                 "supplemental-slot traversal exceeds the admitted depth",
                             ));
                         }
+                        reserve_frames(frames, 3, function, budget)?;
                         frames.push(Frame::Expr(expression, next + 1));
                         frames.push(Frame::CallArgument(expression, next));
                         frames.push(Frame::Expr(argument, 0));
                     }
                 } else if let Some(child) = replay_expression_child(expression, next) {
-                    if frames.len() + 2 > frames.capacity() {
+                    if frames.len() + 2 > FRAME_CAPACITY {
                         return Err(replay_error(
                             function,
                             "supplemental-slot traversal exceeds the admitted depth",
                         ));
                     }
+                    reserve_frames(frames, 2, function, budget)?;
                     frames.push(Frame::Expr(expression, next + 1));
                     frames.push(Frame::Expr(child, 0));
                 }
@@ -127,3 +131,68 @@ pub(in crate::cleanup_plan::replay) fn walk<'a>(
     }
     Ok(())
 }
+
+// Capacity never supplies traversal authority. Replacements retain every live
+// continuation and pay their full backing while the old buffer is still held.
+fn reserve_frames<'a>(
+    frames: &mut Vec<Frame<'a>>,
+    additional: usize,
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+) -> Result<(), Diagnostic> {
+    budget.reserve_bytes(function, 0, "supplemental fixed cursor")?;
+    let required = frames
+        .len()
+        .checked_add(additional)
+        .filter(|n| *n <= FRAME_CAPACITY)
+        .ok_or_else(|| {
+            replay_error(
+                function,
+                "supplemental-slot traversal exceeds the admitted depth",
+            )
+        })?;
+    if required <= frames.capacity() {
+        return Ok(());
+    }
+    let target = frames
+        .capacity()
+        .saturating_mul(2)
+        .clamp(required.max(2), FRAME_CAPACITY);
+    if !frames.is_empty() {
+        budget.charge(function, frames.len(), "supplemental cursor relocation")?;
+    }
+    budget.reserve_bytes(
+        function,
+        2 * std::mem::size_of::<Vec<Frame<'a>>>() + std::mem::size_of::<Frame<'a>>(),
+        "supplemental cursor controls",
+    )?;
+    budget.reserve_array::<Frame<'a>>(function, target, "supplemental fixed cursor")?;
+    let mut replacement = Vec::new();
+    replacement.try_reserve_exact(target).map_err(|_| {
+        budget.budget_refusal(
+            function,
+            "cleanup replay physical vector allocation failed",
+            "",
+        )
+    })?;
+    if replacement.capacity() != target {
+        return Err(budget.budget_refusal(
+            function,
+            "cleanup replay physical vector capacity disagrees with its reservation",
+            "",
+        ));
+    }
+    replacement.append(frames);
+    *frames = replacement;
+    Ok(())
+}
+
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "complete independently compiled original receiving walk"
+)]
+#[path = "../../../../docs/evidence/supplemental-cursor-growth-v1/receiving.before.rs.txt"]
+mod before;
+#[cfg(test)]
+mod tests;

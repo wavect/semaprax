@@ -38,6 +38,23 @@ pub(in crate::workspace_graph) fn retain_legacy_useful_data_dependency_closure(
                 "workspace dependency closure names an unauthenticated function",
             )]);
         };
+        // A reached dependency must pass the same signature admission as an
+        // imported target. Body-only profile refusals still belong to the HIR
+        // linker, which can identify the unsupported authored type precisely.
+        if incompatible.contains(&id)
+            && (!hir::useful_data_workspace_return_admitted(&linked.function.return_type)
+                || linked.function.params.iter().any(|parameter| {
+                    !hir::useful_data_workspace_parameter_admitted(
+                        &parameter.ty,
+                        parameter.ownership,
+                    )
+                }))
+        {
+            return Err(vec![super::super::graph_error(
+                "SPX-G172",
+                super::super::package::import_profile_refusal(),
+            )]);
+        }
         if !retained.insert(id) {
             continue;
         }

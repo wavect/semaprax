@@ -1,0 +1,17 @@
+{
+  "scope": "actual pay_source_revision_work and actual new work/source-inverse tests, actual allocation observer with module-path adapter; synthetic unused diagnostic carrier; full Project regressions not executed locally",
+  "runs": [
+    {
+      "rustc": "1.88.0-aarch64-apple-darwin",
+      "aggregate_peak_KiB": 151216,
+      "result": "pass"
+    },
+    {
+      "rustc": "1.97.1-aarch64-apple-darwin",
+      "aggregate_peak_KiB": 117920,
+      "result": "pass"
+    }
+  ],
+  "catalog": "unchanged sha256:95d14c350ca420420dbf220302d4454431b17b46019261cc3fe1930c11d98416",
+  "static_code_count": 1513
+}

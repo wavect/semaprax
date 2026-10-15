@@ -518,7 +518,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/cleanup_plan/replay/structural_control.rs"),
         include_str!("../src/cleanup_plan/replay/structural_control/blocks.rs"),
         include_str!("../src/cleanup_plan/replay/structural_control/blocks_before_receipt.rs"),
-        include_str!("../src/cleanup_plan/replay/structural_control/call_receiving.rs"),
+        include_str!("../src/cleanup_plan/replay/structural_control/call_receiving.rs"), include_str!("../src/cleanup_plan/replay/supplemental/receiving.rs"), include_str!("../src/cleanup_plan/replay/supplemental/receiving/tests.rs"),
         concat!(include_str!("../src/cleanup_plan/replay/structural_control/calls.rs"), include_str!("../src/cleanup_plan/replay/structural_control/calls/cursor.rs"), include_str!("../src/cleanup_plan/replay/structural_control/calls/cursor/tests.rs"), include_str!("../src/cleanup_plan/replay/structural_control/calls/cursor_before.rs"), include_str!("../src/cleanup_plan/replay/structural_control/calls/cursor_before_selected.rs")),
         include_str!("../src/cleanup_plan/replay/structural_control/calls/custody_tests.rs"),
         include_str!("../src/cleanup_plan/replay/structural_control/calls/custody_tests/source.rs"),

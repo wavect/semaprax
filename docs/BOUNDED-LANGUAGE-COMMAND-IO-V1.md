@@ -56,6 +56,11 @@ dynamic reads do not mint or recharge roots. The view can be forwarded and
 projected through `str_as_bytes`, but cannot escape, be stored, enter an
 aggregate, cross an import/callback/async boundary, or outlive settlement.
 
+A mutable local holding this borrowed `str` is refused during source checking
+with `SPX-T264`. Independently validating retained HIR still refuses a forged
+mutable alias with `SPX-H006`; the earlier source diagnostic does not replace
+the HIR immutability check.
+
 [Owned String Loops v2](OWNED-STRING-LOOPS-V2.md#immutable-input-and-borrowed-views-590)
 additively admits repeated `args_len` and `arg_utf8` in bounded loop bodies
 with named non-escaping views. The immutable snapshot, capability checks,

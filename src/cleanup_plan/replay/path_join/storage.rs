@@ -125,6 +125,7 @@ fn state_bytes(state: &PathState) -> Option<usize> {
     }
     Some(bytes)
 }
+#[track_caller]
 pub(in crate::cleanup_plan::replay) fn reserve_btree_node<K, V>(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
@@ -213,6 +214,7 @@ pub(super) fn reserve_control_clone(
     )
 }
 
+#[track_caller]
 pub(in crate::cleanup_plan::replay) fn insert_set<K: Ord>(
     function: &ResolvedFunction,
     target: &mut BTreeSet<K>,
@@ -226,6 +228,7 @@ pub(in crate::cleanup_plan::replay) fn insert_set<K: Ord>(
     reserve_btree_node::<K, ()>(function, budget, phase)?;
     Ok(target.insert(value))
 }
+#[track_caller]
 pub(in crate::cleanup_plan::replay) fn insert_map<K: Ord, V>(
     function: &ResolvedFunction,
     target: &mut BTreeMap<K, V>,

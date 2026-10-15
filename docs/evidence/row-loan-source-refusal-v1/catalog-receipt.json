@@ -1,0 +1,16 @@
+{
+  "before_commit": "3843101ceead5d06a8a028c39564938662c0e864",
+  "old_catalog": "sha256:a8215f00810946c386cfb31c59e76e854a8ea3f0769d796e93da4d0557d2b972",
+  "new_catalog": "sha256:5d1305d47fcc12b6deb2a14a5368e1b0c583d07b73751c665bafc9875d6f6c18",
+  "static_code_count": 1513,
+  "only_new_paths": {
+    "SPX-T284": [
+      "src/workspace_graph/record_traversal/row_loan.rs",
+      "src/workspace_graph/tests/record_traversal.rs"
+    ]
+  },
+  "dynamic_constructor_paths_unchanged": true,
+  "old_envelope": "sha256:8fe69acd3f2590bfb750bc209b789363436d911897a3c3bdb122269305889d7c",
+  "new_envelope": "sha256:f02f54bfe219d57ae74081a0a1a782d275769a74038770e3cd62e7ab8dfb841c",
+  "payload_bytes": 5401
+}

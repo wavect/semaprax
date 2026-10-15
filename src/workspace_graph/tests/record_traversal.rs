@@ -409,6 +409,27 @@ use function @id("library.score") from library as score;
     let programs = parsed_sources(&input);
     let build = build_owned(input.clone()).unwrap();
     super::super::record_traversal::validate(&programs, &build.hir.modules).unwrap();
+    // Current authored provider ownership is a source refusal. Replaying old
+    // consumer HIR must not misclassify this source edit as a forged descriptor.
+    let mut owning_input = input.clone();
+    owning_input[0].source = owning_input[0]
+        .source
+        .replace("row: borrow Row", "row: own Row");
+    assert_ne!(owning_input[0].source, input[0].source);
+    let owning_programs = parsed_sources(&owning_input);
+    let errors =
+        super::super::record_traversal::validate(&owning_programs, &build.hir.modules).unwrap_err();
+    assert_eq!(errors[0].code, "SPX-T284");
+    assert_eq!(
+        errors[0].message,
+        "record traversal row cannot escape or materialize aggregate storage; select a field"
+    );
+    assert_eq!(errors[0].path.as_deref(), Some("app.spx"));
+    assert!(errors[0].span.is_some());
+    let errors = build_owned(owning_input)
+        .err()
+        .expect("owning provider must refuse");
+    assert!(errors.iter().any(|error| error.code == "SPX-T284"));
     for attack in 0..4 {
         let mut build = build_owned(input.clone()).unwrap();
         let modules = &mut build.hir.modules;
@@ -452,10 +473,9 @@ use function @id("library.score") from library as score;
                 *loan = vector;
             }
         }
-        assert!(
-            super::super::record_traversal::validate(&programs, &build.hir.modules).is_err(),
-            "attack {attack}"
-        );
+        let errors =
+            super::super::record_traversal::validate(&programs, &build.hir.modules).unwrap_err();
+        assert_eq!(errors[0].code, "SPX-G173", "attack {attack}");
     }
 }
 

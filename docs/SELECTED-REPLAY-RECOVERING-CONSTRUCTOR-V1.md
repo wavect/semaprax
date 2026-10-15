@@ -394,6 +394,18 @@ Deep traversals can reserve more cumulative bytes; no quota or refund changes.
 work-before-allocation controls. Full-HIR and application qualification remains
 pending CI; isolated carrier probes do not establish application fit.
 
+Supplemental receiving has its own independent 1,028-frame ceiling. Its paid
+scratch owner acquires two initial frames and keeps that backing across complete
+root walks. Deeper pending continuations acquire a full replacement, two vector
+controls and a frame control while old backing remains live. Only moved live
+frames consume relocation work; unused capacity is never initialized as a
+semantic frame. The receiver's dispatch, parameter views, shape derivation,
+flag order, callback order and original depth errors remain unchanged. Its
+complete fixed-capacity receiver remains independently compiled, with a complete
+source inverse and real-HIR callback-parity controls. Deep walks can pay more
+cumulative backing than the original eager buffer; application qualification
+requires the full owning gates.
+
 Physical reservation wrappers propagate the compiler's caller coordinate to the
 existing first-refusal receipt. This preserves all requests, debits, refusal
 ordering and messages while identifying the requesting receiver rather than the

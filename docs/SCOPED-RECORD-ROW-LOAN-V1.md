@@ -129,6 +129,12 @@ replay binds every authored `helper(row)` slot to exactly one retained
 descriptor whose callee and parameter come from current local or provider
 source; retained primitive bodies hash every descriptor identity.
 
+When current provider source changes a lent parameter to `own R`, source
+projection reports the ordinary `SPX-T284` row-escape diagnostic at the caller
+argument before interpreting a retained descriptor. This applies equally to a
+cold build and a warm consumer. A forged descriptor against still-admitted
+borrowed-provider source retains its independent `SPX-G173` mismatch refusal.
+
 ## Qualification definitions
 
 Owning definitions are authored in `tests/language/record_vec_traversal.rs`

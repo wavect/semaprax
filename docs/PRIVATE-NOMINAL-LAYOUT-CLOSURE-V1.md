@@ -11,6 +11,12 @@ result can carry `Report`, containing `Config` and `Vec<Row>`, while source name
 only `Decoded` and its cases. This is internal layout reconstruction, not a new
 source import, public descriptor, capability, graph edge, or lifetime grant.
 
+The internal nongeneric record-signature lane includes owning record
+parameters. It does not admit those parameters through the public Project-v8
+descriptor: selecting the same function there retains `SPX-J113` for an
+unsupported parameter. The internal signature-root route also keeps unsupported
+variant families closed under their existing `SPX-G172` refusal.
+
 ## Authority and visibility
 
 The current source-authenticated provider supplies each persistent declaration,

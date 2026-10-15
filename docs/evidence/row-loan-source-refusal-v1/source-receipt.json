@@ -1,0 +1,7 @@
+{
+  "before_commit": "3843101ceead5d06a8a028c39564938662c0e864",
+  "old_source_sha256": "4ab109a4db71dc995bafebcf85b9baa02ab834e1493a9457fb0d56fa15001969",
+  "new_source_sha256": "9963ef65b0fd8b6cd0245a04f7188eba1576f11bf039c9a523c7d1f74b755511",
+  "inserted_branch_sha256": "be126fcdd45553544bf692ac6a55baaeda88c6acaa10f1a198458319c2872d75",
+  "complete_inverse": "Remove only the authored-own-parameter refusal branch; every prior source byte is identical."
+}

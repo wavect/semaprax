@@ -6,6 +6,13 @@ HIR validation (`116577327478`). The original structural call cursor requests
 matches that request. The shared wrapper alone cannot prove it was the only
 remaining cost. Caller-coordinate propagation makes later refusals attributable.
 
+Follow-up hosted evidence on `6dec6f011` identifies the same-sized refused
+request in supplemental receiving through `ordinary_inventory/storage.rs`.
+The original numerical match did not identify its caller. The structural-call
+change is a separately tested storage optimization; it did not resolve that
+STD-08 refusal. [Supplemental cursor growth](../supplemental-cursor-growth-v1/README.md)
+records the actual receiving owner and its separate qualification.
+
 `calls.before.rs.txt` retains the complete original module. The independently
 compiled `cursor_before.rs` contains its full original cursor owner, plus a
 lookup forwarding function for controls. The source test reconstructs the entire

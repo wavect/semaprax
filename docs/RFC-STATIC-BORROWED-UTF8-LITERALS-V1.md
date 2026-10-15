@@ -80,6 +80,14 @@ depth/work limits; the new leaf is allowed only after ordinary static-root
 validation. No signature-only, generated-name, stub, or attached-index shortcut
 may authorize an allocating or unknown producer.
 
+Scalar-helper capture is optional. If the complete defining-source hash cannot
+fit its existing capture work allowance, capture returns no inventory before
+allocating digest scratch or hashing source bytes. Ordinary checked scalar
+imports retain their existing route. A static-source receiver still requires
+the complete independently replayed inventory and refuses a missing inventory
+with `SPX-G410`; a decline does not authorize a partial or unhashed proof.
+The work bound, source-size bounds and full hash prices are unchanged.
+
 Source edits invalidate revision-scoped literal facts even if display names or
 payload length remain equal. Generic instances bind the actual instance owner
 and originating source site; a monomorphic proof cannot be transplanted.

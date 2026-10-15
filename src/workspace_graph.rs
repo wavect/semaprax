@@ -9,6 +9,8 @@
     reason = "sealed validation and test-only replay seams remain non-public"
 )]
 mod builder_bytes_report;
+#[cfg(test)]
+mod cold_canonical;
 mod callee_inventory;
 mod checked_value_retention;
 #[path = "workspace_graph/import_validation.rs"]
@@ -3992,12 +3994,12 @@ fn build_owned_inner(
                 .as_ref()
                 .expect("cold workspace parse retains its exact comments");
             let (canonical, overflowed) = crate::bounded_output::with_limit(remaining, || {
-                format::comments::canonical_with_comments(&program, comments)
+                format::comments::canonical_comparison(&program, comments, &source.source)
             });
-            if overflowed {
+            if overflowed || canonical.bytes.is_none() {
                 return Err(vec![limit_error("builder_bytes", active_builder_limit())]);
             }
-            if canonical != source.source {
+            if !canonical.matches {
                 return Err(vec![graph_error(
                     "SPX-G170",
                     format!(
@@ -4012,7 +4014,7 @@ fn build_owned_inner(
             if let Some(frontend) = frontend.as_deref_mut() {
                 frontend.canonicalized();
             }
-            canonical.len()
+            canonical.bytes.expect("canonical byte count checked before source equality")
         };
         canonical_bytes = checked_usage(
             canonical_bytes,

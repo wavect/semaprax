@@ -91,3 +91,15 @@ every comment of a commented file, keeps the renamed function's leading
 comment above it, returns the comment-free revision, and leaves a file `fmt
 --check` accepts. The examples and documentation gates keep the comment-free
 canonical form unchanged.
+
+## Private cold-admission comparison (#835)
+
+The source-authored cold workspace route can consume the exact same commented
+writer into a borrowed byte-comparison sink. Checked offset and total length,
+sticky mismatch and successful writes preserve the complete placement and
+formatter traversal even after the first mismatch; length/bounded refusal is
+selected before noncanonical-source reporting. The complete original String
+formatter remains unchanged and independently executable. This removes only
+the temporary final comparison output backing. Placement, traversal and other
+formatter scratch remain, and no reservation discount, whole-app saving or
+executable qualification is claimed by this private implementation note.

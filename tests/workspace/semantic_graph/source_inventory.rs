@@ -149,6 +149,13 @@ macro_rules! semantic_graph_root_source_inventory {
                 concat!(
                     concat!(
                     concat!(concat!(concat!(include_str!("../../src/workspace_graph.rs"),
+                        include_str!("../../src/workspace_graph/cold_canonical.rs"),
+                        include_str!("../../src/workspace_graph/cold_canonical/before.rs"),
+                        include_str!("../../src/workspace_graph/cold_canonical/tests.rs"),
+                        include_str!("../../src/format/comments.rs"),
+                        include_str!("../../src/format/comments/compare.rs"),
+                        include_str!("../../src/format/comments/compare/tests.rs"),
+
         include_str!("../../src/bounded_output/identity_reservation/base_prelude.rs"),
         include_str!("../../src/bounded_output/identity_reservation/base_prelude/tests.rs"),
         include_str!("../../src/bounded_output/identity_reservation/producer_failure.rs"),

@@ -1,0 +1,902 @@
+{
+  "basis": "940fcf220e47d1975f757e76f0b3401691db9358",
+  "status": "SOURCE_AUTHORED_UNEXECUTED_NO_RUST",
+  "parser_sha256": "8774afeeb957dabcde7eee44a29c1a91aec2572d7740413a0dbebf473ec7da6f",
+  "new": 8,
+  "required_existing": 14,
+  "checks": [
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "format::comments::compare::tests::full_commented_comparison_keeps_old_unicode_crlf_trailing_nested_and_noncanonical_bytes",
+      "source": "src/format/comments/compare/tests.rs",
+      "source_sha256": "3b456a0fc4004aa848b4cb1c85d0e6a0ab6cb98ad7a43144657cf1e342e225a0",
+      "source_binding": {
+        "source_path": "src/format/comments/compare/tests.rs",
+        "line": 8,
+        "name": "full_commented_comparison_keeps_old_unicode_crlf_trailing_nested_and_noncanonical_bytes",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 157,
+            "module": "format",
+            "attributes": []
+          },
+          {
+            "source_path": "src/format.rs",
+            "line": 22,
+            "module": "comments",
+            "attributes": [
+              "#[path = \"format/comments.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/format/comments.rs",
+            "line": 38,
+            "module": "compare",
+            "attributes": [
+              "#[path = \"comments/compare.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/format/comments/compare.rs",
+            "line": 62,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"compare/tests.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "3b456a0fc4004aa848b4cb1c85d0e6a0ab6cb98ad7a43144657cf1e342e225a0",
+        "ignored": false
+      },
+      "status": "SOURCE_AUTHORED_UNEXECUTED",
+      "role": "new"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "format::comments::compare::tests::comparison_accepts_every_later_write_after_mismatch_and_checked_length_overflow",
+      "source": "src/format/comments/compare/tests.rs",
+      "source_sha256": "3b456a0fc4004aa848b4cb1c85d0e6a0ab6cb98ad7a43144657cf1e342e225a0",
+      "source_binding": {
+        "source_path": "src/format/comments/compare/tests.rs",
+        "line": 40,
+        "name": "comparison_accepts_every_later_write_after_mismatch_and_checked_length_overflow",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 157,
+            "module": "format",
+            "attributes": []
+          },
+          {
+            "source_path": "src/format.rs",
+            "line": 22,
+            "module": "comments",
+            "attributes": [
+              "#[path = \"format/comments.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/format/comments.rs",
+            "line": 38,
+            "module": "compare",
+            "attributes": [
+              "#[path = \"comments/compare.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/format/comments/compare.rs",
+            "line": 62,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"compare/tests.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "3b456a0fc4004aa848b4cb1c85d0e6a0ab6cb98ad7a43144657cf1e342e225a0",
+        "ignored": false
+      },
+      "status": "SOURCE_AUTHORED_UNEXECUTED",
+      "role": "new"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::cold_canonical::tests::complete_old_and_comparison_keep_exact_short_zero_sticky_and_nested_formatter_debits",
+      "source": "src/workspace_graph/cold_canonical/tests.rs",
+      "source_sha256": "3ec6149f26eec9a0c6c0f3b0724ffdaf2231600a6d530af720132a9ada71a4f0",
+      "source_binding": {
+        "source_path": "src/workspace_graph/cold_canonical/tests.rs",
+        "line": 10,
+        "name": "complete_old_and_comparison_keep_exact_short_zero_sticky_and_nested_formatter_debits",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 528,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 13,
+            "module": "cold_canonical",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/cold_canonical.rs",
+            "line": 3,
+            "module": "tests",
+            "attributes": []
+          }
+        ],
+        "sha256": "3ec6149f26eec9a0c6c0f3b0724ffdaf2231600a6d530af720132a9ada71a4f0",
+        "ignored": false
+      },
+      "status": "SOURCE_AUTHORED_UNEXECUTED",
+      "role": "new"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::cold_canonical::tests::final_string_backing_is_removed_with_actual_allocated_reserved_peak_and_whole_drop_observation",
+      "source": "src/workspace_graph/cold_canonical/tests.rs",
+      "source_sha256": "3ec6149f26eec9a0c6c0f3b0724ffdaf2231600a6d530af720132a9ada71a4f0",
+      "source_binding": {
+        "source_path": "src/workspace_graph/cold_canonical/tests.rs",
+        "line": 75,
+        "name": "final_string_backing_is_removed_with_actual_allocated_reserved_peak_and_whole_drop_observation",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 528,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 13,
+            "module": "cold_canonical",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/cold_canonical.rs",
+            "line": 3,
+            "module": "tests",
+            "attributes": []
+          }
+        ],
+        "sha256": "3ec6149f26eec9a0c6c0f3b0724ffdaf2231600a6d530af720132a9ada71a4f0",
+        "ignored": false
+      },
+      "status": "SOURCE_AUTHORED_UNEXECUTED",
+      "role": "new"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::cold_canonical::tests::whole_cold_preflight_keeps_complete_old_source_graph_diagnostics_and_priority",
+      "source": "src/workspace_graph/cold_canonical/tests.rs",
+      "source_sha256": "3ec6149f26eec9a0c6c0f3b0724ffdaf2231600a6d530af720132a9ada71a4f0",
+      "source_binding": {
+        "source_path": "src/workspace_graph/cold_canonical/tests.rs",
+        "line": 193,
+        "name": "whole_cold_preflight_keeps_complete_old_source_graph_diagnostics_and_priority",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 528,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 13,
+            "module": "cold_canonical",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/cold_canonical.rs",
+            "line": 3,
+            "module": "tests",
+            "attributes": []
+          }
+        ],
+        "sha256": "3ec6149f26eec9a0c6c0f3b0724ffdaf2231600a6d530af720132a9ada71a4f0",
+        "ignored": false
+      },
+      "status": "SOURCE_AUTHORED_UNEXECUTED",
+      "role": "new"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::cold_canonical::tests::whole_cold_preflight_exact_short_zero_builder_bounds_and_early_mismatch_keep_old_refusal",
+      "source": "src/workspace_graph/cold_canonical/tests.rs",
+      "source_sha256": "3ec6149f26eec9a0c6c0f3b0724ffdaf2231600a6d530af720132a9ada71a4f0",
+      "source_binding": {
+        "source_path": "src/workspace_graph/cold_canonical/tests.rs",
+        "line": 218,
+        "name": "whole_cold_preflight_exact_short_zero_builder_bounds_and_early_mismatch_keep_old_refusal",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 528,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 13,
+            "module": "cold_canonical",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/cold_canonical.rs",
+            "line": 3,
+            "module": "tests",
+            "attributes": []
+          }
+        ],
+        "sha256": "3ec6149f26eec9a0c6c0f3b0724ffdaf2231600a6d530af720132a9ada71a4f0",
+        "ignored": false
+      },
+      "status": "SOURCE_AUTHORED_UNEXECUTED",
+      "role": "new"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::cold_canonical::tests::whole_cold_preflight_observes_same_cold_setup_reserved_peak_and_complete_drop_without_output_string",
+      "source": "src/workspace_graph/cold_canonical/tests.rs",
+      "source_sha256": "3ec6149f26eec9a0c6c0f3b0724ffdaf2231600a6d530af720132a9ada71a4f0",
+      "source_binding": {
+        "source_path": "src/workspace_graph/cold_canonical/tests.rs",
+        "line": 250,
+        "name": "whole_cold_preflight_observes_same_cold_setup_reserved_peak_and_complete_drop_without_output_string",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 528,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 13,
+            "module": "cold_canonical",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/cold_canonical.rs",
+            "line": 3,
+            "module": "tests",
+            "attributes": []
+          }
+        ],
+        "sha256": "3ec6149f26eec9a0c6c0f3b0724ffdaf2231600a6d530af720132a9ada71a4f0",
+        "ignored": false
+      },
+      "status": "SOURCE_AUTHORED_UNEXECUTED",
+      "role": "new"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::cold_canonical::tests::complete_old_commented_formatter_preflight_sources_and_all_current_children_remain_exact",
+      "source": "src/workspace_graph/cold_canonical/tests.rs",
+      "source_sha256": "3ec6149f26eec9a0c6c0f3b0724ffdaf2231600a6d530af720132a9ada71a4f0",
+      "source_binding": {
+        "source_path": "src/workspace_graph/cold_canonical/tests.rs",
+        "line": 292,
+        "name": "complete_old_commented_formatter_preflight_sources_and_all_current_children_remain_exact",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 528,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 13,
+            "module": "cold_canonical",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/cold_canonical.rs",
+            "line": 3,
+            "module": "tests",
+            "attributes": []
+          }
+        ],
+        "sha256": "3ec6149f26eec9a0c6c0f3b0724ffdaf2231600a6d530af720132a9ada71a4f0",
+        "ignored": false
+      },
+      "status": "SOURCE_AUTHORED_UNEXECUTED",
+      "role": "new"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "format::comments::tests::comments_survive_and_formatting_is_idempotent",
+      "source": "src/format/comments.rs",
+      "source_sha256": "aab12d29902ab888d7ec9ea5386f27d8752194ade2019175bba2949f84094174",
+      "source_binding": {
+        "source_path": "src/format/comments.rs",
+        "line": 339,
+        "name": "comments_survive_and_formatting_is_idempotent",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 157,
+            "module": "format",
+            "attributes": []
+          },
+          {
+            "source_path": "src/format.rs",
+            "line": 22,
+            "module": "comments",
+            "attributes": [
+              "#[path = \"format/comments.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/format/comments.rs",
+            "line": 329,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          }
+        ],
+        "sha256": "aab12d29902ab888d7ec9ea5386f27d8752194ade2019175bba2949f84094174",
+        "ignored": false
+      },
+      "status": "SOURCE_AUTHORED_UNEXECUTED",
+      "role": "required_existing"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "format::comments::tests::nested_blocks_fields_and_methods_keep_their_comments",
+      "source": "src/format/comments.rs",
+      "source_sha256": "aab12d29902ab888d7ec9ea5386f27d8752194ade2019175bba2949f84094174",
+      "source_binding": {
+        "source_path": "src/format/comments.rs",
+        "line": 357,
+        "name": "nested_blocks_fields_and_methods_keep_their_comments",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 157,
+            "module": "format",
+            "attributes": []
+          },
+          {
+            "source_path": "src/format.rs",
+            "line": 22,
+            "module": "comments",
+            "attributes": [
+              "#[path = \"format/comments.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/format/comments.rs",
+            "line": 329,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          }
+        ],
+        "sha256": "aab12d29902ab888d7ec9ea5386f27d8752194ade2019175bba2949f84094174",
+        "ignored": false
+      },
+      "status": "SOURCE_AUTHORED_UNEXECUTED",
+      "role": "required_existing"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "format::comments::tests::variant_case_fields_and_resource_lifecycles_keep_every_comment",
+      "source": "src/format/comments.rs",
+      "source_sha256": "aab12d29902ab888d7ec9ea5386f27d8752194ade2019175bba2949f84094174",
+      "source_binding": {
+        "source_path": "src/format/comments.rs",
+        "line": 366,
+        "name": "variant_case_fields_and_resource_lifecycles_keep_every_comment",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 157,
+            "module": "format",
+            "attributes": []
+          },
+          {
+            "source_path": "src/format.rs",
+            "line": 22,
+            "module": "comments",
+            "attributes": [
+              "#[path = \"format/comments.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/format/comments.rs",
+            "line": 329,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          }
+        ],
+        "sha256": "aab12d29902ab888d7ec9ea5386f27d8752194ade2019175bba2949f84094174",
+        "ignored": false
+      },
+      "status": "SOURCE_AUTHORED_UNEXECUTED",
+      "role": "required_existing"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "format::iterative_tests::expression_blocks_and_empty_match_keep_exact_separators",
+      "source": "src/format/iterative_tests.rs",
+      "source_sha256": "289848f36c23fa5a72fe2b316d0efde977f6b3423db36137bfe3ec94918bee75",
+      "source_binding": {
+        "source_path": "src/format/iterative_tests.rs",
+        "line": 5,
+        "name": "expression_blocks_and_empty_match_keep_exact_separators",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 157,
+            "module": "format",
+            "attributes": []
+          },
+          {
+            "source_path": "src/format.rs",
+            "line": 27,
+            "module": "iterative_tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"format/iterative_tests.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "289848f36c23fa5a72fe2b316d0efde977f6b3423db36137bfe3ec94918bee75",
+        "ignored": false
+      },
+      "status": "SOURCE_AUTHORED_UNEXECUTED",
+      "role": "required_existing"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "format::iterative_tests::unsafe_statement_in_inline_block_stays_parseable",
+      "source": "src/format/iterative_tests.rs",
+      "source_sha256": "289848f36c23fa5a72fe2b316d0efde977f6b3423db36137bfe3ec94918bee75",
+      "source_binding": {
+        "source_path": "src/format/iterative_tests.rs",
+        "line": 50,
+        "name": "unsafe_statement_in_inline_block_stays_parseable",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 157,
+            "module": "format",
+            "attributes": []
+          },
+          {
+            "source_path": "src/format.rs",
+            "line": 27,
+            "module": "iterative_tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"format/iterative_tests.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "289848f36c23fa5a72fe2b316d0efde977f6b3423db36137bfe3ec94918bee75",
+        "ignored": false
+      },
+      "status": "SOURCE_AUTHORED_UNEXECUTED",
+      "role": "required_existing"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "format::iterative_tests::statement_if_measurement_accounts_for_erased_normalization_nodes",
+      "source": "src/format/iterative_tests.rs",
+      "source_sha256": "289848f36c23fa5a72fe2b316d0efde977f6b3423db36137bfe3ec94918bee75",
+      "source_binding": {
+        "source_path": "src/format/iterative_tests.rs",
+        "line": 78,
+        "name": "statement_if_measurement_accounts_for_erased_normalization_nodes",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 157,
+            "module": "format",
+            "attributes": []
+          },
+          {
+            "source_path": "src/format.rs",
+            "line": 27,
+            "module": "iterative_tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"format/iterative_tests.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "289848f36c23fa5a72fe2b316d0efde977f6b3423db36137bfe3ec94918bee75",
+        "ignored": false
+      },
+      "status": "SOURCE_AUTHORED_UNEXECUTED",
+      "role": "required_existing"
+    },
+    {
+      "package": "semaprax",
+      "harness": "test:projections",
+      "selector": "fmt_comments::fmt_keeps_comments_and_is_idempotent",
+      "source": "tests/projections/fmt_comments.rs",
+      "source_sha256": "d8ab85a21f4ca4614571768f905b9b05b74b0142f9fcccd3463e810ddf560e3d",
+      "source_binding": {
+        "source_path": "tests/projections/fmt_comments.rs",
+        "line": 38,
+        "name": "fmt_keeps_comments_and_is_idempotent",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "tests/projections.rs",
+            "line": 25,
+            "module": "fmt_comments",
+            "attributes": [
+              "#[path = \"projections/fmt_comments.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "d8ab85a21f4ca4614571768f905b9b05b74b0142f9fcccd3463e810ddf560e3d",
+        "ignored": false
+      },
+      "status": "SOURCE_AUTHORED_UNEXECUTED",
+      "role": "required_existing"
+    },
+    {
+      "package": "semaprax",
+      "harness": "test:projections",
+      "selector": "fmt_comments::comments_do_not_reach_the_semantic_graph",
+      "source": "tests/projections/fmt_comments.rs",
+      "source_sha256": "d8ab85a21f4ca4614571768f905b9b05b74b0142f9fcccd3463e810ddf560e3d",
+      "source_binding": {
+        "source_path": "tests/projections/fmt_comments.rs",
+        "line": 90,
+        "name": "comments_do_not_reach_the_semantic_graph",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "tests/projections.rs",
+            "line": 25,
+            "module": "fmt_comments",
+            "attributes": [
+              "#[path = \"projections/fmt_comments.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "d8ab85a21f4ca4614571768f905b9b05b74b0142f9fcccd3463e810ddf560e3d",
+        "ignored": false
+      },
+      "status": "SOURCE_AUTHORED_UNEXECUTED",
+      "role": "required_existing"
+    },
+    {
+      "package": "semaprax",
+      "harness": "test:projections",
+      "selector": "fmt_comments::fmt_project_failures_write_nothing",
+      "source": "tests/projections/fmt_comments.rs",
+      "source_sha256": "d8ab85a21f4ca4614571768f905b9b05b74b0142f9fcccd3463e810ddf560e3d",
+      "source_binding": {
+        "source_path": "tests/projections/fmt_comments.rs",
+        "line": 185,
+        "name": "fmt_project_failures_write_nothing",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "tests/projections.rs",
+            "line": 25,
+            "module": "fmt_comments",
+            "attributes": [
+              "#[path = \"projections/fmt_comments.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "d8ab85a21f4ca4614571768f905b9b05b74b0142f9fcccd3463e810ddf560e3d",
+        "ignored": false
+      },
+      "status": "SOURCE_AUTHORED_UNEXECUTED",
+      "role": "required_existing"
+    },
+    {
+      "package": "semaprax",
+      "harness": "test:workspace",
+      "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+      "source": "tests/workspace/semantic_graph.rs",
+      "source_sha256": "4af44d68c4988c4b042a6e7b08ad5aa6f6e6f726953c0858a9e4e65ca35b497a",
+      "source_binding": {
+        "source_path": "tests/workspace/semantic_graph.rs",
+        "line": 358,
+        "name": "expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "tests/workspace.rs",
+            "line": 68,
+            "module": "semantic_graph",
+            "attributes": [
+              "#[path = \"workspace/semantic_graph.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "4af44d68c4988c4b042a6e7b08ad5aa6f6e6f726953c0858a9e4e65ca35b497a",
+        "ignored": false
+      },
+      "status": "SOURCE_AUTHORED_UNEXECUTED",
+      "role": "required_existing"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::tests::builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal",
+      "source": "src/workspace_graph/tests/builder_limits.rs",
+      "source_sha256": "dcb1f36c6bf33987050042c7161ce95926079804b0d71f356104daf27f84903f",
+      "source_binding": {
+        "source_path": "src/workspace_graph/tests/builder_limits.rs",
+        "line": 376,
+        "name": "identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 528,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 5973,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"workspace_graph/tests.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/tests.rs",
+            "line": 7,
+            "module": "builder_limits",
+            "attributes": [
+              "#[path = \"tests/builder_limits.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "dcb1f36c6bf33987050042c7161ce95926079804b0d71f356104daf27f84903f",
+        "ignored": false
+      },
+      "status": "SOURCE_AUTHORED_UNEXECUTED",
+      "role": "required_existing"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+      "source": "src/workspace_graph/tests/builder_limits.rs",
+      "source_sha256": "dcb1f36c6bf33987050042c7161ce95926079804b0d71f356104daf27f84903f",
+      "source_binding": {
+        "source_path": "src/workspace_graph/tests/builder_limits.rs",
+        "line": 540,
+        "name": "catalog_normalizer_compact_core_fits_production_builder_cap",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 528,
+            "module": "workspace_graph",
+            "attributes": []
+          },
+          {
+            "source_path": "src/workspace_graph.rs",
+            "line": 5973,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"workspace_graph/tests.rs\"]"
+            ]
+          },
+          {
+            "source_path": "src/workspace_graph/tests.rs",
+            "line": 7,
+            "module": "builder_limits",
+            "attributes": [
+              "#[path = \"tests/builder_limits.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "dcb1f36c6bf33987050042c7161ce95926079804b0d71f356104daf27f84903f",
+        "ignored": false
+      },
+      "status": "SOURCE_AUTHORED_UNEXECUTED",
+      "role": "required_existing"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "project::incremental::cold_source_tests::explicit_owner_siblings_match_legacy_selective_routes_and_body_reuse",
+      "source": "src/project/incremental/cold_source_tests.rs",
+      "source_sha256": "bb064e63b57815d599c447c4a03a981670fd394e390e4af25a9e2966b74e4c9f",
+      "source_binding": {
+        "source_path": "src/project/incremental/cold_source_tests.rs",
+        "line": 165,
+        "name": "explicit_owner_siblings_match_legacy_selective_routes_and_body_reuse",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 342,
+            "module": "project",
+            "attributes": [
+              "#[allow(\n    dead_code,\n    unused_imports,\n    unused_mut,\n    clippy::collapsible_if,\n    clippy::manual_is_multiple_of,\n    clippy::needless_lifetimes,\n    clippy::needless_question_mark,\n    clippy::question_mark,\n    clippy::redundant_closure,\n    clippy::redundant_iter_cloned,\n    clippy::too_many_arguments,\n    clippy::type_complexity,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+            ]
+          },
+          {
+            "source_path": "src/project/mod.rs",
+            "line": 63,
+            "module": "incremental",
+            "attributes": []
+          },
+          {
+            "source_path": "src/project/incremental.rs",
+            "line": 944,
+            "module": "cold_source_tests",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[path = \"incremental/cold_source_tests.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "bb064e63b57815d599c447c4a03a981670fd394e390e4af25a9e2966b74e4c9f",
+        "ignored": false
+      },
+      "status": "SOURCE_AUTHORED_UNEXECUTED",
+      "role": "required_existing"
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "project::incremental::checked_hir::tests::lifecycle::actual_cold_warm_cache_core_and_publication_match_owned_receiver_through_drop",
+      "source": "src/project/incremental/checked_hir/tests/lifecycle.rs",
+      "source_sha256": "b3610b51d4281bb07bd9125a0565a9a97f098697e8b5d66e8b7a1d2d9f35e065",
+      "source_binding": {
+        "source_path": "src/project/incremental/checked_hir/tests/lifecycle.rs",
+        "line": 83,
+        "name": "actual_cold_warm_cache_core_and_publication_match_owned_receiver_through_drop",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 342,
+            "module": "project",
+            "attributes": [
+              "#[allow(\n    dead_code,\n    unused_imports,\n    unused_mut,\n    clippy::collapsible_if,\n    clippy::manual_is_multiple_of,\n    clippy::needless_lifetimes,\n    clippy::needless_question_mark,\n    clippy::question_mark,\n    clippy::redundant_closure,\n    clippy::redundant_iter_cloned,\n    clippy::too_many_arguments,\n    clippy::type_complexity,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+            ]
+          },
+          {
+            "source_path": "src/project/mod.rs",
+            "line": 63,
+            "module": "incremental",
+            "attributes": []
+          },
+          {
+            "source_path": "src/project/incremental.rs",
+            "line": 40,
+            "module": "checked_hir",
+            "attributes": []
+          },
+          {
+            "source_path": "src/project/incremental/checked_hir.rs",
+            "line": 57,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]"
+            ]
+          },
+          {
+            "source_path": "src/project/incremental/checked_hir/tests.rs",
+            "line": 84,
+            "module": "lifecycle",
+            "attributes": [
+              "#[path = \"tests/lifecycle.rs\"]"
+            ]
+          }
+        ],
+        "sha256": "b3610b51d4281bb07bd9125a0565a9a97f098697e8b5d66e8b7a1d2d9f35e065",
+        "ignored": false
+      },
+      "status": "SOURCE_AUTHORED_UNEXECUTED",
+      "role": "required_existing"
+    }
+  ],
+  "includes_actual_unchanged_application_failures_without_claiming_recovery": true
+}

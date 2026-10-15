@@ -34,6 +34,9 @@ use std::collections::BTreeMap;
 
 use crate::ast::{Expr, ExprKind, Program, Span, Statement, TypeDeclarationKind};
 pub use crate::lexer::{Comment, Comments};
+#[path = "comments/compare.rs"]
+mod compare;
+pub(crate) use compare::canonical_comparison;
 
 /// Where every comment of one source file goes in its canonical rendering.
 #[derive(Debug, Default)]

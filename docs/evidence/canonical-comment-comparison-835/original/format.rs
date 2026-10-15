@@ -1,0 +1,1490 @@
+#[path = "format/parameters.rs"]
+mod parameters;
+use crate::ast::{
+    BinaryOp, Expr, ExprKind, ImportFailure, MatchPattern, ModuleUseKind, Program,
+    ResourceLifecycleKind, Statement, TypeDeclarationKind,
+};
+use parameters::write_type_arguments;
+pub(crate) use parameters::{write_record_literal_delimited_expr, write_type_parameters};
+use std::collections::HashMap;
+use std::fmt::Write as _;
+// Explicit paths: other crates include this file by `#[path]`, where a bare
+// `mod` would resolve beside the file instead of under `format/`.
+#[path = "format/agents.rs"]
+mod agents;
+#[path = "format/block_statement.rs"]
+mod block_statement;
+#[path = "format/capacity.rs"]
+mod capacity;
+#[path = "format/closure.rs"]
+mod closure;
+#[path = "format/comments.rs"]
+pub mod comments;
+#[path = "format/expression_statement.rs"]
+mod expression_statement;
+#[cfg(test)]
+#[path = "format/iterative_tests.rs"]
+mod iterative_tests;
+#[path = "format/kernel_zero_tokens.rs"]
+mod kernel_zero_tokens;
+#[path = "format/literals.rs"]
+mod literals;
+pub(crate) use literals::canonical_borrowed_utf8_literal;
+#[path = "format/session_protocol.rs"]
+mod session_protocol;
+#[path = "format/statement_if.rs"]
+mod statement_if;
+use block_statement::write_block_statement;
+use capacity::{
+    legacy_canonical_temporary_bytes, legacy_expr_temporary_bytes, write_expr_measured,
+};
+use closure::contains_record_construction;
+use kernel_zero_tokens::{canonical_binary_op, canonical_unary_op};
+pub(crate) use kernel_zero_tokens::{
+    canonical_bool, canonical_char, canonical_int, canonical_string, write_string_escaped,
+};
+pub(crate) use literals::{canonical_f32_bits, canonical_f64_bits, write_escaped, write_joined};
+enum ExprFormatFrame<'a> {
+    Expr(&'a Expr, u8),
+    MeasureEnd(usize, u8, usize),
+    CallArgs(&'a [Expr], usize),
+    ConstructorItems(&'a [Statement], usize),
+    BinaryRight(&'a Expr, BinaryOp, bool),
+    Block(&'a [Statement], Option<&'a Expr>, usize),
+    BlockNext(&'a [Statement], Option<&'a Expr>, usize),
+    BlockNextAfterUnsafe(&'a [Statement], Option<&'a Expr>, usize),
+    WhileBody(&'a Expr),
+    BlockNextAfterWhile(&'a [Statement], Option<&'a Expr>, usize),
+    StatementIf(
+        &'a Expr,
+        &'a [crate::ast::BranchTail],
+        Option<crate::ast::BranchTail>,
+        bool,
+    ),
+    StatementBranch(&'a Expr, crate::ast::BranchTail),
+    StatementElse,
+    IfThen(&'a Expr, &'a Expr),
+    IfElse(&'a Expr),
+    Fields(&'a [crate::ast::FieldInitializer], usize, &'static str),
+    MatchArms(&'a [crate::ast::MatchArm], usize),
+    MatchArmValue(&'a Expr),
+    TryEnd(bool),
+    PostfixFields(&'a [crate::ast::FieldInitializer]),
+    ProjectField(&'a str),
+    MethodCallSuffix(&'a str, &'a [crate::ast::Type], &'a [Expr], bool),
+    Close(char),
+}
+enum PatternFormatFrame<'a> {
+    Enter(&'a str, &'a [crate::ast::RecordMatchPatternField]),
+    Fields(&'a [crate::ast::RecordMatchPatternField], usize),
+}
+enum ContainsRecordFrame<'a> {
+    Enter(&'a Expr),
+    Children(&'a Expr, usize),
+}
+enum TypeFormatFrame<'a> {
+    Type(&'a crate::ast::Type),
+    Arguments(&'a [crate::ast::Type], usize),
+    FunctionParameters(&'a [crate::ast::Type], usize),
+    FunctionResult(&'a crate::ast::Type),
+}
+#[derive(Clone, Copy)]
+#[allow(dead_code)]
+pub(crate) struct PrivateScratchCapacity {
+    expression_slots: usize,
+    contains_record_slots: usize,
+    type_slots: usize,
+    pattern_slots: usize,
+    bytes: usize,
+}
+#[allow(dead_code)]
+impl PrivateScratchCapacity {
+    pub(crate) fn bytes(self) -> usize {
+        self.bytes
+    }
+
+    #[cfg(test)]
+    pub(crate) fn slots(self) -> [usize; 4] {
+        [
+            self.expression_slots,
+            self.contains_record_slots,
+            self.type_slots,
+            self.pattern_slots,
+        ]
+    }
+}
+
+#[allow(dead_code)]
+pub(crate) fn private_scratch_capacity(
+    expression_depth: usize,
+    type_depth: usize,
+    pattern_depth: usize,
+) -> Option<PrivateScratchCapacity> {
+    // The measured formatter retains one end marker beside each authored
+    // expression and its ordinary continuation frame.
+    let expression_slots = expression_depth.checked_mul(3)?.checked_add(4)?;
+    let contains_record_slots = expression_depth.checked_add(1)?;
+    let type_slots = type_depth.checked_add(1)?;
+    let pattern_slots = pattern_depth.checked_add(1)?;
+    let bytes = expression_slots
+        .checked_mul(std::mem::size_of::<ExprFormatFrame<'_>>())?
+        .checked_add(
+            contains_record_slots.checked_mul(std::mem::size_of::<ContainsRecordFrame<'_>>())?,
+        )?
+        .checked_add(type_slots.checked_mul(std::mem::size_of::<TypeFormatFrame<'_>>())?)?
+        .checked_add(pattern_slots.checked_mul(std::mem::size_of::<PatternFormatFrame<'_>>())?)?;
+    Some(PrivateScratchCapacity {
+        expression_slots,
+        contains_record_slots,
+        type_slots,
+        pattern_slots,
+        bytes,
+    })
+}
+
+#[derive(Clone, Copy)]
+enum ScratchStackKind {
+    Expression,
+    ContainsRecord,
+    Type,
+    Pattern,
+}
+
+impl ScratchStackKind {
+    #[cfg(test)]
+    fn index(self) -> usize {
+        match self {
+            Self::Expression => 0,
+            Self::ContainsRecord => 1,
+            Self::Type => 2,
+            Self::Pattern => 3,
+        }
+    }
+}
+
+thread_local! {
+    static PRIVATE_SCRATCH_CAPACITY: std::cell::Cell<Option<PrivateScratchCapacity>> = const { std::cell::Cell::new(None) };
+    #[cfg(test)]
+    static PRIVATE_SCRATCH_HIGH_WATER: std::cell::Cell<[(usize, usize); 4]> = const { std::cell::Cell::new([(0, 0); 4]) };
+}
+
+#[cfg(test)]
+#[allow(dead_code)]
+pub(crate) fn reset_private_scratch_high_water() {
+    PRIVATE_SCRATCH_HIGH_WATER.with(|water| water.set([(0, 0); 4]));
+}
+
+#[cfg(test)]
+#[allow(dead_code)]
+pub(crate) fn private_scratch_high_water() -> [(usize, usize); 4] {
+    PRIVATE_SCRATCH_HIGH_WATER.with(std::cell::Cell::get)
+}
+
+#[cfg(test)]
+fn note_private_scratch_high_water(kind: ScratchStackKind, len: usize, capacity: usize) {
+    PRIVATE_SCRATCH_HIGH_WATER.with(|water| {
+        let mut values = water.get();
+        let entry = &mut values[kind.index()];
+        entry.0 = entry.0.max(len);
+        entry.1 = entry.1.max(capacity);
+        water.set(values);
+    });
+}
+
+#[cfg(not(test))]
+fn note_private_scratch_high_water(_: ScratchStackKind, _: usize, _: usize) {}
+
+struct FormatFrameStack<T> {
+    values: Vec<T>,
+    limit: Option<usize>,
+    kind: ScratchStackKind,
+}
+
+impl<T> FormatFrameStack<T> {
+    fn new(initial: T, kind: ScratchStackKind) -> Self {
+        let limit = PRIVATE_SCRATCH_CAPACITY.with(|capacity| {
+            capacity.get().map(|capacity| match kind {
+                ScratchStackKind::Expression => capacity.expression_slots,
+                ScratchStackKind::ContainsRecord => capacity.contains_record_slots,
+                ScratchStackKind::Type => capacity.type_slots,
+                ScratchStackKind::Pattern => capacity.pattern_slots,
+            })
+        });
+        let mut values = Vec::with_capacity(limit.unwrap_or(1));
+        if let Some(limit) = limit {
+            assert_eq!(
+                values.capacity(),
+                limit,
+                "private formatter Vec capacity drift"
+            );
+        }
+        values.push(initial);
+        note_private_scratch_high_water(kind, values.len(), values.capacity());
+        Self {
+            values,
+            limit,
+            kind,
+        }
+    }
+
+    fn push(&mut self, value: T) {
+        if let Some(limit) = self.limit {
+            assert!(
+                self.values.len() < limit,
+                "private formatter scratch census underflow"
+            );
+        }
+        self.values.push(value);
+        note_private_scratch_high_water(self.kind, self.values.len(), self.values.capacity());
+    }
+
+    fn pop(&mut self) -> Option<T> {
+        self.values.pop()
+    }
+}
+
+pub fn canonical(program: &Program) -> String {
+    let _ = crate::bounded_output::reserve_active(legacy_canonical_temporary_bytes(program));
+    let mut output = crate::bounded_output::CappedString::new();
+    write_canonical(program, &mut output);
+    output.into_string()
+}
+
+/// Write the canonical source projection into a caller-owned bounded sink.
+/// Native/private builders use this to count and reserve the exact final
+/// capacity before materializing a retained source String.
+pub(crate) fn write_canonical(program: &Program, output: &mut impl std::fmt::Write) {
+    write_canonical_commented(program, &comments::Placement::default(), output);
+}
+
+/// The canonical projection with the comments of `placement` restored at the
+/// items they belong to; an empty placement renders plain canonical bytes.
+pub(crate) fn write_canonical_commented(
+    program: &Program,
+    placement: &comments::Placement,
+    output: &mut impl std::fmt::Write,
+) {
+    #[cfg(feature = "unstable-workflow-profiling")]
+    let _workflow_span =
+        crate::workflow_profile::span(crate::workflow_profile::Stage::Canonicalize);
+    placement.header(output);
+    writeln!(output, "module {};", program.module).unwrap();
+    for module_use in &program.module_uses {
+        placement.leading(output, module_use.span.start, 0);
+        let kind = match module_use.kind {
+            ModuleUseKind::Function => "function",
+            ModuleUseKind::Type => "type",
+            ModuleUseKind::Protocol => "protocol",
+        };
+        write!(output, "use {kind} @id(\"").unwrap();
+        write_escaped(output, &module_use.persistent_id);
+        writeln!(
+            output,
+            "\") from {} as {};",
+            module_use.target_module, module_use.alias
+        )
+        .unwrap();
+        placement.trailing(output, module_use.span.start, 0);
+    }
+    if !program.permits.is_empty() {
+        write!(output, "\npermit {{ ").unwrap();
+        write_joined(output, &program.permits, ", ");
+        writeln!(output, " }}").unwrap();
+    }
+    for declaration in &program.types {
+        writeln!(output).unwrap();
+        placement.leading(output, declaration.span.start, 0);
+        if declaration.explicit_id {
+            write!(output, "@id(\"").unwrap();
+            write_escaped(output, &declaration.stable_id);
+            writeln!(output, "\")").unwrap();
+        }
+        match &declaration.kind {
+            TypeDeclarationKind::Resource { lifecycles } => {
+                if lifecycles.is_empty() {
+                    write!(output, "resource {}", declaration.name).unwrap();
+                    write_type_parameters(output, &declaration.type_parameters);
+                    writeln!(output, ";").unwrap();
+                    continue;
+                }
+                write!(output, "resource {}", declaration.name).unwrap();
+                write_type_parameters(output, &declaration.type_parameters);
+                writeln!(output, " {{").unwrap();
+                for lifecycle in lifecycles {
+                    placement.leading(output, lifecycle.span.start, 1);
+                    if let Some(stable_id) = &lifecycle.stable_id {
+                        write!(output, "    @id(\"").unwrap();
+                        write_escaped(output, stable_id);
+                        writeln!(output, "\")").unwrap();
+                    }
+                    match &lifecycle.kind {
+                        ResourceLifecycleKind::Trivial => {
+                            writeln!(output, "    drop trivial;").unwrap();
+                        }
+                        ResourceLifecycleKind::Imported { import_key } => {
+                            write!(output, "    drop import \"").unwrap();
+                            write_escaped(output, import_key);
+                            writeln!(output, "\";").unwrap();
+                        }
+                    }
+                    placement.trailing(output, lifecycle.span.start, 1);
+                }
+                placement.closing(output, declaration.span.end.saturating_sub(1), 1);
+                writeln!(output, "}}").unwrap();
+            }
+            TypeDeclarationKind::Record { fields } => {
+                write!(output, "record {}", declaration.name).unwrap();
+                write_type_parameters(output, &declaration.type_parameters);
+                writeln!(output, " {{").unwrap();
+                for field in fields {
+                    placement.leading(output, field.span.start, 1);
+                    if field.explicit_id {
+                        write!(output, "    @id(\"").unwrap();
+                        write_escaped(output, &field.stable_id);
+                        writeln!(output, "\")").unwrap();
+                    }
+                    write!(output, "    {}: ", field.name).unwrap();
+                    write_type(output, &field.ty);
+                    writeln!(output, ",").unwrap();
+                    placement.trailing(output, field.span.start, 1);
+                }
+                placement.closing(output, declaration.span.end.saturating_sub(1), 1);
+                writeln!(output, "}}").unwrap();
+                for invariant in declaration.invariants() {
+                    write!(output, "    requires ").unwrap();
+                    write_record_literal_delimited_expr(output, invariant);
+                    writeln!(output).unwrap();
+                }
+            }
+            TypeDeclarationKind::Variant { cases } => {
+                write!(output, "variant {}", declaration.name).unwrap();
+                write_type_parameters(output, &declaration.type_parameters);
+                writeln!(output, " {{").unwrap();
+                for case in cases {
+                    placement.leading(output, case.span.start, 1);
+                    if case.explicit_id {
+                        write!(output, "    @id(\"").unwrap();
+                        write_escaped(output, &case.stable_id);
+                        writeln!(output, "\")").unwrap();
+                    }
+                    if case.fields.is_empty() {
+                        writeln!(output, "    {},", case.name).unwrap();
+                        placement.trailing(output, case.span.start, 1);
+                        continue;
+                    }
+                    writeln!(output, "    {} {{", case.name).unwrap();
+                    for field in &case.fields {
+                        placement.leading(output, field.span.start, 2);
+                        if field.explicit_id {
+                            write!(output, "        @id(\"").unwrap();
+                            write_escaped(output, &field.stable_id);
+                            writeln!(output, "\")").unwrap();
+                        }
+                        write!(output, "        {}: ", field.name).unwrap();
+                        write_type(output, &field.ty);
+                        writeln!(output, ",").unwrap();
+                        placement.trailing(output, field.span.start, 2);
+                    }
+                    placement.closing(output, case.span.end.saturating_sub(2), 2);
+                    writeln!(output, "    }},").unwrap();
+                    placement.trailing(output, case.span.start, 1);
+                }
+                placement.closing(output, declaration.span.end.saturating_sub(1), 1);
+                writeln!(output, "}}").unwrap();
+            }
+            TypeDeclarationKind::Class { fields, methods } => {
+                write!(output, "class {}", declaration.name).unwrap();
+                write_type_parameters(output, &declaration.type_parameters);
+                if let Some(parent) = &declaration.extends {
+                    write!(output, " : ").unwrap();
+                    write_type(output, parent);
+                }
+                if fields.is_empty() && methods.is_empty() {
+                    writeln!(output, " {{ }}").unwrap();
+                    continue;
+                }
+                writeln!(output, " {{").unwrap();
+                for field in fields {
+                    placement.leading(output, field.span.start, 1);
+                    if field.explicit_id {
+                        write!(output, "    @id(\"").unwrap();
+                        write_escaped(output, &field.stable_id);
+                        writeln!(output, "\")").unwrap();
+                    }
+                    write!(output, "    {}: ", field.name).unwrap();
+                    write_type(output, &field.ty);
+                    writeln!(output, ",").unwrap();
+                    placement.trailing(output, field.span.start, 1);
+                }
+                for method in methods {
+                    writeln!(output).unwrap();
+                    placement.leading(output, method.span.start, 1);
+                    if method.explicit_id {
+                        write!(output, "    @id(\"").unwrap();
+                        write_escaped(output, &method.stable_id);
+                        writeln!(output, "\")").unwrap();
+                    }
+                    write!(output, "    fn {}", method.name).unwrap();
+                    write_type_parameters(output, &method.type_parameters);
+                    output.write_char('(').unwrap();
+                    for (index, param) in method.params.iter().enumerate() {
+                        if index > 0 {
+                            output.write_str(", ").unwrap();
+                        }
+                        write!(output, "{}: {}", param.name, param.mode.source_prefix()).unwrap();
+                        write_type(output, &param.ty);
+                    }
+                    output.write_str(") -> ").unwrap();
+                    write_type(output, &method.return_type);
+                    writeln!(output).unwrap();
+                    if !method.effects.is_empty() {
+                        write!(output, "        uses {{ ").unwrap();
+                        write_joined(output, &method.effects, ", ");
+                        writeln!(output, " }}").unwrap();
+                    }
+                    let _expression_scope = expression_statement::whole_function_scope(method);
+                    write_indented_function_body(output, &method.body, 2, placement);
+                    placement.trailing(output, method.span.start, 1);
+                }
+                placement.closing(output, declaration.span.end.saturating_sub(1), 1);
+                writeln!(output, "}}").unwrap();
+            }
+        }
+        placement.trailing(output, declaration.span.start, 0);
+    }
+    for interface in &program.interfaces {
+        writeln!(output).unwrap();
+        placement.leading(output, interface.span.start, 0);
+        if interface.explicit_id {
+            write!(output, "@id(\"").unwrap();
+            write_escaped(output, &interface.stable_id);
+            writeln!(output, "\")").unwrap();
+        }
+        writeln!(output, "interface {}", interface.name).unwrap();
+        write!(output, "    permits {{ ").unwrap();
+        write_joined(output, &interface.permits, ", ");
+        writeln!(output, " }}").unwrap();
+        writeln!(output, "{{").unwrap();
+        for import in &interface.imports {
+            if import.explicit_id {
+                write!(output, "    @id(\"").unwrap();
+                write_escaped(output, &import.stable_id);
+                writeln!(output, "\")").unwrap();
+            }
+            write!(
+                output,
+                "    import {}{}fn {}",
+                if import.native_rust { "rust " } else { "" },
+                if import.index_selected {
+                    "selected "
+                } else {
+                    ""
+                },
+                import.name
+            )
+            .unwrap();
+            if !import.index_selected {
+                output.write_str("(").unwrap();
+                for (index, param) in import.params.iter().enumerate() {
+                    if index > 0 {
+                        output.write_str(", ").unwrap();
+                    }
+                    write!(output, "{}: {}", param.name, param.mode.source_prefix()).unwrap();
+                    write_type(output, &param.ty);
+                }
+                write!(output, ") -> {}", import.result).unwrap();
+            }
+            if let Some(path) = &import.rust_path {
+                write!(output, " from \"").unwrap();
+                write_escaped(output, path);
+                write!(output, "\"").unwrap();
+            }
+            writeln!(output).unwrap();
+            write!(output, "        effects {{ ").unwrap();
+            write_joined(output, &import.effects, ", ");
+            writeln!(output, " }}").unwrap();
+            match &import.failure {
+                ImportFailure::Infallible => {
+                    writeln!(
+                        output,
+                        "        failure infallible{}",
+                        if import.native_rust { ";" } else { "" }
+                    )
+                    .unwrap();
+                }
+                ImportFailure::Status { domain_id } => {
+                    write!(output, "        failure status \"").unwrap();
+                    write_escaped(output, domain_id);
+                    writeln!(output, "\"{}", if import.native_rust { ";" } else { "" }).unwrap();
+                }
+            }
+            if !import.native_rust {
+                writeln!(output, "        consumes {} always;", import.consumes).unwrap();
+            }
+        }
+        writeln!(output, "}}").unwrap();
+        placement.trailing(output, interface.span.start, 0);
+    }
+    for protocol in &program.protocols {
+        writeln!(output).unwrap();
+        placement.leading(output, protocol.span.start, 0);
+        if protocol.explicit_id {
+            write!(output, "@id(\"").unwrap();
+            write_escaped(output, &protocol.stable_id);
+            writeln!(output, "\")").unwrap();
+        }
+        writeln!(output, "protocol {} {{", protocol.name).unwrap();
+        for method in &protocol.methods {
+            if method.explicit_id {
+                write!(output, "    @id(\"").unwrap();
+                write_escaped(output, &method.stable_id);
+                writeln!(output, "\")").unwrap();
+            }
+            write!(output, "    fn {}(", method.name).unwrap();
+            for (index, param) in method.params.iter().enumerate() {
+                if index > 0 {
+                    output.write_str(", ").unwrap();
+                }
+                write!(output, "{}: {}", param.name, param.mode.source_prefix()).unwrap();
+                write_type(output, &param.ty);
+            }
+            output.write_str(") -> ").unwrap();
+            write_type(output, &method.return_type);
+            writeln!(output, ";").unwrap();
+        }
+        writeln!(output, "}}").unwrap();
+        placement.trailing(output, protocol.span.start, 0);
+    }
+    for implementation in &program.implementations {
+        writeln!(output).unwrap();
+        placement.leading(output, implementation.span.start, 0);
+        if implementation.explicit_id {
+            write!(output, "@id(\"").unwrap();
+            write_escaped(output, &implementation.stable_id);
+            writeln!(output, "\")").unwrap();
+        }
+        write!(output, "impl \"").unwrap();
+        write_escaped(output, &implementation.protocol_id);
+        write!(output, "\" for \"").unwrap();
+        write_escaped(output, &implementation.receiver_id);
+        writeln!(output, "\" {{").unwrap();
+        for member in &implementation.members {
+            write!(output, "    \"").unwrap();
+            write_escaped(output, &member.method_id);
+            write!(output, "\" = \"").unwrap();
+            write_escaped(output, &member.function_id);
+            writeln!(output, "\";").unwrap();
+        }
+        writeln!(output, "}}").unwrap();
+        placement.trailing(output, implementation.span.start, 0);
+    }
+    session_protocol::write_session_protocols(&program.session_protocols, placement, output);
+    agents::write_agents(program, placement, output);
+    for (index, function) in program.functions.iter().enumerate() {
+        if agents::is_embedded(program, index) {
+            continue;
+        }
+        writeln!(output).unwrap();
+        agents::write_function(function, output, placement, 0);
+    }
+    placement.file_end(output);
+}
+
+#[allow(dead_code)]
+pub(crate) fn write_canonical_with_scratch(
+    program: &Program,
+    output: &mut impl std::fmt::Write,
+    capacity: PrivateScratchCapacity,
+) {
+    struct Restore(Option<PrivateScratchCapacity>);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            PRIVATE_SCRATCH_CAPACITY.with(|slot| slot.set(self.0));
+        }
+    }
+    let previous = PRIVATE_SCRATCH_CAPACITY.with(|slot| slot.replace(Some(capacity)));
+    let _restore = Restore(previous);
+    write_canonical(program, output);
+}
+
+pub fn expr(value: &Expr, parent_precedence: u8) -> String {
+    let _ = crate::bounded_output::reserve_active(legacy_expr_temporary_bytes(
+        value,
+        parent_precedence,
+    ));
+    let mut output = String::new();
+    write_expr(&mut output, value, parent_precedence);
+    output
+}
+
+fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence: u8) {
+    write_expr_measured(output, value, parent_precedence, None);
+}
+
+fn rendered_expr_lengths(value: &Expr, parent_precedence: u8) -> HashMap<(usize, u8), usize> {
+    struct Sink;
+    impl std::fmt::Write for Sink {
+        fn write_str(&mut self, _: &str) -> std::fmt::Result {
+            Ok(())
+        }
+    }
+    let mut lengths = HashMap::new();
+    write_expr_measured(&mut Sink, value, parent_precedence, Some(&mut lengths));
+    lengths
+}
+
+fn write_format_frames(
+    output: &mut impl std::fmt::Write,
+    initial: ExprFormatFrame<'_>,
+    mut lengths: Option<&mut HashMap<(usize, u8), usize>>,
+) {
+    struct Positioned<'a, W> {
+        inner: &'a mut W,
+        bytes: usize,
+    }
+    impl<W: std::fmt::Write> std::fmt::Write for Positioned<'_, W> {
+        fn write_str(&mut self, value: &str) -> std::fmt::Result {
+            self.inner.write_str(value)?;
+            self.bytes = self.bytes.saturating_add(value.len());
+            Ok(())
+        }
+    }
+
+    let _scope = match &initial {
+        ExprFormatFrame::Expr(root, _) => Some(expression_statement::scope(root)),
+        _ => None,
+    };
+    let mut output = Positioned {
+        inner: output,
+        bytes: 0,
+    };
+    use ExprFormatFrame as Frame;
+    let mut frames = FormatFrameStack::new(initial, ScratchStackKind::Expression);
+    while let Some(frame) = frames.pop() {
+        match frame {
+            Frame::Expr(value, parent_precedence) => {
+                if lengths.is_some() {
+                    frames.push(Frame::MeasureEnd(
+                        value as *const Expr as usize,
+                        parent_precedence,
+                        output.bytes,
+                    ));
+                }
+                match &value.kind {
+                    ExprKind::LexicalExit { kind, value } => {
+                        output.write_str(kind.keyword()).unwrap();
+                        frames.push(Frame::Close(';'));
+                        if let Some(value) = value {
+                            output.write_char(' ').unwrap();
+                            frames.push(Frame::Expr(value, 0));
+                        }
+                    }
+                    ExprKind::Int(number) => output.write_str(&canonical_int(*number)).unwrap(),
+                    ExprKind::Int32(value) => {
+                        // The explicit suffix keeps the declared width stable
+                        // across canonical round trips.
+                        output.write_str(&format!("{value}i32")).unwrap();
+                    }
+                    ExprKind::Uint8(value) => {
+                        // The explicit suffix keeps the declared width stable
+                        // across canonical round trips.
+                        write!(output, "{value}u8").unwrap();
+                    }
+                    ExprKind::Usize(value) => {
+                        write!(output, "{value}usize").unwrap();
+                    }
+                    ExprKind::ArrayU8(values) => {
+                        output.write_char('[').unwrap();
+                        for (index, value) in values.iter().enumerate() {
+                            if index != 0 {
+                                output.write_str(", ").unwrap();
+                            }
+                            write!(output, "{value}u8").unwrap();
+                        }
+                        output.write_char(']').unwrap();
+                    }
+                    ExprKind::RepeatArrayU8 { value, count } => {
+                        write!(output, "[{value}u8; {count}]").unwrap();
+                    }
+                    ExprKind::Char(value) => {
+                        output.write_str(&canonical_char(*value)).unwrap();
+                    }
+                    ExprKind::Float32(bits) => {
+                        // The explicit suffix keeps the declared precision stable
+                        // across canonical round trips.
+                        output.write_str(&canonical_f32_bits(*bits)).unwrap();
+                        output.write_str("f32").unwrap();
+                    }
+                    ExprKind::Float64(bits) => {
+                        output.write_str(&canonical_f64_bits(*bits)).unwrap()
+                    }
+                    ExprKind::Bool(value) => output.write_str(&canonical_bool(*value)).unwrap(),
+                    ExprKind::String(value) => {
+                        literals::write_text_literal(&mut output, value, false)
+                    }
+                    ExprKind::BorrowedUtf8Literal(value) => {
+                        literals::write_text_literal(&mut output, value, true)
+                    }
+                    ExprKind::Var(name) => output.write_str(name).unwrap(),
+                    ExprKind::Closure {
+                        params,
+                        return_type,
+                        body,
+                        owning,
+                        retained,
+                        mutable,
+                    } => {
+                        if *mutable {
+                            output.write_str("mut ").unwrap();
+                        } else if *retained {
+                            output.write_str("once ").unwrap();
+                        } else if *owning {
+                            output.write_str("own ").unwrap();
+                        }
+                        closure::write_signature(&mut output, params, return_type);
+                        frames.push(Frame::Expr(body, 0));
+                    }
+
+                    ExprKind::VecConstructor {
+                        element,
+                        value: normalized,
+                        ..
+                    } => {
+                        if let (Ok(expansion), true) = (
+                            crate::ast::vec_constructor::inspect(value),
+                            expression_statement::hygienic(),
+                        ) {
+                            output.write_str("vec_of<").unwrap();
+                            write_type(&mut output, element);
+                            output.write_str(">(").unwrap();
+                            frames.push(Frame::Close(')'));
+                            frames.push(Frame::ConstructorItems(expansion.statements, 1));
+                        } else {
+                            frames.push(Frame::Expr(normalized, parent_precedence));
+                        }
+                    }
+                    ExprKind::Call {
+                        name,
+                        type_arguments,
+                        args,
+                    } => {
+                        output.write_str(name).unwrap();
+                        if !type_arguments.is_empty() {
+                            output.write_char('<').unwrap();
+                            for (index, argument) in type_arguments.iter().enumerate() {
+                                if index != 0 {
+                                    output.write_str(", ").unwrap();
+                                }
+                                write_type(&mut output, argument);
+                            }
+                            output.write_char('>').unwrap();
+                        }
+                        output.write_char('(').unwrap();
+                        frames.push(Frame::Close(')'));
+                        frames.push(Frame::CallArgs(args, 0));
+                    }
+                    ExprKind::Unary { op, value } => {
+                        output.write_str(&canonical_unary_op(*op)).unwrap();
+                        frames.push(Frame::Expr(value, 7));
+                    }
+                    ExprKind::Binary { op, left, right } => {
+                        let precedence = op.precedence();
+                        let delimited = precedence < parent_precedence;
+                        if delimited {
+                            output.write_char('(').unwrap();
+                        }
+                        frames.push(Frame::BinaryRight(right, *op, delimited));
+                        frames.push(Frame::Expr(left, precedence));
+                    }
+                    ExprKind::Block { statements, tail } => {
+                        output.write_str("{ ").unwrap();
+                        frames.push(Frame::Block(statements, Some(tail), 0));
+                    }
+                    ExprKind::If {
+                        condition,
+                        then_branch,
+                        else_branch,
+                    } => {
+                        output.write_str("if ").unwrap();
+                        let delimited = contains_record_construction(condition);
+                        if delimited {
+                            output.write_char('(').unwrap();
+                        }
+                        frames.push(Frame::IfThen(then_branch, else_branch));
+                        if delimited {
+                            frames.push(Frame::Close(')'));
+                        }
+                        frames.push(Frame::Expr(condition, 0));
+                    }
+                    ExprKind::ConstructRecord {
+                        type_name,
+                        type_arguments,
+                        fields,
+                        ..
+                    } => {
+                        output.write_str(type_name).unwrap();
+                        write_type_arguments(&mut output, type_arguments);
+                        if fields.is_empty() {
+                            output.write_str(" {}").unwrap();
+                        } else {
+                            output.write_str(" { ").unwrap();
+                            frames.push(Frame::Fields(fields, 0, " }"));
+                        }
+                    }
+                    ExprKind::ConstructVariant {
+                        type_name,
+                        type_arguments,
+                        case_name,
+                        fields,
+                        ..
+                    } => {
+                        output.write_str(type_name).unwrap();
+                        write_type_arguments(&mut output, type_arguments);
+                        write!(output, "::{case_name}").unwrap();
+                        if fields.is_empty() {
+                            output.write_str(" {}").unwrap();
+                        } else {
+                            output.write_str(" { ").unwrap();
+                            frames.push(Frame::Fields(fields, 0, " }"));
+                        }
+                    }
+                    ExprKind::Match {
+                        mode,
+                        scrutinee,
+                        arms,
+                    } => {
+                        output.write_str("match ").unwrap();
+                        output.write_str(mode.source_prefix()).unwrap();
+                        let delimited = closure::match_scrutinee_needs_delimiters(*mode, scrutinee);
+                        if delimited {
+                            output.write_char('(').unwrap();
+                        }
+                        frames.push(Frame::MatchArms(arms, 0));
+                        if delimited {
+                            frames.push(Frame::Close(')'));
+                        }
+                        frames.push(Frame::Expr(scrutinee, 0));
+                    }
+                    ExprKind::Try { operand } => {
+                        let delimited = matches!(
+                            operand.kind,
+                            ExprKind::Binary { .. } | ExprKind::If { .. } | ExprKind::Block { .. }
+                        );
+                        if delimited {
+                            output.write_char('(').unwrap();
+                        }
+                        frames.push(Frame::TryEnd(delimited));
+                        frames.push(Frame::Expr(operand, if delimited { 0 } else { 8 }));
+                    }
+                    // Resumable Effects v1 (issue #204): `yield` is a
+                    // prefix keyword, like `if`/`match`; its operand prints
+                    // at the same top-level precedence a scrutinee or
+                    // condition does, with no closing frame needed.
+                    ExprKind::Yield { request } => {
+                        output.write_str("yield ").unwrap();
+                        frames.push(Frame::Expr(request, 0));
+                    }
+                    ExprKind::UpdateRecord { base, fields } => {
+                        let delimited = matches!(
+                            base.kind,
+                            ExprKind::Binary { .. } | ExprKind::If { .. } | ExprKind::Block { .. }
+                        );
+                        if delimited {
+                            output.write_char('(').unwrap();
+                        }
+                        frames.push(Frame::PostfixFields(fields));
+                        if delimited {
+                            frames.push(Frame::Close(')'));
+                        }
+                        frames.push(Frame::Expr(base, if delimited { 0 } else { 8 }));
+                    }
+                    ExprKind::Project { base, field, .. } => {
+                        let delimited = matches!(
+                            base.kind,
+                            ExprKind::Binary { .. } | ExprKind::If { .. } | ExprKind::Block { .. }
+                        );
+                        if delimited {
+                            output.write_char('(').unwrap();
+                        }
+                        frames.push(Frame::ProjectField(field));
+                        if delimited {
+                            frames.push(Frame::Close(')'));
+                        }
+                        frames.push(Frame::Expr(base, if delimited { 0 } else { 8 }));
+                    }
+                    ExprKind::MethodCall {
+                        receiver,
+                        method,
+                        type_arguments,
+                        args,
+                        ..
+                    } => {
+                        let delimited = matches!(
+                            receiver.kind,
+                            ExprKind::Binary { .. } | ExprKind::If { .. } | ExprKind::Block { .. }
+                        );
+                        if delimited {
+                            output.write_char('(').unwrap();
+                        }
+                        frames.push(Frame::MethodCallSuffix(
+                            method,
+                            type_arguments,
+                            args,
+                            delimited,
+                        ));
+                        frames.push(Frame::Expr(receiver, if delimited { 0 } else { 8 }));
+                    }
+                    ExprKind::SuperMethod { method, args, .. } => {
+                        output.write_str("super.").unwrap();
+                        output.write_str(method).unwrap();
+                        output.write_char('(').unwrap();
+                        if args.is_empty() {
+                            output.write_char(')').unwrap();
+                        } else {
+                            frames.push(Frame::Close(')'));
+                            frames.push(Frame::CallArgs(args, 0));
+                        }
+                    }
+                }
+            }
+            Frame::MeasureEnd(expression, precedence, start) => {
+                lengths
+                    .as_deref_mut()
+                    .expect("measurement frames require a length table")
+                    .insert((expression, precedence), output.bytes.saturating_sub(start));
+            }
+
+            Frame::ConstructorItems(statements, index) => {
+                if let Some(Statement::Let { value, .. }) = statements.get(index) {
+                    let ExprKind::Call { args, .. } = &value.kind else {
+                        unreachable!("authenticated constructor")
+                    };
+                    if index != 1 {
+                        output.write_str(", ").unwrap();
+                    }
+                    frames.push(Frame::ConstructorItems(statements, index + 1));
+                    frames.push(Frame::Expr(&args[1], 0));
+                }
+            }
+            Frame::CallArgs(args, index) => {
+                if let Some(argument) = args.get(index) {
+                    if index != 0 {
+                        output.write_str(", ").unwrap();
+                    }
+                    frames.push(Frame::CallArgs(args, index + 1));
+                    frames.push(Frame::Expr(argument, 0));
+                }
+            }
+            Frame::BinaryRight(right, op, delimited) => {
+                write!(output, " {} ", canonical_binary_op(op)).unwrap();
+                if delimited {
+                    frames.push(Frame::Close(')'));
+                }
+                frames.push(Frame::Expr(right, op.precedence() + 1));
+            }
+            Frame::Block(statements, tail, index) => {
+                if let Some(statement) = statements.get(index) {
+                    if let Some((value, syntax)) = statement_if::prepare(statement) {
+                        frames.push(Frame::BlockNextAfterWhile(statements, tail, index + 1));
+                        frames.push(Frame::StatementIf(
+                            value,
+                            syntax.branches(),
+                            syntax.alternative(),
+                            true,
+                        ));
+                        continue;
+                    }
+                    match statement {
+                        Statement::Let { value, .. } => {
+                            expression_statement::write_let_prefix(&mut output, statement);
+                            frames.push(Frame::BlockNext(statements, tail, index + 1));
+                            frames.push(Frame::Expr(value, 0));
+                        }
+                        Statement::Assign {
+                            name, field, value, ..
+                        } => {
+                            match field {
+                                Some(field) => {
+                                    write!(output, "{name}.{} = ", field.name).unwrap();
+                                }
+                                None => write!(output, "{name} = ").unwrap(),
+                            }
+                            frames.push(Frame::BlockNext(statements, tail, index + 1));
+                            frames.push(Frame::Expr(value, 0));
+                        }
+                        Statement::Unsafe { audit, body, .. } => {
+                            write!(output, "@audit(\"").unwrap();
+                            write_escaped(&mut output, audit);
+                            write!(output, "\") unsafe ").unwrap();
+                            frames.push(Frame::BlockNextAfterUnsafe(statements, tail, index + 1));
+                            frames.push(Frame::Expr(body, 0));
+                        }
+                        Statement::While {
+                            condition, body, ..
+                        } => {
+                            write!(output, "while ").unwrap();
+                            frames.push(Frame::BlockNextAfterWhile(statements, tail, index + 1));
+                            frames.push(Frame::WhileBody(body));
+                            frames.push(Frame::Expr(condition, 0));
+                        }
+                        Statement::For {
+                            item, values, body, ..
+                        }
+                        | Statement::ForBorrow {
+                            item, values, body, ..
+                        }
+                        | Statement::ForOwn {
+                            item, values, body, ..
+                        } => {
+                            block_statement::write_traversal_header(&mut output, statement, item);
+                            frames.push(Frame::BlockNextAfterWhile(statements, tail, index + 1));
+                            frames.push(Frame::WhileBody(body));
+                            frames.push(Frame::Expr(values, 0));
+                        }
+                    }
+                } else {
+                    if tail.is_none() && statements.is_empty() {
+                        output.write_char('}').unwrap();
+                    } else {
+                        frames.push(Frame::Close('}'));
+                        if let Some(tail) = tail {
+                            frames.push(Frame::Expr(tail, 0));
+                        }
+                    }
+                }
+            }
+            Frame::BlockNext(statements, tail, index) => {
+                output
+                    .write_str(if tail.is_none() && index == statements.len() {
+                        ";"
+                    } else {
+                        "; "
+                    })
+                    .unwrap();
+                frames.push(Frame::Block(statements, tail, index));
+            }
+            Frame::BlockNextAfterUnsafe(statements, tail, index) => {
+                if tail.is_some() || index != statements.len() {
+                    output.write_char(' ').unwrap();
+                }
+                frames.push(Frame::Block(statements, tail, index));
+            }
+            Frame::WhileBody(body) => {
+                output.write_char(' ').unwrap();
+                frames.push(Frame::Expr(body, 0));
+            }
+            Frame::BlockNextAfterWhile(statements, tail, index) => {
+                if tail.is_some() || index != statements.len() {
+                    output.write_char(' ').unwrap();
+                }
+                frames.push(Frame::Block(statements, tail, index));
+            }
+            Frame::StatementIf(value, tails, alternative, first) => {
+                statement_if::begin_measure(
+                    &mut frames,
+                    lengths.is_some(),
+                    value,
+                    output.bytes + if first { 0 } else { 6 },
+                );
+                if first {
+                    if let Some(lengths) = lengths.as_deref_mut() {
+                        statement_if::measure_erased(value, tails, alternative, lengths);
+                    }
+                }
+
+                let ExprKind::If {
+                    condition,
+                    then_branch,
+                    else_branch,
+                } = &value.kind
+                else {
+                    unreachable!("prepared if")
+                };
+                output
+                    .write_str(if first { "if " } else { " else if " })
+                    .unwrap();
+                if tails.len() > 1 {
+                    frames.push(Frame::StatementIf(
+                        statement_if::continuation(else_branch).expect("prepared chain"),
+                        &tails[1..],
+                        alternative,
+                        false,
+                    ));
+                } else if let Some(tail) = alternative {
+                    frames.push(Frame::StatementBranch(else_branch, tail));
+                    // The branch frame emits its own leading space.
+                    frames.push(Frame::StatementElse);
+                }
+                frames.push(Frame::StatementBranch(then_branch, tails[0]));
+                frames.push(Frame::Expr(condition, 0));
+            }
+            Frame::StatementElse => output.write_str(" else").unwrap(),
+            Frame::StatementBranch(value, syntax) => {
+                statement_if::begin_measure(
+                    &mut frames,
+                    lengths.is_some(),
+                    value,
+                    output.bytes + 1,
+                );
+
+                output.write_str(" { ").unwrap();
+                let (statements, tail) =
+                    statement_if::branch(value, syntax).expect("prepared branch");
+                frames.push(Frame::Block(statements, tail, 0));
+            }
+            Frame::IfThen(then_branch, else_branch) => {
+                output.write_char(' ').unwrap();
+                frames.push(Frame::IfElse(else_branch));
+                frames.push(Frame::Expr(then_branch, 0));
+            }
+            Frame::IfElse(else_branch) => {
+                output.write_str(" else ").unwrap();
+                frames.push(Frame::Expr(else_branch, 0));
+            }
+            Frame::Fields(fields, index, suffix) => {
+                if let Some(field) = fields.get(index) {
+                    if index != 0 {
+                        output.write_str(", ").unwrap();
+                    }
+                    write!(output, "{}: ", field.name).unwrap();
+                    frames.push(Frame::Fields(fields, index + 1, suffix));
+                    frames.push(Frame::Expr(&field.value, 0));
+                } else {
+                    output.write_str(suffix).unwrap();
+                }
+            }
+            Frame::MatchArms(arms, index) => {
+                if let Some(arm) = arms.get(index) {
+                    if index == 0 {
+                        output.write_str(" { ").unwrap();
+                    } else {
+                        output.write_str(", ").unwrap();
+                    }
+                    write_match_pattern(&mut output, &arm.pattern);
+                    // Frames run LIFO: the continuation frame goes in first
+                    // so the guard/value render before the next arm.
+                    frames.push(Frame::MatchArms(arms, index + 1));
+                    match &arm.guard {
+                        // Refutable Match v1: `pattern if guard => value`.
+                        Some(guard) => {
+                            output.write_str(" if ").unwrap();
+                            frames.push(Frame::MatchArmValue(&arm.value));
+                            frames.push(Frame::Expr(guard.as_ref(), 0));
+                        }
+                        None => {
+                            output.write_str(" => ").unwrap();
+                            frames.push(Frame::Expr(&arm.value, 0));
+                        }
+                    }
+                } else if index == 0 {
+                    output.write_str(" {  }").unwrap();
+                } else {
+                    output.write_str(", }").unwrap();
+                }
+            }
+            Frame::MatchArmValue(value) => {
+                output.write_str(" => ").unwrap();
+                frames.push(Frame::Expr(value, 0));
+            }
+            Frame::TryEnd(delimited) => {
+                if delimited {
+                    output.write_char(')').unwrap();
+                }
+                output.write_char('?').unwrap();
+            }
+            Frame::PostfixFields(fields) => {
+                if fields.is_empty() {
+                    output.write_str(" with {}").unwrap();
+                } else {
+                    output.write_str(" with { ").unwrap();
+                    frames.push(Frame::Fields(fields, 0, " }"));
+                }
+            }
+            Frame::ProjectField(field) => write!(output, ".{field}").unwrap(),
+            Frame::MethodCallSuffix(method, type_arguments, args, delimited) => {
+                if delimited {
+                    output.write_char(')').unwrap();
+                }
+                output.write_char('.').unwrap();
+                output.write_str(method).unwrap();
+                if !type_arguments.is_empty() {
+                    output.write_str("::").unwrap();
+                    output.write_char('<').unwrap();
+                    for (index, argument) in type_arguments.iter().enumerate() {
+                        if index != 0 {
+                            output.write_str(", ").unwrap();
+                        }
+                        write_type(&mut output, argument);
+                    }
+                    output.write_char('>').unwrap();
+                }
+                output.write_char('(').unwrap();
+                frames.push(Frame::Close(')'));
+                frames.push(Frame::CallArgs(args, 0));
+            }
+            Frame::Close('}') => output.write_str(" }").unwrap(),
+            Frame::Close(character) => output.write_char(character).unwrap(),
+        }
+    }
+}
+
+pub(crate) fn write_type(output: &mut impl std::fmt::Write, ty: &crate::ast::Type) {
+    use TypeFormatFrame as Frame;
+    let mut frames = FormatFrameStack::new(Frame::Type(ty), ScratchStackKind::Type);
+    while let Some(frame) = frames.pop() {
+        match frame {
+            Frame::Type(crate::ast::Type::Never) => {
+                panic!("compiler-only completion marker has no source type spelling")
+            }
+            Frame::Type(crate::ast::Type::I64) => output.write_str("i64").unwrap(),
+            Frame::Type(crate::ast::Type::I32) => output.write_str("i32").unwrap(),
+            Frame::Type(crate::ast::Type::Char) => output.write_str("char").unwrap(),
+            Frame::Type(crate::ast::Type::U8) => output.write_str("u8").unwrap(),
+            Frame::Type(crate::ast::Type::Usize) => output.write_str("usize").unwrap(),
+            Frame::Type(crate::ast::Type::ArrayU8(length)) => {
+                write!(output, "[u8; {length}]").unwrap();
+            }
+            Frame::Type(crate::ast::Type::F32) => output.write_str("f32").unwrap(),
+            Frame::Type(crate::ast::Type::F64) => output.write_str("f64").unwrap(),
+            Frame::Type(crate::ast::Type::Bool) => output.write_str("bool").unwrap(),
+            Frame::Type(crate::ast::Type::String) => output.write_str("string").unwrap(),
+            Frame::Type(crate::ast::Type::Bytes) => output.write_str("Bytes").unwrap(),
+            Frame::Type(crate::ast::Type::OnceFunctionI64) => {
+                output.write_str("FnOnceI64() -> i64").unwrap()
+            }
+            Frame::Type(crate::ast::Type::OnceFunctionI64Pair) => {
+                output.write_str("FnOnceI64Pair() -> i64").unwrap()
+            }
+            Frame::Type(crate::ast::Type::MutFunctionI64) => {
+                output.write_str("FnMutI64(i64) -> i64").unwrap()
+            }
+            Frame::Type(crate::ast::Type::OnceFunction) => {
+                output.write_str("FnOnce() -> i64").unwrap()
+            }
+            Frame::Type(crate::ast::Type::Str) => output.write_str("str").unwrap(),
+            Frame::Type(crate::ast::Type::SliceU8) => output.write_str("Slice<u8>").unwrap(),
+            Frame::Type(crate::ast::Type::StringMap) => {
+                output.write_str("Map<string, i64>").unwrap()
+            }
+            Frame::Type(crate::ast::Type::Function { parameters, result }) => {
+                output.write_str("fn(").unwrap();
+                frames.push(Frame::FunctionResult(result));
+                frames.push(Frame::FunctionParameters(parameters, 0));
+            }
+            Frame::Type(crate::ast::Type::Named { name, arguments }) => {
+                output.write_str(name).unwrap();
+                if !arguments.is_empty() {
+                    output.write_char('<').unwrap();
+                    frames.push(Frame::Arguments(arguments, 0));
+                }
+            }
+            Frame::Arguments(arguments, index) => {
+                if let Some(argument) = arguments.get(index) {
+                    if index != 0 {
+                        output.write_str(", ").unwrap();
+                    }
+                    frames.push(Frame::Arguments(arguments, index + 1));
+                    frames.push(Frame::Type(argument));
+                } else {
+                    output.write_char('>').unwrap();
+                }
+            }
+            Frame::FunctionParameters(parameters, index) => {
+                if let Some(parameter) = parameters.get(index) {
+                    if index != 0 {
+                        output.write_str(", ").unwrap();
+                    }
+                    frames.push(Frame::FunctionParameters(parameters, index + 1));
+                    frames.push(Frame::Type(parameter));
+                }
+            }
+            Frame::FunctionResult(result) => {
+                output.write_str(") -> ").unwrap();
+                frames.push(Frame::Type(result));
+            }
+        }
+    }
+}
+
+fn write_match_pattern(output: &mut impl std::fmt::Write, pattern: &MatchPattern) {
+    match pattern {
+        MatchPattern::Wildcard { .. } => output.write_char('_').unwrap(),
+        MatchPattern::Literal { value, .. } => {
+            write_pattern_literal(output, *value);
+        }
+        MatchPattern::Binding { name, .. } => output.write_str(name).unwrap(),
+        MatchPattern::Or { alternatives, .. } => {
+            for (index, alternative) in alternatives.iter().enumerate() {
+                if index != 0 {
+                    output.write_str(" | ").unwrap();
+                }
+                write_match_pattern(output, alternative);
+            }
+        }
+        MatchPattern::Variant {
+            type_name,
+            case_name,
+            fields,
+            ..
+        } => {
+            write!(output, "{type_name}::{case_name}").unwrap();
+            if fields.is_empty() {
+                output.write_str(" {}").unwrap();
+            } else {
+                output.write_str(" { ").unwrap();
+                for (index, field) in fields.iter().enumerate() {
+                    if index != 0 {
+                        output.write_str(", ").unwrap();
+                    }
+                    if field.name == field.binding {
+                        output.write_str(&field.name).unwrap();
+                    } else {
+                        write!(output, "{}: {}", field.name, field.binding).unwrap();
+                    }
+                }
+                output.write_str(" }").unwrap();
+            }
+        }
+        MatchPattern::Record {
+            type_name, fields, ..
+        } => write_record_match_pattern(output, type_name, fields),
+    }
+}
+
+fn write_pattern_literal(output: &mut impl std::fmt::Write, value: crate::ast::PatternLiteral) {
+    match value {
+        crate::ast::PatternLiteral::Int(value) => output.write_str(&canonical_int(value)).unwrap(),
+        // The explicit suffix keeps the declared width stable across
+        // canonical round trips, exactly like expression literals.
+        crate::ast::PatternLiteral::Int32(value) => write!(output, "{value}i32").unwrap(),
+        crate::ast::PatternLiteral::Uint8(value) => write!(output, "{value}u8").unwrap(),
+        crate::ast::PatternLiteral::Usize(value) => write!(output, "{value}usize").unwrap(),
+        crate::ast::PatternLiteral::Char(value) => {
+            output.write_str(&canonical_char(value)).unwrap()
+        }
+        crate::ast::PatternLiteral::Bool(value) => {
+            output.write_str(&canonical_bool(value)).unwrap()
+        }
+    }
+}
+
+fn write_record_match_pattern(
+    output: &mut impl std::fmt::Write,
+    type_name: &str,
+    fields: &[crate::ast::RecordMatchPatternField],
+) {
+    use PatternFormatFrame as Frame;
+    let mut frames =
+        FormatFrameStack::new(Frame::Enter(type_name, fields), ScratchStackKind::Pattern);
+    while let Some(frame) = frames.pop() {
+        match frame {
+            Frame::Enter(type_name, fields) => {
+                output.write_str(type_name).unwrap();
+                if fields.is_empty() {
+                    output.write_str(" {}").unwrap();
+                } else {
+                    output.write_str(" { ").unwrap();
+                    frames.push(Frame::Fields(fields, 0));
+                }
+            }
+            Frame::Fields(fields, index) => {
+                let Some(field) = fields.get(index) else {
+                    output.write_str(" }").unwrap();
+                    continue;
+                };
+                if index != 0 {
+                    output.write_str(", ").unwrap();
+                }
+                frames.push(Frame::Fields(fields, index + 1));
+                match &field.pattern {
+                    crate::ast::RecordMatchFieldPattern::Binding { name, .. }
+                        if name == &field.name =>
+                    {
+                        output.write_str(&field.name).unwrap();
+                    }
+                    crate::ast::RecordMatchFieldPattern::Binding { name, .. } => {
+                        write!(output, "{}: {name}", field.name).unwrap();
+                    }
+                    crate::ast::RecordMatchFieldPattern::Wildcard { .. } => {
+                        write!(output, "{}: _", field.name).unwrap();
+                    }
+                    crate::ast::RecordMatchFieldPattern::Record {
+                        type_name, fields, ..
+                    } => {
+                        write!(output, "{}: ", field.name).unwrap();
+                        frames.push(Frame::Enter(type_name, fields));
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn write_function_body(
+    output: &mut impl std::fmt::Write,
+    body: &Expr,
+    placement: &comments::Placement,
+) {
+    write_indented_function_body(output, body, 1, placement);
+}
+
+fn write_indented_function_body(
+    output: &mut impl std::fmt::Write,
+    body: &Expr,
+    depth: usize,
+    placement: &comments::Placement,
+) {
+    let _scope = expression_statement::scope(body);
+    let indent = "    ".repeat(depth);
+    writeln!(output, "{{").unwrap();
+    if let ExprKind::Block { statements, tail } = &body.kind {
+        write_block_items(output, statements, tail, depth, placement);
+        placement.closing(output, body.span.end.saturating_sub(1), depth);
+    } else {
+        output.write_str(&indent).unwrap();
+        write_expr(output, body, 0);
+        writeln!(output).unwrap();
+    }
+    let closer = "    ".repeat(depth.saturating_sub(1));
+    writeln!(output, "{closer}}}").unwrap();
+}
+
+fn write_indent(output: &mut impl std::fmt::Write, depth: usize) {
+    for _ in 0..depth {
+        output.write_str("    ").unwrap();
+    }
+}
+
+/// Renders the statements and tail of a block body at `depth`, with the
+/// comments that lead or trail each of them.
+fn write_block_items(
+    output: &mut impl std::fmt::Write,
+    statements: &[Statement],
+    tail: &Expr,
+    depth: usize,
+    placement: &comments::Placement,
+) {
+    for statement in statements {
+        let start = statement_start(statement);
+        placement.leading(output, start, depth);
+        write_block_statement(output, statement, depth, placement);
+        placement.trailing(output, start, depth);
+    }
+    placement.leading(output, tail.span.start, depth);
+    write_indent(output, depth);
+    write_expr(output, tail, 0);
+    writeln!(output).unwrap();
+    placement.trailing(output, tail.span.start, depth);
+}
+
+fn statement_start(statement: &Statement) -> usize {
+    match statement {
+        Statement::Let { span, .. }
+        | Statement::Assign { span, .. }
+        | Statement::Unsafe { span, .. }
+        | Statement::While { span, .. }
+        | Statement::For { span, .. }
+        | Statement::ForBorrow { span, .. }
+        | Statement::ForOwn { span, .. } => span.start,
+    }
+}

@@ -1,0 +1,41 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED_NO_COMPILER_OR_RUNTIME",
+  "basis": "940fcf220e47d1975f757e76f0b3401691db9358",
+  "whole_changed_source_owners": 3,
+  "documentation_originals": 2,
+  "complete_old_builder_function_lines": 441,
+  "complete_old_limit_wrapper_lines": 28,
+  "complete_old_String_formatter_and_placement_unchanged": true,
+  "complete_old_fmt_writer_file_unchanged": true,
+  "author_root_constructor_loop_and_other_production_regions_unchanged": true,
+  "children": [
+    {
+      "source": "src/workspace_graph/cold_canonical.rs",
+      "sha256": "70be07f82c85a617ecdb4538e6249e3a920e967b1c35d679878c19091b47a1bd"
+    },
+    {
+      "source": "src/workspace_graph/cold_canonical/before.rs",
+      "sha256": "78fbcd95f4430f0750b4ae1e8b2cfdc5277c3bf9ef02fe4776cea96bc5a494e2"
+    },
+    {
+      "source": "src/workspace_graph/cold_canonical/tests.rs",
+      "sha256": "3ec6149f26eec9a0c6c0f3b0724ffdaf2231600a6d530af720132a9ada71a4f0"
+    },
+    {
+      "source": "src/format/comments/compare.rs",
+      "sha256": "b6407f4ce1b02e619e420b179d48b766191373239ea436308c3a3226a4c98f8d"
+    },
+    {
+      "source": "src/format/comments/compare/tests.rs",
+      "sha256": "3b456a0fc4004aa848b4cb1c85d0e6a0ab6cb98ad7a43144657cf1e342e225a0"
+    }
+  ],
+  "all_new_sources_joined_into_existing_audit": true,
+  "source_registered_new_selectors": 8,
+  "source_registered_original_required_selectors": 14,
+  "all_old_archives_and_literal_bytes_exact": true,
+  "global_Source36_and_other_existing_packets": "Requires additive composition by integrator after adoption; no prior global proof relabeled current",
+  "executable_qualification": false,
+  "physical_gain_observed": false,
+  "reservation_gain_claim": false
+}

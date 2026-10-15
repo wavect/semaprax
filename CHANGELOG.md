@@ -3,6 +3,10 @@
 - Author the ordinary lexical return-operand inventory (#832) on fallible paid AVL backing with borrowed identities, exact caller/facts/budget/ledger binding and certificate-boundary authentication. Preserve complete old callers and original verification charges; new directory work is additional. Rust qualification remains pending.
 
 - Author selected call-local refusal custody (#781): nineteen fixed reasons and the exact unknown-callee handle reach the paid engine through selected block replay; retain complete old receivers and prepaid success/failure controls. Source-only checkpoint; Rust qualification and whole-issue closure remain pending.
+- Author allocation-free final canonical-comment comparison for cold workspace
+  admission (#835), retaining the complete old String formatter and preflight
+  receiver. Placement scratch and reservations remain unchanged; focused
+  executable qualification and physical measurements are pending.
 
 - Qualify the closed named String-transfer v1 scope with all 15 exact a417 owning controls and the five 27ae regenerated-pin/source controls; retain unrelated application-budget failures and frozen public profiles.
 

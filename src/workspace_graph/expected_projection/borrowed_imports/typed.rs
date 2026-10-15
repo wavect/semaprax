@@ -474,6 +474,7 @@ mod directory_tests {
     }
 }
 
+#[path = "typed/alias.rs"]
 mod alias;
 pub(in crate::workspace_graph) use alias::construct_transient;
 

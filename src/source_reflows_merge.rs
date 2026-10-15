@@ -883,6 +883,15 @@ fn joined_feature_input(stage: &str, source: &str, current: &str) -> String {
 
 // Independent final raw fronts for MAIN integration versus retained alias owners.
 fn combined_ready_input(stage: &str, source: &str, current: &str) -> String {
+    let previous = project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/alias-module-loader-fix-847-20261015/current-to-340.json"
+        )),
+        source,
+        current,
+    );
+    let current = previous.as_str();
     let rows = match stage {
         "main" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/final-main27424-alias847-assembly-20261015/final-to-main-checkpoint.json")),
         "alias" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/final-main27424-alias847-assembly-20261015/final-to-alias-checkpoint.json")),

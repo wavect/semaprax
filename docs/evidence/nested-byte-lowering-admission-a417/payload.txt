@@ -1,0 +1,238 @@
+Review narrow HIR lowering nested immutable byte-loop correction. Source v2 outer-entry policy remains independently checked and late HIR census authenticates current function/regions/freezes. Complete old contextless gate+borrowed_root_oracle untouched. Focus stale ancestry/closure boundaries/full-body restriction/error order/charges. Scope alone rejected; ordinaryWhile uses only live outer-byte ancestry. Break/Return are lowered values: compiler still scans all source expressions. EnterByteLoop REPLACES EnterLoop slot; actual max Frame layout/census remains. No new depth bound. Recursive reference test route stays strict. Public no-active semantics NOT claimed paid. Omitted unchanged scalar/unsafe/call checks continue complete LIFO scan. Each closure body invokes fresh resolve_expr_iterative; invocation-local state cannot cross it. Exact actual snippets below.
+
+FILE src/hir/resolve_expr/byte_ancestry.rs
+1: //! One invocation's current outer byte-loop entry; never serialized or reused.
+2: use super::{Binding, Scope};
+3: use crate::diagnostic::Diagnostic;
+4: use std::{collections::BTreeMap, mem::size_of};
+5: 
+6: pub(super) struct Ancestry<'a> {
+7: outer: Option<(Scope<'a>, usize)>,
+8: }
+9: fn reserve(bytes: usize) -> Result<(), Diagnostic> {
+10: if crate::bounded_output::reserve_active_required(bytes) {
+11: Ok(())
+12: } else {
+13: Err(Diagnostic::io_static(
+14: "SPX-H006",
+15: "nested byte lowering ancestry storage refused",
+16: ))
+17: }
+18: }
+19: /// The new receiving Rc handle has no new heap/control-block allocation.
+20: /// Frame COUNT and maximum layout remain the existing actual resolver census;
+21: /// EnterByteLoop replaces EnterLoop, rather than pushing extra continuations.
+22: pub(in crate::hir) fn reserve_scope() -> Result<(), Diagnostic> {
+23: reserve(size_of::<Scope<'_>>())
+24: }
+25: impl<'a> Ancestry<'a> {
+26: pub(super) fn acquire() -> Result<Self, Diagnostic> {
+27: reserve(size_of::<Self>() + size_of::<Result<Self, Diagnostic>>())?;
+28: Ok(Self { outer: None })
+29: }
+30: pub(super) fn enter(&mut self, scope: Scope<'a>, depth: usize) {
+31: // lexical_exit::enter_loop has already checked/incremented its existing
+32: // bounded depth before this publication. No new counter/quota exists.
+33: if self.outer.is_none() {
+34: self.outer = Some((scope, depth));
+35: }
+36: }
+37: pub(super) fn leave(&mut self, depth: usize) {
+38: if self.outer.as_ref().is_some_and(|(_, outer)| depth < *outer) {
+39: self.outer = None;
+40: }
+41: }
+42: pub(super) fn entry(&self) -> Option<&BTreeMap<String, Binding>> {
+43: self.outer.as_ref().map(|(scope, _)| &***scope)
+44: }
+45: }
+46: 
+47: #[cfg(test)]
+48: mod tests {
+49: use super::Ancestry;
+50: use crate::bounded_output::with_limit_usage_refusal;
+51: use crate::hir::{Binding, resolver_scope};
+52: use crate::test_allocation_observer::measure;
+53: use std::{collections::BTreeMap, mem::size_of};
+
+FILE src/hir/resolve_expr.rs
+42: function: &FunctionExecutionId,
+43: expr: &Expr,
+44: bindings: &BTreeMap<String, Binding>,
+45: path: &str,
+46: ) -> Result<ResolvedExpr, Diagnostic> {
+47: const { assert!(std::mem::size_of::<Frame<'static>>() <= 592) };
+48: let mut byte_ancestry = byte_ancestry::Ancestry::acquire()?;
+49: let mut paths = PathArena::new(path);
+50: let mut frames = vec![Frame::Enter {
+51: expr,
+52: bindings: super::resolver_scope::borrowed(bindings),
+53: path: PathId::ROOT,
+54: }];
+55: let mut results = Vec::new();
+56: let mut loop_targets: [Option<super::ControlTarget>; crate::cache_codec::MAX_DEPTH + 1] =
+57: std::array::from_fn(|_| None);
+58: let mut loop_depth = 0usize;
+59: 
+60: while let Some(frame) = frames.pop() {
+61: paths.release_above(frames.len());
+62: #[cfg(test)]
+63: capacity::note(&frames, &results, &frame, &loop_targets, &paths);
+64: match frame {
+65: Frame::EnterByteLoop(target, scope) => {
+66: lexical_exit::enter_loop(&mut loop_targets, &mut loop_depth, target)?;
+67: byte_ancestry.enter(scope, loop_depth);
+68: }
+69: Frame::FinishVecConstructor { element, count } => {
+70: vec_constructor::finish(&mut results, element, count)?
+71: }
+72: Frame::EnterLoop(target) => {
+73: lexical_exit::enter_loop(&mut loop_targets, &mut loop_depth, target)?
+74: }
+75: Frame::LeaveLoop => {
+76: loop_depth -= 1;
+77: loop_targets[loop_depth] = None;
+78: byte_ancestry.leave(loop_depth);
+79: }
+80: Frame::FinishLexicalExit {
+81: span,
+82: path,
+83: kind,
+84: target,
+85: has_value,
+
+FILE src/hir/resolve_expr.rs
+1455: Statement::While {
+1456: condition, body, ..
+1457: } => {
+1458: self.reject_while_disallowed_in_scope(
+1459: condition,
+1460: Some(function),
+1461: byte_ancestry.entry(),
+1462: )?;
+1463: self.reject_while_disallowed_in_scope(
+1464: body,
+1465: Some(function),
+1466: byte_ancestry.entry(),
+1467: )?;
+1468: frames.push(Frame::BlockWhileCondition {
+1469: span,
+1470: path,
+1471: condition,
+1472: body,
+1473: statements,
+1474: tail,
+
+FILE src/hir/resolve_for.rs
+63: ));
+64: }
+65: let element = element(resolver, source_binding, values)?;
+66: if bytes::admits(source_binding) {
+67: resolver.reject_while_disallowed_in_scope(body, None, byte_entry.or(Some(&scope)))?;
+68: } else {
+69: resolver.reject_while_disallowed(body)?;
+70: }
+71: let source = ResolvedBinding {
+72: id: source_binding.id.clone(),
+73: name: source_name.clone(),
+74: ownership: source_binding.ownership,
+
+FILE src/hir/resolve_for.rs
+108: let condition = [statement.then(Seg::ForCondition)];
+109: let target = super::ControlTarget::Loop {
+110: owner: function.clone(),
+111: site: paths
+112: .at(block_path)
+113: .expression_id_with(function, &condition),
+114: };
+115: frames.push(if bytes::admits(source_binding) {
+116: super::resolve_expr::byte_ancestry::reserve_scope()?;
+117: Frame::EnterByteLoop(target, scope.clone())
+118: } else {
+119: Frame::EnterLoop(target)
+120: });
+121: Ok(())
+122: }
+123: 
+124: #[allow(clippy::too_many_arguments)]
+125: pub(super) fn resume<'expr>(
+
+FILE src/hir/resolve_statement.rs
+155: self.reject_while_disallowed_scoped(expression, None)
+156: }
+157: pub(super) fn reject_while_disallowed_scoped(
+158: &self,
+159: expression: &Expr,
+160: execution: Option<&FunctionExecutionId>,
+161: ) -> Result<(), Diagnostic> {
+162: self.reject_while_disallowed_in_scope(expression, execution, None)
+163: }
+164: 
+165: /// Source verification owns outermost-byte ancestry and entry availability.
+166: /// This lowering pre-scan independently narrows each nested source against
+167: /// the current immutable typed bindings, then scans its COMPLETE body with
+168: /// the unchanged bounded-loop restrictions. The old contextless receiver
+169: /// remains strict, including for Vec/record/owned traversal callers.
+170: pub(super) fn reject_while_disallowed_in_scope(
+171: &self,
+172: expression: &Expr,
+173: execution: Option<&FunctionExecutionId>,
+174: byte_scope: Option<&BTreeMap<String, Binding>>,
+175: ) -> Result<(), Diagnostic> {
+176: if execution
+177: .and_then(FunctionExecutionId::monomorphic_declaration)
+178: .and_then(|owner| {
+179: self.program
+180: .functions()
+181: .iter()
+182: .find(|f| f.stable_id == owner.as_str())
+183: })
+184: .is_some_and(|function| {
+185: crate::finite_owned_record_loop::source(function, expression).is_some()
+186: })
+
+FILE src/hir/resolve_statement.rs
+230: } => {
+231: pending.push(Item::Expression(body));
+232: pending.push(Item::Expression(condition));
+233: continue;
+234: }
+235: Statement::For { values, body, .. }
+236: if byte_scope.is_some_and(|scope| {
+237: matches!(&values.kind, ExprKind::Var(name)
+238: if scope.get(name).is_some_and(super::resolve_for::bytes::admits))
+239: }) =>
+240: {
+241: // Same left-to-right pre-scan order as While. Never
+242: // skip an inner subtree or its unsafe/call/alloc gates.
+243: pending.push(Item::Expression(body));
+244: pending.push(Item::Expression(values));
+245: continue;
+246: }
+247: Statement::For { span, .. }
+248: | Statement::ForBorrow { span, .. }
+249: | Statement::ForOwn { span, .. } => {
+250: return Err(self.error(
+251: "SPX-H006",
+252: "nested for traversal reached bounded-loop HIR admission",
+253: *span,
+254: ));
+255: }
+256: },
+257: Item::Expression(expression) => expression,
+258: };
+259: 
+260: match &expression.kind {
+261: ExprKind::LexicalExit { kind, value } => {
+262: if let Some(value) = value {
+263: if *kind != crate::ast::LexicalExitKind::Return
+264: || !crate::hir::lexical_exit::return_operand::source_named_handoff(
+265: value,
+266: )
+267: {
+268: pending.push(Item::Expression(value));
+269: }
+270: }
+271: }
+272: ExprKind::Closure { .. } => {}
+273: 

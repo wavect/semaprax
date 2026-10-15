@@ -543,6 +543,8 @@ macro_rules! hir_resolver_source_inventory {
             include_str!("../../../../../src/hir/resolve_program/reuse_lowered.rs"),
             include_str!("../../../../../src/hir/resolve_program/reuse_lowered/tests.rs"),
             include_str!("../../../../../src/hir/resolve_statement.rs"),
+            include_str!("../../../../../src/hir/resolve_expr/byte_ancestry.rs"),
+            include_str!("../../../../../src/hir/resolve_statement/nested_byte_tests.rs"),
             include_str!("../../../../../src/hir/resolve_statement/text_reference.rs"),
             include_str!("../../../../../src/hir/resolve_expr/path_arena_regression_tests.rs"),
             include_str!("../../../../../src/hir/resolve_expr/path_arena_regression_tests/whole_program.rs"),

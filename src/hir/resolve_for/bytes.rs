@@ -33,7 +33,7 @@ const PAYLOAD_BINDING: &str = ".arm.0.binding.0";
 const ARM_VALUE: &str = ".arm.0.value";
 
 /// Only an immutable named view of the exact compiler-owned `Slice<u8>` type.
-pub(super) fn admits(source: &Binding) -> bool {
+pub(in crate::hir) fn admits(source: &Binding) -> bool {
     source.ty == ResolvedType::SliceU8 && !source.mutable && source.traversal_row.is_none()
 }
 

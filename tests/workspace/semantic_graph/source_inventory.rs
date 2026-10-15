@@ -1,6 +1,8 @@
 // Complete private-layout source inventory; original includes and literal bytes retained.
 macro_rules! semantic_graph_private_layout_source_inventory {
     () => { concat!(
+        include_str!("../../src/hir/resolve_expr/byte_ancestry.rs"),
+        include_str!("../../src/hir/resolve_statement/nested_byte_tests.rs"),
         include_str!("../../src/hir/validation/byte_traversal/before_nested.rs"),
         include_str!("../../src/hir/validation/byte_traversal/nested.rs"),
         include_str!("../../src/hir/validation/byte_traversal/nested/slot.rs"),

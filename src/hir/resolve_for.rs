@@ -32,6 +32,7 @@ pub(super) fn schedule<'expr>(
     item: &str,
     values: &'expr crate::ast::Expr,
     body: &'expr crate::ast::Expr,
+    byte_entry: Option<&BTreeMap<String, Binding>>,
 ) -> Result<(), crate::diagnostic::Diagnostic> {
     let crate::ast::ExprKind::Var(source_name) = &values.kind else {
         return Err(resolver.error(
@@ -47,6 +48,24 @@ pub(super) fn schedule<'expr>(
             values.span,
         )
     })?;
+    // A lexical byte ancestor lends only its exact entry binding, never a
+    // same-spelling local shadow or a current non-byte traversal source.
+    if byte_entry.is_some_and(|entry| {
+        !bytes::admits(source_binding)
+            || entry
+                .get(source_name)
+                .is_none_or(|binding| binding.id != source_binding.id)
+    }) {
+        let span = match &statements[index] {
+            crate::ast::Statement::For { span, .. } => *span,
+            _ => unreachable!("byte ancestry applies to the current for statement"),
+        };
+        return Err(resolver.error(
+            "SPX-H006",
+            "nested for traversal reached bounded-loop HIR admission",
+            span,
+        ));
+    }
     if source_binding.mutable {
         return Err(resolver.error(
             "SPX-H006",
@@ -62,7 +81,11 @@ pub(super) fn schedule<'expr>(
         ));
     }
     let element = element(resolver, source_binding, values)?;
-    resolver.reject_while_disallowed(body)?;
+    if bytes::admits(source_binding) {
+        resolver.reject_while_disallowed_in_scope(body, None, byte_entry.or(Some(&scope)))?;
+    } else {
+        resolver.reject_while_disallowed(body)?;
+    }
     let source = ResolvedBinding {
         id: source_binding.id.clone(),
         name: source_name.clone(),
@@ -101,12 +124,18 @@ pub(super) fn schedule<'expr>(
         path: paths.child(frames, block_path, statement.then(Seg::ForBody)),
     });
     let condition = [statement.then(Seg::ForCondition)];
-    frames.push(Frame::EnterLoop(super::ControlTarget::Loop {
+    let target = super::ControlTarget::Loop {
         owner: function.clone(),
         site: paths
             .at(block_path)
             .expression_id_with(function, &condition),
-    }));
+    };
+    frames.push(if bytes::admits(source_binding) {
+        super::resolve_expr::byte_ancestry::reserve_scope()?;
+        Frame::EnterByteLoop(target, scope.clone())
+    } else {
+        Frame::EnterLoop(target)
+    });
     Ok(())
 }
 

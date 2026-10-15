@@ -12,6 +12,7 @@ use std::rc::Rc;
 
 use crate::ast::{BinaryOp, Expr, Span, Statement, Type, UnaryOp};
 
+use super::Scope;
 #[cfg(test)]
 use super::capacity_probe::{
     resolved_expr_owned_capacity, resolved_field_initializer_owned_capacity,
@@ -27,7 +28,6 @@ use super::nodes::{
     DeclarationKind, ResolvedBinding, ResolvedHostCommandOperation, ResolvedMatchMode, ResolvedType,
 };
 use super::resolve_expr::path_arena::{PathId, Seg, Step};
-use super::Scope;
 
 pub(super) enum Frame<'expr> {
     FinishVecConstructor {
@@ -36,6 +36,7 @@ pub(super) enum Frame<'expr> {
     },
     EnterLoop(super::ControlTarget),
     LeaveLoop,
+    EnterByteLoop(super::ControlTarget, Scope<'expr>),
     FinishLexicalExit {
         span: Span,
         path: PathId,
@@ -490,7 +491,7 @@ fn frame_scope<'a, 'scope>(frame: &'a Frame<'scope>) -> Option<&'a Scope<'scope>
         | Frame::BlockAfterUnsafe { scope, .. }
         | Frame::BlockWhileCondition { scope, .. }
         | Frame::BlockWhileBody { scope, .. } => Some(scope),
-        Frame::BlockForBody { scope, .. } => Some(scope),
+        Frame::BlockForBody { scope, .. } | Frame::EnterByteLoop(_, scope) => Some(scope),
         Frame::ForOwn(frame) => Some(&frame.scope),
         _ => None,
     }
@@ -529,7 +530,9 @@ pub(super) fn frame_owned_capacity_with(
     });
     let retained = match frame {
         Frame::FinishVecConstructor { element, .. } => resolved_type_owned_capacity(element),
-        Frame::EnterLoop(target) | Frame::FinishLexicalExit { target, .. } => {
+        Frame::EnterLoop(target)
+        | Frame::EnterByteLoop(target, _)
+        | Frame::FinishLexicalExit { target, .. } => {
             super::capacity_probe::lexical_target_capacity(target)
         }
         Frame::FinishInvoke { callable, .. } => resolved_expr_owned_capacity(callable),

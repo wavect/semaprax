@@ -1,0 +1,9 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "basis": "969e2b58dda092929b1804de5bb741808ac7701a",
+  "rows": 10,
+  "all_current_bindings_and_full_originals": true,
+  "borrowed_root_oracle": "UNCHANGED: no file under this subtree modified",
+  "new_tests": 6,
+  "review": "One terminal source-only review; first blocker corrected after receipt, no redispatch"
+}

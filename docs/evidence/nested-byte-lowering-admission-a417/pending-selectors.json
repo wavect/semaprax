@@ -1,0 +1,36 @@
+{
+  "status": "AUTHORED_UNEXECUTED",
+  "new": [
+    {
+      "selector": "hir::resolve_expr::byte_ancestry::tests::nested_byte_ancestry_prepays_controls_and_unwinds_outermost_scope_without_allocating",
+      "source": "src/hir/resolve_expr/byte_ancestry.rs",
+      "source_sha256": "14de710c92fb5c80b38fe23f05b601e3245aa920892ba0e231af63d90efcbaec"
+    },
+    {
+      "selector": "hir::resolve_statement::nested_byte_tests::nested_byte_lowering_gate_scans_complete_inner_subtrees_and_keeps_old_priority",
+      "source": "src/hir/resolve_statement/nested_byte_tests.rs",
+      "source_sha256": "8de331f399e5868e20a8e91cfaca20b3dcca312444c9409ccc60c71fb859f9f8"
+    },
+    {
+      "selector": "hir::resolve_statement::nested_byte_tests::nested_byte_lowering_gate_requires_exact_immutable_entry_binding_and_strict_legacy",
+      "source": "src/hir/resolve_statement/nested_byte_tests.rs",
+      "source_sha256": "8de331f399e5868e20a8e91cfaca20b3dcca312444c9409ccc60c71fb859f9f8"
+    },
+    {
+      "selector": "hir::resolve_statement::nested_byte_tests::nested_byte_source_lowering_bridge_resolves_and_independent_hir_replays",
+      "source": "src/hir/resolve_statement/nested_byte_tests.rs",
+      "source_sha256": "8de331f399e5868e20a8e91cfaca20b3dcca312444c9409ccc60c71fb859f9f8"
+    },
+    {
+      "selector": "hir::resolve_statement::nested_byte_tests::nested_byte_actual_resolver_keeps_ancestry_local_and_entry_scope_fixed",
+      "source": "src/hir/resolve_statement/nested_byte_tests.rs",
+      "source_sha256": "8de331f399e5868e20a8e91cfaca20b3dcca312444c9409ccc60c71fb859f9f8"
+    },
+    {
+      "selector": "hir::resolve_statement::nested_byte_tests::nested_byte_actual_schedule_rejects_same_name_foreign_binding_before_any_body_lowering",
+      "source": "src/hir/resolve_statement/nested_byte_tests.rs",
+      "source_sha256": "8de331f399e5868e20a8e91cfaca20b3dcca312444c9409ccc60c71fb859f9f8"
+    }
+  ],
+  "required_existing": "Retain all actual nested7, v1 byte-refusal owner111 and nested backend owner from a417; full old controls unchanged."
+}

@@ -12,9 +12,11 @@ use crate::source_verify::is_scalar_source_type;
 use super::expr_nodes::ResolvedExpr;
 use super::ids::{DeclarationId, FunctionExecutionId};
 use super::monomorphize::substitute_type;
-use super::nodes::{is_scalar_resolved_type, DeclarationKind, ResolvedBinding, ResolvedType};
+use super::nodes::{DeclarationKind, ResolvedBinding, ResolvedType, is_scalar_resolved_type};
 use super::{Binding, Resolver};
 
+#[cfg(test)]
+mod nested_byte_tests;
 #[cfg(test)]
 pub(in crate::hir) mod text_reference;
 
@@ -157,6 +159,20 @@ impl Resolver<'_> {
         expression: &Expr,
         execution: Option<&FunctionExecutionId>,
     ) -> Result<(), Diagnostic> {
+        self.reject_while_disallowed_in_scope(expression, execution, None)
+    }
+
+    /// Source verification owns outermost-byte ancestry and entry availability.
+    /// This lowering pre-scan independently narrows each nested source against
+    /// the current immutable typed bindings, then scans its COMPLETE body with
+    /// the unchanged bounded-loop restrictions. The old contextless receiver
+    /// remains strict, including for Vec/record/owned traversal callers.
+    pub(super) fn reject_while_disallowed_in_scope(
+        &self,
+        expression: &Expr,
+        execution: Option<&FunctionExecutionId>,
+        byte_scope: Option<&BTreeMap<String, Binding>>,
+    ) -> Result<(), Diagnostic> {
         if execution
             .and_then(FunctionExecutionId::monomorphic_declaration)
             .and_then(|owner| {
@@ -214,6 +230,18 @@ impl Resolver<'_> {
                     } => {
                         pending.push(Item::Expression(body));
                         pending.push(Item::Expression(condition));
+                        continue;
+                    }
+                    Statement::For { values, body, .. }
+                        if byte_scope.is_some_and(|scope| {
+                            matches!(&values.kind, ExprKind::Var(name)
+                                if scope.get(name).is_some_and(super::resolve_for::bytes::admits))
+                        }) =>
+                    {
+                        // Same left-to-right pre-scan order as While. Never
+                        // skip an inner subtree or its unsafe/call/alloc gates.
+                        pending.push(Item::Expression(body));
+                        pending.push(Item::Expression(values));
                         continue;
                     }
                     Statement::For { span, .. }

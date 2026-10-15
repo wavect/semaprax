@@ -14,14 +14,15 @@ use super::ids::CompilerDeclaration as CId;
 use super::ids::{DeclarationId, ExpressionId, FunctionExecutionId, ValueId};
 use super::monomorphize::substitute_type;
 use super::nodes::{
-    is_scalar_resolved_type, DeclarationKind, OwnershipMode, ResolvedBinding,
-    ResolvedImportResultKind, ResolvedMatchMode, ResolvedNativeRustImportCall, ResolvedType,
+    DeclarationKind, OwnershipMode, ResolvedBinding, ResolvedImportResultKind, ResolvedMatchMode,
+    ResolvedNativeRustImportCall, ResolvedType, is_scalar_resolved_type,
 };
-use super::resolve_expr_frame::{take_pair, take_results, take_triple, Frame};
+use super::resolve_expr_frame::{Frame, take_pair, take_results, take_triple};
 use super::type_reachability::record_args_ok;
 use super::{Binding, Place, PlaceProjection, Resolver, Scope};
 use path_arena::{PathArena, PathId, Seg, Step};
 
+pub(super) mod byte_ancestry;
 mod byte_view;
 #[cfg(test)]
 mod capacity;
@@ -44,6 +45,7 @@ impl Resolver<'_> {
         path: &str,
     ) -> Result<ResolvedExpr, Diagnostic> {
         const { assert!(std::mem::size_of::<Frame<'static>>() <= 592) };
+        let mut byte_ancestry = byte_ancestry::Ancestry::acquire()?;
         let mut paths = PathArena::new(path);
         let mut frames = vec![Frame::Enter {
             expr,
@@ -60,6 +62,10 @@ impl Resolver<'_> {
             #[cfg(test)]
             capacity::note(&frames, &results, &frame, &loop_targets, &paths);
             match frame {
+                Frame::EnterByteLoop(target, scope) => {
+                    lexical_exit::enter_loop(&mut loop_targets, &mut loop_depth, target)?;
+                    byte_ancestry.enter(scope, loop_depth);
+                }
                 Frame::FinishVecConstructor { element, count } => {
                     vec_constructor::finish(&mut results, element, count)?
                 }
@@ -69,6 +75,7 @@ impl Resolver<'_> {
                 Frame::LeaveLoop => {
                     loop_depth -= 1;
                     loop_targets[loop_depth] = None;
+                    byte_ancestry.leave(loop_depth);
                 }
                 Frame::FinishLexicalExit {
                     span,
@@ -1448,8 +1455,16 @@ impl Resolver<'_> {
                             Statement::While {
                                 condition, body, ..
                             } => {
-                                self.reject_while_disallowed_scoped(condition, Some(function))?;
-                                self.reject_while_disallowed_scoped(body, Some(function))?;
+                                self.reject_while_disallowed_in_scope(
+                                    condition,
+                                    Some(function),
+                                    byte_ancestry.entry(),
+                                )?;
+                                self.reject_while_disallowed_in_scope(
+                                    body,
+                                    Some(function),
+                                    byte_ancestry.entry(),
+                                )?;
                                 frames.push(Frame::BlockWhileCondition {
                                     span,
                                     path,
@@ -1495,6 +1510,7 @@ impl Resolver<'_> {
                                 item,
                                 values,
                                 body,
+                                byte_ancestry.entry(),
                             )?,
                             Statement::ForBorrow { .. } => super::resolve_for::record::schedule(
                                 self,

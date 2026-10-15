@@ -3,6 +3,20 @@
 use sha2::{Digest, Sha256};
 #[path = "source_reflows_merge/runtime_json.rs"]
 mod runtime_json;
+// The final compositor authenticates its raw view at this independent owner front.
+pub(crate) fn boxed849_input(_source: &str, current: &str) -> String {
+    current.to_owned()
+}
+pub(crate) fn boxed849_previous(source: &str, current: &str) -> String {
+    project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/boxed-state-receiving-849-20261016/current-to-main019d.json"
+        )),
+        source,
+        &boxed849_input(source, current),
+    )
+}
 fn project(rows: &str, source: &str, current: &str) -> String {
     let rows: serde_json::Value = serde_json::from_str(rows).expect("fixed merge projections");
     let matching: Vec<_> = rows

@@ -191,6 +191,11 @@ impl ClassifierString {
 /// cached admission or source authority. Its caller pays its containing control.
 pub(crate) struct ClassifierLedger(Option<Rc<Budget>>);
 impl ClassifierLedger {
+    /// Empty field initializer for an already prepaid receiving owner. The
+    /// caller must pay capture_into_controls before filling the real binding.
+    pub(crate) fn empty_receiving() -> Self {
+        Self(None)
+    }
     /// A test-account caller authenticates its own invocation separately. This
     /// detached marker contains no ACTIVE handle and grants no ordinary payer.
     #[cfg(test)]
@@ -267,6 +272,43 @@ impl ClassifierLedger {
                 false
             }
         })
+    }
+    /// Actual new callers of current() prepay its cloned ACTIVE return/local,
+    /// match tuple and arm receiver, TLS borrow, borrowed predicates and bools.
+    /// Original current() below is unchanged; this inventory grants no authority.
+    pub(crate) fn current_receiving_controls() -> usize {
+        use std::cell::{Ref, RefCell};
+        use std::mem::size_of;
+        size_of::<&Self>()
+            + 2 * size_of::<Option<Rc<Budget>>>()
+            + size_of::<(&Option<Rc<Budget>>, Option<Rc<Budget>>)>()
+            + size_of::<Rc<Budget>>()
+            + size_of::<Ref<'_, Option<Rc<Budget>>>>()
+            + size_of::<&RefCell<Option<Rc<Budget>>>>()
+            + size_of::<&Option<Rc<Budget>>>()
+            + 4 * size_of::<&Rc<Budget>>()
+            + 2 * size_of::<bool>()
+    }
+    /// The insertion owner has two terminal call sites on the SAME held
+    /// budget: current mismatch and reject_storage. Each may read first_refusal;
+    /// only one can initialize its first receipt/site. No live payer is queried.
+    pub(crate) fn insertion_terminal_controls() -> usize {
+        use std::cell::Cell;
+        use std::mem::size_of;
+        type Receipt = Option<super::ReservationRefusal>;
+        type Site = Option<&'static std::panic::Location<'static>>;
+        size_of::<&Self>()
+            + 2 * (size_of::<&Option<Rc<Budget>>>() + size_of::<&Rc<Budget>>()
+                + size_of::<&Budget>() + size_of::<&Cell<bool>>())
+            + 4 * size_of::<Receipt>() // two gets, one Some, one Cell::set receiver
+            + size_of::<super::ReservationRefusal>()
+            + size_of::<Option<super::ReservationStage>>()
+            + size_of::<&'static std::panic::Location<'static>>()
+            + 2 * size_of::<Site>()
+            + 3 * size_of::<&Cell<Receipt>>()
+            + size_of::<&Cell<Site>>()
+            + 2 * size_of::<&Cell<usize>>()
+            + size_of::<&Cell<Option<super::ReservationStage>>>()
     }
     pub(crate) fn current(&self) -> bool {
         let current = active();

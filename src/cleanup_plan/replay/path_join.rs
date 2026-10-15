@@ -5,6 +5,10 @@ use std::borrow::Borrow;
 #[cfg(test)]
 #[allow(dead_code, reason = "complete original path-state replay receiver")]
 mod before;
+#[cfg(test)]
+#[allow(dead_code, reason = "complete MAIN019d callback receiver")]
+#[path = "path_join/before_receiving.rs"]
+mod before_receiving;
 mod boxed_states;
 mod branch_join;
 #[cfg(test)]
@@ -137,12 +141,16 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
         "incoming state frontier",
     )?;
     let mut incoming = vec![BTreeSet::<Box<PathState>>::new(); plan.blocks.len()];
-    insert_incoming(
+    let mut insertions = boxed_states::Insertions::<PathState>::acquire(function, budget)?;
+    insertions.insert_owned(
         function,
         &mut incoming[plan.entry.0 as usize],
         initial,
         budget,
-    )?;
+    );
+    if insertions.failed {
+        return Err(insertions.failure().into());
+    }
     budget.reserve_array::<usize>(function, plan.blocks.len(), "cleanup predecessor counters")?;
     let mut remaining_predecessors = vec![0_usize; plan.blocks.len()];
     for block in &plan.blocks {
@@ -203,9 +211,10 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                 )?;
             }
             let group = groups.entry(key).or_default();
-            boxed_states::insert_held(group, state, &mut |bytes, phase| {
-                budget.reserve_bytes(function, bytes, phase)
-            })?;
+            insertions.insert_held(function, group, state, budget);
+            if insertions.failed {
+                return Err(insertions.failure().into());
+            }
         }
         let block = &plan.blocks[block_id.0 as usize];
         for states in groups.into_values() {
@@ -265,7 +274,15 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                     let edge = &plan.edges[edge.0 as usize];
                     let state =
                         state_for_edge(function, state, &edge.condition, &contract_sources)?;
-                    insert_incoming(function, &mut incoming[edge.to.0 as usize], state, budget)?;
+                    insertions.insert_owned(
+                        function,
+                        &mut incoming[edge.to.0 as usize],
+                        state,
+                        budget,
+                    );
+                    if insertions.failed {
+                        return Err(insertions.failure().into());
+                    }
                 }
                 CleanupTerminator::Branch(edges) => {
                     require_normal_flow_state(function, &state, block_id)?;
@@ -305,7 +322,15 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                                 budget,
                             )?;
                         }
-                        insert_incoming(function, &mut incoming[edge.to.0 as usize], next, budget)?;
+                        insertions.insert_owned(
+                            function,
+                            &mut incoming[edge.to.0 as usize],
+                            next,
+                            budget,
+                        );
+                        if insertions.failed {
+                            return Err(insertions.failure().into());
+                        }
                     }
                 }
                 CleanupTerminator::Exit(exit_id) => {
@@ -346,12 +371,15 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                                     leaves,
                                 )?;
                             }
-                            insert_incoming(
+                            insertions.insert_owned(
                                 function,
                                 &mut incoming[target.0 as usize],
                                 continued,
                                 budget,
-                            )?;
+                            );
+                            if insertions.failed {
+                                return Err(insertions.failure().into());
+                            }
                         }
                         ExitFlow::Latch(latched) => {
                             let auth = lexical.ok_or_else(|| {
@@ -360,12 +388,15 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                             if let Some(entry) = lexical_cert::latch_resume(plan, exit.id) {
                                 // A certified continue enters its finite generated
                                 // advancement fragment, whose own latch checks entry.
-                                insert_incoming(
+                                insertions.insert_owned(
                                     function,
                                     &mut incoming[entry.0 as usize],
                                     latched,
                                     budget,
-                                )?;
+                                );
+                                if insertions.failed {
+                                    return Err(insertions.failure().into());
+                                }
                             } else {
                                 lexical_flow::check_latch(
                                     function,
@@ -427,17 +458,6 @@ type ControlKey = (
     bool,
     Option<ReturnedSource>,
 );
-fn insert_incoming(
-    function: &ResolvedFunction,
-    target: &mut BTreeSet<Box<PathState>>,
-    state: PathState,
-    budget: &mut ReplayBudget,
-) -> Result<(), Diagnostic> {
-    boxed_states::insert_owned(target, state, &mut |bytes, phase| {
-        budget.reserve_bytes(function, bytes, phase)
-    })?;
-    Ok(())
-}
 
 /// The borrowed prefix is exactly the sorted set previously copied into
 /// `checked`. Keep the complete history union: pairwise checks alone miss a

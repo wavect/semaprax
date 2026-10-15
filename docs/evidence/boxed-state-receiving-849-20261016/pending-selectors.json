@@ -1,0 +1,14 @@
+{
+  "package": "semaprax",
+  "harness": "lib",
+  "selectors": [
+    "cleanup_plan::replay::path_join::boxed_states::receiving_tests::actual_diagnostic_owner_zero_exact_and_each_short_frontier_keep_full_drop",
+    "cleanup_plan::replay::path_join::boxed_states::receiving_tests::actual_owned_held_and_duplicate_entries_pay_each_bank_and_preserve_box_identity",
+    "cleanup_plan::replay::path_join::boxed_states::receiving_tests::duplicate_zero_auth_keeps_complete_main_diagnostic_and_first_receipt_at_sticky_floor",
+    "cleanup_plan::replay::path_join::boxed_states::receiving_tests::foreign_function_budget_and_scope_poison_only_original_owner_and_never_restore_entry",
+    "cleanup_plan::replay::path_join::boxed_states::receiving_tests::actual_entry_and_box_layout_inventory_and_complete_main_receiver_sources_are_exact",
+    "cleanup_plan::replay::path_join::boxed_states::receiving_tests::complete_main_callback_and_current_receiving_replay_keep_full_success_error_work_and_costs"
+  ],
+  "new_body_count": 6,
+  "status": "PENDING; no Rust execution"
+}

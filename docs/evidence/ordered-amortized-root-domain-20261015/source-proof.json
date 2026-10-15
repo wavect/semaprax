@@ -1,0 +1,11 @@
+{
+  "status": "SOURCE_ONLY_INVERSE_AND_ACTUAL_FAILED_FULLROOT_REPLAY_PASS_NO_RUST",
+  "full_current_to_35cc_inputs": 2,
+  "runtime_added_compiled_JSON_bytes": 2809,
+  "actual_failed_first_bind_fullforward_and_inverse": true,
+  "full_expected_source_equal_original_actual_failure_left": true,
+  "no_old_assertions_hashes_tables_or_production_changed": true,
+  "other_six_bind_routes_unchanged": true,
+  "new_test_selectors": 0,
+  "Rust_Cargo_execution": false
+}

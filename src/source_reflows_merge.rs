@@ -788,6 +788,15 @@ fn main83_physical_input(source: &str, current: &str) -> String {
 
 // Full post-compiler-fix inputs precede the immutable MAIN83 and older domains.
 fn before_storage_oracle_join(source: &str, current: &str) -> String {
+    let previous = project(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/ordered-amortized-root-domain-20261015/current-to-35cc.json"
+        )),
+        source,
+        current,
+    );
+    let current = previous.as_str();
     project(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),

@@ -29,9 +29,14 @@ fn current40f(path: &str, current: &str) -> String {
         current.to_owned()
     };
     let current = observed.as_str();
-    let held = crate::cleanup_plan::replay::physical_budget::authentication::previous_include(
-        path, current,
-    );
+    let held = if path == "../ordered_weights.rs" {
+        crate::cleanup_plan::replay::physical_budget::authentication::previous(
+            "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights.rs",
+            current,
+        )
+    } else {
+        crate::cleanup_plan::replay::physical_budget::authentication::previous_include(path, current)
+    };
     let current = held.as_str();
     let merged = crate::source_reflows_merge::weighted(path, current);
     let current = merged.as_str();

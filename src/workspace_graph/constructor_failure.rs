@@ -86,7 +86,12 @@ pub(super) fn construct_transient_core<'a>(
 
 pub(super) mod receiving;
 
-pub(super) mod report;
 pub(super) mod attempt;
+pub(super) mod report;
 
 pub(super) mod typed;
+
+#[cfg(test)]
+mod before_publication;
+#[cfg(test)]
+mod publication_tests;

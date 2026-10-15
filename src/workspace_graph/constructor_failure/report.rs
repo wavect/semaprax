@@ -93,6 +93,13 @@ impl Owner {
             size_of::<Unpublished>(),
             size_of::<Result<Published, Unpublished>>(),
             size_of::<Vec<Diagnostic>>(),
+            // The actual tuple initializer/receiver transfers the opaque report.
+            // A unit producer then initializes the existing Err payload in place;
+            // no new Diagnostic-bearing Result or returned CoreFailure survives.
+            2 * size_of::<(Vec<Diagnostic>, ClassifierLedger)>(),
+            size_of::<super::receiving::CoreFailure>(),
+            size_of::<super::receiving::ClassifierLedgerDebug>(),
+            size_of::<&mut super::receiving::CoreFailure>(),
             size_of::<Diagnostic>(),
             size_of::<Option<ReservationRefusal>>(),
             size_of::<fmt::Result>(),
@@ -158,6 +165,62 @@ impl Owner {
             failure: None,
         })
     }
+    /// Reuse the report's actual backing for a non-sticky setup primary before
+    /// the child restores. No reservation or formatting follows this selection.
+    /// Arbitrary diagnostics/foreign receivers/multi-error Vecs are not admitted.
+    pub(super) fn seal_setup(mut self, setup: Setup) -> Result<Published, Unpublished> {
+        if let Some(refusal) = self.failure {
+            return Err(Unpublished {
+                owner: self,
+                refusal,
+            });
+        }
+        // Dynamic budget help can change during a core attempt. Its existing
+        // sticky publication stays separate; do not substitute an earlier TLS
+        // snapshot for exceptional non-sticky legacy output.
+        if matches!(setup, Setup::Budget { .. }) {
+            self.failure = Some(setup);
+            return Err(Unpublished {
+                owner: self,
+                refusal: setup,
+            });
+        }
+        if !self.ledger.current() {
+            self.failure = Some(Setup::Detached);
+            return Err(Unpublished {
+                owner: self,
+                refusal: Setup::Detached,
+            });
+        }
+        if crate::bounded_output::active_refused() {
+            let refusal = budget();
+            self.failure = Some(refusal);
+            return Err(Unpublished {
+                owner: self,
+                refusal,
+            });
+        }
+        let primary = Diagnostic::io_static(
+            "SPX-G173",
+            match setup {
+                Setup::NoOwner => "constructor report receiver has no active builder owner",
+                Setup::Allocation => "constructor report receiving allocation refused",
+                Setup::Capacity => {
+                    "constructor report receiving capacity differs from its paid request"
+                }
+                Setup::Detached => {
+                    "constructor report receiver is detached from its original builder owner"
+                }
+                Setup::Arithmetic => "constructor report receiving layout overflowed",
+                Setup::Budget { .. } => unreachable!("budget form retains its legacy owner"),
+            },
+        );
+        self.report.push(primary);
+        Ok(Published {
+            report: self.report,
+            ledger: self.ledger,
+        })
+    }
     pub(super) fn seal(mut self) -> Result<Published, Unpublished> {
         if let Some(refusal) = self.failure {
             return Err(Unpublished {
@@ -201,6 +264,9 @@ impl Owner {
     }
 }
 impl Published {
+    pub(super) fn into_parts(self) -> (Vec<Diagnostic>, ClassifierLedger) {
+        (self.report, self.ledger)
+    }
     pub(super) fn into_report(self) -> Vec<Diagnostic> {
         drop(self.ledger);
         self.report

@@ -158,3 +158,35 @@ of the original rewrite helpers remain separate residuals, as do registry cold
 preparation before the core Receiver exists, provider internals, checked count
 arithmetic and public/no-owner outward Vec compatibility. No runtime, saving,
 application-fit or OPT825 closure claim follows from this source successor.
+
+
+## Preowned non-sticky setup publication (partial successor)
+
+When the actual core attempt already acquired its affine final report owner,
+a non-sticky NoOwner/Allocation/Capacity/Detached/Arithmetic setup primary now
+moves into that owner's existing Diagnostic Vec before the child restores.
+The exact G173 Error/message/path/span/help values above are unchanged. Static
+text is borrowed; no replacement String or Vec is constructed at outward
+compatibility conversion. The opaque Published carrier alone supplies the
+preowned report and ledger, and every new transfer tuple/CoreFailure/ledger-wrapper/reference
+receiver is acquired by the same attempt before core work. A unit producer updates the existing Err payload; it does
+not construct another Diagnostic-bearing Result. Successful attempts
+still drop all unused backing without refund. Floors, sticky first refusal,
+and the original sticky G171 sealing branch retain their meanings.
+
+The existing public Vec adapter and Failure One-to-Vec body remain complete and
+unchanged. Initial report-owner acquisition failure, foreign/unreceived primary,
+LegacyMany, and exceptional non-sticky Budget publication remain explicitly
+unfunded compatibility residuals. Budget help can change during the core; this
+successor does not substitute an earlier help snapshot. A detached or sticky
+owner cannot use this new non-sticky publication method. Whole OPT825 remains
+OPEN. No cap, allowance, public API, or measured efficiency claim is introduced.
+
+The complete preceding report and attempt are compiled independently with only
+lexical child path registrations adapted. The unchanged receiving enum/common
+legacy conversion is shared; its new sealed transfer method is not invoked by
+the old attempt. Focused authored controls compare all six fields, whole old/new
+Drop, zero/exact/short and sticky refusal, floor and foreign/restored identity,
+post-restoration zero-allocation transfer under an unfunded foreign payer, and
+the real remaining dynamic/Many compatibility routes. They are source-only
+until the parent records their actual qualification.

@@ -1,0 +1,12 @@
+{
+  "status": "AUTHORED_UNEXECUTED",
+  "harness": "semaprax --lib",
+  "selectors": [
+    "workspace_graph::constructor_failure::publication_tests::preowned_setup_whole_old_current_all_six_fields_and_full_drop_match",
+    "workspace_graph::constructor_failure::publication_tests::preowned_setup_public_conversion_after_restore_allocates_nothing_and_never_queries_foreign_payer",
+    "workspace_graph::constructor_failure::publication_tests::preowned_setup_exact_short_zero_and_sticky_keep_primary_and_do_not_enter_core",
+    "workspace_graph::constructor_failure::publication_tests::preowned_setup_foreign_restored_and_floor_paths_keep_affine_authority",
+    "workspace_graph::constructor_failure::publication_tests::preowned_setup_dynamic_budget_and_legacy_many_remain_explicit_residuals",
+    "workspace_graph::constructor_failure::publication_tests::preowned_setup_complete_old_public_conversions_and_compiled_report_attempt_remain_exact"
+  ]
+}
